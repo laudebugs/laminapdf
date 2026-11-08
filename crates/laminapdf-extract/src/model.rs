@@ -162,6 +162,36 @@ pub struct Block {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Vec::is_empty"))]
     #[cfg_attr(feature = "schema", schemars(default))]
     pub cells: Vec<Cell>,
+    /// For a table that goes on from the page before: the ID of the part it continues.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(feature = "schema", schemars(default))]
+    pub continues: Option<String>,
+    /// For a table that goes on over the page break: the ID of the part on the next page.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(feature = "schema", schemars(default))]
+    pub continued_by: Option<String>,
+}
+
+impl Block {
+    /// Whether this block is the part of a table that `before`, the block just before it,
+    /// goes on in. A renderer joins the two only then, so a list of blocks with a part cut
+    /// out still renders whole tables.
+    #[must_use]
+    pub fn continues_from(&self, before: &Self) -> bool {
+        self.continues.as_deref() == Some(before.id.as_str())
+    }
+}
+
+/// How many rows at the top of a table are header rows: rows whose every cell is a header.
+pub(crate) fn header_row_count(cells: &[Cell]) -> usize {
+    let mut row = 0;
+    loop {
+        let mut in_row = cells.iter().filter(|c| c.row == row).peekable();
+        if in_row.peek().is_none() || !in_row.all(|c| c.header) {
+            return row;
+        }
+        row += 1;
+    }
 }
 
 /// One cell of a table block.

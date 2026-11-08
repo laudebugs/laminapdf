@@ -13,7 +13,7 @@ use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
 use crate::page::{PageInput, TreeUse};
-use crate::tables::{Collector, TableMode};
+use crate::tables::{Collector, TableMode, across};
 use crate::tagged::TaggedIndex;
 use crate::visibility::Backdrops;
 use crate::{furniture, headings, lists};
@@ -144,6 +144,7 @@ fn finish(out: &mut Extraction, options: &ExtractOptions) {
             block.id = format!("p{}-b{n}", block.page);
         }
     }
+    across::link(out);
 }
 
 impl ExtractJob {

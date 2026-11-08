@@ -14,7 +14,14 @@ pub use json::json_schema;
 pub use json::{JsonOptions, chunks_jsonl, to_json};
 pub use markdown::MarkdownOptions;
 
-use crate::model::{BlockKind, Extraction};
+use crate::model::{Block, BlockKind, Extraction, header_row_count};
+
+/// For each block, whether it is a table part that goes on from the block just before it.
+fn joins(blocks: &[Block]) -> Vec<bool> {
+    (0..blocks.len())
+        .map(|i| i > 0 && blocks.get(i).zip(blocks.get(i - 1)).is_some_and(|(b, a)| b.continues_from(a)))
+        .collect()
+}
 
 /// Where a piece of text sits in a rendering, in Unicode scalar values (`char`s), `start`
 /// inclusive and `end` exclusive. Code points, not bytes or UTF-16 units, so Python slices a
@@ -104,16 +111,24 @@ impl Extraction {
     }
 
     /// The blocks' text in reading order, a blank line between blocks; a list item starts with
-    /// its marker, and a table is its rows, a tab between cells.
+    /// its marker, and a table is its rows, a tab between cells. A table that goes on over a
+    /// page break is one table: each later part's rows follow on the next line, without the
+    /// header rows it repeats.
     #[must_use]
     pub fn to_text(&self) -> Rendered {
         let mut w = Writer::default();
+        let joined = joins(&self.blocks);
         for (i, block) in self.blocks.iter().enumerate() {
+            let joined = joined.get(i).copied().unwrap_or(false);
             if i > 0 {
-                w.push("\n\n");
+                w.push(if joined { "\n" } else { "\n\n" });
             }
             match &block.kind {
                 BlockKind::ListItem { marker, .. } => w.block(&format!("{marker} {}", block.text)),
+                BlockKind::Table { .. } if joined => {
+                    let skip = header_row_count(&block.cells);
+                    w.block(&block.text.split('\n').skip(skip).collect::<Vec<_>>().join("\n"));
+                }
                 _ => w.block(&block.text),
             }
         }

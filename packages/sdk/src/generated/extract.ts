@@ -138,6 +138,10 @@ export type JsonBlock = {
   cells?: Cell[];
   /** In [0, 1]: 1 for structure from the tree, lower for structure inferred from layout. */
   confidence: number;
+  /** For a table that goes on over the page break: the ID of the part on the next page. */
+  continuedBy?: string | null;
+  /** For a table that goes on from the page before: the ID of the part it continues. */
+  continues?: string | null;
   /** `p<page index>-b<position in the page's reading order>`. */
   id: string;
   /** The page index. */

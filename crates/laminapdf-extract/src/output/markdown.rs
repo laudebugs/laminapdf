@@ -4,8 +4,8 @@
 
 use std::fmt::Write as _;
 
-use super::{Rendered, Writer};
-use crate::model::{Block, BlockKind, Cell, Extraction};
+use super::{Rendered, Writer, joins};
+use crate::model::{Block, BlockKind, Cell, Extraction, header_row_count};
 
 /// How Markdown is written.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -34,11 +34,15 @@ pub(super) fn render(extraction: &Extraction, options: MarkdownOptions) -> Rende
     let mut w = Writer::default();
     let mut page = None;
     let mut list = ListIndent::default();
+    let parts = parts(&extraction.blocks);
     for (i, block) in extraction.blocks.iter().enumerate() {
+        let part = parts.get(i).copied().unwrap_or_default();
         if i > 0 {
-            w.push("\n\n");
+            // A table part that goes on from the block before follows it on the next line.
+            w.push(if part.joined_before { "\n" } else { "\n\n" });
         }
-        if options.page_markers && page != Some(block.page) {
+        // A page that opens with the rest of a table gets its marker after that part.
+        if options.page_markers && page != Some(block.page) && !part.joined_before {
             let number = extraction
                 .pages
                 .iter()
@@ -47,9 +51,46 @@ pub(super) fn render(extraction: &Extraction, options: MarkdownOptions) -> Rende
             w.push(&format!("<!-- page {number} -->\n\n"));
             page = Some(block.page);
         }
-        w.block(&block_markdown(block, &mut list));
+        w.block(&block_markdown(block, &mut list, part));
     }
     w.finish()
+}
+
+/// Where a table part sits in its chain of parts over page breaks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct Part {
+    /// It goes on from the block before.
+    joined_before: bool,
+    /// The block after goes on from it.
+    joined_after: bool,
+    /// Some part of the chain has a spanning cell, so the whole chain is one HTML table.
+    html: bool,
+}
+
+/// Each block's place in its chain (a block outside any chain is a chain of one).
+fn parts(blocks: &[Block]) -> Vec<Part> {
+    let joined = joins(blocks);
+    let mut parts: Vec<Part> = (0..blocks.len())
+        .map(|i| Part {
+            joined_before: joined.get(i).copied().unwrap_or(false),
+            joined_after: joined.get(i + 1).copied().unwrap_or(false),
+            html: false,
+        })
+        .collect();
+    let mut start = 0;
+    for end in 0..blocks.len() {
+        if parts.get(end).is_some_and(|p| p.joined_after) {
+            continue;
+        }
+        let spans = blocks
+            .get(start..=end)
+            .unwrap_or_default()
+            .iter()
+            .any(|b| b.cells.iter().any(|c| c.row_span > 1 || c.col_span > 1));
+        parts.get_mut(start..=end).unwrap_or_default().iter_mut().for_each(|p| p.html = spans);
+        start = end + 1;
+    }
+    parts
 }
 
 /// Where each open level of a list puts its text, in spaces: `CommonMark` nests an item under
@@ -69,7 +110,7 @@ impl ListIndent {
     }
 }
 
-fn block_markdown(block: &Block, list: &mut ListIndent) -> String {
+fn block_markdown(block: &Block, list: &mut ListIndent, part: Part) -> String {
     if !matches!(block.kind, BlockKind::ListItem { .. }) {
         list.columns.clear();
     }
@@ -83,7 +124,7 @@ fn block_markdown(block: &Block, list: &mut ListIndent) -> String {
             let indent = " ".repeat(list.item(usize::from(*depth), marker));
             format!("{indent}{marker} {}", escape_inline(&block.text))
         }
-        BlockKind::Table { rows, cols, .. } => table(&block.cells, *rows, *cols),
+        BlockKind::Table { rows, cols, .. } => table(&block.cells, *rows, *cols, part),
         _ => escape_block(&block.text),
     }
 }
@@ -134,10 +175,13 @@ fn escape_block(text: &str) -> String {
     format!("\\{inline}")
 }
 
-/// A table: a pipe table when no cell spans, else HTML (pipe tables can't span).
-fn table(cells: &[Cell], rows: usize, cols: usize) -> String {
-    if cells.iter().any(|c| c.row_span > 1 || c.col_span > 1) {
-        return html_table(cells, rows);
+/// A table: a pipe table when no cell of its chain spans, else HTML (pipe tables can't span).
+/// A part that goes on from the one before writes its rows without its header rows, and
+/// without the pipe table's header line or the HTML table's opening tag.
+fn table(cells: &[Cell], rows: usize, cols: usize, part: Part) -> String {
+    let skip = if part.joined_before { header_row_count(cells) } else { 0 };
+    if part.html || cells.iter().any(|c| c.row_span > 1 || c.col_span > 1) {
+        return html_table(cells, rows, skip, part);
     }
     let mut grid = vec![vec![String::new(); cols]; rows];
     for cell in cells {
@@ -147,9 +191,11 @@ fn table(cells: &[Cell], rows: usize, cols: usize) -> String {
     }
     let line = |row: &[String]| format!("| {} |", row.join(" | "));
     let mut out = Vec::with_capacity(rows + 1);
+    let mut rows_iter = grid.iter().skip(skip);
     // Pipe tables need a header row: the first row, header or not.
-    let mut rows_iter = grid.iter();
-    if let Some(first) = rows_iter.next() {
+    if !part.joined_before
+        && let Some(first) = rows_iter.next()
+    {
         out.push(line(first));
         out.push(format!("|{}|", vec![" --- "; cols].join("|")));
     }
@@ -157,10 +203,13 @@ fn table(cells: &[Cell], rows: usize, cols: usize) -> String {
     out.join("\n")
 }
 
-fn html_table(cells: &[Cell], rows: usize) -> String {
-    let mut out = String::from("<table>\n");
-    for row in 0..rows {
-        out.push_str("<tr>");
+fn html_table(cells: &[Cell], rows: usize, skip: usize, part: Part) -> String {
+    let mut lines = Vec::with_capacity(rows + 2);
+    if !part.joined_before {
+        lines.push("<table>".to_owned());
+    }
+    for row in skip..rows {
+        let mut out = String::from("<tr>");
         for cell in cells.iter().filter(|c| c.row == row) {
             let tag = if cell.header { "th" } else { "td" };
             out.push('<');
@@ -175,10 +224,13 @@ fn html_table(cells: &[Cell], rows: usize) -> String {
             out.push_str(&escape_html(&cell.text));
             let _ = write!(out, "</{tag}>");
         }
-        out.push_str("</tr>\n");
+        out.push_str("</tr>");
+        lines.push(out);
     }
-    out.push_str("</table>");
-    out
+    if !part.joined_after {
+        lines.push("</table>".to_owned());
+    }
+    lines.join("\n")
 }
 
 fn escape_html(text: &str) -> String {
@@ -189,7 +241,7 @@ fn escape_html(text: &str) -> String {
 mod tests {
     use laminapdf_model::{Pt, RectPt};
 
-    use super::{escape_block, escape_inline, list_marker, table};
+    use super::{Part, escape_block, escape_inline, list_marker, table};
     use crate::model::Cell;
 
     fn cell(row: usize, col: usize, text: &str, span: (usize, usize)) -> Cell {
@@ -228,7 +280,24 @@ mod tests {
             cell(1, 0, "1", (1, 1)),
             cell(1, 1, "2", (1, 1)),
         ];
-        assert_eq!(table(&cells, 2, 2), "| A | B\\|C |\n| --- | --- |\n| 1 | 2 |");
+        assert_eq!(table(&cells, 2, 2, ALONE), "| A | B\\|C |\n| --- | --- |\n| 1 | 2 |");
+    }
+
+    const ALONE: Part = Part {
+        joined_before: false,
+        joined_after: false,
+        html: false,
+    };
+
+    #[test]
+    fn a_continuing_part_writes_its_rows_without_its_repeated_header() {
+        let cells = [cell(0, 0, "Item", (1, 1)), cell(1, 0, "Jam", (1, 1))];
+        let pipe = Part { joined_before: true, ..ALONE };
+        assert_eq!(table(&cells, 2, 1, pipe), "| Jam |");
+        let first = Part { joined_after: true, html: true, ..ALONE };
+        assert_eq!(table(&cells, 2, 1, first), "<table>\n<tr><th>Item</th></tr>\n<tr><td>Jam</td></tr>");
+        let last = Part { joined_before: true, html: true, ..ALONE };
+        assert_eq!(table(&cells, 2, 1, last), "<tr><td>Jam</td></tr>\n</table>");
     }
 
     #[test]
@@ -239,7 +308,7 @@ mod tests {
             cell(1, 1, "2", (1, 1)),
         ];
         assert_eq!(
-            table(&cells, 2, 2),
+            table(&cells, 2, 2, ALONE),
             "<table>\n<tr><th colspan=\"2\">Both</th></tr>\n<tr><td>a &lt; b</td><td>2</td></tr>\n</table>"
         );
     }

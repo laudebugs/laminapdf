@@ -506,6 +506,8 @@ fn text_block(
         spans,
         confidence,
         cells: Vec::new(),
+        continues: None,
+        continued_by: None,
     }
 }
 
@@ -526,5 +528,7 @@ fn table_block(id: String, table: &Table, spans: &[Span], info: &ExtractedPage) 
         spans: spans.to_vec(),
         confidence: table.confidence,
         cells: table.cells.clone(),
+        continues: None,
+        continued_by: None,
     }
 }
