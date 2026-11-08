@@ -8,7 +8,7 @@ The gallery shows every Paper token, icon and `@laminapdf/ui` component in each 
 cargo xtask gallery
 ```
 
-The command builds the token, icon and font packages, then serves the gallery with Vite's dev server. The index page lists every route. The bar at the top switches the UI theme, the page appearance, the density, the text direction and the motion setting, and each choice goes into the URL:
+The command builds the token, icon and font packages, then serves the gallery with Vite's dev server. The index page lists every route. Each choice in the bar at the top goes into the URL: the UI theme, the page appearance, the density, the text direction and the motion setting.
 
 ```text
 http://localhost:5173/?route=buttons&theme=dark&density=touch&dir=rtl
@@ -24,7 +24,7 @@ The states each route shows come from `@laminapdf/ui/testing`, the same list the
 cargo xtask gallery --test
 ```
 
-The tests run in Docker, in the Playwright image pinned in `package.json` (`config.playwrightImage`, kept equal to the installed `@playwright/test` version by a test). Fonts, browsers and their rasterisation are then the same on every machine, so screenshots match pixel for pixel. There are three specs:
+The tests run in Docker, in the Playwright image pinned in `package.json` (`config.playwrightImage`; a test fails when it differs from the installed `@playwright/test` version). Fonts, browsers and their rasterisation are then the same on every machine, so screenshots match pixel for pixel. There are three specs:
 
 - `e2e/visual.spec.ts` screenshots every route in Chromium. It covers each UI theme, the touch density at a 390 px phone width, forced colours and right to left, plus every page appearance for page-related routes.
 - `e2e/a11y.spec.ts` runs axe on every route in every theme, in Chromium, Firefox and WebKit, and expects no violations.
@@ -44,8 +44,8 @@ Without Docker, run the **Update gallery screenshots** workflow from the reposit
 
 ## Review screenshot changes
 
-GitHub shows a changed PNG as an image diff: open the file in the pull request's **Files changed** tab and switch between **2-up**, **Swipe** and **Onion skin**. Check that every changed image follows from the pull request's change, in every theme it touches. A change that affects only one theme, or images on routes the pull request didn't mean to touch, is a bug to fix before merging.
+GitHub shows a changed PNG as an image diff: open the file in the pull request's **Files changed** tab and switch between **2-up**, **Swipe** and **Onion skin**. Check that every changed image follows from the pull request's change, in every theme it touches. Images that change on routes the pull request didn't mean to touch, or in themes its change shouldn't reach, point to a bug: fix it before merging.
 
 ## When a screenshot is flaky
 
-A screenshot that differs between two runs of the same commit is a flaky test, and [ADR 0018 §4](../../docs/decisions/0018-test-strategy.md#4-flaky-tests) treats it as a bug. Quarantine it within a day: mark its test with `test.fixme()` and a comment that links the issue, then fix or delete it within two weeks. Don't raise `maxDiffPixels` to hide the difference. Every comparison starts at zero pixels, and any change to that number needs a recorded reason.
+A screenshot that differs between two runs of the same commit is a flaky test, and [ADR 0018 §4](../../docs/decisions/0018-test-strategy.md#4-flaky-tests) treats it as a bug. Quarantine it within a day: mark its test with `test.fixme()` and a comment that links the issue, then fix or delete it within two weeks. Don't raise `maxDiffPixels` to hide the difference. Every comparison allows zero differing pixels at a colour threshold of zero, and any change to either number needs a recorded reason.
