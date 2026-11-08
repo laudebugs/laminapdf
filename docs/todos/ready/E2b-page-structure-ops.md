@@ -45,6 +45,7 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 - Pages from other documents, replace, extract → [E2c](E2c-cross-document-pages.md)
 - Merge and split → [E2d](E2d-merge-and-split.md)
 - Thumbnail UI → [E2h](E2h-page-organiser-ui.md)
+- The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](./T6a-cli-page-commands.md)
 
 **Editor facts**
 

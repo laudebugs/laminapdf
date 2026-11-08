@@ -19,6 +19,7 @@ The short feature-plan PR that opens round E12 ([full-editor §E12](../../plans/
 
 ## Context
 
+- [Hacker News research R2](../../research/hacker-news/pdf-users-on-hacker-news.md#r2-ship-real-redaction-and-catch-fake-redaction-in-any-file): redaction comments rose from 2.8 to 8.0 per 1,000 editor comments in 2023–26; earlier revisions leak through incremental saves; [T2a](./T2a-covered-text-flag.md) and [T2b](./T2b-check-failed-redactions.md) detect failed redactions in other people's files
 - [full-editor §E12](../../plans/full-editor.md#e12-redaction): the round as planned (ships, crates, save, web vs desktop)
 - [06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) and [06 §7](../../research/pdf/06-feature-inventory.md#7-difficulty-map): mechanism and difficulty of each operation in scope
 - [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix) and [§5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round): capability-matrix statuses and the requirements every round meets
