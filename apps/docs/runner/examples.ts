@@ -4,14 +4,14 @@
 // worker (worker.ts) serves them as its own assets.
 
 /** One input: a file's bytes, or its JSON parsed. */
-export interface FileInput {
+interface FileInput {
   /** The path from the repository root, as the test suite names it. */
   readonly file: string;
   readonly as: "bytes" | "json";
 }
 
 /** The fixed `BuilderOptions` the suite passes (its `exampleOptions(id)`), so the bytes are the golden's. */
-export interface OptionsInput {
+interface OptionsInput {
   /** The file ID, 16 ASCII characters. */
   readonly options: string;
 }

@@ -191,7 +191,8 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// React `<Icon>` and gallery (U6c), `@laminapdf/ui`'s components (U6d), `@laminapdf/site-kit`'s site
 /// header (W1d: keyboard order, the current page, phone width, axe), and the reader app (`apps/web`,
 /// C4b): typechecked and built over the packages above, then its e2e suite against `wrangler dev`
-/// (headers, local files opened four ways, CSP violations and other origins). They record no measurements.
+/// (headers, local files opened four ways, CSP violations and other origins), and the docs site's
+/// "Edit and run" (B7e: built, then its e2e suite). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::web::packages(ws)?;
     for package in [
@@ -216,6 +217,15 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         &ws.root,
         "pnpm",
         &["--filter", "@laminapdf/web", "run", "e2e"],
+        &[("LAMINA_PDF_E2E_BROWSER", browser)],
+    )?;
+    // The docs site's "Edit and run" (B7e): its build makes the example runner from the same
+    // WebAssembly, then its e2e suite runs the six examples against `wrangler dev`.
+    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/docs", "run", "build"])?;
+    crate::run_env(
+        &ws.root,
+        "pnpm",
+        &["--filter", "@laminapdf/docs", "run", "e2e"],
         &[("LAMINA_PDF_E2E_BROWSER", browser)],
     )
 }
