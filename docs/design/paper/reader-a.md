@@ -47,9 +47,11 @@ Conventions on every board in this area:
 
 **Platform differences.** *Web:* drawn. *Desktop:* replaced by the start window (S01) with OS recent files and thumbnails. *Phone* (drawn): the home screen is the one phone screen without a document, so its top bar shows the left-aligned wordmark (Newsreader 20/500) and More instead of the centred title and Back of the reading shell; full-width 48 px **Choose a file** and **Open from URL** (the URL form opens as a sheet); recent rows 64 px; the privacy line sits at the bottom and leads with “0 network requests.”; no drop zone, no bottom bar until a file is open. *Tablet:* the web layout with 44 px targets.
 
+**As built ([C4b](../../todos/done/C4b-web-app-shell.md)).** The first web reader ships the heading, the drop zone with its drag-over overlay and refusal, Choose a file, paste, and the privacy line's first sentence. The other parts come with the todos that give them something to show: Open from URL with [C4c](../../todos/ready/C4c-remote-files-encryption-privacy.md), the Recent list with [C7b](../../todos/ready/C7b-offline-pwa.md), the Commands button with [U1b](../../todos/done/U1b-command-registry-and-palette.md), and the network indicator, the privacy line's second sentence and its link with [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md).
+
 **Artboards.** `R01-home.dc.html`, `R01-home-phone.dc.html`, `R01-open-url-blocked.dc.html`.
 
-**Todos.** [C4b](../../todos/ready/C4b-web-app-shell.md), [C4c](../../todos/ready/C4c-remote-files-encryption-privacy.md); recent files need [C7b](../../todos/ready/C7b-offline-pwa.md).
+**Todos.** [C4b](../../todos/done/C4b-web-app-shell.md), [C4c](../../todos/ready/C4c-remote-files-encryption-privacy.md); recent files need [C7b](../../todos/ready/C7b-offline-pwa.md).
 
 ## R02 Loading states
 
@@ -144,7 +146,7 @@ Codes come from `fixtures/codes.json`; each code has one plain sentence in the U
 
 **Artboards.** `R04-repaired.dc.html`, `R04-unrecoverable.dc.html`.
 
-**Todos.** [C4b](../../todos/ready/C4b-web-app-shell.md).
+**Todos.** [C4b](../../todos/done/C4b-web-app-shell.md).
 
 ## R05 Find in document
 

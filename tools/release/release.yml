@@ -7,14 +7,14 @@
 #   guard           refuses to go on unless the latest completed full nightly.yml run on main
 #                   (scheduled, or dispatched with every input at its default) succeeded on the release commit or an ancestor (`cargo xtask release-guard`), and checks that a tag names the version
 #                   (`cargo xtask version check-tag`); `--version-only` sets `nightly` to `skip` when
-#                   the release commit adds only a version bump to the commit that nightly tested
+#                   the release commit adds only the version bump and packaged docs to the commit that nightly tested
 #   fast            the fast lane: `cargo xtask check` (with `version sync --check`) and `size`,
 #                   over `cargo xtask wasm` (which runs publint and attw on @laminapdf/sdk)
 #   full suites     the full lane's: the full differential set, every fuzz target, the round
 #                   trip, the examples and render goldens, the capability matrix, @laminapdf/sdk in
 #                   every runtime, and `cargo xtask check` on Linux while that runner is on
 #   nightly         nightly.yml itself, called as a reusable workflow on the release commit, unless
-#                   the guard found a version-only commit on top of a nightly-passed one
+#                   the guard found only release-generated changes on top of a nightly-passed commit
 #   verify-install  `cargo xtask verify-install`: the `pnpm pack` tarballs and the `laminapdf` crate
 #                   (path and git dependencies, the git one pinned to the tag) in clean projects
 #                   outside the checkout: Node 22, 24 and 26, Deno, Bun, Chromium (a Vite app),
@@ -127,8 +127,8 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: false
-      # --version-only: `nightly=skip` when HEAD adds only a version bump to the commit that
-      # nightly tested (the daily release's commits), so the lane doesn't run it again.
+      # --version-only: `nightly=skip` when HEAD adds only the version bump and packaged docs to
+      # the commit that nightly tested, so the lane doesn't run it again.
       - name: Refuse unless the latest full nightly on main is green on an ancestor
         id: guard
         env:
@@ -449,8 +449,8 @@ jobs:
           # shellcheck disable=SC2086 # RUNTIMES is a space-separated list.
           cargo xtask verify-install $RUNTIMES --git-ref "$GIT_REF" --git-url "file://$GITHUB_WORKSPACE"
 
-  # The checks' result: every job passed (check-linux may be skipped while that runner is off, and
-  # nightly when the guard found the release commit is only a version bump on a nightly-tested one).
+  # The checks' result: every job passed. Check-linux may be skipped while that runner is off, and
+  # nightly when the guard proved the commit adds only generated release changes to a tested one.
   # The publish jobs below need it.
   release:
     name: Release checks passed
@@ -520,8 +520,9 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: false
-      # `publish crates` writes the crate's docs/ with apps/docs/scripts/package-docs.mjs, which
-      # imports @laminapdf/site-kit from the pnpm workspace.
+      # `publish crates` regenerates the crate's docs/ with apps/docs/scripts/package-docs.mjs,
+      # which imports @laminapdf/site-kit from the pnpm workspace. On a release commit the output
+      # equals the committed snapshot, so Cargo publishes a clean tree.
       - uses: ./.github/actions/node-pnpm
       - name: Get a crates.io token (trusted publishing)
         if: github.event_name == 'push' && github.ref_type == 'tag'

@@ -1,0 +1,44 @@
+{
+  "name": "@laminapdf/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lamina PDF's web reader: @laminapdf/ui's chrome around @laminapdf/viewer, a Vite single-page app served as Cloudflare Workers static assets with strict headers and no server routes (ADR 0011).",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "wrangler dev --local --port 8788",
+    "test": "vitest run -c vitest.config.ts",
+    "typecheck:wasm": "tsc --noEmit -p tsconfig.json",
+    "e2e": "vitest run -c vitest.e2e.config.ts"
+  },
+  "dependencies": {
+    "@embedpdf/pdfium": "2.15.1",
+    "@laminapdf/fonts": "workspace:*",
+    "@laminapdf/tokens": "workspace:*",
+    "@laminapdf/ui": "workspace:*",
+    "@laminapdf/viewer": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@babel/core": "catalog:",
+    "@laminapdf/test-utils": "workspace:*",
+    "@rolldown/plugin-babel": "catalog:",
+    "@types/babel__core": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "babel-plugin-react-compiler": "catalog:",
+    "playwright": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
+  }
+}

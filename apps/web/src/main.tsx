@@ -1,0 +1,42 @@
+// The reader's entry: the Paper tokens, fonts and components' styles, the first paint's font
+// preloaded, one platform and one engine for the page, and the app rendered into #app. The engine
+// starts loading the render backend at once, while the user picks a file.
+
+import "@laminapdf/tokens/tokens.css";
+import "@laminapdf/fonts/fonts.css";
+import "@laminapdf/ui/styles.css";
+import "./app.css";
+import { FONT_PRELOADS } from "@laminapdf/fonts";
+import { createWebPlatform, PlatformProvider } from "@laminapdf/ui";
+import { createRoot } from "react-dom/client";
+import { App } from "./app.tsx";
+import { wantsDebug } from "./document.ts";
+import { Engine } from "./session.ts";
+
+for (const font of FONT_PRELOADS) {
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = "font";
+  link.type = font.type;
+  link.crossOrigin = "";
+  link.href = font.href;
+  document.head.append(link);
+}
+
+// React Aria inserts a <style> element for pressable elements unless one with this ID exists, and the
+// CSP (style-src 'self') blocks inline styles: so the element is claimed here and app.css carries
+// its rule. A newer React Aria that renames the ID shows up as a CSP violation in the e2e suite.
+const pressable = document.createElement("meta");
+pressable.id = "react-aria-pressable-style";
+document.head.append(pressable);
+
+const root = document.getElementById("app");
+if (root === null) throw new Error("index.html has no #app");
+// One platform for the page: two would each open the recent-files store and take the launch queue.
+const platform = createWebPlatform();
+const engine = new Engine(platform, "pdfium");
+createRoot(root).render(
+  <PlatformProvider platform={platform}>
+    <App engine={engine} platform={platform} debug={wantsDebug(location.hash)} />
+  </PlatformProvider>,
+);

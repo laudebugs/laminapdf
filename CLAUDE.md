@@ -130,6 +130,12 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/SiteHeader.astro, SiteNav.astro (the links alone) + header.css (sized per site by CSS variables); test/ (Node), test/browser/ (the
 │                        #   header rendered by Astro's container in a global setup, then Chromium, Firefox, WebKit: tab order,
 │                        #   current underline, phone width, axe; run by `cargo xtask pdf-runtimes`); README.md
+├── apps/web/            # the web reader (C4b; ADRs 0009, 0010, 0011): a Vite 8 single-page app (React Compiler) of @laminapdf/ui's
+│                        #   chrome around @laminapdf/viewer: src/session.ts (the engine: the document worker started at load, opens,
+│                        #   warnings, the #debug backend switch), src/app.tsx, src/document.ts (window title, repair list; Node tests);
+│                        #   wrangler.jsonc (lamina-pdf-web, static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
+│                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
+│                        #   origin), run by `cargo xtask pdf-runtimes <browser>`; README.md
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
@@ -282,7 +288,8 @@ cargo xtask size             # raw/gzip/brotli of each module, min+gzip glue and
 cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--label <name>]  # @laminapdf/sdk's example suite per runtime (default
                              #   all; after `wasm`): byte-identical to the goldens; hello/report timings and WebAssembly memory
                              #   vs pdf-library §4 in the job summary (recorded, not asserted); `node` is the one on PATH;
-                             #   Deno, Bun, wrangler and Playwright are dev deps (`playwright install` runs first);
+                             #   Deno, Bun, wrangler and Playwright are dev deps (`playwright install` runs first); a browser
+                             #   also runs the packages' browser tests and the reader's (apps/web) typecheck, build and e2e suite;
                              #   --history <dir> --runner <label> --record appends them to history.jsonl (nightly);
                              #   --label <name> writes measurements-<name>.json instead of measurements.json
 cargo xtask viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> --runner <label> [--record] [--dry-run]]
@@ -411,13 +418,16 @@ cargo xtask release-guard [--run <id>] [--commit <rev>] [--version-only]  # fail
                              #   $GITHUB_OUTPUT when <rev> adds only a version bump to the commit that run tested (the changelogs, consumed
                              #   changesets and pre-mode files, and lines in manifests, lockfiles and version.ts whose only change is
                              #   the old version swapped for the new), else nightly=run
+pnpm --filter @laminapdf/web dev     # the web reader (after `wasm` and the viewer's build:wasm; apps/web/README.md); `build`, then
+                             #   `preview` serves dist/ through `wrangler dev` with the production headers on port 8788
 pnpm --filter @laminapdf/site dev    # the website at localhost:4321; `build` writes apps/site/dist/ (noindex unless
                              #   LAMINA_PDF_ENV=production) and fails on a page that breaks the website's rules
 pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` writes apps/docs/dist/ (what deploys), with a
                              #   Markdown twin per page (`/install.md`), llms.txt and llms-full.txt; `test` runs plugins/ and scripts/ tests
 node apps/docs/scripts/package-docs.mjs <out-dir> [--api]  # the docs/ folder the packages ship: pages, code pages, AGENTS.md
                              #   (packages/sdk/examples/AGENTS.md), llms.txt, renames.json, schemas; --api adds the TypeDoc Markdown;
-                             #   @laminapdf/sdk's prepack runs it; `publish crates` writes crates/laminapdf/docs/ and checks
+                             #   @laminapdf/sdk's prepack runs it; `release prepare` commits crates/laminapdf/docs/ in the release tree,
+                             #   `publish crates` regenerates it (--allow-dirty only when it isn't committed as generated) and checks
                              #   `cargo package --list`, `publish npm-pack` checks the sdk tarball (tools/xtask/src/package_docs.rs)
 node tools/agent-eval/run.mjs [--tasks a,b] [--modes docs,no-docs] [--dry-run]  # the agent eval (after `publish npm-pack`;
                              #   ANTHROPIC_API_KEY from the environment); results in target/agent-eval/

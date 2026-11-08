@@ -1,5 +1,5 @@
 # Install as .github/workflows/release-train.yml (tools/release/README.md).
-# The bot pushes the version branch and tag together; only release.yml publishes.
+# The bot creates a GitHub-verified version commit, then its branch and tag; only release.yml publishes.
 name: Daily release
 
 on:
@@ -103,7 +103,7 @@ jobs:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write
-      - name: Push the version branch and tag together
+      - name: Publish the signed version commit and tag
         if: steps.version.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
@@ -111,7 +111,58 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          git tag "$TAG"
-          # Command-local credentials: no token in the URL, config or runner's credential store.
-          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' \
-            push --atomic origin "HEAD:refs/heads/$BRANCH" "refs/tags/$TAG:refs/tags/$TAG"
+          tree=$(git rev-parse 'HEAD^{tree}')
+          parent=$(git rev-parse 'HEAD^')
+          parent_tree=$(git rev-parse "$parent^{tree}")
+          # One tree request with each changed text file inline: a blob request per file would
+          # pass GitHub's 80-a-minute limit on content-creating requests (199 package-docs files).
+          entries="$RUNNER_TEMP/release-entries"
+          rm -rf "$entries" && mkdir "$entries"
+          count=0
+          while IFS= read -r -d '' path; do
+            mode=$(git --literal-pathspecs ls-tree HEAD -- "$path" | awk 'NR == 1 { print $1 }')
+            test -n "$mode"
+            git cat-file blob "HEAD:$path" > "$RUNNER_TEMP/release-file"
+            count=$((count + 1))
+            if ! LC_ALL=C grep -q $'\x00' "$RUNNER_TEMP/release-file" \
+              && iconv -f UTF-8 -t UTF-8 "$RUNNER_TEMP/release-file" > /dev/null 2>&1; then
+              jq -n --arg path "$path" --arg mode "$mode" --rawfile content "$RUNNER_TEMP/release-file" \
+                '{path: $path, mode: $mode, type: "blob", content: $content}' > "$entries/$count.json"
+            else
+              # Binary content can't go inline: upload it as a blob (rare in a release commit).
+              base64 < "$RUNNER_TEMP/release-file" | tr -d '\n' > "$RUNNER_TEMP/release-file.b64"
+              blob=$(jq -n --rawfile content "$RUNNER_TEMP/release-file.b64" \
+                '{content: $content, encoding: "base64"}' \
+                | gh api --method POST "repos/$GITHUB_REPOSITORY/git/blobs" --input - \
+                | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
+              jq -n --arg path "$path" --arg mode "$mode" --arg sha "$blob" \
+                '{path: $path, mode: $mode, type: "blob", sha: $sha}' > "$entries/$count.json"
+            fi
+          done < <(git diff --no-renames --name-only --diff-filter=ACMRTUXB -z "$parent" HEAD)
+          while IFS= read -r -d '' path; do
+            mode=$(git --literal-pathspecs ls-tree "$parent" -- "$path" | awk 'NR == 1 { print $1 }')
+            test -n "$mode"
+            count=$((count + 1))
+            jq -n --arg path "$path" --arg mode "$mode" \
+              '{path: $path, mode: $mode, type: "blob", sha: null}' > "$entries/$count.json"
+          done < <(git diff --no-renames --name-only --diff-filter=D -z "$parent" HEAD)
+          test "$count" -gt 0
+          # The tree GitHub builds must be the one prepared here, byte for byte.
+          signed_tree=$(jq -s --arg base_tree "$parent_tree" '{base_tree: $base_tree, tree: .}' "$entries"/*.json \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/git/trees" --input - \
+            | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
+          test "$signed_tree" = "$tree"
+          signed_sha=$(jq -n --arg message "release: $TAG" --arg tree "$signed_tree" --arg parent "$parent" \
+            '{message: $message, tree: $tree, parents: [$parent]}' \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/git/commits" --input - \
+            | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
+          signed=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$signed_sha")
+          test "$(jq -er .tree.sha <<< "$signed")" = "$tree"
+          test "$(jq -er 'if (.parents | length) == 1 then .parents[0].sha else empty end' <<< "$signed")" = "$parent"
+          jq -e '.verification.verified == true and .verification.reason == "valid"' <<< "$signed" >/dev/null
+
+          # A signing or verification failure leaves no refs, so the release lane cannot start.
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            --raw-field ref="refs/heads/$BRANCH" --raw-field sha="$signed_sha" >/dev/null
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            --raw-field ref="refs/tags/$TAG" --raw-field sha="$signed_sha" >/dev/null

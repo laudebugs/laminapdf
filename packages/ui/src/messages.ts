@@ -43,11 +43,14 @@ const EN = {
   "reader.open.drop": "Drop a PDF anywhere in this window",
   "reader.open.paste": "or paste one with",
   "reader.open.choose": "Choose a file",
+  "reader.open.privacy": "Lamina PDF reads PDFs inside this browser tab and has no upload server.",
+  "reader.rotate": "Rotate clockwise",
   "reader.open.dropping": "Drop to open the PDF",
   "reader.open.notPdf": "That isn't a PDF. Lamina PDF opens PDF files only.",
   "reader.open.unreadable":
     "That file couldn't be read. It may have moved, or this browser may have lost access to it.",
   "repair.title": "Repaired on open",
+  "repair.details": "Details",
   "repair.close": "Close repair details",
   "repair.notice.title": "This file is damaged.",
   "repair.notice.body":
