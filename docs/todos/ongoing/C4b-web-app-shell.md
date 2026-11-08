@@ -11,7 +11,7 @@
 | Branch | `feat/c4b-web-app-shell` |
 | PR title | `feat(web): add the web reader app on workers static assets with local file opening` |
 | Size | L (600–1,500 lines incl. config and Playwright tests) |
-| PR | — |
+| PR | [#291](https://github.com/laudebugs/laminapdf/pull/291) |
 
 ## Goal
 
