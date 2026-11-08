@@ -1,6 +1,6 @@
 {
   "//": "The runner's worker, typechecked by scripts/build-runner.mjs once the SDK and hayro are built; the site's typecheck leaves it out (../tsconfig.json).",
   "extends": "../tsconfig.json",
-  "include": ["../src/env.d.ts", "../.astro/types.d.ts", "./*.ts"],
+  "include": ["./*.ts"],
   "exclude": []
 }

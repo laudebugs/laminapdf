@@ -1,12 +1,15 @@
 // A site's e2e server: `wrangler dev --local` over its built dist/, on a free port, for a whole
 // Vitest run, over HTTPS. The sites' policies end in `upgrade-insecure-requests`, which WebKit
 // applies even to 127.0.0.1, so a plain-HTTP server would have every script refused there.
-// `getLocal` fetches from it, accepting Wrangler's self-signed certificate for those requests
-// alone; Node's own checks stay on for everything else. Used by apps/web's and apps/docs' e2e suites.
-import { type ChildProcess, spawn } from "node:child_process";
+// Each server gets a throwaway self-signed certificate for 127.0.0.1 (openssl), and `getLocal`
+// trusts that certificate alone: verification stays on. Used by apps/web's and apps/docs' e2e suites.
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import type { IncomingHttpHeaders } from "node:http";
 import { request } from "node:https";
 import { createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { env, kill } from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -19,10 +22,14 @@ function toHeaders(raw: IncomingHttpHeaders): Headers {
   return headers;
 }
 
-/** `GET url` from the local server, not following redirects, as a `Response`. */
-export function getLocal(url: URL): Promise<Response> {
+/**
+ * `GET url` from the local server, not following redirects, as a `Response`.
+ *
+ * @param ca the server's certificate (`WranglerDev.ca`), the one this request trusts
+ */
+export function getLocal(url: URL, ca: string): Promise<Response> {
   return new Promise((resolve, reject) => {
-    const req = request(url, { method: "GET", rejectUnauthorized: false }, (res) => {
+    const req = request(url, { method: "GET", ca }, (res) => {
       const chunks: Uint8Array<ArrayBuffer>[] = [];
       res.on("data", (chunk: Uint8Array<ArrayBuffer>) => chunks.push(chunk));
       res.on("end", () => {
@@ -53,12 +60,12 @@ function freePort(): Promise<number> {
 }
 
 /** Resolves once `origin` answers, or rejects after `limitMs` or if `child` exits first. */
-async function ready(origin: string, child: ChildProcess, limitMs: number): Promise<void> {
+async function ready(origin: string, ca: string, child: ChildProcess, limitMs: number): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < limitMs) {
     if (child.exitCode !== null) throw new Exited(`wrangler dev exited with ${child.exitCode}`);
     try {
-      if ((await getLocal(new URL(origin))).ok) return;
+      if ((await getLocal(new URL(origin), ca)).ok) return;
     } catch {
       // Not listening yet.
     }
@@ -67,9 +74,11 @@ async function ready(origin: string, child: ChildProcess, limitMs: number): Prom
   throw new Error(`wrangler dev didn't answer on ${origin} within ${limitMs} ms`);
 }
 
-/** A running server: its origin and how to stop it. */
+/** A running server: its origin, its certificate and how to stop it. */
 export interface WranglerDev {
   readonly origin: string;
+  /** The server's self-signed certificate (PEM), for `getLocal` and anything else that fetches from it. */
+  readonly ca: string;
   stop(): void;
 }
 
@@ -91,13 +100,59 @@ export async function wranglerDev(app: URL): Promise<WranglerDev> {
   }
 }
 
+/** A key and a self-signed certificate for 127.0.0.1, valid for a day, in a fresh folder. */
+function certificate(): { dir: string; key: string; cert: string } {
+  const dir = mkdtempSync(join(tmpdir(), "lamina-e2e-tls-"));
+  const key = join(dir, "key.pem");
+  const cert = join(dir, "cert.pem");
+  execFileSync(
+    "openssl",
+    [
+      "req",
+      "-x509",
+      "-newkey",
+      "ec",
+      "-pkeyopt",
+      "ec_paramgen_curve:prime256v1",
+      "-nodes",
+      "-keyout",
+      key,
+      "-out",
+      cert,
+      "-days",
+      "1",
+      "-subj",
+      "/CN=127.0.0.1",
+      "-addext",
+      "subjectAltName=IP:127.0.0.1",
+    ],
+    { stdio: "ignore" },
+  );
+  return { dir, key, cert };
+}
+
 async function start(app: URL, port: number): Promise<WranglerDev> {
+  const tls = certificate();
+  const ca = readFileSync(tls.cert, "utf8");
   // Wrangler's own binary, in a process group of its own: stopping the group stops the workerd it
   // starts too, which would otherwise outlive the run on a shared runner.
   const wrangler = fileURLToPath(new URL("node_modules/.bin/wrangler", app));
   const child = spawn(
     wrangler,
-    ["dev", "--local", "--local-protocol", "https", "--port", String(port), "--ip", "127.0.0.1"],
+    [
+      "dev",
+      "--local",
+      "--local-protocol",
+      "https",
+      "--https-key-path",
+      tls.key,
+      "--https-cert-path",
+      tls.cert,
+      "--port",
+      String(port),
+      "--ip",
+      "127.0.0.1",
+    ],
     {
       cwd: app,
       detached: true,
@@ -107,13 +162,14 @@ async function start(app: URL, port: number): Promise<WranglerDev> {
   );
   const stop = () => {
     if (child.pid !== undefined && child.exitCode === null) kill(-child.pid, "SIGTERM");
+    rmSync(tls.dir, { recursive: true, force: true });
   };
   const origin = `https://127.0.0.1:${port}`;
   try {
-    await ready(origin, child, 90_000);
+    await ready(origin, ca, child, 90_000);
   } catch (error) {
     stop();
     throw error;
   }
-  return { origin, stop };
+  return { origin, ca, stop };
 }

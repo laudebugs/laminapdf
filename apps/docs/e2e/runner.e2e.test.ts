@@ -16,6 +16,7 @@ const ROOT = new URL("../../", DOCS);
 const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
 const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
+const ca = inject("ca");
 
 /** The six runnable examples: their recipe page and their golden. */
 const EXAMPLES = [
@@ -91,12 +92,12 @@ async function edit(page: Page, text: string): Promise<void> {
 
 describe("headers", () => {
   it("the runner alone may eval", async () => {
-    const worker = await getLocal(new URL("/run/worker.js", origin));
+    const worker = await getLocal(new URL("/run/worker.js", origin), ca);
     expect(worker.status).toBe(200);
     expect(worker.headers.get("content-security-policy")).toBe(
       "default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'",
     );
-    const page = await getLocal(new URL("/recipes/hello/", origin));
+    const page = await getLocal(new URL("/recipes/hello/", origin), ca);
     const policy = page.headers.get("content-security-policy") ?? "";
     expect(policy).toContain("default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-");
     expect(policy).not.toContain("'unsafe-eval'");

@@ -28,6 +28,7 @@ const APP = new URL("../", import.meta.url);
 const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
 const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
+const ca = inject("ca");
 
 /** A built asset's path whose file name matches `pattern`. */
 function asset(pattern: RegExp): string {
@@ -38,7 +39,7 @@ function asset(pattern: RegExp): string {
 
 /** `GET path` from the local server, which has a self-signed certificate (@laminapdf/test-utils/wrangler-dev), without following redirects. */
 function get(server: string, path: string): Promise<Response> {
-  return getLocal(new URL(path, server));
+  return getLocal(new URL(path, server), ca);
 }
 
 describe("what the server sends", () => {

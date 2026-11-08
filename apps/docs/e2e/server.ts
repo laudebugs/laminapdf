@@ -10,6 +10,8 @@ const DOCS = new URL("../", import.meta.url);
 declare module "vitest" {
   export interface ProvidedContext {
     origin: string;
+    /** The server's certificate, which getLocal trusts. */
+    ca: string;
   }
 }
 
@@ -21,5 +23,6 @@ export default async function setup(project: TestProject): Promise<() => void> {
   }
   const server = await wranglerDev(DOCS);
   project.provide("origin", server.origin);
+  project.provide("ca", server.ca);
   return server.stop;
 }
