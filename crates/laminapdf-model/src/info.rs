@@ -59,6 +59,20 @@ impl<'d> Info<'d> {
         }
     }
 
+    /// Every key of the dictionary, as written, in the file's order: the standard ones and any
+    /// custom key a producer added.
+    #[must_use]
+    pub fn keys(&self) -> Vec<String> {
+        self.dict
+            .as_dict()
+            .map(|d| {
+                d.iter()
+                    .map(|(k, _)| String::from_utf8_lossy(k.as_bytes()).into_owned())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     /// `/Title`.
     ///
     /// # Errors

@@ -117,6 +117,19 @@ pub enum Error {
         /// What is wrong (fixed text).
         what: &'static str,
     },
+    /// [`Surface::resume`](crate::Surface::resume) or
+    /// [`Builder::close_element`](crate::Builder::close_element) named an element that isn't
+    /// open: closed already, opened by another builder, inside an artifact or on an appended
+    /// page, or on a page whose [`PageBuilder::finish`](crate::PageBuilder::finish) failed.
+    #[error("the structure element resumed or closed isn't open")]
+    TagElementNotOpen,
+    /// [`Builder::finish`](crate::Builder::finish) was called with elements opened by
+    /// [`Surface::open_element`](crate::Surface::open_element) and never closed.
+    #[error("{count} structure element(s) opened across pages were never closed")]
+    TagElementUnclosed {
+        /// How many are open.
+        count: usize,
+    },
     /// The PDF version asked for is one the profile doesn't allow (PDF/A-2, PDF/A-3 and
     /// PDF/UA-1 are based on PDF 1.7, so PDF 2.0 is refused).
     #[error("{} documents can't be PDF 2.0", .profile.as_str())]
@@ -261,6 +274,8 @@ impl Error {
         "page-index-out-of-range",
         "unknown-destination",
         "invalid-page-labels",
+        "tag-element-not-open",
+        "tag-element-unclosed",
         "profile-version-conflict",
         "missing-title",
         "missing-lang",
@@ -294,6 +309,8 @@ impl Error {
             Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
             Self::UnknownDestination { .. } => "unknown-destination",
             Self::InvalidPageLabels { .. } => "invalid-page-labels",
+            Self::TagElementNotOpen => "tag-element-not-open",
+            Self::TagElementUnclosed { .. } => "tag-element-unclosed",
             Self::ProfileVersionConflict { .. } => "profile-version-conflict",
             Self::MissingTitle => "missing-title",
             Self::MissingLang => "missing-lang",
@@ -337,6 +354,8 @@ impl Error {
             | Self::PageIndexOutOfRange { .. }
             | Self::UnknownDestination { .. }
             | Self::InvalidPageLabels { .. }
+            | Self::TagElementNotOpen
+            | Self::TagElementUnclosed { .. }
             | Self::ProfileVersionConflict { .. }
             | Self::MissingTitle
             | Self::MissingLang
@@ -387,6 +406,8 @@ impl Error {
             | Self::PageIndexOutOfRange { .. }
             | Self::UnknownDestination { .. }
             | Self::InvalidPageLabels { .. }
+            | Self::TagElementNotOpen
+            | Self::TagElementUnclosed { .. }
             | Self::ProfileVersionConflict { .. }
             | Self::MissingTitle
             | Self::MissingLang
@@ -426,6 +447,8 @@ mod tests {
             Error::PageIndexOutOfRange { index: 3, count: 1 },
             Error::UnknownDestination { name: String::new() },
             Error::InvalidPageLabels { what: "w" },
+            Error::TagElementNotOpen,
+            Error::TagElementUnclosed { count: 1 },
             Error::ProfileVersionConflict {
                 profile: Profile::PdfA2b,
             },

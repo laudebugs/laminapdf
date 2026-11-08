@@ -68,6 +68,9 @@ pub(crate) struct XrefTable {
     pub(crate) sections: usize,
     /// Their offsets, newest first.
     pub(crate) section_offsets: Vec<usize>,
+    /// What each of those sections lists, in the same order (a hybrid section's `/XRefStm`
+    /// entries count with it).
+    pub(crate) section_objects: Vec<SectionObjects>,
     pub(crate) has_xref_stream: bool,
     /// Whether the newest section (the one `startxref` points at) is an xref stream.
     pub(crate) newest_is_stream: bool,
@@ -78,6 +81,31 @@ pub(crate) struct XrefTable {
     /// The head of the free list (§7.5.4): object 0's next-free number in the newest section
     /// that lists object 0.
     pub(crate) free_head: Option<u32>,
+}
+
+/// The object numbers one cross-reference section lists in use and free. Object 0, the head
+/// of the free list (§7.5.4), is never counted as freed.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct SectionObjects {
+    pub(crate) in_use: Vec<u32>,
+    pub(crate) freed: Vec<u32>,
+}
+
+impl SectionObjects {
+    fn of(entries: &BTreeMap<u32, XrefEntry>, limits: &Limits) -> Self {
+        let mut objects = Self::default();
+        for (&num, entry) in entries {
+            if num > limits.max_object_number() {
+                continue;
+            }
+            match entry {
+                XrefEntry::Free if num != 0 => objects.freed.push(num),
+                XrefEntry::Free => {}
+                XrefEntry::InFile { .. } | XrefEntry::InStream { .. } => objects.in_use.push(num),
+            }
+        }
+        objects
+    }
 }
 
 fn invalid(message: &'static str) -> Error {
@@ -145,6 +173,7 @@ pub(crate) fn load(source: &Source, start: usize, limits: &Limits, budget: &mut 
                 Err(_) => table.ignored_xref_streams.push(u64::try_from(stm).unwrap_or(u64::MAX)),
             }
         }
+        table.section_objects.push(SectionObjects::of(&entries, limits));
         for (num, entry) in entries {
             if num > limits.max_object_number() {
                 table.dropped_objects.insert(num);

@@ -3,8 +3,12 @@
 
 use std::ops::Range;
 
-use laminapdf_model::{Pt, RectPt};
+use laminapdf_model::{PointPt, Pt, RectPt};
 use laminapdf_text::{Alignment, Direction, Feature};
+
+use super::check_size;
+use super::text::{self, FontHandle, LaidLine, Spec, lay_out};
+use crate::error::{Error, Result};
 
 /// What happens to lines that don't fit a text box's height (or a single grapheme cluster
 /// wider than the box).
@@ -166,4 +170,113 @@ impl TextLayout {
     pub const fn bottom(&self) -> Option<Pt> {
         self.bottom
     }
+}
+
+/// A text box laid out and not drawn yet: what [`Surface::text_box`](crate::Surface::text_box)
+/// draws, and the flow layer draws with `Surface::draw_measured` after measuring it.
+#[derive(Debug, Clone)]
+pub(crate) struct Measured {
+    pub(crate) spec: Spec,
+    /// The box's left edge and the first line's baseline, page space.
+    pub(crate) origin: PointPt,
+    /// From one baseline to the next, points.
+    pub(crate) leading: f64,
+    /// The lines that fit, shaped.
+    pub(crate) lines: Vec<LaidLine>,
+    pub(crate) layout: TextLayout,
+}
+
+/// Lays `text` out in `rect` as [`Surface::text_box`](crate::Surface::text_box) describes.
+///
+/// # Errors
+/// As [`Surface::text_box`](crate::Surface::text_box).
+pub(crate) fn measure(
+    text: &str,
+    font: &FontHandle,
+    size: Pt,
+    rect: RectPt,
+    options: &TextBoxOptions,
+) -> Result<Measured> {
+    check_size(size)?;
+    if !rect.is_finite() || rect.width().get() <= 0.0 {
+        return Err(Error::InvalidGeometry {
+            what: "a text box must be finite and wider than 0",
+        });
+    }
+    if !(options.line_height.is_finite() && options.line_height > 0.0) {
+        return Err(Error::InvalidGeometry {
+            what: "a line height must be a positive number",
+        });
+    }
+    let size_pt = size.get();
+    let spec = Spec {
+        text: text.to_owned(),
+        font: font.clone(),
+        size: size_pt,
+        align: options.align,
+        direction: options.direction,
+        language: options.language.clone(),
+        features: options.features.clone(),
+        width: Some(rect.width().get()),
+    };
+    let mut lines = lay_out(&spec)?;
+    let leading = options.line_height * size_pt;
+    let first = rect.y0.get() + font.ascent(size_pt);
+    let descent = font.descent(size_pt);
+    let limit = rect.width().get();
+    let fits = |i: usize, line: &LaidLine| {
+        #[expect(clippy::cast_precision_loss, reason = "line counts are small")]
+        let bottom = first + i as f64 * leading + descent;
+        // A hair of tolerance for the f32 widths the layout measured with.
+        bottom <= rect.y1.get() + 1e-9 && line.width <= limit + 1e-3
+    };
+    let fit = lines
+        .iter()
+        .enumerate()
+        .position(|(i, l)| !fits(i, l))
+        .unwrap_or(lines.len());
+    let overflow = lines.get(fit).map(|l| l.range.start);
+    if overflow.is_some() && options.overflow == Overflow::Error {
+        return Err(Error::TextOverflow {
+            fits: fit,
+            needed: lines.len(),
+        });
+    }
+    lines.truncate(fit);
+    let x = rect.x0.get();
+    let boxes: Vec<LineBox> = lines
+        .iter()
+        .enumerate()
+        .map(|(i, l)| {
+            #[expect(clippy::cast_precision_loss, reason = "line counts are small")]
+            let baseline = first + i as f64 * leading;
+            LineBox {
+                range: l.range.clone(),
+                content: l.content.clone(),
+                rect: RectPt::new(
+                    Pt::new(x + l.x),
+                    Pt::new(baseline - font.ascent(size_pt)),
+                    Pt::new(x + l.x + l.width),
+                    Pt::new(baseline + descent),
+                ),
+                baseline: Pt::new(baseline),
+            }
+        })
+        .collect();
+    let bottom = boxes
+        .iter()
+        .rev()
+        .find(|b| text::draws(&spec.text, &b.content))
+        .map(|b| b.rect.y1);
+    Ok(Measured {
+        spec,
+        origin: PointPt::new(rect.x0, Pt::new(first)),
+        leading,
+        lines,
+        layout: TextLayout {
+            lines: boxes,
+            overflow,
+            bottom,
+        },
+    })
 }

@@ -151,6 +151,8 @@ A PR that adds a code adds:
 | [`page-index-out-of-range`](page-index-out-of-range.md) | `usage` | a link, outline item or destination names a page index the document doesn't have |
 | [`unknown-destination`](unknown-destination.md) | `usage` | a link or outline item names a destination that was never defined |
 | [`invalid-page-labels`](invalid-page-labels.md) | `usage` | page label ranges that don't start at page 0, don't increase, start past the last page or number from 0 |
+| [`tag-element-not-open`](tag-element-not-open.md) | `usage` | a structure element resumed or closed isn't open |
+| [`tag-element-unclosed`](tag-element-unclosed.md) | `usage` | structure elements opened across pages were never closed |
 | [`profile-version-conflict`](profile-version-conflict.md) | `usage` | the PDF version asked for is one the profile doesn't allow (PDF/UA-1, PDF/A-2 and PDF/A-3 are based on PDF 1.7) |
 | [`missing-title`](missing-title.md) | `usage` | PDF/UA-1 needs a document title, and the metadata gives none |
 | [`missing-lang`](missing-lang.md) | `usage` | PDF/UA-1 needs the document's natural language, and none was set |

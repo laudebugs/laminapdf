@@ -9,7 +9,7 @@ use serde_json::{Map, Value};
 
 use crate::commands::{
     CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, InfoArgs,
-    InfoReport, PagesReport, RenderArgs, RenderReport, RotateArgs, TextReport,
+    InfoReport, PagesReport, RenderArgs, RenderReport, RevealReport, RevealToolArgs, RotateArgs, TextReport,
 };
 
 /// What the copied `laminapdf.error/1` definitions are named after in a tool's `$defs`, so they
@@ -76,6 +76,12 @@ pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
             .with_annotations(render),
         );
     }
+    // Last in name order: after laminapdf_render when that is listed.
+    tools.push(tool::<RevealToolArgs, RevealReport>(
+        "laminapdf_reveal",
+        "List what a PDF holds beyond its visible pages: earlier revisions, metadata, attachments, scripts and actions, annotations, form values, hidden layers and counts of hidden text.",
+        read(),
+    ));
     tools
 }
 
@@ -217,18 +223,22 @@ mod tests {
                 "laminapdf_check",
                 "laminapdf_explain",
                 "laminapdf_extract",
-                "laminapdf_info"
+                "laminapdf_info",
+                "laminapdf_reveal"
             ]
         );
         let write = tools(true, false);
+        let mut sorted = names(&write);
+        sorted.sort();
+        assert_eq!(names(&write), sorted);
         assert_eq!(
             names(&write)
                 .iter()
                 .rev()
-                .take(2)
+                .take(3)
                 .map(String::as_str)
                 .collect::<Vec<_>>(),
-            ["laminapdf_render", "laminapdf_pages_rotate"]
+            ["laminapdf_reveal", "laminapdf_render", "laminapdf_pages_rotate"]
         );
         let destructive = |tools: &[Tool], name: &str| {
             tools

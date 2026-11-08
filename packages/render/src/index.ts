@@ -242,9 +242,11 @@ export function planTile(page: RenderPage, request: RenderRequest, limits: Rende
   checkScale(request.scale);
   checkPage(page);
   checkBackground(request.background);
-  const quarter = isQuarterTurn(checkRotation(request.rotation ?? 0));
-  const pageWidth = wholePixels(quarter ? page.height : page.width, request.scale);
-  const pageHeight = wholePixels(quarter ? page.width : page.height, request.scale);
+  const { width: pageWidth, height: pageHeight } = pagePixels(
+    page,
+    request.scale,
+    checkRotation(request.rotation ?? 0),
+  );
   const tile = request.clip ?? { x: 0, y: 0, width: pageWidth, height: pageHeight };
   checkTile(tile, pageWidth, pageHeight);
   checkTileLimits(tile, limits);
@@ -277,6 +279,25 @@ function checkBackground(background: Rgba8 | null | undefined): void {
   if (!channels.every((c) => Number.isInteger(c) && c >= 0 && c <= 255)) {
     throw new RenderError("invalid-argument", "invalid render request: colour channels must be integers 0–255");
   }
+}
+
+/**
+ * The whole page's size in pixels at `scale` (output px per pt), after the view `rotation`: each
+ * side `max(1, floor(points × scale))`, in f32 like the Rust planner. Every tile a request names
+ * must lie inside it, so a caller that plans tiles takes the page's size from here.
+ *
+ * @throws RenderError `invalid-argument` when a side is too large to address.
+ */
+export function pagePixels(
+  page: { readonly width: number; readonly height: number },
+  scale: number,
+  rotation: ViewRotation = 0,
+): { width: number; height: number } {
+  const quarter = isQuarterTurn(rotation);
+  return {
+    width: wholePixels(quarter ? page.height : page.width, scale),
+    height: wholePixels(quarter ? page.width : page.height, scale),
+  };
 }
 
 /** One side of the whole page in pixels: `max(1, floor(points × scale))`. */

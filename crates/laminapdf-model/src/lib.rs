@@ -42,6 +42,7 @@
 //! * [`Outline`] / [`OutlineItem`]: titles, nesting, open state, [`Destination`]s resolved
 //!   to [`PageId`]s, action kinds.
 //! * [`Info`]: the information dictionary, with dates as [`PdfDate`].
+//! * [`Disclosure`]: what a document holds beyond its visible pages ([`Document::disclosure`]).
 //! * [`NameTree`] / [`NumberTree`] and [`PageLabels`].
 //! * [`StructTree`] / [`StructElem`]: a minimal read-only view of the logical structure
 //!   (types, attributes, MCIDs and `OBJR`s per element, the `RoleMap`).
@@ -65,6 +66,7 @@
 #![forbid(unsafe_code)]
 
 mod date;
+mod disclosure;
 mod document;
 mod geometry;
 mod graphics;
@@ -78,6 +80,9 @@ mod structure;
 mod tree;
 
 pub use date::{InvalidDate, PdfDate};
+pub use disclosure::{
+    Action, Annotation, Disclosure, EmbeddedFile, EmbeddedFileHolder, FormField, Owner, Trigger, XmpPacket,
+};
 pub use document::Document;
 pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};

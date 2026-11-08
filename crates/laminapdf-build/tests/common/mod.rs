@@ -16,6 +16,7 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure; pixel values are in 0..=255"
 )]
 
+pub mod across_pages;
 pub mod reading_order;
 pub mod samples;
 pub mod tagged;

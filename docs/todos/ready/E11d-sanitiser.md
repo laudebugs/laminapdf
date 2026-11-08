@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E5b](./E5b-comment-threads-and-review.md), [E7c](./E7c-content-ir.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md), [T2c](./T2c-reveal-command.md) |
+| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E5b](./E5b-comment-threads-and-review.md), [E7c](./E7c-content-ir.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md), [T2c](../done/T2c-reveal-command.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e11d-sanitiser` |
 | PR title | `feat(ops): document sanitisation with a removal report` |
@@ -28,7 +28,7 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 
 **In scope**
 
-- Ops: `StripMetadata`, `StripAnnotations`, `StripAttachments`, `StripActiveContent`, `StripHiddenContent` (OCG-off content needs the E7c IR; off-page via CropBox), `Sanitise { categories }`; `categories` are `laminapdf.reveal/1`'s names ([T2c](./T2c-reveal-command.md)): `metadata`, `annotations`, `attachments`, `active-content`, `hidden-content`, `history` (the full rewrite)
+- Ops: `StripMetadata`, `StripAnnotations`, `StripAttachments`, `StripActiveContent`, `StripHiddenContent` (OCG-off content needs the E7c IR; off-page via CropBox), `Sanitise { categories }`; `categories` are `laminapdf.reveal/1`'s names ([T2c](../done/T2c-reveal-command.md)): `metadata`, `annotations`, `attachments`, `active-content`, `hidden-content`, `history` (the full rewrite)
 - XFA in `StripActiveContent`: XFA forms carry their own scripts (`<script>` in the template packet, FormCalc and JavaScript) that ignore the AcroForm action dictionaries, so the op removes `/AcroForm /XFA` entirely (the stream or the packet array and every packet stream it references) and clears `NeedsRendering` in the catalog; the AcroForm fields, if any, remain as the static fallback. A dynamic XFA document (no usable AcroForm) is reported as `XfaOnlyContentRemoved` so the user knows the form will not render as before
 - `SanitiseReport` (JSON + UI), each removed item named by the object number `laminapdf reveal` lists
 - Sanitise dialog with presets

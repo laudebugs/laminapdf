@@ -3,6 +3,7 @@
 //! This is the single entry point for repo-wide tasks; CI runs the same commands developers run
 //! (docs/guidelines/code-organization.md §10). Run `cargo xtask help` for the task list.
 
+mod benchmarks;
 mod capabilities;
 mod changes;
 mod cli_docs;
@@ -21,6 +22,7 @@ mod harness;
 mod licenses;
 mod lines;
 mod live;
+mod machine;
 mod maintainability;
 mod models;
 mod nightly;
@@ -199,7 +201,13 @@ tasks:
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
                     file against its lock), write Markdown with the extract-bench example, score it with
                     the benchmark's own tests (Python with tools/bench/requirements.txt; $LAMINA_PDF_PYTHON
-                    or python3); report in target/bench/extract/<dataset>/
+                    or python3); report in target/bench/extract/<dataset>/, with <candidate>-results.json
+                    (scores, pages a second, the machine) for `benchmarks`
+  benchmarks [--no-run]
+                    write apps/docs/src/data/benchmarks.json, the docs site's benchmarks page: run
+                    `size` (after `wasm`), `pdf-runtimes` in every runtime and `bench` (not with
+                    --no-run), then copy their reports and the newest extract-bench results; a
+                    missing report keeps the committed section; run it on an idle machine
   verapdf [--dir <dir>]
                     run the lamina examples into target/examples-out/ (or take the PDFs in <dir>)
                     and validate each with veraPDF for the profiles its XMP claims (PDF/A-2b, 2u,
@@ -374,6 +382,7 @@ fn main() -> Result<()> {
         ("cli-docs", []) => cli_docs::run(&ws),
         ("cli-dist", []) => cli_docs::dist_files(&ws),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
+        ("benchmarks", args) => benchmarks::run(&ws, &benchmarks::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
         ("render-golden", []) => render::run(&ws, false),
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),

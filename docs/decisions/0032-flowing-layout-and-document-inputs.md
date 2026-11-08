@@ -63,6 +63,8 @@ Flowing output is tagged by default, and a caller can turn tagging off. This ans
 - **Artifacts:** running headers and footers are `Pagination` artifacts with `/Subtype /Header` or `/Footer` and `/Attached`, as Typst writes them. Header rows repeated on a later page are `Pagination` artifacts; rules and backgrounds are `Layout` artifacts.
 - **PDF/UA-1:** every glyph has a Unicode value. The spike's builder refused Arabic with diacritics: a mark that shares a cluster with its letter got no value (`glyph-without-unicode`). Typst wrote the same text and veraPDF passed it, and the groundwork todo fixes our builder.
 
+**Implementation note (T4f):** the glyph without a value wasn't a diacritic but a letter's dot. Noto Sans Arabic draws beh, teh, noon and feh as a dotless body and a dot. The body carries the letter, and the dot maps to the empty value, so each letter is read once. veraPDF 1.30.3 passes that under PDF/UA-1 and PDF/A-2u, and pdf.js reads the text back exactly, so the builder's profile check now counts the empty value as a value. Giving the dot the letter's text as well would make pdf.js, which ignores `/ActualText`, read every dotted letter twice. Elements across pages are `Surface::open_element`, `Surface::resume` and `Builder::close_element`; the artifacts are `Artifact::header`, `footer` and `watermark`.
+
 ### 5. Placement
 
 - **The flow layer** is a `flow` module of `laminapdf-build`, not a crate of its own. It shares `Surface`, the font registry and the tagger, and splitting it would expose their internals ([code organisation §11](../guidelines/code-organization.md#11-when-to-split-a-crate-or-package-and-when-not-to)). The façade re-exports it as `laminapdf::flow`.
@@ -107,7 +109,7 @@ Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benc
 
 | Todo | What |
 | --- | --- |
-| [T4f](../todos/ready/T4f-flow-builder-groundwork.md) | The builder groundwork: measuring text without drawing it, elements that continue on later pages, artifact subtypes, Unicode for marks under PDF/UA-1 |
+| [T4f](../todos/done/T4f-flow-builder-groundwork.md) | The builder groundwork: measuring text without drawing it, elements that continue on later pages, artifact subtypes, Unicode for marks under PDF/UA-1 |
 | [T4g](../todos/ready/T4g-flow-styled-spans.md) | Styled spans in one paragraph: fonts, sizes, rises and languages mixed on a line |
 | [T4b](../todos/ready/T4b-flow-layout-core.md) | The flow layer over T4f and T4g: paragraphs of styled spans, pagination, keep rules, page templates and fields, "Page X of Y", tagging |
 | [T4c](../todos/ready/T4c-flow-tables-notes-contents.md) | Tables across pages |

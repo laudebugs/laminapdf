@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E10f](./E10f-certification-and-locking.md), [E10g](./E10g-signature-validation.md), [T2c](./T2c-reveal-command.md) |
+| Depends on | [E10f](./E10f-certification-and-locking.md), [E10g](./E10g-signature-validation.md), [T2c](../done/T2c-reveal-command.md) |
 | ADRs | Implements ADR 0020; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e10h-revision-diff-and-attacks` |
 | PR title | `feat(sign): revision diff analysis and signature attack tests` |
@@ -28,7 +28,7 @@ Diff every revision after a signature at object level and classify changes (LTV,
 
 **In scope**
 
-- Object diff over [T2c](./T2c-reveal-command.md)'s revision index (`laminapdf_cos::Document::revision_index`), shared with E14b
+- Object diff over [T2c](../done/T2c-reveal-command.md)'s revision index (`laminapdf_cos::Document::revision_index`), shared with E14b
 - Classifier. The "LTV" class (a revision that only adds `/DSS` data and/or a `/DocTimeStamp` signature) is allowed at every DocMDP level, **including P1** (ISO 32000-2 §12.8.2.2.1, 2.0 errata §12.8.5.3; [04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)); it must match the planner rule in [E10e](E10e-timestamps-and-tsa-proxy.md), so both use one shared function in `laminapdf-sign`. A revision that mixes LTV additions with other changes is classified by the other changes
 - Render-compare of signed revision vs current as an optional deep check
 - Attack corpus generated from the papers' descriptions (scripts + provenance)

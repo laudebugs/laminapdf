@@ -93,4 +93,15 @@ pnpm --filter @laminapdf/web exec playwright install chromium
 LAMINA_PDF_SMOKE_URL=https://staging-app.laminapdf.com pnpm --filter @laminapdf/web run smoke
 ```
 
-First it waits, for up to 10 minutes, until the address serves the app: a custom domain's first deploy can take minutes to get its DNS record and certificate. Then it checks that `/` and an unknown path return the app with ADR 0011's headers exactly, that the page's hashed script is cached for good, and that `hello.pdf`, opened with **Choose a file**, renders page 1. It fails on any CSP violation and on any request to another origin.
+First `e2e/live.ts` waits, for up to 10 minutes, until the address serves the app: a custom domain's first deploy can take minutes to get its DNS record and certificate. Then it checks that `/` and an unknown path return the app with ADR 0011's headers exactly, that the page's hashed script is cached for good, and that `hello.pdf`, opened with **Choose a file**, renders page 1. It fails on any CSP violation and on any request to another origin.
+
+## Troubleshooting
+
+### The smoke test is refused (HTTP 401, 403 or 407)
+
+When something other than Cloudflare refuses the smoke test three times in a row, `e2e/live.ts` stops waiting, because waiting won't change that refusal. Cloudflare's own refusals are waited out for the full 10 minutes, since a new custom domain can answer 403 while it is set up. The script's error names the runner and lists the answer's `server`, `cf-ray`, `cf-mitigated` and `via` headers, so the error tells you who refused:
+
+- **No `cf-ray` header.** Cloudflare stamps every answer it gives with `cf-ray`, so a proxy or security gateway on the runner's machine sent the refusal. The error also lists any proxy settings the machine sets, such as `HTTPS_PROXY` or `NODE_TLS_REJECT_UNAUTHORIZED`. The previews live on new `pr-<number>-lamina-pdf-web-preview.<account>.workers.dev` hosts, which gateways often block as newly seen domains. If the smoke test ever runs on a machine behind such a gateway, allow `*.workers.dev` and `*.laminapdf.com` in the gateway, or run the smoke-test jobs elsewhere.
+- **A `cf-ray` header.** Cloudflare refused. Look for Cloudflare Access on the Worker's workers.dev and preview URLs (the Worker's **Settings → Domains & Routes**), or a WAF or bot rule on the custom domain. A `cf-mitigated: challenge` header means a bot challenge.
+
+For example, in November 2026, when the workflow ran on self-hosted Macs, the preview smoke test was refused only on one Mac's runners (`m16r*`), whose environment sets `NODE_TLS_REJECT_UNAUTHORIZED=0`, while the same preview served the reader everywhere else. The workflow now runs on GitHub-hosted runners.

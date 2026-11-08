@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 3 | 7 | 15 | 0 | 144 | 5 |
+| core | 169 | 3 | 7 | 16 | 0 | 143 | 6 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -250,5 +250,5 @@ Rows per surface by best proven status (of the rows that target the surface).
 | M.09 | Associated files & structured metadata | — | — | — | — | E3 round-trip |  |
 | M.10 | Document open actions | — | — | — | — | E17 round-trip |  |
 | M.11 | Rich-media annotations | — | — | — | — | E17 round-trip |  |
-| M.12 | Inspect incremental updates & revisions | — | — | — | — | E14 read |  |
+| M.12 | Inspect incremental updates & revisions | 🟡 read | — | — | — | E14 read | [`the_revision_index_lists_what_each_update_adds_and_frees`](../../crates/laminapdf-cos/tests/revisions.rs) core read |
 | M.13 | Compare versions visually & structurally | — | — | — | — | E14 read |  |
