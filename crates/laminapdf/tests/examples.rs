@@ -7,6 +7,9 @@
 #![expect(clippy::panic, reason = "test helper: a panic is a test failure")]
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/element_flow.rs"]
+mod element_flow;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_markdown.rs"]
 mod extract_markdown;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -59,6 +62,9 @@ const MULTILINGUAL_ID: &[u8; 16] = b"lamina-ex-multil";
 const IMAGES_AND_VECTORS_ID: &[u8; 16] = b"lamina-ex-vector";
 const LINKS_ID: &[u8; 16] = b"lamina-ex-links!";
 const EDIT_ID: &[u8; 16] = b"lamina-ex-edit!!";
+const FLOW_ID: &[u8; 16] = b"lamina-ex-flow!!";
+/// The report the element-flow example lays out; its body runs onto a second page.
+const FLOW_REPORT: &str = "text/element-flow-report.json";
 const PRODUCER: &str = "lamina examples";
 const CREATED: &str = "D:20261030120000Z";
 const EDITED: &str = "D:20261030130000Z";
@@ -78,7 +84,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 10] = [
+const EXAMPLES: [(&str, Build); 11] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -101,7 +107,26 @@ const EXAMPLES: [(&str, Build); 10] = [
     ("pdf_a3_invoice_with_xml", || {
         pdf_a3_invoice_with_xml::build(fixture(NOTO))
     }),
+    ("element_flow", || {
+        with_flow_report(|report| element_flow::build(options(FLOW_ID)?, fixture(PHOTO), report))
+    }),
 ];
+
+/// Calls `f` with the report of `fixtures/text/element-flow-report.json`.
+fn with_flow_report<T>(f: impl FnOnce(&element_flow::Report) -> T) -> T {
+    let report = laminapdf_test_fixtures::json(FLOW_REPORT);
+    let field = |name: &str| {
+        report[name]
+            .as_str()
+            .unwrap_or_else(|| panic!("{FLOW_REPORT}: no {name}"))
+    };
+    f(&element_flow::Report {
+        title: field("title"),
+        summary: field("summary"),
+        notes: field("notes"),
+        body: field("body"),
+    })
+}
 
 fn golden(name: &str) -> Vec<u8> {
     let path = fixtures_dir().join(format!("golden/examples/{name}.pdf"));
