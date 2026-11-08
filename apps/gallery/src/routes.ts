@@ -53,6 +53,11 @@ export const ROUTES: readonly Route[] = [
     id: "reader",
     title: "Reader chrome",
     components: ["ReaderTopBar", "PageInput", "ZoomControl", "WholeFileDownload", "RepairDetails", "OpenFailure"],
+  },
+  {
+    id: "reader-shell",
+    title: "Reader shell",
+    components: [],
     renders: ["ReaderShell", "OpenDropZone", "DebugMenu"],
   },
   {

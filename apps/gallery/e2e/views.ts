@@ -25,11 +25,15 @@ export const VIEWS: readonly View[] = ROUTES.flatMap((route) =>
 
 /**
  * Opens `view` with `settings`, at a fixed time, once its fonts have loaded and the page has
- * settled; the tooltip state is shown by moving keyboard focus onto its button.
+ * settled; the tooltip state is shown by moving keyboard focus onto its button. A page error or a
+ * page that never renders its stage fails the test, so a crash can't become a blank screenshot.
  */
 export async function open(page: Page, view: View, settings: Partial<Settings> = {}): Promise<void> {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
   await page.clock.setFixedTime(new Date("2026-01-15T09:30:00Z"));
   await page.goto(settingsQuery({ ...settings, route: view.route, state: view.state }) || "/");
+  await page.locator("#stage").waitFor();
   await page.evaluate(() => document.fonts.ready);
   if (view.name === "menus-tooltip") {
     await page.locator("#g-state").focus();
@@ -39,4 +43,5 @@ export async function open(page: Page, view: View, settings: Partial<Settings> =
   if (view.route === "menus" && view.state !== "tooltip")
     await page.getByRole(view.state === "menu" ? "menu" : "dialog").waitFor();
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  if (errors.length > 0) throw new Error(`${view.name}: the page threw: ${errors.join("; ")}`);
 }

@@ -12,12 +12,18 @@ interface Pair {
   on: string;
   min: number;
   kind?: string;
+  /** The opaque colour under a translucent `on` (hover and pressed). */
+  over?: string;
+  /** Why the pair needn't meet `min`, such as a disabled control (WCAG 1.4.3). */
+  exempt?: string;
 }
 
-/** The light theme's contrast pairs per colour (the other themes name the same pairs). */
-function pairs(): [string, Pair[]][] {
-  const light = (tokens as { theme: { light: Record<string, unknown> } }).theme.light;
-  return Object.entries(light).flatMap(([name, value]) => {
+/** `theme`'s contrast pairs per colour: each theme names its own. */
+function pairs(theme: string): [string, Pair[]][] {
+  const themes = (tokens as { theme: Record<string, Record<string, unknown> | string> }).theme;
+  const colours = themes[theme];
+  if (colours === undefined || typeof colours === "string") return [];
+  return Object.entries(colours).flatMap(([name, value]) => {
     const extension = (value as { $extensions?: { "dev.lamina"?: { contrast?: Pair[] } } }).$extensions;
     const list = extension?.["dev.lamina"]?.contrast;
     return list === undefined ? [] : [[name, list] as [string, Pair[]]];
@@ -27,7 +33,8 @@ function pairs(): [string, Pair[]][] {
 const variable = (name: string) => `var(--paper-${name})`;
 const bare = (ref: string) => ref.replace(/[{}]/g, "");
 
-export function Tokens(): ReactNode {
+/** The tokens route in `theme` (the UI theme the root has). */
+export function Tokens({ theme }: { theme: string }): ReactNode {
   const colours = Object.keys(THEMES.light.teal);
   return (
     <>
@@ -45,17 +52,30 @@ export function Tokens(): ReactNode {
       <section aria-labelledby="t-pairs">
         <h2 id="t-pairs">Contrast pairs</h2>
         <ul className="g-pairs">
-          {pairs().flatMap(([name, list]) =>
+          {pairs(theme).flatMap(([name, list]) =>
             list.map((pair) => (
-              <li key={`${name}-${pair.on}`} style={{ background: variable(bare(pair.on)) }}>
-                <span
-                  style={{ color: variable(name), borderColor: variable(name) }}
-                  className={pair.kind === "boundary" ? "g-boundary" : undefined}
-                >
-                  {name}
+              <li key={`${name}-${pair.on}`}>
+                <span className="g-pair-base" style={{ background: variable(bare(pair.over ?? pair.on)) }}>
+                  <span className="g-pair-sample" style={{ background: variable(bare(pair.on)) }}>
+                    {pair.kind === "boundary" ? (
+                      <span className="g-boundary" style={{ borderColor: variable(name) }} aria-hidden="true" />
+                    ) : (
+                      // An exempt pair stands for a disabled control's text, and is marked as one.
+                      <span
+                        className={pair.min < 4.5 ? "g-large" : undefined}
+                        style={{ color: variable(name) }}
+                        aria-disabled={pair.exempt === undefined ? undefined : true}
+                      >
+                        {name}
+                      </span>
+                    )}
+                  </span>
                 </span>
                 <small>
-                  on {bare(pair.on)}, at least {pair.min}:1
+                  {name} on {bare(pair.on)}
+                  {pair.over === undefined ? "" : ` over ${bare(pair.over)}`}, at least {pair.min}:1
+                  {pair.kind === "boundary" ? " (a line, not text)" : ""}
+                  {pair.exempt === undefined ? "" : ` (exempt: ${pair.exempt})`}
                 </small>
               </li>
             )),

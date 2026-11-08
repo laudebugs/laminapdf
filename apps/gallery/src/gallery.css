@@ -130,23 +130,37 @@ body {
 .g-pairs {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--paper-space-6);
+  gap: var(--paper-space-12);
 }
 
 .g-pairs li {
   display: grid;
-  gap: var(--paper-space-2);
-  padding: var(--paper-space-8);
-  border: 1px solid var(--paper-hairline);
+  gap: var(--paper-space-4);
+}
+
+.g-pair-base,
+.g-pair-sample {
+  display: block;
   border-radius: var(--paper-radius-4);
 }
 
-.g-pairs small {
-  color: var(--paper-text);
+.g-pair-base {
+  border: 1px solid var(--paper-hairline);
+}
+
+.g-pair-sample {
+  padding: var(--paper-space-8);
+}
+
+.g-large {
+  font-size: 24px;
 }
 
 .g-boundary {
-  border-bottom: 2px solid;
+  display: block;
+  height: 0;
+  margin-block: var(--paper-space-8);
+  border-top: 2px solid;
 }
 
 .g-scale {
