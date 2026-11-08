@@ -33,7 +33,7 @@ The owner chose the domain `laminapdf.com` (2026-10-31) and put its zone on Clou
 
 **Out of scope** (and which todo covers it)
 
-- The reader at `laminapdf.com` and `staging.laminapdf.com` → [C4d](../ongoing/C4d-deploy-previews-and-production.md).
+- The reader at `laminapdf.com` and `staging.laminapdf.com` → [C4d](../done/C4d-deploy-previews-and-production.md).
 - The HSTS preload submission: it needs the apex served with the header → C4d.
 - Moving `codes.json`'s `docsUrl` base to the docs site's code pages: it changes every surface's URLs, so it waits until production serves them.
 
