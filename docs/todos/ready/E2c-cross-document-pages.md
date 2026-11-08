@@ -39,6 +39,7 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 **Out of scope** (and which todo covers it)
 
 - Merging outlines, AcroForm and struct trees across whole documents; split → [E2d](E2d-merge-and-split.md)
+- The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](./T6a-cli-page-commands.md)
 
 **Editor facts**
 

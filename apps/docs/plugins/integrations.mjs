@@ -1,8 +1,40 @@
-// The docs site's own build steps (astro.config.mjs): the example PDFs and the checks of links
-// the links validator can't see. Each runs after the build, on the files in dist/. The steps both
-// sites share, such as the CSP's inline-script hashes, are in @laminapdf/site-kit.
+// The docs site's own build steps (astro.config.mjs): the example PDFs, the website's icons and
+// the checks of links the links validator can't see. Each runs after the build, on the files in
+// dist/. The steps both sites share, such as the CSP's inline-script hashes, are in
+// @laminapdf/site-kit.
 import { copyFile, mkdir, readdir, readFile } from "node:fs/promises";
 import { filesIn, pageExists } from "@laminapdf/site-kit/integrations";
+
+/**
+ * The website's icons, linked the way its `src/layouts/Base.astro` links them. The files live in
+ * the website's `public/` (its `scripts/share-image.mjs` draws the PNGs from the SVG), and
+ * `websiteIcons` copies them into the docs site, so both sites show the same icon from one set of
+ * files. `favicon` is Starlight's option of that name; `head` goes into Starlight's `head`.
+ */
+export const WEBSITE_ICONS = {
+  favicon: "/favicon.svg",
+  head: [
+    { tag: "link", attrs: { rel: "icon", href: "/favicon-32.png", sizes: "32x32", type: "image/png" } },
+    { tag: "link", attrs: { rel: "apple-touch-icon", href: "/apple-touch-icon.png" } },
+  ],
+};
+
+/** The file names `WEBSITE_ICONS` links, at the root of the site. */
+export const WEBSITE_ICON_FILES = [WEBSITE_ICONS.favicon, ...WEBSITE_ICONS.head.map(({ attrs }) => attrs.href)].map(
+  (href) => href.slice(1),
+);
+
+/**
+ * Copies `names` from the directory `from` into the directory `to`, which it creates.
+ *
+ * @param {URL} from
+ * @param {string[]} names
+ * @param {URL} to
+ */
+async function copyFiles(from, names, to) {
+  await mkdir(to, { recursive: true });
+  for (const name of names) await copyFile(new URL(name, from), new URL(name, to));
+}
 
 /**
  * Copies the examples' golden PDFs (`goldens`, a directory URL) into the site at /examples/pdf/.
@@ -15,12 +47,35 @@ export function examplePdfs(goldens) {
     name: "lamina-example-pdfs",
     hooks: {
       "astro:build:done": async ({ dir }) => {
-        const out = new URL("examples/pdf/", dir);
-        await mkdir(out, { recursive: true });
-        for (const name of await readdir(goldens)) {
-          if (name.endsWith(".pdf")) await copyFile(new URL(name, goldens), new URL(name, out));
-        }
+        const pdfs = (await readdir(goldens)).filter((name) => name.endsWith(".pdf"));
+        await copyFiles(goldens, pdfs, new URL("examples/pdf/", dir));
       },
+    },
+  };
+}
+
+/**
+ * Copies the website's icons (`WEBSITE_ICON_FILES`, from `websitePublic`, the website's `public/`
+ * as a directory URL) to the root of the built site `dir`, where `WEBSITE_ICONS` links them.
+ *
+ * @param {URL} websitePublic
+ * @param {URL} dir
+ */
+export async function copyWebsiteIcons(websitePublic, dir) {
+  await copyFiles(websitePublic, WEBSITE_ICON_FILES, dir);
+}
+
+/**
+ * Copies the website's icons into the site after the build (`copyWebsiteIcons`).
+ *
+ * @param {URL} websitePublic
+ * @returns {import("astro").AstroIntegration}
+ */
+export function websiteIcons(websitePublic) {
+  return {
+    name: "lamina-website-icons",
+    hooks: {
+      "astro:build:done": ({ dir }) => copyWebsiteIcons(websitePublic, dir),
     },
   };
 }
