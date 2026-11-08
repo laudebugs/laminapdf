@@ -45,6 +45,7 @@ export function FocusModeItem({ layout }: { layout: ShellLayout }): ReactNode {
         <LayerScope dismiss={() => layout.leaveFocus()}>
           <ToggleButton
             className="paper-status-item"
+            aria-label={message("shell.focus.item")}
             isSelected
             onChange={() => layout.leaveFocus()}
             {...(shortcut === undefined

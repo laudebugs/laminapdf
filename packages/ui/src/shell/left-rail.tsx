@@ -65,8 +65,13 @@ function ResizeHandle({ layout, width }: { layout: ShellLayout; width: number })
   };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { x: event.clientX, width };
+    try {
+      // Moves keep reaching the handle when the pointer leaves it; fails if the pointer is already up.
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // The drag still follows moves over the handle itself.
+    }
   };
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const start = drag.current;

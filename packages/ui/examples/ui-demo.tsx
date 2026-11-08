@@ -3,10 +3,12 @@
 // a name with "locked" asks for the password "lamina", "damaged" opens with repairs and "broken"
 // can't be opened. Ctrl+K or Commands opens the palette (the demo writes keys as on Windows and
 // Linux, so it is Ctrl+K on a Mac too): try "go to 12" or "zoom 150".
+// The sidebar toggle opens the rail (fake Pages and Outline tabs); "Select the heading" on the stand-in
+// page opens the inspector beside the canvas; Ctrl+\ turns focus mode on and off.
 // `#debug` shows the debug menu.
 
 import "../src/styles/index.css";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   type CommandContext,
@@ -15,6 +17,10 @@ import {
   createWebPlatform,
   type DebugBackend,
   DebugMenu,
+  FocusModeItem,
+  Inspector,
+  LeftRail,
+  ModeRegistry,
   NetworkIndicator,
   OpenDropZone,
   type OpenedDocument,
@@ -22,14 +28,18 @@ import {
   PasswordDialog,
   type Platform,
   PlatformProvider,
+  type RailTab,
   ReaderController,
   ReaderShell,
   ReaderTopBar,
   RegistryPalette,
   RepairDetails,
   registerReaderCommands,
+  ShellLayout,
+  shellActions,
   useGatedEntries,
   useReaderState,
+  useStoreState,
   type ViewerControls,
   type ViewerSlice,
   type Zoom,
@@ -69,7 +79,7 @@ function useDemoCommands(
   platform: Platform,
   reader: ReaderController,
   viewer: DemoViewer,
-  shell: { toggleSidebar: () => void; openPalette: () => void },
+  shell: { layout: ShellLayout; modes: ModeRegistry; openPalette: () => void },
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -82,40 +92,83 @@ function useDemoCommands(
       reader,
       viewer,
       actions: {
-        "view.toggle-sidebar": shell.toggleSidebar,
+        ...shellActions(shell.layout, shell.modes, { rail: true }),
         "palette.open": shell.openPalette,
         "file.properties": () => undefined,
       },
     }),
-    [platform, reader, viewer, shell.toggleSidebar, shell.openPalette],
+    [platform, reader, viewer, shell],
   );
   return { registry, context };
+}
+
+/** The rail's stand-in tabs. */
+const RAIL_TABS: readonly RailTab[] = [
+  {
+    id: "pages",
+    label: "Pages",
+    panel: (
+      <ol className="demo-rail-list">
+        {["Page 1", "Page 2", "Page 3", "Page 4", "Page 5", "Page 6"].map((page) => (
+          <li key={page}>{page}</li>
+        ))}
+      </ol>
+    ),
+  },
+  {
+    id: "outline",
+    label: "Outline",
+    panel: (
+      <ul className="demo-rail-list">
+        <li>1 Summary</li>
+        <li>2 Regions</li>
+        <li>3 Outlook</li>
+      </ul>
+    ),
+  },
+];
+
+/** The shell's layout and modes for this page: the rail's state kept in `platform`'s storage, Read the one mode. */
+function useDemoShell(platform: Platform): { layout: ShellLayout; modes: ModeRegistry } {
+  const [shell] = useState(() => {
+    const layout = new ShellLayout(platform.storage);
+    const modes = new ModeRegistry();
+    modes.register({ id: "read", label: "Read", icon: "reader", leave: () => layout.deselect() });
+    return { layout, modes };
+  });
+  useEffect(() => void shell.layout.load(), [shell]);
+  return shell;
 }
 
 /** The chrome over `platform`: the reader's shell, its prompt and its pages. */
 export function Demo({ platform, debug = false }: { platform: Platform; debug?: boolean }): ReactNode {
   const [reader] = useState(() => new ReaderController(platform, demoOpener));
   const [viewer] = useState(() => new DemoViewer());
-  const [sidebar, setSidebar] = useState(true);
   const [palette, setPalette] = useState(false);
-  const [repairsOpen, setRepairsOpen] = useState(true);
-  const [shell] = useState(() => ({
-    toggleSidebar: () => setSidebar((open) => !open),
-    openPalette: () => setPalette(true),
-  }));
+  const { layout, modes } = useDemoShell(platform);
+  const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
   const { registry, context } = useDemoCommands(platform, reader, viewer, shell);
   const state = useReaderState(reader);
+  const sidebar = useStoreState(layout, (s) => s.rail.open);
+  const open = state.phase === "open";
+  const damaged = open && state.file.name.includes("damaged") ? state.file.name : undefined;
+  // A damaged file opens with its repairs docked, as the web reader does.
+  useEffect(() => {
+    if (damaged !== undefined) layout.openInspector({ id: "repairs", selection: false });
+  }, [damaged, layout]);
   return (
     <CommandsProvider registry={registry} context={context} keys="other">
       <ReaderShell
+        layout={layout}
         topBar={<DemoTopBar reader={reader} viewer={viewer} sidebar={sidebar} debug={debug} />}
-        {...(state.phase === "open" && sidebar ? { rail: <nav aria-label="Pages">Pages</nav> } : {})}
-        {...demoInspector(
-          platform,
-          repairsOpen && state.phase === "open" && state.file.name.includes("damaged") ? state.file.name : undefined,
-          () => setRepairsOpen(false),
-        )}
-        status={<NetworkIndicator count="0 network requests for this document" explanation="· Offline-safe" />}
+        {...(open ? { rail: <LeftRail layout={layout} tabs={RAIL_TABS} /> } : {})}
+        inspector={<DemoInspector platform={platform} layout={layout} damaged={damaged} />}
+        status={
+          <>
+            <NetworkIndicator count="0 network requests for this document" explanation="· Offline-safe" />
+            <FocusModeItem layout={layout} />
+          </>
+        }
       >
         {state.phase === "empty" ? (
           <OpenDropZone reader={reader} keys="other">
@@ -125,10 +178,22 @@ export function Demo({ platform, debug = false }: { platform: Platform; debug?: 
         {state.phase === "error" ? (
           <OpenFailure error={state.error} onTryAnother={() => reader.close()} onCopy={() => undefined} />
         ) : null}
+        {open ? <DemoPage layout={layout} /> : null}
         <PasswordDialog reader={reader} />
       </ReaderShell>
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
     </CommandsProvider>
+  );
+}
+
+/** A stand-in for the viewer's page, with a heading to select. */
+function DemoPage({ layout }: { layout: ShellLayout }): ReactNode {
+  return (
+    <div className="demo-page">
+      <button type="button" onClick={() => layout.openInspector({ id: "heading", selection: true })}>
+        Select the heading
+      </button>
+    </div>
   );
 }
 
@@ -161,24 +226,38 @@ function DemoTopBar(props: {
   );
 }
 
-/** The repair details beside a damaged file, until closed. */
-function demoInspector(
-  platform: Platform,
-  damaged: string | undefined,
-  onClose: () => void,
-): { inspector?: ReactNode } {
-  return damaged === undefined
-    ? {}
-    : {
-        inspector: (
-          <RepairDetails
-            fileName={damaged}
-            repairs={[{ code: "xref-repaired" }, { code: "stream-length-recovered", pages: [3, 4, 9] }]}
-            onClose={onClose}
-            onCopy={() => void platform.copyText("xref-repaired, stream-length-recovered")}
-          />
-        ),
-      };
+/** What the inspector shows: the repair details of a damaged file, or the selected heading. */
+function DemoInspector({
+  platform,
+  layout,
+  damaged,
+}: {
+  platform: Platform;
+  layout: ShellLayout;
+  damaged: string | undefined;
+}): ReactNode {
+  const shown = useStoreState(layout, (s) => s.inspector?.id);
+  if (shown === "repairs" && damaged !== undefined) {
+    return (
+      <Inspector layout={layout}>
+        <RepairDetails
+          fileName={damaged}
+          repairs={[{ code: "xref-repaired" }, { code: "stream-length-recovered", pages: [3, 4, 9] }]}
+          onClose={() => layout.closeInspector()}
+          onCopy={() => void platform.copyText("xref-repaired, stream-length-recovered")}
+        />
+      </Inspector>
+    );
+  }
+  if (shown === "heading") {
+    return (
+      <Inspector layout={layout} label="Heading">
+        <h2 className="demo-inspector-title">Heading</h2>
+        <p>Quarterly figures, on page 1.</p>
+      </Inspector>
+    );
+  }
+  return null;
 }
 
 const root = document.getElementById("demo");
