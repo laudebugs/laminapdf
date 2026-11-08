@@ -4,7 +4,7 @@ The page went blurry for a moment at every pause in a pinch or ctrl+wheel zoom, 
 
 ## What the user saw
 
-In the web reader on a Mac, zooming a paper in and out with the trackpad flickered while the fingers moved: the page flashed blurry, then sharp, several times a second. Once the fingers left the trackpad, the page settled sharp. The screen recording at 120 frames a second shows one- to three-frame blurry flashes at the pauses within the pinch, and some frames where part of the page is sharp and the rest blurry.
+In the web reader on a Mac, the page flickered while the user zoomed a paper in and out with the trackpad: it flashed blurry, then sharp, several times a second. Once the fingers left the trackpad, the page settled sharp. The screen recording at 120 frames a second shows one- to three-frame blurry flashes at the pauses within the pinch, and some frames where part of the page is sharp and the rest blurry.
 
 ## How to reproduce it
 
@@ -16,7 +16,7 @@ A trackpad pinch sends wheel events the same way: bursts with gaps. Any gap long
 
 ## The measurement
 
-A script logged every animation frame of that zoom: the page canvas's size in pixels, and a sharpness score over the part of the canvas in view (the share of pixels whose neighbour differs by more than 120 in the sum of the colour channels: a text edge, not a smear).
+A script logged every animation frame of that zoom: the page canvas's size in pixels and a sharpness score over the part of the canvas in view. The score is the share of pixels whose neighbour differs by more than 120 in the sum of the colour channels, which a text edge does and a smear doesn't.
 
 | Frame (ms) | Canvas width (px) | Width on screen (CSS px) | Sharpness |
 | --- | --- | --- | --- |
@@ -27,7 +27,7 @@ A script logged every animation frame of that zoom: the page canvas's size in pi
 | 3124 | 4548 | 3070 | 4.1 |
 | 6256 | 2899 | 1450 | 18.7 |
 
-Between bursts, the canvas still holds the previous zoom's sharp pixels, stretched by CSS, and scores about 30. As soon as a pause passes the settle delay, the canvas is resized for the new zoom and scores 0: it now shows the low-resolution pass. When the next burst starts before the sharp tiles arrive, those tiles are cancelled and the page stays blurry until the gesture ends. Over the whole zoom, the score fell to under half of the previous frame's ten times.
+Between bursts, the canvas still holds the previous zoom's sharp pixels, stretched by CSS, and scores about 30. As soon as a pause passes the settle delay, the canvas is resized for the new zoom and scores 0: it now shows the low-resolution pass. When the next burst starts before the sharp tiles arrive, those tiles are cancelled and the page stays blurry until the gesture ends. During the zoom, the score fell below half of the previous frame's score ten times.
 
 ## The cause
 
