@@ -12,4 +12,16 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
+
+  /* macOS runs its keys together (⌘V): a small gap keeps a wide glyph like ⌘ off the next key. */
+  .paper-shortcut-chip[data-platform="mac"] > .paper-shortcut-chip-key + .paper-shortcut-chip-key {
+    margin-inline-start: var(--paper-space-4);
+  }
+
+  /* Glyphs the font draws below the middle of the capitals (⌘, the arrows), lifted to it. The
+     amount is the font's own, so it scales with the text. */
+  .paper-shortcut-chip-key[data-low] {
+    position: relative;
+    inset-block-start: -0.07em;
+  }
 }

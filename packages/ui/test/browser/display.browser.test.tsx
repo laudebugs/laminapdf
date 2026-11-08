@@ -193,4 +193,50 @@ describe("ShortcutChip", () => {
     expect(text("Shift+f3", "mac")).toBe("⇧F3");
     expect(text("Hyper+K", "other")).toBe("Hyper K");
   });
+
+  // docs/bugs/shortcut-chip-cramped-keys: ⌘ touched the key after it and sat below the letters.
+  it("keeps every macOS key 4 px from the next and lifts ⌘ and the arrows to the letters", () => {
+    const problems = chipBindings().flatMap((binding) => {
+      const found = macChipProblems(binding);
+      cleanup();
+      return found;
+    });
+    expect(problems).toEqual([]);
+  });
 });
+
+/** Every modifier combination with a letter, an arrow and a named key: 45 bindings. */
+function chipBindings(): string[] {
+  const modifiers = ["Ctrl", "Alt", "Shift", "Mod"];
+  const bindings: string[] = [];
+  for (let mask = 1; mask < 1 << modifiers.length; mask++) {
+    const held = modifiers.filter((_, i) => mask & (1 << i));
+    for (const key of ["V", "ArrowUp", "Escape"]) bindings.push([...held, key].join("+"));
+  }
+  return bindings;
+}
+
+/** What is wrong with `binding`'s macOS chip: keys closer than 4 px, ⌘ or an arrow not lifted. */
+function macChipProblems(binding: string): string[] {
+  const host = renderIn(<ShortcutChip keys={{ mac: binding, other: binding }} platform="mac" />);
+  const spans = [...host.querySelectorAll<HTMLElement>(".paper-shortcut-chip-key")];
+  const boxes = spans.map((s) => s.getBoundingClientRect());
+  const problems = boxes.slice(1).flatMap((box, i) => {
+    const gap = box.left - (boxes[i]?.right ?? 0);
+    return gap < 3.99 ? [`${binding}: ${gap.toFixed(2)} px after ${spans[i]?.textContent}`] : [];
+  });
+  const low = spans.filter((s) => s.hasAttribute("data-low"));
+  const letters = spans.filter((s) => !s.hasAttribute("data-low") && /^[A-Z]$/.test(s.textContent ?? ""));
+  for (const glyph of low) {
+    for (const letter of letters) {
+      const lift = letter.getBoundingClientRect().top - glyph.getBoundingClientRect().top;
+      if (lift < 0.5) problems.push(`${binding}: ${glyph.textContent} lifted ${lift.toFixed(2)} px`);
+    }
+  }
+  const expected = ["⌘", "↑"].filter((g) => spans.some((s) => s.textContent === g));
+  const lifted = low.map((s) => s.textContent);
+  if (expected.join() !== lifted.join() || (binding.includes("Mod") && !lifted.includes("⌘"))) {
+    problems.push(`${binding}: lifted ${lifted.join("") || "nothing"}, expected ${expected.join("") || "⌘"}`);
+  }
+  return problems;
+}
