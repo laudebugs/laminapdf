@@ -4,7 +4,10 @@
    44 px of §7.1; tabular figures; "/ N" muted), the zoom
    percentage between its 26 px buttons, and the Commands button with its chip. */
 @layer paper.components {
+  /* The shell never scrolls sideways, down to a 320 wide phone: its parts shrink or wrap instead
+     (the phone tests check that nothing reaches past the window). */
   .paper-reader-shell {
+    overflow-x: clip;
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     block-size: 100%;
@@ -137,7 +140,8 @@
   }
 
   .paper-zoom-percent {
-    min-inline-size: var(--paper-zoom-percent-min-width);
+    /* A target in both directions: a short percentage ("98%") is narrower than a touch target. */
+    min-inline-size: max(var(--paper-zoom-percent-min-width), var(--ui-target));
     min-block-size: max(var(--paper-icon-button-size-zoom), var(--ui-target));
     padding-inline: var(--paper-space-4);
     border: var(--paper-border-width) solid transparent;
