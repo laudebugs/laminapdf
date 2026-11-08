@@ -7,7 +7,7 @@
 // (plugins/agent-docs.mjs) and its test (plugins/benchmarks.test.mjs).
 
 /** The machine a run used; a value the machine didn't give is `null`. */
-export interface Machine {
+interface Machine {
   readonly os: string | null;
   readonly cpu: string | null;
   readonly cores: number | null;
@@ -25,7 +25,7 @@ export interface Run {
 }
 
 /** One runtime's timings in milliseconds and its WebAssembly memory in bytes. */
-export interface RuntimeRow {
+interface RuntimeRow {
   readonly runtime: string;
   /** The version of the tool the runtime runs on (Node, Deno, Bun, Playwright or wrangler). */
   readonly version: string | null;
@@ -40,7 +40,7 @@ export interface Generation {
 }
 
 /** One WebAssembly module: bytes raw, gzipped and brotli-compressed, and its gzip budget. */
-export interface ModuleSize {
+interface ModuleSize {
   readonly name: string;
   readonly raw: number;
   readonly gzip: number;
@@ -49,7 +49,7 @@ export interface ModuleSize {
 }
 
 /** One JavaScript bundle: bytes minified and gzipped, and its gzip budget. */
-export interface BundleSize {
+interface BundleSize {
   readonly name: string;
   readonly minified: number;
   readonly gzip: number;
@@ -64,7 +64,7 @@ export interface Sizes {
 }
 
 /** One benchmark subset: its pages, tests, passes and score. */
-export interface SubsetScore {
+interface SubsetScore {
   readonly name: string;
   readonly measures: string;
   readonly pdfs: number;
