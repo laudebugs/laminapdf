@@ -203,6 +203,10 @@ fn truncate(extraction: &mut Extraction, markdown: &mut Rendered, options: Markd
         return false;
     }
     extraction.blocks.truncate(keep);
+    // A table cut between its parts ends at the last part kept.
+    if let Some(last) = extraction.blocks.last_mut() {
+        last.continued_by = None;
+    }
     *markdown = extraction.to_markdown(&options);
     true
 }

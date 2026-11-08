@@ -44,7 +44,11 @@ pub(crate) fn link(out: &mut Extraction) {
         if let Some(second) = out.blocks.get_mut(b) {
             second.continues = Some(first_id);
             if repeated {
-                second.cells.iter_mut().filter(|c| c.row == 0).for_each(|c| c.header = true);
+                second
+                    .cells
+                    .iter_mut()
+                    .filter(|c| c.row == 0)
+                    .for_each(|c| c.header = true);
             }
         }
     }
@@ -60,12 +64,14 @@ fn candidates(blocks: &[Block], page: usize, next: usize) -> Option<(usize, usiz
     match (is_table(last), is_table(first)) {
         (true, true) => Some((last, first)),
         // One "continued" line at the foot of the first page or the top of the next.
-        (false, true) if last > 0 && is_continued(last) && is_table(last - 1) => {
-            blocks.get(last - 1).filter(|b| b.page == page).map(|_| (last - 1, first))
-        }
-        (true, false) if is_continued(first) && is_table(first + 1) => {
-            blocks.get(first + 1).filter(|b| b.page == next).map(|_| (last, first + 1))
-        }
+        (false, true) if last > 0 && is_continued(last) && is_table(last - 1) => blocks
+            .get(last - 1)
+            .filter(|b| b.page == page)
+            .map(|_| (last - 1, first)),
+        (true, false) if is_continued(first) && is_table(first + 1) => blocks
+            .get(first + 1)
+            .filter(|b| b.page == next)
+            .map(|_| (last, first + 1)),
         _ => None,
     }
 }
@@ -143,11 +149,9 @@ fn edges_match(a: &[(f64, f64)], b: &[(f64, f64)]) -> bool {
 /// Unruled tables: every column overlaps the same column of the other part and no other.
 fn overlaps_match(a: &[(f64, f64)], b: &[(f64, f64)]) -> bool {
     let overlaps = |p: &(f64, f64), q: &(f64, f64)| p.0 < q.1 && q.0 < p.1;
-    a.iter().enumerate().all(|(i, p)| {
-        b.iter()
-            .enumerate()
-            .all(|(j, q)| overlaps(p, q) == (i == j))
-    })
+    a.iter()
+        .enumerate()
+        .all(|(i, p)| b.iter().enumerate().all(|(j, q)| overlaps(p, q) == (i == j)))
 }
 
 /// `Some(repeated)` when the second part's header fits the first's: it repeats it (`true`),
@@ -223,20 +227,40 @@ mod tests {
 
     #[test]
     fn ruled_columns_line_up_within_the_snap_distance() {
-        assert!(edges_match(&[(0.0, 100.0), (100.0, 200.0)], &[(2.0, 101.0), (101.0, 202.5)]));
-        assert!(!edges_match(&[(0.0, 100.0), (100.0, 200.0)], &[(0.0, 80.0), (80.0, 180.0)]));
+        assert!(edges_match(
+            &[(0.0, 100.0), (100.0, 200.0)],
+            &[(2.0, 101.0), (101.0, 202.5)]
+        ));
+        assert!(!edges_match(
+            &[(0.0, 100.0), (100.0, 200.0)],
+            &[(0.0, 80.0), (80.0, 180.0)]
+        ));
     }
 
     #[test]
     fn unruled_columns_overlap_their_own_column_only() {
-        assert!(overlaps_match(&[(0.0, 40.0), (60.0, 90.0)], &[(5.0, 30.0), (55.0, 95.0)]));
-        assert!(!overlaps_match(&[(0.0, 40.0), (60.0, 90.0)], &[(0.0, 70.0), (75.0, 95.0)]));
+        assert!(overlaps_match(
+            &[(0.0, 40.0), (60.0, 90.0)],
+            &[(5.0, 30.0), (55.0, 95.0)]
+        ));
+        assert!(!overlaps_match(
+            &[(0.0, 40.0), (60.0, 90.0)],
+            &[(0.0, 70.0), (75.0, 95.0)]
+        ));
     }
 
     #[test]
     fn a_repeated_header_joins_and_is_reported() {
-        let first = [cell(0, 0, "Item", true), cell(0, 1, "Price", true), cell(1, 0, "Tea", false)];
-        let repeated = [cell(0, 0, "Item", false), cell(0, 1, " Price ", false), cell(1, 0, "Jam", false)];
+        let first = [
+            cell(0, 0, "Item", true),
+            cell(0, 1, "Price", true),
+            cell(1, 0, "Tea", false),
+        ];
+        let repeated = [
+            cell(0, 0, "Item", false),
+            cell(0, 1, " Price ", false),
+            cell(1, 0, "Jam", false),
+        ];
         assert_eq!(header_fits(&first, &repeated), Some(true));
     }
 

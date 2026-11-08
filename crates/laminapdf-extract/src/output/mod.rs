@@ -16,10 +16,38 @@ pub use markdown::MarkdownOptions;
 
 use crate::model::{Block, BlockKind, Extraction, header_row_count};
 
-/// For each block, whether it is a table part that goes on from the block just before it.
-fn joins(blocks: &[Block]) -> Vec<bool> {
+/// How a block joins the one before it in a rendering.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Join {
+    /// It doesn't.
+    No,
+    /// A table part that goes on from the part before it.
+    Part,
+    /// A "continued" line between two parts of one table: written as nothing, so the parts
+    /// stay one table (the JSON keeps it as the paragraph it is).
+    Bridge,
+}
+
+/// How each block joins the one before it. A renderer joins two parts only when they are
+/// neighbours, or one line apart, so a list of blocks with a part cut out still renders whole
+/// tables.
+fn joins(blocks: &[Block]) -> Vec<Join> {
+    let goes_on = |i: usize, before: usize| {
+        blocks
+            .get(i)
+            .zip(blocks.get(before))
+            .is_some_and(|(b, a)| b.continues_from(a))
+    };
     (0..blocks.len())
-        .map(|i| i > 0 && blocks.get(i).zip(blocks.get(i - 1)).is_some_and(|(b, a)| b.continues_from(a)))
+        .map(|i| {
+            if (i > 0 && goes_on(i, i - 1)) || (i > 1 && goes_on(i, i - 2)) {
+                Join::Part
+            } else if i > 0 && goes_on(i + 1, i - 1) {
+                Join::Bridge
+            } else {
+                Join::No
+            }
+        })
         .collect()
 }
 
@@ -117,15 +145,19 @@ impl Extraction {
     #[must_use]
     pub fn to_text(&self) -> Rendered {
         let mut w = Writer::default();
-        let joined = joins(&self.blocks);
+        let joins = joins(&self.blocks);
         for (i, block) in self.blocks.iter().enumerate() {
-            let joined = joined.get(i).copied().unwrap_or(false);
+            let join = joins.get(i).copied().unwrap_or(Join::No);
+            if join == Join::Bridge {
+                w.block("");
+                continue;
+            }
             if i > 0 {
-                w.push(if joined { "\n" } else { "\n\n" });
+                w.push(if join == Join::Part { "\n" } else { "\n\n" });
             }
             match &block.kind {
                 BlockKind::ListItem { marker, .. } => w.block(&format!("{marker} {}", block.text)),
-                BlockKind::Table { .. } if joined => {
+                BlockKind::Table { .. } if join == Join::Part => {
                     let skip = header_row_count(&block.cells);
                     w.block(&block.text.split('\n').skip(skip).collect::<Vec<_>>().join("\n"));
                 }
