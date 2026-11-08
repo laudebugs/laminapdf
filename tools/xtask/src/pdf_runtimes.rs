@@ -363,18 +363,21 @@ fn table(measurements: &[Measurement]) -> String {
     let mut out = String::from(
         "## @laminapdf/sdk in every runtime\n\n\
          Recorded, not asserted (pdf-library §4: hello ≤ 5 ms after `init()`, a 100-page report ≤ 500 ms, \
-         < 64 MB peak in a Worker); ⚠️ marks a miss. Hello is the median of 20 runs, the report of 3. \
+         < 64 MB peak in a Worker); ⚠️ marks a miss. Hello and the one-page invoice are the median of 20 runs, \
+         the report of 3. \
          WebAssembly memory is both modules' linear memory after the report (it never shrinks, so it is \
          their peak); the JS heap is not included.\n\n\
-         | Runtime | First hello | Hello | 100-page report | WebAssembly memory |\n| --- | --- | --- | --- | --- |\n",
+         | Runtime | First hello | Hello | Invoice | 100-page report | WebAssembly memory |\n\
+         | --- | --- | --- | --- | --- | --- |\n",
     );
     for (runtime, cases) in &by_runtime {
         let memory_target = (*runtime == "workerd").then_some(WORKER_MEMORY_TARGET_BYTES);
         let _ = writeln!(
             out,
-            "| {runtime} | {} | {} | {} | {} |",
+            "| {runtime} | {} | {} | {} | {} | {} |",
             cell(cases.get("hello-first").copied(), None, "ms"),
             cell(cases.get("hello").copied(), Some(HELLO_TARGET_MS), "ms"),
+            cell(cases.get("invoice").copied(), None, "ms"),
             cell(cases.get("report").copied(), Some(REPORT_TARGET_MS), "ms"),
             cell(cases.get("wasm-memory").copied(), memory_target, "MB"),
         );
@@ -568,14 +571,15 @@ mod tests {
         let out = table(&[
             m("workerd", "report", 650.0),
             m("workerd", "hello", 1.0),
+            m("workerd", "invoice", 2.5),
             m("workerd", "wasm-memory", 70.0 * 1024.0 * 1024.0),
             m("node-24", "wasm-memory", 70.0 * 1024.0 * 1024.0),
         ]);
         assert!(
-            out.contains("| workerd | – | 1.0 ms | **650.0 ms** ⚠️ | **70.0 MB** ⚠️ |"),
+            out.contains("| workerd | – | 1.0 ms | 2.5 ms | **650.0 ms** ⚠️ | **70.0 MB** ⚠️ |"),
             "{out}"
         );
-        assert!(out.contains("| node-24 | – | – | – | 70.0 MB |"), "{out}");
+        assert!(out.contains("| node-24 | – | – | – | – | 70.0 MB |"), "{out}");
     }
 
     #[test]
