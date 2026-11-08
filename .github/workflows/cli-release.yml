@@ -26,17 +26,15 @@
 # artifacts; it never publishes (`dry-run` stays true; false is refused). A tag push builds
 # and verifies the same way first.
 #
-# Targets: dist-workspace.toml lists eight. CI builds the three the self-hosted runners can run:
-# macOS arm64 on the Mac (`[self-hosted, macOS, ARM64]`) and Linux arm64 with glibc and musl on
-# the Linux runner container (`[self-hosted, Linux, ARM64]`), which runs only while
-# LINUX_RUNNER is 'true' and its heartbeat is fresh (full.yml's comment). x86_64-apple-darwin,
-# x86_64-unknown-linux-gnu and -musl, and both Windows targets are built once a runner for each
-# exists (Windows: todo X6). GitHub-hosted runners are not used.
+# Targets: dist-workspace.toml lists eight. CI builds three on GitHub-hosted runners: macOS
+# arm64 (`macos-15`) and Linux arm64 with glibc and musl (`ubuntu-24.04-arm`).
+# x86_64-apple-darwin, x86_64-unknown-linux-gnu and -musl, and both Windows targets are not
+# built yet (Windows: todo X6).
 #
 # Still the owner's, before the first publish: pushing the formula to laudebugs/homebrew-tap and
 # publishing the npm packages (target/cli-npm/, from tools/cli-release/generate.ts). npm's trusted
 # publishing accepts only GitHub-hosted runners (ADR 0017 §7), and the tap is another repository.
-# Same runner rules as ci.yml: isolate-rust-home, no rust-cache on macOS, pnpm in runner.temp.
+# Same runner rules as ci.yml: fresh hosted VMs, Rust caches saved only on main.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: CLI release
 
@@ -71,43 +69,23 @@ env:
 jobs:
   plan:
     name: dist plan
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 15
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
-      linux: ${{ steps.linux.outputs.linux }}
     steps:
       - name: A dispatch is a dry run
         if: github.event_name == 'workflow_dispatch' && !inputs.dry-run
         run: |
           echo "::error::a dispatch never publishes: push a laminapdf-cli-v<version> tag (with LAMINA_PDF_PUBLISH_CLI set to true)"
           exit 1
-      # Same switch and heartbeat as full.yml's `changes`.
-      - name: Is the Linux runner switched on and alive?
-        id: linux
-        env:
-          SWITCH: ${{ vars.LINUX_RUNNER }}
-          HEARTBEAT: ${{ vars.LINUX_RUNNER_HEARTBEAT }}
-        run: |
-          linux=false
-          if [ "$SWITCH" = true ]; then
-            if [[ "$HEARTBEAT" =~ ^[0-9]+$ ]] && [ $(( $(date +%s) - HEARTBEAT )) -le 900 ]; then
-              linux=true
-            else
-              echo "::warning::LINUX_RUNNER is true but the Linux runner's heartbeat is missing or older than 15 minutes, so the Linux targets are skipped"
-            fi
-          fi
-          echo "linux=$linux" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # dist plan reads the workspace through cargo, and the tag step runs `cargo pkgid`.
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: cli-release-plan
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - name: The release tag
         id: tag
         env:
@@ -134,7 +112,7 @@ jobs:
     name: Build and install (aarch64-apple-darwin)
     needs: plan
     if: ${{ github.event_name != 'pull_request' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 60
     env:
       TARGET: aarch64-apple-darwin
@@ -143,12 +121,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: cli-release
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - uses: ./.github/actions/node-pnpm
       # Same versions as tools/xtask/src/doctor.rs.
       - uses: ./.github/actions/install-tools
@@ -158,11 +133,12 @@ jobs:
         run: cargo xtask cli-dist
       - name: dist build
         run: |
-          rm -rf "$CARGO_TARGET_DIR/distrib"
+          distrib="${CARGO_TARGET_DIR:-$PWD/target}/distrib"
+          rm -rf "$distrib"
           dist build --tag "$TAG" --artifacts=local --target "$TARGET" --output-format=json > "$RUNNER_TEMP/manifest.json"
           # `global` reads each build's checksums from these manifests (dist's own CI does the same).
-          cp "$RUNNER_TEMP/manifest.json" "$CARGO_TARGET_DIR/distrib/$TARGET-dist-manifest.json"
-          echo "DISTRIB=$CARGO_TARGET_DIR/distrib" >> "$GITHUB_ENV"
+          cp "$RUNNER_TEMP/manifest.json" "$distrib/$TARGET-dist-manifest.json"
+          echo "DISTRIB=$distrib" >> "$GITHUB_ENV"
       - name: The archive installs and runs
         run: tools/cli-release/archive-test.sh "$DISTRIB/laminapdf-cli-$TARGET.tar.xz" fixtures/golden/examples/hello.pdf
       - name: The npm packages install and run
@@ -205,13 +181,11 @@ jobs:
   build-linux:
     name: Build and install (Linux arm64, ${{ matrix.libc }})
     needs: plan
-    if: ${{ github.event_name != 'pull_request' && needs.plan.outputs.linux == 'true' }}
-    runs-on: [self-hosted, Linux, ARM64]
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      # One at a time: there is one Linux runner.
-      max-parallel: 1
       matrix:
         include:
           - libc: glibc
@@ -229,7 +203,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # The container starts empty for every job (see full.yml's check-linux).
+      # A tag's run saves no Rust cache.
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
@@ -297,29 +271,26 @@ jobs:
     name: Formula, checksums and SBOM
     needs: [plan, build-macos, build-linux]
     if: ${{ !cancelled() && needs.build-macos.result == 'success' && needs.build-linux.result != 'failure' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     env:
       TAG: ${{ needs.plan.outputs.tag }}
     steps:
-      # A dispatch may build macOS alone while the Linux runner is off; a release may not, since
+      # A dispatch may finish with macOS alone if the Linux builds fail; a release may not, since
       # a version published without its Linux archives and npm packages can't gain them later.
       - name: A tag push needs the Linux builds
         if: ${{ github.event_name == 'push' && needs.build-linux.result != 'success' }}
         env:
           LINUX: ${{ needs.build-linux.result }}
         run: |
-          echo "::error::the Linux builds were $LINUX, so this release is not published; start the Linux runner and re-run the workflow"
+          echo "::error::the Linux builds were $LINUX, so this release is not published; fix them and re-run the workflow"
           exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: cli-release-global
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # Same versions as tools/xtask/src/doctor.rs.
       - uses: ./.github/actions/install-tools
         with:
@@ -333,7 +304,7 @@ jobs:
       # for each, the formula and sha256.sum cover only the targets built.
       - name: Homebrew formula and sha256.sum
         run: |
-          distrib="$CARGO_TARGET_DIR/distrib"
+          distrib="${CARGO_TARGET_DIR:-$PWD/target}/distrib"
           rm -rf "$distrib" && mkdir -p "$distrib"
           cp "$RUNNER_TEMP"/archives/* "$distrib/"
           targets=()
@@ -364,7 +335,7 @@ jobs:
     name: Publish the GitHub release
     needs: [plan, build-linux, global]
     if: ${{ needs.global.result == 'success' && needs.build-linux.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 15
     environment: release
     permissions:
