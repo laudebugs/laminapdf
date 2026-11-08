@@ -92,7 +92,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
   - Bytes are copied, and kept on the page for a reopen.
   - `{ url }` is a remote file the Web Worker fetches itself, so its bytes never reach the page:
     - It reads the file with HTTP Range requests through `@laminapdf/sdk`'s `httpRangeSource`, in 64 KiB blocks with one block read ahead, and keeps up to 64 MiB of them.
-    - Lamina PDF opens the file range by range, and a render that meets bytes not yet read fetches them and draws again, so page 1 of a large file needs only a small part of it.
+    - Lamina PDF opens the file range by range, and a render that needs bytes not yet read fetches them and draws again, so page 1 of a large file needs only a small part of it.
     - While a render fetches, it emits `render-fetching` and its timeouts pause until it draws again (`render-start`): a slow network is never a stuck render. The Web Worker still runs one call at a time, so other calls wait for that fetch.
     - Requests send no cookies or referrer and skip the HTTP cache.
     - A server that ignores `Range` sends the whole file, which the Web Worker accepts up to 256 MiB (`source-budget-exceeded` above that).

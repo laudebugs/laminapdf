@@ -36,9 +36,9 @@ Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by 
 
 A link of the form `https://app.laminapdf.com/#url=<address>&page=<n>` opens the PDF at `<address>`, at page `<n>`. The address sits in the fragment, after `#`, which browsers never send to a server. The reader's document worker then fetches the file straight from its site with HTTP Range requests, so a large file shows its first page after only a small part has arrived.
 
-The address must be encoded as a whole with `encodeURIComponent`: `#url=https%3A%2F%2Fexample.com%2Freport.pdf%3Fv%3D2&page=5` opens `https://example.com/report.pdf?v=2` at page 5. The reader refuses an address pasted without encoding, since its own `&page=` could belong to the address, and it opens only `https://` addresses. When only `page` changes, the reader moves within the open document; Back and Forward never fetch it again. Leaving the document drops `url` from the address without adding a history entry, so a reload shows the home screen.
+The address must be encoded as a whole with `encodeURIComponent`: `#url=https%3A%2F%2Fexample.com%2Freport.pdf%3Fv%3D2&page=5` opens `https://example.com/report.pdf?v=2` at page 5. The reader refuses an address pasted without encoding, since its own `&page=` could then belong to the address. It also opens only `https://` addresses. When only `page` changes, the reader moves within the open document; Back and Forward never fetch it again. Leaving the document drops `url` from the address without adding a history entry, so a reload shows the home screen.
 
-The file's site must allow other sites to read it, with these response headers:
+The file's site must send it uncompressed and allow other sites to read it, with these response headers:
 
 ```
 Access-Control-Allow-Origin: *
@@ -46,9 +46,9 @@ Access-Control-Allow-Headers: Range, If-Range
 Access-Control-Expose-Headers: Content-Range, Content-Length, ETag
 ```
 
-It must not compress the response either. A site that sends no CORS headers gets a page that explains the refusal and links to the file, so you can download it and open it here; the reader never sends a file through a server of ours. A site that ignores `Range` works too: the reader downloads the file whole, up to 256 MiB.
+A site that sends no CORS headers gets a page that explains the refusal and links to the file, so you can download it and open it here: files go straight from their site to your browser, never through a server of ours. A site that ignores `Range` works too, since the reader then downloads the file whole, up to 256 MiB.
 
-Every request for the file omits cookies and the referrer and skips the browser's HTTP cache. An encrypted file asks for its password, which goes to the document worker once and stays there. JavaScript strings can't be overwritten, so the password stays in the worker's memory until it is collected; it is never kept on the page, and after a worker crash the reader asks again.
+Every request for the file omits cookies and the referrer and skips the browser's HTTP cache. An encrypted file asks for its password, which goes to the document worker once and is never kept on the page. Because JavaScript strings can't be overwritten, the worker's copy stays in its memory until it is collected. After a worker crash, the reader asks for the password again.
 
 ## Headers and hosting
 
@@ -70,7 +70,7 @@ Three more suites use `e2e/remote-host.ts`, a local HTTPS server on another port
 
 - **`remote.e2e.test.ts`** opens linked files. Page 1 of a 50 MB file appears after the reader reads less than a quarter of it. A site without CORS gets the explanation, and a change of `page` alone never opens the file again. It also checks the link format: an unencoded address and `http://` are both refused.
 - **`encrypted.e2e.test.ts`** opens every encrypted fixture, each revision of the standard security handler from 2 to 6. A file with an empty user password opens at once. Any other asks for its password, rejects a wrong one, and opens with the user or the owner password.
-- **`privacy.e2e.test.ts`** checks what leaves the browser while a local file, a linked file and an encrypted file of each kind open. It records every request of the page and its worker, and fails when a request body carries 32 bytes of the document or when a request to the reader's origin names the linked address. Other failures are a request that isn't a GET, a Referer or cookie reaching the file's site, any cookie at all, another origin, and the password in any request.
+- **`privacy.e2e.test.ts`** checks what leaves the browser while a local file, a linked file and an encrypted file of each kind open. It records every request of the page and its worker, and fails when a request body carries 32 bytes of the document or when a request to the reader's origin names the linked address. It also fails on a request to the reader's origin that isn't a GET and on a Referer or cookie reaching the file's site. Any cookie at all, any other origin and the password in any request fail it too.
 
 ```sh
 pnpm --filter @laminapdf/web build
