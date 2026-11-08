@@ -1,5 +1,5 @@
 // The page side of "Edit and run" (todo B7e): loaded only when a reader presses the button. It puts
-// CodeMirror over the example's code, sends the code to the runner (worker.ts, one per page, started
+// CodeMirror over the example's code, wires up the bar the page renders, sends the code to the runner (worker.ts, one per page, started
 // on the first run), and shows each page of the result, or the error with its code and hint.
 
 import { javascript } from "@codemirror/lang-javascript";
@@ -56,21 +56,23 @@ function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: strin
   return node;
 }
 
+/** The bar's buttons, which the page renders with their icons (Example.astro), hidden until now. */
+export interface RunButtons {
+  readonly bar: HTMLElement;
+  readonly run: HTMLButtonElement;
+  readonly reset: HTMLButtonElement;
+  readonly download: HTMLButtonElement;
+}
+
 /**
- * Turns `host` into the example's editor: the code, Run, Reset and Download, and the result below.
+ * Opens the example's editor: the code above the bar, the result below it.
  *
- * @param host the element to fill; its old content (the Result tab's pictures) shows until a run
+ * @param buttons the bar with Run, Reset and Download
  * @param file the example's TypeScript file, from the repository root (a key of `RUNNABLE`)
  * @param source the example's code as the page shows it
  * @param pictures the Result tab's pictures, hidden once a run has drawn its own pages
  */
-export function openRunner(host: HTMLElement, file: string, source: string, pictures: HTMLElement): void {
-  const bar = element("div", "run-bar");
-  const runButton = element("button", "run-button", "Run");
-  const reset = element("button", "run-button", "Reset");
-  const download = element("a", "run-download", "Download PDF");
-  download.hidden = true;
-  bar.append(runButton, reset, download);
+export function openRunner(buttons: RunButtons, file: string, source: string, pictures: HTMLElement): void {
   const status = element("p", "run-status");
   status.setAttribute("role", "status");
   const problem = element("div", "run-error");
@@ -78,22 +80,35 @@ export function openRunner(host: HTMLElement, file: string, source: string, pict
   problem.hidden = true;
   const pages = element("div", "run-pages");
   const editorHost = element("div", "run-editor");
-  host.append(editorHost, bar, status, problem, pages);
+  buttons.bar.before(editorHost);
+  buttons.bar.after(status, problem, pages);
+  buttons.bar.hidden = false;
+  buttons.download.hidden = true;
 
   const view = new EditorView({
     doc: source,
     parent: editorHost,
     extensions: [basicSetup, javascript({ typescript: true }), EditorView.lineWrapping],
   });
+  /** The last PDF as a data: URL: not a blob: one, since Chromium checks a blob: download against
+   * the page's CSP, which lists no blob: (ADR 0011), and reports a violation though the file arrives. */
+  let pdf = "";
+  const name = `${file.slice(file.lastIndexOf("/") + 1, -3)}.pdf`;
 
-  reset.addEventListener("click", () => {
+  buttons.reset.addEventListener("click", () => {
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: source } });
   });
-  runButton.addEventListener("click", async () => {
-    runButton.disabled = true;
+  buttons.download.addEventListener("click", () => {
+    const link = element("a", "");
+    link.href = pdf;
+    link.download = name;
+    link.click();
+  });
+  buttons.run.addEventListener("click", async () => {
+    buttons.run.disabled = true;
     status.textContent = worker === undefined ? "Loading Lamina PDF (about 3 MB, once)…" : "Running…";
     const reply = await run({ file, source: view.state.doc.toString(), width: PAGE_PIXELS });
-    runButton.disabled = false;
+    buttons.run.disabled = false;
     status.textContent = "";
     if (!reply.ok) {
       problem.replaceChildren(element("strong", "", reply.code), document.createTextNode(`: ${reply.message}`));
@@ -115,11 +130,8 @@ export function openRunner(host: HTMLElement, file: string, source: string, pict
       }),
     );
     pages.classList.toggle("run-pages-many", reply.pages.length > 1);
-    // A data: URL, not a blob: one: Chromium checks a blob: download against the page's CSP,
-    // which lists no blob: (ADR 0011), and reports a violation even though the file arrives.
-    download.href = await dataUrl(reply.bytes);
-    download.download = `${file.slice(file.lastIndexOf("/") + 1, -3)}.pdf`;
-    download.hidden = false;
+    pdf = await dataUrl(reply.bytes);
+    buttons.download.hidden = false;
     status.textContent = `Done: ${reply.pages.length === 1 ? "1 page" : `${reply.pages.length} pages`}.`;
   });
 }

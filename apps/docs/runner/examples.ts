@@ -37,7 +37,10 @@ export const RUNNABLE: Readonly<Record<string, Runnable>> = {
     export: "imagesAndVectors",
     inputs: [PHOTO, { options: "lamina-ex-vector" }],
   },
-  "packages/sdk/examples/links-and-outlines.ts": { export: "linksAndOutlines", inputs: [{ options: "lamina-ex-links!" }] },
+  "packages/sdk/examples/links-and-outlines.ts": {
+    export: "linksAndOutlines",
+    inputs: [{ options: "lamina-ex-links!" }],
+  },
   "packages/sdk/examples/element-flow.ts": {
     export: "elementFlow",
     inputs: [PHOTO, FLOW_REPORT, { options: "lamina-ex-flow!!" }],

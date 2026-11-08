@@ -7,6 +7,10 @@
 // when the runner was built (scripts/build-runner.mjs); it loads nothing until it is pressed.
 import { existsSync } from "node:fs";
 import { TabItem, Tabs } from "@astrojs/starlight/components";
+// @laminapdf/icons' own files, inlined at build time (its package exports only a built dist/).
+import downloadIcon from "../../../../packages/icons/svg/download.svg?raw";
+import playIcon from "../../../../packages/icons/svg/play.svg?raw";
+import resetIcon from "../../../../packages/icons/svg/reset.svg?raw";
 import manifest from "../../public/examples/preview/manifest.json";
 import { RUNNABLE } from "../../runner/examples.ts";
 import ExampleCode from "./ExampleCode.astro";
@@ -53,6 +57,9 @@ if (output !== undefined && text === undefined) {
   throw new Error(`Example: ${output} is not one of the outputs apps/docs may show`);
 }
 const outcome = pictures.length > 0 || text !== undefined;
+/** An icon beside a button's label: decorative, so hidden from assistive technology. */
+const icon = (svg: string) =>
+  svg.replace("<svg ", '<svg class="run-icon" width="16" height="16" aria-hidden="true" focusable="false" ');
 const size = (bytes: number) => (bytes < 1024 ? `${bytes} bytes` : `${Math.round(bytes / 1024)} KB`);
 const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
 ---
@@ -69,7 +76,24 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
         <TabItem label="Result">
           {source !== undefined && (
             <lamina-run class="example-run not-content" data-file={ts} data-source={source}>
-              <button type="button" class="run-open">Edit and run</button>
+              <button type="button" class="run-open">
+                <Fragment set:html={icon(playIcon)} />
+                Edit and run
+              </button>
+              <div class="run-bar" hidden>
+                <button type="button" class="run-run">
+                  <Fragment set:html={icon(playIcon)} />
+                  Run
+                </button>
+                <button type="button" class="run-reset">
+                  <Fragment set:html={icon(resetIcon)} />
+                  Reset
+                </button>
+                <button type="button" class="run-download" hidden>
+                  <Fragment set:html={icon(downloadIcon)} />
+                  Download PDF
+                </button>
+              </div>
             </lamina-run>
           )}
           {pictures.map((example) => (
@@ -110,20 +134,25 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   class LaminaRun extends HTMLElement {
     connectedCallback(): void {
       const button = this.querySelector<HTMLButtonElement>(".run-open");
+      const bar = this.querySelector<HTMLElement>(".run-bar");
+      const run = this.querySelector<HTMLButtonElement>(".run-run");
+      const reset = this.querySelector<HTMLButtonElement>(".run-reset");
+      const download = this.querySelector<HTMLButtonElement>(".run-download");
       const { file, source } = this.dataset;
-      if (button === null || file === undefined || source === undefined) return;
+      if (button === null || bar === null || run === null || reset === null || download === null) return;
+      if (file === undefined || source === undefined) return;
       button.addEventListener(
         "click",
         async () => {
           button.disabled = true;
-          button.textContent = "Loading the editor…";
+          button.lastChild?.replaceWith(" Loading the editor…");
           const { openRunner } = await import("../../runner/editor.ts");
           const pictures = document.createElement("div");
           // The Result tab's pictures stay until a run draws its own pages.
           for (const figure of this.parentElement?.querySelectorAll(".example-result") ?? []) pictures.append(figure);
           this.after(pictures);
           button.remove();
-          openRunner(this, file, source, pictures);
+          openRunner({ bar, run, reset, download }, file, source, pictures);
         },
         { once: true },
       );
@@ -143,13 +172,17 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     overflow: auto;
     font-size: var(--sl-text-sm);
   }
-  .example-run :global(.run-bar) {
+  .example-run .run-bar {
     display: flex;
     gap: 0.5rem;
     align-items: center;
     margin-top: 0.5rem;
   }
-  .example-run :global(button) {
+  .example-run button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0;
     font: inherit;
     padding: 0.25rem 0.75rem;
     border: 1px solid var(--sl-color-gray-4);
@@ -158,7 +191,14 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     color: var(--sl-color-white);
     cursor: pointer;
   }
-  .example-run :global(button:disabled) {
+  .example-run button[hidden],
+  .example-run .run-bar[hidden] {
+    display: none;
+  }
+  .example-run :global(.run-icon) {
+    flex: none;
+  }
+  .example-run button:disabled {
     cursor: progress;
   }
   .example-run :global(.run-status:empty) {

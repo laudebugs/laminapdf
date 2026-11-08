@@ -15,7 +15,7 @@
       }
     },
     {
-      "includes": ["astro.config.mjs", "plugins/**", "runner/editor.ts"],
+      "includes": ["astro.config.mjs", "plugins/**", "runner/editor.ts", "e2e/**", "vitest.*.config.ts"],
       "linter": {
         "rules": {
           "style": {

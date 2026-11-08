@@ -7,6 +7,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import type { IncomingHttpHeaders } from "node:http";
 import { request } from "node:https";
 import { createServer } from "node:net";
+import { env, kill } from "node:process";
 import { fileURLToPath } from "node:url";
 
 /** Node's response headers as a `Headers`, a repeated header kept once per value. */
@@ -22,11 +23,11 @@ function toHeaders(raw: IncomingHttpHeaders): Headers {
 export function getLocal(url: URL): Promise<Response> {
   return new Promise((resolve, reject) => {
     const req = request(url, { method: "GET", rejectUnauthorized: false }, (res) => {
-      const chunks: Buffer[] = [];
-      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      const chunks: Uint8Array<ArrayBuffer>[] = [];
+      res.on("data", (chunk: Uint8Array<ArrayBuffer>) => chunks.push(chunk));
       res.on("end", () => {
         const status = res.statusCode ?? 0;
-        const body = status === 204 || status === 304 ? null : Buffer.concat(chunks);
+        const body = status === 204 || status === 304 ? null : new Blob(chunks);
         resolve(new Response(body, { status, headers: toHeaders(res.headers) }));
       });
       res.on("error", reject);
@@ -85,11 +86,11 @@ export async function wranglerDev(app: URL): Promise<WranglerDev> {
       cwd: app,
       detached: true,
       stdio: ["ignore", "inherit", "inherit"],
-      env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
+      env: { ...env, WRANGLER_SEND_METRICS: "false" },
     },
   );
   const stop = () => {
-    if (child.pid !== undefined && child.exitCode === null) process.kill(-child.pid, "SIGTERM");
+    if (child.pid !== undefined && child.exitCode === null) kill(-child.pid, "SIGTERM");
   };
   const origin = `https://127.0.0.1:${port}`;
   try {

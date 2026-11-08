@@ -7,9 +7,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
+import { getLocal } from "@laminapdf/test-utils/wrangler-dev";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
-import { getLocal } from "@laminapdf/test-utils/wrangler-dev";
 import {
   ASSET_CACHE,
   bytes,

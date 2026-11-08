@@ -11,7 +11,7 @@ import notoSans from "../../../fixtures/fonts/NotoSans-Regular.ttf?url";
 import photo from "../../../fixtures/images/photo-rgb.jpg?url";
 import flowReport from "../../../fixtures/text/element-flow-report.json?url";
 import { exampleOptions } from "../../../packages/sdk/test/suite/hello-options.js";
-import { type RunInput, RUNNABLE } from "./examples.js";
+import { RUNNABLE, type RunInput } from "./examples.js";
 import { runExample } from "./run.js";
 
 /** A request: run `source`, the reader's edit of `file`, and draw its pages `width` px wide. */
