@@ -73,6 +73,10 @@ pub(super) struct RunContext {
     pub(super) external: usize,
     pub(super) commit: String,
     pub(super) sample: Option<usize>,
+    /// `--corpus` (`all`, `external`, `mutants`) and `--source` (empty: every source), so a
+    /// reader of the report can tell a run over part of the inputs.
+    pub(super) corpus: &'static str,
+    pub(super) sources: Vec<String>,
 }
 
 pub(super) fn readable(facts: &Value) -> bool {
@@ -436,6 +440,8 @@ impl Comparison {
             "inputs": context.inputs,
             "external": context.external,
             "sample": context.sample,
+            "corpus": context.corpus,
+            "source_filter": context.sources,
             "lamina": {"version": lamina.version, "files": lamina.facts.len()},
             "tools": tool_rows,
             "lamina_errors": self.lamina_errors,
