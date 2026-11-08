@@ -1,6 +1,7 @@
 # The nightly benchmark history: history.jsonl on the orphan `bench-data` branch, one record per
-# line (`cargo xtask bench`, `cargo xtask pdf-runtimes --record`). Used by nightly.yml's `bench`
-# and `pdf-runtimes` jobs.
+# line (`cargo xtask bench`, `cargo xtask pdf-runtimes --record`, `cargo xtask render-diff
+# --record`, `cargo xtask proof --record`). Used by nightly.yml's `bench`, `pdf-runtimes`,
+# `render-diff` and `proof` jobs.
 #
 #   mode: fetch  clones the branch (or starts it: the first run on main) into
 #                $RUNNER_TEMP/bench-data-<job>, sets HISTORY to that folder and remembers how
