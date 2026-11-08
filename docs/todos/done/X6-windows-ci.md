@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `X6` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [architecture §7 cross-cutting](../../plans/architecture.md#7-to-dos) |
 | Round / milestone | Cross-cutting — before the first Windows desktop release (Round D) |
-| Depends on | [X5](../done/X5-linux-ci-container.md) |
+| Depends on | [X5](./X5-linux-ci-container.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (CI lanes) |
 | Branch | `ci/x6-windows-ci` |
 | PR title | `ci: Windows check (X6)` |
@@ -41,16 +41,16 @@ Owner decision, 2026-11-07: use standard GitHub-hosted runners on public reposit
 ## Tasks
 
 - [x] Owner decision on where Windows runs.
-- [ ] Add the job; run one code PR (or one push to `main`) through it.
-- [ ] Update the docs.
+- [x] Add the job; run one code PR (or one push to `main`) through it.
+- [x] Update the docs.
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask check` runs on Windows on the agreed trigger, and the docs say which.
+- [x] `cargo xtask check` runs on Windows on the agreed trigger, and the docs say which.
 
 ## Post-merge checks
 
-- [ ] The first run on the agreed trigger is green.
+- [x] The first run on the agreed trigger is green.
 
 ## Tests
 

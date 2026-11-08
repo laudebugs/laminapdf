@@ -94,7 +94,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 
 - **Source Serif 4 in the page-appearance chips** ([§7.25](../../design/paper/design-language.md#725-page-appearance-chips)): shipping a third family for one "Aa" is wasteful. Recommendation: draw the chip preview in Newsreader (or ship a two-glyph Source Serif 4 subset, < 3 KB). The owner decides as part of [U6a](../done/U6a-paper-tokens.md)'s sign-off; this PR implements the answer.
 - **Variable Newsreader with the optical-size axis** may be too large for the budget; static instances at 15, 16, 20 and 40 px lose little. Measure before deciding.
-- **Unhinted fonts at 12 px on Windows** can look soft; compare in the gallery on Windows ([X6](../ongoing/X6-windows-ci.md) runners or a manual check) before choosing `--no-hinting`.
+- **Unhinted fonts at 12 px on Windows** can look soft; compare in the gallery on Windows ([X6](../done/X6-windows-ci.md) runners or a manual check) before choosing `--no-hinting`.
 - **OFL Reserved Font Names**: if a family declares one, the subset must be renamed; check the licence texts rather than assuming.
 - **Licence allow-list**: the npm licence check may not know `OFL-1.1` for an npm package; extend the allow-list in its single source of truth rather than skipping the package.
 
