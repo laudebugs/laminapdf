@@ -59,9 +59,9 @@ const KEYS: Record<string, { mac: string; other: string }> = {
 };
 
 /**
- * Glyphs that Lamina Sans draws below the middle of its capitals: ⌘ by 0.068 em, the arrows by
- * 0.077 em (they sit on the maths axis). The chip lifts them so each key lines up with the letters
- * beside it.
+ * Glyphs that Lamina Sans draws below the middle of its capitals (⌘, and the arrows, which sit on
+ * the maths axis). The chip lifts them by `--paper-shortcut-chip-glyph-lift` so each key lines up
+ * with the letters beside it.
  */
 const LOW_GLYPHS = new Set(["⌘", "↑", "↓", "←", "→"]);
 

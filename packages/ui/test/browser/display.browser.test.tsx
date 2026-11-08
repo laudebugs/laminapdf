@@ -203,6 +203,14 @@ describe("ShortcutChip", () => {
     });
     expect(problems).toEqual([]);
   });
+
+  it("puts no gap between the keys of a Windows or Linux chip, which spaces them with its text", () => {
+    const host = renderIn(<ShortcutChip keys={{ mac: "", other: "Mod+Shift+E" }} platform="other" />);
+    const margins = [...host.querySelectorAll<HTMLElement>(".paper-shortcut-chip-key")].map(
+      (s) => getComputedStyle(s).marginInlineStart,
+    );
+    expect(margins).toEqual(["0px", "0px", "0px"]);
+  });
 });
 
 /** Every modifier combination with a letter, an arrow and a named key: 45 bindings. */
@@ -216,7 +224,10 @@ function chipBindings(): string[] {
   return bindings;
 }
 
-/** What is wrong with `binding`'s macOS chip: keys closer than 4 px, ⌘ or an arrow not lifted. */
+/**
+ * What is wrong with `binding`'s macOS chip: keys closer than 4 px, or ⌘ and the arrows not lifted
+ * 0.5–1.2 px above the keys beside them (the lift is 0.75 px).
+ */
 function macChipProblems(binding: string): string[] {
   const host = renderIn(<ShortcutChip keys={{ mac: binding, other: binding }} platform="mac" />);
   const spans = [...host.querySelectorAll<HTMLElement>(".paper-shortcut-chip-key")];
@@ -226,17 +237,17 @@ function macChipProblems(binding: string): string[] {
     return gap < 3.99 ? [`${binding}: ${gap.toFixed(2)} px after ${spans[i]?.textContent}`] : [];
   });
   const low = spans.filter((s) => s.hasAttribute("data-low"));
-  const letters = spans.filter((s) => !s.hasAttribute("data-low") && /^[A-Z]$/.test(s.textContent ?? ""));
+  const level = spans.filter((s) => !s.hasAttribute("data-low"));
   for (const glyph of low) {
-    for (const letter of letters) {
-      const lift = letter.getBoundingClientRect().top - glyph.getBoundingClientRect().top;
-      if (lift < 0.5) problems.push(`${binding}: ${glyph.textContent} lifted ${lift.toFixed(2)} px`);
+    for (const other of level) {
+      const lift = other.getBoundingClientRect().top - glyph.getBoundingClientRect().top;
+      if (lift < 0.5 || lift > 1.2) problems.push(`${binding}: ${glyph.textContent} lifted ${lift.toFixed(2)} px`);
     }
   }
   const expected = ["⌘", "↑"].filter((g) => spans.some((s) => s.textContent === g));
   const lifted = low.map((s) => s.textContent);
-  if (expected.join() !== lifted.join() || (binding.includes("Mod") && !lifted.includes("⌘"))) {
-    problems.push(`${binding}: lifted ${lifted.join("") || "nothing"}, expected ${expected.join("") || "⌘"}`);
+  if (expected.join() !== lifted.join()) {
+    problems.push(`${binding}: lifted ${lifted.join("") || "nothing"}, expected ${expected.join("") || "nothing"}`);
   }
   return problems;
 }
