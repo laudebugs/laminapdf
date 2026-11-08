@@ -8,11 +8,11 @@
 
 ## 1. Goal
 
-The docs site has no images at all. Its pages explain processes in prose: how an edit reaches the saved file, why one save keeps signatures and another breaks them, where a point lands on a rotated page, which steps turn a PDF into Markdown. Readers have to build each picture in their head from several paragraphs, and some of them build the wrong one. Round Q3 adds about a dozen diagrams to the pages where a picture answers a question faster than text, drawn so they match the docs and follow the theme the reader picked. This plan names the diagrams and where they go, fixes one way to draw them that works in light mode, dark mode and forced colours, and splits the work into seven pull requests that each ship finished diagrams.
+The docs site has no images at all. Its pages explain processes in prose: how an edit reaches the saved file, why one save keeps signatures and another breaks them, where a point lands on a rotated page, which steps turn a PDF into Markdown. Readers have to build each picture in their head from several paragraphs, and some of them build the wrong one. Round Q3 adds twelve diagrams to the pages where a picture answers a question faster than text, drawn so they match the docs and follow the theme the reader picked. This plan names the diagrams and where they go, fixes one way to draw them that works in light mode, dark mode and forced colours, and splits the work into seven pull requests that each ship finished diagrams.
 
 ## 2. Where a diagram helps
 
-A diagram earns its place when the page explains a flow, a structure or a geometry that the reader must hold in mind while reading the next section. Each one below answers a question readers ask, and each sits next to the prose it replaces or supports; none decorates a page. The ranking is by how many readers hit the question and how much prose the picture saves.
+A diagram earns its place when the page explains a flow, a structure or a geometry that the reader must hold in mind while reading the next section. Each one below answers a question readers ask, and each sits next to the prose it supports, and none decorates a page. The ranking is by how many readers hit the question and how much prose the picture saves.
 
 | # | Diagram | Page and section | The question it answers | Kind |
 | --- | --- | --- | --- | --- |
@@ -35,7 +35,7 @@ Each diagram uses the names the page and the API use, exactly: `incremental`, `f
 
 ## 3. How the diagrams are drawn
 
-Every diagram is inline SVG that an Astro component writes at build time, coloured only through the `--paper-*` design tokens. Three ways to show a theme-aware picture were compared:
+Every diagram is inline SVG that an Astro component writes at build time, coloured only through the `--paper-*` design tokens. This plan compared three ways to show a picture that follows the theme:
 
 - **`<img>` pairs** switched by Starlight's `light:sl-hidden` and `dark:sl-hidden` classes. Each diagram becomes two files with colours written into them, forced colours aren't followed, and the text can't be selected or searched.
 - **`<picture>`** with `prefers-color-scheme`, or an SVG with its own media query. Both follow the system setting and ignore the theme the reader picks in the docs' header.
@@ -46,7 +46,7 @@ Inline SVG wins, and the docs already allow it: the CSP governs scripts, styles 
 ### 3.1 The parts
 
 - **`apps/docs/src/components/diagrams/`** holds one `.astro` file per diagram and a small kit the diagrams share: a box, a labelled arrow, a lane, a byte strip, a page outline. The kit keeps sizes, strokes and spacing identical across diagrams, so a reader learns the visual language once.
-- **`Diagram.astro`** wraps each one in a `<figure>` with a caption. Its required `text` prop is the diagram's full meaning in prose: it becomes the SVG's accessible description and the diagram's text in the page's Markdown twin.
+- **`Diagram.astro`** wraps each one in a `<figure>` with a caption. Its required `text` prop is the diagram's full meaning in prose: it becomes the diagram's text description for screen readers and its text in the page's Markdown twin.
 - **`apps/docs/src/styles/diagrams.css`** styles the kit's classes (`.dg-box`, `.dg-arrow`, `.dg-focus`, `.dg-label`), with every colour a `var(--paper-*)`. The classes are scoped under `.dg`, because the tokens' `:where()` rules lose to any other rule.
 - **The Markdown twins.** `plugins/markdown.mjs` turns `<Snippet>`, asides and the other components into Markdown for the twins that coding agents read, and passes any unknown component through as raw JSX. A diagram therefore needs its own rule there: the twin gets the caption and the `text` prop, never the SVG.
 
@@ -67,7 +67,7 @@ Each diagram is `role="img"` with `aria-labelledby` naming its caption and `aria
 
 ## 4. Checks that keep the diagrams right
 
-A diagram can go wrong in four ways: a hard-coded colour that breaks in one theme, a label too faint to read, a twin that leaks raw markup, and a picture that disagrees with the API. Each has a check:
+A diagram can go wrong in four ways. A hard-coded colour breaks in one theme, a label is too faint to read, a twin leaks raw markup, or the picture disagrees with the API. Each has a check:
 
 1. **A lint test** (Node, `apps/docs/test/diagrams.test.mjs`) reads every diagram component and fails on a hex, `rgb()` or named colour, a `style=""` attribute, a duplicated `id`, or a missing `text` prop.
 2. **A browser test** in Chromium, Firefox and WebKit renders every diagram with Astro's container, as `@laminapdf/site-kit`'s header test does, in the light theme, the dark theme and forced colours, and runs axe's `color-contrast` and `svg-img-alt` rules on it. `cargo xtask pdf-runtimes` runs it with the other browser suites.
@@ -99,7 +99,7 @@ Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks 
 
 - **Diagrams drift from the API.** A renamed option leaves a picture wrong while the prose is fixed. Labels use the same names as the page, the review checks them, and any PR that renames an API item searches the diagram components as well as the pages.
 - **Labels too small on phones.** A wide figure shrinks below 12 px at phone width. The browser test also renders each diagram at 360 px wide and fails when a label's computed size drops below 12 px; such a diagram gets its vertical layout.
-- **Inline SVG weighs on pages.** A dozen diagrams of a few kilobytes each is small next to the docs' fonts, but each PR reports its diagrams' gzip size, and a diagram over 8 KB gzipped is redrawn simpler.
+- **Inline SVG weighs on pages.** The sample "Open, edit, save" diagram is 0.8 KB gzipped, so twelve add about 10 KB across the site, small next to the docs' fonts. Each PR still reports its diagrams' gzip size, and a diagram over 8 KB gzipped is redrawn simpler.
 
 ## 8. Open questions
 

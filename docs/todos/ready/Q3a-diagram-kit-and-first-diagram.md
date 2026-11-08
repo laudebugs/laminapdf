@@ -15,7 +15,7 @@
 
 ## Goal
 
-Build the one way the docs draw diagrams: inline SVG from Astro components, coloured only by the `--paper-*` tokens, so a diagram follows the light theme, the dark theme and forced colours without code of its own. Ship it with the checks that keep every later diagram right, and prove it on the first diagram readers need: how an edit reaches the saved file, on the "How Lamina PDF thinks" page.
+Build the kit every docs diagram uses: inline SVG from Astro components, coloured only by the `--paper-*` tokens, so a diagram follows the light theme, the dark theme and forced colours without code of its own. Ship it with the checks that keep every later diagram right, and prove it on the first diagram readers need: how an edit reaches the saved file, on the "How Lamina PDF thinks" page.
 
 ## Context
 
