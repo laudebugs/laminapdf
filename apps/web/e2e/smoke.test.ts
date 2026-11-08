@@ -19,7 +19,7 @@ import {
   WITHOUT_PICKER,
 } from "./reader.ts";
 
-// e2e/live.ts, the setup, fails unless it is set, and waits until it serves the app.
+// `pnpm smoke` runs e2e/live.ts first, which fails unless it is set and waits until it serves the app.
 const origin = env.LAMINA_PDF_SMOKE_URL ?? "";
 
 describe(`the reader deployed at ${origin}`, () => {
