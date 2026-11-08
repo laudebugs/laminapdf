@@ -75,6 +75,10 @@ name = "hello"
 required-features = ["text"]
 
 [[example]]
+name = "element_flow"
+required-features = ["text"]
+
+[[example]]
 name = "extract_markdown"
 required-features = ["extract"]
 
