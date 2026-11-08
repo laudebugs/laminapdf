@@ -1,0 +1,19 @@
+# Playwright's Chromium for a package's browser tests, kept in the runner's own tool cache between
+# runs, as ci.yml's pdf-runtimes jobs keep theirs: `playwright install` downloads only a missing or
+# outdated browser. Later steps of the job find it through PLAYWRIGHT_BROWSERS_PATH.
+name: Playwright's Chromium
+description: Install Playwright's Chromium into the runner's tool cache and point later steps at it.
+inputs:
+  package:
+    description: The workspace package whose Playwright version installs the browser.
+    required: false
+    default: "@laminapdf/web"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        PACKAGE: ${{ inputs.package }}
+      run: |
+        echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
+        PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TOOL_CACHE/ms-playwright" pnpm --filter "$PACKAGE" exec playwright install chromium

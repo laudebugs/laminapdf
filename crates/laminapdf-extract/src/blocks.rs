@@ -105,6 +105,7 @@ mod tests {
             size: Pt::new(size),
             text: String::new(),
             rtl: false,
+            near_gutters: Vec::new(),
         }
     }
 

@@ -1,14 +1,41 @@
-// The reader's Worker (ADR 0011 §1): static assets from Vite's dist/, no Worker code and no routes,
-// so every request is answered by the asset server and nothing can be uploaded. Unknown paths get
-// index.html (the app's own routes). The headers are public/_headers. Preview URLs are for C4d's
-// per-PR previews.
+// The reader's Workers (ADR 0011 §1): static assets from Vite's dist/, no Worker code, so every
+// request is answered by the asset server and nothing can be uploaded. Unknown paths get
+// index.html (the app's own routes). The headers are public/_headers. Deployed by
+// .github/workflows/web-deploy.yml (todo C4d; apps/web/DEPLOY.md): production at
+// app.laminapdf.com from `web-v*` tags only, and staging at staging-app.laminapdf.com
+// (env.staging below) from pushes to main. The per-PR previews live on a third Worker,
+// lamina-pdf-web-preview, which the workflow configures from this file's top-level settings
+// with its own name, no route, no workers.dev address and preview URLs on. Comments here take
+// whole lines: the workflow reads the file as JSON once they are removed.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "lamina-pdf-web",
   "compatibility_date": "2026-10-01",
+  // A Workers custom domain on the laminapdf.com zone: `wrangler deploy` creates its DNS record and
+  // certificate. The deploy token needs Zone → Workers Routes → Edit on that zone.
+  "routes": [{ "pattern": "app.laminapdf.com", "custom_domain": true }],
+  // One address: no workers.dev copy of production, and no preview URL for each production version.
+  "workers_dev": false,
+  "preview_urls": false,
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
   },
-  "preview_urls": true
+  // No Worker code runs, so there are no Worker logs to keep (ADR 0011 §5).
+  "observability": { "enabled": false },
+  "env": {
+    // Staging: main's reader, as the Worker lamina-pdf-web-staging. Each key is set here, not
+    // inherited, so the two Workers can't drift into sharing a route.
+    "staging": {
+      "name": "lamina-pdf-web-staging",
+      "routes": [{ "pattern": "staging-app.laminapdf.com", "custom_domain": true }],
+      "workers_dev": false,
+      "preview_urls": false,
+      "assets": {
+        "directory": "./dist",
+        "not_found_handling": "single-page-application"
+      },
+      "observability": { "enabled": false }
+    }
+  }
 }

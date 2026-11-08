@@ -247,6 +247,28 @@ fn a_run_that_jumps_across_a_gutter_is_split_into_two_columns() {
 }
 
 #[test]
+fn rows_drawn_as_one_run_across_a_narrow_gutter_are_warned() {
+    // Each row one TJ whose offset jumps 7 pt at 10 pt type: under the 1 em that splits a line,
+    // over the 0.6 em that may be a gutter.
+    let rows = (0..4).fold(String::new(), |rows, i| {
+        rows + &format!("[(Left side {i}) -700 (right side {i})] TJ 0 -12 Td ")
+    });
+    let doc = page_with_content(format!("BT /F1 10 Tf 50 700 Td {rows}ET").as_bytes());
+    let out = run(&doc, &ExtractOptions::new());
+    let reasons: Vec<_> = doc
+        .warnings()
+        .iter()
+        .filter(|w| w.code() == "extract-column-order-uncertain")
+        .map(|w| format!("{w:?}"))
+        .collect();
+    assert!(
+        reasons.len() == 1 && reasons.iter().all(|r| r.contains("narrow-gutter")),
+        "{reasons:?}"
+    );
+    assert!(out.blocks.iter().all(|b| (b.confidence - 0.5).abs() < 1e-9));
+}
+
+#[test]
 fn a_page_asked_for_twice_is_extracted_once() {
     let doc = build(&[&[("Only.", 72.0, 100.0, 12.0, false)]], Rotation::None, 1.0);
     let out = run(&doc, &ExtractOptions::new().with_pages(vec![0, 0]));

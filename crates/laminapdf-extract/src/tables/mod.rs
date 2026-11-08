@@ -2,6 +2,7 @@
 //! text lines up in columns ([`stream`]). No table beats a wrong table, so both refuse anything
 //! that doesn't look like a grid of text: a page border or a form's field boxes give none.
 
+pub(crate) mod across;
 mod edges;
 mod lattice;
 mod stream;

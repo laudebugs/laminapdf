@@ -14,7 +14,42 @@ pub use json::json_schema;
 pub use json::{JsonOptions, chunks_jsonl, to_json};
 pub use markdown::MarkdownOptions;
 
-use crate::model::{BlockKind, Extraction};
+use crate::model::{Block, BlockKind, Extraction, header_row_count};
+
+/// How a block joins the one before it in a rendering.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Join {
+    /// It doesn't.
+    No,
+    /// A table part that goes on from the part before it.
+    Part,
+    /// A "continued" line between two parts of one table: written as nothing, so the parts
+    /// stay one table (the JSON keeps it as the paragraph it is).
+    Bridge,
+}
+
+/// How each block joins the one before it. A renderer joins two parts only when they are
+/// neighbours, or one line apart, so a list of blocks with a part cut out still renders whole
+/// tables.
+fn joins(blocks: &[Block]) -> Vec<Join> {
+    let goes_on = |i: usize, before: usize| {
+        blocks
+            .get(i)
+            .zip(blocks.get(before))
+            .is_some_and(|(b, a)| b.continues_from(a))
+    };
+    (0..blocks.len())
+        .map(|i| {
+            if (i > 0 && goes_on(i, i - 1)) || (i > 1 && goes_on(i, i - 2)) {
+                Join::Part
+            } else if i > 0 && goes_on(i + 1, i - 1) {
+                Join::Bridge
+            } else {
+                Join::No
+            }
+        })
+        .collect()
+}
 
 /// Where a piece of text sits in a rendering, in Unicode scalar values (`char`s), `start`
 /// inclusive and `end` exclusive. Code points, not bytes or UTF-16 units, so Python slices a
@@ -104,16 +139,28 @@ impl Extraction {
     }
 
     /// The blocks' text in reading order, a blank line between blocks; a list item starts with
-    /// its marker, and a table is its rows, a tab between cells.
+    /// its marker, and a table is its rows, a tab between cells. A table that goes on over a
+    /// page break is one table: each later part's rows follow on the next line, without the
+    /// header rows it repeats.
     #[must_use]
     pub fn to_text(&self) -> Rendered {
         let mut w = Writer::default();
+        let joins = joins(&self.blocks);
         for (i, block) in self.blocks.iter().enumerate() {
+            let join = joins.get(i).copied().unwrap_or(Join::No);
+            if join == Join::Bridge {
+                w.block("");
+                continue;
+            }
             if i > 0 {
-                w.push("\n\n");
+                w.push(if join == Join::Part { "\n" } else { "\n\n" });
             }
             match &block.kind {
                 BlockKind::ListItem { marker, .. } => w.block(&format!("{marker} {}", block.text)),
+                BlockKind::Table { .. } if join == Join::Part => {
+                    let skip = header_row_count(&block.cells);
+                    w.block(&block.text.split('\n').skip(skip).collect::<Vec<_>>().join("\n"));
+                }
                 _ => w.block(&block.text),
             }
         }

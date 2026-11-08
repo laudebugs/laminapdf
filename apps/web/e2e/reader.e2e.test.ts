@@ -10,27 +10,24 @@ import { firefoxEnv } from "@laminapdf/test-utils/firefox";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { getLocal } from "./local-tls.ts";
+import {
+  ASSET_CACHE,
+  bytes,
+  chooseFile,
+  clean,
+  expectHeaders,
+  HTML_CACHE,
+  type InitScript,
+  load as loadPage,
+  opened,
+  type Watched,
+  WITHOUT_PICKER,
+} from "./reader.ts";
 
 const APP = new URL("../", import.meta.url);
-const CORPUS = new URL("../../../fixtures/corpus/", import.meta.url);
 const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
 const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
-
-/** ADR 0011 §4's headers, exactly, on every response. */
-const HEADERS: Record<string, string> = {
-  "content-security-policy":
-    "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; upgrade-insecure-requests",
-  "referrer-policy": "no-referrer",
-  "permissions-policy":
-    "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), hid=(), bluetooth=(), browsing-topics=(), clipboard-read=(), clipboard-write=(self)",
-  "strict-transport-security": "max-age=63072000; includeSubDomains",
-  "x-content-type-options": "nosniff",
-  "x-frame-options": "SAMEORIGIN",
-  "cross-origin-resource-policy": "same-origin",
-};
-const HTML_CACHE = "public, max-age=0, must-revalidate";
-const ASSET_CACHE = "public, max-age=31536000, immutable";
 
 /** A built asset's path whose file name matches `pattern`. */
 function asset(pattern: RegExp): string {
@@ -39,9 +36,9 @@ function asset(pattern: RegExp): string {
   return `/assets/${name}`;
 }
 
-/** `GET path` without following redirects. */
-function get(path: string): Promise<Response> {
-  return getLocal(new URL(path, origin));
+/** `GET path` from the local server, which has a self-signed certificate (local-tls.ts), without following redirects. */
+function get(server: string, path: string): Promise<Response> {
+  return getLocal(new URL(path, server));
 }
 
 describe("what the server sends", () => {
@@ -49,30 +46,30 @@ describe("what the server sends", () => {
     ["/", "text/html"],
     ["/some/deep/link", "text/html"],
   ])("%s is the app, revalidated on every load", async (path, type) => {
-    const response = await get(path);
+    const response = await get(origin, path);
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain(type);
     expect(response.headers.get("cache-control")).toBe(HTML_CACHE);
-    for (const [name, value] of Object.entries(HEADERS)) expect(response.headers.get(name), name).toBe(value);
+    expectHeaders(response);
     expect(await response.text()).toContain('<div id="app">');
   });
 
   it("/index.html redirects to /, the page's one address, with the same headers", async () => {
-    const response = await get("/index.html");
+    const response = await get(origin, "/index.html");
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("/");
-    for (const [name, value] of Object.entries(HEADERS)) expect(response.headers.get(name), name).toBe(value);
+    expectHeaders(response);
   });
 
   it.each([
     [/^index-.*\.js$/, "text/javascript"],
     [/^pdfium-.*\.wasm$/, "application/wasm"],
   ])("hashed assets (%s) are cached for good", async (pattern, type) => {
-    const response = await get(asset(pattern));
+    const response = await get(origin, asset(pattern));
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain(type);
     expect(response.headers.get("cache-control")).toBe(ASSET_CACHE);
-    for (const [name, value] of Object.entries(HEADERS)) expect(response.headers.get(name), name).toBe(value);
+    expectHeaders(response);
   });
 
   it("the built page has no inline script or style, and the Worker no code", () => {
@@ -83,15 +80,6 @@ describe("what the server sends", () => {
     expect(readFileSync(new URL("wrangler.jsonc", APP), "utf8")).not.toMatch(/"main"\s*:/);
   });
 });
-
-/** A loaded page with its CSP violations and its requests to other origins recorded. */
-interface Watched {
-  readonly page: Page;
-  /** CSP violations so far. */
-  violations(): Promise<string[]>;
-  /** Requests to an origin other than the app's. */
-  readonly foreign: string[];
-}
 
 describe(`opening local files in ${BROWSER}`, () => {
   let browser: Browser;
@@ -106,44 +94,9 @@ describe(`opening local files in ${BROWSER}`, () => {
     await browser?.close();
   });
 
-  /** Opens the app at `path`, after `init` (an init script: runs before the page's own). */
-  async function load(path = "/", init?: { script: (arg: number[]) => void; arg: number[] }): Promise<Watched> {
-    // The server's certificate is self-signed (local-tls.ts).
-    const page = await browser.newPage({ ignoreHTTPSErrors: true });
-    const foreign: string[] = [];
-    page.on("request", (request) => {
-      const url = new URL(request.url());
-      if (url.protocol.startsWith("http") && url.origin !== origin) foreign.push(url.href);
-    });
-    await page.addInitScript(() => {
-      const seen: string[] = [];
-      Object.assign(window, { cspViolations: seen });
-      document.addEventListener("securitypolicyviolation", (e) => seen.push(`${e.violatedDirective} ${e.blockedURI}`));
-    });
-    if (init !== undefined) await page.addInitScript(init.script, init.arg);
-    await page.goto(new URL(path, origin).href);
-    await page.getByRole("heading", { name: "Open a PDF" }).waitFor();
-    return {
-      page,
-      foreign,
-      violations: () => page.evaluate(() => (window as unknown as { cspViolations: string[] }).cspViolations),
-    };
-  }
-
-  /** Waits for the viewer's first canvas and the window title that names `fileName`. */
-  async function opened({ page }: Watched, fileName: string): Promise<void> {
-    await page.locator(".web-viewer canvas").first().waitFor();
-    await expect.poll(() => page.title()).toBe(`${fileName} · Lamina PDF`);
-  }
-
-  /** The page made no CSP violation and asked no other origin for anything. */
-  async function clean(watched: Watched): Promise<void> {
-    expect(await watched.violations()).toEqual([]);
-    expect(watched.foreign).toEqual([]);
-    await watched.page.close();
-  }
-
-  const bytes = (name: string) => [...readFileSync(new URL(name, CORPUS))];
+  /** Opens the app at `path` in this run's browser, after `init`. The server's certificate is self-signed (local-tls.ts). */
+  const load = (path = "/", init?: InitScript): Promise<Watched> =>
+    loadPage(browser, origin, path, init, { ignoreHTTPSErrors: true });
 
   /** Dispatches `type` on the window carrying a transfer that holds `name` with `data`. */
   async function transfer(page: Page, type: "drop" | "paste", name: string, data: number[], mime: string) {
@@ -165,11 +118,8 @@ describe(`opening local files in ${BROWSER}`, () => {
   }
 
   it("opens a file chosen with the file input", async () => {
-    // Without showOpenFilePicker the platform falls back to the input, in every engine.
-    const watched = await load("/", { script: () => Reflect.deleteProperty(window, "showOpenFilePicker"), arg: [] });
-    const chooser = watched.page.waitForEvent("filechooser");
-    await watched.page.getByRole("button", { name: "Choose a file" }).click();
-    await (await chooser).setFiles(new URL("hello.pdf", CORPUS).pathname);
+    const watched = await load("/", WITHOUT_PICKER);
+    await chooseFile(watched, "hello.pdf");
     await opened(watched, "hello.pdf");
     await clean(watched);
   });

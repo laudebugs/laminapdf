@@ -119,6 +119,7 @@ mod tests {
     const SITE: &str = include_str!("../../../.github/workflows/site.yml");
     const DOCS: &str = include_str!("../../../.github/workflows/docs.yml");
     const CLI_RELEASE: &str = include_str!("../../../.github/workflows/cli-release.yml");
+    const WEB_DEPLOY: &str = include_str!("../../../.github/workflows/web-deploy.yml");
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {
@@ -266,6 +267,98 @@ mod tests {
         assert!(
             !DOCS.contains("X-Robots-Tag"),
             "the build marks noindex; the workflow shouldn't"
+        );
+    }
+
+    /// The reader's previews (todo C4d) keep a PR's code away from the Cloudflare secrets: the job
+    /// that holds them checks out only the default branch and installs nothing, and the jobs that
+    /// build or test the PR's code never see them.
+    #[test]
+    fn web_deploy_should_keep_the_prs_code_away_from_the_secrets() {
+        let deploy = lines_of(WEB_DEPLOY, "jobs", "preview-deploy");
+        assert!(!deploy.is_empty(), "web-deploy.yml lacks a preview-deploy job");
+        let count = |want: &str| deploy.iter().filter(|l| l.contains(want)).count();
+        assert_eq!(
+            (
+                count("uses: actions/checkout@"),
+                count("ref: ${{ github.event.repository.default_branch }}")
+            ),
+            (1, 1),
+            "preview-deploy may check out only the default branch"
+        );
+        assert!(
+            !deploy.iter().any(|l| l.contains("node-pnpm") || l.contains("pnpm ")),
+            "preview-deploy must not install or run the PR's packages"
+        );
+        // A local action loads from the workspace, where a PR job may have left its checkout.
+        assert!(
+            !deploy.iter().any(|l| l.contains("uses: ./")),
+            "preview-deploy must not use a local action"
+        );
+        for job in ["preview-build", "preview-smoke"] {
+            assert!(
+                !lines_of(WEB_DEPLOY, "jobs", job).iter().any(|l| l.contains("secrets.")),
+                "{job} runs the PR's code and must not see the secrets"
+            );
+        }
+    }
+
+    /// A local action loads from the job's workspace, so each of web-deploy.yml's jobs checks out
+    /// before its first one: on a clean runner it would be missing, and on a used one it would be
+    /// whatever an earlier job left there.
+    #[test]
+    fn web_deploy_jobs_should_check_out_before_their_first_local_action() {
+        for (job, lines) in jobs(WEB_DEPLOY) {
+            let first = |want: &str| lines.iter().position(|l| l.contains(want));
+            if let Some(local) = first("uses: ./") {
+                let checkout = first("uses: actions/checkout@");
+                assert!(
+                    checkout.is_some_and(|checkout| checkout < local),
+                    "{job} uses a local action before checking out"
+                );
+            }
+        }
+    }
+
+    /// Only a `web-v*` tag push deploys production, after its checks, in the `production`
+    /// environment, and a release that doesn't pass its smoke test is rolled back. Only that job
+    /// deploys the top-level Worker; staging deploys only main.
+    #[test]
+    fn web_deploy_should_deploy_production_only_from_web_v_tags_after_its_checks() {
+        let has = |lines: &[&str], want: &str| lines.iter().any(|l| l.trim() == want);
+        let tag_push = "if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}";
+        for job in ["production-checks", "production"] {
+            assert!(
+                has(&lines_of(WEB_DEPLOY, "jobs", job), tag_push),
+                "{job} must run only on a web-v* tag push"
+            );
+        }
+        assert_eq!(needs(WEB_DEPLOY, "production"), ["production-checks"]);
+        let production = lines_of(WEB_DEPLOY, "jobs", "production");
+        assert!(has(&production, "environment: production"));
+        assert!(
+            has(
+                &production,
+                "if: always() && steps.deploy.outcome == 'success' && steps.smoke.outcome != 'success'"
+            ),
+            "production must roll back whenever its smoke test didn't pass"
+        );
+        let deploys = |args: &str| -> Vec<&str> {
+            let command = format!("pnpm exec wrangler deploy {args} ");
+            jobs(WEB_DEPLOY)
+                .into_iter()
+                .filter(|(_, lines)| lines.iter().any(|l| l.trim().starts_with(&command)))
+                .map(|(id, _)| id)
+                .collect()
+        };
+        assert_eq!(deploys("--env=\"\""), ["production"]);
+        assert_eq!(deploys("--env staging"), ["staging"]);
+        assert!(
+            has(
+                &lines_of(WEB_DEPLOY, "jobs", "staging"),
+                "if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}"
+            ),
+            "staging must deploy only main"
         );
     }
 

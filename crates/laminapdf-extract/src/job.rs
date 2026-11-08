@@ -19,7 +19,7 @@ use crate::page::{PageInput, TreeUse, hidden_runs};
 use crate::paint::annots;
 use crate::plugins::{LayoutRegion, ModelRequest, ModelResult, ModelSlot, OcrWord, PageRaster};
 use crate::segments::Covers;
-use crate::tables::{Edges, TableMode};
+use crate::tables::{Edges, TableMode, across};
 use crate::tagged::TaggedIndex;
 use crate::text_layer::measure;
 use crate::visibility::Backdrops;
@@ -193,6 +193,7 @@ fn finish(out: &mut Extraction, options: &ExtractOptions) {
             block.id = format!("p{}-b{n}", block.page);
         }
     }
+    across::link(out);
 }
 
 impl ExtractJob {
