@@ -28,7 +28,7 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
   - `crates/laminapdf-text/src/extract/mod.rs`: `TextExtractor::page_with` forwards only path events (`path_segment`, `paint_path`) to its visitor. `Glyph::mapped` is false for a glyph no rule maps to Unicode (Type 3 and other fonts without ToUnicode, usable names or a `cmap`), and `PageText::unmapped` counts such glyphs.
   - `crates/laminapdf-content/src/visitor.rs`: `Visitor::image` reports every image XObject and inline image, stencil masks included, with `ImageDraw::state.ctm` mapping the unit square to user space, inside Form XObjects too.
 - [L3f](../done/L3f-extraction-benchmark.md) and `cargo xtask extract-bench`: the three scored olmOCR-bench subsets hold the scanned pages that gave no text, so they check the status on real files.
-- [L3c](./L3c-model-plugins.md) plans to OCR "pages without a usable text layer"; this todo defines that test, so L3c can pick pages by the status. [E13c](./E13c-ocr-text-layer.md) writes invisible OCR layers; pages it makes should read as `ocr-layer`.
+- [L3c](../done/L3c-model-plugins.md) OCRs pages with no visible text, an interim test; this todo defines the full one, and switches L3c's OCR to pick pages by the status (`needs-ocr`, and `ocr-layer` and `mixed` by a documented policy). [E13c](./E13c-ocr-text-layer.md) writes invisible OCR layers; pages it makes should read as `ocr-layer`.
 - [T2a](./T2a-covered-text-flag.md) needs the page's image boxes too (text covered by later images). Put the image collection in a module both can use (`marks.rs` below).
 
 ## Scope
@@ -62,7 +62,7 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
 
 **Out of scope** (and which todo covers it)
 
-- Running OCR: [L3c](./L3c-model-plugins.md) (`OcrEngine`) and [E13d](./E13d-local-ocr.md) (local engines); writing an OCR layer into a PDF: [E13c](./E13c-ocr-text-layer.md).
+- Running OCR: [L3c](../done/L3c-model-plugins.md) (`OcrEngine`) and [E13d](./E13d-local-ocr.md) (local engines); writing an OCR layer into a PDF: [E13c](./E13c-ocr-text-layer.md).
 - Putting an OCR layer's text in the blocks of an `ocr-layer` page: that changes ADR 0030 §4, so it waits for the owner's decision (Risks).
 - Text whose glyphs map to the wrong characters, text that differs from what the page shows, and text under later images: a rendered check through the render backend later (ADR 0030 §4, [ADR 0004](../../decisions/0004-render-backend.md)), and [T2a](./T2a-covered-text-flag.md) for covered text.
 - The clip: image boxes are taken whole until [L3g](../done/L3g-extract-structure-tree.md) tracks the clip's box.

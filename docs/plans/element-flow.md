@@ -40,7 +40,7 @@ Coordinates start at the page's top left and Y increases downward. Text bounds d
 
 ## Existing API example
 
-This TypeScript fragment uses the current API. `surface`, `font` and `text` come from the caller; coordinates are points.
+This TypeScript fragment uses the API with B10a's `bottom`. `surface`, `font` and `text` come from the caller; coordinates are points.
 
 ```ts
 const top = 72;
@@ -50,11 +50,8 @@ const layout = surface.textBox(text, {
   size: 12,
   box: [72, top, 450, 600],
 });
-const lastLine = layout.lines.at(-1);
-const bottom = lastLine
-  ? lastLine.rect.y + lastLine.rect.height
-  : undefined;
-const nextY = bottom === undefined ? top : bottom + gap;
+// `bottom` (B10a): the last line that draws something; left out when none does.
+const nextY = layout.bottom === undefined ? top : layout.bottom + gap;
 ```
 
 If `layout.overflow` is not `undefined`, some text did not fit. Test it with `!== undefined`, not for truthiness: the offset is `0` when the box fits no line. The caller must handle that before treating this paragraph as complete. The reported bottom covers only drawn lines, rather than the entire requested text box.
@@ -71,7 +68,9 @@ For a text box, use the final drawn line's descent edge. For a text run, check i
 
 Preserve existing result fields and return types. Evaluate an additive Rust accessor and an exported TypeScript helper; do not silently change the serialized WebAssembly result shape.
 
-### Optional vertical cursor
+### Optional vertical cursor (deferred)
+
+B10a decided the cursor isn't needed yet (see the decisions below), so no todo builds it. The design stays here for a later one, should a recipe show the need.
 
 A small cursor owns a current Y position and accepts a measured bottom plus an explicit nonnegative gap. It does not own the page or borrow the surface between calls.
 
@@ -90,14 +89,13 @@ The cursor describes the caller's layout coordinate system before surface transf
 
 A successful clipped text box may advance the cursor through its drawn lines, but its overflow offset must stay visible to the caller. The cursor must never imply that all text was consumed.
 
-A failed drawing call must not advance the cursor. The helper must not add pages, retry text, or discard overflow. Page-break decisions remain explicit. The measurement-only step can land before the cursor.
+A failed drawing call returns no measurement to place anything by. The helper must not add pages, retry text, or discard overflow. Page-break decisions remain explicit.
 
 ## Delivery steps
 
 The following ready todos use the [todo template](../todos/TEMPLATE.md). Claim each in its own implementation PR after its dependencies are done.
 
-- [ ] [B10a](../todos/ready/B10a-measured-text-bottom.md): **Measured text bottoms.** Settle public names and empty-result semantics. Add Rust and TypeScript accessors or helpers, preserving existing APIs, with matching tests. Decide whether the cursor is needed.
-- [ ] [B10b](../todos/ready/B10b-vertical-cursor.md): **Vertical cursor.** Implement a reusable cursor with matching Rust and TypeScript behavior, explicit rectangle placement and validation. Export it through the Rust façade and the SDK. Reuse existing measurements rather than laying out text again.
+- [x] [B10a](../todos/done/B10a-measured-text-bottom.md): **Measured text bottoms.** Settle public names and empty-result semantics. Add Rust and TypeScript accessors or helpers, preserving existing APIs, with matching tests. Decide whether the cursor is needed (it isn't yet).
 - [ ] [B10c](../todos/ready/B10c-element-flow-recipe.md): **Examples and recipe.** Add the paired examples, including the minimal next-paragraph one. Demonstrate paragraphs followed by an image, empty content, overflow handling and an explicit page reset. Keep examples runnable and align the Rust and TypeScript recipes.
 
 Each implementation PR follows the repository's review, changeset and validation rules.
@@ -105,25 +103,23 @@ Each implementation PR follows the repository's review, changeset and validation
 ## Acceptance and validation
 
 - Single-line and wrapped text report the final descent edge, including mixed font metrics and line-height settings.
-- Empty text, whitespace-only text, text of only line breaks and a text box that fits no lines produce no measured bottom and leave the cursor unchanged.
+- Empty text, whitespace-only text, text of only line breaks and a text box that fits no lines produce no measured bottom.
 - Clipped text reports the last drawn line and preserves its overflow offset, including TypeScript UTF-16 offsets and an offset of `0` when no line fits.
-- A gap is applied once; overlapping or earlier rectangles cannot move the cursor backward.
-- Invalid numeric input and failed drawing operations leave cursor state unchanged.
-- Image rectangles, caller-declared bounds and explicit page resets behave identically across Rust and TypeScript.
-- Transform tests establish that cursor values stay in layout coordinates, without claiming painted page bounds.
+- Rust and TypeScript report the same bottoms for the same text, font, size and box.
+- Transform tests establish that bottoms stay in layout coordinates, before the surface's transform, without claiming painted page bounds.
 - Existing drawing APIs and output remain compatible; the helper requires no additional layout pass.
 - Tests use the existing Rust builder and SDK test suites. New public examples follow the [example guidelines](../guidelines/examples.md).
 
 ## Decisions before implementation
 
-- Choose accessor/helper names and where the cursor is exported, following the existing public API conventions.
-- Confirm whether a measurement helper plus examples solves the immediate need before adding cursor state. B10a records the answer here; B10b starts only if it says the cursor is needed, and is deleted otherwise.
-- Choose whether the text-only helper is feature-gated while the rectangle cursor stays available without the text module.
+- **Names (decided in B10a):** `TextRun::bottom()` and `TextLayout::bottom()` in Rust, each an `Option<Pt>`; in TypeScript, an optional `bottom` on the text and text-box results, computed in Rust, so the two can't disagree. Trailing blank lines don't count.
+- **The cursor (decided in B10a): not needed yet.** With `bottom`, placing the next element is one line, `bottom === undefined ? y : bottom + gap`, and an empty section already adds no gap. A cursor would add only a running maximum and input checks: a caller who needs them writes `y = Math.max(y, bottom + gap)` and checks its own gap. B10b is deleted; a recipe that shows the need can bring it back as a new todo.
+- **Feature gating:** none. `bottom` lives on the text results, which exist only with the text feature already.
 - Keep automatic pagination as a separate proposal. It needs a measure-before-draw or resumable layout contract to avoid drawing before deciding that a page is full.
 
 ## How each step proves it works
 
-[B10a](../todos/ready/B10a-measured-text-bottom.md#tests) checks the measured bottoms against independent font metrics, the same cases in both languages and a rendered reference page. [B10b](../todos/ready/B10b-vertical-cursor.md#tests) checks the cursor's state transitions, invalid inputs and mixed-element placement. [B10c](../todos/ready/B10c-element-flow-recipe.md#tests) checks the whole public workflow by generating, reopening and rendering a report.
+[B10a](../todos/done/B10a-measured-text-bottom.md#tests) checks the measured bottoms against independent font metrics, the same cases in both languages and a rendered reference page. [B10c](../todos/ready/B10c-element-flow-recipe.md#tests) checks the whole public workflow by generating, reopening and rendering a report.
 
 The helper should cut the Y updates a caller writes by hand when content length changes. To show it, compare the same report with manual measurement arithmetic and with the helper. Record actual bottom calculations, Y updates and edits needed when a summary wraps or an optional section disappears. Do not claim a speedup: the helper reuses layout results and should require no additional shaping pass.
 

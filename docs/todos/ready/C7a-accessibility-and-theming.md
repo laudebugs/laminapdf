@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
+| Depends on | [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md), [U1b](../done/U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
 | ADRs | Follows 0009 (a11y primitives), 0010 (shortcuts consistent across shells; platform modifiers) |
 | Branch | `feat/c7a-accessibility` |
 | PR title | `feat(ui): add the keyboard map, help dialog, focus management, themes and axe checks` |
@@ -20,7 +20,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 ## Context
 
 - **Design (Paper):** [F05](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [R10 View settings](../../design/paper/reader-b.md#r10-view-settings), [R11 Dark UI theme](../../design/paper/reader-b.md#r11-dark-ui-theme), [R12 Keyboard shortcuts](../../design/paper/reader-b.md#r12-keyboard-shortcuts). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [UI/UX plan §5.2 and §5.5](../../plans/ui-ux.md#52-command-registry-and-palette-r3) — the shortcut map and help dialog are generated from [U1b](./U1b-command-registry-and-palette.md)'s command registry (no hand-written keymap); page appearance (Original/Sepia/Dark/High contrast) is [U2c](./U2c-page-appearance-modes.md)'s, so this todo does UI themes only and drops the "night reading" filter.
+- [UI/UX plan §5.2 and §5.5](../../plans/ui-ux.md#52-command-registry-and-palette-r3) — the shortcut map and help dialog are generated from [U1b](../done/U1b-command-registry-and-palette.md)'s command registry (no hand-written keymap); page appearance (Original/Sepia/Dark/High contrast) is [U2c](./U2c-page-appearance-modes.md)'s, so this todo does UI themes only and drops the "night reading" filter.
 - [web-app.md §2 scope](../../plans/web-app.md#2-scope-and-non-goals) and [§4 functional 8](../../plans/web-app.md#functional), [non-functional](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (WCAG 2.2 AA; zero serious/critical axe violations), [§7 risks](../../plans/web-app.md#7-risks) (untagged PDFs).
 - [web-frontend notes §7](../../research/architecture/notes/web-frontend.md) — a11y comes from DOM layers; only mounted pages have DOM (mitigate with outline/landmarks, `aria-setsize`/`aria-posinset`, keyboard page jump); theming via CSS custom properties; don't invert page rendering in dark mode except an explicit night filter.
 - [C5a](./C5a-text-layer-and-selection.md) (text and struct-tree layers), [C4a](../done/C4a-ui-chrome-and-platform.md) (tokens, message catalogue).
@@ -30,7 +30,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 
 **In scope**
 
-- Keyboard scopes and help text on [U1b](./U1b-command-registry-and-palette.md)'s command registry (no separate keymap): each command gains `scope: "global" | "document" | "dialog"` and a help `description`; the reader's commands cover open, find, find next/prev, print, download, properties, zoom in/out/reset/fit width/fit page, rotate, next/prev page, first/last page, go to page, back/forward, toggle sidebar, focus document, help (`?`/`F1`); D4b builds native menu accelerators from the same registry.
+- Keyboard scopes and help text on [U1b](../done/U1b-command-registry-and-palette.md)'s command registry (no separate keymap): each command gains `scope: "global" | "document" | "dialog"` and a help `description`; the reader's commands cover open, find, find next/prev, print, download, properties, zoom in/out/reset/fit width/fit page, rotate, next/prev page, first/last page, go to page, back/forward, toggle sidebar, focus document, help (`?`/`F1`); D4b builds native menu accelerators from the same registry.
 - Shortcut dispatcher with scope handling (no shortcuts while typing in inputs except Esc), conflict tests, platform modifier mapping (`cmd` on macOS via `navigator.platform`-free detection: `Platform` capability or `userAgentData` where available).
 - Help dialog listing shortcuts from the map (single source of truth), searchable.
 - Focus management: skip link to the document; F6 cycles regions (toolbar → sidebar → document → find bar); dialogs trap focus and restore on close; after navigation (link, outline, go-to-page) focus moves to the target page region; visible focus indicators everywhere (not obscured by sticky toolbar).

@@ -26,7 +26,7 @@ Readers of papers and manuals want to see where a link or a citation goes withou
 - **[C5a](./C5a-text-layer-and-selection.md):** the `pageText(page)` RPC (runs and quads, cached per page in the worker), used here for the crop's width and the preview's text.
 - **[C3a](../done/C3a-viewer-worker-rpc.md) and [C3b](../done/C3b-viewer-virtualiser-and-zoom.md):** `ViewerClient.render(request, { priority, signal })` with `RenderRequest.clip`, the `visible` priority, late bitmaps closed by the worker client (`onDiscard`), and `RenderStats`.
 - **[U3a](./U3a-responsive-mobile-and-touch.md):** the viewer's touch gestures (`touch-action: none`; long-press passes through to text selection). This todo makes a long-press on a link open the preview instead.
-- **[U6e](../done/U6e-overlays-and-sheets.md):** `Popover`, `Tooltip`, `BottomSheet`, `place.ts` and the `LayerStack` behind Escape, in `packages/ui/src/overlays/`. **[U1b](./U1b-command-registry-and-palette.md):** the command registry in `packages/ui/src/commands/`.
+- **[U6e](../done/U6e-overlays-and-sheets.md):** `Popover`, `Tooltip`, `BottomSheet`, `place.ts` and the `LayerStack` behind Escape, in `packages/ui/src/overlays/`. **[U1b](../done/U1b-command-registry-and-palette.md):** the command registry in `packages/ui/src/commands/`.
 - **Spec:** ISO 32000-2 §12.3.2 (explicit destinations `XYZ`, `Fit`, `FitH`, `FitV`, `FitR`, `FitB`, `FitBH`, `FitBV`; named destinations) and §12.5.6.5 (link annotations); [04 §1 navigation](../../research/pdf/04-interactive-security.md#1-navigation).
 
 ## Scope

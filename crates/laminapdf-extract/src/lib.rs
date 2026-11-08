@@ -44,6 +44,8 @@ mod model;
 mod options;
 mod output;
 mod page;
+mod plugins;
+mod regions;
 mod tables;
 mod tagged;
 mod text_fix;
@@ -62,4 +64,8 @@ pub use output::json_schema;
 pub use output::{Chunk, ChunkOptions, MarkdownOptions, Region, Rendered, SplitOn, TextRange, tokens_approx};
 #[cfg(feature = "serde")]
 pub use output::{JsonOptions, chunks_jsonl, to_json};
+pub use plugins::{
+    LayoutModel, LayoutRegion, ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord,
+    PageRaster, PageRenderer, RegionLabel,
+};
 pub use tables::TableMode;

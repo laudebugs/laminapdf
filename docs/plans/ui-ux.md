@@ -91,7 +91,7 @@ A command is `{ id, title, keywords, group, shortcut?, icon?, enabled(ctx), run(
 - **toolbars and context menus** (buttons reference command ids, so labels, shortcuts and enabled state never drift);
 - the **shortcut help dialog** ([C7a](../todos/ready/C7a-accessibility-and-theming.md)), generated, never hand-written.
 
-Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/Ctrl) and checked for collisions with browser and OS shortcuts by a test. Delivered by [U1b](../todos/ready/U1b-command-registry-and-palette.md).
+Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/Ctrl) and checked for collisions with browser and OS shortcuts by a test. Delivered by [U1b](../todos/done/U1b-command-registry-and-palette.md).
 
 ### 5.3 Selection and copy (R4, R5)
 
@@ -181,7 +181,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens); the command registry and palette; the left rail, inspector, mode switcher and focus mode in `@laminapdf/ui`.
 **Accepted when:** every reader command is in the registry and reachable from the palette, a menu and its shortcut; the help dialog and desktop menus are generated from it; axe reports no serious violations on the shell.
-**Todos:** [U1a](../todos/done/U1a-adr-0024-app-shell-ux.md), [U1b](../todos/ready/U1b-command-registry-and-palette.md), [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md)
+**Todos:** [U1a](../todos/done/U1a-adr-0024-app-shell-ux.md), [U1b](../todos/done/U1b-command-registry-and-palette.md), [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md)
 
 ### U2. Reading quality
 
@@ -264,8 +264,8 @@ Ticked by the PR that completes them.
 
 ### U1. Shell foundations
 - [x] Write ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens): [ADR 0024](../decisions/0024-app-shell-ux.md), with the reader v0.1 command set as its appendix
-- [ ] Command registry in `@laminapdf/ui` with typed arguments, shortcuts and collision test
-- [ ] Command palette (cmdk) with argument parsing, recents and shortcut chips
+- [x] Command registry in `@laminapdf/ui` with typed arguments, shortcuts and collision test ([U1b](../todos/done/U1b-command-registry-and-palette.md))
+- [x] Command palette with argument parsing, recents and shortcut chips ([U1b](../todos/done/U1b-command-registry-and-palette.md): its own ranking rather than cmdk's, so no dependency)
 - [ ] Left rail, docked inspector, mode switcher, secondary toolbar slot and focus mode
 
 ### U2. Reading quality

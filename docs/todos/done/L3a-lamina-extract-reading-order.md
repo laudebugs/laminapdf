@@ -21,7 +21,7 @@ Changes from the plan: `Budget`, `Step` and `Phase` moved to `laminapdf-syntax` 
 
 ## Goal
 
-Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: blocks (paragraphs, headings, list items) in reading order, each with a bounding box in top-left points, page index and number, structure path, and visibility flags. Reading order comes from the structure tree when the file is tagged and the tree is plausible, and from XY-Cut++ otherwise. Running headers and footers are removed, hyphenated line breaks are joined, and hidden text is flagged and dropped from the text output with a record of what was dropped. ADR 0030 fixes the `laminapdf.extract/1` output model and the rule that models are optional plug-ins outside core. Tables, serialisers and bindings follow in [L3b](../done/L3b-extract-tables-and-serialisers.md); model traits in [L3c](../ready/L3c-model-plugins.md).
+Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: blocks (paragraphs, headings, list items) in reading order, each with a bounding box in top-left points, page index and number, structure path, and visibility flags. Reading order comes from the structure tree when the file is tagged and the tree is plausible, and from XY-Cut++ otherwise. Running headers and footers are removed, hyphenated line breaks are joined, and hidden text is flagged and dropped from the text output with a record of what was dropped. ADR 0030 fixes the `laminapdf.extract/1` output model and the rule that models are optional plug-ins outside core. Tables, serialisers and bindings follow in [L3b](../done/L3b-extract-tables-and-serialisers.md); model traits in [L3c](../done/L3c-model-plugins.md).
 
 ## Context
 
@@ -60,7 +60,7 @@ Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: b
 **Out of scope** (and which todo covers it)
 
 - Tables (lattice and stream), Markdown/JSON/chunk serialisers, JSON Schema file, façade, WASM and TS exposure, benchmark scores: [L3b](../done/L3b-extract-tables-and-serialisers.md).
-- `LayoutModel` and `OcrEngine` traits and the model edge crate: [L3c](../ready/L3c-model-plugins.md).
+- `LayoutModel` and `OcrEngine` traits and the model edge crate: [L3c](../done/L3c-model-plugins.md).
 - CLI `laminapdf extract`: [L4b](./L4b-cli-batch-render-schema.md).
 - Formulas, figure descriptions, form-field values in output: later (record in ADR 0030 as future block kinds).
 - Editing the structure tree or auto-tagging: full-editor E15.

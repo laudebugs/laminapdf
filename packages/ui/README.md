@@ -110,21 +110,54 @@ Every message the reader shows comes from one catalogue. `message(id, values)` f
 `ReaderShell` lays out the reader: the top bar across the top, a mode's toolbar under it, then the rail, the canvas and the docked panel side by side, and the status bar along the bottom. Each part is a slot the shell fills, and the canvas is the page's `main` landmark:
 
 ```ts
-<ReaderShell
-  topBar={<ReaderTopBar reader={controller} viewer={viewer} keys="other" more={{ items, onAction }} />}
-  rail={<PagesPanel />}
-  status={<NetworkIndicator count="0 network requests" />}
->
-  <div ref={mountViewer} />
-</ReaderShell>
-<PasswordDialog reader={controller} />
+<CommandsProvider registry={registry} context={context} keys="other">
+  <ReaderShell
+    topBar={<ReaderTopBar reader={controller} viewer={viewer} keys="other" sidebarOpen={sidebar} more={{ items, onAction }} />}
+    rail={<PagesPanel />}
+    status={<NetworkIndicator count="0 network requests" />}
+  >
+    <div ref={mountViewer} />
+  </ReaderShell>
+  <PasswordDialog reader={controller} />
+  <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
+</CommandsProvider>
 ```
 
-`ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply. Once a document is open, the bar adds the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets.
+`ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply. Once a document is open, the bar adds the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets. Every button runs a command from the registry (next section), so the bar must sit inside a `CommandsProvider`. The sidebar toggle and Commands appear once the shell handles `view.toggle-sidebar` and `palette.open`.
 
 The viewer comes in as any object with its store and three calls (`goToPage`, `setZoom`, `rotate`), so `@laminapdf/viewer`'s viewer fits without this package importing it. `PasswordDialog` asks for a password whenever the controller needs one and passes each try to it.
 
 The shell builds the More menu, and marks each item that needs a capability with `needs`. `useGatedEntries` then keeps the item, disables it with how to get the capability, or leaves it out on a platform that never has it.
+
+## Commands
+
+Every action the reader can take is a command in one `CommandRegistry`. The top bar, the menus, the palette, the shortcut help and the desktop app's native menus all read the same registry. So a command's title, its shortcut and whether it can run now are the same everywhere.
+
+A command has an id (`namespace.verb-object`, such as `view.zoom-in`), a title, a group, its shortcuts and where it lives besides the palette. `enabled` says whether it can run now or why not, and `run` does it. Typed arguments come with a parser, which the palette also uses for text typed after the title (`go to 12`, `zoom 150`):
+
+```ts
+const registry = new CommandRegistry();
+registerReaderCommands(registry);
+registry.register({
+  id: "view.toggle-thumbnails",
+  title: "Show or hide thumbnails",
+  group: "view",
+  home: ["view-menu"],
+  shortcuts: [{ mac: "T", other: "T", scope: "page" }],
+  enabled: (ctx) => (ctx.viewer === undefined ? "Open a document first." : true),
+  run: () => toggleThumbnails(),
+});
+```
+
+`registerReaderCommands` adds the reader's 39 commands. Those the reader and the viewer can do run in this package. The rest, such as find, print and the sidebar, are the shell's: it passes a handler for each in the context's `actions`. Until it does, every view leaves the command out, as it leaves out a command whose capability the platform never has.
+
+The shell gives `CommandsProvider` the registry and a `CommandContext`: the platform, the reader, the viewer, the page labels and its handlers. The provider also listens for shortcuts. Keys with Ctrl, Alt or ⌘ work anywhere; single keys such as Page Down or `+` work only while focus is in the canvas, and never in a text field. Views read the registry through two hooks and a component:
+
+- `useCommand(id)` gives a button or menu item its title, shortcut, availability and `run`, and re-renders when they change.
+- `useShortcutMap()` lists every bound shortcut by group, for the shortcut help and native menu accelerators.
+- `RegistryPalette` is the palette: ranked rows with their shortcuts, recent commands first, disabled ones with their reason, and a page that asks for missing arguments.
+
+A Node test checks every shortcut against the keys the browser, the OS and assistive tech keep (`NEVER_BIND`), and against the browser keys a command may take only with a reason (`OVERRIDES`). It also fails when two commands share keys where their scopes meet. A new browser or OS key a command needs goes in `OVERRIDES`, with the reason.
 
 ## The home screen, repairs and failures
 
@@ -136,7 +169,9 @@ Two more parts cover special cases: a whole-file download and debugging. `WholeF
 
 ## Trying the chrome
 
-`pnpm --filter @laminapdf/ui demo` serves `examples/ui-demo.html`: the whole chrome over a stand-in viewer, built with the React Compiler as an app would build it. Open any PDF. A name with "locked" asks for the password "lamina", "damaged" opens with repairs, and "broken" can't be opened. A browser test runs axe on the page in each of these states. A Node test runs the compiler over every source file and fails on any function the compiler gives up on, unless that function opts out with `"use no memo"` and says why.
+`pnpm --filter @laminapdf/ui demo` serves `examples/ui-demo.html`: the whole chrome over a stand-in viewer, built with the React Compiler as an app would build it. Open any PDF. A name with "locked" asks for the password "lamina", "damaged" opens with repairs, and "broken" can't be opened. Ctrl+K opens the command palette; the demo writes keys as on Windows and Linux, so a Mac uses Ctrl+K too. A browser test runs axe on the page in each of these states.
+
+A Node test runs the compiler over every source file and fails on any function the compiler gives up on, unless that function opts out with `"use no memo"` and says why.
 
 ## Adding a component
 

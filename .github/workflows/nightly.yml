@@ -111,9 +111,10 @@ env:
 jobs:
   # Every job runs on the self-hosted runners ([self-hosted, macOS, ARM64]), like the PR lanes
   # (#41): isolate-rust-home first, rust-cache off (its macOS post step hangs there), pnpm into
-  # runner.temp, Python in a venv in runner.temp. Each job's `target-dir` keeps its build output
-  # on the runner between nights (scheduled runs on main get their own directories; see the
-  # action). The fuzz matrix shares one: its jobs build the same targets the same way.
+  # runner.temp, install-action through install-tools, Python in a venv in runner.temp. Each
+  # job's `target-dir` keeps its build output on the runner between nights (scheduled runs on
+  # main get their own directories; see the action). The fuzz matrix shares one: its jobs build
+  # the same targets the same way.
   differential:
     name: Differential (pdf.js, PDFium, qpdf, pypdf, pdftotext)
     runs-on: [self-hosted, macOS, ARM64]
@@ -231,7 +232,7 @@ jobs:
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: ./.github/actions/install-tools
         with:
           tool: cargo-fuzz@0.13.2
       # This target's corpus from earlier nights, else the full lane's last one saved on main
@@ -381,7 +382,7 @@ jobs:
         with:
           cache: false
       # Same version as ci.yml's wasm job (tools/xtask/src/doctor.rs).
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: ./.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       - uses: ./.github/actions/node-pnpm

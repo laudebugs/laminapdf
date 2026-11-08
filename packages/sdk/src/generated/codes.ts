@@ -93,6 +93,9 @@ export type ErrorCode =
   | "render-too-large"
   | "render-failed"
   | "render-backend-unavailable"
+  | "model-failed"
+  | "model-result-unexpected"
+  | "model-needs-host"
   | "cancelled"
   | "job-finished"
   | "document-changed"
@@ -262,6 +265,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "render-too-large",
   "render-failed",
   "render-backend-unavailable",
+  "model-failed",
+  "model-result-unexpected",
+  "model-needs-host",
   "cancelled",
   "job-finished",
   "document-changed",
@@ -460,6 +466,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "render-too-large": "limit",
   "render-failed": "input",
   "render-backend-unavailable": "io",
+  "model-failed": "internal",
+  "model-result-unexpected": "usage",
+  "model-needs-host": "usage",
   "cancelled": "cancelled",
   "job-finished": "state",
   "document-changed": "state",
@@ -612,6 +621,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "render-too-large": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
   "render-failed": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
   "render-backend-unavailable": "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
+  "model-failed": "check the plug-in's own logs; extract without the model to get the rules-only result",
+  "model-result-unexpected": "call provide only while request() returns a request, with the result its kind asks for",
+  "model-needs-host": "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
   "cancelled": "nothing to do: this is the outcome the caller asked for; start a new job to try again",
   "job-finished": "stop stepping a job once a step returned its result or an error; create a new job",
   "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job",
@@ -658,6 +670,7 @@ export const ERROR_GROUPS: readonly string[] = [
   "textErrors",
   "buildErrors",
   "renderErrors",
+  "extractErrors",
   "facadeErrors",
   "bindingErrors",
   "packageErrors",

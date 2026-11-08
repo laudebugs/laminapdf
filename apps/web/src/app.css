@@ -1,0 +1,39 @@
+/* The reader fills the window; the shell lays out its bars and the canvas. The viewer's box fills
+   the canvas, which gives the viewer its size. Colours and type come from the Paper tokens only. */
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--paper-ground);
+  color: var(--paper-text);
+  font-family: var(--paper-font-sans);
+}
+
+.web-viewer {
+  position: absolute;
+  inset: 0;
+}
+
+.web-wordmark {
+  font-family: var(--paper-font-serif);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.web-privacy {
+  color: var(--paper-muted);
+  margin: 0;
+  text-align: center;
+}
+
+/* React Aria's rule for pressable elements, which it would insert as an inline <style> (blocked by
+   the CSP; main.tsx claims its ID). In a layer, as React Aria writes it, so any style overrides it. */
+@layer react-aria {
+  [data-react-aria-pressable] {
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+}

@@ -8,7 +8,9 @@
 # Every job runs on the self-hosted macOS ARM64 runners (labels [self-hosted, macOS, ARM64]):
 # GitHub-hosted minutes are not used. (The Linux runner container, tools/ci-runner/linux, only
 # serves full.yml's check-linux.) Runners share a machine, so jobs that install Rust
-# run isolate-rust-home first, pnpm installs into the runner's temp dir, and rust-cache is off.
+# run isolate-rust-home first, pnpm installs into the runner's temp dir, install-action runs
+# through .github/actions/install-tools (its working folder in the runner's temp dir too), and
+# rust-cache is off.
 # Instead, isolate-rust-home's `target-dir` keeps each job's build output on its runner between
 # runs, apart per job and per kind of trigger, so PR output is never reused on main (see the
 # action). Jobs that only build xtask share `xtask`. The pdf-basics spike builds into the
@@ -97,7 +99,7 @@ jobs:
           # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
           cache: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: ./.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # On PRs the full lane's `changes` job runs these checks; it skips them on pushes to main,
@@ -153,7 +155,7 @@ jobs:
       # Same versions as tools/xtask/src/doctor.rs (wasm-bindgen-cli = the crate in Cargo.lock);
       # xtask fails if they drift. binaryen's wasm-opt is fetched by `cargo xtask wasm` itself
       # (pinned release, SHA-256 checked) into target/tools/.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: ./.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129,twiggy@0.8.0
       - uses: ./.github/actions/node-pnpm
@@ -281,7 +283,7 @@ jobs:
         with:
           cache: false
       # Same version as tools/xtask/src/doctor.rs.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: ./.github/actions/install-tools
         with:
           tool: cargo-semver-checks@0.51.0
       - uses: ./.github/actions/node-pnpm

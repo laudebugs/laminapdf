@@ -104,6 +104,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "invalid-page-range":
     case "binary-output-to-terminal":
     case "unknown-code":
+    case "model-result-unexpected":
+    case "model-needs-host":
       return "usage";
     case "data-pending":
     case "repaired-base":
@@ -130,6 +132,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "worker-crashed":
     case "worker-failed":
     case "wasm-trap":
+    case "model-failed":
       return "internal";
     default: {
       const unhandled: never = code;

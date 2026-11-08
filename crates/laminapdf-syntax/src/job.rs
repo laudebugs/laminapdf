@@ -69,4 +69,6 @@ pub enum Phase {
     Write,
     /// Signing.
     Sign,
+    /// Waiting for, or running, a layout model or OCR engine.
+    Model,
 }

@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `B10a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Element flow](../../plans/element-flow.md#delivery-steps) |
 | Round / milestone | Round B10 — measured placement helpers |
-| Depends on | [B5b](../done/B5b-builder-text-and-document-features.md), [B6b](../done/B6b-lamina-pdf-package.md) |
+| Depends on | [B5b](./B5b-builder-text-and-document-features.md), [B6b](./B6b-lamina-pdf-package.md) |
 | ADRs | Follows [0016](../../decisions/0016-package-design.md), [0018](../../decisions/0018-test-strategy.md) and [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/b10a-measured-text-bottom` |
 | PR title | `feat(build): expose measured text bottoms` |
 | Size | M (200–400 lines; split bindings if the implementation grows) |
-| PR | — |
+| PR | [laudebugs/laminapdf#294](https://github.com/laudebugs/laminapdf/pull/294) |
 
 ## Goal
 
@@ -35,26 +35,26 @@ Expose an optional bottom position for text runs and text boxes in Rust and Type
 
 **Out of scope** (and which todo covers it)
 
-- The vertical cursor: [B10b](./B10b-vertical-cursor.md).
-- Runnable examples and the docs recipe: [B10c](./B10c-element-flow-recipe.md).
+- The vertical cursor: decided against for now, so no todo; see the [plan's decisions](../../plans/element-flow.md#decisions-before-implementation).
+- Runnable examples and the docs recipe: [B10c](../ready/B10c-element-flow-recipe.md).
 - Automatic pagination, tables, floats and transformed ink bounds: no todo yet; they need a separate proposal ([plan](../../plans/element-flow.md#decisions-before-implementation)).
 
 ## Tasks
 
-- [ ] Settle additive accessor/helper names and document empty-result behavior before implementation.
-- [ ] Decide, from the measurement helper alone, whether callers still need the cursor, and record the answer in the plan's "Decisions before implementation". If they don't, delete B10b and drop it from B10c's **Depends on**.
-- [ ] Reuse `TextRun::bounds()` and `TextLayout::lines` in `crates/laminapdf-build/src/surface/`; keep existing fields and return types.
-- [ ] Export through the Rust façade and the SDK; inspect the WebAssembly DTO boundary without changing its serialized shape unnecessarily.
-- [ ] Preserve overflow offsets and pre-transform coordinate semantics.
-- [ ] Add public API documentation, doc tests that place a next paragraph, and the required changeset. The runnable examples are B10c's.
+- [x] Settle additive accessor/helper names and document empty-result behavior before implementation. `TextRun::bottom()` and `TextLayout::bottom()` (`Option<Pt>`); in TypeScript, an optional `bottom` on the text and text-box results, computed in Rust.
+- [x] Decide, from the measurement helper alone, whether callers still need the cursor, and record the answer in the plan's "Decisions before implementation". If they don't, delete B10b and drop it from B10c's **Depends on**.
+- [x] Reuse `TextRun::bounds()` and `TextLayout::lines` in `crates/laminapdf-build/src/surface/`; keep existing fields and return types.
+- [x] Export through the Rust façade and the SDK; inspect the WebAssembly DTO boundary without changing its serialized shape unnecessarily. The façade re-exports both types already; the DTOs gain one optional field each, left out when there is no bottom.
+- [x] Preserve overflow offsets and pre-transform coordinate semantics.
+- [x] Add public API documentation, doc tests that place a next paragraph, and the required changeset. The runnable examples are B10c's.
 
 ## Acceptance criteria
 
-- [ ] Single-line and wrapped results equal the final line's descent edge, rather than the requested box bottom.
-- [ ] Empty text, whitespace-only text, text of only line breaks and a box fitting zero lines return no bottom; trailing blank lines after drawn text have an explicit tested contract.
-- [ ] Clipped text reports only drawn lines and retains overflow; TypeScript offsets remain UTF-16 indices, and a box that fits no line reports offset `0`, which the docs tell callers to test with `!== undefined`.
-- [ ] Rust and TypeScript produce equivalent measurements for matching inputs within a documented tolerance.
-- [ ] Existing call sites compile unchanged and measurement does not perform a second shaping/layout pass.
+- [x] Single-line and wrapped results equal the final line's descent edge, rather than the requested box bottom.
+- [x] Empty text, whitespace-only text, text of only line breaks and a box fitting zero lines return no bottom; trailing blank lines after drawn text have an explicit tested contract.
+- [x] Clipped text reports only drawn lines and retains overflow; TypeScript offsets remain UTF-16 indices, and a box that fits no line reports offset `0`, which the docs tell callers to test with `!== undefined`.
+- [x] Rust and TypeScript produce equivalent measurements for matching inputs within a documented tolerance. TypeScript's `bottom` is Rust's value; both suites assert the same AFM-derived numbers to within 1e-6.
+- [x] Existing call sites compile unchanged and measurement does not perform a second shaping/layout pass.
 
 ## Post-merge checks
 
@@ -80,8 +80,8 @@ Font layout edges differ from visible ink, so check measurements against indepen
 
 ## Definition of done
 
-- [ ] Claim this todo in the work PR's first commit from a fresh worktree: move `ready/` → `ongoing/`, fill **PR**, update links and regenerate the board.
-- [ ] Implement tasks and demonstrate every acceptance criterion with recorded validation evidence.
+- [x] Claim this todo in the work PR's first commit from a fresh worktree: move `ready/` → `ongoing/`, fill **PR**, update links and regenerate the board.
+- [x] Implement tasks and demonstrate every acceptance criterion with recorded validation evidence.
 - [ ] Follow applicable guidelines and complete code review and writing review; record findings and fixes in commits.
 - [ ] Required CI is green on the final revision.
-- [ ] Before merge, move this file to `done/`, update status and links, tick its plan item and regenerate the board.
+- [x] Before merge, move this file to `done/`, update status and links, tick its plan item and regenerate the board.

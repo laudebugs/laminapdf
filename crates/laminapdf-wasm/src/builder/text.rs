@@ -177,6 +177,12 @@ pub(super) struct TextRunJs {
     pub bounds: RectJs,
     /// Its lines (a run breaks only at line breaks in the text).
     pub lines: u32,
+    /// Where the next element can start: the bottom of the descent below its last line that
+    /// draws something, before the surface's transform. Left out when nothing is drawn (empty
+    /// text, or only white space and control characters); invisible text counts.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub bottom: Option<f64>,
 }
 
 /// Alignment of a text box's lines.
@@ -252,10 +258,16 @@ pub(super) struct LineBoxJs {
 pub(super) struct TextLayoutJs {
     /// The lines drawn.
     pub lines: Vec<LineBoxJs>,
-    /// Where the text that didn't fit starts (UTF-16 offset), if any.
+    /// Where the text that didn't fit starts (UTF-16 offset), if any; `0` when no line fitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub overflow: Option<u32>,
+    /// Where the next element can start: the bottom of the last drawn line that draws
+    /// something, before the surface's transform. Left out when no line does (nothing, only
+    /// white space and control characters, or a box too short).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub bottom: Option<f64>,
 }
 
 /// UTF-8 byte offsets into `text` as UTF-16 offsets (JS string indices), in one pass over
@@ -345,6 +357,7 @@ impl WasmPageBuilder {
                 width: run.width().get(),
                 bounds: run.bounds().into(),
                 lines: u32::try_from(run.lines()).unwrap_or(u32::MAX),
+                bottom: run.bottom().map(Pt::get),
             })
         })();
         let run = styled.map_err(|e| {
@@ -429,6 +442,7 @@ impl WasmPageBuilder {
         Ok(to_js(&TextLayoutJs {
             lines,
             overflow: layout.overflow.map(|_| unit(3 * layout.lines.len())),
+            bottom: layout.bottom().map(Pt::get),
         }))
     }
 }

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C4b](./C4b-web-app-shell.md), [W1a](../done/W1a-domain-map.md) |
+| Depends on | [C4b](../done/C4b-web-app-shell.md), [W1a](../done/W1a-domain-map.md) |
 | ADRs | Implements 0011 (Wrangler pinned in CI, previews per PR, staging on `main`, production from `web-v*` tags); follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned actions, least-privilege tokens) |
 | Branch | `ci/c4d-web-deploys` |
 | PR title | `ci(web): deploy a preview per pull request, staging from main and production from release tags` |

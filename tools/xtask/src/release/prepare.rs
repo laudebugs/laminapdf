@@ -66,11 +66,13 @@ pub(crate) fn run(root: &Path, args: &[String]) -> Result<()> {
     if crate::version::fixed_group_version(root)?.version != version {
         bail!("Changesets produced a different version from its plan; nothing was pushed");
     }
+    crate::publish::crate_docs(root)?;
     git(root, &["add", "--all"])?;
+    git(root, &["add", "--force", "crates/laminapdf/docs"])?;
     let tree = git(root, &["write-tree"])?;
     let changes = super::changes_since(root, &head, &tree)?;
-    if changes.is_empty() || !super::only_a_version_bump(&changes, &group.version, &version) {
-        bail!("the generated tree changes more than the version; nothing was pushed");
+    if changes.is_empty() || !super::only_release_changes(&changes, &group.version, &version) {
+        bail!("the generated tree changes more than the version and packaged docs; nothing was pushed");
     }
     git(
         root,
