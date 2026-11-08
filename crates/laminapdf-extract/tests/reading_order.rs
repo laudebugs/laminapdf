@@ -152,7 +152,7 @@ fn the_hard_layouts_are_warned_with_their_reason_and_the_clean_ones_are_not() {
 #[test]
 fn an_unwarned_page_keeps_the_layout_confidence_and_content_order_never_warns() {
     let (reasons, confidences) = doubts("two-columns-ordered", ReadingOrder::Layout);
-    assert!(reasons.is_empty());
+    assert_eq!(reasons, Vec::<&str>::new());
     assert!(confidences.iter().all(|&c| (c - 0.75).abs() < 1e-9), "{confidences:?}");
     for (name, _) in HARD {
         assert!(
