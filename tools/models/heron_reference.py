@@ -6,7 +6,8 @@ requirements.txt:
 
     python -I tools/models/heron_reference.py <path to model.onnx>
 
-It writes crates/laminapdf-layout-onnx/tests/reference/heron.json. The post-processing is the
+It writes crates/laminapdf-layout-onnx/tests/reference/heron.json (format it with
+`pnpm exec biome format --write` afterwards, as the repository's JSON is). The post-processing is the
 crate's: scores of at least 0.3, best first, a box overlapping a kept one by 0.9 IoU or more
 dropped, boxes in page points.
 """
