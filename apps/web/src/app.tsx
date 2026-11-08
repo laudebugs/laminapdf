@@ -19,9 +19,12 @@ import {
   PasswordDialog,
   type Platform,
   type ReaderController,
+  type ReaderError,
   ReaderShell,
+  type ReaderState,
   ReaderTopBar,
   RegistryPalette,
+  RemoteFailure,
   RepairDetails,
   RepairedNotice,
   registerReaderCommands,
@@ -36,7 +39,7 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
-import type { Engine, EngineState } from "./session.ts";
+import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
 const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
@@ -106,6 +109,45 @@ function statusItems(engine: EngineState, debug: boolean, onRepairs: (() => void
     items.push(<StatusBarItem key="timing">{`${timing.backend} · page 1 in ${timing.firstPageMs} ms`}</StatusBarItem>);
   }
   return items;
+}
+
+/**
+ * Whether a remote file failed because the browser refused to read it: its host sends no CORS
+ * headers, which `fetch` can't tell apart from being offline or a failed DNS lookup.
+ */
+function refusedByHost(error: ReaderError): boolean {
+  return error.code === "fetch-failed" && error.data?.reason === "network";
+}
+
+/** The page for a document that can't open: the remote explanation, or the failure page. */
+function Failure({
+  state,
+  reader,
+  platform,
+}: {
+  state: ReaderState & { readonly phase: "error" };
+  reader: ReaderController;
+  platform: Platform;
+}): ReactNode {
+  const { file, error } = state;
+  const url = remoteUrlOf(file);
+  if (url !== undefined && refusedByHost(error)) {
+    return (
+      <RemoteFailure
+        reason="cors"
+        url={url}
+        onRetry={() => void reader.open(file)}
+        onChooseFile={() => void reader.openFromPicker()}
+      />
+    );
+  }
+  return (
+    <OpenFailure
+      error={error}
+      onTryAnother={() => reader.close()}
+      onCopy={() => void platform.copyText(`${error.code}: ${error.message}`)}
+    />
+  );
 }
 
 /**
@@ -187,18 +229,19 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
           </>
         }
       >
-        {state.phase === "empty" ? (
+        {state.phase === "empty" && engineState.linkProblem === undefined ? (
           <OpenDropZone reader={reader} keys={KEYS}>
             <p className="web-privacy">{message("reader.open.privacy")}</p>
           </OpenDropZone>
         ) : null}
-        {state.phase === "error" ? (
-          <OpenFailure
-            error={state.error}
-            onTryAnother={() => reader.close()}
-            onCopy={() => void platform.copyText(`${state.error.code}: ${state.error.message}`)}
+        {state.phase === "empty" && engineState.linkProblem !== undefined ? (
+          <RemoteFailure
+            reason={engineState.linkProblem}
+            onHome={() => engine.dismissLinkProblem()}
+            onChooseFile={() => void reader.openFromPicker()}
           />
         ) : null}
+        {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
         <ViewerHost viewer={viewer} visible={open} />
         <PasswordDialog reader={reader} />
       </ReaderShell>

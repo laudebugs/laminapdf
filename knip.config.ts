@@ -74,6 +74,8 @@ const config: KnipConfig = {
     "bun",
     "@microsoft/api-extractor",
   ],
+  // apps/web's e2e remote host makes its certificate with the system's openssl (e2e/remote-host.ts).
+  ignoreBinaries: ["openssl"],
 };
 
 export default config;

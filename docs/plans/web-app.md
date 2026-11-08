@@ -116,7 +116,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** `@laminapdf/ui` chrome (toolbar, page indicator, zoom, open dialogs, error and password prompts), `apps/web` Worker with static assets, `_headers`, CSP, per-PR preview deploys, staging deploy from `main`, production deploy from `web-v*` release tags.
 **Accepted when:** each PR gets a preview URL comment; local open, drag-drop and `#url=` (CORS-enabled) work; encrypted fixtures open after the password prompt; securityheaders-style checks pass; Playwright asserts that no request body carries document bytes and that no request to our origin (URL, request line or headers, including `Referer`) contains the remote document URL.
-**Todos:** [C4a](../todos/done/C4a-ui-chrome-and-platform.md), [C4e](../todos/done/C4e-reader-chrome.md), [C4f](../todos/done/C4f-reader-home-repairs-and-demo.md), [C4b](../todos/done/C4b-web-app-shell.md), [C4c](../todos/ready/C4c-remote-files-encryption-privacy.md), [C4d](../todos/done/C4d-deploy-previews-and-production.md)
+**Todos:** [C4a](../todos/done/C4a-ui-chrome-and-platform.md), [C4e](../todos/done/C4e-reader-chrome.md), [C4f](../todos/done/C4f-reader-home-repairs-and-demo.md), [C4b](../todos/done/C4b-web-app-shell.md), [C4c](../todos/done/C4c-remote-files-encryption-privacy.md), [C4d](../todos/done/C4d-deploy-previews-and-production.md)
 
 ### C5. Text, selection and search
 
@@ -189,10 +189,10 @@ Ticked by the PR that completes them.
 - [ ] Create `packages/ui` (React 19, React Compiler) with the `Platform` interface and web implementation
 - [x] Create `apps/web` (Vite 8) with `wrangler.jsonc`, SPA fallback, `_headers`, CSP
 - [x] Implement open via input, drag-drop, paste and `showOpenFilePicker`
-- [ ] Implement `#url=` (fragment) with range requests
-- [ ] Add password prompt (passes the password to PDFium and `Document::open`) and error/repair notices
+- [x] Implement `#url=` (fragment) with range requests ([C4c](../todos/done/C4c-remote-files-encryption-privacy.md))
+- [x] Add password prompt (passes the password to PDFium and `Document::open`) and error/repair notices ([C4c](../todos/done/C4c-remote-files-encryption-privacy.md))
 - [x] Add CI deploy: preview URL per PR (comment on the PR), staging on `main`, production from `web-v*` release tags (behind C7c's release gates) ([C4d](../todos/done/C4d-deploy-previews-and-production.md); production is first deployed by C7c's first tag)
-- [ ] Playwright test asserting no request body contains document bytes and no request to our origin contains the remote document URL
+- [x] Playwright test asserting no request body contains document bytes and no request to our origin contains the remote document URL ([C4c](../todos/done/C4c-remote-files-encryption-privacy.md))
 
 ### C5. Text, selection and search
 - [ ] Expose glyph runs and quads from the B9 extraction API through the worker RPC
