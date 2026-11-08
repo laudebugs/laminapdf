@@ -1,6 +1,9 @@
 // The one document a viewer worker holds (ADR 0009 §2: one worker per document): Lamina PDF's
 // Document for the model (page sizes, warnings, later text and structure) and a RenderDocument
 // for pixels, both opened from the same bytes. The password is used here and kept nowhere else.
+// A remote file is read through one HttpRangeByteSource: Lamina PDF opens it range by range and
+// the backend reads its block cache, each fetching only what it needs (a render that meets bytes
+// not fetched yet fills them and draws again).
 
 import {
   bytesSource,
@@ -11,9 +14,17 @@ import {
 } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
-import { Document, isLaminaPdfError, wasmMemory } from "@laminapdf/sdk";
+import { Document, isLaminaPdfError, type OpenOptions, wasmMemory } from "@laminapdf/sdk";
 import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
-import type { BackendInit, OpenedDocument, SourceInit, ViewerOpenOptions, WorkerMemory } from "../protocol.js";
+import type {
+  BackendInit,
+  OpenedDocument,
+  RemoteSource,
+  SourceInit,
+  ViewerOpenOptions,
+  WorkerMemory,
+} from "../protocol.js";
+import { HttpRangeByteSource } from "../source/http-range.js";
 import { blobSource, readAll } from "../source.js";
 
 let backend: RenderBackend | undefined;
@@ -24,7 +35,12 @@ interface Open {
   readonly id: number;
   readonly model: Document;
   readonly render: RenderDocument;
+  /** Where a remote document's bytes come from; undefined when they are all in memory. */
+  readonly remote: HttpRangeByteSource | undefined;
 }
+
+/** Rounds of fetching a render may need before it gives up with its last `data-pending`. */
+const MAX_FILL_ROUNDS = 64;
 let open: Open | undefined;
 let nextDocument = 1;
 
@@ -65,6 +81,55 @@ function closeOpen(): void {
   open = undefined;
 }
 
+function isRemote(init: SourceInit): init is RemoteSource {
+  return typeof (init as Partial<RemoteSource>).url === "string" && !(init instanceof Blob);
+}
+
+/** A file's bytes, in memory: bytes as they are, a Blob read in slices. */
+async function bytesOf(init: Exclude<SourceInit, RemoteSource>, signal: AbortSignal): Promise<Uint8Array> {
+  if (init instanceof Blob) return readAll(blobSource(init), signal);
+  return init instanceof Uint8Array ? init : new Uint8Array(init);
+}
+
+/**
+ * Runs `f` until it stops throwing `data-pending`, filling the ranges it names from `remote`
+ * between tries. A round that asks for exactly what the last one asked made no progress.
+ */
+export async function filling<T>(remote: HttpRangeByteSource | undefined, f: () => T, signal: AbortSignal): Promise<T> {
+  let previous: string | undefined;
+  for (let round = 0; ; round++) {
+    try {
+      return f();
+    } catch (e) {
+      if (remote === undefined || !(e instanceof RenderError) || e.code !== "data-pending") throw e;
+      const ranges = e.ranges ?? [];
+      const key = JSON.stringify(ranges);
+      if (round >= MAX_FILL_ROUNDS || ranges.length === 0 || key === previous) throw e;
+      previous = key;
+      await remote.fill(ranges, signal);
+      signal.throwIfAborted();
+    }
+  }
+}
+
+/**
+ * Lamina PDF's document: opened without the password first, so `needsPassword` says whether a
+ * restarted worker must ask again (trying is cheap: opening reads the xref, not the file).
+ */
+async function openModel(
+  open: (options: OpenOptions) => Promise<Document> | Document,
+  options: ViewerOpenOptions,
+): Promise<{ model: Document; needsPassword: boolean }> {
+  const { password, limits } = options;
+  const withLimits = limits === undefined ? {} : { limits };
+  try {
+    return { model: await open(withLimits), needsPassword: false };
+  } catch (e) {
+    if (password === undefined || password === "" || !isLaminaPdfError(e, "password-required")) throw e;
+    return { model: await open({ ...withLimits, password }), needsPassword: true };
+  }
+}
+
 /** Opens the worker's document (closing any previous one) and reports its warnings as events. */
 export async function openDocument(
   init: SourceInit,
@@ -72,32 +137,38 @@ export async function openDocument(
   signal: AbortSignal,
 ): Promise<OpenedDocument> {
   const engine = currentBackend();
-  // Bytes are used as they are; a Blob is read in slices.
-  const bytes =
-    init instanceof Blob
-      ? await readAll(blobSource(init), signal)
-      : init instanceof Uint8Array
-        ? init
-        : new Uint8Array(init);
-  const { password, limits, renderLimits } = options;
-  const withLimits = limits === undefined ? {} : { limits };
-  // Whether the file needs the password: a restarted worker can reopen it without one only if not.
-  // Trying without it first is cheap: opening reads the cross-reference table, not the file.
-  let needsPassword = false;
-  let model: Document;
-  try {
-    model = Document.open(bytes, withLimits);
-  } catch (e) {
-    if (password === undefined || password === "" || !isLaminaPdfError(e, "password-required")) throw e;
-    model = Document.open(bytes, { ...withLimits, password });
-    needsPassword = true;
+  let remote: HttpRangeByteSource | undefined;
+  let bytes: Uint8Array | undefined;
+  if (isRemote(init)) {
+    remote = await HttpRangeByteSource.open(init.url, { signal, onProgress: (p) => emit("progress", p) });
+    // A server without range support sent the whole file: read it as a local one.
+    bytes = remote.whole;
+    if (bytes !== undefined) remote = undefined;
+  } else {
+    bytes = await bytesOf(init, signal);
   }
+  const { password, renderLimits } = options;
+  const { model, needsPassword } =
+    bytes !== undefined
+      ? await openModel((o) => Document.open(bytes, o), options)
+      : await openModel((o) => Document.openRange(remote as HttpRangeByteSource, { ...o, signal }), options);
   let render: RenderDocument;
+  let pages: OpenedDocument["pages"];
+  let title: string | undefined;
   try {
-    render = engine.open(bytesSource(bytes), {
+    const source = remote ?? bytesSource(bytes as Uint8Array);
+    const renderOptions = {
       ...(password === undefined ? {} : { password }),
       ...(renderLimits === undefined ? {} : { limits: renderLimits }),
-    });
+    };
+    render = await filling(remote, () => engine.open(source, renderOptions), signal);
+    try {
+      pages = await model.ensure(() => model.pages, { signal });
+      title = (await model.ensure(() => model.info, { signal })).title?.trim();
+    } catch (e) {
+      render.close();
+      throw e;
+    }
   } catch (e) {
     model.free();
     throw e;
@@ -113,13 +184,12 @@ export async function openDocument(
   // The new pair is open: only now is the previous document closed, so a failed open (a wrong
   // password, a broken file) leaves it working.
   closeOpen();
-  open = { id: nextDocument++, model, render };
+  open = { id: nextDocument++, model, render, remote };
   // ADR 0003 warnings (a repaired xref, a dropped object) for the UI.
   for (const warning of model.warnings) emit("warning", warning);
-  const title = model.info.title?.trim();
   return {
-    pageCount: model.pageCount,
-    pages: model.pages,
+    pageCount: pages.length,
+    pages,
     id: open.id,
     needsPassword,
     backend: { name: engine.name, version: engine.version },

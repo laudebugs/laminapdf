@@ -26,6 +26,7 @@ import {
 } from "@laminapdf/sdk/worker";
 import {
   type BackendInit,
+  type LoadProgress,
   type MethodName,
   type OpenedDocument,
   type Params,
@@ -62,6 +63,8 @@ export type RestartReason = "error" | "messageerror" | "trap" | "cancelled" | "h
 export interface ViewerEvents {
   /** An ADR 0003 warning about the open document (a repaired xref, …). */
   warning: { readonly code: string; readonly message: string };
+  /** How much of a remote document the worker has fetched (bytes; the size). */
+  progress: LoadProgress;
   /** The worker started drawing a render (so a performance test can see what the worker is busy with). */
   "render-start": { readonly page: number; readonly scale: number; readonly key: string };
   /** A render passed the soft timeout: offer Stop. */
@@ -118,6 +121,7 @@ export class ViewerClient {
     this.#timeouts = { ...DEFAULT_TIMEOUTS, ...options.timeouts };
     pdf.on("event", (name, data) => {
       if (name === "warning") this.#events.emit("warning", data as ViewerEvents["warning"]);
+      else if (name === "progress") this.#events.emit("progress", data as LoadProgress);
       else if (name === "render-start") {
         const started = data as ViewerEvents["render-start"];
         this.#drawing = started.key;

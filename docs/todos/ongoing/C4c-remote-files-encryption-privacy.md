@@ -12,7 +12,7 @@
 | Branch | `feat/c4c-remote-and-encrypted-files` |
 | PR title | `feat(web): open remote pdfs from the url fragment and encrypted pdfs, with privacy tests` |
 | Size | L (600–1,500 lines incl. tests) |
-| PR | — |
+| PR | [#324](https://github.com/laudebugs/laminapdf/pull/324) |
 
 ## Goal
 
