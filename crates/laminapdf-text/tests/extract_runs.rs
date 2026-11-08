@@ -393,3 +393,37 @@ fn glyphs_drawn_backwards_one_by_one_get_no_spaces() {
         0
     );
 }
+
+/// Counts the images a page draws, with the matrix of the first.
+#[derive(Default)]
+struct Images {
+    count: usize,
+    first: Option<laminapdf_model::Matrix>,
+}
+
+impl laminapdf_content::Visitor for Images {
+    fn image(&mut self, image: &laminapdf_content::ImageDraw<'_>) {
+        self.count += 1;
+        self.first.get_or_insert(image.state.ctm);
+    }
+}
+
+#[test]
+fn page_with_passes_the_pages_images_to_its_visitor() {
+    let doc = page(
+        b"q 100 0 0 50 72 600 cm BI /W 1 /H 1 /CS /G /BPC 8 ID \x80 EI Q",
+        Vec::new(),
+        OpenOptions::default(),
+    );
+    let pages = doc.pages().expect("pages");
+    let first = pages.get(0).expect("a page");
+    let mut images = Images::default();
+    laminapdf_text::TextExtractor::new()
+        .page_with(&doc, &first, &mut images)
+        .expect("extracts");
+    assert_eq!(images.count, 1);
+    assert_eq!(
+        images.first.map(laminapdf_model::Matrix::to_array),
+        Some([100.0, 0.0, 0.0, 50.0, 72.0, 600.0])
+    );
+}

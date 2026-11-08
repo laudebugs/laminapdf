@@ -1,12 +1,12 @@
 //! Model plug-ins with deterministic fakes (no weights): layout regions reorder and relabel
-//! blocks, OCR reads only pages with no visible text, the request/provide path gives the
+//! blocks, OCR reads only pages whose text layer can't be used, the request/provide path gives the
 //! same output as plug-ins run inside the job, and cancellation reaches the model.
 #![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, reason = "test code")]
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14};
+use laminapdf_build::{BuildOptions, Builder, Image, PageSize, Standard14};
 use laminapdf_extract::{
     BlockKind, DropReason, ExtractError, ExtractOptions, Extraction, LayoutModel, LayoutRegion, ModelError, ModelInfo,
     ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer, RegionLabel, extract,
@@ -17,13 +17,17 @@ use laminapdf_save::{Save as _, SaveOptions};
 use laminapdf_syntax::{Budget, CancelToken, Phase, Step};
 
 /// A document with one A4 page per entry, each drawing its `(text, x, baseline)` lines in
-/// 12 pt Helvetica; an empty entry is a page with no text (a scan, as far as text goes).
+/// 12 pt Helvetica; an empty entry is a scan: one image over the whole page, and no text.
 fn build(pages: &[&[(&str, f64, f64)]]) -> Document {
     let mut b = Builder::new(BuildOptions::default());
     let font = b.standard_font(Standard14::Helvetica).unwrap();
     for lines in pages {
         let mut page = b.page(PageSize::A4);
         let s = page.surface();
+        if lines.is_empty() {
+            let gray = Image::rgba(2, 2, &[128; 16]).unwrap();
+            s.image(&gray, RectPt::from_points(0.0, 0.0, 595.28, 841.89));
+        }
         for &(text, x, y) in *lines {
             s.text(text, &font, Pt::new(12.0), PointPt::from_points(x, y)).unwrap();
         }
