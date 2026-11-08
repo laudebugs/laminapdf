@@ -6,16 +6,19 @@
 mod docs;
 mod many;
 mod render;
+mod reveal_text;
 
 use std::io::{IsTerminal as _, Write as _};
 use std::process::ExitCode as ProcessExit;
 
 use anstream::ColorChoice;
 use clap::{Args, CommandFactory as _, Parser, Subcommand, ValueEnum};
+use laminapdf::reveal::Category;
 use laminapdf::{Diagnostic, ErrorCode};
 use laminapdf_cli::commands::{
     self, CheckArgs, CheckReport, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, Format, InfoArgs,
-    InfoReport, OpenArgs, PagesReport, RenderArgs, RenderReport, RotateArgs, Settings, TextReport,
+    InfoReport, OpenArgs, PagesReport, RenderArgs, RenderReport, RevealArgs, RevealReport, RotateArgs, Settings,
+    TextReport,
 };
 use laminapdf_cli::exit::{CliError, ExitCode};
 use laminapdf_cli::io::{Io, ProcessIo, STDIO};
@@ -97,6 +100,9 @@ enum Command {
     Extract(Many<ExtractArgs>),
     /// Pages as PNG images.
     Render(Many<RenderArgs>),
+    /// What a PDF holds beyond its visible pages: earlier revisions, metadata, attachments,
+    /// scripts and actions, annotations, form values and hidden content (exit 6 with --fail-on).
+    Reveal(RevealCommand),
     /// The page of an error or warning code.
     Explain(ExplainArgs),
     /// The JSON Schema of a command's arguments and output, or the list of schemas.
@@ -118,6 +124,49 @@ enum Command {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true, hide = true)]
         rest: Vec<String>,
     },
+}
+
+/// `laminapdf reveal`: its inputs and arguments, and `--fail-on`, which only the front end reads.
+#[derive(Debug, Args)]
+struct RevealCommand {
+    #[command(flatten)]
+    many: Many<RevealArgs>,
+    /// Exit 6 when a file holds anything in these categories, or in any with `all`.
+    #[arg(long, value_enum, value_delimiter = ',', value_name = "CATEGORIES")]
+    fail_on: Vec<FailOn>,
+}
+
+/// A `--fail-on` category.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum FailOn {
+    History,
+    Metadata,
+    Attachments,
+    ActiveContent,
+    Annotations,
+    Forms,
+    HiddenContent,
+    All,
+}
+
+impl FailOn {
+    /// The categories `list` names.
+    fn categories(list: &[Self]) -> Vec<Category> {
+        if list.contains(&Self::All) {
+            return Category::ALL.to_vec();
+        }
+        list.iter()
+            .map(|c| match c {
+                Self::History => Category::History,
+                Self::Metadata => Category::Metadata,
+                Self::Attachments => Category::Attachments,
+                Self::ActiveContent => Category::ActiveContent,
+                Self::Annotations => Category::Annotations,
+                Self::Forms => Category::Forms,
+                Self::HiddenContent | Self::All => Category::HiddenContent,
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -144,6 +193,8 @@ struct Outcome {
     /// Whether standard output already carries the command's data (a PDF written to `-`), so
     /// the report goes to standard error.
     stdout_taken: bool,
+    /// Whether the input holds something `--fail-on` names (exit 6).
+    found: bool,
 }
 
 impl Outcome {
@@ -154,6 +205,7 @@ impl Outcome {
             text,
             warnings,
             stdout_taken: false,
+            found: false,
         }
     }
 }
@@ -215,6 +267,19 @@ fn run(cli: &Cli, streams: &mut Streams) -> ExitCode {
     match command {
         Command::Info(many) => return each(streams, global, many, &settings, &mut io, InfoReport::SCHEMA, info),
         Command::Check(many) => return each(streams, global, many, &settings, &mut io, CheckReport::SCHEMA, check),
+        Command::Reveal(command) => {
+            let fail_on = FailOn::categories(&command.fail_on);
+            let one = |args: &RevealArgs, settings: &Settings, io: &mut dyn Io| reveal(args, settings, io, &fail_on);
+            return each(
+                streams,
+                global,
+                &command.many,
+                &settings,
+                &mut io,
+                RevealReport::SCHEMA,
+                one,
+            );
+        }
         Command::Render(many) => {
             return each(
                 streams,
@@ -266,7 +331,7 @@ macro_rules! for_input {
     )*};
 }
 
-for_input!(InfoArgs, CheckArgs, ExtractArgs);
+for_input!(InfoArgs, CheckArgs, ExtractArgs, RevealArgs);
 
 impl ForInput for RenderArgs {
     fn for_input(&self, input: &str, index: usize) -> Self {
@@ -332,6 +397,16 @@ fn check(args: &CheckArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outco
     ))
 }
 
+fn reveal(args: &RevealArgs, settings: &Settings, io: &mut dyn Io, fail_on: &[Category]) -> Result<Outcome, CliError> {
+    let report = commands::reveal(args, settings, io)?;
+    let text = reveal_text::reveal_text(&report);
+    let found = commands::found_any(&report, fail_on);
+    let json = render::keep_fields(to_json(&report), &args.fields)?;
+    let mut outcome = Outcome::new(json, text, report.warnings);
+    outcome.found = found;
+    Ok(outcome)
+}
+
 fn render_pages(args: &RenderArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome, CliError> {
     let report = commands::render(args, settings, io)?;
     let mut outcome = Outcome::new(to_json(&report), render::render_text(&report), Vec::new());
@@ -362,8 +437,11 @@ fn finish(
 ) -> ExitCode {
     match outcome {
         Ok(outcome) => match print(streams, &outcome, global) {
-            Ok(()) if outcome.warnings.is_empty() || global.warnings_ok => ExitCode::Ok,
-            Ok(()) => ExitCode::Warnings,
+            Ok(()) => {
+                let warned = !outcome.warnings.is_empty() && !global.warnings_ok;
+                let code = if warned { ExitCode::Warnings } else { ExitCode::Ok };
+                if outcome.found { code.max(ExitCode::Found) } else { code }
+            }
             // The data didn't arrive (a full disk, a closed pipe): not a success.
             Err(error) => {
                 let error = CliError::new(ErrorCode::OutputUnwritable, "couldn't write the output")
@@ -430,10 +508,11 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
         text,
         warnings,
         stdout_taken,
+        found: false,
     };
     Ok(match command {
         // `run` sends these to `each`, which runs them per input.
-        Command::Info(_) | Command::Check(_) | Command::Extract(_) | Command::Render(_) => {
+        Command::Info(_) | Command::Check(_) | Command::Extract(_) | Command::Render(_) | Command::Reveal(_) => {
             return Err(CliError::new(
                 ErrorCode::InvalidCommandLine,
                 "this command takes its inputs one by one",
@@ -546,6 +625,7 @@ fn version(streams: &mut Streams, json: bool) -> ExitCode {
             InfoReport::SCHEMA,
             RenderReport::SCHEMA,
             CheckReport::SCHEMA,
+            RevealReport::SCHEMA,
             PagesReport::SCHEMA,
             TextReport::SCHEMA,
             ExplainReport::SCHEMA,

@@ -13,7 +13,7 @@ pub use laminapdf_model::{
     Action, ActionKind, Annotation, Attachment, AttachmentHolder, Disclosure, Field, Owner, Trigger, XmpPacket,
 };
 
-use crate::extract::Dropped;
+use crate::extract::{DropReason, Dropped, ExtractOptions};
 use crate::job::CancelToken;
 use crate::redaction::earlier_revisions;
 use crate::{Document, Error, Result};
@@ -101,8 +101,8 @@ pub struct Reveal {
     pub id: Vec<String>,
     /// What one scan of every object found.
     pub disclosure: Disclosure,
-    /// Hidden text, one entry per run ([ADR 0030] §4); the report counts them and shows their
-    /// text only on request.
+    /// Hidden text, one entry per run with its text ([ADR 0030] §4's six flags; artifacts
+    /// aren't hidden). A report counts them and shows their text only on request.
     ///
     /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
     pub hidden: Vec<Dropped>,
@@ -160,6 +160,18 @@ fn hex(bytes: &[u8]) -> String {
         .collect()
 }
 
+/// The reasons that hide text from a reader ([ADR 0030] §4's six flags).
+///
+/// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+const HIDDEN: [DropReason; 6] = [
+    DropReason::Invisible,
+    DropReason::OffPage,
+    DropReason::Tiny,
+    DropReason::Clipped,
+    DropReason::LowContrast,
+    DropReason::Covered,
+];
+
 fn to_u32(n: usize) -> u32 {
     u32::try_from(n).unwrap_or(u32::MAX)
 }
@@ -190,7 +202,11 @@ impl Document {
         }
         check()?;
         let sections = model.xref_section_offsets().len();
-        let hidden = self.hidden_text(cancel)?;
+        let mut options = ExtractOptions::default();
+        options.drop.keep_spans = true;
+        let mut hidden = laminapdf_extract::hidden_text(model, &options, cancel)?;
+        // Artifacts are furniture a tagged file marks, not text hidden from its reader.
+        hidden.retain(|d| HIDDEN.contains(&d.reason));
         Ok(Reveal {
             linearized: !model.was_repaired() && revisions.len() == 1 && sections > 1,
             repaired: model.was_repaired(),

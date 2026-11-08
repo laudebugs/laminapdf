@@ -10,6 +10,7 @@ mod extract;
 mod info;
 mod pages;
 mod render;
+mod reveal;
 
 pub use check::{CheckArgs, CheckReport, check};
 pub use explain::{ExplainArgs, ExplainReport, explain};
@@ -17,6 +18,7 @@ pub use extract::{ExtractArgs, ExtractedReport, Format, PageTextEntry, TextRepor
 pub use info::{InfoArgs, InfoMetadata, InfoReport, PageSummary, info};
 pub use pages::{PagesReport, RotateArgs, RotatedPage, rotate};
 pub use render::{Backend, DEFAULT_DPI, RenderArgs, RenderReport, RenderedPage, check_outputs, render};
+pub use reveal::{PageRef, RevealArgs, RevealReport, RevealToolArgs, found_any, reveal};
 
 use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
