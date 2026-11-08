@@ -38,6 +38,7 @@ fn tree(name: &str) -> PathBuf {
         common::page_with_text("Pay John Smith now.", true),
     )
     .unwrap();
+    std::fs::write(base.join("root/disclosing.pdf"), laminapdf_test_fixtures::disclosing()).unwrap();
     base
 }
 
@@ -129,13 +130,21 @@ async fn the_tool_list_should_be_fixed_and_read_only_by_default() {
             "laminapdf_check",
             "laminapdf_explain",
             "laminapdf_extract",
-            "laminapdf_info"
+            "laminapdf_info",
+            "laminapdf_reveal"
         ]
     );
     let writer = connect(&base, &["--allow-write"]).await;
     let tools = writer.list_all_tools().await.unwrap();
-    let last: Vec<String> = tools.iter().rev().take(2).map(|t| t.name.to_string()).collect();
-    assert_eq!(last, ["laminapdf_render", "laminapdf_pages_rotate"]);
+    let last: Vec<String> = tools.iter().rev().take(3).map(|t| t.name.to_string()).collect();
+    assert_eq!(last, ["laminapdf_reveal", "laminapdf_render", "laminapdf_pages_rotate"]);
+    let reveal = tools.iter().find(|t| t.name == "laminapdf_reveal").unwrap();
+    assert_eq!(reveal.annotations.as_ref().and_then(|a| a.read_only_hint), Some(true));
+    let input = serde_json::to_string(&reveal.input_schema).unwrap();
+    assert!(
+        !input.contains("failOn") && !input.contains("includeHiddenText"),
+        "{input}"
+    );
     assert!(client.peer_info().is_some(), "the server answered discovery");
 }
 
@@ -157,6 +166,8 @@ async fn every_tool_should_answer_with_its_output_schema() {
             json!({ "input": "hello.pdf", "output": "{stem}-{n}.png", "dpi": 36 }),
         ),
         ("laminapdf_explain", json!({ "code": "xref-repaired" })),
+        ("laminapdf_reveal", json!({ "input": "hello.pdf" })),
+        ("laminapdf_reveal", json!({ "input": "disclosing.pdf" })),
         (
             "laminapdf_pages_rotate",
             json!({ "input": "hello.pdf", "rotation": "+90", "output": "rotated.pdf" }),
@@ -400,4 +411,54 @@ async fn check_should_report_covered_text_as_a_warning_not_an_error() {
         (report["status"].as_str(), codes),
         (Some("warnings"), vec!["covered-text"])
     );
+}
+
+#[tokio::test]
+async fn reveal_should_count_hidden_text_and_never_show_it() {
+    let base = tree("reveal");
+    let client = connect(&base, &[]).await;
+    let result = call(&client, "laminapdf_reveal", json!({ "input": "covered.pdf" })).await;
+    let report = ok(&result);
+    assert_eq!(report["found"], json!(["hidden-content"]));
+    assert!(report["hiddenContent"].get("runs").is_none());
+    let everything = format!("{:?}{report}", result.content);
+    assert!(!everything.contains("John Smith"), "{everything}");
+    let refused = call(
+        &client,
+        "laminapdf_reveal",
+        json!({ "input": "covered.pdf", "includeHiddenText": true }),
+    )
+    .await;
+    assert_eq!(error(&refused)["code"], "invalid-command-line");
+}
+
+#[tokio::test]
+async fn reveal_should_withhold_every_string_the_document_wrote() {
+    let base = tree("reveal-withheld");
+    let client = connect(&base, &[]).await;
+    let result = call(&client, "laminapdf_reveal", json!({ "input": "disclosing.pdf" })).await;
+    let report = ok(&result);
+    assert_eq!(report["documentText"], false);
+    assert_eq!(report["found"].as_array().map(Vec::len), Some(7));
+    assert_eq!(
+        report["forms"][0],
+        json!({ "kind": "Tx", "filled": true, "hidden": false })
+    );
+    assert_eq!(report["metadata"]["info"][0], json!({ "key": "Title" }));
+    // A custom Info key is a name the file chose: it reads `other`, and so does a MIME type's absence.
+    assert_eq!(report["metadata"]["info"][2], json!({ "key": "other" }));
+    assert_eq!(report["attachments"][0].get("mime"), None);
+    let everything = format!("{:?}{report}", result.content);
+    for text in [
+        "Alice",
+        "Fix the totals",
+        "Reviewer",
+        "Quarterly report",
+        "notes.txt",
+        "Draft notes",
+        "SourceModified",
+        "text/plain",
+    ] {
+        assert!(!everything.contains(text), "{text} reached the agent: {everything}");
+    }
 }

@@ -15,6 +15,12 @@
       "minimum": 0,
       "type": "integer"
     },
+    "found": {
+      "description": "Inputs that hold something `laminapdf reveal --fail-on` names (0 for other commands).",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
     "ok": {
       "description": "Inputs whose report had no warnings.",
       "format": "uint",
@@ -44,6 +50,7 @@
     "warnings",
     "failed",
     "skipped",
+    "found",
     "elapsedMs"
   ],
   "title": "laminapdf batch summary line",

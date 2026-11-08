@@ -170,6 +170,8 @@ pub struct BatchSummary {
     pub failed: usize,
     /// Inputs `--fail-fast` never started.
     pub skipped: usize,
+    /// Inputs that hold something `laminapdf reveal --fail-on` names (0 for other commands).
+    pub found: usize,
     /// How long the batch took, in milliseconds.
     pub elapsed_ms: u64,
     /// Whether every failure was a missing or wrong password.
@@ -205,7 +207,8 @@ impl BatchSummary {
     }
 
     /// The batch's exit code: `1` when an input failed (`5` when every failure was a
-    /// password's), else `3` for warnings unless `warnings_ok`, else `0`.
+    /// password's), else `6` when an input holds what `--fail-on` names, else `3` for
+    /// warnings unless `warnings_ok`, else `0`.
     #[must_use]
     pub const fn exit_code(&self, warnings_ok: bool) -> ExitCode {
         if self.failed > 0 {
@@ -214,6 +217,8 @@ impl BatchSummary {
             } else {
                 ExitCode::Failure
             }
+        } else if self.found > 0 {
+            ExitCode::Found
         } else if self.warnings > 0 && !warnings_ok {
             ExitCode::Warnings
         } else {
@@ -348,5 +353,15 @@ mod tests {
             summary(&[Err(ExitCode::Password), Err(ExitCode::Failure)]),
             ExitCode::Failure
         );
+    }
+
+    #[test]
+    fn findings_should_exit_6_unless_an_input_failed() {
+        let mut s = BatchSummary::default();
+        s.count(Ok(true));
+        s.found = 1;
+        assert_eq!(s.exit_code(true), ExitCode::Found);
+        s.count(Err(ExitCode::Failure));
+        assert_eq!(s.exit_code(true), ExitCode::Failure);
     }
 }

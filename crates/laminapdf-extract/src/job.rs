@@ -342,7 +342,13 @@ impl ExtractJob {
         let mut out = Vec::new();
         for &index in &self.todo.clone() {
             let page = self.page(&pages, index, count)?;
-            let pending = self.read(doc, &page, index)?;
+            // A page whose content can't be read hides nothing that can be counted; the
+            // others still are.
+            let pending = match self.read(doc, &page, index) {
+                Ok(pending) => pending,
+                Err(e) if e.kind().is_skippable() => continue,
+                Err(e) => return Err(e),
+            };
             out.extend(hidden_runs(index, &pending.text, &pending.input(None), &self.options));
         }
         Ok(out)
