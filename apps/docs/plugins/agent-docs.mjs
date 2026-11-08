@@ -4,6 +4,7 @@
 // reading order). Twins come from the pages' sources, not their HTML: the MDX pages through
 // markdown.mjs, the code pages from docs/errors/, the API reference from TypeDoc's Markdown. The
 // build fails when an HTML page has no twin or a link in `llms.txt` has no file.
+import { realpathSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -207,7 +208,7 @@ const SHOWN_FOLDERS = ["packages/sdk/examples/", "crates/laminapdf/examples/", "
 /**
  * `file` (a path from the repository root, as a page names it) as a URL inside one of
  * {@link SHOWN_FOLDERS}; fails for anything else: an absolute path, `..`, a percent escape (which
- * reading the URL would decode, `%2e%2e` into `..`), another folder.
+ * reading the URL would decode, `%2e%2e` into `..`), another folder, a symbolic link out of them.
  *
  * @param {string} file
  * @returns {URL}
@@ -224,10 +225,11 @@ export function shownFileUrl(file) {
   );
   if (!safe) throw outside;
   const url = new URL(file, ROOT);
-  // The check that counts: the path the file is read from, decoded, lies inside an allowed folder.
-  const path = fileURLToPath(url);
+  // The check that counts: the file read, decoded and with every symbolic link followed, lies
+  // inside an allowed folder (its real path too).
+  const path = realpathSync(fileURLToPath(url));
   const inside = SHOWN_FOLDERS.some((folder) => {
-    const rest = relative(fileURLToPath(new URL(folder, ROOT)), path);
+    const rest = relative(realpathSync(fileURLToPath(new URL(folder, ROOT))), path);
     return rest !== "" && !rest.startsWith("..") && !isAbsolute(rest);
   });
   if (!inside) throw outside;
