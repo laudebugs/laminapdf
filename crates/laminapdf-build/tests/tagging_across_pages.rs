@@ -133,6 +133,14 @@ fn the_link_on_the_second_page_is_an_objr_with_that_page() {
 }
 
 #[test]
+fn every_footer_is_a_pagination_artifact_with_the_footer_subtype() {
+    let bytes = fixture("golden/tagged-across-pages.pdf");
+    let footer: &[u8] = b"/Artifact <<\n  /Type /Pagination\n  /Subtype /Footer\n  /Attached [/Bottom]\n>> BDC";
+    let count = bytes.windows(footer.len()).filter(|w| *w == footer).count();
+    assert_eq!(count, 3);
+}
+
+#[test]
 fn an_element_opened_and_closed_on_one_page_writes_what_tag_writes() {
     let text = |s: &mut Surface, font: &FontHandle| {
         s.text("One page", font, Pt::new(11.0), PointPt::from_points(72.0, 96.0))

@@ -32,7 +32,7 @@ use crate::nav::dest::fit_is_valid;
 use crate::resources::{GsKey, PageResources};
 use crate::tag::mcid::{Marking, PageMarks};
 use crate::tag::open::{ElementId, ElementIds};
-use crate::tag::{ArtifactKind, Tag, TagKind};
+use crate::tag::{Artifact, Tag, TagKind};
 use color::Color;
 use image::Image;
 use path::{PathBuilder, Segment};
@@ -73,7 +73,7 @@ enum Command {
     /// Starts content of an open element.
     Resume(ElementId),
     /// Opens an artifact.
-    BeginArtifact(ArtifactKind),
+    BeginArtifact(Artifact),
     /// Ends the innermost element or artifact.
     EndMarked,
 }
@@ -316,15 +316,22 @@ impl Surface {
         drawn
     }
 
-    /// Draws what `draw` draws as an artifact of `kind` (§14.8.2.2): content that isn't part
-    /// of the document's logical content (rules, running heads, backgrounds), outside the
-    /// structure tree. Elements opened inside it are part of it.
+    /// Draws what `draw` draws as an artifact (§14.8.2.2): content that isn't part of the
+    /// document's logical content (rules, running heads, backgrounds), outside the structure
+    /// tree. `artifact` is an [`ArtifactKind`](crate::ArtifactKind), or an [`Artifact`] such as [`Artifact::footer`]
+    /// that also says what a pagination artifact is and which page edge it is attached to (PDF
+    /// 1.7, which raises the document's version when it is older). Elements opened inside it are
+    /// part of it.
     ///
     /// # Errors
     /// What `draw` returns.
-    pub fn artifact<T>(&mut self, kind: ArtifactKind, draw: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+    pub fn artifact<T>(
+        &mut self,
+        artifact: impl Into<Artifact>,
+        draw: impl FnOnce(&mut Self) -> Result<T>,
+    ) -> Result<T> {
         let depth = self.marks_open;
-        self.begin_artifact(kind);
+        self.begin_artifact(artifact);
         let drawn = draw(self);
         self.end_to(depth);
         drawn
@@ -341,10 +348,10 @@ impl Surface {
     }
 
     /// Opens an artifact until the matching [`Surface::end_tag`] (see [`Surface::artifact`]).
-    pub fn begin_artifact(&mut self, kind: ArtifactKind) -> &mut Self {
+    pub fn begin_artifact(&mut self, artifact: impl Into<Artifact>) -> &mut Self {
         self.marks_open += 1;
         self.tagged = true;
-        self.commands.push(Command::BeginArtifact(kind));
+        self.commands.push(Command::BeginArtifact(artifact.into()));
         self
     }
 
@@ -719,7 +726,7 @@ impl Surface {
                 Command::BeginTag(tag) => out.marking.begin_tag(&mut out.content, tag),
                 Command::OpenElement(id, tag) => out.marking.open_element(&mut out.content, *id, tag),
                 Command::Resume(id) => out.marking.resume(&mut out.content, *id),
-                Command::BeginArtifact(kind) => out.marking.begin_artifact(&mut out.content, *kind),
+                Command::BeginArtifact(a) => out.marking.begin_artifact(&mut out.content, *a),
                 Command::EndMarked => out.marking.end(&mut out.content),
                 _ => out.command(command, &from_user, resources),
             }

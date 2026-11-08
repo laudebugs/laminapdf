@@ -411,7 +411,9 @@ export class Surface {
 
   /**
    * Draws what `draw` draws as an artifact: decoration, running heads and footers, backgrounds;
-   * content outside the structure tree.
+   * content outside the structure tree. `"header"`, `"footer"` and `"watermark"` are pagination
+   * artifacts that also say which (`/Subtype`), a header attached to the page's top edge and a
+   * footer to its bottom (`/Attached`).
    */
   artifact(kind: ArtifactKind, draw: (s: this) => void): this {
     const name = checked(ARTIFACT_KINDS, kind, "kind", "not an artifact kind");

@@ -18,7 +18,7 @@ pub(crate) mod open;
 pub(crate) mod parent_tree;
 pub(crate) mod rolemap;
 
-pub use artifact::ArtifactKind;
+pub use artifact::{Artifact, ArtifactKind, PageEdge};
 pub use open::ElementId;
 
 /// A standard structure type (ISO 32000-1 §14.8.4, the PDF 1.7 set every PDF 2.0 reader

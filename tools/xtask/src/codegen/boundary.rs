@@ -66,7 +66,7 @@ const LISTS: [List; 6] = [
     List {
         table: "ARTIFACT_KINDS",
         union: "ArtifactKind",
-        doc: "What kind of artifact (content outside the logical structure).",
+        doc: "What kind of artifact (content outside the logical structure); `header`, `footer` and `watermark` are pagination artifacts that say which.",
     },
     List {
         table: "TABLE_SCOPES",

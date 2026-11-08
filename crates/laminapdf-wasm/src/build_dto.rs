@@ -6,9 +6,9 @@
 //! [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 
 use laminapdf::{
-    AfRelationship, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, Dash, FillRule, Fit, LineCap, LineJoin,
-    LinkTarget, Metadata, OutlineEntry, PageLabel, PageLayout, PageMode, PathBuilder, PdfVersion, PointPt, Profile, Pt,
-    RectPt, StrokeStyle, TableScope, Tag, TagKind, ViewerPreferences,
+    AfRelationship, Artifact, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, Dash, FillRule, Fit, LineCap,
+    LineJoin, LinkTarget, Metadata, OutlineEntry, PageLabel, PageLayout, PageMode, PathBuilder, PdfVersion, PointPt,
+    Profile, Pt, RectPt, StrokeStyle, TableScope, Tag, TagKind, ViewerPreferences,
 };
 use serde::Deserialize;
 use tsify::Tsify;
@@ -202,12 +202,16 @@ pub(crate) fn tag(
 // (and `TagKind::as_str`) from the source and writes @laminapdf/sdk's
 // src/generated/builder-enums.ts, so keep each a `[("name", Type::Variant), …]` literal.
 
-/// Artifact kinds by name.
-pub(crate) const ARTIFACT_KINDS: [(&str, ArtifactKind); 4] = [
-    ("layout", ArtifactKind::Layout),
-    ("page", ArtifactKind::Page),
-    ("pagination", ArtifactKind::Pagination),
-    ("background", ArtifactKind::Background),
+/// Artifacts by name: each kind, then the pagination artifacts that say what they are (a header
+/// attached to the top edge, a footer to the bottom, a watermark to none).
+pub(crate) const ARTIFACT_KINDS: [(&str, Artifact); 7] = [
+    ("layout", Artifact::new(ArtifactKind::Layout)),
+    ("page", Artifact::new(ArtifactKind::Page)),
+    ("pagination", Artifact::new(ArtifactKind::Pagination)),
+    ("background", Artifact::new(ArtifactKind::Background)),
+    ("header", Artifact::header()),
+    ("footer", Artifact::footer()),
+    ("watermark", Artifact::watermark()),
 ];
 
 /// Table scopes (a `TH`'s `/Scope`) by name.
@@ -814,7 +818,7 @@ mod tests {
     use serde::Deserialize as _;
     use serde::de::IntoDeserializer as _;
 
-    use laminapdf::{ArtifactKind, BlendMode, FillRule, LineCap, LineJoin, TableScope};
+    use laminapdf::{Artifact, ArtifactKind, BlendMode, FillRule, LineCap, LineJoin, TableScope};
 
     use super::{
         ARTIFACT_KINDS, BLEND_MODES, FILL_RULES, LINE_CAPS, LINE_JOINS, Profile, ProfileInit, TABLE_SCOPES, parse_id,
@@ -831,7 +835,12 @@ mod tests {
         assert!(names_each(&LINE_CAPS, &LineCap::ALL));
         assert!(names_each(&LINE_JOINS, &LineJoin::ALL));
         assert!(names_each(&BLEND_MODES, &BlendMode::ALL));
-        assert!(names_each(&ARTIFACT_KINDS, &ArtifactKind::ALL));
+        let artifacts = ArtifactKind::ALL
+            .map(Artifact::new)
+            .into_iter()
+            .chain([Artifact::header(), Artifact::footer(), Artifact::watermark()])
+            .collect::<Vec<_>>();
+        assert!(names_each(&ARTIFACT_KINDS, &artifacts));
         assert!(names_each(&TABLE_SCOPES, &TableScope::ALL));
     }
 

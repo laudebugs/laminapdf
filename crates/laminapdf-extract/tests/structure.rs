@@ -3,7 +3,7 @@
 //! running headers, footers, page numbers and artifacts on a five-page file.
 #![allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "test code")]
 
-use laminapdf_build::{ArtifactKind, BuildOptions, Builder, PageSize, Standard14};
+use laminapdf_build::{Artifact, ArtifactKind, BuildOptions, Builder, PageSize, Standard14};
 use laminapdf_extract::{BlockKind, DropReason, ExtractOptions, Extraction, MarkdownOptions, extract};
 use laminapdf_model::{Document, OpenOptions, PointPt, Pt};
 use laminapdf_save::{Save as _, SaveOptions};
@@ -177,6 +177,31 @@ fn running_headers_footers_page_numbers_and_artifacts_move_to_dropped() {
     let pages: Vec<usize> = out.dropped.iter().map(|d| d.page).collect();
     assert!(pages.is_sorted(), "dropped in page order: {pages:?}");
     assert!(out.dropped.iter().all(|d| d.chars > 0 && d.spans.is_empty()));
+}
+
+#[test]
+fn a_footer_artifact_with_its_subtype_is_dropped_as_an_artifact() {
+    let mut b = Builder::new(BuildOptions::default());
+    let font = b.standard_font(Standard14::Helvetica).unwrap();
+    let mut page = b.page(PageSize::A4);
+    let s = page.surface();
+    s.text(BODY, &font, Pt::new(11.0), PointPt::from_points(72.0, 200.0))
+        .unwrap();
+    // Mid-page, where no furniture rule would drop it: only its marking does.
+    s.artifact(Artifact::footer(), |s| {
+        s.text("Page 1 of 1", &font, Pt::new(9.0), PointPt::from_points(72.0, 400.0))
+            .map(|_| ())
+    })
+    .unwrap();
+    page.finish().unwrap();
+    let mut bytes = Vec::new();
+    b.finish().unwrap().save(&mut bytes, &SaveOptions::new()).unwrap();
+    let out = run(
+        &Document::open(bytes, OpenOptions::default()).unwrap(),
+        &ExtractOptions::new(),
+    );
+    let reasons: Vec<DropReason> = out.dropped.iter().map(|d| d.reason).collect();
+    assert_eq!((out.blocks.len(), reasons), (1, vec![DropReason::Artifact]));
 }
 
 #[test]

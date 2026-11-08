@@ -2,11 +2,12 @@
 //! PDF/UA-1 where a paragraph runs from page 1 to page 2 and a table from page 2 to page 3, each
 //! one element ([`Surface::open_element`], [`Surface::resume`], [`Builder::close_element`]).
 //! The paragraph holds a link on page 2; the table's rows are elements of their own pages inside
-//! it. Every page has a running footer as a pagination artifact.
+//! it. Every page has a running footer: a pagination artifact with the footer subtype, attached to
+//! the bottom edge.
 
 use laminapdf_build::{
-    ArtifactKind, BuildOptions, Builder, ElementId, FontHandle, LinkTarget, Metadata, PageSize, Profile, Result,
-    Surface, TableScope, Tag, TagKind,
+    Artifact, BuildOptions, Builder, ElementId, FontHandle, LinkTarget, Metadata, PageSize, Profile, Result, Surface,
+    TableScope, Tag, TagKind,
 };
 use laminapdf_model::{PointPt, Pt, RectPt};
 
@@ -39,7 +40,7 @@ fn line(s: &mut Surface, text: &str, font: &FontHandle, (x, y): (f64, f64)) -> R
 }
 
 fn footer(s: &mut Surface, font: &FontHandle, page: usize) -> Result<()> {
-    s.artifact(ArtifactKind::Pagination, |s| {
+    s.artifact(Artifact::footer(), |s| {
         line(s, &format!("Page {page} of 3"), font, (72.0, 800.0))
     })
 }

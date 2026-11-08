@@ -108,4 +108,4 @@ pub use surface::text::{FontHandle, TextRenderMode, TextRun};
 #[cfg(feature = "text")]
 pub use surface::textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
 pub use surface::{PendingPath, Surface};
-pub use tag::{ArtifactKind, ContentKind, ElementId, TableScope, Tag, TagDiagnostic, TagKind};
+pub use tag::{Artifact, ArtifactKind, ContentKind, ElementId, PageEdge, TableScope, Tag, TagDiagnostic, TagKind};

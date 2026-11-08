@@ -312,6 +312,10 @@ impl<'b> PageBuilder<'b> {
                 state.require((1, 5));
             }
         }
+        if rendered.marks.pdf_1_7 {
+            // An artifact's `/Subtype` and `/Attached` (Table 363).
+            state.require((1, 7));
+        }
         if rendered.marks.elems.iter().any(|e| e.tag.expansion().is_some()) {
             // `/E` is PDF 1.5 (§14.9.5); the rest of the structure 1.3 and `/MarkInfo` 1.4.
             state.require((1, 5));

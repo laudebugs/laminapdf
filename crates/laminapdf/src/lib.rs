@@ -146,10 +146,11 @@ pub use builder::Builder;
 pub use laminapdf_build::FontHandle;
 #[cfg(feature = "build")]
 pub use laminapdf_build::{
-    AfRelationship, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, ElementId, FillRule,
-    Fit, IccProfile, Image, ImageFormat, LabelStyle, LineCap, LineJoin, LinkTarget, Matrix, Metadata, OutlineEntry,
-    OutlineItemId, PageBuilder, PageLabel, PageLayout, PageMode, PageSize, PathBuilder, PdfVersion, PendingPath,
-    PngOptions, Profile, StrokeStyle, Surface, TableScope, Tag, TagDiagnostic, TagKind, ViewerPreferences,
+    AfRelationship, Artifact, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, ElementId,
+    FillRule, Fit, IccProfile, Image, ImageFormat, LabelStyle, LineCap, LineJoin, LinkTarget, Matrix, Metadata,
+    OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel, PageLayout, PageMode, PageSize, PathBuilder,
+    PdfVersion, PendingPath, PngOptions, Profile, StrokeStyle, Surface, TableScope, Tag, TagDiagnostic, TagKind,
+    ViewerPreferences,
 };
 #[cfg(feature = "text")]
 pub use laminapdf_build::{

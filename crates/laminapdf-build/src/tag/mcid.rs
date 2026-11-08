@@ -9,7 +9,7 @@
 
 use pdf_writer::{Content, Name};
 
-use super::artifact::{self, ArtifactKind};
+use super::artifact::{self, Artifact};
 use super::open::ElementId;
 use super::{ContentKind, Tag, TagKind};
 
@@ -50,7 +50,7 @@ pub(crate) struct PageElem {
 #[derive(Debug, Clone, Copy)]
 enum Frame {
     Elem(usize),
-    Artifact(ArtifactKind),
+    Artifact(Artifact),
     /// An element or artifact opened inside an artifact: still the artifact's content.
     Ignored,
 }
@@ -72,6 +72,8 @@ pub(crate) struct PageMarks {
     pub(crate) used: bool,
     /// Whether the page resumed an element that isn't open.
     pub(crate) resumed_unknown: bool,
+    /// Whether an artifact wrote an entry of PDF 1.7 (`/Subtype`, `/Attached`).
+    pub(crate) pdf_1_7: bool,
 }
 
 /// The marking in progress.
@@ -214,7 +216,7 @@ impl Marking {
     }
 
     /// Starts an artifact.
-    pub(crate) fn begin_artifact(&mut self, content: &mut Content, kind: ArtifactKind) {
+    pub(crate) fn begin_artifact(&mut self, content: &mut Content, artifact: Artifact) {
         if !self.enabled {
             return;
         }
@@ -223,7 +225,7 @@ impl Marking {
         let frame = if self.in_artifact() {
             Frame::Ignored
         } else {
-            Frame::Artifact(kind)
+            Frame::Artifact(artifact)
         };
         self.stack.push(frame);
     }
@@ -271,8 +273,9 @@ impl Marking {
                     .identify(mcid);
                 self.open = true;
             }
-            Some(Frame::Artifact(kind)) => {
-                artifact::begin(content, kind, self.page_box);
+            Some(Frame::Artifact(a)) => {
+                artifact::begin(content, a, self.page_box);
+                self.marks.pdf_1_7 |= a.needs_pdf_1_7();
                 self.open = true;
             }
             Some(Frame::Ignored) => {}
@@ -381,7 +384,7 @@ mod tests {
     #[test]
     fn an_element_inside_an_artifact_is_part_of_the_artifact() {
         let (text, marks) = written(|m, c| {
-            m.begin_artifact(c, ArtifactKind::Layout);
+            m.begin_artifact(c, crate::ArtifactKind::Layout.into());
             m.begin_tag(c, &Tag::new(TagKind::P));
             m.mark(c, ContentKind::Path);
             m.end(c);
