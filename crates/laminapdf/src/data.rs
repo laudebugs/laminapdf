@@ -265,9 +265,10 @@ fn cos_warning(w: laminapdf_cos::Warning) -> Data {
         | W::ContentPathUnpainted { offset, .. } => data([("offset", json!(offset))]),
         W::XObjectCycle { object } => data([("object", json!(object))]),
         W::ExtractLimitBlocks { limit, .. } | W::ExtractTableLimit { limit, .. } => data([("limit", json!(limit))]),
-        W::ExtractStructTreeIgnored { reason, .. } => data([("reason", json!(reason))]),
+        W::ExtractStructTreeIgnored { reason, .. } | W::ExtractColumnOrderUncertain { reason, .. } => {
+            data([("reason", json!(reason))])
+        }
         W::ExtractUntaggedContent { chars, .. } => data([("chars", json!(chars))]),
-        W::ExtractColumnOrderUncertain { reason, .. } => data([("reason", json!(reason))]),
         _ => Data::new(),
     }
 }

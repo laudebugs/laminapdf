@@ -165,7 +165,10 @@ fn run_dataset(ws: &Workspace, dataset: &Dataset, args: &Args) -> Result<()> {
     let report = out.join(format!("{candidate}-score.json"));
     score(ws, dataset, &bench, &md_dir, &report, tests.keys())?;
     let score_json: Value = serde_json::from_str(&fs::read_to_string(&report)?)?;
-    let md = render_report(dataset, &subsets, candidate, args, &extracted, &score_json, &pdf_counts);
+    let mut md = render_report(dataset, &subsets, candidate, args, &extracted, &score_json, &pdf_counts);
+    if let Some(line) = column_order_line(candidate, &extracted, &score_json) {
+        md.push_str(&line);
+    }
     fs::write(out.join(format!("{candidate}-report.md")), &md)?;
     step(&format!("extract-bench: {} ({candidate})", dataset.title));
     println!("{md}");
@@ -449,6 +452,55 @@ fn render_report(
     md
 }
 
+/// The `multi_column` subset split by `extract-column-order-uncertain`'s `reason`: for each
+/// reason, and for the pages not warned, the pages and the share of their order tests that
+/// pass. `None` when the subset wasn't scored.
+fn column_order_line(candidate: &str, extracted: &Value, scores: &Value) -> Option<String> {
+    const NONE: &str = "not warned";
+    let by_pdf = at(at(at(scores, "subsets"), "multi_column"), "byPdf").as_object()?;
+    let marker = format!("/{candidate}/");
+    // The PDF each Markdown file came from (`<subset>/<stem>.pdf`) and its reason.
+    let reasons: BTreeMap<String, &str> = at(extracted, "facts")
+        .as_object()?
+        .iter()
+        .filter_map(|(md, fact)| {
+            let rel = md.rsplit_once(marker.as_str()).map_or(md.as_str(), |(_, r)| r);
+            let pdf = format!("{}.pdf", rel.strip_suffix("_pg1_repeat1.md")?);
+            Some((pdf, at(fact, "columnOrder").as_str().unwrap_or(NONE)))
+        })
+        .collect();
+    let count = |r: &Value, key: &str| at(r, key).as_u64().and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
+    // Pages, passed, tests.
+    let mut groups: BTreeMap<&str, [u32; 3]> = BTreeMap::new();
+    for (pdf, r) in by_pdf {
+        let g = groups.entry(reasons.get(pdf).copied().unwrap_or(NONE)).or_default();
+        g[0] += 1;
+        g[1] += count(r, "passed");
+        g[2] += count(r, "tests");
+    }
+    let unwarned = groups.remove(NONE).unwrap_or_default();
+    let warned: u32 = groups.values().map(|g| g[0]).sum();
+    let rate = |p: u32, t: u32| {
+        if t == 0 {
+            0.0
+        } else {
+            100.0 * f64::from(p) / f64::from(t)
+        }
+    };
+    let mut line = format!(
+        "\n`multi_column` pages warned `extract-column-order-uncertain`: {warned} of {}.\n\n| Reason | Pages | Order tests | Passed |\n| --- | ---: | ---: | ---: |\n",
+        warned + unwarned[0]
+    );
+    for (reason, [pages, passed, tests]) in groups
+        .iter()
+        .map(|(r, g)| (format!("`{r}`"), *g))
+        .chain([(NONE.to_owned(), unwarned)])
+    {
+        let _ = writeln!(line, "| {reason} | {pages} | {tests} | {:.1} % |", rate(passed, tests));
+    }
+    Some(line)
+}
+
 /// `value[key]`, or `null` when `value` has no such key.
 fn at<'a>(value: &'a Value, key: &str) -> &'a Value {
     value.get(key).unwrap_or(&Value::Null)
@@ -465,6 +517,27 @@ mod tests {
             pdf: pdf.to_owned(),
             line: format!("{{\"pdf\":\"{pdf}\",\"page\":1}}"),
         }
+    }
+
+    #[test]
+    fn column_order_line_should_split_the_pass_rate_by_reason() {
+        let extracted = serde_json::json!({"facts": {
+            "/out/laminapdf/multi_column/a_pg1_repeat1.md": {"columnOrder": "narrow-gutter"},
+            "/out/laminapdf/multi_column/b_pg1_repeat1.md": {},
+            "/out/laminapdf/multi_column/c_pg1_repeat1.md": {},
+        }});
+        let scores = serde_json::json!({"subsets": {"multi_column": {"byPdf": {
+            "multi_column/a.pdf": {"passed": 1, "tests": 4},
+            "multi_column/b.pdf": {"passed": 2, "tests": 2},
+            "multi_column/c.pdf": {"passed": 1, "tests": 2},
+        }}}});
+        let line = column_order_line("laminapdf", &extracted, &scores).unwrap();
+        assert!(
+            line.contains("warned `extract-column-order-uncertain`: 1 of 3."),
+            "{line}"
+        );
+        assert!(line.contains("| `narrow-gutter` | 1 | 4 | 25.0 % |"), "{line}");
+        assert!(line.contains("| not warned | 2 | 4 | 75.0 % |"), "{line}");
     }
 
     #[test]

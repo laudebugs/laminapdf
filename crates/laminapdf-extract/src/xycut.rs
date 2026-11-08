@@ -19,8 +19,6 @@ use std::cmp::Ordering;
 use laminapdf_model::RectPt;
 use laminapdf_syntax::CancelToken;
 
-use crate::blocks::{OVERLAP, overlap};
-
 /// A block at least this fraction of the page's text width is a masking candidate.
 const WIDE: f64 = 0.6;
 
@@ -33,6 +31,8 @@ const NEAR_GRID_BLOCKS: usize = 4;
 
 /// At most this many groups per page are cut a second time to test `near-grid`.
 const MAX_ALTERNATIVES: u32 = 8;
+/// Two blocks read as one column when they share this much of the wider one's width.
+const SAME_COLUMN: f64 = 0.6;
 
 /// Why the rules had to guess the order, and the blocks (indices) the guess concerns.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,7 +115,7 @@ pub(crate) fn order(
         cutter.cut(band, 0, &mut out)?;
         if revisited.is_none() {
             let band = out.get(start..).unwrap_or_default();
-            revisited = cutter.revisits(band).then(|| band.to_vec());
+            revisited = cutter.revisits(band);
         }
         if let Some(&m) = masked.get(k) {
             out.push(m);
@@ -135,6 +135,13 @@ pub(crate) fn order(
     Ok(Ordered { order: out, doubt })
 }
 
+/// Whether `a` and `b` read as one column: they share at least [`SAME_COLUMN`] of the wider's
+/// width.
+fn same_column(a: &RectPt, b: &RectPt) -> bool {
+    let shared = a.x1.get().min(b.x1.get()) - a.x0.get().max(b.x0.get());
+    shared >= SAME_COLUMN * a.width().get().max(b.width().get())
+}
+
 fn centre_y(r: &RectPt) -> f64 {
     f64::midpoint(r.y0.get(), r.y1.get())
 }
@@ -144,22 +151,31 @@ impl Cutter<'_> {
         self.lines.get(i).copied().unwrap_or(1) <= 1
     }
 
-    /// Whether `band`, in reading order, leaves a block for one beside it and later comes back
-    /// to a block below the first, in its column: a column-first reading never does, but row
-    /// cuts forced by a block across the gutter do. Triples of one-line blocks are left out,
-    /// since a grid reads row by row on purpose.
-    fn revisits(&self, band: &[usize]) -> bool {
-        band.windows(2).enumerate().any(|(i, pair)| {
-            let [a, b] = pair else { return false };
+    /// Where `band`, in reading order, leaves a block for one beside it (apart across, sharing height) and later comes back
+    /// below the pair, each in its own column: the blocks from the first to the last return, or
+    /// `None`. A column-first reading never comes back to a column within a band, but row cuts
+    /// forced by a block across the gutter do. A row of blocks over the columns (authors over
+    /// an abstract) isn't a return, since neither keeps its column's width below, nor is a pair
+    /// of one-line blocks, since a grid reads row by row on purpose.
+    fn revisits(&self, band: &[usize]) -> Option<Vec<usize>> {
+        band.windows(2).enumerate().find_map(|(i, pair)| {
+            let [a, b] = pair else { return None };
             let (ra, rb) = (rect(self.boxes, *a), rect(self.boxes, *b));
-            if ra.x0 < rb.x1 && rb.x0 < ra.x1 {
-                return false;
+            let beside = (ra.x1 <= rb.x0 || rb.x1 <= ra.x0) && ra.y0 < rb.y1 && rb.y0 < ra.y1;
+            if !beside || (self.one_line(*a) && self.one_line(*b)) {
+                return None;
             }
-            band.iter().skip(i + 2).any(|&c| {
-                let rc = rect(self.boxes, c);
-                let grid = self.one_line(*a) && self.one_line(*b) && self.one_line(c);
-                !grid && rc.y0 >= ra.y1 && overlap(&ra, &rc) >= OVERLAP
-            })
+            let after = band.get(i + 2..).unwrap_or_default();
+            // Below the pair, so a row's own lines (a name, then its address) don't count.
+            let floor = ra.y1.get().max(rb.y1.get());
+            let back = |top: &RectPt, other: &RectPt| {
+                after.iter().position(|&c| {
+                    let rc = rect(self.boxes, c);
+                    rc.y0.get() >= floor && same_column(top, &rc) && (rc.x1 <= other.x0 || rc.x0 >= other.x1)
+                })
+            };
+            let last = back(&ra, &rb)?.max(back(&rb, &ra)?);
+            band.get(i..=i + 2 + last).map(<[usize]>::to_vec)
         })
     }
 
@@ -469,6 +485,29 @@ mod tests {
             })
             .collect();
         assert_eq!(reason(&grid, &[1; 9]), None);
+    }
+
+    #[test]
+    fn a_row_of_authors_over_two_columns_or_an_equation_and_its_number_raise_no_doubt() {
+        // Three authors over the gutter, then an abstract and a paragraph on the left and one
+        // tall column on the right, as on the first page of a paper.
+        let authors = [
+            r(81.0, 145.0, 126.0, 78.0),
+            r(232.0, 145.0, 138.0, 78.0),
+            r(383.0, 145.0, 145.0, 78.0),
+            r(88.0, 277.0, 187.0, 190.0),
+            r(71.0, 480.0, 221.0, 260.0),
+            r(306.0, 265.0, 221.0, 467.0),
+        ];
+        assert_eq!(reason(&authors, &[6, 6, 6, 14, 20, 40]), None);
+        // An equation and its number on one row of a column, then the paragraph under both.
+        let equation = [
+            r(50.0, 100.0, 220.0, 80.0),
+            r(90.0, 200.0, 120.0, 20.0),
+            r(250.0, 202.0, 20.0, 12.0),
+            r(50.0, 240.0, 220.0, 80.0),
+        ];
+        assert_eq!(reason(&equation, &[5, 2, 1, 5]), None);
     }
 
     #[test]
