@@ -46,7 +46,7 @@ Constraints:
 | Module | Built as | Contains |
 | --- | --- | --- |
 | `lamina_pdf_base.wasm` | `laminapdf-wasm` without features (`laminapdf` with `build`) | Open, read, edit with ops, undo/redo, save (save jobs, warnings); the builder without text: pages and boxes, paths, colour, opacity and blend modes, clipping, images (JPEG, PNG, RGBA), links, destinations, outline, page labels, metadata, viewer preferences |
-| `lamina_pdf_text.wasm` | `laminapdf-wasm --features text` | Everything in base, plus fonts (`fontBytes`, `standardFont`), shaped `text` runs and `textBox` (laminapdf-text: skrifa, subsetter, HarfRust, ICU4X, the standard 14), and text extraction (`WasmPage.text`) |
+| `lamina_pdf_text.wasm` | `laminapdf-wasm --features text` | Everything in base, plus fonts (`fontBytes`, `standardFont`), shaped `text` runs and `textBox` (laminapdf-text: skrifa, subsetter, HarfRust, ICU4X, the standard 14), and text extraction (`WasmPage.text`); flowing layout, Markdown and JSON documents once [ADR 0032](0032-flowing-layout-and-document-inputs.md#5-placement) lands |
 | `lamina_pdf_extract.wasm` | `laminapdf-wasm --features extract` (B9c) | Everything in base, plus text extraction (`WasmPage.text`: laminapdf-text's extractor, CMaps, ICU4X's bidi data), without fonts for building or shaping |
 
 The text module is a **superset**, not an add-on: a document that needs text is built entirely in the text module. A document moves between the two as PDF bytes (save, then open), which is the narrow ABI between them. `@laminapdf/sdk` loads the base module by default and the text module on its first text call or with `init({ text: true })` (B6b); a page that loaded only base never downloads text.
@@ -109,6 +109,8 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 | sign (E10) | — | placeholder: decided by E10a | |
 
 The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, plan §4), enforced by B6b. A module without a budget fails the check, so a new module can't ship unmeasured. A module that grows more than 5 % over the baseline in `size-budgets.json` gets a twiggy top-items diff against the baseline in the job summary; `cargo xtask size --update-baseline` records a new baseline when a growth is accepted. Raising a budget is an amendment of this table, approved by the owner.
+
+**Amendment (owner, 2026-11-08, [ADR 0032](0032-flowing-layout-and-document-inputs.md#9-budgets)):** the text module's budget rises from 1,200,000 (T3a's amendment below) to 1,280,000 bytes for flowing layout ([T4b](../todos/ready/T4b-flow-layout-core.md) and the todos after it), the Markdown front end and JSON documents with their templates, which ADR 0032 §5 places in the text module. The [`flow-layout` spike](../../spikes/flow-layout/README.md) measured a minimal paginator at +19 KB and `pulldown-cmark` at +60 KB gzip on top of the text module; the rest is headroom for tables, notes and the document schema. The base and extract modules don't change.
 
 **Note (owner, 2026-11-08, T2a):** the `covered` flag ([T2a](../todos/done/T2a-covered-text-flag.md)) adds about 10 KB gzip to both modules: on its own branch it measured extract 653,461 and text 1,139,945. The owner approved a raise for it to 685,000 and 1,190,000, but the T3a amendment below landed first with higher budgets, which hold T2a as well (main plus T2a, T3b and T3c comes to about text 1,152,000 and extract 668,000), so T2a keeps them.
 
