@@ -1,6 +1,6 @@
 # laminapdf-layout-onnx
 
-`laminapdf-layout-onnx` gives `laminapdf-extract` a layout model: Docling's Heron detector, run by ONNX Runtime, finds each page's text, headings, lists, tables, pictures and running headers, and extraction then reads the page by those regions. It helps on pages the rules alone misread, such as magazines and columns set close together. It is an edge crate: it loads a native library, so it stays out of the core and out of WASM.
+`laminapdf-layout-onnx` gives `laminapdf-extract` a layout model: ONNX Runtime runs Docling's Heron detector, which finds each page's text, headings, lists, tables, pictures and running headers, and extraction then reads the page by those regions. It helps on pages the rules alone misread, such as magazines and columns set close together. The crate is an edge crate: it loads a native library, so it stays out of the core and out of WASM.
 
 ```rust,no_run
 use std::sync::Arc;
@@ -25,7 +25,7 @@ fn options(renderer: Arc<dyn PageRenderer>) -> Result<ExtractOptions, Box<dyn st
 
 ## What it does with the page
 
-The export's graph scales and normalises the image itself, so the crate only resizes the page to 640 × 640 (bilinear) and passes the pixels as they are. Of Heron's 300 candidate boxes it keeps those scoring at least 0.3 (`HeronLayout::with_threshold` changes it), best first, and drops a box that a better one overlaps by 90% or more, since Heron sometimes names one box twice: a page title as both title and section header. Heron's 17 labels map onto `laminapdf-extract`'s `RegionLabel`; forms, code, indexes and checkboxes become `Other`.
+The export's graph scales and normalises the image itself, so the crate only resizes the page to 640 × 640 (bilinear) and passes the pixels as they are. The crate keeps the candidate boxes scoring at least 0.3, best first (`HeronLayout::with_threshold` changes the threshold). Heron sometimes names one box twice, a page title as both title and section header, so a box that a better one overlaps by 90% or more is dropped. Heron's 17 labels map onto `laminapdf-extract`'s `RegionLabel`; forms, code, indexes and checkboxes become `Other`.
 
 ## Licences
 
