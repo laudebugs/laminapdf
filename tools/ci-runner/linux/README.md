@@ -1,4 +1,6 @@
-# Linux CI runner (container on the Mac)
+# Retired Linux CI runner (container on the Mac)
+
+Retired on 2026-11-07: all workflows now use GitHub-hosted runners. Stop this supervisor with `./down.sh` before making the repository public. The instructions below describe the former setup; do not start it for public pull requests. See [the transition notes](../../../docs/public-readiness.md).
 
 The full lane's `check-linux` job (`.github/workflows/full.yml`) runs `cargo xtask check` on Linux ARM64. It runs on a self-hosted runner, `lamina-self-hosted-linux-1` (labels `self-hosted`, `Linux`, `ARM64`), which lives in a Docker container on the same Mac as the two macOS runners. See todo [X5](../../../docs/todos/done/X5-linux-ci-container.md); [ADR 0018 §2](../../../docs/decisions/0018-test-strategy.md#2-ci-lanes) has the lane design.
 

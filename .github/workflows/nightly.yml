@@ -98,6 +98,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   FUZZ_SECONDS: ${{ inputs.fuzz-seconds || '600' }}
@@ -108,35 +110,29 @@ env:
   # both to 0, so `inputs.record != false` would be false there too. toJSON keeps them apart.
   NIGHTLY_RECORD: ${{ toJSON(inputs.record) != 'false' }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  # Every job runs on the self-hosted runners ([self-hosted, macOS, ARM64]), like the PR lanes
-  # (#41): isolate-rust-home first, rust-cache off (its macOS post step hangs there), pnpm into
-  # runner.temp, install-action through install-tools, Python in a venv in runner.temp. Each
-  # job's `target-dir` keeps its build output on the runner between nights (scheduled runs on
-  # main get their own directories; see the action). The fuzz matrix shares one: its jobs build
-  # the same targets the same way.
+  # PDF suites use clean hosted macOS Arm64 VMs with explicit tool setup.
   differential:
     name: Differential (pdf.js, PDFium, qpdf, pypdf, pdftotext)
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 180
-    env:
-      QPDF_VERSION: "12.4.2"
-      # From https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2.sha256
-      QPDF_SHA256: 62e46987a30ea167cbc530ccb22690aec3d8c812ed09979a941bcee92e504b79
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: nightly-differential
       # xtask and the lamina example only build for the host: no components or cross targets.
+      - uses: ./.github/actions/qpdf
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
-      # The corpus lives in the runner's own persistent tool cache: the checkouts survive from
-      # night to night and `corpus fetch` reuses (or restores) them, so there is no Actions cache
-      # round-trip of 177 MB.
+          cache: true
+      # Corpus checkouts are fetched and SHA-256 verified on each fresh VM.
       - name: Point xtask at the corpus folder and the venv
         run: |
           echo "LAMINA_PDF_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
@@ -150,16 +146,6 @@ jobs:
         with:
           package-json-file: tools/differential/package.json
           install: tools/differential
-      # qpdf's macOS ARM64 release binaries, checked against the SHA-256 qpdf publishes;
-      # doctor.rs pins the version (and `differential --live` checks it).
-      - name: Install qpdf ${{ env.QPDF_VERSION }}
-        run: |
-          zip="qpdf-$QPDF_VERSION-bin-macos-arm64.zip"
-          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$zip" "https://github.com/qpdf/qpdf/releases/download/v$QPDF_VERSION/$zip"
-          echo "$QPDF_SHA256  $RUNNER_TEMP/$zip" | shasum -a 256 -c -
-          rm -rf "$RUNNER_TEMP/qpdf"
-          unzip -q "$RUNNER_TEMP/$zip" -d "$RUNNER_TEMP/qpdf"
-          echo "$RUNNER_TEMP/qpdf/bin" >> "$GITHUB_PATH"
       # Checks out each source at its pinned commit (or reuses the cache) and verifies every
       # file's SHA-256 against fixtures/corpus-manifest.toml.
       - run: cargo xtask corpus fetch
@@ -167,19 +153,8 @@ jobs:
       # or hang costs one file, not the run (tools/xtask/src/runner.rs).
       - name: Differential
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
-      # pdftotext is the runner's Homebrew poppler. A runner without one gets it here: with
-      # pdf.js alone, every page where only pdftotext agrees with Lamina PDF fails, as 37 did on
-      # 2026-11-02 (issue #169). No auto-update and no upgrades of installed formulae (harfbuzz's
-      # hb-shape is pinned too); this is the one change the nightly makes to a runner, release
-      # lane included. It prints the version; xtask warns when it isn't doctor.rs's pin.
-      - name: Install poppler if the runner has none
+      - uses: ./.github/actions/poppler
         if: ${{ !cancelled() }}
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: "1"
-          HOMEBREW_NO_INSTALL_UPGRADE: "1"
-        run: |
-          command -v pdftotext >/dev/null || brew install poppler
-          pdftotext -v 2>&1 | head -1
       # Page text (todo B9f) runs even when the structural differential failed, so one night
       # reports both. At the poppler version doctor.rs pins, pdftotext takes part; at another,
       # xtask warns and compares with pdf.js only, and pages where only pdftotext would agree
@@ -210,7 +185,7 @@ jobs:
 
   fuzz:
     name: Fuzz ${{ matrix.target }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -222,13 +197,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: nightly-fuzz
       # The pinned stable toolchain (host only) builds xtask; fuzz/ needs nightly.
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
@@ -275,7 +247,7 @@ jobs:
 
   scaling:
     name: Scaling (release, ignored tests)
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 60
     outputs:
       flaky: ${{ steps.scaling.outputs.flaky }}
@@ -283,12 +255,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: nightly-scaling
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # cargo test --release -- --ignored; a failure is retried once and a pass on retry is
       # reported as flaky (flaky=true), never hidden (ADR 0018 §4).
       - id: scaling
@@ -296,18 +265,12 @@ jobs:
 
   bench:
     name: Benchmarks
-    # History compares within one runner label (`--runner`), recorded in every record. The label
-    # is the machine: the runner's name without its number (lamina-self-hosted-runner-3 →
-    # macos-arm64/lamina-self-hosted-runner), since a baseline mixing two Macs flags noise as
-    # regressions (issue #170). Runners on one Mac share the label, and their timings share
-    # that Mac's load.
-    # The benchmarks start only after every job that doesn't depend on them has ended, whatever
-    # its result. Beside nine fuzz targets and the render diff they also measured that load,
-    # likely part of issue #170's +303% and +605% on the report benchmarks. PR lanes can still
-    # share the Mac. `tools/xtask/src/workflows.rs` checks that this list stays complete.
+    # A new label starts a hosted baseline, separate from the old private Macs. GitHub's
+    # physical hosts vary, so timing regressions remain advisory. Preserve the job graph:
+    # tools/xtask/src/workflows.rs checks these dependencies stay complete.
     needs: [differential, fuzz, scaling, links, render-diff, verapdf, forced-failure]
     if: ${{ !cancelled() }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the
     # timeout, so a short one wastes less of the night.
     timeout-minutes: 30
@@ -322,12 +285,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: nightly-bench
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # history.jsonl on the orphan bench-data branch: one record per night (commit, runner,
       # ns/iter per benchmark). Created by the first run on main. The token goes only to the
       # bench-history steps, never to the step that builds and runs the benchmarks.
@@ -339,7 +299,7 @@ jobs:
       # Compares with the median of the last 5 records on this runner; regression=true when a
       # benchmark is over 10% slower. Never fails the job for a regression.
       - id: bench
-        run: cargo xtask bench --history "$HISTORY" --runner "macos-arm64/${RUNNER_NAME%-*}" ${{ env.RECORD == 'true' && '--record' || '' }}
+        run: cargo xtask bench --history "$HISTORY" --runner "github-hosted/macos-15-arm64" ${{ env.RECORD == 'true' && '--record' || '' }}
       - name: Push the benchmark history
         if: ${{ env.RECORD == 'true' }}
         uses: ./.github/actions/bench-history
@@ -365,7 +325,7 @@ jobs:
     name: "@laminapdf/sdk in every runtime (timings)"
     needs: bench
     if: ${{ !cancelled() }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 60
     permissions:
       contents: write
@@ -375,12 +335,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: nightly-wasm
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       # Same version as ci.yml's wasm job (tools/xtask/src/doctor.rs).
       - uses: ./.github/actions/install-tools
         with:
@@ -399,7 +359,7 @@ jobs:
       - name: Every runtime (recording on main)
         run: |
           if [ "$RECORD" = true ]; then
-            cargo xtask pdf-runtimes --history "$HISTORY" --runner "macos-arm64/${RUNNER_NAME%-*}" --record
+            cargo xtask pdf-runtimes --history "$HISTORY" --runner "github-hosted/macos-15-arm64" --record
           else
             cargo xtask pdf-runtimes
           fi
@@ -422,7 +382,7 @@ jobs:
 
   links:
     name: External links in the docs
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 45
     outputs:
       flaky: ${{ steps.links.outputs.flaky }}
@@ -431,12 +391,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: xtask
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # curl per URL: HEAD, then a one-byte GET if HEAD is refused; timeouts, 429 and 5xx are
       # retried once and a pass on retry is reported as flaky (flaky=true). A final 403 or 429 is
       # refused (a warning). A missing page or site (404, 410, no answer) doesn't fail the job:
@@ -460,7 +417,7 @@ jobs:
   # runs on every run and sets `regression`, which the report job turns into an issue.
   render-diff:
     name: Render diffs (hayro vs PDFium)
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     # The whole corpus took about an hour on the shared Mac (2,172 files, 5,108 pages).
     timeout-minutes: 180
     permissions:
@@ -473,12 +430,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: nightly-render-diff
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - name: Point xtask at the corpus folder
         run: echo "LAMINA_PDF_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
       - run: cargo xtask corpus fetch
@@ -494,7 +448,7 @@ jobs:
         run: >-
           cargo xtask render-diff --corpus external --pages 20
           ${RENDER_DIFF_SAMPLE:+--sample "$RENDER_DIFF_SAMPLE"}
-          --history "$HISTORY" --runner "macos-arm64/${RUNNER_NAME%-*}"
+          --history "$HISTORY" --runner "github-hosted/macos-15-arm64"
           ${{ env.RECORD == 'true' && '--record' || '' }}
       - name: Push the benchmark history
         if: ${{ env.RECORD == 'true' }}
@@ -512,21 +466,22 @@ jobs:
           if-no-files-found: ignore
 
   # Writes nothing but its artefact, so it needs no record gate. The veraPDF install stays in
-  # the runner's tool cache ($RUNNER_TOOL_CACHE/lamina-verapdf) between nights.
+  # the runner's tool cache ($RUNNER_TOOL_CACHE/lamina-verapdf) during the job.
   verapdf:
     name: veraPDF (PDF/UA-1, PDF/A-2b, 2u, 3b)
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: nightly-verapdf
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
       - run: cargo xtask verapdf
       - name: Upload the report
         if: ${{ !cancelled() }}
@@ -540,7 +495,7 @@ jobs:
   forced-failure:
     name: Forced failure (on request)
     if: ${{ inputs.force-failure }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - run: |
@@ -567,7 +522,7 @@ jobs:
       || needs.scaling.outputs.flaky == 'true' || needs.links.outputs.flaky == 'true'
       || needs.links.outputs.missing == 'true'
       || needs.bench.outputs.regression == 'true' || needs.render-diff.outputs.regression == 'true') }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       issues: write
