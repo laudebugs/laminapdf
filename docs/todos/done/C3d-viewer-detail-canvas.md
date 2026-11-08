@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `C3d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) |
+| Depends on | [C3b](./C3b-viewer-virtualiser-and-zoom.md) |
 | ADRs | Follows 0009 (framework-free viewer core, `ImageBitmap` transfer, pooled canvases) and 0004 (bounded tiles) |
 | Branch | `feat/c3d-viewer-detail-canvas` |
 | PR title | `feat(viewer): draw sharp tiles into a canvas over the part in view, so every zoom stays sharp` |
@@ -40,17 +40,17 @@ Keep the page in view sharp at every zoom up to 800 %. Today each page is one ca
 
 ## Tasks
 
-- [ ] `src/render/tiles.ts`: the backdrop's pixel ratio under the per-page cap; the union of a tile list (the detail canvas's rectangle).
-- [ ] `src/view/viewer.ts`: the frame reads `scrollLeft`; tiles in view are clipped horizontally; a page view holds an optional detail canvas (rectangle, scale, drawn tiles), placed in percentages of the shell so it stretches with it during a zoom gesture; it is re-placed when the tiles in view leave its rectangle, redrawing the cached tiles at once; released when the page leaves the view, unmounts or changes geometry.
-- [ ] `CreateViewerOptions.detailPool`; the default pools split today's 64 MP.
-- [ ] Render stats count the detail canvases.
+- [x] `src/render/tiles.ts`: the backdrop's pixel ratio under the per-page cap; the union of a tile list (the detail canvas's rectangle).
+- [x] `src/view/viewer.ts`: the frame reads `scrollLeft`; tiles in view are clipped horizontally; a page view holds an optional detail canvas (rectangle, scale, drawn tiles), placed in percentages of the shell so it stretches with it during a zoom gesture; it is re-placed when the tiles in view leave its rectangle, redrawing the cached tiles at once; released when the page leaves the view, unmounts or changes geometry.
+- [x] `CreateViewerOptions.detailPool`; the default pools split today's 64 MP.
+- [x] Render stats count the detail canvases.
 
 ## Acceptance criteria
 
-- [ ] At 400 % and 800 % on a 2× screen, the page in view is drawn at the full pixel ratio (the detail canvas's pixels per CSS px equal the device pixel ratio), and the page reaches `sharp`.
-- [ ] Up to the zoom at which a page fits the cap, nothing changes: no detail canvas, sharp tiles in the page canvas.
-- [ ] Scrolling at 400 % keeps the view sharp once it stops, with no draw on an unmounted page.
-- [ ] The sweep test of the tile planning covers the detail rectangle: every tile lies inside it and passes `planTile`.
+- [x] At 400 % and 800 % on a 2× screen, the page in view is drawn at the full pixel ratio (the detail canvas's pixels per CSS px equal the device pixel ratio), and the page reaches `sharp`.
+- [x] Up to the zoom at which a page fits the cap, nothing changes: no detail canvas, sharp tiles in the page canvas.
+- [x] Scrolling at 400 % keeps the view sharp once it stops, with no draw on an unmounted page.
+- [x] The sweep test of the tile planning covers the detail rectangle: every tile lies inside it and passes `planTile`.
 
 ## Post-merge checks
 
@@ -72,8 +72,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated (#317 merged with this file still in `ongoing/`; it moved to `done/` in the zoom-flicker fix, laudebugs/lamina#320)
