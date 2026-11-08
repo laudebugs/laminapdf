@@ -9,7 +9,8 @@ import { fileURLToPath } from "node:url";
 import { Application, LogLevel } from "typedoc";
 import { entrySources, manifest, packageDirs } from "../../../tools/ts/package-entries.mjs";
 
-const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
+// With forward slashes: TypeDoc reads the entry points as globs, which take no `\` (Windows).
+const ROOT = fileURLToPath(new URL("../../../", import.meta.url)).replaceAll("\\", "/");
 
 /**
  * A package's npm name, and its build tsconfig and entry sources as absolute paths.

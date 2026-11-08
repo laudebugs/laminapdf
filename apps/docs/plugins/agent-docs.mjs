@@ -73,6 +73,17 @@ async function codeTable() {
 }
 
 /**
+ * A path `readdir` returned, with forward slashes: on Windows it joins folders with `\`, and
+ * routes and the depth of a page are read from `/`.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function slashes(name) {
+  return name.replaceAll("\\", "/");
+}
+
+/**
  * Every HTML page the build wrote, as routes (`guides/save-a-pdf/`, `` for the home page):
  * not the 404 page, nor the redirect pages Astro writes for moved URLs.
  *
@@ -81,7 +92,7 @@ async function codeTable() {
  */
 async function pageRoutes(dir) {
   const routes = [];
-  for (const name of await readdir(dir, { recursive: true })) {
+  for (const name of (await readdir(dir, { recursive: true })).map(slashes)) {
     if (!name.endsWith(".html") || name === "404.html") continue;
     const html = await readFile(new URL(name, dir), "utf8");
     if (/<meta\s+http-equiv="refresh"/i.test(html)) continue;
@@ -170,7 +181,7 @@ let contentIndex;
 export async function contentFiles() {
   if (contentIndex === undefined) {
     contentIndex = new Map();
-    for (const name of await readdir(CONTENT, { recursive: true })) {
+    for (const name of (await readdir(CONTENT, { recursive: true })).map(slashes)) {
       if (!/\.mdx?$/.test(name)) continue;
       const route = name
         .replace(/\.mdx?$/, "")
