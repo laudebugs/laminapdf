@@ -37,14 +37,17 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
 }
 
 /// What the Paper gallery's screenshots and axe checks depend on (apps/gallery, todo U6f): the
-/// gallery, the packages it draws, and the lockfile that pins their dependencies.
-const GALLERY_INPUTS: [&str; 6] = [
+/// gallery, the packages it draws, the versions pinned for them, and the command that runs its
+/// tests.
+const GALLERY_INPUTS: [&str; 8] = [
     "apps/gallery/",
     "packages/ui/",
     "packages/tokens/",
     "packages/icons/",
     "packages/fonts/",
     "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "tools/xtask/src/gallery.rs",
 ];
 
 /// Whether any of `paths` can change how the gallery looks, so the fast lane runs its tests.
@@ -132,6 +135,7 @@ mod tests {
         assert!(touches_gallery(&["packages/ui/src/components/button.tsx"]));
         assert!(touches_gallery(&["packages/tokens/tokens.json", "README.md"]));
         assert!(touches_gallery(&["pnpm-lock.yaml"]));
+        assert!(touches_gallery(&["tools/xtask/src/gallery.rs"]));
         assert!(!touches_gallery(&[
             "crates/laminapdf/src/lib.rs",
             "packages/uikit/x.ts",

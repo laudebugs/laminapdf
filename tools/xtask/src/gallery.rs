@@ -11,7 +11,6 @@
 //! `results/`, the new screenshots under `screenshots/`). Only `--update` writes screenshots.
 
 use std::fs;
-use std::io::Write as _;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -191,6 +190,7 @@ fn script(pnpm: &str, mode: Mode) -> String {
     };
     format!(
         "set -e\n\
+         trap 'chown -R \"$HOST_OWNER\" /host 2>/dev/null || true' EXIT\n\
          mkdir -p /tmp/work && tar -xf - -C /tmp/work && cd /tmp/work\n\
          npm install --global --silent {pnpm}\n\
          CI=true pnpm install --frozen-lockfile --filter '@laminapdf/gallery...'\n\
@@ -209,26 +209,39 @@ fn in_container(ws: &Workspace, image: &str, out: &Path, mode: Mode) -> Result<b
         .get("packageManager")
         .and_then(serde_json::Value::as_str)
         .context("package.json has no packageManager")?;
+    // The list goes to a file tar reads: writing it to tar's stdin before docker reads tar's
+    // stdout would deadlock once the archive filled the pipe.
+    let list = out.join("files.txt");
+    let mut names = Vec::new();
+    for file in files(&ws.root)? {
+        names.extend_from_slice(file.as_bytes());
+        names.push(0);
+    }
+    fs::write(&list, names).with_context(|| format!("writing {}", list.display()))?;
     let mut tar = Command::new("tar")
-        .args(["-cf", "-", "--null", "-T", "-"])
+        .args(["-cf", "-", "--null", "-T"])
+        .arg(&list)
         .current_dir(&ws.root)
-        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
         .context("running tar")?;
-    {
-        let mut stdin = tar.stdin.take().context("tar's stdin")?;
-        for file in files(&ws.root)? {
-            stdin.write_all(file.as_bytes())?;
-            stdin.write_all(b"\0")?;
-        }
-    }
     let archive = tar.stdout.take().context("tar's stdout")?;
     let mut docker = Command::new("docker");
     docker
         .args(["run", "--rm", "-i", "--ipc=host"])
         .arg("-v")
-        .arg(format!("{}:/host", out.display()));
+        .arg(format!("{}:/host", out.display()))
+        // The store and npm's cache outlive the container, so later runs download nothing new.
+        .args([
+            "-v",
+            "lamina-gallery-pnpm-store:/pnpm-store",
+            "-e",
+            "npm_config_store_dir=/pnpm-store",
+        ])
+        .args(["-v", "lamina-gallery-npm-cache:/root/.npm"])
+        // The container runs as root; what it writes under /host goes back to whoever owns `out`.
+        .arg("-e")
+        .arg(format!("HOST_OWNER={}", owner(out)));
     let mut proxied = false;
     for var in PROXY_VARS {
         if let Ok(value) = std::env::var(var) {
@@ -255,14 +268,35 @@ fn in_container(ws: &Workspace, image: &str, out: &Path, mode: Mode) -> Result<b
         .status()
         .context("running docker")?;
     let tarred = tar.wait()?;
-    if !tarred.success() {
+    // A container that failed to start closes tar's pipe; its own message says why, not tar's.
+    if status.success() && !tarred.success() {
         bail!("tar failed with {tarred}");
     }
     Ok(status.success())
 }
 
-/// Replaces the committed screenshots with those the container wrote.
+/// `uid:gid` of `path`'s owner (`0:0` where there are none).
+fn owner(path: &Path) -> String {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt as _;
+        if let Ok(meta) = fs::metadata(path) {
+            return format!("{}:{}", meta.uid(), meta.gid());
+        }
+    }
+    let _ = path;
+    "0:0".to_owned()
+}
+
+/// Replaces the committed screenshots with those the container wrote; leaves them alone when it
+/// wrote none (it failed before its tests ran).
 fn replace_screenshots(root: &Path, from: &Path) -> Result<()> {
+    let written = fs::read_dir(from).is_ok_and(|mut d| d.next().is_some());
+    if !written {
+        bail!(
+            "the container wrote no screenshots (it failed before its tests ran: see its output above); {SCREENSHOTS} is unchanged"
+        );
+    }
     let to = root.join(SCREENSHOTS);
     if to.exists() {
         fs::remove_dir_all(&to)?;

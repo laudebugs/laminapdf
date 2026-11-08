@@ -126,13 +126,25 @@ struct Inventory {
 fn parse_inventory(markdown: &str) -> Inventory {
     let mut inventory = Inventory::default();
     let mut section = "";
+    // The level of the "Not yet drawn" heading we are under, at any depth, until a heading at
+    // that level or above ends it.
+    let mut not_drawn: Option<usize> = None;
     for line in markdown.lines() {
-        if let Some(heading) = line.strip_prefix("## ") {
-            section = heading.trim();
+        let level = line.chars().take_while(|&c| c == '#').count();
+        if level > 0 && line[level..].starts_with(' ') {
+            let heading = line[level..].trim();
+            if not_drawn.is_some_and(|l| level <= l) {
+                not_drawn = None;
+            }
+            if heading.to_ascii_lowercase().contains("not yet drawn") {
+                not_drawn = Some(level);
+            }
+            if level == 2 {
+                section = heading;
+            }
             continue;
         }
-        let not_drawn = section.to_ascii_lowercase().contains("not yet drawn");
-        if not_drawn {
+        if not_drawn.is_some() {
             // Any ID that starts a list item or a table row.
             let item = line.trim_start().trim_start_matches(['-', '*', '|', ' ']);
             let first = item.split(|c: char| !c.is_ascii_alphanumeric()).next().unwrap_or("");
@@ -173,12 +185,7 @@ fn has_heading(markdown: &str, id: &str) -> bool {
 
 /// The problems with the inventory, given each area document's text by path (relative to the
 /// paper folder) and every tracked file under the paper folder (relative to it).
-fn problems(
-    screens_md: &str,
-    documents: &BTreeMap<String, String>,
-    files: &BTreeSet<String>,
-) -> (Vec<String>, BTreeSet<String>) {
-    let inventory = parse_inventory(screens_md);
+fn problems(inventory: &Inventory, documents: &BTreeMap<String, String>, files: &BTreeSet<String>) -> Vec<String> {
     let mut found = Vec::new();
     for id in inventory.screens.iter().filter(|id| !inventory.not_drawn.contains(*id)) {
         let canvas = inventory
@@ -215,7 +222,7 @@ fn problems(
             }
         }
     }
-    (found, inventory.not_drawn)
+    found
 }
 
 /// The problems with one folder's `canvas.json` (`boards`, its parsed board names) against the
@@ -258,12 +265,9 @@ pub(crate) fn check(root: &Path) -> Result<()> {
             fs::read_to_string(paper.join(doc)).with_context(|| format!("reading {doc}"))?,
         );
     }
-    let (mut found, not_drawn) = problems(&screens_md, &documents, &files);
-    let folders: BTreeSet<String> = parse_inventory(&screens_md)
-        .canvases
-        .into_iter()
-        .map(|c| c.folder)
-        .collect();
+    let inventory = parse_inventory(&screens_md);
+    let mut found = problems(&inventory, &documents, &files);
+    let folders: BTreeSet<&str> = inventory.canvases.iter().map(|c| c.folder.as_str()).collect();
     for folder in &folders {
         let path = paper.join(folder).join("project/canvas.json");
         let text = fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
@@ -276,8 +280,8 @@ pub(crate) fn check(root: &Path) -> Result<()> {
             .unwrap_or_default();
         found.extend(board_problems(folder, &boards, &files));
     }
-    if !not_drawn.is_empty() {
-        let list: Vec<&str> = not_drawn.iter().map(String::as_str).collect();
+    if !inventory.not_drawn.is_empty() {
+        let list: Vec<&str> = inventory.not_drawn.iter().map(String::as_str).collect();
         println!(
             "Not yet drawn (listed in screens.md, so not failed): {}",
             list.join(", ")
@@ -294,7 +298,7 @@ pub(crate) fn check(root: &Path) -> Result<()> {
     }
     println!(
         "{} screens, each with its heading and design file",
-        parse_inventory(&screens_md).screens.len()
+        inventory.screens.len()
     );
     Ok(())
 }
@@ -331,9 +335,8 @@ mod tests {
 
     #[test]
     fn problems_should_pass_when_every_screen_has_its_heading_and_file() {
-        let (found, not_drawn) = problems(INVENTORY, &docs(), &files());
+        let found = problems(&parse_inventory(INVENTORY), &docs(), &files());
         assert_eq!(found, Vec::<String>::new());
-        assert!(not_drawn.is_empty());
     }
 
     #[test]
@@ -343,7 +346,7 @@ mod tests {
             "reader-b.md".to_owned(),
             "# Reader B\n\nR12 is mentioned only in prose.\n".to_owned(),
         );
-        let (found, _) = problems(INVENTORY, &docs, &files());
+        let found = problems(&parse_inventory(INVENTORY), &docs, &files());
         assert_eq!(found, ["R12: reader-b.md has no heading that names it"]);
     }
 
@@ -352,7 +355,7 @@ mod tests {
         let mut files = files();
         files.remove("reader-a/project/R01-home.dc.html");
         files.remove("foundations/project/Main.dc.html");
-        let (found, _) = problems(INVENTORY, &docs(), &files);
+        let found = problems(&parse_inventory(INVENTORY), &docs(), &files);
         assert_eq!(
             found,
             [
@@ -367,7 +370,7 @@ mod tests {
         let mut files = files();
         files.remove("website-home/project/H12-home.dc.html");
         files.insert("account/project/H12-home.dc.html".to_owned());
-        let (found, _) = problems(INVENTORY, &docs(), &files);
+        let found = problems(&parse_inventory(INVENTORY), &docs(), &files);
         assert_eq!(found, ["H12: no design file website-home/project/H12-*.dc.html"]);
     }
 
@@ -376,15 +379,28 @@ mod tests {
         let inventory = format!("{INVENTORY}\n## Not yet drawn\n\n- R12: waits for the command registry\n");
         let mut files = files();
         files.remove("reader-b/project/R12-shortcuts.dc.html");
-        let (found, not_drawn) = problems(&inventory, &docs(), &files);
+        let found = problems(&parse_inventory(&inventory), &docs(), &files);
         assert_eq!(found, Vec::<String>::new());
+    }
+
+    #[test]
+    fn parse_inventory_should_read_a_not_yet_drawn_heading_at_any_level() {
+        let inventory = format!("{INVENTORY}\n### Not yet drawn\n\n- R12: waits for the command registry\n");
+        let not_drawn = parse_inventory(&inventory).not_drawn;
+        assert_eq!(not_drawn.into_iter().collect::<Vec<_>>(), ["R12"]);
+    }
+
+    #[test]
+    fn parse_inventory_should_end_not_yet_drawn_at_the_next_heading_of_its_level() {
+        let inventory = format!("{INVENTORY}\n### Not yet drawn\n\n- R12: later\n\n### Notes\n\n- R01 is drawn\n");
+        let not_drawn = parse_inventory(&inventory).not_drawn;
         assert_eq!(not_drawn.into_iter().collect::<Vec<_>>(), ["R12"]);
     }
 
     #[test]
     fn problems_should_report_a_screen_no_canvas_row_covers() {
         let inventory = INVENTORY.replace("| R12 | Shortcuts |", "| R12 | Shortcuts |\n| Z01 | Unknown |");
-        let (found, _) = problems(&inventory, &docs(), &files());
+        let found = problems(&parse_inventory(&inventory), &docs(), &files());
         assert_eq!(found, ["Z01: no row of the canvases table covers it"]);
     }
 

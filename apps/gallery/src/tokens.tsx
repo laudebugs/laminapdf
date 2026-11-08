@@ -4,8 +4,8 @@
 
 import { ICON_SIZES } from "@laminapdf/icons";
 import { RADIUS, SPACE, THEMES, TYPE } from "@laminapdf/tokens";
+import tokens from "@laminapdf/tokens/tokens.json";
 import type { ReactNode } from "react";
-import tokens from "../../../packages/tokens/tokens.json";
 
 /** A contrast pair as tokens.json writes it: `on` a background, at least `min`. */
 interface Pair {
@@ -33,6 +33,37 @@ function pairs(theme: string): [string, Pair[]][] {
 const variable = (name: string) => `var(--paper-${name})`;
 const bare = (ref: string) => ref.replace(/[{}]/g, "");
 
+/** One contrast pair: `name` drawn on its background, with what the pair requires. */
+function PairItem({ name, pair }: { name: string; pair: Pair }): ReactNode {
+  const boundary = pair.kind === "boundary";
+  return (
+    <li>
+      <span className="g-pair-base" style={{ background: variable(bare(pair.over ?? pair.on)) }}>
+        <span className="g-pair-sample" style={{ background: variable(bare(pair.on)) }}>
+          {boundary ? (
+            <span className="g-boundary" style={{ borderColor: variable(name) }} aria-hidden="true" />
+          ) : (
+            // An exempt pair stands for a disabled control's text, and is marked as one.
+            <span
+              className={pair.min < 4.5 ? "g-large" : undefined}
+              style={{ color: variable(name) }}
+              aria-disabled={pair.exempt === undefined ? undefined : true}
+            >
+              {name}
+            </span>
+          )}
+        </span>
+      </span>
+      <small>
+        {name} on {bare(pair.on)}
+        {pair.over === undefined ? "" : ` over ${bare(pair.over)}`}, at least {pair.min}:1
+        {boundary ? " (a line, not text)" : ""}
+        {pair.exempt === undefined ? "" : ` (exempt: ${pair.exempt})`}
+      </small>
+    </li>
+  );
+}
+
 /** The tokens route in `theme` (the UI theme the root has). */
 export function Tokens({ theme }: { theme: string }): ReactNode {
   const colours = Object.keys(THEMES.light.teal);
@@ -53,32 +84,7 @@ export function Tokens({ theme }: { theme: string }): ReactNode {
         <h2 id="t-pairs">Contrast pairs</h2>
         <ul className="g-pairs">
           {pairs(theme).flatMap(([name, list]) =>
-            list.map((pair) => (
-              <li key={`${name}-${pair.on}`}>
-                <span className="g-pair-base" style={{ background: variable(bare(pair.over ?? pair.on)) }}>
-                  <span className="g-pair-sample" style={{ background: variable(bare(pair.on)) }}>
-                    {pair.kind === "boundary" ? (
-                      <span className="g-boundary" style={{ borderColor: variable(name) }} aria-hidden="true" />
-                    ) : (
-                      // An exempt pair stands for a disabled control's text, and is marked as one.
-                      <span
-                        className={pair.min < 4.5 ? "g-large" : undefined}
-                        style={{ color: variable(name) }}
-                        aria-disabled={pair.exempt === undefined ? undefined : true}
-                      >
-                        {name}
-                      </span>
-                    )}
-                  </span>
-                </span>
-                <small>
-                  {name} on {bare(pair.on)}
-                  {pair.over === undefined ? "" : ` over ${bare(pair.over)}`}, at least {pair.min}:1
-                  {pair.kind === "boundary" ? " (a line, not text)" : ""}
-                  {pair.exempt === undefined ? "" : ` (exempt: ${pair.exempt})`}
-                </small>
-              </li>
-            )),
+            list.map((pair) => <PairItem key={`${name}-${pair.on}`} name={name} pair={pair} />),
           )}
         </ul>
       </section>

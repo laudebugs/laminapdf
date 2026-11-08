@@ -211,12 +211,12 @@ export function Palette({ state }: { state: string }): ReactNode {
   );
 }
 
-/** The toast region with two toasts that stay until dismissed. */
+/** The toast region with two toasts that stay until dismissed (a timeout past the queue's longest timer). */
 export function Toasts(): ReactNode {
   const [queue] = useState(() => {
     const q = new ToastQueue();
-    q.add({ message: "Saved a copy to Downloads", timeout: 0 });
-    q.add({ message: "3 pages deleted", action: { label: "Undo", onPress: noop }, timeout: 0 });
+    q.add({ message: "Saved a copy to Downloads", timeout: Number.POSITIVE_INFINITY });
+    q.add({ message: "3 pages deleted", action: { label: "Undo", onPress: noop }, timeout: Number.POSITIVE_INFINITY });
     return q;
   });
   return <ToastRegion queue={queue} aria-label="Notifications" />;
