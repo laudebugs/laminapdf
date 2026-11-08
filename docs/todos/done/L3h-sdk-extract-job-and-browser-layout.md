@@ -45,7 +45,7 @@ Let a web app use a layout model with Lamina PDF's extraction. L3c gave the WASM
 ## Acceptance criteria
 
 - [ ] `doc.extractJob` with a fake model gives the same JSON as the Rust test `request_and_provide_should_give_what_the_plugin_path_gives` for the same regions. *Covered on each side, not across them: the Rust test shows the request/provide path equals the plug-in path, and `test/extract.test.ts` shows `extractWithModels` equals stepping by hand, with the model's kinds, confidence and `generator.models` checked. Both go through the same WASM binding, which L3c's Rust tests drive.*
-- [x] Heron in the browser finds the regions of `crates/laminapdf-layout-onnx/tests/reference/heron.json` within the same thresholds as the Rust test (Chromium; the weights fetched in CI only where the runner caches them, else the test is skipped with a notice). *In onnxruntime-web's WebAssembly build under Node, by hand (`tools/heron-web`), not in Chromium or CI: all nine regions found, IoU 0.964 to 0.997.*
+- [ ] Heron in the browser finds the regions of `crates/laminapdf-layout-onnx/tests/reference/heron.json` within the same thresholds as the Rust test (Chromium; the weights fetched in CI only where the runner caches them, else the test is skipped with a notice). *Half done: in onnxruntime-web's WebAssembly build under Node, by hand (`tools/heron-web`): all nine regions found, IoU 0.964 to 0.997. Not in Chromium, and no CI lane runs it, since the runners would need the 171 MB weights cached; a browser run in `cargo xtask pdf-runtimes chromium` with the weights cached is the follow-up.*
 - [x] The SDK's JS stays within its budget. *19,202 of 20,000 bytes, min+gzip.*
 
 ## Definition of done

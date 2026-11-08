@@ -138,8 +138,14 @@ async function answer(
  *   { layout: async ({ page, dpi }) => myModel.detect(await render(page, dpi)) },
  * );
  * ```
+ * On a document opened with `Document.openRange`, a step that needs bytes not yet fetched ends
+ * the job with `data-pending`, as every error ends a job; fetch the file first (`await
+ * doc.ensure(() => doc.pages)` reads only the page tree, so read the whole file for a long
+ * extraction), or wrap the call in `doc.ensure`, which runs it again, models included.
+ *
  * @throws {@link LaminaPdfError} as {@link ExtractJob.step}; `invalid-argument` when
- *   `options.models` names a model `models` has no function for; `cancelled` once `signal` aborts.
+ *   `options.models` names a model `models` has no function for; `cancelled` once `signal`
+ *   aborts, also when the model rejects because of it (the model's error is the `cause`).
  */
 export async function extractWithModels<F extends ExtractFormat>(
   doc: Document,
@@ -156,16 +162,34 @@ export async function extractWithModels<F extends ExtractFormat>(
     }
   }
   using job = doc.extractJob(options);
-  const stop = () => job.cancel();
-  signal?.addEventListener("abort", stop, { once: true });
-  try {
-    for (;;) {
-      if (signal?.aborted) job.cancel();
-      const step = job.step(budget);
-      if (step.state === "done") return step.output;
-      if (step.request !== undefined) job.provide(await answer(step.request, models, signal));
-    }
-  } finally {
-    signal?.removeEventListener("abort", stop);
+  // The job only moves between awaits, so the signal is read there: no listener that could
+  // outlive the job or its document.
+  for (;;) {
+    if (signal?.aborted) throw cancelled();
+    const step = job.step(budget);
+    if (step.state === "done") return step.output;
+    if (step.request !== undefined) job.provide(await answerUnlessAborted(step.request, models, signal));
   }
+}
+
+function cancelled(cause?: unknown): Error {
+  return packageError("cancelled", "the signal aborted the extraction", cause === undefined ? {} : { cause });
+}
+
+/** The host's answer, or `cancelled` when the signal aborted before or while the model ran. */
+async function answerUnlessAborted(
+  request: ModelRequest,
+  models: HostModels,
+  signal: AbortSignal | undefined,
+): Promise<ModelResult> {
+  let result: ModelResult;
+  try {
+    result = await answer(request, models, signal);
+  } catch (e) {
+    // A model that honours the signal rejects with its own AbortError.
+    if (signal?.aborted) throw cancelled(e);
+    throw e;
+  }
+  if (signal?.aborted) throw cancelled();
+  return result;
 }

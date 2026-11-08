@@ -32,41 +32,49 @@ function taps(from: number, to: number): Taps[] {
   return out;
 }
 
-/** The RGBA pixels over white, as three planes of floats. */
+/** The RGBA pixels over white, as three planes of floats (single precision, as the Rust port's). */
 function overWhite(pixels: Uint8Array | Uint8ClampedArray, count: number): Float32Array[] {
   const planes = [new Float32Array(count), new Float32Array(count), new Float32Array(count)];
   for (let i = 0; i < count; i++) {
-    const alpha = (pixels[i * 4 + 3] ?? 255) / 255;
-    planes.forEach((plane, c) => {
-      plane[i] = (pixels[i * 4 + c] ?? 255) * alpha + 255 * (1 - alpha);
-    });
+    const alpha = Math.fround((pixels[i * 4 + 3] ?? 255) / 255);
+    const paper = Math.fround(255 * Math.fround(1 - alpha));
+    for (let c = 0; c < 3; c++) {
+      (planes[c] as Float32Array)[i] = Math.fround(Math.fround((pixels[i * 4 + c] ?? 255) * alpha) + paper);
+    }
   }
   return planes;
 }
 
-/** One weighted sum of `source` at `start + k * stride`. */
+/**
+ * One weighted sum of `source` at `start + k * stride`, added up in single precision as Rust's
+ * `f32` sum is, so both runtimes round a channel the same way.
+ */
 function weigh(t: Taps, source: Float32Array, start: number, stride: number): number {
   let sum = 0;
-  for (let k = 0; k < t.weights.length; k++)
-    sum += (t.weights[k] ?? 0) * (source[start + (t.start + k) * stride] ?? 255);
+  for (let k = 0; k < t.weights.length; k++) {
+    sum = Math.fround(sum + Math.fround((t.weights[k] ?? 0) * (source[start + (t.start + k) * stride] ?? 255)));
+  }
   return sum;
 }
 
-/** One plane (`w × h`) resized to 640 × 640 into `out` at `offset`: across first, then down. */
-function resizePlane(plane: Float32Array, w: number, h: number, out: Uint8Array, offset: number): void {
-  const across = taps(w, SIDE);
-  const down = taps(h, SIDE);
-  const row = new Float32Array(SIDE * h);
+/** One plane resized to 640 × 640 into `out` at `offset`: across into `row` (reused), then down. */
+function resizePlane(plane: Float32Array, w: number, h: number, filter: Filter, out: Uint8Array, offset: number): void {
+  const { across, down, row } = filter;
   for (let y = 0; y < h; y++) {
-    across.forEach((t, x) => {
-      row[y * SIDE + x] = weigh(t, plane, y * w, 1);
-    });
+    for (let x = 0; x < SIDE; x++) row[y * SIDE + x] = weigh(across[x] as Taps, plane, y * w, 1);
   }
-  down.forEach((t, y) => {
-    for (let x = 0; x < SIDE; x++) {
+  for (let y = 0; y < SIDE; y++) {
+    const t = down[y] as Taps;
+    for (let x = 0; x < SIDE; x++)
       out[offset + y * SIDE + x] = Math.min(Math.max(Math.round(weigh(t, row, x, SIDE)), 0), 255);
-    }
-  });
+  }
+}
+
+/** The taps along both axes and the row buffer, built once per page and shared by its three planes. */
+interface Filter {
+  readonly across: Taps[];
+  readonly down: Taps[];
+  readonly row: Float32Array;
 }
 
 /**
@@ -76,9 +84,9 @@ function resizePlane(plane: Float32Array, w: number, h: number, out: Uint8Array,
 export function chw640(pixels: Uint8Array | Uint8ClampedArray, width: number, height: number): Uint8Array {
   const w = Math.max(width, 1);
   const h = Math.max(height, 1);
+  const filter: Filter = { across: taps(w, SIDE), down: taps(h, SIDE), row: new Float32Array(SIDE * h) };
   const out = new Uint8Array(3 * SIDE * SIDE);
-  overWhite(pixels, w * h).forEach((plane, c) => {
-    resizePlane(plane, w, h, out, c * SIDE * SIDE);
-  });
+  const planes = overWhite(pixels, w * h);
+  for (let c = 0; c < 3; c++) resizePlane(planes[c] as Float32Array, w, h, filter, out, c * SIDE * SIDE);
   return out;
 }

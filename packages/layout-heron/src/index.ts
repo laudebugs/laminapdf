@@ -7,13 +7,16 @@ import { chw640, SIDE } from "./pre.js";
 
 export { label } from "./post.js";
 
-/** The pinned weights, as tools/models/models.toml lists them. */
-export const HERON: ModelInfo = {
+/** The pinned weights' SHA-256, as tools/models/models.toml lists it; {@link HeronLayout.load} checks against this, not {@link HERON}. */
+const PINNED_SHA256 = "59c81a3a2923042d85034ffc487f8f47e4854117e879aef89b2b9f728fb4922a";
+
+/** The pinned weights, as tools/models/models.toml lists them (frozen). */
+export const HERON: ModelInfo = Object.freeze({
   name: "docling-layout-heron",
   version: "40bde044036bb181c130ddf6c51792187268748f",
-  sha256: "59c81a3a2923042d85034ffc487f8f47e4854117e879aef89b2b9f728fb4922a",
+  sha256: PINNED_SHA256,
   licence: "Apache-2.0",
-};
+});
 
 /** The part of onnxruntime-web this package uses: pass `await import("onnxruntime-web")`. */
 export interface OnnxRuntime {
@@ -25,7 +28,7 @@ export interface OnnxRuntime {
 
 /** An ONNX Runtime session, as {@link OnnxRuntime} creates it. */
 export interface OnnxSession {
-  run(feeds: Record<string, unknown>): Promise<Record<string, { readonly data: ArrayLike<number | bigint> }>>;
+  run(feeds: Record<string, unknown>): Promise<Record<string, { readonly data: unknown }>>;
 }
 
 /** A rendered page: straight RGBA rows, and its size in points. */
@@ -38,6 +41,18 @@ export interface Raster {
   readonly widthPt: number;
   /** The page's displayed height in points. */
   readonly heightPt: number;
+}
+
+/** The checks a native `PageRaster` makes (laminapdf-extract): a raster that fails them would give wrong boxes, not an error. */
+function checkRaster({ pixels, width, height, widthPt, heightPt }: Raster): void {
+  const whole = (n: number) => Number.isInteger(n) && n > 0;
+  const finite = (n: number) => Number.isFinite(n) && n > 0;
+  if (!whole(width) || !whole(height) || !finite(widthPt) || !finite(heightPt)) {
+    throw new Error(`the raster's sizes must be positive: ${width} × ${height} px, ${widthPt} × ${heightPt} pt`);
+  }
+  if (pixels.length !== width * height * 4) {
+    throw new Error(`the raster has ${pixels.length} bytes, not ${width} × ${height} × 4`);
+  }
 }
 
 /** The SHA-256 of `bytes` in lowercase hex (WebCrypto: browsers, Node, Deno, workers). */
@@ -72,8 +87,8 @@ export class HeronLayout {
     { threshold = HeronLayout.DEFAULT_THRESHOLD }: { readonly threshold?: number } = {},
   ): Promise<HeronLayout> {
     const found = await sha256(weights);
-    if (found !== HERON.sha256) {
-      throw new Error(`the weights' SHA-256 is ${found}, not the pinned ${HERON.sha256}`);
+    if (found !== PINNED_SHA256) {
+      throw new Error(`the weights' SHA-256 is ${found}, not the pinned ${PINNED_SHA256}`);
     }
     return new HeronLayout(ort, await ort.InferenceSession.create(weights), threshold);
   }
@@ -83,15 +98,22 @@ export class HeronLayout {
     return HERON;
   }
 
-  /** The regions on `page`, in top-left points, best first. */
+  /**
+   * The regions on `page`, in top-left points, best first.
+   *
+   * @throws Error when `page`'s sizes aren't positive (whole pixels, finite points) or its pixels
+   *   aren't `width × height × 4` bytes; when the model's outputs aren't the three it gives.
+   */
   async detect(page: Raster): Promise<LayoutRegion[]> {
+    checkRaster(page);
     const images = new this.#ort.Tensor("uint8", chw640(page.pixels, page.width, page.height), [1, 3, SIDE, SIDE]);
     const sizes = new this.#ort.Tensor("int64", BigInt64Array.from([BigInt(page.width), BigInt(page.height)]), [1, 2]);
     const out = await this.#session.run({ images, orig_target_sizes: sizes });
-    const pick = (name: string) => {
-      const value = out[name];
-      if (value === undefined) throw new Error(`Heron gave no \`${name}\` output`);
-      return value.data;
+    const pick = (name: string): ArrayLike<number | bigint> => {
+      const data = out[name]?.data;
+      if (!ArrayBuffer.isView(data) && !Array.isArray(data))
+        throw new Error(`Heron gave no numeric \`${name}\` output`);
+      return data as ArrayLike<number | bigint>;
     };
     const size: PageSize = {
       widthPx: page.width,

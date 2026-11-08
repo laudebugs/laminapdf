@@ -84,6 +84,13 @@ describe("HeronLayout", () => {
     await expect(HeronLayout.load(new Uint8Array([1, 2, 3]), fakeOrt([]))).rejects.toThrow(/not the pinned/);
     expect(HERON.licence).toBe("Apache-2.0");
   });
+
+  it("keeps its pin out of reach", () => {
+    expect(Object.isFrozen(HERON)).toBe(true);
+    expect(() => {
+      (HERON as { sha256: string }).sha256 = "0".repeat(64);
+    }).toThrow(TypeError);
+  });
 });
 
 describe("HeronLayout.detect, past the hash check", () => {
@@ -104,5 +111,15 @@ describe("HeronLayout.detect, past the hash check", () => {
     const feeds = seen[0] as { images: { dims: number[] }; orig_target_sizes: { data: BigInt64Array } };
     expect(feeds.images.dims).toEqual([1, 3, 640, 640]);
     expect(Array.from(feeds.orig_target_sizes.data)).toEqual([1240n, 200n]);
+  });
+
+  it("refuses a raster whose bytes or sizes don't match", async () => {
+    const ctor = HeronLayout as unknown as new (o: OnnxRuntime, s: unknown, t: number) => HeronLayout;
+    const ort = fakeOrt([]);
+    const heron = new ctor(ort, await ort.InferenceSession.create(new Uint8Array()), 0.3);
+    const page = { pixels: flat(10, 10, [255, 255, 255, 255]), width: 10, height: 10, widthPt: 10, heightPt: 10 };
+    await expect(heron.detect({ ...page, width: 12 })).rejects.toThrow(/not 12 × 10 × 4/);
+    await expect(heron.detect({ ...page, width: 0, pixels: new Uint8Array() })).rejects.toThrow(/must be positive/);
+    await expect(heron.detect({ ...page, width: 2.5 })).rejects.toThrow(/must be positive/);
   });
 });

@@ -12,4 +12,10 @@ pnpm --dir tools/heron-web install --frozen-lockfile
 node tools/heron-web/check.mjs target/models/docling-layout-heron/<sha256>/model.onnx
 ```
 
+[`ort-types.ts`](ort-types.ts) checks that onnxruntime-web's own module fits `HeronLayout.load`, the way the package's README passes it (the package's tests use a fake runtime):
+
+```sh
+cd tools/heron-web && ../../node_modules/.bin/tsc --noEmit --strict --module nodenext --moduleResolution nodenext --target es2022 --lib es2022,dom,esnext.disposable --allowImportingTsExtensions --skipLibCheck --exactOptionalPropertyTypes ort-types.ts
+```
+
 It runs ONNX Runtime's WebAssembly build in Node with one thread, the build a browser runs. On 2026-11-08 it found all nine regions, with overlaps from 0.964 to 0.997, in about 17 seconds for two pages.

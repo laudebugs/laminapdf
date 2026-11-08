@@ -220,6 +220,23 @@ describe("doc.extractJob() with a model the host runs", () => {
     expect(isLaminaPdfError(e, "cancelled")).toBe(true);
   });
 
+  it("ends cancelled when the model rejects because the signal aborted", async () => {
+    using doc = Document.open(read(file));
+    const abort = new AbortController();
+    const e = await extractWithModels(
+      doc,
+      { format: "text", models: { layout } },
+      {
+        layout: async (_request, signal) => {
+          abort.abort();
+          throw signal?.reason;
+        },
+      },
+      { signal: abort.signal },
+    ).catch((x: unknown) => x);
+    expect(isLaminaPdfError(e, "cancelled")).toBe(true);
+  });
+
   it("is freed with its document", () => {
     const doc = Document.open(read(file));
     const job = doc.extractJob({ format: "text", models: { layout } });
