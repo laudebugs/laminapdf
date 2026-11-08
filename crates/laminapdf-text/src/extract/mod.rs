@@ -242,7 +242,9 @@ impl TextExtractor {
             paints: 0,
             paths,
         };
-        laminapdf_content::interpret_page(doc, page, &mut collector)?;
+        // As a trait object, so this and extraction's annotation appearances share one copy of
+        // the interpreter in WebAssembly (each visitor type would build its own).
+        laminapdf_content::interpret_page(doc, page, &mut collector as &mut dyn Visitor)?;
         if let Some(error) = collector.error {
             return Err(error);
         }

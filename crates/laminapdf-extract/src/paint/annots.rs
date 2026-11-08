@@ -6,7 +6,7 @@
 //! out, so an annotation that can't be read for any reason, a hard limit included, is skipped
 //! (ADR 0003's tolerant reading): it covers nothing, and the page's text stays.
 
-use laminapdf_content::{interpret_content, transformed_box};
+use laminapdf_content::{Visitor, interpret_content, transformed_box};
 use laminapdf_cos::{Result, absent_if_malformed, tolerant};
 use laminapdf_model::BlendMode;
 use laminapdf_model::{Document, Matrix, Page, PageFrame, UserSpaceRect};
@@ -160,7 +160,8 @@ fn annotation(doc: &Document, annot: laminapdf_syntax::ObjRef, frame: &PageFrame
         None => None,
     };
     let mut collector = Collector::appearance(frame, outer, frame.rect_to_page(&target));
-    interpret_content(doc, &content, resources, &mut collector)?;
+    // A trait object, as `laminapdf-text` passes one: one interpreter in the WebAssembly modules.
+    interpret_content(doc, &content, resources, &mut collector as &mut dyn Visitor)?;
     Ok(collector.finish().1)
 }
 
