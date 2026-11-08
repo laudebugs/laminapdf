@@ -136,6 +136,14 @@ const context = { platform, reader, viewer, actions: { ...shellActions(layout, m
 - **Focus mode** (`view.focus-mode`, Ctrl+\ or ⌘\) hides the rail, the mode's toolbar and any panel opened on purpose, and keeps the status bar. Opening such a panel, such as the repair details from the status bar, leaves focus mode. There `FocusModeItem` shows that focus mode is on and leaves it when pressed. A selection still opens the inspector, and Escape clears the selection before it leaves focus mode. A find bar or tool toolbar passed as `secondaryToolbar` stays until it is closed. Focus mode lasts the window only.
 - **Modes** register with `ModeRegistry.register({ id, title, icon, toolbar, enter, leave })`. The current mode's `toolbar` fills the slot under the top bar unless `secondaryToolbar` replaces it. Switching calls the old mode's `leave`, which clears what only that mode could select, then the new mode's `enter`. `shellActions` gives each mode its `mode.<id>` command. `useShell` registers Read alone, so the reader shows no mode switcher until a second mode exists.
 
+**On a phone**, below the phone breakpoint, the shell changes:
+
+- `bottomBar` (a `PhoneBottomBar`) takes the status bar's place, within reach of a thumb: Search once find has a handler, Pages when the rail has tabs, and More.
+- Pages opens the rail as the Contents sheet, and the inspector is a sheet too.
+- More, in either bar, opens `MoreSheet`: the top bar's More items as rows sized for touch.
+- `ReaderTopBar` keeps the file name and More, and slides away while the document scrolls down.
+- Both bars stay clear of the notch and the home indicator, with the page's `viewport-fit=cover`.
+
 `ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply. Once a document is open, the bar adds the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets. Every button runs a command from the registry (next section), so the bar must sit inside a `CommandsProvider`.
 
 The sidebar toggle and Commands appear once the shell handles `view.toggle-sidebar` and `palette.open`. `shellActions` handles the sidebar only when the shell has rail tabs to show.

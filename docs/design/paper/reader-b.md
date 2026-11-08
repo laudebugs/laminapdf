@@ -268,6 +268,8 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Artboards.** `R17-tablet.dc.html` (prop `penHover` toggles the preview), `R17-tablet-sheet.dc.html`. The outline’s second level under section 2 (“Open repairs by region” p. 3, “Oldest cases by region” p. 4) and the collapsed children of sections 3 and 4 are invented sample content.
 
+**As built ([U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md)).** The web reader's shell on a tablet is the desktop one, with 44 px targets wherever the pointer is coarse. In portrait (834 px wide) the rail is the drawer of narrow windows rather than a sheet; landscape docks it. Pinch, pan and double-tap are the viewer's, but the zoom controls stay in the top bar. The pen's hover preview comes with Comment mode.
+
 **Todos.** [U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md).
 
 ## R18 Phone: outline, find, more
@@ -304,6 +306,8 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 **Platform differences.** iOS Safari: the find field uses 16 px text so the page doesn’t zoom, and the find toolbar rides above the keyboard. Android: the system back gesture closes the sheet or find first.
 
 **Artboards.** `R18-outline-phone.dc.html` (prop `emptyOutline` shows the empty state), `R18-find-phone.dc.html` (prop `noMatch` shows the no-match state with the help line), `R18-more-phone.dc.html` (page in Sepia, matching the View settings value) (+ `R10-view-settings-phone.dc.html`).
+
+**As built ([U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md)).** The Contents sheet (Pages · Outline once C6a gives the rail its tabs) and the More sheet are as drawn, and the inspector is a sheet too. The bottom bar shows Pages and More; Search joins it when find has a handler (C5b), and Annotate and Reader when their rounds land. The top bar keeps the file name and the overflow, with no Back, since the reader has no files view to go back to yet. The page pill isn't built yet.
 
 **Todos.** [U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md).
 

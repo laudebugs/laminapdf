@@ -47,6 +47,8 @@ Each reader pull request gets a preview URL in a comment, each merge to `main` d
 
 `e2e/` runs the app in a real browser against `wrangler dev`, the way production serves it. It first checks the headers and that the build has no inline code. It then opens a local file four ways: the file input, a drop, a paste and `showOpenFilePicker` (Chromium only). It also opens a repaired file and refuses a file that isn't a PDF. Throughout, it fails on any CSP violation and on any request to another origin.
 
+`e2e/devices.e2e.test.ts` runs the reader in Playwright's phone and tablet profiles: iPhone 15 and iPad Pro 11 in WebKit, and Pixel 8 in Chromium (Firefox has no mobile emulation). Each opens a file and checks the layout: the bottom bar on the phones, the desktop shell on the tablet, and no sideways scroll. It zooms with a double tap and pans with one finger. A pinch must keep the point under the fingers within 2 px. axe must find nothing serious.
+
 ```sh
 pnpm --filter @laminapdf/web build
 LAMINA_PDF_E2E_BROWSER=firefox pnpm --filter @laminapdf/web e2e   # chromium (default), firefox or webkit
