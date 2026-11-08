@@ -61,7 +61,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@laminap
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @laminapdf/web build && pnpm --filter @laminapdf/web preview` (filter by package name; a bare `apps/web` is a name selector that matches nothing and exits 0) serves the reader locally through Wrangler; opening `fixtures/corpus/hello.pdf` via input, drag-drop and paste renders page 1 in Chromium, Firefox and WebKit (Playwright). Chromium checked locally (13 e2e tests); Firefox and WebKit run in CI.
+- [x] `pnpm --filter @laminapdf/web build && pnpm --filter @laminapdf/web preview` (filter by package name; a bare `apps/web` is a name selector that matches nothing and exits 0) serves the reader locally through Wrangler; opening `fixtures/corpus/hello.pdf` via input, drag-drop and paste renders page 1 in Chromium, Firefox and WebKit (Playwright). Chromium checked locally (13 e2e tests); Firefox and WebKit in CI, which the merge waits for.
 - [x] Response headers on `/`, `/index.html`, a deep link and a hashed asset match the ADR 0011 policy (asserted in e2e), with **exact** `Cache-Control` values: `public, max-age=0, must-revalidate` (exactly one value, no `immutable`) on `/`, `/index.html` and the deep link; `public, max-age=31536000, immutable` (exactly, no comma-joined extras) on `/assets/*.js` and `/assets/*.wasm`.
 - [x] No inline script/style in `dist/index.html`; zero CSP violations during the e2e suite.
 - [x] Opening a local file makes no network request except for same-origin static assets (asserted by request interception).
@@ -91,6 +91,6 @@ Playwright e2e in `apps/web/e2e/*.spec.ts` (three engines) against `wrangler dev
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings): high, 5 findings, all fixed; `/writing-review`, 2 fixes
+- [x] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
