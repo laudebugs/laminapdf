@@ -7,7 +7,8 @@
 //! a schedule, so the site follows the board without a refresh PR. docs.yml deploys main's docs to
 //! next.docs.laminapdf.com and only a release tag's to docs.laminapdf.com (todo P4). The macOS
 //! runners' rustup (`.github/actions/isolate-rust-home`) is the Linux runner image's version, so
-//! one bump changes both.
+//! one bump changes both, and no workflow or action but `.github/actions/install-tools` runs
+//! install-action, so each runner keeps its own install-action folder.
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs and
 //! triggers are two-space-indented keys under the top-level `jobs:` and `on:`, and a job lists its
@@ -300,6 +301,34 @@ mod tests {
             "the Linux runner's Dockerfile has no `ARG RUSTUP_VERSION=`"
         );
         assert_eq!(pinned(ACTION, "RUSTUP_VERSION:"), image);
+    }
+
+    /// Anywhere else install-action works in `~/.install-action`, which every runner on the Mac
+    /// shares (`.github/actions/install-tools`' comment).
+    #[test]
+    fn install_action_should_run_only_through_install_tools() {
+        let github = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github");
+        let read = |dir: &str| std::fs::read_dir(github.join(dir)).unwrap().map(|e| e.unwrap().path());
+        let workflows = read("workflows").filter(|p| p.extension().is_some_and(|e| e == "yml" || e == "yaml"));
+        let actions = read("actions")
+            .filter(|p| !p.ends_with("install-tools"))
+            .map(|p| p.join("action.yml"));
+        let mut direct: Vec<String> = Vec::new();
+        for path in workflows.chain(actions) {
+            let text = std::fs::read_to_string(&path).unwrap();
+            for (i, line) in text.lines().enumerate() {
+                if !line.trim_start().starts_with('#') && line.contains("taiki-e/install-action") {
+                    let name = path.strip_prefix(&github).unwrap_or(&path).display();
+                    direct.push(format!(".github/{name}:{}", i + 1));
+                }
+            }
+        }
+        direct.sort();
+        assert_eq!(
+            direct,
+            Vec::<String>::new(),
+            "use ./.github/actions/install-tools instead"
+        );
     }
 
     #[test]
