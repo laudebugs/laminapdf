@@ -1,0 +1,14 @@
+---
+// Text on its own: `mono` for an API name, `sub` for a muted note, plain otherwise.
+interface Props {
+  x: number;
+  y: number;
+  text: string;
+  kind?: "plain" | "mono" | "sub";
+  anchor?: "start" | "middle" | "end";
+}
+const { x, y, text, kind = "plain", anchor = "start" } = Astro.props;
+const kindClass = kind === "plain" ? "dg-label" : `dg-${kind}`;
+---
+
+<text class={kindClass} x={x} y={y} text-anchor={anchor}>{text}</text>

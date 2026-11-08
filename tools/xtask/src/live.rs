@@ -76,6 +76,17 @@ pub(crate) enum Inputs {
     All,
 }
 
+impl Inputs {
+    /// `--corpus`'s value, as the reports record it.
+    fn name(self) -> &'static str {
+        match self {
+            Self::External => "external",
+            Self::Mutants => "mutants",
+            Self::All => "all",
+        }
+    }
+}
+
 /// `differential --live [--corpus external|mutants|all] [--source <name>]… [--tools a,b] [--sample N]`.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct LiveArgs {
@@ -286,6 +297,8 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         external: inputs.iter().filter(|(n, _)| n.contains('/')).count(),
         commit: util::git_stdout(&ws.root, &["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".to_owned()),
         sample: args.sample,
+        corpus: args.inputs.name(),
+        sources: args.sources.clone(),
         broken,
     };
     let markdown = comparison.markdown(&lamina, &reports, &exceptions, &context);

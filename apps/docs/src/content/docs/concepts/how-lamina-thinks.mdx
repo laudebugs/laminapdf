@@ -3,6 +3,7 @@ title: How Lamina PDF thinks about a PDF
 description: Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free, three JavaScript modules.
 ---
 
+import Diagram from "../../../components/Diagram.astro";
 import Snippet from "../../../components/Snippet.astro";
 
 The rest of the docs build on six ideas. The first two follow from one choice: Lamina PDF treats a PDF as bytes, which you give it and it gives back.
@@ -18,6 +19,8 @@ Because Lamina PDF reads no clock, you pass in dates and file IDs yourself. It t
 ## The file you opened never changes
 
 When you open a document, Lamina PDF keeps its bytes exactly as they were. Every edit goes into an [overlay](/reference/glossary/#overlay) on top of them. Reading the document reads the overlay first, so you see your edits; undo and redo move through them.
+
+<Diagram name="open-edit-save" />
 
 ## Two ways to save
 

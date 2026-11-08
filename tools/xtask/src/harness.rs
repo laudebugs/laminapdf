@@ -7,9 +7,8 @@
 
 use std::ffi::OsStr;
 use std::fs;
-use std::io::Write as _;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -17,6 +16,9 @@ use anyhow::{Context, Result, bail};
 
 use crate::workspace::Workspace;
 use crate::{run, step};
+
+mod fuzz_run;
+pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
 pub(crate) const FUZZ_TARGETS: [&str; 10] = [
@@ -611,8 +613,9 @@ fn fuzz_parallel(ws: &Workspace, host: &str, seconds: u64, jobs: usize) -> Resul
         for _ in 0..jobs.min(ready.len()) {
             scope.spawn(|| {
                 while let Some((target, corpus)) = ready.get(next.fetch_add(1, Ordering::Relaxed)) {
-                    let log = logs.join(format!("{target}.log"));
-                    if let Err(e) = fuzz_logged(ws, host, target, corpus, seconds, jobs, &log) {
+                    let args = fuzz_run_args(host, target, &corpus.to_string_lossy(), seconds, jobs);
+                    let echo = fuzz_run::Echo::Prefixed;
+                    if let Err(e) = fuzz_run::run_target(ws, target, corpus, seconds, &args, echo) {
                         run_failures
                             .lock()
                             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -630,58 +633,6 @@ fn fuzz_parallel(ws: &Workspace, host: &str, seconds: u64, jobs: usize) -> Resul
     // Report in target order, whatever order the runs ended in.
     failures.sort_by_key(|(target, _)| FUZZ_TARGETS.iter().position(|t| t == target));
     Ok(failures.into_iter().map(|(_, message)| message).collect())
-}
-
-/// One target's run for [`fuzz_parallel`]: stdout and stderr stream into `log`, which is
-/// printed with `[target]` prefixes when the run ends.
-fn fuzz_logged(
-    ws: &Workspace,
-    host: &str,
-    target: &str,
-    corpus: &Path,
-    seconds: u64,
-    jobs: usize,
-    log: &Path,
-) -> Result<()> {
-    let watch = ArtifactWatch::new(&ws.root, target);
-    let args = fuzz_run_args(host, target, &corpus.to_string_lossy(), seconds, jobs);
-    let file = fs::File::create(log).with_context(|| format!("{target}: creating {}", log.display()))?;
-    let stderr = file
-        .try_clone()
-        .with_context(|| format!("{target}: opening {}", log.display()))?;
-    println!("[{target}] started: cargo {}", args.join(" "));
-    let status = Command::new(crate::program_path("cargo"))
-        .args(&args)
-        .current_dir(&ws.root)
-        .stdout(Stdio::from(file))
-        .stderr(Stdio::from(stderr))
-        .status()
-        .map_err(|e| watch.failure(&format!("failed to start cargo: {e}")))?;
-    let text = fs::read(log).unwrap_or_default();
-    // A closed stdout must not hide the run's result, so a failed write is ignored.
-    let _ = writeln!(
-        std::io::stdout().lock(),
-        "{}[{target}] finished: {status}",
-        prefixed(target, &String::from_utf8_lossy(&text))
-    );
-    if status.success() {
-        Ok(())
-    } else {
-        Err(watch.failure(&format!("cargo fuzz run exited with {status} (log: {})", log.display())))
-    }
-}
-
-/// `text` with `[target] ` before every line.
-fn prefixed(target: &str, text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    for line in text.lines() {
-        out.push('[');
-        out.push_str(target);
-        out.push_str("] ");
-        out.push_str(line);
-        out.push('\n');
-    }
-    out
 }
 
 /// `cargo fuzz build` for every target (`None`) or one, with `cargo fuzz run`'s defaults.
@@ -714,34 +665,22 @@ fn fuzz_run_args(host: &str, target: &str, corpus: &str, seconds: u64, jobs: usi
     // fuzz/ is its own nightly workspace (ADR 0018); `+nightly` overrides the root pin.
     let max_time = format!("-max_total_time={seconds}");
     [
-        "+nightly", "fuzz", "run", "--target", host, target, corpus, "--", &max_time,
+        "+nightly",
+        "fuzz",
+        "run",
+        "--target",
+        host,
+        target,
+        corpus,
+        "--",
+        &max_time,
+        // `stat::number_of_executed_units` and the rest at the end, for the run's summary.
+        "-print_final_stats=1",
     ]
     .into_iter()
     .map(str::to_owned)
     .chain(libfuzzer_limits(jobs))
     .collect()
-}
-
-/// The crash inputs a run may leave in `fuzz/artifacts/<target>/`: the names there before
-/// it, so a failure can be told apart as a crash (new files) or a build or setup problem.
-struct ArtifactWatch<'a> {
-    target: &'a str,
-    dir: PathBuf,
-    before: std::collections::BTreeSet<String>,
-}
-
-impl<'a> ArtifactWatch<'a> {
-    fn new(root: &Path, target: &'a str) -> Self {
-        let dir = root.join("fuzz/artifacts").join(target);
-        let before = artifact_names(&dir);
-        Self { target, dir, before }
-    }
-
-    /// The error for a failed run: [`describe_failure`] with the files that appeared since.
-    fn failure(&self, error: &str) -> anyhow::Error {
-        let new: Vec<String> = artifact_names(&self.dir).difference(&self.before).cloned().collect();
-        anyhow::anyhow!(describe_failure(self.target, &new, error))
-    }
 }
 
 /// `[target]`, or every target when none was named.
@@ -757,42 +696,12 @@ fn fuzz_setup(ws: &Workspace) -> Result<String> {
     nightly_host()
 }
 
-/// Builds `target`'s seed corpus and fuzzes it for `seconds`. A failure that left new files
-/// in `fuzz/artifacts/<target>/` is a crash; any other is a build or setup failure.
+/// Builds `target`'s seed corpus and fuzzes it for `seconds`, its output echoed as it comes and
+/// kept in `target/xtask/fuzz/<target>.log` with the run's summary ([`fuzz_run`]).
 fn fuzz_one(ws: &Workspace, host: &str, target: &str, seconds: u64) -> Result<()> {
     let corpus = seeds(ws, target)?;
-    let watch = ArtifactWatch::new(&ws.root, target);
-    run(
-        &ws.root,
-        "cargo",
-        &fuzz_run_args(host, target, &corpus.to_string_lossy(), seconds, 1),
-    )
-    .map_err(|e| watch.failure(&format!("{e:#}")))
-}
-
-/// How a failed fuzz run is reported: a crash with its saved inputs, or a run that failed
-/// without saving any (the build, the toolchain or the corpus is the problem, not the code).
-fn describe_failure(target: &str, new_artifacts: &[String], error: &str) -> String {
-    if new_artifacts.is_empty() {
-        format!("{target}: failed without a crash input (build or setup problem): {error}")
-    } else {
-        format!(
-            "{target}: crashed; inputs saved in fuzz/artifacts/{target}/: {}",
-            new_artifacts.join(", ")
-        )
-    }
-}
-
-/// The file names in `dir` (empty when it doesn't exist).
-fn artifact_names(dir: &Path) -> std::collections::BTreeSet<String> {
-    fs::read_dir(dir)
-        .map(|entries| {
-            entries
-                .filter_map(Result::ok)
-                .map(|e| e.file_name().to_string_lossy().into_owned())
-                .collect()
-        })
-        .unwrap_or_default()
+    let args = fuzz_run_args(host, target, &corpus.to_string_lossy(), seconds, 1);
+    fuzz_run::run_target(ws, target, &corpus, seconds, &args, fuzz_run::Echo::Live)
 }
 
 /// `cargo fuzz cmin`: shrinks `fuzz/corpus/<target>/` (seeds included) to the inputs that
@@ -976,6 +885,7 @@ pub(crate) fn check_fuzz_excluded(ws: &Workspace) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::fuzz_run::{ArtifactWatch, describe_failure, prefixed};
     use super::*;
 
     /// The array literal after `const <name>` in `source`, as numbers.
@@ -1066,7 +976,13 @@ mod tests {
         let a = fuzz_run_args("aarch64-apple-darwin", "lex", "fuzz/corpus/lex", 30, 4);
         assert_eq!(
             a[7..],
-            ["--", "-max_total_time=30", "-timeout=40", "-rss_limit_mb=2048"]
+            [
+                "--",
+                "-max_total_time=30",
+                "-print_final_stats=1",
+                "-timeout=40",
+                "-rss_limit_mb=2048"
+            ]
         );
     }
 

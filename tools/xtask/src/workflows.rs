@@ -68,17 +68,36 @@ fn job_ids(workflow: &str) -> Vec<&str> {
     jobs(workflow).into_iter().map(|(id, _)| id).collect()
 }
 
-/// The ids in `job`'s one-line `needs: [a, b]` or `needs: a`, read only from that job's own lines.
+/// The items of `key: [a, b]` or `key: a` among `lines`. The list may sit on the key's own line
+/// or, as Biome writes a list too long for one line, alone on the next.
+fn flow_list<'a>(lines: &[&'a str], key: &str) -> Vec<&'a str> {
+    let prefix = format!("{key}:");
+    let Some(at) = lines.iter().position(|l| l.trim().starts_with(&prefix)) else {
+        return Vec::new();
+    };
+    let own = lines
+        .get(at)
+        .and_then(|l| l.trim().strip_prefix(prefix.as_str()))
+        .unwrap_or_default();
+    let value = if own.trim().is_empty() {
+        lines.get(at + 1).map(|l| l.trim()).unwrap_or_default()
+    } else {
+        own
+    };
+    let value = value.split(" #").next().unwrap_or_default().trim();
+    let list = value
+        .strip_prefix('[')
+        .and_then(|l| l.strip_suffix(']'))
+        .unwrap_or(value);
+    list.split(',').map(str::trim).filter(|i| !i.is_empty()).collect()
+}
+
+/// The ids in `job`'s `needs: [a, b]` or `needs: a`, read only from that job's own lines.
 pub(crate) fn needs<'a>(workflow: &'a str, job: &str) -> Vec<&'a str> {
     jobs(workflow)
         .into_iter()
         .find(|(id, _)| *id == job)
-        .and_then(|(_, lines)| lines.into_iter().find_map(|l| l.trim().strip_prefix("needs: ")))
-        .map(|l| {
-            let l = l.split(" #").next().unwrap_or_default().trim_end();
-            let list = l.strip_prefix('[').and_then(|l| l.strip_suffix(']')).unwrap_or(l);
-            list.split(',').map(str::trim).collect()
-        })
+        .map(|(_, lines)| flow_list(&lines, "needs"))
         .unwrap_or_default()
 }
 
@@ -134,6 +153,46 @@ mod tests {
     #[test]
     fn nightly_report_should_need_every_nightly_job() {
         assert_eq!(missing_from(NIGHTLY, "report"), Vec::<&str>::new());
+    }
+
+    /// The proof record reads the round trip's counts, so both new jobs must reach `report`,
+    /// and `roundtrip`'s minutes of work never run beside the benchmarks.
+    #[test]
+    fn nightly_report_should_need_proof_and_roundtrip_and_bench_roundtrip() {
+        let report = needs(NIGHTLY, "report");
+        assert!(
+            report.contains(&"proof")
+                && report.contains(&"roundtrip")
+                && needs(NIGHTLY, "bench").contains(&"roundtrip"),
+            "report needs {report:?}, bench needs {:?}",
+            needs(NIGHTLY, "bench")
+        );
+    }
+
+    /// The proof record calls a night full only when every target in `FUZZ_TARGETS` ran, so the
+    /// matrix must list them all (`extract` was missing once).
+    #[test]
+    fn nightly_fuzz_matrix_should_list_exactly_the_fuzz_targets() {
+        let matrix = flow_list(&lines_of(NIGHTLY, "jobs", "fuzz"), "target");
+        assert_eq!(matrix, crate::harness::FUZZ_TARGETS);
+    }
+
+    /// The proof record calls a night full when every fuzz target ran `nightly::FUZZ_SECONDS`, so
+    /// the workflow's default budget (both triggers' inputs and the env fallback) must be that.
+    #[test]
+    fn nightly_fuzz_seconds_default_should_be_the_full_budget() {
+        let full = crate::nightly::FUZZ_SECONDS.to_string();
+        let defaults: Vec<&str> = NIGHTLY
+            .split("fuzz-seconds:")
+            .skip(1)
+            .filter_map(|section| section.lines().find_map(|l| l.trim().strip_prefix("default: ")))
+            .map(|v| v.trim_matches('"'))
+            .collect();
+        let fallback = format!("FUZZ_SECONDS: ${{{{ inputs.fuzz-seconds || '{full}' }}}}");
+        assert!(
+            defaults.len() == 2 && defaults.iter().all(|d| *d == full) && NIGHTLY.contains(&fallback),
+            "fuzz-seconds defaults {defaults:?}, expected {full} and the env fallback {fallback:?}"
+        );
     }
 
     /// `bench` needs every job but those that need it (`pdf-runtimes`, `report`).
@@ -497,6 +556,12 @@ mod tests {
     fn needs_should_read_a_single_job_id() {
         let workflow = "on:\n  push:\njobs:\n  a:\n    run: x\n  b:\n    needs: a\n";
         assert_eq!(needs(workflow, "b"), ["a"]);
+    }
+
+    #[test]
+    fn needs_should_read_a_list_biome_moved_to_the_next_line() {
+        let workflow = "jobs:\n  report:\n    needs:\n      [build, test]\n    runs-on: x\n";
+        assert_eq!(needs(workflow, "report"), ["build", "test"]);
     }
 
     #[test]

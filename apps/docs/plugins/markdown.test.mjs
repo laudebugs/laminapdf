@@ -2,6 +2,7 @@
 // shape (agent-docs.mjs). Run with `node --test` (the package's `test` script).
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { diagramText } from "../src/components/diagrams/registry.mjs";
 import { llmsTxt, routeOfTwin, twinPath } from "./agent-docs.mjs";
 import { codeBlock, frontMatter, mdxToMarkdown, rewriteLinks, twin, twinHref } from "./markdown.mjs";
 
@@ -26,6 +27,34 @@ test("a snippet becomes a fenced block of the file, captioned with its path", ()
     out,
     "`packages/sdk/examples/hello.ts`:\n\n```ts\n// packages/sdk/examples/hello.ts\nconst a = 1;\n```\n",
   );
+});
+
+test("a diagram becomes its caption and text description, with no SVG or JSX", () => {
+  const { caption, text } = diagramText("open-edit-save");
+  const out = mdxToMarkdown(
+    'import Diagram from "x";\n\nBefore.\n\n<Diagram name="open-edit-save" />\n\nAfter.\n',
+    components,
+  );
+  assert.equal(out, `Before.\n\n*${caption}*\n\n${text}\n\nAfter.\n`);
+  assert.doesNotMatch(out, /<svg|<Diagram|import /);
+});
+
+test("a diagram is found whatever its attributes, quotes or closing tag", () => {
+  const { caption } = diagramText("open-edit-save");
+  for (const tag of [
+    '<Diagram class="x" name="open-edit-save" />',
+    '<Diagram data-name="nope" name="open-edit-save" />',
+    "<Diagram name='open-edit-save'/>",
+    '<Diagram name="open-edit-save"></Diagram>',
+  ]) {
+    const out = mdxToMarkdown(`${tag}\n`, components);
+    assert.ok(out.startsWith(`*${caption}*`), tag);
+    assert.doesNotMatch(out, /<Diagram/, tag);
+  }
+});
+
+test("a diagram with no registry entry fails the twin, as it fails the page", () => {
+  assert.throws(() => mdxToMarkdown('<Diagram name="no-such-diagram" />\n', components), /no diagram named/);
 });
 
 test("tabs become bold labels and their indentation goes", () => {

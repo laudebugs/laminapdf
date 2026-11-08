@@ -20,9 +20,11 @@ const NOT_DRAWN: Readonly<Record<string, string>> = {
   CommandsProvider: "a context provider",
   DensityProvider: "a context provider: the gallery's density control sets it on every route",
   PlatformProvider: "a context provider",
+  ModeRegistry: "the shell's store of modes, which the shell-regions route drives",
   ReaderController: "a state controller, which the reader routes drive",
   RecentCommands: "the palette's list of recent commands, kept in storage",
   RegistryPalette: "CommandPalette (on the overlays route) filled from a command registry",
+  ShellLayout: "the shell's layout store, which the shell-regions route drives",
   ToastQueue: "the toast region's queue, not a component",
 };
 

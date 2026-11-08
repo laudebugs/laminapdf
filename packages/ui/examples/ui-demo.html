@@ -11,6 +11,26 @@
         block-size: 100%;
         margin: 0;
       }
+      .demo-page {
+        block-size: 100%;
+        display: grid;
+        place-items: center;
+        background: var(--paper-canvas, var(--paper-ground));
+      }
+      .demo-rail-list {
+        margin: 0;
+        padding: var(--paper-space-12) var(--paper-space-16);
+        list-style: none;
+        display: grid;
+        gap: var(--paper-space-8);
+      }
+      .demo-inspector-title {
+        margin: var(--paper-space-16) var(--paper-space-16) var(--paper-space-8);
+        font: var(--paper-type-title, inherit);
+      }
+      .paper-inspector > p {
+        margin: 0 var(--paper-space-16);
+      }
     </style>
   </head>
   <body>

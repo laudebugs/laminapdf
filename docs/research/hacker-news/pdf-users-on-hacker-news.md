@@ -244,7 +244,7 @@ Features no longer set a PDF tool apart: 359 Show HN PDF posts appeared in 2026,
   - round trips checked by qpdf, pdf.js and PDFium
   - the nightly differential against pdf.js, PDFium, qpdf and pypdf
 - **The gap:** none of this evidence reaches users.
-- **Work:** [T1a](../../todos/ready/T1a-nightly-proof-figures.md) records the nightly's figures as data, and [T1b](../../todos/ready/T1b-how-we-test-page.md) publishes them on the website with the licence and where the code comes from. [U5b](../../todos/ready/U5b-reader-benchmark.md) compares the reader with others.
+- **Work:** [T1a](../../todos/done/T1a-nightly-proof-figures.md) records the nightly's figures as data, and [T1b](../../todos/ready/T1b-how-we-test-page.md) publishes them on the website with the licence and where the code comes from. [U5b](../../todos/ready/U5b-reader-benchmark.md) compares the reader with others.
 
 ### R2. Ship real redaction, and catch fake redaction in any file
 
