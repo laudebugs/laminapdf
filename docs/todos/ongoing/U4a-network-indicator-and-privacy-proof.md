@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U4a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §6 U4. Trust and reflow](../../plans/ui-ux.md#u4-trust-and-reflow) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C4c](../done/C4c-remote-files-encryption-privacy.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md) |
@@ -35,7 +35,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Telemetry of any kind → [U5c](./U5c-opt-in-usage-telemetry.md).
+- Telemetry of any kind → [U5c](../ready/U5c-opt-in-usage-telemetry.md).
 - Desktop equivalent (Tauri has no third-party network by default) → note in D-round docs; no indicator needed unless updates run.
 
 ## Tasks

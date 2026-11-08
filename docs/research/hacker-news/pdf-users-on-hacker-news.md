@@ -312,7 +312,7 @@ Speed draws the most reader praise and slowness the second-largest complaint, 47
 
 - **Lamina PDF today:** PDFium in a document worker (ADRs 0004 and 0009), telemetry and hosted features only by opt-in (ADR 0011), and the viewer performance harness.
 - **The gap:** none beyond the plans.
-- **Work:** [C7c](../../todos/ready/C7c-performance-gates-and-launch.md) turns the performance targets into gates, [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md) shows the network indicator, and [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) publishes the promises.
+- **Work:** [C7c](../../todos/ready/C7c-performance-gates-and-launch.md) turns the performance targets into gates, [U4a](../../todos/ongoing/U4a-network-indicator-and-privacy-proof.md) shows the network indicator, and [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) publishes the promises.
 
 ### R7. Serve long reading: reflow, a dark page, papers and manuals
 

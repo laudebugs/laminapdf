@@ -142,7 +142,7 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 
 **Artboards.** `R13-network-panel.dc.html`, `R13-network-remote.dc.html`.
 
-**Todos.** [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md).
+**Todos.** [U4a](../../todos/ongoing/U4a-network-indicator-and-privacy-proof.md).
 
 ## R14 Reader mode
 
