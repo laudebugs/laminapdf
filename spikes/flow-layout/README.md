@@ -57,7 +57,7 @@ Every module carries the baseline (it exports it), so the last column is what ea
 | `pulldown-cmark` 0.13 (for T4d) | 2,210,546 B | 879,480 B | +60 KB |
 | `minijinja` 2.12 (for T4e) | 2,405,242 B | 944,292 B | +125 KB |
 
-The text module's budget is 1,130,000 B gzip ([ADR 0016 §6](../../docs/decisions/0016-package-design.md#6-budgets-per-module)). Typst's layout engine and what it bundles carry the weight: its PDF writer, the difference between B and C, is about 0.43 MB. A Typst-only build (without the baseline, an earlier run of this probe) split into 3.8 MB of gzipped code and 3.9 MB of gzipped data.
+The text module's budget was 1,130,000 B gzip when the spike ran ([ADR 0016 §6](../../docs/decisions/0016-package-design.md#6-budgets-per-module)). Typst's layout engine and what it bundles carry the weight: its PDF writer, the difference between B and C, is about 0.43 MB. A Typst-only build (without the baseline, an earlier run of this probe) split into 3.8 MB of gzipped code and 3.9 MB of gzipped data.
 
 ### Speed
 

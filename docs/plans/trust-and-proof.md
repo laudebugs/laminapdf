@@ -83,7 +83,7 @@ Users now ask whether they can check what an extractor returned. T3 gives each p
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [T3a](../todos/ready/T3a-text-layer-status.md) | A per-page text-layer status that says when a page needs OCR | L | — |
+| [T3a](../todos/done/T3a-text-layer-status.md) | A per-page text-layer status that says when a page needs OCR | L | — |
 | [T3b](../todos/ready/T3b-reading-order-confidence.md) | Warn when a page's column order is uncertain | L | — |
 | [T3c](../todos/ready/T3c-tables-across-pages.md) | Join tables that continue across pages | M | — |
 
@@ -156,7 +156,7 @@ This plan's PR also changes these files, so the evidence and the new todos reach
 - **Covered-text detection can flag honest layouts.** Shading drawn over text, white boxes used for layout, and form widgets can look like a redaction box. T2a tests those cases and T2b words its warnings as "likely"; false positives cost trust too.
 - **Round T competes for time with the launch rounds.** T1 and T3 are the parts worth doing early; T2a can start now that L3g is done, and T5 and T6 wait on the rounds they extend.
 - **Parallel todos touch the same files.** T1c, T3a and T3b all edit the extraction benchmark (`crates/laminapdf/examples/differential/extract-bench.rs`, `tools/xtask/src/extract_bench.rs`); T2a and T3a both forward image events through `TextExtractor::page_with`. Each todo says so, and whichever lands second extends the first's code.
-- **The WASM text module grows.** [ADR 0032 §9](../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) raises its budget from 1,130,000 to 1,280,000 B gzip for the flow layer, Markdown and documents together; the spike measured +19 KB for a paginator and +60 KB for the Markdown parser.
+- **The WASM text module grows.** [ADR 0032 §9](../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) raises its budget from 1,200,000 to 1,280,000 B gzip for the flow layer, Markdown and documents together; the spike measured +19 KB for a paginator and +60 KB for the Markdown parser.
 
 ## 9. Open questions
 
@@ -211,7 +211,7 @@ Work the agents found while writing the todos, left out of Round T for now:
 - [x] Write the Round T todos and amend E4f, E7f and the feature-plan todos (§7)
 - [ ] T1: publish the proof ([T1a](../todos/ready/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/ready/T1c-publish-performance-numbers.md), [T1d](../todos/done/T1d-snapshot-testing-guide.md))
 - [ ] T2: find what files hide ([T2a](../todos/ready/T2a-covered-text-flag.md), [T2b](../todos/ready/T2b-check-failed-redactions.md), [T2c](../todos/ready/T2c-reveal-command.md))
-- [ ] T3: extraction users can check ([T3a](../todos/ready/T3a-text-layer-status.md), [T3b](../todos/ready/T3b-reading-order-confidence.md), [T3c](../todos/ready/T3c-tables-across-pages.md))
+- [ ] T3: extraction users can check ([T3a](../todos/done/T3a-text-layer-status.md), [T3b](../todos/ready/T3b-reading-order-confidence.md), [T3c](../todos/ready/T3c-tables-across-pages.md))
 - [ ] T4: pages that flow ([T4a](../todos/done/T4a-adr-0032-layout-engine.md), [T4f](../todos/ready/T4f-flow-builder-groundwork.md), [T4g](../todos/ready/T4g-flow-styled-spans.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4h](../todos/ready/T4h-flow-notes-contents-outline.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4i](../todos/ready/T4i-build-command-and-bindings.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md), [T4j](../todos/ready/T4j-documents-in-typescript.md))
 - [ ] T5: long reading ([T5a](../todos/ready/T5a-link-previews.md), [T5b](../todos/ready/T5b-reopen-at-last-position.md))
 - [ ] T6: chained jobs in the CLI ([T6a](../todos/ready/T6a-cli-page-commands.md), [T6b](../todos/ready/T6b-cli-optimize-target-size.md))

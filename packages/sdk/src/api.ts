@@ -44,8 +44,23 @@ export type {
   StructSource,
   TableDetector,
   TableMode,
+  TextLayer,
+  TextLayerStatus,
   TextRange,
 } from "./extract.js";
+export type {
+  ExtractJobOptions,
+  ExtractStep,
+  HostModels,
+  LayoutRegion,
+  ModelInfo,
+  ModelRequest,
+  ModelResult,
+  Models,
+  OcrWord,
+  RegionLabel,
+} from "./extract-job.js";
+export { ExtractJob, extractWithModels } from "./extract-job.js";
 export type { FontInfo, Standard14 } from "./font.js";
 export { Font, Image } from "./font.js";
 export type { ErrorCode, LimitName, WarningCode } from "./generated/codes.js";

@@ -68,7 +68,7 @@ Flowing output is tagged by default, and a caller can turn tagging off. This ans
 - **The flow layer** is a `flow` module of `laminapdf-build`, not a crate of its own. It shares `Surface`, the font registry and the tagger, and splitting it would expose their internals ([code organisation §11](../guidelines/code-organization.md#11-when-to-split-a-crate-or-package-and-when-not-to)). The façade re-exports it as `laminapdf::flow`.
 - **The Markdown front end** is a `markdown` feature of `laminapdf-build`, over `pulldown-cmark` (MIT): +60 KB gzip on top of the text module in WebAssembly.
 - **The JSON document format** is the flow model with `serde` derives (the `serde` and `schema` features), so it needs no extra crate.
-- **WebAssembly:** all three go in the text module, which already carries the builder and text. ADR 0016 §6's text-module budget rises from 1,130,000 to 1,280,000 B gzip (§9), an amendment the owner approves with this ADR.
+- **WebAssembly:** all three go in the text module, which already carries the builder and text. ADR 0016 §6's text-module budget rises from 1,200,000 to 1,280,000 B gzip (§9), an amendment the owner approves with this ADR.
 
 ### 6. Inputs
 
@@ -99,7 +99,7 @@ The front ends use the fonts the caller gives, by role (body, bold, italic, bold
 | Two-page invoice, Node 24, best of 30 | ≤ 25 ms | 10.7 ms (two passes) |
 | 100-page report, native | ≤ 250 ms | about 190 ms per pass |
 | 100-page report, Node 24, best of 10 | ≤ 500 ms ([pdf-library §4](../plans/pdf-library.md#4-requirements)) | about 310 ms per pass |
-| Text module, gzip | 1,280,000 B (from 1,130,000) | baseline 819 KB in the probe; paginator +19 KB, Markdown +60 KB |
+| Text module, gzip | 1,280,000 B (from 1,200,000) | baseline 819 KB in the probe; paginator +19 KB, Markdown +60 KB |
 
 Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benchmark joins the nightly, and the invoice joins `cargo xtask pdf-runtimes`. The text module's budget covers the flow layer, tables, notes, Markdown and templates together. `cargo xtask size` enforces it.
 

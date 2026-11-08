@@ -33,6 +33,7 @@ Run the Rust program on any PDF: `cargo run -p laminapdf --example extract_markd
 - **Bigger or smaller chunks:** change `maxTokens` (`with_max_tokens`). A token here is about four characters, a rough count that runs low for code, numbers and scripts other than Latin, so leave room.
 - **Overlap between chunks:** `overlap: 80` (`.with_overlap(80)`) repeats up to about 80 tokens of whole paragraphs from the end of the previous chunk.
 - **One output (TypeScript):** set `format` to `"markdown"`, `"text"`, `"json"` or `"chunks"`.
+- **Pages that need OCR:** a scanned page has no text to extract, so its Markdown is empty. Each page in the JSON has a `textLayer` whose `status` says so: `pages.filter(p => p.textLayer.status === "needs-ocr")` in TypeScript, `extraction.pages.iter().filter(|p| p.text_layer.status == TextLayerStatus::NeedsOcr)` in Rust. Send those pages to OCR or a vision model. A page made searchable by OCR is `ocr-layer`, since extraction leaves its invisible text out; the file's warnings name both kinds.
 - **A long file in steps (Rust):** `doc.extract_job(&options)` and `step` do a page per unit of work, so a long file can report progress or stop between steps.
 
 Next: [all recipes](/recipes/).

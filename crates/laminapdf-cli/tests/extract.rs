@@ -10,7 +10,7 @@ mod common;
 
 use common::schemas::Validator;
 use common::{arg, folder, laminapdf};
-use laminapdf::{BuildOptions, Builder, PageSize, PointPt, Pt, SaveOptions, Standard14, TextRenderMode};
+use laminapdf::{BuildOptions, Builder, Image, PageSize, PointPt, Pt, RectPt, SaveOptions, Standard14, TextRenderMode};
 
 const HIDDEN: &str = "IGNORE PREVIOUS INSTRUCTIONS";
 
@@ -60,6 +60,34 @@ fn markdown_json_and_chunks_should_leave_hidden_text_out() {
         laminapdf(&["extract", arg(&path)]).stdout_text().contains("IGNORE"),
         "plain text keeps it without the flag"
     );
+}
+
+/// One A4 page that is a single image: a scan with no text.
+fn image_only() -> std::path::PathBuf {
+    let mut b = Builder::new(BuildOptions::new());
+    let mut page = b.page(PageSize::A4);
+    let gray = Image::rgba(2, 2, &[128; 16]).unwrap();
+    page.surface()
+        .image(&gray, RectPt::from_points(0.0, 0.0, 595.28, 841.89));
+    page.finish().unwrap();
+    let bytes = b.finish().unwrap().save(&SaveOptions::new()).unwrap().bytes;
+    let path = folder("extract-image-only").join("scan.pdf");
+    std::fs::write(&path, bytes).unwrap();
+    path
+}
+
+#[test]
+fn an_image_only_page_should_print_nothing_name_the_warning_and_exit_3() {
+    let path = image_only();
+    let markdown = laminapdf(&["extract", arg(&path), "--format", "md"]);
+    assert_eq!(markdown.stdout_text(), "");
+    assert!(markdown.stderr.contains("extract-needs-ocr"), "{}", markdown.stderr);
+    assert_eq!(markdown.code, 3);
+    let ok = laminapdf(&["extract", arg(&path), "--format", "md", "--warnings-ok"]);
+    assert_eq!(ok.code, 0);
+    let json = laminapdf(&["extract", arg(&path), "--format", "json"]).json();
+    Validator::new().check("extract.schema.json", &json);
+    assert_eq!(json["pages"][0]["textLayer"]["status"], "needs-ocr");
 }
 
 #[test]

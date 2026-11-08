@@ -1,6 +1,18 @@
 // doc.extract(): each format, the JSON byte for byte as Rust writes it (the goldens
 // crates/laminapdf/tests/extract.rs shares), option errors, and the base module's refusal.
-import { type ChunkOptions, Document, type ExtractOptions, init, isLaminaPdfError, loadExtract } from "@laminapdf/sdk";
+import {
+  type ChunkOptions,
+  Document,
+  type ExtractOptions,
+  extractWithModels,
+  init,
+  isLaminaPdfError,
+  type LayoutRegion,
+  loadExtract,
+  type ModelInfo,
+  type ModelRequest,
+  type RegionLabel,
+} from "@laminapdf/sdk";
 import * as glue from "@laminapdf/wasm/extract";
 import { afterAll, beforeAll, describe, expect, expectTypeOf, it } from "vitest";
 import { extractForAnLlm } from "../examples/extract-markdown.js";
@@ -100,7 +112,7 @@ describe("doc.extract() with the extract module", () => {
 
   it("names the same options as the binding", () => {
     // The SDK's option types are written out for their docs; the binding's come from Rust.
-    // `models` is the binding's extractJob's alone, which the SDK doesn't wrap yet.
+    // `models` is extractJob's alone (ExtractJobOptions).
     expectTypeOf<keyof ExtractOptions>().toEqualTypeOf<Exclude<keyof glue.ExtractInit, "models">>();
     expectTypeOf<keyof ChunkOptions>().toEqualTypeOf<keyof NonNullable<glue.ExtractInit["chunk"]>>();
   });
@@ -113,35 +125,127 @@ describe("doc.extract() with the extract module", () => {
   });
 });
 
-describe("WasmDocument.extractJob with a model the host runs", () => {
+describe("doc.extractJob() with a model the host runs", () => {
   beforeAll(() => loadExtract());
 
-  const layout = { name: "host-layout", version: "1", sha256: "0".repeat(64), licence: "Apache-2.0" };
+  const layout: ModelInfo = { name: "host-layout", version: "1", sha256: "0".repeat(64), licence: "Apache-2.0" };
+  const file = "fixtures/reading-order/two-columns-ordered.pdf";
+
+  /** One region per block the rules found, labelled `label` (the first block `first`). */
+  function regionsOf(doc: Document, first: RegionLabel, label: RegionLabel): LayoutRegion[] {
+    const rules = doc.extract({ format: "json" });
+    return rules.blocks
+      .filter((b) => b.page === 0)
+      .map((b, i) => {
+        const [x, y, w, h] = b.bbox as [number, number, number, number];
+        // A little larger than the block, as a model's box is.
+        return { label: i === 0 ? first : label, bbox: [x - 1, y - 1, w + 2, h + 2], score: 0.9 };
+      });
+  }
 
   it("asks for each page's regions, then names the model in the JSON", () => {
-    const doc = glue.WasmDocument.openBytes(read("fixtures/reading-order/two-columns-ordered.pdf"), {});
+    using doc = Document.open(read(file));
+    const regions = regionsOf(doc, "section-header", "text");
     const job = doc.extractJob({ format: "json", models: { layout } });
-    const requests: unknown[] = [];
+    const requests: ModelRequest[] = [];
     let step = job.step(100);
     while (step.state === "progress") {
       expect(step.phase).toBe("model");
-      requests.push(step.request);
-      job.provide({ kind: "layout", regions: [] });
+      if (step.request !== undefined) requests.push(step.request);
+      job.provide({ kind: "layout", regions: step.request?.page === 0 ? regions : [] });
       step = job.step(100);
     }
-    expect(requests).toEqual([{ kind: "layout", page: 0, dpi: 150, langs: [] }]);
-    const json = JSON.parse(step.output);
-    expect(json.generator.mode).toBe("rules+models");
-    expect(json.generator.models).toEqual([layout]);
-    doc.free();
+    expect(requests.map((r) => [r.kind, r.page, r.dpi])).toEqual(requests.map((_, i) => ["layout", i, 150]));
+    expect(step.output.generator.mode).toBe("rules+models");
+    expect(step.output.generator.models).toEqual([layout]);
+    // The model's label wins over the rules' kind, and its score is the block's confidence.
+    const first = step.output.blocks[0];
+    expect(first).toMatchObject({ type: "heading", level: 2 });
+    expect(first?.confidence).toBe(0.9);
+  });
+
+  it("gives with extractWithModels what stepping by hand gives", async () => {
+    using doc = Document.open(read(file));
+    const regions = regionsOf(doc, "text", "text");
+    const byHand = (() => {
+      const job = doc.extractJob({ format: "markdown", models: { layout } });
+      for (;;) {
+        const step = job.step(100);
+        if (step.state === "done") return step.output;
+        job.provide({ kind: "layout", regions: step.request?.page === 0 ? regions : [] });
+      }
+    })();
+    const seen: number[] = [];
+    const looped = await extractWithModels(
+      doc,
+      { format: "markdown", models: { layout } },
+      {
+        layout: async (request) => {
+          seen.push(request.page);
+          return request.page === 0 ? regions : [];
+        },
+      },
+    );
+    expect(looped).toBe(byHand);
+    expect(seen[0]).toBe(0);
   });
 
   it("refuses a result nobody asked for", () => {
-    const doc = glue.WasmDocument.openBytes(read("fixtures/reading-order/two-columns-ordered.pdf"), {});
+    using doc = Document.open(read(file));
     const job = doc.extractJob({ format: "text", models: { layout } });
-    // The glue throws the ADR 0026 object itself; the SDK is what wraps it in LaminaPdfError.
-    const e = thrown(() => job.provide({ kind: "ocr", words: [] })) as { code: string };
-    expect(e.code).toBe("model-result-unexpected");
+    const e = thrown(() => job.provide({ kind: "ocr", words: [] }));
+    expect(isLaminaPdfError(e, "model-result-unexpected")).toBe(true);
+  });
+
+  it("refuses a named model with no function to run it", async () => {
+    using doc = Document.open(read(file));
+    const e = await extractWithModels(doc, { format: "text", models: { layout } }, {}).catch((x: unknown) => x);
+    expect(isLaminaPdfError(e, "invalid-argument")).toBe(true);
+  });
+
+  it("stops with cancelled when the signal aborts", async () => {
+    using doc = Document.open(read(file));
+    const abort = new AbortController();
+    const e = await extractWithModels(
+      doc,
+      { format: "text", models: { layout } },
+      {
+        layout: async () => {
+          abort.abort();
+          return [];
+        },
+      },
+      { signal: abort.signal },
+    ).catch((x: unknown) => x);
+    expect(isLaminaPdfError(e, "cancelled")).toBe(true);
+  });
+
+  it("ends cancelled when the model rejects because the signal aborted", async () => {
+    using doc = Document.open(read(file));
+    const abort = new AbortController();
+    const e = await extractWithModels(
+      doc,
+      { format: "text", models: { layout } },
+      {
+        layout: async (_request, signal) => {
+          abort.abort();
+          throw signal?.reason;
+        },
+      },
+      { signal: abort.signal },
+    ).catch((x: unknown) => x);
+    expect(isLaminaPdfError(e, "cancelled")).toBe(true);
+  });
+
+  it("is freed with its document", () => {
+    const doc = Document.open(read(file));
+    const job = doc.extractJob({ format: "text", models: { layout } });
     doc.free();
+    expect(
+      isLaminaPdfError(
+        thrown(() => job.step()),
+        "disposed",
+      ),
+    ).toBe(true);
   });
 });
