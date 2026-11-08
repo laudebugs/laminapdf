@@ -300,7 +300,7 @@ Control over pages is the generation request with the clearest gap (~345 comment
 
 - **Lamina PDF today:** `laminapdf-build` places text runs and breaks lines inside one box, reporting what overflows. The [library plan](../../plans/pdf-library.md) lists a flowing layout engine as a non-goal for now, and its open question 4 asks whether layout should become a library goal.
 - **The gap:** the most common unmet generation need.
-- **Work:** [T4a](../../todos/ready/T4a-adr-0032-layout-engine.md) answers open question 4 in ADR 0032, with a spike that weighs an engine of our own over `Surface` against embedding Typst. [T4b](../../todos/ready/T4b-flow-layout-core.md), [T4c](../../todos/ready/T4c-flow-tables-notes-contents.md), [T4d](../../todos/ready/T4d-markdown-documents.md) and [T4e](../../todos/ready/T4e-json-documents-and-templates.md) build what it decides. [T1c](../../todos/ready/T1c-publish-performance-numbers.md) publishes generation timings: a Typst user reports [under 100 ms for a two-page invoice](https://news.ycombinator.com/item?id=45697377).
+- **Work:** [T4a](../../todos/ongoing/T4a-adr-0032-layout-engine.md) answers open question 4 in ADR 0032, with a spike that weighs an engine of our own over `Surface` against embedding Typst. [T4b](../../todos/ready/T4b-flow-layout-core.md), [T4c](../../todos/ready/T4c-flow-tables-notes-contents.md), [T4d](../../todos/ready/T4d-markdown-documents.md) and [T4e](../../todos/ready/T4e-json-documents-and-templates.md) build what it decides. [T1c](../../todos/ready/T1c-publish-performance-numbers.md) publishes generation timings: a Typst user reports [under 100 ms for a two-page invoice](https://news.ycombinator.com/item?id=45697377).
 
 ### R6. Keep the reader fast, quiet and safe
 

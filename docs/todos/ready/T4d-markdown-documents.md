@@ -7,10 +7,10 @@
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [T4c](./T4c-flow-tables-notes-contents.md) |
-| ADRs | Implements ADR 0032 (written by [T4a](./T4a-adr-0032-layout-engine.md)): the Markdown dialect, where the front end lives, the CLI verb and the MCP tool. Follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as T4a amends it (`build`, `laminapdf.build/1`, a write tool under `--allow-write`), [0016 §6](../../decisions/0016-package-design.md#6-budgets-per-module) (module budgets), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#rust-cargo-deny) (the parser's licence) and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
+| ADRs | Implements ADR 0032 (written by [T4a](../ongoing/T4a-adr-0032-layout-engine.md)): the Markdown dialect, where the front end lives, the CLI verb and the MCP tool. Follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as T4a amends it (`build`, `laminapdf.build/1`, a write tool under `--allow-write`), [0016 §6](../../decisions/0016-package-design.md#6-budgets-per-module) (module budgets), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#rust-cargo-deny) (the parser's licence) and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
 | Branch | `feat/t4d-markdown-in` |
 | PR title | `feat: Markdown in, flowing pages out, in Rust, the CLI, MCP and the SDK` |
-| Size | XL (≈ 1,100–1,400 lines with the CLI, MCP and bindings): [T4a](./T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
+| Size | XL (≈ 1,100–1,400 lines with the CLI, MCP and bindings): [T4a](../ongoing/T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
 | PR | — |
 
 > **Split.** JSON documents and templates moved to [T4e](./T4e-json-documents-and-templates.md) so that each PR stays reviewable. The file name keeps "json-templates" because the research report links to it. Like T4b and T4c, this todo assumes ADR 0032 chooses an engine of our own; T4a rewrites it if the ADR decides otherwise.

@@ -7,10 +7,10 @@
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [T4b](./T4b-flow-layout-core.md) |
-| ADRs | Implements ADR 0032 (written by [T4a](./T4a-adr-0032-layout-engine.md)): tables, notes, contents and the pass limit; follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space, 1-based page numbers in what users read) and [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) |
+| ADRs | Implements ADR 0032 (written by [T4a](../ongoing/T4a-adr-0032-layout-engine.md)): tables, notes, contents and the pass limit; follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space, 1-based page numbers in what users read) and [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) |
 | Branch | `feat/t4c-flow-tables-notes-contents` |
 | PR title | `feat(build): flowing tables with repeated headers, footnotes and a contents page` |
-| Size | XL (≈ 1,000–1,300 lines): [T4a](./T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
+| Size | XL (≈ 1,000–1,300 lines): [T4a](../ongoing/T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
 | PR | — |
 
 > **Written to the expected decision.** Like [T4b](./T4b-flow-layout-core.md), this todo assumes ADR 0032 chooses an engine of our own; T4a rewrites it if the ADR decides otherwise.

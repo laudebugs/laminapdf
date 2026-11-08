@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |

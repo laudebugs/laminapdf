@@ -7,10 +7,10 @@
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [T4d](./T4d-markdown-documents.md) |
-| ADRs | Implements ADR 0032 (written by [T4a](./T4a-adr-0032-layout-engine.md)): the document format and the template language. Follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as T4a amends it (`laminapdf build`, its MCP tool) and its [§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output) versioning rule, [0016 §6–§7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary) (budgets; records as JSON with `unknown-option`) and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
+| ADRs | Implements ADR 0032 (written by [T4a](../ongoing/T4a-adr-0032-layout-engine.md)): the document format and the template language. Follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as T4a amends it (`laminapdf build`, its MCP tool) and its [§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output) versioning rule, [0016 §6–§7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary) (budgets; records as JSON with `unknown-option`) and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
 | Branch | `feat/t4e-json-documents-and-templates` |
 | PR title | `feat: JSON documents and templates in, flowing pages out` |
-| Size | XL (≈ 900–1,200 lines with the bindings and the generator): [T4a](./T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
+| Size | XL (≈ 900–1,200 lines with the bindings and the generator): [T4a](../ongoing/T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
 | PR | — |
 
 > **Split from [T4d](./T4d-markdown-documents.md),** which keeps Markdown, so that each PR stays reviewable. Like T4b–T4d, this todo assumes ADR 0032 chooses an engine of our own, a JSON document format and placeholders inside it for data; T4a rewrites it if the ADR decides otherwise.

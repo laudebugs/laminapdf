@@ -93,7 +93,7 @@ The library plan lists flowing layout as a non-goal for now and asks, in its ope
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [T4a](../todos/ready/T4a-adr-0032-layout-engine.md) | ADR 0032: a layout engine for flowing pages, with a spike | M | — |
+| [T4a](../todos/ongoing/T4a-adr-0032-layout-engine.md) | ADR 0032: a layout engine for flowing pages, with a spike | M | — |
 | [T4b](../todos/ready/T4b-flow-layout-core.md) | Flowing layout: paragraphs across pages, keep-together, running headers and footers, page X of Y | XL | T4a |
 | [T4c](../todos/ready/T4c-flow-tables-notes-contents.md) | Flowing layout: tables with repeated headers, footnotes, a contents page with page numbers | XL | T4b |
 | [T4d](../todos/ready/T4d-markdown-documents.md) | Markdown in, flowing pages out: `laminapdf build`, an MCP tool and the SDK | XL | T4c |
@@ -208,7 +208,7 @@ Work the agents found while writing the todos, left out of Round T for now:
 - [ ] T1: publish the proof ([T1a](../todos/ready/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/ready/T1c-publish-performance-numbers.md), [T1d](../todos/done/T1d-snapshot-testing-guide.md))
 - [ ] T2: find what files hide ([T2a](../todos/ready/T2a-covered-text-flag.md), [T2b](../todos/ready/T2b-check-failed-redactions.md), [T2c](../todos/ready/T2c-reveal-command.md))
 - [ ] T3: extraction users can check ([T3a](../todos/ready/T3a-text-layer-status.md), [T3b](../todos/ready/T3b-reading-order-confidence.md), [T3c](../todos/ready/T3c-tables-across-pages.md))
-- [ ] T4: pages that flow ([T4a](../todos/ready/T4a-adr-0032-layout-engine.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md))
+- [ ] T4: pages that flow ([T4a](../todos/ongoing/T4a-adr-0032-layout-engine.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md))
 - [ ] T5: long reading ([T5a](../todos/ready/T5a-link-previews.md), [T5b](../todos/ready/T5b-reopen-at-last-position.md))
 - [ ] T6: chained jobs in the CLI ([T6a](../todos/ready/T6a-cli-page-commands.md), [T6b](../todos/ready/T6b-cli-optimize-target-size.md))
 - [ ] The owner answers §9's open questions

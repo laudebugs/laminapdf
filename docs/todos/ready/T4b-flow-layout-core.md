@@ -6,11 +6,11 @@
 | Status | `ready` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4a](./T4a-adr-0032-layout-engine.md) |
-| ADRs | Implements ADR 0032 (written by [T4a](./T4a-adr-0032-layout-engine.md)); follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (the builder writes into the overlay), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space; [§5](../../decisions/0027-coordinates-units-and-page-indexing.md#5-text-placement): a run's `y` is its baseline), [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) and [0018](../../decisions/0018-test-strategy.md) (goldens) |
+| Depends on | [T4a](../ongoing/T4a-adr-0032-layout-engine.md) |
+| ADRs | Implements ADR 0032 (written by [T4a](../ongoing/T4a-adr-0032-layout-engine.md)); follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (the builder writes into the overlay), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space; [§5](../../decisions/0027-coordinates-units-and-page-indexing.md#5-text-placement): a run's `y` is its baseline), [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) and [0018](../../decisions/0018-test-strategy.md) (goldens) |
 | Branch | `feat/t4b-flow-layout-core` |
 | PR title | `feat(build): flowing layout with keep rules, running headers and footers, and page X of Y` |
-| Size | XL (≈ 1,100–1,400 lines): [T4a](./T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
+| Size | XL (≈ 1,100–1,400 lines): [T4a](../ongoing/T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
 | PR | — |
 
 > **Written to the expected decision.** This todo assumes ADR 0032 chooses an engine of our own over `Surface`, as the research report recommends. T4a may reshape it: if the ADR decides otherwise, T4a rewrites this file before anyone claims it.
@@ -22,7 +22,7 @@ Give `laminapdf-build` a flow layer. The caller hands it blocks of text and a pa
 ## Context
 
 - [E6d](./E6d-watermarks-headers-footers.md) adds header and footer tokens for existing pages; this todo and E6d use one syntax for page numbers (`{page}`, `{pages}`): whichever lands first defines it, and the second reuses it.
-- [T4a](./T4a-adr-0032-layout-engine.md) and ADR 0032: the decision, the spike's prototype (experiment A) and its numbers.
+- [T4a](../ongoing/T4a-adr-0032-layout-engine.md) and ADR 0032: the decision, the spike's prototype (experiment A) and its numbers.
 - Evidence: the [generation note](../../research/hacker-news/notes/generation.md) §1.6 (control over pages, about 345 comments) and §2.4 (pagination from HTML, about 100: "the biggest gripe with generating (long) PDFs from HTML are things such as page numbering, orphans and widows, semantically correct word-wrapping, page margins, etc...", [16959758](https://news.ycombinator.com/item?id=16959758)); the report's [R5](../../research/hacker-news/pdf-users-on-hacker-news.md#r5-decide-for-flow-layout-then-accept-markdown-and-json).
 - The builder: `Surface::text_box` (`crates/laminapdf-build/src/surface/mod.rs`; `TextBoxOptions`, `TextLayout`, `LineBox` and `Overflow` in `surface/textbox.rs`) lays one paragraph in one font and size into one rectangle. The crate-private `lay_out` and `Spec` in `surface/text.rs` shape a paragraph once. `Builder::page` hands out one `PageBuilder` at a time.
 - `laminapdf-text`'s `break_lines` (`src/layout.rs`, 702 lines against the 800-line module budget) breaks at one size, and its font list is a fallback list, not a set of styles: a bold word inside a paragraph isn't possible yet. `Line` and `LineRun` already hold runs in several fonts per line.
