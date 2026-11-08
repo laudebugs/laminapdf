@@ -335,7 +335,7 @@ fn a_blend_mode_array_takes_its_first_known_name_and_an_unknown_one_is_normal() 
     let names = |names: &[&str]| -> laminapdf_cos::Object {
         names
             .iter()
-            .map(|n| laminapdf_cos::Object::name(*n))
+            .map(|n| laminapdf_cos::Object::name(n))
             .collect::<Vec<_>>()
             .into()
     };
