@@ -473,7 +473,8 @@ export class Surface {
   /**
    * Draws `text`: shaped, bidi-resolved, one line per line break (needs the text module).
    *
-   * @returns what the run measures.
+   * @returns what the run measures, with `bottom`: where the next element can start (the next text box's top), the
+   *   descent below the last line that draws something, before the surface's transform; left out when nothing is.
    * @throws {@link LaminaPdfError} `text-module-not-loaded`, `missing-glyph`, `font-not-shapable`, …
    */
   text(text: string, options: TextOptions): TextRunInfo {
@@ -487,7 +488,9 @@ export class Surface {
   /**
    * Lays `text` out in `options.box`, breaking lines at Unicode line-break opportunities.
    *
-   * @returns the lines drawn and where the overflow starts (UTF-16 offsets).
+   * @returns the lines drawn, where the overflow starts (UTF-16 offsets; test it with `!== undefined`, as `0` means no
+   *   line fitted) and `bottom`: the last line that draws something, before the surface's transform; left out when none
+   *   does.
    * @throws {@link LaminaPdfError} as {@link Surface.text}; `text-overflow` with `overflow: "error"`.
    */
   textBox(text: string, options: TextBoxOptions): TextLayout {
