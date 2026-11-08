@@ -93,6 +93,8 @@ type Gesture<Point> =
 export class TouchGestures<Point> {
   readonly #host: TouchHost<Point>;
   readonly #fingers = new Map<number, At>();
+  /** The kind of pointer down now: a pen's gesture ignores a palm resting beside it, and the other way round. */
+  #kind: string | undefined;
   #gesture: Gesture<Point> | undefined;
   #lastTap: Sample | undefined;
   #longPress: ReturnType<typeof setTimeout> | undefined;
@@ -105,6 +107,8 @@ export class TouchGestures<Point> {
   /** A pointer went down. A third finger joins nothing: the pinch keeps its first two. */
   down(e: PointerEvent): void {
     if (!TAKEN.has(e.pointerType)) return;
+    if (this.#fingers.size > 0 && e.pointerType !== this.#kind) return;
+    this.#kind = e.pointerType;
     this.stopMomentum();
     const at = this.#host.local(e);
     this.#fingers.set(e.pointerId, at);
@@ -169,6 +173,7 @@ export class TouchGestures<Point> {
     clearTimeout(this.#longPress);
     this.#fingers.clear();
     this.#gesture = undefined;
+    this.#kind = undefined;
   }
 
   #startPending(at: At, t: number): void {

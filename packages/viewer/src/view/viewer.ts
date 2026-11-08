@@ -1148,22 +1148,21 @@ export class Viewer {
     this.#cleanup.push(() => gestures.stop());
   }
 
-  /** The gestures' view of this viewer. */
+  /** The gestures' view of this viewer; it reads the root when called, so it may be made before the root. */
   #touchHost(): TouchHost<DocumentPoint> {
-    const root = this.#root;
     return {
       percent: () => this.#state.percent,
       fitsWidth: () => this.#zoom === "fit-width",
       zoom: (to, anchor) => this.setZoom(to, { anchor }),
       pointAt: (at) => this.pointAt(at.x, at.y),
       positionOf: (point) => this.positionOf(point),
-      scrollBy: (dx, dy) => root.scrollBy({ left: dx, top: dy, behavior: "instant" }),
+      scrollBy: (dx, dy) => this.#root.scrollBy({ left: dx, top: dy, behavior: "instant" }),
       local: (e) => this.#anchorAt(e.clientX, e.clientY),
       frame: (callback) => requestAnimationFrame(callback),
       cancelFrame: (id) => cancelAnimationFrame(id),
       capture: (id) => {
         try {
-          root.setPointerCapture(id);
+          this.#root.setPointerCapture(id);
         } catch {
           // The pointer is already up: nothing to keep.
         }

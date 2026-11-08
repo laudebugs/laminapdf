@@ -108,10 +108,13 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
       const { wide, past, small } = await page.evaluate(() => {
         const bars = [...document.querySelectorAll("header *, footer *")];
         const targets = bars.filter((el) => el.matches("button, a[href], [role=button], [role=tab], input"));
+        // Touch sizes follow a coarse pointer (design language §8.7); a profile without one is a desktop's.
+        const coarse = matchMedia("(pointer: coarse)").matches;
         return {
           wide: document.documentElement.scrollWidth - window.innerWidth,
           past: bars.filter((el) => el.getBoundingClientRect().right > window.innerWidth + 0.5).length,
           small: targets
+            .filter(() => coarse)
             .filter((el) => {
               const r = el.getBoundingClientRect();
               return r.width > 0 && (r.width + 0.5 < 44 || r.height + 0.5 < 44);

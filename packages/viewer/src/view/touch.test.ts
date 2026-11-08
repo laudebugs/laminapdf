@@ -152,6 +152,17 @@ describe("TouchGestures", () => {
     expect([zoomed, state.scroll.x - before.x, state.scroll.y - before.y]).toEqual([200, 0, 40]);
   });
 
+  it("lets a palm resting beside a pen neither pinch nor pan", () => {
+    const { state, gestures } = fakeHost();
+    const as = (type: string, id: number, pointerType: string, x: number, y: number) =>
+      ({ ...touch(type, id, x, y, 0), pointerType }) as PointerEvent;
+    gestures.down(as("pointerdown", 1, "pen", 100, 300));
+    gestures.down(as("pointerdown", 2, "touch", 300, 600));
+    gestures.move(as("pointermove", 2, "touch", 300, 100));
+    gestures.move(as("pointermove", 1, "pen", 100, 250));
+    expect([state.percent, state.scroll.y]).toEqual([100, 50]);
+  });
+
   it("times a double tap from the first tap's lift", () => {
     const { state, gestures } = fakeHost();
     gestures.down(touch("pointerdown", 1, 50, 50, 0));
