@@ -130,3 +130,13 @@ The last two are approximations, and both lean towards keeping text: a false neg
 > - **Clipped:** the interpreter tracks the clip as a box in default user space (each `W`/`W*` path's box, each Form XObject's `/BBox`, intersected, saved by `q`); a run is clipped when its box doesn't overlap that box.
 > - **Low contrast:** the colour a glyph is painted in (fill, stroke for stroked-only text, the darker of the two for both) is near white when every RGB component is at least 0.9, in a device space; a named space (such as `ICCBased`, `Separation`, `Indexed` or `Lab`) is never read as near white, and fill-and-stroke text with either colour in one counts as dark. Fills and strokes that aren't near white (a stroke's box grown by half its width), images and shadings that overlap the text, drawn before or after it, are backdrops, so text over them is kept.
 
+> **Implementation note (T3a, 2026-11-08).** [T3a](../todos/ongoing/T3a-text-layer-status.md) gives every page a `textLayer` within `/1`: a `status` and the measures it was decided from, so a pipeline can send only the pages that need it to OCR. The measures are `chars` (visible characters, spaces left out, in runs that aren't invisible, off the page or tiny; artifacts count, since they are drawn), `invisibleChars` (runs in rendering mode 3 or 7), `unmappedShare` (the visible runs' glyphs without Unicode), `images` and `imageShare` (the image boxes, clipped to the page, on a 32 × 32 grid, so overlaps count once) and `paths` (fills and strokes); shares are rounded to 1/1000 as §7 rounds lengths. The status is the first that applies, with these starting cut-offs (`TextLayerThresholds`, in thousandths for the shares):
+>
+> - `empty`: no text, visible or invisible, no image and fewer than 16 paths;
+> - `ocr-layer`: images cover at least half the page and invisible characters outnumber visible ones;
+> - `needs-ocr`: no visible text; or images cover at least half the page with at most 200 visible characters; or at least half the glyphs are unmapped;
+> - `mixed`: at least 10% of the glyphs are unmapped, or images cover at least a quarter of the page;
+> - `native`: anything else.
+>
+> `needs-ocr` and `ocr-layer` pages raise `extract-needs-ocr` (kind `unsupported`, data `status`), so a caller of the Markdown alone learns why a page is empty. §4 still keeps an OCR layer out of the blocks: an `ocr-layer` page's text is in `dropped` as `invisible`, and taking it into the blocks needs an amendment of §4. Image boxes ignore the clip and transparency, so a clipped or faint image counts whole; the cut-offs lean towards sending a page to OCR.
+

@@ -34,6 +34,20 @@ The rules refuse what isn't a grid of text: a page border, a form's separate fie
 
 `TableMode::LatticeAndStream` also finds tables drawn without lines: three or more lines that split at wide gaps into the same two or more columns. Stream detection is off by default because it sometimes takes two columns of text for a table; such tables carry a lower `confidence`.
 
+## Pages that need OCR
+
+Extraction reads the text a page draws with its fonts, so a scan gives nothing, and a page made searchable by OCR gives nothing either: its OCR layer is invisible text, which extraction leaves out. Each page's `text_layer` (`textLayer` in the JSON) says which case a page is, so a pipeline can send only those pages to OCR or a vision model. It holds a status and the measures behind it: the visible characters, the invisible ones, the share of glyphs without Unicode, the images and the share of the page they cover (on a 32 × 32 grid), and the painted paths. The first status that applies wins:
+
+| Status | When | What to do with the page |
+| --- | --- | --- |
+| `empty` | no text, no image and fewer than 16 painted paths | nothing: it is blank |
+| `ocr-layer` | images cover at least half the page, and invisible characters outnumber visible ones | OCR it again, or keep its OCR layer (`DropOptions::keep_spans` lists it under `dropped`) |
+| `needs-ocr` | no visible text; images cover at least half the page and it has at most 200 visible characters; or at least half the glyphs have no Unicode | OCR or a vision model |
+| `mixed` | at least 10% of the glyphs have no Unicode, or images cover at least a quarter of the page | use the text, but parts of the page may be pictures |
+| `native` | anything else | use the text |
+
+`needs-ocr` and `ocr-layer` pages also raise `extract-needs-ocr`, so a caller that reads only the Markdown learns why a page is empty. The cut-offs are starting values in `TextLayerThresholds` (`ExtractOptions::with_text_layer`), with shares in thousandths; the JSON carries every measure, so a pipeline can apply its own.
+
 ## How it reads a page
 
 1. **Runs.** `laminapdf-text` gives the page's runs of glyphs with their boxes. Extraction leaves out any run that is drawn invisibly (text rendering mode 3 or 7), lies wholly off the page, or is smaller than 1 pt. It also leaves out runs wholly outside their clip (`clipped`), near-white runs with nothing darker painted where they sit (`low-contrast`), and runs the file marks as an `Artifact`: page furniture such as headers, page numbers and decoration. The clip and colour checks are approximations that lean towards keeping text: the clip counts as its bounding box, and any fill, stroke, image or shading that overlaps the text, drawn before or after it, counts as a backdrop unless it is near white. Each such run gets a `dropped` entry with its reason, its box and a character count, never its text. Ask for the hidden runs themselves with `DropOptions::keep_spans`.
@@ -103,4 +117,5 @@ The benchmark's published table scores OCR and vision models on all seven subset
 - `tests/extract.rs`: hidden text, hyphenation, a quarter-turned page, `/UserUnit`, determinism, jobs and cancellation, page selection and the blocks limit, on files built with `laminapdf-build`.
 - `tests/regressions.rs`: the `extract` fuzz target's entry point over the corpus and every saved crash input.
 - `tests/tables.rs`: ruled grids, merged cells, a table split across two pages, a page border and field boxes (no table), ambiguous merges, unruled columns, the cell limit, and a table in Markdown.
+- `tests/text_layer.rs`: each status on pages built for it (text, a scan, a scan with an OCR layer or a stamp, text beside a picture, a blank page, shapes, glyphs without Unicode), the warning's pages, a cut-off from the options, and every page of the reading-order corpus and the text goldens `native`.
 - `tests/output.rs` (feature `schema`): Markdown goldens for the reading-order corpus (`fixtures/extract/markdown/`), the committed schema against the Rust types, every file's JSON against the schema, text ranges and chunks, and hidden text in no output. `UPDATE_GOLDEN=1` rewrites the goldens and the schema.
