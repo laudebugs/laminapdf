@@ -200,6 +200,11 @@ function geometryOf(layout: PageLayout): string {
   return `${layout.scale}:${layout.rotation}`;
 }
 
+/** The view rotation a `geometryOf` string was painted for. */
+function rotationOf(geometry: string): number {
+  return Number(geometry.slice(geometry.indexOf(":") + 1));
+}
+
 /** A closed ImageBitmap has no size: one the cache evicted while a pass held it. */
 function isClosed(bitmap: ImageBitmap): boolean {
   return bitmap.width === 0 || bitmap.height === 0;
@@ -805,10 +810,20 @@ export class Viewer {
     const fitted = this.#pool.fit(canvas, cssW * ratio, cssH * ratio);
     const scale = sharpScale(layout.scale, ratio, css, fitted);
     const { width, height } = pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation);
+    // What the canvas shows now, if it is this page in this orientation at another zoom: drawn back
+    // at the new size, so a re-zoom never trades sharp pixels for blurry ones.
+    const before = await this.#snapshot(view, layout, width, height);
+    if (!live()) {
+      before?.close();
+      this.#drop(low);
+      return false;
+    }
     // Resizing clears the canvas: it happens only now, with the new pixels ready (no white flash).
     canvas.width = width;
     canvas.height = height;
-    const drawn = this.#draw(view, canvas, low.bitmap, 0, 0, width, height);
+    // The old pixels cover the whole page, so the low pass is drawn only when there are none.
+    const drawn = this.#draw(view, canvas, before ?? low.bitmap, 0, 0, width, height);
+    before?.close();
     this.#release(low);
     // Not drawn (evicted meanwhile): the canvas stays unpainted, and the next frame tries again.
     if (!drawn) return false;
@@ -819,6 +834,27 @@ export class Viewer {
     this.#pruneOtherGeometries(index, layout, new Set([request.scale, scale, layout.scale * dpr]));
     this.#emit("renderstats", this.stats());
     return true;
+  }
+
+  /**
+   * A copy of `view`'s page canvas when it holds the page in `layout`'s rotation at another zoom (the
+   * pixels the user sees stretched), no larger than the new `width` × `height`, for #paintLow to
+   * draw back at the new size; else undefined.
+   */
+  async #snapshot(view: PageView, layout: PageLayout, width: number, height: number): Promise<ImageBitmap | undefined> {
+    const canvas = view.canvas;
+    if (canvas === undefined || view.painted === "" || rotationOf(view.painted) !== layout.rotation) return undefined;
+    try {
+      // No larger than the new canvas: zooming out shrinks the copy rather than doubling the memory.
+      if (width >= canvas.width && height >= canvas.height) return await createImageBitmap(canvas);
+      return await createImageBitmap(canvas, {
+        resizeWidth: Math.min(width, canvas.width),
+        resizeHeight: Math.min(height, canvas.height),
+      });
+    } catch {
+      // No copy (out of memory, or a browser without resize options): the low pass stands in.
+      return undefined;
+    }
   }
 
   /** Frees page `index`'s bitmaps of other scales or rotations at once, rather than at the budget. */

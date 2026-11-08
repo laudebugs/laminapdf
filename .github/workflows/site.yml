@@ -61,6 +61,12 @@ env:
   # Wrangler's usage metrics off (ADR 0011: no telemetry), Astro's too.
   WRANGLER_SEND_METRICS: "false"
   ASTRO_TELEMETRY_DISABLED: "1"
+  # The same Cargo settings as ci.yml: rust-cache hashes CARGO* and RUST* variables into its key, so
+  # these jobs restore the `wasm` and `xtask` caches ci.yml saves only when they match.
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
 
 defaults:
   run:
@@ -233,6 +239,9 @@ jobs:
         uses: ./.github/actions/host-rust
         with:
           cache: true
+          # Builds only xtask: ci.yml's typescript job saves this cache.
+          shared-key: xtask
+          save: "false"
       - name: Refresh the roadmap
         if: steps.secrets.outputs.enabled == 'true'
         env:

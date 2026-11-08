@@ -56,6 +56,12 @@ concurrency:
 env:
   # Wrangler's usage metrics off (ADR 0011: no telemetry).
   WRANGLER_SEND_METRICS: "false"
+  # The same Cargo settings as ci.yml: rust-cache hashes CARGO* and RUST* variables into its key, so
+  # these jobs restore the `wasm` and `xtask` caches ci.yml saves only when they match.
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
 
 jobs:
   preview-build:
@@ -75,8 +81,8 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-save-if: false
+          cache-shared-key: wasm
           cache-bin: false
       - name: Classify the changed paths
         id: changes
@@ -329,8 +335,8 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-save-if: false
+          cache-shared-key: wasm
           cache-bin: false
       # A push deploys when the reader's inputs changed since the commit of the workflow's last
       # successful run on main: that run deployed staging, or found nothing to deploy since the run
@@ -420,8 +426,8 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-save-if: false
+          cache-shared-key: wasm
           cache-bin: false
       - uses: ./.github/actions/install-tools
         with:
