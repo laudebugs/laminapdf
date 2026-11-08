@@ -1,6 +1,5 @@
-# Playwright's Chromium for a package's browser tests, kept in the runner's own tool cache between
-# runs, as ci.yml's pdf-runtimes jobs keep theirs: `playwright install` downloads only a missing or
-# outdated browser. Later steps of the job find it through PLAYWRIGHT_BROWSERS_PATH.
+# Playwright's Chromium for a package's browser tests, installed into the runner's tool cache
+# (`playwright install`, with its system libraries on Linux). Later steps of the job find it through PLAYWRIGHT_BROWSERS_PATH.
 name: Playwright's Chromium
 description: Install Playwright's Chromium into the runner's tool cache and point later steps at it.
 inputs:
@@ -16,4 +15,7 @@ runs:
         PACKAGE: ${{ inputs.package }}
       run: |
         echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-        PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TOOL_CACHE/ms-playwright" pnpm --filter "$PACKAGE" exec playwright install chromium
+        # On Linux, also the system libraries Chromium needs (hosted Ubuntu lacks some).
+        deps=()
+        if [ "$RUNNER_OS" = Linux ]; then deps=(--with-deps); fi
+        PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TOOL_CACHE/ms-playwright" pnpm --filter "$PACKAGE" exec playwright install "${deps[@]}" chromium

@@ -95,7 +95,7 @@ jobs:
   preview-build:
     name: Docs preview (build)
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -118,7 +118,7 @@ jobs:
     name: Docs preview (deploy)
     needs: preview-build
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -229,7 +229,7 @@ jobs:
   next:
     name: Docs next
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.tag == '')) }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -281,7 +281,7 @@ jobs:
     # The release lane's call (`secrets: inherit`) or a manual run with a tag. Inside a called
     # workflow github.event_name is the caller's, so the tag input is what marks this job's runs.
     if: ${{ inputs.tag != '' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
