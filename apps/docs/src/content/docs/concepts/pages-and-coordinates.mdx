@@ -3,6 +3,7 @@ title: Pages and coordinates
 description: Points from the top-left corner of the page as it's displayed, y going down, and pages numbered from 0.
 ---
 
+import Diagram from "../../../components/Diagram.astro";
 import Example from "../../../components/Example.astro";
 
 Every position you pass Lamina PDF is in [page space](/reference/glossary/#page-space): points measured from the top-left corner of the page, with y going down. It's the way a screen or a sheet of paper reads, so a number means the same thing in every part of the API.
@@ -28,3 +29,5 @@ The first page is page 0 everywhere: `doc.page(0)`, a link's target, a page labe
 ## PDF's own coordinates
 
 Inside the file, PDF measures from the bottom-left corner with y going up, before rotation. That's [user space](/reference/glossary/#user-space). Lamina PDF converts for you, so you only meet it in Rust, in names that contain `UserSpace` or `user_space`.
+
+<Diagram name="page-space" />

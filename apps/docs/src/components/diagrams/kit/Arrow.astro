@@ -1,14 +1,21 @@
 ---
 // A path with an arrowhead at its end (`head={false}` for a plain line). `d` is an SVG path in the
-// drawing's units; `focus` draws it in the accent, for the step the section is about.
+// drawing's units. `tone` picks its colour: `focus` the accent, for the step the section is about;
+// `ink` dashed in the page's ink, for an axis drawn on a PageSheet (its drawing's Markers needs `ink`).
 interface Props {
   d: string;
   prefix: string;
-  focus?: boolean;
+  tone?: "default" | "focus" | "ink";
   head?: boolean;
 }
-const { d, prefix, focus = false, head = true } = Astro.props;
-const marker = head ? `url(#${prefix}-head${focus ? "-focus" : ""})` : undefined;
+const { d, prefix, tone = "default", head = true } = Astro.props;
+const TONES = {
+  default: { line: "dg-arrow", head: "head" },
+  focus: { line: "dg-arrow dg-arrow-focus", head: "head-focus" },
+  ink: { line: "dg-page-axis", head: "head-ink" },
+} as const;
+const { line, head: headId } = TONES[tone];
+const marker = head ? `url(#${prefix}-${headId})` : undefined;
 ---
 
-<path class:list={["dg-arrow", { "dg-arrow-focus": focus }]} d={d} marker-end={marker}></path>
+<path class={line} d={d} marker-end={marker}></path>
