@@ -11,7 +11,7 @@
 | Branch | `feat/t4f-flow-builder-groundwork` |
 | PR title | `feat(build): tagged elements across pages, text measured without drawing, artifact subtypes and marks under PDF/UA-1` |
 | Size | L (≈ 500–700 lines of code with unit tests) |
-| PR | — |
+| PR | [laudebugs/laminapdf#308](https://github.com/laudebugs/laminapdf/pull/308) |
 
 ## Goal
 
