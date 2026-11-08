@@ -94,6 +94,8 @@ export type ExtractedPage = {
   label?: string | null;
   /** 1-based, as people count. */
   number: number;
+  /** Whether the page's text is the page's text, and the measures that decided it. */
+  textLayer: TextLayer;
   /** The displayed width in points (after `/Rotate` and `/UserUnit`). */
   width: number;
 };
@@ -250,6 +252,30 @@ export type StructSource = "tagged" | "xycut" | "content";
 
 /** What found a table. */
 export type TableDetector = "lattice" | "stream" | "tagged";
+
+/**
+ * What a page's text layer is: whether its extracted text is the page's text, or the page
+ * needs OCR. The measures let a pipeline apply its own cut-offs.
+ */
+export type TextLayer = {
+  /** Visible characters (spaces left out) in runs that aren't invisible, off the page or tiny. */
+  chars: number;
+  /** The share of the page the images cover, measured on a 32 × 32 grid. */
+  imageShare: number;
+  /** How many images the page draws, in its forms too. */
+  images: number;
+  /** Characters drawn invisibly (text rendering mode 3 or 7), such as an OCR layer. */
+  invisibleChars: number;
+  /** How many paths the page paints (fills and strokes). */
+  paths: number;
+  /** The verdict. */
+  status: TextLayerStatus;
+  /** The share of the visible runs' glyphs that map to no Unicode; 0 with no visible glyphs. */
+  unmappedShare: number;
+};
+
+/** A page's text-layer status, the first that applies. */
+export type TextLayerStatus = "empty" | "ocr-layer" | "needs-ocr" | "mixed" | "native";
 
 /**
  * Where a piece of text sits in a rendering, in Unicode scalar values (`char`s), `start`

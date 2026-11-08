@@ -5,19 +5,21 @@
 
 use std::sync::Arc;
 
-use laminapdf_content::{ImageDraw, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor};
 use laminapdf_model::Document;
 use laminapdf_syntax::{Budget, CancelToken, Phase, Step};
 use laminapdf_text::{PageText, TextExtractor};
 
 use crate::error::ExtractError;
+use crate::marks::{Drawn, Marks};
+use crate::model::TextLayerStatus;
 use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
-use crate::page::{PageInput, TreeUse, has_visible_text};
+use crate::page::{PageInput, TreeUse};
 use crate::plugins::{LayoutRegion, ModelRequest, ModelResult, ModelSlot, OcrWord, PageRaster};
-use crate::tables::{Collector, Edges, TableMode, across};
+use crate::tables::{Edges, TableMode, across};
 use crate::tagged::TaggedIndex;
+use crate::text_layer::measure;
 use crate::visibility::Backdrops;
 use crate::{furniture, headings, lists};
 
@@ -55,7 +57,10 @@ struct Pending {
     text: PageText,
     edges: Option<Edges>,
     backdrops: Backdrops,
-    /// Whether the page has visible text; OCR reads only pages that don't.
+    /// The images and paths drawn, for the text-layer status.
+    drawn: Drawn,
+    /// Whether the page's text layer can be used; OCR reads only pages whose can't
+    /// (`needs-ocr` and `ocr-layer`).
     visible: bool,
     regions: Option<Vec<LayoutRegion>>,
     words: Option<Vec<OcrWord>>,
@@ -154,35 +159,6 @@ fn record_models(out: &mut Extraction, options: &ExtractOptions, (layout, ocr): 
     .into_iter()
     .flatten()
     .collect();
-}
-
-/// A page's painting, seen once: the table rules (when tables are looked for) and the backdrops.
-struct Painted<'f> {
-    rules: Option<Collector<'f>>,
-    backdrops: Backdrops,
-}
-
-impl Visitor for Painted<'_> {
-    fn path_segment(&mut self, segment: &PathSegment, ctm: &Matrix) {
-        if let Some(rules) = &mut self.rules {
-            rules.path_segment(segment, ctm);
-        }
-    }
-
-    fn paint_path(&mut self, paint: &PathPaint<'_>) {
-        if let Some(rules) = &mut self.rules {
-            rules.paint_path(paint);
-        }
-        self.backdrops.paint_path(paint);
-    }
-
-    fn image(&mut self, image: &ImageDraw<'_>) {
-        self.backdrops.image(image);
-    }
-
-    fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
-        self.backdrops.paint_shading(shading);
-    }
 }
 
 /// The rules that need every page: running headers and footers leave the blocks, then
@@ -318,6 +294,7 @@ impl ExtractJob {
                 &PageInput {
                     edges: pending.edges.as_ref(),
                     backdrops: &pending.backdrops,
+                    drawn: &pending.drawn,
                     tree: self.tree.as_ref(),
                     regions: pending.regions.as_deref().unwrap_or_default(),
                     words: pending.words.as_deref().unwrap_or_default(),
@@ -359,19 +336,19 @@ impl ExtractJob {
         index: usize,
     ) -> Result<Pending, ExtractError> {
         let frame = page.frame()?;
-        let mut painted = Painted {
-            rules: (self.options.tables != TableMode::Off).then(|| Collector::new(&frame)),
-            backdrops: Backdrops::new(&frame),
-        };
-        let text = self.extractor.page_with(doc, page, &mut painted)?;
-        let edges = painted.rules.map(Collector::finish);
-        // Only OCR asks, and the test reads the page's runs once more.
-        let visible = self.options.models.ocr.is_none() || has_visible_text(&text, &painted.backdrops, &self.options);
+        let mut marks = Marks::new(&frame, self.options.tables != TableMode::Off);
+        let text = self.extractor.page_with(doc, page, &mut marks)?;
+        let (edges, backdrops, drawn) = marks.finish();
+        // OCR reads the pages whose text layer can't be used: none, or an invisible OCR layer
+        // that extraction leaves out. A `mixed` page keeps its own text.
+        let status = measure(&text, &backdrops, &drawn, &self.options.text_layer).status;
+        let visible = !matches!(status, TextLayerStatus::NeedsOcr | TextLayerStatus::OcrLayer);
         Ok(Pending {
             index,
             text,
             edges,
-            backdrops: painted.backdrops,
+            backdrops,
+            drawn,
             visible,
             regions: None,
             words: None,

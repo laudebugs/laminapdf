@@ -21,6 +21,8 @@ pub struct ExtractOptions {
     pub limits: ExtractLimits,
     /// Which table detectors run.
     pub tables: TableMode,
+    /// The cut-offs that decide each page's text-layer status.
+    pub text_layer: TextLayerThresholds,
     /// Layout and OCR models; none by default (rules only, ADR 0030 §6).
     pub models: Models,
 }
@@ -34,6 +36,7 @@ impl Default for ExtractOptions {
             dehyphenate: true,
             limits: ExtractLimits::default(),
             tables: TableMode::default(),
+            text_layer: TextLayerThresholds::default(),
             models: Models::default(),
         }
     }
@@ -68,11 +71,53 @@ impl ExtractOptions {
         self
     }
 
+    /// The cut-offs that decide each page's text-layer status.
+    #[must_use]
+    pub const fn with_text_layer(mut self, thresholds: TextLayerThresholds) -> Self {
+        self.text_layer = thresholds;
+        self
+    }
+
     /// The layout and OCR models.
     #[must_use]
     pub fn with_models(mut self, models: Models) -> Self {
         self.models = models;
         self
+    }
+}
+
+/// The cut-offs that decide a page's text-layer status ([`crate::TextLayerStatus`]): starting
+/// values, which a pipeline can tune to its documents. Shares are in thousandths (500 is half),
+/// as the measures are rounded to them: of the page's area, or of its visible glyphs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub struct TextLayerThresholds {
+    /// Images covering at least this share of the page make it an image page (500).
+    pub image_page: u16,
+    /// Images covering at least this share make a page with text `mixed` (250).
+    pub image_mixed: u16,
+    /// An image page with at most this many visible characters (a stamp, a page number) needs
+    /// OCR (200).
+    pub few_chars: usize,
+    /// At least this share of unmapped glyphs means the page needs OCR (500).
+    pub unmapped_needs_ocr: u16,
+    /// At least this share of unmapped glyphs makes a page `mixed` (100).
+    pub unmapped_mixed: u16,
+    /// A page with no text and no image that paints at least this many paths isn't blank: its
+    /// text may be outlined (16).
+    pub drawn_paths: usize,
+}
+
+impl Default for TextLayerThresholds {
+    fn default() -> Self {
+        Self {
+            image_page: 500,
+            image_mixed: 250,
+            few_chars: 200,
+            unmapped_needs_ocr: 500,
+            unmapped_mixed: 100,
+            drawn_paths: 16,
+        }
     }
 }
 

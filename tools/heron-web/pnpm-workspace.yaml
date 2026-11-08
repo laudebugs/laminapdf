@@ -1,0 +1,7 @@
+# Its own pnpm project, outside the root workspace (like tools/differential): onnxruntime-web
+# (150 MB) is needed only to check Heron in the browser runtime, so the root install stays small.
+# Install with `pnpm --dir tools/heron-web install --frozen-lockfile`.
+packages: []
+# protobufjs's postinstall only reports its version to the console: nothing here needs it.
+allowBuilds:
+  protobufjs: false
