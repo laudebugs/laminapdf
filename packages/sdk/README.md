@@ -153,7 +153,7 @@ const chunks = doc.extract({ format: "chunks", chunk: { maxTokens: 400 } });
 
 `doc.extract()` runs to the end in one call. In a Web Worker (`@laminapdf/sdk/worker`) the main thread stays free, but aborting the call's `signal` only rejects the promise: the Web Worker finishes the extraction first.
 
-### With a layout model: `doc.extractJob()`
+### With a layout model: `extractWithModels()`
 
 The rules read most pages well. A layout model reads the pages they misread, such as magazines and columns set close together, by finding each page's regions: text, headings, lists, tables, pictures and running headers. The extraction then keeps each region's text together, reads the regions in order and names their kinds.
 
@@ -167,7 +167,11 @@ const json = await extractWithModels(
 );
 ```
 
-`generator.models` in the JSON names every model that gave a result, and `generator.mode` reads `rules+models`. An OCR engine plugs in the same way (`models.ocr` and an `ocr` function returning words) and reads only the pages with no visible text. To step the extraction yourself, `doc.extractJob(options)` returns a job: each `step(budget)` that needs a result returns its `request`, and `provide(result)` answers it. [`@laminapdf/layout-heron`](../layout-heron/README.md) runs Docling's Heron layout model with onnxruntime-web.
+Here `heron` is [`@laminapdf/layout-heron`](../layout-heron/README.md)'s `HeronLayout`, which runs Docling's Heron layout model with onnxruntime-web, and `renderPage` is your own function that draws the page with `@laminapdf/render-pdfium` or `@laminapdf/render-hayro`.
+
+`generator.models` in the JSON names every model that gave a result, and `generator.mode` reads `rules+models`. An OCR engine plugs in the same way (`models.ocr` and an `ocr` function returning words) and reads only the pages with no visible text.
+
+To step the extraction yourself, `doc.extractJob(options)` returns a job: each `step(budget)` that needs a result returns its `request`, and `provide(result)` answers it.
 
 ## Remote and large files
 

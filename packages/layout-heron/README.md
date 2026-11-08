@@ -1,6 +1,6 @@
 # @laminapdf/layout-heron
 
-`@laminapdf/layout-heron` lets a web app use Docling's Heron layout model with Lamina PDF's extraction. Heron finds each page's text, headings, lists, tables, pictures and running headers, and `extractWithModels` then reads the page by those regions. This helps on pages the rules alone misread. The package does Heron's image preparation and box filtering; the app supplies ONNX Runtime and the weights.
+`@laminapdf/layout-heron` lets a web app use Docling's Heron layout model with Lamina PDF's extraction. Heron finds each page's text, headings, lists, tables, pictures and running headers, and `extractWithModels` then reads the page by those regions. The regions help on pages the rules alone misread. The package does Heron's image preparation and box filtering; the app supplies ONNX Runtime and the weights.
 
 ```ts
 import * as ort from "onnxruntime-web";
