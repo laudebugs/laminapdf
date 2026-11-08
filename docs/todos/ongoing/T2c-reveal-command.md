@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T2c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T2](../../plans/trust-and-proof.md#t2-find-what-files-hide) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [T2b](../done/T2b-check-failed-redactions.md) |

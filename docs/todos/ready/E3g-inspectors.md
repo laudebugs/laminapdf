@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [T2c](./T2c-reveal-command.md) |
+| Depends on | [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [T2c](../ongoing/T2c-reveal-command.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3g-inspectors` |
 | PR title | `feat(app): document inspectors and COS object browser` |

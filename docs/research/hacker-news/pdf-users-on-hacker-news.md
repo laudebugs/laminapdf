@@ -336,7 +336,7 @@ Safe opening of untrusted files is the top request about the format (~270 commen
 
 - **Lamina PDF today:** [E11d](../../todos/ready/E11d-sanitiser.md) plans a sanitiser that reports what it removed, and [E3g](../../todos/ready/E3g-inspectors.md) inspectors for objects and revisions.
 - **The gap:** a read-only report, from the CLI and the MCP server, of what a file discloses beyond its visible pages, for journalists checking a released file and for publishers before release.
-- **Work:** [T2c](../../todos/ready/T2c-reveal-command.md) adds `laminapdf reveal`.
+- **Work:** [T2c](../../todos/ongoing/T2c-reveal-command.md) adds `laminapdf reveal`.
 
 ### R9. Say loudly what Lamina already has
 

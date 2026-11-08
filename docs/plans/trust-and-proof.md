@@ -75,7 +75,7 @@ A black box over live text is the classic failed redaction, and incremental save
 | --- | --- | --- | --- |
 | [T2a](../todos/done/T2a-covered-text-flag.md) | Extraction flags text hidden under later shapes, images and annotations (`covered`) | L | L3g |
 | [T2b](../todos/done/T2b-check-failed-redactions.md) | `laminapdf check` warns about failed redactions: covered text, unapplied redaction annotations, text left in earlier revisions | L | T2a |
-| [T2c](../todos/ready/T2c-reveal-command.md) | `laminapdf reveal`: what a file discloses, in the CLI and MCP | L | T2b |
+| [T2c](../todos/ongoing/T2c-reveal-command.md) | `laminapdf reveal`: what a file discloses, in the CLI and MCP | L | T2b |
 
 ### T3. Extraction users can check
 
@@ -210,7 +210,7 @@ Work the agents found while writing the todos, left out of Round T for now:
 - [x] Research what PDF users want on Hacker News, 2016–2026 ([report](../research/hacker-news/pdf-users-on-hacker-news.md), [notes](../research/hacker-news/README.md), [scripts](../../tools/hn-research/README.md))
 - [x] Write the Round T todos and amend E4f, E7f and the feature-plan todos (§7)
 - [ ] T1: publish the proof ([T1a](../todos/ready/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/ready/T1c-publish-performance-numbers.md), [T1d](../todos/done/T1d-snapshot-testing-guide.md))
-- [ ] T2: find what files hide ([T2a](../todos/done/T2a-covered-text-flag.md), [T2b](../todos/done/T2b-check-failed-redactions.md), [T2c](../todos/ready/T2c-reveal-command.md))
+- [ ] T2: find what files hide ([T2a](../todos/done/T2a-covered-text-flag.md), [T2b](../todos/done/T2b-check-failed-redactions.md), [T2c](../todos/ongoing/T2c-reveal-command.md))
 - [ ] T3: extraction users can check ([T3a](../todos/done/T3a-text-layer-status.md), [T3b](../todos/done/T3b-reading-order-confidence.md), [T3c](../todos/done/T3c-tables-across-pages.md))
 - [ ] T4: pages that flow ([T4a](../todos/done/T4a-adr-0032-layout-engine.md), [T4f](../todos/ready/T4f-flow-builder-groundwork.md), [T4g](../todos/ready/T4g-flow-styled-spans.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4h](../todos/ready/T4h-flow-notes-contents-outline.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4i](../todos/ready/T4i-build-command-and-bindings.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md), [T4j](../todos/ready/T4j-documents-in-typescript.md))
 - [ ] T5: long reading ([T5a](../todos/ready/T5a-link-previews.md), [T5b](../todos/ready/T5b-reopen-at-last-position.md))

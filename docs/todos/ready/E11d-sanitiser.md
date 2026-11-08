@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E5b](./E5b-comment-threads-and-review.md), [E7c](./E7c-content-ir.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md), [T2c](./T2c-reveal-command.md) |
+| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E5b](./E5b-comment-threads-and-review.md), [E7c](./E7c-content-ir.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md), [T2c](../ongoing/T2c-reveal-command.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e11d-sanitiser` |
 | PR title | `feat(ops): document sanitisation with a removal report` |
