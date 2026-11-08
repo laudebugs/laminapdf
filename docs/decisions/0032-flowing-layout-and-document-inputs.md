@@ -31,13 +31,13 @@ The flow layer is Lamina PDF's own code in `laminapdf-build`. Typst is neither e
 | pdf.js reads back the Arabic and Devanagari paragraphs | both | neither |
 | Byte-identical output, native and WebAssembly | yes | yes |
 
-Typst's API also broke twice between 0.14 and 0.15, and its minor releases come 4 to 8 months apart. Typst does tag better than our builder today: a paragraph or table across a page break stays one element, and headers and footers carry `/Subtype`s. Those behaviours become requirements for our engine (§4), and the spike's two documents stay as a comparison: T4b's tests lay them out with both engines and hold ours to Typst's structure.
+Typst's API also broke twice between 0.14 and 0.15, and its minor releases come 4 to 8 months apart. Typst does tag better than our builder today: a paragraph or table across a page break stays one element, and headers and footers carry `/Subtype`s. Those behaviours become requirements for our engine (§4). The spike's two documents stay as the comparison: T4b's tests hold our engine to the structure Typst wrote for them.
 
-The hybrid (C) is rejected too. `Surface` draws strings, so Typst's glyphs had to be shaped again, which broke Arabic joining, and Typst's tagger lives in `typst-pdf`. A working hybrid needs a glyph-run API and a tagger of our own, which is most of route A's work with all of Typst's size.
+The hybrid (C) is rejected too. `Surface` draws strings, so Typst's glyphs had to be shaped again, which broke Arabic joining, and Typst's tagger lives in `typst-pdf`. A working hybrid needs a glyph-run API and a tagger of our own, which is most of A's work with all of Typst's size.
 
 ### 3. The layout model
 
-**Blocks:** `Paragraph` (inline spans of styled text, links and line breaks), `Heading` (levels 1–6), `List` (bulleted or numbered, nested), `Figure` (an image with alt text), `Table`, `Spacer`, `PageBreak` and `Keep` (blocks kept on one page). Notes and a contents page come with tables (§10).
+**Blocks:** `Paragraph` (inline spans of styled text, links and line breaks), `Heading` (levels 1–6), `List` (bulleted or numbered, nested), `Figure` (an image with alt text), `Table`, `Spacer`, `PageBreak` and `Keep` (blocks kept on one page). Footnotes and a contents page are blocks too; T4h adds them (§10).
 
 **Pagination** is greedy and deterministic. A paragraph splits between lines with at least two lines at the foot and the head of a page (`widows` and `orphans`, 2 and 2 by default, per paragraph style). A heading keeps with the block after it; a `Keep` group and a figure move whole. Optimal (Knuth–Plass) breaking is out: it costs layout passes for a gain few documents need.
 
@@ -61,7 +61,7 @@ Flowing output is tagged by default, and a caller can turn tagging off. This ans
 - **Mapping:** `P`, `H1`–`H6`, `L`, `LI`, `Lbl`, `LBody`, `Figure` with `/Alt`, `Link`, `Span` with `/Lang` for a span in another language, and `Table` with `THead`, `TBody`, `TFoot`, `TR`, `TH` (`/Scope /Column`) and `TD`.
 - **Elements across pages:** a paragraph, list or table split by a page break stays one element, whose `/K` reaches its content on later pages through marked-content references. The spike's builder made two elements of each of 36 split paragraphs, and 24 `Table` elements for 10 tables.
 - **Artifacts:** running headers and footers are `Pagination` artifacts with `/Subtype /Header` or `/Footer` and `/Attached`, as Typst writes them. Header rows repeated on a later page are `Pagination` artifacts; rules and backgrounds are `Layout` artifacts.
-- **PDF/UA-1:** every glyph has a Unicode value. The spike found the builder refusing Arabic with diacritics (`glyph-without-unicode` on a mark that shares a cluster with its letter), where Typst writes it and veraPDF passes it; the groundwork todo fixes that.
+- **PDF/UA-1:** every glyph has a Unicode value. The spike's builder refused Arabic with diacritics: a mark that shares a cluster with its letter got no value (`glyph-without-unicode`). Typst wrote the same text and veraPDF passed it, and the groundwork todo fixes our builder.
 
 ### 5. Placement
 
@@ -89,14 +89,14 @@ Flowing output is tagged by default, and a caller can turn tagging off. This ans
 
 ### 8. Fonts
 
-The front ends use the fonts the caller gives, by role (body, bold, italic, bold italic, mono, headings). Without fonts they use the standard 14 Helvetica family and Courier. That sets Latin text only, unshaped, and PDF/UA-1 refuses it (`font-not-embedded`), which the CLI's hint names with `--font`. No font is bundled: a Noto Sans subset would cost more than the flow layer itself. pdf-library §9 question 2 (an optional fonts package) stays open.
+The front ends use the fonts the caller gives, by role (body, bold, italic, bold italic, mono, headings). Without fonts they use the standard 14 Helvetica family and Courier, which set Latin text only, unshaped. PDF/UA-1 refuses those fonts (`font-not-embedded`), and the CLI's hint for that error names `--font`. No font is bundled: a Noto Sans subset would cost more than the flow layer itself. pdf-library §9 question 2 (an optional fonts package) stays open.
 
 ### 9. Budgets
 
 | What | Budget | The spike measured |
 | --- | --- | --- |
-| Two-page invoice, native | ≤ 10 ms | 6.6 ms (two passes) |
-| Two-page invoice, Node 24, best of 30 | ≤ 25 ms | 10.8 ms |
+| Two-page invoice, native | ≤ 10 ms | 5.6 ms (two passes) |
+| Two-page invoice, Node 24, best of 30 | ≤ 25 ms | 10.7 ms (two passes) |
 | 100-page report, native | ≤ 250 ms | about 190 ms per pass |
 | 100-page report, Node 24, best of 10 | ≤ 500 ms ([pdf-library §4](../plans/pdf-library.md#4-requirements)) | about 310 ms per pass |
 | Text module, gzip | 1,280,000 B (from 1,130,000) | baseline 819 KB in the probe; paginator +19 KB, Markdown +60 KB |

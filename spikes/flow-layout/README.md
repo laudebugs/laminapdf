@@ -11,7 +11,7 @@ How should Lamina PDF lay out pages that flow: with an engine of its own over `l
 
 ## Answer in one paragraph
 
-**Build our own engine over `Surface` (route 1), and treat Typst as the reference to measure it against.** With its caches warm, Typst embedded lays the report out in 62 ms against about 190 ms for one pass of ours, and it tags better than our builder does today. But it adds 7.4 MB of gzipped WebAssembly to a 0.82 MB module, 147 crates (thread pools among them), an API that broke twice between 0.14 and 0.15, and finished bytes that Lamina PDF can only edit after reopening them. It also draws glyphs that no font has as blank boxes without a warning, and pdf.js reads its Arabic and Devanagari back scrambled. Our own paginator, about 230 lines over today's builder, added 19 KB, wrote the same bytes natively and in WebAssembly, and was read back exactly by pdf.js. What it lacked is a short list of builder features: tagged elements that continue on the next page, a way to measure text without drawing it, artifact subtypes, and a Unicode value for every mark under PDF/UA-1. [T4f](../../docs/todos/ready/T4f-flow-builder-groundwork.md) adds them, before the flow layer itself.
+**Build our own engine over `Surface` (A), and treat Typst as the reference to measure it against.** With its caches warm, Typst embedded lays the report out in 62 ms against about 190 ms for one pass of ours, and it tags better than our builder does today. But it adds 7.4 MB of gzipped WebAssembly to a 0.82 MB module and 147 crates, thread pools among them. Its API broke twice between 0.14 and 0.15, and it returns finished bytes that Lamina PDF can only edit after reopening them. It also draws glyphs that no font has as blank boxes without a warning, and pdf.js reads its Arabic and Devanagari back scrambled. Our own paginator, about 230 lines over today's builder, added 19 KB, wrote the same bytes natively and in WebAssembly, and was read back exactly by pdf.js. What it lacked is a short list of builder features: tagged elements that continue on the next page, a way to measure text without drawing it, artifact subtypes, and a Unicode value for every mark under PDF/UA-1. [T4f](../../docs/todos/ready/T4f-flow-builder-groundwork.md) adds them, before the flow layer itself.
 
 ## Method
 
@@ -30,14 +30,14 @@ The fonts are the Noto subsets in `fixtures/fonts/` (OFL 1.1). The Devanagari su
 | **B** Typst embedded (`src/typst_pdf.rs`, `src/typst_world.rs`) | An in-memory `World` (sources, the fonts, a fixed date), `typst::compile`, then `typst_pdf::pdf` with a fixed identifier and timestamp and PDF/UA-1. Lamina PDF then opens the bytes, sets the title, saves incrementally and reopens the result. |
 | **C** hybrid (`src/typst_frames.rs`) | Typst's laid-out frames (groups, text, shapes) drawn through `Surface` without `typst-pdf`. It stops after each document's first page, the todo's time box. |
 
-`src/probe.rs` reads each output's structure tree back. `wasm/` builds each experiment as a `wasm32-unknown-unknown` cdylib with the root workspace's `wasm-release` profile, and `scripts/wasm.sh` runs binaryen version_133's `wasm-opt` as `cargo xtask wasm` does (`-O1`, then stripped). `scripts/node-time.mjs` times those modules in Node and hashes their output.
+`src/probe.rs` reads each output's structure tree back. `wasm/` builds each experiment as a `wasm32-unknown-unknown` cdylib with the root workspace's `wasm-release` profile, and `scripts/wasm.sh` runs binaryen version_133's `wasm-opt` as `cargo xtask wasm` does (`-O1`, then stripped). `scripts/node-time.mjs` times those modules in Node and compares their output with the native files byte for byte.
 
 Typst 0.15.1 needs `skrifa` 0.42.1, through hayro and vello_cpu, and the workspace pins `=0.42.0`. `scripts/run.sh` moves that pin for one command and puts the root `Cargo.toml` back afterwards, so run everything through it:
 
 ```sh
 scripts/run.sh cargo run --release                   # A, B and C; PDFs in target/flow-layout/
 scripts/run.sh scripts/wasm.sh                       # WebAssembly sizes
-node scripts/node-time.mjs target/wasm/own.wasm      # Node timings (after wasm.sh)
+node scripts/node-time.mjs target/wasm/own.wasm a    # Node timings and the byte check (after wasm.sh; b for typst.wasm)
 ```
 
 ## Measurements
@@ -81,7 +81,7 @@ The report times include A's two passes: A draws every line twice, once to count
 | A table across a page break | a `Table` per page (24 for 10 tables) | one `Table` (10), with `THead` and `TBody` |
 | Running header and footer | `/Artifact` `/Pagination`, no subtype | `/Pagination` with `/Subtype /Header` or `/Footer` and `/Attached` |
 
-Both engines mark the header and footer as artifacts, and Lamina PDF's extraction drops them from both. The Arabic sentence has diacritics. With PDF/UA-1 on, Typst writes a Unicode value for every glyph, while our builder gives a mark that shares a cluster with its letter no value of its own and refuses the file. Without PDF/UA-1, Typst's report failed veraPDF's rule 7.21.7 (character codes without Unicode) 14 times.
+Both engines mark the header and footer as artifacts, and Lamina PDF's extraction drops them from both. The Arabic sentence has diacritics. With PDF/UA-1 on, Typst writes a Unicode value for every glyph, while our builder leaves a mark that shares a cluster with its letter without a value of its own, and refuses the file. Without PDF/UA-1, Typst's report failed veraPDF's rule 7.21.7 (character codes without Unicode) 14 times.
 
 ### Shaping and extraction
 
@@ -90,7 +90,7 @@ Both engines mark the header and footer as artifacts, and Lamina PDF's extractio
 | pdf.js 6.4.299: Arabic / Devanagari equal to the input | yes / yes | no / no | no / yes |
 | pdftotext 24.02: Arabic / Devanagari | no / yes | no / yes | no / yes |
 
-Whitespace and bidi controls are removed before comparing. pdftotext splits A's Arabic into three lines and misplaces one shadda, so it reads none of the three Arabic paragraphs back. `hb-shape` wasn't installed, so the glyph-level comparison with `fixtures/shaping/` wasn't run. A shapes with `laminapdf-text`, which matches those goldens already, and Typst shapes with rustybuzz 0.20.
+Whitespace and bidi controls are removed before comparing. pdftotext reads none of the three Arabic paragraphs back; in A's it splits the paragraph into three lines and misplaces one shadda. `hb-shape` wasn't installed, so the glyph-level comparison with `fixtures/shaping/` wasn't run. A shapes with `laminapdf-text`, which matches those goldens already, and Typst shapes with rustybuzz 0.20.
 
 Text whose glyphs no font has: our builder fails with `missing-glyph`. Typst compiles it with no error and no warning, and the page shows blank boxes.
 
@@ -105,7 +105,7 @@ Every output was byte-identical across 30 runs, natively. `scripts/node-time.mjs
 
 ### What experiment C couldn't map
 
-`Surface` draws strings, not glyph runs, so C had to shape Typst's text again with our shaper. Latin came out where Typst put it. Typst splits an Arabic line into many short items, though, and shaping each one alone broke the joining: 65 of the report page's 122 text items came out more than 0.5 pt wider or narrower than Typst's. Typst's 346 introspection tags across the two pages couldn't be used either, because its tagger lives in `typst-pdf`. A working hybrid needs a glyph-run API on `Surface` and a tagger of our own, which is most of route 1's work plus Typst's size.
+`Surface` draws strings, not glyph runs, so C had to shape Typst's text again with our shaper. Latin came out where Typst put it. Typst splits an Arabic line into many short items, though, and shaping each one alone broke the joining: 65 of the report page's 122 text items came out more than 0.5 pt wider or narrower than Typst's. Typst's 346 introspection tags across the two pages couldn't be used either, because its tagger lives in `typst-pdf`. A working hybrid needs a glyph-run API on `Surface` and a tagger of our own, which is most of A's work plus Typst's size.
 
 ### Licences and upkeep
 
