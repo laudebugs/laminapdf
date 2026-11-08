@@ -73,10 +73,16 @@ pub(crate) struct PageInput<'a> {
 /// layer (a scanner's own OCR, `Tr 3`) doesn't count: it is dropped as hidden text
 /// (ADR 0030 §4), so OCR text never repeats it in the blocks.
 pub(crate) fn has_visible_text(text: &PageText, backdrops: &Backdrops, options: &ExtractOptions) -> bool {
-    !runs(0, text, backdrops, options).pieces.is_empty()
+    !runs(0, text, backdrops, &[], options).pieces.is_empty()
 }
 
-fn runs(index: usize, text: &PageText, backdrops: &Backdrops, options: &ExtractOptions) -> Runs {
+fn runs(
+    index: usize,
+    text: &PageText,
+    backdrops: &Backdrops,
+    regions: &[LayoutRegion],
+    options: &ExtractOptions,
+) -> Runs {
     let frame = &text.frame;
     let (width, height, unit) = (frame.width(), frame.height(), frame.user_unit());
     let mut out = Runs {
@@ -116,7 +122,7 @@ fn runs(index: usize, text: &PageText, backdrops: &Backdrops, options: &ExtractO
             });
             continue;
         }
-        for (words, bbox) in segments(text, run, size) {
+        for (words, bbox) in segments(text, run, size, regions) {
             let words = if run.actual_text {
                 words
             } else {
@@ -160,7 +166,9 @@ fn quad_box(quad: &Quad) -> RectPt {
 /// `laminapdf-text` keeps such a jump inside one run (as a space), so two columns drawn row
 /// by row in one font would otherwise share every line. Runs whose text is not their glyphs'
 /// in drawing order (`ActualText`, right to left, vertical) stay whole.
-fn segments(text: &PageText, run: &PageTextRun, size: Pt) -> Vec<(String, RectPt)> {
+/// A run cut into pieces at column gutters, and where its glyphs pass from one layout region
+/// into another (models see columns that sit closer than a gutter).
+fn segments(text: &PageText, run: &PageTextRun, size: Pt, regions: &[LayoutRegion]) -> Vec<(String, RectPt)> {
     let whole = || vec![(run.text.clone(), run.bounds)];
     if run.actual_text || run.vertical || run.text.chars().any(is_right_to_left) {
         return whole();
@@ -170,10 +178,19 @@ fn segments(text: &PageText, run: &PageTextRun, size: Pt) -> Vec<(String, RectPt
     };
     let (gutter, space) = (GUTTER * size.get(), SPACE * size.get());
     let mut parts: Vec<(String, RectPt)> = Vec::new();
+    let mut last_region = None;
     for glyph in glyphs {
         let r = quad_box(&glyph.quad);
+        // A space glyph belongs to the part it follows.
+        let region = if glyph.text.trim().is_empty() {
+            last_region
+        } else {
+            region_of(regions, &r)
+        };
+        let same_region = parts.is_empty() || region == last_region;
+        last_region = region;
         match parts.last_mut() {
-            Some((words, bbox)) if r.x0.get() - bbox.x1.get() <= gutter => {
+            Some((words, bbox)) if same_region && r.x0.get() - bbox.x1.get() <= gutter => {
                 let gap = r.x0.get() - bbox.x1.get();
                 if gap > space && !words.ends_with(char::is_whitespace) && !glyph.text.starts_with(char::is_whitespace)
                 {
@@ -276,15 +293,44 @@ fn take_in<T>(items: Vec<T>, order: &[usize]) -> Vec<T> {
     order.iter().filter_map(|&i| slots.get_mut(i).and_then(Option::take)).collect()
 }
 
+/// The page's lines, built within each layout region (and among the pieces outside every
+/// region), so no line crosses a region's edge; with each line's region. Without regions,
+/// the rules' lines.
+fn region_lines(pieces: &[Piece], regions: &[LayoutRegion]) -> (Vec<Line>, Vec<Option<usize>>) {
+    if regions.is_empty() {
+        let lines = lines(pieces);
+        let none = vec![None; lines.len()];
+        return (lines, none);
+    }
+    let mut groups: std::collections::BTreeMap<Option<usize>, Vec<usize>> = std::collections::BTreeMap::new();
+    for (i, piece) in pieces.iter().enumerate() {
+        groups.entry(region_of(regions, &piece.bbox)).or_default().push(i);
+    }
+    let (mut out, mut region) = (Vec::new(), Vec::new());
+    for (r, members) in groups {
+        let sub: Vec<Piece> = members.iter().filter_map(|&i| pieces.get(i).cloned()).collect();
+        for mut line in lines(&sub) {
+            line.pieces = line.pieces.iter().filter_map(|&p| members.get(p).copied()).collect();
+            out.push(line);
+            region.push(r);
+        }
+    }
+    (out, region)
+}
+
 /// The lines grouped into blocks, never across a layout region's edge: each region's lines
 /// (and the lines outside every region) make their own blocks.
-fn region_drafts(lines: &[Line], regions: &[LayoutRegion], vertical: impl Fn(&Line) -> bool) -> Vec<(Draft, Option<usize>)> {
-    if regions.is_empty() {
+fn region_drafts(
+    lines: &[Line],
+    line_region: &[Option<usize>],
+    vertical: impl Fn(&Line) -> bool,
+) -> Vec<(Draft, Option<usize>)> {
+    if line_region.iter().all(Option::is_none) {
         return blocks(lines, vertical).into_iter().map(|d| (d, None)).collect();
     }
     let mut groups: std::collections::BTreeMap<Option<usize>, Vec<usize>> = std::collections::BTreeMap::new();
-    for (i, line) in lines.iter().enumerate() {
-        groups.entry(region_of(regions, &line.bbox)).or_default().push(i);
+    for (i, r) in line_region.iter().enumerate().take(lines.len()) {
+        groups.entry(*r).or_default().push(i);
     }
     let mut out = Vec::new();
     for (region, members) in groups {
@@ -378,7 +424,7 @@ pub(crate) fn extract_page(
         mut pieces,
         mut spans,
         mut dropped,
-    } = runs(index, text, painting.backdrops, options);
+    } = runs(index, text, painting.backdrops, painting.regions, options);
     let (ocr, ocr_spans) = ocr_pieces(painting.words);
     pieces.extend(ocr);
     spans.extend(ocr_spans);
@@ -473,13 +519,13 @@ fn layout(
         doc.report(Warning::ExtractTableAmbiguous { page: page_number })?;
     }
     let flow = Flow::split(pieces, spans, &tables);
-    let lines = lines(&flow.pieces);
+    let regions = painting.regions;
+    let (lines, line_region) = region_lines(&flow.pieces, regions);
     let vertical = lines.iter().filter(|l| is_vertical(l, &flow.pieces)).count();
     if vertical > 0 && vertical < lines.len() {
         doc.report(Warning::ExtractReadingOrderAmbiguous { page: page_number })?;
     }
-    let regions = painting.regions;
-    let drafts = region_drafts(&lines, regions, |l| is_vertical(l, &flow.pieces));
+    let drafts = region_drafts(&lines, &line_region, |l| is_vertical(l, &flow.pieces));
     // Vertical writing (Chinese, Japanese) sets its columns right to left, as do right-to-left
     // scripts.
     let rtl = 2 * vertical > lines.len() || mostly_rtl(&lines.iter().map(|l| l.text.as_str()).collect::<String>());
@@ -636,10 +682,18 @@ fn text_block(
 ) -> Block {
     let block_lines: Vec<&Line> = draft.lines.iter().filter_map(|&l| lines.get(l)).collect();
     let text = join_lines(block_lines.iter().map(|l| l.text.as_str()), options.dehyphenate);
-    let spans = block_lines
+    let spans: Vec<Span> = block_lines
         .iter()
         .flat_map(|l| l.pieces.iter().filter_map(|&p| flow.spans.get(p).cloned()))
         .collect();
+    // Text an OCR engine read is as sure as its words.
+    let ocr: Vec<f64> = spans.iter().filter_map(|s| s.ocr).collect();
+    #[expect(clippy::cast_precision_loss, reason = "a block's word count is far below 2^52")]
+    let confidence = if ocr.is_empty() {
+        confidence
+    } else {
+        ocr.iter().sum::<f64>() / ocr.len() as f64
+    };
     Block {
         id,
         kind: BlockKind::Paragraph,

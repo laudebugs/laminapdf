@@ -43,6 +43,7 @@ impl From<crate::plugins::ModelError> for ExtractError {
     fn from(e: crate::plugins::ModelError) -> Self {
         match e {
             crate::plugins::ModelError::Cancelled => Self::Cancelled,
+            crate::plugins::ModelError::Failed { reason } => Self::ModelFailed { reason },
             other => Self::ModelFailed {
                 reason: other.to_string(),
             },
