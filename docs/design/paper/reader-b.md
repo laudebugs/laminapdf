@@ -307,7 +307,7 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Artboards.** `R18-outline-phone.dc.html` (prop `emptyOutline` shows the empty state), `R18-find-phone.dc.html` (prop `noMatch` shows the no-match state with the help line), `R18-more-phone.dc.html` (page in Sepia, matching the View settings value) (+ `R10-view-settings-phone.dc.html`).
 
-**As built ([U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md)).** The Contents sheet (Pages · Outline once C6a gives the rail its tabs) and the More sheet are as drawn, and the inspector is a sheet too. The bottom bar shows Pages and More; Search joins it when find has a handler (C5b), and Annotate and Reader when their rounds land. The top bar keeps the file name and the overflow, with no Back, since the reader has no files view to go back to yet. The page pill isn't built yet.
+**As built ([U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md)).** The Contents sheet (Pages · Outline once C6a gives the rail its tabs) and the More sheet are as drawn, and the inspector is a sheet too. The page pill isn't built yet. The bottom bar shows Pages and More; Search joins it when find has a handler (C5b), and Annotate and Reader when their rounds land. The top bar keeps the file name and the overflow, with no Back, since the reader has no files view to go back to yet.
 
 **Todos.** [U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md).
 
