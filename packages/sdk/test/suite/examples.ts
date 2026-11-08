@@ -4,6 +4,7 @@
 // Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
 // runtime produces the same bytes.
 import { type BuilderOptions, init, wasmMemory } from "@laminapdf/sdk";
+import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
@@ -37,6 +38,8 @@ const SCRIPT_FONTS = [
   "fixtures/fonts/NotoSansSC-Regular.otf",
 ] as const;
 const PHOTO = "fixtures/images/photo-rgb.jpg";
+/** The report the element-flow example lays out; its body runs onto a second page. */
+const FLOW_REPORT = "fixtures/text/element-flow-report.json";
 /** The modification date generate-then-edit records, fixed like the options. */
 const EDITED_AT = "D:20261030130000Z";
 
@@ -45,6 +48,11 @@ function input(inputs: Inputs, path: string): Uint8Array {
   const bytes = inputs[path];
   if (bytes === undefined) throw new Error(`the runner did not supply ${path}`);
   return bytes;
+}
+
+/** The report of `FLOW_REPORT`, as the runner supplied it. */
+function flowReport(inputs: Inputs): Report {
+  return JSON.parse(new TextDecoder().decode(input(inputs, FLOW_REPORT))) as Report;
 }
 
 /** The TS examples with Rust goldens (`fixtures/golden/examples/`, ADR 0018 §5). */
@@ -102,6 +110,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "pdf_a3_invoice_with_xml",
     inputs: [NOTO],
     build: (i) => pdfA3InvoiceWithXml(input(i, NOTO)),
+  },
+  {
+    name: "element-flow",
+    golden: "element_flow",
+    inputs: [PHOTO, FLOW_REPORT],
+    build: (i) => elementFlow(input(i, PHOTO), flowReport(i), exampleOptions("lamina-ex-flow!!")),
   },
 ];
 
