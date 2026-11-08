@@ -289,6 +289,10 @@
           "minimum": 0,
           "type": "integer"
         },
+        "textLayer": {
+          "$ref": "#/$defs/TextLayer",
+          "description": "Whether the page's text is the page's text, and the measures that decided it."
+        },
         "width": {
           "description": "The displayed width in points (after `/Rotate` and `/UserUnit`).",
           "format": "double",
@@ -300,7 +304,8 @@
         "number",
         "width",
         "height",
-        "coordinates"
+        "coordinates",
+        "textLayer"
       ],
       "type": "object"
     },
@@ -774,6 +779,89 @@
         {
           "const": "tagged",
           "description": "The structure tree's `Table` element (ISO 32000-2 §14.8.4.8.3).",
+          "type": "string"
+        }
+      ]
+    },
+    "TextLayer": {
+      "description": "What a page's text layer is: whether its extracted text is the page's text, or the page\nneeds OCR. The measures let a pipeline apply its own cut-offs.",
+      "properties": {
+        "chars": {
+          "description": "Visible characters (spaces left out) in runs that aren't invisible, off the page or tiny.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "imageShare": {
+          "description": "The share of the page the images cover, measured on a 32 × 32 grid.",
+          "format": "double",
+          "type": "number"
+        },
+        "images": {
+          "description": "How many images the page draws, in its forms too.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "invisibleChars": {
+          "description": "Characters drawn invisibly (text rendering mode 3 or 7), such as an OCR layer.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "paths": {
+          "description": "How many paths the page paints (fills and strokes).",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/TextLayerStatus",
+          "description": "The verdict."
+        },
+        "unmappedShare": {
+          "description": "The share of the visible runs' glyphs that map to no Unicode; 0 with no visible glyphs.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "status",
+        "chars",
+        "invisibleChars",
+        "unmappedShare",
+        "images",
+        "imageShare",
+        "paths"
+      ],
+      "type": "object"
+    },
+    "TextLayerStatus": {
+      "description": "A page's text-layer status, the first that applies.",
+      "oneOf": [
+        {
+          "const": "empty",
+          "description": "No text, visible or invisible, no image and few paths: the page is blank.",
+          "type": "string"
+        },
+        {
+          "const": "ocr-layer",
+          "description": "Images cover most of the page and invisible text outnumbers the visible: a scan with an\nOCR layer, which extraction leaves out.",
+          "type": "string"
+        },
+        {
+          "const": "needs-ocr",
+          "description": "No visible text, a scan with at most a stamp of text, or mostly glyphs without Unicode:\nsend the page to OCR.",
+          "type": "string"
+        },
+        {
+          "const": "mixed",
+          "description": "Usable text, but some glyphs have no Unicode or images cover part of the page.",
+          "type": "string"
+        },
+        {
+          "const": "native",
+          "description": "The text is the page's text.",
           "type": "string"
         }
       ]

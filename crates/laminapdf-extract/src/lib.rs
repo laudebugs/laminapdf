@@ -40,6 +40,7 @@ mod headings;
 mod job;
 mod lines;
 mod lists;
+mod marks;
 mod model;
 mod options;
 mod output;
@@ -51,6 +52,7 @@ mod segments;
 mod tables;
 mod tagged;
 mod text_fix;
+mod text_layer;
 mod visibility;
 mod xycut;
 
@@ -58,9 +60,9 @@ pub use error::ExtractError;
 pub use job::{ExtractJob, extract, extract_job};
 pub use model::{
     Block, BlockKind, Cell, Coordinates, DropReason, Dropped, ExtractedPage, ExtractedSource, Extraction, Flags,
-    SCHEMA, Span, StructRef, StructSource, TableDetector,
+    SCHEMA, Span, StructRef, StructSource, TableDetector, TextLayer, TextLayerStatus,
 };
-pub use options::{DropOptions, ExtractLimits, ExtractOptions, ReadingOrder};
+pub use options::{DropOptions, ExtractLimits, ExtractOptions, ReadingOrder, TextLayerThresholds};
 #[cfg(feature = "schema")]
 pub use output::json_schema;
 pub use output::{Chunk, ChunkOptions, MarkdownOptions, Region, Rendered, SplitOn, TextRange, tokens_approx};

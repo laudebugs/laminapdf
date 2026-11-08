@@ -293,6 +293,15 @@ pub enum Warning {
         /// How many characters (spaces left out) lie outside the tree.
         chars: u64,
     },
+    /// `extract-needs-ocr`: a page's text isn't the page's text: it has none (a scan or outlined
+    /// glyphs), mostly glyphs without Unicode, or only an invisible OCR layer over an image,
+    /// which extraction leaves out. Raised by `laminapdf-extract`.
+    ExtractNeedsOcr {
+        /// The page's index.
+        page: u64,
+        /// The page's text-layer status: `needs-ocr` or `ocr-layer`.
+        status: &'static str,
+    },
 }
 
 impl Warning {
@@ -338,6 +347,7 @@ impl Warning {
         "extract-table-limit",
         "extract-struct-tree-ignored",
         "extract-untagged-content",
+        "extract-needs-ocr",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -384,6 +394,7 @@ impl Warning {
             Self::ExtractTableLimit { .. } => "extract-table-limit",
             Self::ExtractStructTreeIgnored { .. } => "extract-struct-tree-ignored",
             Self::ExtractUntaggedContent { .. } => "extract-untagged-content",
+            Self::ExtractNeedsOcr { .. } => "extract-needs-ocr",
         }
     }
 
@@ -430,7 +441,8 @@ impl Warning {
             | Self::ExtractTableAmbiguous { .. }
             | Self::ExtractTableLimit { .. }
             | Self::ExtractStructTreeIgnored { .. }
-            | Self::ExtractUntaggedContent { .. } => None,
+            | Self::ExtractUntaggedContent { .. }
+            | Self::ExtractNeedsOcr { .. } => None,
         }
     }
 
@@ -473,7 +485,9 @@ impl Warning {
             | Self::UnmappedGlyph { .. }
             | Self::ExtractStructTreeIgnored { .. }
             | Self::ExtractUntaggedContent { .. } => ErrorKind::Input,
-            Self::ExtractReadingOrderAmbiguous { .. } | Self::ExtractTableAmbiguous { .. } => ErrorKind::Unsupported,
+            Self::ExtractReadingOrderAmbiguous { .. }
+            | Self::ExtractTableAmbiguous { .. }
+            | Self::ExtractNeedsOcr { .. } => ErrorKind::Unsupported,
             Self::ExtractTableLimit { .. } => ErrorKind::Limit,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated | Self::ExtractLimitBlocks { .. } => {
                 ErrorKind::Limit
@@ -509,7 +523,8 @@ impl Warning {
             | Self::ExtractTableAmbiguous { page }
             | Self::ExtractTableLimit { page, .. }
             | Self::ExtractStructTreeIgnored { page, .. }
-            | Self::ExtractUntaggedContent { page, .. } => Some(page),
+            | Self::ExtractUntaggedContent { page, .. }
+            | Self::ExtractNeedsOcr { page, .. } => Some(page),
             Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
             _ => None,
         };
@@ -531,7 +546,8 @@ impl Warning {
             | Self::ExtractTableAmbiguous { page }
             | Self::ExtractTableLimit { page, .. }
             | Self::ExtractStructTreeIgnored { page, .. }
-            | Self::ExtractUntaggedContent { page, .. } => Some(page as i128),
+            | Self::ExtractUntaggedContent { page, .. }
+            | Self::ExtractNeedsOcr { page, .. } => Some(page as i128),
             Self::XrefStmIgnored { offset }
             | Self::ContentUnknownOperator { offset, .. }
             | Self::ContentBadOperands { offset, .. }
@@ -685,6 +701,10 @@ mod tests {
                 reason: "coverage",
             },
             Warning::ExtractUntaggedContent { page: 0, chars: 1 },
+            Warning::ExtractNeedsOcr {
+                page: 0,
+                status: "needs-ocr",
+            },
         ];
         for w in &all {
             match w {
@@ -727,7 +747,8 @@ mod tests {
                 | Warning::ExtractTableAmbiguous { .. }
                 | Warning::ExtractTableLimit { .. }
                 | Warning::ExtractStructTreeIgnored { .. }
-                | Warning::ExtractUntaggedContent { .. } => {}
+                | Warning::ExtractUntaggedContent { .. }
+                | Warning::ExtractNeedsOcr { .. } => {}
             }
         }
         all

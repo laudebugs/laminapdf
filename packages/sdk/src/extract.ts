@@ -26,6 +26,8 @@ export type {
   StructRef,
   StructSource,
   TableDetector,
+  TextLayer,
+  TextLayerStatus,
   TextRange,
 } from "./generated/extract.js";
 

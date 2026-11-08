@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T3a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [trust and proof §T3](../../plans/trust-and-proof.md#t3-extraction-users-can-check) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `feat/t3a-text-layer-status` |
 | PR title | `feat(extract): a per-page text-layer status that says which pages need OCR` |
 | Size | L (≈ 500–700 lines: the measures and rules, the warning, tests on built pages, the bench counts; the schema, goldens and generated files don't count) |
-| PR | — |
+| PR | [#297](https://github.com/laudebugs/laminapdf/pull/297) |
 
 ## Goal
 
@@ -28,7 +28,7 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
   - `crates/laminapdf-text/src/extract/mod.rs`: `TextExtractor::page_with` forwards only path events (`path_segment`, `paint_path`) to its visitor. `Glyph::mapped` is false for a glyph no rule maps to Unicode (Type 3 and other fonts without ToUnicode, usable names or a `cmap`), and `PageText::unmapped` counts such glyphs.
   - `crates/laminapdf-content/src/visitor.rs`: `Visitor::image` reports every image XObject and inline image, stencil masks included, with `ImageDraw::state.ctm` mapping the unit square to user space, inside Form XObjects too.
 - [L3f](../done/L3f-extraction-benchmark.md) and `cargo xtask extract-bench`: the three scored olmOCR-bench subsets hold the scanned pages that gave no text, so they check the status on real files.
-- [L3c](../done/L3c-model-plugins.md) OCRs pages with no visible text, an interim test; this todo defines the full one, and switches L3c's OCR to pick pages by the status (`needs-ocr`, and `ocr-layer` and `mixed` by a documented policy). [E13c](./E13c-ocr-text-layer.md) writes invisible OCR layers; pages it makes should read as `ocr-layer`.
+- [L3c](../done/L3c-model-plugins.md) OCRs pages with no visible text, an interim test; this todo defines the full one, and switches L3c's OCR to pick pages by the status (`needs-ocr`, and `ocr-layer` and `mixed` by a documented policy). [E13c](../ready/E13c-ocr-text-layer.md) writes invisible OCR layers; pages it makes should read as `ocr-layer`.
 - [T2a](../done/T2a-covered-text-flag.md) needs the page's image boxes too (text covered by later images). Put the image collection in a module both can use (`marks.rs` below).
 
 ## Scope
@@ -62,7 +62,7 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
 
 **Out of scope** (and which todo covers it)
 
-- Running OCR: [L3c](../done/L3c-model-plugins.md) (`OcrEngine`) and [E13d](./E13d-local-ocr.md) (local engines); writing an OCR layer into a PDF: [E13c](./E13c-ocr-text-layer.md).
+- Running OCR: [L3c](../done/L3c-model-plugins.md) (`OcrEngine`) and [E13d](../ready/E13d-local-ocr.md) (local engines); writing an OCR layer into a PDF: [E13c](../ready/E13c-ocr-text-layer.md).
 - Putting an OCR layer's text in the blocks of an `ocr-layer` page: that changes ADR 0030 §4, so it waits for the owner's decision (Risks).
 - Text whose glyphs map to the wrong characters, text that differs from what the page shows, and text under later images: a rendered check through the render backend later (ADR 0030 §4, [ADR 0004](../../decisions/0004-render-backend.md)), and [T2a](../done/T2a-covered-text-flag.md) for covered text.
 - The clip: image boxes are taken whole until [L3g](../done/L3g-extract-structure-tree.md) tracks the clip's box.
@@ -71,27 +71,27 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
 
 ## Tasks
 
-- [ ] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); `laminapdf-extract` stays a core crate with `#![forbid(unsafe_code)]`, and no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
-- [ ] `laminapdf-text`, in its own commit: in `crates/laminapdf-text/src/extract/mod.rs`, the private `Collector`'s `Visitor` impl forwards `image` to `paths`, as `path_segment` and `paint_path` do; `page_with`'s doc names image events. A unit test: a visitor passed to `page_with` sees a built page's image.
-- [ ] `crates/laminapdf-extract/src/marks.rs` (new): `Marks`, a `Visitor` that holds an `Option<tables::Collector>` and forwards path events to it, records each image's box in page space (the unit square's four corners through `ImageDraw::state.ctm` and `PageFrame::to_page`, their bounding box clipped to the page) and counts painted paths. `finish()` returns the table rules (`Option<Edges>`) and the image boxes and path count.
-- [ ] `crates/laminapdf-extract/src/text_layer.rs` (new): `measure()` (the measures from the page's runs and glyphs, with the same `visibility::flags()` that `page::runs()` uses, before the `max_blocks_per_page` cut) and `classify()` (the table's rules, in order), with unit tests for each rule and each cut-off's edge.
-- [ ] `job.rs`: `ExtractJob::run` always calls `page_with` with a `Marks` (holding a `Collector` only when tables are on) and passes the marks to `extract_page`.
-- [ ] `page.rs`: `extract_page` sets `info.text_layer` and reports `Warning::ExtractNeedsOcr` for `needs-ocr` and `ocr-layer` pages.
-- [ ] `model.rs`: `TextLayer` and `TextLayerStatus` (`#[non_exhaustive]`, serde camel-case keys and kebab-case values, schemars), and `text_layer` as the last field of `ExtractedPage`. `options.rs`: `TextLayerThresholds`, `ExtractOptions::text_layer` and `with_text_layer`. Export them from `lib.rs`, and re-export them from `crates/laminapdf/src/extract.rs`.
-- [ ] The warning: an entry in `fixtures/codes.json`'s `warnings` (`extract-needs-ocr`, kind `unsupported`, summary, hint, `since` as the other extract codes have it); `docs/errors/extract-needs-ocr.md` (the data field `status`); `Warning::ExtractNeedsOcr { page: u64, status: &'static str }` in `crates/laminapdf-cos/src/reader/warning.rs`, in `code`, `object`, `kind`, `location` and `key` and in its tests' list of every variant; the `status` data in `crates/laminapdf/src/data.rs` and a sample in `crates/laminapdf/tests/data_fields.rs`; then `cargo xtask gen codes`.
-- [ ] Regenerate: `UPDATE_GOLDEN=1 cargo test -p laminapdf-extract --all-features --test output` (the schema; the Markdown goldens don't change), `UPDATE_GOLDEN=1 cargo test -p laminapdf --test extract` (`fixtures/extract/json/`), `cargo xtask gen boundary` (`packages/sdk/src/generated/extract.ts`). Add `TextLayer` and `TextLayerStatus` to the type exports in `packages/sdk/src/extract.ts`.
-- [ ] The bench: `crates/laminapdf/examples/differential/extract-bench.rs` writes each file's page statuses into its `facts`, and `render_report` in `tools/xtask/src/extract_bench.rs` adds a line counting pages per status. Run `cargo xtask extract-bench` once and record the counts.
-- [ ] Docs (below), and `cargo xtask size` within the module budgets.
+- [x] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); `laminapdf-extract` stays a core crate with `#![forbid(unsafe_code)]`, and no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
+- [x] `laminapdf-text`, in its own commit: in `crates/laminapdf-text/src/extract/mod.rs`, the private `Collector`'s `Visitor` impl forwards `image` to `paths`, as `path_segment` and `paint_path` do; `page_with`'s doc names image events. A unit test: a visitor passed to `page_with` sees a built page's image. (The forwarding was already there, added for the hidden-text backdrops; this PR adds the test.)
+- [x] `crates/laminapdf-extract/src/marks.rs` (new): `Marks`, a `Visitor` that holds an `Option<tables::Collector>` and forwards path events to it, records each image's box in page space (the unit square's four corners through `ImageDraw::state.ctm` and `PageFrame::to_page`, their bounding box clipped to the page) and counts painted paths. `finish()` returns the table rules (`Option<Edges>`) and the image boxes and path count.
+- [x] `crates/laminapdf-extract/src/text_layer.rs` (new): `measure()` (the measures from the page's runs and glyphs, with the same `visibility::flags()` that `page::runs()` uses, before the `max_blocks_per_page` cut) and `classify()` (the table's rules, in order), with unit tests for each rule and each cut-off's edge.
+- [x] `job.rs`: `ExtractJob::run` always calls `page_with` with a `Marks` (holding a `Collector` only when tables are on) and passes the marks to `extract_page`.
+- [x] `page.rs`: `extract_page` sets `info.text_layer` and reports `Warning::ExtractNeedsOcr` for `needs-ocr` and `ocr-layer` pages.
+- [x] `model.rs`: `TextLayer` and `TextLayerStatus` (`#[non_exhaustive]`, serde camel-case keys and kebab-case values, schemars), and `text_layer` as the last field of `ExtractedPage`. `options.rs`: `TextLayerThresholds`, `ExtractOptions::text_layer` and `with_text_layer`. Export them from `lib.rs`, and re-export them from `crates/laminapdf/src/extract.rs`.
+- [x] The warning: an entry in `fixtures/codes.json`'s `warnings` (`extract-needs-ocr`, kind `unsupported`, summary, hint, `since` as the other extract codes have it); `docs/errors/extract-needs-ocr.md` (the data field `status`); `Warning::ExtractNeedsOcr { page: u64, status: &'static str }` in `crates/laminapdf-cos/src/reader/warning.rs`, in `code`, `object`, `kind`, `location` and `key` and in its tests' list of every variant; the `status` data in `crates/laminapdf/src/data.rs` and a sample in `crates/laminapdf/tests/data_fields.rs`; then `cargo xtask gen codes`.
+- [x] Regenerate: `UPDATE_GOLDEN=1 cargo test -p laminapdf-extract --all-features --test output` (the schema; the Markdown goldens don't change), `UPDATE_GOLDEN=1 cargo test -p laminapdf --test extract` (`fixtures/extract/json/`), `cargo xtask gen boundary` (`packages/sdk/src/generated/extract.ts`). Add `TextLayer` and `TextLayerStatus` to the type exports in `packages/sdk/src/extract.ts`.
+- [x] The bench: `crates/laminapdf/examples/differential/extract-bench.rs` writes each file's page statuses into its `facts`, and `render_report` in `tools/xtask/src/extract_bench.rs` adds a line counting pages per status. Run `cargo xtask extract-bench` once and record the counts.
+- [x] Docs (below), and `cargo xtask size` within the module budgets.
 
 ## Acceptance criteria
 
-- [ ] On the pages built in `tests/text_layer.rs` (Tests), each status is the one named there, with the measures asserted; `extract-needs-ocr` is raised once for each `needs-ocr` and `ocr-layer` page, with its `status`, and for no other page.
-- [ ] Every page of `fixtures/reading-order/` and of `fixtures/golden/text-*.pdf` is `native`, and nothing in those files raises `extract-needs-ocr`.
-- [ ] Changing a cut-off through `ExtractOptions::with_text_layer` changes the status it governs (a `mixed` page becomes `native`).
-- [ ] `crates/laminapdf-extract/schemas/extract.schema.json`, `fixtures/extract/json/` and `packages/sdk/src/generated/extract.ts` are regenerated; their only change is the new `textLayer` object. Every JSON output still validates against the schema, and the same input gives the same bytes.
-- [ ] `laminapdf extract <image-only page> --format md` prints nothing to standard output, names `extract-needs-ocr` on standard error and exits 3 (0 with `--warnings-ok`); `--format json` holds `"status":"needs-ocr"` and validates against the committed schema.
-- [ ] `cargo xtask extract-bench` reports pages per status. On the three scored subsets, every page that gave no text, other than the pages whose filters can't be decoded ([#108](https://github.com/laudebugs/laminapdf/issues/108)), is `needs-ocr` or `ocr-layer`; the counts, and the number of pages that passed the benchmark's baseline test while marked `needs-ocr`, are in the crate README.
-- [ ] `cargo xtask size` passes without a raised budget.
+- [x] On the pages built in `tests/text_layer.rs` (Tests), each status is the one named there, with the measures asserted; `extract-needs-ocr` is raised once for each `needs-ocr` and `ocr-layer` page, with its `status`, and for no other page.
+- [x] Every page of `fixtures/reading-order/` and of `fixtures/golden/text-*.pdf` is `native`, and nothing in those files raises `extract-needs-ocr`.
+- [x] Changing a cut-off through `ExtractOptions::with_text_layer` changes the status it governs (a `mixed` page becomes `native`).
+- [x] `crates/laminapdf-extract/schemas/extract.schema.json`, `fixtures/extract/json/` and `packages/sdk/src/generated/extract.ts` are regenerated; their only change is the new `textLayer` object. Every JSON output still validates against the schema, and the same input gives the same bytes.
+- [x] `laminapdf extract <image-only page> --format md` prints nothing to standard output, names `extract-needs-ocr` on standard error and exits 3 (0 with `--warnings-ok`); `--format json` holds `"status":"needs-ocr"` and validates against the committed schema.
+- [x] `cargo xtask extract-bench` reports pages per status. On the three scored subsets, every page that gave no text, other than the pages whose filters can't be decoded ([#108](https://github.com/laudebugs/laminapdf/issues/108)), is `needs-ocr` or `ocr-layer`; the counts, and the number of pages that passed the benchmark's baseline test while marked `needs-ocr`, are in the crate README. Measured on 2026-11-08: 672 pages read, 496 `native`, 67 `mixed`, 67 `needs-ocr`, 42 `ocr-layer`, none `empty`; the 77 pages with no text are all `needs-ocr` (40) or `ocr-layer` (37), and 17 `needs-ocr` pages still passed the baseline test.
+- [x] `cargo xtask size` passes without a raised budget.
 
 ## Post-merge checks
 
@@ -118,11 +118,11 @@ None.
 
 ## Docs to update
 
-- [ ] ADR 0030: an implementation note (as L3b's and L3d's), recording `textLayer`, its measures, the five statuses with their default cut-offs, the warning, and that §4 still keeps an OCR layer out of the blocks.
-- [ ] `crates/laminapdf-extract/README.md`: a section on pages that need OCR, the bench counts, and the new test file in its Tests list.
-- [ ] `apps/docs/src/content/docs/recipes/extract-markdown.mdx`: under "What to change", how to find the pages that need OCR in TypeScript (`pages.filter(p => p.textLayer.status === "needs-ocr")`) and Rust, in plain words and without internal IDs ([docs writing](../../guidelines/docs-writing.md)).
-- [ ] `crates/laminapdf-cli/README.md`: `extract`'s JSON says which pages need OCR, and the warning sets exit code 3.
-- [ ] `CLAUDE.md`'s "Extraction for retrieval" paragraph: `marks.rs`, `text_layer.rs`, `TextLayer`, `extract-needs-ocr`.
+- [x] ADR 0030: an implementation note (as L3b's and L3d's), recording `textLayer`, its measures, the five statuses with their default cut-offs, the warning, and that §4 still keeps an OCR layer out of the blocks.
+- [x] `crates/laminapdf-extract/README.md`: a section on pages that need OCR, the bench counts, and the new test file in its Tests list.
+- [x] `apps/docs/src/content/docs/recipes/extract-markdown.mdx`: under "What to change", how to find the pages that need OCR in TypeScript (`pages.filter(p => p.textLayer.status === "needs-ocr")`) and Rust, in plain words and without internal IDs ([docs writing](../../guidelines/docs-writing.md)).
+- [x] `crates/laminapdf-cli/README.md`: `extract`'s JSON says which pages need OCR, and the warning sets exit code 3.
+- [x] `CLAUDE.md`'s "Extraction for retrieval" paragraph: `marks.rs`, `text_layer.rs`, `TextLayer`, `extract-needs-ocr`.
 
 ## Risks and open questions
 
@@ -135,8 +135,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -10,7 +10,8 @@ use laminapdf_text::PageText;
 use crate::blocks::{Draft, blocks};
 use crate::error::ExtractError;
 use crate::lines::{Line, Piece, lines, mostly_rtl};
-use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Flags, Span};
+use crate::marks::Drawn;
+use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Flags, Span, TextLayerStatus};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::plugins::{LayoutRegion, OcrWord, RegionLabel};
 use crate::regions::{inside, kind_for, ocr_pieces, region_near, region_of};
@@ -18,6 +19,7 @@ use crate::segments::{Covers, segments};
 use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
 use crate::tagged::{self, TaggedIndex, TreeBlocks};
 use crate::text_fix::{decompose_ligatures, join_lines, visible_chars};
+use crate::text_layer::measure;
 use crate::visibility::{Backdrops, Look, flags, normalised};
 use crate::xycut;
 
@@ -81,19 +83,14 @@ pub(crate) struct PageInput<'a> {
     pub(crate) backdrops: &'a Backdrops,
     /// What is painted over earlier text, for the covered flag.
     pub(crate) covers: &'a Covers,
+    /// The images and paths drawn, for the text-layer status.
+    pub(crate) drawn: &'a Drawn,
     /// The structure tree, when the reading order may come from it.
     pub(crate) tree: Option<&'a TaggedIndex>,
     /// The layout model's regions on the page; empty without one.
     pub(crate) regions: &'a [LayoutRegion],
     /// The OCR engine's words on the page; empty unless it read the page.
     pub(crate) words: &'a [OcrWord],
-}
-
-/// Whether the page has text a reader sees, which OCR then leaves alone. An invisible text
-/// layer (a scanner's own OCR, `Tr 3`) doesn't count: it is dropped as hidden text
-/// (ADR 0030 §4), so OCR text never repeats it in the blocks.
-pub(crate) fn has_visible_text(text: &PageText, painting: &PageInput<'_>, options: &ExtractOptions) -> bool {
-    !runs(0, text, painting, options).pieces.is_empty()
 }
 
 fn runs(index: usize, text: &PageText, painting: &PageInput<'_>, options: &ExtractOptions) -> Runs {
@@ -393,6 +390,7 @@ pub(crate) fn extract_page(
     cancel: &CancelToken,
 ) -> Result<PageOut, ExtractError> {
     let frame = &text.frame;
+    let text_layer = measure(text, painting.backdrops, painting.drawn, &options.text_layer);
     let info = ExtractedPage {
         index,
         number: index.saturating_add(1),
@@ -400,6 +398,7 @@ pub(crate) fn extract_page(
         width: frame.width(),
         height: frame.height(),
         coordinates: Coordinates::new(frame.rotate(), frame.user_unit(), frame.is_letter_fallback()),
+        text_layer,
     };
     let Runs {
         mut pieces,
@@ -411,6 +410,14 @@ pub(crate) fn extract_page(
     pieces.extend(ocr);
     spans.extend(ocr_spans);
     let page_number = u64::try_from(index).unwrap_or(u64::MAX);
+    // A page whose text isn't its text says so, unless an OCR engine already read it: its
+    // Markdown alone would just be empty.
+    if matches!(text_layer.status, TextLayerStatus::NeedsOcr | TextLayerStatus::OcrLayer) && painting.words.is_empty() {
+        doc.report(Warning::ExtractNeedsOcr {
+            page: page_number,
+            status: text_layer.status.as_str(),
+        })?;
+    }
     // Before the grouping and the cuts, whose work grows faster than the runs do.
     let limit = options.limits.max_blocks_per_page;
     let kept = usize::try_from(limit).unwrap_or(usize::MAX);

@@ -93,6 +93,66 @@ pub struct ExtractedPage {
     pub height: Pt,
     /// The frame the boxes are in.
     pub coordinates: Coordinates,
+    /// Whether the page's text is the page's text, and the measures that decided it.
+    pub text_layer: TextLayer,
+}
+
+/// What a page's text layer is: whether its extracted text is the page's text, or the page
+/// needs OCR. The measures let a pipeline apply its own cut-offs.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[non_exhaustive]
+pub struct TextLayer {
+    /// The verdict.
+    pub status: TextLayerStatus,
+    /// Visible characters (spaces left out) in runs that aren't invisible, off the page or tiny.
+    pub chars: usize,
+    /// Characters drawn invisibly (text rendering mode 3 or 7), such as an OCR layer.
+    pub invisible_chars: usize,
+    /// The share of the visible runs' glyphs that map to no Unicode; 0 with no visible glyphs.
+    pub unmapped_share: f64,
+    /// How many images the page draws, in its forms too.
+    pub images: usize,
+    /// The share of the page the images cover, measured on a 32 × 32 grid.
+    pub image_share: f64,
+    /// How many paths the page paints (fills and strokes).
+    pub paths: usize,
+}
+
+/// A page's text-layer status, the first that applies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[non_exhaustive]
+pub enum TextLayerStatus {
+    /// No text, visible or invisible, no image and few paths: the page is blank.
+    Empty,
+    /// Images cover most of the page and invisible text outnumbers the visible: a scan with an
+    /// OCR layer, which extraction leaves out.
+    OcrLayer,
+    /// No visible text, a scan with at most a stamp of text, or mostly glyphs without Unicode:
+    /// send the page to OCR.
+    NeedsOcr,
+    /// Usable text, but some glyphs have no Unicode or images cover part of the page.
+    Mixed,
+    /// The text is the page's text.
+    #[default]
+    Native,
+}
+
+impl TextLayerStatus {
+    /// The JSON name: `empty`, `ocr-layer`, `needs-ocr`, `mixed` or `native`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Empty => "empty",
+            Self::OcrLayer => "ocr-layer",
+            Self::NeedsOcr => "needs-ocr",
+            Self::Mixed => "mixed",
+            Self::Native => "native",
+        }
+    }
 }
 
 /// ADR 0027 §4's `coordinates` block: top-left points of the displayed box.
