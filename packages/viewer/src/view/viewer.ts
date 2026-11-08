@@ -6,6 +6,8 @@
 // never drawn. Zoom keeps the document point under the cursor (or the viewport centre) where it
 // is; during a gesture the canvases are stretched by CSS and the sharp re-render waits until the
 // gesture settles. Framework-free: UI layers read `getState()`, `subscribe()` and the events.
+
+import { pagePixels } from "@laminapdf/render";
 import { BitmapCache, DEFAULT_CACHE_BYTES } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
@@ -140,6 +142,11 @@ interface PageView {
   state: PageRenderState;
   /** The geometry (scale and rotation, `geometryOf`) the canvas was last painted for ("": never). */
   painted: string;
+  /**
+   * The scale (device px per pt) of the canvas painted at `painted`: the sharp tiles' scale. The
+   * canvas is the page at this scale exactly, as the renderer sizes it (`pagePixels`).
+   */
+  scale: number;
   /** The sharp tiles drawn at `painted`, by `renderKey`. */
   readonly tiles: Set<string>;
   /** A pass is in flight: the next frame waits for it rather than send duplicates. */
@@ -541,6 +548,7 @@ export class Viewer {
       controller: new AbortController(),
       state: "placeholder",
       painted: "",
+      scale: 0,
       tiles: new Set(),
       busy: false,
       waiting: false,
@@ -596,8 +604,11 @@ export class Viewer {
     this.#schedule();
   }
 
-  /** The sharp tiles of page `index` in view in `frame`, with their render requests and keys. */
-  #tilesInView(index: number, frame: Frame, ratio: number) {
+  /**
+   * The sharp tiles of page `index` in view in `frame` at `scale` (device px per pt), with their
+   * render requests and keys. They lie inside the page as the renderer sizes it at that scale.
+   */
+  #tilesInView(index: number, frame: Frame, scale: number) {
     const { layout, top, height } = frame;
     const documentId = this.#document?.id ?? 0;
     const cssW = layout.widths[index] as number;
@@ -606,8 +617,9 @@ export class Viewer {
     const y0 = Math.max(0, top - pageTop);
     const y1 = Math.min(cssH, top + height - pageTop);
     const inView = { x: 0, y: y0, width: cssW, height: Math.max(0, y1 - y0) };
-    return tilesFor(inView, { width: cssW, height: cssH }, ratio).map((clip) => {
-      const request = { page: index, scale: layout.scale * ratio, rotation: layout.rotation, clip };
+    const page = pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation);
+    return tilesFor(inView, page, scale / layout.scale).map((clip) => {
+      const request = { page: index, scale, rotation: layout.rotation, clip };
       return { clip, request, key: renderKey(request, documentId) };
     });
   }
@@ -621,10 +633,8 @@ export class Viewer {
     const { layout } = frame;
     if (view.painted === geometryOf(layout)) {
       if (priority === "prefetch") return;
-      const canvas = view.canvas;
-      const ratio = canvas === undefined ? 0 : canvas.width / (layout.widths[index] as number);
       // Sharp means every tile now in view is drawn: scrolling down a tall page sharpens the rest.
-      if (ratio > 0 && this.#tilesInView(index, frame, ratio).every((t) => view.tiles.has(t.key))) {
+      if (view.scale > 0 && this.#tilesInView(index, frame, view.scale).every((t) => view.tiles.has(t.key))) {
         if (view.state !== "sharp") {
           view.state = "sharp";
           this.#emit("renderstats", this.stats());
@@ -690,7 +700,11 @@ export class Viewer {
       this.#drop(low, false);
       return false;
     }
-    const { width, height } = this.#pool.fit(canvas, cssW * dpr, cssH * dpr);
+    // The sharp scale: the device pixel ratio, unless the pool's pixel cap lowers it. The canvas is
+    // then the page at that scale exactly as the renderer sizes it, so every tile fits inside.
+    const fitted = this.#pool.fit(canvas, cssW * dpr, cssH * dpr);
+    const scale = layout.scale * Math.min(dpr, fitted.width / cssW, fitted.height / cssH);
+    const { width, height } = pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation);
     // Resizing clears the canvas: it happens only now, with the new pixels ready (no white flash).
     canvas.width = width;
     canvas.height = height;
@@ -699,9 +713,10 @@ export class Viewer {
     // Not drawn (evicted meanwhile): the canvas stays unpainted, and the next frame tries again.
     if (!drawn) return false;
     view.painted = geometryOf(layout);
+    view.scale = scale;
     view.tiles.clear();
     view.state = "low";
-    this.#pruneOtherGeometries(index, layout, new Set([request.scale, layout.scale * (width / cssW)]));
+    this.#pruneOtherGeometries(index, layout, new Set([request.scale, scale]));
     this.#emit("renderstats", this.stats());
     return true;
   }
@@ -714,12 +729,12 @@ export class Viewer {
     });
   }
 
-  /** Sharp tiles over the part in view, at the canvas's own pixel ratio (the pool may cap it). */
+  /** Sharp tiles over the part in view, at the page view's sharp scale (the pool may cap it). */
   async #paintTiles(pass: Pass, frame: Frame): Promise<void> {
-    const { view, layout, priority, signal, live } = pass;
+    const { view, priority, signal, live } = pass;
     const canvas = view.canvas;
     if (canvas === undefined) return;
-    for (const tile of this.#tilesInView(view.index, frame, canvas.width / (layout.widths[view.index] as number))) {
+    for (const tile of this.#tilesInView(view.index, frame, view.scale)) {
       if (view.tiles.has(tile.key)) continue;
       const got = await this.#bitmap(tile.request, tile.key, priority, signal);
       if (!live()) {
