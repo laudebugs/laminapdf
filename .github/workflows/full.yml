@@ -86,7 +86,7 @@ jobs:
     name: Fuzz smoke (${{ github.event_name == 'pull_request' && '30 s' || '2 min' }} per target)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -112,7 +112,7 @@ jobs:
           key: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
           restore-keys: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-
       # Adds the seeds from fixtures/ and fuzz/seeds/ to the corpus, builds every target, then
-      # fuzzes them 2 at once to fit the hosted Mac's memory with libFuzzer's
+      # fuzzes them 2 at once to fit the hosted runner's memory with libFuzzer's
       # per-input timeout scaled to 40 s for the shared CPU, and at most 4 x 2048 MB of memory;
       # fails if any target failed (all of them still run).
       - name: Fuzz every target
@@ -199,10 +199,10 @@ jobs:
   #   fixtures/render-golden/ and with each other (`cargo xtask render-golden`).
   # qpdf comes from the checksum-verified release in the shared setup action.
   suites:
-    name: Suites (differential, capability matrix, round trip, examples and render goldens)
+    name: Suites (differential, capability matrix, round trip, examples)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -226,13 +226,11 @@ jobs:
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
-      - name: qpdf and the Python venvs (pypdfium2)
+      - name: qpdf and the Python venv (pypdfium2)
         run: |
           qpdf --version
           python3 -m venv "$RUNNER_TEMP/roundtrip-venv"
           "$RUNNER_TEMP/roundtrip-venv/bin/pip" install -r tools/roundtrip/requirements.txt
-          python3 -m venv "$RUNNER_TEMP/render-venv"
-          "$RUNNER_TEMP/render-venv/bin/pip" install -r tools/render/requirements.txt
       - name: Differential (full mutant set)
         run: cargo xtask differential --full
       - name: Capability matrix
@@ -246,11 +244,6 @@ jobs:
       - name: Examples (goldens, qpdf)
         if: ${{ !cancelled() }}
         run: cargo xtask examples
-      - name: Render goldens (PDFium and hayro)
-        if: ${{ !cancelled() }}
-        env:
-          LAMINA_PDF_PYTHON: ${{ runner.temp }}/render-venv/bin/python
-        run: cargo xtask render-golden
       - name: Upload the round-trip outputs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -258,14 +251,49 @@ jobs:
           name: roundtrip-outputs
           path: target/xtask/roundtrip/
           if-no-files-found: ignore
-      - name: Upload the example outputs and diff images
+      - name: Upload the example outputs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: examples-outputs
-          path: |
-            target/examples-out/
-            target/xtask/render-golden/diff/
+          path: target/examples-out/
+          if-no-files-found: ignore
+
+  # The render goldens were written on macOS arm64, and PDFium's rasteriser (fonts, anti-aliasing)
+  # differs by platform, so this is the one suite that stays on macOS.
+  render-golden:
+    name: Render goldens (PDFium and hayro)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
+      - name: The Python venv (pypdfium2)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/render-venv"
+          "$RUNNER_TEMP/render-venv/bin/pip" install -r tools/render/requirements.txt
+      - name: Render goldens (PDFium and hayro)
+        env:
+          LAMINA_PDF_PYTHON: ${{ runner.temp }}/render-venv/bin/python
+        run: cargo xtask render-golden
+      - name: Upload the diff images
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: render-golden-diff
+          path: target/xtask/render-golden/diff/
           if-no-files-found: ignore
 
   # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with `code`
@@ -275,7 +303,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, suites, fuzz, check-linux]
+    needs: [changes, suites, render-golden, fuzz, check-linux]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
