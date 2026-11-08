@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q3c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/q3c-coordinates-diagram` |
 | PR title | `feat(docs): a diagram for page space and PDF user space` |
@@ -35,18 +35,18 @@ Readers place text with `at: [72, 96]` and need to know where that lands. PDF's 
 
 ## Tasks
 
-- [ ] `components/diagrams/PageSpace.astro` with the two panels side by side, stacked at phone width.
-- [ ] Place panel one under "The top-left corner of the page you see" and repeat the figure's second panel under "PDF's own coordinates", or place the whole figure once where the page first compares the two (decide by reading the page).
-- [ ] `components/diagrams/kit/PageSheet.astro`: a page outline with the `page-paper` ground and `page-ink` marks, so the page looks like a page in a viewer (Q3e's reading-order sketch reuses it).
-- [ ] Use `PageSheet` for the page; axes in `text-2`, the point in `accent`.
+- [x] `components/diagrams/PageSpace.astro` with the two panels side by side, stacked at phone width.
+- [x] Place panel one under "The top-left corner of the page you see" and repeat the figure's second panel under "PDF's own coordinates", or place the whole figure once where the page first compares the two (decide by reading the page).
+- [x] `components/diagrams/kit/PageSheet.astro`: a page outline with the `page-paper` ground and `page-ink` marks, so the page looks like a page in a viewer (Q3e's reading-order sketch reuses it).
+- [x] Use `PageSheet` for the page; axes in `text-2`, the point in `accent`.
 
 ## Acceptance criteria
 
-- [ ] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
-- [ ] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
-- [ ] Each diagram is under 8 KB gzipped (reported in the PR).
-- [ ] `cargo xtask check docs` and the docs build pass.
-- [ ] The numbers in the figure match the page's prose and ADR 0027's worked example.
+- [x] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
+- [x] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
+- [x] Each diagram is under 8 KB gzipped (reported in the PR).
+- [x] `cargo xtask check docs` and the docs build pass.
+- [x] The numbers in the figure match the page's prose and ADR 0027's worked example.
 
 ## Post-merge checks
 
@@ -66,8 +66,8 @@ The pages named in the tasks, and the plan's §9 to-do.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
