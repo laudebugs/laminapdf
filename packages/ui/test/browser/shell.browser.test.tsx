@@ -47,6 +47,8 @@ function button(name: string): HTMLElement {
 }
 
 const canvas = () => document.querySelector("main") as HTMLElement;
+/** Focus mode's status-bar item, by its name: the label and the shortcut chip's text. */
+const focusItem = () => button("Focus mode Ctrl \\");
 const landmarks = (selector: string) => document.querySelectorAll(selector).length;
 
 async function seriousViolations(): Promise<string[]> {
@@ -132,9 +134,25 @@ describe("the shell", () => {
     (document.querySelector("main") as HTMLElement).focus();
     await userEvent.keyboard("{Control>}\\{/Control}");
     await expect.poll(() => document.querySelector("nav.paper-left-rail")).toBeNull();
-    expect(button("Focus mode").getAttribute("aria-pressed")).toBe("true");
+    expect(focusItem().getAttribute("aria-pressed")).toBe("true");
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector("nav.paper-left-rail")).not.toBeNull();
+  });
+
+  it("names the focus mode item by all its visible text, its shortcut included", async () => {
+    await openDemo();
+    canvas().focus();
+    await userEvent.keyboard("{Control>}\\{/Control}");
+    await expect.poll(() => document.querySelector(".paper-reader-shell[data-focus]")).not.toBeNull();
+    // Found by its place, not its name, so the name is what the rule checks.
+    const item = document.querySelector("footer [aria-pressed=true]") as HTMLElement;
+    // label-content-name-mismatch is experimental in axe, so off unless asked for.
+    const { violations } = await axe.run(item, {
+      runOnly: { type: "rule", values: ["label-content-name-mismatch"] },
+    });
+    expect(violations.map((v) => v.id)).toEqual([]);
+    // A space keeps the label and the keys apart in the name.
+    expect(item.textContent).toBe("Focus mode Ctrl \\");
   });
 
   it("turns focus mode on from the palette", async () => {
@@ -176,7 +194,7 @@ describe("the shell", () => {
     (document.querySelector("main") as HTMLElement).focus();
     await userEvent.keyboard("{Control>}\\{/Control}");
     await expect.poll(() => document.querySelector("aside")).toBeNull();
-    await userEvent.click(button("Focus mode"));
+    await userEvent.click(focusItem());
     await expect.poll(() => document.querySelector("aside")).not.toBeNull();
   });
 
