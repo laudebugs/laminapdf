@@ -57,7 +57,16 @@ function sample() {
         tables: "lattice",
         sample: null,
         run,
-        subsets: [{ name: "multi_column", measures: "one passage before another", pdfs: 231, tests: 884, passed: 461, score: 0.5216 }],
+        subsets: [
+          {
+            name: "multi_column",
+            measures: "one passage before another",
+            pdfs: 231,
+            tests: 884,
+            passed: 461,
+            score: 0.5216,
+          },
+        ],
         baseline: { tests: 231, passed: 191, score: 0.8268 },
         overall: 0.674,
         overallWithoutBaseline: 0.5215,
@@ -81,7 +90,9 @@ test("the reader accepts the committed data file", async () => {
 
 test("the reader names a missing field", () => {
   const broken = sample();
-  delete broken.sizes.modules[0].gzip;
+  const { gzip, ...withoutGzip } = broken.sizes.modules[0] ?? { gzip: 0 };
+  broken.sizes.modules = [/** @type {typeof broken.sizes.modules[0]} */ (/** @type {unknown} */ (withoutGzip))];
+  assert.ok(gzip > 0);
   assert.throws(() => parseBenchmarks(broken), /benchmarks\.sizes\.modules\[0\]\.gzip should be a number/);
 });
 

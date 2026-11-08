@@ -31,6 +31,15 @@ export async function packageVersion() {
 }
 
 /**
+ * The benchmarks page's numbers (`src/data/benchmarks.json`), checked as the page checks them.
+ *
+ * @returns {Promise<import("../src/lib/benchmarks.ts").Benchmarks>}
+ */
+export async function readBenchmarks() {
+  return parseBenchmarks(JSON.parse(await readFile(new URL("apps/docs/src/data/benchmarks.json", ROOT), "utf8")));
+}
+
+/**
  * The error and warning codes as Markdown tables, one per group of fixtures/codes.json (as the
  * site's code table shows them).
  *
@@ -135,7 +144,8 @@ async function twinOf(route, context) {
       snippet: snippetText,
       codeTable: () => context.table,
       changelog: () => context.changelog,
-      benchmarks: (section) => sectionMarkdown(context.benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
+      benchmarks: (section) =>
+        sectionMarkdown(context.benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
     });
     const title = data.title ?? base;
     return {
@@ -265,9 +275,7 @@ export function agentDocs(groups) {
             .map((e) => [e.code, e]),
         );
         const changelog = releaseNotes(await readFile(new URL("CHANGELOG.md", ROOT), "utf8"));
-        const benchmarks = parseBenchmarks(
-          JSON.parse(await readFile(new URL("apps/docs/src/data/benchmarks.json", ROOT), "utf8")),
-        );
+        const benchmarks = await readBenchmarks();
         const context = { version, site, codes, table: await codeTable(), changelog, benchmarks };
         await readSnippets();
         /** @type {Map<string, { title: string, description?: string | undefined, markdown: string }>} */

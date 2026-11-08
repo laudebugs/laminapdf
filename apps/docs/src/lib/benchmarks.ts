@@ -122,7 +122,6 @@ export interface Table {
   readonly rows: readonly (readonly string[])[];
 }
 
-
 /** A reader of one value at `path`, for error messages. */
 class Field {
   private readonly value: unknown;
@@ -313,10 +312,15 @@ function longDate(date: string): string {
 /** One sentence naming a run: version, commit, date and machine. */
 export function runSentence(r: Run): string {
   const m = r.machine;
-  const parts = [m.cores === null ? null : `${m.cores} cores`, m.memoryBytes === null ? null : `${Math.round(m.memoryBytes / 2 ** 30)} GB of memory`].filter(
-    (p): p is string => p !== null,
-  );
-  const machine = [m.cpu ?? "an unnamed processor", parts.length > 0 ? ` (${parts.join(", ")})` : "", m.os === null ? "" : `, ${m.os}`].join("");
+  const parts = [
+    m.cores === null ? null : `${m.cores} cores`,
+    m.memoryBytes === null ? null : `${Math.round(m.memoryBytes / 2 ** 30)} GB of memory`,
+  ].filter((p): p is string => p !== null);
+  const machine = [
+    m.cpu ?? "an unnamed processor",
+    parts.length > 0 ? ` (${parts.join(", ")})` : "",
+    m.os === null ? "" : `, ${m.os}`,
+  ].join("");
   const load = m.loadAverage === null ? "" : `, with a load average of ${m.loadAverage.toFixed(1)} when the run began`;
   return `Measured with Lamina PDF ${r.version} (commit \`${r.commit.slice(0, 7)}\`) on ${longDate(r.date)}, on ${machine}${load}.`;
 }
@@ -352,7 +356,9 @@ function ms(value: number | undefined): string {
 
 /** Bytes as kilobytes (1,000 bytes), as the size budgets count them. */
 function kb(bytes: number | null | undefined): string {
-  return bytes === null || bytes === undefined ? "–" : `${(bytes / 1000).toLocaleString("en-US", { maximumFractionDigits: 1, minimumFractionDigits: 1 })} kB`;
+  return bytes === null || bytes === undefined
+    ? "–"
+    : `${(bytes / 1000).toLocaleString("en-US", { maximumFractionDigits: 1, minimumFractionDigits: 1 })} kB`;
 }
 
 /** Bytes as megabytes of 1,000,000 bytes, the page's unit as for the sizes. */
@@ -391,12 +397,7 @@ export function generationTable(g: Generation): Table {
 
 /** The size table: the WebAssembly modules, then the JavaScript bundles. */
 export function sizesTable(s: Sizes): Table {
-  const modules = s.modules.map((m) => [
-    `\`lamina_pdf_${m.name}.wasm\``,
-    kb(m.gzip),
-    kb(m.brotli),
-    kb(m.budgetGzip),
-  ]);
+  const modules = s.modules.map((m) => [`\`lamina_pdf_${m.name}.wasm\``, kb(m.gzip), kb(m.brotli), kb(m.budgetGzip)]);
   const js = s.js.map((j) => [`\`${j.name}\` (JavaScript)`, kb(j.gzip), "–", kb(j.budgetGzip)]);
   return {
     headers: ["File", "Gzip", "Brotli", "Budget (gzip)"],
@@ -407,7 +408,14 @@ export function sizesTable(s: Sizes): Table {
 
 /** The extraction table: each subset's score, then the benchmark's baseline group. */
 export function extractionTable(e: Extraction): Table {
-  const rows = e.subsets.map((s) => [`\`${s.name}\``, s.measures, count(s.pdfs), count(s.tests), count(s.passed), percent(s.score)]);
+  const rows = e.subsets.map((s) => [
+    `\`${s.name}\``,
+    s.measures,
+    count(s.pdfs),
+    count(s.tests),
+    count(s.passed),
+    percent(s.score),
+  ]);
   rows.push([
     "Baseline",
     "the page gave text, without long repeats (one test per page)",
@@ -472,5 +480,7 @@ export function sectionParts(b: Benchmarks, section: Section): SectionParts | un
 export function sectionMarkdown(b: Benchmarks, section: Section): string {
   const parts = sectionParts(b, section);
   if (parts === undefined) return "Not measured yet.";
-  return [markdownTable(parts.table), parts.summary, runSentence(parts.run)].filter((p) => p !== undefined).join("\n\n");
+  return [markdownTable(parts.table), parts.summary, runSentence(parts.run)]
+    .filter((p) => p !== undefined)
+    .join("\n\n");
 }
