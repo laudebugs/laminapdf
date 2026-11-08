@@ -17,7 +17,7 @@ No CI workflow runs the gallery's tests, so `main` stayed green. The failures sh
 cargo xtask gallery --test
 ```
 
-In the reader, turn focus mode on (Ctrl+\ or ⌘\) and run axe with `label-content-name-mismatch` enabled on the status bar's "Focus mode" item. That rule is experimental in axe and off by default, which is why `@laminapdf/ui`'s own axe tests passed. The gallery's `@axe-core/playwright` run turns it on.
+In the reader, turn focus mode on (Ctrl+\ or ⌘\) and run axe on the page: `label-content-name-mismatch` flags the status bar's "Focus mode" item. axe-core 4.14.0 runs that rule by default (tag `wcag21a`, impact serious). `@laminapdf/ui`'s own shell axe test passed because it never turns focus mode on, so the item was never on the page it checked. The gallery's `shell-regions` route shows the shell in focus mode.
 
 ## Diagnosis
 

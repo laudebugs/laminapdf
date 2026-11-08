@@ -139,20 +139,18 @@ describe("the shell", () => {
     await expect.poll(() => document.querySelector("nav.paper-left-rail")).not.toBeNull();
   });
 
-  it("names the focus mode item by all its visible text, its shortcut included", async () => {
+  it("names the focus mode item by all its visible text, its shortcut included, and passes axe", async () => {
     await openDemo();
     canvas().focus();
     await userEvent.keyboard("{Control>}\\{/Control}");
     await expect.poll(() => document.querySelector(".paper-reader-shell[data-focus]")).not.toBeNull();
-    // Found by its place, not its name, so the name is what the rule checks.
-    const item = document.querySelector("footer [aria-pressed=true]") as HTMLElement;
-    // label-content-name-mismatch is experimental in axe, so off unless asked for.
-    const { violations } = await axe.run(item, {
-      runOnly: { type: "rule", values: ["label-content-name-mismatch"] },
-    });
-    expect(violations.map((v) => v.id)).toEqual([]);
+    // Found by its place, not its name, so the name is what axe checks.
+    const item = document.querySelector("footer [aria-pressed=true]");
+    expect(item).not.toBeNull();
+    // The whole page in focus mode, the item included (label-content-name-mismatch among the rules).
+    expect(await seriousViolations()).toEqual([]);
     // A space keeps the label and the keys apart in the name.
-    expect(item.textContent).toBe("Focus mode Ctrl \\");
+    expect(item?.textContent).toBe("Focus mode Ctrl \\");
   });
 
   it("turns focus mode on from the palette", async () => {
