@@ -29,7 +29,10 @@ const BENCHES: [(&str, &str); 3] = [
 ];
 
 /// The pages per file the nightly render diff renders (`--pages`; nightly.yml passes the same).
-const RENDER_DIFF_PAGES: u32 = 20;
+pub(crate) const RENDER_DIFF_PAGES: u32 = 20;
+
+/// Seconds per fuzz target in a full night (nightly.yml's `fuzz-seconds` default).
+pub(crate) const FUZZ_SECONDS: u64 = 600;
 
 /// The baseline is the median of this many previous records from the same runner.
 pub(crate) const BASELINE_RUNS: usize = 5;
@@ -347,8 +350,9 @@ pub(crate) fn parse_nightly_args(args: &[String]) -> Result<bool> {
     }
 }
 
-/// `cargo xtask nightly [--quick]`: the whole nightly lane locally, in the workflow's order;
-/// every part runs even when an earlier one failed, and the failures are listed at the end.
+/// `cargo xtask nightly [--quick]`: the whole nightly lane locally, in the workflow's order, then
+/// the proof record over what it wrote (never appended to a history); every part runs even when
+/// an earlier one failed, and the failures are listed at the end.
 /// `--quick` shortens it (a 300-file differential sample, 30 s per fuzz target, quick
 /// benchmarks, a 100-file render diff); the full lane takes hours.
 pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
@@ -371,7 +375,7 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         ..live_args
     };
     part("differential --live --text", live::run_live(ws, &text_args));
-    let seconds = if quick { 30 } else { 600 };
+    let seconds = if quick { 30 } else { FUZZ_SECONDS };
     for target in harness::FUZZ_TARGETS {
         let task = harness::FuzzTask::Run { target, seconds };
         part(&format!("fuzz {target}"), harness::fuzz(ws, &task));
@@ -384,6 +388,7 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
     };
     part("render-diff", render_diff::run(ws, &render_args));
     part("verapdf", crate::verapdf::run(ws, None));
+    part("roundtrip", crate::roundtrip::run_suite(ws, &crate::roundtrip::TOOLS));
     part("docs-links --external", docs_links::external::run(&ws.root, false));
     // Last, as in the workflow: timings taken after the heavy parts have finished.
     let bench_args = BenchArgs {
@@ -400,6 +405,8 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         "viewer-perf",
         crate::viewer_perf::run(ws, &crate::viewer_perf::Args::every_browser(quick)),
     );
+    // Last, over what every part above wrote; never recording (the workflow's `proof` job does).
+    part("proof", crate::proof::run(ws, &crate::proof::Args::default()));
     if failed.is_empty() {
         step("Nightly lane passed");
         Ok(())

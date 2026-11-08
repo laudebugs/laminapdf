@@ -21,6 +21,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{Context, Result, bail};
+use serde::{Deserialize, Serialize};
 
 use crate::doctor::{VERAPDF_INSTALLER_SHA256, VERAPDF_VERSION};
 use crate::step;
@@ -28,7 +29,7 @@ use crate::util::sha256_hex;
 use crate::workspace::Workspace;
 
 /// Where the report goes.
-const REPORT_DIR: &str = "target/xtask/verapdf";
+pub(crate) const REPORT_DIR: &str = "target/xtask/verapdf";
 
 /// Homebrew's `openjdk@21` (keg-only, so not on `PATH`), tried after `$LAMINA_PDF_JAVA`.
 const HOMEBREW_JAVA: &str = "/opt/homebrew/opt/openjdk@21/bin/java";
@@ -295,6 +296,45 @@ pub(crate) fn summary(verdicts: &[Verdict], skipped: &[String]) -> String {
     s
 }
 
+/// `target/xtask/verapdf/report.json`: the run's verdicts without the failed rules' names, as
+/// `cargo xtask proof` records them.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Report {
+    /// The veraPDF release that validated ([`VERAPDF_VERSION`]).
+    pub(crate) version: String,
+    /// One per file and profile, in the summary's order.
+    pub(crate) validations: Vec<Validation>,
+}
+
+/// One file validated against one profile.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Validation {
+    /// The example's file name.
+    pub(crate) file: String,
+    /// The veraPDF flavour: `2b`, `2u`, `3b` or `ua1`.
+    pub(crate) profile: String,
+    pub(crate) compliant: bool,
+    pub(crate) rules_passed: u32,
+    pub(crate) rules_failed: u32,
+}
+
+/// The [`Report`] of `verdicts`.
+pub(crate) fn report(verdicts: &[Verdict]) -> Report {
+    Report {
+        version: VERAPDF_VERSION.to_owned(),
+        validations: verdicts
+            .iter()
+            .map(|v| Validation {
+                file: v.file.clone(),
+                profile: v.flavour.clone(),
+                compliant: v.compliant,
+                rules_passed: v.passed_rules,
+                rules_failed: v.failed_rules,
+            })
+            .collect(),
+    }
+}
+
 /// The profiles each lamina example that claims one must claim, by file name, as
 /// [`flavours`] spells them. An example that lost its identification would otherwise be
 /// skipped rather than fail.
@@ -385,6 +425,11 @@ pub(crate) fn run(ws: &Workspace, dir: Option<&str>) -> Result<()> {
     let report = ws.root.join(REPORT_DIR);
     fs::create_dir_all(&report).with_context(|| format!("creating {}", report.display()))?;
     fs::write(report.join("summary.md"), &table).context("writing the summary")?;
+    fs::write(
+        report.join("report.json"),
+        serde_json::to_string_pretty(&self::report(&verdicts))? + "\n",
+    )
+    .context("writing report.json")?;
     if let Some(path) = env::var_os("GITHUB_STEP_SUMMARY") {
         let mut current = fs::read_to_string(&path).unwrap_or_default();
         current.push_str(&table);
@@ -463,6 +508,31 @@ mod tests {
     #[test]
     fn a_job_without_a_report_is_an_error() {
         assert!(parse_report("<jobs><job><name>/x/c.pdf</name><taskException/></job></jobs>", "2b").is_err());
+    }
+
+    #[test]
+    fn the_json_report_should_keep_each_verdicts_counts() {
+        let report = report(&parse_report(REPORT, "ua1").unwrap());
+        let rows: Vec<_> = report
+            .validations
+            .iter()
+            .map(|v| {
+                (
+                    v.file.as_str(),
+                    v.profile.as_str(),
+                    v.compliant,
+                    v.rules_passed,
+                    v.rules_failed,
+                )
+            })
+            .collect();
+        assert_eq!(
+            (report.version.as_str(), rows),
+            (
+                VERAPDF_VERSION,
+                vec![("a.pdf", "ua1", true, 106, 0), ("b.pdf", "ua1", false, 104, 2)]
+            )
+        );
     }
 
     #[test]

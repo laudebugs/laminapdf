@@ -55,7 +55,7 @@ On Hacker News, extraction users ask for benchmarks they can rerun: 163 comments
 **Out of scope** (and which todo covers it)
 
 - Timings as release gates → [C7c](../ready/C7c-performance-gates-and-launch.md); the reader's speed against other readers → [U5b](../ready/U5b-reader-benchmark.md).
-- The robustness figures (corpus, agreement, fuzzing) → [T1a](../ready/T1a-nightly-proof-figures.md), [T1b](../ready/T1b-how-we-test-page.md).
+- The robustness figures (corpus, agreement, fuzzing) → [T1a](../done/T1a-nightly-proof-figures.md), [T1b](../ready/T1b-how-we-test-page.md).
 - Refreshing the numbers on a schedule. They change with releases, and `docs.laminapdf.com` builds from each release ([P4](../done/P4-docs-match-the-release.md)), so one refresh before a release is enough.
 - A new benchmark dataset, or tables scored with TEDS: L3f's manifest says why none was usable.
 - Flowing-layout timings: they follow T4b–T4j (T4b's flowing-report bench, T4j's two-page `invoice-from-json` case in `measure()`).
