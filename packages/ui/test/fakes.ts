@@ -4,6 +4,7 @@
 
 import type { Capabilities, Platform, PlatformFile, RecentFile } from "../src/platform/types.ts";
 import type { WebScope } from "../src/platform/web.ts";
+import type { ViewerSlice, Zoom } from "../src/reader/viewer-controls.ts";
 
 /** Every flag false: a platform that can do nothing optional. */
 const NO_CAPABILITIES: Capabilities = {
@@ -61,7 +62,14 @@ export function fakePlatform(
       calls.openFiles.push({ ...request });
       return options.picked ?? [];
     },
-    filesFromDataTransfer: async () => [],
+    filesFromDataTransfer: async (data) =>
+      [...data.files].map((file) => ({
+        name: file.name,
+        size: file.size,
+        read: async (offset, length) => new Uint8Array(await file.slice(offset, offset + length).arrayBuffer()),
+        handle: file,
+        writable: false,
+      })),
     onOpenRequest: () => () => undefined,
     saveAs: async (_bytes, name) => ({ saved: true, name }),
     saveInPlace: async (file) => ({ saved: true, name: file.name }),
@@ -155,4 +163,42 @@ export function fakeIndexedDb(
       return opening;
     },
   } as unknown as IDBFactory;
+}
+
+/** A viewer the chrome can drive: its state as a store, and every call it was asked to make. */
+export class FakeViewer {
+  readonly calls: { method: string; value: unknown }[] = [];
+  #state: ViewerSlice;
+  readonly #listeners = new Set<() => void>();
+
+  constructor(state: Partial<ViewerSlice> = {}) {
+    this.#state = { pageCount: 24, currentPage: 2, zoom: 110, percent: 110, ...state };
+  }
+
+  getState(): ViewerSlice {
+    return this.#state;
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+
+  /** Changes the state as the viewer would after a scroll or a zoom, and tells subscribers. */
+  set(next: Partial<ViewerSlice>): void {
+    this.#state = { ...this.#state, ...next };
+    for (const listener of this.#listeners) listener();
+  }
+
+  goToPage(index: number): void {
+    this.calls.push({ method: "goToPage", value: index });
+  }
+
+  setZoom(zoom: Zoom): void {
+    this.calls.push({ method: "setZoom", value: zoom });
+  }
+
+  rotate(delta: number): void {
+    this.calls.push({ method: "rotate", value: delta });
+  }
 }

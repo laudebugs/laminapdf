@@ -1,0 +1,104 @@
+{
+  "$defs": {
+    "Backend": {
+      "description": "Which engine draws the pages.",
+      "oneOf": [
+        {
+          "const": "hayro",
+          "description": "hayro, the pure-Rust renderer, built in.",
+          "type": "string"
+        },
+        {
+          "const": "pdfium",
+          "description": "PDFium, loaded from the folder `LAMINA_PDF_PDFIUM_DIR` names.",
+          "type": "string"
+        }
+      ]
+    },
+    "RenderedPage": {
+      "description": "One rendered page.",
+      "properties": {
+        "height": {
+          "description": "The image's height in pixels.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "index": {
+          "description": "The 0-based page index.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "number": {
+          "description": "The 1-based page number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "output": {
+          "description": "Where it was written: a path, or `-`.",
+          "type": "string"
+        },
+        "width": {
+          "description": "The image's width in pixels.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "number",
+        "width",
+        "height",
+        "output"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/render.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.render/1`.",
+  "properties": {
+    "backend": {
+      "$ref": "#/$defs/Backend",
+      "description": "The renderer: `hayro` or `pdfium`."
+    },
+    "dryRun": {
+      "description": "Whether the images were drawn but not written (`--dry-run`).",
+      "type": "boolean"
+    },
+    "input": {
+      "description": "The input as given: a path, or `-`.",
+      "type": "string"
+    },
+    "pages": {
+      "description": "The pages, in the order the range named them.",
+      "items": {
+        "$ref": "#/$defs/RenderedPage"
+      },
+      "type": "array"
+    },
+    "scale": {
+      "description": "Pixels per point (1 is 72 dpi).",
+      "format": "float",
+      "type": "number"
+    },
+    "schema": {
+      "const": "laminapdf.render/1",
+      "description": "`laminapdf.render/1`.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "input",
+    "backend",
+    "scale",
+    "dryRun",
+    "pages"
+  ],
+  "title": "laminapdf.render/1",
+  "type": "object"
+}

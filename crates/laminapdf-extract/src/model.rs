@@ -198,6 +198,8 @@ pub enum TableDetector {
     Lattice,
     /// Text lined up in columns, with no lines.
     Stream,
+    /// The structure tree's `Table` element (ISO 32000-2 §14.8.4.8.3).
+    Tagged,
 }
 
 /// What a block is.

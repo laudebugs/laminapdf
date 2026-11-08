@@ -46,4 +46,5 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 ## Contributing
 
-All changes after the initial commit go through pull requests against `main`. See [`docs/guidelines/contributing.md`](docs/guidelines/contributing.md).
+All changes after the initial commit go through pull requests against `main`. 
+See [`docs/guidelines/contributing.md`](docs/guidelines/contributing.md).

@@ -70,10 +70,12 @@ impl ExtractOptions {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum ReadingOrder {
-    /// The best source available. Today that is the layout (XY-Cut++); the structure tree of a
-    /// plausibly tagged file comes first once it is read.
+    /// The best source available: on each page, the structure tree when the file is tagged and
+    /// the tree passes ADR 0030 §2's plausibility checks, else the layout (XY-Cut++).
     #[default]
     Auto,
+    /// The structure tree on every page that has one, plausible or not; the layout elsewhere.
+    Tagged,
     /// The layout, by XY-Cut++, whether or not the file is tagged.
     Layout,
     /// The order the content stream draws, for debugging and comparison.

@@ -14,7 +14,7 @@ use serde_json::Value;
 /// `laminapdf schema [command]`.
 #[derive(Debug, Args)]
 pub(crate) struct SchemaArgs {
-    /// The command (check, explain, extract, info, pages-rotate); the list of schemas without one.
+    /// The command (check, explain, extract, info, pages-rotate, render); the list of schemas without one.
     command: Option<String>,
 }
 

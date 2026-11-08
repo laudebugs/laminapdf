@@ -188,7 +188,8 @@ impl JsonSchema for ExtractedReport {
             "type": "object",
             "properties": {
                 "input": { "type": "string", "description": "The input as given: a path, or -." },
-                "truncated": { "type": "boolean", "description": "Blocks past --max-chars were left out." }
+                "truncated": { "type": "boolean", "description": "Blocks past --max-chars were left out." },
+                "markdown": { "type": "string", "description": "With --format md: the Markdown, which each block's textRange points into." }
             }
         })
     }
@@ -255,6 +256,10 @@ pub fn extract_document(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io
     })?;
     if let Some(map) = json.as_object_mut() {
         map.insert("input".to_owned(), args.input.clone().into());
+        // The blocks' `textRange`s point into the Markdown, so the report carries it.
+        if args.format == Format::Md {
+            map.insert("markdown".to_owned(), markdown.text.into());
+        }
         if truncated {
             map.insert("truncated".to_owned(), true.into());
         }

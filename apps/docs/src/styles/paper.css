@@ -178,6 +178,34 @@ h1#_top,
   border-top: 1px solid var(--sl-color-gray-6);
 }
 
+/* A compact contents rail gives the article the remaining space. Starlight otherwise sizes
+   both sidebars alike and grows the right one on wide screens. Keep its mobile dropdown. */
+@media screen and (min-width: 72rem) {
+  :root {
+    --docs-toc-width: 14rem;
+  }
+  .right-sidebar-container {
+    width: var(--docs-toc-width);
+    flex-shrink: 0;
+  }
+  .right-sidebar {
+    width: inherit;
+  }
+  .right-sidebar-panel .sl-container {
+    width: 100%;
+    max-width: none;
+  }
+  .right-sidebar-panel h2 {
+    margin-bottom: 0.25rem;
+    font-size: var(--sl-text-sm);
+  }
+  [data-has-sidebar][data-has-toc] .main-pane {
+    --sl-content-margin-inline: auto;
+
+    width: calc(100% - var(--docs-toc-width));
+  }
+}
+
 /* Previous and next links at the foot of a page: compact buttons from the design language
    (§3: spacing 8 and 12, button radius 4, control text 13 px), not Starlight's 2xl cards. */
 .pagination-links a {
@@ -223,4 +251,33 @@ h1#_top,
   color: var(--paper-text);
   font-weight: 600;
   box-shadow: inset 2px 0 0 var(--paper-accent);
+}
+
+/* The version the docs describe, before the search (plugins/release.mjs): control text (§3) in
+   text-2, so it reads as a label beside the tools, with the accent on hover like other links. */
+.docs-version {
+  color: var(--paper-text-2);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.docs-version:hover {
+  color: var(--paper-accent);
+}
+
+/* The notice on unreleased docs (src/components/Banner.astro): the warning tint behind body text,
+   across the top of the content, with a hairline under it. */
+.docs-unreleased {
+  margin: 0;
+  padding: 0.5rem var(--sl-nav-pad-x);
+  border-bottom: 1px solid var(--paper-hairline);
+  background: var(--paper-warning-tint);
+  color: var(--paper-text);
+  font-size: var(--sl-text-sm);
+  text-align: center;
+  text-wrap: balance;
+}
+.docs-unreleased a {
+  color: var(--paper-text);
 }

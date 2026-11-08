@@ -225,7 +225,7 @@ export type StructRef = {
 export type StructSource = "tagged" | "xycut" | "content";
 
 /** What found a table. */
-export type TableDetector = "lattice" | "stream";
+export type TableDetector = "lattice" | "stream" | "tagged";
 
 /**
  * Where a piece of text sits in a rendering, in Unicode scalar values (`char`s), `start`

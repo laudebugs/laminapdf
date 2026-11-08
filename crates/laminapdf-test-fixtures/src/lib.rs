@@ -1,6 +1,7 @@
 //! Test helpers shared by Lamina PDF's crates (docs/guidelines/code-organization.md §6): the
 //! repository's `fixtures/` directory, hand-built classic files, a seeded PRNG, a byte-slice
-//! read for `ByteSource` fakes and the `fixtures/codes.json` loader.
+//! read for `ByteSource` fakes, the `fixtures/codes.json` loader, and PNG bitmaps with the SSIM
+//! comparison render goldens use.
 //!
 //! It depends on no Lamina PDF crate, so every crate can take it as a dev-dependency, unit
 //! tests included, without a dependency cycle that would build a second copy of the crate
@@ -16,6 +17,7 @@
 mod classic;
 pub mod code_groups;
 pub mod codes;
+pub mod image;
 
 use std::path::{Path, PathBuf};
 

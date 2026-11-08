@@ -4,6 +4,8 @@
 // Starlight asides (`:::note[Title]`) become block quotes; links to the site's pages point at
 // their Markdown twins. Pure functions over strings, tested by markdown.test.mjs.
 
+import { withVersion } from "@laminapdf/site-kit/version";
+
 /** The fence language of a file the docs show, by extension. */
 const LANGUAGES = { ts: "ts", rs: "rust", toml: "toml", json: "json", md: "md" };
 
@@ -196,7 +198,7 @@ function asides(text) {
 
 /**
  * One Markdown twin: front matter (title, description, version, the page's URL), the title as
- * the H1, the description as a lead paragraph, then the body.
+ * the H1, the description as a lead paragraph, then the body, with `{{version}}` filled in.
  *
  * @param {{ title: string, description?: string | undefined, version: string, url: string, body: string }} page
  * @returns {string}
@@ -216,5 +218,5 @@ export function twin(page) {
     "",
     ...(page.description ? [page.description, ""] : []),
   ];
-  return `${head.join("\n")}\n${page.body.trim()}\n`;
+  return `${head.join("\n")}\n${withVersion(page.body.trim(), page.version)}\n`;
 }

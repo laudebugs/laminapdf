@@ -122,7 +122,7 @@ pub(crate) fn run<W>(
     work: W,
 ) -> ExitCode
 where
-    W: Fn(&str) -> Result<Outcome, CliError> + Sync,
+    W: Fn(usize, &str) -> Result<Outcome, CliError> + Sync,
 {
     let started = Instant::now();
     let options = BatchOptions {

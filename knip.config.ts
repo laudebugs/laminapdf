@@ -14,7 +14,7 @@ const RUNS_UNEXPORTED: Record<string, string[]> = {
   test: ["test/**/*.test.{ts,tsx}"],
   "test/vite-app": ["test/vite-app/*.ts"],
   "test/workerd/worker.ts": ["test/workerd/worker.ts"],
-  examples: ["examples/**/*.{ts,mjs}"],
+  examples: ["examples/**/*.{ts,tsx,mjs}"],
   bench: ["bench/**/*.mjs"],
   scripts: ["scripts/**/*.mjs"],
 };
@@ -38,7 +38,7 @@ function project(dir: string): string[] {
   // A TypeScript script (run by a package.json script, which knip reads as the entry) is project code.
   const tsScripts = holds(dir, "scripts", ".ts");
   return [
-    ...["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "examples/**/*.{ts,mjs}"].filter((g) =>
+    ...["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "examples/**/*.{ts,tsx,mjs}"].filter((g) =>
       existsSync(`packages/${dir}/${g.split("/")[0]}`),
     ),
     ...(tsScripts ? ["scripts/**/*.ts"] : []),

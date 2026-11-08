@@ -259,6 +259,8 @@ tasks:
                     Worker under wrangler dev --local, and Rust binaries with a path and a git
                     dependency on lamina (default ref: HEAD; default URL: this clone); each
                     output must equal fixtures/golden/examples/hello.pdf (needs `wasm` first)
+  release prepare --run <nightly-run-id>
+                    prepare a version-only commit from the exact full-nightly commit; never pushes
   release-guard [--run <id>] [--commit <rev>]
                     fail unless the latest completed full nightly.yml run on main, or run
                     <id>, succeeded on <rev> (default HEAD) or an ancestor; full: scheduled, or
@@ -284,6 +286,7 @@ fn without_workspace(task: &str, rest: &[String]) -> Option<Result<()>> {
         // --locked` (which fails on a manifest bumped by hand, the case `--check` reports).
         ("version", _) => version::parse_args(rest).and_then(|args| version::run(&repo_root()?, &args)),
         // Needs only gh: no `cargo metadata`.
+        ("release", _) => repo_root().and_then(|root| release::prepare::run(&root, rest)),
         ("release-guard", _) => release::parse_args(rest).and_then(|args| release::guard(&repo_root()?, &args)),
         // Needs only CHANGELOG.md.
         ("release-notes", [tag, out]) => {

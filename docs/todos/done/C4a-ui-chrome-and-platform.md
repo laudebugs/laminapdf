@@ -10,12 +10,12 @@
 | ADRs | Implements 0010 (`Platform` interface, capability flags, web implementation, rule 1's check) and 0009's state side (the viewer's store read through `useSyncExternalStore`) |
 | Branch | `feat/c4a-ui-chrome` |
 | PR title | `feat(ui): add the platform adapter, the reader controller and the message catalogue` |
-| Size | L (≈ 1,700 lines, two-thirds of them tests; split on 2026-11-05 as its size required: the components, the demo page and the React Compiler moved to [C4e](../ready/C4e-reader-chrome.md)) |
+| Size | L (≈ 1,700 lines, two-thirds of them tests; split on 2026-11-05 as its size required: the components, the demo page and the React Compiler moved to [C4e](../done/C4e-reader-chrome.md)) |
 | PR | [#259](https://github.com/laudebugs/laminapdf/pull/259) |
 
 ## Goal
 
-Build the layer under the reader chrome in `@laminapdf/ui`. It holds the `Platform` interface from ADR 0010 with its **web** implementation, the reader's lifecycle machine and the `ReaderController` that runs it, the store hooks, and the message catalogue. UI code depends only on capability flags, so the desktop app (D2) can drop in its own `Platform` without touching components. [C4e](../ready/C4e-reader-chrome.md) builds the components on this layer.
+Build the layer under the reader chrome in `@laminapdf/ui`. It holds the `Platform` interface from ADR 0010 with its **web** implementation, the reader's lifecycle machine and the `ReaderController` that runs it, the store hooks, and the message catalogue. UI code depends only on capability flags, so the desktop app (D2) can drop in its own `Platform` without touching components. [C4e](../done/C4e-reader-chrome.md) builds the components on this layer.
 
 ## Context
 
@@ -38,7 +38,7 @@ Build the layer under the reader chrome in `@laminapdf/ui`. It holds the `Platfo
 
 **Out of scope** (and which todo covers it)
 
-- The components → [C4e](../ready/C4e-reader-chrome.md); the demo page and the React Compiler → [C4f](../ready/C4f-reader-home-repairs-and-demo.md).
+- The components → [C4e](../done/C4e-reader-chrome.md); the demo page and the React Compiler → [C4f](../done/C4f-reader-home-repairs-and-demo.md).
 - `apps/web`, Vite config, Cloudflare, actual file opening flows → [C4b](../ready/C4b-web-app-shell.md), [C4c](../ready/C4c-remote-files-encryption-privacy.md).
 - Print → [C6c](../ready/C6c-print-download-properties.md); offline storage → [C7b](../ready/C7b-offline-pwa.md).
 
@@ -70,7 +70,7 @@ None.
 
 ## Docs to update
 
-`packages/ui/README.md`; `CLAUDE.md` layout (`packages/ui`) and `check ts`. [C4f](../ready/C4f-reader-home-repairs-and-demo.md) ticks the [web-app.md §9](../../plans/web-app.md#9-to-dos) to-do, which includes the React Compiler.
+`packages/ui/README.md`; `CLAUDE.md` layout (`packages/ui`) and `check ts`. [C4f](../done/C4f-reader-home-repairs-and-demo.md) ticks the [web-app.md §9](../../plans/web-app.md#9-to-dos) to-do, which includes the React Compiler.
 
 ## Risks and open questions
 

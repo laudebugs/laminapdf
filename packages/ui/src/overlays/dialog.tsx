@@ -32,6 +32,11 @@ interface DialogBase {
   role?: "dialog" | "alertdialog";
   /** Where focus goes when the dialog closes and the control that opened it is gone. */
   returnFocusTo?: () => HTMLElement | null;
+  /**
+   * A required question that Escape answers as its Cancel does (R03's password prompt): called on
+   * Escape, while the scrim and swipes still leave the dialog open.
+   */
+  onEscape?: () => void;
 }
 
 /** Props of `Dialog`: a dialog that may be dismissed has a close button, which needs a name. */
@@ -119,7 +124,7 @@ export function Dialog(props: DialogProps): ReactNode {
           {...(description === undefined ? {} : { "aria-describedby": descriptionId })}
         >
           {({ close }) => (
-            <LayerScope dismiss={close} dismissable={!required}>
+            <LayerScope dismiss={props.onEscape ?? close} dismissable={!required || props.onEscape !== undefined}>
               <Heading slot="title" className="paper-dialog-title">
                 {title}
               </Heading>
@@ -177,6 +182,8 @@ function FirstFieldFocus(): ReactNode {
  * gone), whether the dialog closed through `isOpen` or by unmounting.
  */
 function useFocusFallback(isOpen: boolean, fallback: (() => HTMLElement | null) | undefined): void {
+  // The compiler can't follow the latest-value ref kept here for effects (useEffectEvent could replace it).
+  "use no memo";
   const latest = useRef(fallback);
   latest.current = fallback;
   const wasOpen = useRef(false);

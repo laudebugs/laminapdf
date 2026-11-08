@@ -1,14 +1,18 @@
 ---
 // A code panel with one tab per language (design: the owner's sample C). The tabs come from
 // src/scripts/tabs.ts; without it every pane shows under its own heading, so the code is readable
-// with no script at all.
+// with no script at all. The code is coloured at build time (src/data/highlight.ts): each run of
+// text is a span whose class site.css colours.
+import { type CodeLanguage, highlight } from "../../data/highlight.js";
+
 interface Props {
-  /** One pane per tab: its ID, its label and its code. */
-  tabs: readonly { id: string; label: string; code: string }[];
+  /** One pane per tab: its ID, its label, its code and the language it is coloured as. */
+  tabs: readonly { id: string; label: string; code: string; lang: CodeLanguage }[];
   caption: string;
 }
 
 const { tabs, caption } = Astro.props;
+const panes = await Promise.all(tabs.map(async (tab) => ({ ...tab, lines: await highlight(tab.code, tab.lang) })));
 ---
 
 <figure class="code-panel" data-tabs>
@@ -22,12 +26,12 @@ const { tabs, caption } = Astro.props;
     }
   </div>
   {
-    tabs.map((tab) => (
-      <section class="code-pane" id={`pane-${tab.id}`} data-pane aria-labelledby={`label-${tab.id}`}>
-        <h3 class="code-label" id={`label-${tab.id}`}>
-          {tab.label}
+    panes.map((pane) => (
+      <section class="code-pane" id={`pane-${pane.id}`} data-pane aria-labelledby={`label-${pane.id}`}>
+        <h3 class="code-label" id={`label-${pane.id}`}>
+          {pane.label}
         </h3>
-        <pre tabindex="0"><code>{tab.code}</code></pre>
+        <pre tabindex="0"><code>{pane.lines.map((line, index) => <Fragment>{index > 0 ? "\n" : ""}{line.map((run) => (run.kind === undefined ? run.text : <span class={`syntax-${run.kind}`}>{run.text}</span>))}</Fragment>)}</code></pre>
       </section>
     ))
   }

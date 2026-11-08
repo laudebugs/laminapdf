@@ -1,5 +1,6 @@
 # Frees disk space on the self-hosted macOS runners, by hand (Actions → Runner cleanup → Run
-# workflow, or `gh workflow run runner-cleanup.yml -f scope=pull-request-builds`).
+# workflow, or `gh workflow run rrunner-cleanup.yml -f scope=pull-request-builds`; add
+# `-f install-action-cache=true` to clear install-action's shared folder too, below).
 #
 # The runners share one disk, but .github/actions/isolate-rust-home only ever deletes the build
 # directories of the runner it runs on, and nothing deletes the pnpm stores or a checkout's
@@ -16,6 +17,12 @@
 # Never deleted: each runner's cargo home (registry, installed tools), rustup toolchains,
 # Playwright browsers, and the PDFium and veraPDF downloads. The summary shows their sizes.
 #
+# With `install-action-cache`, whatever the scope, the job also deletes ~/.install-action, the
+# folder that taiki-e/install-action shares between every runner of the machine's user (the tools
+# it installs outside a cargo home, and its downloads). Two runners downloading into it at once can
+# leave a file there that fails every later install's checksum ("computed checksum did NOT match");
+# the next job that needs a tool downloads it again.
+#
 # Deleting a directory that a running job builds into breaks that job, so the job first waits
 # until no other run of this repository is queued or in progress. It runs only on main.
 name: Runner cleanup
@@ -31,6 +38,10 @@ on:
           - report-only
           - pull-request-builds
           - all-builds
+      install-action-cache:
+        description: Also delete ~/.install-action, install-action's shared tools and downloads
+        type: boolean
+        default: false
       wait-minutes:
         description: How long to wait for other runs to finish (at most 120)
         type: number
@@ -52,7 +63,7 @@ jobs:
     timeout-minutes: 150
     steps:
       - name: Wait until no other run is queued or in progress
-        if: inputs.scope != 'report-only'
+        if: inputs.scope != 'report-only' || inputs.install-action-cache
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -87,6 +98,7 @@ jobs:
       - name: Report and delete
         env:
           SCOPE: ${{ inputs.scope }}
+          INSTALL_ACTION_CACHE: ${{ inputs.install-action-cache }}
         run: |
           set -euo pipefail
           # This runner's tool cache is <base>/runner-N/_work/_tool; the others sit beside it.
@@ -139,6 +151,17 @@ jobs:
               fi
             done
           done
+          # install-action's folder, shared by every runner of this user (see the header).
+          shared="${HOME:?}/.install-action"
+          if [ -e "$shared" ]; then
+            deleted=no
+            [ "$INSTALL_ACTION_CACHE" = "true" ] && deleted=yes
+            echo "| every runner | ~/.install-action | $(size_gb "$shared") | $deleted |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$deleted" = "yes" ]; then
+              echo "Deleting $shared"
+              rm -rf "$shared"
+            fi
+          fi
           after=$(free_gb)
           {
             echo

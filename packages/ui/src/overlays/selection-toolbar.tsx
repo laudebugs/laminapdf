@@ -84,6 +84,8 @@ function useAnchoredPlacement(
   anchor: () => Box | null,
   bounds: (() => Box | null) | undefined,
 ): Placement | null {
+  // The compiler can't follow the latest-value ref kept here for effects (useEffectEvent could replace it).
+  "use no memo";
   const [place, setPlace] = useState<Placement | null>(null);
   const measure = () => {
     const element = layer.current;
