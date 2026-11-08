@@ -17,3 +17,4 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 | [Releases](releases.md): a daily automatic release after the nightly, npm trusted publishing, docs that match the released version (Round P) | Draft |
 | [Quality](quality.md): docs that tell a story in plain English, examples readers can copy, maintainable code with checks that keep it so (Round Q) | Draft |
 | [Trust and proof](trust-and-proof.md): what ten years of Hacker News say users lack, turned into work: published proof, checks for what files hide, extraction users can check, flowing layout, long reading, chained CLI jobs (Round T) | Draft |
+| [Element flow](element-flow.md): measured text bottoms and an optional vertical cursor for placing subsequent content | Draft |

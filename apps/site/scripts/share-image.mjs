@@ -1,7 +1,8 @@
 // Writes the website's share image (public/og.png, 1200 × 630, for Open Graph and X cards) and its
 // PNG favicons (public/favicon-32.png, public/apple-touch-icon.png) in the Paper look, rendered in
 // Playwright's Chromium from the site's own tokens, fonts, favicon.svg and headline (src/data/copy.ts).
-// Run it by hand after changing any of them: `pnpm --filter @laminapdf/site share-image`.
+// Run it by hand after changing any of them: `pnpm --filter @laminapdf/site share-image`. The docs
+// site serves the same three icon files, copied from public/ by apps/docs/plugins/integrations.mjs.
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
