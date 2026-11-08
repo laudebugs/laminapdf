@@ -8,8 +8,8 @@
 | Round / milestone | Round B10 — measured placement helpers |
 | Depends on | [B10a](./B10a-measured-text-bottom.md), [B10b](./B10b-vertical-cursor.md) |
 | ADRs | Follows [0016](../../decisions/0016-package-design.md), [0018](../../decisions/0018-test-strategy.md) and [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
-| Branch | `docs/b10c-element-flow-recipe` |
-| PR title | `docs(build): document and demonstrate element flow` |
+| Branch | `feat/b10c-element-flow-recipe` |
+| PR title | `feat(examples): document and demonstrate element flow` |
 | Size | M (paired examples, recipe and tests) |
 | PR | — |
 
@@ -19,20 +19,22 @@ Publish a tested report recipe that places paragraphs and an image using the cur
 
 ## Context
 
-- [Element flow plan](../../plans/element-flow.md): current API evidence, scope and shared contract.
-- [PDF library scope](../../plans/pdf-library.md): full flowing layout remains deferred.
-- [Creating PDFs from code](../../research/pdf/05-creating-pdfs-from-code.md): builder and layout background.
-- The plan's implementation references identify the existing Rust, WebAssembly and SDK measurement paths to inspect before coding.
+- [Element flow plan](../../plans/element-flow.md#proof-and-usefulness): the report the recipe builds and the before/after comparison it records.
+- [B10a](./B10a-measured-text-bottom.md) and [B10b](./B10b-vertical-cursor.md): the helper and cursor the examples use.
+- [Example guidelines](../../guidelines/examples.md): paired Rust and TypeScript examples, public APIs only, registered with the snippet checks.
 
 ## Scope
 
 **In scope**
 
-The tasks and observable behaviors below, using existing drawing and text layout primitives.
+- Paired Rust and TypeScript examples of a report placed with the measured bottoms (and the cursor, if B10b went ahead), including the minimal next-paragraph example.
+- A docs-site recipe built from those examples.
+- The before/after authoring comparison described in the plan.
 
-**Out of scope**
+**Out of scope** (and which todo covers it)
 
-Automatic pagination, tables, floats, transformed ink bounds and a hidden cursor in `Surface`. These require a separate proposal. The other B10 todos own the adjacent delivery steps.
+- Any change to the helper or cursor APIs: [B10a](./B10a-measured-text-bottom.md), [B10b](./B10b-vertical-cursor.md).
+- Automatic pagination, tables, floats and transformed ink bounds: no todo yet; they need a separate proposal ([plan](../../plans/element-flow.md#decisions-before-implementation)).
 
 ## Tasks
 
@@ -70,7 +72,7 @@ None. All behavior can be verified before merge.
 
 ## Risks and open questions
 
-Font layout edges differ from visible ink. Use independent metric assertions and visual evidence together. Public names and feature gating must be settled before implementation; do not change existing output rectangles or hide overflow to simplify usage.
+A recipe can suggest more than the helper does, so it must say plainly that overflow and page breaks stay the caller's job. The examples are byte-compared goldens, so a later change to text layout changes them too. Keep the before/after comparison to measured counts, not a promised saving.
 
 ## Definition of done
 

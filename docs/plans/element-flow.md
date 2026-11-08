@@ -96,9 +96,9 @@ A failed drawing call must not advance the cursor. The helper must not add pages
 
 The following ready todos use the [todo template](../todos/TEMPLATE.md). Claim each in its own implementation PR after its dependencies are done. This draft PR records the design and work queue; it does not claim implementation work or change delivery priorities.
 
-- [ ] [B10a](../todos/ready/B10a-measured-text-bottom.md): **Text measurement convenience.** Settle public names and empty-result semantics. Add Rust and TypeScript accessors or helpers, preserving existing APIs. Add matching tests and a tested example showing the next paragraph's position.
+- [ ] [B10a](../todos/ready/B10a-measured-text-bottom.md): **Text measurement convenience.** Settle public names and empty-result semantics. Add Rust and TypeScript accessors or helpers, preserving existing APIs, with matching tests. Decide whether the cursor is needed.
 - [ ] [B10b](../todos/ready/B10b-vertical-cursor.md): **Vertical cursor.** Implement a reusable cursor with matching Rust and TypeScript behavior, explicit rectangle placement and validation. Export through the Rust facade and SDK public API as appropriate. Reuse existing measurements rather than laying out text again.
-- [ ] [B10c](../todos/ready/B10c-element-flow-recipe.md): **Documentation and recipe.** Demonstrate paragraphs followed by an image, empty content, overflow handling and an explicit page reset. Keep examples runnable and align the Rust and TypeScript recipes.
+- [ ] [B10c](../todos/ready/B10c-element-flow-recipe.md): **Documentation and recipe.** Add the paired examples, including the minimal next-paragraph one. Demonstrate paragraphs followed by an image, empty content, overflow handling and an explicit page reset. Keep examples runnable and align the Rust and TypeScript recipes.
 
 Each implementation PR follows the repository's review, changeset and validation rules. No implementation is included in this plan PR.
 

@@ -21,20 +21,24 @@ Add an optional vertical cursor over measured bottoms and explicit rectangles. A
 
 ## Context
 
-- [Element flow plan](../../plans/element-flow.md): current API evidence, scope and shared contract.
-- [PDF library scope](../../plans/pdf-library.md): full flowing layout remains deferred.
-- [Creating PDFs from code](../../research/pdf/05-creating-pdfs-from-code.md): builder and layout background.
-- The plan's implementation references identify the existing Rust, WebAssembly and SDK measurement paths to inspect before coding.
+- [Element flow plan](../../plans/element-flow.md#optional-vertical-cursor): the cursor's transition rules, validation and coordinate system.
+- [B10a](./B10a-measured-text-bottom.md): the measured bottoms the cursor consumes, and the decision whether this todo goes ahead.
+- [Surface drawing and transforms](../../../crates/laminapdf-build/src/surface/mod.rs): why the cursor stays outside `Surface` and before its transform.
 
 ## Scope
 
 **In scope**
 
-The tasks and observable behaviors below, using existing drawing and text layout primitives.
+- A cursor type in Rust and TypeScript with the same transitions: start, advance by a measured bottom or a caller-declared rectangle plus a gap, and reset.
+- Validation of positions, gaps and rectangles before any state changes.
+- Exports through the `laminapdf` façade and the SDK, with the base cursor available without the text feature if B10a's decision allows it.
 
-**Out of scope**
+**Out of scope** (and which todo covers it)
 
-Automatic pagination, tables, floats, transformed ink bounds and a hidden cursor in `Surface`. These require a separate proposal. The other B10 todos own the adjacent delivery steps.
+- The measured bottoms themselves: [B10a](./B10a-measured-text-bottom.md).
+- Runnable examples and the docs recipe: [B10c](./B10c-element-flow-recipe.md).
+- A cursor held inside `Surface`: rejected by the [plan](../../plans/element-flow.md#optional-vertical-cursor).
+- Automatic pagination, tables, floats and transformed ink bounds: no todo yet; they need a separate proposal ([plan](../../plans/element-flow.md#decisions-before-implementation)).
 
 ## Tasks
 
@@ -74,7 +78,7 @@ Use table-driven state-transition tests in the Rust builder and SDK suites. Incl
 
 ## Risks and open questions
 
-Font layout edges differ from visible ink. Use independent metric assertions and visual evidence together. Public names and feature gating must be settled before implementation; do not change existing output rectangles or hide overflow to simplify usage.
+The cursor trusts the rectangles callers declare, so a wrong image rectangle moves it wrongly; document that it measures nothing itself. Mixing measurements taken under different transforms is unsupported and must be documented, not silently corrected. Rust and TypeScript must reject the same inputs, so keep the transition table shared.
 
 ## Definition of done
 

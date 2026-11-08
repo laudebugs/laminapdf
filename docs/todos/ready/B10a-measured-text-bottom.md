@@ -19,20 +19,25 @@ Expose an optional bottom position for text runs and text boxes in Rust and Type
 
 ## Context
 
-- [Element flow plan](../../plans/element-flow.md): current API evidence, scope and shared contract.
-- [PDF library scope](../../plans/pdf-library.md): full flowing layout remains deferred.
-- [Creating PDFs from code](../../research/pdf/05-creating-pdfs-from-code.md): builder and layout background.
-- The plan's implementation references identify the existing Rust, WebAssembly and SDK measurement paths to inspect before coding.
+- [Element flow plan](../../plans/element-flow.md#proposed-contract): the measured-bottom contract, including what counts as an empty result.
+- [`TextRun::bounds()`](../../../crates/laminapdf-build/src/surface/text.rs) and [`TextLayout`](../../../crates/laminapdf-build/src/surface/textbox.rs): the measurements to reuse; both are taken before the surface transform.
+- [WebAssembly text results](../../../crates/laminapdf-wasm/src/builder/text.rs) and [the SDK's `Surface`](../../../packages/sdk/src/builder.ts): where the TypeScript helper reads the same values, with overflow as UTF-16 offsets.
+- [ADR 0027](../../decisions/0027-coordinates-units-and-page-indexing.md): top-left page coordinates in points.
 
 ## Scope
 
 **In scope**
 
-The tasks and observable behaviors below, using existing drawing and text layout primitives.
+- An additive Rust accessor for the optional bottom of a `TextRun` and a `TextLayout`, exported through the `laminapdf` façade.
+- The matching exported TypeScript helper, reading the existing result objects.
+- The empty-result rule: no drawn line, or only blank lines.
+- The decision whether B10b's cursor is needed, recorded in the plan.
 
-**Out of scope**
+**Out of scope** (and which todo covers it)
 
-Automatic pagination, tables, floats, transformed ink bounds and a hidden cursor in `Surface`. These require a separate proposal. The other B10 todos own the adjacent delivery steps.
+- The vertical cursor: [B10b](./B10b-vertical-cursor.md).
+- Runnable examples and the docs recipe: [B10c](./B10c-element-flow-recipe.md).
+- Automatic pagination, tables, floats and transformed ink bounds: no todo yet; they need a separate proposal ([plan](../../plans/element-flow.md#decisions-before-implementation)).
 
 ## Tasks
 
@@ -41,7 +46,7 @@ Automatic pagination, tables, floats, transformed ink bounds and a hidden cursor
 - [ ] Reuse `TextRun::bounds()` and `TextLayout::lines` in `crates/laminapdf-build/src/surface/`; keep existing fields and return types.
 - [ ] Export through the Rust facade and SDK public API; inspect the WebAssembly DTO boundary without changing its serialized shape unnecessarily.
 - [ ] Preserve overflow offsets and pre-transform coordinate semantics.
-- [ ] Add public API documentation, a minimal tested next-paragraph example, and the required changeset.
+- [ ] Add public API documentation, doc tests that place a next paragraph, and the required changeset. The runnable examples are B10c's.
 
 ## Acceptance criteria
 
@@ -71,7 +76,7 @@ Add Rust builder tests and SDK tests using existing licensed font fixtures. Cove
 
 ## Risks and open questions
 
-Font layout edges differ from visible ink. Use independent metric assertions and visual evidence together. Public names and feature gating must be settled before implementation; do not change existing output rectangles or hide overflow to simplify usage.
+Font layout edges differ from visible ink, so check measurements against independent font metrics and a rendered page together. The TypeScript helper must read the existing WebAssembly results rather than change their serialized shape. Settle public names before implementation, and never hide overflow to simplify the helper.
 
 ## Definition of done
 
