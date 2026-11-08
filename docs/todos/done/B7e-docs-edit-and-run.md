@@ -11,7 +11,7 @@
 | Branch | `feat/b7e-docs-edit-and-run` |
 | PR title | `feat(docs): edit and run the TypeScript examples on their pages` |
 | Size | L (400–800 changed lines of code) |
-| PR | — |
+| PR | [#332](https://github.com/laudebugs/laminapdf/pull/332) |
 
 ## Goal
 
