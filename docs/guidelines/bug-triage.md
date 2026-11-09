@@ -39,8 +39,8 @@ Note what you leave alone. A retry for a failed tile, or a canvas size that woul
 
 - **A regression test that fails without the fix.** Sweep the inputs that matter (here zoom levels, pixel ratios, page sizes and rotations) rather than adding one case. Then run the old rule through the same sweep and count the failures it would have had. Under the old rule, the blurry-zoom sweep failed in 4,365 of 14,464 cases.
 - **The reproduction again.** Rerun step 1's steps and compare with the evidence you kept: the same zoom levels, the same screenshots, now with no failed request.
-- **A test of what the user does and sees.** Drive the interaction the user performs (a real mouse drag, real keys) and check what they would see, not only what an API returns. The text layer's tests selected through the Selection API and passed while no mouse drag could select anything; once a drag could, its tint hid the text it selected, and only a check of the pixels caught it.
-- **A look from the user's side.** Rerun the fix in the built app in a real browser, as the user would, and look at the screenshots. Ask whether the user can now do what they came to do and read what they expect, not only whether the reported symptom is gone.
+- **A test of what the user does and sees.** Drive the interaction the user performs (a real mouse drag, real keys) and check what they would see, not only what an API returns. The text layer's tests selected through the Selection API and passed while no mouse drag could select anything; once a drag could, its tint hid the text it selected, and only a check of the pixels would have caught it.
+- **A look from the user's side.** Ask whether the user can now do what they came to do, not only whether the symptom is gone: try the fix in the built app in a real browser, as they would, and look at the screenshots.
 - **The package's own suites.** Run them in every runtime they cover (Node and the browsers for the viewer).
 
 ## 8. Record it and report

@@ -21,7 +21,7 @@ The browser test "leaves a selected word's ink as dark as drawn under an opaque 
 | | Ink pixels before selecting | After selecting |
 | --- | --- | --- |
 | As built | 576 | 0 (Chromium, Firefox and WebKit) |
-| With the text layer multiplied over the page | 576 | 576 or more |
+| With the text layer multiplied over the page | 576 | 576 or more in the run recorded here (the test asserts at least 80 % kept) |
 
 ## The cause
 

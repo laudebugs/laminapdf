@@ -332,7 +332,9 @@ describe("selection tint", () => {
     try {
       const span = (await spansOf(0)).find((s) => {
         const box = s.getBoundingClientRect();
-        return (s.textContent ?? "").trim().length > 8 && box.top >= 0 && box.bottom <= window.innerHeight;
+        const inView =
+          box.top >= 0 && box.bottom <= window.innerHeight && box.left >= 0 && box.right <= window.innerWidth;
+        return (s.textContent ?? "").trim().length > 8 && inView;
       });
       if (span === undefined) throw new Error("no word in view on page 0");
       span.id = "tinted";
