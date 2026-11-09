@@ -35,6 +35,8 @@ export type {
   PageTextData,
   Params,
   PolicyViolation,
+  PrintedPage,
+  PrintOptions,
   Priority,
   ReadingBlock,
   RemoteSource,

@@ -42,6 +42,7 @@ export const DOCUMENT_METHODS = {
   pageInfo: 1,
   pageLinks: 1,
   pages: 0,
+  properties: 0,
   rebase: 1,
   redo: 0,
   save: 1,

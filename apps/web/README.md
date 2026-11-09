@@ -63,6 +63,18 @@ The policy itself stays as ADR 0011 sets it, with `connect-src 'self' https:` so
 
 Browser extensions make requests no page can see, so the panel says so; your browser's developer tools show those too.
 
+## Printing, downloads and properties
+
+The More menu holds Download a copy, Print… (also `Ctrl P`, or `⌘P` on a Mac; while a document is open, the shortcut opens the reader's print, not the browser's) and Document properties…. All three work on this device; nothing about the file goes to any server.
+
+**Print** draws each chosen page in the document worker at 150 or 300 dpi, with comments and highlights as their print flags say. The worker encodes each page as a PNG, so the reader's own page holds only small image files, never pixels, one at a time. A page that would pass 16 million pixels at the chosen resolution is drawn at a lower one, and a High-quality print of more than a billion pixels in all prints at Standard, with a notice. Cancel stops between pages and frees what was drawn.
+
+**The print frame** holds one image per page at its page's size in points. The frame is hidden, and its own `print()` opens the browser's print window, so the reader around it never prints. The frame inherits the reader's Content Security Policy, which allows no inline style. Each page's size therefore goes into a stylesheet that script builds and the frame adopts, as a named page (`@page p3 { size: 792pt 612pt }`). Where the browser honours named pages, a document that mixes portrait and landscape prints each page the right way up. Fit to paper sets those sizes and shrinks a page the paper can't hold; Actual size leaves the paper to the print window. When a file's author restricted printing, the dialog says so and asks once more before printing; see [R09](../../docs/design/paper/reader-a.md#r09-print-and-download-a-copy).
+
+**Download a copy** saves the file's bytes exactly as opened: a local file's own bytes, or a linked file's from the document worker's cache and its site, unchanged. An encrypted file stays encrypted. The name comes from the file, or a linked file's address, made safe to save: no path, no characters Windows refuses, and `.pdf` at the end.
+
+**Document properties** reads the file with Lamina PDF's own parser, not the render engine: the Info and XMP fields (XMP wins where they differ), the PDF version, pages, sizes, file size, tagging, the fonts the pages use, the encryption and the author's permissions, and the signatures present, which are counted and never verified.
+
 ## Headers and hosting
 
 The reader shows the website's icon. `vite.config.ts` copies `favicon.svg`, `favicon-32.png` and `apple-touch-icon.png` from `apps/site/public/` into the build, and serves them in development. `index.html` links them as the website and the docs site do, and `test/icons.test.ts` checks both.
@@ -86,6 +98,8 @@ Three more suites use `e2e/remote-host.ts`, a local HTTPS server on another port
 - **`remote.e2e.test.ts`** opens linked files. Page 1 of a 50 MB file appears after the reader reads less than a quarter of it. A site without CORS gets the explanation, and a change of `page` alone never opens the file again. It also checks the link format: an unencoded address and `http://` are both refused.
 - **`encrypted.e2e.test.ts`** opens every encrypted fixture, each revision of the standard security handler from 2 to 6. A file with an empty user password opens at once. Any other asks for its password, rejects a wrong one, and opens with the user or the owner password.
 - **`privacy.e2e.test.ts`** checks what leaves the browser while a local file, a linked file and an encrypted file of each kind open. It records every request of the page and its worker, and fails when a request body carries 32 bytes of the document or when a request to the reader's origin names the linked address. It also fails on a request to the reader's origin that isn't a GET and on a Referer or cookie reaching the file's site. Any cookie at all, any other origin and the password in any request fail it too.
+
+`e2e/output.e2e.test.ts` prints a 50-page file with landscape pages among portrait ones. It replaces the print frame's `print()` before it runs, then checks that all 50 images loaded at their pages' sizes, with a named `@page` rule each. Throughout, it checks that neither the page nor the frame met a CSP violation and that nothing was fetched. It prints a range by number and by page label, refuses a page the file lacks, and stops on Cancel. For a file whose author restricted printing, the reader asks once more, with Cancel focused, before it prints. Its downloads of a local file, a linked file and an encrypted file must match the originals' SHA-256. Its properties must show what pypdf reads in `fixtures/corpus/expected.json`, close with Escape and pass axe. Playwright's WebKit reports each native `<select>` as an inline style under the reader's policy, even on a page holding only a bare `<select>`, so the WebKit run leaves those reports out.
 
 `e2e/network.e2e.test.ts` holds the network indicator to Playwright's own record of the browser's requests, which includes the document worker's. On each flow, the panel's counts of document traffic and of app files must equal that record, split by the same `classifyRequest`. The flows are a local file (0 document requests) and a linked file (its host only). The suite then makes requests on purpose:
 

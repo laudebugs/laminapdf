@@ -1,0 +1,44 @@
+---
+title: "What Lamina PDF writes and what it borrows"
+description: "Lamina PDF writes the parts that decide a PDF's bytes, borrows the rest from permissive projects, and pins and checks everything it borrows."
+version: "0.2.0-alpha.4"
+url: "https://docs.laminapdf.com/concepts/dependencies/"
+---
+
+# What Lamina PDF writes and what it borrows
+
+Lamina PDF writes the parts that decide a PDF's bytes, borrows the rest from permissive projects, and pins and checks everything it borrows.
+
+Add `@laminapdf/viewer` to your app, and it downloads about 2 MB of WebAssembly from a project called EmbedPDF. That WebAssembly is PDFium, the C++ engine behind Chrome's PDF viewer. You may wonder why a Rust library ships someone else's C++, and what else comes along with it. Lamina PDF follows one rule: it writes the parts that decide what your PDF contains. It borrows the rest only from permissively licensed projects that do the job better, and it pins and checks every borrowed piece.
+
+## Lamina PDF writes the parts that decide your bytes
+
+Lamina PDF's own Rust code reads, edits and saves your PDFs. Those parts take files from strangers, and they decide every byte of the file you save. A bug there corrupts documents or breaks signatures, so Lamina PDF owns them. Rust also keeps that code memory-safe while it reads damaged or hostile files. And because Lamina PDF wrote it, the same input gives the same bytes in a browser, on a server and inside a Cloudflare Worker.
+
+## It borrows the work others already do well
+
+Fonts and text shaping are deep problems with good open-source answers, so Lamina PDF reuses them. `skrifa` reads font files, `subsetter` cuts them down to the glyphs you use, and HarfRust shapes Arabic, Hindi and other scripts. ICU4X finds line breaks, and `pdf-writer` writes PDF syntax. Each one is permissively licensed Rust that compiles to WebAssembly. Lamina PDF measured krilla, a complete PDF generator built on the same crates. But krilla can't add content to a file you opened, so Lamina PDF builds on the crates beneath it.
+
+## Drawing pages is the one job it hands to PDFium
+
+Lamina PDF hands one big job to another project: turning pages into pixels. Real-world PDFs often break the specification, and PDFium draws them for everyone who opens a PDF in Chrome. Lamina PDF measured the alternative, hayro, a renderer written in Rust. It drew 91% of 2,196 test pages the same as PDFium or close to it, and most of the rest went wrong on fonts and annotations. A viewer that becomes an editor needs that fidelity from the start, so PDFium draws the pages. `@embedpdf/pdfium` is PDFium compiled to WebAssembly.
+
+## PDFium only draws, and only in a Web Worker
+
+PDFium is C++ reading files you didn't write, so Lamina PDF keeps it at arm's length. The viewer runs it inside a Web Worker, away from your page. PDFium never changes the document either: every edit goes through Lamina PDF, which also writes the saved file. Text, selection and links come from Lamina PDF's own model of the file, never from the renderer. Lamina PDF also checks that the two agree: its tests compare each page's size and every character's position with PDFium's. [How a page is drawn](../../pages/concepts/drawing-pages.md) shows the two side by side.
+
+## You pay for PDFium only when you show pages
+
+`@laminapdf/sdk`, the package that creates, reads and edits PDFs, depends only on `@laminapdf/wasm`, Lamina PDF's own WebAssembly. PDFium comes only with `@laminapdf/render-pdfium` and the viewer built on it. For pages as pixels on a server or in a Cloudflare Worker, `@laminapdf/render-hayro` is the lighter choice: pure Rust, with no C++, and a smaller download than PDFium. Every night, Lamina PDF's tests draw thousands of pages with both renderers, so hayro can take over once it matches PDFium.
+
+## Every dependency is permissively licensed
+
+Lamina PDF is `MIT OR Apache-2.0`, so you can use it in a closed product or a paid service. That promise only holds if every dependency allows the same. So Lamina PDF accepts no GPL, AGPL or LGPL code in anything it ships, and a licence check enforces the rule on every change. MuPDF is a fine PDF engine, but it is AGPL, so Lamina PDF never uses it, in any form. Copyleft tools such as veraPDF run as separate programs in Lamina PDF's tests and are never shipped.
+
+## Everything borrowed is pinned and checked
+
+A dependency can change under you, so Lamina PDF's lockfiles pin every one to an exact version. For PDFium, Lamina PDF goes further: the build checks the SHA-256 of `pdfium.wasm`, and any other file fails the build. `@embedpdf/pdfium` ships no notices for the libraries compiled into it, such as libpng, zlib and FreeType. So `@laminapdf/render-pdfium` includes a third-party notices file, and an app that bundles it ships that file too. An update to PDFium arrives as its own reviewed change, and the next release picks up its security fixes.
+
+## What this means for your app
+
+You can build Lamina PDF into closed software, and `@laminapdf/sdk` brings no third-party engine with it. Add the viewer when you need to show pages, and ship PDFium's notices file with it. Next, see [how Lamina PDF thinks about a PDF](../../pages/concepts/how-lamina-thinks.md), or start with [your first PDF](../../pages/start/first-pdf.md).

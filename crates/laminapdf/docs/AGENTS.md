@@ -1,0 +1,14 @@
+---
+version: "0.2.0-alpha.4"
+---
+
+## Lamina PDF
+
+This project uses Lamina PDF (`@laminapdf/sdk` in TypeScript, the `laminapdf` crate in Rust) to create, read, edit and save PDF files.
+
+- **Read the installed docs first.** They match the installed version: `node_modules/@laminapdf/sdk/docs/llms.txt` lists every page, and `docs/api/` holds the API reference. In Rust they are in the `laminapdf` crate's `docs/` folder. Online: https://docs.laminapdf.com/llms.txt (the latest version).
+- **Call `await init()` once before anything else.** After it every call is synchronous. Fonts and text need `await init({ text: true })`; reading text needs the extract or text module (`await init({ extract: true })` or `{ text: true }`). Rust needs no setup.
+- **Positions are points from the top-left corner** of the page as it is displayed, with y going down. A text position is its baseline. Page numbers in the API start at 0 (`page(0)` is the first page).
+- **Branch on an error's `code`, never its message.** Every error is a `LaminaPdfError` with a stable `code` (such as `wrong-password`) and a `hint`; `docs/errors/<code>.md` explains each one. Warnings, which say what Lamina PDF repaired in a damaged file, use the same codes.
+- **Free what you open.** A `Document` or `Builder` holds WebAssembly memory: declare it with `using`, or call `free()` when you are done.
+- **Check `docs/renames.json`** when a name in older code or an older answer doesn't exist: it says what each renamed item is called now.

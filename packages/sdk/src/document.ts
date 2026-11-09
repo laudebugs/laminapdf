@@ -15,6 +15,7 @@ import { PageText, type TextOptions } from "./text.js";
 import { Transaction } from "./transaction.js";
 import type {
   DocumentInfo,
+  DocumentProperties,
   Edited,
   Op,
   OpenOptions,
@@ -382,6 +383,18 @@ export class Document extends Handle<BaseGlue> {
    */
   namedDestination(name: string): Target | undefined {
     return this.call(() => this.#extracting("doc.namedDestination()").namedDestination(name));
+  }
+
+  /**
+   * What a properties view shows about the document: Info entries and dates, version, pages,
+   * size, tagging, encryption and permissions, fonts, signatures (counted, not verified) and
+   * whether it holds JavaScript, attachments or a form. It reads every object once, so call it
+   * when the view opens. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   */
+  properties(): DocumentProperties {
+    return this.call(() => this.#extracting("doc.properties()").properties());
   }
 
   /**
