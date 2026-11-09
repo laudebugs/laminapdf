@@ -372,6 +372,53 @@ function viewSettingCommands(): AnyCommand[] {
   ];
 }
 
+/** Reader mode (R14): its toggle and the settings of its reading column. */
+function readerModeCommands(): AnyCommand[] {
+  const setting = (id: CommandId, keywords: string[]) =>
+    delegated({ id, title: title(id), keywords, group: "view", home: ["view-settings"], enabled: documentOpen });
+  return [
+    delegated({
+      id: "view.reader-mode",
+      title: title("view.reader-mode"),
+      keywords: ["reflow", "read", "text", "large text"],
+      group: "view",
+      icon: "reader",
+      shortcuts: [keys("page", "R")],
+      home: ["top-bar"],
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "view.reader-settings",
+      title: title("view.reader-settings"),
+      keywords: ["text size", "line spacing", "line length"],
+      group: "view",
+      home: ["top-bar"],
+      enabled: documentOpen,
+    }),
+    setting("view.reader-text-smaller", ["font", "size", "zoom out"]),
+    setting("view.reader-text-larger", ["font", "size", "zoom in"]),
+    delegated({
+      id: "view.reader-line-spacing",
+      title: title("view.reader-line-spacing"),
+      keywords: ["leading", "line height"],
+      group: "view",
+      home: ["view-settings"],
+      args: choiceArgs(["tight", "normal", "loose"] as const),
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "view.reader-line-length",
+      title: title("view.reader-line-length"),
+      keywords: ["measure", "column width"],
+      group: "view",
+      home: ["view-settings"],
+      args: choiceArgs(["narrow", "medium", "wide"] as const),
+      enabled: documentOpen,
+    }),
+    setting("view.reader-reset", ["defaults"]),
+  ];
+}
+
 /** Read mode and find. */
 function findCommands(): AnyCommand[] {
   return [
@@ -530,6 +577,7 @@ export function readerCommands(): readonly AnyCommand[] {
     ...historyAndZoomCommands(),
     ...zoomModeCommands(),
     ...viewSettingCommands(),
+    ...readerModeCommands(),
     ...findCommands(),
     ...appCommands(),
     ...selectionCommands(),

@@ -53,6 +53,7 @@ import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { railTabs } from "./rail.tsx";
+import { type ReaderMode, useReaderMode } from "./reader-mode.tsx";
 import type { SelectionSurfaces } from "./selection.tsx";
 import { useSelection } from "./selection.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
@@ -90,13 +91,27 @@ function moreEntries(open: boolean): GatedEntry<MoreId>[] {
   ];
 }
 
-/** Mounts `viewer` into a box that fills the canvas, and shows it while `visible`. */
-function ViewerHost({ viewer, visible }: { viewer: Viewer | undefined; visible: boolean }): ReactNode {
+/**
+ * Mounts `viewer` into a box that fills the canvas, and shows it while `visible`. While
+ * `covered` (reader mode's column is over it) it keeps its size and place, unseen and inert, so
+ * leaving reader mode can move it at once.
+ */
+function ViewerHost({
+  viewer,
+  visible,
+  covered,
+}: {
+  viewer: Viewer | undefined;
+  visible: boolean;
+  covered: boolean;
+}): ReactNode {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (viewer !== undefined && host.current !== null) viewer.mount(host.current);
   }, [viewer]);
-  return <div ref={host} className="web-viewer" hidden={!visible} />;
+  return (
+    <div ref={host} className="web-viewer" hidden={!visible} inert={covered} data-covered={covered || undefined} />
+  );
 }
 
 /** A history with nowhere to go, for a top bar without a view. */
@@ -152,7 +167,8 @@ function useReaderCommands(
   documentActions: FindActions &
     ReturnType<typeof useHistory>["actions"] &
     Output["actions"] &
-    SelectionSurfaces["actions"],
+    SelectionSurfaces["actions"] &
+    ReaderMode["actions"],
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -346,6 +362,42 @@ function useDocumentMenu(
   return { toasts, labels, output, moreItems: { items, onAction } };
 }
 
+/** The canvas: the drop zone, a link's or an open's failure, the page view, or reader mode's column. */
+function Canvas({
+  engine,
+  state,
+  platform,
+  readerMode,
+}: {
+  engine: Engine;
+  state: ReaderState;
+  platform: Platform;
+  readerMode: ReaderMode;
+}): ReactNode {
+  const { reader } = engine;
+  const { viewer, linkProblem } = useStoreState(engine, (s) => s);
+  const open = state.phase === "open";
+  return (
+    <>
+      {state.phase === "empty" && linkProblem === undefined ? (
+        <OpenDropZone reader={reader} keys={KEYS}>
+          <p className="web-privacy">{message("reader.open.privacy")}</p>
+        </OpenDropZone>
+      ) : null}
+      {state.phase === "empty" && linkProblem !== undefined ? (
+        <RemoteFailure
+          reason={linkProblem}
+          onHome={() => engine.dismissLinkProblem()}
+          onChooseFile={() => void reader.openFromPicker()}
+        />
+      ) : null}
+      {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
+      <ViewerHost viewer={viewer} visible={open} covered={readerMode.on} />
+      {open ? readerMode.view : null}
+    </>
+  );
+}
+
 /** The reader over `engine`, on `platform`; `debug` shows the debug menu (`#debug`). */
 export function App({
   engine,
@@ -380,14 +432,19 @@ export function App({
   const rail = tabs.length > 0;
   const history = useHistory(shown, engineState.pages);
   const selection = useSelection(shown, find, platform, KEYS);
+  const readerMode = useReaderMode(engine, layout, platform, shown, open ? state.file : undefined, (page) =>
+    pageLabel(engineState.pages, page),
+  );
   const commands = useReaderCommands(platform, reader, shown, shell, rail, {
     ...find.actions,
     ...history.actions,
     ...output.actions,
     ...selection.actions,
+    ...readerMode.actions,
   });
   useWindowTitle(fileName, engineState.title);
-  const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
+  const panels = usePanels(layout, platform, network, fileName, engineState, debug);
+  const inspector = readerMode.inspector ?? panels.inspector;
   const debugMenu = debug ? (
     <DebugMenu backend={backend} onBackendChange={(next) => void engine.switchBackend(next)} keys={KEYS} />
   ) : undefined;
@@ -404,6 +461,7 @@ export function App({
             keys={KEYS}
             sidebarOpen={sidebar}
             findOpen={find.open}
+            {...readerMode.topBar}
             {...(shown === undefined ? {} : { history: history.history })}
             {...(labels === undefined ? {} : { labels })}
             home={<span className="web-wordmark">{APP_NAME}</span>}
@@ -416,25 +474,13 @@ export function App({
         {...(inspector === undefined ? {} : { inspector })}
         status={
           <>
-            {status}
+            {readerMode.status}
+            {panels.status}
             <FocusModeItem layout={layout} />
           </>
         }
       >
-        {state.phase === "empty" && engineState.linkProblem === undefined ? (
-          <OpenDropZone reader={reader} keys={KEYS}>
-            <p className="web-privacy">{message("reader.open.privacy")}</p>
-          </OpenDropZone>
-        ) : null}
-        {state.phase === "empty" && engineState.linkProblem !== undefined ? (
-          <RemoteFailure
-            reason={engineState.linkProblem}
-            onHome={() => engine.dismissLinkProblem()}
-            onChooseFile={() => void reader.openFromPicker()}
-          />
-        ) : null}
-        {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
-        <ViewerHost viewer={viewer} visible={open} />
+        <Canvas engine={engine} state={state} platform={platform} readerMode={readerMode} />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
         {output.dialogs}
       </ReaderShell>

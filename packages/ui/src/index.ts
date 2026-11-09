@@ -250,6 +250,21 @@ export {
   type PropertiesState,
 } from "./reader/properties-dialog.js";
 export {
+  DEFAULT_READER_SETTINGS,
+  isCropBlock,
+  READER_TEXT_SIZES,
+  type ReaderBlock,
+  type ReaderLineLength,
+  type ReaderLineSpacing,
+  type ReaderSettings,
+  ReaderSettingsPanel,
+  type ReaderSettingsPanelProps,
+  ReaderView,
+  type ReaderViewContent,
+  type ReaderViewProps,
+  readerTextSize,
+} from "./reader/reader-view.js";
+export {
   OpenFailure,
   type OpenFailureProps,
   RemoteFailure,

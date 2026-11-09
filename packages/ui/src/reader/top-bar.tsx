@@ -38,6 +38,14 @@ export interface ReaderTopBarProps<Id extends string> {
   /** Whether the find bar is open: the Find button shows it, pressed, and runs `find.open` when pressed. */
   findOpen?: boolean;
   /**
+   * Whether reader mode is on: the Reader toggle shows it, pressed, and runs `view.reader-mode`;
+   * while it is on, the page input and zoom hide and a Reader settings button runs
+   * `view.reader-settings`.
+   */
+  readerMode?: boolean;
+  /** Whether the reader settings panel is open: the Reader settings button's `aria-expanded`. */
+  readerSettingsOpen?: boolean;
+  /**
    * Where Back and Forward go, as page labels (`undefined`: nowhere, so the button is disabled);
    * left out, there are no history buttons. They run `nav.back` and `nav.forward`.
    */
@@ -127,6 +135,32 @@ export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): R
   return phone ? <PhoneTopBar {...props} hidden={hidden} /> : <DesktopTopBar {...props} />;
 }
 
+/** The Reader toggle, and while reader mode is on, the Reader settings button. */
+function ReaderButtons({ readerMode, settingsOpen }: { readerMode: boolean; settingsOpen: boolean }): ReactNode {
+  const reader = useCommand("view.reader-mode");
+  const settings = useCommand("view.reader-settings");
+  if (reader.availability.state === "hidden") return null;
+  return (
+    <>
+      <ToggleButton
+        icon="reader"
+        aria-label={message("command.view.reader-mode")}
+        isSelected={readerMode}
+        isDisabled={reader.availability.state === "disabled"}
+        onChange={() => reader.run()}
+      />
+      {!readerMode || settings.availability.state === "hidden" ? null : (
+        <IconButton
+          icon="view-settings"
+          label={message("command.view.reader-settings")}
+          aria-expanded={settingsOpen}
+          onPress={() => settings.run()}
+        />
+      )}
+    </>
+  );
+}
+
 /** The top bar on a window wider than a phone. */
 function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNode {
   const state = useStoreState(props.reader, (s) => s);
@@ -150,12 +184,15 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
       </div>
       <div className="paper-top-bar-tools">
         {state.phase === "needs-password" ? <LockedPageInput /> : null}
-        {viewer === undefined || state.phase !== "open" ? null : (
+        {viewer === undefined || state.phase !== "open" || props.readerMode === true ? null : (
           <>
             {props.history === undefined ? null : <HistoryButtons history={props.history} />}
             <PageInput viewer={viewer} {...(props.labels === undefined ? {} : { labels: props.labels })} />
             <ZoomControl viewer={viewer} keys={keys} />
           </>
+        )}
+        {state.phase !== "open" ? null : (
+          <ReaderButtons readerMode={props.readerMode === true} settingsOpen={props.readerSettingsOpen === true} />
         )}
         {state.phase !== "open" || find.availability.state === "hidden" ? null : (
           // A plain button: pressing it again puts the focus back in the field, so it is never a
