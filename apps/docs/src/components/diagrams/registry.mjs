@@ -55,10 +55,10 @@ export const DIAGRAMS = {
       "Your page's client sends each call, such as `await doc.pageCount()`, to the Web Worker as a message. " +
       "There `@laminapdf/sdk` runs one call at a time, and each answer comes back as a Promise; saved bytes and page text come back transferred rather than copied. " +
       "When a call's `AbortSignal` aborts, the call rejects with `cancelled`. A call not started never runs, and a running `save` or `saveWithReport` stops at its next step. " +
-      "Any other call runs to the end, except that a remote file's byte fetches stop.",
+      "Any other call runs to the end, though the byte fetches of a file opened with `openUrl` stop.",
   },
   "errors-and-warnings": {
-    caption: "A call stops with an error or completes with warnings; both carry the same fields.",
+    caption: "A call stops with an error or completes with warnings, and both carry the same core fields.",
     text:
       "A call either stops with a `LaminaPdfError` or completes, with any warnings on `doc.warnings`. " +
       "Errors and warnings carry the same fields: `code`, `kind`, `message`, `hint`, `location`, `data` and `docsUrl`; an error can also carry `didYouMean`. " +

@@ -20,7 +20,7 @@ const narrow = `${prefix}-narrow`;
 const outcomes = [
   { label: "A call not started", sub: "never runs", sub2: "" },
   { label: "A running save", sub: "stops at its next step", sub2: "(`saveWithReport` too)" },
-  { label: "Any other call", sub: "runs to the end", sub2: "(a remote file's fetches stop)" },
+  { label: "Any other call", sub: "runs to the end", sub2: "(`openUrl` fetches stop)" },
 ] as const;
 ---
 
@@ -29,12 +29,12 @@ const outcomes = [
   <Lane x={0} y={0} w={250} h={152} title="Your page" />
   <Box x={16} y={40} w={218} h={96} label="The client" sub="`await doc.pageCount()`" />
   <Arrow d="M234 68 H482" prefix={wide} />
-  <Label x={358} y={58} text="each call, as a message" kind="sub" anchor="middle" />
+  <Label x={358} y={58} text="each call, a message" kind="sub" anchor="middle" />
   <Arrow d="M486 108 H238" prefix={wide} />
   <Label x={358} y={128} text="answers, as Promises" kind="sub" anchor="middle" />
 
   <Lane x={470} y={0} w={250} h={152} title="Web Worker" />
-  <Box x={486} y={40} w={218} h={96} label="@laminapdf/sdk" sub="runs one call at a time" mono />
+  <Box x={486} y={40} w={218} h={96} label="@laminapdf/sdk" sub="one call at a time" mono />
 
   <Label x={0} y={196} text="When a signal aborts:" />
   {
@@ -54,7 +54,7 @@ const outcomes = [
   <Label x={228} y={126} text="Promises" kind="sub" />
 
   <Lane x={0} y={154} w={320} h={104} title="Web Worker" />
-  <Box x={8} y={190} w={304} h={56} label="@laminapdf/sdk" sub="runs one call at a time" mono />
+  <Box x={8} y={190} w={304} h={56} label="@laminapdf/sdk" sub="one call at a time" mono />
 
   <Label x={0} y={292} text="When a signal aborts:" />
   {
