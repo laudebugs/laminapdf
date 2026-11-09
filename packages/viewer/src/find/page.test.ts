@@ -164,9 +164,20 @@ describe("snippetOf", () => {
     expect(r?.after).toBe(`${" abcd".repeat(8)}…`);
   });
 
-  it("cuts inside a long word when the only space is next to the match, rather than show nothing", () => {
-    const [s] = snippets(`${"y".repeat(60)} needle ${"z".repeat(60)}`, "needle");
-    expect(s?.before).toBe(`…${"y".repeat(39)} `);
-    expect(s?.after).toBe(` ${"z".repeat(39)}…`);
+  it("cuts inside a long word when only spaces separate it from the match, rather than show nothing", () => {
+    const [one] = snippets(`${"y".repeat(60)} needle ${"z".repeat(60)}`, "needle");
+    expect(one?.before).toBe(`…${"y".repeat(39)} `);
+    expect(one?.after).toBe(` ${"z".repeat(39)}…`);
+    // Text from a PDF often has two spaces, or a space and a line break.
+    const [two] = snippets(`${"y".repeat(60)}  needle \n${"z".repeat(60)}`, "needle");
+    expect(two?.before).toBe(`…${"y".repeat(38)} `);
+    expect(two?.after).toBe(` ${"z".repeat(38)}…`);
+  });
+
+  it("never starts or ends a cut on a combining mark", () => {
+    const word = "e\u0301".repeat(40);
+    const [s] = snippets(`${word} needle ${word}`, "needle");
+    expect(/^…e/u.test(s?.before ?? "")).toBe(true);
+    expect(/e\u0301…$/u.test(s?.after ?? "")).toBe(true);
   });
 });

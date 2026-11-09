@@ -163,10 +163,12 @@ const MARK = /\p{M}/u;
 function contextStart(text: string, start: number): number {
   let at = Math.max(0, start - SNIPPET_CONTEXT);
   if (at === 0 || SPACE.test(text[at - 1] ?? "")) return at;
-  // The first word that starts inside the window, unless that leaves nothing before the match.
+  // The first word that starts inside the window, unless only spaces lie between it and the match.
   const space = text.slice(at, start).search(/\s/u);
-  if (space >= 0 && at + space + 1 < start) return at + space + 1;
+  if (space >= 0 && /\S/u.test(text.slice(at + space + 1, start))) return at + space + 1;
+  // Inside a long word: start at a whole character, never on its second half or its marks.
   if (isLowSurrogate(text.charCodeAt(at))) at += 1;
+  while (at < start && MARK.test(String.fromCodePoint(text.codePointAt(at) ?? 0))) at += 1;
   return at;
 }
 
@@ -174,11 +176,12 @@ function contextStart(text: string, start: number): number {
 function contextEnd(text: string, end: number): number {
   let at = Math.min(text.length, end + SNIPPET_CONTEXT);
   if (at === text.length || SPACE.test(text[at] ?? "")) return at;
-  // Before the last word cut by the window, unless that leaves nothing after the match.
+  // Before the last word cut by the window, unless only spaces lie between the match and it.
   const space = text.slice(end, at).search(/\s\S*$/u);
-  if (space > 0) return end + space;
+  if (space > 0 && /\S/u.test(text.slice(end, end + space))) return end + space;
+  // Inside a long word: stop after a whole character, with its second half and its marks.
   if (isLowSurrogate(text.charCodeAt(at))) at -= 1;
-  return at;
+  return wholeCharacterEnd(text, at);
 }
 
 /** Past the character that starts at `at - 1`: its low surrogate and any combining marks after it. */

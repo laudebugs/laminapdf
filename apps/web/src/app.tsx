@@ -219,7 +219,7 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   );
   const labels = useMemo(() => {
     const pages = engineState.pages;
-    return pages.some((p) => p.label !== undefined) ? pages.map((p) => pageLabel(pages, p.index)) : undefined;
+    return pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined;
   }, [engineState.pages]);
   const fileName = open ? state.file.name : undefined;
   const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions);

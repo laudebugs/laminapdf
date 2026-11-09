@@ -40,6 +40,11 @@
     background: var(--paper-hover);
   }
 
+  /* The rows touch, so the shared focus ring sits inside the row rather than over its neighbours. */
+  .paper-find-result[data-focus-visible] {
+    outline-offset: calc(-1 * var(--paper-focus-ring-width));
+  }
+
   .paper-find-result[aria-current="true"] {
     background: var(--paper-accent-tint);
     box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
