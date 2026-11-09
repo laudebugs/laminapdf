@@ -17,22 +17,22 @@ Tauri has no print API beyond printing the webview. How should Lamina PDF's desk
 
 **Print with Lamina PDF's own rasters through each OS's print API (path B).** It is the only path D4c can ship on all three OSes, because Lamina PDF's sandboxed engine renders the pages, and on Windows and Linux it was also faithful. On those two, every page of every fixture printed at its own size and orientation (all four pages of the mixed-size fixture, including US Letter landscape and A5), with no content offset, SSIM 0.95–0.999 against the original, and no added text.
 
-**macOS falls short on placement and mixed page sizes.** On macOS, path B printed every page of the 50-page A4 fixture at the right size, but every even page landed 17.8 pt low, even after correcting for the printer's imageable area. AppKit also snapped the US Letter and A5 pages to A4 (two of four sizes right).
+**macOS falls short on mixed page sizes.** On macOS, path B printed every page of the 50-page A4 fixture in place (SSIM ≥ 0.958), once it corrected for the printer's imageable area. But AppKit snapped the US Letter and A5 pages to A4 (two of four sizes right), even with each page's own paper size set before the page began.
 
 **PDFium's vector path on Windows was the most faithful result of all, but it can't ship as it stands.** `FPDF_RenderPage` onto the printer's device context scored SSIM 0.98–0.997 with every size right, in a 16.6 MB file against path B's 41.6 MB. It parses the untrusted PDF in the main process, though, which ADR 0008's sandboxed engine rules out. The other vector paths lost page sizes: PDFKit moved the content 18 pt and put every page on A4 portrait, and CUPS printed every page on the printer's default paper.
 
-**The webview path is the worst everywhere and shouldn't ship, even as a fallback.** WebView2's `PrintToPdf`, with its default settings, put every page on US Letter (no page of the 50 sized right; SSIM 0.79). WebKitGTK split every page across two sheets (100 sheets for 50 pages). WKWebView printed uniform A4 pages well (SSIM 0.96) but forced every page of the mixed-size fixture onto A4 portrait. In a Tauri app on macOS, `window.print()` does nothing at all. The webview also peaked at 1.4–2.3 GB while holding 50 page images.
+**The webview path is the worst everywhere and shouldn't ship, even as a fallback.** WebView2's `PrintToPdf`, with its default settings, put every page on US Letter (no page of the 50 sized right; SSIM 0.79). WebKitGTK split every page across two sheets (100 sheets for 50 pages). WKWebView printed uniform A4 pages well (SSIM 0.96) but forced every page of the mixed-size fixture onto A4 portrait. In a Tauri app on macOS, `window.print()` does nothing at all. The webview also peaked at 1.6–2.4 GB while holding 50 page images.
 
 ## Recommendation (inputs to D4c and ADR 0008)
 
 | Decision | Recommendation | The numbers behind it |
 | --- | --- | --- |
-| Shipping path | **B on every OS:** Lamina PDF's PDFium rasters at the printer's resolution (capped at 300 dpi) through `NSPrintOperation`, GDI and `GtkPrintOperation`, with the OS print dialog | Windows and Linux: 4/4 mixed sizes, no page moved more than 2 pt, SSIM ≥ 0.95. macOS, 50 A4 pages: SSIM ≥ 0.943, but even pages 17.8 pt low |
+| Shipping path | **B on every OS:** Lamina PDF's PDFium rasters at the printer's resolution (capped at 300 dpi) through `NSPrintOperation`, GDI and `GtkPrintOperation`, with the OS print dialog | Windows and Linux: 4/4 mixed sizes, no page moved more than 2 pt, SSIM ≥ 0.95. macOS, 50 A4 pages: in place, SSIM ≥ 0.958 |
 | Who renders | The sandboxed engine renders each print page and streams it to the main process, which owns the printer handle (D4c, on D2b's protocol) | Path B needs no PDF parsing outside the engine; path C does |
 | Webview fallback | **None.** Don't ship path A first, and don't keep it as a fallback | WebView2's `PrintToPdf`: 0/50 pages at the right size; WebKitGTK: 100 sheets for 50 pages; WKWebView: `window.print()` does nothing and mixed sizes land on A4 |
 | Windows vector upgrade | Path C (`FPDF_RenderPage` onto the printer DC) later, only behind a sandboxed print helper or an owner-accepted ADR 0008 exception | SSIM 0.98–0.997, 4/4 sizes, 16.6 MB against 41.6 MB for 50 pages |
-| macOS work for D4c | Per-page paper sizes (AppKit snapped US Letter and A5 to A4), the even-page offset (17.8 pt), and memory: AppKit kept every drawn page until the job ended | 2/4 mixed sizes right; 25 of 50 pages moved; 3.3 GB peak for 50 pages, against 127 MB with GDI |
-| D4c's fidelity bar | Print-to-PDF output at ≥ 0.95 SSIM (150 dpi, after aligning), each page's size within 2 pt and its content within 2 pt of place | The lowest path B score on a page at the right size and place: 0.9515 (Linux, the page-range job through CUPS); 0.954 on macOS and 0.976 on Windows. macOS's even pages don't meet the 2 pt placement yet |
+| macOS work for D4c | Per-page paper sizes (AppKit snapped US Letter and A5 to A4), and memory: even with each page's image released after drawing, the print context grows with the job | 2/4 mixed sizes right; 1.7–1.8 GB peak for 50 pages at 300 dpi, against 130 MB with GDI |
+| D4c's fidelity bar | Print-to-PDF output at ≥ 0.95 SSIM (150 dpi, after aligning), each page's size within 2 pt and its content within 2 pt of place | The lowest path B score on a page at the right size and place: 0.9515 (Linux, the page-range job through CUPS); 0.954 on macOS and 0.976 on Windows |
 | `hasNativePrint` | `true` on all three OSes, meaning: the OS print dialog (printer, page range, copies, and the driver's duplex and scaling); every page rendered by Lamina PDF's own renderer at print resolution, on paper of its own size and orientation; no browser headers, footers or margins. It doesn't promise vector output | ADR 0010's table says the flag means "print can hand the PDF to the OS print system". Path B doesn't hand over the PDF, so ADR 0008 or D4c should restate the flag this way |
 
 ADR 0008 should record that printing renders in the engine and prints rasters through each OS's API, that no webview print path ships, and that a vector path needs a sandboxed helper first.
@@ -85,59 +85,59 @@ Each row is one path and fixture on one machine. **right size**: pages printed a
 
 | path | fixture | right size | moved > 2 pt | SSIM min / median | added text | spool s | peak MB (app / webview) | file MB |
 | --- | --- | --: | --: | --: | --- | --: | --: | --: |
-| A webview | mixed-50 | 50/50 (100 pages printed for 50) | 50 | 0.693 / 0.746 | no | 13.6 | 2019 / 2053 | 30.9 |
-| A webview | mixed-sizes | 1/4 | 4 | 0.912 / 0.923 | no |  |  |  |
+| A webview | mixed-50 | 50/50 (100 pages printed for 50) | 25 | 0.673 / 0.746 | no | 10.5 | 2192 / 2044 | 30.3 |
+| A webview | mixed-sizes | 1/4 | 4 | 0.909 / 0.921 | no |  |  |  |
 | A webview | vectors | 1/1 (2 pages printed for 1) | 1 | 0.818 / 0.818 | no |  |  |  |
-| B native raster | mixed-50 | 50/50 | 0 | 0.961 / 0.964 | no | 13.5 | 255 / 198 | 30.2 |
+| B native raster | mixed-50 | 50/50 | 0 | 0.961 / 0.964 | no | 10.7 | 249 / 198 | 30.2 |
 | B native raster | mixed-sizes | 4/4 | 0 | 0.997 / 0.998 | no |  |  |  |
 | B native raster | vectors | 1/1 | 0 | 0.960 / 0.960 | no |  |  |  |
-| B native raster | mixed-50@3-7 | 5/5 | 0 | 0.952 / 0.952 | no | 8.3 | 391 / 519 | 4.0 |
+| B native raster | mixed-50@3-7 | 5/5 | 0 | 0.952 / 0.952 | no | 6.7 | 393 / 323 | 4.0 |
 | C native vector | mixed-50 | 50/50 | 0 | 0.949 / 0.951 | no | 1.3 | 186 / 198 | 0.1 |
-| C native vector | mixed-sizes | 1/4 | 2 | 0.900 / 0.936 | no |  |  |  |
+| C native vector | mixed-sizes | 1/4 | 2 | 0.902 / 0.944 | no |  |  |  |
 | C native vector | vectors | 1/1 | 0 | 0.911 / 0.911 | no |  |  |  |
 
 #### macos-15-hosted
 
 | path | fixture | right size | moved > 2 pt | SSIM min / median | added text | spool s | peak MB (app / webview) | file MB |
 | --- | --- | --: | --: | --: | --- | --: | --: | --: |
-| A webview | mixed-50 | 50/50 | 0 | 0.958 / 0.959 | no | 20.1 | 1978 / 2307 | 37.8 |
-| A webview | mixed-sizes | 1/4 | 4 | 0.909 / 0.925 | no |  |  |  |
+| A webview | mixed-50 | 50/50 | 0 | 0.958 / 0.959 | no | 13.1 | 1762 / 2372 | 37.8 |
+| A webview | mixed-sizes | 1/4 | 4 | 0.904 / 0.928 | no |  |  |  |
 | A webview | vectors | 1/1 | 0 | 0.954 / 0.954 | no |  |  |  |
-| B native raster | mixed-50 | 50/50 | 25 | 0.943 / 0.952 | no | 14.0 | 3491 / 41 | 37.8 |
+| B native raster | mixed-50 | 50/50 | 0 | 0.958 / 0.959 | no | 11.7 | 1830 / 54 | 37.8 |
 | B native raster | mixed-sizes | 2/4 | 3 | 0.894 / 0.957 | no |  |  |  |
 | B native raster | vectors | 1/1 | 0 | 0.954 / 0.954 | no |  |  |  |
-| B native raster | mixed-50@3-7 | 5/5 | 2 | 0.943 / 0.958 | no | 2.3 | 1114 / 741 | 3.8 |
-| C native vector | mixed-50 | 50/50 | 50 | 0.936 / 0.938 | no | 0.7 | 218 / 65 | 0.1 |
-| C native vector | mixed-sizes | 1/4 | 4 | 0.895 / 0.911 | no |  |  |  |
+| B native raster | mixed-50@3-7 | 5/5 | 0 | 0.958 / 0.959 | no | 1.0 | 954 / 872 | 3.8 |
+| C native vector | mixed-50 | 50/50 | 50 | 0.936 / 0.938 | no | 0.1 | 217 / 64 | 0.1 |
+| C native vector | mixed-sizes | 1/4 | 4 | 0.892 / 0.912 | no |  |  |  |
 | C native vector | vectors | 1/1 | 1 | 0.872 / 0.872 | no |  |  |  |
 
 #### macos-m1pro
 
 | path | fixture | right size | moved > 2 pt | SSIM min / median | added text | spool s | peak MB (app / webview) | file MB |
 | --- | --- | --: | --: | --: | --- | --: | --: | --: |
-| A webview | mixed-50 | 50/50 | 0 | 0.961 / 0.964 | no | 11.6 | 1737 / 1582 | 37.8 |
-| A webview | mixed-sizes | 1/4 | 4 | 0.909 / 0.927 | no |  |  |  |
+| A webview | mixed-50 | 50/50 | 0 | 0.961 / 0.964 | no | 14.3 | 1651 / 1074 | 37.8 |
+| A webview | mixed-sizes | 1/4 | 4 | 0.905 / 0.928 | no |  |  |  |
 | A webview | vectors | 1/1 | 0 | 0.957 / 0.957 | no |  |  |  |
-| B native raster | mixed-50 | 50/50 | 25 | 0.943 / 0.952 | no | 8.8 | 3287 / 60 | 37.8 |
+| B native raster | mixed-50 | 50/50 | 0 | 0.958 / 0.959 | no | 10.5 | 1676 / 57 | 37.8 |
 | B native raster | mixed-sizes | 2/4 | 3 | 0.894 / 0.957 | no |  |  |  |
 | B native raster | vectors | 1/1 | 0 | 0.954 / 0.954 | no |  |  |  |
-| B native raster | mixed-50@3-7 | 5/5 | 2 | 0.943 / 0.958 | no | 1.3 | 714 / 216 | 3.8 |
-| C native vector | mixed-50 | 50/50 | 50 | 0.936 / 0.938 | no | 0.6 | 224 / 60 | 0.1 |
-| C native vector | mixed-sizes | 1/4 | 4 | 0.895 / 0.911 | no |  |  |  |
+| B native raster | mixed-50@3-7 | 5/5 | 0 | 0.958 / 0.959 | no | 1.0 | 511 / 310 | 3.8 |
+| C native vector | mixed-50 | 50/50 | 50 | 0.936 / 0.938 | no | 0.1 | 218 / 58 | 0.1 |
+| C native vector | mixed-sizes | 1/4 | 4 | 0.892 / 0.912 | no |  |  |  |
 | C native vector | vectors | 1/1 | 1 | 0.872 / 0.872 | no |  |  |  |
 
 #### windows-2025
 
 | path | fixture | right size | moved > 2 pt | SSIM min / median | added text | spool s | peak MB (app / webview) | file MB |
 | --- | --- | --: | --: | --: | --- | --: | --: | --: |
-| A webview | mixed-50 | 0/50 | 50 | 0.782 / 0.797 | no | 15.6 | 1405 / 861 | 31.1 |
-| A webview | mixed-sizes | 1/4 | 3 | 0.887 / 0.946 | no |  |  |  |
-| A webview | vectors | 0/1 | 1 | 0.863 / 0.863 | no |  |  |  |
-| B native raster | mixed-50 | 50/50 | 0 | 0.979 / 0.982 | no | 31.4 | 127 / 286 | 41.6 |
+| A webview | mixed-50 | 0/50 | 50 | 0.782 / 0.797 | no | 13.3 | 1552 / 840 | 31.1 |
+| A webview | mixed-sizes | 1/4 | 3 | 0.893 / 0.944 | no |  |  |  |
+| A webview | vectors | 0/1 | 1 | 0.864 / 0.864 | no |  |  |  |
+| B native raster | mixed-50 | 50/50 | 0 | 0.979 / 0.982 | no | 31.0 | 130 / 281 | 41.6 |
 | B native raster | mixed-sizes | 4/4 | 0 | 0.994 / 0.999 | no |  |  |  |
 | B native raster | vectors | 1/1 | 0 | 0.976 / 0.976 | no |  |  |  |
-| B native raster | mixed-50@3-7 | 5/5 | 0 | 0.979 / 0.981 | no | 3.8 | 130 / 517 | 4.6 |
-| C native vector | mixed-50 | 50/50 | 0 | 0.980 / 0.980 | no | 50.5 | 63 / 292 | 16.6 |
+| B native raster | mixed-50@3-7 | 5/5 | 0 | 0.979 / 0.981 | no | 3.2 | 132 / 512 | 4.6 |
+| C native vector | mixed-50 | 50/50 | 0 | 0.980 / 0.980 | no | 43.4 | 65 / 279 | 16.6 |
 | C native vector | mixed-sizes | 4/4 | 0 | 0.998 / 0.999 | no |  |  |  |
 | C native vector | vectors | 1/1 | 0 | 0.997 / 0.997 | no |  |  |  |
 
@@ -155,9 +155,9 @@ The macOS 27 screenshots were black too: the terminal had no Screen Recording pe
 
 ## Observations per OS
 
-- **macOS:** the three paths share AppKit's print operation, and with it two problems. First, AppKit places a page at the printer's imageable area, not at the paper's corner: content moved 18 pt down and right until path B started each page's rectangle that far into the page, which fixed odd pages but left even pages 17.8 pt low. Second, the paper size set per page in `beginPageInRect:atPlacement:` changed the orientation but snapped US Letter and A5 to A4. PDFKit (C) spooled 50 pages in 0.6 s as a 0.1 MB file, but with Apple's renderer, every page on A4 portrait, and all 50 pages offset. Path B held every drawn page until the job ended: 3.3 GB at peak for 50 pages at 300 dpi.
-- **Windows:** GDI is the most faithful platform for both native paths. Microsoft Print to PDF took each page's paper and orientation from `ResetDCW` (all four mixed sizes right, including A5 and US Letter landscape), and the main process stayed near 130 MB for path B because each page is drawn and released. Path C's GDI output took 50 s to spool, against 31 s for path B, in a smaller file. WebView2's `PrintToPdf` with default settings ignored the named `@page` sizes and put every page on US Letter.
-- **Linux:** GTK honoured a custom paper per page (4/4 sizes right, SSIM 0.997–0.999), and with Export it spooled 50 pages in 13.5 s at 255 MB. Export ignores the print settings, so it printed all 50 pages for a 3–7 range; through GTK's print pipeline to the CUPS PDF printer, the same range printed exactly pages 3–7. Printing to GTK's own "Print to File" printer without a dialog wrote nothing. WebKitGTK split each page image across two sheets (100 sheets for 50 pages), and CUPS printed the original bytes on its default A4 whatever the page size.
+- **macOS:** AppKit places a page at the printer's imageable area, not at the paper's corner: content moved 18 pt down and right until path B started each page's rectangle that far into the page, read once from the print info before the job. (The first version read it from the live print info during the job, which picked up the previous page's paper and left every even page 17.8 pt low; the code review caught it.) Setting each page's paper in `beginPageInRect:atPlacement:` changed the orientation but snapped US Letter and A5 to A4. PDFKit (C) wrote 50 pages in under a second as a 0.1 MB file, but with Apple's renderer, every page on A4 portrait, and every page offset. Path B peaked at 1.7–1.8 GB for 50 pages, with each page's image released in an autorelease pool after drawing (before that change, 3.3 GB).
+- **Windows:** GDI is the most faithful platform for both native paths. Microsoft Print to PDF took each page's paper and orientation from `ResetDCW` (all four mixed sizes right, including A5 and US Letter landscape), and the main process stayed near 130 MB for path B because each page is drawn and released. Path C's GDI output took 43 s to spool, against 31 s for path B, in a smaller file. WebView2's `PrintToPdf` with default settings ignored the named `@page` sizes and put every page on US Letter.
+- **Linux:** GTK honoured a custom paper per page (4/4 sizes right, SSIM 0.997–0.999), and with Export it spooled 50 pages in 10.7 s at 249 MB. Export ignores the print settings, so it printed all 50 pages for a 3–7 range; through GTK's print pipeline to the CUPS PDF printer, the same range printed exactly pages 3–7. Printing to GTK's own "Print to File" printer without a dialog wrote nothing. WebKitGTK split each page image across two sheets (100 sheets for 50 pages), and CUPS printed the original bytes on its default A4 whatever the page size.
 
 Five things the docs don't say, or that needed care:
 
@@ -182,7 +182,7 @@ Non-blank, non-comment lines of the spike's code: `macos.rs` 227 (AppKit, PDFKit
 - **Cloud machines.** Windows and Linux ran on 4-core VMs with virtual displays and PDF printers; a real driver may handle `ResetDCW` paper changes or GTK's custom papers differently.
 - **Generated fixtures.** Three files from Lamina PDF's builder: no scanned pages, forms, annotations or transparency groups, which are where Apple's renderer (PDFKit) and PDFium differ most.
 - **Raster resolution.** Path B printed at 300 dpi; a 600 dpi printer gets an upscaled raster, and D4c should measure 600 dpi's memory before raising the cap.
-- **The even-page offset on macOS** is unexplained: odd pages land exactly, even pages 17.8 pt low, on both Macs.
+- **Memory outside the app isn't counted.** The probe samples the app and its webview processes; the print spooler (Windows), CUPS and its filters (Linux) and macOS's print services do work of their own, so path B's 130 MB on Windows isn't the whole cost of a print.
 
 ## Reproduce
 

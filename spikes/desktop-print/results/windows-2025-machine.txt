@@ -1,7 +1,7 @@
-date: 2026-11-09T20:29Z
+date: 2026-11-09T21:44Z
 os: Microsoft Windows Server 2025 Datacenter 10.0.26100 (build 26100)
 rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13)
-cpu: AMD EPYC 7763 64-Core Processor                , 4 logical cores
+cpu: INTEL(R) XEON(R) PLATINUM 8573C, 4 logical cores
 memory: 16 GiB
 webview2 runtime: 156.0.4314.58
 printers: Microsoft Print to PDF
