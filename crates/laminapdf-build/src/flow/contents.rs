@@ -85,7 +85,7 @@ pub(crate) fn plain_text(paragraph: &Paragraph) -> String {
     let mut text = String::new();
     for inline in &paragraph.inlines {
         match inline {
-            Inline::Text(t, _) | Inline::Link(t, _, _) => text.push_str(t),
+            Inline::Text(t, _) | Inline::Link(t, _, _) | Inline::Code(t, _) => text.push_str(t),
             Inline::LineBreak => text.push(' '),
             Inline::Note(_) => {}
         }

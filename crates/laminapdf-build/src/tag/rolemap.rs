@@ -10,10 +10,9 @@ use super::Tag;
 /// ISO 32000-2 §14.8.4 (the PDF 2.0 namespace) that [`TagKind`](super::TagKind) doesn't
 /// have; `Hn` headings are matched by [`is_standard`]. Standard types are never role-mapped
 /// (§14.7.3).
-const OTHER_STANDARD: [&str; 26] = [
+const OTHER_STANDARD: [&str; 25] = [
     "Art",
     "Div",
-    "BlockQuote",
     "Index",
     "NonStruct",
     "Private",
