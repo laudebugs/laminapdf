@@ -264,6 +264,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── hayro-parity/    # Round C1a: hayro vs PDFium render parity on the pdf.js and PDFBox corpora (baseline in its README)
 │   ├── pdfium-wasm/     # Round C1b: PDFium-WASM beside laminapdf-wasm in one web worker (measurements in its README; ADRs 0004, 0009)
 │   ├── lamina-ffi/      # Round L6a: the façade over UniFFI 0.32 for Swift and Kotlin (findings in its README; ADR 0029)
+│   ├── desktop-ipc/     # D1a: Tauri tile transports (channel, ipc::Response, lamina:// raw and compressed) and COOP/COEP per webview (results in its README; ADR 0008)
 │   └── flow-layout/     # T4a: flowing layout by our own paginator over Surface, by Typst 0.15.1, and by Typst's frames through Surface (findings in its README; ADR 0032)
 ├── .agents/skills/      # the repository's agent skills (rust-best-practices, lamina-story); .claude/skills links here
 └── docs/                # all documentation (see docs/README.md)
@@ -591,6 +592,8 @@ Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions,
 `spikes/krilla-fit/` — krilla vs a builder over `laminapdf-cos` (Round B1); standalone, not in CI: `scripts/fetch-font.sh` once, then `cargo run --release` prints the measurements (see its README).
 
 `spikes/lamina-ffi/` — the `laminapdf` façade bound with UniFFI `=0.32.2` (Round L6a, ADR 0029); standalone, not in CI: `cargo test` (Rust), `scripts/build-kotlin.sh` (Kotlin JVM tests; JDK 17+ and Gradle 8), `scripts/run-on-mac.sh` on Apple silicon with Xcode (XCFramework, Swift tests, Android NDK libraries, 16 KB check, AAR, sizes into `target/mac-report.md`; see its README).
+
+`spikes/desktop-ipc/` — a Tauri 2.12 app that moves PDFium tiles into the webview four ways and checks cross-origin isolation (D1a, ADR 0008); standalone, not in CI: `cargo xtask fetch-pdfium`, then `scripts/run-all.sh <label> [full|quick]` (Windows: `scripts\run-all.ps1`) and `python3 scripts/summarise.py results/` (see its README).
 
 `spikes/flow-layout/` — our own paginator over `Surface`, Typst 0.15.1 embedded, and Typst's frames drawn through `Surface` (T4a, ADR 0032); standalone, not in CI. Typst needs `skrifa` 0.42.1 where the workspace pins `=0.42.0`, so `scripts/run.sh <command>` moves the pin for one command and restores the root `Cargo.toml`: `scripts/run.sh cargo run --release` (the PDFs in `target/flow-layout/`), `scripts/run.sh scripts/wasm.sh` (WebAssembly sizes), then `node scripts/node-time.mjs target/wasm/own.wasm` (see its README).
 

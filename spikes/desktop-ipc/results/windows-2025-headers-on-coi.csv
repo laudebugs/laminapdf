@@ -1,0 +1,2 @@
+cross_origin_isolated,fetch_corp_cross-origin,fetch_corp_none,fetch_corp_same-origin,img_corp_cross-origin,img_corp_none,img_corp_same-origin,ipc_invoke,label,origin,scheme_base,shared_array_buffer,user_agent
+true,ok,ok,ok,ok,ok,ok,ok,windows-2025-headers-on,http://tauri.localhost,http://lamina.localhost/,ok,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0"

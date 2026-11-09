@@ -1,0 +1,2 @@
+cross_origin_isolated,fetch_corp_cross-origin,fetch_corp_none,fetch_corp_same-origin,img_corp_cross-origin,img_corp_none,img_corp_same-origin,ipc_invoke,label,origin,scheme_base,shared_array_buffer,user_agent
+false,ok,ok,ok,ok,ok,ok,ok,linux-wayland-dmabuf-off-headers-off,tauri://localhost,lamina://localhost/,unavailable,"Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/60.5 Safari/605.1.15"

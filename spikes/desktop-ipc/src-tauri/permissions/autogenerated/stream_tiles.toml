@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-stream-tiles"
+description = "Enables the stream_tiles command without any pre-configured scope."
+commands.allow = ["stream_tiles"]
+
+[[permission]]
+identifier = "deny-stream-tiles"
+description = "Denies the stream_tiles command without any pre-configured scope."
+commands.deny = ["stream_tiles"]

@@ -1,0 +1,7 @@
+date: 2026-11-09T16:16Z
+uname: Darwin 24.6.0 arm64
+rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13)
+tauri: version = "2.12.5"
+os: macOS 15.8.2 (24H232); WKWebView ships with the OS
+cpu: Apple M1 (Virtual), 3 cores
+memory: 7 GiB

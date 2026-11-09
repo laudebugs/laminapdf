@@ -1,0 +1,37 @@
+[package]
+name = "desktop-ipc"
+version = "0.0.0"
+description = "Spike D1a: Tauri tile transports and cross-origin isolation; measurements only, never shipped."
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Its own workspace: spikes sit outside the root one (code-organization.md §1).
+[workspace]
+
+[lib]
+name = "desktop_ipc"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "=2.7.4", features = [] }
+
+[dependencies]
+# Tauri 2.12 (crate 2.12.5, 2026-10-21); @tauri-apps/api and @tauri-apps/cli are 2.12.4.
+tauri = { version = "=2.12.5", features = [] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+# The reader's own renderer: real pages through the PDFium adapter (LAMINA_PDF_PDFIUM_DIR).
+laminapdf-render = { path = "../../../crates/laminapdf-render" }
+laminapdf-render-pdfium = { path = "../../../crates/laminapdf-render-pdfium" }
+# Tile encoders for the compressed custom-scheme transport (all MIT OR Apache-2.0).
+png = "=0.18.1"
+image-webp = "=0.2.4"
+qoi = "=0.4.1"
+# Peak RSS and CPU of the app and its webview processes.
+sysinfo = { version = "=0.39.6", default-features = false, features = ["system"] }
+
+[profile.release]
+# The numbers are about the transport, so build like a shipped app would.
+lto = "thin"
+codegen-units = 1
