@@ -202,7 +202,19 @@ jobs:
       matrix:
         # Exactly harness::FUZZ_TARGETS (tools/xtask/src/workflows.rs checks).
         target:
-          [lex, parse_object, flate_decode, open, page_tree, content, ops_json, save_roundtrip, extract_text, extract, markdown]
+          [
+            lex,
+            parse_object,
+            flate_decode,
+            open,
+            page_tree,
+            content,
+            ops_json,
+            save_roundtrip,
+            extract_text,
+            extract,
+            markdown,
+          ]
     env:
       TARGET: ${{ matrix.target }}
     steps:
