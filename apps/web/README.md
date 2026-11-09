@@ -76,7 +76,9 @@ Three more suites use `e2e/remote-host.ts`, a local HTTPS server on another port
 
 `e2e/text.e2e.test.ts` checks the text layer in the built reader. Copying page 1 of the five-script reference PDF gives the lines in `fixtures/text/page-text.json`. The same holds for its AES-256 copy once the test types its password. A tagged file's first heading owns the spans of its text, and an untagged file says once that it is untagged.
 
-`e2e/devices.e2e.test.ts` runs the reader in Playwright's phone and tablet profiles. Every pull request runs Pixel 8 in Chromium, at its own width and narrowed to 320 px. The nightly's WebKit run adds iPhone 15 and iPad Pro 11. Firefox has no mobile emulation. Each opens a file and checks the layout: the bottom bar on the phones, the desktop shell on the tablet, nothing past the window's edge, and 44 px targets in both bars. It zooms with a double tap and pans with one finger. A pinch must keep the point under the fingers within 2 px. axe must report no serious or critical violations.
+`e2e/find.e2e.test.ts` checks find. Ctrl+F or ⌘F opens the find bar with the focus in its field, and typing shows the first highlight and the count. Enter and Shift+Enter move between matches across pages, and Match case and Whole words change the count. Escape closes the bar, clears the highlights and gives the focus back. Find also works in an encrypted file once its password is typed, and in a linked file read by range requests.
+
+`e2e/devices.e2e.test.ts` runs the reader in Playwright's phone and tablet profiles. Every pull request runs Pixel 8 in Chromium, at its own width and narrowed to 320 px. The nightly's WebKit run adds iPhone 15 and iPad Pro 11. Firefox has no mobile emulation. Each opens a file and checks the layout: the bottom bar on the phones, the desktop shell on the tablet, nothing past the window's edge, and 44 px targets in both bars. It zooms with a double tap and pans with one finger. A pinch must keep the point under the fingers within 2 px. Find works from the phone's Search button and from the tablet's keyboard. axe must report no serious or critical violations.
 
 ```sh
 pnpm --filter @laminapdf/web build

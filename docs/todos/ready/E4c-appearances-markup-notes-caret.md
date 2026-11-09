@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [C5b](../ongoing/C5b-find-in-document.md), [E4b](./E4b-annotation-model-and-overlay.md) |
+| Depends on | [C5b](../done/C5b-find-in-document.md), [E4b](./E4b-annotation-model-and-overlay.md) |
 | Dependency notes | [E4b](E4b-annotation-model-and-overlay.md), `C5` ([web-app §C5](../../plans/web-app.md#c5-text-selection-and-search): text layer and search) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4c-appearances-markup-notes-caret` |

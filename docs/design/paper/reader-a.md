@@ -181,7 +181,7 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Artboards.** `R05-find.dc.html`, `R05-find-phone.dc.html`.
 
-**Todos.** [C5b](../../todos/ongoing/C5b-find-in-document.md).
+**Todos.** [C5b](../../todos/done/C5b-find-in-document.md).
 
 ## R06 Rail tabs
 

@@ -85,7 +85,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   methods: openDocument, render → ImageBitmap); C4c: src/source/http-range.ts (HttpRangeByteSource:
 │                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); C5a: src/layers/ (the text
 │                        #   layer: a transparent span per run from Lamina PDF's quads, selection across pages, keepMounted pins, copy; the
-│                        #   structure tree as ARIA elements owning spans by MCID), worker/text.ts (pageText, structure); C3b: createViewer (src/layout/, view/, canvas/,
+│                        #   structure tree as ARIA elements owning spans by MCID), worker/text.ts (pageText, structure); C5b: src/find/
+│                        #   (fold.ts: pdf.js-like folding; page.ts: page text mapped to glyphs, matches as quads; controller.ts:
+│                        #   FindController, viewer.find), worker/find.ts (four pages per call, background), layers/highlight-layer.ts; C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)
@@ -127,7 +129,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   CommandPalette; z-order from --paper-z-*), src/platform/ (ADR 0010: the Platform interface and capability
 │                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files),
 │                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
-│                        #   useStoreState, useReaderState), src/reader/ (ReaderShell, ReaderTopBar, PageInput, ZoomControl,
+│                        #   useStoreState, useReaderState), src/reader/ (ReaderShell, ReaderTopBar, PageInput, FindBar, ZoomControl,
 │                        #   PasswordDialog, useGatedEntries, OpenDropZone, RepairDetails, OpenFailure, WholeFileDownload, DebugMenu;
 │                        #   codes.ts: a sentence per codes.json warning and error; the viewer as a shape), src/shell/ (U1c, ADR 0024 §1:
 │                        #   ShellLayout, the rail's open state, width and tab kept in platform storage, focus mode per window, the

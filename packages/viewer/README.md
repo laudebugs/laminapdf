@@ -60,6 +60,15 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 
 The document Web Worker reads each page's text at `background` priority, after the tiles in view, and caches the text of the last 24 pages. Text needs the extract module, which the document Web Worker loads once the render backend is ready, so the first page never waits for it. Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet.
 
+**Find.** `viewer.find` searches the whole document and highlights what it finds, without slowing the view down.
+- **How it searches.** `find(query, { matchCase, wholeWords, matchDiacritics })` starts from the current page, reaches the last page and wraps to the first. The document Web Worker searches four pages per call, at `background` priority, so the pages in view render first and scrolling never waits.
+- **What it compares.** Text is folded close to pdf.js's rules, so counts match: ligatures unfolded, soft hyphens dropped, a word split by a hyphen at a line's end joined, white space collapsed. Case and diacritics are ignored unless asked, and diacritics are every combining mark: Latin accents, Hebrew points, Arabic harakat, Indic vowel signs. Whole words means no letter or digit runs on at either end.
+- **Results.** They stream in by page: `getState()` gives the total so far, the current match, the pages searched, the pages without text and whether every page is done. The first match after the start page shows as soon as it's found. `next()` and `previous()` move in document order and wrap, scrolling a match to the viewport's centre when it's out of view.
+- **Cancelling.** A new query, or `close()`, stops the search under way; its late results never show.
+- **Highlights.** Every match on a mounted page gets a box in the `highlight` slot, `lamina-find-match`, and the current one adds `lamina-find-current`. Colour them with `--lamina-find-match` and `--lamina-find-current`. The boxes take no pointer events, so they never get in a selection's way.
+
+The document Web Worker keeps each page's searchable text in a cache of its own, up to 32 MB, so a longer query searches pages already read without reading their text again.
+
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
 ## The document Web Worker
@@ -112,7 +121,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 
 ## For contributors
 
-The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/done/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/ongoing/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ready/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
+The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/done/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/done/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ready/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
 
 ### Architecture
 
@@ -140,6 +149,7 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `openDocument` | `source` (`Blob`, `ArrayBuffer`, `Uint8Array`), `{ password?, limits?, renderLimits? }` | `{ pageCount, pages, needsPassword, backend }` | document |
 | `closeDocument` | — | — | document |
 | `pageInfo` | `index` | `PageInfo` (displayed size in points, rotation, ID, label) | document |
+| `find` | `query`, `FindOptions`, `pages` | `FindPageResult[]`: each page's matches as quads, and whether it has no text | `background` |
 | `render` | ADR 0004 `RenderRequest` | `{ bitmap: ImageBitmap, width, height }` (transferred) | `visible` > `prefetch` > `background` |
 | `memory` | — | `WorkerMemory`: the bytes of the backend's and Lamina PDF's WebAssembly memories | document. `client.memory()`; the perf harness samples it. |
 
@@ -164,6 +174,7 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
   - slow, stuck and stopped renders;
   - crashes, including an encrypted file;
   - the password count.
+- `test/find-parity.test.ts` (Node) checks find's counts against pdf.js's find controller on every case of `fixtures/text/search.json`.
 - Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
 - Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite examples`. `examples/viewer-demo.html` is the viewer, with zoom buttons; `examples/rpc-demo.html` draws page 1 through the RPC alone. The perf harness has its own page, `perf/page/` ([Performance](#performance)).
 
