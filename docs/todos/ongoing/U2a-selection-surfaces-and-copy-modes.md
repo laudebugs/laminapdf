@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U2a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C5a](../done/C5a-text-layer-and-selection.md), [U1b](../done/U1b-command-registry-and-palette.md), [U2b](../done/U2b-reading-order-ground-truth.md), [U3a](../done/U3a-responsive-mobile-and-touch.md) |
