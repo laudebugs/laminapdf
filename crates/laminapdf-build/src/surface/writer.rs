@@ -146,7 +146,7 @@ impl Writer {
             .get(run.text_range.clone())
             .unwrap_or_default()
             .chars()
-            .filter(|c| !c.is_control())
+            .filter(|&c| !laminapdf_text::Standard14::draws_nothing(c))
             .collect();
         if content.is_empty() {
             return Ok(());

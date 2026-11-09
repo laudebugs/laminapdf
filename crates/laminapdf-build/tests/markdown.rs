@@ -130,6 +130,59 @@ fn a_heading_in_a_list_item_or_note_doesn_t_shift_the_slug_links() {
 }
 
 #[test]
+fn a_tight_item_keeps_its_text_before_a_nested_list_quote_or_code_block() {
+    let t = tree("- foo\n  - bar\n- baz\n");
+    assert_eq!(t, "L(LI(Lbl LBody(L(LI(Lbl LBody)))) LI(Lbl LBody))");
+    let (bytes, _) = build("- foo\n  - bar\n- baz\n", MarkdownBuildOptions::new());
+    let read = text(&bytes);
+    assert!(read.contains("foo") && !read.contains("foobar"), "{read}");
+    for md in ["- foo\n  > quoted\n", "- foo\n  ```\n  code\n  ```\n"] {
+        let (bytes, _) = build(md, MarkdownBuildOptions::new());
+        let read = text(&bytes);
+        let (foo, other) = (read.find("foo"), read.find("quoted").or_else(|| read.find("code")));
+        assert!(foo.is_some() && foo < other, "{md:?}: {read}");
+    }
+}
+
+#[test]
+fn an_image_in_a_heading_keeps_the_heading_whole() {
+    let png = common::png((2, 2), png::ColorType::Rgb, png::BitDepth::Eight, &[0; 12], None, None);
+    let options = MarkdownBuildOptions::new().with_image("p.png", Image::png(&png).unwrap());
+    assert_eq!(tree_with("# Title ![alt](p.png) tail\n", options), "H1");
+}
+
+#[test]
+fn inline_code_in_a_link_is_linked_and_in_an_image_is_alt_text() {
+    assert_eq!(tree("[`code` text](https://example.com)\n"), "P(Link Link)");
+    let png = common::png((2, 2), png::ColorType::Rgb, png::BitDepth::Eight, &[0; 12], None, None);
+    let options = MarkdownBuildOptions::new().with_image("p.png", Image::png(&png).unwrap());
+    let (bytes, _) = build("![a `b` c](p.png)\n", options);
+    assert_eq!(elements(&bytes, b"Figure")[0].alt.as_deref(), Some("a b c"));
+}
+
+#[test]
+fn hard_breaks_and_zero_width_spaces_set_in_the_standard_14() {
+    let mut b = Builder::new(BuildOptions::new());
+    b.markdown("First  \nsecond a\u{200b}b\n", &MarkdownBuildOptions::new())
+        .unwrap();
+    let bytes = save(b.finish().unwrap());
+    assert!(text(&bytes).contains("First\nsecond ab"));
+}
+
+#[test]
+fn a_failed_layout_leaves_the_metadata_as_it_was() {
+    let mut b = Builder::new(BuildOptions::new());
+    let md = "---\ntitle: Failed\nlang: ar\n---\n\nمرحبا\n";
+    assert!(b.markdown(md, &MarkdownBuildOptions::new()).is_err());
+    b.markdown("Body.\n", &MarkdownBuildOptions::new()).unwrap();
+    let bytes = save(b.finish().unwrap());
+    let doc = reopen(&bytes);
+    let title = doc.info().unwrap().and_then(|i| i.title().unwrap());
+    assert_eq!(title, None);
+    assert!(!bytes.windows(10).any(|w| w == b"/Lang (ar)"));
+}
+
+#[test]
 fn a_slug_link_in_a_footnote_goes_to_its_heading() {
     let md = "# Target\n\nA note.[^n]\n\n[^n]: See [the target](#target).\n";
     let (bytes, _) = build(md, MarkdownBuildOptions::new());

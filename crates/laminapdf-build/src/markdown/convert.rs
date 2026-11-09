@@ -42,6 +42,8 @@ pub(crate) fn front_matter(markdown: &str) -> FrontMatter {
             Event::Start(Tag::MetadataBlock(_)) => inside = true,
             Event::End(TagEnd::MetadataBlock(_)) => break,
             Event::Text(t) if inside => text.push_str(&t),
+            // Front matter comes first or not at all.
+            _ if !inside => break,
             _ => {}
         }
     }
@@ -60,10 +62,16 @@ pub(crate) fn convert(markdown: &str, styles: &Styles, options: &MarkdownBuildOp
         _ => Vec::new(),
     };
     let slugs = slugs(&titles);
-    // The notes again, now that their `#slug` links can be resolved.
-    let mut notes = Converter::new(styles, options, first, BTreeMap::new(), slugs.clone());
-    notes.run(markdown);
-    let mut build = Converter::new(styles, options, first, notes.definitions, slugs);
+    // The notes again, now that their `#slug` links can be resolved (a note inside a note
+    // stays `[^label]`: a note's body holds no notes).
+    let definitions = if gather.definitions.is_empty() {
+        gather.definitions
+    } else {
+        let mut notes = Converter::new(styles, options, first, BTreeMap::new(), slugs.clone());
+        notes.run(markdown);
+        notes.definitions
+    };
+    let mut build = Converter::new(styles, options, first, definitions, slugs);
     build.run(markdown);
     let blocks = match build.frames.pop() {
         Some(Frame::Blocks(blocks)) => blocks,
@@ -200,10 +208,7 @@ impl<'a> Converter<'a> {
             Event::Start(tag) => self.start(tag, offset),
             Event::End(tag) => self.end(tag),
             Event::Text(text) => self.text(&text),
-            Event::Code(text) => {
-                let style = self.styles.mono();
-                self.with_inline(|p| p.code(text.to_string(), &style));
-            }
+            Event::Code(text) => self.code_span(&text),
             Event::InlineHtml(_) => self.warnings.push(Warning::MarkdownHtmlIgnored { offset }),
             Event::SoftBreak => self.text(" "),
             Event::HardBreak => self.with_inline(Paragraph::line_break),
@@ -229,6 +234,20 @@ impl<'a> Converter<'a> {
     }
 
     fn start(&mut self, tag: Tag<'_>, offset: usize) {
+        // A tight list item's text has no paragraph of its own: a block that starts inside
+        // the item ends it first.
+        if matches!(
+            tag,
+            Tag::Paragraph
+                | Tag::Heading { .. }
+                | Tag::BlockQuote(_)
+                | Tag::CodeBlock(_)
+                | Tag::List(_)
+                | Tag::Table(_)
+        ) && self.heading.is_none()
+        {
+            self.flush_inline();
+        }
         match tag {
             Tag::Paragraph | Tag::TableCell => self.inline = Some(Paragraph::new(ParagraphStyle::new())),
             Tag::Heading { level, .. } => {
@@ -302,6 +321,7 @@ impl<'a> Converter<'a> {
                 }
             }
             TagEnd::CodeBlock => {
+                self.flush_inline();
                 let code = self.code.take().unwrap_or_default();
                 self.push_block(FlowBlock::CodeBlock(code, self.styles.mono()));
             }
@@ -426,10 +446,35 @@ impl<'a> Converter<'a> {
         }
     }
 
-    fn end_item(&mut self) {
+    /// Ends the paragraph being written, if it has any text.
+    fn flush_inline(&mut self) {
         if let Some(p) = self.inline.take().filter(|p| !p.inlines.is_empty()) {
             self.push_block(FlowBlock::Paragraph(p));
         }
+    }
+
+    /// Inline code: in the mono font at the size of the text around it, linked inside a link
+    /// (a link's text can't be tagged `Code` as well), part of the alt text inside an image.
+    fn code_span(&mut self, text: &str) {
+        if let Some(image) = &mut self.image {
+            image.alt.push_str(text);
+            return;
+        }
+        let mut style = match self.heading {
+            Some(level) => self.styles.mono_at(self.styles.heading(level).size),
+            None => self.styles.mono(),
+        };
+        if self.strike > 0 {
+            style = style.with_strikethrough(true);
+        }
+        match self.links.last().cloned().flatten() {
+            Some(target) => self.with_inline(|p| p.link(text, &style, target)),
+            None => self.with_inline(|p| p.code(text, &style)),
+        }
+    }
+
+    fn end_item(&mut self) {
+        self.flush_inline();
         let Some(Frame::Item(item)) = self.frames.pop() else {
             return;
         };
@@ -465,7 +510,7 @@ impl<'a> Converter<'a> {
 
     /// An image becomes a figure between the text before and after it, when the caller
     /// supplied it; else it is left out with `markdown-image-missing`. Where a figure can't go
-    /// (a table cell, a list item, a footnote), its alternate text stands in for it.
+    /// (a heading, a table cell, a list item, a footnote), its alternate text stands in for it.
     fn end_image(&mut self) {
         let Some(image) = self.image.take() else { return };
         let Some(bytes) = self.options.images.get(&image.target) else {
@@ -473,7 +518,7 @@ impl<'a> Converter<'a> {
                 .push(Warning::MarkdownImageMissing { offset: image.offset });
             return;
         };
-        if !matches!(self.frames.last(), Some(Frame::Blocks(_) | Frame::Quote(_))) {
+        if self.heading.is_some() || !matches!(self.frames.last(), Some(Frame::Blocks(_) | Frame::Quote(_))) {
             self.text(&image.alt);
             return;
         }

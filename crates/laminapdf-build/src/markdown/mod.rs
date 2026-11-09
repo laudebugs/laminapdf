@@ -263,7 +263,12 @@ impl Styles {
 
     /// Code, a little smaller than the body.
     pub(crate) fn mono(&self) -> TextStyle {
-        self.style(&self.fonts.mono, self.size * 0.9)
+        self.mono_at(self.size)
+    }
+
+    /// Code among text of `size`, a little smaller than it.
+    pub(crate) fn mono_at(&self, size: f64) -> TextStyle {
+        self.style(&self.fonts.mono, size * 0.9)
     }
 
     /// A heading of `level` (1 to 6), in the bold font.
@@ -323,6 +328,9 @@ impl Builder {
         for block in document.blocks {
             flow = flow.block(block);
         }
+        let mut report = self.flow(&flow)?;
+        report.warnings.splice(0..0, document.warnings);
+        // Set once the flow is laid out, so a failed one leaves the metadata as it was.
         if front != FrontMatter::default() {
             // Merged into what the caller set: front matter overrides only the keys it has.
             let mut metadata = self.metadata_so_far().cloned().unwrap_or_default();
@@ -340,8 +348,6 @@ impl Builder {
         if let Some(lang) = front.lang {
             self.lang(lang);
         }
-        let mut report = self.flow(&flow)?;
-        report.warnings.splice(0..0, document.warnings);
         Ok(report)
     }
 }

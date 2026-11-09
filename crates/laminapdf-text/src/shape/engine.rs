@@ -138,7 +138,7 @@ impl Shaper for HarfRust {
 
 /// `text` (at `range` of the whole text) laid out in a standard 14 font, which has no font
 /// program to shape with: one glyph per character, left to right, its AFM width as its advance
-/// (in the AFM's 1000 units per em). Control characters and default-ignorables advance by 0.
+/// (in the AFM's 1000 units per em). What [`Standard14::draws_nothing`](crate::Standard14::draws_nothing) names advances by 0.
 ///
 /// # Errors
 /// [`Error::MissingGlyph`] for a character the font lacks.
@@ -151,16 +151,15 @@ fn standard_run(
 ) -> Result<ShapedRun> {
     let mut glyphs = Vec::with_capacity(text.len());
     for (at, ch) in text.char_indices() {
-        let (gid, advance) =
-            if ch.is_control() || matches!(ch, '\u{200b}'..='\u{200f}' | '\u{2060}'..='\u{206f}' | '\u{feff}') {
-                (standard.glyph_for_char(' ').unwrap_or(GlyphId::NOTDEF), 0)
-            } else {
-                let gid = standard.glyph_for_char(ch).ok_or_else(|| Error::MissingGlyph {
-                    ch,
-                    font: font.info().postscript_name.clone(),
-                })?;
-                (gid, i32::from(standard.glyph_width(gid).unwrap_or(0)))
-            };
+        let (gid, advance) = if crate::Standard14::draws_nothing(ch) {
+            (standard.glyph_for_char(' ').unwrap_or(GlyphId::NOTDEF), 0)
+        } else {
+            let gid = standard.glyph_for_char(ch).ok_or_else(|| Error::MissingGlyph {
+                ch,
+                font: font.info().postscript_name.clone(),
+            })?;
+            (gid, i32::from(standard.glyph_width(gid).unwrap_or(0)))
+        };
         glyphs.push(ShapedGlyph {
             gid,
             cluster: range.start + at,
