@@ -100,6 +100,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "device-color-without-output-intent":
     case "embedded-file-forbidden":
     case "embedded-file-without-mime-type":
+    case "flow-content-too-large":
     case "invalid-argument":
     case "unknown-option":
     case "worker-version-mismatch":

@@ -23,6 +23,9 @@ pub enum Warning {
     /// ([`Document::redaction_warnings`](crate::Document::redaction_warnings)).
     #[cfg(feature = "extract")]
     Redaction(crate::RedactionWarning),
+    /// Raised while building (`laminapdf-build`'s flows: `flow-keep-broken`).
+    #[cfg(feature = "text")]
+    Build(laminapdf_build::Warning),
 }
 
 impl Warning {
@@ -44,6 +47,8 @@ impl Warning {
             Self::Font(w) => codes::warning_code(w.code()),
             #[cfg(feature = "extract")]
             Self::Redaction(w) => codes::warning_code(w.code()),
+            #[cfg(feature = "text")]
+            Self::Build(w) => codes::warning_code(w.code()),
         }
     }
 
@@ -66,6 +71,8 @@ impl Warning {
             Self::Font(w) => w.location(),
             #[cfg(feature = "extract")]
             Self::Redaction(w) => w.location(),
+            #[cfg(feature = "text")]
+            Self::Build(w) => w.location(),
         }
     }
 
@@ -104,6 +111,13 @@ impl Serialize for Warning {
 impl From<laminapdf_cos::Warning> for Warning {
     fn from(w: laminapdf_cos::Warning) -> Self {
         Self::Document(w)
+    }
+}
+
+#[cfg(feature = "text")]
+impl From<laminapdf_build::Warning> for Warning {
+    fn from(w: laminapdf_build::Warning) -> Self {
+        Self::Build(w)
     }
 }
 
