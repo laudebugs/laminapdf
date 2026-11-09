@@ -62,7 +62,7 @@ Give `laminapdf-build` a flow layer. The caller hands it blocks of text and a pa
 **Out of scope** (and which todo covers it)
 
 - Tables across pages: [T4c](../done/T4c-flow-tables-notes-contents.md). Footnotes, contents pages, and the outline and named destinations made from headings: [T4h](../done/T4h-flow-notes-contents-outline.md).
-- Block quotes, code blocks, rules, and Markdown: [T4d](../ready/T4d-markdown-documents.md). The JSON form of a flow: [T4e](../ready/T4e-json-documents-and-templates.md). The TypeScript API: [T4i](../ready/T4i-build-command-and-bindings.md) and [T4j](../ready/T4j-documents-in-typescript.md). Until then the flow is Rust only, and link-time optimisation leaves it out of the WASM modules, so their sizes don't change.
+- Block quotes, code blocks, rules, and Markdown: [T4d](../ongoing/T4d-markdown-documents.md). The JSON form of a flow: [T4e](../ready/T4e-json-documents-and-templates.md). The TypeScript API: [T4i](../ready/T4i-build-command-and-bindings.md) and [T4j](../ready/T4j-documents-in-typescript.md). Until then the flow is Rust only, and link-time optimisation leaves it out of the WASM modules, so their sizes don't change.
 - Justification, hyphenation, columns, floats, and odd and even templates with mirrored margins: later or not planned, as [ADR 0032 §3](../../decisions/0032-flowing-layout-and-document-inputs.md#3-the-layout-model) records.
 - Flowing pages appended to an open document (`Builder::on`): appended pages are never tagged today.
 - A stepped job for long flows ([ADR 0028 §3](../../decisions/0028-facade-rules-jobs-and-cancellation.md#3-jobs)): only if the benchmark exceeds ADR 0032 §9's budget in WebAssembly ([§7](../../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces)).
