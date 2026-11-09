@@ -40,8 +40,8 @@ fn lines(n: usize, style: &TextStyle, para: ParagraphStyle) -> Paragraph {
 }
 
 fn pages(flow: &Flow) -> Result<Vec<PageOut>, Error> {
-    let items = Items::new(&flow.blocks);
-    paginate(&items, &flow.template, 1, 0).map(|(pages, _)| pages)
+    let items = Items::new(&flow.blocks, &[], 0);
+    paginate(&items, &flow.template, 1, 0).map(|laid| laid.pages)
 }
 
 /// Each page's lines as (item, first byte).
@@ -421,7 +421,7 @@ mod tables {
         let table = Table::new([ColumnWidth::Auto; 3])
             .row(TableRow::plain(["a"], &style))
             .row(TableRow::plain(["a", "b", "c", "d"], &style));
-        let items = Items::new(&[FlowBlock::Table(table)]);
+        let items = Items::new(&[FlowBlock::Table(table)], &[], 0);
         let cells: Vec<Vec<(usize, usize)>> = items.tables[0]
             .rows
             .iter()

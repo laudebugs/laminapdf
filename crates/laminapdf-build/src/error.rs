@@ -302,6 +302,7 @@ impl Error {
         "embedded-file-forbidden",
         "embedded-file-without-mime-type",
         "flow-content-too-large",
+        "flow-layout-unstable",
     ];
 
     /// A stable kebab-case code for this error.
@@ -556,6 +557,7 @@ mod tests {
                 name: String::new(),
             },
             Error::FlowContentTooLarge { what: "line" },
+            Error::FlowLayoutUnstable,
         ]
     }
 

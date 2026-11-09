@@ -5,10 +5,10 @@
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
-use laminapdf_model::{PageId, PointPt, RectPt};
+use laminapdf_model::{FillRule, PageId, PointPt, Pt, RectPt};
 use laminapdf_text::{Alignment, ShapedRun};
 
-use super::draw_table::{Part, RowAt, draw_row, draw_rules};
+use super::draw_table::{Part, RowAt, draw_row, draw_rules, layout_artifact};
 use super::items::{Content, Items};
 use super::measure::{Look, MLine, Source};
 use super::model::{Flow, PageRegion, ParagraphStyle, TextStyle};
@@ -18,6 +18,7 @@ use crate::annot::link::LinkSpec;
 use crate::builder::Builder;
 use crate::error::Result;
 use crate::surface::Surface;
+use crate::surface::style::StrokeStyle;
 use crate::surface::text::ShapedPiece;
 use crate::tag::{Artifact, ElementId, Tag, TagKind};
 
@@ -102,6 +103,14 @@ fn draw_pages(
             if let Some(p) = part.take() {
                 draw_rules(s, flow, items, &p)?;
             }
+            if matches!(placed, Placed::Leader { .. } | Placed::NoteRule { .. }) {
+                if !batch.is_empty() {
+                    draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
+                    batch.clear();
+                }
+                decoration(s, flow.tagged, placed)?;
+                continue;
+            }
             let node = node_of(items, placed);
             if node != leaf && !batch.is_empty() {
                 draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
@@ -125,11 +134,46 @@ fn draw_pages(
 /// The element `placed` draws into.
 fn node_of(items: &Items, placed: &Placed) -> Option<usize> {
     match placed {
-        Placed::Line { item, .. } | Placed::Figure { item, .. } => items.entries.get(*item).and_then(|i| i.node),
+        Placed::Line { item, .. } | Placed::Figure { item, .. } | Placed::Entry { item, .. } => {
+            items.entries.get(*item).and_then(|i| i.node)
+        }
         Placed::Label { item, .. } => items.entries.get(*item).and_then(|i| i.label).map(|(_, n)| n),
-        Placed::Row { .. } => None,
+        Placed::NoteLine { note, .. } => items.notes.get(*note).map(|n| n.node),
+        Placed::Row { .. } | Placed::Leader { .. } | Placed::NoteRule { .. } => None,
     }
 }
+
+/// A contents entry's dot leaders or the rule above a page's notes, as a `Layout` artifact.
+fn decoration(s: &mut Surface, tagged: bool, placed: &Placed) -> Result<()> {
+    layout_artifact(s, tagged, |s| match *placed {
+        Placed::Leader { from, to, y } => {
+            // Dots on a 4-point grid from the number back, so the leaders of every entry line up.
+            let mut x = to - LEADER_STEP;
+            s.path(|p| {
+                while x > from + LEADER_STEP / 2.0 {
+                    p.circle(PointPt::from_points(x, y - 1.0), Pt::new(0.5));
+                    x -= LEADER_STEP;
+                }
+            })
+            .fill(FillRule::NonZero);
+        }
+        Placed::NoteRule { x, y, width } => {
+            let style = StrokeStyle {
+                width: Pt::new(0.5),
+                ..StrokeStyle::default()
+            };
+            s.path(|p| {
+                p.move_to(PointPt::from_points(x, y))
+                    .line_to(PointPt::from_points(x + width, y));
+            })
+            .stroke(&style);
+        }
+        _ => {}
+    })
+}
+
+/// The distance between two leader dots, points.
+const LEADER_STEP: f64 = 4.0;
 
 /// Opens `node` (its parents first) unless it is open, and returns it.
 pub(super) fn ensure(
@@ -193,6 +237,21 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
                 draw_line(s, flow.tagged, true, source, line, *x, *top);
             }
         }
+        Placed::Entry { item, line, x, top } => {
+            let source = items
+                .entries
+                .get(*item)
+                .and_then(|it| it.entry)
+                .and_then(|e| items.sources.get(e));
+            if let Some(source) = source {
+                draw_line(s, flow.tagged, true, source, line, *x, *top);
+            }
+        }
+        Placed::NoteLine { note, line, x, top } => {
+            if let Some(source) = items.notes.get(*note).and_then(|n| items.sources.get(n.source)) {
+                draw_line(s, flow.tagged, true, source, line, *x, *top);
+            }
+        }
         Placed::Label { item, line, x, top } => {
             let source = items
                 .entries
@@ -224,7 +283,7 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
             }
         }
         // Drawn by `draw_table`, with the table's rules.
-        Placed::Row { .. } => {}
+        Placed::Row { .. } | Placed::Leader { .. } | Placed::NoteRule { .. } => {}
     }
 }
 
@@ -258,11 +317,14 @@ pub(super) fn draw_line(s: &mut Surface, tagged: bool, links: bool, source: &Sou
                     target: target.clone(),
                     contents: Some(text.trim().to_owned()),
                 });
-            let tag = look
-                .lang
-                .as_ref()
-                .filter(|_| tagged)
-                .map(|lang| Box::new(Tag::new(TagKind::Span).with_lang(lang.clone())));
+            // A footnote's marker is a `Reference`; a span in another language a `Span`.
+            let tag = match (&look.lang, look.note) {
+                (_, Some(_)) => Some(Tag::new(TagKind::Reference)),
+                (Some(lang), None) => Some(Tag::new(TagKind::Span).with_lang(lang.clone())),
+                (None, None) => None,
+            }
+            .filter(|_| tagged)
+            .map(Box::new);
             let mut rebased = piece;
             let start = rebased.text_range.start;
             rebased.text_range = 0..rebased.text_range.end - start;

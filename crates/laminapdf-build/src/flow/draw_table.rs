@@ -176,7 +176,7 @@ fn stroke(s: &mut Surface, rule: &TableRule, build: impl FnOnce(&mut crate::surf
 /// Runs `draw` inside a `Layout` artifact when the flow is tagged, its colours restored after.
 /// The save is outside the artifact: marked content can't span a `q` or `Q`, so the builder
 /// would end the artifact there and start another.
-fn layout_artifact(s: &mut Surface, tagged: bool, draw: impl FnOnce(&mut Surface)) -> Result<()> {
+pub(super) fn layout_artifact(s: &mut Surface, tagged: bool, draw: impl FnOnce(&mut Surface)) -> Result<()> {
     s.save();
     let drawn = if tagged {
         s.artifact(ArtifactKind::Layout, |s| {

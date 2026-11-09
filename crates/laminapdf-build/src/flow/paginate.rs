@@ -43,6 +43,24 @@ pub(crate) enum Placed {
         top: f64,
         repeat: bool,
     },
+    /// A contents entry's page number at the end of its last line.
+    Entry {
+        item: usize,
+        line: Rc<MLine>,
+        x: f64,
+        top: f64,
+    },
+    /// Dot leaders from `from` to `to` on the baseline `y` (a `Layout` artifact).
+    Leader { from: f64, to: f64, y: f64 },
+    /// A line of footnote `note`'s body at the foot of the page.
+    NoteLine {
+        note: usize,
+        line: Rc<MLine>,
+        x: f64,
+        top: f64,
+    },
+    /// The rule above a page's footnotes (a `Layout` artifact).
+    NoteRule { x: f64, y: f64, width: f64 },
     /// Item `item`'s figure in a box, page space.
     Figure {
         item: usize,
@@ -61,13 +79,17 @@ pub(crate) struct PageOut {
     pub(crate) section: Option<String>,
 }
 
+/// A flow laid out.
+#[derive(Debug)]
+pub(crate) struct Laid {
+    pub(crate) pages: Vec<PageOut>,
+    pub(crate) warnings: Vec<Warning>,
+    /// Where each item starts: the flow's page and the top of its first line or box.
+    pub(crate) starts: Vec<Option<(usize, f64)>>,
+}
+
 /// Lays `items` out through `template`: every page, before any is drawn.
-pub(crate) fn paginate(
-    items: &Items,
-    template: &PageTemplate,
-    section_level: u8,
-    first_page: usize,
-) -> Result<(Vec<PageOut>, Vec<Warning>)> {
+pub(crate) fn paginate(items: &Items, template: &PageTemplate, section_level: u8, first_page: usize) -> Result<Laid> {
     let mut pager = Pager {
         first_page,
         items,
@@ -81,6 +103,9 @@ pub(crate) fn paginate(
         fresh: true,
         after: 0.0,
         section: None,
+        notes: Vec::new(),
+        notes_height: 0.0,
+        starts: vec![None; items.entries.len()],
     };
     pager.new_page();
     let mut checked = 0;
@@ -105,26 +130,31 @@ pub(crate) fn paginate(
         }
         i += 1;
     }
+    pager.finish_notes();
     // A final page break or spacer leaves a page with nothing on it: no blank page at the end.
     while pager.pages.len() > 1 && pager.pages.last().is_some_and(|p| p.placed.is_empty()) {
         pager.pages.pop();
     }
-    Ok((pager.pages, pager.warnings))
+    Ok(Laid {
+        pages: pager.pages,
+        warnings: pager.warnings,
+        starts: pager.starts,
+    })
 }
 
 /// A paragraph's lines, shared by the cache and the pages.
-type Lines = Rc<Vec<Rc<MLine>>>;
+pub(super) type Lines = Rc<Vec<Rc<MLine>>>;
 
-struct Pager<'a> {
+pub(super) struct Pager<'a> {
     /// The document's index of the flow's first page, for warnings.
     first_page: usize,
-    items: &'a Items,
+    pub(super) items: &'a Items,
     template: &'a PageTemplate,
     section_level: u8,
-    pages: Vec<PageOut>,
+    pub(super) pages: Vec<PageOut>,
     warnings: Vec<Warning>,
     /// Lines by (source, first byte, width bits), each paragraph broken once per width.
-    measured: RefCell<BTreeMap<(usize, usize, u64), Lines>>,
+    pub(super) measured: RefCell<BTreeMap<(usize, usize, u64), Lines>>,
     /// Tables laid out, by (table, width bits).
     tables: RefCell<BTreeMap<(usize, u64), Rc<TableLayout>>>,
     /// Where the next item starts, page space.
@@ -134,15 +164,22 @@ struct Pager<'a> {
     /// The space after the last item placed.
     after: f64,
     section: Option<String>,
+    /// The footnotes of the current page, in order, with their lines.
+    pub(super) notes: Vec<(usize, Lines)>,
+    /// Their height, the space above them included (0 with none).
+    pub(super) notes_height: f64,
+    /// Where each item starts (see [`Laid::starts`]).
+    starts: Vec<Option<(usize, f64)>>,
 }
 
 impl Pager<'_> {
-    fn page_template(&self) -> &PageTemplate {
+    pub(super) fn page_template(&self) -> &PageTemplate {
         self.template.for_page(self.pages.len().saturating_sub(1))
     }
 
+    /// The bottom of the room left for the body: above the page's footnotes.
     fn bottom(&self) -> f64 {
-        self.page_template().body_y().1
+        self.page_template().body_y().1 - self.notes_height
     }
 
     fn body_height(&self) -> f64 {
@@ -151,6 +188,7 @@ impl Pager<'_> {
     }
 
     fn new_page(&mut self) {
+        self.finish_notes();
         self.pages.push(PageOut {
             placed: Vec::new(),
             section: self.section.clone(),
@@ -186,7 +224,11 @@ impl Pager<'_> {
         let Some(Content::Para(s)) = self.items.entries.get(i).map(|it| it.content) else {
             return Ok(Rc::new(Vec::new()));
         };
-        let width = self.width(i);
+        self.source_lines(s, from, self.width(i))
+    }
+
+    /// Source `s` from byte `from` broken at `width`, measured once per flow.
+    pub(super) fn source_lines(&self, s: usize, from: usize, width: f64) -> Result<Lines> {
         let key = (s, from, width.to_bits());
         if let Some(lines) = self.measured.borrow().get(&key) {
             return Ok(Rc::clone(lines));
@@ -199,10 +241,15 @@ impl Pager<'_> {
         Ok(lines)
     }
 
-    /// The width item `i` is laid out at on the current page.
+    /// The width item `i` is laid out at on the current page: the body's, less its indent
+    /// and the room it keeps at the end of its lines.
     fn width(&self, i: usize) -> f64 {
-        let indent = self.items.entries.get(i).map_or(0.0, |it| it.indent);
-        (self.page_template().body_width() - indent).max(1.0)
+        let (indent, reserve) = self
+            .items
+            .entries
+            .get(i)
+            .map_or((0.0, 0.0), |it| (it.indent, it.reserve));
+        (self.page_template().body_width() - indent - reserve).max(1.0)
     }
 
     /// Item `i`'s figure box size on the current page.
@@ -382,24 +429,25 @@ impl Pager<'_> {
             return Err(Error::FlowContentTooLarge { what: "table row" });
         }
         self.y += self.gap(i);
-        self.place_rows(i, &layout, 0..heads, false);
+        self.place_rows(i, t, &layout, 0..heads, false)?;
         let last_body = layout.rows.len() - table.count(Section::Foot);
         for row in heads..layout.rows.len() {
             let height = layout.rows.get(row).map_or(0.0, |r| r.height);
-            // The last body row needs room for the footer rows too.
-            let needed = if row + 1 == last_body { height + foot } else { height };
+            // The last body row needs room for the footer rows too, and a row for its notes.
+            let notes = self.notes_cost(&[], &self.row_notes(t, row))?;
+            let needed = notes + if row + 1 == last_body { height + foot } else { height };
             if self.y + needed > self.bottom() + 1e-6 {
                 // A row that fits here moves only when a fresh page holds what it needs.
                 if self.y + height > self.bottom() + 1e-6 || head + needed <= self.body_height() + 1e-6 {
                     self.new_page();
-                    self.place_rows(i, &layout, 0..heads, true);
+                    self.place_rows(i, t, &layout, 0..heads, true)?;
                 }
                 if self.y + needed > self.bottom() + 1e-6 {
                     // The last body row and the footer fit no page together.
                     self.warn_keep_broken();
                 }
             }
-            self.place_rows(i, &layout, row..row + 1, false);
+            self.place_rows(i, t, &layout, row..row + 1, false)?;
         }
         self.after = self.items.entries.get(i).map_or(0.0, |it| it.space_after);
         Ok(())
@@ -407,9 +455,22 @@ impl Pager<'_> {
 
     /// Places rows `rows` of item `i`'s table from the current position, at the current page's
     /// left margin.
-    fn place_rows(&mut self, i: usize, layout: &Rc<TableLayout>, rows: std::ops::Range<usize>, repeat: bool) {
+    fn place_rows(
+        &mut self,
+        i: usize,
+        t: usize,
+        layout: &Rc<TableLayout>,
+        rows: std::ops::Range<usize>,
+        repeat: bool,
+    ) -> Result<()> {
         let x = self.page_template().margins.left + self.items.entries.get(i).map_or(0.0, |it| it.indent);
         for row in rows {
+            // A header row's notes go on the page of its first drawing only.
+            if !repeat {
+                for note in self.row_notes(t, row) {
+                    self.add_note(note)?;
+                }
+            }
             let height = layout.rows.get(row).map_or(0.0, |r| r.height);
             self.push(Placed::Row {
                 item: i,
@@ -421,6 +482,7 @@ impl Pager<'_> {
             });
             self.y += height;
         }
+        Ok(())
     }
 
     fn warn_keep_broken(&mut self) {
@@ -442,11 +504,16 @@ impl Pager<'_> {
             let room = self.bottom() - self.y - self.gap(i);
             let mut fit = 0;
             let mut used = 0.0;
+            // A line fits with the footnotes it cites, which take room at the page's foot.
+            let mut cited = Vec::new();
             for line in rest {
-                if used + line.height > room + 1e-6 {
+                let notes = self.line_notes(i, line);
+                let more = self.notes_cost(&cited, &notes)?;
+                if used + line.height + more > room + 1e-6 {
                     break;
                 }
-                used += line.height;
+                used += line.height + more;
+                cited.extend(notes);
                 fit += 1;
             }
             let take = if fit >= rest.len() {
@@ -467,7 +534,13 @@ impl Pager<'_> {
             if take > 0 {
                 self.y += self.gap(i);
                 let lines_here = rest.get(..take).unwrap_or_default().to_vec();
-                self.draw_lines(i, &lines_here, first)?;
+                for line in &lines_here {
+                    for note in self.line_notes(i, line) {
+                        self.add_note(note)?;
+                    }
+                }
+                let last = next + take >= lines.len();
+                self.draw_lines(i, &lines_here, first, last)?;
                 first = false;
                 next += take;
             }
@@ -487,7 +560,7 @@ impl Pager<'_> {
         Ok(())
     }
 
-    fn draw_lines(&mut self, i: usize, lines: &[Rc<MLine>], first: bool) -> Result<()> {
+    fn draw_lines(&mut self, i: usize, lines: &[Rc<MLine>], first: bool, last: bool) -> Result<()> {
         let Some(item) = self.items.entries.get(i) else {
             return Ok(());
         };
@@ -509,13 +582,35 @@ impl Pager<'_> {
                 self.push(Placed::Label { item: i, line, x, top });
             }
         }
-        for line in lines {
+        let entry = item.entry.filter(|_| last);
+        let right = self.page_template().margins.left + self.page_template().body_width();
+        for (n, line) in lines.iter().enumerate() {
             self.push(Placed::Line {
                 item: i,
                 line: Rc::clone(line),
                 x: left,
                 top: self.y,
             });
+            if let Some(source) = entry.filter(|_| n + 1 == lines.len())
+                && let Some(number) = self.label(source)?
+            {
+                // The page number at the right edge on the entry's last line, dots before it.
+                let x = right - number.line.width;
+                let baseline = self.y + line.baseline;
+                let from = left + line.line.x + line.line.width;
+                self.push(Placed::Leader {
+                    from,
+                    to: x,
+                    y: baseline,
+                });
+                let top = baseline - number.baseline;
+                self.push(Placed::Entry {
+                    item: i,
+                    line: number,
+                    x,
+                    top,
+                });
+            }
             self.y += line.height;
         }
         Ok(())
@@ -536,6 +631,18 @@ impl Pager<'_> {
     }
 
     fn push(&mut self, placed: Placed) {
+        let start = match &placed {
+            Placed::Line { item, top, .. } | Placed::Figure { item, top, .. } | Placed::Row { item, top, .. } => {
+                Some((*item, *top))
+            }
+            _ => None,
+        };
+        let page = self.pages.len().saturating_sub(1);
+        if let Some((item, top)) = start
+            && let Some(slot @ None) = self.starts.get_mut(item)
+        {
+            *slot = Some((page, top));
+        }
         if let Some(page) = self.pages.last_mut() {
             page.placed.push(placed);
         }
