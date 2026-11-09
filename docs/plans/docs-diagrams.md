@@ -90,9 +90,9 @@ Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks 
 | [Q3a](../todos/done/Q3a-diagram-kit-and-first-diagram.md) | The kit, `Diagram.astro`, the styles, the twin rule, the three checks | 1 |
 | [Q3b](../todos/done/Q3b-save-diagrams.md) | The two save diagrams | 2, 3 |
 | [Q3c](../todos/done/Q3c-coordinates-diagram.md) | Page space and user space, upright and rotated | 4 |
-| [Q3d](../todos/ongoing/Q3d-package-map-diagram.md) | The packages and modules | 5 |
+| [Q3d](../todos/done/Q3d-package-map-diagram.md) | The packages and modules | 5 |
 | [Q3e](../todos/done/Q3e-extraction-diagrams.md) | From page to Markdown, and reading order | 6, 7 |
-| [Q3f](../todos/ongoing/Q3f-worker-errors-undo-diagrams.md) | Web Worker, errors and warnings, transactions | 8, 9, 10 |
+| [Q3f](../todos/done/Q3f-worker-errors-undo-diagrams.md) | Web Worker, errors and warnings, transactions | 8, 9, 10 |
 | [Q3g](../todos/done/Q3g-drawing-and-ranges-pages.md) | Two new pages, each with its diagram | 11, 12 |
 
 ## 7. Risks
@@ -111,7 +111,7 @@ Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks 
 - [x] Q3a: the kit, the checks and "Open, edit, save"
 - [x] Q3b: the save diagrams
 - [x] Q3c: page space and user space
-- [ ] Q3d: the packages and modules
+- [x] Q3d: the packages and modules
 - [x] Q3e: the extraction diagrams
-- [ ] Q3f: Web Worker, errors and warnings, transactions
+- [x] Q3f: Web Worker, errors and warnings, transactions
 - [x] Q3g: the drawing and ranges pages
