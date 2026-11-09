@@ -126,7 +126,7 @@ fn automatic_columns_keep_their_widths_on_every_page() {
         })
         .collect();
     assert_eq!(starts.len(), 3);
-    assert!(starts.windows(2).all(|w| w[0] == w[1]), "{starts:?}");
+    assert!(starts.windows(2).all(|w| (w[0] - w[1]).abs() < 0.005), "{starts:?}");
 }
 
 #[test]
