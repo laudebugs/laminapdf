@@ -52,6 +52,7 @@ import { type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { clearDocumentCache } from "./offline/document-cache.ts";
+import { useInstall } from "./offline/install.tsx";
 import { useOffline } from "./offline/offline.tsx";
 import type { AppUpdates } from "./offline/updates.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
@@ -66,20 +67,20 @@ import { type Settings, useSettings } from "./settings.tsx";
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
 const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 
-type MoreId = "save-copy" | "print" | "properties" | "open" | "rotate" | "settings" | "shortcuts";
+type MoreId = "save-copy" | "print" | "properties" | "install" | "open" | "rotate" | "settings" | "shortcuts";
 
 /** The More menu's commands, by item. */
 const MORE_COMMANDS = {
   "save-copy": "file.save-copy",
   print: "file.print",
   properties: "file.properties",
-} as const satisfies Record<Exclude<MoreId, "open" | "rotate" | "settings" | "shortcuts">, OutputCommand>;
+} as const satisfies Record<Exclude<MoreId, "install" | "open" | "rotate" | "settings" | "shortcuts">, OutputCommand>;
 
 /**
  * The More menu (R09): Download a copy, Print… and Document properties, which need an open
  * document, then the reader's own items.
  */
-function moreEntries(open: boolean): GatedEntry<MoreId>[] {
+function moreEntries(open: boolean, installable: boolean): GatedEntry<MoreId>[] {
   const needsDocument = open ? {} : { isDisabled: true, disabledReason: message("command.reason.noDocument") };
   return [
     { id: "save-copy", label: message("command.file.save-copy"), icon: "download", ...needsDocument },
@@ -91,6 +92,10 @@ function moreEntries(open: boolean): GatedEntry<MoreId>[] {
       ...needsDocument,
     },
     { id: "properties", label: message("menu.properties"), icon: "info", ...needsDocument },
+    // R15: only while the browser offers an install.
+    ...(installable
+      ? [{ id: "install" as const, label: message("command.app.install"), icon: "download" as const }]
+      : []),
     { id: "open", label: message("reader.open.choose") },
     { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
     { id: "settings", label: message("command.app.settings"), icon: "settings" },
@@ -339,12 +344,15 @@ function useDocumentMenu(
   state: ReaderState,
   shown: Viewer | undefined,
   settings: Settings,
+  updates: AppUpdates,
 ): {
   toasts: ToastQueue;
   labels: readonly string[] | undefined;
   output: Output;
   moreItems: { items: ReturnType<typeof useGatedEntries<MoreId>>; onAction: (id: MoreId) => void };
   recent: Recent;
+  /** The handlers that work with or without a document: the settings', recent files', install and update. */
+  appActions: Settings["actions"];
 } {
   const appActions = settings.actions;
   const pages = useStoreState(engine, (s) => s.pages);
@@ -361,15 +369,29 @@ function useDocumentMenu(
   const recent = useRecent(platform, engine, state, settings.registry, toasts, () =>
     clearDocumentCache(platform.storage),
   );
-  const items = useGatedEntries<MoreId>(moreEntries(document !== undefined));
+  const install = useInstall();
+  const items = useGatedEntries<MoreId>(moreEntries(document !== undefined, install.available));
   const onAction = (id: MoreId) => {
     if (id === "open") engine.reader.close();
     else if (id === "rotate") engine.getState().viewer?.rotate(90);
     else if (id === "settings") appActions["app.settings"]?.(undefined);
     else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
+    else if (id === "install") install.actions["app.install"]?.();
     else output.actions[MORE_COMMANDS[id]]();
   };
-  return { toasts, labels, output, moreItems: { items, onAction }, recent };
+  return {
+    toasts,
+    labels,
+    output: { ...output, dialogs: [output.dialogs, install.dialog] },
+    moreItems: { items, onAction },
+    recent,
+    appActions: {
+      ...appActions,
+      ...recent.actions,
+      ...install.actions,
+      ...(updates.getState().ready ? { "app.reload-update": () => updates.reload() } : {}),
+    },
+  };
 }
 
 /** The debug menu (#debug): which backend draws the pages. */
@@ -448,7 +470,8 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
   const settings = useSettings(shell.openPalette);
-  const { toasts, labels, output, moreItems, recent } = useDocumentMenu(engine, platform, state, shown, settings);
+  const menu = useDocumentMenu(engine, platform, state, shown, settings, updates);
+  const { toasts, labels, output, moreItems, recent } = menu;
   const find = useFind(shown, open ? state.file : undefined);
   const tabs = useRailTabs(engine, layout, open, find.open);
   const fileName = open ? state.file.name : undefined;
@@ -462,7 +485,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
     shell,
     rail,
     { ...find.actions, ...history.actions, ...output.actions, ...selection.actions },
-    { ...settings.actions, ...recent.actions },
+    menu.appActions,
   );
   useWindowTitle(fileName, engineState.title);
   const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState.pages);

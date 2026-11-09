@@ -220,6 +220,7 @@ export {
   type FindResultsProps,
 } from "./reader/find-results.js";
 export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
+export { InstallDialog, type InstallDialogProps } from "./reader/install-dialog.js";
 export { WholeFileDownload, type WholeFileDownloadProps } from "./reader/loading.js";
 export {
   NetworkActivityPanel,

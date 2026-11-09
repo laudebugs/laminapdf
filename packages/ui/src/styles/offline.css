@@ -23,3 +23,32 @@
     color: var(--paper-text-2);
   }
 }
+
+/* The install dialog (R15): three facts, each after its icon, then the muted note. */
+@layer paper.components {
+  .paper-install-facts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-10);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-install-facts li {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-10);
+  }
+
+  .paper-install-facts svg {
+    flex: none;
+    color: var(--paper-text-2);
+  }
+
+  .paper-install-note {
+    margin: 0;
+    color: var(--paper-text-3);
+    font: var(--paper-type-caption);
+  }
+}
