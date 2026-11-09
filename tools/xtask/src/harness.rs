@@ -100,13 +100,17 @@ fn page_text_snapshot(ws: &Workspace, update: bool) -> Result<Vec<String>> {
     Ok(vec!["text/page-text.json".to_owned()])
 }
 
-/// The reading-order corpus (todo U2b): `laminapdf-build`'s `reading_order` example writes it.
-/// With `update`, into `fixtures/reading-order/`, removing the files no layout writes any
-/// more (they would still be scored); without, it compares and returns the files that
-/// differ or have no generator. `threshold.json` is hand-kept.
-fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
-    let dir = ws.root.join("fixtures/reading-order");
-    let out = scratch(ws, "reading-order")?;
+/// The generated corpora: `laminapdf-build`'s example that writes each, and its directory
+/// under `fixtures/`: the reading-order corpus (todo U2b) and the reader-mode corpus (U4b).
+const CORPORA: [(&str, &str); 2] = [("reading_order", "reading-order"), ("reflow", "reflow")];
+
+/// A generated corpus: `laminapdf-build`'s `example` writes it. With `update`, into
+/// `fixtures/<dir>/`, removing the files no generator writes any more (they would still be
+/// read); without, it compares and returns the files that differ or have no generator.
+/// `threshold.json` is hand-kept.
+fn corpus(ws: &Workspace, example: &str, dir_name: &str, update: bool) -> Result<Vec<String>> {
+    let dir = ws.root.join("fixtures").join(dir_name);
+    let out = scratch(ws, dir_name)?;
     ws.cargo(&[
         "run",
         "--locked",
@@ -114,12 +118,13 @@ fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
         "-p",
         "laminapdf-build",
         "--example",
-        "reading_order",
+        example,
         "--",
         &out.to_string_lossy(),
     ])?;
     let generated = files_in(&out)?;
     let mut stale = Vec::new();
+    fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
     for path in &generated {
         let name = path.file_name().context("file name")?;
         let target = dir.join(name);
@@ -128,7 +133,7 @@ fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
             if update {
                 fs::write(&target, &bytes).with_context(|| format!("writing {}", target.display()))?;
             } else {
-                stale.push(format!("reading-order/{}", name.to_string_lossy()));
+                stale.push(format!("{dir_name}/{}", name.to_string_lossy()));
             }
         }
     }
@@ -139,9 +144,9 @@ fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
         }
         if update {
             fs::remove_file(&path).with_context(|| format!("removing {}", path.display()))?;
-            step(&format!("removed {} (no layout writes it)", path.display()));
+            step(&format!("removed {} (no generator writes it)", path.display()));
         } else {
-            stale.push(format!("reading-order/{} (no generator)", name.to_string_lossy()));
+            stale.push(format!("{dir_name}/{} (no generator)", name.to_string_lossy()));
         }
     }
     Ok(stale)
@@ -152,7 +157,7 @@ const GOLDEN_CRATES: [&str; 4] = ["laminapdf-build", "laminapdf-cli", "laminapdf
 
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
 /// source (`--update` writes them in place and prints the list), the `laminapdf` examples' into
-/// `fixtures/golden/examples/` and the reading-order corpus into `fixtures/reading-order/`; without `--update`, checks that regenerating them changes
+/// `fixtures/golden/examples/` and the generated corpora into `fixtures/reading-order/` and `fixtures/reflow/`; without `--update`, checks that regenerating them changes
 /// nothing.
 pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     let golden_dir = ws.root.join("fixtures/golden");
@@ -178,7 +183,10 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     }
     // The façade's examples are goldens too, one directory down (todo B5c).
     let examples = crate::examples::run_all(ws, &out.join("examples"))?;
-    let mut reading_stale = reading_order(ws, update)?;
+    let mut reading_stale = Vec::new();
+    for (example, dir) in CORPORA {
+        reading_stale.extend(corpus(ws, example, dir, update)?);
+    }
     reading_stale.extend(page_text_snapshot(ws, update)?);
     if update {
         // A golden whose example is gone would fail `crates/laminapdf/tests/examples.rs`.
