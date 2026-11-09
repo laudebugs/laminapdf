@@ -42,3 +42,9 @@ body {
     touch-action: pan-x pan-y pinch-zoom;
   }
 }
+
+/* The text layer's selection over the page (design language §2.2): the page appearance's
+   selection tint, so the transparent text shows only where it is selected. */
+.lamina-text-layer span::selection {
+  background: var(--paper-page-selection-tint);
+}

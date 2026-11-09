@@ -13,6 +13,11 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/corpus/*.pdf",
     "../../../../fixtures/text/encrypted/*.pdf",
     "../../../../fixtures/corpus/expected.json",
+    "../../../../fixtures/golden/text-*.pdf",
+    "../../../../fixtures/golden/build-text-multiscript.pdf",
+    "../../../../fixtures/golden/tagged-report.pdf",
+    "../../../../fixtures/golden/examples/hello.pdf",
+    "../../../../fixtures/text/extracted.json",
   ],
   { query: "?url", import: "default", eager: true },
 );

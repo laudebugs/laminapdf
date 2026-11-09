@@ -6,6 +6,7 @@
 export type { CanvasPoolOptions } from "./canvas/pool.js";
 export type { RestartReason, ViewerCallOptions, ViewerEvent, ViewerEvents, ViewerOptions } from "./client.js";
 export { ViewerClient } from "./client.js";
+export type { TextLayerOptions, TextSelection } from "./layers/text-layer.js";
 export type { Rotation } from "./layout/page-layout.js";
 export type {
   BackendInit,
@@ -14,12 +15,15 @@ export type {
   MethodName,
   Methods,
   OpenedDocument,
+  PageTextData,
   Params,
   Priority,
   RemoteSource,
   RenderedBitmap,
   Result,
   SourceInit,
+  StructureData,
+  TextRunData,
   ViewerOpenOptions,
   WorkerMemory,
 } from "./protocol.js";
