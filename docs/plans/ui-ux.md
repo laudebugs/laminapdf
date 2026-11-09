@@ -89,7 +89,7 @@ A command is `{ id, title, keywords, group, shortcut?, icon?, enabled(ctx), run(
 - the **palette** (cmdk, MIT): fuzzy search over titles and keywords, recents first, a shortcut chip on every row, argument parsing inline (`extract 4-8`, `zoom 150`, `go to 12`) and a pushed page for arguments typed afterwards; the APG combobox pattern (focus stays in the input, `aria-activedescendant` on the active row);
 - **native menus** on desktop ([D4b](../todos/ready/D4b-native-menus.md)) and the web overflow menu;
 - **toolbars and context menus** (buttons reference command ids, so labels, shortcuts and enabled state never drift);
-- the **shortcut help dialog** ([C7a](../todos/ready/C7a-accessibility-and-theming.md)), generated, never hand-written.
+- the **shortcut help dialog** ([C7a](../todos/done/C7a-accessibility-and-theming.md)), generated, never hand-written.
 
 Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/Ctrl) and checked for collisions with browser and OS shortcuts by a test. Delivered by [U1b](../todos/done/U1b-command-registry-and-palette.md).
 
@@ -117,7 +117,7 @@ Delivered by [U3a](../todos/done/U3a-responsive-mobile-and-touch.md). Native app
 
 ### 5.5 Page appearance and themes (R8)
 
-UI themes (light, dark, high contrast, from [C7a](../todos/ready/C7a-accessibility-and-theming.md)) and the **accent colour** (Teal, Blue, Plum or Green, in light and dark; [design language §2.8](../design/paper/design-language.md#28-accent-colours)) are separate from **page appearance**, which the user picks per document or globally. Theme and accent are cached on every device and applied before first paint; when the user is signed in they are also saved to the account, so every device matches (first-sign-in rule in the design language §2.8).
+UI themes (light, dark, high contrast, from [C7a](../todos/done/C7a-accessibility-and-theming.md)) and the **accent colour** (Teal, Blue, Plum or Green, in light and dark; [design language §2.8](../design/paper/design-language.md#28-accent-colours)) are separate from **page appearance**, which the user picks per document or globally. Theme and accent are cached on every device and applied before first paint; when the user is signed in they are also saved to the account, so every device matches (first-sign-in rule in the design language §2.8).
 
 | Page mode | How | Notes |
 | --- | --- | --- |
@@ -224,7 +224,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [C4a](../todos/done/C4a-ui-chrome-and-platform.md) | Depends on U1a (ADR 0024 fixes the layout first); `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
 | [C5a](../todos/done/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
 | [C6a](../todos/done/C6a-thumbnails-outline-page-labels.md) | Depends on U1c; thumbnails and outline fill the left rail's tabs instead of a sidebar of their own |
-| [C7a](../todos/ready/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
+| [C7a](../todos/done/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
 | [C2a](../todos/done/C2a-render-adrs.md) (ADR 0011) | Telemetry optional, opt-in and off by default (owner decision 2026-10-29) |
 | [C7c](../todos/ready/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
 | [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decision 2026-10-29): cold start < 300 ms measured in D2d and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |

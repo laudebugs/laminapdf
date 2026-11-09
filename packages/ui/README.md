@@ -180,15 +180,31 @@ registry.register({
 });
 ```
 
-`registerReaderCommands` adds the reader's 39 commands. Those the reader and the viewer can do run in this package. The rest, such as find, print and the sidebar, are the shell's: it passes a handler for each in the context's `actions`. Until it does, every view leaves the command out, as it leaves out a command whose capability the platform never has.
+`registerReaderCommands` adds the reader's 46 commands. Those the reader and the viewer can do run in this package. The rest, such as find, print and the sidebar, are the shell's: it passes a handler for each in the context's `actions`. Until it does, every view leaves the command out, as it leaves out a command whose capability the platform never has.
 
 The shell gives `CommandsProvider` the registry and a `CommandContext`: the platform, the reader, the viewer, the page labels and its handlers. The provider also listens for shortcuts. Keys with Ctrl, Alt or ⌘ work anywhere; single keys such as Page Down or `+` work only while focus is in the canvas, and never in a text field. Views read the registry through two hooks and a component:
 
 - `useCommand(id)` gives a button or menu item its title, shortcut, availability and `run`, and re-renders when they change.
 - `useShortcutMap()` lists every bound shortcut by group, for the shortcut help and native menu accelerators.
 - `RegistryPalette` is the palette: ranked rows with their shortcuts, recent commands first, disabled ones with their reason, and a page that asks for missing arguments.
+- `ShortcutsDialog` is Keyboard shortcuts, built from `useShortcutMap()`: searchable, with the match count announced, the single-key switch, and the browser keys the reader takes while a document is open. Its rows mark a single key "Off" while single keys are off.
 
 A Node test checks every shortcut against the keys the browser, the OS and assistive tech keep (`NEVER_BIND`), and against the browser keys a command may take only with a reason (`OVERRIDES`). It also fails when two commands share keys where their scopes meet. A new browser or OS key a command needs goes in `OVERRIDES`, with the reason.
+
+## Settings, appearance and announcements
+
+The app's look is an `Appearance`: a theme (`light`, `dark`, `high-contrast`, or `system` to follow the OS), an accent (`teal`, `blue`, `plum`, `green`), motion (`system` or `reduce`) and whether single-key shortcuts are on. `applyAppearance(document.documentElement, appearance)` sets it as `data-theme`, `data-accent` and `data-motion`, which the tokens and styles read, so a switch re-renders nothing. `parseAppearance` reads a stored one, with a default for anything missing. Storing it is the app's job, and so is setting it before the first paint, before React runs.
+
+`ViewSettingsButton` is the top bar's View button with its popover: theme and accent, then More settings…. `SettingsDialog` is the app's one Settings dialog. It shows the sections of a `SettingsRegistry` in the order they were added, so later work adds a section rather than a dialog:
+
+```tsx
+const [settings] = useState(() => new SettingsRegistry());
+useSettingsSection(settings, "appearance", message("settings.appearance"), () => (
+  <AppearanceSettings appearance={appearance} onChange={setAppearance} />
+));
+```
+
+`Announcer` speaks what changes without focus moving. `polite(text, kind)` waits until nothing newer of the same kind, such as a page or a zoom, has come for a moment. So scrolling past twenty pages says only the last, and two kinds due together are said together. `assertive(text)` speaks at once, for errors. Render its `LiveRegions` once, for the app's life.
 
 ## The home screen, repairs and failures
 

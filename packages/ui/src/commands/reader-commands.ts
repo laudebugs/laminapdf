@@ -314,6 +314,29 @@ function zoomModeCommands(): AnyCommand[] {
   ];
 }
 
+/** The View settings popover and the Settings dialog. */
+function settingsCommands(): AnyCommand[] {
+  return [
+    delegated({
+      id: "view.settings",
+      title: title("view.settings"),
+      keywords: ["theme", "accent", "appearance", "dark"],
+      group: "view",
+      icon: "view-settings",
+      home: ["top-bar"],
+    }),
+    delegated({
+      id: "app.settings",
+      title: title("app.settings"),
+      keywords: ["preferences", "options", "motion", "accessibility"],
+      group: "app",
+      icon: "settings",
+      shortcuts: [desktop("Mod+,")],
+      home: ["view-settings", "help-menu"],
+    }),
+  ];
+}
+
 /** The view settings. */
 function viewSettingCommands(): AnyCommand[] {
   return [
@@ -530,6 +553,7 @@ export function readerCommands(): readonly AnyCommand[] {
     ...historyAndZoomCommands(),
     ...zoomModeCommands(),
     ...viewSettingCommands(),
+    ...settingsCommands(),
     ...findCommands(),
     ...appCommands(),
     ...selectionCommands(),

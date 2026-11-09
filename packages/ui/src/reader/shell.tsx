@@ -6,7 +6,8 @@
 // unless a tool's toolbar or the find bar replaces it (ADR 0024 §2); given its `layout`, focus mode
 // hides the mode's toolbar and keeps the one that replaced it until it is closed (§1).
 
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
+import { message } from "../messages.js";
 import type { ShellLayout } from "../shell/layout.js";
 import type { ModeRegistry, ModesState } from "../shell/modes.js";
 import { usePhone } from "../shell/phone.js";
@@ -73,14 +74,16 @@ export function ReaderShell({
   const foot = phoneBar ? bottomBar : status;
   const modeToolbar = useModeToolbar(modes);
   const toolbar = secondaryToolbar ?? (focus || modeToolbar === undefined ? undefined : modeToolbar());
+  const canvas = useRef<HTMLElement>(null);
   return (
     <div className="paper-reader-shell" data-focus={focus || undefined}>
+      <SkipLink canvas={canvas} />
       {topBar}
       {toolbar === undefined ? null : <div className="paper-reader-secondary">{toolbar}</div>}
       <div className="paper-reader-body">
         {rail}
         {/* The page's single-key shortcuts (Page Down, +, ?) act while focus is in the canvas. */}
-        <main className="paper-reader-canvas" data-shortcut-scope="page">
+        <main ref={canvas} className="paper-reader-canvas" data-shortcut-scope="page" tabIndex={-1}>
           {children}
         </main>
         {inspector}
@@ -91,5 +94,26 @@ export function ReaderShell({
         </footer>
       )}
     </div>
+  );
+}
+
+/**
+ * The first thing Tab reaches: a link past the top bar and the sidebar to the document (WCAG
+ * 2.4.1). It focuses the canvas's first focusable element (the viewer's scroller), else the canvas.
+ */
+function SkipLink({ canvas }: { canvas: { readonly current: HTMLElement | null } }): ReactNode {
+  return (
+    // A button, not a link: the address fragment is the reader's own (`#url=`).
+    <button
+      type="button"
+      className="paper-skip-link"
+      onClick={() => {
+        const main = canvas.current;
+        const target = main?.querySelector<HTMLElement>('[tabindex="0"], a[href], button:not(:disabled)') ?? main;
+        target?.focus();
+      }}
+    >
+      {message("shell.skip")}
+    </button>
   );
 }
