@@ -2,7 +2,7 @@
 
 - **Status:** Draft
 - **Date:** 2026-10-28
-- **Plans:** [architecture](architecture.md) · [PDF library](pdf-library.md) · [shareable libraries](shareable-libraries.md) · [web reader](web-app.md) · [desktop reader](desktop-app.md) · [full editor](full-editor.md) · [UI/UX](ui-ux.md)
+- **Plans:** [architecture](architecture.md) · [PDF library](pdf-library.md) · [shareable libraries](shareable-libraries.md) · [web reader](web-app.md) · [desktop reader](desktop-app.md) · [full editor](full-editor.md) · [UI/UX](ui-ux.md) · [browser extension](browser-extension.md)
 - **Prior PRs (all merged):** #1 (PDF research and spike), #2 ([guidelines](../guidelines/README.md)), #3 ([architecture](architecture.md) and its [research](../research/architecture/app-and-package-architecture.md)). This roadmap and the product plans build on all three.
 
 ## What we are building
@@ -30,6 +30,8 @@ All four share one Rust core, so every operation is built once ([architecture §
  B9b ─► U2b;  C5a + U2b + U3a ─► U2a;  C2b + C7a ─► U2c;  U2a + U2c + U3a + U4a ─► C7c
  B8a + C5a + U2b ─► U4b ─► U4c;  U3a ─► U3b;  C7c ─► U5a, U5c;  C7c + D7c ─► U5b
 
+ C7c ─► K1a ─► K1b ─► K1c ─► K2a ─► K2b ─► K2c ─► K3a, K4a (D6a)   (Round K: browser extension; nice to have)
+
  C7 + D7 ─► E1 ─► E2 ─► E3 ─► E4 ─► E5 ─► E6 ─► E7 ─► E8 ─► E9 ─► E10 ─► E11 … E18 (editor phases 2–6)
 ```
 
@@ -41,6 +43,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
 - **Shareable libraries (L1–L6)** run alongside B and C: L1 (contracts) lands before the B5 builder so the first public API follows it; L2 follows B6; L3 (AI-ready extraction) follows B9; L4 (CLI and MCP) follows B5c and B9c; L6 (mobile spike, then a mobile plan) follows B5c and C2b ([shareable libraries §7](shareable-libraries.md#7-rounds)).
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
+- **Browser extension (Round K)** is a nice-to-have from the [extension research](../research/browser-extension/browser-extension.md): the reader packaged for Chrome, Edge, Firefox and Safari. It starts after the web reader's launch (C7c) and nothing waits on it, so it runs beside the desktop and editor rounds as people are free ([browser extension §6](browser-extension.md#6-sequence)).
 - **Trust and proof (Round T)** comes from the [Hacker News research](../research/hacker-news/pdf-users-on-hacker-news.md). Most of it can start now, beside the other rounds: the proof figures and docs (T1), the extraction signals (T3) and the layout ADR (T4a). The rest waits on the rounds it extends: the reader features on C6b, the CLI commands on E2 and E16 ([trust and proof §6](trust-and-proof.md#6-sequence)).
 
 ## Milestones
@@ -50,6 +53,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 | M0 Foundations | A | Monorepo, CI fast lane, `laminapdf-syntax` + `laminapdf-cos`, ADRs 0001/0002/0015/0019 |
 | M1 Library alpha | B1–B7 | `laminapdf` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
 | M2 Web reader v0.1 | B9, C1–C7, U1, U2, U3a, U4a | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload; command palette, column-aware copy, page appearance modes, phone layout, network indicator |
+| M2b Browser extension | K1–K2 | The reader as an extension in the Chrome Web Store and Edge Add-ons (also Brave, Vivaldi, Opera): opened by hand or, when the user allows it, for every PDF; no data collected; Firefox (K3) and Safari (K4) follow |
 | M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels |
 | M4 Library 0.2 | B8 | Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean |
 | M5 Organiser | E1–E3 | Save/undo, page organisation, bookmarks, attachments, metadata, extraction |
@@ -97,6 +101,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | D5 | [desktop](desktop-app.md#d5-update-service) | `apps/updates` Worker + R2 | 0014 |
 | D6 | [desktop](desktop-app.md#d6-signing-packaging-and-release-pipeline) | Signing and packaging | — |
 | D7 | [desktop](desktop-app.md#d7-crash-reporting-and-beta) | Crash reporting, beta | — |
+| K | [browser extension](browser-extension.md) | The reader as an extension for Chrome, Edge, Firefox and Safari, after the web launch (nice to have) | 0033 (proposed) |
 | U1 | [UI/UX](ui-ux.md#u1-shell-foundations) | ADR 0024, command registry and palette, inverted-L shell and modes | 0024 |
 | U2 | [UI/UX](ui-ux.md#u2-reading-quality) | Selection surfaces and copy modes, reading-order corpus, page appearance modes | — |
 | U3 | [UI/UX](ui-ux.md#u3-mobile-and-touch) | Phone and tablet layout; `mobile-shell` spike | 0025 (proposed); `mobile-shell` |
