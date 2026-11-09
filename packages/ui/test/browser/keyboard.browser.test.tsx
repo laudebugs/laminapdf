@@ -5,6 +5,7 @@ import {
   Button,
   Checkbox,
   ModeSwitcher,
+  OutlineTree,
   PageAppearanceChips,
   Radio,
   RadioGroup,
@@ -252,5 +253,57 @@ describe("pickers", () => {
     expect(all(host, "button[aria-pressed=true]").map((b) => b.textContent)).toEqual(["AaOriginal"]);
     await userEvent.click(all(host, "button")[2] as HTMLElement);
     expect(onChange).toHaveBeenCalledWith("dark");
+  });
+});
+
+describe("OutlineTree", () => {
+  const items = [
+    { id: "a", title: "Alpha", page: "1", children: [] },
+    {
+      id: "b",
+      title: "Bravo",
+      page: "2",
+      children: [
+        { id: "b.0", title: "Bravo one", page: "2", children: [] },
+        { id: "b.1", title: "Bravo two", page: "3", children: [] },
+      ],
+    },
+    { id: "c", title: "Charlie", page: "4", children: [] },
+  ];
+  const rows = (host: HTMLElement) => all(host, "[role=row]").map((r) => r.textContent?.replace(/\d+$/, ""));
+
+  it("moves with Up and Down, opens and closes with Right and Left, goes to the ends with Home and End", async () => {
+    const go = vi.fn();
+    const host = renderIn(<OutlineTree items={items} onNavigate={go} />);
+    await userEvent.click(get(host, "[data-key=a]"));
+    await userEvent.keyboard("{ArrowDown}");
+    expect(focused().textContent).toContain("Bravo");
+    expect(rows(host)).toEqual(["Alpha", "Bravo", "Charlie"]);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(rows(host)).toEqual(["Alpha", "Bravo", "Bravo one", "Bravo two", "Charlie"]);
+    await userEvent.keyboard("{ArrowDown}");
+    expect(focused().textContent).toContain("Bravo one");
+    await userEvent.keyboard("{ArrowUp}");
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(rows(host)).toEqual(["Alpha", "Bravo", "Charlie"]);
+    await userEvent.keyboard("{End}");
+    expect(focused().textContent).toContain("Charlie");
+    await userEvent.keyboard("{Home}");
+    expect(focused().textContent).toContain("Alpha");
+  });
+
+  it("finds an item by typing its title, and goes to it on Enter", async () => {
+    const go = vi.fn();
+    const host = renderIn(<OutlineTree items={items} onNavigate={go} />);
+    get(host, "[data-key=a]").focus();
+    await userEvent.keyboard("ch");
+    expect(focused().textContent).toContain("Charlie");
+    await userEvent.keyboard("{Enter}");
+    expect(go).toHaveBeenCalledWith("c");
+  });
+
+  it("opens the current section's parents and marks it", () => {
+    const host = renderIn(<OutlineTree items={items} current="b.1" onNavigate={() => {}} />);
+    expect(get(host, "[aria-current=location]").textContent).toContain("Bravo two");
   });
 });
