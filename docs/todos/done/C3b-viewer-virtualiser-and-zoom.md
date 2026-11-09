@@ -20,7 +20,7 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 ## Context
 
 - **Design (Paper):** [R02 Loading states](../../design/paper/reader-a.md#r02-loading-states). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — the four-step pipeline (true-aspect placeholders → stretched low-res bitmap → 256–512 px sharp tiles, cancelled on scroll/zoom → CSS transform only during pinch) and the mobile caps (tile ≤ 5 MP, total bitmap budget) that [U3a](../ready/U3a-responsive-mobile-and-touch.md) tunes.
+- [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — the four-step pipeline (true-aspect placeholders → stretched low-res bitmap → 256–512 px sharp tiles, cancelled on scroll/zoom → CSS transform only during pinch) and the mobile caps (tile ≤ 5 MP, total bitmap budget) that [U3a](../done/U3a-responsive-mobile-and-touch.md) tunes.
 - [web-frontend notes §2](../../research/architecture/notes/web-frontend.md) — prefix-sum virtualiser, zoom anchoring needs custom logic, pooled canvases, low-res then tiles, cap canvas area (Safari/iOS canvas memory limits).
 - [rendering notes §4](../../research/architecture/notes/rendering.md) — visible ± N pages, placeholder sizes from page boxes, LRU bitmap cache, thumbnails on a lower-priority queue.
 - [web-app.md §4 functional 2–3](../../plans/web-app.md#functional) and [non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (no main-thread task > 50 ms; sharp within 300 ms of stopping; ≤ 600 MB).
@@ -74,7 +74,7 @@ The viewer shipped as planned, with five differences.
 - **Browser tests:** the Playwright specs run as Vitest browser-mode tests (`test/browser/viewer.browser.test.ts`), not as a separate `e2e/` suite. They run in the same three engines through the same Playwright provider, so one runner covers both C3a's and C3b's tests. The scroll test drives the viewer API in a test page rather than the demo, which C3c measures.
 - **Anchoring across:** the point under the cursor holds vertically at every zoom. Horizontally it holds while the pages are wider than the viewport. Narrower pages are centred, so no horizontal scroll can keep the point; the test checks x only while the pages are wider than the viewport. The acceptance check uses the layout maths and real ctrl+wheel events, not screenshots.
 - **Tall documents:** a document taller than 16 million CSS px at the chosen zoom gets its zoom capped. A scaled scroll space, which maps the scroll position, waits until a real document needs it. 1,000 letter pages at 400 % come to about 4.2 million CSS px.
-- **Pixel cap on iOS:** the pool's 64-million-pixel cap is an option (`pool: { maxPixels }`), but there is no detection that lowers it on iOS. [U3a](../ready/U3a-responsive-mobile-and-touch.md) tunes the mobile caps.
+- **Pixel cap on iOS:** the pool's 64-million-pixel cap is an option (`pool: { maxPixels }`), but there is no detection that lowers it on iOS. [U3a](../done/U3a-responsive-mobile-and-touch.md) tunes the mobile caps.
 - **Prefetched pages:** pages in the margin get only the blurry pass, at `prefetch` priority. Their sharp tiles are drawn when they scroll into view.
 - **API names:** the factory's options type is `CreateViewerOptions`, because `ViewerOptions` already names the client's. The view state includes `pageCount` and `percent`.
 

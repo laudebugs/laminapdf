@@ -15,7 +15,7 @@
 
 ## Goal
 
-Give `laminapdf-build` the four things the [`flow-layout` spike](../../../spikes/flow-layout/README.md) found missing when it paginated a 100-page report over today's `Surface`. Each one is useful on its own, and the flow layer ([T4b](../ready/T4b-flow-layout-core.md)) needs all four:
+Give `laminapdf-build` the four things the [`flow-layout` spike](../../../spikes/flow-layout/README.md) found missing when it paginated a 100-page report over today's `Surface`. Each one is useful on its own, and the flow layer ([T4b](../done/T4b-flow-layout-core.md)) needs all four:
 
 1. **A tagged element continues on the next page.** The spike's paginator made two `P` elements of each of 37 split paragraphs, and 23 `Table` elements of 10 tables, where Typst kept each one whole.
 2. **Text is measured without being drawn.** Keep rules had to assume a line height, and table columns couldn't be sized to their content, so a cell too narrow clipped silently.
@@ -43,7 +43,7 @@ Give `laminapdf-build` the four things the [`flow-layout` spike](../../../spikes
 
 **Out of scope** (and which todo covers it)
 
-- The flow layer that uses all four: [T4b](../ready/T4b-flow-layout-core.md).
+- The flow layer that uses all four: [T4b](../done/T4b-flow-layout-core.md).
 - Styled spans in one paragraph: [T4g](../done/T4g-flow-styled-spans.md).
 - A glyph-run API on `Surface` (drawing shaped glyphs as they come): not planned; ADR 0032 rejected the hybrid that needed it.
 - Tagging pages appended to an open document (`Builder::on`): later.

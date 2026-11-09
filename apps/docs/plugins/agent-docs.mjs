@@ -4,11 +4,14 @@
 // reading order). Twins come from the pages' sources, not their HTML: the MDX pages through
 // markdown.mjs, the code pages from docs/errors/, the API reference from TypeDoc's Markdown. The
 // build fails when an HTML page has no twin or a link in `llms.txt` has no file.
+import { realpathSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseBenchmarks, sectionMarkdown } from "../src/lib/benchmarks.ts";
 import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
-import { frontMatter, mdxToMarkdown, rewriteLinks, SNIPPET, twin, twinHref } from "./markdown.mjs";
+import { frontMatter, mdxToMarkdown, rewriteLinks, shownFiles, twin, twinHref } from "./markdown.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
 const CONTENT = new URL("src/content/docs/", new URL("../", import.meta.url));
@@ -197,6 +200,43 @@ export async function contentFiles() {
 const snippetCache = new Map();
 
 /**
+ * The folders a page may show files from: the ones `Snippet.astro` and `Example.astro` glob (the
+ * TypeScript and Rust examples, and the reading examples' outputs). A twin never reads elsewhere.
+ */
+const SHOWN_FOLDERS = ["packages/sdk/examples/", "crates/laminapdf/examples/", "fixtures/extract/examples/"];
+
+/**
+ * `file` (a path from the repository root, as a page names it) as a URL inside one of
+ * {@link SHOWN_FOLDERS}; fails for anything else: an absolute path, `..`, a percent escape (which
+ * reading the URL would decode, `%2e%2e` into `..`), another folder, a symbolic link out of them.
+ *
+ * @param {string} file
+ * @returns {URL}
+ */
+export function shownFileUrl(file) {
+  const safe =
+    file !== "" &&
+    !/^([/\\]|[A-Za-z]:|file:)/.test(file) &&
+    !file.includes("%") &&
+    !file.split(/[/\\]/).includes("..") &&
+    SHOWN_FOLDERS.some((folder) => file.startsWith(folder));
+  const outside = new Error(
+    `agent docs: a page shows ${file}, outside the example folders (${SHOWN_FOLDERS.join(", ")})`,
+  );
+  if (!safe) throw outside;
+  const url = new URL(file, ROOT);
+  // The check that counts: the file read, decoded and with every symbolic link followed, lies
+  // inside an allowed folder (its real path too).
+  const path = realpathSync(fileURLToPath(url));
+  const inside = SHOWN_FOLDERS.some((folder) => {
+    const rest = relative(realpathSync(fileURLToPath(new URL(folder, ROOT))), path);
+    return rest !== "" && !rest.startsWith("..") && !isAbsolute(rest);
+  });
+  if (!inside) throw outside;
+  return url;
+}
+
+/**
  * The text of an example file a page shows, read by {@link readSnippets}; fails for any other.
  * The site's twins and the package docs both read snippets through it.
  *
@@ -210,7 +250,7 @@ export function snippetText(file) {
 }
 
 /**
- * Reads every file a page's `<Snippet>` names, whatever its attributes' order.
+ * Reads every file a page's `<Snippet>`s and `<Example>`s show, whatever their attributes' order.
  *
  * @returns {Promise<void>}
  */
@@ -218,8 +258,8 @@ export async function readSnippets() {
   for (const name of await readdir(CONTENT, { recursive: true })) {
     if (!/\.mdx?$/.test(name)) continue;
     const source = await readFile(new URL(name, CONTENT), "utf8");
-    for (const [, file = ""] of source.matchAll(SNIPPET)) {
-      if (!snippetCache.has(file)) snippetCache.set(file, await readFile(new URL(file, ROOT), "utf8"));
+    for (const file of shownFiles(source)) {
+      if (!snippetCache.has(file)) snippetCache.set(file, await readFile(shownFileUrl(file), "utf8"));
     }
   }
 }

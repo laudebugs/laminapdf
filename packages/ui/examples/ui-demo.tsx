@@ -21,11 +21,13 @@ import {
   Inspector,
   LeftRail,
   type ModeRegistry,
+  type MoreItems,
   NetworkIndicator,
   OpenDropZone,
   type OpenedDocument,
   OpenFailure,
   PasswordDialog,
+  PhoneBottomBar,
   type Platform,
   PlatformProvider,
   type RailTab,
@@ -137,6 +139,7 @@ export function Demo({ platform, debug = false }: { platform: Platform; debug?: 
   const { layout, modes } = useShell(platform.storage);
   const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
   const { registry, context } = useDemoCommands(platform, reader, viewer, shell);
+  const more = useDemoMore(reader, viewer);
   const state = useReaderState(reader);
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const open = state.phase === "open";
@@ -150,7 +153,8 @@ export function Demo({ platform, debug = false }: { platform: Platform; debug?: 
       <ReaderShell
         layout={layout}
         modes={modes}
-        topBar={<DemoTopBar reader={reader} viewer={viewer} sidebar={sidebar} debug={debug} />}
+        topBar={<DemoTopBar reader={reader} viewer={viewer} sidebar={sidebar} debug={debug} more={more} />}
+        bottomBar={<PhoneBottomBar layout={layout} rail={open} more={more} keys="other" />}
         {...(open ? { rail: <LeftRail layout={layout} tabs={RAIL_TABS} /> } : {})}
         inspector={<DemoInspector platform={platform} layout={layout} damaged={damaged} />}
         status={
@@ -187,19 +191,25 @@ function DemoPage({ layout }: { layout: ShellLayout }): ReactNode {
   );
 }
 
+/** The demo's More items: the top bar's menu, and the phone's More sheet. */
+function useDemoMore(reader: ReaderController, viewer: DemoViewer): MoreItems<MoreId> {
+  const items = useGatedEntries<MoreId>([
+    { id: "open", label: "Open another file…" },
+    { id: "rotate", label: "Rotate clockwise", icon: "rotate-right" },
+    { id: "save", label: "Save a copy…", icon: "download", needs: "canSaveAsDialog" },
+  ]);
+  return { items, onAction: (id) => (id === "open" ? reader.close() : id === "rotate" && viewer.rotate()) };
+}
+
 /** The top bar, with the demo's More menu and, for `#debug`, the debug menu. */
 function DemoTopBar(props: {
   reader: ReaderController;
   viewer: DemoViewer;
   sidebar: boolean;
   debug: boolean;
+  more: MoreItems<MoreId>;
 }): ReactNode {
   const [backend, setBackend] = useState<DebugBackend>("pdfium");
-  const more = useGatedEntries<MoreId>([
-    { id: "open", label: "Open another file…" },
-    { id: "rotate", label: "Rotate clockwise", icon: "rotate-right" },
-    { id: "save", label: "Save a copy…", icon: "download", needs: "canSaveAsDialog" },
-  ]);
   return (
     <ReaderTopBar
       reader={props.reader}
@@ -208,10 +218,7 @@ function DemoTopBar(props: {
       sidebarOpen={props.sidebar}
       home={<span className="demo-wordmark">lamina</span>}
       debug={props.debug ? <DebugMenu backend={backend} onBackendChange={setBackend} keys="other" /> : undefined}
-      more={{
-        items: more,
-        onAction: (id) => (id === "open" ? props.reader.close() : id === "rotate" && props.viewer.rotate()),
-      }}
+      more={props.more}
     />
   );
 }

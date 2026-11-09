@@ -17,11 +17,15 @@ export const BACKDROP_MAX_PIXELS = 8 * 1024 * 1024;
 
 /**
  * Device px per CSS px of the backdrop of a page `css` CSS px in size: `dpr`, or less so that the
- * whole page fits {@link BACKDROP_MAX_PIXELS}.
+ * whole page fits `maxPixels` ({@link BACKDROP_MAX_PIXELS} by default; less on touch devices).
  */
-export function backdropRatio(dpr: number, css: { readonly width: number; readonly height: number }): number {
+export function backdropRatio(
+  dpr: number,
+  css: { readonly width: number; readonly height: number },
+  maxPixels = BACKDROP_MAX_PIXELS,
+): number {
   const pixels = css.width * dpr * css.height * dpr;
-  return pixels <= BACKDROP_MAX_PIXELS ? dpr : dpr * Math.sqrt(BACKDROP_MAX_PIXELS / pixels);
+  return pixels <= maxPixels ? dpr : dpr * Math.sqrt(maxPixels / pixels);
 }
 
 /** The smallest rectangle covering every one of `rects`; undefined when there are none. */

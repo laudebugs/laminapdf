@@ -1,0 +1,184 @@
+{
+  "examples": {
+    "element_flow": {
+      "sha256": "858d8fd31717699c099e91b9ef67296ff6cdcf5eca3433e89a7484ccc77a924f",
+      "bytes": 6297,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
+    "flowing_report": {
+      "sha256": "644755c3f8819f657ef940c97dd68cb7a84b30eb3abbe95eee75cdf36e3e2b3b",
+      "bytes": 46471,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
+    "generate_then_edit": {
+      "sha256": "dbde950a020c7c28a7034994e3549a1d1279e051c1a84e18aff7eebd33b7b9a3",
+      "bytes": 2545,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "hello": {
+      "sha256": "6bf81b331cfa2fb0c74275e1ff689b804227e4487da5e82f3699c862ef468765",
+      "bytes": 1395,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "images_and_vectors": {
+      "sha256": "89e3a6819711556323a24ba4c4dea31046d13ee82e65d5caf00b86f213bc6388",
+      "bytes": 5184,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "invoice": {
+      "sha256": "c3e7b7e1ebc861d49ac1844a526e46cfca0393241504f619848958ac806e0f55",
+      "bytes": 11996,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "links_and_outlines": {
+      "sha256": "e094221354635103768d301d080621b618836e6279e25efaeff7bd1c08319f81",
+      "bytes": 2593,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
+    "multilingual": {
+      "sha256": "10a7f9769a9b59149bddfc4bf2a9d4bb3cf51b0aa6db0e5b9f95943e2a785ad8",
+      "bytes": 27695,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "pdf_a3_invoice_with_xml": {
+      "sha256": "7f6e9fdfb6dedf0cf70ed22de3798100f3136ef8977b672686653758b01c2163",
+      "bytes": 10362,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "pdf_a_archive-2b": {
+      "sha256": "f436187bb6df465dc84dd9d590166136a49f2efcc6e2ba6fd66419876c3719ea",
+      "bytes": 13806,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "pdf_a_archive-2u": {
+      "sha256": "8565208eef6a463145f2ab16515fe8a5d3f783019a93b37842a729069012ba9f",
+      "bytes": 14965,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "pdf_ua_report": {
+      "sha256": "a7271f219512ad793f191f6928c0d024eeb540dc2345810e7c33aa635dbb19ad",
+      "bytes": 10736,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    }
+  }
+}

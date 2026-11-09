@@ -35,6 +35,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "axe-core": "catalog:",
     "babel-plugin-react-compiler": "catalog:",
     "playwright": "catalog:",
     "typescript": "catalog:",

@@ -11,6 +11,7 @@ mod codegen;
 mod corpus;
 mod design_screens;
 mod docs_links;
+mod docs_previews;
 mod docs_prose;
 mod docs_snippets;
 mod doctor;
@@ -155,6 +156,9 @@ tasks:
                     without it, fail if they would change)
   examples          run the lamina crate's examples into target/examples-out/, compare them
                     with fixtures/golden/examples/ and run qpdf --check on each (needs qpdf)
+  docs-previews     the docs' Result-tab pictures: every page of fixtures/golden/examples/ by hayro at
+                    144 dpi into apps/docs/public/examples/preview/, with manifest.json (`check docs`
+                    compares it with the PDFs)
   render-golden [--update]
                     render every page of fixtures/golden/examples/ with PDFium (pypdfium2:
                     tools/render/requirements.txt, $LAMINA_PDF_PYTHON) and hayro (tools/render, its
@@ -392,6 +396,7 @@ fn main() -> Result<()> {
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("benchmarks", args) => benchmarks::run(&ws, &benchmarks::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
+        ("docs-previews", []) => docs_previews::run(&ws),
         ("render-golden", []) => render::run(&ws, false),
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("render-diff", args) => render_diff::run(&ws, &render_diff::parse_args(args)?),
@@ -486,6 +491,8 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     capabilities::check_static(&ws.root)?;
     step("renames: docs/renames.json against its schema, every deprecation listed, every new name defined");
     renames::check(&ws.root)?;
+    step("docs previews: the docs' example pictures match the example goldens");
+    docs_previews::check(&ws.root)?;
     models::check(&ws.root)?;
     codegen::codes(ws, true)?;
     codegen::boundary::generate(ws, true)?;

@@ -32,6 +32,11 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
     },
     fling: { toSharpMs: 280, counters },
     zoom: { recording: recording(), toSharpMs: [150, 200] },
+    mobile: {
+      device: "Pixel 8",
+      peakMemory: { ...memory(150 * MB), canvases: 80 * MB, bitmaps: 60 * MB },
+      budgetBytes: 184 * MB,
+    },
     ...over,
   };
 }
@@ -110,6 +115,22 @@ describe("summary", () => {
 });
 
 describe("historyEntries", () => {
+  it("holds a phone's canvases and bitmaps to its touch budgets, and says where there was no phone", () => {
+    const over = result({
+      mobile: {
+        device: "iPhone 15",
+        peakMemory: { ...memory(0), canvases: 150 * MB, bitmaps: 40 * MB },
+        budgetBytes: 184 * MB,
+      },
+    });
+    const name = "Canvases and bitmaps on a phone, 1,000 pages";
+    expect([
+      byName(result())[name]?.pass,
+      byName(over)[name]?.pass,
+      byName(result({ mobile: null }))[name]?.pass,
+    ]).toEqual([true, false, null]);
+  });
+
   it("records times in nanoseconds and memory in bytes, and the cold figure only where measured", () => {
     expect(historyEntries(result())).toEqual({
       "first-page-warm": 400_000_000,
@@ -118,6 +139,7 @@ describe("historyEntries", () => {
       "to-sharp": 280_000_000,
       "zoom-to-sharp": 200_000_000,
       "memory-peak-bytes": 300 * MB,
+      "mobile-memory-peak-bytes": 140 * MB,
     });
     expect(historyEntries(result({ firstPage: { warmMs: 1, coldMs: null } }))).not.toHaveProperty("first-page-cold");
   });

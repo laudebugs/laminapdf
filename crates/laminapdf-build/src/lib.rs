@@ -57,6 +57,9 @@
 //!   [`Surface::resume`], [`Builder::close_element`]); MCIDs per page, `/StructParents`, the
 //!   `ParentTree`, `OBJR`s for links, the `RoleMap` and `/MarkInfo`;
 //!   [`Builder::tagging_diagnostics`] ([`TagDiagnostic`]) for what is left untagged.
+//! * Flowing layout: [`Builder::flow`] pours a [`flow::Flow`] of headings, paragraphs, lists
+//!   and figures through a page template into as many pages as it needs, with keep rules,
+//!   running headers and footers and "Page X of Y" ([`flow`]).
 //! * Conformance: [`BuildOptions::with_profile`] ([`Profile`]: PDF/UA-1, PDF/A-2b,
 //!   PDF/A-2u, PDF/A-3b) turns each machine-checkable rule the document breaks into a coded
 //!   error at [`Builder::finish`], and writes the XMP identification, `/DisplayDocTitle` and
@@ -72,6 +75,8 @@ mod attach;
 mod builder;
 mod error;
 mod finish;
+#[cfg(feature = "text")]
+pub mod flow;
 mod meta;
 mod nav;
 mod page;
@@ -91,7 +96,7 @@ use laminapdf_test_fixtures::codes as test_codes;
 
 pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
-pub use error::{Error, ImageFormat, Result};
+pub use error::{Error, ImageFormat, Result, Warning};
 pub use laminapdf_model::{
     BlendMode, Dash, FillRule, LabelStyle, Matrix, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt,
     Rotation,

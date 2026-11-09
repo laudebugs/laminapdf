@@ -103,6 +103,30 @@ export interface MenuProps<Id extends string> {
   placement?: Placement;
 }
 
+/** One entry of a menu: its icon, label, shortcut chip and why it is disabled; `Menu` and the phone's More sheet share it. */
+export function menuItem<Id extends string>(item: MenuEntry<Id>, platform: KeyPlatform): ReactNode {
+  return (
+    <MenuItem
+      id={item.id}
+      textValue={item.label}
+      className="paper-menu-item"
+      data-destructive={item.isDestructive === true || undefined}
+    >
+      {item.icon === undefined ? <span className="paper-menu-icon" /> : <Icon name={item.icon} />}
+      <Text slot="label" className="paper-menu-label">
+        {item.label}
+      </Text>
+      {/* The chip is React Aria's Keyboard, which a menu item links with aria-describedby. */}
+      {item.shortcut === undefined ? null : <ShortcutChip keys={item.shortcut} platform={platform} />}
+      {item.disabledReason === undefined ? null : (
+        <Text slot="description" className="paper-menu-reason">
+          {item.disabledReason}
+        </Text>
+      )}
+    </MenuItem>
+  );
+}
+
 /** A menu in a popover, opened by the button of its `MenuTrigger`. Arrows move, letters jump, Escape closes. */
 export function Menu<Id extends string>({
   "aria-label": label,
@@ -126,26 +150,7 @@ export function Menu<Id extends string>({
           disabledKeys={items.filter((i) => i.isDisabled === true).map((i) => i.id)}
           onAction={(key) => onAction(key as Id)}
         >
-          {(item) => (
-            <MenuItem
-              id={item.id}
-              textValue={item.label}
-              className="paper-menu-item"
-              data-destructive={item.isDestructive === true || undefined}
-            >
-              {item.icon === undefined ? <span className="paper-menu-icon" /> : <Icon name={item.icon} />}
-              <Text slot="label" className="paper-menu-label">
-                {item.label}
-              </Text>
-              {/* The chip is React Aria's Keyboard, which a menu item links with aria-describedby. */}
-              {item.shortcut === undefined ? null : <ShortcutChip keys={item.shortcut} platform={platform} />}
-              {item.disabledReason === undefined ? null : (
-                <Text slot="description" className="paper-menu-reason">
-                  {item.disabledReason}
-                </Text>
-              )}
-            </MenuItem>
-          )}
+          {(item) => menuItem(item, platform)}
         </AriaMenu>
       </PopoverLayer>
     </AriaPopover>
