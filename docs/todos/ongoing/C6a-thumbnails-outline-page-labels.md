@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C6a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [B6b](../done/B6b-lamina-pdf-package.md), [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../done/C4c-remote-files-encryption-privacy.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md) |
@@ -40,7 +40,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 
 **Out of scope** (and which todo covers it)
 
-- Link annotations, named destinations from links, back/forward history → [C6b](./C6b-links-and-history.md) (this PR's `goToDestination` is reused).
+- Link annotations, named destinations from links, back/forward history → [C6b](../ready/C6b-links-and-history.md) (this PR's `goToDestination` is reused).
 - Editing the outline (editor E3).
 
 ## Tasks
