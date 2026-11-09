@@ -27,6 +27,7 @@ export type {
   ViewerOpenOptions,
   WorkerMemory,
 } from "./protocol.js";
+export { ThumbnailStrip, type ThumbnailStripOptions } from "./thumbnails/strip.js";
 export type {
   CreateViewerOptions,
   PageLayer,
