@@ -12,7 +12,7 @@
 | Branch | `feat/c6c-print-download-properties` |
 | PR title | `feat(web): add printing, original-bytes download and the document properties dialog` |
 | Size | L (600–1,200 lines incl. tests) |
-| PR | [#368](https://github.com/laudebugs/lamina/pull/368) |
+| PR | [#368](https://github.com/laudebugs/laminapdf/pull/368) |
 
 ## Goal
 
