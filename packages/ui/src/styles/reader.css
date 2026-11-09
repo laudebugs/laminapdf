@@ -633,17 +633,17 @@
    the reader's size (set on the column) with its line spacing and line length; a crop is its part
    of the page, framed, with its description under it. */
 @layer paper.components {
-  /* In the reader's canvas, the column covers the page view (which stays laid out under it). */
-  .paper-reader-canvas > .paper-reader-mode {
-    position: absolute;
-    inset: 0;
-  }
-
   .paper-reader-mode {
     block-size: 100%;
     overflow-y: auto;
     background: var(--paper-page-paper);
     color: var(--paper-page-ink);
+  }
+
+  /* In the reader's canvas, the column covers the page view (which stays laid out under it). */
+  .paper-reader-canvas > .paper-reader-mode {
+    position: absolute;
+    inset: 0;
   }
 
   .paper-reader-mode:focus-visible {

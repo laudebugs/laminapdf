@@ -166,6 +166,15 @@ function ReaderSettingsButton({ open }: { open: boolean }): ReactNode {
   );
 }
 
+/** The View button, or while reader mode is on, the Reader settings button in its place. */
+function ViewOrReaderSettings({
+  readerMode,
+  readerSettingsOpen,
+  view,
+}: Pick<ReaderTopBarProps<string>, "readerMode" | "readerSettingsOpen" | "view">): ReactNode {
+  return readerMode === true ? <ReaderSettingsButton open={readerSettingsOpen === true} /> : view;
+}
+
 /** The top bar on a window wider than a phone. */
 function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNode {
   const state = useStoreState(props.reader, (s) => s);
@@ -208,7 +217,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
             onPress={() => find.run()}
           />
         )}
-        {props.readerMode === true ? <ReaderSettingsButton open={props.readerSettingsOpen === true} /> : props.view}
+        <ViewOrReaderSettings {...props} />
         {palette.availability.state === "hidden" ? null : (
           <AriaButton className="paper-commands-button" onPress={() => palette.run()}>
             <span>{message("reader.commands")}</span>

@@ -20,6 +20,7 @@ import {
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { pageLabel } from "./outline.ts";
 import type { DocumentReflow, Engine } from "./session.ts";
 
 /** The inspector content id of the reader settings panel. */
@@ -230,18 +231,15 @@ function readerActions(
   };
 }
 
-/**
- * Reader mode over `engine`'s open `document`, shown by `viewer` when it is off; `pageName`
- * names a page as people number it.
- */
+/** Reader mode over `engine`'s open `document`, shown by `viewer` when it is off. */
 export function useReaderMode(
   engine: Engine,
   layout: ShellLayout,
   platform: Platform,
   viewer: Viewer | undefined,
   document: unknown,
-  pageName: (page: number) => string,
 ): ReaderMode {
+  const pages = useStoreState(engine, (s) => s.pages);
   const reader = useReaderContent(engine, layout, viewer, document);
   const [settings, setSettings] = useReaderSettings(platform);
   const settingsOpen = useStoreState(layout, (s) => s.inspector?.id === READER_SETTINGS_PANEL);
@@ -250,7 +248,7 @@ export function useReaderMode(
     <ReaderView
       content={content?.view ?? { status: "loading" }}
       settings={settings}
-      pageName={pageName(reader.topPage)}
+      pageName={pageLabel(pages, reader.topPage)}
       onBack={leave}
       renderCrop={(block: ReaderBlock) => <Crop engine={engine} block={block as Block} />}
       {...(content === undefined ? {} : { startAt: content.startAt })}

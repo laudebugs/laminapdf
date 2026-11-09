@@ -315,7 +315,7 @@ function ReaderDialogs({
   );
 }
 
-/** The inspector's panel and the status bar's items: the network indicator first. */
+/** The inspector's panel and the status bar's items: reader mode's, then the network indicator. */
 function usePanels(
   layout: ShellLayout,
   platform: Platform,
@@ -323,14 +323,19 @@ function usePanels(
   fileName: string | undefined,
   engine: EngineState,
   debug: boolean,
+  readerMode: ReaderMode,
 ): { inspector: ReactNode; status: ReactNode[] } {
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, platform, fileName, engine.repairs);
   const { indicator, inspector: networkPanel } = useNetworkPanel(layout, platform, network);
-  // One inspector at a time: whichever panel the layout holds draws, the other draws nothing.
-  const inspector = repairsPanel ?? networkPanel;
+  // One inspector at a time: whichever panel the layout holds draws, the others draw nothing.
+  const inspector = readerMode.inspector ?? repairsPanel ?? networkPanel;
   return {
     inspector,
-    status: [...(indicator === undefined ? [] : [indicator]), ...statusItems(engine, debug, showRepairs)],
+    status: [
+      ...(readerMode.status === undefined ? [] : [readerMode.status]),
+      ...(indicator === undefined ? [] : [indicator]),
+      ...statusItems(engine, debug, showRepairs),
+    ],
   };
 }
 
@@ -429,7 +434,7 @@ export function App({
   const { reader } = engine;
   const state = useReaderState(reader);
   const engineState = useStoreState(engine, (s) => s);
-  const { backend, viewer } = engineState;
+  const { backend, viewer, strip } = engineState;
   const [palette, setPalette] = useState(false);
   const { layout, modes } = useShell(platform.storage);
   const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
@@ -438,9 +443,8 @@ export function App({
   const shown = open ? viewer : undefined;
   const settings = useSettings(shell.openPalette);
   const { toasts, labels, output, moreItems } = useDocumentMenu(engine, platform, state, shown, settings.actions);
-  // The rail's panels are made again only when the view or the strip changes.
-  const { strip } = engineState;
   const find = useFind(shown, open ? state.file : undefined);
+  // The rail's panels are made again only when the view or the strip changes.
   const tabs = useMemo(
     () => railTabs(engine, layout, open ? { strip, viewer, finding: find.open } : undefined),
     [engine, layout, open, strip, viewer, find.open],
@@ -449,9 +453,7 @@ export function App({
   const rail = tabs.length > 0;
   const history = useHistory(shown, engineState.pages);
   const selection = useSelection(shown, find, platform, KEYS);
-  const readerMode = useReaderMode(engine, layout, platform, shown, open ? state.file : undefined, (page) =>
-    pageLabel(engineState.pages, page),
-  );
+  const readerMode = useReaderMode(engine, layout, platform, shown, open ? state.file : undefined);
   const commands = useReaderCommands(
     platform,
     reader,
@@ -463,7 +465,7 @@ export function App({
   );
   useWindowTitle(fileName, engineState.title);
   const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState.pages);
-  const panels = usePanels(layout, platform, network, fileName, engineState, debug);
+  const panels = usePanels(layout, platform, network, fileName, engineState, debug, readerMode);
   return (
     <CommandsProvider
       registry={commands.registry}
@@ -493,12 +495,9 @@ export function App({
         }
         rail={<LeftRail layout={layout} tabs={tabs} />}
         bottomBar={selection.bar ?? <PhoneBottomBar layout={layout} rail={rail} more={moreItems} keys={KEYS} />}
-        {...((readerMode.inspector ?? panels.inspector) === undefined
-          ? {}
-          : { inspector: readerMode.inspector ?? panels.inspector })}
+        {...(panels.inspector === undefined ? {} : { inspector: panels.inspector })}
         status={
           <>
-            {readerMode.status}
             {panels.status}
             <FocusModeItem layout={layout} />
           </>
