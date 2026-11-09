@@ -183,7 +183,7 @@ describe(`the network indicator in ${BROWSER}`, () => {
     await context.close();
   });
 
-  it("never sends a plain-HTTP request, and counts what the browser sent instead", async () => {
+  it("counts a plain-HTTP request whatever the engine does with it", async () => {
     const { context, log, page } = await openLocal();
     const plain = `${host.origin.replace("https:", "http:")}/cors/ranges/hello.pdf`;
     await page.evaluate(
@@ -195,14 +195,17 @@ describe(`the network indicator in ${BROWSER}`, () => {
       plain,
     );
     await settle(page);
-    expect(log.some((url) => url.startsWith("http:"))).toBe(false);
+    // Whatever left, the panel counts: the guarantee every engine shares.
     expect(await panelCounts(page)).toEqual(split(log));
-    // Chromium leaves loopback addresses un-upgraded, so connect-src blocks the request and reports
-    // it; WebKit upgrades or drops it without a report. Either way nothing went out over HTTP.
+    // The engines differ on a loopback address, which is trustworthy and so never upgraded. Chromium
+    // blocks it under connect-src and reports it; WebKit drops it without a report; Firefox sends it
+    // (here the HTTPS-only port resets it), and the panel counts it. A public host is upgraded.
     if (BROWSER === "chromium") {
+      expect(log.some((url) => url.startsWith("http:"))).toBe(false);
       const panel = page.getByRole("complementary", { name: "Network activity" });
       await panel.getByText("Blocked by the page's policy").waitFor();
     }
+    if (BROWSER === "firefox") expect(log).toContain(plain);
     await context.close();
   });
 
