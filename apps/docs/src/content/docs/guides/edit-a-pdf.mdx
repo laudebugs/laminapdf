@@ -3,6 +3,7 @@ title: Edit a PDF
 description: Change an existing PDF in transactions you can undo, and replay edits stored as JSON.
 ---
 
+import Diagram from "../../../components/Diagram.astro";
 import Example from "../../../components/Example.astro";
 
 You'll open a PDF, change its title and author, and save the edit after the original bytes. You need this whenever your app changes a file someone gave it: a corrected title, a rotated scan, a report marked final.
@@ -22,6 +23,8 @@ Your edits live beside the bytes you opened and never change them. Nothing reach
 ## Undo and redo
 
 `doc.undo()` reverts the last transaction as a whole, and `doc.redo()` applies it again. A transaction is the unit of undo, so group the edits a user would expect to undo together.
+
+<Diagram name="undo-timeline" />
 
 ## Replay edits stored as JSON
 

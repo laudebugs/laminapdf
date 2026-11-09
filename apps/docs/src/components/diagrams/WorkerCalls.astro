@@ -1,0 +1,61 @@
+---
+// "Lamina PDF in a Web Worker" (guides/keep-the-page-responsive, "Cancel a call"): your page's client
+// sends each call to the Web Worker as a message, where @laminapdf/sdk runs one call at a time, and
+// the answer comes back as a Promise with its bytes transferred. Below, what an aborted signal does
+// to a call, by where the call was. The accent marks the one call an abort stops while it runs: save. Caption and text description:
+// registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import Box from "./kit/Box.astro";
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import Lane from "./kit/Lane.astro";
+import Markers from "./kit/Markers.astro";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { prefix, labelledby, describedby } = Astro.props;
+const wide = `${prefix}-wide`;
+const narrow = `${prefix}-narrow`;
+/** Where an aborted call was, and what happens to it. */
+const outcomes = [
+  { label: "A queued call", sub: "never runs" },
+  { label: "A running save", sub: "stops at its next step" },
+  { label: "Any other call", sub: "runs to the end" },
+] as const;
+---
+
+<Svg viewBox="0 0 720 300" layout="wide" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={wide} />
+  <Lane x={0} y={0} w={250} h={168} title="Your page" />
+  <Box x={16} y={56} w={218} h={60} label="The client" sub="`await doc.pageCount()`" />
+  <Arrow d="M234 72 H482" prefix={wide} />
+  <Label x={358} y={62} text="each call, a message" kind="sub" anchor="middle" />
+  <Arrow d="M486 128 H238" prefix={wide} />
+  <Label x={358} y={150} text="answers, bytes transferred" kind="sub" anchor="middle" />
+
+  <Lane x={470} y={0} w={250} h={168} title="Web Worker" />
+  <Box x={486} y={36} w={218} h={48} label="Queue" sub="one call at a time" />
+  <Arrow d="M595 84 V104" prefix={wide} />
+  <Box x={486} y={108} w={218} h={52} label="@laminapdf/sdk" sub="runs the call" mono />
+
+  <Label x={0} y={212} text="When a signal aborts:" />
+  {outcomes.map((o, i) => <Box x={i * 246} y={228} w={228} h={60} label={o.label} sub={o.sub} focus={i === 1} />)}
+</Svg>
+
+<Svg viewBox="0 0 320 544" layout="narrow" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={narrow} />
+  <Lane x={0} y={0} w={320} h={104} title="Your page" />
+  <Box x={8} y={36} w={304} h={56} label="The client" sub="`await doc.pageCount()`" />
+  <Arrow d="M100 92 V150" prefix={narrow} />
+  <Label x={92} y={126} text="each call" kind="sub" anchor="end" />
+  <Arrow d="M220 150 V96" prefix={narrow} />
+  <Label x={228} y={126} text="answers" kind="sub" />
+
+  <Lane x={0} y={154} w={320} h={168} title="Web Worker" />
+  <Box x={8} y={186} w={304} h={48} label="Queue" sub="one call at a time" />
+  <Arrow d="M160 234 V250" prefix={narrow} />
+  <Box x={8} y={254} w={304} h={52} label="@laminapdf/sdk" sub="runs the call" mono />
+
+  <Label x={0} y={356} text="When a signal aborts:" />
+  {outcomes.map((o, i) => <Box x={0} y={368 + i * 60} w={320} h={52} label={o.label} sub={o.sub} focus={i === 1} />)}
+</Svg>

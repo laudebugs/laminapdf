@@ -1,0 +1,46 @@
+---
+// "Transactions and undo" (guides/edit-a-pdf, "Undo and redo"): three transactions in order, each a
+// unit; one undo steps back over the whole of the last one, and redo applies it again. The accent
+// follows undo and the transaction it takes back. Caption and text description: registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import Box from "./kit/Box.astro";
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import Markers from "./kit/Markers.astro";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { prefix, labelledby, describedby } = Astro.props;
+const wide = `${prefix}-wide`;
+const narrow = `${prefix}-narrow`;
+const TRANSACTIONS = [
+  { label: "Transaction 1", sub: "`setInfo`, `rotatePage`" },
+  { label: "Transaction 2", sub: "`rotatePage`" },
+  { label: "Transaction 3", sub: "`setInfo`, `rotatePage`" },
+] as const;
+const LAST = TRANSACTIONS.length - 1;
+---
+
+<Svg viewBox="0 0 720 200" layout="wide" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={wide} />
+  {TRANSACTIONS.map((t, i) => <Box x={i * 240} y={52} w={216} h={60} label={t.label} sub={t.sub} fresh={i === LAST} />)}
+  <Arrow d="M216 82 H236" prefix={wide} />
+  <Arrow d="M456 82 H476" prefix={wide} />
+  <Arrow d="M676 48 V30 H500 V46" prefix={wide} tone="focus" />
+  <Label x={588} y={20} text="doc.undo()" kind="mono" anchor="middle" />
+  <Arrow d="M500 116 V134 H676 V118" prefix={wide} />
+  <Label x={588} y={156} text="doc.redo()" kind="mono" anchor="middle" />
+  <Label x={0} y={190} text="new edits clear redo" kind="sub" />
+</Svg>
+
+<Svg viewBox="0 0 320 280" layout="narrow" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={narrow} />
+  {TRANSACTIONS.map((t, i) => <Box x={56} y={i * 72} w={208} h={52} label={t.label} sub={t.sub} fresh={i === LAST} />)}
+  <Arrow d="M160 52 V68" prefix={narrow} />
+  <Arrow d="M160 124 V140" prefix={narrow} />
+  <Arrow d="M264 188 H288 V148 H268" prefix={narrow} tone="focus" />
+  <Label x={312} y={216} text="doc.undo()" kind="mono" anchor="end" />
+  <Arrow d="M56 148 H32 V188 H52" prefix={narrow} />
+  <Label x={8} y={216} text="doc.redo()" kind="mono" />
+  <Label x={0} y={262} text="new edits clear redo" kind="sub" />
+</Svg>

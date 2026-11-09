@@ -3,6 +3,7 @@ title: Keep the page responsive
 description: Run Lamina PDF in a Web Worker with @laminapdf/sdk/worker, so a large file never freezes the page.
 ---
 
+import Diagram from "../../../components/Diagram.astro";
 import Snippet from "../../../components/Snippet.astro";
 
 You'll run Lamina PDF in a Web Worker, so opening or saving a large file never freezes your page. You need this in a browser app once files get big: on the main thread, a [full rewrite](/reference/glossary/#full-rewrite) of a 50 MB file blocks the page for about 200 ms.
@@ -30,6 +31,8 @@ Pass an `AbortSignal` as `signal` to any call. An aborted call rejects with `can
 - A call that hasn't started never runs.
 - `save` stops at its next step, and the document stays usable.
 - Any other call runs to the end in the Web Worker, because it is one synchronous call. `client.terminate()` stops it at once.
+
+<Diagram name="worker-calls" />
 
 ## Move bytes instead of copying them
 
