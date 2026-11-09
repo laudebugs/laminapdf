@@ -4,8 +4,8 @@
 #![expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 
 use laminapdf::{
-    BuildOptions, Builder, Document, Fit, OpenOptions, OutlineNode, PageSize, Pt, Rotation, SaveMode, SaveOptions,
-    Target, TargetView,
+    BuildOptions, Builder, Document, Fit, OpenOptions, OutlineNode, PageSize, PageTarget, PageTargetView, Pt, Rotation,
+    SaveMode, SaveOptions,
 };
 use laminapdf_test_fixtures::{corpus, fixture, json};
 
@@ -23,14 +23,14 @@ fn flatten(nodes: &[OutlineNode], depth: u64, out: &mut Vec<(String, u64, Option
 
 /// `view` with its coordinates rounded to a thousandth of a point: the trip through user space
 /// leaves rounding in the last bits.
-fn rounded(view: TargetView) -> TargetView {
+fn rounded(view: PageTargetView) -> PageTargetView {
     let r = |v: f64| (v * 1000.0).round() / 1000.0;
     let o = |v: Option<f64>| v.map(r);
     match view {
-        TargetView::At { x, y, zoom } => TargetView::At { x: o(x), y: o(y), zoom },
-        TargetView::FitWidth { y } => TargetView::FitWidth { y: o(y) },
-        TargetView::FitHeight { x } => TargetView::FitHeight { x: o(x) },
-        TargetView::FitRect { x0, y0, x1, y1 } => TargetView::FitRect {
+        PageTargetView::At { x, y, zoom } => PageTargetView::At { x: o(x), y: o(y), zoom },
+        PageTargetView::FitWidth { y } => PageTargetView::FitWidth { y: o(y) },
+        PageTargetView::FitHeight { x } => PageTargetView::FitHeight { x: o(x) },
+        PageTargetView::FitRect { x0, y0, x1, y1 } => PageTargetView::FitRect {
             x0: r(x0),
             y0: r(y0),
             x1: r(x1),
@@ -179,13 +179,13 @@ fn named_destinations_keep_their_page_space_views() {
     assert_eq!(
         [view("chapter-2"), view("contents"), view("appendix")],
         [
-            TargetView::At {
+            PageTargetView::At {
                 x: Some(0.0),
                 y: Some(100.0),
                 zoom: None
             },
-            TargetView::Fit,
-            TargetView::FitWidth { y: Some(72.0) },
+            PageTargetView::Fit,
+            PageTargetView::FitWidth { y: Some(72.0) },
         ]
     );
 }
@@ -244,10 +244,10 @@ fn destinations_on_turned_pages_come_back_in_page_space() {
         assert_eq!(
             doc.named_destination("at")
                 .unwrap()
-                .map(|t: Target| (t.page, rounded(t.view))),
+                .map(|t: PageTarget| (t.page, rounded(t.view))),
             Some((
                 0,
-                TargetView::At {
+                PageTargetView::At {
                     x: Some(40.0),
                     y: Some(120.0),
                     zoom: Some(2.0)
@@ -259,7 +259,7 @@ fn destinations_on_turned_pages_come_back_in_page_space() {
         let top = matches!(rotation, Rotation::None | Rotation::Half).then_some(72.0);
         assert_eq!(
             doc.named_destination("width").unwrap().map(|t| rounded(t.view)),
-            Some(TargetView::FitWidth { y: top }),
+            Some(PageTargetView::FitWidth { y: top }),
             "{rotation:?}"
         );
     }

@@ -256,20 +256,36 @@ describe("pickers", () => {
   });
 });
 
+/** A small outline: three items, the second with two children. */
+const OUTLINE_ITEMS = [
+  { id: "a", title: "Alpha", page: "1", children: [] },
+  {
+    id: "b",
+    title: "Bravo",
+    page: "2",
+    children: [
+      { id: "b.0", title: "Bravo one", page: "2", children: [] },
+      { id: "b.1", title: "Bravo two", page: "3", children: [] },
+    ],
+  },
+  { id: "c", title: "Charlie", page: "4", children: [] },
+];
+
+/** An outline tree whose current section moves to Charlie on a press of Move. */
+function MovingOutline() {
+  const [current, setCurrent] = useState("a");
+  return (
+    <>
+      <button type="button" onClick={() => setCurrent("c")}>
+        Move
+      </button>
+      <OutlineTree items={OUTLINE_ITEMS} current={current} onNavigate={() => {}} />
+    </>
+  );
+}
+
 describe("OutlineTree", () => {
-  const items = [
-    { id: "a", title: "Alpha", page: "1", children: [] },
-    {
-      id: "b",
-      title: "Bravo",
-      page: "2",
-      children: [
-        { id: "b.0", title: "Bravo one", page: "2", children: [] },
-        { id: "b.1", title: "Bravo two", page: "3", children: [] },
-      ],
-    },
-    { id: "c", title: "Charlie", page: "4", children: [] },
-  ];
+  const items = OUTLINE_ITEMS;
   const rows = (host: HTMLElement) => all(host, "[role=row]").map((r) => r.textContent?.replace(/\d+$/, ""));
 
   it("moves with Up and Down, opens and closes with Right and Left, goes to the ends with Home and End", async () => {
@@ -308,18 +324,7 @@ describe("OutlineTree", () => {
   });
 
   it("marks a new current section when it changes", async () => {
-    function Moving() {
-      const [current, setCurrent] = useState("a");
-      return (
-        <>
-          <button type="button" onClick={() => setCurrent("c")}>
-            Move
-          </button>
-          <OutlineTree items={items} current={current} onNavigate={() => {}} />
-        </>
-      );
-    }
-    const host = renderIn(<Moving />);
+    const host = renderIn(<MovingOutline />);
     await userEvent.click(get(host, "button"));
     expect(all(host, "[aria-current=location]").map((el) => el.textContent)).toEqual(["Charlie4"]);
   });

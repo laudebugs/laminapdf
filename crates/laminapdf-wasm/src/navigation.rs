@@ -2,7 +2,7 @@
 //! `namedDestination(name)`, each target a page index and a view in page space (the extract
 //! and text modules, so the base module stays in its size budget).
 
-use laminapdf::{OutlineNode, Target, TargetView};
+use laminapdf::{OutlineNode, PageTarget, PageTargetView};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -90,14 +90,14 @@ impl From<&OutlineNode> for OutlineNodeJs {
     }
 }
 
-impl From<Target> for TargetJs {
-    fn from(target: Target) -> Self {
+impl From<PageTarget> for TargetJs {
+    fn from(target: PageTarget) -> Self {
         let view = match target.view {
-            TargetView::At { x, y, zoom } => TargetViewJs::At { x, y, zoom },
-            TargetView::Fit => TargetViewJs::Fit,
-            TargetView::FitWidth { y } => TargetViewJs::FitWidth { y },
-            TargetView::FitHeight { x } => TargetViewJs::FitHeight { x },
-            TargetView::FitRect { x0, y0, x1, y1 } => TargetViewJs::FitRect { x0, y0, x1, y1 },
+            PageTargetView::At { x, y, zoom } => TargetViewJs::At { x, y, zoom },
+            PageTargetView::Fit => TargetViewJs::Fit,
+            PageTargetView::FitWidth { y } => TargetViewJs::FitWidth { y },
+            PageTargetView::FitHeight { x } => TargetViewJs::FitHeight { x },
+            PageTargetView::FitRect { x0, y0, x1, y1 } => TargetViewJs::FitRect { x0, y0, x1, y1 },
             // A view a later façade adds: the page's top.
             _ => TargetViewJs::At {
                 x: None,

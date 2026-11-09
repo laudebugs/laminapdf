@@ -40,6 +40,7 @@ On desktop every target is at least 24 × 24 px. On touch every target is at lea
 | §7.5 Segmented tabs | `SegmentedTabs`, `TabPanel` | Arrow keys select as they move; `keyboardActivation="manual"` waits for Enter |
 | §7.6 Thumbnail | `Thumbnail` | `aria-current="page"` on the current page; the viewer's image goes in as `children` |
 | §7.7 Outline row | `OutlineRow` | `aria-current="location"`; a chevron button with `aria-expanded` for a row with children |
+| §7.7 Outline row | `OutlineTree` | The outline as a WAI-ARIA tree of outline rows; `currentOutlineItem` finds the section in view |
 | §7.8 Status bar items | `StatusBarItem`, `NetworkIndicator`, `RepairedNotice`, `PageLabel` | The app supplies the counts and wording |
 | §7.9 Selection mini toolbar | `SelectionToolbar`, `SelectionToolbarDivider` | Above a rectangle the app gives, flipping below; Shift+F10 reaches it |
 | §7.10 Command palette | `CommandPalette`, `ShortcutChip` | The palette's shell over rows the app ranks; the chip writes `⌥⌘E` on macOS and `Ctrl Shift E` elsewhere |
@@ -131,6 +132,7 @@ const context = { platform, reader, viewer, actions: { ...shellActions(layout, m
 </CommandsProvider>
 ```
 
+- **The outline** (`OutlineTree`) is the Outline tab's tree. Up and Down move between rows, Right and Left open and close one, Home and End go to the ends, and typing finds a row by its title. Enter or a click goes to the row's section. Each row shows its page label, and long outlines draw only the rows in view. `current` marks the section that holds the reading position and opens its parents; `currentOutlineItem(items, top)` works it out: the last item at or before the top of the view.
 - **The rail** (`LeftRail`, labelled "Sidebar" on screen) is closed until the user opens it, then reopens on the tab and at the width the user last left it. Its handle resizes it by pointer, or by the arrow keys, Home and End once focused. Below 1024 px wide it is a drawer over the canvas, which a press on the scrim or Escape closes.
 - **The inspector** (`Inspector`) shows either a selection's details or a panel the user opened, such as `RepairDetails`. It opens with `layout.openInspector({ id, selection })` and never covers the canvas: the canvas narrows to make room. A selection's inspector closes when the selection is cleared (`layout.deselect()`) or on Escape. A panel the user opened closes with its own button, or with Escape from inside it. Give the inspector a `label` unless its content is a landmark itself.
 - **Focus mode** (`view.focus-mode`, Ctrl+\ or ⌘\) hides the rail, the mode's toolbar and any panel the user opened, and keeps the status bar. Opening a panel, such as the repair details from the status bar, leaves focus mode. In the status bar, `FocusModeItem` shows that focus mode is on and leaves it when pressed. A selection still opens the inspector, and Escape clears the selection before it leaves focus mode. A find bar or tool toolbar passed as `secondaryToolbar` stays until it is closed. Focus mode lasts the window only.

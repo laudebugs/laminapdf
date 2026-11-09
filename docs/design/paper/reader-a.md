@@ -211,7 +211,7 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **As built ([U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md)).** The rail is built. It stays closed until first opened, then each browser remembers its open state, width and tab. Its handle resizes it by pointer or arrow keys, and below 1024 px it becomes a drawer with a scrim. Its tabs come with C6a, and until then the web reader leaves the Sidebar button out of the top bar, since the rail would have nothing to show.
 
-**Todos.** [C6a](../../todos/ongoing/C6a-thumbnails-outline-page-labels.md) (Pages, Outline, page labels); [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) (Attachments).
+**Todos.** [C6a](../../todos/done/C6a-thumbnails-outline-page-labels.md) (Pages, Outline, page labels); [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) (Attachments).
 
 ## R07 Links and history
 
