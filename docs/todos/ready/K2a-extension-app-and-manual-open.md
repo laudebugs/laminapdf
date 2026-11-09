@@ -10,7 +10,7 @@
 | ADRs | Implements 0033. Follows [0009](../../decisions/0009-web-client-architecture.md), [0010](../../decisions/0010-platform-adapter.md) (an extension `Platform`), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0018](../../decisions/0018-test-strategy.md) |
 | Branch | `feat/k2a-extension-app` |
 | PR title | `feat(extension): package the reader as a browser extension with manual open` |
-| Size | L (a new app, its platform adapter and its browser tests) |
+| Size | L (400–800 changed lines: a new app, its platform adapter and its browser tests) |
 | PR | — |
 
 ## Goal

@@ -10,7 +10,7 @@
 | ADRs | Implements 0033's Firefox sections |
 | Branch | `feat/k3a-firefox-extension` |
 | PR title | `feat(extension): build, take PDFs over and release on Firefox` |
-| Size | M (the Firefox build, its takeover, the source package and the AMO release step) |
+| Size | M (200–400 changed lines: the Firefox build, its takeover, the source package and the AMO release step) |
 | PR | — |
 
 ## Goal
@@ -36,7 +36,7 @@ Bring the extension to Firefox and through AMO's review. Firefox keeps blocking 
 
 **Out of scope** (and which todo covers it)
 
-- Firefox for Android: later, if Firefox desktop shows demand.
+- Firefox for Android: later ([plan §10](../../plans/browser-extension.md#10-later)).
 
 ## Tasks
 

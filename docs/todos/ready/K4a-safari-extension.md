@@ -11,7 +11,7 @@
 | ADRs | Implements 0033's Safari section |
 | Branch | `feat/k4a-safari-extension` |
 | PR title | `feat(extension): ship the extension on Safari for macOS, iOS and iPadOS` |
-| Size | L (the app wrapper, macOS CI signing, the Safari build and its release) |
+| Size | L (400–800 changed lines: the app wrapper, macOS CI signing, the Safari build and its release) |
 | PR | — |
 
 ## Goal
@@ -44,6 +44,7 @@ Bring the extension to Safari users, button first. Safari can't recognise a PDF 
 - [ ] Adapt the extension for Safari's API gaps (no side panel, no omnibox, per-site permission prompts).
 - [ ] Add the macOS release job and the owner's App Store Connect steps to `RELEASE.md`.
 - [ ] Test by hand on macOS Safari and on an iPhone or iPad through TestFlight.
+- [ ] Decide from the TestFlight build whether the button-first flow is worth shipping ([plan §9](../../plans/browser-extension.md#9-open-questions), question 9); if not, stop here and record why in the plan.
 
 ## Acceptance criteria
 

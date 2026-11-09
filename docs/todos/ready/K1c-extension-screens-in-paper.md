@@ -10,7 +10,7 @@
 | ADRs | Follows 0033 (the permission model the screens explain), [0024](../../decisions/0024-app-shell-ux.md) (tokens, commands) |
 | Branch | `design/k1c-extension-screens` |
 | PR title | `design(extension): draw the popup, onboarding, settings and fallback screens` |
-| Size | S (a canvas, its area document and the screen inventory rows) |
+| Size | S (< 200 changed lines: a canvas, its area document and the screen inventory rows) |
 | PR | — |
 
 ## Goal

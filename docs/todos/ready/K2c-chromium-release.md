@@ -10,7 +10,7 @@
 | ADRs | Implements 0033's release and signing sections. Follows [0017](../../decisions/0017-versioning-and-release.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `ci/k2c-extension-release` |
 | PR title | `ci(extension): release the extension to the Chrome Web Store and Edge Add-ons` |
-| Size | M (a workflow, its tests, the owner's runbook and the listings' texts) |
+| Size | M (200–400 changed lines: a workflow, its tests, the owner's runbook and the listings' texts) |
 | PR | — |
 
 ## Goal
@@ -41,13 +41,14 @@ Publish the extension where most users are. A release workflow builds the packag
 **Out of scope** (and which todo covers it)
 
 - Firefox and Safari: [K3a](./K3a-firefox-extension.md), [K4a](./K4a-safari-extension.md).
-- Enterprise policy docs: later ([plan §10](../../plans/browser-extension.md#10-later)).
+- Enterprise docs and a managed-storage schema: later ([plan §10](../../plans/browser-extension.md#10-later)). This todo only answers [plan §9](../../plans/browser-extension.md#9-open-questions)'s question 8, below.
 
 ## Tasks
 
 - [ ] Write the workflow, with xtask tests that it publishes only on a tag push, as `tools/xtask/src/release.rs` does for the library.
 - [ ] Write the runbook; the owner creates the accounts and the first listings.
 - [ ] Add a reproducibility check: building twice from the tag gives the same zip hash.
+- [ ] Force-install the extension on a managed Chrome profile with `ExtensionSettings` and record whether the optional access to all sites is granted (plan §9, question 8) in `RELEASE.md`.
 - [ ] Publish the first release once the owner says so.
 
 ## Acceptance criteria

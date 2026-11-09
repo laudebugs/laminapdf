@@ -10,7 +10,7 @@
 | ADRs | Writes 0033. Follows [0009](../../decisions/0009-web-client-architecture.md), [0010](../../decisions/0010-platform-adapter.md), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md), [0017](../../decisions/0017-versioning-and-release.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `docs/k1b-adr-0033-browser-extension` |
 | PR title | `docs(adr): 0033 the browser extension` |
-| Size | S (one ADR and its index entries) |
+| Size | S (< 200 changed lines: one ADR and its index entries) |
 | PR | — |
 
 ## Goal

@@ -101,6 +101,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | D5 | [desktop](desktop-app.md#d5-update-service) | `apps/updates` Worker + R2 | 0014 |
 | D6 | [desktop](desktop-app.md#d6-signing-packaging-and-release-pipeline) | Signing and packaging | — |
 | D7 | [desktop](desktop-app.md#d7-crash-reporting-and-beta) | Crash reporting, beta | — |
+| K | [browser extension](browser-extension.md) | The reader as an extension for Chrome, Edge, Firefox and Safari, after the web launch (nice to have) | 0033 (proposed) |
 | U1 | [UI/UX](ui-ux.md#u1-shell-foundations) | ADR 0024, command registry and palette, inverted-L shell and modes | 0024 |
 | U2 | [UI/UX](ui-ux.md#u2-reading-quality) | Selection surfaces and copy modes, reading-order corpus, page appearance modes | — |
 | U3 | [UI/UX](ui-ux.md#u3-mobile-and-touch) | Phone and tablet layout; `mobile-shell` spike | 0025 (proposed); `mobile-shell` |
@@ -124,7 +125,6 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | E16 | [editor](full-editor.md#e16-optimisation-and-print-production) | Optimisation, print production | — |
 | E17 | [editor](full-editor.md#e17-advanced-interactions) | Advanced interactions | — |
 | E18 | [editor](full-editor.md#e18-collaboration-hosted-service) | Collaboration | 0012; `auth` |
-| K | [browser extension](browser-extension.md) | The reader as an extension for Chrome, Edge, Firefox and Safari, after the web launch (nice to have) | 0033 (proposed) |
 | W | [website](website.md) | The website at `laminapdf.com`, with the roadmap and a progress dashboard on its home page; the reader moves to `app.laminapdf.com` | 0011 (amended) |
 | Q | [quality](quality.md) | Docs as a story, readable examples, maintainability checks, reuse | — |
 | T | [trust and proof](trust-and-proof.md) | Published robustness figures, checks for failed redactions and hidden content, extraction users can check, flowing layout, link previews and last position in the reader, page and size commands in the CLI | 0032; amends 0030, 0031 |

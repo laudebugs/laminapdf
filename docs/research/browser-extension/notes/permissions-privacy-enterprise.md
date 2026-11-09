@@ -1,6 +1,6 @@
 # Lamina PDF extension: permissions, privacy, security and enterprise deployment
 
-Research date: 2026-11-09. Budget-limited pass (about 17 tool calls). Several official pages returned only partial content through the fetch tool. Claims tagged **[unverified]** come from background knowledge (cutoff mid-2026) and were not re-confirmed this session; the report writer should treat them as leads, not facts.
+Research date: 2026-11-09. Several official pages returned only part of their content. Claims tagged **[unverified]** were not checked against a primary source on that date; treat them as leads, not facts.
 
 ## Q1. Which permissions does PDF interception need, and what warnings do they show?
 
@@ -12,7 +12,7 @@ Fully automatic PDF takeover on every site needs broad host access. In Chrome, b
 - Some warnings disappear when paired with a broader one: "the 'tabs' warning won't show if the extension also requests '<all_urls>'". — [Chrome permission warnings](https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings)
 - If an update adds a permission that carries a warning, Chrome **disables the extension until the user accepts** the new permission. This is a major retention risk, so a PDF extension should request every install-time permission in its first release. — [Chrome permission warnings](https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings)
 - `activeTab` shows no warning and grants temporary host access to the current site after a user gesture. — [Chrome permission warnings](https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings)
-- Host-permission warning text: in Chrome, `<all_urls>` and `*://*/*` show "Read and change all your data on all websites" **[unverified this session; the fetched pages pointed to the permissions reference, which did not return the string]**. — [Chrome permission warnings](https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings)
+- Host-permission warning text: in Chrome, `<all_urls>` and `*://*/*` show "Read and change all your data on all websites" **[unverified: the warnings page points to the permissions reference, which did not show the string]**. — [Chrome permission warnings](https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings)
 - Install-conversion impact: no rigorous, citable study measured the install drop caused by the all-sites warning. The figures in circulation, such as "22% lower revocation" and a "2024 study of 1,200 extensions", come from blogs with no source and should not be used. Developer guides report anecdotal conversion gains after moving to optional host permissions. — [chrome-extension-guide (blog, low quality)](https://chrome-extension-guide.pages.dev/2025/03/01/chrome-extension-permissions-explained/); [remio.ai (vendor blog, unsourced)](https://www.remio.ai/post/browser-extension-overload-is-spurring-fresh-demand-for-minimal-permission-lite-default-sets)
 - How interception works **[unverified]**:
   - In MV3 Chrome, the PDF.js extension pattern detects `Content-Type: application/pdf` on main-frame responses and redirects to the extension viewer page. In MV3 this goes through `declarativeNetRequest` (DNR). DNR gained `responseHeaders` matching conditions around Chrome 128, which lets an extension redirect on Content-Type without blocking `webRequest`.
@@ -47,7 +47,7 @@ All four browser families now let users limit host access per site, and Firefox 
   - Users can later set each site to Ask, Allow or Deny. — [Apple: Managing Safari web extension permissions](https://developer.apple.com/documentation/safariservices/managing-safari-web-extension-permissions)
   - A July 2024 anecdotal report describes a Safari bug where "Always Allow on This Website" wiped all-sites access (single, unconfirmed source). — [Michael Tsai blog](https://mjtsai.com/blog/?p=44204)
   - Developers have long complained about Safari's per-site friction. — [Apple Developer Forums](https://developer.apple.com/forums/thread/661919)
-- **Chrome:** users can set extension site access to "On click", "On specific sites" or "On all sites" from the puzzle-piece menu **[unverified this session]**. activeTab grants temporary access to the current tab without a warning. — [Chrome permission warnings](https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings)
+- **Chrome:** users can set extension site access to "On click", "On specific sites" or "On all sites" from the puzzle-piece menu **[unverified]**. activeTab grants temporary access to the current tab without a warning. — [Chrome permission warnings](https://developer.chrome.com/docs/extensions/develop/concepts/permission-warnings)
 
 ### Inferences
 - In Safari, automatic takeover of PDF links on arbitrary sites will show a per-site prompt the first time unless the user picks "Every Website". The Safari onboarding screen should explain that choice. Treat Safari as "button-first, takeover opt-in".
@@ -75,7 +75,7 @@ On Firefox, declare `"data_collection_permissions": {"required": ["none"]}`, whi
   - Transfers are allowed only when necessary, for legal compliance, for security, or in a merger with consent. Personalised ads, data brokers and credit uses are prohibited.
   - Developers must make an affirmative public statement, such as "The use of information received from Google APIs will adhere to the Chrome Web Store User Data Policy, including the Limited Use requirements".
   - Source: [CWS Limited Use](https://developer.chrome.com/docs/webstore/program-policies/limited-use)
-- The privacy-practices tab, where developers state their single purpose, justify each permission and certify data use, was not retrieved this session **[unverified details]**. — [CWS program policies](https://developer.chrome.com/docs/webstore/program-policies/limited-use)
+- The privacy-practices tab, where developers state their single purpose, justify each permission and certify data use, was not retrieved **[unverified details]**. — [CWS program policies](https://developer.chrome.com/docs/webstore/program-policies/limited-use)
 
 ### Inferences
 - A PDF extension "handles" web content and PDF bytes locally. Under CWS rules, data handled only on the device and never sent anywhere is generally not "collected". Still, write a privacy policy saying exactly that, and justify `<all_urls>` as "detect PDF responses to open them in the local viewer".
@@ -84,7 +84,7 @@ On Firefox, declare `"data_collection_permissions": {"required": ["none"]}`, whi
 
 ### Gaps
 - Exact CWS privacy-tab fields and Edge Add-ons privacy requirements were not fetched.
-- Apple privacy label rules for Safari web extensions shipped inside a Mac or iOS app were not fetched. Background knowledge: labels attach to the container app on the App Store.
+- Apple privacy label rules for Safari web extensions shipped inside a Mac or iOS app were not retrieved. Unverified: labels attach to the container app on the App Store.
 
 ## Q4. Security: CSP, untrusted PDFs, fingerprinting, remote code, supply chain, signing keys
 
@@ -103,7 +103,7 @@ The largest real-world risk is supply chain: a hijacked publisher account pushes
   - The developer registers an RSA public key. After that, any upload not signed with the matching private key is rejected, "even if the account or publishing workflow is compromised".
   - The store re-signs verified packages with its own key, so the extension ID stays the same. Developers opt in from the Package tab in the Developer Dashboard.
   - Source: [Chrome blog: Verified uploads in the CWS](https://developer.chrome.com/blog/verified-uploads-cws); [CWS: Update your item](https://developer.chrome.com/docs/webstore/update)
-- **Background knowledge, not re-fetched [unverified]:**
+- **Unverified, not checked against a primary source:**
   - The MV3 default extension-page CSP is `script-src 'self' 'wasm-unsafe-eval'; object-src 'self'`. MV3 forbids loosening `script-src` to remote origins, and WASM requires `'wasm-unsafe-eval'`. — [Chrome manifest CSP](https://developer.chrome.com/docs/extensions/reference/manifest/content-security-policy)
   - MV3 forbids remotely hosted code; all executable code must ship in the package. — [Chrome MV3 remote code](https://developer.chrome.com/docs/extensions/develop/migrate/remote-hosted-code)
   - `web_accessible_resources` can be probed by websites to detect installed extensions. Chrome MV3 offers `use_dynamic_url: true` to rotate the resource URL. Firefox already uses a per-install random UUID in `moz-extension://` URLs. — [Chrome manifest web_accessible_resources](https://developer.chrome.com/docs/extensions/reference/manifest/web-accessible-resources)
@@ -124,8 +124,8 @@ The largest real-world risk is supply chain: a hijacked publisher account pushes
 No browser store offers reproducible-build attestation. The closest mechanisms are AMO's mandatory source-code submission for minified or transpiled code, and third-party CRX viewers that let anyone diff the published package against the repo. Lamina can publish deterministic build instructions plus SHA-256 of the store package and its unpacked files.
 
 ### Cited Findings
-- No authoritative source on reproducible extension builds was retrieved this session.
-- From background knowledge **[unverified]**:
+- No authoritative source on reproducible extension builds was retrieved.
+- **Unverified:**
   - AMO requires source code and build instructions when a submission contains minified, concatenated or machine-generated code, so reviewers can reproduce the build. — [Extension Workshop: source code submission](https://extensionworkshop.com/documentation/publish/source-code-submission/)
   - CRXcavator (Duo/Cisco) was discontinued around 2023. Tools like "Chrome extension source viewer" (CRX Viewer) let users download and inspect the published CRX.
 
@@ -163,7 +163,7 @@ Admins can force-install and pin the extension in every Chromium browser through
   - Policies also exist for `Extensions`, `ExtensionSettings`, `PDFjs` (disable or configure PDF.js) and `Handlers`. From Firefox 140, `DisableBuiltinPDFViewer` changes the PDF handler to send files to the OS. — [Mozilla policy templates](https://mozilla.github.io/policy-templates/)
   - The docs have moved to firefox-admin-docs.mozilla.org. — [Firefox admin docs](https://firefox-admin-docs.mozilla.org/)
   - Admins have asked how to auto-grant "access data on all websites" for MV3 extensions installed by policy. — [Mozilla Discourse](https://discourse.mozilla.org/t/allowing-accessing-data-on-all-websites-for-group-policy-installations-with-manifest-v3/131351)
-- **Background knowledge [unverified]:**
+- **Unverified:**
   - Chrome's ExtensionInstallForcelist takes `id;update_url` strings.
   - Edge has matching `ExtensionSettings` and `ExtensionInstallForcelist` policies, with the Edge Add-ons update URL `https://edge.microsoft.com/extensionwebstorebase/v1/crx`.
   - Firefox ExtensionSettings supports `installation_mode` (`force_installed`, `normal_installed`, `allowed`, `blocked`), `install_url`, `updates_disabled`, `default_area` and `private_browsing` (to allow in private windows).
@@ -185,7 +185,7 @@ Admins can force-install and pin the extension in every Chromium browser through
 ## Q7. Incognito/private browsing and file:// access defaults
 
 ### Takeaway
-All of this section is background knowledge; none was re-verified this session. Extensions are off in incognito or private mode by default in Chrome, Edge and Firefox, and Safari has a per-extension private-browsing toggle. file:// access is off by default in Chromium ("Allow access to file URLs"), so local-PDF takeover needs a user-flipped toggle or an admin policy.
+Nothing in this section was checked against a primary source **[unverified]**. Extensions are off in incognito or private mode by default in Chrome, Edge and Firefox, and Safari has a per-extension private-browsing toggle. file:// access is off by default in Chromium ("Allow access to file URLs"), so local-PDF takeover needs a user-flipped toggle or an admin policy.
 
 ### Cited Findings
 - Chrome 119+ `file_url_navigation_allowed` lets admins allow extensions to navigate to file URLs. — [Google Admin help: ExtensionSettings](https://support.google.com/chrome/a/answer/9867568)
@@ -205,4 +205,4 @@ All of this section is background knowledge; none was re-verified this session. 
 - For local files, detect missing file access and show a one-click deep link to the extension's details page with instructions. Also offer the viewer's own file picker or drag-and-drop, which needs no file:// permission at all.
 
 ### Gaps
-- None of Q7's defaults were confirmed against primary docs in this session. They should be verified before publication.
+- None of Q7's defaults were confirmed against primary docs. They should be verified before publication.

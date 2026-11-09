@@ -1,6 +1,6 @@
 # PDF browser extensions: competitors, complaints, built-in viewer gaps, and demand for a local-only option
 
-Sampled 2026-11-09. Store numbers come from WebFetch of the listing pages on that date unless marked otherwise. Budget limits: about 18 tool calls. Safari, Xodo, Smallpdf (official), Lumin, DocHub, PDFgear and Sider listings were not fetched, so they are listed as gaps.
+Sampled 2026-11-09. Store numbers come from the listing pages on that date unless marked otherwise. Safari, Xodo, Smallpdf (official), Lumin, DocHub, PDFgear and Sider listings were not fetched, so they are listed as gaps.
 
 ## Q1. The main PDF extensions: numbers, positioning, whether they take over PDF opening, local processing vs upload, business model
 

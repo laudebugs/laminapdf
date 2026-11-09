@@ -10,7 +10,7 @@
 | ADRs | Implements 0033's takeover and permission sections |
 | Branch | `feat/k2b-pdf-takeover-chromium` |
 | PR title | `feat(extension): open PDFs automatically in Chromium, with a fallback to the browser's viewer` |
-| Size | M (rules, onboarding, fallback and tests) |
+| Size | M (200–400 changed lines: rules, onboarding, fallback and tests) |
 | PR | — |
 
 ## Goal

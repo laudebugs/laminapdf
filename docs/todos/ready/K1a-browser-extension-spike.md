@@ -11,7 +11,7 @@
 | ADRs | Informs ADR 0033 (written in K1b). Follows [0009](../../decisions/0009-web-client-architecture.md) (single-threaded, no COOP/COEP), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (privacy guarantees), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (spikes live outside both workspaces) |
 | Branch | `spike/k1a-browser-extension` |
 | PR title | `spike(extension): load the reader in an extension and take PDFs over in Chromium and Firefox` |
-| Size | M (200–600 lines of spike code plus the README with results) |
+| Size | M (200–400 changed lines of spike code, plus the README with results) |
 | PR | — |
 
 ## Goal
@@ -36,6 +36,10 @@ Answer the questions ADR 0033 can't be written without, with evidence from real 
 - Firefox takeover: `webRequest.onHeadersReceived` with `blocking`, tried with `pdfjs.disabled` both off and on. Also try `filterResponseData` to read the first response instead of fetching again.
 - A fixture host (reuse `apps/web/e2e/remote-host.ts`) serving PDFs without CORS, behind a `SameSite` cookie, as one-time links, and with `Content-Disposition: attachment`.
 - Package size with PDFium and hayro, and with hayro alone.
+- Whether keeping the original `Referer`, as pdf.js does, lets cookie-gated links survive the second fetch.
+- The lowest `minimum_chrome_version` that works for `browser.*` and response-header rules, checked in current Brave, Opera and Vivaldi.
+- Whether a strict `connect-src` in the viewer page's CSP still lets it fetch PDFs from any site, or the fetch must move to the background script.
+- Whether `use_dynamic_url` on the viewer page stops a site from detecting the extension.
 - AMO's reproducible build: build the WASM modules on x86_64 and on an ARM64 Linux container, and compare SHA-256 per file.
 - Safari, if a Mac is free: whether a `.pdf` URL redirect works at all in the current Safari.
 
@@ -56,7 +60,7 @@ Answer the questions ADR 0033 can't be written without, with evidence from real 
 
 ## Acceptance criteria
 
-- [ ] The README answers plan §9's questions 1 to 6 with yes, no or a measured number, and says how each was tested.
+- [ ] The README answers plan §9's questions 1 to 7 with yes, no or a measured number, and says how each was tested.
 - [ ] The reader opens a PDF from a host without CORS in Chrome and in Firefox inside the spike extension.
 - [ ] The package size with and without PDFium is recorded per browser build.
 - [ ] The ARM64 rebuild is reported per WASM file: identical or not, and why if not.
