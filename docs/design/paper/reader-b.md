@@ -36,7 +36,13 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Artboards.** `R10-view-settings.dc.html`, `R10-page-dark.dc.html`, `R10-view-settings-phone.dc.html`. The `accent` tweak of each board is also the selected swatch of the Accent row. On the phone the Accent row is below Theme, under the medium detent's fold (the sheet scrolls).
 
-**Todos.** [C7a](../../todos/done/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md).
+**As built ([U2c](../../todos/done/U2c-page-appearance-modes.md)).** The web popover's Page appearance section has the chips, “This document · All documents” while a document is open, and the help line. Choosing shows “Page appearance: Dark, for this document only” with Undo. The page and thumbnails are recoloured, and the highlight keeps its colour. Under `forced-colors: active` the page starts in High contrast, in the system's CanvasText and Canvas, unless the user chose something. Three parts differ from the boards:
+
+- The chips sit in one row of four, the §7.25 chips, not the compact 2 × 2 grid.
+- The notice for text drawn as images isn't built yet.
+- An annotation's edge keeps the paper colour it was drawn over, so in Dark a filled annotation can show a light one-pixel rim.
+
+**Todos.** [C7a](../../todos/done/C7a-accessibility-and-theming.md), [U2c](../../todos/done/U2c-page-appearance-modes.md).
 
 ## R11 Dark UI theme
 

@@ -14,6 +14,7 @@ import {
   isRenderErrorCode,
   limitsOf,
   MAX_WASM_INPUT,
+  type PageAppearance,
   pendingError,
   planTile,
   type RenderBackend,
@@ -26,6 +27,7 @@ import {
   type RenderPage,
   type RenderRequest,
   type RenderSource,
+  type Rgba8,
   readRange,
   type TilePlan,
   throwIfAborted,
@@ -167,9 +169,21 @@ function flat(
   const f = flagsOf(request.flags);
   const bits = (f.annotations ? 1 : 0) | (f.formWidgets ? 2 : 0) | (f.print ? 4 : 0) | (f.grayscale ? 8 : 0);
   const c = request.background === undefined ? WHITE : request.background;
-  const background = c === null ? undefined : ((c.r << 24) | (c.g << 16) | (c.b << 8) | c.a) >>> 0;
+  const background = c === null ? undefined : packed(c);
   const { x, y, width, height } = plan.tile;
   return [request.page, request.scale, x, y, width, height, request.rotation ?? 0, bits, background];
+}
+
+/** The appearance as the binding takes it: a number, then high contrast's ink and paper as `0xRRGGBBAA`. */
+function appearanceArgs(appearance: PageAppearance | undefined): [number, number, number] {
+  if (appearance === undefined || appearance === "original") return [0, 0, 0];
+  if (appearance === "sepia") return [1, 0, 0];
+  if (appearance === "dark") return [2, 0, 0];
+  return [3, packed(appearance.ink), packed(appearance.paper)];
+}
+
+function packed(c: Rgba8): number {
+  return ((c.r << 24) | (c.g << 16) | (c.b << 8) | c.a) >>> 0;
 }
 
 class HayroRenderDocument implements RenderDocument {
@@ -218,7 +232,7 @@ class HayroRenderDocument implements RenderDocument {
     const pixels = new Uint8ClampedArray(plan.byteLength);
     try {
       // wasm-bindgen copies `&mut [u8]` back into this array after the call.
-      doc.render(...flat(request, plan), new Uint8Array(pixels.buffer));
+      doc.render(...flat(request, plan), ...appearanceArgs(request.appearance), new Uint8Array(pixels.buffer));
     } catch (e) {
       rethrow(e);
     }

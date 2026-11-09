@@ -131,9 +131,11 @@ export interface ViewSettingsButtonProps extends AppearanceFieldsProps {
   readonly onOpenChange: (open: boolean) => void;
   /** Opens the Settings dialog ("More settings…"). */
   readonly onMoreSettings: () => void;
+  /** The Page appearance section (`PageAppearanceFields`), after theme and accent. */
+  readonly page?: ReactNode;
 }
 
-/** The top bar's View button and its popover (R10): theme and accent, then "More settings…". */
+/** The top bar's View button and its popover (R10): theme, accent, page appearance, then "More settings…". */
 export function ViewSettingsButton(props: ViewSettingsButtonProps): ReactNode {
   return (
     <PopoverTrigger isOpen={props.isOpen} onOpenChange={props.onOpenChange}>
@@ -142,6 +144,7 @@ export function ViewSettingsButton(props: ViewSettingsButtonProps): ReactNode {
         <div className="paper-view-settings">
           <h2 className="paper-view-settings-title">{message("view.title")}</h2>
           <AppearanceFields appearance={props.appearance} onChange={props.onChange} />
+          {props.page}
           <div className="paper-view-settings-footer">
             <span className="paper-field-help">{message("view.local")}</span>
             <Button

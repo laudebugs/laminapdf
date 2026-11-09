@@ -1,7 +1,7 @@
 # 0004 — Render backend: the `RenderBackend` trait, PDFium by default, hayro as the oracle
 
 - Status: Accepted (2026-10-31, when C2a's PR merges)
-- Date: 2026-10-31
+- Date: 2026-10-31 (amended 2026-11-09: `RenderRequest::appearance`, U2c)
 
 ## Context
 
@@ -103,6 +103,7 @@ pub trait RenderDocument: Send {
   - `rotation`: 0, 90, 180 or 270, a view rotation added to the page's `/Rotate`.
   - `flags`: `annotations` (default on: appearance streams, `FPDF_ANNOT`), `form_widgets` (default on, drawn read-only), `print` (print intent: honours `/Print` flags and hides `NoView`), `grayscale`.
   - `background: Option<Rgba8>`: `None` means transparent; the reader passes white.
+  - `appearance`: `Original` (the default), `Sepia`, `Dark` or `HighContrast { ink, paper }`. Neither engine recolours as it paints, so each adapter draws the tile, then recolours it pixel by pixel with the same integer colour maps. It keeps the pixels of images and annotations, which it finds with its own parser. That geometry stays inside the adapter, so the two-parsers rule (§4) holds.
 - **Pixel format:** RGBA8, **straight (not premultiplied) alpha**, sRGB, rows packed at `width × 4` with no padding. That is what `ImageData` and `createImageBitmap` take, so the web path never converts. Adapters repack internally: PDFium uses `FPDF_REVERSE_BYTE_ORDER`, and hayro un-premultiplies.
 - **`TilePlan`:** the whole page's pixel size and the tile's rectangle. `plan` returns it before rendering, so the caller can size the buffer, and `render` returns it again (C2b replaced the planned `RenderedTile` with it).
 - **Cancellation:** a `CancelToken` (ADR 0028), returning the `cancelled` code.

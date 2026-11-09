@@ -55,6 +55,8 @@ interface Open {
   reopen: { readonly bytes: Uint8Array | undefined; readonly options: ViewerOpenOptions } | undefined;
   /** The copy opened in the extract module, for a document opened before that module loaded. */
   text?: Promise<Document> | undefined;
+  /** What its open answered, and the page's number for that open (`currentDocument`). */
+  answer?: { readonly document: OpenedDocument; readonly ticket: number | undefined };
 }
 
 /**
@@ -275,11 +277,14 @@ export async function openDocument(
   init: SourceInit,
   options: ViewerOpenOptions,
   signal: AbortSignal,
+  ticket?: number,
 ): Promise<OpenedDocument> {
   const engine = currentBackend();
   const from = await bytesFor(init, options, signal);
   try {
-    return await openFrom(engine, from, options, signal);
+    const document = await openFrom(engine, from, options, signal);
+    if (open !== undefined) open.answer = { document, ticket };
+    return document;
   } catch (e) {
     if (from.kind === "copy") from.source.close();
     throw e;
@@ -355,6 +360,16 @@ async function openFrom(
 export function workerMemory(): WorkerMemory {
   const sdk = Object.values(wasmMemory()).reduce((sum, bytes) => sum + bytes, 0);
   return { backend: backend?.memory() ?? 0, sdk };
+}
+
+/**
+ * The open document's answer and the page's number for the open that made it: after a cancelled
+ * open, the page asks, since the cancel can cross an open this worker had already committed.
+ */
+export function currentDocument():
+  | { readonly document: OpenedDocument; readonly ticket: number | undefined }
+  | undefined {
+  return open?.answer;
 }
 
 export function closeDocument(): undefined {

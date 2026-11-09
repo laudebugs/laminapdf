@@ -75,6 +75,14 @@ The More menu holds Download a copy, Print… (also `Ctrl P`, or `⌘P` on a Mac
 
 **Document properties** reads the file with Lamina PDF's own parser, not the render engine: the Info and XMP fields (XMP wins where they differ), the PDF version, pages, sizes, file size, tagging, the fonts the pages use, the encryption and the author's permissions, and the signatures present, which are counted and never verified.
 
+## Page appearance
+
+View settings › Page appearance draws the pages in Sepia, Dark or High contrast, apart from the UI theme. Images and annotation colours stay as they are. You can apply it to this document or to all documents; a choice for this document overrides the one for all. A toast confirms it, with Undo.
+
+With no choice made, a system in forced colours (Windows contrast themes) gets High contrast, drawn in the system's own text and background colours.
+
+The choices stay in this browser's `localStorage`. A local file's choice is kept under a hash of its name and size. A linked file's choice lasts only until the tab closes, because the reader stores nothing about linked files.
+
 ## Offline, installing and what stays in the browser
 
 After one visit the reader works with no network. Its service worker (`src/sw/service-worker.ts`, compiled into `dist/sw.js` by `plugins/pwa.ts`) keeps the reader's own files: the page, its scripts, styles, fonts, icons and the WebAssembly it loads. It answers only requests to the reader's own site, so a file opened from a `#url=` link never passes through it and is never cached. Offline, it serves the page with the headers it was stored with, so the Content Security Policy and the other headers above still hold.
@@ -117,6 +125,8 @@ Three more suites use `e2e/remote-host.ts`, a local HTTPS server on another port
 - **`privacy.e2e.test.ts`** checks what leaves the browser while a local file, a linked file and an encrypted file of each kind open. It records every request of the page and its worker, and fails when a request body carries 32 bytes of the document or when a request to the reader's origin names the linked address. It also fails on a request to the reader's origin that isn't a GET and on a Referer or cookie reaching the file's site. Any cookie at all, any other origin and the password in any request fail it too.
 
 `e2e/output.e2e.test.ts` prints a 50-page file with landscape pages among portrait ones. It replaces the print frame's `print()` before it runs, then checks that all 50 images loaded at their pages' sizes, with a named `@page` rule each. Throughout, it checks that neither the page nor the frame met a CSP violation and that nothing was fetched. It prints a range by number and by page label, refuses a page the file lacks, and stops on Cancel. For a file whose author restricted printing, the reader asks once more, with Cancel focused, before it prints. Its downloads of a local file, a linked file and an encrypted file must match the originals' SHA-256. Its properties must show what pypdf reads in `fixtures/corpus/expected.json`, close with Escape and pass axe. Playwright's WebKit reports each native `<select>` as an inline style under the reader's policy, even on a page holding only a bare `<select>`, so the WebKit run leaves those reports out.
+
+`e2e/page-appearance.e2e.test.ts` chooses Dark from View settings. The paper must turn dark while a highlight stays yellow, Undo must bring the colours back, and the choice must come back with the same file but not with another. In Chromium, emulated forced colours must start the reader in High contrast.
 
 `e2e/offline.e2e.test.ts` loads the reader once, cuts the network and reloads. The page must come from the service worker with exactly the server's headers, an inline script must stay blocked, and a local file must open, render and be searchable. 
 

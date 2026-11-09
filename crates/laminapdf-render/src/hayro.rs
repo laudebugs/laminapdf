@@ -17,14 +17,22 @@
 //! [`RenderCache`] lives for one call: its lifetime is tied to the page borrowed from the
 //! document, so it can't be kept on the document without a self-referential type.
 
+use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 
-use hayro::hayro_interpret::InterpreterSettings;
-use hayro::hayro_interpret::util::TransformExt as _;
+use hayro::hayro_interpret::font::GlyphRun;
+use hayro::hayro_interpret::util::{RectExt as _, TransformExt as _};
+use hayro::hayro_interpret::{
+    BlendMode, ClipPath, Context, Device, DrawMode, DrawProps, Image, ImageDrawProps, InterpreterCache,
+    InterpreterSettings, SoftMask, interpret_page,
+};
+use hayro::hayro_syntax::object::dict::keys::{ANNOTS, F, MASK, RECT, SMASK};
+use hayro::hayro_syntax::object::{Array, Dict, Rect as PdfRect};
 use hayro::hayro_syntax::page::Rotation as HayroRotation;
 use hayro::hayro_syntax::{Pdf, PdfData};
-use hayro::kurbo::Affine;
+use hayro::kurbo::{Affine, BezPath, Rect};
 use hayro::vello_cpu::color::AlphaColor;
 use hayro::vello_cpu::color::palette::css::TRANSPARENT;
 use hayro::vello_cpu::{Pixmap, RasterizerSettings, RenderContext, Resources, TargetInit};
@@ -33,6 +41,7 @@ use laminapdf_cos::ByteSource;
 use laminapdf_syntax::CancelToken;
 use laminapdf_syntax::Rotation;
 
+use crate::appearance::{Annotated, Kept, Quad, mostly_changed, recolour_tile};
 use crate::backend::{RenderBackend, RenderDocument};
 use crate::error::RenderError;
 use crate::request::{RenderLimits, RenderOpenOptions, RenderPage, RenderRequest, Rgba8, TilePlan};
@@ -94,7 +103,11 @@ impl RenderBackend for HayroBackend {
             }
             _ => failed("open"),
         })?;
-        Ok(Box::new(HayroDocument { pdf, limits }))
+        Ok(Box::new(HayroDocument {
+            pdf,
+            limits,
+            whole: RefCell::default(),
+        }))
     }
 }
 
@@ -112,6 +125,9 @@ impl AsRef<[u8]> for InMemory {
 struct HayroDocument {
     pdf: Pdf,
     limits: RenderLimits,
+    /// Per page, which annotations keep their whole rectangle when recoloured
+    /// ([`mostly_changed`], decided once on a small drawing of the page).
+    whole: RefCell<BTreeMap<u32, Vec<bool>>>,
 }
 
 impl HayroDocument {
@@ -126,6 +142,47 @@ impl HayroDocument {
         }
     }
 }
+
+impl HayroDocument {
+    /// Which of `page`'s annotations keep their whole rectangle, from a drawing of the whole
+    /// page at most [`DECISION_SIDE`] pixels on a side; cached per page.
+    fn whole_rects(
+        &self,
+        page: &hayro::hayro_syntax::page::Page<'_>,
+        request: &RenderRequest,
+        info: &RenderPage,
+    ) -> Result<Vec<bool>, RenderError> {
+        if let Some(flags) = self.whole.borrow().get(&request.page) {
+            return Ok(flags.clone());
+        }
+        let longest = info.width.max(info.height).max(1.0);
+        let small = RenderRequest::page(request.page, DECISION_SIDE / longest)
+            .with_flags(request.flags)
+            .with_background(request.background);
+        let plan = TilePlan::new(info, &small, &self.limits)?;
+        let transform =
+            Affine::new(plan.page_to_tile(info, Rotation::None).to_array()) * page.initial_transform(true).to_kurbo();
+        let size = (
+            u16::try_from(plan.tile.width).map_err(|_| failed("render"))?,
+            u16::try_from(plan.tile.height).map_err(|_| failed("render"))?,
+        );
+        let mut without = vec![0; plan.byte_len()];
+        let mut annotated = vec![0; plan.byte_len()];
+        draw(page, &small, transform, size, false, &mut without)?;
+        draw(page, &small, transform, size, true, &mut annotated)?;
+        let flags = mostly_changed(
+            &annotation_rects(page, transform),
+            &without,
+            &annotated,
+            plan.tile.width,
+        );
+        self.whole.borrow_mut().insert(request.page, flags.clone());
+        Ok(flags)
+    }
+}
+
+/// The longest side of the page drawing [`mostly_changed`] decides on.
+const DECISION_SIDE: f32 = 256.0;
 
 impl RenderDocument for HayroDocument {
     fn page_count(&self) -> u32 {
@@ -169,41 +226,154 @@ impl RenderDocument for HayroDocument {
         // initial_transform(true) is the displayed page space (points, y down, /Rotate applied).
         let transform = Affine::new(plan.page_to_tile(&info, request.rotation).to_array())
             * page.initial_transform(true).to_kurbo();
-        let settings = InterpreterSettings {
-            render_annotations: request.flags.annotations,
-            ..InterpreterSettings::default()
-        };
-        // Grayscale applies to the content only (as PDFium's FPDF_GRAYSCALE): draw on transparent,
-        // gray it, then lay it over the background.
-        let grayscale = request.flags.grayscale;
-        let background = match request.background {
-            Some(c) if !grayscale => AlphaColor::from_rgba8(c.r, c.g, c.b, c.a),
-            _ => TRANSPARENT,
-        };
-        let pixmap = catch_unwind(AssertUnwindSafe(|| {
-            let cache = RenderCache::new();
-            let mut ctx = RenderContext::new(tw, th);
-            hayro::render_into(page, &cache, &settings, &RenderSettings::default(), &mut ctx, transform);
-            ctx.flush();
-            let mut pixmap = Pixmap::new(tw, th);
-            ctx.render_with(
-                &mut pixmap,
-                &mut Resources::default(),
-                RasterizerSettings {
-                    target_init: TargetInit::Clear(background),
-                    ..RasterizerSettings::default()
-                },
-            );
-            pixmap
-        }))
-        .map_err(|_| failed("render"))?;
+        let size = (tw, th);
+        let annotations = request.flags.annotations;
+        if request.appearance.recolours() {
+            // Recoloured: the content alone, then (when the page has any) the annotations drawn
+            // again over it, whose pixels keep their colours; images keep theirs too.
+            draw(page, request, transform, size, false, out)?;
+            let rects = if annotations {
+                annotation_rects(page, transform)
+            } else {
+                Vec::new()
+            };
+            let (with, whole) = if rects.is_empty() {
+                (None, Vec::new())
+            } else {
+                let mut with = vec![0; out.len()];
+                draw(page, request, transform, size, true, &mut with)?;
+                let flags = self.whole_rects(page, request, &info)?;
+                let whole = rects.iter().zip(flags).filter(|(_, w)| *w).map(|(q, _)| *q).collect();
+                (Some(with), whole)
+            };
+            let images = image_quads(page, transform, size)?;
+            let kept = Kept {
+                images: &images.opaque,
+                see_through: &images.see_through,
+                background: request.background,
+                annotated: with.as_deref().map(|pixels| Annotated { pixels, whole: &whole }),
+            };
+            recolour_tile(request.appearance, plan.tile.width, out, &kept);
+        } else {
+            draw(page, request, transform, size, annotations, out)?;
+        }
         if cancel.is_cancelled() {
             return Err(RenderError::Cancelled);
         }
-        let under = if grayscale { request.background } else { None };
-        unpremultiply_into(pixmap.data_as_u8_slice(), out, grayscale, under);
         Ok(plan)
     }
+}
+
+/// Draws `page` under `transform` into the `size` tile `out`, with or without annotations.
+fn draw(
+    page: &hayro::hayro_syntax::page::Page<'_>,
+    request: &RenderRequest,
+    transform: Affine,
+    (tw, th): (u16, u16),
+    annotations: bool,
+    out: &mut [u8],
+) -> Result<(), RenderError> {
+    let settings = InterpreterSettings {
+        render_annotations: annotations,
+        ..InterpreterSettings::default()
+    };
+    // Grayscale applies to the content only (as PDFium's FPDF_GRAYSCALE): draw on transparent,
+    // gray it, then lay it over the background.
+    let grayscale = request.flags.grayscale;
+    let background = match request.background {
+        Some(c) if !grayscale => AlphaColor::from_rgba8(c.r, c.g, c.b, c.a),
+        _ => TRANSPARENT,
+    };
+    let pixmap = catch_unwind(AssertUnwindSafe(|| {
+        let cache = RenderCache::new();
+        let mut ctx = RenderContext::new(tw, th);
+        hayro::render_into(page, &cache, &settings, &RenderSettings::default(), &mut ctx, transform);
+        ctx.flush();
+        let mut pixmap = Pixmap::new(tw, th);
+        ctx.render_with(
+            &mut pixmap,
+            &mut Resources::default(),
+            RasterizerSettings {
+                target_init: TargetInit::Clear(background),
+                ..RasterizerSettings::default()
+            },
+        );
+        pixmap
+    }))
+    .map_err(|_| failed("render"))?;
+    let under = if grayscale { request.background } else { None };
+    unpremultiply_into(pixmap.data_as_u8_slice(), out, grayscale, under);
+    Ok(())
+}
+
+/// Where the page's raster images land in the tile, read by interpreting the page without
+/// drawing it. Stencil masks are painted in the fill colour, like text, so they are recoloured.
+fn image_quads(
+    page: &hayro::hayro_syntax::page::Page<'_>,
+    transform: Affine,
+    (tw, th): (u16, u16),
+) -> Result<ImageScan, RenderError> {
+    catch_unwind(AssertUnwindSafe(|| {
+        let cache = InterpreterCache::new();
+        let settings = InterpreterSettings {
+            render_annotations: false,
+            ..InterpreterSettings::default()
+        };
+        let bbox = Rect::new(0.0, 0.0, f64::from(tw), f64::from(th));
+        let mut ctx = Context::new(transform, bbox, &cache, page.xref(), settings);
+        let mut scan = ImageScan::default();
+        interpret_page(page, &mut ctx, &mut scan);
+        scan
+    }))
+    .map_err(|_| failed("image scan"))
+}
+
+/// Where each shown annotation's `/Rect` lands in the tile (hidden ones, `/F` bit 2, are left out,
+/// as hayro leaves them undrawn).
+fn annotation_rects(page: &hayro::hayro_syntax::page::Page<'_>, transform: Affine) -> Vec<Quad> {
+    let Some(annots) = page.raw().get::<Array<'_>>(ANNOTS) else {
+        return Vec::new();
+    };
+    annots
+        .iter::<Dict<'_>>()
+        .filter(|annot| annot.get::<u32>(F).unwrap_or(0) & 2 == 0)
+        .filter_map(|annot| annot.get::<PdfRect>(RECT))
+        .map(|rect| {
+            let r = rect.to_kurbo();
+            let box_ = Affine::new([r.width(), 0.0, 0.0, r.height(), r.x0, r.y0]);
+            Quad::from_transform((transform * box_).as_coeffs())
+        })
+        .collect()
+}
+
+/// A device that only records each raster image's quad (its transform maps image pixels),
+/// sorted by whether the page shows through it.
+#[derive(Default)]
+struct ImageScan {
+    opaque: Vec<Quad>,
+    see_through: Vec<Quad>,
+}
+
+impl<'a> Device<'a> for ImageScan {
+    fn draw_path(&mut self, _: &BezPath, _: DrawProps<'a>, _: &DrawMode) {}
+    fn push_clip_path(&mut self, _: &ClipPath) {}
+    fn push_transparency_group(&mut self, _: f32, _: Option<SoftMask<'a>>, _: BlendMode) {}
+    fn draw_glyph_run(&mut self, _: &GlyphRun<'_, 'a>, _: DrawProps<'a>, _: &DrawMode) {}
+    fn draw_image(&mut self, image: Image<'a, '_>, props: ImageDrawProps<'a>) {
+        if let Image::Raster(raster) = image {
+            let to_unit = Affine::scale_non_uniform(f64::from(raster.width()), f64::from(raster.height()));
+            let quad = Quad::from_transform((props.transform * to_unit).as_coeffs());
+            let dict = raster.stream().dict();
+            let masked = dict.contains_key(SMASK) || dict.contains_key(MASK);
+            if masked || props.soft_mask.is_some() || props.blend_mode != BlendMode::Normal {
+                self.see_through.push(quad);
+            } else {
+                self.opaque.push(quad);
+            }
+        }
+    }
+    fn pop_clip(&mut self) {}
+    fn pop_transparency_group(&mut self) {}
 }
 
 /// A page's displayed size and `/Rotate`.
