@@ -3,7 +3,8 @@
 
 use super::measure::Source;
 use super::model::{Figure, FlowBlock, List, ListKind, Paragraph, ParagraphStyle};
-use crate::tag::{Tag, TagKind};
+use super::table::{CellItem, RowItem, Section, Table, TableItem, TableRow};
+use crate::tag::{TableScope, Tag, TagKind};
 
 /// What an item draws.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -12,6 +13,8 @@ pub(crate) enum Content {
     Para(usize),
     /// [`Items::figures`]`[i]`.
     Figure(usize),
+    /// [`Items::tables`]`[i]`.
+    Table(usize),
     /// Space of a height, points.
     Spacer(f64),
     /// The end of a page.
@@ -54,6 +57,7 @@ pub(crate) struct Items {
     pub(crate) entries: Vec<Item>,
     pub(crate) sources: Vec<Source>,
     pub(crate) figures: Vec<Figure>,
+    pub(crate) tables: Vec<TableItem>,
     pub(crate) nodes: Vec<Node>,
     keeps: usize,
 }
@@ -102,6 +106,7 @@ impl Items {
                 item.space_after = figure.space_after;
                 self.entries.push(item);
             }
+            FlowBlock::Table(table) => self.table(table, parent, keep, indent),
             FlowBlock::Spacer(height) => {
                 let item = Self::item(Content::Spacer(height.max(0.0)), None, keep, indent);
                 self.entries.push(item);
@@ -141,6 +146,91 @@ impl Items {
                 self.list(nested, Some(body), keep, indent + list.indent);
             }
         }
+    }
+
+    /// A table: its element, a `THead`, `TBody` and `TFoot` for the parts it has, a `TR` per
+    /// row, and a `TH` (`/Scope /Column`) or `TD` per cell with its `/ColSpan`.
+    fn table(&mut self, table: &Table, parent: Option<usize>, keep: Option<usize>, indent: f64) {
+        let node = self.node(Tag::new(TagKind::Table), parent);
+        let columns = table.columns.len();
+        let mut rows = Vec::new();
+        let parts = [
+            (Section::Head, TagKind::THead, &table.header),
+            (Section::Body, TagKind::TBody, &table.body),
+            (Section::Foot, TagKind::TFoot, &table.footer),
+        ];
+        for (section, kind, part) in parts {
+            if part.is_empty() {
+                continue;
+            }
+            let group = self.node(Tag::new(kind), Some(node));
+            for row in part {
+                rows.push(self.table_row(row, section, group, columns));
+            }
+        }
+        self.tables.push(TableItem {
+            table: table.look(),
+            rows,
+        });
+        let mut item = Self::item(Content::Table(self.tables.len() - 1), Some(node), keep, indent);
+        item.space_before = table.space_before;
+        item.space_after = table.space_after;
+        self.entries.push(item);
+    }
+
+    fn table_row(&mut self, row: &TableRow, section: Section, group: usize, columns: usize) -> RowItem {
+        let tr = self.node(Tag::new(TagKind::TR), Some(group));
+        let mut cells = Vec::with_capacity(row.cells.len());
+        let mut col = 0;
+        for cell in &row.cells {
+            if col >= columns {
+                break;
+            }
+            let span = usize::try_from(cell.span).unwrap_or(1).clamp(1, columns - col);
+            let tag = cell_tag(section);
+            #[expect(
+                clippy::cast_possible_truncation,
+                reason = "a span is at most the column count, from a u32"
+            )]
+            let node = self.node(tag.with_col_span(span as u32), Some(tr));
+            let mut sources = Vec::with_capacity(cell.paragraphs.len());
+            for p in &cell.paragraphs {
+                let mut p = p.clone();
+                if let Some(align) = cell.align {
+                    p.style = p.style.with_align(align);
+                }
+                let source = Source::new(&p);
+                if let (Some(lang), Some(n)) = (source.lang.clone(), self.nodes.get_mut(node))
+                    && n.tag.lang().is_none()
+                {
+                    n.tag = n.tag.clone().with_lang(lang);
+                }
+                self.sources.push(source);
+                sources.push(self.sources.len() - 1);
+            }
+            cells.push(CellItem {
+                sources,
+                col,
+                span,
+                valign: cell.valign,
+                node,
+            });
+            col += span;
+        }
+        // Missing cells are empty ones, so every row has a cell per column in the structure.
+        while col < columns {
+            let tag = cell_tag(section);
+            let node = self.node(tag, Some(tr));
+            cells.push(CellItem {
+                sources: Vec::new(),
+                col,
+                span: 1,
+                valign: super::table::VerticalAlign::Top,
+                node,
+            });
+            col += 1;
+        }
+        RowItem { section, cells }
     }
 
     fn item(content: Content, node: Option<usize>, keep: Option<usize>, indent: f64) -> Item {
@@ -195,5 +285,14 @@ impl Items {
             return false;
         };
         a.keep_with_next || (a.keep.is_some() && a.keep == b.keep)
+    }
+}
+
+/// A cell's element: `TH` heading its column in a header row, `TD` elsewhere.
+fn cell_tag(section: Section) -> Tag {
+    if section == Section::Head {
+        Tag::new(TagKind::TH).with_scope(TableScope::Column)
+    } else {
+        Tag::new(TagKind::TD)
     }
 }

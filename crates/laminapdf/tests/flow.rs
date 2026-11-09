@@ -2,7 +2,8 @@
 //! 12-page example's running header and "Page n of 12" footer read back on every page but the
 //! cover, and `Document::extract` drops them; every paragraph is one `P` element however many
 //! pages it crosses; and the spike's report keeps Typst's tagging (one element per paragraph,
-//! `/Subtype /Header` and `/Footer`) and reads back as written.
+//! `/Subtype /Header` and `/Footer`) and reads back as written. The invoice's table (todo T4c)
+//! repeats its header row on three pages, and extraction reads that header once.
 #![cfg(feature = "text")]
 #![allow(
     clippy::unwrap_used,
@@ -11,6 +12,9 @@
     reason = "tests: a panic is a test failure"
 )]
 
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/flowing_invoice.rs"]
+mod flowing_invoice;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/flowing_report.rs"]
 mod flowing_report;
@@ -157,5 +161,28 @@ fn the_arabic_and_hindi_paragraphs_read_back_across_their_page_breaks() {
             .cloned()
             .collect();
         assert_eq!(bare(&read), bare(&format!("{sentence} ").repeat(repeats)));
+    }
+}
+
+#[test]
+fn extraction_reads_the_invoice_s_repeated_header_once() {
+    let bytes = flowing_invoice::build(BuildOptions::new(), fixture(FONTS[0]), fixture(FONTS[1])).unwrap();
+    let doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap();
+    assert_eq!(doc.page_count().unwrap(), 3);
+    // Every page shows the header row.
+    for page in lines(&doc) {
+        assert!(page.iter().any(|l| l.contains("Description")), "{page:?}");
+    }
+    let extraction = doc.extract(&ExtractOptions::new()).unwrap();
+    let text: String = extraction
+        .blocks
+        .iter()
+        .map(|b| b.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert_eq!(text.matches("Description").count(), 1, "{text}");
+    assert_eq!(text.matches("Total").count(), 1);
+    for item in ["001", "030", "060"] {
+        assert!(text.contains(item), "row {item} is in the text");
     }
 }

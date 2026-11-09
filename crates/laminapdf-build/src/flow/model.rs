@@ -348,6 +348,8 @@ pub enum FlowBlock {
     PageBreak,
     /// Blocks kept on one page.
     Keep(Vec<FlowBlock>),
+    /// A table (`Table`), its header rows repeated on every page it continues on.
+    Table(super::table::Table),
 }
 
 /// What a header or footer slot holds: text with fields `{page}`, `{pages}`, `{section}` and

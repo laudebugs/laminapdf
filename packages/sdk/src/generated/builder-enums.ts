@@ -104,6 +104,9 @@ export const TAG_NAMES = [
   "Quote",
   "Note",
   "Code",
+  "THead",
+  "TBody",
+  "TFoot",
 ] as const;
 
 /** A standard structure type (ISO 32000-1 §14.8.4). */
