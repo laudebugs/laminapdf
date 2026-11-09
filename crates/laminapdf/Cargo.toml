@@ -124,6 +124,10 @@ required-features = ["text"]
 name = "flowing_report"
 required-features = ["text"]
 
+[[example]]
+name = "flowing_invoice"
+required-features = ["text"]
+
 # Not a golden example: lamina's page text for the nightly lane's live text differential
 # (`cargo xtask differential --live --text`, todo B9f). Its own folder keeps it out of the
 # examples that `cargo xtask examples` and tests/examples.rs discover.

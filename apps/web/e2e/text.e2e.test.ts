@@ -92,7 +92,9 @@ describe(`the text layer in ${BROWSER}`, () => {
     await choose(watched, "golden/examples/hello.pdf");
     const note = watched.page.locator(".lamina-structure[role=status]");
     await note.waitFor({ state: "attached", timeout: 30_000 });
-    expect([await note.count(), await note.textContent()]).toEqual([1, "Untagged document"]);
+    // The viewer fills the live region a frame after adding it, so screen readers announce it.
+    await expect.poll(() => note.textContent(), { timeout: 5_000 }).toBe("Untagged document");
+    expect(await note.count()).toBe(1);
     await clean(watched);
   });
 });

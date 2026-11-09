@@ -39,7 +39,7 @@ pub(crate) struct PageKeys {
 /// read them in structure order ([`TagState::infos`]).
 ///
 /// The types are strings, not [`TagKind`](super::TagKind)s: a custom name that is a standard
-/// type outside `TagKind` (`THead`, `TBody`, `H`, `H7`, `Formula`) is that type, and the
+/// type outside `TagKind` (`Div`, `H`, `H7`, `Formula`) is that type, and the
 /// checks need it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ElemInfo {
@@ -343,11 +343,16 @@ impl TagState {
                 d.insert(key, text_string(v));
             }
         }
-        if let Some(scope) = tag.scope() {
+        if tag.scope().is_some() || tag.col_span().is_some() {
             // The table attributes (§14.8.5.7).
             let mut a = Dict::new();
             a.insert("O", Name::from("Table"));
-            a.insert("Scope", Name::from(scope.as_str()));
+            if let Some(scope) = tag.scope() {
+                a.insert("Scope", Name::from(scope.as_str()));
+            }
+            if let Some(span) = tag.col_span() {
+                a.insert("ColSpan", Object::Integer(i64::from(span)));
+            }
             d.insert("A", Object::Dict(a));
         }
         if standard_name(tag) == "Note" {

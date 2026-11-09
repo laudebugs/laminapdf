@@ -212,6 +212,65 @@
       "showText": 1
     }
   ],
+  "fixtures/golden/flow-table.pdf": [
+    {
+      "beginMarkedContentProps": 112,
+      "beginText": 110,
+      "constructPath": 28,
+      "endMarkedContent": 112,
+      "endText": 110,
+      "restore": 2,
+      "save": 2,
+      "setDash": 1,
+      "setFillRGBColor": 1,
+      "setFont": 110,
+      "setLineCap": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 3,
+      "setMiterLimit": 1,
+      "setStrokeRGBColor": 3,
+      "setTextMatrix": 110,
+      "showText": 110
+    },
+    {
+      "beginMarkedContentProps": 115,
+      "beginText": 113,
+      "constructPath": 29,
+      "endMarkedContent": 115,
+      "endText": 113,
+      "restore": 2,
+      "save": 2,
+      "setDash": 1,
+      "setFillRGBColor": 1,
+      "setFont": 113,
+      "setLineCap": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 3,
+      "setMiterLimit": 1,
+      "setStrokeRGBColor": 3,
+      "setTextMatrix": 113,
+      "showText": 113
+    },
+    {
+      "beginMarkedContentProps": 37,
+      "beginText": 35,
+      "constructPath": 10,
+      "endMarkedContent": 37,
+      "endText": 35,
+      "restore": 2,
+      "save": 2,
+      "setDash": 1,
+      "setFillRGBColor": 1,
+      "setFont": 35,
+      "setLineCap": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 3,
+      "setMiterLimit": 1,
+      "setStrokeRGBColor": 3,
+      "setTextMatrix": 35,
+      "showText": 35
+    }
+  ],
   "fixtures/golden/full-rewrite-hello.pdf": [
     {
       "beginText": 1,

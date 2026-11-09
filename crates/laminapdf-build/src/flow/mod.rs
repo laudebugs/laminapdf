@@ -32,11 +32,13 @@
 //! # Ok::<(), laminapdf_build::Error>(())
 //! ```
 
+mod draw_table;
 mod emit;
 mod items;
 mod measure;
 mod model;
 mod paginate;
+mod table;
 mod template;
 #[cfg(test)]
 mod tests;
@@ -47,6 +49,7 @@ pub use model::{
     Figure, Flow, FlowBlock, Inline, List, ListItem, ListKind, Margins, PageRegion, PageTemplate, Paragraph,
     ParagraphStyle, TextStyle,
 };
+pub use table::{ColumnWidth, Table, TableCell, TableRow, TableRule, VerticalAlign};
 pub use template::{Fields, fill_fields};
 
 use crate::builder::Builder;

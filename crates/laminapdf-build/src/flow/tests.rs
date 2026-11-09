@@ -258,3 +258,175 @@ proptest! {
         prop_assert_eq!(placed(&pages(&flow).unwrap()), placed(&first));
     }
 }
+
+mod tables {
+    use super::*;
+    use crate::flow::table::{ColumnWidth, Table, TableRow};
+
+    /// A table of `rows` one-line body rows under one header row and over one footer row.
+    fn invoice(style: &TextStyle, rows: usize) -> Table {
+        let mut table = Table::new([ColumnWidth::Auto, ColumnWidth::Fraction(1.0)])
+            .with_padding(0.0)
+            .header(TableRow::plain(["Item", "Price"], style))
+            .footer(TableRow::plain(["Total", "100"], style));
+        for i in 0..rows {
+            table = table.row(TableRow::plain([format!("Row {i}"), "1".to_owned()], style));
+        }
+        table
+    }
+
+    /// Each page's rows as (row, repeated).
+    fn rows(pages: &[PageOut]) -> Vec<Vec<(usize, bool)>> {
+        pages
+            .iter()
+            .map(|p| {
+                p.placed
+                    .iter()
+                    .filter_map(|x| match x {
+                        Placed::Row { row, repeat, .. } => Some((*row, *repeat)),
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_long_table_repeats_its_header_and_keeps_its_footer_with_the_last_row() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        // 10 lines a page: the header and 9 body rows; 20 body rows fill two pages and two
+        // rows of a third, which takes the footer too.
+        let flow = Flow::new(template(&font, 300.0, 10.0)).block(FlowBlock::Table(invoice(&style, 20)));
+        let pages = rows(&pages(&flow).unwrap());
+        assert_eq!(pages.len(), 3);
+        for (n, page) in pages.iter().enumerate() {
+            assert_eq!(page.first(), Some(&(0, n > 0)), "page {n} starts with the header");
+        }
+        let body: Vec<usize> = pages.iter().flatten().filter(|r| r.0 > 0).map(|r| r.0).collect();
+        assert_eq!(body, (1..=21).collect::<Vec<_>>(), "every row once, in order");
+        assert_eq!(pages.last().and_then(|p| p.last()), Some(&(21, false)));
+    }
+
+    #[test]
+    fn the_last_body_row_moves_with_the_footer_when_both_do_not_fit() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        // The header, 8 rows and the footer fill a page exactly; 9 rows leave the footer no
+        // room, so the ninth row moves with it.
+        let flow = Flow::new(template(&font, 300.0, 10.0)).block(FlowBlock::Table(invoice(&style, 9)));
+        let pages = rows(&pages(&flow).unwrap());
+        assert_eq!(pages.len(), 2);
+        assert_eq!(pages.get(1), Some(&vec![(0, true), (9, false), (10, false)]));
+    }
+
+    #[test]
+    fn a_table_that_fits_after_a_paragraph_stays_on_its_page() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let flow = Flow::new(template(&font, 300.0, 10.0))
+            .block(FlowBlock::Paragraph(lines(2, &style, tight())))
+            .block(FlowBlock::Table(invoice(&style, 3).with_space(0.0, 0.0)));
+        let pages = rows(&pages(&flow).unwrap());
+        assert_eq!(
+            pages,
+            vec![vec![(0, false), (1, false), (2, false), (3, false), (4, false)]]
+        );
+    }
+
+    #[test]
+    fn a_row_taller_than_the_body_fails() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let tall = (0..12)
+            .map(|i| format!("Line {i}"))
+            .collect::<Vec<_>>()
+            .join("\u{2028}");
+        let table = Table::new([ColumnWidth::Fraction(1.0)])
+            .with_padding(0.0)
+            .row(TableRow::plain([tall], &style));
+        let flow = Flow::new(template(&font, 300.0, 10.0)).block(FlowBlock::Table(table));
+        assert!(matches!(
+            pages(&flow),
+            Err(Error::FlowContentTooLarge { what: "table row" })
+        ));
+    }
+
+    #[test]
+    fn column_widths_are_the_same_on_every_page() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let first = template(&font, 500.0, 10.0);
+        let flow =
+            Flow::new(template(&font, 300.0, 10.0).with_first_page(first)).block(FlowBlock::Table(invoice(&style, 30)));
+        let laid = pages(&flow).unwrap();
+        let widths: Vec<f64> = laid
+            .iter()
+            .flat_map(|p| &p.placed)
+            .filter_map(|x| match x {
+                Placed::Row { table, .. } => Some(table.width),
+                _ => None,
+            })
+            .collect();
+        assert!(laid.len() > 2);
+        assert!(widths.iter().all(|w| (w - 200.0).abs() < 1e-9), "{widths:?}");
+    }
+
+    #[test]
+    fn rows_on_later_pages_start_at_those_pages_margin() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let first = template(&font, 300.0, 10.0).with_margins(Margins::new(50.0, 50.0, 50.0, 80.0));
+        let flow =
+            Flow::new(template(&font, 300.0, 10.0).with_first_page(first)).block(FlowBlock::Table(invoice(&style, 20)));
+        let laid = pages(&flow).unwrap();
+        let lefts: Vec<Vec<f64>> = laid
+            .iter()
+            .map(|p| {
+                p.placed
+                    .iter()
+                    .filter_map(|x| match x {
+                        Placed::Row { x, .. } => Some(*x),
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .collect();
+        assert!(lefts[0].iter().all(|x| (x - 80.0).abs() < 1e-9));
+        assert!(lefts[1..].iter().flatten().all(|x| (x - 50.0).abs() < 1e-9));
+    }
+
+    #[test]
+    fn a_row_too_tall_for_the_later_pages_fails() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        // The first page holds 20 lines, the later ones 10; an 11-line row fits only the first.
+        let first = template(&font, 300.0, 20.0);
+        let tall = (0..11)
+            .map(|i| format!("Line {i}"))
+            .collect::<Vec<_>>()
+            .join("\u{2028}");
+        let table = invoice(&style, 1).row(TableRow::plain([tall, String::new()], &style));
+        let flow = Flow::new(template(&font, 300.0, 10.0).with_first_page(first)).block(FlowBlock::Table(table));
+        assert!(matches!(
+            pages(&flow),
+            Err(Error::FlowContentTooLarge { what: "table row" })
+        ));
+    }
+
+    #[test]
+    fn a_short_row_ends_in_empty_cells_and_extra_cells_are_left_out() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let table = Table::new([ColumnWidth::Auto; 3])
+            .row(TableRow::plain(["a"], &style))
+            .row(TableRow::plain(["a", "b", "c", "d"], &style));
+        let items = Items::new(&[FlowBlock::Table(table)]);
+        let cells: Vec<Vec<(usize, usize)>> = items.tables[0]
+            .rows
+            .iter()
+            .map(|r| r.cells.iter().map(|c| (c.col, c.sources.len())).collect())
+            .collect();
+        assert_eq!(cells, vec![vec![(0, 1), (1, 0), (2, 0)], vec![(0, 1), (1, 1), (2, 1)]]);
+    }
+}
