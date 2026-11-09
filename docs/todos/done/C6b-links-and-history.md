@@ -62,7 +62,7 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 - [x] External link: a confirmation shows the full URL; Cancel does nothing; Open opens a new tab with no `Referer` (asserted with a local test server) and no `window.opener`.
 - [x] `javascript:`, `file:`, `data:` URIs and `Launch`/`JavaScript` actions are never executed; they're reported as unsupported.
 - [x] Links are reachable by Tab in page order and have accessible names; zero serious axe violations on a links fixture (Tab tested in Chromium and Firefox; see Notes).
-- [x] Text under a link can still be selected by dragging from outside the link (tested in Chromium and WebKit; see Notes).
+- [x] Text under a link can still be selected by dragging from outside the link.
 
 ## Post-merge checks
 
@@ -94,7 +94,7 @@ Rust unit tests (accessor); Vitest unit tests (history coalescing, URL validatio
 
 - **The fixture sits apart from the corpus.** `fixtures/corpus/` has no file with links, and a file added there would need render goldens, differential facts and text facts. So `fixtures/links/links.pdf` has every link kind, and pypdf's facts are in `fixtures/links/expected.json`. The first acceptance criterion holds on that file and on the links-and-outlines golden, whose pypdf facts were already in `fixtures/build/facts.json`. pypdf 6.21 reads either the catalog's `/Dests` or the `/Names` tree, never both, so `tools/fixtures/link_facts.py` reads the tree as well.
 - **The browser's history is the history.** Each jump is a browser history entry, marked with the viewer's entry id, so the browser's Back, Alt+← and ⌘[ (which the web reader leaves to the browser) and the reader's own buttons all step one history. An entry from another view (a reload, a backend switch) goes by its fragment's page instead.
-- **Selection over links.** Anchors take pointer events, so on their own they block a drag that crosses them. While a drag that started outside every link is under way, the layer lets the pointer through them. The e2e test of that drag runs in Chromium and WebKit; in Firefox, Playwright's drag selects nothing even over plain text, with or without links, so it is skipped there.
+- **Selection over links.** Anchors take pointer events, so on their own they block a drag that crosses them. While a drag that started outside every link is under way, the layer lets the pointer through them. In Firefox, no drag selected anything once the page box had had the focus; that was a bug of its own ([firefox-selection-after-a-field](../../bugs/firefox-selection-after-a-field/detail.md)), and since its fix the e2e test of that drag runs in all three engines.
 - **Web links have no `href`.** A browser's own menu ("Open link in new tab") would open an `href` without asking, so a web link's anchor has none. Its title shows the address, and the layer follows it on a click, a middle click or Enter, always through the confirmation.
 - **Tab in WebKit.** Safari's Tab skips links unless the user turns on "Press Tab to highlight each item", so the browser test of Tab order is skipped there; the anchors are in the Tab order all the same.
 - **No new open.** The e2e test checks that Back and Forward make no new request for the file; the worker's own `openDocument` calls aren't counted, but a reopen would read the file again.
