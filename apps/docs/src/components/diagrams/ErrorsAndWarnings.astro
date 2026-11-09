@@ -1,7 +1,8 @@
 ---
 // "Errors and warnings" (concepts/errors-and-warnings, "Every surface has the same fields"): a call
 // either stops with a LaminaPdfError or completes with warnings on doc.warnings, and both carry the
-// same fields; text from the document goes only in `data`. No accent: both outcomes weigh the same. Caption and
+// same fields, but an error can also carry `didYouMean`; text from the document goes only in
+// `data`. No accent: both outcomes weigh the same. Caption and
 // text description: registry.mjs.
 import Arrow from "./kit/Arrow.astro";
 import Box from "./kit/Box.astro";
@@ -15,8 +16,17 @@ type Props = DrawingProps;
 const { prefix, labelledby, describedby } = Astro.props;
 const wide = `${prefix}-wide`;
 const narrow = `${prefix}-narrow`;
-/** The fields both share, in the page's order; `data` comes last, with its rule beside it. */
-const FIELDS = ["code", "kind", "message", "hint", "location", "docsUrl"] as const;
+/** The fields, in the page's order, each with a note where one applies. */
+const FIELDS = [
+  { name: "code", note: "" },
+  { name: "kind", note: "" },
+  { name: "message", note: "" },
+  { name: "hint", note: "" },
+  { name: "location", note: "" },
+  { name: "data", note: "document text" },
+  { name: "docsUrl", note: "" },
+  { name: "didYouMean", note: "errors only" },
+] as const;
 ---
 
 <Svg viewBox="0 0 720 256" layout="wide" labelledby={labelledby} describedby={describedby}>
@@ -30,10 +40,9 @@ const FIELDS = ["code", "kind", "message", "hint", "location", "docsUrl"] as con
   <Arrow d="M430 54 H466" prefix={wide} />
   <Arrow d="M430 198 H466" prefix={wide} />
 
-  <Lane x={470} y={0} w={250} h={256} title="The same fields" />
-  {FIELDS.map((f, i) => <Label x={490} y={60 + i * 26} text={f} kind="mono" />)}
-  <Label x={490} y={60 + FIELDS.length * 26} text="data" kind="mono" />
-  <Label x={540} y={60 + FIELDS.length * 26} text="the document's text" kind="sub" />
+  <Lane x={470} y={0} w={250} h={256} title="Their fields" />
+  {FIELDS.map((f, i) => <Label x={490} y={56 + i * 26} text={f.name} kind="mono" />)}
+  {FIELDS.map((f, i) => f.note && <Label x={590} y={56 + i * 26} text={f.note} kind="sub" />)}
 </Svg>
 
 <Svg viewBox="0 0 320 432" layout="narrow" labelledby={labelledby} describedby={describedby}>
@@ -47,8 +56,7 @@ const FIELDS = ["code", "kind", "message", "hint", "location", "docsUrl"] as con
   <Arrow d="M76 148 V180" prefix={narrow} />
   <Arrow d="M244 148 V180" prefix={narrow} />
 
-  <Lane x={0} y={184} w={320} h={244} title="The same fields" />
-  {FIELDS.map((f, i) => <Label x={16} y={232 + i * 24} text={f} kind="mono" />)}
-  <Label x={16} y={232 + FIELDS.length * 24} text="data" kind="mono" />
-  <Label x={64} y={232 + FIELDS.length * 24} text="the document's text" kind="sub" />
+  <Lane x={0} y={184} w={320} h={244} title="Their fields" />
+  {FIELDS.map((f, i) => <Label x={16} y={228 + i * 24} text={f.name} kind="mono" />)}
+  {FIELDS.map((f, i) => f.note && <Label x={124} y={228 + i * 24} text={f.note} kind="sub" />)}
 </Svg>

@@ -34,39 +34,41 @@ export const DIAGRAMS = {
       "An edited file in two of these states meets both rules: a signed file that was repaired fails until you pass `invalidateSignatures: true`.",
   },
   "package-map": {
-    caption: "Each published package, and what it depends on.",
+    caption: "Each JavaScript package and what it depends on, beside the Rust API.",
     text:
-      "In JavaScript, `@laminapdf/sdk` is the TypeScript API, and it depends on `@laminapdf/wasm`, the WebAssembly split into three modules: base, text and extract. " +
-      "`@laminapdf/viewer`, a web PDF viewer, depends on `@laminapdf/sdk` and on `@laminapdf/render`, the interface that renderers implement. " +
-      "Two renderers implement it: `@laminapdf/render-pdfium`, the default, and `@laminapdf/render-hayro`, which also uses `@laminapdf/wasm`. " +
-      "In Rust, one crate, `laminapdf`, does the same work, with features instead of modules.",
+      "In JavaScript, `@laminapdf/sdk` is the TypeScript API, and it depends on `@laminapdf/wasm`, whose WebAssembly the SDK loads as three modules: base, extract and text. " +
+      "`@laminapdf/viewer`, a web PDF viewer, depends on `@laminapdf/sdk`, on `@laminapdf/render`, the interface that renderers implement, and on both renderers. " +
+      "Those renderers are `@laminapdf/render-pdfium`, the default, and `@laminapdf/render-hayro`, which also uses `@laminapdf/wasm`. " +
+      "In Rust, the API is one crate, `laminapdf`, with features instead of modules.",
   },
   "package-map-modules": {
-    caption: "The three modules sit inside @laminapdf/wasm, under @laminapdf/sdk.",
+    caption: "The three modules come in @laminapdf/wasm, under @laminapdf/sdk.",
     text:
-      "`@laminapdf/sdk` depends on `@laminapdf/wasm`, whose WebAssembly comes as three modules: base, text and extract. " +
-      "`@laminapdf/viewer` depends on `@laminapdf/sdk` and on `@laminapdf/render`, which `@laminapdf/render-pdfium` and `@laminapdf/render-hayro` implement. " +
-      "In Rust, the one crate, `laminapdf`, has features instead of modules.",
+      "`@laminapdf/sdk` depends on `@laminapdf/wasm`, whose WebAssembly the SDK loads as three modules: base, extract and text. " +
+      "`@laminapdf/viewer` depends on `@laminapdf/sdk`, on `@laminapdf/render` and on both renderers that implement it, `@laminapdf/render-pdfium` and `@laminapdf/render-hayro`. " +
+      "In Rust, the API is one crate, `laminapdf`, with features instead of modules.",
   },
   "worker-calls": {
-    caption: "Each call crosses to the Web Worker as a message; an abort stops only a call that hasn't run, or a save.",
+    caption:
+      "Each call crosses to the Web Worker as a message; an abort skips a call not started and stops a running save.",
     text:
       "Your page's client sends each call, such as `await doc.pageCount()`, to the Web Worker as a message. " +
-      "There `@laminapdf/sdk` runs one call at a time, and the answer comes back as a Promise, with its bytes transferred rather than copied. " +
-      "When a call's `AbortSignal` aborts, the call rejects with `cancelled`, and what happens to its work depends on where it was: a queued call never runs, a running `save` stops at its next step, and any other running call runs to the end.",
+      "There `@laminapdf/sdk` runs one call at a time, and each answer comes back as a Promise; saved bytes and page text come back transferred rather than copied. " +
+      "When a call's `AbortSignal` aborts, the call rejects with `cancelled`. A call not started never runs, and a running `save` or `saveWithReport` stops at its next step. " +
+      "Any other call runs to the end, except that a remote file's byte fetches stop.",
   },
   "errors-and-warnings": {
     caption: "A call stops with an error or completes with warnings; both carry the same fields.",
     text:
       "A call either stops with a `LaminaPdfError` or completes, with any warnings on `doc.warnings`. " +
-      "Errors and warnings carry the same fields: `code`, `kind`, `message`, `hint`, `location`, `docsUrl` and `data`. " +
+      "Errors and warnings carry the same fields: `code`, `kind`, `message`, `hint`, `location`, `data` and `docsUrl`; an error can also carry `didYouMean`. " +
       "Text from the document goes only in `data`, never in `message` or `hint`.",
   },
   "undo-timeline": {
-    caption: "One undo takes back a whole transaction; redo applies it again.",
+    caption: "One undo reverts a whole transaction; redo applies it again.",
     text:
-      "Three transactions run in order, each a unit: the first sets the metadata and rotates a page, the second rotates a page, and the third does both again. " +
-      "`doc.undo()` takes back the whole of the last transaction, and `doc.redo()` applies it again. " +
+      "Three transactions run in order: the first runs `setInfo` and `rotatePage`, the second `rotatePage`, and the third both. " +
+      "`doc.undo()` reverts the last transaction as a whole, and `doc.redo()` applies it again. " +
       "A new transaction clears what redo could apply.",
   },
   "drawing-pages": {

@@ -29,8 +29,8 @@ The Web Worker leaves out a few members, each for a reason:
 Pass an `AbortSignal` as `signal` to any call. An aborted call rejects with `cancelled`, and `error.cause` holds the signal's reason. What happens to the work depends on where it was:
 
 - A call that hasn't started never runs.
-- `save` stops at its next step, and the document stays usable.
-- Any other call runs to the end in the Web Worker, because it is one synchronous call. `client.terminate()` stops it at once.
+- `save` and `saveWithReport` stop at their next step, and the document stays usable.
+- Any other call runs to the end in the Web Worker, because it is one synchronous call, though a remote file's byte fetches stop. `client.terminate()` stops it at once.
 
 <Diagram name="worker-calls" />
 

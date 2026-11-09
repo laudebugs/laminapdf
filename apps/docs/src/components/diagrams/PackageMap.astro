@@ -1,9 +1,11 @@
 ---
-// "The published packages" (install, "Every published package"): what each package depends on. In
-// JavaScript, @laminapdf/sdk over @laminapdf/wasm and its three modules; @laminapdf/viewer over the
-// SDK and @laminapdf/render, which the two renderers implement. In Rust, one crate. Arrows point from
-// a package to what it depends on. `focus` takes the accent to the part a page is about
-// (PackageMapModules draws it for the three modules). Caption and text description: registry.mjs.
+// "The JavaScript packages" (install, "Every published package"): what each npm package depends
+// on. @laminapdf/sdk over @laminapdf/wasm and the three modules it loads; @laminapdf/viewer over the
+// SDK and @laminapdf/render, which the two renderers implement; render-hayro also uses
+// @laminapdf/wasm (drawn wide, named in its box narrow). The viewer's direct dependencies on the
+// renderers are in the text, not drawn. In Rust, the API crate. Arrows point from a package to what
+// it depends on. `focus` takes the accent to the part a page is about (PackageMapModules draws it
+// for the three modules). Caption and text description: registry.mjs.
 import Arrow from "./kit/Arrow.astro";
 import Box from "./kit/Box.astro";
 import type { DrawingProps } from "./kit/drawing.ts";
@@ -17,7 +19,7 @@ const { prefix, labelledby, describedby, focus } = Astro.props;
 const wide = `${prefix}-wide`;
 const narrow = `${prefix}-narrow`;
 const modules = (w: number) =>
-  ["Base", "Text", "Extract"].map((label, i) => ({
+  ["Base", "Extract", "Text"].map((label, i) => ({
     w: Math.floor(w / 3) + (i === 2 ? w % 3 : 0),
     label,
     focus: focus === "modules",
@@ -40,27 +42,28 @@ const modules = (w: number) =>
   <Arrow d="M364 224 V188" prefix={wide} />
   <Box x={256} y={296} w={216} h={52} label="@laminapdf/render-hayro" sub="a second renderer" mono />
   <Arrow d="M472 322 H480 V158 H476" prefix={wide} />
+  <Arrow d="M256 322 H236 V158 H220" prefix={wide} />
 
   <Lane x={504} y={0} w={216} h={112} title="Rust" />
-  <Box x={520} y={40} w={184} h={52} label="laminapdf" sub="one crate, with features" mono />
+  <Box x={520} y={40} w={184} h={52} label="laminapdf" sub="the Rust API" mono />
 </Svg>
 
-<Svg viewBox="0 0 320 680" layout="narrow" labelledby={labelledby} describedby={describedby}>
+<Svg viewBox="0 0 320 706" layout="narrow" labelledby={labelledby} describedby={describedby}>
   <Markers prefix={narrow} />
-  <Lane x={0} y={0} w={320} h={548} title="JavaScript" />
+  <Lane x={0} y={0} w={320} h={574} title="JavaScript" />
   <Box x={8} y={40} w={304} h={52} label="@laminapdf/sdk" sub="the TypeScript API" mono focus={focus === "sdk"} />
   <Arrow d="M160 92 V118" prefix={narrow} />
   <Box x={8} y={122} w={304} h={52} label="@laminapdf/wasm" sub="WebAssembly" mono />
   <Strip x={8} y={174} h={44} segments={modules(304)} />
 
-  <Box x={8} y={250} w={304} h={52} label="@laminapdf/viewer" sub="uses `@laminapdf/sdk`" mono focus={focus === "viewer"} />
-  <Arrow d="M154 302 V328" prefix={narrow} />
+  <Box x={8} y={236} w={304} h={76} label="@laminapdf/viewer" sub="a web PDF viewer" sub2="uses `@laminapdf/sdk`" mono focus={focus === "viewer"} />
+  <Arrow d="M154 312 V328" prefix={narrow} />
   <Box x={8} y={332} w={292} h={52} label="@laminapdf/render" sub="what renderers implement" mono />
   <Box x={8} y={414} w={292} h={52} label="@laminapdf/render-pdfium" sub="the default renderer" mono />
   <Arrow d="M154 414 V388" prefix={narrow} />
-  <Box x={8} y={482} w={292} h={52} label="@laminapdf/render-hayro" sub="a second renderer" mono />
-  <Arrow d="M300 508 H312 V358 H304" prefix={narrow} />
+  <Box x={8} y={482} w={292} h={76} label="@laminapdf/render-hayro" sub="a second renderer" sub2="uses `@laminapdf/wasm`" mono />
+  <Arrow d="M300 520 H312 V358 H304" prefix={narrow} />
 
-  <Lane x={0} y={568} w={320} h={108} title="Rust" />
-  <Box x={8} y={608} w={304} h={52} label="laminapdf" sub="one crate, with features" mono />
+  <Lane x={0} y={594} w={320} h={108} title="Rust" />
+  <Box x={8} y={634} w={304} h={52} label="laminapdf" sub="the Rust API" mono />
 </Svg>

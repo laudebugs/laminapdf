@@ -18,7 +18,7 @@ A warning means the call went ahead, but Lamina PDF had to repair, drop or appro
 
 ## Every surface has the same fields
 
-Errors and warnings have the same fields in TypeScript and Rust: `code`, `kind`, `message`, `hint`, `location`, `data` and `docsUrl`. `toJSON()` in TypeScript gives the same object as `serde` does in Rust, so a server and a browser can pass them to each other unchanged.
+Errors and warnings have the same fields in TypeScript and Rust: `code`, `kind`, `message`, `hint`, `location`, `data` and `docsUrl`. A usage error can also carry `didYouMean`, the closest names to one Lamina PDF didn't recognise. `toJSON()` in TypeScript gives the same object as `serde` does in Rust, so a server and a browser can pass them to each other unchanged.
 
 <Diagram name="errors-and-warnings" />
 
