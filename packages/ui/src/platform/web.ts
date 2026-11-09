@@ -275,17 +275,25 @@ function recentFiles(store: KeyValueStore, capabilities: Capabilities): RecentFi
   };
   const recent: RecentFiles = {
     list,
-    add: (file) =>
+    add: (file, details = {}) =>
       serial(async () => {
         const entries = await list();
         const same = entries.find((entry) => entry.name === file.name && entry.size === file.size);
         const id = same?.id ?? crypto.randomUUID();
-        const entry: RecentFile = { id, name: file.name, size: file.size, lastOpened: Date.now() };
+        const hasHandle = capabilities.canReopenRecent && isFileHandle(file.handle);
+        const entry: RecentFile = {
+          id,
+          name: file.name,
+          size: file.size,
+          lastOpened: Date.now(),
+          ...(details.pages === undefined ? {} : { pages: details.pages }),
+          hasHandle,
+        };
         const kept = [entry, ...entries.filter((e) => e.id !== id)];
         for (const dropped of kept.splice(RECENT_LIMIT)) await store.delete(handleKey(dropped.id));
         await store.set(RECENT, kept);
         // A handle from an earlier open of a file with this name and size would reopen that file.
-        if (capabilities.canReopenRecent && isFileHandle(file.handle)) await store.set(handleKey(id), file.handle);
+        if (hasHandle) await store.set(handleKey(id), file.handle);
         else await store.delete(handleKey(id));
       }),
     remove: (id) =>

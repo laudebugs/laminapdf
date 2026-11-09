@@ -40,7 +40,7 @@ Build the layer under the reader chrome in `@laminapdf/ui`. It holds the `Platfo
 
 - The components → [C4e](../done/C4e-reader-chrome.md); the demo page and the React Compiler → [C4f](../done/C4f-reader-home-repairs-and-demo.md).
 - `apps/web`, Vite config, Cloudflare, actual file opening flows → [C4b](./C4b-web-app-shell.md), [C4c](../done/C4c-remote-files-encryption-privacy.md).
-- Print → [C6c](../done/C6c-print-download-properties.md); offline storage → [C7b](../ready/C7b-offline-pwa.md).
+- Print → [C6c](../done/C6c-print-download-properties.md); offline storage → [C7b](../done/C7b-offline-pwa.md).
 
 ## Tasks
 

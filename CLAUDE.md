@@ -96,7 +96,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   through onExternal, the rest inert), layers/link-url.ts (externalLink: http(s) and mailto only, punycode),
 │                        #   history/history.ts (NavigationHistory; viewer.history, jumpToPage, jumpToDestination), worker pageLinks; C6c: worker/print.ts
 │                        #   (printPage: a page at print dpi with the print intent, ≤ 16 MP, as a PNG; fileBytes: a remote file's bytes as opened),
-│                        #   worker properties; C3b: createViewer (src/layout/, view/, canvas/,
+│                        #   worker properties; C7b: source/opfs.ts (OpfsByteSource: a local file over 200 MiB (`copyAbove`) copied once into
+│                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)
@@ -172,7 +173,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   warnings, the #debug backend switch, remote files as PlatformFiles naming their address), src/app.tsx,
 │                        #   src/document.ts (window title, repair list; Node tests), src/open/ (C4c: url-fragment.ts parses and
 │                        #   writes `#url=…&page=…` keeping raw values, navigation.ts, watch.ts on load/hashchange/popstate; C6b: history.ts,
-│                        #   each viewer jump a browser history entry marked with its id), src/output.tsx (C6c: Print, Download a copy and Document
+│                        #   each viewer jump a browser history entry marked with its id), src/sw/service-worker.ts and plugins/pwa.ts (C7b: the
+│                        #   service worker (the shell and WebAssembly precached, same-origin GETs only, headers kept, updates on Reload) and the
+│                        #   manifest from the tokens with file_handlers), src/offline/ (updates, online, control, launch, install, document-cache;
+│                        #   R15's notice, toasts and install dialog), src/recent.tsx (recent files and Settings › Storage and privacy),
+│                        #   src/output.tsx (C6c: Print, Download a copy and Document
 │                        #   properties with their dialogs and toasts), src/download-name.ts (a safe file name),
 │                        #   src/network/ (U4a: page-feed.ts, main.tsx's first import; classify.ts, the one classifier of app files,
 │                        #   document traffic and unexpected sites; monitor.ts, the log and its summary; panel.tsx, R13's indicator and panel);

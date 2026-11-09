@@ -30,6 +30,12 @@
     overflow: hidden;
   }
 
+  /* The second row: a notice (R15's offline strip) over the secondary toolbar, each optional. */
+  .paper-reader-under {
+    grid-row: 2;
+    min-inline-size: 0;
+  }
+
   .paper-reader-secondary {
     min-block-size: var(--paper-secondary-toolbar-height);
     border-block-end: var(--paper-border-width) solid var(--paper-hairline);

@@ -210,9 +210,17 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Platform differences.** The desktop app has its own updater (S06), and the offline notice doesn’t apply to it. On the phone, the offline notice is a strip under the top bar, and the update toast sits above the bottom bar in place of the page pill.
 
+**As built ([C7b](../../todos/done/C7b-offline-pwa.md)).** The web reader ships the install dialog, the offline notice with Offline in the status bar, and the update toast with Reload and Later. Five parts differ from the boards:
+
+- Install appears only where the browser offers one (`beforeinstallprompt`, Chromium). Safari’s Add to Dock how-to waits for a later todo, so Safari shows no item, like Firefox.
+- With a document open, the toast says “you’ll need to open this file again” (reopening at the same page is [T5b](../../todos/ready/T5b-reopen-at-last-position.md)).
+- The status bar’s Update ready reloads at once rather than opening a popover with Reload.
+- Reload is never disabled, since the reader can’t change a file yet.
+- Open from URL keeps its own error while offline; the field’s offline message comes with the URL form’s next change.
+
 **Artboards.** `R15-install.dc.html`, `R15-offline.dc.html`, `R15-update.dc.html`.
 
-**Todos.** [C7b](../../todos/ready/C7b-offline-pwa.md).
+**Todos.** [C7b](../../todos/done/C7b-offline-pwa.md).
 
 ## R16 Focus mode
 

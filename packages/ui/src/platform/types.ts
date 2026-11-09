@@ -105,6 +105,16 @@ export interface RecentFile {
   readonly size: number;
   /** When it was last opened, in milliseconds since the epoch. */
   readonly lastOpened: number;
+  /** Its page count, when it was known at the last open. */
+  readonly pages?: number | undefined;
+  /** A handle to the file was kept, so `reopen` may read it again without a picker. */
+  readonly hasHandle?: boolean | undefined;
+}
+
+/** What `RecentFiles.add` keeps besides the file's name and size. */
+export interface RecentDetails {
+  /** The page count. */
+  readonly pages?: number | undefined;
 }
 
 /** The recently opened documents. */
@@ -112,7 +122,7 @@ export interface RecentFiles {
   /** Newest first. */
   list(): Promise<readonly RecentFile[]>;
   /** Puts `file` first, replacing an older entry for the same document. */
-  add(file: PlatformFile): Promise<void>;
+  add(file: PlatformFile, details?: RecentDetails): Promise<void>;
   /** Forgets one document. */
   remove(id: string): Promise<void>;
   /** Forgets every document. */

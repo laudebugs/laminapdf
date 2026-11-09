@@ -175,6 +175,7 @@ export type {
   PlatformStorage,
   PrintJob,
   PrintPage,
+  RecentDetails,
   RecentFile,
   RecentFiles,
   SaveResult,
@@ -219,6 +220,7 @@ export {
   type FindResultsProps,
 } from "./reader/find-results.js";
 export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
+export { InstallDialog, type InstallDialogProps } from "./reader/install-dialog.js";
 export { WholeFileDownload, type WholeFileDownloadProps } from "./reader/loading.js";
 export {
   NetworkActivityPanel,
@@ -228,6 +230,7 @@ export {
   type NetworkOriginRow,
   networkIndicatorText,
 } from "./reader/network.js";
+export { OfflineNotice, type OfflineNoticeProps } from "./reader/offline-notice.js";
 export { OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
 export {
   currentOutlineItem,
@@ -280,6 +283,7 @@ export {
   type ReaderViewProps,
   readerTextSize,
 } from "./reader/reader-view.js";
+export { RecentList, type RecentListProps, recentMeta } from "./reader/recent-list.js";
 export {
   OpenFailure,
   type OpenFailureProps,

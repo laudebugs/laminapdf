@@ -80,7 +80,7 @@ Each statement is an assertion in C4c's Playwright suite (and, where noted, C4d'
 8. **Passwords stay in the worker.** A password is posted once, to the document worker, and is never stored, logged or sent anywhere (C3a asserts the message flow).
 9. **Local data is the user's to clear.** The app stores only:
    - the OPFS cache of opened files;
-   - the recent list (name, size, time and a reopen handle; never bytes or URLs);
+   - the recent list (name, size, page count, time and a reopen handle; never bytes or URLs; the page count added by C7b, 2026-11-09);
    - settings;
    - the service worker's cache of the app itself.
 

@@ -1,5 +1,5 @@
 // Writes the website's share image (public/og.png, 1200 × 630, for Open Graph and X cards) and its
-// PNG favicons (public/favicon-32.png, public/apple-touch-icon.png) in the Paper look, rendered in
+// PNG favicons (public/favicon-32.png, public/apple-touch-icon.png) and the reader's app icons (public/icon-*.png) in the Paper look, rendered in
 // Playwright's Chromium (paper-render.mjs) from the site's own tokens, fonts, favicon.svg and headline (src/data/copy.ts).
 // Run it by hand after changing any of them: `pnpm --filter @laminapdf/site share-image`. The docs
 // site serves the same three icon files, copied from public/ by apps/docs/plugins/integrations.mjs.
@@ -38,4 +38,9 @@ await withPaperRenderer(async (render) => {
   await render(share, 1200, 630, at("../public/og.png"));
   await render(icon(32, 0, "transparent"), 32, 32, at("../public/favicon-32.png"), { transparent: true });
   await render(icon(180, 24, "#F7F4EE"), 180, 180, at("../public/apple-touch-icon.png"), { transparent: true });
+  // The reader's installed-app icons (its manifest): the same mark on paper at 192 and 512 px, and a
+  // maskable 512 px one whose mark stays inside the safe circle (the middle 80 %) any mask keeps.
+  await render(icon(192, 26, "#F7F4EE"), 192, 192, at("../public/icon-192.png"));
+  await render(icon(512, 68, "#F7F4EE"), 512, 512, at("../public/icon-512.png"));
+  await render(icon(512, 128, "#F7F4EE"), 512, 512, at("../public/icon-maskable-512.png"));
 });

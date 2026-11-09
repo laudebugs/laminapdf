@@ -176,8 +176,8 @@ describe("CommandRegistry", () => {
 describe("the reader's commands", () => {
   const commands = readerCommands();
 
-  it("are ADR 0024's 46 and reader mode's 7, each with a visible home besides the palette", () => {
-    expect(commands).toHaveLength(53);
+  it("are ADR 0024's 48 and reader mode's 7, each with a visible home besides the palette", () => {
+    expect(commands).toHaveLength(55);
     expect(commands.filter((c) => c.home.length === 0).map((c) => c.id)).toEqual([]);
   });
 

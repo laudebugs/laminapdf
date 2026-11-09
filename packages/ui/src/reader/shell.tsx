@@ -19,6 +19,8 @@ export interface ReaderShellProps {
   topBar: ReactNode;
   /** A tool's toolbar or the find bar, under the top bar in place of the mode's own. */
   secondaryToolbar?: ReactNode;
+  /** A notice across the window under the top bar, above any secondary toolbar (R15's offline notice). */
+  notice?: ReactNode | undefined;
   /** The left rail: pages, outline and the other tabs. */
   rail?: ReactNode;
   /** The right docked panel, such as repair details; it labels itself. */
@@ -60,6 +62,7 @@ function useModeToolbar(modes: ModeRegistry | undefined): (() => ReactNode) | un
 export function ReaderShell({
   topBar,
   secondaryToolbar,
+  notice,
   rail,
   inspector,
   status,
@@ -79,7 +82,12 @@ export function ReaderShell({
     <div className="paper-reader-shell" data-focus={focus || undefined}>
       <SkipLink canvas={canvas} />
       {topBar}
-      {toolbar === undefined ? null : <div className="paper-reader-secondary">{toolbar}</div>}
+      {notice === undefined && toolbar === undefined ? null : (
+        <div className="paper-reader-under">
+          {notice}
+          {toolbar === undefined ? null : <div className="paper-reader-secondary">{toolbar}</div>}
+        </div>
+      )}
       <div className="paper-reader-body">
         {rail}
         {/* The page's single-key shortcuts (Page Down, +, ?) act while focus is in the canvas. */}

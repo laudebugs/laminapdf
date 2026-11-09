@@ -104,3 +104,17 @@ body {
   font-weight: 600;
   color: var(--paper-text);
 }
+
+/* The Settings dialog's Storage and privacy section: each switch or button over its help. */
+.web-storage-settings {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--paper-space-6);
+}
+
+.web-settings-help {
+  margin: 0 0 var(--paper-space-8);
+  color: var(--paper-text-3);
+  font: var(--paper-type-caption);
+}
