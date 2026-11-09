@@ -1,6 +1,7 @@
 // The document worker and its RPC in Chromium, Firefox and WebKit (C3a's acceptance criteria).
 import { isLaminaPdfError, type LaminaPdfError } from "@laminapdf/sdk";
 import { connect } from "@laminapdf/sdk/worker";
+import type { OpenedDocument } from "@laminapdf/viewer";
 import { afterEach, describe, expect, it } from "vitest";
 import { CORPUS, ENCRYPTED, expected, hook, next, PASSWORD, read, rejection, testViewer, viewer } from "./helpers.js";
 
@@ -279,14 +280,40 @@ describe("documents", () => {
     const client = await track(testViewer());
     const first = await client.open(await read("fixtures/corpus/hello.pdf"));
     const controller = new AbortController();
-    const opening = rejection(
-      client.open(await read("fixtures/corpus/text-example.pdf"), {}, { signal: controller.signal }),
+    const opening = client.open(await read("fixtures/corpus/text-example.pdf"), {}, { signal: controller.signal }).then(
+      (document) => document,
+      (e: unknown) => e,
     );
-    // The cancel crosses while the worker opens synchronously.
+    // The cancel crosses while the worker opens synchronously. It either stops the open, which
+    // leaves the first document, or comes too late, when the open resolves after all: the page
+    // and the worker agree either way, so the next render works.
     queueMicrotask(() => controller.abort());
-    expect(isAbort(await opening)).toBe(true);
-    expect(client.document?.id).toBe(first.id);
+    const outcome = await opening;
+    expect(client.document?.id).toBe(isAbort(outcome) ? first.id : (outcome as OpenedDocument).id);
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
+  });
+
+  it("resolves an open whose cancel came after the worker had opened the file", async () => {
+    // A repaired file's warnings come after the worker commits the open and before its answer,
+    // so a cancel sent on the first one always crosses the answer.
+    const client = await track(testViewer());
+    const first = await client.open(await read("fixtures/corpus/hello.pdf"));
+    const controller = new AbortController();
+    const off = client.on("warning", () => controller.abort());
+    const opened = await client.open(await read("fixtures/corpus/hello-broken.pdf"), {}, { signal: controller.signal });
+    off();
+    expect(controller.signal.aborted).toBe(true);
+    expect(opened.id).not.toBe(first.id);
+    expect(client.document?.id).toBe(opened.id);
+    (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
+  });
+
+  it("says which open made the document it holds, for a page whose cancel crossed the answer", async () => {
+    const client = await track(testViewer());
+    const opened = await client.call("openDocument", [await read("fixtures/corpus/hello.pdf"), {}, 41]);
+    expect(await client.call("currentDocument", [])).toEqual({ document: opened, ticket: 41 });
+    await client.close();
+    expect(await client.call("currentDocument", [])).toBeUndefined();
   });
 
   it("renders the reopened document when asked during a restart", async () => {

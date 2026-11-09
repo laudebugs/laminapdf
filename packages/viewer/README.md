@@ -35,6 +35,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 - **Canvas size on touch devices.** A phone or tablet can't hold the desktop's canvases: iOS Safari reloads a tab whose canvases pass 224–384 MB in all. With a coarse pointer, every canvas holds at most 5 million pixels; on a tablet whose window covers more than 5 million device pixels, the page in view shows its backdrop rather than a detail canvas.
 - **Memory on touch devices.** The two pools and the bitmap cache together stay under 184 MB by default. On a device that reports 2 GB of memory or less (`navigator.deviceMemory`, in Chromium) the limit is 116 MB, and on one that reports 4 GB or more, 304 MB. `createViewer`'s options override each budget, and `device` gives the hints the budgets are chosen from instead of detecting them.
 - **Tall documents.** A document taller than 16 million CSS px at the chosen zoom gets its zoom capped, because browsers stop scrolling near that height.
+- **Page appearance.** `setAppearance("sepia" | "dark" | "original")`, or High contrast with two colours (`{ kind: "high-contrast", ink, paper }`), draws the pages in other colours. Images and annotations keep theirs ([`@laminapdf/render`](../render/README.md) says how). The pages in view paint again, a quick pass then sharp tiles, and the scroll position stays where it was. Other mounted pages give their canvas back and paint once they come into view. Until a page's pixels arrive, its shell shows `--lamina-page-paper` (white by default), so set it to the appearance's paper. The thumbnails follow, and `getState().appearance` says which appearance is shown.
 
 **API.**
 
@@ -137,6 +138,8 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
   - A queued render is dropped.
   - A running one finishes, because synchronous WebAssembly can't be interrupted. Its late answer's bitmap is closed unpainted (`onDiscard`).
   - (`@laminapdf/sdk/worker` itself rejects with a `cancelled` LaminaPdfError; the viewer maps it to `AbortError`.)
+  - An open is the exception. A cancel can reach the page after the Web Worker already opened the new file and closed the old one. So after a cancelled open, `open()` asks the Web Worker which document it holds (`currentDocument`). If this open made it, the cancel came too late: `open()` resolves with that document after all, and the page and the Web Worker agree. Otherwise it rejects with `AbortError`, and the old document stays open.
+  - Either way, an aborted `open()` settles only once the Web Worker has finished the open it was running. `stop()` ends a stuck one at once.
 - **Timeouts:** the page keeps the timers, because a Web Worker inside a render can't post anything.
   - Defaults are `soft` 10 s (`render-slow`) and `hard` 120 s.
   - At the hard cap the client calls `stop("hard-timeout")`. For a document that needed a password, it emits `render-stuck` instead and waits for the user's `stop()`.
@@ -184,7 +187,8 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | Method | Params | Result | Priority |
 | --- | --- | --- | --- |
 | `initBackend` | `{ backend: "pdfium" \| "hayro", wasm? }` | `{ name, version }` | document. Sent by `create()`, before a file is chosen, so the WebAssembly downloads in parallel with file selection. |
-| `openDocument` | `source` (`Blob`, `ArrayBuffer`, `Uint8Array`), `{ password?, limits?, renderLimits? }` | `{ pageCount, pages, needsPassword, backend }` | document |
+| `openDocument` | `source` (`Blob`, `ArrayBuffer`, `Uint8Array`), `{ password?, limits?, renderLimits? }`, `ticket?` (the client's number for this open) | `{ pageCount, pages, needsPassword, backend }` | document |
+| `currentDocument` | — | `{ document, ticket }` of the open document, or `undefined`: `open()` asks after a cancelled open | document |
 | `closeDocument` | — | — | document |
 | `pageInfo` | `index` | `PageInfo` (displayed size in points, rotation, ID, label) | document |
 | `find` | `query`, `FindOptions`, `pages` | `FindPageResult[]`: each page's matches as quads, and whether it has no text | `background` |

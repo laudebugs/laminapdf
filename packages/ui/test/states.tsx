@@ -22,6 +22,7 @@ import {
   OutlineTree,
   type OutlineTreeItem,
   PageAppearanceChips,
+  PageAppearanceFields,
   PageInput,
   PageLabel,
   ProgressBar,
@@ -259,6 +260,16 @@ const pickers: Example[] = [
     element: () => (
       <PageAppearanceChips aria-label="Page appearance" labels={APPEARANCE_LABELS} value="sepia" onChange={noop} />
     ),
+  },
+  {
+    component: "PageAppearanceFields",
+    state: "Dark, this document",
+    element: () => <PageAppearanceFields value="dark" onChange={noop} scope="document" onScopeChange={noop} />,
+  },
+  {
+    component: "PageAppearanceFields",
+    state: "No document open",
+    element: () => <PageAppearanceFields value="original" onChange={noop} />,
   },
 ];
 

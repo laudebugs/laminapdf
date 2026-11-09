@@ -5,7 +5,15 @@ import type { RenderRequest } from "@laminapdf/render";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
 import type { BackendInit, PrintOptions, SourceInit, ViewerOpenOptions } from "../protocol.js";
-import { closeDocument, current, initBackend, openDocument, textModel, workerMemory } from "./document.js";
+import {
+  closeDocument,
+  current,
+  currentDocument,
+  initBackend,
+  openDocument,
+  textModel,
+  workerMemory,
+} from "./document.js";
 import { find, forgetSearch } from "./find.js";
 import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
 import { networkLog } from "./network.js";
@@ -17,8 +25,10 @@ import { forgetText, pageText, readingOrder, reflow, replyText, structure } from
 export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   initBackend: { run: ([init]) => initBackend(init as BackendInit) },
   openDocument: {
-    run: ([source, options], { signal }) => openDocument(source as SourceInit, options as ViewerOpenOptions, signal),
+    run: ([source, options, ticket], { signal }) =>
+      openDocument(source as SourceInit, options as ViewerOpenOptions, signal, ticket as number | undefined),
   },
+  currentDocument: { run: () => currentDocument() },
   closeDocument: {
     run: () => {
       forgetText();

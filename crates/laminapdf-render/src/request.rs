@@ -4,6 +4,7 @@
 use laminapdf_model::Matrix;
 use laminapdf_syntax::Rotation;
 
+use crate::appearance::PageAppearance;
 use crate::error::RenderError;
 
 /// The output pixel format of every backend: RGBA8, **straight (not premultiplied) alpha**,
@@ -140,7 +141,8 @@ impl Rgba8 {
     };
 }
 
-/// One render: a page, a scale, an optional tile, a view rotation, flags and a background.
+/// One render: a page, a scale, an optional tile, a view rotation, flags, a background and the
+/// page appearance.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderRequest {
     /// The page, 0-based (ADR 0027).
@@ -155,6 +157,8 @@ pub struct RenderRequest {
     pub flags: RenderFlags,
     /// The background; `None` is transparent.
     pub background: Option<Rgba8>,
+    /// How the page's colours are drawn (default: its own).
+    pub appearance: PageAppearance,
 }
 
 impl RenderRequest {
@@ -168,6 +172,7 @@ impl RenderRequest {
             rotation: Rotation::None,
             flags: RenderFlags::default(),
             background: Some(Rgba8::WHITE),
+            appearance: PageAppearance::Original,
         }
     }
 
@@ -196,6 +201,13 @@ impl RenderRequest {
     #[must_use]
     pub const fn with_background(mut self, background: Option<Rgba8>) -> Self {
         self.background = background;
+        self
+    }
+
+    /// The page appearance.
+    #[must_use]
+    pub const fn with_appearance(mut self, appearance: PageAppearance) -> Self {
+        self.appearance = appearance;
         self
     }
 }

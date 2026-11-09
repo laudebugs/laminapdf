@@ -35,7 +35,7 @@ export const ROUTES: readonly Route[] = [
   {
     id: "pickers",
     title: "Swatches and appearance chips",
-    components: ["SwatchGroup", "PageAppearanceChips"],
+    components: ["SwatchGroup", "PageAppearanceChips", "PageAppearanceFields"],
     pageRelated: true,
   },
   {

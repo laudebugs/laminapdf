@@ -20,6 +20,7 @@ import {
   ViewSettingsButton,
 } from "@laminapdf/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import type { PageAppearanceControls } from "./page-appearance.tsx";
 
 /** Where the appearance is kept; public/appearance.js reads the same key before the first paint. */
 const APPEARANCE_KEY = "lamina.appearance";
@@ -54,10 +55,11 @@ export interface Settings {
 }
 
 /**
- * The appearance, the View settings popover, the Settings dialog with its Appearance section and
- * the Keyboard shortcuts dialog, which offers `openPalette` when nothing matches.
+ * The appearance, the View settings popover (with `page`'s Page appearance section), the Settings
+ * dialog with its Appearance section and the Keyboard shortcuts dialog, which offers `openPalette`
+ * when nothing matches.
  */
-export function useSettings(openPalette: () => void): Settings {
+export function useSettings(openPalette: () => void, page: PageAppearanceControls): Settings {
   const [appearance, setAppearance] = useState(readAppearance);
   const [viewOpen, setViewOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -80,8 +82,9 @@ export function useSettings(openPalette: () => void): Settings {
       "help.shortcuts": () => setShortcutsOpen(true),
       "view.theme": (theme: unknown) => setAppearance((a) => ({ ...a, theme: theme as UiTheme })),
       "view.accent": (accent: unknown) => setAppearance((a) => ({ ...a, accent: accent as Accent })),
+      ...page.actions,
     }),
-    [],
+    [page.actions],
   );
   const viewButton = (
     <ViewSettingsButton
@@ -90,6 +93,7 @@ export function useSettings(openPalette: () => void): Settings {
       isOpen={viewOpen}
       onOpenChange={setViewOpen}
       onMoreSettings={() => setSettingsOpen(true)}
+      page={page.section}
     />
   );
   const dialogs = (

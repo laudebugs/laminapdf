@@ -9,7 +9,7 @@
 // is; during a gesture the canvases are stretched by CSS and the sharp re-render waits until the
 // gesture settles. Framework-free: UI layers read `getState()`, `subscribe()` and the events.
 
-import { type PixelRect, pagePixels } from "@laminapdf/render";
+import { type PageAppearance, type PixelRect, pagePixels } from "@laminapdf/render";
 import type { Target } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
@@ -22,7 +22,14 @@ import { LinkLayer, type LinkLayerOptions } from "../layers/link-layer.js";
 import { TextLayer, type TextLayerOptions, type TextSelection } from "../layers/text-layer.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { range } from "../layout/range.js";
-import { type OpenedDocument, type Priority, renderKey, renderKeyFields } from "../protocol.js";
+import {
+  appearanceField,
+  appearanceKey,
+  type OpenedDocument,
+  type Priority,
+  renderKey,
+  renderKeyFields,
+} from "../protocol.js";
 import { backdropRatio, bounds, contains, lowScale, sharpScale, tilesFor } from "../render/tiles.js";
 import { destinationView } from "../zoom/destination.js";
 import {
@@ -51,6 +58,8 @@ export interface ViewState {
   /** The zoom as a percentage (100 is actual size), whatever the mode. */
   readonly percent: number;
   readonly rotation: Rotation;
+  /** How the pages' colours are drawn (`"original"`: their own). */
+  readonly appearance: PageAppearance;
   readonly scrollTop: number;
   /** The pages any part of which is in the viewport. */
   readonly visibleRange: { readonly first: number; readonly last: number };
@@ -201,7 +210,7 @@ interface Held {
 /** A tile to draw: where it goes in the page's pixels, its render request and its cache key. */
 interface Tile {
   readonly clip: PixelRect;
-  readonly request: { page: number; scale: number; rotation: Rotation; clip: PixelRect };
+  readonly request: { page: number; scale: number; rotation: Rotation; clip: PixelRect; appearance?: PageAppearance };
   readonly key: string;
 }
 
@@ -227,6 +236,8 @@ interface PageView {
   state: PageRenderState;
   /** The geometry (scale and rotation, `geometryOf`) the canvas was last painted for ("": never). */
   painted: string;
+  /** The page appearance (`appearanceKey`) the canvas shows. */
+  appearance: string;
   /**
    * The scale (device px per pt) of the canvas painted at `painted`: the sharp tiles' scale. The
    * canvas is the page at this scale exactly, as the renderer sizes it (`pagePixels`).
@@ -246,6 +257,20 @@ interface PageView {
 
 function isAbort(e: unknown): boolean {
   return e instanceof DOMException && e.name === "AbortError";
+}
+
+/** The state before a document opens. */
+function emptyState(zoom: Zoom): ViewState {
+  return {
+    pageCount: 0,
+    currentPage: 0,
+    zoom,
+    percent: 100,
+    rotation: 0,
+    appearance: "original",
+    scrollTop: 0,
+    visibleRange: { first: 0, last: -1 },
+  };
 }
 
 /** What a painted canvas depends on: a zoom or a rotation makes it stale. */
@@ -349,15 +374,7 @@ export class Viewer {
     this.#spacer.className = "lamina-viewer-content";
     Object.assign(this.#spacer.style, { position: "relative" });
     this.#root.append(this.#spacer);
-    this.#state = {
-      pageCount: 0,
-      currentPage: 0,
-      zoom: this.#zoom,
-      percent: 100,
-      rotation: 0,
-      scrollTop: 0,
-      visibleRange: { first: 0, last: -1 },
-    };
+    this.#state = emptyState(this.#zoom);
     this.#listen();
     this.#text = this.#textLayer(options.text);
     if (this.#text !== undefined) this.addLayer(this.#text);
@@ -550,6 +567,31 @@ export class Viewer {
     this.#text?.refresh();
     this.#highlights.refresh();
     this.#links?.refresh();
+  }
+
+  /**
+   * Draws the pages in `appearance` (Sepia, Dark, High contrast or their own colours), keeping the
+   * scroll position: pages in view paint again, a quick pass then sharp tiles, and none of their
+   * old pixels is kept; other pages give their canvas back and paint when they come into view.
+   * The thumbnails follow.
+   */
+  setAppearance(appearance: PageAppearance): void {
+    if (appearanceKey(appearance) === appearanceKey(this.#state.appearance)) return;
+    const { first, last } = this.#state.visibleRange;
+    for (const view of [...this.#pages.values()]) {
+      this.#abort(view);
+      view.tiles.clear();
+      view.detail?.tiles.clear();
+      if (view.index >= first && view.index <= last) {
+        view.appearance = appearanceKey(appearance);
+        view.painted = "";
+      } else {
+        // Its shell shows the new paper until it is seen (`#readyForAppearance`).
+        this.#releaseCanvas(view);
+      }
+    }
+    this.#setState({ appearance });
+    this.#schedule();
   }
 
   /** The document point at viewport position (`x`, `y`) in CSS px. */
@@ -902,7 +944,12 @@ export class Viewer {
     shell.setAttribute("aria-roledescription", this.#regions.roleDescription ?? "page");
     shell.setAttribute("aria-label", this.#pageName(index));
     shell.tabIndex = -1;
-    Object.assign(shell.style, { position: "absolute", contain: "strict", background: "#fff" });
+    // The paper shows before the page is drawn: white, or the page appearance's (--lamina-page-paper).
+    Object.assign(shell.style, {
+      position: "absolute",
+      contain: "strict",
+      background: "var(--lamina-page-paper, #fff)",
+    });
     this.#spacer.append(shell);
     const view: PageView = {
       index,
@@ -912,6 +959,7 @@ export class Viewer {
       controller: new AbortController(),
       state: "placeholder",
       painted: "",
+      appearance: appearanceKey(this.#state.appearance),
       scale: 0,
       tiles: new Set(),
       detail: undefined,
@@ -1015,7 +1063,7 @@ export class Viewer {
 
   /** The tile `clip` of page `index` at `scale`: its render request and cache key. */
   #tile(index: number, layout: PageLayout, scale: number, clip: PixelRect): Tile {
-    const request = { page: index, scale, rotation: layout.rotation, clip };
+    const request = { page: index, scale, rotation: layout.rotation, clip, ...appearanceField(this.#state.appearance) };
     return { clip, request, key: renderKey(request, this.#document?.id ?? 0) };
   }
 
@@ -1048,6 +1096,39 @@ export class Viewer {
     return tiles.every((t) => detail.tiles.has(t.key));
   }
 
+  /**
+   * Whether `view` may paint now, catching it up with the appearance: a page out of view when the
+   * appearance changed waits until it is seen (`prefetch` doesn't paint it), then starts afresh.
+   */
+  #readyForAppearance(view: PageView, priority: PaintPriority): boolean {
+    const appearance = appearanceKey(this.#state.appearance);
+    if (view.appearance === appearance) return true;
+    if (priority === "prefetch") return false;
+    view.appearance = appearance;
+    view.painted = "";
+    return true;
+  }
+
+  /**
+   * Whether `view`'s canvas needs nothing for `frame`: painted at its geometry and, in view, with
+   * every tile in view drawn (then it is sharp). A margin page painted at its geometry waits.
+   */
+  #upToDate(view: PageView, priority: PaintPriority, frame: Frame): boolean {
+    if (view.painted !== geometryOf(frame.layout)) return false;
+    if (priority === "prefetch") return true;
+    // Sharp means every tile now in view is drawn: scrolling down a tall page sharpens the rest.
+    if (view.scale > 0 && this.#sharpInView(view, frame)) {
+      if (view.state !== "sharp") {
+        view.state = "sharp";
+        this.#emit("renderstats", this.stats());
+      }
+      return true;
+    }
+    // Tiles in view are missing (the page scrolled): it is no longer sharp until they are drawn.
+    if (view.state === "sharp") view.state = "low";
+    return false;
+  }
+
   /** Starts page `index`'s pass if it isn't busy and its canvas isn't done for `frame` yet. */
   #paint(index: number, priority: PaintPriority, frame: Frame): void {
     const view = this.#pages.get(index);
@@ -1056,20 +1137,7 @@ export class Viewer {
     if (view === undefined || this.#document === undefined || view.busy || view.waiting || view.state === "error") {
       return;
     }
-    const { layout } = frame;
-    if (view.painted === geometryOf(layout)) {
-      if (priority === "prefetch") return;
-      // Sharp means every tile now in view is drawn: scrolling down a tall page sharpens the rest.
-      if (view.scale > 0 && this.#sharpInView(view, frame)) {
-        if (view.state !== "sharp") {
-          view.state = "sharp";
-          this.#emit("renderstats", this.stats());
-        }
-        return;
-      }
-      // Tiles in view are missing (the page scrolled): it is no longer sharp until they are drawn.
-      if (view.state === "sharp") view.state = "low";
-    }
+    if (!this.#readyForAppearance(view, priority) || this.#upToDate(view, priority, frame)) return;
     view.busy = true;
     const pass = view.pass;
     void this.#pass(view, pass, priority, frame)
@@ -1122,7 +1190,12 @@ export class Viewer {
     const cssW = layout.widths[index] as number;
     const cssH = layout.heights[index] as number;
     const shown = rotated(this.#sizes[index] as PageSize, layout.rotation);
-    const request = { page: index, scale: lowScale(layout.scale * dpr, shown.width), rotation: layout.rotation };
+    const request = {
+      page: index,
+      scale: lowScale(layout.scale * dpr, shown.width),
+      rotation: layout.rotation,
+      ...appearanceField(this.#state.appearance),
+    };
     const low = await this.#bitmap(request, renderKey(request, this.#document?.id ?? 0), priority, signal);
     if (!live()) {
       this.#drop(low);

@@ -67,7 +67,7 @@ Give phone readers and people who need larger text a one-tap reader mode that tu
 - **Tests**: `e2e/reader-mode.e2e.test.ts` (Chromium and Firefox here): the mixed file's order and crops, the round trip (page 2 of the tagged report golden, the "Notes" heading at the column's top, then at the view's top within 80 px), the untagged refusal, Escape, 32 px text in a 640 px window without sideways scrolling, and axe; the gallery's `reader-mode` route (axe in three engines and three themes, screenshots).
 - **Deviations**:
   - *The tagged fixtures are new.* U2b's files aren't tagged, so reader mode's order is scored on tagged copies of its layouts, required to be exact.
-  - *Appearance chips wait for U2c*, which owns the page appearance setting; the column takes the current appearance's paper and ink.
+  - *No Appearance chips in the reader settings.* The page appearance is [U2c](./U2c-page-appearance-modes.md)'s View setting; the column takes its paper and ink, and while reader mode is on the Reader settings button takes the View button's place, so it is changed before entering or from the palette.
   - *Phone*: no bottom-bar Reader button or settings sheet; reader mode is in the palette, and the column works at phone width.
   - *Not built*: link spans in the text, "View original page" per block, Find in the column, the "How Reader mode works" help page, a table's cells as an HTML table, and a crop of an element over two pages (it shows its first page's part).
   - *The PDF Association's "Deriving HTML from PDF"* couldn't be reached from here; the role mapping follows ISO 32000-2 §14.8.4 and the repository's research notes.

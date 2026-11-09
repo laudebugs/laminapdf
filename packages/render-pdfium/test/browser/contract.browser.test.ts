@@ -12,6 +12,8 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/corpus/expected.json",
     "../../../../fixtures/encrypted/r4-aes-128-user.pdf",
     "../../../../fixtures/golden/render/pdfium/*.png",
+    "../../../../fixtures/appearance/*.pdf",
+    "../../../../fixtures/golden/render-appearance/pdfium/*.png",
   ],
   { query: "?url", import: "default", eager: true },
 );

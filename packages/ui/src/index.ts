@@ -240,6 +240,12 @@ export {
   type OutlineTreeProps,
   outlineItemAt,
 } from "./reader/outline-tree.js";
+export {
+  PageAppearanceFields,
+  type PageAppearanceFieldsProps,
+  type PageAppearanceScope,
+  pageAppearanceName,
+} from "./reader/page-appearance.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
 export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
 export {

@@ -21,10 +21,17 @@ body {
 .web-viewer {
   position: absolute;
   inset: 0;
+  /* A page's paper before it is drawn, in the page appearance's colour. */
+  --lamina-page-paper: var(--paper-page-paper);
   /* Find marks in the page appearance's colours (design language §2.6). */
   --lamina-find-match: var(--paper-page-find-match);
   --lamina-find-current: var(--paper-page-find-current);
   --lamina-find-current-outline: var(--paper-page-find-current-outline);
+}
+
+/* High contrast pages are drawn in the system's colours, so their paper before drawing is too. */
+:root[data-page-appearance="high-contrast"] .web-viewer {
+  --lamina-page-paper: Canvas;
 }
 
 /* Under reader mode's column: laid out, so leaving reader mode can scroll it at once, but unseen. */

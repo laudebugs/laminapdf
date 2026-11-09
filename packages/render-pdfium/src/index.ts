@@ -8,7 +8,7 @@
 //   pageToTile's matrix;
 // - straight RGBA through FPDF_REVERSE_BYTE_ORDER, copied out once into the result.
 // PDFium is synchronous: the AbortSignal is checked before and after the engine call.
-import { init, type WrappedPdfiumModule } from "@embedpdf/pdfium";
+import { init } from "@embedpdf/pdfium";
 import {
   checkInputSize,
   checkOpen,
@@ -16,9 +16,11 @@ import {
   flagsOf,
   limitsOf,
   MAX_WASM_INPUT,
+  mostlyChanged,
   pageToTile,
   pendingError,
   planTile,
+  type Quad,
   type RenderBackend,
   type RenderDocument,
   RenderError,
@@ -32,16 +34,18 @@ import {
   type Rgba8,
   readFailure,
   readRange,
+  recolours,
+  recolourTile,
   type TilePlan,
   throwIfAborted,
   type WasmSource,
   WHITE,
 } from "@laminapdf/render";
+import { heap, type Pdfium } from "./engine.js";
+import { annotationRects, pageImages, userToTile } from "./regions.js";
 
 /** The pinned package (ADR 0004 §3); its pdfium.wasm's SHA-256 is checked at build time. */
 export const PDFIUM_PACKAGE = "@embedpdf/pdfium@2.15.1";
-
-type Pdfium = WrappedPdfiumModule;
 
 // fpdfview.h
 const FPDF_ANNOT = 0x01;
@@ -50,6 +54,8 @@ const FPDF_REVERSE_BYTE_ORDER = 0x10;
 const FPDF_PRINTING = 0x800;
 const FPDFBITMAP_BGRA = 4;
 const FPDF_ERR_PASSWORD = 4;
+/** The longest side of the page drawing that decides which annotations keep their whole rectangle. */
+const DECISION_SIDE = 256;
 
 type WasmBytes = ArrayBuffer | ArrayBufferView<ArrayBuffer>;
 
@@ -135,10 +141,6 @@ export class PdfiumBackend implements RenderBackend {
   }
 }
 
-function heap(p: Pdfium): WebAssembly.Memory {
-  return (p.pdfium.wasmExports as unknown as { memory: WebAssembly.Memory }).memory;
-}
-
 /** What the source refused during one engine call: missing ranges, or a failed read. */
 interface Reads {
   readonly pending: (readonly [number, number])[];
@@ -166,6 +168,10 @@ class PdfiumDocument implements RenderDocument {
   readonly #p: Pdfium;
   readonly #limits: RenderLimits;
   readonly #pages = new Map<number, RenderPage>();
+  /** Per page, which annotations keep their whole rectangle when recoloured (decided once, small). */
+  readonly #whole = new Map<number, boolean[]>();
+  /** Per page, whether each image (by its place among the page's images) has transparent samples. */
+  readonly #alpha = new Map<number, Map<number, boolean>>();
   readonly #reads: Reads;
   #doc: number;
   #form: number;
@@ -339,10 +345,31 @@ class PdfiumDocument implements RenderDocument {
     const bitmap = p.FPDFBitmap_CreateEx(width, height, FPDFBITMAP_BGRA, buffer, width * 4);
     try {
       if (bitmap === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate the tile");
-      this.#fillBackground(bitmap, plan, request.background === undefined ? WHITE : request.background);
-      this.#draw(bitmap, page, plan, info, request);
-      const pixels = new Uint8ClampedArray(plan.byteLength);
-      pixels.set(new Uint8Array(heap(p).buffer, buffer, plan.byteLength));
+      const background = request.background === undefined ? WHITE : request.background;
+      const flags = flagsOf(request.flags);
+      const copy = () => new Uint8ClampedArray(heap(p).buffer.slice(buffer, buffer + plan.byteLength));
+      const drawn = (annotations: boolean) => {
+        this.#fillBackground(bitmap, plan, background);
+        this.#draw(bitmap, page, plan, info, request, annotations);
+        return copy();
+      };
+      if (!recolours(request.appearance)) return { width, height, pixels: drawn(flags.annotations) };
+      // Recoloured: the content alone, then (when the page has any) the annotations drawn again
+      // over it, whose pixels keep their colours; images keep theirs too.
+      const pixels = drawn(false);
+      const toTile = userToTile(p, page, info, plan, request.rotation ?? 0);
+      const rects = flags.annotations ? annotationRects(p, page, toTile) : [];
+      const annotated =
+        rects.length > 0 ? { pixels: drawn(true), whole: this.#wholeOf(page, request, info, rects) } : undefined;
+      const alpha = this.#alpha.get(request.page) ?? new Map<number, boolean>();
+      this.#alpha.set(request.page, alpha);
+      const images = pageImages(p, this.#doc, page, toTile, { tile: [width, height], alpha });
+      recolourTile(request.appearance ?? "original", width, pixels, {
+        images: images.opaque,
+        seeThrough: images.seeThrough,
+        background,
+        ...(annotated === undefined ? {} : { annotated }),
+      });
       return { width, height, pixels };
     } finally {
       if (bitmap !== 0) p.FPDFBitmap_Destroy(bitmap);
@@ -351,11 +378,47 @@ class PdfiumDocument implements RenderDocument {
   }
 
   /**
+   * The annotation rectangles (`rects`, in tile pixels) that keep their whole area: decided once
+   * per page on a drawing of the whole page at most DECISION_SIDE pixels on a side, so two tiles
+   * sharing an annotation always agree.
+   */
+  #wholeOf(page: number, request: RenderRequest, info: RenderPage, rects: readonly Quad[]): Quad[] {
+    let flags = this.#whole.get(request.page);
+    if (flags === undefined) {
+      const scale = DECISION_SIDE / Math.max(info.width, info.height, 1);
+      const small = {
+        page: request.page,
+        scale,
+        ...(request.flags === undefined ? {} : { flags: request.flags }),
+        ...(request.background === undefined ? {} : { background: request.background }),
+      };
+      const without = this.#renderPage(page, { ...small, flags: { ...request.flags, annotations: false } });
+      const withAnnotations = this.#renderPage(page, small);
+      const smallRects = annotationRects(
+        this.#p,
+        page,
+        userToTile(this.#p, page, info, planTile(info, small, this.#limits), 0),
+      );
+      flags = mostlyChanged(smallRects, without.pixels, withAnnotations.pixels, without.width);
+      this.#whole.set(request.page, flags);
+    }
+    const known = flags;
+    return rects.filter((_, i) => known[i] === true);
+  }
+
+  /**
    * Draws the page into the bitmap. Widgets need the whole page laid out and shifted, since
    * FPDF_FFLDraw takes no matrix; without them the matrix call draws only the tile.
    */
-  #draw(bitmap: number, page: number, plan: TilePlan, info: RenderPage, request: RenderRequest): void {
-    const flags = flagsOf(request.flags);
+  #draw(
+    bitmap: number,
+    page: number,
+    plan: TilePlan,
+    info: RenderPage,
+    request: RenderRequest,
+    annotations: boolean,
+  ): void {
+    const flags = { ...flagsOf(request.flags), annotations };
     const renderFlags = renderFlagsOf(flags);
     const rotation = request.rotation ?? 0;
     if (flags.annotations && flags.formWidgets) {
