@@ -109,6 +109,16 @@ describe("summarize", () => {
     expect(summary.unexpected).toEqual(["https://tracker.example"]);
   });
 
+  it("leaves out a call the policy blocked, which sent nothing", () => {
+    const monitor = new NetworkMonitor();
+    monitor.documentOpening(0, undefined);
+    monitor.pageRequest(record("http://127.0.0.1:9/x", 1, { source: "page", failed: true }));
+    monitor.pageViolation({ directive: "connect-src", blockedUri: "http://127.0.0.1:9/x", source: "page", at: 1 });
+    const summary = summarize(monitor.getState(), APP);
+    expect(summary).toMatchObject({ total: 0, documentRequests: 0 });
+    expect(summary.blocked).toHaveLength(1);
+  });
+
   it("ignores URLs without a network origin", () => {
     const monitor = new NetworkMonitor();
     monitor.pageRequest(record("data:text/plain,x", 1, { source: "page" }));

@@ -84,9 +84,22 @@ export function summarize(state: NetworkState, appOrigin: string): NetworkSummar
   >();
   const appRows = new Map<RequestPurpose, AppRow & { requests: number; bytes: number }>();
   let total = 0;
+  // A request the policy blocked sent nothing, though a wrapped call fails like any other and some
+  // engines still give it a timing entry: each violation cancels one record of its address.
+  const blocked = new Map<string, number>();
+  for (const v of state.violations) {
+    const key = `${v.source} ${v.blockedUri}`;
+    blocked.set(key, (blocked.get(key) ?? 0) + 1);
+  }
   for (const record of state.requests) {
     const origin = originOf(record.url);
     if (origin === undefined) continue;
+    const key = `${record.source} ${record.url}`;
+    const left = blocked.get(key) ?? 0;
+    if (left > 0) {
+      blocked.set(key, left - 1);
+      continue;
+    }
     total += 1;
     const group = classifyRequest(record.url, { appOrigin, documentUrl: documentAt(record.at) });
     if (group === "app") {

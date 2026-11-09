@@ -166,7 +166,13 @@ function observeResources(scope: Scope, report: Report): void {
   const Observer = scope.PerformanceObserver;
   if (Observer === undefined) return;
   const types = new Set(Observer.supportedEntryTypes ?? []);
+  // A document navigates once, but Chromium reports its navigation entry again when the load ends.
+  let navigated = false;
   const take = (entry: PerformanceEntry) => {
+    if (entry.entryType === "navigation") {
+      if (navigated) return;
+      navigated = true;
+    }
     const timing = entry as PerformanceResourceTiming;
     if (WRAPPED_INITIATORS.has(timing.initiatorType)) return;
     if (!/^https?:/.test(timing.name)) return;
