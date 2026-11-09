@@ -1,0 +1,74 @@
+# TEMPORARY (todo D1b): runs spikes/desktop-print on GitHub-hosted runners, the only Windows and
+# Linux machines the spike can reach. Spikes are not in CI: this file is deleted before the PR
+# merges, and the CSVs and screenshots it uploads are committed under spikes/desktop-print/results/.
+name: Spike desktop-print
+
+on:
+  push:
+    branches: [spike/d1b-desktop-print]
+    paths:
+      - spikes/desktop-print/**
+      - .github/workflows/spike-desktop-print.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spike-desktop-print
+  cancel-in-progress: true
+
+jobs:
+  print:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2025, label: windows-2025 }
+          - { os: ubuntu-24.04, label: linux-x11 }
+          - { os: macos-15, label: macos-15-hosted }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+      - uses: ./.github/actions/node-pnpm
+        with:
+          package-json-file: spikes/desktop-print/package.json
+          install: spikes/desktop-print
+      - name: Linux packages (WebKitGTK 4.1, Xvfb, CUPS with a PDF printer, ImageMagick)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev xvfb cups printer-driver-cups-pdf imagemagick
+          sudo systemctl start cups
+          lpstat -p -d || true
+      - name: PDFium
+        shell: bash
+        run: cargo xtask fetch-pdfium | grep '^LAMINA_PDF_PDFIUM_DIR=' >> "$GITHUB_ENV"
+      - name: Run (Windows)
+        if: runner.os == 'Windows'
+        run: spikes/desktop-print/scripts/run-all.ps1 ${{ matrix.label }}
+      - name: Run (macOS)
+        if: runner.os == 'macOS'
+        run: spikes/desktop-print/scripts/run-all.sh ${{ matrix.label }}
+      - name: Run (Linux, X11 on Xvfb)
+        if: runner.os == 'Linux'
+        env:
+          WEBKIT_DISABLE_DMABUF_RENDERER: "1"
+          GDK_BACKEND: x11
+          LAMINA_SPIKE_CUPS_PRINTER: PDF
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" spikes/desktop-print/scripts/run-all.sh ${{ matrix.label }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: results-${{ matrix.label }}
+          path: |
+            spikes/desktop-print/results/*.csv
+            spikes/desktop-print/results/*.txt
+            spikes/desktop-print/results/dialogs/
+          if-no-files-found: warn

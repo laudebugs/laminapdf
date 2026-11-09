@@ -1,0 +1,61 @@
+[package]
+name = "desktop-print"
+version = "0.0.0"
+description = "Spike D1b: webview, native raster and native vector printing per OS; measurements only, never shipped."
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+default-run = "desktop-print"
+
+# Its own workspace: spikes sit outside the root one (code-organization.md §1).
+[workspace]
+
+[lib]
+name = "desktop_print"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "=2.7.4", features = [] }
+
+[dependencies]
+# The versions the desktop-ipc spike measured (Tauri 2.12).
+tauri = { version = "=2.12.5", features = [] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+# PDFium directly (not through laminapdf-render-pdfium): path C on Windows needs its raw
+# FPDF_RenderPage onto a printer HDC. The same pinned build (LAMINA_PDF_PDFIUM_DIR).
+pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe"] }
+png = "=0.18.1"
+sysinfo = { version = "=0.39.6", default-features = false, features = ["system"] }
+# Fixture generation and the fidelity check (bins only).
+laminapdf = { path = "../../../crates/laminapdf" }
+laminapdf-test-fixtures = { path = "../../../crates/laminapdf-test-fixtures" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "=0.6.5"
+objc2-foundation = "=0.3.2"
+objc2-app-kit = "=0.3.2"
+objc2-pdf-kit = "=0.3.2"
+objc2-web-kit = "=0.3.2"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.62.2", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Storage_Xps",
+    "Win32_UI_Controls_Dialogs",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Com",
+    "Win32_System_Memory",
+] }
+webview2-com = "=0.39.1"
+# The same pin with PDFium's GDI entry point (FPDF_RenderPage onto an HDC) for path C.
+pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe", "pdfium_use_win32"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "=0.18.2"
+webkit2gtk = "=2.0.2"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
