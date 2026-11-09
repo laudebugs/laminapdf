@@ -49,6 +49,8 @@ export interface Settings {
   readonly viewButton: ReactNode;
   /** The Settings and Keyboard shortcuts dialogs. */
   readonly dialogs: ReactNode;
+  /** The Settings dialog's sections, which other parts of the app add to. */
+  readonly registry: SettingsRegistry;
 }
 
 /**
@@ -102,5 +104,5 @@ export function useSettings(openPalette: () => void): Settings {
       />
     </>
   );
-  return { appearance, actions, viewButton, dialogs };
+  return { appearance, actions, viewButton, dialogs, registry };
 }

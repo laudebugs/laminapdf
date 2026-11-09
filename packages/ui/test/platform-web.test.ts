@@ -348,6 +348,24 @@ describe("storage and recent files on the web", () => {
     expect(await platform.recent.reopen?.(entry?.id ?? "")).toBeUndefined();
   });
 
+  it("keeps a document's page count", async () => {
+    const { recent } = createWebPlatform(fakeScope());
+    await recent.add(fakeFile("report.pdf"), { pages: 24 });
+    await recent.add(fakeFile("notes.pdf"));
+    const entries = await recent.list();
+    expect(entries.map((e) => [e.name, e.pages])).toEqual([
+      ["notes.pdf", undefined],
+      ["report.pdf", 24],
+    ]);
+    expect(entries.every((e) => e.hasHandle === false)).toBe(true);
+  });
+
+  it("says which entries kept a handle", async () => {
+    const platform = createWebPlatform(chromiumLike({ indexedDB: fakeIndexedDb() }));
+    await platform.recent.add({ ...fakeFile("kept.pdf"), handle: fakeHandle("kept.pdf").handle });
+    expect((await platform.recent.list())[0]?.hasHandle).toBe(true);
+  });
+
   it("removes one recent document, or all of them", async () => {
     const { recent } = createWebPlatform(fakeScope());
     await recent.add(fakeFile("a.pdf"));

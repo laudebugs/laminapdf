@@ -334,6 +334,22 @@ function settingsCommands(): AnyCommand[] {
       shortcuts: [desktop("Mod+,")],
       home: ["view-settings", "help-menu"],
     }),
+    // R15: the app's handlers exist only while the browser offers an install or an update waits.
+    delegated({
+      id: "app.install",
+      title: title("app.install"),
+      keywords: ["install", "app", "offline", "open with"],
+      group: "app",
+      icon: "download",
+      home: ["file-menu"],
+    }),
+    delegated({
+      id: "app.reload-update",
+      title: title("app.reload-update"),
+      keywords: ["update", "new version", "reload"],
+      group: "app",
+      home: ["status-bar"],
+    }),
   ];
 }
 

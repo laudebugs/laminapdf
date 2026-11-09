@@ -80,7 +80,7 @@ export interface PlatformFile {
   - `get(key)`, `set(key, value)` and `delete(key)` for small metadata (IndexedDB on the web);
   - `persist()`, which requests persistent storage;
   - `clear()`, used by the settings page.
-- **`RecentFiles`:** `list()`, `add(file)`, `remove(id)` and `clear()`, plus `reopen(id)` when `canReopenRecent`. The entries hold the name, size, last-opened time and an opaque reopen token. Never the bytes or a URL (ADR 0011 §3).
+- **`RecentFiles`:** `list()`, `add(file, { pages })`, `remove(id)` and `clear()`, plus `reopen(id)` when `canReopenRecent`. The entries hold the name, size, page count, last-opened time, an opaque reopen token and whether one was kept (`hasHandle`). Never the bytes or a URL (ADR 0011 §3). (Page count and `hasHandle` added by C7b, 2026-11-09.)
 
 ### 2. Capability flags and their web values
 

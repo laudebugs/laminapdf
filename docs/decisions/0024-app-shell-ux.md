@@ -210,7 +210,7 @@ The shell targets WCAG 2.2 level AA. These rules come straight from the W3C text
 
 ## Appendix: the reader v0.1 command set
 
-U1b registered these 39 commands, U2a added the five below `selection.actions` (amended 2026-11-09), and C7a added `view.settings` and `app.settings` (amended 2026-11-09), so the reader registers 46. Shortcuts follow the design language's table, and "page" means the page has focus. A "menu" is the command's group in the web's overflow menu and in the desktop app's menu bar. Three ids are new in this ADR and join the design language's appendix in this PR: `mode.comment` (§2), `view.set-zoom` (a percentage) and `view.rotate-display` (a quarter turn of the view, which never changes the file).
+U1b registered these 39 commands, U2a added the five below `selection.actions` (amended 2026-11-09), C7a added `view.settings` and `app.settings` (amended 2026-11-09), and C7b added `app.install` and `app.reload-update` from the design language's appendix (amended 2026-11-09), so the reader registers 48. Shortcuts follow the design language's table, and "page" means the page has focus. A "menu" is the command's group in the web's overflow menu and in the desktop app's menu bar. Three ids are new in this ADR and join the design language's appendix in this PR: `mode.comment` (§2), `view.set-zoom` (a percentage) and `view.rotate-display` (a quarter turn of the view, which never changes the file).
 
 | Id | Title | Arguments | Shortcut (macOS / others) | Visible home |
 | --- | --- | --- | --- | --- |
@@ -243,6 +243,8 @@ U1b registered these 39 commands, U2a added the five below `selection.actions` (
 | `view.accent` | Accent colour | `teal`, `blue`, `plum`, `green` | — | View settings |
 | `view.settings` | View settings | — | — | Top bar |
 | `app.settings` | Settings | — | ⌘, / Ctrl , (desktop app) | View settings; Help menu |
+| `app.install` | Install Lamina PDF… | — | — | More menu, while the browser offers an install |
+| `app.reload-update` | Reload to update | — | — | Status bar's Update ready, while an update waits |
 | `view.toggle-sidebar` | Show or hide sidebar | — | — | Top bar |
 | `view.focus-mode` | Focus mode | — | ⌘\ / Ctrl \ | View menu |
 | `find.open` | Find in document | — | ⌘F / Ctrl F | Top bar |
