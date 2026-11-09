@@ -23,7 +23,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 - [UI/UX plan §5.2 and §5.5](../../plans/ui-ux.md#52-command-registry-and-palette-r3) — the shortcut map and help dialog are generated from [U1b](../done/U1b-command-registry-and-palette.md)'s command registry (no hand-written keymap); page appearance (Original/Sepia/Dark/High contrast) is [U2c](./U2c-page-appearance-modes.md)'s, so this todo does UI themes only and drops the "night reading" filter.
 - [web-app.md §2 scope](../../plans/web-app.md#2-scope-and-non-goals) and [§4 functional 8](../../plans/web-app.md#functional), [non-functional](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (WCAG 2.2 AA; zero serious/critical axe violations), [§7 risks](../../plans/web-app.md#7-risks) (untagged PDFs).
 - [web-frontend notes §7](../../research/architecture/notes/web-frontend.md) — a11y comes from DOM layers; only mounted pages have DOM (mitigate with outline/landmarks, `aria-setsize`/`aria-posinset`, keyboard page jump); theming via CSS custom properties; don't invert page rendering in dark mode except an explicit night filter.
-- [C5a](./C5a-text-layer-and-selection.md) (text and struct-tree layers), [C4a](../done/C4a-ui-chrome-and-platform.md) (tokens, message catalogue).
+- [C5a](../ongoing/C5a-text-layer-and-selection.md) (text and struct-tree layers), [C4a](../done/C4a-ui-chrome-and-platform.md) (tokens, message catalogue).
 - WCAG 2.2 (W3C Recommendation) — success criteria 2.1.1 keyboard, 2.4.3 focus order, 2.4.7/2.4.11 focus visible/not obscured, 1.4.3/1.4.11 contrast, 2.3.3 animation from interactions, 4.1.3 status messages.
 
 ## Scope

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C5a](./C5a-text-layer-and-selection.md), [C6a](./C6a-thumbnails-outline-page-labels.md) |
+| Depends on | [C5a](../ongoing/C5a-text-layer-and-selection.md), [C6a](./C6a-thumbnails-outline-page-labels.md) |
 | ADRs | Follows 0004 (link geometry from lamina's model, not the renderer), 0009 (framework-free link layer), 0010 (`Platform.openExternal`), 0011 (no referrer, external links confirm before leaving) |
 | Branch | `feat/c6b-links-and-history` |
 | PR title | `feat(viewer): add the link layer with external-link confirmation and navigation history` |
