@@ -143,6 +143,9 @@ importers:
       '@codemirror/lang-javascript':
         specifier: 6.2.5
         version: 6.2.5
+      '@codemirror/language':
+        specifier: 6.13.1
+        version: 6.13.1
       '@laminapdf/fonts':
         specifier: workspace:*
         version: link:../../packages/fonts
@@ -164,6 +167,9 @@ importers:
       '@laminapdf/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@lezer/highlight':
+        specifier: 1.2.5
+        version: 1.2.5
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.5

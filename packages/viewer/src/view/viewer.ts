@@ -10,6 +10,7 @@
 // gesture settles. Framework-free: UI layers read `getState()`, `subscribe()` and the events.
 
 import { type PixelRect, pagePixels } from "@laminapdf/render";
+import type { Target } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
@@ -20,6 +21,7 @@ import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from ".
 import { range } from "../layout/range.js";
 import { type OpenedDocument, type Priority, renderKey, renderKeyFields } from "../protocol.js";
 import { backdropRatio, bounds, contains, lowScale, sharpScale, tilesFor } from "../render/tiles.js";
+import { destinationView } from "../zoom/destination.js";
 import {
   contentPosition,
   type DocumentPoint,
@@ -419,6 +421,27 @@ export class Viewer {
       options.anchor === "center"
         ? top + (layout.heights[page] as number) / 2 - this.#root.clientHeight / 2
         : Math.max(0, top);
+    this.#schedule();
+  }
+
+  /**
+   * Goes to `target` (an outline item's, a named destination's or a link's, from
+   * `ViewerClient.outline` or `namedDestination`): its zoom if it sets one, then its point at the
+   * viewport's top-left, or its page's top when it names no point (ISO 32000-2 §12.3.2.2).
+   */
+  goToDestination(target: Target): void {
+    this.#touch.stopMomentum();
+    const size = this.#sizes[target.page];
+    if (this.#layout === undefined || size === undefined) return;
+    const view = destinationView(target, size, this.#rotation, this.#viewport(), this.#gap);
+    if (view.zoom !== undefined) {
+      this.#zoom = view.zoom;
+      this.#rezoom(undefined);
+    }
+    const layout = this.#layout;
+    const at = contentPosition(layout, this.#root.clientWidth, { page: view.page, x: view.x ?? 0, y: view.y ?? 0 });
+    this.#root.scrollTop = Math.max(0, view.y === undefined ? layout.offsetOf(view.page) - this.#gap / 2 : at.y);
+    if (view.x !== undefined) this.#root.scrollLeft = Math.max(0, at.x);
     this.#schedule();
   }
 

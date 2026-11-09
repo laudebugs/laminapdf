@@ -112,6 +112,7 @@ mod generated {
     pub(crate) mod explain;
 }
 mod job;
+mod navigation;
 #[cfg(feature = "extract")]
 mod redaction;
 #[cfg(feature = "extract")]
@@ -134,6 +135,7 @@ pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
+pub use navigation::{OutlineNode, PageTarget, PageTargetView};
 pub use structure::{StructureKid, StructureNode};
 
 /// The JSON Schema of the error and warning object, `laminapdf.error/1` (ADR 0026 §1), as

@@ -1,10 +1,11 @@
 // The page side of "Edit and run" (todo B7e): loaded only when a reader presses the button. It puts
-// CodeMirror over the example's code, wires up the bar the page renders, sends the code to the runner (worker.ts, one per page, started
+// CodeMirror over the example's code in the Paper look (theme.ts), wires up the bar the page renders, sends the code to the runner (worker.ts, one per page, started
 // on the first run), and shows each page of the result, or the error with its code and hint.
 
 import { javascript } from "@codemirror/lang-javascript";
 import { basicSetup, EditorView } from "codemirror";
 import type { RunReply, RunRequest } from "./protocol.js";
+import { paperTheme } from "./theme.js";
 
 /** The runner's address: a fixed path, so its own headers (public/_headers' `/run/*`) apply. */
 const WORKER = "/run/worker.js";
@@ -104,7 +105,7 @@ export function openRunner(buttons: RunButtons, file: string, source: string, pi
   const view = new EditorView({
     doc: source,
     parent: editorHost,
-    extensions: [basicSetup, javascript({ typescript: true }), EditorView.lineWrapping],
+    extensions: [basicSetup, javascript({ typescript: true }), EditorView.lineWrapping, paperTheme],
   });
   /** The last PDF as a data: URL: not a blob: one, since Chromium checks a blob: download against
    * the page's CSP, which lists no blob: (ADR 0011), and reports a violation though the file arrives. */

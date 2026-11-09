@@ -16,7 +16,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "fpdf2.pdf": {
     "size": 1307,
@@ -37,7 +39,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "hello-broken.pdf": {
     "size": 599,
@@ -56,7 +60,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "hello-incremental.pdf": {
     "size": 810,
@@ -75,7 +81,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "hello-xrefstm.pdf": {
     "size": 521,
@@ -94,7 +102,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "hello.pdf": {
     "size": 599,
@@ -113,7 +123,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "imaging-demo.pdf": {
     "size": 1467,
@@ -132,7 +144,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "outline.pdf": {
     "size": 2594,
@@ -163,6 +177,19 @@
       "Section 2.2",
       "Appendix 𝄞 Ω",
       "Notes"
+    ],
+    "outline_pages": [
+      0,
+      1,
+      1,
+      null,
+      null,
+      2
+    ],
+    "page_labels": [
+      "i",
+      "A-1",
+      "A-2"
     ]
   },
   "pdflib.pdf": {
@@ -182,7 +209,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "raw.pdf": {
     "size": 983,
@@ -201,7 +230,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "reportlab.pdf": {
     "size": 1763,
@@ -221,7 +252,9 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "signed.pdf": {
     "size": 7436,
@@ -243,7 +276,9 @@
       "/Type",
       "/Version"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "tampered.pdf": {
     "size": 7436,
@@ -265,7 +300,9 @@
       "/Type",
       "/Version"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   },
   "text-example.pdf": {
     "size": 9497,
@@ -289,6 +326,8 @@
       "/Type",
       "/ViewerPreferences"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null
   }
 }

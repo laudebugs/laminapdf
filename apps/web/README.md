@@ -36,7 +36,9 @@ Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by 
 
 A link of the form `https://app.laminapdf.com/#url=<address>&page=<n>` opens the PDF at `<address>`, at page `<n>`. The address sits in the fragment, after `#`, which browsers never send to a server. The reader's document worker then fetches the file straight from its site with HTTP Range requests, so a large file shows its first page after only a small part has arrived.
 
-The address must be encoded as a whole with `encodeURIComponent`: `#url=https%3A%2F%2Fexample.com%2Freport.pdf%3Fv%3D2&page=5` opens `https://example.com/report.pdf?v=2` at page 5. The reader refuses an address pasted without encoding, since its own `&page=` could then belong to the address. It also opens only `https://` addresses. When only `page` changes, the reader moves within the open document; Back and Forward never fetch it again. Leaving the document drops `url` from the address without adding a history entry, so a reload shows the home screen.
+The address must be encoded as a whole with `encodeURIComponent`: `#url=https%3A%2F%2Fexample.com%2Freport.pdf%3Fv%3D2&page=5` opens `https://example.com/report.pdf?v=2` at page 5. The reader refuses an address pasted without encoding, since its own `&page=` could then belong to the address. It also opens only `https://` addresses. When only `page` or `nameddest` changes, the reader moves within the open document; Back and Forward never fetch it again. Leaving the document drops `url` from the address without adding a history entry, so a reload shows the home screen.
+
+`&nameddest=<name>` opens a named destination, a place the PDF's author named, such as `chapter-2`, instead of a page, as in pdf.js: `#url=…&nameddest=chapter-2`. `page` and `nameddest` also work on a file opened from your device.
 
 The file's site must send it uncompressed and allow other sites to read it, with these response headers:
 

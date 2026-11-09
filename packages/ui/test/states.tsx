@@ -15,6 +15,8 @@ import {
   Notice,
   OpenFailure,
   OutlineRow,
+  OutlineTree,
+  type OutlineTreeItem,
   PageAppearanceChips,
   PageInput,
   PageLabel,
@@ -287,6 +289,16 @@ const rail: Example[] = [
     component: "OutlineRow",
     state: "level 2",
     element: () => <OutlineRow title="Open repairs by region" page="3" level={2} onPress={noop} toggle="space" />,
+  },
+  {
+    component: "OutlineTree",
+    state: "nested, current section open",
+    element: () => <OutlineTree items={OUTLINE} current="1.1" onNavigate={noop} />,
+  },
+  {
+    component: "OutlineTree",
+    state: "closed",
+    element: () => <OutlineTree items={OUTLINE.map((i) => ({ ...i, open: false }))} onNavigate={noop} />,
   },
   {
     component: "OutlineRow",
@@ -594,6 +606,22 @@ const repairs: Example[] = [
 ];
 
 /** Every example, grouped as the design language's §7 orders the components. */
+/** A two-level outline with labelled pages (the outline tree's states). */
+const OUTLINE: readonly OutlineTreeItem[] = [
+  { id: "0", title: "Summary", page: "i", children: [] },
+  {
+    id: "1",
+    title: "2. Repairs backlog",
+    page: "3",
+    open: true,
+    children: [
+      { id: "1.0", title: "Open repairs by region", page: "3", children: [] },
+      { id: "1.1", title: "Closed this quarter", page: "4", children: [] },
+    ],
+  },
+  { id: "2", title: "3. Budget", page: "7", children: [{ id: "2.0", title: "Capital", page: "8", children: [] }] },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,

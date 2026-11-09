@@ -52,3 +52,50 @@ body {
 .lamina-text-layer span::selection {
   background: var(--paper-page-selection-tint);
 }
+
+/* The rail's Pages tab: the viewer's thumbnails strip fills the panel and scrolls inside it, each
+   thumbnail in the Paper thumbnail's look (§7.6): a white page with the thumbnail shadow and a
+   hairline, its label below; the current page gets the accent outline and a bold label. */
+.web-thumbnails {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+.web-thumbnails .lamina-thumbnails {
+  flex: 1;
+  min-block-size: 0;
+}
+
+.web-thumbnails .lamina-thumbnail {
+  outline: none;
+}
+
+.web-thumbnails .lamina-thumbnail-page {
+  outline: var(--paper-border-width) solid var(--paper-hairline);
+  background: var(--paper-page-paper);
+  box-shadow: var(--paper-shadow-thumbnail);
+}
+
+.web-thumbnails .lamina-thumbnail[aria-selected="true"] .lamina-thumbnail-page {
+  outline: var(--paper-focus-ring-width) solid var(--paper-accent);
+  outline-offset: var(--paper-thumbnail-current-offset);
+}
+
+.web-thumbnails .lamina-thumbnail:focus-visible .lamina-thumbnail-page {
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset);
+}
+
+.web-thumbnails .lamina-thumbnail-label {
+  margin-block-start: var(--paper-space-4);
+  font: var(--paper-type-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-muted);
+}
+
+.web-thumbnails .lamina-thumbnail[aria-selected="true"] .lamina-thumbnail-label {
+  font-weight: 600;
+  color: var(--paper-text);
+}

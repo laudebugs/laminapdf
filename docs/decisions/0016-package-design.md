@@ -103,12 +103,14 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 | base (`lamina_pdf_base.wasm`) | 382,000 (brotli 304,955; L2c, 2026-10-30) | **410,000** (amended 2026-10-31; was 390,000) | 6.8 % |
 | text (`lamina_pdf_text.wasm`) | 1,130,353 (brotli 858,911; with the text-layer status, T3a, 2026-11-08) | **1,200,000** (amended 2026-11-08; was 1,130,000) | 5.8 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
-| `@laminapdf/sdk` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 10,041 | **20,000** | 50 % |
-| extract (`lamina_pdf_extract.wasm`, B9c) | 644,492 (brotli 500,756; with the text-layer status, T3a, 2026-11-08) | **690,000** (amended 2026-11-08; was 650,000) | 6.6 % |
+| `@laminapdf/sdk` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 20,265 (with the outline, C6a, 2026-11-09) | **21,000** (amended 2026-11-09; was 20,000) | 3.5 % |
+| extract (`lamina_pdf_extract.wasm`, B9c) | 691,643 (brotli 536,127; with the outline and named destinations, C6a, 2026-11-09) | **725,000** (amended 2026-11-09; was 690,000) | 4.8 % |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |
 
 The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, plan §4), enforced by B6b. A module without a budget fails the check, so a new module can't ship unmeasured. A module that grows more than 5 % over the baseline in `size-budgets.json` gets a twiggy top-items diff against the baseline in the job summary; `cargo xtask size --update-baseline` records a new baseline when a growth is accepted. Raising a budget is an amendment of this table, approved by the owner.
+
+**Amendment (owner, 2026-11-09, C6a):** the extract module's budget rises from 690,000 to 725,000 bytes and `@laminapdf/sdk`'s JS from 20,000 to 21,000. The outline and named destinations ([C6a](../todos/done/C6a-thumbnails-outline-page-labels.md)) link `laminapdf-model`'s outline and destination code into the extract and text modules for the first time: on `main` with the text layer (C5a) the extract module measured 681,541 and the JS 19,879; with C6a, 691,643 and 20,265. The new budgets are the measurement plus about 5 % headroom (the JS's, about 3.5 %), the rule of L3e's amendment. The text module fits its budget unchanged (1,178,372 of 1,200,000).
 
 **Amendment (owner, 2026-11-08, [ADR 0032](0032-flowing-layout-and-document-inputs.md#9-budgets)):** the text module's budget rises from 1,200,000 (T3a's amendment below) to 1,280,000 bytes for flowing layout ([T4b](../todos/done/T4b-flow-layout-core.md) and the todos after it), the Markdown front end and JSON documents with their templates, which ADR 0032 §5 places in the text module. The [`flow-layout` spike](../../spikes/flow-layout/README.md) measured a minimal paginator at +19 KB and `pulldown-cmark` at +60 KB gzip on top of the text module; the rest is headroom for tables, notes and the document schema. The base and extract modules don't change.
 

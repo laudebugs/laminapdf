@@ -191,6 +191,13 @@ export {
 export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
 export { WholeFileDownload, type WholeFileDownloadProps } from "./reader/loading.js";
 export { OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
+export {
+  currentOutlineItem,
+  type OutlinePlace,
+  OutlineTree,
+  type OutlineTreeItem,
+  type OutlineTreeProps,
+} from "./reader/outline-tree.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
 export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
 export {
