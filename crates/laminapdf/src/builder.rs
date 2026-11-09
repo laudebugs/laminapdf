@@ -153,7 +153,7 @@ impl Builder {
     }
 
     /// Lays `markdown` out as a flow and adds its pages ([`laminapdf::markdown`](crate::markdown),
-    /// ADR 0032 §6): CommonMark with tables, footnotes, strikethrough and task lists, its front
+    /// ADR 0032 §6): `CommonMark` with tables, footnotes, strikethrough and task lists, its front
     /// matter as the document's metadata. Without fonts in `options` it sets the standard 14
     /// Helvetica family and Courier: Latin text only, and refused under PDF/UA-1
     /// (`font-not-embedded`). Its warnings (`markdown-html-ignored`, `markdown-image-missing`,

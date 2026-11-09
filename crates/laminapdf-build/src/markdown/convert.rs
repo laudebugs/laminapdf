@@ -1,6 +1,6 @@
-//! Markdown events to flow blocks. The document is read twice: once to collect the footnote
-//! definitions (a reference can come before its definition, and a flow needs the note where
-//! it is cited) and the headings' slugs (for `#slug` links), then to build the blocks.
+//! Markdown events to flow blocks. The document is read three times: for the headings' slugs
+//! (for `#slug` links), for the footnote definitions (a reference can come before its
+//! definition, and a flow needs the note where it is cited), then to build the blocks.
 
 use std::collections::BTreeMap;
 
@@ -10,7 +10,7 @@ use super::{FrontMatter, MarkdownBuildOptions, Styles};
 use crate::error::Warning;
 use crate::flow::{
     ColumnWidth, Figure, FlowBlock, List, ListItem, ListKind, Paragraph, ParagraphStyle, Table, TableCell, TableRow,
-    destination, plain_text,
+    destination, headings, plain_text,
 };
 use crate::nav::LinkTarget;
 use laminapdf_text::Alignment;
@@ -53,8 +53,17 @@ pub(crate) fn front_matter(markdown: &str) -> FrontMatter {
 pub(crate) fn convert(markdown: &str, styles: &Styles, options: &MarkdownBuildOptions, first: usize) -> Document {
     let mut gather = Converter::new(styles, options, first, BTreeMap::new(), BTreeMap::new());
     gather.run(markdown);
-    let slugs = slugs(&gather.headings);
-    let mut build = Converter::new(styles, options, first, gather.definitions, slugs);
+    // The slugs of the headings the flow numbers (a heading in a list item or a note becomes
+    // text there), in the flow's order, so heading `n` has destination `n`.
+    let titles: Vec<String> = match gather.frames.first() {
+        Some(Frame::Blocks(blocks)) => headings(blocks).into_iter().map(|h| h.text).collect(),
+        _ => Vec::new(),
+    };
+    let slugs = slugs(&titles);
+    // The notes again, now that their `#slug` links can be resolved.
+    let mut notes = Converter::new(styles, options, first, BTreeMap::new(), slugs.clone());
+    notes.run(markdown);
+    let mut build = Converter::new(styles, options, first, notes.definitions, slugs);
     build.run(markdown);
     let blocks = match build.frames.pop() {
         Some(Frame::Blocks(blocks)) => blocks,
@@ -146,9 +155,8 @@ struct Converter<'a> {
     code: Option<String>,
     image: Option<ImageAt>,
     meta: bool,
-    /// What the first pass collects.
+    /// The footnote definitions, which the first pass collects.
     definitions: BTreeMap<String, Paragraph>,
-    headings: Vec<String>,
     warnings: Vec<Warning>,
 }
 
@@ -177,7 +185,6 @@ impl<'a> Converter<'a> {
             image: None,
             meta: false,
             definitions: BTreeMap::new(),
-            headings: Vec::new(),
             warnings: Vec::new(),
         }
     }
@@ -287,7 +294,6 @@ impl<'a> Converter<'a> {
             TagEnd::Heading(level) => {
                 let p = self.inline.take().unwrap_or_default();
                 self.heading = None;
-                self.headings.push(plain_text(&p));
                 self.push_block(FlowBlock::Heading(level_of(level), p));
             }
             TagEnd::BlockQuote(_) => {
@@ -314,11 +320,11 @@ impl<'a> Converter<'a> {
             TagEnd::TableHead | TagEnd::TableRow => {
                 if let Some(Frame::Table(t)) = self.frames.last_mut() {
                     let row = std::mem::take(&mut t.row);
-                    t.table = if matches!(tag, TagEnd::TableHead) {
-                        t.table.clone().header(row)
+                    if matches!(tag, TagEnd::TableHead) {
+                        t.table.header.push(row);
                     } else {
-                        t.table.clone().row(row)
-                    };
+                        t.table.body.push(row);
+                    }
                 }
             }
             TagEnd::Table => {
@@ -435,7 +441,7 @@ impl<'a> Converter<'a> {
             entry = entry.with_marker(marker);
         }
         if let Some(Frame::List(list)) = self.frames.last_mut() {
-            *list = list.clone().item(entry);
+            list.items.push(entry);
         }
     }
 
@@ -458,7 +464,8 @@ impl<'a> Converter<'a> {
     }
 
     /// An image becomes a figure between the text before and after it, when the caller
-    /// supplied it; else it is left out with `markdown-image-missing`.
+    /// supplied it; else it is left out with `markdown-image-missing`. Where a figure can't go
+    /// (a table cell, a list item, a footnote), its alternate text stands in for it.
     fn end_image(&mut self) {
         let Some(image) = self.image.take() else { return };
         let Some(bytes) = self.options.images.get(&image.target) else {
@@ -466,6 +473,10 @@ impl<'a> Converter<'a> {
                 .push(Warning::MarkdownImageMissing { offset: image.offset });
             return;
         };
+        if !matches!(self.frames.last(), Some(Frame::Blocks(_) | Frame::Quote(_))) {
+            self.text(&image.alt);
+            return;
+        }
         let style = self.inline.as_ref().map(|p| p.style.clone());
         if let Some(p) = self.inline.take().filter(|p| !p.inlines.is_empty()) {
             self.push_block(FlowBlock::Paragraph(p));

@@ -11,7 +11,7 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure"
 )]
 
-#[allow(
+#[expect(
     unreachable_pub,
     reason = "the fuzz workspace calls the entry point as a public item"
 )]

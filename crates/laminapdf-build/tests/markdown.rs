@@ -122,6 +122,39 @@ fn a_link_is_a_link_element_and_a_slug_link_goes_to_its_heading() {
 }
 
 #[test]
+fn a_heading_in_a_list_item_or_note_doesn_t_shift_the_slug_links() {
+    let md = "- # In an item\n\nA note.[^n]\n\n# Target\n\n[go](#target)\n\n[^n]: # In a note\n";
+    let (bytes, _) = build(md, MarkdownBuildOptions::new());
+    assert!(bytes.windows(16).any(|w| w == b"/Dest (flow0-h0)"));
+    assert!(!bytes.windows(15).any(|w| w == b"(flow0-h1)"));
+}
+
+#[test]
+fn a_slug_link_in_a_footnote_goes_to_its_heading() {
+    let md = "# Target\n\nA note.[^n]\n\n[^n]: See [the target](#target).\n";
+    let (bytes, _) = build(md, MarkdownBuildOptions::new());
+    let links = bytes.windows(16).filter(|w| *w == b"/Dest (flow0-h0)").count();
+    assert_eq!(links, 2, "the outline item and the note's link");
+}
+
+#[test]
+fn front_matter_keeps_the_metadata_the_caller_set() {
+    let mut b = Builder::new(BuildOptions::new().with_compress(false));
+    b.metadata(
+        laminapdf_build::Metadata::default()
+            .with_author("Caller")
+            .with_title("Old"),
+    );
+    b.markdown("---\ntitle: New\n---\n\nBody.\n", &MarkdownBuildOptions::new())
+        .unwrap();
+    let bytes = save(b.finish().unwrap());
+    let doc = reopen(&bytes);
+    let info = doc.info().unwrap().unwrap();
+    assert_eq!(info.title().unwrap().as_deref(), Some("New"));
+    assert_eq!(info.author().unwrap().as_deref(), Some("Caller"));
+}
+
+#[test]
 fn a_supplied_image_is_a_figure_with_its_text_as_alt() {
     let png = common::png((2, 2), png::ColorType::Rgb, png::BitDepth::Eight, &[0; 12], None, None);
     let options = MarkdownBuildOptions::new().with_image("chart.png", Image::png(&png).unwrap());
@@ -130,6 +163,17 @@ fn a_supplied_image_is_a_figure_with_its_text_as_alt() {
     let figures = elements(&bytes, b"Figure");
     assert_eq!(figures.len(), 1);
     assert_eq!(figures[0].alt.as_deref(), Some("A small chart"));
+}
+
+#[test]
+fn an_image_in_a_table_cell_or_list_item_keeps_its_alt_text_there() {
+    let png = common::png((2, 2), png::ColorType::Rgb, png::BitDepth::Eight, &[0; 12], None, None);
+    let options = MarkdownBuildOptions::new().with_image("dot.png", Image::png(&png).unwrap());
+    let md = "| Before ![a dot](dot.png) after |\n| --- |\n| x |\n\n- Item ![a dot](dot.png) end\n";
+    let (bytes, _) = build(md, options);
+    assert_eq!(elements(&bytes, b"Figure").len(), 0);
+    let t = text(&bytes);
+    assert!(t.contains("Before a dot after") && t.contains("Item a dot end"), "{t}");
 }
 
 #[test]

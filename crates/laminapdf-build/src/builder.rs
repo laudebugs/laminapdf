@@ -495,6 +495,12 @@ impl Builder {
 
     /// How many pages have been added so far.
     #[cfg(feature = "text")]
+    /// The metadata set so far, for a front end that adds to it (Markdown's front matter).
+    #[cfg(feature = "markdown")]
+    pub(crate) fn metadata_so_far(&self) -> Option<&Metadata> {
+        self.features.metadata.as_ref()
+    }
+
     pub(crate) fn page_count(&self) -> usize {
         self.state.pages.len()
     }

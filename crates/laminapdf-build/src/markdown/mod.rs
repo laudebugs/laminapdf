@@ -51,7 +51,6 @@ use std::collections::BTreeMap;
 use crate::builder::Builder;
 use crate::error::Result;
 use crate::flow::{Flow, FlowBlock, FlowReport, Margins, PageRegion, PageTemplate, TextStyle};
-use crate::meta::Metadata;
 use crate::page::PageSize;
 use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
@@ -325,7 +324,8 @@ impl Builder {
             flow = flow.block(block);
         }
         if front != FrontMatter::default() {
-            let mut metadata = Metadata::default();
+            // Merged into what the caller set: front matter overrides only the keys it has.
+            let mut metadata = self.metadata_so_far().cloned().unwrap_or_default();
             if let Some(title) = front.title {
                 metadata = metadata.with_title(title);
             }
