@@ -30,7 +30,8 @@ Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by 
 - **`src/session.ts`** is the engine. As soon as the app loads, it starts the render backend's document worker, so a file chosen in the meantime waits only for what is left. It opens each file through the viewer, collects the file's warnings for the repair panel, and on a backend switch starts a new worker and reopens the file.
 - **`src/app.tsx`** composes the chrome: the home screen's drop zone, the viewer, the failure page, the password dialog, the repaired notice and its details panel, and the debug menu.
 - **`src/open/`** reads the address's fragment: `url-fragment.ts` parses and writes it, `navigation.ts` decides what a change of it asks for, and `watch.ts` acts on it when the page loads and on every `hashchange` and `popstate`.
-- **`src/document.ts`** holds the pure parts: the window title, the repair list and its copied text. `pnpm --filter @laminapdf/web test` runs their tests and `src/open/`'s in Node.
+- **`src/network/`** counts every request the page and its document worker make, for the status bar's network indicator and its panel. `page-feed.ts` is the first module `main.tsx` imports, so it starts counting before any other code runs. `classify.ts` decides which requests are document traffic, and `monitor.ts` keeps the log.
+- **`src/document.ts`** holds the pure parts: the window title, the repair list and its copied text. `pnpm --filter @laminapdf/web test` runs their tests, `src/open/`'s and `src/network/`'s in Node.
 
 ## Opening a linked file
 
@@ -51,6 +52,16 @@ Access-Control-Expose-Headers: Content-Range, Content-Length, ETag
 A site that sends no CORS headers gets a page that explains the refusal and links to the file, so you can download it and open it here: files go straight from their site to your browser, never through a server of ours. A site that ignores `Range` works too, since the reader then downloads the file whole, up to 256 MiB.
 
 Every request for the file omits cookies and the referrer and skips the browser's HTTP cache. An encrypted file asks for its password, which goes to the document worker once and is never kept on the page. Because JavaScript strings can't be overwritten, the worker's copy stays in its memory until it is collected. After a worker crash, the reader asks for the password again.
+
+## The network indicator
+
+The status bar counts the network requests made for the open document: "0 network requests for this document" for a file opened from disk. Pressing it opens the network panel, which lists every request since the file opened. Document traffic is grouped by site. The reader's own files (its scripts, styles, fonts and WebAssembly engines, all from this site) are listed apart, since none of them is document traffic. A request to any site other than this one and the linked file's host turns the indicator to a warning and names the site.
+
+The page and the document worker are both counted from the moment they start, in two ways. Code on the page and in the document worker calls `fetch`, `XMLHttpRequest`, `WebSocket` and `sendBeacon` through wrappers that report every call, failed or not. Everything else the browser loads (the page, scripts, styles, fonts, images, module imports) comes from its Resource Timing records. A request that the Content Security Policy blocks sent nothing: the panel lists it as blocked and doesn't count it.
+
+The policy itself stays as ADR 0011 sets it, with `connect-src 'self' https:` so linked files can load. Narrowing it for local-only sessions wouldn't help: a `<meta>` policy can only add restrictions to the page, and a worker takes the policy of its own script's response, so the document worker would stay as it is. So the indicator, rather than the policy, shows whether an HTTPS request was made.
+
+Browser extensions make requests no page can see, so the panel says so; your browser's developer tools show those too.
 
 ## Headers and hosting
 
@@ -75,6 +86,13 @@ Three more suites use `e2e/remote-host.ts`, a local HTTPS server on another port
 - **`remote.e2e.test.ts`** opens linked files. Page 1 of a 50 MB file appears after the reader reads less than a quarter of it. A site without CORS gets the explanation, and a change of `page` alone never opens the file again. It also checks the link format: an unencoded address and `http://` are both refused.
 - **`encrypted.e2e.test.ts`** opens every encrypted fixture, each revision of the standard security handler from 2 to 6. A file with an empty user password opens at once. Any other asks for its password, rejects a wrong one, and opens with the user or the owner password.
 - **`privacy.e2e.test.ts`** checks what leaves the browser while a local file, a linked file and an encrypted file of each kind open. It records every request of the page and its worker, and fails when a request body carries 32 bytes of the document or when a request to the reader's origin names the linked address. It also fails on a request to the reader's origin that isn't a GET and on a Referer or cookie reaching the file's site. Any cookie at all, any other origin and the password in any request fail it too.
+
+`e2e/network.e2e.test.ts` holds the network indicator to Playwright's own record of the browser's requests, which includes the document worker's. On each flow, the panel's counts of document traffic and of app files must equal that record, split by the same `classifyRequest`. The flows are a local file (0 document requests) and a linked file (its host only). The suite then makes requests on purpose:
+
+- a raw `fetch` from the worker and an HTTPS request from the page to another site, which are counted and flagged;
+- an image and a plain-HTTP request from the page, and a `data:` fetch from the worker, which the policy blocks and the panel lists as blocked.
+
+It also opens the panel from the keyboard and runs axe.
 
 `e2e/text.e2e.test.ts` checks the text layer in the built reader. Copying page 1 of the five-script reference PDF gives the lines in `fixtures/text/page-text.json`. The same holds for its AES-256 copy once the test types its password. A tagged file's first heading owns the spans of its text, and an untagged file says once that it is untagged.
 

@@ -98,12 +98,16 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 | `progress` | Web Worker | `{ loaded, total }` | bytes of a remote document read so far, and its size |
 | `render-start` | Web Worker | `{ page, scale }` | a render began, for measuring performance |
 | `render-fetching` | Web Worker | `{ key }` | a remote document's render stopped to fetch bytes; `render-start` follows |
+| `network` | Web Worker | `{ worker, index, record }` | the Web Worker made a network request (`NetworkRecord`: URL, method, what made it, bytes, failed) |
+| `csp-violation` | Web Worker | `{ worker, index, violation }` | the Web Worker's Content Security Policy blocked a request |
 | `render-slow` | page | `{ id, page }` | the soft timeout passed, counted from `render-start`: waiting in the queue isn't slow |
 | `render-stuck` | page | `{ id, page, needsPassword }` | an encrypted document's render passed the hard cap |
 | `crashed` | page | `{ reason }` | the Web Worker crashed |
 | `restarted` | page | `{ reason, reopened }` | a new Web Worker serves again |
 | `password-required` | page | — | the new Web Worker can't reopen without the password |
 | `restart-failed` | page | `{ reason, error }` | a restart failed (for example, the backend wouldn't load again) |
+
+**Network requests:** the Web Worker counts every request it makes from the moment it starts, with `watchNetwork`, which this package also exports for the page. The function wraps `fetch`, `XMLHttpRequest`, `WebSocket` and `sendBeacon`, and reads everything else from Resource Timing, so a reader can show what left the device.
 
 ### How it behaves
 
@@ -171,6 +175,7 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `structure` | — | `StructureData`: whether the document is tagged, and its structure tree | document |
 | `outline` | — | `OutlineNode[]`: the outline, each item's target in page space | document |
 | `namedDestination` | `name` | `Target \| undefined` | document |
+| `networkLog` | — | `WorkerNetworkLog`: every request and blocked request since the Web Worker started | document. `client.networkLog()`: what the `network` and `csp-violation` events reported, those sent before anyone listened included; `index` merges the two. |
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).
 

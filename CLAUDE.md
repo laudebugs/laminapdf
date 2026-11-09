@@ -83,7 +83,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/viewer/     # @laminapdf/viewer: the viewer core (ADR 0009); C3a: ViewerClient (typed RPC over
 │                        #   @laminapdf/sdk/worker's request(), timers, restart), src/worker/ (serve() with the viewer's
 │                        #   methods: openDocument, render → ImageBitmap); C4c: src/source/http-range.ts (HttpRangeByteSource:
-│                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); C5a: src/layers/ (the text
+│                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); U4a:
+│                        #   src/network/watch.ts (watchNetwork: fetch, XHR, WebSocket, sendBeacon wrapped, Resource Timing for the rest),
+│                        #   worker/network.ts (the worker's log, imported first; networkLog, `network`/`csp-violation` events); C5a: src/layers/ (the text
 │                        #   layer: a transparent span per run from Lamina PDF's quads, selection across pages, keepMounted pins, copy; the
 │                        #   structure tree as ARIA elements owning spans by MCID), worker/text.ts (pageText, structure); C6a: worker/navigation.ts
 │                        #   (outline, namedDestination), zoom/destination.ts (a page-space target → zoom and scroll; Viewer.goToDestination),
@@ -158,7 +160,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   chrome around @laminapdf/viewer: src/session.ts (the engine: the document worker started at load, opens,
 │                        #   warnings, the #debug backend switch, remote files as PlatformFiles naming their address), src/app.tsx,
 │                        #   src/document.ts (window title, repair list; Node tests), src/open/ (C4c: url-fragment.ts parses and
-│                        #   writes `#url=…&page=…` keeping raw values, navigation.ts, watch.ts on load/hashchange/popstate);
+│                        #   writes `#url=…&page=…` keeping raw values, navigation.ts, watch.ts on load/hashchange/popstate),
+│                        #   src/network/ (U4a: page-feed.ts, main.tsx's first import; classify.ts, the one classifier of app files,
+│                        #   document traffic and unexpected sites; monitor.ts, the log and its summary; panel.tsx, R13's indicator and panel);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
