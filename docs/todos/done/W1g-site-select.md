@@ -15,7 +15,7 @@
 
 ## Goal
 
-The docs site's theme switch is Starlight's own select, drawn in Starlight's look with its icons. This todo gives both Astro sites one select in the Paper look, design language [§7.19](../../design/paper/design-language.md#719-form-controls-consistent-with-the-page-input-and-note-field)'s Select, in `@laminapdf/site-kit`, and puts the docs site's theme switch on it. The version switcher that the releases plan leaves for 1.0 ([releases §4](../../plans/releases.md#4-docs-that-match-a-version)) can use the same select.
+The docs site's theme switch is Starlight's own select, drawn in Starlight's look with its icons. This todo adds design language [§7.19](../../design/paper/design-language.md#719-form-controls-consistent-with-the-page-input-and-note-field)'s Select to `@laminapdf/site-kit`, one Paper select for both Astro sites, and puts the docs site's theme switch on it. The version switcher that the releases plan leaves for 1.0 ([releases §4](../../plans/releases.md#4-docs-that-match-a-version)) can use the same select.
 
 ## Context
 
@@ -58,7 +58,16 @@ The docs site's theme switch is Starlight's own select, drawn in Starlight's loo
 
 `packages/site-kit/test/browser/select.browser.test.ts`, on the select rendered by Astro's container in the global setup: its name, the label above it, Tab and a typed letter, a press on the chevron's side, the focus ring, the Paper colours, axe. `apps/docs/e2e/theme.e2e.test.ts`, on the built site under `wrangler dev` over HTTPS in each browser: Auto at first, a choice kept after a reload, Auto clearing it, the phone menu's switch in step with the header's, no console error.
 
-Tried in the built docs site (`wrangler dev` with its headers) in Chromium, Firefox and WebKit, as a reader: Light chosen with the mouse and kept after a reload, Auto following the system and clearing the stored choice, the header's and the phone menu's switches in step, a letter typed on the focused switch choosing its theme, the focus ring from the keyboard, 44 px with 16 px text on a touch screen, and no console error in Chromium or Firefox. WebKit over plain HTTP couldn't load the styles (the CSP's `upgrade-insecure-requests`), so WebKit's look was checked by the browser tests and its behaviour by the e2e test over HTTPS.
+Tried in the built docs site (`wrangler dev` with its headers) in Chromium, Firefox and WebKit, as a reader:
+
+- Light chosen with the mouse, and kept after a reload.
+- Auto following the system and clearing the stored choice.
+- The header's and the phone menu's switches in step.
+- A letter typed on the focused switch choosing its theme, and the focus ring from the keyboard.
+- 44 px with 16 px text on a touch screen.
+- No console error in Chromium or Firefox.
+
+WebKit over plain HTTP couldn't load the styles (the CSP's `upgrade-insecure-requests`), so WebKit's look was checked by the browser tests and its behaviour by the e2e test over HTTPS.
 
 ## Docs to update
 
