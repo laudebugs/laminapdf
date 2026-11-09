@@ -181,7 +181,9 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Artboards.** `R05-find.dc.html`, `R05-find-phone.dc.html`.
 
-**Todos.** [C5b](../../todos/ready/C5b-find-in-document.md).
+**Todos.** [C5b](../../todos/done/C5b-find-in-document.md).
+
+**As built ([C5b](../../todos/done/C5b-find-in-document.md)).** The web reader ships the find bar and the top-bar Find button (a button with `aria-expanded`, since pressing it again returns to the field), with the count, Previous and Next, Match case, Whole words, the context note, Close, and the count announced to screen readers (`aria-live="polite"`). Three parts wait for later todos. The Results tab needs the rail's tabs. Recording Next and Previous in the back and forward history waits for R07 ([C6b](../../todos/ready/C6b-links-and-history.md)). The phone layout (a top-bar field over a Previous · Results · Next bar) comes later too: until then a phone shows the same find bar, wrapped to the screen's width. The reader draws each match as the upright box around its glyphs, so a match on rotated text gets an upright box rather than a rotated one; that is accepted for v0.1.
 
 ## R06 Rail tabs
 

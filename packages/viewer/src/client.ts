@@ -24,6 +24,7 @@ import {
   type WorkerInitOptions,
   type WorkerWasmSource,
 } from "@laminapdf/sdk/worker";
+import type { FindOptions } from "./find/fold.js";
 import {
   type BackendInit,
   type LoadProgress,
@@ -256,6 +257,14 @@ export class ViewerClient {
   pageText(index: number, options: ViewerCallOptions = {}) {
     const key = `text:${this.#document?.id ?? 0}:${index}`;
     return this.call("pageText", [index], { priority: "background", key, ...options });
+  }
+
+  /**
+   * The matches of `query` on each of `pages`, at `background` priority unless `options` says
+   * otherwise, so renders run first. The find controller calls it a few pages at a time.
+   */
+  find(query: string, find: FindOptions, pages: readonly number[], options: ViewerCallOptions = {}) {
+    return this.call("find", [query, find, pages], { priority: "background", ...options });
   }
 
   /** Whether the open document says it is tagged, and its structure tree when it has one. */

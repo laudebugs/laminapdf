@@ -191,6 +191,29 @@ async function mobile(browser: Browser, name: string, url: string, quick: boolea
   }
 }
 
+/**
+ * Find on the 1,000-page file from page 1, while the view scrolls a page every step: "worker", a
+ * word on nearly every page, then "Page 778", on one page only, so its first result needs most of
+ * a pass. The recording covers both searches and the scrolling.
+ */
+async function find(context: BrowserContext, url: string): Promise<BrowserResult["find"]> {
+  const page = await harness(context, url);
+  await opened(page, "thousand", "fit-width");
+  await page.evaluate(() => globalThis.__laminaPerf.record());
+  const scrolling = (async () => {
+    for (let index = 1; index < 40; index++) {
+      await page.evaluate((i) => globalThis.__laminaPerf.goToPage(i), index);
+      await page.waitForTimeout(STEP_MS * 5);
+    }
+  })();
+  const common = await page.evaluate(() => globalThis.__laminaPerf.find("worker"));
+  await scrolling;
+  await page.evaluate(() => globalThis.__laminaPerf.goToPage(0));
+  const rare = await page.evaluate(() => globalThis.__laminaPerf.find("Page 778"));
+  const recording = await page.evaluate(() => globalThis.__laminaPerf.stop());
+  return { common, rare, recording };
+}
+
 /** Every scenario in `browser`, against the harness served at `url`. */
 export async function runScenarios(
   browser: Browser,
@@ -207,6 +230,7 @@ export async function runScenarios(
       scroll: await scroll(context, url, quick),
       fling: await fling(context, url, quick),
       zoom: await zoom(context, url),
+      find: await find(context, url),
       mobile: await mobile(browser, name, url, quick),
     };
   } finally {

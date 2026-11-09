@@ -4,17 +4,31 @@
 // page of thousands of glyphs is three objects, not thousands. The last pages read are kept, since
 // a page scrolled back into view asks again.
 
+import type { PageGlyphs } from "../find/page.js";
 import type { PageTextData, StructureData, TextRunData } from "../protocol.js";
 import { current, textModel } from "./document.js";
 
 /** How many pages' text stay cached (a screenful of pages and the margin, at most zoom). */
 const CACHED_PAGES = 24;
 
-/** The cache, by document ID and page: another document never reads one's pages, and the oldest go. */
-const cache = new Map<string, PageTextData>();
+/**
+ * The cache, by document ID and page: another document never reads one's pages, and the oldest
+ * go. Each page keeps its glyphs' text too, for find; only the runs and quads reach the page.
+ */
+const cache = new Map<string, PageGlyphs>();
 
 /** Page `index`'s text runs and glyph quads (cached; `signal` stops a read of pending data). */
 export async function pageText(index: number, signal: AbortSignal): Promise<PageTextData> {
+  const { runs, quads } = await pageGlyphs(index, signal);
+  return { runs, quads };
+}
+
+/**
+ * Page `index`'s runs, quads and glyph text, from the cache or read now. `keep: false` (find)
+ * reads a page without caching it, so a search through every page never pushes out the text of
+ * the pages in view.
+ */
+export async function pageGlyphs(index: number, signal: AbortSignal, keep = true): Promise<PageGlyphs> {
   const { id } = current();
   const key = `${id}:${index}`;
   const cached = cache.get(key);
@@ -37,7 +51,9 @@ export async function pageText(index: number, signal: AbortSignal): Promise<Page
     ...(run.mcid === undefined ? {} : { mcid: run.mcid }),
   }));
   // The arrays are this worker's own (the SDK copied them out of WebAssembly memory).
-  const data: PageTextData = { runs, quads: text.buffers.quads };
+  const { quads, glyphText, glyphOffsets } = text.buffers;
+  const data: PageGlyphs = { runs, quads, glyphText, glyphOffsets };
+  if (!keep) return data;
   cache.set(key, data);
   for (const old of cache.keys()) {
     if (cache.size <= CACHED_PAGES) break;
