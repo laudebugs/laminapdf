@@ -34,6 +34,8 @@ export class AppUpdates implements ExternalStore<UpdateState> {
   readonly #listeners = new Set<() => void>();
   #registration: WorkerRegistration | undefined;
   #reloading = false;
+  /** Another tab's Reload put a newer version in charge: this page runs the old one until it reloads. */
+  #superseded = false;
   readonly #container: WorkerContainer | undefined;
   readonly #reloadPage: () => void;
 
@@ -57,9 +59,16 @@ export class AppUpdates implements ExternalStore<UpdateState> {
   async start(): Promise<void> {
     const container = this.#container;
     if (container === undefined) return;
+    let hadController = container.controller !== null;
     container.addEventListener("controllerchange", () => {
       // Only a takeover the user asked for reloads the page; the first install's claim doesn't.
       if (this.#reloading) this.#reloadPage();
+      // A takeover asked for in another tab: this page keeps the old version until its Reload.
+      else if (hadController) {
+        this.#superseded = true;
+        this.#set({ ready: true });
+      }
+      hadController = true;
     });
     const registration = await container.register("/sw.js");
     this.#registration = registration;
@@ -74,8 +83,15 @@ export class AppUpdates implements ExternalStore<UpdateState> {
     });
   }
 
-  /** The user chose Reload: the waiting version takes over, then the page reloads into it. */
+  /**
+   * The user chose Reload: the waiting version takes over, then the page reloads into it; when
+   * another tab already put it in charge, the page just reloads.
+   */
   reload(): void {
+    if (this.#superseded) {
+      this.#reloadPage();
+      return;
+    }
     const waiting = this.#registration?.waiting;
     if (waiting === null || waiting === undefined) return;
     this.#reloading = true;

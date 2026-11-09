@@ -348,18 +348,14 @@ describe("storage and recent files on the web", () => {
     expect(await platform.recent.reopen?.(entry?.id ?? "")).toBeUndefined();
   });
 
-  it("keeps a document's page count, and a linked document by its address", async () => {
+  it("keeps a document's page count", async () => {
     const { recent } = createWebPlatform(fakeScope());
     await recent.add(fakeFile("report.pdf"), { pages: 24 });
-    const remote = { ...fakeFile("report.pdf"), size: 0 };
-    await recent.add(remote, { url: "https://example.org/a/report.pdf", pages: 3 });
-    await recent.add(remote, { url: "https://example.org/b/report.pdf" });
-    await recent.add(remote, { url: "https://example.org/a/report.pdf", pages: 3 });
+    await recent.add(fakeFile("notes.pdf"));
     const entries = await recent.list();
-    expect(entries.map((e) => [e.url ?? "local", e.pages])).toEqual([
-      ["https://example.org/a/report.pdf", 3],
-      ["https://example.org/b/report.pdf", undefined],
-      ["local", 24],
+    expect(entries.map((e) => [e.name, e.pages])).toEqual([
+      ["notes.pdf", undefined],
+      ["report.pdf", 24],
     ]);
     expect(entries.every((e) => e.hasHandle === false)).toBe(true);
   });

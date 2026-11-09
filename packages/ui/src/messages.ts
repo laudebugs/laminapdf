@@ -225,7 +225,8 @@ const EN = {
   "network.feed.page.off": "This page · not counted",
   "network.feed.worker": "The document worker",
   "network.feed.worker.off": "The document worker · not started yet",
-  "network.feed.sw": "Offline service worker · it fetches only this site's own files, when it installs, and those aren't listed",
+  "network.feed.sw":
+    "Offline service worker · it fetches only this site's own files, when it installs, and those aren't listed",
   "network.feed.sw.off": "Offline service worker · not installed",
   "network.proves.title": "What this proves",
   "network.proves.body":
@@ -430,10 +431,7 @@ const EN = {
   "storage.title": "Storage and privacy",
   "storage.rememberLocal": "Remember recent local files",
   "storage.rememberLocal.help":
-    "The names of files you open on this device are listed on the home screen. They stay in this browser.",
-  "storage.rememberRemote": "Remember remote URLs",
-  "storage.rememberRemote.help":
-    "Addresses of linked files are listed too. Off by default: an address can say more than a file name.",
+    "The names of files you open on this device are listed on the home screen, and copies of large files are kept for next time. Both stay in this browser. Files opened from a link are never listed.",
   "storage.clear": "Clear recent files and cached documents",
   "storage.clear.help": "Removes the recent list and every copy of a document this browser keeps for the reader.",
   "storage.cleared": "Recent files and cached documents cleared",

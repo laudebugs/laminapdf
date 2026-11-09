@@ -86,7 +86,7 @@ describe(`recent files in ${BROWSER}`, () => {
     await page.close();
   });
 
-  it("keeps nothing about a linked document with the default settings", async () => {
+  it("keeps nothing about a linked document: neither its name nor its address (ADR 0011)", async () => {
     const url = `${host.origin}/cors/ranges/hello.pdf`;
     const watched = await load(browser, origin, `/#url=${encodeURIComponent(url)}`, undefined, {
       ignoreHTTPSErrors: true,

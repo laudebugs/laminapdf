@@ -100,7 +100,7 @@ body {
   color: var(--paper-text);
 }
 
-/* The Settings dialog's Storage and privacy section (C7b): each switch or button over its help. */
+/* The Settings dialog's Storage and privacy section: each switch or button over its help. */
 .web-storage-settings {
   display: flex;
   flex-direction: column;

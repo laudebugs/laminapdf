@@ -11,7 +11,7 @@ import { Ajv } from "ajv";
 import type { Browser } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { BROWSER, launch } from "./browser.ts";
-import { load } from "./reader.ts";
+import { type InitScript, load } from "./reader.ts";
 
 const origin = inject("origin");
 const ca = inject("ca");
@@ -73,7 +73,12 @@ describe(`installability in ${BROWSER}`, () => {
   });
 
   it("is controlled by its service worker, served offline, and Chromium finds nothing stopping an install", async () => {
-    const watched = await load(browser, origin, "/", undefined, { ignoreHTTPSErrors: true });
+    // Whether the browser offered an install is recorded, not asserted: its engagement rules decide.
+    const offered: InitScript = {
+      arg: [],
+      script: () => addEventListener("beforeinstallprompt", () => Object.assign(window, { installOffered: true })),
+    };
+    const watched = await load(browser, origin, "/", offered, { ignoreHTTPSErrors: true });
     const { page } = watched;
     const workerRequests: string[] = [];
     page.context().on("request", (request) => {
@@ -93,6 +98,10 @@ describe(`installability in ${BROWSER}`, () => {
       };
       expect(installabilityErrors.map((e) => e.errorId)).toEqual([]);
     }
+    const fired = await page.evaluate(
+      () => (window as unknown as { installOffered?: boolean }).installOffered === true,
+    );
+    console.info(`beforeinstallprompt in ${BROWSER}: ${fired ? "fired" : "not fired"}`);
     // The worker fetches only the reader's own files.
     expect(workerRequests.filter((url) => new URL(url).origin !== new URL(origin).origin)).toEqual([]);
     await page.close();

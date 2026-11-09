@@ -66,11 +66,25 @@ describe("AppUpdates", () => {
     const reload = vi.fn();
     const updates = new AppUpdates(container, reload);
     await updates.start();
-    listeners.controllerchange?.();
-    expect(reload).not.toHaveBeenCalled();
     updates.reload();
+    expect(reload).not.toHaveBeenCalled();
     expect(posted).toEqual(["skip-waiting"]);
     listeners.controllerchange?.();
     expect(reload).toHaveBeenCalledOnce();
+  });
+});
+
+describe("AppUpdates in a second tab", () => {
+  it("offers Reload when another tab's Reload put the new version in charge, and reloads at once", async () => {
+    const { container, listeners } = fakes({ controlled: true, waiting: true });
+    const reloads: number[] = [];
+    const updates = new AppUpdates(container, () => reloads.push(1));
+    await updates.start();
+    // The other tab chose Reload: the new version takes control here too, unasked.
+    listeners.controllerchange?.();
+    expect(reloads).toEqual([]);
+    expect(updates.getState().ready).toBe(true);
+    updates.reload();
+    expect(reloads).toEqual([1]);
   });
 });

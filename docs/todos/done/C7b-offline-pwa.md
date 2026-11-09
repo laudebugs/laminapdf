@@ -70,9 +70,12 @@ After one visit, the reader works with no network: a service worker precaches th
 
 ## Notes
 
-- **Service worker tooling:** hand-written (`apps/web/src/sw/service-worker.ts`, compiled by `apps/web/build/pwa.ts`), not Workbox. The worker is small, and serving a cached response as stored keeps its headers, which a rebuilt response would lose. Nothing new to licence.
+- **Service worker tooling:** hand-written (`apps/web/src/sw/service-worker.ts`, compiled by `apps/web/plugins/pwa.ts`), not Workbox. The worker is small, and serving a cached response as stored keeps its headers, which a rebuilt response would lose. Nothing new to licence.
 - **Headers offline:** the offline navigation carries exactly the server's headers, `frame-ancestors 'self'` included: ADR 0011 §4 sets `'self'`, and the ADR wins over this todo's `'none'`.
 - **`share_target`:** not in v0.1, as recommended.
+- **Linked files are never listed (owner decision open):** this todo asked for "Remember remote URLs", opt-in. ADR 0011 says a document's address "is never written to storage, the recent list or logs" (§2) and that the recent list holds "never bytes or URLs" (§3.9), and the ADR wins, so the setting isn't built and a `#url=` document leaves nothing in storage. Allowing it takes an ADR 0011 amendment.
+- **Copies follow "Remember recent local files":** with it off, a large file's OPFS copy is removed when its document closes (`ViewerOpenOptions.keepCopy`). Copies are evicted by last use, recorded beside each copy.
+- **`navigator.storage.persist()`:** never called, so never without a user action; offering it in Settings is left for later.
 - **Stacked on C7a:** started on C7a's branch (#370) at the owner's request and rebased onto `main` once it merged.
 - **The e2e browsers** accept the e2e server's self-signed certificate for service workers (Chromium's `--ignore-certificate-errors`, Firefox's service-worker testing mode), so every suite runs with the worker active; the privacy suite passes so.
 - **Left for later:**
@@ -81,6 +84,7 @@ After one visit, the reader works with no network: a service worker precaches th
   - Running `installability.e2e.test.ts` against the PR preview (`BASE_URL`): it runs against the local server.
   - The update flow across two real deploys: `AppUpdates` is unit-tested, and the PR asks for the manual check.
   - A thumbnail of page 1 in the recent list: R01 draws none.
+  - A remote file without range support is still held in memory (up to 256 MiB), not streamed into OPFS: ADR 0011 §2 wants that copy keyed by a random ID and deleted at close, which is its own change.
   - The R15 differences recorded in [reader-b.md](../../design/paper/reader-b.md#r15-offline-install-and-update).
 
 ## Post-merge checks

@@ -1,11 +1,12 @@
-// A large local file read from its OPFS copy (C7b), with the size threshold lowered so a small
+// A large local file read from its OPFS copy, with the size threshold lowered so a small
 // fixture counts as large: the first open copies it (reporting progress) and renders from the
 // copy; opening the same file again reads the copy already there; the copy is never left behind
 // half made. Where the engine has no OPFS in a test context (Playwright's WebKit) the file opens
 // from memory, as before.
 
-import { copyName, type ViewerClient } from "@laminapdf/viewer";
+import type { ViewerClient } from "@laminapdf/viewer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { copyName } from "../../src/source/opfs.js";
 import { read, viewer } from "./helpers.js";
 
 /** Whether this engine gives OPFS to a test page. */
@@ -26,7 +27,8 @@ async function copies(): Promise<Record<string, number>> {
   for await (const [name, entry] of (
     folder as unknown as { entries(): AsyncIterable<[string, FileSystemHandle]> }
   ).entries()) {
-    out[name] = (await (entry as FileSystemFileHandle).getFile()).size;
+    // Each copy's record of its last use sits beside it.
+    if (!name.endsWith(".used")) out[name] = (await (entry as FileSystemFileHandle).getFile()).size;
   }
   return out;
 }
@@ -65,6 +67,15 @@ describe("a large local file", () => {
     expect((await rpc.open(file, { copyAbove: 0 })).pageCount).toBe(3);
     off2();
     expect(again).toEqual([]);
+  });
+
+  it("removes the copy when the document closes, when it isn't to be kept", async () => {
+    await rpc.close();
+    const once = new File([(await read("fixtures/corpus/hello.pdf")) as BlobPart], "once.pdf", { lastModified: 1 });
+    expect((await rpc.open(once, { copyAbove: 0, keepCopy: false })).pageCount).toBe(1);
+    if (await hasOpfs()) expect(Object.keys(await copies())).toContain(copyName(once));
+    await rpc.close();
+    if (await hasOpfs()) await expect.poll(async () => Object.keys(await copies())).not.toContain(copyName(once));
   });
 
   it("opens from memory when it is under the threshold", async () => {

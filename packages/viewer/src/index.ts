@@ -49,7 +49,7 @@ export type {
   WorkerMemory,
   WorkerNetworkLog,
 } from "./protocol.js";
-export { copyName } from "./source/opfs.js";
+export { CACHE_FOLDER } from "./source/opfs.js";
 export { ThumbnailStrip, type ThumbnailStripOptions } from "./thumbnails/strip.js";
 export type {
   CreateViewerOptions,

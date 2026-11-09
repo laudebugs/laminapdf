@@ -1,6 +1,6 @@
-// The home screen's Recent list (R01; C7b): each recent document as a button, its name in
-// Newsreader over a line saying where it is and how many pages it has, the date it was last
-// opened at the end. A local document the reader can't read again without a picker says so;
+// The home screen's Recent list (R01): each recent document as a button, its name in Newsreader
+// over a line saying it is on this device and how many pages it has, the date it was last opened
+// at the end. Linked documents are never listed (ADR 0011). A local document the reader can't read again without a picker says so;
 // pressing it asks for the file. Clear list empties the list in this browser. The list is hidden
 // when empty: a first visit needs no empty state.
 
@@ -14,8 +14,6 @@ import type { RecentFile } from "../platform/types.js";
 export interface RecentListProps {
   /** Newest first. */
   entries: readonly RecentFile[];
-  /** Whether a local entry without a kept handle can still reopen (from a cached copy). */
-  canReopen?: (entry: RecentFile) => boolean;
   /** An entry was pressed. */
   onOpen: (entry: RecentFile) => void;
   /** Clear list was pressed. */
@@ -24,25 +22,15 @@ export interface RecentListProps {
   locale?: string;
 }
 
-/** Where `entry` is: the linked document's host, or this device. */
-function place(entry: RecentFile): string {
-  if (entry.url === undefined) return message("recent.thisDevice");
-  try {
-    return new URL(entry.url).host;
-  } catch {
-    return entry.url;
-  }
-}
-
 /** The line under the name: where, how many pages, and whether the file must be chosen again. */
 export function recentMeta(entry: RecentFile, reopens: boolean): string {
   const pages =
     entry.pages === undefined ? [] : [countMessage(entry.pages, { one: "recent.page", many: "recent.pages" })];
-  return [place(entry), ...pages, ...(reopens ? [] : [message("recent.chooseAgain")])].join(" · ");
+  return [message("recent.thisDevice"), ...pages, ...(reopens ? [] : [message("recent.chooseAgain")])].join(" · ");
 }
 
 /** The recent documents, and Clear list. */
-export function RecentList({ entries, canReopen, onOpen, onClear, locale }: RecentListProps): ReactNode {
+export function RecentList({ entries, onOpen, onClear, locale }: RecentListProps): ReactNode {
   if (entries.length === 0) return null;
   const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
   return (
@@ -57,7 +45,7 @@ export function RecentList({ entries, canReopen, onOpen, onClear, locale }: Rece
       </div>
       <ul className="paper-recent-list">
         {entries.map((entry) => {
-          const reopens = entry.url !== undefined || entry.hasHandle === true || canReopen?.(entry) === true;
+          const reopens = entry.hasHandle === true;
           return (
             <li key={entry.id}>
               <AriaButton className="paper-recent-row" onPress={() => onOpen(entry)}>

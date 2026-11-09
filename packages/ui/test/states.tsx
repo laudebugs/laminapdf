@@ -679,10 +679,10 @@ const repairs: Example[] = [
           {
             id: "b",
             name: "Tenant-survey-2026.pdf",
-            size: 0,
+            size: 412_000,
             lastOpened: 1_792_900_000_000,
             pages: 6,
-            url: "https://files.example.org/survey/Tenant-survey-2026.pdf",
+            hasHandle: true,
           },
           { id: "c", name: "Asset-register-summary.pdf", size: 88_000, lastOpened: 1_792_800_000_000, pages: 3 },
         ]}

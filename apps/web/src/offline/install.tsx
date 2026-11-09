@@ -54,12 +54,12 @@ export class InstallPrompt implements ExternalStore<boolean> {
   }
 }
 
-let shared: InstallPrompt | undefined;
+let pagePrompt: InstallPrompt | undefined;
 
 /** The page's one install prompt; main.tsx makes it at startup, so no early offer is missed. */
 export function installPrompt(): InstallPrompt {
-  shared ??= new InstallPrompt(window);
-  return shared;
+  pagePrompt ??= new InstallPrompt(window);
+  return pagePrompt;
 }
 
 /** Whether the More menu offers Install, its dialog, and the `app.install` handler. */

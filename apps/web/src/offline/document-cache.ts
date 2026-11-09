@@ -3,9 +3,7 @@
 // one call; the recent list is cleared beside it, by the platform.
 
 import type { PlatformStorage } from "@laminapdf/ui";
-
-/** The OPFS folder that holds the copies. */
-export const CACHE_FOLDER = "documents";
+import { CACHE_FOLDER } from "@laminapdf/viewer";
 
 /**
  * Removes every cached copy; nothing to do where the browser has no OPFS (or refuses it, as a

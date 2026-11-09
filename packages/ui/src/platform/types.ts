@@ -107,8 +107,6 @@ export interface RecentFile {
   readonly lastOpened: number;
   /** Its page count, when it was known at the last open. */
   readonly pages?: number | undefined;
-  /** A linked document's address, kept only when the user chose to remember them. */
-  readonly url?: string | undefined;
   /** A handle to the file was kept, so `reopen` may read it again without a picker. */
   readonly hasHandle?: boolean | undefined;
 }
@@ -117,8 +115,6 @@ export interface RecentFile {
 export interface RecentDetails {
   /** The page count. */
   readonly pages?: number | undefined;
-  /** A linked document's address: the entry is then that address's, whatever the file's size. */
-  readonly url?: string | undefined;
 }
 
 /** The recently opened documents. */

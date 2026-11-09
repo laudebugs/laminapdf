@@ -1,9 +1,9 @@
-// Recent files (C7b; R01, plan §5): each document the reader opens is listed on the home screen,
-// in this browser only. Local files are remembered unless the user turns that off; linked files
-// only when the user turns "Remember remote URLs" on, since an address can say more than a name.
-// Pressing an entry reopens it: a linked one from its address, a local one from the handle kept
-// where the browser allows (Chromium), else from the picker. The "Storage and privacy" section of
-// the Settings dialog holds both choices and the button that clears the list and every cached copy.
+// Recent files (R01, plan §5): each local document the reader opens is listed on the home screen,
+// in this browser only, unless the user turns that off. A linked document is never listed: ADR
+// 0011 keeps its address out of storage and the recent list. Pressing an entry reopens it from the
+// handle kept where the browser allows (Chromium), else from the picker. The "Storage and
+// privacy" section of the Settings dialog holds the choice and the button that clears the list
+// and every cached copy.
 
 import {
   Button,
@@ -21,53 +21,7 @@ import {
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { type Engine, remoteUrlOf } from "./session.ts";
-
-/** Where the choices are kept, in this browser only. */
-export const STORAGE_KEY = "lamina.storage";
-
-/** What the user chose to remember. */
-export interface StorageChoices {
-  /** List local files (default on). */
-  readonly rememberLocal: boolean;
-  /** List linked files by their address (default off). */
-  readonly rememberRemote: boolean;
-}
-
-const DEFAULT_CHOICES: StorageChoices = { rememberLocal: true, rememberRemote: false };
-
-/** The stored choices, or the defaults where storage is blocked, empty or damaged. */
-export function parseChoices(stored: string | null): StorageChoices {
-  try {
-    const value = JSON.parse(stored ?? "{}") as Partial<Record<keyof StorageChoices, unknown>>;
-    return {
-      rememberLocal: typeof value.rememberLocal === "boolean" ? value.rememberLocal : DEFAULT_CHOICES.rememberLocal,
-      rememberRemote: typeof value.rememberRemote === "boolean" ? value.rememberRemote : DEFAULT_CHOICES.rememberRemote,
-    };
-  } catch {
-    return DEFAULT_CHOICES;
-  }
-}
-
-function readChoices(): StorageChoices {
-  try {
-    return parseChoices(localStorage.getItem(STORAGE_KEY));
-  } catch {
-    return DEFAULT_CHOICES;
-  }
-}
-
-function saveChoices(choices: StorageChoices): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(choices));
-  } catch {
-    // Storage blocked: the choice lasts until the tab closes.
-  }
-}
-
-/** Whether a document opened from `url` (undefined for a local file) may be listed. */
-export function mayRemember(choices: StorageChoices, url: string | undefined): boolean {
-  return url === undefined ? choices.rememberLocal : choices.rememberRemote;
-}
+import { readChoices, type StorageChoices, saveChoices } from "./storage-choices.ts";
 
 /** What the hook gives the app. */
 export interface Recent {
@@ -99,17 +53,14 @@ function useRecording(
   const pages = state.phase === "open" ? engine.getState().pages.length : 0;
   useEffect(() => {
     if (file === undefined) return;
-    const url = remoteUrlOf(file);
-    if (!mayRemember(choices, url)) return;
-    platform.recent
-      .add(file, { ...(pages > 0 ? { pages } : {}), ...(url === undefined ? {} : { url }) })
-      .then(refresh, reportError);
+    // A linked document's address is never kept (ADR 0011), and a local one only when allowed.
+    if (remoteUrlOf(file) !== undefined || !choices.rememberLocal) return;
+    platform.recent.add(file, pages > 0 ? { pages } : {}).then(refresh, reportError);
   }, [file, pages, choices, platform, refresh]);
 }
 
-/** Reopens `entry`: from its address, its kept handle, or the picker. */
-async function reopen(entry: RecentFile, platform: Platform, engine: Engine, reader: ReaderController) {
-  if (entry.url !== undefined) return engine.openRemote(entry.url);
+/** Reopens `entry`: from its kept handle, or the picker. */
+async function reopen(entry: RecentFile, platform: Platform, reader: ReaderController) {
   const file = entry.hasHandle === true ? await platform.recent.reopen?.(entry.id) : undefined;
   return file === undefined ? reader.openFromPicker() : reader.open(file);
 }
@@ -130,10 +81,6 @@ function StorageSettings({
         {message("storage.rememberLocal")}
       </Switch>
       <p className="web-settings-help">{message("storage.rememberLocal.help")}</p>
-      <Switch isSelected={choices.rememberRemote} onChange={(on) => onChange({ ...choices, rememberRemote: on })}>
-        {message("storage.rememberRemote")}
-      </Switch>
-      <p className="web-settings-help">{message("storage.rememberRemote.help")}</p>
       <Button onPress={onClear}>{message("storage.clear")}</Button>
       <p className="web-settings-help">{message("storage.clear.help")}</p>
     </div>
@@ -166,9 +113,8 @@ export function useRecent(
   const change = (next: StorageChoices) => {
     setChoices(next);
     saveChoices(next);
-    // Turning a choice off forgets what it had listed, so nothing it allowed outlives it.
-    const forget = entries.filter((e) => !mayRemember(next, e.url));
-    void Promise.all(forget.map((e) => platform.recent.remove(e.id))).then(refresh, reportError);
+    // Turning it off forgets what it had listed, so nothing it allowed outlives it.
+    if (!next.rememberLocal) void platform.recent.clear().then(refresh, reportError);
   };
   useSettingsSection(registry, "storage", message("storage.title"), () => (
     <StorageSettings
@@ -177,13 +123,14 @@ export function useRecent(
       onClear={() => void clear(true).then(() => toasts.add({ message: message("storage.cleared") }), reportError)}
     />
   ));
-  const open = (entry: RecentFile) => void reopen(entry, platform, engine, engine.reader).catch(reportError);
+  const open = (entry: RecentFile) => void reopen(entry, platform, engine.reader).catch(reportError);
   return {
     home: <RecentList entries={entries} onOpen={open} onClear={() => void clear(false).catch(reportError)} />,
     actions: {
       "file.clear-recent": () => void clear(false).catch(reportError),
       "file.open-recent": (id) => {
-        const entry = entries.find((e) => e.id === id) ?? entries[0];
+        // From the palette, with no entry named: the newest. An id the list lacks opens nothing.
+        const entry = id === undefined ? entries[0] : entries.find((e) => e.id === id);
         if (entry !== undefined) open(entry);
       },
     },

@@ -1,4 +1,4 @@
-// Files the operating system hands the installed reader (C7b): "Open with Lamina PDF" on a PDF,
+// Files the operating system hands the installed reader: "Open with Lamina PDF" on a PDF,
 // where the browser supports the manifest's `file_handlers` (Chromium). The platform turns its
 // launch queue into open requests; the first file of each opens like one chosen here.
 

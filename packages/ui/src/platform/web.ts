@@ -278,21 +278,15 @@ function recentFiles(store: KeyValueStore, capabilities: Capabilities): RecentFi
     add: (file, details = {}) =>
       serial(async () => {
         const entries = await list();
-        // A linked document is its address; a local one, its name and size.
-        const same = entries.find((entry) =>
-          details.url === undefined
-            ? entry.url === undefined && entry.name === file.name && entry.size === file.size
-            : entry.url === details.url,
-        );
+        const same = entries.find((entry) => entry.name === file.name && entry.size === file.size);
         const id = same?.id ?? crypto.randomUUID();
-        const hasHandle = details.url === undefined && capabilities.canReopenRecent && isFileHandle(file.handle);
+        const hasHandle = capabilities.canReopenRecent && isFileHandle(file.handle);
         const entry: RecentFile = {
           id,
           name: file.name,
           size: file.size,
           lastOpened: Date.now(),
           ...(details.pages === undefined ? {} : { pages: details.pages }),
-          ...(details.url === undefined ? {} : { url: details.url }),
           hasHandle,
         };
         const kept = [entry, ...entries.filter((e) => e.id !== id)];

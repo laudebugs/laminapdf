@@ -50,6 +50,8 @@ export interface ViewerOpenOptions {
    * read from there, not held in memory (default 200 MiB; tests lower it).
    */
   readonly copyAbove?: number;
+  /** Keep that copy once the document closes, for next time (default true); false removes it then. */
+  readonly keepCopy?: boolean;
 }
 
 /** An open document, as layout needs it up front. */
