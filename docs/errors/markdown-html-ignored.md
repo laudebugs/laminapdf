@@ -18,7 +18,7 @@ Write the content in Markdown instead: `**bold**` for `<b>`, a table for `<table
 ## Example
 
 ```rust
-let report = builder.markdown("Hello <span>there</span>\n", &MarkdownOptions::new())?;
+let report = builder.markdown("Hello <span>there</span>\n", &MarkdownBuildOptions::new())?;
 assert_eq!(report.warnings[0].code(), "markdown-html-ignored");
 ```
 

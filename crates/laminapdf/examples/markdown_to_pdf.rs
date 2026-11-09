@@ -10,7 +10,7 @@
 use std::error::Error;
 
 use laminapdf::flow::{PageRegion, PageTemplate, TextStyle};
-use laminapdf::markdown::{MarkdownFonts, MarkdownOptions};
+use laminapdf::markdown::{MarkdownBuildOptions, MarkdownFonts};
 use laminapdf::{BuildOptions, Builder, Font, Image, PageSize, Profile, SaveOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -43,7 +43,7 @@ pub(crate) fn build(
     // A5 pages, so the table runs across two of them, with the page number in the footer.
     let footer = PageRegion::new().with_center("Page {page} of {pages}");
     let pages = PageTemplate::new(PageSize::A5).with_furniture(None, Some(footer), &TextStyle::new(&regular, 8.0));
-    let options = MarkdownOptions::new()
+    let options = MarkdownBuildOptions::new()
         .with_fonts(fonts)
         .with_template(pages)
         .with_contents(2)

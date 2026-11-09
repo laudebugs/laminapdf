@@ -165,7 +165,7 @@ impl Builder {
     pub fn markdown(
         &mut self,
         markdown: &str,
-        options: &crate::markdown::MarkdownOptions,
+        options: &crate::markdown::MarkdownBuildOptions,
     ) -> Result<crate::flow::FlowReport> {
         let report = self.0.markdown(markdown, options)?;
         self.1.extend(report.warnings.iter().cloned().map(crate::Warning::from));

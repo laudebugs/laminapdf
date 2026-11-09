@@ -7,7 +7,7 @@
 //! | paragraph, hard break | [`FlowBlock::Paragraph`], a line break | `P` |
 //! | `*em*`, `**strong**`, `` `code` ``, `~~strike~~` | spans in the italic, bold and mono fonts, struck through | `Span`, `Code` |
 //! | link | a link: a URL, or `#slug` to that heading's destination | `Link` |
-//! | image | [`FlowBlock::Figure`], its text as alt text, its bytes from [`MarkdownOptions::with_image`] | `Figure` |
+//! | image | [`FlowBlock::Figure`], its text as alt text, its bytes from [`MarkdownBuildOptions::with_image`] | `Figure` |
 //! | list, task list | [`FlowBlock::List`] (an ordered list's start; ☐ and ☑) | `L`, `LI`, `Lbl`, `LBody` |
 //! | block quote | [`FlowBlock::Quote`] | `BlockQuote` |
 //! | code block | [`FlowBlock::CodeBlock`] | `P` holding `Code` |
@@ -21,12 +21,12 @@
 //! the Markdown, never its text. Maths is not parsed, so `$…$` stays text.
 //!
 //! ```
-//! use laminapdf_build::markdown::MarkdownOptions;
+//! use laminapdf_build::markdown::MarkdownBuildOptions;
 //! use laminapdf_build::{BuildOptions, Builder};
 //!
 //! let mut b = Builder::new(BuildOptions::new());
 //! // Without fonts, the standard 14 Helvetica family and Courier set the text.
-//! let report = b.markdown("# Notes\n\nPlain *Latin* text.\n", &MarkdownOptions::new())?;
+//! let report = b.markdown("# Notes\n\nPlain *Latin* text.\n", &MarkdownBuildOptions::new())?;
 //! assert_eq!(report.pages.len(), 1);
 //! b.finish()?;
 //! # Ok::<(), laminapdf_build::Error>(())
@@ -123,7 +123,7 @@ impl MarkdownFonts {
 /// How [`Builder::markdown`] lays a document out.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
-pub struct MarkdownOptions {
+pub struct MarkdownBuildOptions {
     pub(crate) fonts: Option<MarkdownFonts>,
     pub(crate) size: f64,
     pub(crate) template: Option<PageTemplate>,
@@ -131,13 +131,13 @@ pub struct MarkdownOptions {
     pub(crate) contents: Option<u8>,
 }
 
-impl Default for MarkdownOptions {
+impl Default for MarkdownBuildOptions {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl MarkdownOptions {
+impl MarkdownBuildOptions {
     /// The standard 14 fonts (Helvetica and Courier, Latin text only, not embedded), 10.5-point
     /// text, A4 pages with 56-point margins and "Page {page} of {pages}" in the footer, no
     /// images and no contents page.
@@ -289,7 +289,7 @@ impl Builder {
     /// # Errors
     /// As [`Builder::flow`]; `missing-glyph` for a character no font has (the standard 14
     /// fonts set Latin text only).
-    pub fn markdown(&mut self, markdown: &str, options: &MarkdownOptions) -> Result<FlowReport> {
+    pub fn markdown(&mut self, markdown: &str, options: &MarkdownBuildOptions) -> Result<FlowReport> {
         let fonts = match &options.fonts {
             Some(fonts) => fonts.clone(),
             None => MarkdownFonts::new(&self.standard_font(Standard14::Helvetica)?)

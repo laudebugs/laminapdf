@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 use pulldown_cmark::{Alignment as Align, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
-use super::{FrontMatter, MarkdownOptions, Styles};
+use super::{FrontMatter, MarkdownBuildOptions, Styles};
 use crate::error::Warning;
 use crate::flow::{
     ColumnWidth, Figure, FlowBlock, List, ListItem, ListKind, Paragraph, ParagraphStyle, Table, TableCell, TableRow,
@@ -50,7 +50,7 @@ pub(crate) fn front_matter(markdown: &str) -> FrontMatter {
 
 /// `markdown` as flow blocks set in `styles`, for a flow whose first page is the document's
 /// page `first`.
-pub(crate) fn convert(markdown: &str, styles: &Styles, options: &MarkdownOptions, first: usize) -> Document {
+pub(crate) fn convert(markdown: &str, styles: &Styles, options: &MarkdownBuildOptions, first: usize) -> Document {
     let mut gather = Converter::new(styles, options, first, BTreeMap::new(), BTreeMap::new());
     gather.run(markdown);
     let slugs = slugs(&gather.headings);
@@ -129,7 +129,7 @@ struct ImageAt {
 
 struct Converter<'a> {
     styles: &'a Styles,
-    options: &'a MarkdownOptions,
+    options: &'a MarkdownBuildOptions,
     first: usize,
     /// Footnote bodies by label (from the first pass).
     notes: BTreeMap<String, Paragraph>,
@@ -155,7 +155,7 @@ struct Converter<'a> {
 impl<'a> Converter<'a> {
     fn new(
         styles: &'a Styles,
-        options: &'a MarkdownOptions,
+        options: &'a MarkdownBuildOptions,
         first: usize,
         notes: BTreeMap<String, Paragraph>,
         slugs: BTreeMap<String, usize>,

@@ -3,7 +3,7 @@
 //! replays every saved crash input (`fixtures/regressions/markdown/`) and the Markdown fixtures
 //! through it.
 
-use laminapdf_build::markdown::{MarkdownFonts, MarkdownOptions};
+use laminapdf_build::markdown::{MarkdownBuildOptions, MarkdownFonts};
 use laminapdf_build::{BuildOptions, Builder, Image, Warning};
 use laminapdf_save::{Save as _, SaveOptions};
 use laminapdf_text::Font;
@@ -26,7 +26,7 @@ pub fn markdown(data: &[u8]) {
     let image = Image::png(PNG).ok();
     for noto in [false, true] {
         let mut b = Builder::new(BuildOptions::new().with_id(*b"lamina-fuzz-mkdn"));
-        let mut options = MarkdownOptions::new();
+        let mut options = MarkdownBuildOptions::new();
         if noto {
             let Ok(font) = Font::from_bytes(NOTO.to_vec()) else {
                 return;

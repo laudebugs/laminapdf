@@ -1209,7 +1209,7 @@ impl WarningCode {
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
             Self::MarkdownHtmlIgnored => "write the content in Markdown instead of HTML, or remove the HTML",
-            Self::MarkdownImageMissing => "pass the image's bytes with MarkdownOptions::with_image under the path the Markdown uses",
+            Self::MarkdownImageMissing => "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",
             Self::CoveredText => "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
             Self::RedactionNotApplied => "apply the redactions in a tool that removes what they cover, then save a full rewrite",
             Self::TextInEarlierRevision => "save the file as a full rewrite, which keeps only the latest revision",

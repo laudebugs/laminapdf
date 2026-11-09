@@ -171,7 +171,7 @@ fn marker_diagnostics() -> (Vec<Error>, Vec<Warning>) {
 fn markdown_warnings() -> Vec<Warning> {
     let markdown = format!("<p>{MARKER}</p>\n\nText <span>{MARKER}</span>.\n\n![{MARKER}]({MARKER}.png)\n");
     let mut b = laminapdf::Builder::new(laminapdf::BuildOptions::new());
-    b.markdown(&markdown, &laminapdf::markdown::MarkdownOptions::new())
+    b.markdown(&markdown, &laminapdf::markdown::MarkdownBuildOptions::new())
         .unwrap();
     b.finish().unwrap().warnings().next_batch(u32::MAX)
 }

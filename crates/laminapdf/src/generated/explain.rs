@@ -3903,7 +3903,7 @@ Write the content in Markdown instead: `**bold**` for `<b>`, a table for `<table
 ## Example
 
 ```rust
-let report = builder.markdown("Hello <span>there</span>\n", &MarkdownOptions::new())?;
+let report = builder.markdown("Hello <span>there</span>\n", &MarkdownBuildOptions::new())?;
 assert_eq!(report.warnings[0].code(), "markdown-html-ignored");
 ```
 
@@ -3926,13 +3926,13 @@ The builder reads no files and fetches nothing from the network, so it can only 
 
 ## How to fix
 
-Read the image yourself and pass it with `MarkdownOptions::with_image`, under the same path the Markdown uses.
+Read the image yourself and pass it with `MarkdownBuildOptions::with_image`, under the same path the Markdown uses.
 
 ## Example
 
 ```rust
 let chart = Image::png(&std::fs::read("chart.png")?)?;
-let options = MarkdownOptions::new().with_image("chart.png", chart);
+let options = MarkdownBuildOptions::new().with_image("chart.png", chart);
 builder.markdown("![Chart](chart.png)\n", &options)?;
 ```
 

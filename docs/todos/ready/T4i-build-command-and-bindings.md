@@ -50,7 +50,7 @@ Bring [T4d](../done/T4d-markdown-documents.md)'s Markdown front end to the place
 ## Tasks
 
 - [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
-- [ ] Read ADR 0032 §7–§9 and T4d's `MarkdownOptions`
+- [ ] Read ADR 0032 §7–§9 and T4d's `MarkdownBuildOptions`
 - [ ] The CLI: `commands/build.rs` (new; `build(args, &Settings, &mut dyn Io)`, which never prints), `BuildArgs` and `BuildReport` with `JsonSchema`, the `Build` variant in `src/main.rs`, `schema::all()` and `COMMANDS`, the committed schema, CLI hints for the font errors, and the CLI README
 - [ ] MCP: `laminapdf_build` in `src/mcp/tools.rs` behind `allow_write`, with annotations that say it writes and isn't destructive; update `the_tools_should_be_in_name_order_and_read_only_by_default` for the new order
 - [ ] WebAssembly: `WasmBuilder.markdown` with its options record, the `markdown` feature turned on in the text module's build; TypeScript: `Builder.markdown` and its types; `cargo xtask wasm` and `cargo xtask size`

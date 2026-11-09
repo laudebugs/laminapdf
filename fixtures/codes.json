@@ -919,7 +919,7 @@
       "code": "markdown-image-missing",
       "kind": "usage",
       "summary": "the Markdown names an image that wasn't supplied, so the PDF leaves it out",
-      "hint": "pass the image's bytes with MarkdownOptions::with_image under the path the Markdown uses",
+      "hint": "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",
       "since": "0.2.0"
     }
   ],
