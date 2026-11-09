@@ -1,0 +1,379 @@
+---
+title: "Pages that flow"
+description: "Pour headings, paragraphs, tables and images, or a Markdown file, into as many pages as they need, with footnotes, a contents page and \"Page X of Y\" footers."
+version: "0.2.0-alpha.4"
+url: "https://docs.laminapdf.com/guides/flowing-pages/"
+---
+
+# Pages that flow
+
+Pour headings, paragraphs, tables and images, or a Markdown file, into as many pages as they need, with footnotes, a contents page and "Page X of Y" footers.
+
+This guide lays out a document whose length you don't know in advance, such as a report or a contract. You give Lamina PDF blocks and a page template, and it makes as many pages as they need, with a header and a footer on each.
+
+It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. Flowing layout is in the Rust crate today; the TypeScript package will follow.
+
+## The example
+
+The example builds a 13-page report: a cover with a contents page, then five sections of headings, paragraphs, a footnote, a bulleted list and a photo. One paragraph is in Arabic and one in Hindi, and each is split by a page break. Every page after the cover names its section in the header and says "Page 3 of 13" in the footer, and every section has a bookmark. The report is built under PDF/UA-1, the accessibility standard, so the build fails if the output breaks one of its rules.
+
+`crates/laminapdf/examples/flowing_report.rs`:
+
+```rust
+//! A report that flows across pages: a cover with a contents page, then sections whose
+//! paragraphs break between pages, footnotes at the foot of their page, the section's title in
+//! a running header and "Page X of Y" in the footer.
+//!
+//! Lines split with at least two at the foot and the head of a page, headings stay with what
+//! follows them, and the photo moves whole. The output is tagged, has bookmarks, and is checked
+//! against PDF/UA-1. Run it with `cargo run -p laminapdf --example flowing_report -- regular.ttf
+//! bold.ttc arabic.ttf devanagari.ttf photo.jpg`.
+
+use std::error::Error;
+
+use laminapdf::flow::{
+    Contents, Figure, Flow, FlowBlock, List, ListItem, ListKind, PageRegion, PageTemplate, Paragraph, ParagraphStyle,
+    TextStyle,
+};
+use laminapdf::{BuildOptions, Builder, Font, Image, Metadata, PageSize, Profile, SaveOptions};
+
+const TITLE: &str = "Reading files offline: a year of the reader";
+pub(crate) const ARABIC: &str =
+    "يعمل القارئ دون اتصال بالشبكة، فتُفتح الملفات وتُقرأ وتُبحث على الجهاز نفسه، ولا يغادر أي منها الحاسوب.";
+pub(crate) const HINDI: &str = "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण।";
+const TOPICS: [&str; 5] = ["Opening files", "Search", "Printing", "Signing", "What comes next"];
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let paths: Vec<String> = std::env::args().skip(1).collect();
+    let [regular, bold, arabic, hindi, photo] = paths.as_slice() else {
+        return Err("arguments: <regular.ttf> <bold.ttc> <arabic.ttf> <devanagari.ttf> <photo.jpg>".into());
+    };
+    let read = |path: &String| std::fs::read(path);
+    let fonts = [read(regular)?, read(bold)?, read(arabic)?, read(hindi)?];
+    let pdf = build(BuildOptions::new(), fonts, std::fs::read(photo)?)?;
+    std::fs::create_dir_all("target/examples-out")?;
+    Ok(std::fs::write("target/examples-out/flowing_report.pdf", pdf)?)
+}
+
+/// The report's bytes. `options` can fix the file ID, the producer and the creation date.
+pub(crate) fn build(options: BuildOptions, fonts: [Vec<u8>; 4], photo: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
+    let [regular, bold, arabic, hindi] = fonts;
+    let mut b = Builder::new(options.with_profile(Profile::PdfUa1));
+    b.metadata(Metadata::default().with_title(TITLE));
+    b.lang("en");
+    let regular = b.font(Font::from_bytes(regular)?)?;
+    let body = TextStyle::new(&regular, 11.0)
+        .with_fallback(&b.font(Font::from_bytes(arabic)?)?)
+        .with_fallback(&b.font(Font::from_bytes(hindi)?)?);
+    let heading = TextStyle::new(&b.font(Font::from_collection(bold, 1)?)?, 16.0);
+    let small = TextStyle::new(&regular, 9.0);
+    let header = PageRegion::new().with_end("{section}");
+    let footer = PageRegion::new().with_center("Page {page} of {pages}");
+    let pages = PageTemplate::new(PageSize::A5).with_furniture(Some(header), Some(footer), &small);
+    let (cover, team) = (heading.clone().with_size(24.0), "A report from the reader's team.");
+    let mut flow = Flow::new(pages.with_first_page(PageTemplate::new(PageSize::A5)))
+        .with_title(TITLE)
+        .block(FlowBlock::Paragraph(Paragraph::plain(TITLE, &cover)))
+        .block(FlowBlock::Paragraph(Paragraph::plain(team, &body)))
+        .block(FlowBlock::Contents(Contents::new(&body)))
+        .block(FlowBlock::PageBreak);
+    let photo = Image::jpeg(photo)?;
+    for (i, topic) in TOPICS.iter().enumerate() {
+        flow = section(flow, i, topic, &body, &heading, &photo);
+    }
+    b.flow(&flow)?;
+    Ok(b.finish()?.save(&SaveOptions::new())?.bytes)
+}
+
+/// A section: its heading, paragraphs (one in Arabic, one in Hindi), a list and a photo.
+fn section(flow: Flow, i: usize, topic: &str, body: &TextStyle, heading: &TextStyle, photo: &Image) -> Flow {
+    let sentence = format!(
+        "The {} work of the year changed how readers use the app every day. ",
+        topic.to_lowercase()
+    );
+    let mut flow = flow.block(FlowBlock::Heading(1, Paragraph::plain(topic, heading)));
+    let note = Paragraph::plain(
+        format!("Measured on our test files for {topic}."),
+        &body.clone().with_size(9.0),
+    );
+    for n in 0..4 {
+        let p = Paragraph::new(ParagraphStyle::new().with_space(0.0, 8.0)).text(sentence.repeat(n + 4), body);
+        let p = if n == 3 { p.note(note.clone()) } else { p };
+        flow = flow.block(FlowBlock::Paragraph(p));
+    }
+    let foreign = match i {
+        1 => Some((format!("{ARABIC} ").repeat(8).trim_end().to_owned(), "ar")),
+        3 => Some((format!("{HINDI} ").repeat(12).trim_end().to_owned(), "hi")),
+        _ => None,
+    };
+    if let Some((text, lang)) = foreign {
+        let style = body.clone().with_language(lang);
+        flow = flow.block(FlowBlock::Paragraph(Paragraph::plain(text, &style)));
+    }
+    let list = ["faster", "smaller", "easier to share"]
+        .iter()
+        .fold(List::new(ListKind::Bullet, body), |list, word| {
+            list.item(ListItem::new(Paragraph::plain(format!("Files are {word}."), body)))
+        });
+    let alt = format!("A photo of the team working on {}", topic.to_lowercase());
+    flow.block(FlowBlock::List(list))
+        .block(FlowBlock::Figure(Figure::new(photo.clone(), alt).with_width(200.0)))
+}
+```
+
+The result is thirteen A5 pages: [open the reference PDF](https://docs.laminapdf.com/examples/pdf/flowing_report.pdf).
+
+## Blocks, styles and the template
+
+A `Flow` is a list of blocks and the `PageTemplate` they flow through.
+
+- **Paragraphs** are made of pieces of text, each in its own `TextStyle`: its fonts, size, colour, language and a baseline rise for superscripts. A bold word is a piece in the bold font. A link is a piece with a target, and a line break or a footnote is a piece of its own.
+- **Tables** have header rows, body rows and footer rows; a later section covers them.
+- A **contents** block lists the headings with their pages, and footnotes go in paragraphs; both are covered below.
+- **Headings** run from level 1 to 6. **Lists** are bulleted or numbered, and an item can hold a nested list. A **figure** is an image with its alternate text, as wide as the page's text column unless you give it a width.
+- **Spacers, page breaks and keep groups** shape the layout: a spacer adds space, a page break starts a new page, and a `Keep` group keeps its blocks on one page.
+
+The template gives the page size, the margins, a header and a footer, and optionally a different first page, such as a cover without a header. A header or footer has three slots, at the start, centre and end of the line.
+
+## Where pages break
+
+The flow lays out every page before it draws any, and it follows these rules:
+
+- **Paragraphs split only between lines,** leaving at least two lines at the foot of a page and two at the head of the next. When a page has room for only one line of a paragraph, the paragraph moves to the next page. Change the counts with `with_widows_and_orphans`.
+- **A heading stays with the block after it,** so a section never starts on the last line of a page. Any paragraph can do the same with `with_keep_with_next`.
+- **Figures and keep groups move whole** to the next page when they don't fit.
+- **A paragraph continued on a page of another width** is broken again at that width.
+
+When blocks you asked to keep together are taller than a page, the flow splits them anyway and adds a `flow-keep-broken` warning to the report `Builder::flow` returns. A figure or a single line taller than a page fails with `flow-content-too-large`, since no page could hold it.
+
+## Tables across pages
+
+A table can run over as many pages as its rows need, with its header on each page and every row whole. The second example builds a three-page invoice of 60 rows with a total at the end:
+
+`crates/laminapdf/examples/flowing_invoice.rs`:
+
+```rust
+//! An invoice whose table runs over three pages: its header row repeats at the top of each
+//! page, no row is split between pages, and the total stays on the page of the last row.
+//!
+//! The columns fit their widest cell, and numbers line up on the right. The output is tagged
+//! (one `Table` element across the pages) and checked against PDF/UA-1. Run it with
+//! `cargo run -p laminapdf --example flowing_invoice -- regular.ttf bold.ttc`.
+
+use std::error::Error;
+
+use laminapdf::flow::{
+    ColumnWidth, Flow, FlowBlock, Margins, PageRegion, PageTemplate, Paragraph, Table, TableCell, TableRow, TableRule,
+    TextStyle,
+};
+use laminapdf::{Alignment, BuildOptions, Builder, Color, Font, Metadata, PageSize, Profile, SaveOptions};
+
+const TITLE: &str = "Invoice 2026-114";
+const PRODUCTS: [(&str, usize); 6] = [
+    ("Paper, A4, 80 g, box of 2,500 sheets", 2_450),
+    ("Toner cartridge, black", 6_900),
+    ("Desk lamp with a weighted base and an adjustable arm", 4_275),
+    ("Stapler", 1_290),
+    ("Archive boxes, set of ten, with lids", 3_150),
+    ("Ballpoint pens, box of fifty", 1_875),
+];
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let paths: Vec<String> = std::env::args().skip(1).collect();
+    let [regular, bold] = paths.as_slice() else {
+        return Err("arguments: <regular.ttf> <bold.ttc>".into());
+    };
+    let pdf = build(BuildOptions::new(), std::fs::read(regular)?, std::fs::read(bold)?)?;
+    std::fs::create_dir_all("target/examples-out")?;
+    Ok(std::fs::write("target/examples-out/flowing_invoice.pdf", pdf)?)
+}
+
+/// The invoice's bytes. `options` can fix the file ID, the producer and the creation date.
+pub(crate) fn build(options: BuildOptions, regular: Vec<u8>, bold: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut b = Builder::new(options.with_profile(Profile::PdfUa1));
+    b.metadata(Metadata::default().with_title(TITLE));
+    b.lang("en");
+    let body = TextStyle::new(&b.font(Font::from_bytes(regular)?)?, 10.0);
+    let strong = TextStyle::new(&b.font(Font::from_collection(bold, 1)?)?, 10.0);
+    let footer = PageRegion::new().with_center("{title}, page {page} of {pages}");
+    let pages = PageTemplate::new(PageSize::A4)
+        .with_margins(Margins::all(56.0))
+        .with_furniture(None, Some(footer), &body.clone().with_size(8.0));
+    let flow = Flow::new(pages)
+        .with_title(TITLE)
+        .block(FlowBlock::Heading(
+            1,
+            Paragraph::plain(TITLE, &strong.clone().with_size(18.0)),
+        ))
+        .block(FlowBlock::Paragraph(Paragraph::plain(
+            "Office supplies delivered in October, to be paid within 30 days.",
+            &body,
+        )))
+        .block(FlowBlock::Table(table(&body, &strong)));
+    b.flow(&flow)?;
+    Ok(b.finish()?.save(&SaveOptions::new())?.bytes)
+}
+
+/// Sixty lines of products, a header row and a footer row with the total.
+fn table(body: &TextStyle, strong: &TextStyle) -> Table {
+    let number = |text: String, style: &TextStyle| TableCell::plain(text, style).with_align(Alignment::End);
+    let header = ["Item", "Description", "Qty", "Amount"]
+        .iter()
+        .enumerate()
+        .fold(TableRow::new(), |row, (i, text)| {
+            let cell = TableCell::plain(*text, strong);
+            row.cell(if i >= 2 { cell.with_align(Alignment::End) } else { cell })
+        });
+    let mut table = Table::new([ColumnWidth::Auto; 4])
+        .with_padding(6.0)
+        .with_frame(TableRule::new(0.75, Color::gray(0.4)))
+        .with_header_rule(TableRule::new(0.75, Color::gray(0.4)))
+        .with_row_rules(TableRule::new(0.25, Color::gray(0.7)))
+        .with_header_background(Color::gray(0.92))
+        .header(header);
+    let mut total = 0;
+    for (i, (name, cents)) in PRODUCTS.iter().cycle().take(60).enumerate() {
+        let qty = i % 5 + 1;
+        total += qty * cents;
+        table = table.row(
+            TableRow::new()
+                .cell(TableCell::plain(format!("{:03}", i + 1), body))
+                .cell(TableCell::plain(*name, body))
+                .cell(number(qty.to_string(), body))
+                .cell(number(money(qty * cents), body)),
+        );
+    }
+    let total_row = TableRow::new()
+        .cell(TableCell::plain("Total", strong).with_span(3))
+        .cell(number(money(total), strong));
+    table.footer(total_row)
+}
+
+fn money(cents: usize) -> String {
+    format!("{}.{:02}", cents / 100, cents % 100)
+}
+```
+
+The result is three A4 pages: [open the reference PDF](https://docs.laminapdf.com/examples/pdf/flowing_invoice.pdf).
+
+A table follows three rules when it crosses a page:
+
+- **The header rows repeat** at the top of every page the table continues on.
+- **A body row never splits.** A row that doesn't fit what is left of a page starts the next one, and a row taller than a page fails with `flow-content-too-large`.
+- **The footer rows stay with the last body row,** so a total never starts a page alone. When the footer doesn't fit under the last row, that row moves to the next page with the footer.
+
+Columns get their widths once, for the whole table, so they line up from page to page. A column is `Fixed` (a width in points), `Auto` (as wide as its widest cell) or a `Fraction` (a share of the width the others leave). When automatic columns are too wide together, the widest ones narrow first, so a column of numbers keeps its width while the descriptions wrap.
+
+A cell holds one or more paragraphs. `with_align` lines its text up at the start, centre or end (numbers at the end), and `with_vertical_align` places it in the row. `with_span` stretches a cell over several columns, as the invoice's "Total" does. Rules come from `with_frame`, `with_header_rule` and `with_row_rules`, and `with_header_background` shades the header rows.
+
+## Footnotes, a contents page and bookmarks
+
+A footnote is part of a paragraph: `Paragraph::note(body)` puts a raised number where you add it and the note's body at the foot of the same page. Notes are numbered 1, 2, 3 through the flow. A short rule separates them from the text above, and the page's footer stays below them. When a line's notes don't fit at the foot of its page, the line moves to the next page with them.
+
+A contents block, `FlowBlock::Contents`, lists the flow's headings with the page each one starts on. Each entry is indented by its heading's level, with dots leading to its number, and the entry links to its heading. By default it lists levels 1 and 2; `Contents::with_levels` changes that. The report in the example puts its contents on the cover.
+
+The flow can't know the page numbers before it has laid the pages out. So it lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps room for a number of up to four digits, so the contents page keeps its length and the second layout confirms the numbers.
+
+Every heading also gets a bookmark. PDF readers list the bookmarks in their sidebar, nested by heading level, and each one goes to its heading. Turn them off with `Flow::with_outline(false)`.
+
+## Write it in Markdown
+
+You can also write the document in Markdown and let `Builder::markdown` turn it into blocks. Each Markdown construct becomes the block you would build by hand: a `#` heading becomes a heading, a list becomes a list, and a table becomes a table that runs across pages, its header row repeated on each. A link to `#a-heading` goes to the heading of that name, written the way GitHub writes it: lower case, with hyphens for spaces. Front matter at the top, plain `key: value` lines between two `---` lines, sets the document's title, language, author and subject.
+
+The example below builds a short report from a Markdown file. It gives the fonts, the page template and a contents page in `MarkdownBuildOptions`, and it passes the one image the Markdown names. The builder reads no files and fetches nothing, so it leaves out an image you don't pass and adds a `markdown-image-missing` warning. It leaves out raw HTML too, with `markdown-html-ignored`. Both warnings give the position in the Markdown, never its text.
+
+`crates/laminapdf/examples/markdown_to_pdf.rs`:
+
+```rust
+//! A report written in Markdown, turned into tagged pages that flow: headings, paragraphs with
+//! emphasis, code and links, a photo, lists and a task list, a block quote, a table that runs
+//! across pages, a code block, footnotes, and paragraphs in Arabic and Hindi.
+//!
+//! The front matter gives the title and language, a contents page lists the headings, and the
+//! output is checked against PDF/UA-1, so every font is embedded. Run it with `cargo run -p
+//! laminapdf --example markdown_to_pdf -- report.md regular.ttf bold.ttc arabic.ttf
+//! devanagari.ttf photo.jpg`.
+
+use std::error::Error;
+
+use laminapdf::flow::{PageRegion, PageTemplate, TextStyle};
+use laminapdf::markdown::{MarkdownBuildOptions, MarkdownFonts};
+use laminapdf::{BuildOptions, Builder, Font, Image, PageSize, Profile, SaveOptions};
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let paths: Vec<String> = std::env::args().skip(1).collect();
+    let [markdown, regular, bold, arabic, hindi, photo] = paths.as_slice() else {
+        return Err("arguments: <report.md> <regular.ttf> <bold.ttc> <arabic.ttf> <devanagari.ttf> <photo.jpg>".into());
+    };
+    let read = |path: &String| std::fs::read(path);
+    let fonts = [read(regular)?, read(bold)?, read(arabic)?, read(hindi)?];
+    let markdown = std::fs::read_to_string(markdown)?;
+    let pdf = build(BuildOptions::new(), &markdown, fonts, read(photo)?)?;
+    std::fs::create_dir_all("target/examples-out")?;
+    Ok(std::fs::write("target/examples-out/markdown_to_pdf.pdf", pdf)?)
+}
+
+/// The report's bytes. `options` can fix the file ID, the producer and the creation date.
+pub(crate) fn build(
+    options: BuildOptions,
+    markdown: &str,
+    fonts: [Vec<u8>; 4],
+    photo: Vec<u8>,
+) -> Result<Vec<u8>, Box<dyn Error>> {
+    let [regular, bold, arabic, hindi] = fonts;
+    let mut b = Builder::new(options.with_profile(Profile::PdfUa1));
+    let regular = b.font(Font::from_bytes(regular)?)?;
+    let fonts = MarkdownFonts::new(&regular)
+        .with_bold(&b.font(Font::from_collection(bold, 1)?)?)
+        .with_fallback(&b.font(Font::from_bytes(arabic)?)?)
+        .with_fallback(&b.font(Font::from_bytes(hindi)?)?);
+    // A5 pages, so the table runs across two of them, with the page number in the footer.
+    let footer = PageRegion::new().with_center("Page {page} of {pages}");
+    let pages = PageTemplate::new(PageSize::A5).with_furniture(None, Some(footer), &TextStyle::new(&regular, 8.0));
+    let options = MarkdownBuildOptions::new()
+        .with_fonts(fonts)
+        .with_template(pages)
+        .with_contents(2)
+        .with_image("photo.jpg", Image::jpeg(photo)?);
+    let report = b.markdown(markdown, &options)?;
+    if let Some(warning) = report.warnings.first() {
+        return Err(format!("the Markdown has something the PDF leaves out: {}", warning.code()).into());
+    }
+    Ok(b.finish()?.save(&SaveOptions::new())?.bytes)
+}
+```
+
+The result is four A5 pages: [open the reference PDF](https://docs.laminapdf.com/examples/pdf/markdown_to_pdf.pdf).
+
+If you pass no fonts, the builder sets the Markdown in Helvetica and Courier, two fonts every PDF reader has. They set only Latin text, and since they aren't embedded, a PDF/UA-1 build refuses them with `font-not-embedded`. Pass your own fonts with `MarkdownFonts` for other scripts or an accessible document.
+
+## Fields in headers and footers
+
+A slot's text can hold fields, which the flow fills in on each page:
+
+- `{page}`: the page's number in the document, from 1.
+- `{pages}`: the number of pages in the document once the flow's pages are added.
+- `{section}`: the title of the last level-1 heading that started on or before the page. Choose another level with `with_section_level`.
+- `{title}`: the title you gave the flow.
+
+Write `{{` and `}}` for a literal brace. `{pages}` is right on every page because no page is drawn until all of them are laid out.
+
+## What the flow tags
+
+The output is tagged unless you turn tagging off with `with_tagged(false)`. Paragraphs are `P` elements, headings `H1` to `H6`, lists `L` with their items, figures `Figure` with their alternate text, and links `Link`. A paragraph's language, taken from its first piece, is set on its element; a piece in another language is a `Span` with that language. A paragraph split across pages stays one element, so a screen reader reads it as one.
+
+A table is one `Table` element however many pages it crosses, with `THead`, `TBody` and `TFoot` around its rows. Header cells are `TH` elements that head their columns, and a cell across several columns records how many it spans.
+
+The header rows drawn again on later pages are marked as page furniture, like headers and footers, so a screen reader and Lamina PDF's extraction read the table's header once. The table's rules and background are marked as decoration too.
+
+A footnote's number is a `Reference` and its body a `Note` with its own identifier, inside the paragraph that cites it. A contents page is a `TOC` element with a `TOCI` for each entry, each holding its links; its dots are marked as decoration.
+
+Headers and footers are marked as page furniture rather than content: screen readers skip them, and Lamina PDF's own extraction leaves them out of the text.
+
+## What to change
+
+- **A cover:** give the template a first page with `with_first_page`, and start the body with a page break.
+- **Another typeface for a word:** add a piece of text in a `TextStyle` with that font. List fallback fonts with `with_fallback` for characters the first font lacks.
+- **Page numbers only:** pass a footer with one centre slot, `"{page}"`, and no header.
+
+Next: [Accessible PDFs](../../pages/guides/accessible-pdfs.md), for what PDF/UA-1 checks and how to meet it.
