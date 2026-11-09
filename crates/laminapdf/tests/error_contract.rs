@@ -160,8 +160,25 @@ fn marker_diagnostics() -> (Vec<Error>, Vec<Warning>) {
     let strict = Document::open_bytes(bytes, OpenOptions::default().with_strict(true));
     keep(strict.and_then(|d| d.page_infos()).map(drop));
     let mut cursor = doc.warnings();
-    let warnings = cursor.next_batch(u32::MAX);
+    let mut warnings = cursor.next_batch(u32::MAX);
+    warnings.extend(markdown_warnings());
     (errors, warnings)
+}
+
+/// Markdown whose raw HTML, alt text and image target hold the marker (todo T4d): the
+/// warnings give a byte offset, never the text.
+#[cfg(feature = "markdown")]
+fn markdown_warnings() -> Vec<Warning> {
+    let markdown = format!("<p>{MARKER}</p>\n\nText <span>{MARKER}</span>.\n\n![{MARKER}]({MARKER}.png)\n");
+    let mut b = laminapdf::Builder::new(laminapdf::BuildOptions::new());
+    b.markdown(&markdown, &laminapdf::markdown::MarkdownOptions::new())
+        .unwrap();
+    b.finish().unwrap().warnings().next_batch(u32::MAX)
+}
+
+#[cfg(not(feature = "markdown"))]
+fn markdown_warnings() -> Vec<Warning> {
+    Vec::new()
 }
 
 #[test]
@@ -207,6 +224,10 @@ fn the_marker_fixture_reaches_errors_and_warnings_that_carry_document_strings() 
         "page-count-mismatch",
         "content-unknown-operator",
         "content-resource-missing",
+        #[cfg(feature = "markdown")]
+        "markdown-html-ignored",
+        #[cfg(feature = "markdown")]
+        "markdown-image-missing",
     ];
     let missing: Vec<&str> = expected.into_iter().filter(|c| !codes.contains(c)).collect();
     assert!(missing.is_empty(), "not reached: {missing:?}; reached: {codes:?}");

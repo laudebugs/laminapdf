@@ -144,7 +144,7 @@ impl Builder {
     ///
     /// # Errors
     /// `flow-content-too-large` for a line or a figure taller than a page's body; shaping
-    /// errors (`missing-glyph`, `font-not-shapable`).
+    /// errors (`missing-glyph`).
     #[cfg(feature = "text")]
     pub fn flow(&mut self, flow: &crate::flow::Flow) -> Result<crate::flow::FlowReport> {
         let report = self.0.flow(flow)?;

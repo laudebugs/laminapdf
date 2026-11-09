@@ -10,7 +10,8 @@
 //! however many pages it crosses, and the running header and footer as `Pagination` artifacts
 //! with `/Subtype /Header` and `/Footer`.
 //!
-//! Fonts must be shapable: the standard 14 fail with `font-not-shapable`.
+//! The standard 14 fonts are laid out unshaped, with their AFM widths: Latin text only, left to
+//! right, and not embedded, so PDF/UA-1 and PDF/A refuse them (`font-not-embedded`).
 //!
 //! ```
 //! # fn font() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-Regular.ttf")).to_vec() }
@@ -85,8 +86,8 @@ impl Builder {
     /// # Errors
     /// [`Error::FlowContentTooLarge`](crate::Error::FlowContentTooLarge) for a line or a
     /// figure taller than a page's body; [`Error::FlowLayoutUnstable`](crate::Error::FlowLayoutUnstable)
-    /// for a contents page whose numbers don't settle; shaping errors (`missing-glyph`,
-    /// `font-not-shapable`); the errors of finishing a page. Pages drawn before a failure stay
+    /// for a contents page whose numbers don't settle; shaping errors (`missing-glyph`);
+    /// the errors of finishing a page. Pages drawn before a failure stay
     /// in the document, and the flow's structure elements are closed.
     pub fn flow(&mut self, flow: &Flow) -> Result<FlowReport> {
         let first = self.page_count();

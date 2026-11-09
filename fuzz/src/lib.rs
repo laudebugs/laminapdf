@@ -20,3 +20,6 @@ pub mod text_entry;
 /// The `extract` target's entry point, shared with laminapdf-extract's `tests/regressions.rs`.
 #[path = "../../crates/laminapdf-extract/tests/common/fuzz_entry.rs"]
 pub mod extract_entry;
+/// The `markdown` target's entry point, shared with laminapdf-build's `tests/regressions.rs`.
+#[path = "../../crates/laminapdf-build/tests/common/fuzz_entry.rs"]
+pub mod markdown_entry;

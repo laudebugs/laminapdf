@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4b](../done/T4b-flow-layout-core.md), [T4c](../done/T4c-flow-tables-notes-contents.md), [T4g](../done/T4g-flow-styled-spans.md), [T4h](../done/T4h-flow-notes-contents-outline.md) |
+| Depends on | [T4b](./T4b-flow-layout-core.md), [T4c](./T4c-flow-tables-notes-contents.md), [T4g](./T4g-flow-styled-spans.md), [T4h](./T4h-flow-notes-contents-outline.md) |
 | ADRs | Implements [ADR 0032](../../decisions/0032-flowing-layout-and-document-inputs.md): the Markdown dialect ([§6](../../decisions/0032-flowing-layout-and-document-inputs.md#6-inputs)), the front end as a `markdown` feature of `laminapdf-build` ([§5](../../decisions/0032-flowing-layout-and-document-inputs.md#5-placement)), the default fonts ([§8](../../decisions/0032-flowing-layout-and-document-inputs.md#8-fonts)) and the tag mapping ([§4](../../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging)). Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#rust-cargo-deny) (the parser's licence) and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
 | Branch | `feat/t4d-markdown-in` |
 | PR title | `feat(build): Markdown in, flowing pages out` |
@@ -64,26 +64,26 @@ Turn Markdown into flowing, tagged pages from Rust: `Builder::markdown(text, &Ma
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
-- [ ] Read ADR 0032 and the flow modules from T4b, T4g, T4c and T4h
-- [ ] Add `pulldown-cmark` to `[workspace.dependencies]` (default features off, as the crate needs), behind the `markdown` feature, and run `cargo xtask deny`
-- [ ] The new blocks `Quote`, `CodeBlock` and `Rule` in the flow model, with their layout, pagination and tags; `TagKind::BlockQuote` with `laminapdf-wasm`'s name table and `cargo xtask gen boundary`
-- [ ] `src/markdown/`: front matter, the event-to-block mapping in the table, slugs for `#` links, `MarkdownOptions` with its defaults, the two warnings with their `codes.json` entries and `docs/errors/` pages, then `cargo xtask gen codes`
-- [ ] The façade's `markdown` feature and `Builder::markdown`
-- [ ] The fixture `fixtures/markdown/report.md` with its provenance row in `fixtures/README.md`, the Rust example and its goldens (`cargo xtask golden --update`, `cargo xtask render-golden --update`)
-- [ ] The fuzz target: `fuzz/fuzz_targets/markdown.rs`, its `[[bin]]` in `fuzz/Cargo.toml`, `FUZZ_TARGETS` in `tools/xtask/src/harness.rs`, seeds from the fixture
-- [ ] The docs (Docs to update)
+- [x] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
+- [x] Read ADR 0032 and the flow modules from T4b, T4g, T4c and T4h
+- [x] Add `pulldown-cmark` to `[workspace.dependencies]` (default features off, as the crate needs), behind the `markdown` feature, and run `cargo xtask deny`
+- [x] The new blocks `Quote`, `CodeBlock` and `Rule` in the flow model, with their layout, pagination and tags; `TagKind::BlockQuote` with `laminapdf-wasm`'s name table and `cargo xtask gen boundary`
+- [x] `src/markdown/`: front matter, the event-to-block mapping in the table, slugs for `#` links, `MarkdownOptions` with its defaults, the two warnings with their `codes.json` entries and `docs/errors/` pages, then `cargo xtask gen codes`
+- [x] The façade's `markdown` feature and `Builder::markdown`
+- [x] The fixture `fixtures/markdown/report.md` with its provenance row in `fixtures/README.md`, the Rust example and its goldens (`cargo xtask golden --update`, `cargo xtask render-golden --update`)
+- [x] The fuzz target: `fuzz/fuzz_targets/markdown.rs`, its `[[bin]]` in `fuzz/Cargo.toml`, `FUZZ_TARGETS` in `tools/xtask/src/harness.rs`, seeds from the fixture
+- [x] The docs (Docs to update)
 
 ## Acceptance criteria
 
-- [ ] Each row of the mapping table has a test in `crates/laminapdf-build/tests/markdown.rs` (new) that builds the construct and reads back its block and structure type (`laminapdf_model::Document::structure()`)
-- [ ] `markdown_to_pdf` builds the golden's bytes from `fixtures/markdown/report.md`, passes `cargo xtask verapdf` under PDF/UA-1 and `qpdf --check`, and extracts its Arabic and Devanagari paragraphs as written
-- [ ] Without fonts, a Latin document builds with the standard 14 fonts, and the same document under PDF/UA-1 fails with `font-not-embedded`
-- [ ] Raw HTML gives `markdown-html-ignored`, and a missing or remote image gives `markdown-image-missing`, each with a byte offset in its `data`
-- [ ] Markdown whose raw HTML and image targets hold a marker string gives warnings whose messages and hints lack it
-- [ ] `pulldown-cmark` and its dependencies pass `cargo xtask deny`
-- [ ] The `markdown` fuzz target runs in the full lane (`cargo xtask fuzz --all`) without a crash
-- [ ] `cargo xtask check docs` passes with the Rust example shown on the "Pages that flow" guide
+- [x] Each row of the mapping table has a test in `crates/laminapdf-build/tests/markdown.rs` (new) that builds the construct and reads back its block and structure type (`laminapdf_model::Document::structure()`)
+- [x] `markdown_to_pdf` builds the golden's bytes from `fixtures/markdown/report.md`, passes `cargo xtask verapdf` under PDF/UA-1 and `qpdf --check`, and extracts its Arabic and Devanagari paragraphs as written
+- [x] Without fonts, a Latin document builds with the standard 14 fonts, and the same document under PDF/UA-1 fails with `font-not-embedded`
+- [x] Raw HTML gives `markdown-html-ignored`, and a missing or remote image gives `markdown-image-missing`, each with a byte offset in its `data`
+- [x] Markdown whose raw HTML and image targets hold a marker string gives warnings whose messages and hints lack it
+- [x] `pulldown-cmark` and its dependencies pass `cargo xtask deny`
+- [x] The `markdown` fuzz target runs in the full lane (`cargo xtask fuzz --all`) without a crash
+- [x] `cargo xtask check docs` passes with the Rust example shown on the "Pages that flow" guide
 
 ## Post-merge checks
 
@@ -98,10 +98,10 @@ Turn Markdown into flowing, tagged pages from Rust: `Builder::markdown(text, &Ma
 
 ## Docs to update
 
-- [ ] The "Pages that flow" guide: a section on Markdown with the Rust example in a Rust tab (T4i adds the TypeScript tab and the CLI command)
-- [ ] `CLAUDE.md`: the Building API paragraph and the fuzz target list
-- [ ] `fixtures/README.md`: the Markdown fixture and the new goldens
-- [ ] The trust and proof plan's §10 to-do for T4
+- [x] The "Pages that flow" guide: a section on Markdown with the Rust example in a Rust tab (T4i adds the TypeScript tab and the CLI command)
+- [x] `CLAUDE.md`: the Building API paragraph and the fuzz target list
+- [x] `fixtures/README.md`: the Markdown fixture and the new goldens
+- [x] The trust and proof plan's §10 to-do for T4
 
 ## Risks and open questions
 
@@ -112,8 +112,19 @@ Turn Markdown into flowing, tagged pages from Rust: `Builder::markdown(text, &Ma
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## As built
+
+- **Standard 14 fonts in flows,** a prerequisite of the default fonts: `HarfRust::shape` lays a standard 14 font out one glyph per character with its AFM width, `itemize` reads its coverage from the font's own table, and the builder's writer draws such runs a byte per character through `FontRegistry::encode`. `pdf_run` still refuses them (`font-not-shapable`). No golden changed.
+- **The flow model:** `Inline::Code` (`Paragraph::code`, tagged `Code` inside the paragraph), `TextStyle::with_strikethrough` (the line drawn after the text as a `Layout` artifact, outside the element's marked content), `List::with_start`, `ListItem::with_marker`, and the blocks `Quote(Vec<FlowBlock>)` (`TagKind::BlockQuote`, new, indented 18 pt), `CodeBlock(String, TextStyle)` (a `P` holding `Code`, indented 12 pt, wrapped at the body's width) and `Rule` (a `Layout` artifact). T4h's `NoteRule` placement became the shared `Rule`. Contents pages list headings inside quotes.
+- **The front end** (`src/markdown/`): two passes over pulldown-cmark's events, the first collecting footnote definitions and heading slugs (GitHub's rule, `-1`, `-2` for repeats) so a note or a `#slug` link may come before its target. A `#slug` without a heading is plain text with no link; a footnote reference without a definition stays as `[^label]`. Task markers are ☐ and ☑, or `[ ]` and `[x]` when the body font lacks them. Headings use the bold font at 2, 1.6, 1.3 and 1.15 times the body size, and levels 5 and 6 at the body size. Inline HTML gives one warning per tag; an HTML block one warning.
+- **Options:** `MarkdownFonts` has regular, bold, italic, bold italic, mono and fallbacks; headings take the bold font rather than a role of their own. `MarkdownOptions` adds `with_contents(levels)` for a contents page at the start.
+- **Warnings:** `markdown-html-ignored` (`unsupported`) and `markdown-image-missing` (`usage`), each with `offset` in its data and no location (the offset is in the Markdown, not the PDF). The façade maps `offset` in `data.rs`. `tests/error_contract.rs`'s marker diagnostics include a Markdown build whose HTML, alt text and image target hold the marker.
+- **Deviation: the façade's feature is on by default.** `markdown` joins `text` and `saslprep` in the façade's defaults, so `tests/examples.rs` and `cargo xtask examples` build `markdown_to_pdf` without a feature flag. The workspace takes `laminapdf` without defaults, so the WASM modules and the CLI turn it on only where T4i needs it.
+- **The example** sets A5 pages so the 12-row table crosses a page break, and uses Noto Sans for code (no monospaced fixture font: Courier would fail PDF/UA-1). It fails on any Markdown warning. Its image is `images/photo-rgb.jpg`, with alt text that describes that test picture. Its second page renders at SSIM 0.965 against its render golden through `laminapdf-render`'s hayro adapter, so `laminapdf-cli`'s `tests/render.rs` gives it a bar of 0.95, as it does the other flowing examples.
+- **The fuzz target** shares its entry point with `laminapdf-build`'s `tests/regressions.rs` (`tests/common/fuzz_entry.rs`), which replays `fixtures/markdown/` and `fuzz/seeds/markdown/`; the report fixture fails with `missing-glyph` in both of the target's fonts, so the Latin seed carries every construct through to a saved document.
