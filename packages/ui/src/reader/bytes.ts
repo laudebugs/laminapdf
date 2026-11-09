@@ -10,7 +10,7 @@ export function megabytes(bytes: number): string {
   return (bytes / MB).toFixed(1);
 }
 
-/** `bytes` with its unit: "512 bytes", "3.2 KB", "1.8 MB". */
+/** `bytes` with its unit: "512 B", "3.2 KB", "1.8 MB". */
 export function formatBytes(bytes: number): string {
   if (bytes < KB) return message("network.bytes", { value: String(bytes) });
   if (bytes < MB) return message("network.kb", { value: (bytes / KB).toFixed(1) });

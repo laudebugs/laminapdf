@@ -194,7 +194,9 @@ export class NetworkMonitor {
 
   /** The document closed: the status bar has nothing to count until the next one opens. */
   documentClosed(): void {
-    this.#set({ openedAt: undefined, documentUrl: undefined });
+    // A closing too: later requests to the closed file's host are no longer its reading.
+    const openings = [...this.#state.openings, { at: Date.now(), url: undefined }];
+    this.#set({ openedAt: undefined, documentUrl: undefined, openings });
   }
 
   #first(key: string): boolean {
