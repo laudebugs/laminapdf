@@ -67,7 +67,7 @@ None.
 
 ## Docs to update
 
-`packages/viewer/README.md` (find's results), `packages/ui/README.md` (`FindResults`), R05's "As built" in `docs/design/paper/reader-a.md`, CLAUDE.md's file map, a changeset for `@laminapdf/viewer` and `@laminapdf/ui`.
+`packages/viewer/README.md` (find's results), `packages/ui/README.md` (`FindResults`), R05's "As built" in `docs/design/paper/reader-a.md`, CLAUDE.md's file map, a changeset for `@laminapdf/viewer` (`@laminapdf/ui` is private).
 
 ## Risks and open questions
 
