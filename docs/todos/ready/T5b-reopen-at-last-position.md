@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T5](../../plans/trust-and-proof.md#t5-long-reading) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [C6b](../done/C6b-links-and-history.md), [C7b](./C7b-offline-pwa.md) |
+| Depends on | [C6b](../done/C6b-links-and-history.md), [C7b](../ongoing/C7b-offline-pwa.md) |
 | ADRs | Amends [0010](../../decisions/0010-platform-adapter.md) §1 (a `positions` member, an option on `recent.reopen`) and [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) §3 guarantee 9 (what the app stores); follows [0024](../../decisions/0024-app-shell-ux.md) §3 (a command with a visible home) and [0009](../../decisions/0009-web-client-architecture.md) (the fingerprint is computed in the document worker) |
 | Branch | `feat/t5b-reopen-at-last-position` |
 | PR title | `feat(web): reopen each document where the reader left it` |

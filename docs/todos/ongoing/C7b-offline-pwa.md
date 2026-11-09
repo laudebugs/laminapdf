@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C7b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../done/C4c-remote-files-encryption-privacy.md), [C4d](../done/C4d-deploy-previews-and-production.md), [C5b](../done/C5b-find-in-document.md), [C7a](../done/C7a-accessibility-and-theming.md) |
