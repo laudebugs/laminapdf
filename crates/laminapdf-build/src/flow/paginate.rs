@@ -3,6 +3,8 @@
 //! kept together (a heading and what follows it, a `Keep` group) moves to the next page whole,
 //! at most once, and is split with `flow-keep-broken` when it is taller than a page; a figure
 //! moves whole. A paragraph continued on a page of another width is broken again at that width.
+//! A table places its rows one by one: its header rows again at the top of each later page, no
+//! body row split, and the footer rows on the last body row's page.
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -11,6 +13,7 @@ use std::rc::Rc;
 use super::items::{Content, Items};
 use super::measure::MLine;
 use super::model::PageTemplate;
+use super::table::{Section, TableLayout, layout};
 use crate::error::{Error, Result, Warning};
 
 /// Something placed on a page.
@@ -29,6 +32,16 @@ pub(crate) enum Placed {
         line: Rc<MLine>,
         x: f64,
         top: f64,
+    },
+    /// Row `row` of item `item`'s table, its top at `top` and the table's left edge at `x`;
+    /// `repeat` for a header row drawn again on a later page.
+    Row {
+        item: usize,
+        table: Rc<TableLayout>,
+        row: usize,
+        x: f64,
+        top: f64,
+        repeat: bool,
     },
     /// Item `item`'s figure in a box, page space.
     Figure {
@@ -63,6 +76,7 @@ pub(crate) fn paginate(
         pages: Vec::new(),
         warnings: Vec::new(),
         measured: RefCell::new(BTreeMap::new()),
+        tables: RefCell::new(BTreeMap::new()),
         y: 0.0,
         fresh: true,
         after: 0.0,
@@ -82,7 +96,7 @@ pub(crate) fn paginate(
                 }
             }
             Content::Spacer(h) => pager.spacer(h),
-            Content::Para(_) | Content::Figure(_) => {
+            Content::Para(_) | Content::Figure(_) | Content::Table(_) => {
                 if i >= checked {
                     checked = pager.keep_chain(i)?;
                 }
@@ -111,6 +125,8 @@ struct Pager<'a> {
     warnings: Vec<Warning>,
     /// Lines by (source, first byte, width bits), each paragraph broken once per width.
     measured: RefCell<BTreeMap<(usize, usize, u64), Lines>>,
+    /// Tables laid out, by (table, width bits).
+    tables: RefCell<BTreeMap<(usize, u64), Rc<TableLayout>>>,
     /// Where the next item starts, page space.
     y: f64,
     /// Nothing is placed on the page yet.
@@ -224,6 +240,25 @@ impl Pager<'_> {
                 lines.iter().take(n).map(|l| l.height).sum()
             }
             Content::Figure(_) => self.figure_size(i).1,
+            Content::Table(t) => {
+                let (Some(table), layout) = (self.items.tables.get(t), self.table(i)?) else {
+                    return Ok(0.0);
+                };
+                if whole {
+                    layout.rows.iter().map(|r| r.height).sum()
+                } else {
+                    // Its header and first body row, and the footer too when that row is the last.
+                    let head = layout.height(table, Section::Head);
+                    let body = table.count(Section::Body);
+                    let first = layout.rows.get(table.count(Section::Head)).map_or(0.0, |r| r.height);
+                    let foot = if body <= 1 {
+                        layout.height(table, Section::Foot)
+                    } else {
+                        0.0
+                    };
+                    head + if body == 0 { 0.0 } else { first } + foot
+                }
+            }
             Content::Spacer(h) => h,
             Content::Break => 0.0,
         })
@@ -260,9 +295,7 @@ impl Pager<'_> {
             self.new_page();
         }
         if needed(self)? > self.body_height() {
-            #[expect(clippy::cast_possible_truncation, reason = "page counts are small")]
-            let page = (self.first_page + self.pages.len()).saturating_sub(1) as u32;
-            self.warnings.push(Warning::FlowKeepBroken { page });
+            self.warn_keep_broken();
         }
         Ok(end + 1)
     }
@@ -271,6 +304,7 @@ impl Pager<'_> {
         match self.items.entries.get(i).map(|it| it.content) {
             Some(Content::Para(_)) => self.place_para(i),
             Some(Content::Figure(_)) => self.place_figure(i),
+            Some(Content::Table(_)) => self.place_table(i),
             _ => Ok(()),
         }
     }
@@ -297,6 +331,99 @@ impl Pager<'_> {
         self.y += height;
         self.after = self.items.entries.get(i).map_or(0.0, |it| it.space_after);
         Ok(())
+    }
+
+    /// Item `i`'s table laid out at the width it keeps on every page: the narrower of this page's
+    /// and the later pages' (all of which use the template's main page).
+    fn table(&self, i: usize) -> Result<Rc<TableLayout>> {
+        let (Some(Content::Table(t)), indent) = self
+            .items
+            .entries
+            .get(i)
+            .map_or((None, 0.0), |it| (Some(it.content), it.indent))
+        else {
+            return Err(Error::InvalidGeometry {
+                what: "a flow item names no table",
+            });
+        };
+        let later = (self.template.for_page(usize::MAX).body_width() - indent).max(1.0);
+        let width = self.width(i).min(later);
+        let key = (t, width.to_bits());
+        if let Some(layout) = self.tables.borrow().get(&key) {
+            return Ok(Rc::clone(layout));
+        }
+        let table = self.items.tables.get(t).ok_or(Error::InvalidGeometry {
+            what: "a flow item names no table",
+        })?;
+        let laid = Rc::new(layout(table, &self.items.sources, width)?);
+        self.tables.borrow_mut().insert(key, Rc::clone(&laid));
+        Ok(laid)
+    }
+
+    fn place_table(&mut self, i: usize) -> Result<()> {
+        let Some(Content::Table(t)) = self.items.entries.get(i).map(|it| it.content) else {
+            return Ok(());
+        };
+        let Some(table) = self.items.tables.get(t) else {
+            return Ok(());
+        };
+        let start = self.demand(i, false)?;
+        if self.y + self.gap(i) + start > self.bottom() + 1e-6 && !self.fresh {
+            self.new_page();
+        }
+        let layout = self.table(i)?;
+        let heads = table.count(Section::Head);
+        let head = layout.height(table, Section::Head);
+        let foot = layout.height(table, Section::Foot);
+        let tallest = layout.rows.iter().skip(heads).map(|r| r.height).fold(0.0, f64::max);
+        if head + tallest > self.body_height() + 1e-6 {
+            return Err(Error::FlowContentTooLarge { what: "table row" });
+        }
+        self.y += self.gap(i);
+        let x = self.page_template().margins.left + self.items.entries.get(i).map_or(0.0, |it| it.indent);
+        self.place_rows(i, &layout, 0..heads, x, false);
+        let last_body = layout.rows.len() - table.count(Section::Foot);
+        for row in heads..layout.rows.len() {
+            let height = layout.rows.get(row).map_or(0.0, |r| r.height);
+            // The last body row needs room for the footer rows too.
+            let needed = if row + 1 == last_body { height + foot } else { height };
+            if self.y + needed > self.bottom() + 1e-6 {
+                // A row that fits here moves only when a fresh page holds what it needs.
+                if self.y + height > self.bottom() + 1e-6 || head + needed <= self.body_height() + 1e-6 {
+                    self.new_page();
+                    self.place_rows(i, &layout, 0..heads, x, true);
+                }
+                if self.y + needed > self.bottom() + 1e-6 {
+                    // The last body row and the footer fit no page together.
+                    self.warn_keep_broken();
+                }
+            }
+            self.place_rows(i, &layout, row..row + 1, x, false);
+        }
+        self.after = self.items.entries.get(i).map_or(0.0, |it| it.space_after);
+        Ok(())
+    }
+
+    /// Places rows `rows` of item `i`'s table from the current position.
+    fn place_rows(&mut self, i: usize, layout: &Rc<TableLayout>, rows: std::ops::Range<usize>, x: f64, repeat: bool) {
+        for row in rows {
+            let height = layout.rows.get(row).map_or(0.0, |r| r.height);
+            self.push(Placed::Row {
+                item: i,
+                table: Rc::clone(layout),
+                row,
+                x,
+                top: self.y,
+                repeat,
+            });
+            self.y += height;
+        }
+    }
+
+    fn warn_keep_broken(&mut self) {
+        #[expect(clippy::cast_possible_truncation, reason = "page counts are small")]
+        let page = (self.first_page + self.pages.len()).saturating_sub(1) as u32;
+        self.warnings.push(Warning::FlowKeepBroken { page });
     }
 
     fn place_para(&mut self, i: usize) -> Result<()> {

@@ -76,11 +76,17 @@ pub enum TagKind {
     Note,
     /// `Code`: computer code.
     Code,
+    /// `THead`: a table's header rows (optional; between the `Table` and its `TR`s).
+    THead,
+    /// `TBody`: a table's body rows.
+    TBody,
+    /// `TFoot`: a table's footer rows, such as totals.
+    TFoot,
 }
 
 impl TagKind {
     /// Every kind, in declaration order.
-    pub const ALL: [Self; 25] = [
+    pub const ALL: [Self; 28] = [
         Self::Document,
         Self::Part,
         Self::Sect,
@@ -106,6 +112,9 @@ impl TagKind {
         Self::Quote,
         Self::Note,
         Self::Code,
+        Self::THead,
+        Self::TBody,
+        Self::TFoot,
     ];
 
     /// The structure type's name (`/S`), such as `"H1"`.
@@ -137,6 +146,9 @@ impl TagKind {
             Self::Quote => "Quote",
             Self::Note => "Note",
             Self::Code => "Code",
+            Self::THead => "THead",
+            Self::TBody => "TBody",
+            Self::TFoot => "TFoot",
         }
     }
 
@@ -194,6 +206,7 @@ pub struct Tag {
     expansion: Option<String>,
     lang: Option<String>,
     scope: Option<TableScope>,
+    col_span: Option<u32>,
 }
 
 impl From<TagKind> for Tag {
@@ -214,12 +227,13 @@ impl Tag {
             expansion: None,
             lang: None,
             scope: None,
+            col_span: None,
         }
     }
 
     /// An element with a custom type `name`, which the `RoleMap` maps to `role` (§14.8.3).
     /// Standard types are never remapped: a `name` that is one of [`TagKind`]'s is that kind,
-    /// and any other standard type of PDF 1.7 or 2.0 (`Div`, `BlockQuote`, `TOC`, `THead`,
+    /// and any other standard type of PDF 1.7 or 2.0 (`Div`, `BlockQuote`, `TOC`, `TOCI`,
     /// `Formula`, `H7`, …) is written as `/S` unmapped, with `role` only saying how the builder
     /// treats it (a `Formula` written with the role `Figure` needs alternate text).
     #[must_use]
@@ -269,6 +283,14 @@ impl Tag {
         self
     }
 
+    /// The `/ColSpan` table attribute (for a `TH` or `TD` across more than one column; 1 is
+    /// the default and isn't written).
+    #[must_use]
+    pub const fn with_col_span(mut self, span: u32) -> Self {
+        self.col_span = if span > 1 { Some(span) } else { None };
+        self
+    }
+
     /// The standard type: the element's own, or the one a custom name maps to.
     #[must_use]
     pub const fn kind(&self) -> TagKind {
@@ -315,6 +337,12 @@ impl Tag {
     #[must_use]
     pub const fn scope(&self) -> Option<TableScope> {
         self.scope
+    }
+
+    /// `/ColSpan`, if more than 1.
+    #[must_use]
+    pub const fn col_span(&self) -> Option<u32> {
+        self.col_span
     }
 
     /// Whether the element is a figure or a formula without an alternate description (`/Alt`
@@ -432,11 +460,14 @@ mod tests {
             TagKind::Quote => 22,
             TagKind::Note => 23,
             TagKind::Code => 24,
+            TagKind::THead => 25,
+            TagKind::TBody => 26,
+            TagKind::TFoot => 27,
         };
         assert_eq!(
             TagKind::ALL.map(index),
             [
-                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
             ]
         );
     }

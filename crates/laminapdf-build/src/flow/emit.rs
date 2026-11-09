@@ -3,10 +3,12 @@
 //! `/Subtype`, and the structure elements kept open across pages (ADR 0032 §4).
 
 use std::collections::BTreeMap;
+use std::rc::Rc;
 
 use laminapdf_model::{PageId, PointPt, RectPt};
 use laminapdf_text::{Alignment, ShapedRun};
 
+use super::draw_table::{Part, RowAt, draw_row, draw_rules};
 use super::items::{Content, Items};
 use super::measure::{Look, MLine, Source};
 use super::model::{Flow, PageRegion, ParagraphStyle, TextStyle};
@@ -68,7 +70,38 @@ fn draw_pages(
         furniture(s, flow, index, &fields, true)?;
         let mut leaf: Option<usize> = None;
         let mut batch: Vec<&Placed> = Vec::new();
+        let mut part: Option<Part> = None;
         for placed in &page.placed {
+            if let Placed::Row {
+                item,
+                table,
+                row,
+                x,
+                top,
+                repeat,
+            } = placed
+            {
+                if !batch.is_empty() {
+                    draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
+                    batch.clear();
+                }
+                let at = RowAt {
+                    item: *item,
+                    layout: Rc::clone(table),
+                    row: *row,
+                    x: *x,
+                    top: *top,
+                    repeat: *repeat,
+                };
+                if let Some(p) = part.take_if(|p| !p.holds(&at)) {
+                    draw_rules(s, flow, items, &p)?;
+                }
+                draw_row(s, flow, items, &at, &mut part, &mut open, order)?;
+                continue;
+            }
+            if let Some(p) = part.take() {
+                draw_rules(s, flow, items, &p)?;
+            }
             let node = node_of(items, placed);
             if node != leaf && !batch.is_empty() {
                 draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
@@ -79,6 +112,9 @@ fn draw_pages(
         }
         if !batch.is_empty() {
             draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
+        }
+        if let Some(p) = part.take() {
+            draw_rules(s, flow, items, &p)?;
         }
         furniture(s, flow, index, &fields, false)?;
         ids.push(pb.finish()?);
@@ -91,11 +127,12 @@ fn node_of(items: &Items, placed: &Placed) -> Option<usize> {
     match placed {
         Placed::Line { item, .. } | Placed::Figure { item, .. } => items.entries.get(*item).and_then(|i| i.node),
         Placed::Label { item, .. } => items.entries.get(*item).and_then(|i| i.label).map(|(_, n)| n),
+        Placed::Row { .. } => None,
     }
 }
 
 /// Opens `node` (its parents first) unless it is open, and returns it.
-fn ensure(
+pub(super) fn ensure(
     s: &mut Surface,
     items: &Items,
     node: usize,
@@ -186,12 +223,14 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
                 }
             }
         }
+        // Drawn by `draw_table`, with the table's rules.
+        Placed::Row { .. } => {}
     }
 }
 
 /// Draws `line` of `source` with its top at `top` and the frame's left edge at `x`: each run,
 /// in logical order, cut where the colour, link or language of its text changes.
-fn draw_line(s: &mut Surface, tagged: bool, source: &Source, line: &MLine, x: f64, top: f64) {
+pub(super) fn draw_line(s: &mut Surface, tagged: bool, source: &Source, line: &MLine, x: f64, top: f64) {
     let baseline = top + line.baseline;
     for run in line
         .line
