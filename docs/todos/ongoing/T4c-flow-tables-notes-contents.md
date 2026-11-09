@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [T4b](../done/T4b-flow-layout-core.md) |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Split tables across pages with their header rows repeated, rows kept whole, and the totals kept with the rows above them. Hacker News commenters name this in the page-control requests (about 345 comments), and the table failure is the classic one: "Invoices: Totals get pushed to a new page with no repeated <thead> header. This is a classic failure of CSS table rendering across page breaks." ([44968804](https://news.ycombinator.com/item?id=44968804)) Another asked for "repeating headers per page, and not having any problems with rows printing half on one page, and half on the next page" ([15410166](https://news.ycombinator.com/item?id=15410166)). The [`flow-layout` spike](../../../spikes/flow-layout/README.md) showed the same gap in our builder: its equal-width columns clipped the invoice's descriptions silently, and each page's part of a table became its own `Table` element. Footnotes and contents pages, once part of this todo, are now [T4h](./T4h-flow-notes-contents-outline.md).
+Split tables across pages with their header rows repeated, rows kept whole, and the totals kept with the rows above them. Hacker News commenters name this in the page-control requests (about 345 comments), and the table failure is the classic one: "Invoices: Totals get pushed to a new page with no repeated <thead> header. This is a classic failure of CSS table rendering across page breaks." ([44968804](https://news.ycombinator.com/item?id=44968804)) Another asked for "repeating headers per page, and not having any problems with rows printing half on one page, and half on the next page" ([15410166](https://news.ycombinator.com/item?id=15410166)). The [`flow-layout` spike](../../../spikes/flow-layout/README.md) showed the same gap in our builder: its equal-width columns clipped the invoice's descriptions silently, and each page's part of a table became its own `Table` element. Footnotes and contents pages, once part of this todo, are now [T4h](../ready/T4h-flow-notes-contents-outline.md).
 
 ## Context
 
@@ -43,8 +43,8 @@ Split tables across pages with their header rows repeated, rows kept whole, and 
 **Out of scope** (and which todo covers it)
 
 - Rows split across pages: a row taller than the page's body fails with `flow-content-too-large` (T4b's code). Row spans and nested tables: later.
-- Footnotes, a contents page and the outline: [T4h](./T4h-flow-notes-contents-outline.md).
-- Markdown tables: [T4d](./T4d-markdown-documents.md). The JSON form: [T4e](./T4e-json-documents-and-templates.md); TypeScript: [T4j](./T4j-documents-in-typescript.md).
+- Footnotes, a contents page and the outline: [T4h](../ready/T4h-flow-notes-contents-outline.md).
+- Markdown tables: [T4d](../ready/T4d-markdown-documents.md). The JSON form: [T4e](../ready/T4e-json-documents-and-templates.md); TypeScript: [T4j](../ready/T4j-documents-in-typescript.md).
 - Joining tables across pages in extraction: [T3c](../done/T3c-tables-across-pages.md).
 
 ## Tasks
