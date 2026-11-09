@@ -171,7 +171,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   warnings, the #debug backend switch, remote files as PlatformFiles naming their address), src/app.tsx,
 │                        #   src/document.ts (window title, repair list; Node tests), src/open/ (C4c: url-fragment.ts parses and
 │                        #   writes `#url=…&page=…` keeping raw values, navigation.ts, watch.ts on load/hashchange/popstate; C6b: history.ts,
-│                        #   each viewer jump a browser history entry marked with its id), src/sw/service-worker.ts and build/pwa.ts (C7b: the
+│                        #   each viewer jump a browser history entry marked with its id), src/sw/service-worker.ts and plugins/pwa.ts (C7b: the
 │                        #   service worker (the shell and WebAssembly precached, same-origin GETs only, headers kept, updates on Reload) and the
 │                        #   manifest from the tokens with file_handlers), src/offline/ (updates, online, control, launch, install, document-cache;
 │                        #   R15's notice, toasts and install dialog), src/recent.tsx (recent files and Settings › Storage and privacy),

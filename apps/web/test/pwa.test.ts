@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { manifest, precacheList, precacheVersion } from "../build/pwa.ts";
+import { manifest, precacheList, precacheVersion } from "../plugins/pwa.ts";
 import { APP_ICONS } from "../vite.config.ts";
 
 describe("the manifest", () => {

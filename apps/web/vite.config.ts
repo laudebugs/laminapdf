@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
-import { pwa } from "./build/pwa.ts";
+import { pwa } from "./plugins/pwa.ts";
 
 /**
  * The website's icons, linked by index.html as the website and the docs site link them. The files
@@ -12,7 +12,7 @@ import { pwa } from "./build/pwa.ts";
  */
 export const WEBSITE_ICONS = ["favicon.svg", "favicon-32.png", "apple-touch-icon.png"] as const;
 
-/** The installed app's icons, which the manifest names (build/pwa.ts); drawn by the same script. */
+/** The installed app's icons, which the manifest names (plugins/pwa.ts); drawn by the same script. */
 export const APP_ICONS = ["icon-192.png", "icon-512.png", "icon-maskable-512.png"] as const;
 
 function websiteIcons(): Plugin {
