@@ -169,6 +169,32 @@ describe(`links and history in ${BROWSER}`, () => {
     await page.close();
   });
 
+  // In Firefox, Playwright's drag selects nothing even over plain text, with or without links.
+  it.skipIf(BROWSER === "firefox")(
+    "selects the text under a link by a drag that starts in the text outside it",
+    async () => {
+      const { page } = await open("links.pdf");
+      const input = page.getByRole("textbox", { name: "Page" });
+      await input.fill("2");
+      await input.press("Enter");
+      // Page 2's title has no link; the line under it is a link's label.
+      const span = (text: string) => page.locator('[data-page-index="1"] .lamina-text-layer span', { hasText: text });
+      await span("Named action: FirstPage").waitFor();
+      const from = await span("Page 2: chapter").boundingBox();
+      const to = await span("Named action: FirstPage").boundingBox();
+      if (from === null || to === null) throw new Error("the text isn't laid out");
+      await page.mouse.move(from.x + 2, from.y + from.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+      await page.mouse.move(to.x + to.width - 2, to.y + to.height / 2, { steps: 8 });
+      await page.mouse.up();
+      await expect.poll(() => page.evaluate(() => getSelection()?.toString() ?? "")).toContain("Named action: First");
+      // The drag selected; it followed no link.
+      expect(await shownPage(page)).toBe("2");
+      await page.close();
+    },
+  );
+
   it("passes axe with the links drawn", async () => {
     const { page } = await open("links.pdf", true);
     const { default: axe } = await import("axe-core");

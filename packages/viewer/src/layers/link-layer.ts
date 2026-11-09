@@ -3,6 +3,8 @@
 // Like the other layers, the anchors sit in page points inside one box that a CSS transform scales
 // and turns to the page. Only the anchors take pointer events, so text around a link still selects.
 // Anchors follow page order, so Tab moves through a page's links in order, then the next page's.
+// While a drag that started outside every link is under way, no anchor takes pointer events, so a
+// selection begun in the text runs on over the text under a link.
 //
 // What a link does is decided here, never by the browser: a primary click or Enter is always
 // handled (`preventDefault`). A link inside the document goes there through the viewer (a history
@@ -68,6 +70,8 @@ export interface LinkLayerOptions {
 
 /** What the link layer needs of its viewer. */
 export interface LinkHost {
+  /** The viewer's root, where a selection drag starts. */
+  readonly root: HTMLElement;
   readonly client: Pick<ViewerClient, "pageLinks">;
   /** Page `page`'s displayed size in points. */
   points(page: number): { readonly width: number; readonly height: number } | undefined;
@@ -139,11 +143,35 @@ export class LinkLayer implements PageLayer {
   readonly #words: LinkWords;
   readonly #pages = new Map<number, PageLinks>();
   readonly #follows = new WeakMap<HTMLElement, Follow>();
+  readonly #listening = new AbortController();
 
   constructor(host: LinkHost, options: LinkLayerOptions = {}) {
     this.#host = host;
     this.#options = options;
     this.#words = options.words ?? ENGLISH;
+    const { signal } = this.#listening;
+    host.root.addEventListener(
+      "pointerdown",
+      (e) => {
+        if (e.button === 0 && !this.#followOf(e)) this.#passThrough(true);
+      },
+      { signal },
+    );
+    for (const end of ["pointerup", "pointercancel"]) {
+      document.addEventListener(end, () => this.#passThrough(false), { signal });
+    }
+  }
+
+  /** Stops listening: the viewer is going. */
+  destroy(): void {
+    this.#listening.abort();
+  }
+
+  /** Lets the pointer through every anchor (a selection drag is under way), or stops letting it. */
+  #passThrough(through: boolean): void {
+    for (const { box } of this.#pages.values()) {
+      for (const a of box.children) (a as HTMLElement).style.pointerEvents = through ? "none" : "auto";
+    }
   }
 
   onMount(page: number, slot: HTMLElement): void {

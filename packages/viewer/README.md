@@ -40,10 +40,12 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 
 | Member | What it does |
 | --- | --- |
-| `createViewer({ client, margin?, gap?, pool?, detailPool?, cacheBytes?, backdropMaxPixels?, canvasMaxPixels?, device?, settleMs?, zoom?, text? })` | Makes a viewer over a `ViewerClient`. `text` is on by default; `false` leaves the text layer out, and an object sets its `outline`, `untaggedLabel` and `onSelection`. |
+| `createViewer({ client, margin?, gap?, pool?, detailPool?, cacheBytes?, backdropMaxPixels?, canvasMaxPixels?, device?, settleMs?, zoom?, text?, links?, history? })` | Makes a viewer over a `ViewerClient`. `text` is on by default; `false` leaves the text layer out, and an object sets its `outline`, `untaggedLabel` and `onSelection`. `links` is on by default too; an object sets its `href`, `onExternal` and `words` (below). `history` sets the history's `max` entries (100). |
 | `mount(container)`, `open(document)`, `destroy()` | Puts it on the page, shows a document, takes it down. |
 | `goToPage(index, { anchor })`, `setZoom(zoom, { anchor })`, `rotate(delta)` | Navigation. `zoom` is a mode or a percentage. |
 | `goToDestination(target)` | Goes to an outline item's or a named destination's target (below). |
+| `jumpToPage(index)`, `jumpToDestination(target)` | The same moves as history jumps: Back returns to where the view was. |
+| `history` | Back and forward through the jumps (below). |
 | `getState()`, `subscribe(listener)` | The view state (`currentPage`, `pageCount`, `zoom`, `percent`, `rotation`, `scrollTop`, `visibleRange`), for `useSyncExternalStore`. |
 | `on("pagechange" \| "zoomchange" \| "renderstats", …)`, `stats()` | Events and counters. `renderstats` counts renders, for measuring performance. |
 | `addLayer({ name, onMount, onUnmount, onZoom })` | Mounts a layer into each page. |
@@ -51,7 +53,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 | `pointAt(x, y)`, `positionOf(point)` | Converts between viewport positions and document points. |
 | `MIN_ZOOM`, `MAX_ZOOM` | The bounds of a percentage zoom, 10 and 800, for a zoom control's range. |
 
-**Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The text layer fills the first; find highlights and links will mount in the others through `addLayer`. A layer with another name gets its own slot on top.
+**Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The text layer fills the first, links the second and find highlights the third. Only the text slot takes pointer events itself; in the others only what a layer marks does, such as a link's anchor. A layer with another name gets its own slot on top.
 
 **Text.** The text layer makes every page's text selectable, copyable and readable by screen readers, whichever backend draws the page.
 - **Spans.** Each text run of Lamina PDF's extraction gets one transparent span, placed from its glyphs' quads, never from the renderer's. A rotated or vertical run gets a rotated span, and a span reads right to left when its first letter does. The spans sit in a box sized in points, which one CSS transform scales and turns to the page, so a zoom or a rotation moves no span.
@@ -76,6 +78,18 @@ The document Web Worker reads each page's text at `background` priority, after t
 - **Fit a rectangle** (`fit-rect`, from `/FitR`).
 
 A left the file leaves out keeps the current horizontal scroll, and a top it leaves out goes to the page's top. A view rotated by `rotate()` turns the point with the page, and a fit always fits the viewport's own width or height, as in pdf.js.
+
+**Links.** The link layer puts an anchor over each link on a mounted page, from Lamina PDF's reading of the page's link annotations (`ViewerClient.pageLinks(index)`), never the renderer's. No script or program the file names ever runs:
+- **Inside the document.** A link to a destination, or one of the named actions Next page, Previous page, First page and Last page, goes there as a history jump. Its `href` is what `links.href(page)` returns, so a middle click or "Open in new tab" opens the same document at that page; give it the app's address for the page.
+- **To the web.** Only `http:`, `https:` and `mailto:` addresses may open, and only after the app confirms: every click, a middle click too, calls `links.onExternal(href)` with the address normalised, its international host in punycode. `externalLink(uri)` gives the same rules to the app, with the address split around its host for showing it.
+- **Everything else does nothing.** A link to another file, an action such as Launch or JavaScript, a refused address (`javascript:`, `file:`, `data:`) or a destination missing from the file gets no `href`, and its title says why.
+
+Anchors follow page order, so Tab reaches a page's links in order. Each is named by its `/Contents` or by what it does ("Link to page 3"); `links.words` gives those names in another language. Only the anchors take pointer events, so text beside a link still selects. Style them as `a.lamina-link`; the viewer adds no style sheet.
+
+**History.** `viewer.history` records jumps: links, `jumpToPage`, `jumpToDestination`, find's moves and thumbnail clicks. Scrolling alone records nothing. A jump keeps where the view was for Back, so Back returns to where the reader had scrolled, at that zoom, not only to the page they last landed on.
+- `back()`, `forward()` and `goTo(id)` move the view; `getState()` and `subscribe()` say where Back and Forward go (`back`, `forward`, `current`, each an entry with a page point and a zoom).
+- A jump that lands where the view already is adds nothing, and a new jump drops what Forward held.
+- `onEntry(listener)` hears of each entry added, so an app can keep its own history in step: the web reader writes each jump into the browser's history through the address fragment, and `goTo(id)` answers the browser's Back.
 
 **Thumbnails.** `new ThumbnailStrip(client, viewer, { width?, margin?, cacheBytes?, label?, name? })` makes a list of the pages as small pictures, for a sidebar. `mount(container)` puts it on the page, and `open(document)` shows the document the viewer opened. Size its `element` with CSS; it scrolls inside.
 - **Like the viewer, it mounts only what is near its view.** It keeps the thumbnails in view and 4 either side. Each borrows a canvas from the strip's own pool, and a thumbnail scrolled away aborts its render.
@@ -136,7 +150,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 
 ## For contributors
 
-The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/done/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/done/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ongoing/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
+The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/done/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/done/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/done/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
 
 ### Architecture
 
@@ -171,6 +185,7 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `structure` | — | `StructureData`: whether the document is tagged, and its structure tree | document |
 | `outline` | — | `OutlineNode[]`: the outline, each item's target in page space | document |
 | `namedDestination` | `name` | `Target \| undefined` | document |
+| `pageLinks` | `index` | `PageLink[]`: the page's links in page space, by `kind`; the last 24 pages' are cached | document |
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).
 

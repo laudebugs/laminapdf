@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `C6b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C5a](../done/C5a-text-layer-and-selection.md), [C6a](../done/C6a-thumbnails-outline-page-labels.md) |
+| Depends on | [C5a](./C5a-text-layer-and-selection.md), [C6a](./C6a-thumbnails-outline-page-labels.md) |
 | ADRs | Follows 0004 (link geometry from lamina's model, not the renderer), 0009 (framework-free link layer), 0010 (`Platform.openExternal`), 0011 (no referrer, external links confirm before leaving) |
 | Branch | `feat/c6b-links-and-history` |
 | PR title | `feat(viewer): add the link layer with external-link confirmation and navigation history` |
 | Size | M–L (500–1,000 lines incl. tests) |
-| PR | — |
+| PR | [#357](https://github.com/laudebugs/laminapdf/pull/357) |
 
 ## Goal
 
@@ -44,25 +44,25 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Library accessor for link annotations and actions if missing (Rust unit tests; tolerant to malformed `/A`, `/Dest`, and URI encodings per ADR 0003).
-- [ ] RPC + worker caching per page.
-- [ ] Link layer with transforms shared with the text layer (same matrix helper), hover cursor, focus outline, high-contrast-visible focus.
-- [ ] Confirmation dialog, URL normalisation and display (punycode shown for IDN hosts to prevent spoofing), scheme allow-list.
-- [ ] Named actions and unsupported-action reporting.
-- [ ] `NavigationHistory` with unit tests; toolbar back/forward buttons; fragment integration and `popstate` handling.
-- [ ] Facts: link targets (page index for internal, URI for external) for corpus files added to `expected.json` via an independent tool (pypdf/pdf.js); a generated fixture with every link kind (`@laminapdf/sdk` builder supports links and named destinations per B5).
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Library accessor for link annotations and actions if missing (Rust unit tests; tolerant to malformed `/A`, `/Dest`, and URI encodings per ADR 0003).
+- [x] RPC + worker caching per page.
+- [x] Link layer with transforms shared with the text layer (same matrix helper), hover cursor, focus outline, high-contrast-visible focus.
+- [x] Confirmation dialog, URL normalisation and display (punycode shown for IDN hosts to prevent spoofing), scheme allow-list.
+- [x] Named actions and unsupported-action reporting.
+- [x] `NavigationHistory` with unit tests; toolbar back/forward buttons; fragment integration and `popstate` handling.
+- [x] Facts: link targets (page index for internal, URI for external) for corpus files added to `expected.json` via an independent tool (pypdf/pdf.js); a generated fixture with every link kind (`@laminapdf/sdk` builder supports links and named destinations per B5).
 
 ## Acceptance criteria
 
-- [ ] **Link targets match `expected.json`** for every corpus file with links (internal page index and external URI).
-- [ ] Clicking or pressing Enter on an internal link navigates to the destination with the right fit; Back returns to the previous position (page and scroll within 1 page height), Forward re-applies.
-- [ ] Browser Back after an internal jump returns to the previous page without reloading or re-opening (no new `open` RPC, no new remote requests); the URL path never changes, only the fragment; `#url=` stays intact.
-- [ ] Internal link `href`s on a remote document keep the encoded `url` key (`#url=<encoded>&page=N`); a middle-click (`page.click(…, { button: "middle" })`, or reading the `href` and opening it in a new page where the engine doesn't open tabs on middle-click) opens a new tab on the same remote document at page N; a primary click doesn't change the fragment except through `NavigationHistory`.
-- [ ] External link: a confirmation shows the full URL; Cancel does nothing; Open opens a new tab with no `Referer` (asserted with a local test server) and no `window.opener`.
-- [ ] `javascript:`, `file:`, `data:` URIs and `Launch`/`JavaScript` actions are never executed; they're reported as unsupported.
-- [ ] Links are reachable by Tab in page order and have accessible names; zero serious axe violations on a links fixture.
-- [ ] Text under a link can still be selected by dragging from outside the link.
+- [x] **Link targets match `expected.json`** for every corpus file with links (internal page index and external URI).
+- [x] Clicking or pressing Enter on an internal link navigates to the destination with the right fit; Back returns to the previous position (page and scroll within 1 page height), Forward re-applies.
+- [x] Browser Back after an internal jump returns to the previous page without reloading or re-opening (no new `open` RPC, no new remote requests); the URL path never changes, only the fragment; `#url=` stays intact.
+- [x] Internal link `href`s on a remote document keep the encoded `url` key (`#url=<encoded>&page=N`); a middle-click (`page.click(…, { button: "middle" })`, or reading the `href` and opening it in a new page where the engine doesn't open tabs on middle-click) opens a new tab on the same remote document at page N; a primary click doesn't change the fragment except through `NavigationHistory`.
+- [x] External link: a confirmation shows the full URL; Cancel does nothing; Open opens a new tab with no `Referer` (asserted with a local test server) and no `window.opener`.
+- [x] `javascript:`, `file:`, `data:` URIs and `Launch`/`JavaScript` actions are never executed; they're reported as unsupported.
+- [x] Links are reachable by Tab in page order and have accessible names; zero serious axe violations on a links fixture.
+- [x] Text under a link can still be selected by dragging from outside the link.
 
 ## Post-merge checks
 
@@ -84,8 +84,18 @@ Rust unit tests (accessor); Vitest unit tests (history coalescing, URL validatio
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes
+
+- **The fixture sits apart from the corpus.** `fixtures/corpus/` has no file with links, and a file added there would need render goldens, differential facts and text facts. So `fixtures/links/links.pdf` has every link kind, and pypdf's facts are in `fixtures/links/expected.json`. The first acceptance criterion holds on that file and on the links-and-outlines golden, whose pypdf facts were already in `fixtures/build/facts.json`. pypdf 6.21 reads either the catalog's `/Dests` or the `/Names` tree, never both, so `tools/fixtures/link_facts.py` reads the tree as well.
+- **The browser's history is the history.** Each jump is a browser history entry, marked with the viewer's entry id, so the browser's Back, Alt+← and ⌘[ (which the web reader leaves to the browser) and the reader's own buttons all step one history. An entry from another view (a reload, a backend switch) goes by its fragment's page instead.
+- **Selection over links.** Anchors take pointer events, so on their own they block a drag that crosses them. While a drag that started outside every link is under way, the layer lets the pointer through them. The e2e test of that drag runs in Chromium and WebKit; in Firefox, Playwright's drag selects nothing even over plain text, so it is skipped there. That Firefox behaviour needs its own look.
+- **Slots.** The `annot` and `highlight` slots no longer take pointer events themselves. Before this, the empty slots covered the text layer for the pointer.
+- **Referer.** WebKit sends an empty `Referer` header where the others send none. Either way, the site learns nothing.
+- **Generated types.** tsify writes a flattened enum as `interface … extends` a union, which TypeScript refuses, so `PageLinkJs`'s type is written by hand in `laminapdf-wasm`.
+- **What differs from R07** is in its "As built" note: link names without the outline title, no Not run listing yet, no link commands, and no Back or Forward on the phone yet.

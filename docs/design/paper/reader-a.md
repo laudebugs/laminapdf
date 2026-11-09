@@ -183,7 +183,7 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Todos.** [C5b](../../todos/done/C5b-find-in-document.md), [C5c](../../todos/done/C5c-find-results-tab.md).
 
-**As built ([C5b](../../todos/done/C5b-find-in-document.md)).** The web reader ships the find bar and the top-bar Find button (a button with `aria-expanded`, since pressing it again returns to the field), with the count, Previous and Next, Match case, Whole words, the context note, Close, and the count announced to screen readers (`aria-live="polite"`). Two parts wait for later todos. Recording Next and Previous in the back and forward history waits for R07 ([C6b](../../todos/ongoing/C6b-links-and-history.md)). The phone layout (a top-bar field over a Previous · Results · Next bar) comes later too: until then a phone shows the same find bar, wrapped to the screen's width. The reader draws each match as the upright box around its glyphs, so a match on rotated text gets an upright box rather than a rotated one; that is accepted for v0.1.
+**As built ([C5b](../../todos/done/C5b-find-in-document.md)).** The web reader ships the find bar and the top-bar Find button (a button with `aria-expanded`, since pressing it again returns to the field), with the count, Previous and Next, Match case, Whole words, the context note, Close, and the count announced to screen readers (`aria-live="polite"`). Two parts wait for later todos. Since [C6b](../../todos/done/C6b-links-and-history.md), Next, Previous and a result's click are history jumps, as R07 says. The phone layout (a top-bar field over a Previous · Results · Next bar) comes later too: until then a phone shows the same find bar, wrapped to the screen's width. The reader draws each match as the upright box around its glyphs, so a match on rotated text gets an upright box rather than a rotated one; that is accepted for v0.1.
 
 **As built ([C5c](../../todos/done/C5c-find-results-tab.md)).** While find is open, the rail has a Results tab after Pages and Outline; closing find takes it away and the rail shows Pages. Each group's heading is the page's label and the outline section in effect at the top of that page, the section the Outline tab marks when that page is scrolled to the top. So a match under a heading that starts partway down the page is listed under the previous section. Each snippet is cut from the page's text, about 40 characters each side of the match. A word joined across a line-end hyphen keeps its hyphen in the snippet, as "exam- ple", since the snippet shows the page's own text. Until the reader has an Attachments tab, the rail has three tabs. It keeps its 220 px width and needs no More tabs button. On a phone the tab is in the Contents sheet with the others until the phone's find layout is built.
 
@@ -244,7 +244,13 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Artboards.** `R07-link-preview.dc.html`, `R07-external-link.dc.html`.
 
-**Todos.** [C6b](../../todos/ongoing/C6b-links-and-history.md) (links, the external-link dialog, history); [T5a](../../todos/ready/T5a-link-previews.md) (the link preview).
+**Todos.** [C6b](../../todos/done/C6b-links-and-history.md) (links, the external-link dialog, history); [T5a](../../todos/ready/T5a-link-previews.md) (the link preview).
+
+**As built ([C6b](../../todos/done/C6b-links-and-history.md)).** The web reader ships the link layer, the external-link dialog and Back and Forward, which sit before the page input. Four parts differ from the boards or wait for later todos:
+- **Names.** A link without a description is named "Link to page 11", without the target's outline title, which comes with the preview ([T5a](../../todos/ready/T5a-link-previews.md)). Until then, hovering a link that does something shows nothing extra. A link that does nothing has a hover note saying why, as the board shows.
+- **Not run.** Actions a link would run are never run. They aren't yet listed in R04's Not run section, which so far lists repairs only.
+- **Commands.** `nav.follow-link`, `nav.open-external-link` and `nav.copy-link` aren't registered. A click or Enter follows a link, and the dialog's buttons open or copy it.
+- **Phone.** The phone's top bar has no Back or Forward, and More doesn't hold them yet. The OS back gesture still steps the reader's history, because each jump is a browser history entry.
 
 ## R08 Document properties
 

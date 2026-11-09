@@ -42,7 +42,7 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 **Out of scope** (and which todo covers it)
 
 - Find, highlights and match navigation → [C5b](../done/C5b-find-in-document.md).
-- Link layer → [C6b](../ongoing/C6b-links-and-history.md).
+- Link layer → [C6b](../done/C6b-links-and-history.md).
 - Annotation/form DOM layers (display is raster by PDFium in the reader).
 - Full keyboard/screen-reader audit → [C7a](../ready/C7a-accessibility-and-theming.md).
 

@@ -544,6 +544,7 @@ export class Viewer {
     this.#cache.clear();
     this.find.reset();
     this.#text?.destroy();
+    this.#links?.destroy();
     for (const f of this.#cleanup.splice(0)) f();
     this.#root.remove();
   }
@@ -555,6 +556,7 @@ export class Viewer {
     if (links === false) return undefined;
     const layer = new LinkLayer(
       {
+        root: this.#root,
         client: this.#client,
         points: (page) => this.#sizes[page],
         rotation: () => this.#rotation,
