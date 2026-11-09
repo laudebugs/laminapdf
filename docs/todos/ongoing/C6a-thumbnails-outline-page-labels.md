@@ -12,7 +12,7 @@
 | Branch | `feat/c6a-thumbnails-outline` |
 | PR title | `feat(ui): add thumbnails and outline sidebars with page labels and go-to-page` |
 | Size | L (600–1,500 lines incl. tests) |
-| PR | — |
+| PR | [#348](https://github.com/laudebugs/laminapdf/pull/348) |
 
 ## Goal
 
