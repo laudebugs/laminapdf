@@ -19,3 +19,4 @@ else
   echo "WEBKIT_DISABLE_DMABUF_RENDERER=${WEBKIT_DISABLE_DMABUF_RENDERER:-unset}"
   echo "gl: $(glxinfo -B 2>/dev/null | grep -E 'OpenGL renderer' | cut -d: -f2 | xargs || echo unknown)"
 fi
+exit 0

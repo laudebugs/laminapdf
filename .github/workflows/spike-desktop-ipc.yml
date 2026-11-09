@@ -19,7 +19,7 @@ concurrency:
 
 env:
   # quick: one run of one combination per transport (a smoke test); full: the README's plan.
-  SPIKE_MODE: quick
+  SPIKE_MODE: full
 
 jobs:
   bench:

@@ -43,7 +43,18 @@ const log = (text: string) => {
   status.textContent = text;
   return metrics({ kind: "log", text });
 };
-const nextFrame = () => new Promise<number>((r) => requestAnimationFrame(r));
+/** The webview stopped sending frames (hidden or occluded window, display asleep, no
+ * compositor): the run is void, not slow. */
+export class Stalled extends Error {}
+const STALL_MS = 3000;
+const nextFrame = () =>
+  new Promise<number>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Stalled(`no animation frame for ${STALL_MS} ms`)), STALL_MS);
+    requestAnimationFrame((t) => {
+      clearTimeout(timer);
+      resolve(t);
+    });
+  });
 
 function quantile(sorted: number[], q: number): number {
   if (sorted.length === 0) return Number.NaN;
@@ -249,7 +260,7 @@ async function runOnce(plan: Plan, combo: Combo, timing: Timing, verify: boolean
   const burstMs = performance.now() - burstStart;
   for (const c of cache.values()) c.bitmap.close();
   // Let late tiles land before the next run starts.
-  while (inflight.size > 0) await nextFrame();
+  while (inflight.size > 0) await new Promise((r) => setTimeout(r, 16));
 
   const sortedGaps = [...gaps].sort((a, b) => a - b);
   const dropped = gaps.reduce((n, g) => n + Math.max(0, Math.round(g / interval) - 1), 0);
@@ -283,20 +294,38 @@ async function runOnce(plan: Plan, combo: Combo, timing: Timing, verify: boolean
   return { row, requested, failure };
 }
 
+/** Runs `attempt` again after a stall (up to 3 tries), logging each stall. */
+async function retryStalls<T>(label: string, attempt: () => Promise<T>): Promise<T> {
+  for (let tries = 1; ; tries++) {
+    try {
+      return await attempt();
+    } catch (e) {
+      if (!(e instanceof Stalled) || tries === 3) throw e;
+      await log(`${label}: stalled (${e.message}), retrying`);
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+}
+
 async function measure(plan: Plan, combo: Combo, timing: Timing, run: number, file: string, seen: TileReq[]) {
   const label = `${combo.transport} ${combo.source} ${combo.tile}px dpr${combo.dpr} n${combo.inflight} run ${run}`;
   await log(label);
-  const { row, failure } = await runOnce(plan, combo, timing, false, seen);
-  if (failure) throw failure;
-  await metrics({ kind: "result", file, run, ...row });
-  return row;
+  return retryStalls(label, async () => {
+    const { row, failure } = await runOnce(plan, combo, timing, false, seen);
+    if (failure) throw failure;
+    await metrics({ kind: "result", file, run, ...row });
+    return row;
+  });
 }
 
 /** Fills the Rust tile cache for a combo (the scroll and zoom script once), then checks every
  * transport against it with full verification. Returns the tiles the script asks for. */
 async function prime(plan: Plan, combo: Combo, timing: Timing): Promise<TileReq[]> {
-  await log(`prime ${combo.source} ${combo.tile}px dpr${combo.dpr}`);
-  const { requested, failure, row } = await runOnce(plan, { ...combo, transport: "scheme-raw" }, timing, true);
+  const label = `prime ${combo.source} ${combo.tile}px dpr${combo.dpr}`;
+  await log(label);
+  const { requested, failure, row } = await retryStalls(label, () =>
+    runOnce(plan, { ...combo, transport: "scheme-raw" }, timing, true),
+  );
   if (failure) throw failure;
   await metrics({ kind: "result", file: "prime", run: 0, ...row });
   for (const name of TRANSPORTS) {
@@ -351,7 +380,9 @@ export async function runBench(plan: Plan): Promise<void> {
     await log("done");
     await metrics({ kind: "done", code: 0 });
   } catch (e) {
-    await log(`FAILED: ${e instanceof Error ? e.message : String(e)}`);
-    await metrics({ kind: "done", code: e instanceof CorruptTile ? 3 : 1 });
+    const error = e instanceof Error ? e.message : String(e);
+    await log(`FAILED: ${error}`);
+    await metrics({ kind: "note", file: "failure", error });
+    await metrics({ kind: "done", code: e instanceof CorruptTile ? 3 : e instanceof Stalled ? 4 : 1 });
   }
 }

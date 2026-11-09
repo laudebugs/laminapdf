@@ -90,8 +90,8 @@ async fn stream_tiles(
     .map_err(|e| e.to_string())?
 }
 
-/// Run control and results: `start` resets the counters and starts the probe, `result` and
-/// `coi` append a CSV row to `results/<file>.csv`, `log` prints, `done` quits.
+/// Run control and results: `start` resets the counters and starts the probe, `result`, `coi`
+/// and `note` append a CSV row to `results/<file>.csv`, `log` prints, `done` quits.
 #[tauri::command]
 fn metrics(handle: AppHandle, app: State<'_, App>, msg: Map<String, Value>) -> Result<(), String> {
     match msg.get("kind").and_then(Value::as_str) {
@@ -99,7 +99,7 @@ fn metrics(handle: AppHandle, app: State<'_, App>, msg: Map<String, Value>) -> R
             *app.tiles.timings.lock().unwrap_or_else(PoisonError::into_inner) = tiles::Timings::default();
             app.probe.start();
         }
-        Some("result" | "coi") => {
+        Some("result" | "coi" | "note") => {
             let mut row = msg.clone();
             if msg.get("kind").and_then(Value::as_str) == Some("result") {
                 let sample = app.probe.stop();

@@ -20,6 +20,11 @@ pnpm tauri build --no-bundle --config src-tauri/tauri.coi.conf.json
 cp src-tauri/target/release/desktop-ipc bin/desktop-ipc-coi
 scripts/specs.sh > "results/$label-machine.txt"
 
+# On macOS, keep the display awake until this script exits: WebKit sends no animation frames
+# while it sleeps. The window is always on top for the same reason; don't lock the screen or
+# switch Spaces during a run.
+if [ "$(uname)" = Darwin ]; then caffeinate -d -i -w $$ & fi
+
 # Runs "$2" with a deadline of "$1" seconds (macOS has no timeout(1)).
 run() {
   "$2" &

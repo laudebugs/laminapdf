@@ -21,14 +21,6 @@ function loadsAsImage(url: string): Promise<string> {
   });
 }
 
-/** The GL renderer string, to record which GPU path the webview runs on (not used to paint). */
-function glRenderer(): string {
-  const gl = document.createElement("canvas").getContext("webgl");
-  if (!gl) return "no webgl";
-  const ext = gl.getExtension("WEBGL_debug_renderer_info");
-  return String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
-}
-
 export async function runCoi(): Promise<void> {
   let sab = "unavailable";
   if (typeof SharedArrayBuffer === "function") {
@@ -55,7 +47,6 @@ export async function runCoi(): Promise<void> {
     shared_array_buffer: sab,
     ipc_invoke: ipc,
     user_agent: navigator.userAgent,
-    gl_renderer: glRenderer(),
   };
   for (const corp of ["same-origin", "cross-origin", "none"]) {
     row[`fetch_corp_${corp}`] = await fetches(`${tile}?id=1&corp=${corp}`);

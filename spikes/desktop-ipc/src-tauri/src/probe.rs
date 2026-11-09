@@ -61,6 +61,10 @@ impl Probe {
                 system.refresh_processes_specifics(ProcessesToUpdate::All, true, refresh);
                 let (mut web_rss, mut cpu, mut count) = (0_u64, 0.0_f64, 0);
                 for (pid, process) in system.processes() {
+                    // Linux lists every thread as a process sharing its parent's memory.
+                    if process.thread_kind().is_some() {
+                        continue;
+                    }
                     if *pid == app {
                         let mb = process.memory() as f64 / 1_048_576.0;
                         sample.main_rss_peak_mb = sample.main_rss_peak_mb.max(mb);

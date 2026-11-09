@@ -10,7 +10,7 @@
     "beforeBuildCommand": "pnpm build"
   },
   "app": {
-    "windows": [{ "label": "main", "title": "desktop-ipc spike", "width": 1280, "height": 800, "resizable": false }],
+    "windows": [{ "label": "main", "title": "desktop-ipc spike", "width": 1280, "height": 800, "resizable": false, "alwaysOnTop": true }],
     "security": {
       "csp": {
         "default-src": "'self'",
@@ -22,5 +22,5 @@
       "capabilities": ["default"]
     }
   },
-  "bundle": { "active": false, "icon": ["icons/icon.png"] }
+  "bundle": { "active": false, "icon": ["icons/icon.png", "icons/icon.ico"] }
 }
