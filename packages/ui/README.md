@@ -153,7 +153,7 @@ const context = { platform, reader, viewer, actions: { ...shellActions(layout, m
 
 The sidebar toggle and Commands appear once the shell handles `view.toggle-sidebar` and `palette.open`. `shellActions` handles the sidebar only when the shell has rail tabs to show.
 
-The viewer comes in as any object with its store and three calls (`goToPage`, `setZoom`, `rotate`), plus `jumpToPage` when it records history, so `@laminapdf/viewer`'s viewer fits without this package importing it. `PasswordDialog` asks for a password whenever the controller needs one and passes each try to it.
+The viewer comes in as any object with its store and four calls (`goToPage`, `jumpToPage`, `setZoom`, `rotate`), so `@laminapdf/viewer`'s viewer fits without this package importing it. `PasswordDialog` asks for a password whenever the controller needs one and passes each try to it.
 
 The shell builds the More menu, and marks each item that needs a capability with `needs`. `useGatedEntries` then keeps the item, disables it with how to get the capability, or leaves it out on a platform that never has it.
 

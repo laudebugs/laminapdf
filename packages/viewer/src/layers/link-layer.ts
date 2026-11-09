@@ -9,17 +9,18 @@
 // What a link does is decided here, never by the browser: a primary click or Enter is always
 // handled (`preventDefault`). A link inside the document goes there through the viewer (a history
 // jump); its `href` is the app's address for that page, so a middle click or "Open in new tab"
-// opens the same document there. A web or email link asks the app to confirm first, whatever the
-// click; its `href` is the address itself, so the browser shows it and can copy it. Anything else
-// (another file, an action a reader never runs, a refused scheme, a broken destination) gets no
-// `href`, does nothing, and says why on hover.
+// opens the same document there. A web or email link asks the app to confirm first, on a click,
+// a middle click or Enter. It has no `href`, so no browser menu ("Open in new tab") can open it
+// without asking; its title shows the address. Anything else (another file, an action a reader
+// never runs, a refused scheme, a broken destination) has no `href` either, does nothing, and
+// says why on hover.
 
 import type { PageLink, Target } from "@laminapdf/sdk";
 import type { ViewerClient } from "../client.js";
-import type { Rotation } from "../layout/page-layout.js";
+import type { PageSize, Rotation } from "../layout/page-layout.js";
 import type { PageLayer } from "../view/viewer.js";
 import { placeBox } from "./box.js";
-import { externalLink } from "./link-url.js";
+import { externalLink, type OpenableLink } from "./link-url.js";
 
 /** The words the layer gives links without a description of their own, and its hover notes. */
 export interface LinkWords {
@@ -62,10 +63,15 @@ export interface LinkLayerOptions {
    * new tab opens the same document there; `undefined` leaves the link without one.
    */
   readonly href?: (page: number) => string | undefined;
-  /** A web or email link was followed: ask the reader before opening `href` (normalised, punycode host). */
-  readonly onExternal?: (href: string) => void;
+  /** A web or email link was followed: ask the reader before opening it (normalised, punycode host). */
+  readonly onExternal?: (link: OpenableLink) => void;
   /** The words for links without a description, and the hover notes (default English). */
   readonly words?: LinkWords;
+  /**
+   * A link that does nothing was followed (another file, an action never run, a refused
+   * address, a broken destination), with the note it shows: for the app's debug log.
+   */
+  readonly onInert?: (link: PageLink, note: string) => void;
 }
 
 /** What the link layer needs of its viewer. */
@@ -74,7 +80,7 @@ export interface LinkHost {
   readonly root: HTMLElement;
   readonly client: Pick<ViewerClient, "pageLinks">;
   /** Page `page`'s displayed size in points. */
-  points(page: number): { readonly width: number; readonly height: number } | undefined;
+  points(page: number): PageSize | undefined;
   rotation(): Rotation;
   /** The number of pages. */
   pageCount(): number;
@@ -88,14 +94,14 @@ export interface LinkHost {
 type Follow =
   | { readonly kind: "target"; readonly target: Target }
   | { readonly kind: "page"; readonly page: number }
-  | { readonly kind: "external"; readonly href: string }
-  | { readonly kind: "none" };
+  | { readonly kind: "external"; readonly link: OpenableLink }
+  | { readonly kind: "none"; readonly link: PageLink; readonly note: string };
 
 /** One mounted page's links. */
 interface PageLinks {
   readonly box: HTMLDivElement;
   readonly abort: AbortController;
-  size: { readonly width: number; readonly height: number } | undefined;
+  size: PageSize | undefined;
 }
 
 /** The page a standard named action goes to from page `page` of `count`, and its words. */
@@ -117,6 +123,11 @@ function namedAction(
     default:
       return undefined;
   }
+}
+
+/** What a link that does nothing means: named and noted by `note`. */
+function inert(link: PageLink, note: string): { follow: Follow; label: string; note: string } {
+  return { follow: { kind: "none", link, note }, label: note, note };
 }
 
 /** The box around eight-number quads (or the rectangle, without any), in page points. */
@@ -160,6 +171,8 @@ export class LinkLayer implements PageLayer {
     for (const end of ["pointerup", "pointercancel"]) {
       document.addEventListener(end, () => this.#passThrough(false), { signal });
     }
+    // A button released outside the window may send no pointerup: leaving the window ends the drag too.
+    window.addEventListener("blur", () => this.#passThrough(false), { signal });
   }
 
   /** Stops listening: the viewer is going. */
@@ -188,6 +201,11 @@ export class LinkLayer implements PageLayer {
     const view: PageLinks = { box, abort: new AbortController(), size: undefined };
     this.#pages.set(page, view);
     box.addEventListener("click", (e) => this.#click(e));
+    // A link without an `href` (a web link) gets no click from Enter: it follows it here.
+    box.addEventListener("keydown", (e) => {
+      const anchor = e.target instanceof HTMLElement ? e.target : undefined;
+      if (e.key === "Enter" && anchor !== undefined && !anchor.hasAttribute("href")) this.#click(e);
+    });
     // A middle click on a web link would open it without asking: it asks too.
     box.addEventListener("auxclick", (e) => {
       if (e.button === 1 && this.#followOf(e)?.kind === "external") this.#click(e);
@@ -209,7 +227,7 @@ export class LinkLayer implements PageLayer {
     this.#pages.delete(page);
   }
 
-  onZoom(page: number, _slot: HTMLElement, size: { readonly width: number; readonly height: number }): void {
+  onZoom(page: number, _slot: HTMLElement, size: PageSize): void {
     const view = this.#pages.get(page);
     if (view === undefined) return;
     view.size = size;
@@ -236,15 +254,14 @@ export class LinkLayer implements PageLayer {
     const a = document.createElement("a");
     a.className = "lamina-link";
     a.draggable = false;
-    const href = follow.kind === "external" ? follow.href : this.#internalHref(follow);
+    const href = this.#internalHref(follow);
     if (href === undefined) {
-      // No address to follow: still a link in the tab order, named, and saying why it does nothing.
+      // No address for the browser to follow: still a link in the tab order, and named.
       a.setAttribute("role", "link");
-      a.setAttribute("aria-disabled", "true");
       a.tabIndex = 0;
+      if (follow.kind === "none") a.setAttribute("aria-disabled", "true");
     } else {
       a.href = href;
-      if (follow.kind === "external") a.rel = "noopener noreferrer";
       a.referrerPolicy = "no-referrer";
     }
     a.setAttribute("aria-label", link.contents ?? label);
@@ -258,7 +275,7 @@ export class LinkLayer implements PageLayer {
       width: `${bounds.width}px`,
       height: `${bounds.height}px`,
       pointerEvents: "auto",
-      cursor: href === undefined ? "default" : "pointer",
+      cursor: follow.kind === "none" ? "default" : "pointer",
     });
     // A link over several areas (its quads): the first is the anchor, the others its children,
     // placed from it, so only the areas follow the link and the focus ring is on the first.
@@ -284,26 +301,25 @@ export class LinkLayer implements PageLayer {
       case "dest":
       case "named":
         return link.target === undefined
-          ? { follow: { kind: "none" }, label: words.broken, note: words.broken }
+          ? inert(link, words.broken)
           : { follow: { kind: "target", target: link.target }, label: words.page(link.target.page) };
       case "uri": {
         const external = externalLink(link.uri);
         return external.kind === "open"
-          ? { follow: { kind: "external", href: external.href }, label: external.href, note: external.href }
-          : { follow: { kind: "none" }, label: words.refused(link.uri), note: words.refused(link.uri) };
+          ? { follow: { kind: "external", link: external }, label: external.href, note: external.href }
+          : inert(link, words.refused(link.uri));
       }
       case "remote": {
-        const note = words.otherFile(link.file);
-        return { follow: { kind: "none" }, label: note, note };
+        return inert(link, words.otherFile(link.file));
       }
       case "named-action": {
         const to = namedAction(link.name, page, this.#host.pageCount(), words);
         return to === undefined
-          ? { follow: { kind: "none" }, label: words.unsupported, note: words.unsupported }
+          ? inert(link, words.unsupported)
           : { follow: { kind: "page", page: to.page }, label: to.label, note: to.label };
       }
       default:
-        return { follow: { kind: "none" }, label: words.unsupported, note: words.unsupported };
+        return inert(link, words.unsupported);
     }
   }
 
@@ -319,12 +335,13 @@ export class LinkLayer implements PageLayer {
     return anchor instanceof HTMLElement ? this.#follows.get(anchor) : undefined;
   }
 
-  #click(e: MouseEvent): void {
+  #click(e: MouseEvent | KeyboardEvent): void {
     const follow = this.#followOf(e);
     if (follow === undefined) return;
     const external = follow.kind === "external";
     // A modified click on a link inside the document opens its `href` where the browser puts it.
-    if (!external && (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)) return;
+    const modified = e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || (e instanceof MouseEvent && e.button !== 0);
+    if (!external && modified) return;
     e.preventDefault();
     switch (follow.kind) {
       case "target":
@@ -334,9 +351,10 @@ export class LinkLayer implements PageLayer {
         this.#host.goToPage(follow.page);
         return;
       case "external":
-        this.#options.onExternal?.(follow.href);
+        this.#options.onExternal?.(follow.link);
         return;
       case "none":
+        this.#options.onInert?.(follow.link, follow.note);
         return;
     }
   }

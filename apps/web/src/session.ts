@@ -18,9 +18,9 @@ import type {
 import { message, ReaderController } from "@laminapdf/ui";
 import {
   createViewer,
-  type ExternalLink,
-  externalLink,
+  type LinkLayerOptions,
   type LinkWords,
+  type OpenableLink,
   type SourceInit,
   ThumbnailStrip,
   type Viewer,
@@ -60,8 +60,12 @@ export interface EngineState {
   /** Why the address's `#url=` link can't be opened, until another document opens or the reader closes. */
   readonly linkProblem: Exclude<RemoteFailureReason, "cors"> | undefined;
   /** A web or email link in the document waiting for the reader to confirm it (R07). */
-  readonly externalLink: Extract<ExternalLink, { kind: "open" }> | undefined;
+  readonly externalLink: OpenableLink | undefined;
 }
+
+/** #debug's log of a link the layer never follows (R07: actions are never run). */
+const logInert: NonNullable<LinkLayerOptions["onInert"]> = (link, note) =>
+  console.debug("link not followed:", link.kind, note);
 
 /** The link layer's words, from the catalogue. */
 const LINK_WORDS: LinkWords = {
@@ -78,21 +82,26 @@ const LINK_WORDS: LinkWords = {
 
 /**
  * Starts `backend`'s document worker and makes a view over it, whose web links `onExternal`
- * receives for confirming.
+ * receives for confirming; `debug` (#debug) outlines text spans and logs links never followed.
  */
 async function startSession(
   backend: DebugBackend,
-  outline: boolean,
-  onExternal: (href: string) => void,
+  debug: boolean,
+  onExternal: (link: OpenableLink) => void,
 ): Promise<Session> {
   const client = await ViewerClient.create({
     backend: backend === "pdfium" ? { backend: "pdfium", wasm: pdfiumWasm } : { backend: "hayro" },
   });
   const viewer = createViewer({
     client,
-    text: { outline },
+    text: { outline: debug },
     // An internal link's address keeps the fragment's `url`, so a new tab opens the same document there.
-    links: { href: (page) => pageAddress(location, page), onExternal, words: LINK_WORDS },
+    links: {
+      href: (page) => pageAddress(location, page),
+      onExternal,
+      words: LINK_WORDS,
+      ...(debug ? { onInert: logInert } : {}),
+    },
   });
   return { backend, client, viewer, strip: new ThumbnailStrip(client, viewer, { name: message("shell.rail.pages") }) };
 }
@@ -214,10 +223,9 @@ export class Engine implements ExternalStore<EngineState> {
     this.#set({ linkProblem: problem });
   }
 
-  /** Asks the reader to confirm the web link `href` (the link layer's normalised address). */
-  confirmExternalLink(href: string): void {
-    const link = externalLink(href);
-    if (link.kind === "open") this.#set({ externalLink: link });
+  /** Asks the reader to confirm the web link `link`, as the link layer read it. */
+  confirmExternalLink(link: OpenableLink): void {
+    this.#set({ externalLink: link });
   }
 
   /** The external link was opened, copied and closed, or cancelled: nothing waits any more. */
@@ -297,7 +305,7 @@ export class Engine implements ExternalStore<EngineState> {
   }
 
   #start(backend: DebugBackend): Promise<Session> {
-    const session = startSession(backend, this.#outline, (href) => this.confirmExternalLink(href));
+    const session = startSession(backend, this.#outline, (link) => this.confirmExternalLink(link));
     session.then(
       (started) => {
         if (this.#session !== session) return;

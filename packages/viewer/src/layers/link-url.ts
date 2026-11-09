@@ -8,16 +8,15 @@
 const OPENABLE = new Set(["http:", "https:", "mailto:"]);
 
 /** A link address as a reader treats it. */
-export type ExternalLink =
-  /** May open after the reader confirms: `href` is the normalised address. */
-  | {
-      readonly kind: "open";
-      readonly href: string;
-      /** The address in three parts, the host (or a mailto address's domain) emphasised. */
-      readonly parts: { readonly before: string; readonly host: string; readonly after: string };
-    }
-  /** Never opens: `uri` is the address as the file stores it, for saying so. */
-  | { readonly kind: "refused"; readonly uri: string };
+export type ExternalLink = OpenableLink | { readonly kind: "refused"; readonly uri: string };
+
+/** A link address that may open after the reader confirms. */
+export type OpenableLink = {
+  readonly kind: "open";
+  readonly href: string;
+  /** The address in three parts, the host (or a mailto address's domain) emphasised. */
+  readonly parts: { readonly before: string; readonly host: string; readonly after: string };
+};
 
 /** What a reader does with the link address `uri`. */
 export function externalLink(uri: string): ExternalLink {
@@ -41,7 +40,10 @@ export function externalLink(uri: string): ExternalLink {
       parts: { before: href.slice(0, at + 1), host: href.slice(at + 1, stop), after: href.slice(stop) },
     };
   }
-  const start = href.indexOf(url.host, url.protocol.length);
+  // The host follows `//` and any credentials (`user:password@`), which may hold the host's own
+  // text to pass for it: count past them rather than search.
+  const userinfo = url.username === "" && url.password === "" ? 0 : href.indexOf("@", url.protocol.length) + 1;
+  const start = userinfo > 0 ? userinfo : url.protocol.length + 2;
   return {
     kind: "open",
     href,

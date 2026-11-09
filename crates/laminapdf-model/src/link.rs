@@ -8,12 +8,12 @@
 //! [`LinkAction::None`].
 
 use laminapdf_cos::{Dict, Object, Result};
-use laminapdf_syntax::text::decode_text_string;
 
 use crate::document::Document;
 use crate::geometry::{UserSpacePoint, UserSpaceRect};
 use crate::outline::{ActionKind, Destination, Outline};
 use crate::page::{HIDDEN_ANNOT_FLAGS, Page, number, read_rect};
+use crate::values::{file_spec_name, read_name, text_of};
 
 /// One link annotation on a page.
 #[derive(Debug, Clone, PartialEq)]
@@ -53,14 +53,9 @@ pub enum LinkAction {
 }
 
 impl Outline<'_> {
-    /// The visible link annotations of `page`, in `/Annots` order. Hidden ones (`/F` with
-    /// Hidden or `NoView`, §12.5.3) are left out. Destinations resolve through this outline's
-    /// named destinations, read once.
-    ///
-    /// # Errors
-    /// Reading errors (the annotations, named destinations, the page tree); in strict mode a
-    /// warning they raise.
-    pub fn links(&self, page: &Page<'_>) -> Result<Vec<Link>> {
+    /// The visible link annotations of `page` ([`crate::Pages::links`]), destinations resolved
+    /// through this outline's named destinations.
+    pub(crate) fn links(&self, page: &Page<'_>) -> Result<Vec<Link>> {
         let doc = self.doc();
         let Some(annots) = page.dict().get("Annots") else {
             return Ok(Vec::new());
@@ -98,10 +93,11 @@ impl Outline<'_> {
             return Ok(None);
         };
         let contents = match annot.get("Contents") {
-            Some(c) => match doc.read(c)?.as_deref() {
-                Some(Object::String(s)) => Some(decode_text_string(&s.bytes)).filter(|s| !s.trim().is_empty()),
-                _ => None,
-            },
+            Some(c) => doc
+                .read(c)?
+                .as_deref()
+                .and_then(text_of)
+                .filter(|s| !s.trim().is_empty()),
             None => None,
         };
         Ok(Some(Link {
@@ -152,15 +148,6 @@ impl Outline<'_> {
     }
 }
 
-/// A name's bytes.
-fn read_name(doc: &Document, value: Option<&Object>) -> Result<Option<Vec<u8>>> {
-    let Some(value) = value else { return Ok(None) };
-    Ok(match doc.read(value)?.as_deref() {
-        Some(Object::Name(n)) => Some(n.as_bytes().to_vec()),
-        _ => None,
-    })
-}
-
 /// A string's bytes (some writers store a URI as a name, which is read too).
 fn read_bytes(doc: &Document, value: Option<&Object>) -> Result<Option<Vec<u8>>> {
     let Some(value) = value else { return Ok(None) };
@@ -176,12 +163,8 @@ fn file_name(doc: &Document, value: Option<&Object>) -> Result<Option<String>> {
     let Some(value) = value else { return Ok(None) };
     let Some(spec) = doc.read(value)? else { return Ok(None) };
     let name = match &*spec {
-        Object::String(s) => Some(decode_text_string(&s.bytes)),
-        Object::Dict(d) => match read_bytes(doc, d.get("UF"))? {
-            Some(uf) => Some(decode_text_string(&uf)),
-            None => read_bytes(doc, d.get("F"))?.map(|f| decode_text_string(&f)),
-        },
-        _ => None,
+        Object::Dict(d) => file_spec_name(doc, d)?,
+        other => text_of(other),
     };
     Ok(name.filter(|n| !n.is_empty()))
 }

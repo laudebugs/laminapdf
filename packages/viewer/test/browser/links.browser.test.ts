@@ -4,7 +4,8 @@
 // doing nothing, and text beside a link still reachable by the pointer.
 import { createViewer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { read, viewer as client } from "./helpers.js";
+import { server, userEvent } from "vitest/browser";
+import { viewer as client, read } from "./helpers.js";
 
 const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
@@ -30,7 +31,7 @@ async function opened(): Promise<{ viewer: Viewer; external: string[] }> {
   const external: string[] = [];
   const viewer = createViewer({
     client: rpc,
-    links: { href: (page) => `#page=${page + 1}`, onExternal: (href) => external.push(href) },
+    links: { href: (page) => `#page=${page + 1}`, onExternal: (link) => external.push(link.href) },
   });
   viewer.mount(host);
   viewer.open(await rpc.open(bytes));
@@ -62,12 +63,13 @@ describe("the link layer", () => {
     viewer.destroy();
   });
 
-  it("gives internal links the app's address and web links their own", async () => {
+  it("gives internal links the app's address, and web links none so no menu opens them unasked", async () => {
     const { viewer } = await opened();
     const [explicit, , , https] = anchors(viewer, 0);
     expect(explicit?.getAttribute("href")).toBe("#page=3");
-    expect(https?.getAttribute("href")).toBe("https://example.com/a?b=c#d");
-    expect(https?.rel).toBe("noopener noreferrer");
+    expect(https?.hasAttribute("href")).toBe(false);
+    expect(https?.title).toBe("https://example.com/a?b=c#d");
+    expect(https?.getAttribute("aria-disabled")).toBeNull();
     viewer.destroy();
   });
 
@@ -84,13 +86,22 @@ describe("the link layer", () => {
     viewer.destroy();
   });
 
-  it("goes to an internal link's page as a jump that Back and Forward undo and redo", async () => {
+  it("goes to an internal link's point as a jump that Back and Forward undo and redo", async () => {
     const { viewer } = await opened();
+    // Scrolled a little into page 1 first: Back returns there, not to its top.
+    viewer.element.scrollTop = 120;
+    await frame();
+    const before = viewer.element.scrollTop;
     const [explicit] = anchors(viewer, 0);
     expect(click(explicit as Element)).toBe(false);
+    // The link's /XYZ 72 700 puts that point of page 3 (92 pt from its top) at the viewport's top-left.
     await until(() => viewer.getState().visibleRange.first === 2);
+    const at = viewer.pointAt(0, 0);
+    expect(at?.page).toBe(2);
+    expect(at?.y ?? 0).toBeCloseTo(92 / 792, 2);
     expect(viewer.history.back()).toBe(true);
     await until(() => viewer.getState().currentPage === 0);
+    expect(Math.abs(viewer.element.scrollTop - before)).toBeLessThan(2);
     expect(viewer.history.forward()).toBe(true);
     await until(() => viewer.getState().visibleRange.first === 2);
     viewer.destroy();
@@ -120,12 +131,25 @@ describe("the link layer", () => {
     viewer.destroy();
   });
 
-  it("is in the Tab order in page order", async () => {
+  // WebKit's Tab skips links unless the user turns on "Press Tab to highlight each item".
+  it.skipIf(server.browser === "webkit")("moves through the links with Tab in page order", async () => {
     const { viewer } = await opened();
     const links = anchors(viewer, 0);
-    expect(links.every((a) => a.tabIndex === 0)).toBe(true);
-    const all = [...viewer.element.querySelectorAll("a.lamina-link")];
-    expect(all.slice(0, links.length)).toEqual(links);
+    (links[0] as HTMLElement).focus();
+    const reached = [document.activeElement];
+    for (let i = 1; i < 5; i++) {
+      await userEvent.tab();
+      reached.push(document.activeElement);
+    }
+    expect(reached).toEqual(links.slice(0, 5));
+    viewer.destroy();
+  });
+
+  it("asks before a web link opens on Enter too", async () => {
+    const { viewer, external } = await opened();
+    (anchors(viewer, 0)[4] as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(external).toEqual(["mailto:someone@example.com"]);
     viewer.destroy();
   });
 

@@ -117,7 +117,16 @@ describe(`links and history in ${BROWSER}`, () => {
     const { page } = await open("links.pdf");
     const href = await page.getByRole("link", { name: "Link to page 3" }).first().getAttribute("href");
     expect(href).toBe(`/#url=${encodeURIComponent(fileUrl("links.pdf"))}&page=3`);
-    // A middle click opens a tab in Chromium only: read the address and open it in a new page.
+    // A middle click opens a tab in Chromium only; there, it does.
+    if (BROWSER === "chromium") {
+      const opened = page.context().waitForEvent("page");
+      await page.getByRole("link", { name: "Link to page 3" }).first().click({ button: "middle" });
+      const middle = await opened;
+      await middle.locator(".web-viewer canvas").first().waitFor();
+      await expect.poll(() => shownPage(middle), { timeout: 10_000 }).toBe("3");
+      await middle.close();
+    }
+    // Every engine: read the address and open it in a new page.
     const tab = await loadPage(browser, origin, href ?? "/", undefined, { ignoreHTTPSErrors: true, home: false });
     // The new tab opens the remote file first, then goes to the page.
     await tab.page.locator(".web-viewer canvas").first().waitFor();

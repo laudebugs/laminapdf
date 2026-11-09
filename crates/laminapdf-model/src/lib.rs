@@ -79,6 +79,7 @@ mod outline;
 mod page;
 mod structure;
 mod tree;
+mod values;
 
 pub use date::{InvalidDate, PdfDate};
 pub use disclosure::{

@@ -109,6 +109,25 @@ pub enum ActionKind {
 }
 
 impl ActionKind {
+    /// The `/S` name the file uses for this type (`Other`'s as stored, lossily decoded).
+    #[must_use]
+    pub fn as_name(&self) -> std::borrow::Cow<'_, str> {
+        std::borrow::Cow::Borrowed(match self {
+            Self::GoTo => "GoTo",
+            Self::GoToR => "GoToR",
+            Self::GoToE => "GoToE",
+            Self::Launch => "Launch",
+            Self::Thread => "Thread",
+            Self::Uri => "URI",
+            Self::Named => "Named",
+            Self::JavaScript => "JavaScript",
+            Self::SubmitForm => "SubmitForm",
+            Self::ResetForm => "ResetForm",
+            Self::ImportData => "ImportData",
+            Self::Other(name) => return String::from_utf8_lossy(name),
+        })
+    }
+
     pub(crate) fn from_name(name: &[u8]) -> Self {
         match name {
             b"GoTo" => Self::GoTo,
@@ -183,7 +202,7 @@ impl<'d> Outline<'d> {
 
     /// An outline without its items, for resolving destinations alone (a page's links)
     /// without walking a bookmark tree that can hold thousands of items.
-    pub(crate) const fn destinations(doc: &'d Document, pages: &'d Pages<'d>) -> Self {
+    pub(crate) const fn without_items(doc: &'d Document, pages: &'d Pages<'d>) -> Self {
         Self {
             doc,
             items: Vec::new(),

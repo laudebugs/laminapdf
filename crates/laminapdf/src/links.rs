@@ -86,7 +86,7 @@ impl Document {
                 LinkAction::Uri(uri) => LinkTo::Uri(String::from_utf8_lossy(&uri).into_owned()),
                 LinkAction::OtherFile(file) => LinkTo::OtherFile(file),
                 LinkAction::Named(name) => LinkTo::NamedAction(String::from_utf8_lossy(&name).into_owned()),
-                LinkAction::Other(kind) => LinkTo::Unsupported(action_name(&kind)),
+                LinkAction::Other(kind) => LinkTo::Unsupported(kind.as_name().into_owned()),
                 _ => continue,
             };
             out.push(PageLink {
@@ -98,22 +98,4 @@ impl Document {
         }
         Ok(out)
     }
-}
-
-/// The action type as the file names it (`/S`, Table 201).
-fn action_name(kind: &laminapdf_model::ActionKind) -> String {
-    use laminapdf_model::ActionKind as K;
-    match kind {
-        K::GoToE => "GoToE",
-        K::Launch => "Launch",
-        K::Thread => "Thread",
-        K::JavaScript => "JavaScript",
-        K::SubmitForm => "SubmitForm",
-        K::ResetForm => "ResetForm",
-        K::ImportData => "ImportData",
-        K::Other(name) => return String::from_utf8_lossy(name).into_owned(),
-        // GoTo, GoToR, URI and Named are read as their own kinds.
-        _ => "Unknown",
-    }
-    .to_owned()
 }

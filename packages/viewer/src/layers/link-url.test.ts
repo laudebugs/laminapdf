@@ -29,6 +29,12 @@ describe("externalLink", () => {
     });
   });
 
+  it("finds the host after credentials that spell a host", () => {
+    expect(externalLink("https://evil.com.x@evil.com/")).toMatchObject({
+      parts: { before: "https://evil.com.x@", host: "evil.com", after: "/" },
+    });
+  });
+
   it("opens mailto with the domain apart", () => {
     expect(externalLink("mailto:someone@example.com?subject=hi")).toEqual({
       kind: "open",

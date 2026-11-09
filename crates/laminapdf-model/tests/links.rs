@@ -1,10 +1,6 @@
-//! `Outline::links` and `Pages::links` on malformed link annotations (ADR 0003): every value the
+//! `Pages::links` on malformed link annotations (ADR 0003): every value the
 //! reader can't use leaves the link without an action, or leaves the link out, and never fails.
-#![allow(
-    clippy::unwrap_used,
-    clippy::indexing_slicing,
-    reason = "tests: a panic is a test failure"
-)]
+#![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 use laminapdf_model::{ActionKind, Document, LinkAction, OpenOptions};
 use laminapdf_test_fixtures::classic_with_root;

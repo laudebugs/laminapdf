@@ -5,13 +5,12 @@
 // asks again.
 
 import type { OutlineNode, PageLink, Target } from "@laminapdf/sdk";
-import { current, textModel } from "./document.js";
+import { textModel } from "./document.js";
+import { RecentPages } from "./recent-pages.js";
+import { CACHED_PAGES } from "./text.js";
 
-/** How many pages' links stay cached (as many as their text). */
-const CACHED_PAGES = 24;
-
-/** The cache, by document ID and page, oldest first. */
-const links = new Map<string, readonly PageLink[]>();
+/** The last pages' links. */
+const links = new RecentPages<readonly PageLink[]>(CACHED_PAGES);
 
 /** The outline's top-level items, each with its children; empty without one. */
 export async function outline(signal: AbortSignal): Promise<OutlineNode[]> {
@@ -27,21 +26,11 @@ export async function namedDestination(name: string, signal: AbortSignal): Promi
 
 /** Page `index`'s links, in annotation order (cached). */
 export async function pageLinks(index: number, signal: AbortSignal): Promise<readonly PageLink[]> {
-  const { id } = current();
-  const key = `${id}:${index}`;
-  const cached = links.get(key);
-  if (cached !== undefined) {
-    links.delete(key);
-    links.set(key, cached);
-    return cached;
-  }
+  const cached = links.get(index);
+  if (cached !== undefined) return cached;
   const model = await textModel(signal);
   const read = await model.ensure(() => model.pageLinks(index), { signal });
-  links.set(key, read);
-  for (const old of links.keys()) {
-    if (links.size <= CACHED_PAGES) break;
-    links.delete(old);
-  }
+  links.set(index, read);
   return read;
 }
 

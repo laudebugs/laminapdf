@@ -43,7 +43,7 @@ export interface NavigationHistoryOptions {
   readonly max?: number;
 }
 
-/** Whether `a` and `b` show the same view: one page, a point within a pixel's worth, one zoom. */
+/** Whether `a` and `b` show the same view: one page, a point within a thousandth of the page, one zoom. */
 function samePlace(a: HistoryPlace, b: HistoryPlace): boolean {
   const near = (x: number, y: number) => Math.abs(x - y) < 1e-3;
   return a.point.page === b.point.page && near(a.point.x, b.point.x) && near(a.point.y, b.point.y) && a.zoom === b.zoom;

@@ -61,8 +61,8 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 - [x] Internal link `href`s on a remote document keep the encoded `url` key (`#url=<encoded>&page=N`); a middle-click (`page.click(…, { button: "middle" })`, or reading the `href` and opening it in a new page where the engine doesn't open tabs on middle-click) opens a new tab on the same remote document at page N; a primary click doesn't change the fragment except through `NavigationHistory`.
 - [x] External link: a confirmation shows the full URL; Cancel does nothing; Open opens a new tab with no `Referer` (asserted with a local test server) and no `window.opener`.
 - [x] `javascript:`, `file:`, `data:` URIs and `Launch`/`JavaScript` actions are never executed; they're reported as unsupported.
-- [x] Links are reachable by Tab in page order and have accessible names; zero serious axe violations on a links fixture.
-- [x] Text under a link can still be selected by dragging from outside the link.
+- [x] Links are reachable by Tab in page order and have accessible names; zero serious axe violations on a links fixture (Tab tested in Chromium and Firefox; see Notes).
+- [x] Text under a link can still be selected by dragging from outside the link (tested in Chromium and WebKit; see Notes).
 
 ## Post-merge checks
 
@@ -96,6 +96,10 @@ Rust unit tests (accessor); Vitest unit tests (history coalescing, URL validatio
 - **The browser's history is the history.** Each jump is a browser history entry, marked with the viewer's entry id, so the browser's Back, Alt+← and ⌘[ (which the web reader leaves to the browser) and the reader's own buttons all step one history. An entry from another view (a reload, a backend switch) goes by its fragment's page instead.
 - **Selection over links.** Anchors take pointer events, so on their own they block a drag that crosses them. While a drag that started outside every link is under way, the layer lets the pointer through them. The e2e test of that drag runs in Chromium and WebKit; in Firefox, Playwright's drag selects nothing even over plain text, with or without links, so it is skipped there.
 - **Slots.** The `annot` and `highlight` slots no longer take pointer events themselves. Before this, the empty slots covered the text layer for the pointer.
+- **Web links have no `href`.** A browser's own menu ("Open link in new tab") would open an `href` without asking, so a web link's anchor has none. Its title shows the address, and the layer follows it on a click, a middle click or Enter, always through the confirmation.
+- **Tab in WebKit.** Safari's Tab skips links unless the user turns on "Press Tab to highlight each item", so the browser test of Tab order is skipped there; the anchors are in the Tab order all the same.
+- **No new open.** The e2e test checks that Back and Forward make no new request for the file; the worker's own `openDocument` calls aren't counted, but a reopen would read the file again.
+- **Debug log.** Under `#debug`, the web reader logs each link it doesn't follow, with the note it shows (`onInert`).
 - **Referer.** WebKit sends an empty `Referer` header where the others send none. Either way, the site learns nothing.
 - **Generated types.** tsify writes a flattened enum as `interface … extends` a union, which TypeScript refuses, so `PageLinkJs`'s type is written by hand in `laminapdf-wasm`.
 - **What differs from R07** is in its "As built" note: link names without the outline title, no Not run listing yet, no link commands, and no Back or Forward on the phone yet.
