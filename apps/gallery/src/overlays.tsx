@@ -27,6 +27,7 @@ import {
   ReaderController,
   ReaderShell,
   registerReaderCommands,
+  SelectionActionBar,
   SelectionToolbar,
   SelectionToolbarDivider,
   ShellLayout,
@@ -292,7 +293,10 @@ export function ShellRegions(): ReactNode {
     registerReaderCommands(registry);
     const platform = fakePlatform();
     const reader = new ReaderController(platform, async () => ({ pageCount: 24 }));
-    const context = { platform, reader, actions: shellActions(focus, new ModeRegistry(), { rail: true }) };
+    // The selection bar's buttons need handlers to show; here they do nothing.
+    const selection = { "edit.copy": () => undefined, "selection.search": () => undefined };
+    const actions = { ...shellActions(focus, new ModeRegistry(), { rail: true }), ...selection };
+    const context = { platform, reader, actions };
     return { layout, focus, registry, context };
   });
   const tabs = [
@@ -316,6 +320,7 @@ export function ShellRegions(): ReactNode {
           <p>The page</p>
         </ReaderShell>
         <PhoneBottomBar layout={shell.layout} rail more={MORE} keys="other" />
+        <SelectionActionBar more={MORE} keys="other" />
       </div>
     </CommandsProvider>
   );
