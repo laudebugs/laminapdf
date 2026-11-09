@@ -87,12 +87,14 @@ const INLINE: Partial<Record<CommandId, string>> = {
   "view.set-zoom": "zoom 150",
   "file.open-url": "Open from URL https://example.com/a.pdf",
   "view.page-layout": "Page layout two pages",
+  "view.reader-line-spacing": "Line spacing loose",
+  "view.reader-line-length": "Line length wide",
   "view.page-appearance": "Page appearance sepia",
   "view.theme": "Theme dark",
   "view.accent": "Accent colour plum",
 };
 
-/** Forty-six search-and-run cycles in one test: about 20 s in Firefox on a busy runner. */
+/** Fifty-three search-and-run cycles in one test: about 20 s in Firefox on a busy runner. */
 const EVERY_COMMAND_MS = 60_000;
 
 describe("RegistryPalette", () => {
@@ -112,10 +114,12 @@ describe("RegistryPalette", () => {
       expect(palette(), `${command.id} closes the palette`).toBeNull();
       ran.push(command.id);
     }
-    expect(ran).toHaveLength(46);
+    expect(ran).toHaveLength(53);
     expect(reader.openFromPicker).toHaveBeenCalledOnce();
     // Each delegated command reached its handler, with parsed arguments where it takes them.
     expect(calls.find((c) => c.id === "view.page-layout")?.args).toBe("two-up");
+    expect(calls.find((c) => c.id === "view.reader-line-spacing")?.args).toBe("loose");
+    expect(calls.find((c) => c.id === "view.reader-line-length")?.args).toBe("wide");
     expect(calls.find((c) => c.id === "file.open-url")?.args).toBe("https://example.com/a.pdf");
     expect(new Set(calls.map((c) => c.id)).size).toBe(calls.length);
     expect(viewer.calls).toContainEqual({ method: "jumpToPage", value: 11 });
