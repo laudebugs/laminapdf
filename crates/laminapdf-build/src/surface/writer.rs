@@ -129,6 +129,39 @@ impl Writer {
         }
     }
 
+    /// A run of a standard 14 font at `origin`: one glyph per character with AFM widths, so
+    /// the same text, encoded a byte per character, lands at the same places.
+    #[cfg(feature = "text")]
+    fn standard_run(
+        &mut self,
+        t: &TextCommand,
+        run: &laminapdf_text::ShapedRun,
+        origin: (f64, f64),
+        rise: &mut f32,
+        target: &mut TextTarget<'_>,
+    ) -> Result<()> {
+        let content: String = t
+            .spec
+            .text
+            .get(run.text_range.clone())
+            .unwrap_or_default()
+            .chars()
+            .filter(|c| !c.is_control())
+            .collect();
+        if content.is_empty() {
+            return Ok(());
+        }
+        let encoded = target.fonts.encode(t.spec.font.key, &content)?;
+        let wanted = n(t.rise);
+        if wanted.to_bits() != rise.to_bits() {
+            self.content.set_rise(wanted);
+            *rise = wanted;
+        }
+        self.text_matrix(origin.0, origin.1);
+        self.content.show(Str(&encoded.bytes));
+        Ok(())
+    }
+
     /// A text object: `BT`, `Tr` when it changes, `Tf`, then per line (and per shaped run) a
     /// `Tm` at the run's origin and its `TJ` arrays, with `Ts` rises and `/ActualText` spans
     /// where `pdf_run` asks for them; `ET`. A run with its own fill colour is wrapped in
@@ -180,6 +213,10 @@ impl Writer {
                 continue;
             }
             for (run, x) in &line.runs {
+                if t.spec.font.is_standard() {
+                    self.standard_run(t, run, (x0 + line.x + x, baseline), &mut rise, target)?;
+                    continue;
+                }
                 let pdf = pdf_run(run, text, target.fonts, key)?;
                 self.text_matrix(x0 + line.x + x, baseline);
                 for piece in &pdf.pieces {

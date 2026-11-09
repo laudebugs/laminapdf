@@ -55,12 +55,34 @@ pub fn itemize(para: &BidiParagraph<'_>, fonts: &[Font]) -> Result<Vec<Item>> {
     itemize_range(para, fonts, &charmaps, &order, 0..para.text().len())
 }
 
-/// Each font's character map, in the list's order.
+/// Which characters a font has: its character map, or a standard 14 font's own table.
+pub(crate) enum Coverage<'a> {
+    Map(Charmap<'a>),
+    Standard(crate::Standard14),
+}
+
+impl Coverage<'_> {
+    /// Whether the font has a glyph for `ch` other than `.notdef`.
+    fn covers(&self, ch: char) -> bool {
+        match self {
+            Self::Map(map) => map.map(ch).is_some_and(|g| g.to_u32() != 0),
+            Self::Standard(font) => font.glyph_for_char(ch).is_some(),
+        }
+    }
+}
+
+/// Each font's coverage, in the list's order.
 ///
 /// # Errors
 /// [`Error::InvalidFont`] when a font's tables can't be read.
-pub(crate) fn charmaps(fonts: &[Font]) -> Result<Vec<Charmap<'_>>> {
-    fonts.iter().map(|f| f.font_ref().map(|r| r.charmap())).collect()
+pub(crate) fn charmaps(fonts: &[Font]) -> Result<Vec<Coverage<'_>>> {
+    fonts
+        .iter()
+        .map(|f| match f.standard14() {
+            Some(standard) => Ok(Coverage::Standard(standard)),
+            None => f.font_ref().map(|r| Coverage::Map(r.charmap())),
+        })
+        .collect()
 }
 
 /// [`itemize`] over `range` of `para`'s text with the fonts `order` picks from `fonts`, in
@@ -70,7 +92,7 @@ pub(crate) fn charmaps(fonts: &[Font]) -> Result<Vec<Charmap<'_>>> {
 pub(crate) fn itemize_range(
     para: &BidiParagraph<'_>,
     fonts: &[Font],
-    charmaps: &[Charmap<'_>],
+    charmaps: &[Coverage<'_>],
     order: &[usize],
     range: Range<usize>,
 ) -> Result<Vec<Item>> {
@@ -81,12 +103,9 @@ pub(crate) fn itemize_range(
         len: text.len(),
     })?;
     let covers = |font: usize, cluster: &str| {
-        charmaps.get(font).is_some_and(|map| {
-            cluster
-                .chars()
-                .filter(|&ch| needs_glyph(ch))
-                .all(|ch| map.map(ch).is_some_and(|g| g.to_u32() != 0))
-        })
+        charmaps
+            .get(font)
+            .is_some_and(|map| cluster.chars().filter(|&ch| needs_glyph(ch)).all(|ch| map.covers(ch)))
     };
     let primary = order.first().copied().unwrap_or(0);
 
