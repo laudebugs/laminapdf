@@ -229,6 +229,80 @@ describe("selection across pages", () => {
       false,
     ]);
   });
+
+  /** A paragraph of the app's own text, before or after the viewer. */
+  function appText(where: "before" | "after"): HTMLParagraphElement {
+    const p = document.createElement("p");
+    p.textContent = `The app's text ${where} the viewer`;
+    if (where === "before") view?.element.before(p);
+    else view?.element.after(p);
+    return p;
+  }
+
+  it("keeps the pages of a selection that starts before the viewer, and copies only their text", async () => {
+    const v = await show(pages(30));
+    const before = appText("before");
+    try {
+      const [first] = await spansOf(1);
+      const start = before.firstChild as Text;
+      document.getSelection()?.setBaseAndExtent(start, 0, (first as HTMLElement).firstChild as Text, 6);
+      const copied = copy();
+      await new Promise((r) => setTimeout(r, 200));
+      v.goToPage(25);
+      await new Promise((r) => setTimeout(r, 500));
+      const mounted = [0, 1].map((p) => document.querySelector(`.lamina-page[data-page-index="${p}"]`) !== null);
+      expect([
+        copied.startsWith("Page 1 first line"),
+        copied.endsWith("Page 2"),
+        copied.includes("app"),
+        mounted,
+      ]).toEqual([true, true, false, [true, true]]);
+    } finally {
+      before.remove();
+    }
+  });
+
+  it("copies the mounted pages' text when a selection runs from before the viewer to after it", async () => {
+    await show(pages(30));
+    const before = appText("before");
+    const after = appText("after");
+    try {
+      const end = after.firstChild as Text;
+      document.getSelection()?.setBaseAndExtent(before.firstChild as Text, 0, end, end.length);
+      const copied = copy();
+      expect([copied.startsWith("Page 1 first line"), copied.includes("app")]).toEqual([true, false]);
+    } finally {
+      before.remove();
+      after.remove();
+    }
+  });
+
+  it("leaves a selection from one viewer into another to the browser", async () => {
+    const v = await show(pages(3));
+    const otherClient = await client("pdfium");
+    const otherHost = document.createElement("div");
+    Object.assign(otherHost.style, { width: "800px", height: "900px" });
+    document.body.append(otherHost);
+    const other = createViewer({ client: otherClient });
+    try {
+      other.mount(otherHost);
+      other.open(await otherClient.open(pages(3)));
+      const [mine] = await spansOf(0);
+      await expect
+        .poll(() => otherHost.querySelectorAll(".lamina-text-layer span").length, { timeout: 20_000 })
+        .toBeGreaterThan(0);
+      const theirs = otherHost.querySelector(".lamina-text-layer span") as HTMLElement;
+      document
+        .getSelection()
+        ?.setBaseAndExtent((mine as HTMLElement).firstChild as Text, 0, theirs.firstChild as Text, 4);
+      // Neither viewer writes the clipboard: the copy event goes to the browser untouched.
+      expect([copy(), v.element.contains(mine as Node)]).toEqual(["", true]);
+    } finally {
+      other.destroy();
+      otherClient.terminate();
+      otherHost.remove();
+    }
+  });
 });
 
 describe("structure", () => {

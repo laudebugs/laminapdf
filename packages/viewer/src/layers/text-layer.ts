@@ -242,9 +242,11 @@ export class TextLayer implements PageLayer {
   }
 
   /**
-   * The selection's range in this viewer: its part inside the root, when a drag ran on past the
-   * viewer into the app around it, so copy, the pinned pages and `onSelection` keep to the page
-   * text; `undefined` when it doesn't reach the viewer.
+   * The selection's range in this viewer. A selection that runs on past the viewer into the app
+   * around it is cut at the first or last mounted span, so copy, the pinned pages and
+   * `onSelection` keep to the page text. `undefined` when it doesn't reach the viewer, or when its
+   * other end is in another viewer: neither could tell the whole of it, so both leave it to the
+   * browser.
    */
   #range(): Range | undefined {
     const selection = document.getSelection();
@@ -253,10 +255,18 @@ export class TextLayer implements PageLayer {
     const root = this.#host.root;
     if (root.contains(range.commonAncestorContainer)) return range;
     if (!range.intersectsNode(root)) return undefined;
+    const outside = (node: Node) => !root.contains(node);
+    const inOtherViewer = (node: Node) =>
+      outside(node) && (node instanceof Element ? node : node.parentElement)?.closest(".lamina-viewer") != null;
+    if (inOtherViewer(range.startContainer) || inOtherViewer(range.endContainer)) return undefined;
+    const spans = this.#spansInOrder();
+    const first = spans[0];
+    const last = spans.at(-1);
+    if (first === undefined || last === undefined) return undefined;
     const inside = range.cloneRange();
-    if (!root.contains(inside.startContainer)) inside.setStart(root, 0);
-    if (!root.contains(inside.endContainer)) inside.setEnd(root, root.childNodes.length);
-    return inside;
+    if (outside(range.startContainer)) inside.setStart(first, 0);
+    if (outside(range.endContainer)) inside.setEnd(last, last.childNodes.length);
+    return inside.collapsed ? undefined : inside;
   }
 
   /** The selected part of each span the selection touches, in order. */
