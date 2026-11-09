@@ -11,7 +11,7 @@
 | Branch | `feat/t4d-markdown-in` |
 | PR title | `feat(build): Markdown in, flowing pages out` |
 | Size | L (≈ 600–750 lines: the front end, three new blocks, the façade feature, the example and the fuzz target; the fixture and goldens don't count) |
-| PR | — |
+| PR | [#354](https://github.com/laudebugs/laminapdf/pull/354) |
 
 ## Goal
 
