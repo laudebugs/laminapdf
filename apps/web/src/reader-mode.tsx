@@ -21,10 +21,11 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { pageLabel } from "./outline.ts";
+import { blockAt } from "./reader-start.ts";
 import type { DocumentReflow, Engine } from "./session.ts";
 
 /** The inspector content id of the reader settings panel. */
-export const READER_SETTINGS_PANEL = "reader-settings";
+const READER_SETTINGS_PANEL = "reader-settings";
 
 /** Where the settings are kept. */
 const SETTINGS_KEY = "reader-settings";
@@ -76,16 +77,6 @@ function useReaderSettings(platform: Platform): [ReaderSettings, (next: ReaderSe
     [platform],
   );
   return [settings, change];
-}
-
-/** The first block at or after `point` (page space) in reading order: where the column starts. */
-export function blockAt(blocks: readonly Block[], point: { page: number; y: number } | undefined): number {
-  if (point === undefined || blocks.length === 0) return 0;
-  const index = blocks.findIndex(
-    // A crop with no box has no place on its page: it starts the column only from a later page.
-    (b) => b.page > point.page || (b.page === point.page && b.bbox !== null && b.bbox[1] + b.bbox[3] > point.y),
-  );
-  return index === -1 ? blocks.length - 1 : index;
 }
 
 /** A crop: the block's part of its page, drawn by the document worker at twice the device's pixels per point. */

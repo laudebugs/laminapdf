@@ -2,7 +2,6 @@
 //! `mixed` file of `fixtures/reflow/` with each block's kind as a `kind` key, its box as
 //! `[x, y, width, height]` in page space, a crop's `alt`, and the checks' measures.
 #![allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "test code")]
-#![cfg(feature = "extract")]
 #![cfg(feature = "reflow")]
 
 use laminapdf::{CancelToken, Document, OpenOptions};
