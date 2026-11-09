@@ -129,6 +129,9 @@ tasks:
   web build         the reader (apps/web) into apps/web/dist/ from a fresh checkout: the
                     @laminapdf/wasm modules without their tests, @laminapdf/sdk, the packages the
                     app imports, then the app (what .github/workflows/web-deploy.yml deploys)
+  web docs-runner   what the docs' example runner needs, from a fresh checkout: the WebAssembly
+                    modules (without their tests), @laminapdf/sdk, @laminapdf/render and
+                    @laminapdf/render-hayro; then the docs build makes the runner
   size [--update-baseline]
                     measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
                     target/size-report.json, fail above packages/wasm/size-budgets.json
@@ -365,6 +368,7 @@ fn main() -> Result<()> {
         ("sbom", [dir]) => publish::sbom(&ws, Path::new(dir)),
         ("wasm", []) => wasm(&ws),
         ("web", [cmd]) if cmd == "build" => web::build(&ws),
+        ("web", [cmd]) if cmd == "docs-runner" => web::docs_runner(&ws),
         ("size", []) => wasm::size(&ws, false),
         ("size", [flag]) if flag == "--update-baseline" => wasm::size(&ws, true),
         ("deny", []) => {

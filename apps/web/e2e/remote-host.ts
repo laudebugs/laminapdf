@@ -1,6 +1,6 @@
 // The e2e suites' "remote host": the server a `#url=` link points to, on its own port, so it is
 // another origin than the reader's. HTTPS, since the reader's policy upgrades every request (see
-// local-tls.ts), with a certificate made by openssl for each run, which the browser context's
+// @laminapdf/test-utils/wrangler-dev), with a certificate made by openssl for each run, which the browser context's
 // ignoreHTTPSErrors accepts. Files are served by path:
 //
 //   /cors/ranges/<file>  CORS headers and Range support (206 answers, ETag)

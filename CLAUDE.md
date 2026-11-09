@@ -76,7 +76,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/test-utils/ # @laminapdf/test-utils (private, workspace-only, outside Changesets): the test helpers the
 │                        #   packages share, exported as TypeScript source: render-contract (the RenderBackend suite both
 │                        #   adapters run, Node + browsers), browser-harness, browser-config (renderBrowserConfig),
-│                        #   firefox (firefoxProvider, firefoxEnv), root (fromRoot)
+│                        #   firefox (firefoxProvider, firefoxEnv), root (fromRoot), wrangler-dev (the sites' e2e server over HTTPS, getLocal)
 ├── packages/render-pdfium/  # @laminapdf/render-pdfium: @embedpdf/pdfium 2.15.1 (pdfium.wasm SHA-256 checked by
 │                        #   scripts/verify-pdfium.mjs) behind RenderBackend; THIRD_PARTY_NOTICES.md
 ├── packages/render-hayro/   # @laminapdf/render-hayro: lamina_pdf_render_hayro behind RenderBackend
@@ -165,7 +165,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
 │                        #   files (src/components/Snippet.astro; Example.astro adds a Result tab with pictures of each page, apps/docs/public/examples/preview/ from
-│                        #   `cargo xtask docs-previews`, checked against the goldens by `check docs`, or an Output tab), the code table from fixtures/codes.json, the Benchmarks page
+│                        #   `cargo xtask docs-previews`, checked against the goldens by `check docs`, or an Output tab; B7e: "Edit and run" on six TS examples,
+│                        #   runner/ (CodeMirror editor, a module worker at /run/worker.js running the edit with Sucrase, @laminapdf/sdk and
+│                        #   @laminapdf/render-hayro, its own CSP with 'unsafe-eval' in public/_headers), built by scripts/build-runner.mjs when
+│                        #   the WebAssembly is built; e2e/ against `wrangler dev`, run by `cargo xtask pdf-runtimes <browser>`), the code table from fixtures/codes.json, the Benchmarks page
 │                        #   from src/data/benchmarks.json (src/lib/benchmarks.ts checks it and makes the tables for the page's
 │                        #   src/components/Benchmarks.astro and its Markdown twin), code pages from
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/), the shared site header
@@ -497,6 +500,8 @@ pnpm --filter @laminapdf/web dev     # the web reader (after `wasm` and the view
                              #   `preview` serves dist/ through `wrangler dev` with the production headers on port 8788
 cargo xtask web build        # the reader into apps/web/dist/ from a fresh checkout: the WebAssembly modules without their tests,
                              #   @laminapdf/sdk, the packages the app imports, then the app (what web-deploy.yml deploys)
+cargo xtask web docs-runner  # what the docs' example runner needs (B7e): the WebAssembly modules without their tests,
+                             #   @laminapdf/sdk, @laminapdf/render and -hayro; the docs build then makes the runner
 pnpm --filter @laminapdf/site dev    # the website at localhost:4321; `build` writes apps/site/dist/ (noindex unless
                              #   LAMINA_PDF_ENV=production) and fails on a page that breaks the website's rules
 pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` writes apps/docs/dist/ (what deploys), with a
