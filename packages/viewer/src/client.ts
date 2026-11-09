@@ -48,7 +48,7 @@ export interface ViewerOptions {
   readonly backend: BackendInit;
   /**
    * Where the worker loads Lamina PDF's own WebAssembly from (`@laminapdf/sdk/worker`'s `init`).
-   * By default the base module and the extract module, whose text the text layer selects and copies.
+   * The worker loads the extract module itself, for the text layer, once the backend is ready.
    */
   readonly lamina?: WorkerWasmSource | WorkerInitOptions;
   /** Render timeouts in ms (`soft` emits `render-slow`; `hard` restarts or emits `render-stuck`). */
@@ -170,7 +170,7 @@ export class ViewerClient {
         if (bitmap instanceof ImageBitmap) bitmap.close();
       },
       ...(options.signal === undefined ? {} : { signal: options.signal }),
-      init: options.lamina ?? { extract: true },
+      ...(options.lamina === undefined ? {} : { init: options.lamina }),
     });
     const client = new ViewerClient(pdf, options);
     try {

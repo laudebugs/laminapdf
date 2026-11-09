@@ -5,7 +5,7 @@
 // a page scrolled back into view asks again.
 
 import type { PageTextData, StructureData, TextRunData } from "../protocol.js";
-import { current } from "./document.js";
+import { current, textModel } from "./document.js";
 
 /** How many pages' text stay cached (a screenful of pages and the margin, at most zoom). */
 const CACHED_PAGES = 24;
@@ -15,7 +15,7 @@ const cache = new Map<string, PageTextData>();
 
 /** Page `index`'s text runs and glyph quads (cached; `signal` stops a read of pending data). */
 export async function pageText(index: number, signal: AbortSignal): Promise<PageTextData> {
-  const { id, model } = current();
+  const { id } = current();
   const key = `${id}:${index}`;
   const cached = cache.get(key);
   if (cached !== undefined) {
@@ -25,6 +25,7 @@ export async function pageText(index: number, signal: AbortSignal): Promise<Page
     return cached;
   }
   signal.throwIfAborted();
+  const model = await textModel(signal);
   const text = await model.ensure(() => model.page(index).text(), { signal });
   const runs: TextRunData[] = text.runs.map((run) => ({
     text: run.text,
@@ -32,11 +33,11 @@ export async function pageText(index: number, signal: AbortSignal): Promise<Page
     vertical: run.vertical,
     actualText: run.actualText,
     invisible: run.invisible,
-    glyphs: run.glyphRange,
+    glyphRange: run.glyphRange,
     ...(run.mcid === undefined ? {} : { mcid: run.mcid }),
   }));
-  const { quads } = text.buffers;
-  const data: PageTextData = { runs, quads: quads.slice() };
+  // The arrays are this worker's own (the SDK copied them out of WebAssembly memory).
+  const data: PageTextData = { runs, quads: text.buffers.quads };
   cache.set(key, data);
   for (const old of cache.keys()) {
     if (cache.size <= CACHED_PAGES) break;
@@ -53,8 +54,13 @@ export function replyText(data: PageTextData): [PageTextData, Transferable[]] {
 
 /** Whether the document says it is tagged, and its structure tree when it has one. */
 export async function structure(signal: AbortSignal): Promise<StructureData> {
-  const { model } = current();
+  const model = await textModel(signal);
   const tagged = await model.ensure(() => model.isTagged, { signal });
   const tree = await model.ensure(() => model.structureTree(), { signal });
   return tree === undefined ? { tagged } : { tagged, tree };
+}
+
+/** Forgets every page's text: the document closed. */
+export function forgetText(): void {
+  cache.clear();
 }

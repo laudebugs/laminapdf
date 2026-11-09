@@ -5,6 +5,8 @@
 //! `PageTextRun::mcid`) to give assistive technology the document's headings, paragraphs,
 //! lists and tables.
 
+use std::collections::BTreeMap;
+
 use laminapdf_model::{PageId, StructElem, StructKid, StructTree};
 
 use crate::document::Document;
@@ -54,8 +56,9 @@ impl Document {
         let Some(tree) = self.ops().structure()? else {
             return Ok(None);
         };
-        let pages = self.page_infos()?;
-        let index = |id: &PageId| pages.iter().find(|p| p.id == *id).map(|p| p.index);
+        // One map of the pages, so each marked-content kid finds its page at once.
+        let pages: BTreeMap<PageId, u32> = self.page_infos()?.into_iter().map(|p| (p.id, p.index)).collect();
+        let index = |id: &PageId| pages.get(id).copied();
         Ok(Some(tree.roots.iter().map(|elem| node(&tree, elem, &index)).collect()))
     }
 }

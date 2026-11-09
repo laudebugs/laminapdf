@@ -79,17 +79,22 @@ describe("copy", () => {
     expect(squash(copy())).toBe(squash(await laminaText("fixtures/golden/text-shaped.pdf")));
   });
 
-  it("never selects a canvas: the viewer is unselectable but its spans", async () => {
+  it("gives the RC4-128 multiscript copy's text too", async () => {
+    await show(await read("fixtures/text/encrypted/build-text-multiscript-rc4-128.pdf"), { password: PASSWORD });
+    selectAllOf(0);
+    expect(squash(copy())).toBe(squash(await laminaText("fixtures/golden/build-text-multiscript.pdf")));
+  });
+
+  it("selects only the spans' text when the whole viewer is selected: never a canvas or a gap", async () => {
     await show(await read("fixtures/golden/text-latin.pdf"));
-    const span = (await spansOf(0))[0] as HTMLElement;
-    // Selecting the whole viewer takes in only the spans' text: no canvas, no gap.
-    document.getSelection()?.selectAllChildren(view?.element as HTMLElement);
-    const contents = document.getSelection()?.getRangeAt(0).cloneContents();
+    const root = view?.element as HTMLElement;
+    document.getSelection()?.selectAllChildren(root);
+    const spans = (await spansOf(0)).map((s) => s.textContent).join("");
     expect([
-      getComputedStyle(view?.element as HTMLElement).userSelect,
-      getComputedStyle(span).userSelect,
+      getComputedStyle(root).userSelect,
+      getComputedStyle((await spansOf(0))[0] as HTMLElement).userSelect,
       squash(copy()) === squash(await laminaText("fixtures/golden/text-latin.pdf")),
-      contents?.querySelector("canvas") === null || squash(document.getSelection()?.toString() ?? "") !== "",
+      (document.getSelection()?.toString() ?? "").replace(/\s/g, "") === spans.replace(/\s/g, ""),
     ]).toEqual(["none", "text", true, true]);
   });
 });
@@ -120,10 +125,10 @@ describe("alignment", () => {
     const spans = await spansOf(0);
     let worst = 0;
     runs
-      .filter((run) => run.glyphs[1] > run.glyphs[0] && run.text !== "")
+      .filter((run) => run.glyphRange[1] > run.glyphRange[0] && run.text !== "")
       .forEach((run, k) => {
         const points: [number, number][] = [];
-        for (let i = run.glyphs[0] * 8; i < run.glyphs[1] * 8; i += 2)
+        for (let i = run.glyphRange[0] * 8; i < run.glyphRange[1] * 8; i += 2)
           points.push(map(quads[i] ?? 0, quads[i + 1] ?? 0));
         const xs = points.map((p) => p[0]);
         const ys = points.map((p) => p[1]);
@@ -210,6 +215,21 @@ describe("structure", () => {
       "1",
       true,
       true,
+    ]);
+  });
+
+  it("follows the structure tree's order with its roles: a heading, a paragraph, a figure named by its alt text", async () => {
+    await show(await read("fixtures/golden/tagged-report.pdf"));
+    await expect
+      .poll(() => document.querySelectorAll(".lamina-structure [role]").length, { timeout: 10_000 })
+      .toBeGreaterThan(3);
+    const roles = [...document.querySelectorAll(".lamina-structure [role]")]
+      .slice(0, 3)
+      .map((el) => [el.getAttribute("role"), el.getAttribute("aria-label")]);
+    expect(roles).toEqual([
+      ["heading", null],
+      ["paragraph", null],
+      ["img", "A bar chart of sales by quarter, rising from 120 to 310"],
     ]);
   });
 

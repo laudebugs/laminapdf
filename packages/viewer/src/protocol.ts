@@ -91,8 +91,8 @@ export interface TextRunData {
   readonly actualText: boolean;
   /** Drawn invisibly (`Tr` 3 or 7: an OCR layer, hidden text); selectable all the same. */
   readonly invisible: boolean;
-  /** Its glyphs: `[start, end)` into `quads` (8 numbers each). */
-  readonly glyphs: readonly [number, number];
+  /** Its glyphs: `[start, end)` into `quads` (8 numbers each), as the SDK's `PageTextRun.glyphRange`. */
+  readonly glyphRange: readonly [number, number];
   /** The marked-content ID it is in, which links it to the structure tree. */
   readonly mcid?: number;
 }

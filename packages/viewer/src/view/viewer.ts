@@ -15,6 +15,7 @@ import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { TextLayer, type TextLayerOptions } from "../layers/text-layer.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
+import { range } from "../layout/range.js";
 import { type OpenedDocument, type Priority, renderKey, renderKeyFields } from "../protocol.js";
 import { backdropRatio, bounds, contains, lowScale, sharpScale, tilesFor } from "../render/tiles.js";
 import {
@@ -122,11 +123,6 @@ export interface CreateViewerOptions {
    * for screen readers (default on; `false` leaves it out, an object sets its options).
    */
   readonly text?: boolean | TextLayerOptions;
-}
-
-/** `first..last`, both included. */
-function range(first: number, last: number): number[] {
-  return Array.from({ length: Math.max(0, last - first + 1) }, (_, k) => first + k);
 }
 
 /** The built-in layer slots, bottom to top, above the canvas. */
@@ -337,6 +333,7 @@ export class Viewer {
     this.#unmountAll();
     this.#cache.clear();
     this.#document = document;
+    this.#pinned = new Set();
     this.#text?.open(document);
     this.#sizes = document.pages.map((p) => ({ width: p.width, height: p.height }));
     this.#layout = undefined;
@@ -371,8 +368,8 @@ export class Viewer {
 
   /**
    * Keeps `pages` mounted wherever the view scrolls, until the next call replaces them: the pages
-   * a text selection touches, so scrolling never takes the selection away. Each counts against
-   * the canvas pool.
+   * a text selection touches, so scrolling never takes the selection away. A pinned page out of
+   * view keeps its shell and its text; its canvas goes back to the pool like any other.
    */
   keepMounted(pages: Iterable<number>): void {
     const next = new Set(pages);

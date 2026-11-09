@@ -77,7 +77,7 @@ export function layoutSpans(runs: readonly TextRunData[], quads: Float32Array): 
 
 /** Run `run`'s span, or undefined for a run without glyphs or text. */
 function spanOf(run: TextRunData, index: number, quads: Float32Array): SpanSpec | undefined {
-  const [start, end] = run.glyphs;
+  const [start, end] = run.glyphRange;
   if (end <= start || run.text === "") return undefined;
   const first = corners(quads, start);
   const last = corners(quads, end - 1);
@@ -116,6 +116,9 @@ function extent(quads: Float32Array, start: number, end: number, along: Vec, up:
   return { minA, maxA, minB, maxB };
 }
 
+/** U+00AD, which marks where a word may break: written as a code, since it is invisible. */
+const SOFT_HYPHEN = String.fromCharCode(0xad);
+
 /** A selected piece of a span's text, with where its span is, for joining. */
 export interface Piece {
   readonly page: number;
@@ -136,15 +139,16 @@ export function joinPieces(pieces: readonly Piece[]): string {
     out += piece.text;
     before = piece;
   }
-  return out.replaceAll("­", "");
+  return out.replaceAll(SOFT_HYPHEN, "");
 }
 
 function separator(a: Piece, b: Piece): string {
   if (a.page !== b.page) return "\n";
   const along = { x: Math.cos(a.span.angle), y: Math.sin(a.span.angle) };
   const up = { x: along.y, y: -along.x };
-  const lineA = dot({ x: a.span.left, y: a.span.top }, up);
-  const lineB = dot({ x: b.span.left, y: b.span.top }, up);
+  // Baselines, not tops: a drop cap or a superscript on the same line has another top.
+  const lineA = dot({ x: a.span.left, y: a.span.top }, up) - a.span.height;
+  const lineB = dot({ x: b.span.left, y: b.span.top }, up) - b.span.height;
   if (Math.abs(lineA - lineB) > Math.max(a.span.height, b.span.height) / 2) return "\n";
   const startA = dot({ x: a.span.left, y: a.span.top }, along);
   const startB = dot({ x: b.span.left, y: b.span.top }, along);

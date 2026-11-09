@@ -8,6 +8,7 @@
 
 import type { ViewerClient } from "../client.js";
 import type { Rotation } from "../layout/page-layout.js";
+import { range as range_ } from "../layout/range.js";
 import type { OpenedDocument } from "../protocol.js";
 import type { PageLayer } from "../view/viewer.js";
 import { joinPieces, layoutSpans, type Piece, type SpanSpec } from "./spans.js";
@@ -53,6 +54,9 @@ interface PageText {
   spans: HTMLElement[];
 }
 
+/** Numbers each text layer, for its span ids. */
+let nextViewer = 0;
+
 /** The page's box: its size in points, scaled and turned to `size` (CSS px) at `rotation`. */
 function boxTransform(
   points: { width: number; height: number },
@@ -78,15 +82,20 @@ export class TextLayer implements PageLayer {
   /** Each mounted page's size in CSS px, as the last resize gave it. */
   readonly #sizes = new Map<number, { readonly width: number; readonly height: number }>();
   #pointerType = "";
+  /** Span ids' prefix, unique to this viewer, so two viewers on a page never share an id. */
+  readonly #idPrefix = `lamina-text-${nextViewer++}-`;
+  /** Counts opens: a structure tree answered for an earlier document is dropped. */
+  #generation = 0;
+  /** Whether the last selection change was in this viewer, so a selection elsewhere is told only once. */
+  #selecting = false;
 
   constructor(host: TextLayerHost, options: TextLayerOptions = {}) {
     this.#host = host;
     this.#options = options;
-    this.#structure = new StructureLayer(host.root, options.untaggedLabel ?? "Untagged document");
+    this.#structure = new StructureLayer(host.root, options.untaggedLabel ?? "Untagged document", this.#idPrefix);
     // Nothing in the viewer is selectable but the spans (set on each): canvases, gaps and other
     // layers stay out of every selection.
-    host.root.style.setProperty("user-select", "none");
-    host.root.style.setProperty("-webkit-user-select", "none");
+    selectable(host.root, "none");
     this.#listen(document, "selectionchange", () => this.#selectionChanged());
     this.#listen(document, "copy", (e) => this.#copy(e as ClipboardEvent));
     this.#listen(host.root, "keydown", (e) => this.#selectAll(e as KeyboardEvent));
@@ -99,12 +108,15 @@ export class TextLayer implements PageLayer {
   open(document: OpenedDocument): void {
     this.#points = document.pages.map((p) => ({ width: p.width, height: p.height }));
     this.#structure.reset();
-    const pages = [...this.#pages.keys()];
+    const opening = ++this.#generation;
     this.#host.client
       .structure()
       .then((structure) => {
+        // Another document opened while this one's tree was read: it isn't this document's.
+        if (opening !== this.#generation) return;
         this.#structure.show(structure);
-        for (const page of pages) this.#linkPage(page);
+        // Pages whose text came first: link them now that their elements exist.
+        for (const page of this.#pages.keys()) this.#linkPage(page);
       })
       .catch(() => {
         // No structure (a worker restart, a closed document): the spans still read in order.
@@ -141,6 +153,16 @@ export class TextLayer implements PageLayer {
 
   onZoom(page: number, _slot: HTMLElement, size: { readonly width: number; readonly height: number }): void {
     this.#sizes.set(page, size);
+    this.#place(page, size);
+  }
+
+  /** Places every page's box again: the view turned. */
+  refresh(): void {
+    for (const [page, size] of this.#sizes) this.#place(page, size);
+  }
+
+  /** Scales and turns page `page`'s box to `size` at the view's rotation. */
+  #place(page: number, size: { readonly width: number; readonly height: number }): void {
     const text = this.#pages.get(page);
     const points = this.#points[page];
     if (text === undefined || points === undefined) return;
@@ -151,16 +173,11 @@ export class TextLayer implements PageLayer {
     });
   }
 
-  /** Places every page's box again: the view turned. */
-  refresh(): void {
-    for (const [page, size] of this.#sizes) this.onZoom(page, document.body, size);
-  }
-
   /** Stops listening; the viewer calls it on destroy. */
   destroy(): void {
     for (const f of this.#cleanup.splice(0)) f();
     for (const page of [...this.#pages.keys()]) this.onUnmount(page);
-    this.#structure.remove();
+    this.#structure.reset();
   }
 
   #listen(target: EventTarget, type: string, f: (e: Event) => void): void {
@@ -176,7 +193,7 @@ export class TextLayer implements PageLayer {
     const fragment = document.createDocumentFragment();
     text.spans = specs.map((spec, k) => {
       const span = document.createElement("span");
-      span.id = `lamina-text-${page}-${k}`;
+      span.id = `${this.#idPrefix}${page}-${k}`;
       span.textContent = spec.text;
       if (spec.rtl) span.dir = "rtl";
       Object.assign(span.style, {
@@ -192,15 +209,18 @@ export class TextLayer implements PageLayer {
         transformOrigin: "0 0",
         ...(this.#options.outline === true ? { outline: "1px solid rgb(220 0 0 / 0.7)" } : {}),
       });
-      span.style.setProperty("user-select", "text");
-      span.style.setProperty("-webkit-user-select", "text");
+      selectable(span, "text");
       this.#specs.set(span, { page, spec });
       fragment.append(span);
       return span;
     });
     text.box.append(fragment);
-    // Reads, then writes. The natural width is in the box's own units (points), whatever the zoom.
-    const natural = text.spans.map((span) => span.offsetWidth);
+    // Reads, then writes: each natural width in points, fractional, with the box briefly
+    // untransformed (its zoom and turn would scale and rotate the rects).
+    const placed = text.box.style.transform;
+    text.box.style.transform = "none";
+    const natural = text.spans.map((span) => span.getBoundingClientRect().width);
+    text.box.style.transform = placed;
     specs.forEach((spec, k) => {
       const span = text.spans[k] as HTMLElement;
       const fit = (natural[k] ?? 0) > 0 ? spec.width / (natural[k] as number) : 1;
@@ -236,10 +256,9 @@ export class TextLayer implements PageLayer {
   #pieces(range: Range): Piece[] {
     const pieces: Piece[] = [];
     for (const span of this.#spansInOrder()) {
-      if (!range.intersectsNode(span)) continue;
       const info = this.#specs.get(span);
+      if (info === undefined || !range.intersectsNode(span)) continue;
       const full = span.textContent ?? "";
-      if (info === undefined) continue;
       const start = span.contains(range.startContainer) ? offsetIn(span, range.startContainer, range.startOffset) : 0;
       const end = span.contains(range.endContainer) ? offsetIn(span, range.endContainer, range.endOffset) : full.length;
       const text = full.slice(start, end);
@@ -274,22 +293,42 @@ export class TextLayer implements PageLayer {
   #selectionChanged(): void {
     const range = this.#range();
     if (range === undefined) {
+      // A selection elsewhere on the page (an input, another viewer): told once, when it leaves.
+      if (!this.#selecting) return;
+      this.#selecting = false;
       this.#host.keepMounted([]);
       this.#options.onSelection?.(undefined);
       return;
     }
+    this.#selecting = true;
+    // Every page from the one the selection starts on to the one it ends on, those between too:
+    // read from its two ends, not by walking every span while a drag goes on.
+    const low = pageOf(range.startContainer);
+    const high = pageOf(range.endContainer);
+    if (low !== undefined && high !== undefined)
+      this.#host.keepMounted(range_(Math.min(low, high), Math.max(low, high)));
+    if (this.#options.onSelection === undefined) return;
     const pieces = this.#pieces(range);
-    const touched = [...new Set(pieces.map((p) => p.page))];
-    const [low, high] = [Math.min(...touched), Math.max(...touched)];
-    // Every page from the first to the last the selection touches: those between it as well.
-    this.#host.keepMounted(touched.length === 0 ? [] : Array.from({ length: high - low + 1 }, (_, k) => low + k));
-    this.#options.onSelection?.({
+    this.#options.onSelection({
       text: joinPieces(pieces),
       rects: [...range.getClientRects()],
-      pages: touched,
+      pages: [...new Set(pieces.map((p) => p.page))],
       pointerType: this.#pointerType,
     });
   }
+}
+
+/** Sets `element`'s `user-select`, with WebKit's prefix (Safari before 26 reads only that). */
+function selectable(element: HTMLElement, value: "none" | "text"): void {
+  element.style.setProperty("user-select", value);
+  element.style.setProperty("-webkit-user-select", value);
+}
+
+/** The index of the page `node` is on, from its shell. */
+function pageOf(node: Node): number | undefined {
+  const element = node instanceof Element ? node : node.parentElement;
+  const index = element?.closest<HTMLElement>(".lamina-page")?.dataset.pageIndex;
+  return index === undefined ? undefined : Number(index);
 }
 
 /** The character offset in `span`'s text of the boundary point (`node`, `offset`). */

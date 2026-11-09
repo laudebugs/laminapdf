@@ -13,7 +13,7 @@ const run = (text: string, glyphs: readonly [number, number], extra: Partial<Tex
   vertical: false,
   actualText: false,
   invisible: false,
-  glyphs,
+  glyphRange: glyphs,
   ...extra,
 });
 
