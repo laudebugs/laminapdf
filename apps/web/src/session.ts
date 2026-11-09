@@ -18,12 +18,9 @@ import type {
 import { message, ReaderController } from "@laminapdf/ui";
 import { createViewer, type SourceInit, ThumbnailStrip, type Viewer, ViewerClient } from "@laminapdf/viewer";
 import { type DocumentWarning, repairsFrom } from "./document.ts";
-<<<<<<< HEAD
 import type { NetworkMonitor } from "./network/monitor.ts";
-=======
 import type { FragmentPlace } from "./open/navigation.ts";
 import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
->>>>>>> origin/main
 
 /** One backend's document worker and the view over it. */
 interface Session {
@@ -273,12 +270,8 @@ export class Engine implements ExternalStore<EngineState> {
           const file = this.#file;
           if (this.#session === session && file !== undefined) void this.reader.open(file);
         });
-<<<<<<< HEAD
         this.#watchWorkerNetwork(started.client);
-        this.#set({ viewer: started.viewer });
-=======
         this.#set({ viewer: started.viewer, strip: started.strip });
->>>>>>> origin/main
       },
       // A backend that can't load fails the next open, which the reader reports.
       () => undefined,
@@ -354,12 +347,8 @@ export class Engine implements ExternalStore<EngineState> {
       close: () => {
         if (!latest()) return;
         this.#file = undefined;
-<<<<<<< HEAD
         this.#network?.documentClosed();
-        this.#set({ title: undefined, repairs: [], timing: undefined });
-=======
         this.#set({ title: undefined, pages: [], outline: undefined, repairs: [], timing: undefined });
->>>>>>> origin/main
         if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
       },
     };

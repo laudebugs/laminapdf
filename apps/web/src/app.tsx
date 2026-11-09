@@ -42,14 +42,11 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
-<<<<<<< HEAD
-import type { NetworkMonitor } from "./network/monitor.ts";
-import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
-=======
 import { type FindActions, useFind } from "./find.tsx";
 import { pageLabel } from "./outline.ts";
 import { railTabs } from "./rail.tsx";
->>>>>>> origin/main
+import type { NetworkMonitor } from "./network/monitor.ts";
+import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
@@ -96,19 +93,12 @@ function useReaderCommands(
       platform,
       reader,
       ...(viewer === undefined ? {} : { viewer }),
-<<<<<<< HEAD
-      // No rail tabs yet, so the sidebar command has no handler and stays out of every view.
-      actions: {
-        ...shellActions(shell.layout, shell.modes, { rail: false }),
-        "palette.open": shell.openPalette,
-        "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
-=======
       // Without rail tabs (no document open) the sidebar command has no handler and stays out of view.
       actions: {
         ...shellActions(shell.layout, shell.modes, { rail }),
         "palette.open": shell.openPalette,
         ...(viewer === undefined ? {} : find),
->>>>>>> origin/main
+        "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
       },
     }),
     [platform, reader, viewer, shell, modes, rail, find],

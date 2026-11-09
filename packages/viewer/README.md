@@ -171,14 +171,11 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `find` | `query`, `FindOptions`, `pages` | `FindPageResult[]`: each page's matches as quads, and whether it has no text | `background` |
 | `render` | ADR 0004 `RenderRequest` | `{ bitmap: ImageBitmap, width, height }` (transferred) | `visible` > `prefetch` > `background` |
 | `memory` | — | `WorkerMemory`: the bytes of the backend's and Lamina PDF's WebAssembly memories | document. `client.memory()`; the perf harness samples it. |
-<<<<<<< HEAD
-| `networkLog` | — | `WorkerNetworkLog`: every request and blocked request since the Web Worker started | document. `client.networkLog()`: what the `network` and `csp-violation` events reported, those sent before anyone listened included; `index` merges the two. |
-=======
 | `pageText` | `index` | `PageTextData`: the page's runs and glyph quads | `background` |
 | `structure` | — | `StructureData`: whether the document is tagged, and its structure tree | document |
 | `outline` | — | `OutlineNode[]`: the outline, each item's target in page space | document |
 | `namedDestination` | `name` | `Target \| undefined` | document |
->>>>>>> origin/main
+| `networkLog` | — | `WorkerNetworkLog`: every request and blocked request since the Web Worker started | document. `client.networkLog()`: what the `network` and `csp-violation` events reported, those sent before anyone listened included; `index` merges the two. |
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).
 

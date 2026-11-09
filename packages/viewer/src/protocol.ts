@@ -79,9 +79,7 @@ export interface Methods {
   memory: { params: []; result: WorkerMemory };
   pageText: { params: [index: number]; result: PageTextData };
   structure: { params: []; result: StructureData };
-<<<<<<< HEAD
   networkLog: { params: []; result: WorkerNetworkLog };
-=======
   outline: { params: []; result: OutlineNode[] };
   namedDestination: { params: [name: string]; result: Target | undefined };
   find: { params: [query: string, options: FindOptions, pages: readonly number[]]; result: FindPageResult[] };
@@ -95,7 +93,6 @@ export interface FindPageResult {
   readonly snippets: readonly FindSnippet[];
   /** The page has no text to search (a scan without an OCR layer). */
   readonly noText?: true;
->>>>>>> origin/main
 }
 
 /** One text run of a page: glyphs of one font, size and direction on one baseline, in logical order. */
