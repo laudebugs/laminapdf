@@ -104,6 +104,7 @@ The page shows titles and counts only. It names no person and links nothing in t
 | [W1d](../todos/done/W1d-one-site-header.md) | One header for the website and the docs site | W1b |
 | [W1e](../todos/done/W1e-progress-snapshot.md) | The progress snapshot: `cargo xtask progress` writes the dashboard's data from the board, the roadmap and `git log` | W1b |
 | [W1f](../todos/done/W1f-home-page-code-colouring.md) | Code colouring on the home page: Shiki at build time, classes instead of inline styles, colours from the Paper tokens | W1c |
+| [W2a](../todos/ongoing/W2a-story-skill-and-coverage-map.md) | Stories: the `lamina-story` skill, its images in the Paper look, and the coverage map in `docs/stories/` ([§9](#9-stories-off-the-site)) | W1b |
 
 C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a and U5b depend on W1b, because their pages move to the website. W1b depends on U6b for the fonts.
 
@@ -121,5 +122,16 @@ C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a 
 - [x] Share one header between the website and the docs site ([W1d](../todos/done/W1d-one-site-header.md))
 - [x] Write the dashboard's data with one command ([W1e](../todos/done/W1e-progress-snapshot.md))
 - [x] Colour the home page's code ([W1f](../todos/done/W1f-home-page-code-colouring.md))
+- [ ] Write stories about the project for LinkedIn, X and Threads with one skill, and keep a map of what they've covered ([W2a](../todos/ongoing/W2a-story-skill-and-coverage-map.md))
 
 With these six todos done, `laminapdf.com` tells a visitor what Lamina PDF is, where the work stands and what comes next, and the reader launches at `app.laminapdf.com` on its own origin.
+
+## 9. Stories off the site
+
+The owner asked (2026-11-09) for short posts that tell Lamina PDF's story one part at a time, on LinkedIn, X and Threads: to bring people to the product, and to share what building it with AI agents teaches. Each post tells one story, carries at least one image per platform that shows what words explain badly (a chart, a drawing, a diagram), and must be technically correct.
+
+- **The skill.** [`lamina-story`](../../.agents/skills/lamina-story/SKILL.md) turns one part of the project into a LinkedIn post of 150–200 words, a post for X and one for Threads, with their images. It checks every fact against the repository, has a second agent try to refute each one, and never posts.
+- **The images.** HTML cards in the Paper look, drawn by `apps/site/scripts/story-image.mjs` with the site's own tokens and fonts, through the same renderer as the site's share image (`paper-render.mjs`): 1080 × 1350 for LinkedIn and Threads, 1600 × 900 for X.
+- **The coverage map.** [`docs/stories/README.md`](../stories/README.md) lists the stories worth telling, with their sources and whether each is open, drafted or told, so no part of the project is told twice.
+
+A story PR that touches only `docs/stories/` is exempt from the todo board, like a progress-snapshot refresh.
