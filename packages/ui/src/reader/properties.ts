@@ -83,21 +83,16 @@ const NS = {
   rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
 } as const;
 
-/** How XMP text becomes a document: `DOMParser`, which never loads external entities or DTDs. */
-export type XmlParser = (text: string) => Document;
-
-/** The browser's parser, as XML. */
-export const domXmlParser: XmlParser = (text) => new DOMParser().parseFromString(text, "application/xml");
-
 /**
  * The fields of an XMP packet the dialog shows: the first `rdf:li` of a language alternative or a
  * list (`dc:title`, `dc:creator`), else the element's text, else the attribute form
  * (`<rdf:Description pdf:Producer="…">`). An unreadable packet gives nothing.
  */
-export function readXmp(text: string, parse: XmlParser = domXmlParser): XmpFields {
+export function readXmp(text: string): XmpFields {
   let doc: Document;
   try {
-    doc = parse(text);
+    // DOMParser as XML loads no external entities or DTDs.
+    doc = new DOMParser().parseFromString(text, "application/xml");
   } catch {
     return {};
   }
@@ -245,7 +240,13 @@ function pagesValue(count: number, labels: readonly string[] | undefined): strin
   if (labels === undefined || labels.length === 0) return String(count);
   const runs: string[] = [];
   let start = 0;
-  const prefixAndNumber = (label: string) => /^(.*?)(\d+)$/.exec(label);
+  // A label's prefix and its trailing number (`A-` and `12`), found by scanning back over the
+  // digits: a regular expression here is quadratic on a long label, which the file writes.
+  const prefixAndNumber = (label: string): readonly [string, string, string] | null => {
+    let at = label.length;
+    while (at > 0 && label.charCodeAt(at - 1) >= 48 && label.charCodeAt(at - 1) <= 57) at--;
+    return at === label.length ? null : [label, label.slice(0, at), label.slice(at)];
+  };
   for (let i = 1; i <= labels.length; i++) {
     const before = prefixAndNumber(labels[i - 1] ?? "");
     const here = i < labels.length ? prefixAndNumber(labels[i] ?? "") : null;

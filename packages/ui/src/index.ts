@@ -234,10 +234,14 @@ export { type PrintPagesResult, parsePrintPages } from "./reader/print-pages.js"
 export {
   type DocumentPropertiesData,
   formatFileSize,
+  type PropertiesCipher,
   type PropertiesContext,
+  type PropertyRow,
+  type PropertySection,
   pageSizeSummary,
   propertiesText,
   readXmp,
+  type XmpFields,
 } from "./reader/properties.js";
 export {
   PropertiesDialog,

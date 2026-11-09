@@ -8,6 +8,13 @@ const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
 /** The longest name kept, in characters, before `.pdf`. */
 const MAX_STEM = 200;
 
+/** `text` without trailing dots and spaces, by a scan back: a regular expression would be quadratic. */
+function trimEnd(text: string): string {
+  let end = text.length;
+  while (end > 0 && (text[end - 1] === "." || text[end - 1] === " ")) end--;
+  return text.slice(0, end);
+}
+
 /** `name` as a safe file name ending in `.pdf`: `document.pdf` when nothing is left of it. */
 export function downloadName(name: string): string {
   const base = name.split(/[\\/]/).at(-1) ?? "";
@@ -18,11 +25,12 @@ export function downloadName(name: string): string {
     .replace(/\s+/g, " ")
     .trim()
     // Windows drops trailing dots and spaces; a leading dot hides the file elsewhere.
-    .replace(/^[.\s]+|[.\s]+$/g, "");
-  const stem = cleaned
-    .replace(/\.pdf$/i, "")
-    .slice(0, MAX_STEM)
-    .trim();
+    .replace(/^[.\s]+/, "");
+  const stem = trimEnd(
+    trimEnd(cleaned)
+      .replace(/\.pdf$/i, "")
+      .slice(0, MAX_STEM),
+  );
   if (stem === "" || /^_+$/.test(stem)) return "document.pdf";
   return `${RESERVED.test(stem.split(".")[0] ?? "") ? `_${stem}` : stem}.pdf`;
 }
