@@ -162,8 +162,9 @@ criterion = { version = "0.8.2", default-features = false, features = ["cargo_be
 # Brotli sizes in `cargo xtask size` (xtask only). No default features: compression only, no
 # SIMD. BSD-3-Clause AND MIT (alloc-no-stdlib, alloc-stdlib, brotli-decompressor: BSD-3-Clause OR MIT)
 brotli = { version = "9.1.1", default-features = false, features = ["std"] }
-# Markdown links and headings for `cargo xtask docs-links`; no default features (they add HTML
-# output and a CLI). MIT (dependencies bitflags, memchr, unicase: MIT OR Apache-2.0)
+# Markdown links and headings for `cargo xtask docs-links`, and laminapdf-build's `markdown`
+# feature (ADR 0032 §5–§6); no default features (they add HTML output and a CLI). MIT
+# (dependencies bitflags, memchr, unicase: MIT OR Apache-2.0)
 pulldown-cmark = { version = "0.13.6", default-features = false }
 # Unicode general categories for GitHub's heading slugs (marks such as U+0301 and the Devanagari
 # virama are kept; std has no category API). MIT OR Apache-2.0

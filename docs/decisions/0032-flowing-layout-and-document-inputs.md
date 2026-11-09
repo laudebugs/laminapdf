@@ -114,7 +114,7 @@ Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benc
 | [T4b](../todos/done/T4b-flow-layout-core.md) | The flow layer over T4f and T4g: paragraphs of styled spans, pagination, keep rules, page templates and fields, "Page X of Y", tagging |
 | [T4c](../todos/done/T4c-flow-tables-notes-contents.md) | Tables across pages |
 | [T4h](../todos/done/T4h-flow-notes-contents-outline.md) | Footnotes, a contents page and the outline |
-| [T4d](../todos/ready/T4d-markdown-documents.md) | Markdown in Rust, with an example |
+| [T4d](../todos/done/T4d-markdown-documents.md) | Markdown in Rust, with an example |
 | [T4i](../todos/ready/T4i-build-command-and-bindings.md) | `laminapdf build`, `laminapdf_build` and the TypeScript `markdown` call |
 | [T4e](../todos/ready/T4e-json-documents-and-templates.md) | `laminapdf.document/1` and templates in Rust and the CLI |
 | [T4j](../todos/ready/T4j-documents-in-typescript.md) | Typed documents and `builder.flow` in TypeScript |

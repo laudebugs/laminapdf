@@ -89,7 +89,7 @@ impl Pager<'_> {
         let x = template.margins.left;
         let width = template.body_width();
         let mut top = template.body_y().1 - self.notes_height + NOTE_GAP;
-        let mut placed = vec![Placed::NoteRule {
+        let mut placed = vec![Placed::Rule {
             x,
             y: top - NOTE_GAP / 2.0,
             width: RULE_LENGTH.min(width),

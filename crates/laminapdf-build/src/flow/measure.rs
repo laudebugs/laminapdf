@@ -20,6 +20,10 @@ pub(crate) struct Look {
     pub(crate) lang: Option<String>,
     /// For a footnote's marker, the note's index in the flow (tagged as a `Reference`).
     pub(crate) note: Option<usize>,
+    /// Computer code (tagged `Code`).
+    pub(crate) code: bool,
+    /// Struck through.
+    pub(crate) strike: bool,
 }
 
 /// A paragraph's text with its spans, ready to break at any width.
@@ -97,6 +101,13 @@ impl Source {
             let (text, style, link) = match inline {
                 Inline::Text(text, style) => (text.as_str(), style, None),
                 Inline::Link(text, style, target) => (text.as_str(), style, Some(target)),
+                Inline::Code(text, style) => {
+                    source.push(text, style, None, paragraph_lang.as_deref());
+                    if let Some(look) = source.looks.last_mut() {
+                        look.code = true;
+                    }
+                    continue;
+                }
                 Inline::LineBreak => {
                     // In the style of the text before it, so its line keeps that height.
                     let Some(prev) = source.spans.last().cloned() else {
@@ -111,6 +122,8 @@ impl Source {
                     source.looks.extend(look.map(|l| Look {
                         link: None,
                         note: None,
+                        code: false,
+                        strike: false,
                         ..l
                     }));
                     continue;
@@ -153,6 +166,8 @@ impl Source {
             link,
             lang: style.language.clone().filter(|l| Some(l.as_str()) != paragraph_lang),
             note: None,
+            code: false,
+            strike: style.strike,
         });
     }
 
@@ -244,7 +259,7 @@ fn shift(line: &mut Line, by: usize) {
 /// The style of `paragraph`'s first text.
 pub(crate) fn first_style(paragraph: &Paragraph) -> Option<TextStyle> {
     paragraph.inlines.iter().find_map(|i| match i {
-        Inline::Text(_, style) | Inline::Link(_, style, _) => Some(style.clone()),
+        Inline::Text(_, style) | Inline::Link(_, style, _) | Inline::Code(_, style) => Some(style.clone()),
         Inline::LineBreak | Inline::Note(_) => None,
     })
 }

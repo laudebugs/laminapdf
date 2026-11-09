@@ -264,3 +264,21 @@ fn page_fields_count_the_pages_added_before_the_flow() {
     let pages = texts(&save(b.finish().unwrap()));
     assert_eq!(pages[2].last().map(String::as_str), Some("Page 3 of 3"));
 }
+
+#[test]
+fn a_flow_in_a_standard_14_font_is_laid_out_unshaped_and_reads_back() {
+    use laminapdf_build::Standard14;
+    let mut b = Builder::new(BuildOptions::new().with_compress(false));
+    let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
+    let style = TextStyle::new(&helvetica, SIZE);
+    let words = "Plain Latin text in Helvetica, broken into lines by its AFM widths. ".repeat(8);
+    let flow = Flow::new(template(&helvetica, 10.0))
+        .block(FlowBlock::Heading(1, Paragraph::plain("Caf\u{e9} report", &style)))
+        .block(FlowBlock::Paragraph(Paragraph::plain(words.trim_end(), &style)));
+    b.flow(&flow).unwrap();
+    let bytes = save(b.finish().unwrap());
+    let pages = texts(&bytes);
+    assert_eq!(pages[0][0], "Caf\u{e9} report");
+    let text = pages.concat().join(" ");
+    assert!(text.contains("broken into lines by its AFM widths."), "{text}");
+}

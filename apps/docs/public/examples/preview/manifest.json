@@ -152,6 +152,28 @@
         }
       ]
     },
+    "markdown_to_pdf": {
+      "sha256": "ea7e21df505168652a806b3d6818da2526fea0db297f5321e7da12a75547c2cc",
+      "bytes": 53639,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
     "multilingual": {
       "sha256": "10a7f9769a9b59149bddfc4bf2a9d4bb3cf51b0aa6db0e5b9f95943e2a785ad8",
       "bytes": 27695,

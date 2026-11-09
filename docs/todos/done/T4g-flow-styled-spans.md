@@ -15,7 +15,7 @@
 
 ## Goal
 
-Break a paragraph whose words come in different fonts, sizes and languages: a bold word inside a sentence, a superscript, an Arabic name inside an English line. Today `laminapdf-text`'s `break_lines` takes one size, and its font list is a fallback list, not a set of styles. Flowing paragraphs ([T4b](../done/T4b-flow-layout-core.md)), Markdown's emphasis and code spans ([T4d](../ready/T4d-markdown-documents.md)) and footnote markers ([T4h](../done/T4h-flow-notes-contents-outline.md)) all need it. This was part of T4b until [T4a](../done/T4a-adr-0032-layout-engine.md) split T4b to keep each todo under 800 lines.
+Break a paragraph whose words come in different fonts, sizes and languages: a bold word inside a sentence, a superscript, an Arabic name inside an English line. Today `laminapdf-text`'s `break_lines` takes one size, and its font list is a fallback list, not a set of styles. Flowing paragraphs ([T4b](../done/T4b-flow-layout-core.md)), Markdown's emphasis and code spans ([T4d](../done/T4d-markdown-documents.md)) and footnote markers ([T4h](../done/T4h-flow-notes-contents-outline.md)) all need it. This was part of T4b until [T4a](../done/T4a-adr-0032-layout-engine.md) split T4b to keep each todo under 800 lines.
 
 ## Context
 

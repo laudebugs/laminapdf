@@ -694,22 +694,40 @@ mod shaping {
     use super::*;
 
     #[test]
-    fn shaping_a_standard_font_is_font_not_shapable() {
-        let err = HarfRust
-            .shape(&Font::standard(Standard14::Helvetica), "Hi", &ShapeOptions::new())
-            .unwrap_err();
-        assert_eq!(
-            err,
-            Error::FontNotShapable {
-                font: "Helvetica".to_owned()
-            }
-        );
+    fn a_standard_font_is_laid_out_unshaped_with_its_afm_widths() {
+        let run = HarfRust
+            .shape(&Font::standard(Standard14::Helvetica), "Hi fi", &ShapeOptions::new())
+            .unwrap();
+        // One glyph per character, no ligature, H = 722 and i = 222 in Helvetica's AFM.
+        assert_eq!(run.glyphs.len(), 5);
+        let advances: Vec<i32> = run.glyphs.iter().map(|g| g.x_advance).collect();
+        assert_eq!(advances[..2], [722, 222]);
+        assert_eq!(run.units_per_em, 1000);
     }
 
     #[test]
-    fn laying_out_with_a_standard_font_is_font_not_shapable() {
+    fn a_character_a_standard_font_lacks_is_a_missing_glyph() {
+        let err = HarfRust
+            .shape(&Font::standard(Standard14::Helvetica), "\u{5d0}", &ShapeOptions::new())
+            .unwrap_err();
+        assert_eq!(err.code(), "missing-glyph");
+    }
+
+    #[test]
+    fn lines_in_a_standard_font_break_by_its_widths() {
         let fonts = [Font::standard(Standard14::TimesRoman)];
-        let err = break_lines(&HarfRust, &fonts, "Hi there", &LayoutOptions::new(100.0, 12.0)).unwrap_err();
-        assert_eq!(err.code(), "font-not-shapable");
+        let lines = break_lines(
+            &HarfRust,
+            &fonts,
+            "Hi there, plain words",
+            &LayoutOptions::new(60.0, 12.0),
+        )
+        .unwrap();
+        assert!(lines.len() > 1);
+        assert!(
+            lines.iter().all(|l| l.width <= 60.0 + 1e-3),
+            "{:?}",
+            lines.iter().map(|l| l.width).collect::<Vec<_>>()
+        );
     }
 }

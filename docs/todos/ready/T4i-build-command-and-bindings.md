@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4d](./T4d-markdown-documents.md) |
+| Depends on | [T4d](../done/T4d-markdown-documents.md) |
 | ADRs | Implements [ADR 0032 §7](../../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) (the CLI verb, the MCP tool and the TypeScript call) and [§9](../../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) (the text module's 1,280,000 B gzip budget). Follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as ADR 0032 amends it: [§2](../../decisions/0031-cli-and-mcp-contract.md#2-grammar) (`build`), [§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output) (`laminapdf.build/1`) and [§9](../../decisions/0031-cli-and-mcp-contract.md#9-mcp-defaults-for-l4c) (a write tool under `--allow-write`); [0016 §6–§7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary) (module budgets; records as JSON with `unknown-option`) and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
 | Branch | `feat/t4i-build-command-and-bindings` |
 | PR title | `feat(cli): laminapdf build for Markdown, its MCP tool and the TypeScript markdown call` |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Bring [T4d](./T4d-markdown-documents.md)'s Markdown front end to the places people and agents call it from: `laminapdf build report.md -o report.pdf`, an MCP tool that a coding agent can call with the Markdown inline, and `builder.markdown(text, options)` in `@laminapdf/sdk`. Markdown is the largest generation request on Hacker News, about 1,140 comments, and one commenter asked for exactly this: "if you have a markdown->PDF function included, where I can send in markdown and get PDF, that would solve quite many needs" ([46325132](https://news.ycombinator.com/item?id=46325132)). Talk of AI near generation rose from 6 to 263 comments, and an MCP tool is how an agent reaches the library without writing code.
+Bring [T4d](../done/T4d-markdown-documents.md)'s Markdown front end to the places people and agents call it from: `laminapdf build report.md -o report.pdf`, an MCP tool that a coding agent can call with the Markdown inline, and `builder.markdown(text, options)` in `@laminapdf/sdk`. Markdown is the largest generation request on Hacker News, about 1,140 comments, and one commenter asked for exactly this: "if you have a markdown->PDF function included, where I can send in markdown and get PDF, that would solve quite many needs" ([46325132](https://news.ycombinator.com/item?id=46325132)). Talk of AI near generation rose from 6 to 263 comments, and an MCP tool is how an agent reaches the library without writing code.
 
 ## Context
 
@@ -50,7 +50,7 @@ Bring [T4d](./T4d-markdown-documents.md)'s Markdown front end to the places peop
 ## Tasks
 
 - [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
-- [ ] Read ADR 0032 §7–§9 and T4d's `MarkdownOptions`
+- [ ] Read ADR 0032 §7–§9 and T4d's `MarkdownBuildOptions`
 - [ ] The CLI: `commands/build.rs` (new; `build(args, &Settings, &mut dyn Io)`, which never prints), `BuildArgs` and `BuildReport` with `JsonSchema`, the `Build` variant in `src/main.rs`, `schema::all()` and `COMMANDS`, the committed schema, CLI hints for the font errors, and the CLI README
 - [ ] MCP: `laminapdf_build` in `src/mcp/tools.rs` behind `allow_write`, with annotations that say it writes and isn't destructive; update `the_tools_should_be_in_name_order_and_read_only_by_default` for the new order
 - [ ] WebAssembly: `WasmBuilder.markdown` with its options record, the `markdown` feature turned on in the text module's build; TypeScript: `Builder.markdown` and its types; `cargo xtask wasm` and `cargo xtask size`

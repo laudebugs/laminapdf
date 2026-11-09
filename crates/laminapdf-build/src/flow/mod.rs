@@ -10,7 +10,8 @@
 //! however many pages it crosses, and the running header and footer as `Pagination` artifacts
 //! with `/Subtype /Header` and `/Footer`.
 //!
-//! Fonts must be shapable: the standard 14 fail with `font-not-shapable`.
+//! The standard 14 fonts are laid out unshaped, with their AFM widths: Latin text only, left to
+//! right, and not embedded, so PDF/UA-1 and PDF/A refuse them (`font-not-embedded`).
 //!
 //! ```
 //! # fn font() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-Regular.ttf")).to_vec() }
@@ -48,6 +49,9 @@ mod tests;
 use laminapdf_model::{PageId, Pt};
 
 pub use contents::Contents;
+pub(crate) use contents::destination;
+#[cfg(feature = "markdown")]
+pub(crate) use contents::{headings, plain_text};
 pub use model::{
     Figure, Flow, FlowBlock, Inline, List, ListItem, ListKind, Margins, PageRegion, PageTemplate, Paragraph,
     ParagraphStyle, TextStyle,
@@ -82,8 +86,8 @@ impl Builder {
     /// # Errors
     /// [`Error::FlowContentTooLarge`](crate::Error::FlowContentTooLarge) for a line or a
     /// figure taller than a page's body; [`Error::FlowLayoutUnstable`](crate::Error::FlowLayoutUnstable)
-    /// for a contents page whose numbers don't settle; shaping errors (`missing-glyph`,
-    /// `font-not-shapable`); the errors of finishing a page. Pages drawn before a failure stay
+    /// for a contents page whose numbers don't settle; shaping errors (`missing-glyph`);
+    /// the errors of finishing a page. Pages drawn before a failure stay
     /// in the document, and the flow's structure elements are closed.
     pub fn flow(&mut self, flow: &Flow) -> Result<FlowReport> {
         let first = self.page_count();
@@ -124,13 +128,13 @@ impl Builder {
                         top: Some(Pt::new(*top)),
                         zoom: None,
                     };
-                    self.destination(contents::destination(first, n), index, fit);
+                    self.destination(destination(first, n), index, fit);
                 }
             }
         }
         if flow.outline && !items.headings.is_empty() {
             self.outline(contents::outline(&items.headings, |n| {
-                LinkTarget::Named(contents::destination(first, n))
+                LinkTarget::Named(destination(first, n))
             }))?;
         }
         Ok(FlowReport {
