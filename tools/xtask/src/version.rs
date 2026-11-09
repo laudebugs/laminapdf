@@ -157,7 +157,7 @@ fn plan(root: &Path) -> Result<Plan> {
         members: packages,
     } = fixed_group_version(root)?;
     let mut updates = Vec::new();
-    let mut problems = Vec::new();
+    let mut problems = crate::changesets::private_packages_outside_ignore(root)?;
     let mut update = |path: PathBuf, old: &str, new: String| {
         if old != new {
             updates.push((path, new));

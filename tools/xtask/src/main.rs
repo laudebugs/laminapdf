@@ -6,6 +6,7 @@
 mod benchmarks;
 mod capabilities;
 mod changes;
+mod changesets;
 mod cli_docs;
 mod codegen;
 mod corpus;
