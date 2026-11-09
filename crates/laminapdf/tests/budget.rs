@@ -1,8 +1,10 @@
 //! Measures `SaveJob` work units per millisecond (ADR 0028 §4) for the crate README: a
 //! 2,000-page document opened from bytes and saved as a full rewrite: planning (1 unit), the
 //! whole parse phase in one step, then the write.
-//! Release mode only, `#[ignore]`d (`cargo xtask scaling` runs it nightly); it prints and
-//! asserts no timing (ADR 0018: no wall-clock asserts).
+//! Release mode only, `#[ignore]`d (`cargo xtask scaling` runs it nightly, in the `scaling`
+//! profile: release without LTO, so its figure is a little below the README's); it prints and
+//! asserts no timing (ADR 0018: no wall-clock asserts). The README's figures come from the
+//! release command below.
 //!
 //! ```sh
 //! cargo test --release -p laminapdf --test budget -- --ignored --nocapture
