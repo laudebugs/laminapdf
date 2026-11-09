@@ -633,9 +633,14 @@
    the reader's size (set on the column) with its line spacing and line length; a crop is its part
    of the page, framed, with its description under it. */
 @layer paper.components {
-  .paper-reader-mode {
+  /* In the reader's canvas, the column covers the page view (which stays laid out under it). */
+  .paper-reader-canvas > .paper-reader-mode {
     position: absolute;
     inset: 0;
+  }
+
+  .paper-reader-mode {
+    block-size: 100%;
     overflow-y: auto;
     background: var(--paper-page-paper);
     color: var(--paper-page-ink);
@@ -646,9 +651,12 @@
     outline-offset: calc(var(--paper-focus-ring-width) * -1);
   }
 
+  /* The empty state is the app's, not the page's: the theme's ground and text, as anywhere else. */
   .paper-reader-mode-empty {
     display: grid;
     place-items: center;
+    background: var(--paper-ground);
+    color: var(--paper-text);
   }
 
   .paper-reader-column {
@@ -728,11 +736,12 @@
     font-style: italic;
   }
 
+  /* The page's own muted ink, set per page appearance, not the UI's (which a dark theme lightens). */
   .paper-reader-caption,
   .paper-reader-note,
   .paper-reader-alt {
     font-size: 0.85em;
-    color: var(--paper-muted);
+    color: var(--paper-page-mockup-muted);
   }
 
   .paper-reader-list {
