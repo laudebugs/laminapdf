@@ -378,9 +378,11 @@ cargo xtask gen boundary [--check]  # the TypeScript side of the lists that cros
 cargo xtask deny             # cargo-deny (licences, advisories, bans, sources) + npm licence check
 cargo xtask npm-licenses     # npm licence check only
 cargo xtask docs-links       # every relative link and #anchor in tracked *.md resolves (GitHub slugs); --json for tooling
-cargo xtask docs-links --external  # nightly: every http(s) URL in tracked *.md answers (links, bare URLs, HTML href/src;
-                             #   curl, one retry, per-host rate limit, allowlist .config/link-check.toml; 403/429 reported as refused;
-                             #   missing pages/sites reported (missing.md, with reasons), never a failure; report in target/nightly/links/)
+cargo xtask docs-links --external [--cache <file>]  # nightly: every http(s) URL in tracked *.md answers (links, bare URLs, HTML
+                             #   href/src; curl, one retry, per-host rate limit, allowlist .config/link-check.toml; 403/429 reported as
+                             #   refused; a host given up after 5 refusals or 3 URLs with no answer or a server error; missing
+                             #   pages/sites reported (missing.md, with reasons), never a failure; report in target/nightly/links/);
+                             #   --cache: URLs that answered OK in the last 4 to 7 days report `cached`, not fetched (docs_links/cache.rs)
 cargo xtask todos            # check the todo graph, point each Depends on link at its todo's current folder, print "Can start now"
                              #   and the ongoing todos, and write the whole board (with what each todo blocks) to
                              #   target/todos/board.md; the board and Blocks fields are never committed, since a derived list
@@ -461,13 +463,16 @@ cargo xtask differential --live [--corpus external|mutants|all] [--source <name>
 cargo xtask differential --live --text [--source <name>]… [--sample N]  # nightly: Lamina PDF's page text vs live pdf.js and pdftotext
                              #   over the external corpus, page by page (B9c's rule; a page agrees when Lamina PDF matches one tool);
                              #   agreement per source in the summary, report in target/nightly/differential-text/
-cargo xtask render-diff [--corpus external] [--source <name>]… [--pages N] [--sample N] [--jobs N] [--top N] \
+cargo xtask render-diff [--corpus external] [--source <name>]… [--pages N] [--sample N] [--jobs N] [--top N] [--reuse] \
     [--history <dir> [--runner <label>] [--record] [--dry-run]]  # nightly: hayro vs PDFium (laminapdf-render's adapters, tools/render's
                              #   render-diff) at 96 dpi with C1a's metric and thresholds (ADR 0004 §6 note); per-file processes
                              #   under time limits; pass+minor share per source; report.json + summary.html (worst diffs) in
                              #   target/nightly/render-diff/; --history: a drop > 2 points vs the last point writes regression.md
-                             #   (--dry-run prints the issue), --record appends `render-diff/<source>` to history.jsonl
-cargo xtask scaling          # nightly: release-mode #[ignore]d tests (scaling ratios), one retry reported as flaky
+                             #   (--dry-run prints the issue), --record appends `render-diff/<source>` to history.jsonl; --jobs
+                             #   defaults to the cores; --reuse reports the restored report again when the renderer's code, corpus
+                             #   manifest and settings hash to its inputs.sha256 (render_diff/reuse.rs)
+cargo xtask scaling          # nightly: the scaling tests (SCALING_TESTS: the #[ignore]d tests sent to the nightly lane; a test keeps
+                             #   the list complete) in the `scaling` profile (release without LTO), one retry reported as flaky
 cargo xtask bench [--quick]  # nightly: criterion benches (crates/laminapdf-cos/benches, crates/laminapdf-save/benches, crates/laminapdf/benches:
                              #   the 100-page text report); --history <dir> flags >10% regressions
 cargo xtask nightly [--quick]  # the whole nightly lane locally, in the workflow's order (--quick: short budgets)
