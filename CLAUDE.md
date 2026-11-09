@@ -83,7 +83,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/viewer/     # @laminapdf/viewer: the viewer core (ADR 0009); C3a: ViewerClient (typed RPC over
 │                        #   @laminapdf/sdk/worker's request(), timers, restart), src/worker/ (serve() with the viewer's
 │                        #   methods: openDocument, render → ImageBitmap); C4c: src/source/http-range.ts (HttpRangeByteSource:
-│                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); C3b: createViewer (src/layout/, view/, canvas/,
+│                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); C5a: src/layers/ (the text
+│                        #   layer: a transparent span per run from Lamina PDF's quads, selection across pages, keepMounted pins, copy; the
+│                        #   structure tree as ARIA elements owning spans by MCID), worker/text.ts (pageText, structure); C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)

@@ -40,16 +40,25 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 
 | Member | What it does |
 | --- | --- |
-| `createViewer({ client, margin?, gap?, pool?, detailPool?, cacheBytes?, backdropMaxPixels?, canvasMaxPixels?, device?, settleMs?, zoom? })` | Makes a viewer over a `ViewerClient`. |
+| `createViewer({ client, margin?, gap?, pool?, detailPool?, cacheBytes?, backdropMaxPixels?, canvasMaxPixels?, device?, settleMs?, zoom?, text? })` | Makes a viewer over a `ViewerClient`. `text` is on by default; `false` leaves the text layer out, and an object sets its `outline`, `untaggedLabel` and `onSelection`. |
 | `mount(container)`, `open(document)`, `destroy()` | Puts it on the page, shows a document, takes it down. |
 | `goToPage(index, { anchor })`, `setZoom(zoom, { anchor })`, `rotate(delta)` | Navigation. `zoom` is a mode or a percentage. |
 | `getState()`, `subscribe(listener)` | The view state (`currentPage`, `pageCount`, `zoom`, `percent`, `rotation`, `scrollTop`, `visibleRange`), for `useSyncExternalStore`. |
 | `on("pagechange" \| "zoomchange" \| "renderstats", …)`, `stats()` | Events and counters. `renderstats` counts renders, for measuring performance. |
 | `addLayer({ name, onMount, onUnmount, onZoom })` | Mounts a layer into each page. |
+| `keepMounted(pages)` | Keeps those pages mounted wherever the view scrolls (the text layer pins the pages a selection touches). |
 | `pointAt(x, y)`, `positionOf(point)` | Converts between viewport positions and document points. |
 | `MIN_ZOOM`, `MAX_ZOOM` | The bounds of a percentage zoom, 10 and 800, for a zoom control's range. |
 
-**Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The coming text layer, find highlights and links will mount there through `addLayer`. A layer with another name gets its own slot on top.
+**Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The text layer fills the first; find highlights and links will mount in the others through `addLayer`. A layer with another name gets its own slot on top.
+
+**Text.** The text layer makes every page's text selectable, copyable and readable by screen readers, whichever backend draws the page.
+- **Spans.** Each text run of Lamina PDF's extraction gets one transparent span, placed from its glyphs' quads, never from the renderer's. A rotated or vertical run gets a rotated span, and a span reads right to left when its first letter does. The spans sit in a box sized in points, which one CSS transform scales and turns to the page, so a zoom or a rotation moves no span.
+- **Selection.** The viewer is the one selection root, and only spans are selectable: a drag runs from one page into the next and never takes in a canvas or a gap. The pages a selection touches stay mounted while it lasts. Ctrl/⌘+A in the viewer selects the mounted pages' text; find reaches the rest.
+- **Copy** writes the extracted text in reading order: a space at a gap, a new line at a new baseline and between pages, soft hyphens dropped. `onSelection` gives the app the selected text, its rects, its pages and the pointer that made it, for a selection toolbar.
+- **Structure.** For a tagged document, a hidden tree of ARIA elements follows the structure tree. Headings carry their levels, and figures their alternate text; paragraphs, lists and tables keep their roles. Each element owns its text spans through `aria-owns`, matched by page and marked-content ID, so a screen reader reads the document in structure order. An untagged document says once that it is untagged.
+
+The document Web Worker reads each page's text at `background` priority, after the tiles in view, and keeps the last 24 pages'. Text needs the extract module, which `ViewerClient.create` loads by default. Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
