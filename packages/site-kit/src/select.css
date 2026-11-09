@@ -1,0 +1,79 @@
+/* The sites' select (Select.astro), design language §7.19: a native <select> with the Paper field's
+   edge and fill, 32 px high, padding 0 30px 0 10px, and the 16 px chevron in text-3, 8 px from the
+   right edge. Drawn from the Paper tokens, which each site loads first; they follow its data-theme. */
+
+.site-select {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--paper-space-8);
+  color: var(--paper-text-2);
+  font: var(--paper-type-body);
+}
+
+/* Hidden from sight, still the select's name. */
+.site-select-label-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.site-select-control {
+  position: relative;
+  display: inline-flex;
+}
+
+.site-select select {
+  appearance: none;
+  margin: 0;
+  min-block-size: var(--paper-field-height);
+  padding-block: 0;
+  padding-inline: var(--paper-space-10) var(--paper-select-chevron-space);
+  border: var(--paper-border-width) solid var(--paper-control-border);
+  border-radius: var(--paper-radius-4);
+  background: var(--paper-field);
+  color: var(--paper-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Some platforms draw the open list with the options' own colours. */
+.site-select option {
+  background: var(--paper-field);
+  color: var(--paper-text);
+}
+
+.site-select select:focus-visible {
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset-tight);
+}
+
+.site-select-chevron {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--paper-select-chevron-inset);
+  margin-block: auto;
+  color: var(--paper-text-3);
+  pointer-events: none;
+}
+
+/* Touch (design language §8.7, as @laminapdf/ui's fields): 44 px, and 16 px text, below which
+   iOS Safari zooms the page in when the field takes the focus. */
+@media (pointer: coarse) {
+  .site-select select {
+    min-block-size: var(--paper-target-min-touch);
+    font: var(--paper-type-input-large);
+  }
+}
+
+@media (forced-colors: active) {
+  .site-select select {
+    border-color: CanvasText;
+  }
+
+  .site-select-chevron {
+    color: CanvasText;
+  }
+}

@@ -153,9 +153,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   inline styles, cookies or beacons, title, description, canonical URL, internal links), pageFiles, pageExists;
 │                        #   src/version.mjs (withVersion: the pages' `{{version}}`, P4);
 │                        #   the site header (W1d): src/nav.mjs (the one list of links, siteNav per site and page, APP_LAUNCHED),
-│                        #   src/SiteHeader.astro, SiteNav.astro (the links alone) + header.css (sized per site by CSS variables); test/ (Node), test/browser/ (the
-│                        #   header rendered by Astro's container in a global setup, then Chromium, Firefox, WebKit: tab order,
-│                        #   current underline, phone width, axe; run by `cargo xtask pdf-runtimes`); README.md
+│                        #   src/SiteHeader.astro, SiteNav.astro (the links alone) + header.css (sized per site by CSS variables); the select (W1g):
+│                        #   src/Select.astro + select.css (design language §7.19: a native <select> in the Paper look, 44 px on touch), icon.mjs
+│                        #   (decorativeIcon: a Paper icon's ?raw SVG as hidden HTML); test/ (Node), test/browser/ (the header and the select
+│                        #   rendered by Astro's container in a global setup, then Chromium, Firefox, WebKit: tab order, current underline,
+│                        #   phone width, the select's name, keys and focus ring, axe; run by `cargo xtask pdf-runtimes`); README.md
 ├── apps/web/            # the web reader (C4b; ADRs 0009, 0010, 0011): a Vite 8 single-page app (React Compiler) of @laminapdf/ui's
 │                        #   chrome around @laminapdf/viewer: src/session.ts (the engine: the document worker started at load, opens,
 │                        #   warnings, the #debug backend switch, remote files as PlatformFiles naming their address), src/app.tsx,
@@ -182,7 +184,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   from src/data/benchmarks.json (src/lib/benchmarks.ts checks it and makes the tables for the page's
 │                        #   src/components/Benchmarks.astro and its Markdown twin), code pages from
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/), the shared site header
-│                        #   (src/components/Header.astro, Starlight's Header override, with its search and theme switch); public/_headers
+│                        #   (src/components/Header.astro, Starlight's Header override, with its search and theme switch; the theme switch is
+│                        #   src/components/ThemeSelect.astro, Starlight's ThemeSelect override on site-kit's select); public/_headers
 │                        #   (ADR 0011 §4, inline-script hashes filled in after the build by @laminapdf/site-kit); wrangler.toml (Workers static
 │                        #   assets: docs.laminapdf.com, and next.docs.laminapdf.com as [env.next]); deployed by .github/workflows/docs.yml; README.md has the owner's setup;
 │                        #   for agents (L5a): a Markdown twin of every page, llms.txt and llms-full.txt (plugins/agent-docs.mjs,

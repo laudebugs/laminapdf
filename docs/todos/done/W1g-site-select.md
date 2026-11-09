@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1g` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Website §4 The website](../../plans/website.md#4-the-website) |
 | Round / milestone | Round W (website) |
-| Depends on | [W1d](../done/W1d-one-site-header.md) |
+| Depends on | [W1d](./W1d-one-site-header.md) |
 | ADRs | — |
 | Branch | `feat/docs-theme-select` |
 | PR title | `feat(docs): a Paper select for the sites, and the theme switch on it` |
 | Size | S (100–300 lines) |
-| PR | — |
+| PR | [#361](https://github.com/laudebugs/laminapdf/pull/361) |
 
 ## Goal
 
@@ -40,15 +40,15 @@ The docs site's theme switch is Starlight's own select, drawn in Starlight's loo
 ## Tasks
 
 - [x] Claim: the first commit adds this file to `ongoing/`.
-- [ ] `packages/site-kit/src/Select.astro` and `select.css`, exported from the package.
-- [ ] `apps/docs/src/components/ThemeSelect.astro`, set as Starlight's `ThemeSelect`.
-- [ ] Browser tests in `packages/site-kit/test/browser/`.
-- [ ] Try it in the built docs site in a browser: light, dark and auto, with the mouse and the keyboard, at desktop and phone widths.
+- [x] `packages/site-kit/src/Select.astro` and `select.css`, exported from the package.
+- [x] `apps/docs/src/components/ThemeSelect.astro`, set as Starlight's `ThemeSelect`.
+- [x] Browser tests in `packages/site-kit/test/browser/`.
+- [x] Try it in the built docs site in a browser: light, dark and auto, with the mouse and the keyboard, at desktop and phone widths.
 
 ## Acceptance criteria
 
-- [ ] The docs site's theme switch is the Paper select in the header and in the phone menu, and switching the theme works as before, the choice kept across pages and reloads.
-- [ ] The select's browser tests pass in Chromium, Firefox and WebKit, with no axe violation in light or dark.
+- [x] The docs site's theme switch is the Paper select in the header and in the phone menu, and switching the theme works as before, the choice kept across pages and reloads.
+- [x] The select's browser tests pass in Chromium, Firefox and WebKit, with no axe violation in light or dark.
 
 ## Post-merge checks
 
@@ -57,6 +57,8 @@ The docs site's theme switch is Starlight's own select, drawn in Starlight's loo
 ## Tests
 
 `packages/site-kit/test/browser/select.browser.test.ts`, on the select rendered by Astro's container in the global setup.
+
+Tried in the built docs site (`wrangler dev` with its headers) in Chromium, Firefox and WebKit, as a reader: Light chosen with the mouse and kept after a reload, Auto following the system and clearing the stored choice, the header's and the phone menu's switches in step, a letter typed on the focused switch choosing its theme, the focus ring from the keyboard, 44 px with 16 px text on a touch screen, and no console error in Chromium or Firefox. WebKit over plain HTTP couldn't load the styles (the CSP's `upgrade-insecure-requests`), which its HTTPS e2e server doesn't hit.
 
 ## Docs to update
 
@@ -69,7 +71,7 @@ The docs site's theme switch is Starlight's own select, drawn in Starlight's loo
 ## Definition of done
 
 - [x] Claimed: the work PR, opened from a fresh worktree, added this file to `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -1,0 +1,82 @@
+---
+// The docs site's theme switch (Starlight's `ThemeSelect` override, W1g) on the sites' Paper select
+// (@laminapdf/site-kit). It keeps Starlight's contract: a <starlight-theme-select> around a <select>
+// of `dark`, `light` and `auto`, whose value Starlight's theme provider (an inline script in the
+// head, which sets the theme before the first paint) fills in through `updatePickers`, and the
+// choice in localStorage under `starlight-theme`. The script below is Starlight's own switching
+// logic (@astrojs/starlight/components/ThemeSelect.astro), so a Starlight update that changes that
+// contract needs a look here. The header and the phone menu both use this switch.
+import Select from "@laminapdf/site-kit/Select.astro";
+
+const t = Astro.locals.t;
+---
+
+<starlight-theme-select>
+  <Select
+    label={t("themeSelect.accessibleLabel")}
+    hideLabel
+    options={[
+      { value: "dark", label: t("themeSelect.dark") },
+      { value: "light", label: t("themeSelect.light") },
+      { value: "auto", label: t("themeSelect.auto"), selected: true },
+    ]}
+  />
+</starlight-theme-select>
+
+{/* Inline, as Starlight's is: the stored choice shows before the first paint. */}
+<script is:inline>
+  StarlightThemeProvider.updatePickers();
+</script>
+
+<script>
+  type Theme = "auto" | "dark" | "light";
+
+  /** Where Starlight keeps the choice. */
+  const STORAGE_KEY = "starlight-theme";
+
+  /** A theme from any value; anything unknown is `auto`. */
+  const parseTheme = (theme: unknown): Theme =>
+    theme === "auto" || theme === "dark" || theme === "light" ? theme : "auto";
+
+  function loadTheme(): Theme {
+    try {
+      return parseTheme(localStorage.getItem(STORAGE_KEY));
+    } catch {
+      return "auto";
+    }
+  }
+
+  /** Stores the choice; `auto` is stored as no choice, as Starlight does. */
+  function storeTheme(theme: Theme): void {
+    try {
+      localStorage.setItem(STORAGE_KEY, theme === "auto" ? "" : theme);
+    } catch {
+      // Storage refused (a private window, blocked site data): the choice lasts for this page.
+    }
+  }
+
+  const systemTheme = (): "dark" | "light" => (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+
+  /** Shows `theme` on the page and in every switch on it, and stores it. */
+  function choose(theme: Theme): void {
+    StarlightThemeProvider.updatePickers(theme);
+    document.documentElement.dataset.theme = theme === "auto" ? systemTheme() : theme;
+    storeTheme(theme);
+  }
+
+  // Auto follows the system while the page is open.
+  matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+    if (loadTheme() === "auto") choose("auto");
+  });
+
+  class ThemeSelect extends HTMLElement {
+    constructor() {
+      super();
+      choose(loadTheme());
+      this.querySelector("select")?.addEventListener("change", (event) => {
+        if (event.currentTarget instanceof HTMLSelectElement) choose(parseTheme(event.currentTarget.value));
+      });
+    }
+  }
+  customElements.define("starlight-theme-select", ThemeSelect);
+</script>

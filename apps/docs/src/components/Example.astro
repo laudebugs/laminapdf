@@ -7,6 +7,7 @@
 // when the runner was built (scripts/build-runner.mjs); it loads nothing until it is pressed.
 import { existsSync } from "node:fs";
 import { TabItem, Tabs } from "@astrojs/starlight/components";
+import { decorativeIcon } from "@laminapdf/site-kit/icon";
 // @laminapdf/icons' own files, inlined at build time (its package exports only a built dist/).
 import downloadIcon from "../../../../packages/icons/svg/download.svg?raw";
 import playIcon from "../../../../packages/icons/svg/play.svg?raw";
@@ -59,8 +60,7 @@ if (output !== undefined && text === undefined) {
 }
 const outcome = pictures.length > 0 || text !== undefined;
 /** An icon beside a button's label: decorative, so hidden from assistive technology. */
-const icon = (svg: string) =>
-  svg.replace("<svg ", '<svg class="run-icon" width="16" height="16" aria-hidden="true" focusable="false" ');
+const icon = (svg: string) => decorativeIcon(svg, "run-icon");
 const size = (bytes: number) => (bytes < 1024 ? `${bytes} bytes` : `${Math.round(bytes / 1024)} KB`);
 const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
 ---
