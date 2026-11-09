@@ -62,7 +62,9 @@ function useCurrentSection(viewer: Viewer, items: readonly OutlineTreeItem[]): s
     let timer: ReturnType<typeof setTimeout> | undefined;
     const update = () => {
       timer = undefined;
-      // The middle of the viewport's width: on a turned view, across is down the page.
+      // The middle of the viewport's width. On a view turned a quarter, down the page runs across
+      // the screen, so scrolling moves only from page to page: the probe stays half way down each,
+      // and an item in a page's lower half is marked once the next page reaches the top.
       const top = viewer.pointAt(viewer.element.clientWidth / 2, TOP_PROBE);
       if (top === undefined) {
         setCurrent(undefined);

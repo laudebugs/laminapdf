@@ -100,7 +100,7 @@ impl Document {
         let Some(index) = dest.page_index else { return Ok(None) };
         let pages = self.ops().pages()?;
         let Some(page) = pages.get(index) else { return Ok(None) };
-        Ok(target(&dest, &page.frame()?, index))
+        Ok(target(&dest, &page.frame()?))
     }
 
     /// Every page's frame, in order, for moving destinations into page space.
@@ -112,9 +112,7 @@ impl Document {
 
 fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Result<OutlineNode> {
     let target = match item.target()? {
-        Some(dest) => dest
-            .page_index
-            .and_then(|index| target(&dest, frames.get(index)?, index)),
+        Some(dest) => dest.page_index.and_then(|index| target(&dest, frames.get(index)?)),
         None => None,
     };
     Ok(OutlineNode {
@@ -128,8 +126,10 @@ fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Re
     })
 }
 
-/// `dest` on page `index`, whose frame is `frame`, in page space (`None` past `u32`).
-fn target(dest: &Destination, frame: &PageFrame, index: usize) -> Option<PageTarget> {
+/// `dest` in page space on its page, whose frame is `frame` (`None` without a page index, or past
+/// `u32`).
+fn target(dest: &Destination, frame: &PageFrame) -> Option<PageTarget> {
+    let index = dest.page_index?;
     Some(PageTarget {
         page: u32::try_from(index).ok()?,
         view: page_view(&dest.view, frame),
