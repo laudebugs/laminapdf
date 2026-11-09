@@ -4,10 +4,11 @@
 
 import { type ReactNode, useId, useState } from "react";
 import { Badge } from "../components/badge.js";
-import { Button, IconButton } from "../components/button.js";
+import { Button } from "../components/button.js";
 import { Notice } from "../components/notice.js";
 import { message } from "../messages.js";
 import { formatBytes } from "./bytes.js";
+import { DockedPanel } from "./docked-panel.js";
 
 /** One origin's requests since the file opened. */
 export interface NetworkOriginRow {
@@ -46,7 +47,9 @@ export interface NetworkActivityPanelProps {
   fileHost?: string;
   /** Which contexts were counted: the page always, the document worker once its log arrived. */
   feeds: { readonly page: boolean; readonly worker: boolean; readonly serviceWorker: boolean };
+  /** Closes the panel: its close button and Escape. */
   onClose: () => void;
+  /** Copies the plain-text report: the Copy report button. */
   onCopy: () => void;
 }
 
@@ -159,31 +162,16 @@ function AppFiles({ rows, total, open }: { rows: readonly NetworkAppRow[]; total
 /** The network activity panel, docked in the inspector. */
 export function NetworkActivityPanel(props: NetworkActivityPanelProps): ReactNode {
   const { since, documentRequests, documentRows, appRows, appRequests, blocked, feeds, onClose, onCopy } = props;
-  const title = useId();
   const [howTo, setHowTo] = useState(false);
   const { text, badge } = verdict(props);
   const unexpected = documentRows.filter((row) => row.unexpected).map((row) => row.origin);
   return (
-    <aside
-      className="paper-repair"
-      aria-labelledby={title}
-      onKeyDown={(event) => {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        onClose();
-      }}
+    <DockedPanel
+      title={message("network.title")}
+      subtitle={since === undefined ? message("network.since.none") : message("network.since", { time: since })}
+      closeLabel={message("network.close")}
+      onClose={onClose}
     >
-      <header className="paper-repair-header">
-        <div>
-          <h2 id={title} className="paper-repair-title">
-            {message("network.title")}
-          </h2>
-          <p className="paper-repair-file">
-            {since === undefined ? message("network.since.none") : message("network.since", { time: since })}
-          </p>
-        </div>
-        <IconButton icon="close" label={message("network.close")} onPress={onClose} />
-      </header>
       {unexpected.length === 0 ? null : (
         <Notice tone="warning" title={message("network.unexpected.title")}>
           {message("network.unexpected.body", { origin: unexpected.join(", ") })}
@@ -242,6 +230,6 @@ export function NetworkActivityPanel(props: NetworkActivityPanelProps): ReactNod
           <li>{message("network.howTo.step3")}</li>
         </ol>
       ) : null}
-    </aside>
+    </DockedPanel>
   );
 }

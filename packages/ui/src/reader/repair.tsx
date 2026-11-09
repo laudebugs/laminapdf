@@ -5,12 +5,13 @@
 // the page for a link the reader can't open or a host that refuses it.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { Button, IconButton } from "../components/button.js";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Button } from "../components/button.js";
 import { Notice } from "../components/notice.js";
 import { message } from "../messages.js";
 import type { ReaderError } from "../state/reader-machine.js";
 import { failureSentence, repairSentence } from "./codes.js";
+import { DockedPanel } from "./docked-panel.js";
 
 /** One kind of repair: its warning code, how many times it happened and on which pages (1-based). */
 export interface RepairKind {
@@ -36,7 +37,6 @@ const SHOWN = 5;
 
 /** The repair details panel, for the inspector slot. Escape closes it. */
 export function RepairDetails({ fileName, repairs, notRun = [], onClose, onCopy }: RepairDetailsProps): ReactNode {
-  const title = useId();
   const [all, setAll] = useState(false);
   const firstMore = useRef<HTMLLIElement>(null);
   const shown = all ? repairs : repairs.slice(0, SHOWN);
@@ -45,24 +45,12 @@ export function RepairDetails({ fileName, repairs, notRun = [], onClose, onCopy 
     if (all) firstMore.current?.focus();
   }, [all]);
   return (
-    <aside
-      className="paper-repair"
-      aria-labelledby={title}
-      onKeyDown={(event) => {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        onClose();
-      }}
+    <DockedPanel
+      title={message("repair.title")}
+      subtitle={fileName}
+      closeLabel={message("repair.close")}
+      onClose={onClose}
     >
-      <header className="paper-repair-header">
-        <div>
-          <h2 id={title} className="paper-repair-title">
-            {message("repair.title")}
-          </h2>
-          <p className="paper-repair-file">{fileName}</p>
-        </div>
-        <IconButton icon="close" label={message("repair.close")} onPress={onClose} />
-      </header>
       <Notice tone="warning" title={message("repair.notice.title")}>
         {message("repair.notice.body")}
       </Notice>
@@ -105,7 +93,7 @@ export function RepairDetails({ fileName, repairs, notRun = [], onClose, onCopy 
           {message("repair.copy")}
         </Button>
       </div>
-    </aside>
+    </DockedPanel>
   );
 }
 

@@ -30,7 +30,7 @@ export interface NetworkState {
 }
 
 /** One origin's requests since the document opened. */
-export interface OriginRow {
+interface OriginRow {
   readonly origin: string;
   readonly group: Exclude<RequestGroup, "app">;
   readonly requests: number;
@@ -38,7 +38,7 @@ export interface OriginRow {
 }
 
 /** One kind of app file. */
-export interface AppRow {
+interface AppRow {
   readonly purpose: RequestPurpose;
   readonly requests: number;
   readonly bytes: number;

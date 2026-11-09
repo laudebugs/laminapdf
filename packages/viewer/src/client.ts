@@ -249,7 +249,6 @@ export class ViewerClient {
     await this.call("closeDocument", []);
   }
 
-  /** The worker's WebAssembly memory in bytes (see `WorkerMemory`), for measuring. */
   /**
    * Every request the document worker has made, and had blocked, since it started: what its
    * `network` and `csp-violation` events reported, including those sent before anyone listened.
@@ -258,6 +257,7 @@ export class ViewerClient {
     return this.call("networkLog", [], options);
   }
 
+  /** The worker's WebAssembly memory in bytes (see `WorkerMemory`), for measuring. */
   memory(options?: ViewerCallOptions) {
     return this.call("memory", [], options);
   }

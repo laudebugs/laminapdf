@@ -22,7 +22,9 @@ const NOT_REQUESTS = new Set(["", "inline", "eval", "wasm-eval", "trusted-types-
 
 /** What `watchNetwork` reports to. */
 export interface NetworkSink {
+  /** A request was made: called when it starts, failed or not, or when its timing entry arrives. */
   request(record: NetworkRecord): void;
+  /** The scope's Content Security Policy blocked a request, so nothing was sent. */
   violation(violation: PolicyViolation): void;
 }
 
