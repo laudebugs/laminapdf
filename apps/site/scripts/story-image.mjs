@@ -21,7 +21,11 @@ if (story === undefined) {
 const folder = resolve(process.env.INIT_CWD ?? process.cwd(), story, "visuals");
 const pages = await readdir(folder).then(
   (names) => names.filter((name) => name.endsWith(".html")).sort(),
-  () => [],
+  // Only a missing folder means "no images yet"; any other failure is reported as itself.
+  (error) => {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  },
 );
 if (pages.length === 0) {
   console.error(`no visuals/*.html in ${folder}`);
