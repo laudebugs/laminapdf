@@ -409,19 +409,9 @@ function findCommands(): AnyCommand[] {
   ];
 }
 
-/** Copying, privacy, the palette, help, layers and the selection. */
-function appCommands(): AnyCommand[] {
+/** The selection's commands besides Copy (UI/UX plan §5.3, U2a): its other copy, search, share and settings. */
+function selectionCommands(): AnyCommand[] {
   return [
-    delegated({
-      id: "edit.copy",
-      title: title("edit.copy"),
-      keywords: ["clipboard", "text"],
-      group: "edit",
-      icon: "copy",
-      shortcuts: [keys("page", "Mod+C")],
-      home: ["mini-toolbar", "context-menu"],
-      enabled: documentOpen,
-    }),
     delegated({
       id: "edit.copy-exact",
       title: title("edit.copy-exact"),
@@ -463,6 +453,22 @@ function appCommands(): AnyCommand[] {
       group: "edit",
       icon: "share",
       home: ["context-menu"],
+      enabled: documentOpen,
+    }),
+  ];
+}
+
+/** Copying, privacy, the palette, help, layers and the selection. */
+function appCommands(): AnyCommand[] {
+  return [
+    delegated({
+      id: "edit.copy",
+      title: title("edit.copy"),
+      keywords: ["clipboard", "text"],
+      group: "edit",
+      icon: "copy",
+      shortcuts: [keys("page", "Mod+C")],
+      home: ["mini-toolbar", "context-menu"],
       enabled: documentOpen,
     }),
     delegated({
@@ -523,6 +529,7 @@ export function readerCommands(): readonly AnyCommand[] {
     ...viewSettingCommands(),
     ...findCommands(),
     ...appCommands(),
+    ...selectionCommands(),
   ];
 }
 

@@ -319,23 +319,8 @@ export class Viewer {
       visibleRange: { first: 0, last: -1 },
     };
     this.#listen();
-    if (options.text !== false) {
-      const host = {
-        root: this.#root,
-        client: this.#client,
-        rotation: () => this.#rotation,
-        keepMounted: (pages: Iterable<number>) => this.keepMounted(pages),
-      };
-      const textOptions = options.text === true || options.text === undefined ? {} : options.text;
-      this.#text = new TextLayer(host, {
-        ...textOptions,
-        onSelection: (selection) => {
-          textOptions.onSelection?.(selection);
-          this.#emit("selectionchange", { selection });
-        },
-      });
-      this.addLayer(this.#text);
-    }
+    this.#text = this.#textLayer(options.text);
+    if (this.#text !== undefined) this.addLayer(this.#text);
     this.find = new FindController({
       find: (query, find, pages, signal) => this.#client.find(query, find, pages, { signal }),
       pageCount: () => this.#sizes.length,
@@ -596,6 +581,25 @@ export class Viewer {
 
   #viewport() {
     return { width: this.#root.clientWidth || 800, height: this.#root.clientHeight || 600 };
+  }
+
+  /** The text layer `option` asks for, or none (`false`); it reports the selection as an event too. */
+  #textLayer(option: boolean | TextLayerOptions | undefined): TextLayer | undefined {
+    if (option === false) return undefined;
+    const host = {
+      root: this.#root,
+      client: this.#client,
+      rotation: () => this.#rotation,
+      keepMounted: (pages: Iterable<number>) => this.keepMounted(pages),
+    };
+    const textOptions = option === true || option === undefined ? {} : option;
+    return new TextLayer(host, {
+      ...textOptions,
+      onSelection: (selection) => {
+        textOptions.onSelection?.(selection);
+        this.#emit("selectionchange", { selection });
+      },
+    });
   }
 
   #emit<E extends keyof ViewerEventMap>(event: E, data: ViewerEventMap[E]): void {

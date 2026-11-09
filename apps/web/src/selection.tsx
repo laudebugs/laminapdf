@@ -114,13 +114,7 @@ export function useSelection(
   const touch =
     selection !== undefined && (selection.pointerType === "touch" || (selection.pointerType === "" && coarse));
   const showToolbar =
-    viewer !== undefined &&
-    toolbarOn &&
-    selection !== undefined &&
-    selection.settled &&
-    !touch &&
-    !scrolled &&
-    dismissed !== selection;
+    viewer !== undefined && toolbarOn && selection?.settled === true && !touch && !scrolled && dismissed !== selection;
   const more: MoreItems<SelectionMoreId> = {
     items: [{ id: "copy-exact", label: message("command.edit.copy-exact"), icon: "copy" }],
     onAction: () => actions["edit.copy-exact"]?.(),

@@ -61,7 +61,7 @@ export function copySelection(
     })
     .filter((lines) => lines.some((l) => l !== ""));
   const text = paragraphs.map((lines) => lines.join("\n")).join(mode === "paragraph" ? "\n\n" : "\n");
-  const html = paragraphs.map((lines) => `<p>${lines.map(escape).join("<br>")}</p>`).join("");
+  const html = paragraphs.map((lines) => `<p>${lines.map(escapeHtml).join("<br>")}</p>`).join("");
   return { text, html };
 }
 
@@ -163,6 +163,6 @@ export function joinLines(lines: readonly string[]): string {
 }
 
 /** `text` safe in HTML. */
-function escape(text: string): string {
+function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
 }

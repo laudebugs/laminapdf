@@ -88,7 +88,7 @@ const INLINE: Partial<Record<CommandId, string>> = {
   "view.accent": "Accent colour plum",
 };
 
-/** Thirty-seven search-and-run cycles in one test: about 17 s in Firefox on a busy runner. */
+/** Forty-two search-and-run cycles in one test: about 20 s in Firefox on a busy runner. */
 const EVERY_COMMAND_MS = 60_000;
 
 describe("RegistryPalette", () => {
@@ -108,7 +108,7 @@ describe("RegistryPalette", () => {
       expect(palette(), `${command.id} closes the palette`).toBeNull();
       ran.push(command.id);
     }
-    expect(ran).toHaveLength(37);
+    expect(ran).toHaveLength(42);
     expect(reader.openFromPicker).toHaveBeenCalledOnce();
     // Each delegated command reached its handler, with parsed arguments where it takes them.
     expect(calls.find((c) => c.id === "view.page-layout")?.args).toBe("two-up");
