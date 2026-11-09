@@ -113,6 +113,15 @@ The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a 
 | `full.json` | `cargo xtask differential --full --update` (pypdf over the full lane's 36 mutants per corpus file; `FULL_SEED` and `FULL_PER_FILE` in `mutants.rs`) | The full lane's differential set (X4), compared by the ignored test in `differential.rs` |
 | `full-exceptions.toml` | triage, grouped by cause (`files` lists) | The full set's disagreements explained by ADR 0003 rules (as above, plus Lamina PDF repairing where pypdf silently fixes an entry, a malformed `/Encrypt`, skipped outline items) |
 
+### `links/`
+
+Written for Lamina PDF's tests (todo C6b), MIT OR Apache-2.0. It sits apart from `corpus/` so it adds no render goldens or differential facts.
+
+| File | Origin | Exercises |
+| --- | --- | --- |
+| `links.pdf` | [`tools/fixtures/links.py`](../tools/fixtures/links.py) (no dependencies) | Three pages, each link labelled on the page: explicit, named (`/Names /Dests` and catalog `/Dests`) and broken destinations; `https`, `mailto`, an international host, and `javascript:`, `file:` and `data:` addresses; `GoToR`; the four standard named actions; `Launch`, `JavaScript` and `SubmitForm`; `/QuadPoints`; a hidden link and one without a usable `/Rect` |
+| `expected.json` | [`tools/fixtures/link_facts.py`](../tools/fixtures/link_facts.py) (pypdf 6.21.3, pinned in `tools/fixtures/requirements.txt`) | Every link annotation per page: hidden or not, its `/Rect`, and its page, URI, file, named action or action type. pypdf reads only one source of named destinations, so the script reads the `/Names` tree too. Read by `crates/laminapdf/tests/links.rs` and `packages/sdk/test/navigation.test.ts` |
+
 ### `ops/v1/`
 
 Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf-ops/tests/serde.rs`, which deserialises each and applies it to a corpus file.

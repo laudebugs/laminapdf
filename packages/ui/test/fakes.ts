@@ -196,6 +196,10 @@ export class FakeViewer {
     this.calls.push({ method: "goToPage", value: index });
   }
 
+  jumpToPage(index: number): void {
+    this.calls.push({ method: "jumpToPage", value: index });
+  }
+
   setZoom(zoom: Zoom): void {
     this.calls.push({ method: "setZoom", value: zoom });
   }

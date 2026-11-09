@@ -16,9 +16,19 @@ import type {
   RepairKind,
 } from "@laminapdf/ui";
 import { message, ReaderController } from "@laminapdf/ui";
-import { createViewer, type SourceInit, ThumbnailStrip, type Viewer, ViewerClient } from "@laminapdf/viewer";
+import {
+  createViewer,
+  type LinkLayerOptions,
+  type LinkWords,
+  type OpenableLink,
+  type SourceInit,
+  ThumbnailStrip,
+  type Viewer,
+  ViewerClient,
+} from "@laminapdf/viewer";
 import { type DocumentWarning, repairsFrom } from "./document.ts";
 import type { NetworkMonitor } from "./network/monitor.ts";
+import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
 import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
 
@@ -50,14 +60,50 @@ export interface EngineState {
   readonly timing: { readonly backend: string; readonly firstPageMs: number } | undefined;
   /** Why the address's `#url=` link can't be opened, until another document opens or the reader closes. */
   readonly linkProblem: Exclude<RemoteFailureReason, "cors"> | undefined;
+  /** A web or email link in the document waiting for the reader to confirm it (R07). */
+  readonly externalLink: OpenableLink | undefined;
 }
 
-/** Starts `backend`'s document worker and makes a view over it. */
-async function startSession(backend: DebugBackend, outline: boolean): Promise<Session> {
+/** #debug's log of a link the layer never follows (R07: actions are never run). */
+const logInert: NonNullable<LinkLayerOptions["onInert"]> = (link, note) =>
+  console.debug("link not followed:", link.kind, note);
+
+/** The link layer's words, from the catalogue. */
+const LINK_WORDS: LinkWords = {
+  page: (page) => message("link.page", { page: page + 1 }),
+  nextPage: message("link.nextPage"),
+  previousPage: message("link.previousPage"),
+  firstPage: message("link.firstPage"),
+  lastPage: message("link.lastPage"),
+  otherFile: (file) => (file === undefined ? message("link.otherFile.unnamed") : message("link.otherFile", { file })),
+  refused: (uri) => message("link.refused", { uri }),
+  unsupported: message("link.unsupported"),
+  broken: message("link.broken"),
+};
+
+/**
+ * Starts `backend`'s document worker and makes a view over it, whose web links `onExternal`
+ * receives for confirming; `debug` (#debug) outlines text spans and logs links never followed.
+ */
+async function startSession(
+  backend: DebugBackend,
+  debug: boolean,
+  onExternal: (link: OpenableLink) => void,
+): Promise<Session> {
   const client = await ViewerClient.create({
     backend: backend === "pdfium" ? { backend: "pdfium", wasm: pdfiumWasm } : { backend: "hayro" },
   });
-  const viewer = createViewer({ client, text: { outline } });
+  const viewer = createViewer({
+    client,
+    text: { outline: debug },
+    // An internal link's address keeps the fragment's `url`, so a new tab opens the same document there.
+    links: {
+      href: (page) => pageAddress(location, page),
+      onExternal,
+      words: LINK_WORDS,
+      ...(debug ? { onInert: logInert } : {}),
+    },
+  });
   return { backend, client, viewer, strip: new ThumbnailStrip(client, viewer, { name: message("shell.rail.pages") }) };
 }
 
@@ -161,6 +207,7 @@ export class Engine implements ExternalStore<EngineState> {
       repairs: [],
       timing: undefined,
       linkProblem: undefined,
+      externalLink: undefined,
     };
     this.#session = this.#start(backend);
   }
@@ -183,6 +230,16 @@ export class Engine implements ExternalStore<EngineState> {
   showLinkProblem(problem: Exclude<RemoteFailureReason, "cors">): void {
     this.reader.close();
     this.#set({ linkProblem: problem });
+  }
+
+  /** Asks the reader to confirm the web link `link`, as the link layer read it. */
+  confirmExternalLink(link: OpenableLink): void {
+    this.#set({ externalLink: link });
+  }
+
+  /** The external link was opened, copied and closed, or cancelled: nothing waits any more. */
+  closeExternalLink(): void {
+    this.#set({ externalLink: undefined });
   }
 
   /** Clears a link problem: the home screen shows again. */
@@ -211,7 +268,7 @@ export class Engine implements ExternalStore<EngineState> {
   async goToOutlineItem(id: string): Promise<void> {
     const outline = this.#state.outline;
     const target = typeof outline === "object" ? outline.targets.get(id) : undefined;
-    if (target !== undefined) (await this.#session).viewer.goToDestination(target);
+    if (target !== undefined) (await this.#session).viewer.jumpToDestination(target);
   }
 
   /** Goes to `place` in the open document, or in the one opening once it opens. */
@@ -257,7 +314,7 @@ export class Engine implements ExternalStore<EngineState> {
   }
 
   #start(backend: DebugBackend): Promise<Session> {
-    const session = startSession(backend, this.#outline);
+    const session = startSession(backend, this.#outline, (link) => this.confirmExternalLink(link));
     session.then(
       (started) => {
         if (this.#session !== session) return;
@@ -330,6 +387,7 @@ export class Engine implements ExternalStore<EngineState> {
       repairs: repairsFrom(warnings),
       timing: undefined,
       linkProblem: undefined,
+      externalLink: undefined,
     });
     const firstPage = () => {
       const state = session.viewer.stats().pages[0];

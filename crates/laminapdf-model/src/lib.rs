@@ -73,11 +73,13 @@ mod graphics;
 mod id;
 mod info;
 mod labels;
+mod link;
 mod locate;
 mod outline;
 mod page;
 mod structure;
 mod tree;
+mod values;
 
 pub use date::{InvalidDate, PdfDate};
 pub use disclosure::{
@@ -89,6 +91,7 @@ pub use graphics::{BlendMode, Dash, FillRule, Matrix};
 pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
+pub use link::{Link, LinkAction};
 pub use locate::ParentedPage;
 pub use outline::{ActionKind, Destination, Outline, OutlineItem, View};
 pub use page::{Page, Pages, Rotation};

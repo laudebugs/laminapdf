@@ -7,14 +7,11 @@ use laminapdf_cos::{Dict, Object, Result};
 
 use super::{Annotation, EmbeddedFileHolder, FormField, Owner, Scan, Trigger, name_of, text_of};
 use crate::document::Document;
-use crate::page::Page;
+use crate::page::{HIDDEN_ANNOT_FLAGS, Page};
 
 /// A field on the walk: the object, its parent's full name, and the `/FT` and `/V` it
 /// inherits, at a depth.
 type Inherit = (Object, String, Option<String>, Option<Object>, usize);
-
-/// `/F` bits that hide an annotation: Hidden (2) and `NoView` (6), §12.5.3.
-const HIDDEN_FLAGS: i64 = (1 << 1) | (1 << 5);
 
 impl Scan<'_> {
     /// Each page's `/AA` and annotations: their subtype, author and comment, their actions,
@@ -138,7 +135,7 @@ impl Scan<'_> {
             };
             let hidden = widgets
                 .iter()
-                .all(|w| w.get_int("F").is_some_and(|f| f & HIDDEN_FLAGS != 0));
+                .all(|w| w.get_int("F").is_some_and(|f| f & HIDDEN_ANNOT_FLAGS != 0));
             let value = match &own_value {
                 Some(v) => self.read(v)?.as_deref().and_then(value_of),
                 None => None,

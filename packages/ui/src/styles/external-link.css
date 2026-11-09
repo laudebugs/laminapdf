@@ -1,0 +1,19 @@
+/* The external-link confirmation (R07): the full address in the code face, broken anywhere so a
+   long one wraps instead of hiding its end, with the host in weight 600. */
+@layer paper.components {
+  .paper-external-link-address {
+    margin: 0;
+    padding: var(--paper-space-8) var(--paper-space-12);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-field);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    color: var(--paper-text-2);
+    font: var(--paper-type-mono);
+    overflow-wrap: anywhere;
+  }
+
+  .paper-external-link-address strong {
+    color: var(--paper-text);
+    font-weight: 600;
+  }
+}

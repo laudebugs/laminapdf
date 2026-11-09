@@ -102,6 +102,7 @@ export type {
   Overflow,
   PageInfo,
   PageLabel,
+  PageLink,
   Point,
   Profile,
   Progress,
