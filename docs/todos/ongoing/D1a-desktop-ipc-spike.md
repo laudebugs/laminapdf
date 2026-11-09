@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D1a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D1](../../plans/desktop-app.md#d1-ipc-and-print-spikes) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C2c](../done/C2c-render-packages.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) |
