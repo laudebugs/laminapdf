@@ -160,7 +160,8 @@ describe(`opening local files in ${BROWSER}`, () => {
   it("refuses a file that isn't a PDF and stays on the home screen", async () => {
     const watched = await load();
     await transfer(watched.page, "drop", "notes.txt", [...new TextEncoder().encode("plain text")], "text/plain");
-    await expect.poll(() => watched.page.getByRole("alert").textContent()).toContain("isn't a PDF");
+    // The file is read before it is refused: a slow runner (WebKit on macOS) can take over a second.
+    await expect.poll(() => watched.page.getByRole("alert").textContent(), { timeout: 5000 }).toContain("isn't a PDF");
     await watched.page.getByRole("heading", { name: "Open a PDF" }).waitFor();
     await clean(watched);
   });

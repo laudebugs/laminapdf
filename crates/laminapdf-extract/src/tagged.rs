@@ -295,16 +295,21 @@ impl TaggedIndex {
     /// The index of `doc`'s structure tree, `None` when it has none or the tree holds no marked
     /// content on a page of the document.
     pub(crate) fn read(doc: &Document) -> Result<Option<Self>, ExtractError> {
-        let Some(tree) = doc.structure()? else {
-            return Ok(None);
-        };
+        match doc.structure()? {
+            Some(tree) => Self::from_tree(doc, &tree),
+            None => Ok(None),
+        }
+    }
+
+    /// The index of `tree`, `doc`'s structure tree, read already.
+    pub(crate) fn from_tree(doc: &Document, tree: &StructTree) -> Result<Option<Self>, ExtractError> {
         let pages = doc.pages()?;
         let page_index: BTreeMap<PageId, usize> = (0..pages.len())
             .filter_map(|i| pages.get(i).map(|p| (p.id().clone(), i)))
             .collect();
         let mut builder = Builder {
             doc,
-            tree: &tree,
+            tree,
             pages: page_index,
             index: Self::default(),
             order: 0,

@@ -23,6 +23,7 @@ import {
   type OpenableLink,
   type PrintedPage,
   type PrintOptions,
+  type RenderedBitmap,
   type SourceInit,
   ThumbnailStrip,
   type Viewer,
@@ -38,6 +39,9 @@ import { readChoices } from "./storage-choices.ts";
 
 /** A document's properties, as the document worker reads them. */
 export type DocumentProperties = Awaited<ReturnType<ViewerClient["properties"]>>;
+
+/** A document for reader mode, as the document worker reads it. */
+export type DocumentReflow = Awaited<ReturnType<ViewerClient["reflow"]>>;
 
 /** One backend's document worker and the view over it. */
 interface Session {
@@ -190,8 +194,8 @@ export class Engine implements ExternalStore<EngineState> {
    */
   #incoming: DocumentWarning[] = [];
   #state: EngineState;
-  /** The open document's properties, read once per open (`#turn`). */
-  #properties: { readonly turn: number; readonly read: Promise<DocumentProperties> } | undefined;
+  /** What is read once per open document (`#turn`): its properties, its reflow. */
+  readonly #once = new Map<string, { readonly turn: number; readonly read: Promise<unknown> }>();
   /** Where to go once `file` has opened (from `#page=` or `#nameddest=`): only that open uses it. */
   #place: { readonly file: PlatformFile; readonly place: FragmentPlace } | undefined;
 
@@ -276,21 +280,35 @@ export class Engine implements ExternalStore<EngineState> {
     }
   }
 
+  /** `read` once per open document under `key`; a failed read isn't kept, so the next caller asks again. */
+  #readOnce<T>(key: string, read: (client: ViewerClient) => Promise<T>): Promise<T> {
+    const turn = this.#turn;
+    const kept = this.#once.get(key);
+    if (kept?.turn === turn) return kept.read as Promise<T>;
+    const reading = this.#session.then((session) => read(session.client));
+    reading.catch(() => {
+      if (this.#once.get(key)?.read === reading) this.#once.delete(key);
+    });
+    this.#once.set(key, { turn, read: reading });
+    return reading;
+  }
+
   /**
    * The open document's properties, read once per document: the properties dialog and the print
    * dialog (for the author's permissions) share them.
    */
   properties(): Promise<DocumentProperties> {
-    const turn = this.#turn;
-    if (this.#properties?.turn !== turn) {
-      const read = this.#session.then((session) => session.client.properties());
-      // A failed read isn't kept: the next dialog asks again.
-      read.catch(() => {
-        if (this.#properties?.read === read) this.#properties = undefined;
-      });
-      this.#properties = { turn, read };
-    }
-    return this.#properties.read;
+    return this.#readOnce("properties", (client) => client.properties());
+  }
+
+  /** The open document for reader mode, read once per document. */
+  reflow(): Promise<DocumentReflow> {
+    return this.#readOnce("reflow", (client) => client.reflow());
+  }
+
+  /** Part of a page drawn by the document worker: a reader-mode crop. */
+  async renderPart(request: Parameters<ViewerClient["render"]>[0], signal: AbortSignal): Promise<RenderedBitmap> {
+    return (await this.#session).client.render(request, { signal, priority: "visible" });
   }
 
   /**

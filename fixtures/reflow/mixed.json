@@ -1,0 +1,59 @@
+{
+  "available": true,
+  "blocks": [
+    {
+      "kind": "heading",
+      "page": 0,
+      "text": "Hollow orchard compass tunnel."
+    },
+    {
+      "kind": "paragraph",
+      "page": 0,
+      "text": "Ribbon pocket lemon zephyr lantern falcon mirror mantle amber harbour marble saddle needle beacon meadow thunder tunnel oyster cobalt copper velvet anchor parcel dynamo violet compass bridge quarry ember engine."
+    },
+    {
+      "alt": "Four coloured squares in a grid",
+      "box": [
+        56.0,
+        180.0,
+        160.0,
+        110.0
+      ],
+      "kind": "figure",
+      "page": 0
+    },
+    {
+      "kind": "caption",
+      "page": 0,
+      "text": "Anchor rocket hollow pepper pocket needle."
+    },
+    {
+      "alt": "E equals m c squared",
+      "kind": "formula",
+      "page": 0
+    },
+    {
+      "kind": "quote",
+      "page": 0,
+      "text": "Tablet umbrella valley walnut yonder zephyr amber beacon cobalt dynamo ember fresco granite hollow indigo juniper river stone lantern harbour."
+    },
+    {
+      "kind": "list-item",
+      "page": 0,
+      "text": "Stone meadow engine timber canyon."
+    },
+    {
+      "kind": "list-item",
+      "page": 0,
+      "text": "Velvet window mirror cotton jacket."
+    },
+    {
+      "alt": "Two rows of two numbers",
+      "kind": "table",
+      "page": 0
+    }
+  ],
+  "file": "mixed.pdf",
+  "layout": "mixed",
+  "tree": "in reading order"
+}

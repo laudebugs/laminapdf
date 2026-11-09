@@ -635,6 +635,195 @@
   }
 }
 
+/* Reader mode (R14): the canvas becomes one reading column on the page's paper, in the serif at
+   the reader's size (set on the column) with its line spacing and line length; a crop is its part
+   of the page, framed, with its description under it. */
+@layer paper.components {
+  .paper-reader-mode {
+    block-size: 100%;
+    overflow-y: auto;
+    background: var(--paper-page-paper);
+    color: var(--paper-page-ink);
+  }
+
+  /* In the reader's canvas, the column covers the page view (which stays laid out under it). */
+  .paper-reader-canvas > .paper-reader-mode {
+    position: absolute;
+    inset: 0;
+  }
+
+  .paper-reader-mode:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: calc(var(--paper-focus-ring-width) * -1);
+  }
+
+  /* The empty state is the app's, not the page's: the theme's ground and text, as anywhere else. */
+  .paper-reader-mode-empty {
+    display: grid;
+    place-items: center;
+    background: var(--paper-ground);
+    color: var(--paper-text);
+  }
+
+  .paper-reader-column {
+    box-sizing: border-box;
+    max-inline-size: 68ch;
+    margin-inline: auto;
+    padding: var(--paper-space-24) var(--paper-space-16) var(--paper-space-32);
+    font-family: var(--paper-font-serif);
+    line-height: 1.65;
+    overflow-wrap: break-word;
+  }
+
+  .paper-reader-column[data-line-length="narrow"] {
+    max-inline-size: 55ch;
+  }
+
+  .paper-reader-column[data-line-length="wide"] {
+    max-inline-size: 85ch;
+  }
+
+  .paper-reader-column[data-line-spacing="tight"] {
+    line-height: 1.4;
+  }
+
+  .paper-reader-column[data-line-spacing="loose"] {
+    line-height: 1.9;
+  }
+
+  /* Room after the last block, so any block, the last page's too, can reach the column's top:
+     where reader mode starts and what "Back to page" names. */
+  .paper-reader-column::after {
+    content: "";
+    display: block;
+    block-size: 80vh;
+  }
+
+  /* The head stays in view, so "Back to page" never has to be scrolled to, which would change
+     the block at the column's top and so the page it goes back to. */
+  .paper-reader-mode-head {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 1;
+    padding-block: var(--paper-space-8);
+    background: var(--paper-page-paper);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8);
+    margin-block-end: var(--paper-space-24);
+    font-family: var(--paper-font-sans);
+    font-size: initial;
+    line-height: normal;
+  }
+
+  .paper-reader-block p,
+  .paper-reader-block blockquote {
+    margin: 0 0 1em;
+  }
+
+  .paper-reader-heading {
+    margin: 1.2em 0 0.5em;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  h2.paper-reader-heading {
+    font-size: 1.5em;
+  }
+
+  h3.paper-reader-heading {
+    font-size: 1.25em;
+  }
+
+  .paper-reader-quote {
+    padding-inline-start: 1em;
+    border-inline-start: var(--paper-border-width) solid var(--paper-hairline);
+    font-style: italic;
+  }
+
+  /* The page's own muted ink, set per page appearance, not the UI's (which a dark theme lightens). */
+  .paper-reader-caption,
+  .paper-reader-note,
+  .paper-reader-alt {
+    font-size: 0.85em;
+    color: var(--paper-page-mockup-muted);
+  }
+
+  .paper-reader-list {
+    margin: 0 0 1em;
+    padding-inline-start: 1.5em;
+    list-style: none;
+  }
+
+  .paper-reader-list li[data-depth="1"] {
+    margin-inline-start: 1.5em;
+  }
+
+  .paper-reader-list li[data-depth="2"] {
+    margin-inline-start: 3em;
+  }
+
+  .paper-reader-marker {
+    display: inline-block;
+    min-inline-size: 1.5em;
+    margin-inline-start: -1.5em;
+  }
+
+  .paper-reader-crop {
+    margin: 0 0 1em;
+  }
+
+  .paper-reader-crop-image {
+    display: flex;
+    justify-content: center;
+    padding: var(--paper-space-8);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-page-paper);
+  }
+
+  .paper-reader-crop-image canvas,
+  .paper-reader-crop-image img {
+    max-inline-size: 100%;
+    block-size: auto;
+  }
+
+  .paper-reader-alt {
+    margin-block-start: var(--paper-space-4);
+  }
+
+  .paper-reader-loading {
+    display: grid;
+    gap: var(--paper-space-12);
+  }
+
+  .paper-reader-settings {
+    display: grid;
+    gap: var(--paper-space-16);
+  }
+
+  .paper-reader-stepper-row {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-reader-stepper-row output {
+    min-inline-size: 4em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer paper.components {
+  .paper-reader-stepper {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+}
+
 /* The skip link: out of sight until Tab reaches it, then over the top bar's start. */
 @layer paper.components {
   .paper-skip-link {

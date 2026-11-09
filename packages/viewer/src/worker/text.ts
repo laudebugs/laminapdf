@@ -4,6 +4,7 @@
 // page of thousands of glyphs is three objects, not thousands. The last pages read are kept, since
 // a page scrolled back into view asks again.
 
+import type { Reflow } from "@laminapdf/sdk";
 import type { PageGlyphs } from "../find/page.js";
 import type { PageTextData, ReadingBlock, StructureData, TextRunData } from "../protocol.js";
 import { textModel } from "./document.js";
@@ -58,6 +59,12 @@ export async function structure(signal: AbortSignal): Promise<StructureData> {
   const tagged = await model.ensure(() => model.isTagged, { signal });
   const tree = await model.ensure(() => model.structureTree(), { signal });
   return tree === undefined ? { tagged } : { tagged, tree };
+}
+
+/** The open document for reader mode (`doc.reflow()`): blocks in the structure tree's order, or why not. */
+export async function reflow(signal: AbortSignal): Promise<Reflow> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.reflow(), { signal });
 }
 
 /** The reading-order blocks of the last pages a selection reached. */

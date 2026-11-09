@@ -33,7 +33,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | R11 | Dark UI theme (F01 in dark chrome, page Original) | W | [C7a](../../todos/done/C7a-accessibility-and-theming.md) |
 | R12 | Keyboard shortcuts (help generated from the command registry) | W | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/done/C7a-accessibility-and-theming.md) |
 | R13 | Network activity panel: requests since open, per-origin list, "what this proves" | W | [U4a](../../todos/done/U4a-network-indicator-and-privacy-proof.md) |
-| R14 | Reader mode (reflow): tagged (tier 1) with settings; approximate (tier 2) label; back to page | W, M | [U4b](../../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md) |
+| R14 | Reader mode (reflow): tagged (tier 1) with settings; approximate (tier 2) label; back to page | W, M | [U4b](../../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md) |
 | R15 | Offline, install and update: install prompt, offline strip, update available | W | [C7b](../../todos/done/C7b-offline-pwa.md) |
 | R16 | Focus mode (rails hidden; inspector returns on selection) | W | [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md) |
 | R17 | Tablet reading: rail as sheet, pen hover | T | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |

@@ -34,6 +34,11 @@ body {
   --lamina-page-paper: Canvas;
 }
 
+/* Under reader mode's column: laid out, so leaving reader mode can scroll it at once, but unseen. */
+.web-viewer[data-covered] {
+  visibility: hidden;
+}
+
 .web-wordmark {
   font-family: var(--paper-font-serif);
   font-size: 18px;

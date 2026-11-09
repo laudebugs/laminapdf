@@ -45,6 +45,7 @@ export const DOCUMENT_METHODS = {
   properties: 0,
   rebase: 1,
   redo: 0,
+  reflow: 0,
   save: 1,
   saveWithReport: 1,
   structureTree: 0,

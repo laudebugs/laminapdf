@@ -48,6 +48,8 @@ mod output;
 mod page;
 mod paint;
 mod plugins;
+#[cfg(feature = "reflow")]
+mod reflow;
 mod regions;
 mod segments;
 mod tables;
@@ -74,4 +76,6 @@ pub use plugins::{
     LayoutModel, LayoutRegion, ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord,
     PageRaster, PageRenderer, RegionLabel,
 };
+#[cfg(feature = "reflow")]
+pub use reflow::{Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal, reflow};
 pub use tables::TableMode;

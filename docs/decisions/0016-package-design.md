@@ -47,7 +47,7 @@ Constraints:
 | --- | --- | --- |
 | `lamina_pdf_base.wasm` | `laminapdf-wasm` without features (`laminapdf` with `build`) | Open, read, edit with ops, undo/redo, save (save jobs, warnings); the builder without text: pages and boxes, paths, colour, opacity and blend modes, clipping, images (JPEG, PNG, RGBA), links, destinations, outline, page labels, metadata, viewer preferences |
 | `lamina_pdf_text.wasm` | `laminapdf-wasm --features text` | Everything in base, plus fonts (`fontBytes`, `standardFont`), shaped `text` runs and `textBox` (laminapdf-text: skrifa, subsetter, HarfRust, ICU4X, the standard 14), and text extraction (`WasmPage.text`); flowing layout, Markdown and JSON documents once [ADR 0032](0032-flowing-layout-and-document-inputs.md#5-placement) lands |
-| `lamina_pdf_extract.wasm` | `laminapdf-wasm --features extract` (B9c) | Everything in base, plus text extraction (`WasmPage.text`: laminapdf-text's extractor, CMaps, ICU4X's bidi data), without fonts for building or shaping |
+| `lamina_pdf_extract.wasm` | `laminapdf-wasm --features extract,reflow` (B9c; `reflow`, U4b) | Everything in base, plus text extraction (`WasmPage.text`: laminapdf-text's extractor, CMaps, ICU4X's bidi data) and reader mode (`WasmDocument.reflow`, which the text module leaves out), without fonts for building or shaping |
 
 The text module is a **superset**, not an add-on: a document that needs text is built entirely in the text module. A document moves between the two as PDF bytes (save, then open), which is the narrow ABI between them. `@laminapdf/sdk` loads the base module by default and the text module on its first text call or with `init({ text: true })` (B6b); a page that loaded only base never downloads text.
 
