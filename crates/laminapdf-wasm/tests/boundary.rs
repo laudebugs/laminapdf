@@ -249,6 +249,8 @@ fn properties_cross_as_one_record() {
     assert_eq!(get(&get(&p, "contains"), "forms").as_bool(), Some(false));
     let fonts: Array = get(&p, "fonts").dyn_into().unwrap();
     assert_eq!(string(&fonts.get(0), "name").as_deref(), Some("Helvetica"));
+    // A missing value is left out, never `null`: the `.d.ts` types it as optional.
+    assert!(Reflect::has(&p, &JsValue::from_str("encryption")).is_ok_and(|has| !has));
     let enc = WasmDocument::open_bytes(ENC.to_vec(), &JsValue::UNDEFINED).unwrap();
     let encryption = get(&enc.properties().unwrap(), "encryption");
     assert_eq!(get(&encryption, "revision").as_f64(), Some(6.0));

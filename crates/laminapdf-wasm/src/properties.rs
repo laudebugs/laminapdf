@@ -16,33 +16,43 @@ use crate::error::{JsResult, lamina_error};
 pub(crate) struct PropertiesJs {
     /// `/Title`.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     /// `/Author`.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub author: Option<String>,
     /// `/Subject`.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subject: Option<String>,
     /// `/Keywords`.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub keywords: Option<String>,
     /// `/Creator`: the application the document was made with.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub creator: Option<String>,
     /// `/Producer`: the application that wrote the PDF.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub producer: Option<String>,
     /// `/CreationDate` as ISO 8601.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub created: Option<String>,
     /// `/ModDate` as ISO 8601.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub modified: Option<String>,
     /// The XMP packet as text.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub xmp: Option<String>,
     /// The PDF version.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     /// The number of pages.
     pub page_count: u32,
@@ -54,6 +64,7 @@ pub(crate) struct PropertiesJs {
     pub tagged: bool,
     /// How the file is encrypted; absent when it isn't.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub encryption: Option<EncryptionJs>,
     /// The fonts the pages use.
     pub fonts: Vec<FontJs>,
@@ -90,6 +101,7 @@ pub(crate) struct EncryptionJs {
     pub cipher: String,
     /// What `/P` permits; absent when the handler gives no permissions.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub permissions: Option<PermissionsJs>,
 }
 
@@ -122,9 +134,11 @@ pub(crate) struct PermissionsJs {
 pub(crate) struct FontJs {
     /// Its name without a subset tag.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// `Type0`, `Type1`, `MMType1`, `Type3` or `TrueType`.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     /// The file holds the font.
     pub embedded: bool,
@@ -132,6 +146,7 @@ pub(crate) struct FontJs {
     pub subset: bool,
     /// Its encoding's name, or `"custom"`.
     #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub encoding: Option<String>,
 }
 

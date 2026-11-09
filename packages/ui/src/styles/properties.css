@@ -6,7 +6,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--paper-space-20);
-    max-block-size: calc(100vh - 232px);
+    max-block-size: calc(100vh - var(--paper-properties-chrome-height));
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -32,7 +32,7 @@
 
   .paper-properties-row {
     display: grid;
-    grid-template-columns: 148px minmax(0, 1fr);
+    grid-template-columns: var(--paper-properties-label-width) minmax(0, 1fr);
     gap: var(--paper-space-12);
     align-items: start;
   }
@@ -106,29 +106,27 @@
     font: var(--paper-type-body);
   }
 
-  /* A phone's sheet: labels above their values, the fonts table as a list. */
-  @media (max-width: 599px) {
-    .paper-properties-row {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 0;
-    }
+  /* On a phone the dialog is a sheet (§7.18): labels above their values, the fonts table a list. */
+  .paper-sheet .paper-properties-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
 
-    .paper-properties-fonts thead {
-      display: none;
-    }
+  .paper-sheet .paper-properties-fonts thead {
+    display: none;
+  }
 
-    .paper-properties-fonts tr {
-      display: block;
-      padding-block: var(--paper-space-4);
-      border-block-end: var(--paper-border-width) solid var(--paper-hairline);
-    }
+  .paper-sheet .paper-properties-fonts tr {
+    display: block;
+    padding-block: var(--paper-space-4);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+  }
 
-    .paper-properties-fonts td {
-      display: inline;
-    }
+  .paper-sheet .paper-properties-fonts td {
+    display: inline;
+  }
 
-    .paper-properties-fonts td + td::before {
-      content: " · ";
-    }
+  .paper-sheet .paper-properties-fonts td + td::before {
+    content: " · ";
   }
 }

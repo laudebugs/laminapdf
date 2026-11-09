@@ -20,7 +20,9 @@ function pageOf(part: string, total: number, labels: readonly string[] | undefin
 
 /** `pages (1–21, A-1–A-3)` for the error: the count, and the labels' first and last when labelled. */
 function described(total: number, labels: readonly string[] | undefined): string {
-  if (labels === undefined || labels.length === 0) return message("print.range.pages", { total });
+  if (labels === undefined || labels.length === 0) {
+    return total === 1 ? message("print.range.pagesOne") : message("print.range.pages", { total });
+  }
   return message("print.range.pagesLabelled", { total, first: labels[0] ?? "", last: labels.at(-1) ?? "" });
 }
 

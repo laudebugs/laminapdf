@@ -1,5 +1,5 @@
-/* The print dialog (R09): its fields in one column, and the note on what opens next at the
-   footer's start, the buttons at its end. */
+/* The print dialog (R09): its fields in one column, and the footer's note on what opens next above
+   its buttons. */
 @layer paper.components {
   .paper-print-fields {
     display: flex;
@@ -8,10 +8,10 @@
     margin: 0;
   }
 
+  /* Its own row above the buttons, so a longer button (Print anyway…) never pushes one down alone. */
   .paper-print-next {
     margin: 0;
-    margin-inline-end: auto;
-    align-self: center;
+    flex-basis: 100%;
     color: var(--paper-text-2);
     font: var(--paper-type-caption);
   }

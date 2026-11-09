@@ -75,6 +75,8 @@ interface PrintForm {
   readonly quality: "standard" | "high";
   readonly annotations: boolean;
   setMode(mode: PagesMode): void;
+  /** The range field took focus: its radio is chosen, and an error under it stays. */
+  chooseRange(): void;
   setRange(range: string): void;
   setScale(scale: PrintChoice["scale"]): void;
   setQuality(quality: "standard" | "high"): void;
@@ -113,6 +115,7 @@ function usePrintForm(
       setModeState(next);
       setError(undefined);
     },
+    chooseRange: () => setModeState("range"),
     setRange: (next) => {
       setRangeState(next);
       setModeState("range");
@@ -146,18 +149,22 @@ function PrintFields({
   return (
     <>
       <RadioGroup label={message("print.pages")} value={form.mode} onChange={(v) => form.setMode(v as PagesMode)}>
-        <Radio value="all">{message("print.pages.all", { total: props.pageCount })}</Radio>
+        <Radio value="all">
+          {props.pageCount === 1
+            ? message("print.pages.allOne")
+            : message("print.pages.all", { total: props.pageCount })}
+        </Radio>
         <Radio value="current">{message("print.pages.current", { page: currentLabel(props) })}</Radio>
         <Radio value="range">{message("print.pages.range")}</Radio>
       </RadioGroup>
       <div className="paper-print-range">
         <TextInput
-          label={message("print.pages.range")}
+          label={message("print.pages.rangeField")}
           placeholder={message("print.pages.rangePlaceholder")}
           description={message("print.pages.rangeHelp")}
           value={form.range}
           onChange={form.setRange}
-          onFocus={() => form.setMode("range")}
+          onFocus={form.chooseRange}
           {...(form.error === undefined ? {} : { errorMessage: form.error })}
         />
       </div>

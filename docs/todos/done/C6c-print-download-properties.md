@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `C6c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../done/C4c-remote-files-encryption-privacy.md), [C5a](../done/C5a-text-layer-and-selection.md) |
+| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C5a](./C5a-text-layer-and-selection.md) |
 | Dependency notes | [C4c](../done/C4c-remote-files-encryption-privacy.md) (all open paths, encrypted files); [C5a](../done/C5a-text-layer-and-selection.md) (font information from B9's font reading via the worker); library **B9** for font listing ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](../done/C3c-viewer-perf-harness.md) (print preparation measured within the harness budget) |
 | ADRs | Follows 0004 (print rendering via `RenderBackend` with print intent), 0010 (`Platform.print`, `Platform.saveAs`, `hasNativePrint` flag), 0011 (no upload: print and download are local) |
 | Branch | `feat/c6c-print-download-properties` |
 | PR title | `feat(web): add printing, original-bytes download and the document properties dialog` |
 | Size | L (600–1,200 lines incl. tests) |
-| PR | — |
+| PR | [#368](https://github.com/laudebugs/lamina/pull/368) |
 
 ## Goal
 
@@ -44,24 +44,34 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Print renderer in the worker with memory budgeting (render → encode → transfer → release, one page at a time; JPEG quality 0.92 for photos vs PNG for text decided per page or globally — measure size/time).
-- [ ] Print iframe builder with per-page named `@page` sizing and orientation via CSSOM (constructable stylesheet + `insertRule`, no `<style>`/`style=` markup); test mixed portrait/landscape documents; the e2e listens for `securitypolicyviolation` in the parent and the iframe and asserts zero, and asserts the computed `@page` sizes via `document.styleSheets`/`adoptedStyleSheets`.
-- [ ] Progress/cancel dialog; `beforeprint`/`afterprint` handling; Safari's synchronous print quirks (images must be loaded before `print()`).
-- [ ] Download for local, remote and encrypted documents; filename sanitisation tests.
-- [ ] Library accessors for properties (fonts per page aggregated, encryption dictionary summary, signature field count, XMP packet bytes) with Rust tests; XMP parsed in TS with `DOMParser` (main thread, small) or in Rust (decide; avoid XXE — no external entities).
-- [ ] `PropertiesDialog` component + toolbar/menu entries + keyboard shortcut (`ctrl/cmd+D` like Acrobat, or menu-only; record in C7a's map).
-- [ ] Facts for properties (version, Info title/producer, encryption revision, font names) from independent tools (pypdf/qpdf `--json`) in `expected.json`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Print renderer in the worker with memory budgeting (render → encode → transfer → release, one page at a time; JPEG quality 0.92 for photos vs PNG for text decided per page or globally — measure size/time).
+- [x] Print iframe builder with per-page named `@page` sizing and orientation via CSSOM (constructable stylesheet + `insertRule`, no `<style>`/`style=` markup); test mixed portrait/landscape documents; the e2e listens for `securitypolicyviolation` in the parent and the iframe and asserts zero, and asserts the computed `@page` sizes via `document.styleSheets`/`adoptedStyleSheets`.
+- [x] Progress/cancel dialog; `beforeprint`/`afterprint` handling; Safari's synchronous print quirks (images must be loaded before `print()`).
+- [x] Download for local, remote and encrypted documents; filename sanitisation tests.
+- [x] Library accessors for properties (fonts per page aggregated, encryption dictionary summary, signature field count, XMP packet bytes) with Rust tests; XMP parsed in TS with `DOMParser` (main thread, small) or in Rust (decide; avoid XXE — no external entities).
+- [x] `PropertiesDialog` component + toolbar/menu entries + keyboard shortcut (`ctrl/cmd+D` like Acrobat, or menu-only; record in C7a's map).
+- [x] Facts for properties (version, Info title/producer, encryption revision, font names) from independent tools (pypdf/qpdf `--json`) in `expected.json`.
 
 ## Acceptance criteria
 
-- [ ] **Printing a 50-page document works in Chrome, Firefox and Safari**: Playwright (Chromium, Firefox, WebKit) intercepts `window.print` in the iframe and asserts all 50 images loaded with the right page sizes/orientation; a manual print-to-PDF check on each browser is recorded in the PR (screenshots/notes), including a mixed-orientation file.
-- [ ] Printing never sends data over the network (privacy suite from C4c extended to the print flow).
-- [ ] The print flow causes **zero CSP violations** under the production CSP from C4b (asserted in e2e, parent and iframe).
-- [ ] Peak memory during printing of the 50-page document stays within the C3c budget (pages released as they are encoded).
-- [ ] **Download is byte-identical to the input** for a local file, a remote `#url=` file and an encrypted file (SHA-256 compared in Playwright via the download event).
-- [ ] Properties for corpus files match `expected.json` facts (version, title, producer, encryption revision, font names, signature count for `signed.pdf`).
-- [ ] Properties dialog is keyboard-operable with zero serious axe violations.
+- [x] **Printing a 50-page document works in Chrome, Firefox and Safari**: Playwright (Chromium, Firefox, WebKit) intercepts `window.print` in the iframe and asserts all 50 images loaded with the right page sizes/orientation; a manual print-to-PDF check on each browser is recorded in the PR (screenshots/notes), including a mixed-orientation file.
+- [x] Printing never sends data over the network (privacy suite from C4c extended to the print flow).
+- [x] The print flow causes **zero CSP violations** under the production CSP from C4b (asserted in e2e, parent and iframe).
+- [x] Peak memory during printing of the 50-page document stays within the C3c budget (pages released as they are encoded).
+- [x] **Download is byte-identical to the input** for a local file, a remote `#url=` file and an encrypted file (SHA-256 compared in Playwright via the download event).
+- [x] Properties for corpus files match `expected.json` facts (version, title, producer, encryption revision, font names, signature count for `signed.pdf`).
+- [x] Properties dialog is keyboard-operable with zero serious axe violations.
+
+## Notes
+
+- **Print encoding:** PNG for every page. Pages are drawn one at a time and released once encoded, so the page holds one small file per page, never pixels. The worker caps a page at 16 million pixels (a 300 dpi page of 11 × 17 inches), lowering its resolution past that.
+- **XMP:** parsed in TypeScript with `DOMParser` as XML, which loads no external entities or DTDs; the library hands over the decoded packet as text.
+- **Properties shortcut:** none, as R08 says (`Mod D` is the browser's). Document properties is in the More menu and the palette.
+- **Native PDF printing:** not built. The raster path is the only one, which keeps printing the same in every browser.
+- **Restricted printing (owner decision):** follows this todo's recommendation and R09: the dialog warns and asks to confirm, never blocks. C4c said permissions are not enforced beyond display; the PR asks the owner to choose.
+- **Deviations from R08 and R09** are recorded in [reader-a.md](../../design/paper/reader-a.md#r09-print-and-download-a-copy): a separate range field, no Sepia notice yet, no notice when a page is drawn at a lower resolution, no `Content-Disposition` name, failures in an alertdialog.
+- **The manual print-to-PDF check** in each browser is in the PR description.
 
 ## Post-merge checks
 
@@ -84,8 +94,8 @@ Rust unit tests for new accessors; Vitest unit tests (filename sanitisation, XMP
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

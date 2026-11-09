@@ -21,6 +21,8 @@ import {
   type LinkLayerOptions,
   type LinkWords,
   type OpenableLink,
+  type PrintedPage,
+  type PrintOptions,
   type SourceInit,
   ThumbnailStrip,
   type Viewer,
@@ -31,6 +33,9 @@ import type { NetworkMonitor } from "./network/monitor.ts";
 import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
 import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
+
+/** A document's properties, as the document worker reads them. */
+export type DocumentProperties = Awaited<ReturnType<ViewerClient["properties"]>>;
 
 /** One backend's document worker and the view over it. */
 interface Session {
@@ -180,6 +185,8 @@ export class Engine implements ExternalStore<EngineState> {
    */
   #incoming: DocumentWarning[] = [];
   #state: EngineState;
+  /** The open document's properties, read once per open (`#turn`). */
+  #properties: { readonly turn: number; readonly read: Promise<DocumentProperties> } | undefined;
   /** Where to go once `file` has opened (from `#page=` or `#nameddest=`): only that open uses it. */
   #place: { readonly file: PlatformFile; readonly place: FragmentPlace } | undefined;
 
@@ -262,6 +269,40 @@ export class Engine implements ExternalStore<EngineState> {
       if (turn === this.#turn) this.#set({ outline: "failed" });
       reportError(error);
     }
+  }
+
+  /**
+   * The open document's properties, read once per document: the properties dialog and the print
+   * dialog (for the author's permissions) share them.
+   */
+  properties(): Promise<DocumentProperties> {
+    const turn = this.#turn;
+    if (this.#properties?.turn !== turn) {
+      const read = this.#session.then((session) => session.client.properties());
+      // A failed read isn't kept: the next dialog asks again.
+      read.catch(() => {
+        if (this.#properties?.read === read) this.#properties = undefined;
+      });
+      this.#properties = { turn, read };
+    }
+    return this.#properties.read;
+  }
+
+  /**
+   * The open file's bytes exactly as opened, for Download a copy: a local file's own bytes, read
+   * here; a remote file's from the document worker, which has them cached or fetches them again
+   * from its host. An encrypted file stays encrypted.
+   */
+  async originalBytes(): Promise<{ readonly name: string; readonly bytes: Uint8Array }> {
+    const file = this.#file;
+    if (file === undefined) throw new Error("no document is open");
+    const bytes = remotes.has(file) ? await (await this.#session).client.fileBytes() : await file.read(0, file.size);
+    return { name: file.name, bytes };
+  }
+
+  /** Page `index` of the open document drawn for printing, by the document worker. */
+  async printPage(index: number, options: PrintOptions, signal: AbortSignal): Promise<PrintedPage> {
+    return (await this.#session).client.printPage(index, options, { signal });
   }
 
   /** Goes to outline item `id` of the open document. */
