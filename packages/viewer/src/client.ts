@@ -128,6 +128,8 @@ export class ViewerClient {
   /** What to reopen after a restart: the source and the options without the password. */
   #reopen: { readonly source: SourceInit; readonly options: Omit<ViewerOpenOptions, "password"> } | undefined;
   #document: OpenedDocument | undefined;
+  /** Opens asked for so far: each open's ticket. */
+  #opens = 0;
   #recovering: Promise<void> | undefined;
   #nextRender = 1;
   /** Each pending render's timers, by coalescing key: started on `render-start`, paused on `render-fetching`. */
@@ -232,10 +234,26 @@ export class ViewerClient {
     call: ViewerCallOptions = {},
   ): Promise<OpenedDocument> {
     const { password: _, ...rest } = options;
-    const opened = await this.call("openDocument", [source, options], call);
+    const ticket = ++this.#opens;
+    let opened: OpenedDocument;
+    try {
+      opened = await this.call("openDocument", [source, options, ticket], call);
+    } catch (e) {
+      // A cancel can cross the answer of an open the worker had already committed: then the
+      // cancel came too late, and this page takes the document the worker now holds.
+      const landed = call.signal?.aborted === true ? await this.#committed(ticket) : undefined;
+      if (landed === undefined) throw e;
+      opened = landed;
+    }
     this.#reopen = { source, options: rest };
     this.#document = opened;
     return opened;
+  }
+
+  /** The worker's document, if open `ticket` made it (the worker runs one call at a time, so it answers after that open). */
+  async #committed(ticket: number): Promise<OpenedDocument | undefined> {
+    const now = await this.call("currentDocument", []).catch(() => undefined);
+    return now?.ticket === ticket ? now.document : undefined;
   }
 
   /** The open document, if any. */
@@ -297,6 +315,14 @@ export class ViewerClient {
   /** Whether the open document says it is tagged, and its structure tree when it has one. */
   structure(options?: ViewerCallOptions) {
     return this.call("structure", [], options);
+  }
+
+  /**
+   * The open document for reader mode: its blocks in the structure tree's order, figures,
+   * formulas and tables as crops with their alternate text, or why its tree can't be trusted.
+   */
+  reflow(options?: ViewerCallOptions) {
+    return this.call("reflow", [], options);
   }
 
   /**

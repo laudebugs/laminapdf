@@ -50,6 +50,21 @@ pub struct ExtractJob {
     request: Option<ModelRequest>,
     /// Whether the layout model and the OCR engine gave a result, for `generator.models`.
     used: (bool, bool),
+    /// What reader mode reads besides the blocks, page by page, when it runs the job.
+    #[cfg(feature = "reflow")]
+    pub(crate) feed: Option<Vec<PageFeed>>,
+}
+
+/// What one page gave reader mode besides its blocks ([`crate::reflow`]).
+#[cfg(feature = "reflow")]
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct PageFeed {
+    /// The page index.
+    pub(crate) index: usize,
+    /// How the page used the structure tree.
+    pub(crate) tree: TreeUse,
+    /// What each MCID paints besides text ([`Drawn::mcid_boxes`]).
+    pub(crate) boxes: Vec<(i64, laminapdf_model::RectPt)>,
 }
 
 /// A page whose text is read, waiting for its models' results.
@@ -94,6 +109,25 @@ impl Pending {
 /// `page-index-out-of-range` for a page past the last; reading errors (the page tree, the
 /// catalog).
 pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJob, ExtractError> {
+    extract_job_with(doc, options, TreeSource::Read)
+}
+
+/// Where a job's structure tree index comes from.
+#[derive(Debug)]
+pub(crate) enum TreeSource {
+    /// The job reads it, when its reading order may come from the tree.
+    Read,
+    /// The caller read it already (reader mode), or found none.
+    #[cfg(feature = "reflow")]
+    Given(Option<TaggedIndex>),
+}
+
+/// [`extract_job`] with the structure tree's index from `tree`.
+pub(crate) fn extract_job_with(
+    doc: &Document,
+    options: &ExtractOptions,
+    tree: TreeSource,
+) -> Result<ExtractJob, ExtractError> {
     let count = doc.pages()?.len();
     let mut todo = options.pages.clone().unwrap_or_else(|| (0..count).collect());
     // A page asked for twice is extracted once, where it first appears, so block IDs stay unique.
@@ -107,10 +141,12 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
         ReadingOrder::Auto | ReadingOrder::Tagged | ReadingOrder::Layout => StructSource::XyCut,
     };
     // The tree is read once, here; each page checks its own part of it.
-    let tree = match options.reading_order {
-        ReadingOrder::Tagged => TaggedIndex::read(doc)?,
-        ReadingOrder::Auto if doc.is_tagged()? => TaggedIndex::read(doc)?,
-        ReadingOrder::Auto | ReadingOrder::Layout | ReadingOrder::ContentStream => None,
+    let tree = match (tree, options.reading_order) {
+        #[cfg(feature = "reflow")]
+        (TreeSource::Given(index), _) => index,
+        (TreeSource::Read, ReadingOrder::Tagged) => TaggedIndex::read(doc)?,
+        (TreeSource::Read, ReadingOrder::Auto) if doc.is_tagged()? => TaggedIndex::read(doc)?,
+        (TreeSource::Read, ReadingOrder::Auto | ReadingOrder::Layout | ReadingOrder::ContentStream) => None,
     };
     let source = ExtractedSource {
         sha256: None,
@@ -134,6 +170,8 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
         pending: None,
         request: None,
         used: (false, false),
+        #[cfg(feature = "reflow")]
+        feed: None,
     })
 }
 
@@ -201,6 +239,12 @@ impl ExtractJob {
     #[must_use]
     pub fn cancel_token(&self) -> CancelToken {
         self.cancel.clone()
+    }
+
+    /// Makes `cancel` the job's token, as [`extract`] does.
+    #[cfg(feature = "reflow")]
+    pub(crate) fn set_cancel(&mut self, cancel: &CancelToken) {
+        self.cancel = cancel.clone();
     }
 
     /// The model result the job waits for, when its models are the host's
@@ -310,8 +354,16 @@ impl ExtractJob {
             )?;
             match out.tree {
                 TreeUse::Used => self.tree_pages.0 += 1,
-                TreeUse::Ignored => self.tree_pages.1 += 1,
+                TreeUse::Ignored(_) => self.tree_pages.1 += 1,
                 TreeUse::None => {}
+            }
+            #[cfg(feature = "reflow")]
+            if let Some(feed) = &mut self.feed {
+                feed.push(PageFeed {
+                    index,
+                    tree: out.tree,
+                    boxes: pending.drawn.mcid_boxes,
+                });
             }
             self.out.pages.push(out.info);
             self.out.blocks.extend(out.blocks);

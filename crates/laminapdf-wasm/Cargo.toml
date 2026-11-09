@@ -27,6 +27,9 @@ build = ["laminapdf/build"]
 text = ["build", "extract", "laminapdf/text"]
 # Text extraction (`WasmPage.text`, B9c): lamina's extractor without the builder's text.
 extract = ["laminapdf/extract"]
+# Reader mode (`WasmDocument.reflow`, U4b): in the extract module only, so the text module keeps its
+# size budget.
+reflow = ["extract", "laminapdf/reflow"]
 
 [dependencies]
 laminapdf = { workspace = true }

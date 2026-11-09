@@ -7,9 +7,11 @@
 import {
   bytesSource,
   isRenderError,
+  type PageAppearance,
   type RenderBackend,
   type RenderDocument,
   type RenderedTile,
+  type RenderRequest,
   type RenderSource,
 } from "@laminapdf/render";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -35,6 +37,57 @@ export interface ContractOptions {
 
 /** Files whose page 1 is compared with the goldens. */
 const GOLDEN_FILES = ["hello.pdf", "imaging-demo.pdf"];
+
+/** `fixtures/appearance/` (tools/fixtures/appearance.py), each with goldens per page appearance. */
+const APPEARANCE_FILES = ["text", "vector", "photo", "mixed", "annotated"];
+
+/** Each page appearance by its golden name; High contrast as white ink on black paper. */
+const APPEARANCES: readonly (readonly [string, PageAppearance])[] = [
+  ["original", "original"],
+  ["sepia", "sepia"],
+  ["dark", "dark"],
+  [
+    "high-contrast",
+    { kind: "high-contrast", ink: { r: 255, g: 255, b: 255, a: 255 }, paper: { r: 0, g: 0, b: 0, a: 255 } },
+  ],
+];
+
+/** The pixels of a page-space rectangle (points, top-left origin) at 96 dpi, `inset` pixels in. */
+function area(tile: Decoded, [x0, y0, x1, y1]: readonly number[], inset: number): number[] {
+  const px = (v = 0) => Math.round((v * 96) / 72);
+  const out: number[] = [];
+  for (let y = px(y0) + inset; y < px(y1) - inset; y++) {
+    for (let x = px(x0) + inset; x < px(x1) - inset; x++) {
+      const o = (y * tile.width + x) * 4;
+      out.push(...tile.pixels.subarray(o, o + 4));
+    }
+  }
+  return out;
+}
+
+/** Renders four tiles of page 0 and stitches them, for comparison with the whole page. */
+function stitch(
+  doc: RenderDocument,
+  request: Omit<RenderRequest, "page" | "clip">,
+  w: number,
+  h: number,
+): Uint8ClampedArray {
+  const [tw, th] = [Math.ceil(w / 2), Math.ceil(h / 2)];
+  const stitched = new Uint8ClampedArray(w * h * 4);
+  for (const [x, y] of [
+    [0, 0],
+    [tw, 0],
+    [0, th],
+    [tw, th],
+  ] as const) {
+    const clip = { x, y, width: Math.min(tw, w - x), height: Math.min(th, h - y) };
+    const tile = doc.render({ ...request, page: 0, clip });
+    for (let row = 0; row < tile.height; row++) {
+      stitched.set(tile.pixels.subarray(row * tile.width * 4, (row + 1) * tile.width * 4), ((y + row) * w + x) * 4);
+    }
+  }
+  return stitched;
+}
 
 /** `e` is `data-pending` with ranges sorted and merged: none overlaps or touches the next. */
 function expectMergedPending(e: unknown): void {
@@ -151,22 +204,38 @@ export function renderContract(options: ContractOptions): void {
     it("stitches four tiles into the whole page", async () => {
       using doc = await open("fixtures/corpus/imaging-demo.pdf");
       const whole = doc.render({ page: 0, scale: 0.5 });
-      const [w, h] = [whole.width, whole.height];
-      const [tw, th] = [Math.ceil(w / 2), Math.ceil(h / 2)];
-      const stitched = new Uint8ClampedArray(whole.pixels.length);
-      for (const [x, y] of [
-        [0, 0],
-        [tw, 0],
-        [0, th],
-        [tw, th],
-      ] as const) {
-        const clip = { x, y, width: Math.min(tw, w - x), height: Math.min(th, h - y) };
-        const tile = doc.render({ page: 0, scale: 0.5, clip });
-        for (let row = 0; row < tile.height; row++) {
-          stitched.set(tile.pixels.subarray(row * tile.width * 4, (row + 1) * tile.width * 4), ((y + row) * w + x) * 4);
+      expect(differing(whole.pixels, stitch(doc, { scale: 0.5 }, whole.width, whole.height))).toBe(0);
+    });
+
+    it("keeps images and annotations as drawn in every page appearance, and recolours the rest", async () => {
+      const scale = 96 / 72;
+      using photo = await open("fixtures/appearance/photo.pdf");
+      using annotated = await open("fixtures/appearance/annotated.pdf");
+      // The photo, one pixel in; the square annotation's fill and the highlight over its words.
+      const image = area(photo.render({ page: 0, scale }), [30, 10, 270, 160], 1);
+      const original = annotated.render({ page: 0, scale });
+      for (const [name, appearance] of APPEARANCES) {
+        expect(area(photo.render({ page: 0, scale, appearance }), [30, 10, 270, 160], 1), name).toEqual(image);
+        const tile = annotated.render({ page: 0, scale, appearance });
+        for (const rect of [
+          [204, 124, 276, 166],
+          [18, 36, 168, 54],
+        ]) {
+          expect(area(tile, rect, 1), `${name} ${rect}`).toEqual(area(original, rect, 1));
         }
+        // The plain line beside them changes.
+        if (name !== "original")
+          expect(area(tile, [18, 76, 200, 94], 0), name).not.toEqual(area(original, [18, 76, 200, 94], 0));
       }
-      expect(differing(whole.pixels, stitched)).toBe(0);
+    });
+
+    it("stitches four tiles of a recoloured page into the whole page", async () => {
+      for (const file of ["mixed", "annotated"]) {
+        using doc = await open(`fixtures/appearance/${file}.pdf`);
+        const whole = doc.render({ page: 0, scale: 1, appearance: "dark" });
+        const stitched = stitch(doc, { scale: 1, appearance: "dark" }, whole.width, whole.height);
+        expect(differing(whole.pixels, stitched), file).toBe(0);
+      }
     });
 
     it("renders a quarter turn as the upright render rotated, with and without widgets", async () => {
@@ -319,6 +388,20 @@ export function renderContract(options: ContractOptions): void {
           const golden = await decode(await read(`fixtures/golden/render/${backend.name}/${stem}-p1.png`));
           expect([tile.width, tile.height], file).toEqual([golden.width, golden.height]);
           expect(ssim(tile, golden), file).toBeGreaterThanOrEqual(minSsim);
+        }
+      });
+
+      it(`matches the native page appearance goldens (SSIM ≥ ${minSsim})`, async () => {
+        for (const stem of APPEARANCE_FILES) {
+          using doc = await open(`fixtures/appearance/${stem}.pdf`);
+          for (const [name, appearance] of APPEARANCES) {
+            const tile = doc.render({ page: 0, scale: 96 / 72, appearance });
+            const golden = await decode(
+              await read(`fixtures/golden/render-appearance/${backend.name}/${stem}-${name}.png`),
+            );
+            expect([tile.width, tile.height], `${stem} ${name}`).toEqual([golden.width, golden.height]);
+            expect(ssim(tile, golden), `${stem} ${name}`).toBeGreaterThanOrEqual(minSsim);
+          }
         }
       });
     }

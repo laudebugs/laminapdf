@@ -159,7 +159,7 @@ Used for find results and for every other search hit on the page (Find sensitive
 | Dark (paper `#22211F`, ink `#E6E1D8`) | `#5A4520` (ink 6.99) | 1 px bottom `#E0AE5A` (7.95 on paper, 4.50 on fill) | `#7A5818` (ink 4.98) | 2 px `#7DBDC2` (7.61 on paper) |
 | High contrast | system `Mark` / `MarkText` | 1 px bottom: the ink `#FFFFFF` | system `Highlight` / `HighlightText` | 2 px: the ink `#FFFFFF` |
 
-On a High contrast page, the edge and the outline are the ink rather than `CanvasText`: the paper there is always `#000000`, and outside forced colours `CanvasText` is black too. The page's white ink under a `Mark` or `Highlight` fill can't be measured in advance, so the renderer draws the text under those fills in `MarkText` or `HighlightText` ([U2c](../../todos/ready/U2c-page-appearance-modes.md)); the tokens report those pairs as exempt.
+On a High contrast page, the edge and the outline are the ink rather than `CanvasText`: the paper there is always `#000000`, and outside forced colours `CanvasText` is black too. The page's white ink under a `Mark` or `Highlight` fill can't be measured in advance, so the renderer draws the text under those fills in `MarkText` or `HighlightText` ([U2c](../../todos/done/U2c-page-appearance-modes.md)); the tokens report those pairs as exempt.
 
 ### 2.7 Fixed content palettes
 

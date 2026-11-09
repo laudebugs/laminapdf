@@ -38,6 +38,14 @@ export interface ReaderTopBarProps<Id extends string> {
   /** Whether the find bar is open: the Find button shows it, pressed, and runs `find.open` when pressed. */
   findOpen?: boolean;
   /**
+   * Whether reader mode is on: the Reader toggle shows it, pressed, and runs `view.reader-mode`;
+   * while it is on, the page input and zoom hide and the Reader settings button, which runs
+   * `view.reader-settings`, takes the View button's place.
+   */
+  readerMode?: boolean;
+  /** Whether the reader settings panel is open: the Reader settings button's `aria-expanded`. */
+  readerSettingsOpen?: boolean;
+  /**
    * Where Back and Forward go, as page labels (`undefined`: nowhere, so the button is disabled);
    * left out, there are no history buttons. They run `nav.back` and `nav.forward`.
    */
@@ -129,6 +137,44 @@ export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): R
   return phone ? <PhoneTopBar {...props} hidden={hidden} /> : <DesktopTopBar {...props} />;
 }
 
+/** The Reader toggle: pressed while reader mode is on. */
+function ReaderToggle({ readerMode }: { readerMode: boolean }): ReactNode {
+  const reader = useCommand("view.reader-mode");
+  if (reader.availability.state === "hidden") return null;
+  return (
+    <ToggleButton
+      icon="reader"
+      aria-label={message("command.view.reader-mode")}
+      isSelected={readerMode}
+      isDisabled={reader.availability.state === "disabled"}
+      onChange={() => reader.run()}
+    />
+  );
+}
+
+/** The Reader settings button, which takes the View button's place while reader mode is on (R14). */
+function ReaderSettingsButton({ open }: { open: boolean }): ReactNode {
+  const settings = useCommand("view.reader-settings");
+  if (settings.availability.state === "hidden") return null;
+  return (
+    <IconButton
+      icon="view-settings"
+      label={message("command.view.reader-settings")}
+      aria-expanded={open}
+      onPress={() => settings.run()}
+    />
+  );
+}
+
+/** The View button, or while reader mode is on, the Reader settings button in its place. */
+function ViewOrReaderSettings({
+  readerMode,
+  readerSettingsOpen,
+  view,
+}: Pick<ReaderTopBarProps<string>, "readerMode" | "readerSettingsOpen" | "view">): ReactNode {
+  return readerMode === true ? <ReaderSettingsButton open={readerSettingsOpen === true} /> : view;
+}
+
 /** The top bar on a window wider than a phone. */
 function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNode {
   const state = useStoreState(props.reader, (s) => s);
@@ -152,13 +198,14 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
       </div>
       <div className="paper-top-bar-tools">
         {state.phase === "needs-password" ? <LockedPageInput /> : null}
-        {viewer === undefined || state.phase !== "open" ? null : (
+        {viewer === undefined || state.phase !== "open" || props.readerMode === true ? null : (
           <>
             {props.history === undefined ? null : <HistoryButtons history={props.history} />}
             <PageInput viewer={viewer} {...(props.labels === undefined ? {} : { labels: props.labels })} />
             <ZoomControl viewer={viewer} keys={keys} />
           </>
         )}
+        {state.phase !== "open" ? null : <ReaderToggle readerMode={props.readerMode === true} />}
         {state.phase !== "open" || find.availability.state === "hidden" ? null : (
           // A plain button: pressing it again puts the focus back in the field, so it is never a
           // toggle; it shows find is open with `aria-expanded`.
@@ -170,7 +217,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
             onPress={() => find.run()}
           />
         )}
-        {props.view}
+        <ViewOrReaderSettings {...props} />
         {palette.availability.state === "hidden" ? null : (
           <AriaButton className="paper-commands-button" onPress={() => palette.run()}>
             <span>{message("reader.commands")}</span>

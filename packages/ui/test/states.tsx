@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   Checkbox,
+  DEFAULT_READER_SETTINGS,
   EmptyState,
   FindBar,
   FindResults,
@@ -21,13 +22,16 @@ import {
   OutlineTree,
   type OutlineTreeItem,
   PageAppearanceChips,
+  PageAppearanceFields,
   PageInput,
   PageLabel,
   ProgressBar,
   Radio,
   RadioGroup,
+  ReaderSettingsPanel,
   type ReaderState,
   ReaderTopBar,
+  ReaderView,
   RecentList,
   RemoteFailure,
   RepairDetails,
@@ -256,6 +260,16 @@ const pickers: Example[] = [
     element: () => (
       <PageAppearanceChips aria-label="Page appearance" labels={APPEARANCE_LABELS} value="sepia" onChange={noop} />
     ),
+  },
+  {
+    component: "PageAppearanceFields",
+    state: "Dark, this document",
+    element: () => <PageAppearanceFields value="dark" onChange={noop} scope="document" onScopeChange={noop} />,
+  },
+  {
+    component: "PageAppearanceFields",
+    state: "No document open",
+    element: () => <PageAppearanceFields value="original" onChange={noop} />,
   },
 ];
 
@@ -712,6 +726,64 @@ const repairs: Example[] = [
   },
 ];
 
+/** A reflowed report: a heading, paragraphs, a figure kept as a crop, a list and a quote. */
+const READER_BLOCKS = [
+  { kind: "heading", level: 1, text: "Repairs backlog, third quarter", page: 2 },
+  {
+    kind: "paragraph",
+    text: "Open repairs fell by a fifth over the quarter, most of them in the north and east, where two new crews started in July.",
+    page: 2,
+  },
+  { kind: "figure", text: "", alt: "A bar chart of open repairs by region, falling in every region", page: 2 },
+  { kind: "caption", text: "Figure 2. Open repairs by region at the end of each month.", page: 2 },
+  { kind: "list-item", marker: "•", depth: 0, text: "North: 112 open, down from 150.", page: 2 },
+  { kind: "list-item", marker: "•", depth: 0, text: "East: 87 open, down from 109.", page: 2 },
+  { kind: "quote", text: "The new crews cleared the oldest jobs first, as the board asked.", page: 3 },
+] as const;
+
+/** A crop as the app draws it: a block of the page's paper. */
+const crop = () => <span className="paper-skeleton" aria-hidden="true" />;
+
+const readerMode: Example[] = [
+  {
+    component: "ReaderView",
+    state: "from the document's tags",
+    element: () => (
+      <ReaderView
+        content={{ status: "ready", blocks: READER_BLOCKS, lang: "en" }}
+        settings={DEFAULT_READER_SETTINGS}
+        pageName="3"
+        onBack={noop}
+        renderCrop={crop}
+      />
+    ),
+  },
+  {
+    component: "ReaderView",
+    state: "not available",
+    element: () => (
+      <ReaderView
+        content={{ status: "unavailable", untagged: false }}
+        settings={DEFAULT_READER_SETTINGS}
+        pageName="3"
+        onBack={noop}
+        renderCrop={crop}
+      />
+    ),
+  },
+  {
+    component: "ReaderSettingsPanel",
+    state: "larger text, loose",
+    element: () => (
+      <ReaderSettingsPanel
+        settings={{ textSize: 24, lineSpacing: "loose", lineLength: "narrow" }}
+        onChange={noop}
+        onClose={noop}
+      />
+    ),
+  },
+];
+
 /** Every example, grouped as the design language's §7 orders the components. */
 /** A two-level outline with labelled pages (the outline tree's states). */
 const OUTLINE: readonly OutlineTreeItem[] = [
@@ -742,4 +814,5 @@ export const EXAMPLES: readonly Example[] = [
   ...pickers,
   ...feedback,
   ...repairs,
+  ...readerMode,
 ];

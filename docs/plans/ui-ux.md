@@ -123,10 +123,10 @@ UI themes (light, dark, high contrast, from [C7a](../todos/done/C7a-accessibilit
 | --- | --- | --- |
 | Original | No change | Default, even in dark UI |
 | Sepia | Recolour paper and text in the renderer | Raster images untouched |
-| Dark | Recolour text and paths in the renderer (PDFium forced-colours path; hayro equivalent) | Never a CSS `invert()`: photos would become negatives |
+| Dark | Recolour text and paths in the renderer, after drawing, with images and annotations left as drawn (U2c: PDFium's forced-colours path flattens every fill to one colour) | Never a CSS `invert()`: photos would become negatives |
 | High contrast | Follow `forced-colors` system colours | As pdf.js does with `Canvas`/`CanvasText` |
 
-Annotation colours never change (they carry meaning). The gutter around pages has its own token. Delivered by [U2c](../todos/ready/U2c-page-appearance-modes.md).
+Annotation colours never change (they carry meaning). The gutter around pages has its own token. Delivered by [U2c](../todos/done/U2c-page-appearance-modes.md).
 
 ### 5.6 Perceived performance (R6, R7)
 
@@ -160,7 +160,7 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 
 ### 5.8 Reader mode (reflow) and local intelligence (R15, R16)
 
-- **Tier 1, tagged files** ([U4b](../todos/ready/U4b-reader-mode-from-structure-tree.md)): derive semantic blocks from the structure tree (ISO 32000-2 §14.8; PDF Association "Deriving HTML from PDF"); about half of web PDFs are tagged since mid-2025. Tables, figures and formulas show as cropped page images with their `/Alt` text; "back to page" returns to the matching position. Font size, line spacing, width and page mode are adjustable.
+- **Tier 1, tagged files** ([U4b](../todos/done/U4b-reader-mode-from-structure-tree.md)): derive semantic blocks from the structure tree (ISO 32000-2 §14.8; PDF Association "Deriving HTML from PDF"); about half of web PDFs are tagged since mid-2025. Tables, figures and formulas show as cropped page images with their `/Alt` text; "back to page" returns to the matching position. Font size, line spacing, width and page mode are adjustable.
 - **Tier 2, untagged files** ([U4c](../todos/ready/U4c-approximate-reader-mode.md)): heuristic layout analysis in pure Rust from lamina's extraction, labelled **"Approximate"**.
 - The core emits blocks (bytes-in/bytes-out); `@laminapdf/ui` renders them. No cloud processing and no page cap (Liquid Mode needs Adobe's cloud and skips files over 200 pages).
 - **OCR and semantic search** come with E13 and later: OCR behind one trait (platform OCR on native, ocrs or PP-OCR in WASM), model weights licence-audited separately from code (DocLayout-YOLO is AGPL; Marker's weights are OpenRAIL-M with commercial limits).
@@ -187,7 +187,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** selection toolbar and bottom action bar, copy as paragraph / copy exact / column selection; a reading-order ground-truth corpus with a metric in CI; page appearance modes in both render backends.
 **Accepted when:** copy-as-paragraph meets the U2b reading-order threshold on the corpus; Sepia and Dark modes leave opaque raster images pixel-identical to Original, and never recolour any image's samples.
-**Todos:** [U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/done/U2b-reading-order-ground-truth.md), [U2c](../todos/ready/U2c-page-appearance-modes.md)
+**Todos:** [U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/done/U2b-reading-order-ground-truth.md), [U2c](../todos/done/U2c-page-appearance-modes.md)
 
 ### U3. Mobile and touch
 
@@ -199,7 +199,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** the network indicator and privacy proof; reader mode from the structure tree, then the approximate reader mode for untagged files.
 **Accepted when:** the indicator shows 0 requests for local files in a Playwright test that also counts requests independently; reader mode round-trips position and passes axe; the approximate mode is labelled and scored against U2b's corpus.
-**Todos:** [U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md), [U4b](../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../todos/ready/U4c-approximate-reader-mode.md)
+**Todos:** [U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md), [U4b](../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../todos/ready/U4c-approximate-reader-mode.md)
 
 ### U5. Product promises
 
@@ -272,7 +272,7 @@ Ticked by the PR that completes them.
 - [x] Desktop selection toolbar and touch bottom action bar ([U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md))
 - [x] Copy as paragraph, copy exact and rectangular selection ([U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md))
 - [x] Reading-order ground-truth corpus and metric in CI ([U2b](../todos/done/U2b-reading-order-ground-truth.md): 22 generated files, first mean 0.787, ratchet in `fixtures/reading-order/threshold.json`)
-- [ ] Page appearance modes (Original, Sepia, Dark, High contrast) in both render backends
+- [x] Page appearance modes (Original, Sepia, Dark, High contrast) in both render backends
 
 ### U3. Mobile and touch
 - [x] Responsive phone and tablet layout: bottom bar, sheets with detents, safe areas ([U3a](../todos/done/U3a-responsive-mobile-and-touch.md))
@@ -281,7 +281,7 @@ Ticked by the PR that completes them.
 
 ### U4. Trust and reflow
 - [x] Network indicator and CSP-backed privacy test ([U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md))
-- [ ] Reader mode from the structure tree
+- [x] Reader mode from the structure tree ([U4b](../todos/done/U4b-reader-mode-from-structure-tree.md))
 - [ ] Approximate reader mode for untagged files
 
 ### U5. Product promises

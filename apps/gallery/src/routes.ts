@@ -35,7 +35,7 @@ export const ROUTES: readonly Route[] = [
   {
     id: "pickers",
     title: "Swatches and appearance chips",
-    components: ["SwatchGroup", "PageAppearanceChips"],
+    components: ["SwatchGroup", "PageAppearanceChips", "PageAppearanceFields"],
     pageRelated: true,
   },
   {
@@ -72,6 +72,7 @@ export const ROUTES: readonly Route[] = [
     ],
   },
   { id: "network", title: "Network activity", components: ["NetworkActivityPanel"] },
+  { id: "reader-mode", title: "Reader mode", components: ["ReaderView", "ReaderSettingsPanel"] },
   {
     id: "reader-shell",
     title: "Reader shell",

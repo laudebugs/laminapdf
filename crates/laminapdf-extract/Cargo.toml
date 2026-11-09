@@ -23,11 +23,17 @@ all-features = true
 layer = "core"
 
 [features]
+default = ["reflow"]
 # serde derives on the output types (laminapdf.extract/1 names) and the JSON serialiser.
 serde = ["dep:serde", "dep:serde_json"]
 # JSON Schema derives (schemars) on the output types: tests/json_schema.rs writes and checks
 # schemas/extract.schema.json with it. No shipped surface needs it at run time.
 schema = ["serde", "dep:schemars"]
+# Reader mode (`reflow`): blocks in the structure tree's order with figure crops. On by default, so
+# `cargo test -p laminapdf-extract` runs its tests; the workspace dependency turns defaults off, so the
+# façade's `reflow` feature decides, and the WASM text module, which builders load, leaves it out
+# (ADR 0016 §6).
+reflow = []
 
 [dependencies]
 laminapdf-content = { workspace = true }
@@ -50,3 +56,7 @@ serde_json = { workspace = true }
 
 [lints]
 workspace = true
+
+[[test]]
+name = "reflow"
+required-features = ["reflow"]

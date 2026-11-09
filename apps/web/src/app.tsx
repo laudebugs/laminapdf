@@ -24,6 +24,7 @@ import {
   PasswordDialog,
   PhoneBottomBar,
   type Platform,
+  type PlatformFile,
   type ReaderController,
   type ReaderError,
   ReaderShell,
@@ -57,7 +58,9 @@ import { useOffline } from "./offline/offline.tsx";
 import type { AppUpdates } from "./offline/updates.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
+import { usePageAppearance } from "./page-appearance.tsx";
 import { railTabs } from "./rail.tsx";
+import { type ReaderMode, useReaderMode } from "./reader-mode.tsx";
 import { type Recent, useRecent } from "./recent.tsx";
 import type { SelectionSurfaces } from "./selection.tsx";
 import { useSelection } from "./selection.tsx";
@@ -103,13 +106,27 @@ function moreEntries(open: boolean, installable: boolean): GatedEntry<MoreId>[] 
   ];
 }
 
-/** Mounts `viewer` into a box that fills the canvas, and shows it while `visible`. */
-function ViewerHost({ viewer, visible }: { viewer: Viewer | undefined; visible: boolean }): ReactNode {
+/**
+ * Mounts `viewer` into a box that fills the canvas, and shows it while `visible`. While
+ * `covered` (reader mode's column is over it) it keeps its size and place, unseen and inert, so
+ * leaving reader mode can move it at once.
+ */
+function ViewerHost({
+  viewer,
+  visible,
+  covered,
+}: {
+  viewer: Viewer | undefined;
+  visible: boolean;
+  covered: boolean;
+}): ReactNode {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (viewer !== undefined && host.current !== null) viewer.mount(host.current);
   }, [viewer]);
-  return <div ref={host} className="web-viewer" hidden={!visible} />;
+  return (
+    <div ref={host} className="web-viewer" hidden={!visible} inert={covered} data-covered={covered || undefined} />
+  );
 }
 
 /** A history with nowhere to go, for a top bar without a view. */
@@ -165,7 +182,8 @@ function useReaderCommands(
   documentActions: FindActions &
     ReturnType<typeof useHistory>["actions"] &
     Output["actions"] &
-    SelectionSurfaces["actions"],
+    SelectionSurfaces["actions"] &
+    ReaderMode["actions"],
   /** The handlers that work with or without a document: the settings'. */
   appActions: Settings["actions"],
 ): { registry: CommandRegistry; context: CommandContext } {
@@ -308,7 +326,10 @@ function ReaderDialogs({
   );
 }
 
-/** The inspector's panel, the status bar's items (the network indicator first) and the offline notice (R15). */
+/**
+ * The inspector's panel, the status bar's items (reader mode's and the network indicator first, focus mode's
+ * last) and the offline notice (R15).
+ */
 function usePanels(
   layout: ShellLayout,
   platform: Platform,
@@ -316,19 +337,26 @@ function usePanels(
   fileName: string | undefined,
   engine: EngineState,
   debug: boolean,
-  offline: { readonly updates: AppUpdates; readonly toasts: ToastQueue; readonly documentOpen: boolean },
+  shared: {
+    readonly updates: AppUpdates;
+    readonly toasts: ToastQueue;
+    readonly documentOpen: boolean;
+    readonly readerMode: ReaderMode;
+  },
 ): { inspector: ReactNode; status: ReactNode[]; notice: ReactNode } {
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, platform, fileName, engine.repairs);
   const { indicator, inspector: networkPanel } = useNetworkPanel(layout, platform, network);
-  const connection = useOffline(offline.updates, offline.toasts, offline.documentOpen);
-  // One inspector at a time: whichever panel the layout holds draws, the other draws nothing.
-  const inspector = repairsPanel ?? networkPanel;
+  const connection = useOffline(shared.updates, shared.toasts, shared.documentOpen);
+  // One inspector at a time: whichever panel the layout holds draws, the others draw nothing.
+  const inspector = shared.readerMode.inspector ?? repairsPanel ?? networkPanel;
   return {
     inspector,
     status: [
+      ...(shared.readerMode.status === undefined ? [] : [shared.readerMode.status]),
       ...(indicator === undefined ? [] : [indicator]),
       ...statusItems(engine, debug, showRepairs),
       ...connection.status,
+      <FocusModeItem key="focus-mode" layout={layout} />,
     ],
     notice: connection.notice,
   };
@@ -345,8 +373,8 @@ function useDocumentMenu(
   shown: Viewer | undefined,
   settings: Settings,
   updates: AppUpdates,
+  toasts: ToastQueue,
 ): {
-  toasts: ToastQueue;
   labels: readonly string[] | undefined;
   output: Output;
   moreItems: { items: ReturnType<typeof useGatedEntries<MoreId>>; onAction: (id: MoreId) => void };
@@ -356,7 +384,6 @@ function useDocumentMenu(
 } {
   const appActions = settings.actions;
   const pages = useStoreState(engine, (s) => s.pages);
-  const [toasts] = useState(() => new ToastQueue());
   const labels = useMemo(
     () => (pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined),
     [pages],
@@ -380,7 +407,6 @@ function useDocumentMenu(
     else output.actions[MORE_COMMANDS[id]]();
   };
   return {
-    toasts,
     labels,
     output: { ...output, dialogs: [output.dialogs, install.dialog] },
     moreItems: { items, onAction },
@@ -406,6 +432,7 @@ function Canvas({
   platform,
   viewer,
   recent,
+  readerMode,
 }: {
   engine: Engine;
   state: ReaderState;
@@ -413,6 +440,8 @@ function Canvas({
   viewer: Viewer | undefined;
   /** The home screen's Recent list. */
   recent: ReactNode;
+  /** Reader mode's column, over the covered view while it is on. */
+  readerMode: ReaderMode;
 }): ReactNode {
   const { reader } = engine;
   const linkProblem = useStoreState(engine, (s) => s.linkProblem);
@@ -432,7 +461,8 @@ function Canvas({
         />
       ) : null}
       {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
-      <ViewerHost viewer={viewer} visible={state.phase === "open"} />
+      <ViewerHost viewer={viewer} visible={state.phase === "open"} covered={readerMode.on} />
+      {state.phase === "open" ? readerMode.view : null}
     </>
   );
 }
@@ -457,42 +487,45 @@ function useRailTabs(engine: Engine, layout: ShellLayout, open: boolean, finding
   );
 }
 
+/** The settings, with the page appearance of the document `viewer` shows, and the toasts they share. */
+function useAppSettings(
+  openPalette: () => void,
+  viewer: Viewer | undefined,
+  file: PlatformFile | undefined,
+): { settings: Settings; toasts: ToastQueue } {
+  const [toasts] = useState(() => new ToastQueue());
+  return { settings: useSettings(openPalette, usePageAppearance(viewer, file, toasts)), toasts };
+}
+
 /** The reader over `engine`, on `platform`. */
 export function App({ engine, platform, network, updates, debug }: AppProps): ReactNode {
-  const { reader } = engine;
-  const state = useReaderState(reader);
+  const state = useReaderState(engine.reader);
   const engineState = useStoreState(engine, (s) => s);
-  const { backend, viewer } = engineState;
   const [palette, setPalette] = useState(false);
   const { layout, modes } = useShell(platform.storage);
   const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const open = state.phase === "open";
-  const shown = open ? viewer : undefined;
-  const settings = useSettings(shell.openPalette);
-  const menu = useDocumentMenu(engine, platform, state, shown, settings, updates);
-  const { toasts, labels, output, moreItems, recent } = menu;
+  const shown = open ? engineState.viewer : undefined;
+  const { settings, toasts } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined);
+  const menu = useDocumentMenu(engine, platform, state, shown, settings, updates, toasts);
+  const { labels, output, moreItems, recent } = menu;
   const find = useFind(shown, open ? state.file : undefined);
   const tabs = useRailTabs(engine, layout, open, find.open);
   const fileName = open ? state.file.name : undefined;
   const rail = tabs.length > 0;
   const history = useHistory(shown, engineState.pages);
   const selection = useSelection(shown, find, platform, KEYS);
-  const commands = useReaderCommands(
-    platform,
-    reader,
-    shown,
-    shell,
-    rail,
-    { ...find.actions, ...history.actions, ...output.actions, ...selection.actions },
-    menu.appActions,
-  );
+  const reading = useReaderMode(engine, layout, platform, shown, open ? state.file : undefined);
+  const actions = { ...find.actions, ...history.actions, ...output.actions, ...selection.actions, ...reading.actions };
+  const commands = useReaderCommands(platform, engine.reader, shown, shell, rail, actions, menu.appActions);
   useWindowTitle(fileName, engineState.title);
   const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState.pages);
   const { inspector, status, notice } = usePanels(layout, platform, network, fileName, engineState, debug, {
     updates,
     toasts,
     documentOpen: open,
+    readerMode: reading,
   });
   return (
     <CommandsProvider
@@ -508,15 +541,16 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
         notice={notice}
         topBar={
           <ReaderTopBar
-            reader={reader}
+            reader={engine.reader}
             {...(shown === undefined ? {} : { viewer: shown })}
             keys={KEYS}
             sidebarOpen={sidebar}
             findOpen={find.open}
+            {...reading.topBar}
             {...(shown === undefined ? {} : { history: history.history })}
             {...(labels === undefined ? {} : { labels })}
             home={<span className="web-wordmark">{APP_NAME}</span>}
-            debug={debug ? <EngineDebugMenu engine={engine} backend={backend} /> : undefined}
+            debug={debug ? <EngineDebugMenu engine={engine} backend={engineState.backend} /> : undefined}
             view={settings.viewButton}
             more={moreItems}
           />
@@ -524,14 +558,16 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
         rail={<LeftRail layout={layout} tabs={tabs} />}
         bottomBar={selection.bar ?? <PhoneBottomBar layout={layout} rail={rail} more={moreItems} keys={KEYS} />}
         {...(inspector === undefined ? {} : { inspector })}
-        status={
-          <>
-            {status}
-            <FocusModeItem layout={layout} />
-          </>
-        }
+        status={status}
       >
-        <Canvas engine={engine} state={state} platform={platform} viewer={viewer} recent={recent.home} />
+        <Canvas
+          engine={engine}
+          state={state}
+          platform={platform}
+          viewer={engineState.viewer}
+          recent={recent.home}
+          readerMode={reading}
+        />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
         {output.dialogs}
       </ReaderShell>

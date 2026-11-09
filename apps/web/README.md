@@ -63,6 +63,22 @@ The policy itself stays as ADR 0011 sets it, with `connect-src 'self' https:` so
 
 Browser extensions make requests no page can see, so the panel says so; your browser's developer tools show those too.
 
+## Reader mode
+
+Reader mode turns a tagged PDF into one column of text that the reader can size. It opens from the Reader button in the top bar, the `R` key, or "Reader mode" in the command palette. The column follows the file's structure tree, so headings, lists, quotes and notes come out as real HTML in the order the author tagged, whatever order the page draws them in. Figures, formulas and tables stay pictures: each is a crop of its page, drawn by the document worker, named by its alternate text or by "The file gives no description of it". Reader settings (in the inspector) set the text size from 14 to 32 px, the line spacing and the line length, for every document. The column takes the page's paper and ink.
+
+Reader mode keeps the reader's place both ways. It starts the column at the block at the top of the page view, and "Back to page n", Escape or the toggle return the page view to the block at the column's top. The page view stays laid out under the column, unseen and inert, so it can move there at once.
+
+Reader mode checks a file's tree before it shows anything, since many tagged files are tagged badly. It refuses:
+
+- a file with no tags;
+- an empty tree;
+- a tree whose content sits mostly in bare spans;
+- a tree that covers too little of the visible text on more than a quarter of its pages;
+- a tree whose order the pages' layout contradicts.
+
+The column then shows "Reader mode isn't available for this document" and Back to page. The checks run in `laminapdf-extract` (`reflow`), and the reflow comes from the extract module only, which the reader loads.
+
 ## Printing, downloads and properties
 
 The More menu holds Download a copy, Print… (also `Ctrl P`, or `⌘P` on a Mac; while a document is open, the shortcut opens the reader's print, not the browser's) and Document properties…. All three work on this device; nothing about the file goes to any server.
@@ -74,6 +90,14 @@ The More menu holds Download a copy, Print… (also `Ctrl P`, or `⌘P` on a Mac
 **Download a copy** saves the file's bytes exactly as opened: a local file's own bytes, or a linked file's from the document worker's cache and its site, unchanged. An encrypted file stays encrypted. The name comes from the file, or a linked file's address, made safe to save: no path, no characters Windows refuses, and `.pdf` at the end.
 
 **Document properties** reads the file with Lamina PDF's own parser, not the render engine: the Info and XMP fields (XMP wins where they differ), the PDF version, pages, sizes, file size, tagging, the fonts the pages use, the encryption and the author's permissions, and the signatures present, which are counted and never verified.
+
+## Page appearance
+
+View settings › Page appearance draws the pages in Sepia, Dark or High contrast, apart from the UI theme. Images and annotation colours stay as they are. You can apply it to this document or to all documents; a choice for this document overrides the one for all. A toast confirms it, with Undo.
+
+With no choice made, a system in forced colours (Windows contrast themes) gets High contrast, drawn in the system's own text and background colours.
+
+The choices stay in this browser's `localStorage`. A local file's choice is kept under a hash of its name and size. A linked file's choice lasts only until the tab closes, because the reader stores nothing about linked files.
 
 ## Offline, installing and what stays in the browser
 
@@ -117,6 +141,8 @@ Three more suites use `e2e/remote-host.ts`, a local HTTPS server on another port
 - **`privacy.e2e.test.ts`** checks what leaves the browser while a local file, a linked file and an encrypted file of each kind open. It records every request of the page and its worker, and fails when a request body carries 32 bytes of the document or when a request to the reader's origin names the linked address. It also fails on a request to the reader's origin that isn't a GET and on a Referer or cookie reaching the file's site. Any cookie at all, any other origin and the password in any request fail it too.
 
 `e2e/output.e2e.test.ts` prints a 50-page file with landscape pages among portrait ones. It replaces the print frame's `print()` before it runs, then checks that all 50 images loaded at their pages' sizes, with a named `@page` rule each. Throughout, it checks that neither the page nor the frame met a CSP violation and that nothing was fetched. It prints a range by number and by page label, refuses a page the file lacks, and stops on Cancel. For a file whose author restricted printing, the reader asks once more, with Cancel focused, before it prints. Its downloads of a local file, a linked file and an encrypted file must match the originals' SHA-256. Its properties must show what pypdf reads in `fixtures/corpus/expected.json`, close with Escape and pass axe. Playwright's WebKit reports each native `<select>` as an inline style under the reader's policy, even on a page holding only a bare `<select>`, so the WebKit run leaves those reports out.
+
+`e2e/page-appearance.e2e.test.ts` chooses Dark from View settings. The paper must turn dark while a highlight stays yellow, Undo must bring the colours back, and the choice must come back with the same file but not with another. In Chromium, emulated forced colours must start the reader in High contrast.
 
 `e2e/offline.e2e.test.ts` loads the reader once, cuts the network and reloads. The page must come from the service worker with exactly the server's headers, an inline script must stay blocked, and a local file must open, render and be searchable. 
 

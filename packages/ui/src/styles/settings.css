@@ -8,6 +8,16 @@
     padding: var(--paper-space-16);
   }
 
+  /* The Page appearance section (R10): its label, the chips, whom it is for, the help line. */
+  .paper-page-appearance-fields {
+    display: grid;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-page-appearance-fields .paper-field-help {
+    margin: 0;
+  }
+
   .paper-view-settings-title,
   .paper-settings-heading {
     margin: 0;

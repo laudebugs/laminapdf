@@ -17,7 +17,7 @@ use crate::plugins::{LayoutRegion, OcrWord, RegionLabel};
 use crate::regions::{inside, kind_for, ocr_pieces, region_near, region_of};
 use crate::segments::{Covers, segments};
 use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
-use crate::tagged::{self, TaggedIndex, TreeBlocks};
+use crate::tagged::{self, Implausible, TaggedIndex, TreeBlocks};
 use crate::text_fix::{decompose_ligatures, join_lines, visible_chars};
 use crate::text_layer::measure;
 use crate::visibility::{Backdrops, Look, flags, normalised};
@@ -39,7 +39,7 @@ pub(crate) enum TreeUse {
     /// The tree gave its order.
     Used,
     /// It had tagged content, but the tree failed a check.
-    Ignored,
+    Ignored(Implausible),
     /// No tree, or nothing of the tree on this page.
     None,
 }
@@ -579,7 +579,7 @@ pub(crate) fn extract_page(
                     })?;
                     (
                         with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped),
-                        TreeUse::Ignored,
+                        TreeUse::Ignored(implausible),
                     )
                 }
             }

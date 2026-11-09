@@ -362,3 +362,44 @@ describe("layers", () => {
     v.destroy();
   });
 });
+
+describe("page appearance", () => {
+  it("re-renders only the pages in view when the appearance changes, keeping the scroll position", async () => {
+    const v = await opened();
+    v.goToPage(200);
+    const allSharp = () => {
+      const { first, last } = v.getState().visibleRange;
+      return (
+        last >= first &&
+        Array.from({ length: last - first + 1 }, (_, i) => v.stats().pages[first + i]).every((s) => s === "sharp")
+      );
+    };
+    await until(allSharp);
+    const { first, last } = v.getState().visibleRange;
+    const top = v.element.scrollTop;
+    const asked: { page: number; appearance: unknown }[] = [];
+    const render = rpc.render.bind(rpc);
+    rpc.render = (request, options) => {
+      asked.push({ page: request.page, appearance: request.appearance });
+      return render(request, options);
+    };
+    try {
+      v.setAppearance("dark");
+      expect(v.getState().appearance).toBe("dark");
+      await until(() => asked.length > 0 && allSharp());
+      await frames(10);
+      expect(v.element.scrollTop).toBe(top);
+      for (const a of asked) {
+        expect(a.appearance).toBe("dark");
+        expect(a.page >= first && a.page <= last, `page ${a.page} outside ${first}–${last}`).toBe(true);
+      }
+      // Page 200's paper (its top-left corner, in view and outside the filled box) is Dark's now.
+      const canvas = v.element.querySelector<HTMLCanvasElement>('.lamina-page[data-page-index="200"] canvas');
+      const [r, g, b] = canvas?.getContext("2d")?.getImageData(2, 2, 1, 1).data ?? [];
+      expect([r, g, b]).toEqual([0x22, 0x21, 0x1f]);
+    } finally {
+      rpc.render = render;
+      v.destroy();
+    }
+  });
+});

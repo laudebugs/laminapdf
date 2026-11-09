@@ -2,7 +2,24 @@
 // (@laminapdf/render-pdfium, @laminapdf/render-hayro), the tile planner they share, and RenderError.
 // It mirrors laminapdf-render's Rust trait: bounded tiles of a page at a scale, straight-alpha RGBA8
 // rows of width × 4 bytes, validated once by planTile so both adapters agree on sizes.
+
+import type { PageAppearance } from "./appearance.js";
 import { DOCS_URL, KINDS, type RenderErrorCode, type RenderErrorKind } from "./generated/codes.js";
+
+export {
+  DARK,
+  type Kept,
+  mostlyChanged,
+  type PageAppearance,
+  type PagePalette,
+  type Quad,
+  quadOf,
+  recolourRgb,
+  recolours,
+  recolourTile,
+  SEPIA,
+  touches,
+} from "./appearance.js";
 
 /**
  * The bytes of a document, read synchronously (PDFium's file access can't await). A read
@@ -87,7 +104,7 @@ export interface Rgba8 {
 /** Opaque white, the default background. */
 export const WHITE: Rgba8 = Object.freeze({ r: 255, g: 255, b: 255, a: 255 });
 
-/** One render: a page, a scale, an optional tile, a view rotation, flags and a background. */
+/** One render: a page, a scale, an optional tile, a view rotation, flags, a background and the page appearance. */
 export interface RenderRequest {
   /** 0-based (ADR 0027). */
   readonly page: number;
@@ -99,6 +116,8 @@ export interface RenderRequest {
   readonly flags?: Partial<RenderFlags>;
   /** Omitted is white; `null` is transparent. */
   readonly background?: Rgba8 | null;
+  /** How the page's colours are drawn; omitted is `"original"`, its own. */
+  readonly appearance?: PageAppearance;
 }
 
 /** A page as a backend reports it: displayed size in points (`/Rotate` applied) and `/Rotate`. */
@@ -242,6 +261,7 @@ export function planTile(page: RenderPage, request: RenderRequest, limits: Rende
   checkScale(request.scale);
   checkPage(page);
   checkBackground(request.background);
+  checkAppearance(request.appearance);
   const { width: pageWidth, height: pageHeight } = pagePixels(
     page,
     request.scale,
@@ -279,6 +299,15 @@ function checkBackground(background: Rgba8 | null | undefined): void {
   if (!channels.every((c) => Number.isInteger(c) && c >= 0 && c <= 255)) {
     throw new RenderError("invalid-argument", "invalid render request: colour channels must be integers 0–255");
   }
+}
+
+function checkAppearance(appearance: PageAppearance | undefined): void {
+  if (appearance === undefined || appearance === "original" || appearance === "sepia" || appearance === "dark") return;
+  if (typeof appearance !== "object" || appearance === null || appearance.kind !== "high-contrast") {
+    throw new RenderError("invalid-argument", "invalid render request: unknown page appearance");
+  }
+  checkBackground(appearance.ink);
+  checkBackground(appearance.paper);
 }
 
 /**

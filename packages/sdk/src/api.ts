@@ -71,6 +71,7 @@ export { onLeak } from "./internal/handle.js";
 export type { Transform } from "./matrix.js";
 export { Matrix } from "./matrix.js";
 export type { PathBuilder } from "./path.js";
+export type { Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal } from "./reflow.js";
 export type { HttpRangeOptions } from "./source/http.js";
 export { httpRangeSource } from "./source/http.js";
 export type { ByteRange, RangeOptions, RangeSource } from "./source/range.js";

@@ -19,6 +19,7 @@
 pub mod across_pages;
 pub mod flow_table;
 pub mod reading_order;
+pub mod reflow;
 pub mod samples;
 pub mod tagged;
 pub mod text;

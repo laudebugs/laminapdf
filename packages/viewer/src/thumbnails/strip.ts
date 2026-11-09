@@ -6,12 +6,13 @@
 // own (32 MB by default), so scrolling back costs nothing. Framework-free; styles are set through
 // the CSSOM, which a `style-src 'self'` policy allows.
 
+import type { PageAppearance } from "@laminapdf/render";
 import type { PageInfo } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { PageLayout, type Rotation, rotated } from "../layout/page-layout.js";
-import type { OpenedDocument } from "../protocol.js";
+import { appearanceField, appearanceKey, type OpenedDocument } from "../protocol.js";
 import type { Viewer } from "../view/viewer.js";
 
 /** How a strip looks and how much it keeps. */
@@ -71,6 +72,7 @@ export class ThumbnailStrip {
   #document: OpenedDocument | undefined;
   #layout: PageLayout | undefined;
   #rotation: Rotation = 0;
+  #appearance: PageAppearance = "original";
   /** The page the viewer shows, marked selected. */
   #current = 0;
   /** The page that takes Tab (roving focus). */
@@ -150,6 +152,12 @@ export class ThumbnailStrip {
     if (state.rotation !== this.#rotation) {
       this.#rotation = state.rotation;
       this.#relayout();
+    }
+    // The thumbnails follow the page appearance: drawn again in it.
+    if (appearanceKey(state.appearance) !== appearanceKey(this.#appearance)) {
+      this.#appearance = state.appearance;
+      this.#unmountAll();
+      this.#schedule();
     }
     if (state.currentPage === this.#current || this.#document === undefined) return;
     this.#current = state.currentPage;
@@ -241,7 +249,9 @@ export class ThumbnailStrip {
   async #draw(item: Item, layout: PageLayout): Promise<void> {
     const ratio = globalThis.devicePixelRatio || 1;
     const scale = layout.scale * ratio;
-    const key = `${this.#client.document?.id ?? 0}:${item.index}:${layout.rotation}:${scale.toFixed(4)}`;
+    const appearance = this.#appearance;
+    const id = this.#client.document?.id ?? 0;
+    const key = `${id}:${item.index}:${layout.rotation}:${scale.toFixed(4)}:${appearanceKey(appearance)}`;
     let bitmap = this.#cache.get(key);
     let owned = false;
     if (bitmap === undefined) {
@@ -249,7 +259,7 @@ export class ThumbnailStrip {
       item.abort = abort;
       try {
         const rendered = await this.#client.render(
-          { page: item.index, scale, rotation: layout.rotation },
+          { page: item.index, scale, rotation: layout.rotation, ...appearanceField(appearance) },
           { priority: "background", signal: abort.signal },
         );
         bitmap = rendered.bitmap;
