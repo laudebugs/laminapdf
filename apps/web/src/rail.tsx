@@ -1,7 +1,8 @@
 // The rail's tabs for an open document (R06): Pages, the viewer's thumbnails strip, and Outline,
 // the document's outline as a tree, read from the document worker the first time the tab shows.
 // The outline marks the section at the top of the view, worked out at most every 150 ms while the
-// view scrolls.
+// view scrolls. Where the rail covers the page (a drawer, or the phone's Contents sheet), going
+// somewhere from it closes it, so the page shows.
 
 import {
   currentOutlineItem,
@@ -9,7 +10,10 @@ import {
   message,
   OutlineTree,
   type OutlineTreeItem,
+  RAIL_DRAWER_QUERY,
   type RailTab,
+  type ShellLayout,
+  useMediaQuery,
   useStoreState,
 } from "@laminapdf/ui";
 import type { ThumbnailStrip, Viewer } from "@laminapdf/viewer";
@@ -22,13 +26,32 @@ const SECTION_EVERY = 150;
 /** The outline's items before it is read. */
 const NO_ITEMS: readonly OutlineTreeItem[] = [];
 
+/** The point a page jump puts just under the viewport's top, past the gap left above the page, in CSS px. */
+const TOP_PROBE = 24;
+
+/** Closes the rail after a jump where it covers the page. */
+function useCloseAfterJump(layout: ShellLayout): () => void {
+  const covers = useMediaQuery(RAIL_DRAWER_QUERY);
+  return () => {
+    if (covers) layout.setRailOpen(false);
+  };
+}
+
 /** Puts the strip's list in the tab's panel. */
-function PagesPanel({ strip }: { strip: ThumbnailStrip }): ReactNode {
+function PagesPanel({ strip, layout }: { strip: ThumbnailStrip; layout: ShellLayout }): ReactNode {
   const host = useRef<HTMLDivElement>(null);
+  const jumped = useCloseAfterJump(layout);
   useEffect(() => {
     if (host.current !== null) strip.mount(host.current);
   }, [strip]);
-  return <div ref={host} className="web-thumbnails" />;
+  // The strip goes to a page on a click, or on Enter or Space on a thumbnail.
+  const onKeyUp = (e: { key: string }) => {
+    if (e.key === "Enter" || e.key === " ") jumped();
+  };
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: listens for the strip's own options, which take the clicks and keys
+    <div ref={host} className="web-thumbnails" onClick={jumped} onKeyUp={onKeyUp} />
+  );
 }
 
 /** The outline item that holds the top of `viewer`'s view, kept up to date as it scrolls. */
@@ -38,8 +61,10 @@ function useCurrentSection(viewer: Viewer, items: readonly OutlineTreeItem[]): s
     let timer: ReturnType<typeof setTimeout> | undefined;
     const update = () => {
       timer = undefined;
-      const top = viewer.pointAt(0, 0);
-      setCurrent(top === undefined ? undefined : currentOutlineItem(items, { page: top.page, y: top.y }));
+      const top = viewer.pointAt(0, TOP_PROBE);
+      // Above the first page the probe is in its gap: that is still the first page's top.
+      const y = top === undefined ? 0 : Math.min(1, Math.max(0, top.y));
+      setCurrent(top === undefined ? undefined : currentOutlineItem(items, { page: top.page, y }));
     };
     update();
     const off = viewer.subscribe(() => {
@@ -54,8 +79,9 @@ function useCurrentSection(viewer: Viewer, items: readonly OutlineTreeItem[]): s
 }
 
 /** The outline, read when the tab first shows. */
-function OutlinePanel({ engine, viewer }: { engine: Engine; viewer: Viewer }): ReactNode {
+function OutlinePanel({ engine, viewer, layout }: { engine: Engine; viewer: Viewer; layout: ShellLayout }): ReactNode {
   const outline = useStoreState(engine, (s) => s.outline);
+  const jumped = useCloseAfterJump(layout);
   // Read once per document: a document opened while the tab shows clears it, so it reads again.
   useEffect(() => {
     if (outline === undefined) void engine.loadOutline();
@@ -74,17 +100,24 @@ function OutlinePanel({ engine, viewer }: { engine: Engine; viewer: Viewer }): R
     <OutlineTree
       items={items}
       {...(current === undefined ? {} : { current })}
-      onNavigate={(id) => void engine.goToOutlineItem(id)}
+      onNavigate={(id) => {
+        void engine.goToOutlineItem(id);
+        jumped();
+      }}
     />
   );
 }
 
 /** The rail's tabs while a document is open; none otherwise. */
-export function railTabs(engine: Engine, open: boolean): RailTab[] {
+export function railTabs(engine: Engine, layout: ShellLayout, open: boolean): RailTab[] {
   const { strip, viewer } = engine.getState();
   if (!open || strip === undefined || viewer === undefined) return [];
   return [
-    { id: "pages", label: message("shell.rail.pages"), panel: <PagesPanel strip={strip} /> },
-    { id: "outline", label: message("shell.rail.outline"), panel: <OutlinePanel engine={engine} viewer={viewer} /> },
+    { id: "pages", label: message("shell.rail.pages"), panel: <PagesPanel strip={strip} layout={layout} /> },
+    {
+      id: "outline",
+      label: message("shell.rail.outline"),
+      panel: <OutlinePanel engine={engine} viewer={viewer} layout={layout} />,
+    },
   ];
 }

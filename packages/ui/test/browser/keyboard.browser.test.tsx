@@ -306,4 +306,21 @@ describe("OutlineTree", () => {
     const host = renderIn(<OutlineTree items={items} current="b.1" onNavigate={() => {}} />);
     expect(get(host, "[aria-current=location]").textContent).toContain("Bravo two");
   });
+
+  it("marks a new current section when it changes", async () => {
+    function Moving() {
+      const [current, setCurrent] = useState("a");
+      return (
+        <>
+          <button type="button" onClick={() => setCurrent("c")}>
+            Move
+          </button>
+          <OutlineTree items={items} current={current} onNavigate={() => {}} />
+        </>
+      );
+    }
+    const host = renderIn(<Moving />);
+    await userEvent.click(get(host, "button"));
+    expect(all(host, "[aria-current=location]").map((el) => el.textContent)).toEqual(["Charlie4"]);
+  });
 });

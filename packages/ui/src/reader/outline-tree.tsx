@@ -105,7 +105,9 @@ function Item({ item, current }: { item: OutlineTreeItem; current: string | unde
           </div>
         )}
       </TreeItemContent>
-      <Collection items={item.children}>{(child) => <Item item={child} current={current} />}</Collection>
+      <Collection items={item.children} dependencies={[current]}>
+        {(child) => <Item item={child} current={current} />}
+      </Collection>
     </TreeItem>
   );
 }
@@ -129,6 +131,8 @@ export function OutlineTree({ items, current, onNavigate }: OutlineTreeProps): R
       expandedKeys={expanded}
       onExpandedChange={setExpanded}
       onAction={(key) => onNavigate(String(key))}
+      // The rows are cached by item: a new current section must draw them again.
+      dependencies={[current]}
     >
       {(item) => <Item item={item} current={current} />}
     </Tree>

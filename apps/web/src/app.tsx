@@ -204,7 +204,10 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
   // The rail's panels follow the engine; they are made again only when it changes.
-  const tabs = useMemo(() => railTabs(engine, open), [engine, open, engineState.strip, engineState.viewer]);
+  const tabs = useMemo(
+    () => railTabs(engine, layout, open),
+    [engine, layout, open, engineState.strip, engineState.viewer],
+  );
   const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0);
   const labels = useMemo(() => {
     const pages = engineState.pages;
