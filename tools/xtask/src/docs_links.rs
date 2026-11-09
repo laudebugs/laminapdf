@@ -9,6 +9,7 @@
 //! `cargo xtask docs-links --external` checks the `http(s)` URLs instead, over the network: the
 //! nightly lane's job (see [`external`]).
 
+pub(crate) mod cache;
 pub(crate) mod external;
 mod html;
 mod slug;

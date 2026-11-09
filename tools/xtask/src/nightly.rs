@@ -404,7 +404,10 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
     part("render-diff", render_diff::run(ws, &render_args));
     part("verapdf", crate::verapdf::run(ws, None));
     part("roundtrip", crate::roundtrip::run_suite(ws, &crate::roundtrip::TOOLS));
-    part("docs-links --external", docs_links::external::run(&ws.root, false));
+    part(
+        "docs-links --external",
+        docs_links::external::run(&ws.root, &docs_links::cache::ExternalArgs::default()),
+    );
     // Last, as in the workflow: timings taken after the heavy parts have finished.
     let bench_args = BenchArgs {
         quick,

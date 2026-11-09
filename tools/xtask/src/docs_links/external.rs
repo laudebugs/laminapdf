@@ -37,6 +37,7 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use serde_json::json;
 
+use super::cache::{self, ExternalArgs};
 use super::{markdown_files, scan};
 use crate::tracked::Tracked;
 use crate::util::{github_output, md_cell, summary};
@@ -50,8 +51,13 @@ const REPORT_DIR: &str = "target/nightly/links";
 /// Hosts checked at once.
 const WORKERS: usize = 8;
 
-/// Consecutive URLs of one host failing without an HTTP answer before the rest are skipped.
+/// Consecutive URLs of one host failing without an HTTP answer, or with a server error, before
+/// the rest are skipped.
 const HOST_GIVE_UP: usize = 3;
+
+/// Consecutive URLs of one host refused (403 or 429) before the rest are skipped: a host that
+/// refuses the check keeps refusing it, and its rate limit paces each refusal.
+const HOST_REFUSED_GIVE_UP: usize = 5;
 
 /// The most `file:line` sites listed per URL in the Markdown report.
 const SITES_SHOWN: usize = 3;
@@ -273,6 +279,9 @@ pub(crate) enum Outcome {
     Refused { status: u16, attempts: u32 },
     /// Not fetched: covered by the allowlist.
     Allowed { reason: String },
+    /// Not fetched: it answered OK on its first try `age_days` ago, within its recheck age
+    /// ([`super::cache`]).
+    Cached { age_days: u64 },
 }
 
 impl Outcome {
@@ -295,11 +304,15 @@ impl Outcome {
             Self::Missing { .. } => "missing",
             Self::Refused { .. } => "refused",
             Self::Allowed { .. } => "allowed",
+            Self::Cached { .. } => "cached",
         }
     }
 
     fn detail(&self) -> String {
         match self {
+            Self::Refused { status, attempts: 0 } => {
+                format!("not fetched: the host refused its previous {HOST_REFUSED_GIVE_UP} URLs (last {status})")
+            }
             Self::Alive { status, attempts: 1 } => status.to_string(),
             Self::Alive { status, attempts } => format!("{status} on attempt {attempts}"),
             Self::Missing {
@@ -316,6 +329,7 @@ impl Outcome {
                 attempts,
             } => format!("{message} after {attempts} attempt(s)"),
             Self::Allowed { reason } => reason.clone(),
+            Self::Cached { age_days } => format!("ok {age_days} day(s) ago, not fetched again yet"),
         }
     }
 
@@ -534,13 +548,19 @@ pub(crate) fn check_all(
             scope.spawn(|| {
                 // A poisoned lock means another worker panicked: stop taking hosts.
                 while let Some(host_urls) = queue.lock().ok().and_then(|mut queue| queue.pop_front()) {
-                    let mut unreachable = 0;
+                    let (mut unreachable, mut refused) = (0, 0);
+                    let mut last_refusal = 403;
                     for (i, url) in host_urls.into_iter().enumerate() {
                         let outcome = if unreachable >= HOST_GIVE_UP {
                             Outcome::Missing {
                                 last: Probe::Network(format!(
-                                    "not fetched: the host's previous {HOST_GIVE_UP} URLs got no HTTP answer"
+                                    "not fetched: the host's previous {HOST_GIVE_UP} URLs got no HTTP answer or a server error"
                                 )),
+                                attempts: 0,
+                            }
+                        } else if refused >= HOST_REFUSED_GIVE_UP {
+                            Outcome::Refused {
+                                status: last_refusal,
                                 attempts: 0,
                             }
                         } else {
@@ -549,16 +569,16 @@ pub(crate) fn check_all(
                             }
                             check_url(url, pacing, probe, sleep)
                         };
-                        if matches!(
-                            outcome,
+                        match &outcome {
                             Outcome::Missing {
-                                last: Probe::Network(_),
+                                last: Probe::Network(_) | Probe::Status(500..=599),
                                 ..
+                            } => unreachable += 1,
+                            Outcome::Refused { status, .. } => {
+                                refused += 1;
+                                last_refusal = *status;
                             }
-                        ) {
-                            unreachable += 1;
-                        } else {
-                            unreachable = 0;
+                            _ => (unreachable, refused) = (0, 0),
                         }
                         on_done(url, &outcome);
                         if let Ok(mut done) = done.lock() {
@@ -588,9 +608,10 @@ fn markdown_report(urls: &BTreeMap<String, Vec<Site>>, results: &BTreeMap<String
     let mut out = String::from("## External links\n\n");
     let _ = writeln!(
         out,
-        "{} URLs: {} ok, {} flaky, {} missing, {} refused, {} allowed ({ALLOWLIST}).\n",
+        "{} URLs: {} ok, {} cached (ok within a week), {} flaky, {} missing, {} refused, {} allowed ({ALLOWLIST}).\n",
         results.len(),
         count("ok"),
+        count("cached"),
         count("flaky"),
         count("missing"),
         count("refused"),
@@ -638,8 +659,9 @@ fn markdown_report(urls: &BTreeMap<String, Vec<Site>>, results: &BTreeMap<String
     out
 }
 
-/// `cargo xtask docs-links --external [--json]`.
-pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
+/// `cargo xtask docs-links --external [--json] [--cache <file>]`.
+pub(crate) fn run(root: &Path, args: &ExternalArgs) -> Result<()> {
+    let json_output = args.json;
     let tracked = Tracked::from_git(root)?;
     let files = markdown_files(&tracked);
     let urls = collect(root, &files)?;
@@ -670,7 +692,15 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
             println!("{:<7} {url} ({})", outcome.label(), outcome.detail());
         }
     };
-    let results = check_all(&urls, &allowlist, Pacing::NIGHTLY, &curl, &thread::sleep, &progress);
+    // URLs that answered OK within their recheck age aren't fetched again (`--cache`).
+    let cache_path = args.cache.as_ref().map(|path| root.join(path));
+    let results = cache::check_due(
+        &urls,
+        cache_path.as_deref(),
+        |url| allowed(&allowlist, url).is_some(),
+        |due| check_all(due, &allowlist, Pacing::NIGHTLY, &curl, &thread::sleep, &progress),
+        progress,
+    )?;
 
     let report_dir = root.join(REPORT_DIR);
     fs::create_dir_all(&report_dir).with_context(|| format!("creating {REPORT_DIR}"))?;
@@ -1094,6 +1124,58 @@ mod tests {
                 asked.load(Ordering::Relaxed)
             ),
             (5, super::HOST_GIVE_UP * probes_per_url)
+        );
+    }
+
+    #[test]
+    fn check_all_should_stop_fetching_a_host_after_repeated_refusals() {
+        let urls = urls(
+            &(1..=8)
+                .map(|i| format!("https://r.example/{i}"))
+                .collect::<Vec<_>>()
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+        );
+        let asked = std::sync::Mutex::new(std::collections::BTreeSet::new());
+        let probe = |url: &str, _: Method| {
+            if let Ok(mut asked) = asked.lock() {
+                asked.insert(url.to_owned());
+            }
+            Probe::Status(403)
+        };
+        let results = check_all(&urls, &[], FAST, &probe, &no_sleep, &|_: &str, _: &Outcome| {});
+        assert!(results.values().all(Outcome::is_refused));
+        let skipped = results
+            .values()
+            .filter(|o| matches!(o, Outcome::Refused { attempts: 0, .. }))
+            .count();
+        let fetched = asked.lock().map(|a| a.len()).unwrap_or_default();
+        assert_eq!(
+            (fetched, skipped),
+            (super::HOST_REFUSED_GIVE_UP, 8 - super::HOST_REFUSED_GIVE_UP)
+        );
+    }
+
+    #[test]
+    fn check_all_should_stop_fetching_a_host_after_repeated_server_errors() {
+        let urls = urls(&[
+            "https://g.example/1",
+            "https://g.example/2",
+            "https://g.example/3",
+            "https://g.example/4",
+        ]);
+        let asked = AtomicUsize::new(0);
+        let probe = |_: &str, _: Method| {
+            asked.fetch_add(1, Ordering::Relaxed);
+            Probe::Status(504)
+        };
+        let results = check_all(&urls, &[], FAST, &probe, &no_sleep, &|_: &str, _: &Outcome| {});
+        assert!(results.values().all(Outcome::is_missing));
+        // Every attempt of the first three URLs, then nothing.
+        assert_eq!(
+            asked.load(Ordering::Relaxed),
+            super::HOST_GIVE_UP * (FAST.retries as usize + 1)
         );
     }
 
