@@ -1,0 +1,237 @@
+/*
+ * The story cards (docs/stories/<story>/visuals/*.html; templates in .agents/skills/lamina-story/):
+ * one look for both shapes, chosen by <html data-shape="portrait|landscape">. story-image.mjs serves
+ * this file as /story-card.css. Every colour is a --paper-* token; never write a hex value here.
+ */
+
+html,
+body {
+  margin: 0;
+}
+body {
+  background: var(--paper-ground);
+  color: var(--paper-text);
+  font-family: var(--paper-font-sans);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sheet {
+  box-sizing: border-box;
+  background: var(--paper-surface);
+  border-radius: 4px;
+  box-shadow: var(--paper-shadow-page);
+  /* The renderer refuses a card whose content spills past this box. */
+  overflow: hidden;
+}
+.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.wordmark {
+  font-weight: 700;
+  line-height: 1;
+}
+.kicker {
+  color: var(--paper-muted);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0;
+  font-family: var(--paper-font-serif);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+.figure {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.foot {
+  display: flex;
+  justify-content: space-between;
+  color: var(--paper-muted);
+}
+
+/* A bar chart: each bar's length is its value over the largest, in --v (0 to 1), from zero. */
+.bar .name {
+  font-weight: 600;
+  line-height: 1.2;
+  display: flex;
+  justify-content: space-between;
+}
+.bar .name .value {
+  color: var(--paper-text-2);
+  font-weight: 400;
+}
+.bar .track {
+  background: var(--paper-gutter);
+  border-radius: 4px;
+}
+.bar .fill {
+  height: 100%;
+  width: calc(var(--v) * 100%);
+  min-width: 6px;
+  background: var(--paper-control-border);
+  border-radius: 4px;
+}
+.bar.ours .fill {
+  background: var(--paper-accent);
+}
+.bar.ours .name {
+  color: var(--paper-accent);
+}
+.bars .note {
+  line-height: 1.35;
+  color: var(--paper-muted);
+}
+
+/* An SVG drawing: classes give the token colours; draw in the viewBox's units. */
+.drawing svg {
+  width: 100%;
+  height: 100%;
+}
+.ink {
+  fill: none;
+  stroke: var(--paper-text);
+  stroke-width: 3;
+}
+.rule {
+  fill: none;
+  stroke: var(--paper-hairline);
+  stroke-width: 2;
+}
+.page {
+  fill: var(--paper-field);
+  stroke: var(--paper-control-border);
+  stroke-width: 2;
+}
+.good {
+  fill: var(--paper-accent-tint);
+  stroke: var(--paper-accent);
+  stroke-width: 3;
+}
+.bad {
+  fill: var(--paper-danger-tint);
+  stroke: var(--paper-danger);
+  stroke-width: 4;
+}
+.label {
+  fill: var(--paper-text-2);
+  font: 400 28px var(--paper-font-sans);
+}
+.label.strong {
+  fill: var(--paper-text);
+  font-weight: 600;
+}
+.label.bad-text {
+  fill: var(--paper-danger);
+  font-weight: 600;
+}
+
+/* Portrait: 1080 × 1350, for LinkedIn and Threads. */
+[data-shape="portrait"],
+[data-shape="portrait"] body {
+  width: 1080px;
+  height: 1350px;
+}
+[data-shape="portrait"] .sheet {
+  width: 952px;
+  height: 1222px;
+  padding: 64px 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+[data-shape="portrait"] .wordmark {
+  font-size: 30px;
+}
+[data-shape="portrait"] .kicker {
+  font-size: 22px;
+}
+[data-shape="portrait"] h1 {
+  font-size: 56px;
+}
+[data-shape="portrait"] .figure {
+  flex: 1;
+}
+[data-shape="portrait"] .foot {
+  font-size: 22px;
+}
+[data-shape="portrait"] .bars {
+  gap: 34px;
+}
+[data-shape="portrait"] .bar .name {
+  font-size: 30px;
+  margin-bottom: 12px;
+}
+[data-shape="portrait"] .bar .track {
+  height: 64px;
+}
+[data-shape="portrait"] .bars .note {
+  font-size: 26px;
+}
+[data-shape="portrait"] .drawing svg {
+  max-height: 820px;
+}
+
+/* Landscape: 1600 × 900, for X; the headline left, the figure right. */
+[data-shape="landscape"],
+[data-shape="landscape"] body {
+  width: 1600px;
+  height: 900px;
+}
+[data-shape="landscape"] .sheet {
+  width: 1472px;
+  height: 772px;
+  padding: 56px 68px;
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  grid-template-rows: auto 1fr auto;
+  column-gap: 56px;
+  row-gap: 24px;
+}
+[data-shape="landscape"] .top,
+[data-shape="landscape"] .foot {
+  grid-column: 1 / -1;
+}
+[data-shape="landscape"] .wordmark {
+  font-size: 30px;
+}
+[data-shape="landscape"] .kicker {
+  font-size: 20px;
+}
+[data-shape="landscape"] h1 {
+  grid-column: 1;
+  align-self: center;
+  font-size: 56px;
+}
+[data-shape="landscape"] .figure {
+  grid-column: 2;
+}
+[data-shape="landscape"] .foot {
+  font-size: 20px;
+}
+[data-shape="landscape"] .bars {
+  gap: 28px;
+}
+[data-shape="landscape"] .bar .name {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+[data-shape="landscape"] .bar .track {
+  height: 56px;
+}
+[data-shape="landscape"] .bars .note {
+  font-size: 24px;
+}
+[data-shape="landscape"] .drawing svg {
+  max-height: 560px;
+}

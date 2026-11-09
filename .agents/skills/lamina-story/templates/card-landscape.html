@@ -1,61 +1,32 @@
 <!doctype html>
 <!--
-  The landscape card: 1600 × 900 (16:9), for X.
-  Copy it to docs/stories/<story>/visuals/<name>-landscape.html. Same headline and figure as the
-  portrait card, laid out side by side. Keep ONE figure (.bars or .drawing), delete the other, and
-  replace the example. Every colour is a --paper-* token.
+  The landscape card: 1600 × 900 (16:9), for X: the same headline and figure as the portrait card.
+  Copy it to docs/stories/<story>/visuals/<name>-landscape.html.
+  The image explains; words only label it. Keep ONE figure, .bars (a chart from the fact table's
+  numbers) or .drawing (an SVG illustration or diagram), delete the other, and replace the example
+  (the flow-layout spike's sizes) with the story's own. The look is apps/site/scripts/story-card.css;
+  colours only from --paper-* tokens, never a hex value.
   Render: pnpm --filter @laminapdf/site story-image docs/stories/<story>
 -->
-<html data-theme="light"><head><meta charset="utf-8">
+<html data-theme="light" data-shape="landscape"><head><meta charset="utf-8">
 <meta name="lamina-size" content="1600x900">
 <link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/fonts.css">
-<style>
-  html, body { margin: 0; width: 1600px; height: 900px; }
-  body { background: var(--paper-ground); color: var(--paper-text); font-family: var(--paper-font-sans);
-    display: flex; align-items: center; justify-content: center; }
-  .sheet { box-sizing: border-box; width: 1472px; height: 772px; padding: 56px 68px; background: var(--paper-surface);
-    border-radius: 4px; box-shadow: var(--paper-shadow-page); display: grid; grid-template-columns: 5fr 7fr;
-    grid-template-rows: auto 1fr auto; column-gap: 56px; row-gap: 24px; }
-  .top { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; }
-  .wordmark { font: 700 30px/1 var(--paper-font-sans); }
-  .kicker { color: var(--paper-muted); font: 600 20px/1 var(--paper-font-sans); letter-spacing: 0.08em; text-transform: uppercase; }
-  h1 { grid-column: 1; margin: 0; align-self: center; font: 400 56px/1.1 var(--paper-font-serif); letter-spacing: -0.005em; text-wrap: balance; }
-  .figure { grid-column: 2; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
-  .foot { grid-column: 1 / -1; display: flex; justify-content: space-between; color: var(--paper-muted); font-size: 20px; }
-
-  .bars { gap: 28px; }
-  .bar .name { font: 600 28px/1.2 var(--paper-font-sans); margin-bottom: 10px; display: flex; justify-content: space-between; }
-  .bar .name .value { color: var(--paper-text-2); font-weight: 400; }
-  .bar .track { height: 56px; background: var(--paper-gutter); border-radius: 4px; }
-  .bar .fill { height: 100%; width: calc(var(--v) * 100%); min-width: 6px; background: var(--paper-control-border); border-radius: 4px; }
-  .bar.ours .fill { background: var(--paper-accent); }
-  .bar.ours .name { color: var(--paper-accent); }
-  .bars .note { font: 400 24px/1.35 var(--paper-font-sans); color: var(--paper-muted); }
-
-  .drawing svg { width: 100%; height: 100%; max-height: 560px; }
-  .ink { fill: none; stroke: var(--paper-text); stroke-width: 3; }
-  .rule { fill: none; stroke: var(--paper-hairline); stroke-width: 2; }
-  .page { fill: var(--paper-field); stroke: var(--paper-control-border); stroke-width: 2; }
-  .good { fill: var(--paper-accent-tint); stroke: var(--paper-accent); stroke-width: 3; }
-  .bad { fill: var(--paper-danger-tint); stroke: var(--paper-danger); stroke-width: 4; }
-  .label { fill: var(--paper-text-2); font: 400 28px var(--paper-font-sans); }
-  .label.strong { fill: var(--paper-text); font-weight: 600; }
-  .label.bad-text { fill: var(--paper-danger); font-weight: 600; }
-</style></head><body><div class="sheet">
+<link rel="stylesheet" href="/story-card.css">
+</head><body><div class="sheet">
   <div class="top"><span class="wordmark">Lamina PDF</span><span class="kicker">Kicker: the topic</span></div>
   <h1>The headline: ten words at most</h1>
 
   <div class="figure bars">
-    <div class="bar"><div class="name"><span>Them</span><span class="value">7.4&nbsp;MB</span></div>
+    <div class="bar"><div class="name"><span>Typst, embedded</span><span class="value">7.4&nbsp;MB</span></div>
       <div class="track"><div class="fill" style="--v: 1"></div></div></div>
-    <div class="bar ours"><div class="name"><span>Lamina PDF</span><span class="value">19&nbsp;KB</span></div>
+    <div class="bar ours"><div class="name"><span>Our own layout engine</span><span class="value">19&nbsp;KB</span></div>
       <div class="track"><div class="fill" style="--v: 0.0026"></div></div></div>
-    <div class="note">What the bars measure, in a few words.</div>
+    <div class="note">Added to the WebAssembly download, gzipped</div>
   </div>
 
   <div class="figure drawing">
-    <!-- Example: a page cut into tiles; the one the renderer refused is marked. -->
+    <!-- Example: a page cut into tiles (simplified); the one the renderer refused is marked. -->
     <svg viewBox="0 0 808 600" role="img" aria-label="A page split into tiles, one marked as refused">
       <rect class="page" x="214" y="10" width="380" height="540" rx="4"/>
       <g class="rule">

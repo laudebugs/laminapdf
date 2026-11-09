@@ -15,37 +15,52 @@ const TYPES = { ".css": "text/css", ".woff2": "font/woff2", ".html": "text/html"
 export const PAPER_LINKS = `<link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/fonts.css">`;
 
-/** The file `pathname` names: the page itself, the tokens, or the fonts' style sheet and files. */
-function file(pathname, html) {
+/** The file `pathname` names: the page itself, one of `files`, the tokens, or the fonts' style sheet and files. */
+function file(pathname, html, files) {
   if (pathname === "/") return { body: html, type: TYPES[".html"] };
-  const url = pathname === "/tokens.css" ? TOKENS : new URL(`.${pathname}`, FONTS);
+  const url = files[pathname] ?? (pathname === "/tokens.css" ? TOKENS : new URL(`.${pathname}`, FONTS));
   return { path: fileURLToPath(url), type: TYPES[pathname.slice(pathname.lastIndexOf("."))] };
 }
 
 /**
  * Starts Chromium, calls `draw` with a `render(html, width, height, out, options)` function, and
- * closes it. `out` is a file path; `options.transparent` keeps a transparent background.
+ * closes it. `out` is a file path; `options.transparent` keeps a transparent background. `files`
+ * maps more paths the pages may load (`/story-card.css`) to file URLs.
  * `LAMINA_PDF_CHROMIUM` names a Chromium binary when Playwright's own isn't installed.
+ *
+ * A render fails when the content is larger than the image, or than a `.sheet` (the card the
+ * page is drawn on): text cut off without a word would be worse than an error.
  */
-export async function withPaperRenderer(draw) {
+export async function withPaperRenderer(draw, { files = {} } = {}) {
   const executablePath = process.env.LAMINA_PDF_CHROMIUM;
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
   try {
     await draw(async (html, width, height, out, options = {}) => {
       const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
       await page.route(`${ORIGIN}/**`, (route) => {
-        const { body, path, type } = file(new URL(route.request().url()).pathname, html);
+        const { body, path, type } = file(new URL(route.request().url()).pathname, html, files);
         return route.fulfill(path === undefined ? { body, contentType: type } : { path, contentType: type });
       });
       await page.goto(`${ORIGIN}/`, { waitUntil: "load" });
       await page.evaluate(() => document.fonts.ready);
-      // Text that spills past the edges would be cut off without a word: refuse it instead.
-      const size = await page.evaluate(() => [
-        document.documentElement.scrollWidth,
-        document.documentElement.scrollHeight,
-      ]);
-      if (size[0] > width || size[1] > height) {
-        throw new Error(`${out}: the content is ${size[0]} × ${size[1]}, larger than ${width} × ${height}`);
+      // Any element's box past the image's edges (margins aside), or a card whose scroll size
+      // (which counts content that overflows it, even where it is clipped) exceeds its own.
+      const spills = await page.evaluate(
+        ([w, h]) => {
+          const name = (el) => el.className?.baseVal ?? el.className ?? el.tagName;
+          const outside = [...document.body.querySelectorAll("*")].filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width > 0 && (r.left < -1 || r.top < -1 || r.right > w + 1 || r.bottom > h + 1);
+          });
+          const cards = [...document.querySelectorAll(".sheet")].filter(
+            (box) => box.scrollWidth > box.clientWidth + 1 || box.scrollHeight > box.clientHeight + 1,
+          );
+          return [...outside, ...cards].map((el) => name(el) || el.tagName.toLowerCase());
+        },
+        [width, height],
+      );
+      if (spills.length > 0) {
+        throw new Error(`${out}: the content spills past its box (${spills.join(", ")}); shorten it`);
       }
       // A transparent icon keeps its alpha channel; Chromium paints white under it otherwise.
       await page.screenshot({ path: out, omitBackground: options.transparent === true });

@@ -32,6 +32,7 @@ This is the owner's request, written out once so every run serves it:
 
 - **Lamina PDF**, never "Laminar". The packages are `@laminapdf/*`, the site `laminapdf.com`.
 - **Never post, schedule or send anything.** The skill writes files; the owner publishes.
+- **The prose is written with `/writing`, reviewed with `/writing-review`, and fact-checked**, every time: the three posts, the alt text and the words on the images. Load `/writing` before drafting; run `/writing-review` on the draft and fix its findings; then check every claim against the repository (step 6). A story that skipped one of the three isn't ready, whatever its deadline.
 - **Every fact comes from the repository** and has a row in the story's fact table: a number, a name, a date, a "first", a comparison. A fact you can't source is cut or turned into the owner's opinion, in the owner's words.
 - **Nothing private.** No secrets, no internal hostnames, no people's names other than the owner's, no customer or user data. The repository is private: write about what it shows, never link into it, and name a file only on an image's footer (where it shows the claim has a source).
 - **The owner's own life** (why they started, how they feel) is theirs to tell. Write a placeholder and ask; don't invent a feeling or an anecdote.
@@ -52,7 +53,7 @@ Read the topic's sources in the map, then follow their links: the ADR, the bug's
 A story is someone wanting something, something in the way, and a turn. Before writing, fill these five lines in the story file:
 
 - **Reader:** who scrolls past it (a developer who has fought PDFs, a founder building with AI, someone curious about Rust) and what they already know.
-- **Hook:** the first line. It has to work on its own, because LinkedIn shows about two lines before "…see more". A surprise, a number, a question, or a moment ("The page was sharp at 100 %. At 125 % it went blurry.").
+- **Hook:** the first line. It has to work on its own, because LinkedIn shows about two lines before "…see more". A surprise, a number, a question, or a moment ("At 100 % the page looked sharp. At most other zoom levels, a band of it stayed blurry."). Even an example's facts need sources: that one is "What the user saw" in `docs/bugs/viewer-blurry-at-zoom/detail.md`.
 - **Tension:** what was wrong, hard or unknown.
 - **Turn:** the finding or decision that changed it, with one concrete detail.
 - **Payoff:** what it means for the reader, and the one thing to do next (try it, follow along, read the docs).
@@ -61,7 +62,7 @@ If any line is weak, choose another angle before writing prose.
 
 ### 4. Write the three posts
 
-Load the `/writing` skill first. Then:
+Load the `/writing` skill before the first word, and follow it for all three posts and the alt text. Then:
 
 - **LinkedIn (150–200 words).** Hook in the first line, then short paragraphs of one to three sentences. Plain words: explain any term a non-expert would trip on, or cut it. One idea; no list of features. End on the payoff and one call to action. At most three hashtags, on the last line. First person: the owner is telling it.
 - **X (≤ 280 characters, counted with the link).** The hook and the turn. One link at most.
@@ -93,7 +94,7 @@ The rules for every image:
 
 - **Glanceable.** On a phone, a reader gets it in two seconds: one idea, the figure taking most of the card, no paragraph, no code, about twenty words in all.
 - **Correct.** Every number, label and proportion matches the post and the fact table exactly. A drawing that simplifies (four tiles for a page cut into hundreds) must not mislead: say "simplified" in the caption when the reader could take it literally.
-- **On brand.** Colours only from `--paper-*` tokens (the [design language](../../../docs/design/paper/design-language.md)): never a hex value. `danger` marks what went wrong, `accent` marks Lamina PDF or what works.
+- **On brand.** The look lives in one style sheet, `apps/site/scripts/story-card.css`, which every card links as `/story-card.css`; change the look there, never in a story's HTML. Colours only from `--paper-*` tokens (the [design language](../../../docs/design/paper/design-language.md)): never a hex value. `danger` marks what went wrong, `accent` marks Lamina PDF or what works.
 - **No broken units.** Put a non-breaking space between a number and its unit (`125&nbsp;%`, `19&nbsp;KB`).
 
 Render them from the repository root:
@@ -102,7 +103,7 @@ Render them from the repository root:
 pnpm --filter @laminapdf/site story-image docs/stories/<story>
 ```
 
-The script fails when a headline has more than ten words or the content spills past the image's edges; shorten the words rather than shrinking the type. Then open every PNG and look at it: does the figure show the story without the post, does it match the post, does anything crowd an edge?
+The script fails when a headline has more than ten words or the content spills past the image or its card; shorten the words rather than shrinking the type. Then open every PNG and look at it: does the figure show the story without the post, does it match the post, does anything crowd an edge?
 
 ### 6. Verify
 
@@ -110,12 +111,12 @@ The story isn't ready until all of these hold, and the story file records each o
 
 1. **Every fact has a source.** Each claim in the posts and on the images has a row in the fact table, with the file and line or the command and its output.
 2. **A second reader tried to break it.** Start a fresh subagent with no context but the story file and the repository. Ask it to refute each claim from the sources: is the number the same, does the source say what the post says, does the post overstate it ("always", "first", "fastest")? Fix what it finds, and record its verdict per row.
-3. **The prose passes `/writing-review`.** Fix its findings, then count the words again.
+3. **The prose passes `/writing-review`.** Run it on the three posts and the alt text, fix every finding, record how many there were and what changed in the story file's checks, then count the words again. If a fix changed a claim, check that claim again.
 4. **The limits hold.** LinkedIn 150–200 words; X ≤ 280 characters; Threads ≤ 500 characters; the images render without the overflow error.
 5. **Nothing private** (see the rules above).
 
 ### 7. Record it and hand it over
 
 - The story's folder is `docs/stories/<NNN>-<slug>/` (the next number in the map): `story.md` from [`templates/story.md`](templates/story.md), `visuals/<name>-portrait.html` and `visuals/<name>-landscape.html` for each image, and their PNGs.
-- In the coverage map, set the topic's row to `drafted` with a link to the story. The owner sets `told` and the date once it's posted, or asks you to.
+- In the coverage map, set the topic's **Status** to `drafted` with a link to the story (`drafted: [001](001-slug/story.md)`), and add the story to the **Told** table. The story file's **Status** says the same. Once the owner has posted it, they set both to `told` with the date, or ask you to.
 - Commit on a branch and open a PR. A story is an exempt, board-free PR when it touches only `docs/stories/`. Show the owner the three posts, the images and the fact table, and ask for approval or changes.

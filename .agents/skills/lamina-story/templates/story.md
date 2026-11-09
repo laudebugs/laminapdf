@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | `drafted` \| `approved` \| `told` |
+| Status | `drafted` \| `told` (as in the coverage map) |
 | Topic | <the coverage map's row: area and topic> |
 | Drafted | <YYYY-MM-DD> |
 | Told | <YYYY-MM-DD and links to the posts, once the owner has posted> |
@@ -57,8 +57,9 @@ Every claim in the posts and on the images, the evidence for it, and the second 
 
 - [ ] Every claim has a row above, with its source
 - [ ] A second reader with no context tried to refute each row; verdicts recorded
-- [ ] `/writing-review` run on the three posts; findings fixed
+- [ ] Written with `/writing`
+- [ ] `/writing-review` run on the three posts and the alt text: <n> findings, all fixed (what changed: …)
 - [ ] Limits hold (counted by command)
 - [ ] Each image renders without the overflow error, was looked at, and matches the fact table
 - [ ] Nothing private: no secrets, internal hosts, other people's names or links into the repository
-- [ ] The owner approved the posts and the images
+- [ ] The owner approved the posts and the images (the story stays `drafted` until it is posted)

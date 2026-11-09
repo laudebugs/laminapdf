@@ -184,7 +184,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   README and the docs install page; copy.ts: the words, approved by the owner; rounds.ts: the areas' plain
 │                        #   names; highlight.ts: the code panel's colours at build time, Shiki's tokens as classes coloured by the
 │                        #   --paper-code-* tokens, since the CSP blocks inline styles), src/scripts/ (tabs.ts), scripts/share-image.mjs (public/og.png and the PNG favicons, run by hand) and story-image.mjs
-│                        #   (docs/stories/<story>/visuals/*.html → PNG at each file's lamina-size), both over paper-render.mjs; public/_headers (ADR 0011 §4's website headers,
+│                        #   (docs/stories/<story>/visuals/*.html → PNG at each file's lamina-size, styled by story-card.css), both over paper-render.mjs; public/_headers (ADR 0011 §4's website headers,
 │                        #   test/headers.test.ts holds them to the ADR); @laminapdf/site-kit's checks after every build; wrangler.toml
 │                        #   (lamina-pdf-site, the apex as a custom domain); deployed by .github/workflows/site.yml, which W1b's PR gives
 │                        #   for the owner to commit; README.md has the owner's setup

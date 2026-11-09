@@ -19,27 +19,36 @@ if (story === undefined) {
 }
 // pnpm runs the script in apps/site; INIT_CWD is where it was called from.
 const folder = resolve(process.env.INIT_CWD ?? process.cwd(), story, "visuals");
-const pages = (await readdir(folder)).filter((name) => name.endsWith(".html")).sort();
+const pages = await readdir(folder).then(
+  (names) => names.filter((name) => name.endsWith(".html")).sort(),
+  () => [],
+);
 if (pages.length === 0) {
-  console.error(`no visuals/*.html in ${story}`);
+  console.error(`no visuals/*.html in ${folder}`);
   process.exit(1);
 }
 
-await withPaperRenderer(async (render) => {
-  for (const name of pages) {
-    const html = await readFile(resolve(folder, name), "utf8");
-    const size = SIZE.exec(html);
-    if (size === null) throw new Error(`${name}: no <meta name="lamina-size" content="WIDTHxHEIGHT">`);
-    const words = (HEADLINE.exec(html)?.[1] ?? "")
-      .replace(/<[^>]*>|&nbsp;/g, " ")
-      .trim()
-      .split(/\s+/);
-    if (words.length > MAX_HEADLINE_WORDS) {
-      throw new Error(`${name}: the headline has ${words.length} words; ${MAX_HEADLINE_WORDS} at most`);
+/** The cards' one style sheet, which every story page links as /story-card.css. */
+const files = { "/story-card.css": new URL("story-card.css", import.meta.url) };
+
+await withPaperRenderer(
+  async (render) => {
+    for (const name of pages) {
+      const html = await readFile(resolve(folder, name), "utf8");
+      const size = SIZE.exec(html);
+      if (size === null) throw new Error(`${name}: no <meta name="lamina-size" content="WIDTHxHEIGHT">`);
+      const words = (HEADLINE.exec(html)?.[1] ?? "")
+        .replace(/<[^>]*>|&nbsp;/g, " ")
+        .trim()
+        .split(/\s+/);
+      if (words.length > MAX_HEADLINE_WORDS) {
+        throw new Error(`${name}: the headline has ${words.length} words; ${MAX_HEADLINE_WORDS} at most`);
+      }
+      const [width, height] = [Number(size[1]), Number(size[2])];
+      const out = resolve(folder, name.replace(/\.html$/, ".png"));
+      await render(html, width, height, out);
+      console.log(`${out} (${width} × ${height})`);
     }
-    const [width, height] = [Number(size[1]), Number(size[2])];
-    const out = resolve(folder, name.replace(/\.html$/, ".png"));
-    await render(html, width, height, out);
-    console.log(`${out} (${width} × ${height})`);
-  }
-});
+  },
+  { files },
+);

@@ -6,7 +6,7 @@ The [`lamina-story` skill](../../.agents/skills/lamina-story/SKILL.md) writes th
 
 ## How a story is kept
 
-Each story has a folder, `<NNN>-<slug>/`: `story.md` (the posts, the alt text, the counts and the fact table with its evidence) and `visuals/` (each image's HTML and its rendered PNG). The images are drawn from HTML in the site's tokens and fonts:
+Each story has a folder, `<NNN>-<slug>/`: `story.md` (the posts, the alt text, the counts, the fact table with its evidence, and the checks) and `visuals/` (each image's HTML and its rendered PNG). Every post is written with `/writing`, reviewed with `/writing-review` and fact-checked against the repository before the owner sees it. The images are drawn from HTML in the site's tokens, fonts and one card style sheet (`apps/site/scripts/story-card.css`):
 
 ```bash
 pnpm --filter @laminapdf/site story-image docs/stories/<NNN>-<slug>
@@ -14,7 +14,7 @@ pnpm --filter @laminapdf/site story-image docs/stories/<NNN>-<slug>
 
 ## The coverage map
 
-One row per story worth telling. **Status** is `open` (not drafted), `drafted` (in a story folder, waiting for the owner), or `told` (posted, with the date). Pick from `open` rows; a `told` row gets a second story only with a new angle, written in the row. Add a row whenever the project makes a new story: a bug fixed, a decision recorded, a measurement published.
+One row per story worth telling. **Status** is `open` (not drafted), `drafted` with a link to its story (`drafted: [001](001-slug/story.md)`, waiting for the owner), or `told` with the date and the link (posted). Pick from `open` rows; a `told` row gets a second story only with a new angle, written in the row. Add a row whenever the project makes a new story: a bug fixed, a decision recorded, a measurement published.
 
 ### The product
 

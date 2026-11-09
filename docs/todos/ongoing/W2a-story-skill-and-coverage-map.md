@@ -11,7 +11,7 @@
 | Branch | `claude/gallant-hypatia-ker2pl` |
 | PR title | `feat(docs): the lamina-story skill, its Paper images and the stories' coverage map` |
 | Size | M (about 300 lines of skill, templates and scripts, plus the coverage map) |
-| PR | — |
+| PR | [#347](https://github.com/laudebugs/laminapdf/pull/347) |
 
 ## Goal
 
@@ -30,8 +30,8 @@ The owner wants to tell Lamina PDF's story one part at a time on LinkedIn, X and
 
 - `.agents/skills/lamina-story/`: `SKILL.md` (the owner's brief, the rules, seven steps from choosing a topic to handing over), `templates/story.md`, `templates/card-portrait.html` (1080 × 1350) and `templates/card-landscape.html` (1600 × 900), each with a bar chart and an SVG drawing figure.
 - `.claude/skills` as a link to `.agents/skills`, so every repository skill lives in one folder.
-- `apps/site/scripts/paper-render.mjs`: the share image's renderer, moved out so both scripts use it, with a check that refuses content larger than the image; `share-image.mjs` on it, with pixel-identical output.
-- `apps/site/scripts/story-image.mjs` and the `story-image` script: renders a story's `visuals/*.html` at the size each declares.
+- `apps/site/scripts/paper-render.mjs`: the share image's renderer, moved out so both scripts use it, with a check that refuses content past the image's edges or its card's; `share-image.mjs` on it, with pixel-identical output.
+- `apps/site/scripts/story-image.mjs` and the `story-image` script: renders a story's `visuals/*.html` at the size each declares, refusing headlines over ten words; `story-card.css`: the cards' one style sheet, both shapes.
 - `docs/stories/README.md`: how stories are kept, and the coverage map seeded with the project's stories and their sources.
 - Docs: the website plan's §9 and todo rows, `docs/README.md`, the git workflow's exempt PRs, `CLAUDE.md`'s layout.
 
