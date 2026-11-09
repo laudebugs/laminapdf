@@ -35,7 +35,7 @@ const root = document.getElementById("app");
 if (root === null) throw new Error("index.html has no #app");
 // One platform for the page: two would each open the recent-files store and take the launch queue.
 const platform = createWebPlatform();
-const engine = new Engine(platform, "pdfium");
+const engine = new Engine(platform, "pdfium", { outlineText: wantsDebug(location.hash) });
 // `#url=` opens a remote file now and whenever the fragment changes.
 watchFragment(window, engine);
 createRoot(root).render(
