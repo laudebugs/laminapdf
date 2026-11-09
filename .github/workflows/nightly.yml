@@ -481,7 +481,7 @@ jobs:
       - id: links
         run: cargo xtask docs-links --external --cache target/link-check/cache.json
       - name: Save the checked links
-        if: ${{ !cancelled() && steps.links.outcome == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && toJSON(inputs.record) != 'false' }}
+        if: ${{ !cancelled() && steps.links.outcome == 'success' && github.ref == 'refs/heads/main' && env.NIGHTLY_RECORD == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: target/link-check/cache.json
@@ -546,15 +546,16 @@ jobs:
           ${RENDER_DIFF_SAMPLE:+--sample "$RENDER_DIFF_SAMPLE"}
           --history "$HISTORY" --runner "github-hosted/macos-15-arm64"
           ${{ env.RECORD == 'true' && '--record' || '' }}
+      # A reused report adds no point to the history, and is already in the cache.
       - name: Push the benchmark history
-        if: ${{ env.RECORD == 'true' }}
+        if: ${{ env.RECORD == 'true' && steps.render-diff.outputs.reused != 'true' }}
         uses: ./.github/actions/bench-history
         with:
           mode: push
           token: ${{ github.token }}
           message: "bench(render-diff): ${{ github.sha }}"
       - name: Save the report for the next night
-        if: ${{ !cancelled() && steps.render-diff.outcome == 'success' && env.RECORD == 'true' }}
+        if: ${{ !cancelled() && steps.render-diff.outcome == 'success' && steps.render-diff.outputs.reused != 'true' && env.RECORD == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: target/nightly/render-diff
