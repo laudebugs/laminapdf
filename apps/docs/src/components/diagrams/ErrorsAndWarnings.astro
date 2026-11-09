@@ -1,0 +1,62 @@
+---
+// "Errors and warnings" (concepts/errors-and-warnings, "Every surface has the same fields"): a call
+// either stops with a LaminaPdfError or completes with warnings on doc.warnings, and both carry the
+// same fields, but an error can also carry `didYouMean`; text from the document goes only in
+// `data`. No accent: both outcomes weigh the same. Caption and
+// text description: registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import Box from "./kit/Box.astro";
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import Lane from "./kit/Lane.astro";
+import Markers from "./kit/Markers.astro";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { prefix, labelledby, describedby } = Astro.props;
+const wide = `${prefix}-wide`;
+const narrow = `${prefix}-narrow`;
+/** The fields, in the page's order, each with a note where one applies. */
+const FIELDS = [
+  { name: "code", note: "" },
+  { name: "kind", note: "" },
+  { name: "message", note: "" },
+  { name: "hint", note: "" },
+  { name: "location", note: "" },
+  { name: "data", note: "document text" },
+  { name: "docsUrl", note: "" },
+  { name: "didYouMean", note: "errors only" },
+] as const;
+---
+
+<Svg viewBox="0 0 720 256" layout="wide" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={wide} />
+  <Box x={0} y={98} w={140} h={56} label="A call" />
+  <Arrow d="M140 126 H160" prefix={wide} head={false} />
+  <Arrow d="M160 126 V54 H196" prefix={wide} />
+  <Arrow d="M160 126 V198 H196" prefix={wide} />
+  <Box x={200} y={24} w={230} h={60} label="LaminaPdfError" sub="the call stops" mono />
+  <Box x={200} y={168} w={230} h={60} label="doc.warnings" sub="the call completes" mono />
+  <Arrow d="M430 54 H466" prefix={wide} />
+  <Arrow d="M430 198 H466" prefix={wide} />
+
+  <Lane x={470} y={0} w={250} h={256} title="Their fields" />
+  {FIELDS.map((f, i) => <Label x={490} y={56 + i * 26} text={f.name} kind="mono" />)}
+  {FIELDS.map((f, i) => f.note && <Label x={590} y={56 + i * 26} text={f.note} kind="sub" />)}
+</Svg>
+
+<Svg viewBox="0 0 320 432" layout="narrow" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={narrow} />
+  <Box x={80} y={0} w={160} h={48} label="A call" />
+  <Arrow d="M160 48 V64" prefix={narrow} head={false} />
+  <Arrow d="M160 64 H76 V88" prefix={narrow} />
+  <Arrow d="M160 64 H244 V88" prefix={narrow} />
+  <Box x={0} y={92} w={152} h={56} label="LaminaPdfError" sub="the call stops" mono />
+  <Box x={168} y={92} w={152} h={56} label="doc.warnings" sub="the call completes" mono />
+  <Arrow d="M76 148 V180" prefix={narrow} />
+  <Arrow d="M244 148 V180" prefix={narrow} />
+
+  <Lane x={0} y={184} w={320} h={244} title="Their fields" />
+  {FIELDS.map((f, i) => <Label x={16} y={228 + i * 24} text={f.name} kind="mono" />)}
+  {FIELDS.map((f, i) => f.note && <Label x={124} y={228 + i * 24} text={f.note} kind="sub" />)}
+</Svg>

@@ -1,0 +1,10 @@
+---
+// The package map with the accent on @laminapdf/wasm's three modules (concepts/how-lamina-thinks,
+// "Three modules in JavaScript"). Caption and text description: registry.mjs.
+import type { DrawingProps } from "./kit/drawing.ts";
+import PackageMap from "./PackageMap.astro";
+
+type Props = DrawingProps;
+---
+
+<PackageMap {...Astro.props} focus="modules" />
