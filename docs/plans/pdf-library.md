@@ -212,7 +212,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B7. Docs, examples and first release
 
-**Todos:** [B7a](../todos/done/B7a-docs-site.md) (docs site; done), [B7d](../todos/ready/B7d-docs-example-results.md) and [B7e](../todos/ready/B7e-docs-edit-and-run.md) (example results and edit-and-run; [docs examples plan](docs-examples.md)), [B7c](../todos/done/B7c-docs-custom-domain.md) (`docs.laminapdf.com`; done), [B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md) (Changesets, ADR 0017, local `0.1.0-alpha.0`; done); publishing later: [P1](../todos/done/P1-reserve-names-and-trusted-publishing.md), [P2](../todos/done/P2-first-registry-prerelease.md).
+**Todos:** [B7a](../todos/done/B7a-docs-site.md) (docs site; done), [B7d](../todos/done/B7d-docs-example-results.md) and [B7e](../todos/ready/B7e-docs-edit-and-run.md) (example results and edit-and-run; [docs examples plan](docs-examples.md)), [B7c](../todos/done/B7c-docs-custom-domain.md) (`docs.laminapdf.com`; done), [B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md) (Changesets, ADR 0017, local `0.1.0-alpha.0`; done); publishing later: [P1](../todos/done/P1-reserve-names-and-trusted-publishing.md), [P2](../todos/done/P2-first-registry-prerelease.md).
 
 **Deliverable:** `apps/docs` site; examples; Changesets with Cargo version sync; ADR 0017 (versioning; publishing part deferred); `0.1.0-alpha.0` versioned and tagged, **not published**.
 **Accepted when:** docs deploy on a preview URL per PR; a fresh project outside the repo installs the packed tarballs (`pnpm pack`) and a git/path dependency on the `laminapdf` crate, and runs the quick start in each runtime.

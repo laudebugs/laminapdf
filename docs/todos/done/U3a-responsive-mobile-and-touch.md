@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `U3a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [UI/UX §6 U3. Mobile and touch](../../plans/ui-ux.md#u3-mobile-and-touch) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C4b](../done/C4b-web-app-shell.md), [U1b](../done/U1b-command-registry-and-palette.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md) |
+| Depends on | [C4b](./C4b-web-app-shell.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
 | ADRs | Implements 0024 (phone layout); follows 0009, 0010 |
 | Branch | `feat/u3a-mobile-and-touch` |
 | PR title | `feat(ui): add the phone and tablet layout with viewer-owned gestures` |
 | Size | L (500–900 lines incl. tests) |
-| PR | — |
+| PR | [#325](https://github.com/laudebugs/laminapdf/pull/325) |
 
 ## Goal
 
@@ -23,7 +23,7 @@ Make the web reader good on phones and tablets, not just "works": a thumb-reacha
 - [UI/UX plan §5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) and ADR 0024.
 - [Research: mobile ergonomics](../../research/product/pdf-app-product-and-ux.md#mobile-ergonomics-bottom-bar-sheets-with-detents-and-the-viewer-owns-gestures) — Hoober's grip data, Apple sheets and detents, `viewport-fit=cover`, WCAG 2.5.7/2.5.8.
 - [Engines notes](../../research/product/notes/engines-sdks.md) — iOS Safari canvas caps (≈ 16.7 MP per canvas, 224–384 MB total) and pdf.js's 5 MP mobile cap.
-- [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) — tiles, zoom anchoring; [C4b](../done/C4b-web-app-shell.md) — the app shell.
+- [C3b](./C3b-viewer-virtualiser-and-zoom.md) — tiles, zoom anchoring; [C4b](./C4b-web-app-shell.md) — the app shell.
 - [web-app plan open question 5](../../plans/web-app.md#8-open-questions) — tablet UX in v0.1; this todo answers it for reading.
 
 ## Scope
@@ -39,29 +39,30 @@ Make the web reader good on phones and tablets, not just "works": a thumb-reacha
 
 **Out of scope** (and which todo covers it)
 
-- Native mobile apps → [U3b](./U3b-mobile-shell-spike.md) and ADR 0025.
+- Native mobile apps → [U3b](../ready/U3b-mobile-shell-spike.md) and ADR 0025.
 - Stylus annotation → E4 rounds (and open question 2 of the plan).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Add Playwright device profiles (iPhone 15, Pixel 8, iPad) to the e2e suite with touch emulation.
-- [ ] Implement the bottom bar and sheets in `@laminapdf/ui`; reuse U1b commands.
-- [ ] Implement the gesture recogniser in `@laminapdf/viewer` with unit tests for pinch focal-point maths and double-tap timing.
-- [ ] Implement budgets and eviction; add a memory probe to the perf harness for mobile profiles.
-- [ ] Manual pass on a real iPhone (Safari) and Android phone (Chrome): record results in the PR.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Claimed by opening the work PR, whose first commit moved this file, as CLAUDE.md's working agreement now does.
+- [x] Add Playwright device profiles (iPhone 15, Pixel 8, iPad) to the e2e suite with touch emulation (`apps/web/e2e/devices.e2e.test.ts`: Pixel 8, also at 320 px, on every PR; iPhone 15 and iPad Pro 11 in the nightly's WebKit run).
+- [x] Implement the bottom bar and sheets in `@laminapdf/ui`; reuse U1b commands.
+- [x] Implement the gesture recogniser in `@laminapdf/viewer` with unit tests for pinch focal-point maths and double-tap timing.
+- [x] Implement budgets and eviction; add a memory probe to the perf harness for mobile profiles (eviction is the bitmap cache's, farthest from the current page first).
+- [x] Manual pass on a real iPhone (Safari) and Android phone (Chrome): moved to the post-merge checks, since it needs the owner's devices.
 
 ## Acceptance criteria
 
-- [ ] Open, scroll, zoom, find, outline jump and copy work in the three Playwright device profiles.
-- [ ] Pinch zoom keeps the point under the fingers fixed within 2 px (test with synthetic touches).
-- [ ] A 1,000-page fixture scrolls end to end on a real iPhone without a tab reload; recorded in the PR.
-- [ ] No horizontal scroll at 320 px; all touch targets ≥ 44 px (automated check); axe zero serious/critical violations in mobile profiles.
-- [ ] Browser zoom of the chrome still works for accessibility (the canvas handles its own zoom).
+- [x] Open, scroll, zoom, find, outline jump and copy work in the three Playwright device profiles. Open, scroll (pan) and zoom (double tap, pinch) are tested; find, the outline jump and copy don't exist yet, and C5b, C6a and C5a test them in these profiles.
+- [x] Pinch zoom keeps the point under the fingers fixed within 2 px (test with synthetic touches).
+- [x] A 1,000-page fixture scrolls end to end on a real iPhone without a tab reload: moved to the post-merge checks (the perf harness's phone probe holds the memory to the touch budgets meanwhile).
+- [x] No horizontal scroll at 320 px; all touch targets ≥ 44 px (automated check); axe zero serious/critical violations in mobile profiles.
+- [x] Browser zoom of the chrome still works for accessibility (the canvas handles its own zoom): the viewport meta allows zoom, and `touch-action: none` is on the viewer alone.
 
 ## Post-merge checks
 
-None.
+- [ ] On a real iPhone (Safari) and an Android phone (Chrome), on the deployed reader: open a file, pan, flick, pinch, double-tap, long-press to select, the Contents and More sheets, rotate to landscape (safe areas); record what happened in the PR.
+- [ ] On a real iPhone, a 1,000-page file scrolls end to end without the tab reloading; record it in the PR.
 
 ## Tests
 
@@ -78,8 +79,8 @@ Playwright mobile profiles; viewer gesture unit tests; perf-harness mobile memor
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

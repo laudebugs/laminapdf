@@ -191,7 +191,7 @@ impl Writer {
                             .actual_text(TextStr(actual));
                     }
                     for segment in &piece.segments {
-                        let wanted = n(segment.rise * t.spec.size / 1000.0);
+                        let wanted = n(segment.rise * t.spec.size / 1000.0 + t.rise);
                         if wanted.to_bits() != rise.to_bits() {
                             self.content.set_rise(wanted);
                             rise = wanted;

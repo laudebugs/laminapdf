@@ -1,0 +1,124 @@
+---
+// "Page space and user space" (concepts/pages-and-coordinates): a US Letter page upright and with
+// /Rotate 90. Page space (solid, outside the sheet) starts at the top-left corner you see; the
+// file's user space (dashed, on the sheet) starts at the bottom-left corner before rotation. The
+// accent follows the point [72, 96]; the heading box is ADR 0027's worked example, whose CropBox is
+// the MediaBox, so the sheet is both. Positions are written once, in the upright page's points; the
+// rotated panel maps them with ADR 0027's /Rotate 90 row, and the corner labels print the mapped
+// numbers. Caption and text description: registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import Markers from "./kit/Markers.astro";
+import PageSheet from "./kit/PageSheet.astro";
+import { LETTER, type Rect, scaleRect } from "./kit/page.ts";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { prefix, labelledby, describedby } = Astro.props;
+
+/** ADR 0027's heading box and a line of 24-point text in it, its baseline at y = 96, upright. */
+const HEADING = { x0: 72, y0: 72, x1: 272, y1: 100 };
+const TEXT = { x0: 72, y0: 79, x1: 240, y1: 96 };
+const POINT = [72, 96] as const;
+/** In drawing units: the axes' length, their gap from the sheet's edge, the user-space axes' inset on it. */
+const AXIS = 100;
+const GAP = 12;
+const INSET = 6;
+
+/**
+ * An upright page-space rect after /Rotate 90 (ADR 0027 §3: X = y − lly, Y = x − llx, with user
+ * y = 792 − upright Y), so the rotated panel can't drift from the upright one.
+ */
+const rotate90 = (r: Rect): Rect => ({ x0: LETTER.h - r.y1, y0: r.x0, x1: LETTER.h - r.y0, y1: r.x1 });
+const pair = (x: number, y: number) => `[${x}, ${y}]`;
+
+/** A page drawn at (x, y), `s` drawing units to a point; `rotated` is /Rotate 90 (shown on its side). */
+function panel(title: string, x: number, y: number, s: number, rotated: boolean) {
+  const heading = rotated ? rotate90(HEADING) : HEADING;
+  const text = rotated ? rotate90(TEXT) : TEXT;
+  const scaled = (r: Rect) => scaleRect(x, y, s, r);
+  return {
+    title,
+    rotated,
+    x,
+    y,
+    w: (rotated ? LETTER.h : LETTER.w) * s,
+    h: (rotated ? LETTER.w : LETTER.h) * s,
+    size: rotated ? `${LETTER.h} × ${LETTER.w} points` : `${LETTER.w} × ${LETTER.h} points`,
+    box: scaled(heading),
+    corners: [pair(heading.x0, heading.y0), pair(heading.x1, heading.y1)] as const,
+    text: scaled(text),
+    // Page space follows the displayed corner, so the point is at the same place on both panels.
+    point: { x: x + POINT[0] * s, y: y + POINT[1] * s },
+  };
+}
+
+const layouts = [
+  {
+    layout: "wide" as const,
+    viewBox: "0 0 720 424",
+    markers: `${prefix}-wide`,
+    panels: [panel("Upright", 40, 70, 0.4, false), panel("With /Rotate 90", 380, 70, 0.4, true)],
+  },
+  {
+    layout: "narrow" as const,
+    viewBox: "0 0 320 706",
+    markers: `${prefix}-narrow`,
+    panels: [panel("Upright", 30, 70, 0.34, false), panel("With /Rotate 90", 30, 458, 0.34, true)],
+  },
+];
+---
+
+{
+  layouts.map(({ layout, viewBox, markers, panels }) => (
+    <Svg viewBox={viewBox} layout={layout} labelledby={labelledby} describedby={describedby}>
+      <Markers prefix={markers} ink />
+      {panels.map((p) => (
+        <>
+          <Label x={p.x - GAP} y={p.y - 46} text={p.title} />
+
+          <Label x={p.x - GAP} y={p.y - 22} text="page space (0, 0)" kind="sub" />
+          <Arrow d={`M${p.x} ${p.y - GAP} H${p.x + AXIS}`} prefix={markers} />
+          <Label x={p.x + AXIS + 8} y={p.y - GAP + 5} text="x" />
+          <Arrow d={`M${p.x - GAP} ${p.y} V${p.y + AXIS}`} prefix={markers} />
+          <Label x={p.x - GAP} y={p.y + AXIS + 18} text="y" anchor="middle" />
+
+          <PageSheet x={p.x} y={p.y} w={p.w} h={p.h}>
+            <rect class="dg-ink-line" x={p.box.x} y={p.box.y} width={p.box.w} height={p.box.h} />
+            <rect class="dg-ink" x={p.text.x} y={p.text.y} width={p.text.w} height={p.text.h} />
+            {p.rotated ? (
+              <>
+                <Label x={p.box.x - 8} y={p.box.y + 10} text={p.corners[0]} kind="mono" anchor="end" />
+                <Label x={p.box.x + p.box.w} y={p.box.y + p.box.h + 20} text={p.corners[1]} kind="mono" anchor="end" />
+                <Arrow d={`M${p.x + INSET} ${p.y + INSET} V${p.y + AXIS}`} prefix={markers} tone="ink" />
+                <Label x={p.x + INSET} y={p.y + AXIS + 20} text="x" anchor="middle" />
+                <Arrow d={`M${p.x + INSET} ${p.y + INSET} H${p.x + AXIS}`} prefix={markers} tone="ink" />
+                <Label x={p.x + AXIS + 8} y={p.y + INSET + 5} text="y" />
+                <Label x={p.x + INSET + 12} y={p.point.y + 30} text="user space (0, 0)" kind="sub" />
+                <circle class="dg-point-dot" cx={p.point.x} cy={p.point.y} r="4" />
+                <Label x={p.point.x + 10} y={p.point.y + 5} text={pair(...POINT)} kind="point" />
+              </>
+            ) : (
+              <>
+                <Label x={p.box.x} y={p.box.y - 6} text={p.corners[0]} kind="mono" />
+                <Label x={p.box.x + p.box.w + 8} y={p.box.y + p.box.h + 4} text={p.corners[1]} kind="mono" />
+                <Arrow d={`M${p.x + INSET} ${p.y + p.h - INSET} H${p.x + AXIS}`} prefix={markers} tone="ink" />
+                <Label x={p.x + AXIS + 8} y={p.y + p.h - INSET + 5} text="x" />
+                <Arrow d={`M${p.x + INSET} ${p.y + p.h - INSET} V${p.y + p.h - AXIS}`} prefix={markers} tone="ink" />
+                <Label x={p.x + INSET} y={p.y + p.h - AXIS - 10} text="y" anchor="middle" />
+                <Label x={p.x + INSET + 12} y={p.y + p.h - INSET - 14} text="user space (0, 0)" kind="sub" />
+                <circle class="dg-point-dot" cx={p.point.x} cy={p.point.y} r="4" />
+                <Label x={p.point.x - 4} y={p.box.y + p.box.h + 20} text={pair(...POINT)} kind="point" />
+                <Label x={p.point.x + 72} y={p.box.y + p.box.h + 20} text="baseline" kind="sub" />
+              </>
+            )}
+          </PageSheet>
+          <circle class="dg-origin" cx={p.x} cy={p.y} r="3" />
+
+          <Label x={p.x} y={p.y + p.h + 22} text={p.size} kind="sub" />
+        </>
+      ))}
+    </Svg>
+  ))
+}

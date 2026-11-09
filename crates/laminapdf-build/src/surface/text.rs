@@ -327,6 +327,60 @@ pub(crate) struct TextCommand {
     /// The surface's transform when the text was drawn (page space), for the link's
     /// rectangle.
     pub(crate) ctm: Matrix,
+    /// How far the baseline is raised, points (a flow's superscript); 0 elsewhere.
+    pub(crate) rise: f64,
+}
+
+/// One already-shaped piece of a line, drawn as it is (a flow's lines, shaped once when they
+/// were measured): its text, the run shaped from it (clusters are offsets into `text`) and how
+/// it is drawn.
+#[derive(Debug, Clone)]
+pub(crate) struct ShapedPiece {
+    pub(crate) text: String,
+    pub(crate) run: ShapedRun,
+    pub(crate) font: FontHandle,
+    pub(crate) size: f64,
+    /// The run's left edge and baseline, page space.
+    pub(crate) origin: PointPt,
+    pub(crate) rise: f64,
+    pub(crate) fill: Option<Color>,
+    pub(crate) link: Option<LinkSpec>,
+    pub(crate) tag: Option<Box<Tag>>,
+}
+
+impl ShapedPiece {
+    /// The text command that draws it: one line of one run.
+    pub(crate) fn into_command(self, ctm: Matrix) -> TextCommand {
+        let len = self.text.len();
+        let width = self.run.width(f32_of(self.size));
+        TextCommand {
+            spec: Spec {
+                text: self.text,
+                font: self.font,
+                size: self.size,
+                align: Alignment::Left,
+                direction: None,
+                language: None,
+                features: Vec::new(),
+                width: None,
+            },
+            origin: self.origin,
+            leading: 0.0,
+            lines: vec![LaidLine {
+                x: 0.0,
+                width,
+                range: 0..len,
+                content: 0..len,
+                runs: vec![(self.run, 0.0)],
+            }],
+            fill: self.fill,
+            mode: TextRenderMode::Fill,
+            link: self.link,
+            tag: self.tag,
+            ctm,
+            rise: self.rise,
+        }
+    }
 }
 
 impl TextCommand {
@@ -351,7 +405,7 @@ impl TextCommand {
         let size = self.spec.size;
         Some(RectPt::new(
             Pt::new(x + x0),
-            Pt::new(self.baseline(0) - self.spec.font.ascent(size)),
+            Pt::new(self.baseline(0) - self.rise - self.spec.font.ascent(size)),
             Pt::new(x + x1),
             Pt::new(self.descent_edge(last)),
         ))
@@ -359,7 +413,7 @@ impl TextCommand {
 
     /// The bottom of the font's descent below line `i`, page space.
     fn descent_edge(&self, i: usize) -> f64 {
-        self.baseline(i) + self.spec.font.descent(self.spec.size)
+        self.baseline(i) - self.rise + self.spec.font.descent(self.spec.size)
     }
 
     /// The bottom of the font's descent below the last line that draws something, before the

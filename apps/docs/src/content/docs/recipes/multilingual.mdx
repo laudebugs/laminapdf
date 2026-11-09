@@ -3,19 +3,15 @@ title: Multilingual text
 description: Latin, Arabic, Devanagari, Hebrew and Chinese on one page, each in its own embedded font, as a shaped line and a wrapped paragraph.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll put five scripts on one page: Latin, Arabic, Devanagari, Hebrew and Chinese, each as a single line and as a paragraph wrapped in a box. Start from it whenever your text goes beyond Latin, or mixes left-to-right and right-to-left writing.
 
 The function takes one font file per script, draws each script's line and paragraph, and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/multilingual.ts" /></TabItem>
-  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/multilingual.rs" /></TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/multilingual.ts" rust="crates/laminapdf/examples/multilingual.rs" result="multilingual" />
 
-The result is one A4 page, with each script set in its own Noto font: [open the reference PDF](/examples/pdf/multilingual.pdf).
+The result is one A4 page, with each script set in its own Noto font. The Result tab shows it, with a link to the PDF.
 
 ## How it works
 

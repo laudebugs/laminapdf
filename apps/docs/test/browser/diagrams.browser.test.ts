@@ -89,6 +89,16 @@ function behind(text: SVGTextElement): string {
   return getComputedStyle(document.body).backgroundColor;
 }
 
+/** Every line drawn on a PageSheet has 3:1 against the sheet, not the page around it. */
+function expectSheetLines(svg: SVGSVGElement, where: string): void {
+  for (const shape of svg.querySelectorAll(".dg-page .dg-page-axis, .dg-page .dg-ink-line, .dg-page .dg-order")) {
+    const sheet = shape.closest(".dg-page")?.querySelector(".dg-sheet");
+    if (sheet === null || sheet === undefined) throw new Error("a page line with no sheet");
+    const ratio = contrast(getComputedStyle(shape).stroke, getComputedStyle(sheet).fill);
+    expect(ratio, `${shape.getAttribute("class")} in ${where}`).toBeGreaterThanOrEqual(3);
+  }
+}
+
 for (const [name, html] of Object.entries(DIAGRAMS)) {
   for (const theme of THEMES) {
     describe(`${name}, ${theme}`, () => {
@@ -101,10 +111,14 @@ for (const [name, html] of Object.entries(DIAGRAMS)) {
         }
       });
 
+      it("gives every line drawn on a page sheet 3:1 against the sheet", () => {
+        expectSheetLines(shown(mount(html, theme, WIDTHS.desktop)), theme);
+      });
+
       it("gives every border and arrow 3:1 against the page", () => {
         const svg = shown(mount(html, theme, WIDTHS.desktop));
         const page = getComputedStyle(document.body).backgroundColor;
-        for (const shape of svg.querySelectorAll(".dg-box, .dg-focus, .dg-fresh, .dg-arrow, .dg-lane")) {
+        for (const shape of svg.querySelectorAll(".dg-box, .dg-focus, .dg-fresh, .dg-arrow, .dg-lane, .dg-sheet")) {
           const ratio = contrast(getComputedStyle(shape).stroke, page);
           expect(ratio, `${shape.getAttribute("class")} in ${theme}`).toBeGreaterThanOrEqual(3);
         }
@@ -123,11 +137,12 @@ for (const [name, html] of Object.entries(DIAGRAMS)) {
     for (const text of svg.querySelectorAll("text")) {
       expect(contrast(getComputedStyle(text).fill, behind(text)), `"${text.textContent}"`).toBeGreaterThanOrEqual(4.5);
     }
-    for (const shape of svg.querySelectorAll(".dg-box, .dg-focus, .dg-fresh, .dg-arrow, .dg-lane")) {
+    for (const shape of svg.querySelectorAll(".dg-box, .dg-focus, .dg-fresh, .dg-arrow, .dg-lane, .dg-sheet")) {
       expect(contrast(getComputedStyle(shape).stroke, page), `${shape.getAttribute("class")}`).toBeGreaterThanOrEqual(
         3,
       );
     }
+    expectSheetLines(svg, "forced colours");
   });
 
   for (const [where, width] of Object.entries(WIDTHS)) {

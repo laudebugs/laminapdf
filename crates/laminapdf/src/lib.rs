@@ -116,6 +116,13 @@ mod job;
 mod redaction;
 #[cfg(feature = "extract")]
 pub mod reveal;
+/// Flowing layout ([ADR 0032]): `laminapdf-build`'s flow layer, for [`Builder::flow`].
+///
+/// [ADR 0032]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0032-flowing-layout-and-document-inputs.md
+#[cfg(feature = "text")]
+pub mod flow {
+    pub use laminapdf_build::flow::*;
+}
 mod revisions;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests.

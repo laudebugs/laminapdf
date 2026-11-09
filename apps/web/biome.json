@@ -25,7 +25,7 @@
       }
     },
     {
-      "includes": ["e2e/**", "vite.config.ts", "vitest.*.config.ts"],
+      "includes": ["e2e/**", "test/**", "vite.config.ts", "vitest.*.config.ts"],
       "linter": {
         "rules": {
           "style": {

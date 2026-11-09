@@ -54,6 +54,7 @@ Let users find text across a whole document without blocking scrolling: the work
 - [ ] Find bar component in `@laminapdf/ui` and wiring in `apps/web`.
 - [ ] Facts script + committed facts (queries chosen to cover ligatures, hyphenation, case, whole word, RTL, CJK); exceptions file with reasons.
 - [ ] Perf scenario in the C3c harness: search a common word and a rare word in the 1,000-page fixture; record first-result and full-pass times; confirm no long tasks on the main thread.
+- [ ] Find from the phone's bottom bar (Search) on the phone and tablet profiles of `apps/web/e2e/devices.e2e.test.ts` (U3a left find to this todo).
 
 ## Acceptance criteria
 

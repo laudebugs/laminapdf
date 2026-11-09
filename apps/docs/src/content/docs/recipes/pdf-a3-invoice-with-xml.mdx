@@ -3,19 +3,15 @@ title: A PDF/A-3 invoice with XML
 description: A PDF/A-3b invoice that carries the same invoice as an attached XML file, for people to read and for software to process.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll write a one-page invoice as PDF/A-3b, with the same invoice attached as XML. You need this for e-invoices such as Factur-X and ZUGFeRD, where a person reads the PDF and the buyer's software reads the XML.
 
 The function draws the invoice, writes the same items as XML and attaches that file before it finishes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-a3-invoice-with-xml.ts" /></TabItem>
-  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/pdf_a3_invoice_with_xml.rs" /></TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/pdf-a3-invoice-with-xml.ts" rust="crates/laminapdf/examples/pdf_a3_invoice_with_xml.rs" result="pdf_a3_invoice_with_xml" />
 
-The result is one A4 page with three line items and a total of € 99.40, carrying `invoice-42.xml`: [open the reference PDF](/examples/pdf/pdf_a3_invoice_with_xml.pdf). Viewers that show attachments list it there.
+The result is one A4 page with three line items and a total of € 99.40, carrying `invoice-42.xml`. The Result tab shows it, with a link to the PDF. Viewers that show attachments list it there.
 
 ## How it works
 
