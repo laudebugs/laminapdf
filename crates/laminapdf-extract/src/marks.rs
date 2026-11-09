@@ -3,8 +3,6 @@
 //! under the text, and the images and paths that tell a scan or outlined text from a page of
 //! text.
 
-use std::collections::BTreeMap;
-
 use laminapdf_content::{
     FormXObject, ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor, transformed_box,
 };
@@ -23,10 +21,10 @@ pub(crate) struct Drawn {
     pub(crate) image_boxes: Vec<RectPt>,
     /// How many paths it fills or strokes.
     pub(crate) paths: usize,
-    /// What each marked-content sequence (by MCID) paints besides text, its images and its
-    /// filled or stroked paths, as one box in page space clipped to the page: reader mode
-    /// crops a figure to it.
-    pub(crate) mcid_boxes: BTreeMap<i64, RectPt>,
+    /// What marked-content sequences (by MCID) paint besides text, their images and their
+    /// filled or stroked paths, one box in page space clipped to the page per thing painted:
+    /// reader mode crops a figure to their union.
+    pub(crate) mcid_boxes: Vec<(i64, RectPt)>,
 }
 
 /// The visitor [`laminapdf_text::TextExtractor::page_with`] is given.
@@ -53,16 +51,11 @@ impl<'f> Marks<'f> {
         }
     }
 
-    /// Adds `bbox` to the box of the innermost marked content with an MCID, if any.
+    /// Records `bbox` for the innermost marked content with an MCID, if any.
     fn mark(&mut self, bbox: RectPt) {
-        let Some(mcid) = self.marked.iter().rev().find_map(|m| *m) else {
-            return;
-        };
-        let merged = match self.drawn.mcid_boxes.get(&mcid) {
-            Some(b) => b.union(&bbox),
-            None => bbox,
-        };
-        self.drawn.mcid_boxes.insert(mcid, merged);
+        if let Some(mcid) = self.marked.iter().rev().find_map(|m| *m) {
+            self.drawn.mcid_boxes.push((mcid, bbox));
+        }
     }
 
     /// The table rules (when collected), the covers, the backdrops and what was drawn.

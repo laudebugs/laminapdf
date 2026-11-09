@@ -62,7 +62,7 @@ pub(crate) struct PageFeed {
     /// How the page used the structure tree.
     pub(crate) tree: TreeUse,
     /// What each MCID paints besides text ([`Drawn::mcid_boxes`]).
-    pub(crate) boxes: std::collections::BTreeMap<i64, laminapdf_model::RectPt>,
+    pub(crate) boxes: Vec<(i64, laminapdf_model::RectPt)>,
 }
 
 /// A page whose text is read, waiting for its models' results.

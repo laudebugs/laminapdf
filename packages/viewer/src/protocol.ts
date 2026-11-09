@@ -11,6 +11,7 @@ import type {
   OutlineNode,
   PageInfo,
   PageLink,
+  Reflow,
   StructureNode,
   Target,
 } from "@laminapdf/sdk";
@@ -87,6 +88,7 @@ export interface Methods {
   memory: { params: []; result: WorkerMemory };
   pageText: { params: [index: number]; result: PageTextData };
   structure: { params: []; result: StructureData };
+  reflow: { params: []; result: Reflow };
   networkLog: { params: []; result: WorkerNetworkLog };
   outline: { params: []; result: OutlineNode[] };
   namedDestination: { params: [name: string]; result: Target | undefined };

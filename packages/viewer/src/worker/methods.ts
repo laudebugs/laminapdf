@@ -11,7 +11,7 @@ import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.
 import { networkLog } from "./network.js";
 import { fileBytes, printPage, replyBytes } from "./print.js";
 import { render, reply } from "./render.js";
-import { forgetText, pageText, readingOrder, replyText, structure } from "./text.js";
+import { forgetText, pageText, readingOrder, reflow, replyText, structure } from "./text.js";
 
 /** The viewer's worker methods, by name (see `Methods` in protocol.ts). */
 export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
@@ -44,6 +44,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     reply: (text) => replyText(text as Parameters<typeof replyText>[0]),
   },
   structure: { run: (_params, { signal }) => structure(signal) },
+  reflow: { run: (_params, { signal }) => reflow(signal) },
   readingOrder: { run: ([index], { signal }) => readingOrder(index as number, signal) },
   find: {
     run: ([query, options, pages], { signal }) =>

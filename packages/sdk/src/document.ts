@@ -10,6 +10,7 @@ import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
 import { type BaseGlue, extractsText, readingModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
+import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
 import { Transaction } from "./transaction.js";
@@ -492,6 +493,35 @@ export class Document extends Handle<BaseGlue> {
    */
   structureTree(): StructureNode[] | undefined {
     return this.call(() => this.#extracting("doc.structureTree()").structureTree());
+  }
+
+  /**
+   * The document for a reader mode: its blocks in the structure tree's reading order, with
+   * headings, list items, quotes, captions and notes, and each figure, formula and table as a
+   * crop of its page with its alternate text, never as reflowed text. A document whose tree is
+   * missing or can't be trusted (empty, mostly bare spans, too little of the text, or in an order
+   * the pages' layout contradicts) comes back with `available: false` and the `reason`. Needs a
+   * document opened while the extract module was loaded (the text module leaves reader mode out).
+   *
+   * @example
+   * ```ts
+   * const reflow = doc.reflow();
+   * if (reflow.available) for (const block of reflow.blocks) console.log(block.kind, block.text);
+   * ```
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` in the base or text module;
+   *   reading errors.
+   */
+  reflow(): Reflow {
+    this.assertLive();
+    const doc = this.#doc as WasmDocument & { reflow?: () => string };
+    if (typeof doc.reflow !== "function") {
+      throw packageError(
+        "extract-module-not-loaded",
+        "doc.reflow() needs a document opened while the extract module was loaded",
+      );
+    }
+    const reflow = doc.reflow.bind(doc);
+    return JSON.parse(this.call(() => reflow())) as Reflow;
   }
 
   /** The document as the extract module made it, or `extract-module-not-loaded` naming `what`. */

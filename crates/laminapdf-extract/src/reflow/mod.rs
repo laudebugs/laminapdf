@@ -358,11 +358,18 @@ fn assemble(blocks: &[Block], facts: &TreeFacts, feed: &[PageFeed]) -> Vec<Reflo
         .iter()
         .map(|crop| {
             let page = crop.content.first()?.0;
-            let painted = crop
+            let mcids: Vec<i64> = crop
                 .content
                 .iter()
                 .filter(|(p, _)| *p == page)
-                .filter_map(|(p, mcid)| boxes.get(p).and_then(|f| f.boxes.get(mcid)).copied());
+                .map(|(_, m)| *m)
+                .collect();
+            let painted = boxes
+                .get(&page)
+                .into_iter()
+                .flat_map(|f| f.boxes.iter())
+                .filter(|(mcid, _)| mcids.contains(mcid))
+                .map(|(_, b)| *b);
             painted.reduce(|a, b| a.union(&b)).map(|b| (page, b))
         })
         .collect();

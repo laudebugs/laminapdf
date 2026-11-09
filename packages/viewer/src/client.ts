@@ -300,6 +300,14 @@ export class ViewerClient {
   }
 
   /**
+   * The open document for reader mode: its blocks in the structure tree's order, figures,
+   * formulas and tables as crops with their alternate text, or why its tree can't be trusted.
+   */
+  reflow(options?: ViewerCallOptions) {
+    return this.call("reflow", [], options);
+  }
+
+  /**
    * The open document's outline (bookmarks): top-level items, each with its children and where
    * it goes as a page and a page-space view; empty without one. Read when first asked for.
    */
