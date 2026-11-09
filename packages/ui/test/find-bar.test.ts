@@ -30,7 +30,7 @@ describe("findCount", () => {
 describe("findNote", () => {
   it("says how far the search has got, then that it searched every page", () => {
     expect([findNote(state({ searched: 14 })), findNote(state({ done: true }))]).toEqual([
-      "Searching… page 14 of 24",
+      "Searching… 14 of 24 pages",
       "Searched all 24 pages",
     ]);
   });

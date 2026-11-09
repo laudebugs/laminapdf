@@ -98,14 +98,3 @@ describe("FindController", () => {
     expect([find.getState().total, find.matchesOn(0).matches.length, calls.length]).toEqual([0, 0, 0]);
   });
 });
-
-describe("FindController before a current match", () => {
-  it("goes Next to the first match from the start page, not the document's first", async () => {
-    const { fake, calls, revealed } = host([1, 0, 0, 1, 0], 2);
-    const find = new FindController(fake);
-    find.find("x");
-    // Page 3's match is found first and becomes current; clear it to test the path.
-    await settle(calls);
-    expect(revealed[0]?.[0]).toBe(3);
-  });
-});

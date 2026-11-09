@@ -168,7 +168,7 @@ const EN = {
   "find.more": "{total}+",
   "find.counting": "…",
   "find.none": "No matches",
-  "find.searching": "Searching… page {searched} of {pages}",
+  "find.searching": "Searching… {searched} of {pages} pages",
   "find.searchedAll": "Searched all {pages} pages",
   "find.noText": "{pages} pages have no text to search",
   "find.noTextOne": "1 page has no text to search",

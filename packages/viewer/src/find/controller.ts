@@ -217,8 +217,9 @@ export class FindController {
     const total = this.#state.total;
     if (total === 0) return;
     const now = this.#state.current;
-    // Before a current match, Next takes the first from the start page on, Previous the last before it.
-    const next = now === undefined ? this.#firstFromStart(step) : (now + step + total) % total;
+    // A search makes its first match current as soon as it finds one, so `now` is set whenever
+    // there is a match; the fallback only guards the types.
+    const next = now === undefined ? 0 : (now + step + total) % total;
     const place = this.#placeAt(next);
     if (place === undefined) return;
     const before = this.#current?.page;
@@ -226,14 +227,6 @@ export class FindController {
     this.#set({ current: next });
     this.#host.redraw(before === undefined || before === place.page ? [place.page] : [before, place.page]);
     this.#reveal();
-  }
-
-  /** The ordinal of the first match on or after the start page (Next), or the last before it (Previous). */
-  #firstFromStart(step: 1 | -1): number {
-    const total = this.#state.total;
-    const after = [...this.#byPage.keys()].filter((p) => p >= this.#start).sort((a, b) => a - b)[0];
-    const first = after === undefined ? 0 : this.#ordinal({ page: after, index: 0 });
-    return step === 1 ? first : (first - 1 + total) % total;
   }
 
   #reveal(): void {

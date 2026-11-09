@@ -152,13 +152,14 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
           </>
         )}
         {state.phase !== "open" || find.availability.state === "hidden" ? null : (
-          <ToggleButton
+          // A plain button: pressing it again puts the focus back in the field, so it is never a
+          // toggle; it shows find is open with `aria-expanded`.
+          <IconButton
             icon="find"
-            aria-label={message("command.find.open")}
+            label={message("command.find.open")}
             aria-expanded={props.findOpen === true}
-            isSelected={props.findOpen === true}
             isDisabled={find.availability.state === "disabled"}
-            onChange={() => find.run()}
+            onPress={() => find.run()}
           />
         )}
         {palette.availability.state === "hidden" ? null : (
