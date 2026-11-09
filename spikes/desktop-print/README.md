@@ -165,6 +165,10 @@ Five things the docs don't say, or that needed care:
 - **Main-thread rules:** AppKit and GTK print only from the main thread. Each call hops there with `AppHandle::run_on_main_thread` and waits on a channel; GTK and Win32 handles cross threads only as numbers or as values looked up on the main thread.
 - **Spooling isn't instant on Windows.** `EndDoc` returns before Microsoft Print to PDF finishes the file, so the job waits for the file's size to settle.
 
+## Licences
+
+`cargo deny check licenses`, run inside `src-tauri/` with the root `deny.toml` copied in: `licenses ok`. That `deny.toml` already holds the owner's MPL-2.0 exceptions for Tauri's own dependencies (#371). The spike's own additions are `objc2-pdf-kit` (Zlib OR Apache-2.0 OR MIT), `windows` and `webview2-com` (MIT OR Apache-2.0), `gtk` and `webkit2gtk` (MIT), and `pdfium-render` (MIT OR Apache-2.0). Nothing links GPL or AGPL code. CUPS runs as a separate program (`lp`), and libcups is Apache-2.0 since CUPS 2.3.
+
 ## Limits of this spike
 
 - **No physical printer.** Every result is print-to-PDF: Save as PDF on macOS, Microsoft Print to PDF on Windows, GTK's file output and `cups-pdf` on Linux. Two things stay unverified: duplex, and how a real printer's unprintable margins clip a page printed at actual size. D4c's acceptance already asks for a recorded print on a physical printer.

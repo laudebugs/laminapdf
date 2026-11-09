@@ -95,12 +95,14 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D1. IPC and print spikes
 
-**Todos:** [D1a](../todos/done/D1a-desktop-ipc-spike.md), [D1b](../todos/ongoing/D1b-desktop-print-spike.md)
+**Todos:** [D1a](../todos/done/D1a-desktop-ipc-spike.md), [D1b](../todos/done/D1b-desktop-print-spike.md)
 
 **Deliverable:** `spikes/desktop-ipc/` measuring Channel vs `ipc::Response` vs `lamina://` scheme for 256/512 px tiles on macOS, Windows and Linux, and whether WKWebView/WebView2/WebKitGTK honour COOP/COEP; `spikes/desktop-print/` comparing `window.print()` with native print paths per OS.
 **Accepted when:** both READMEs report numbers per OS and recommend a tile transport and a print path.
 
 **Result (`desktop-ipc`):** [spikes/desktop-ipc/README.md](../../spikes/desktop-ipc/README.md): lossless WebP tiles of 512 px over the `lamina://` scheme, raw RGBA on the same scheme as the fallback; cross-origin isolation only in WebView2, so the desktop app stays single-threaded; Linux without a GPU driver needs `WEBKIT_DISABLE_DMABUF_RENDERER=1`; Tauri's own dependencies need an MPL-2.0 exception (granted 2026-11-09, `deny.toml`).
+
+**Result (`desktop-print`):** [spikes/desktop-print/README.md](../../spikes/desktop-print/README.md): D4c prints Lamina PDF's own rasters, rendered by the engine, through each OS's print API (AppKit, GDI, GTK) with the OS dialog; no webview print path ships, even as a fallback (WebView2 printed every page on US Letter, WebKitGTK split each page across two sheets, `window.print()` does nothing in WKWebView); PDFium's vector printing on Windows was the most faithful but needs a sandboxed print helper.
 
 ### D2. Shell and native core
 
@@ -174,8 +176,8 @@ Ticked by the PR that completes them.
 - [x] Build `spikes/desktop-ipc` with three tile transports and a scroll benchmark
 - [x] Measure throughput and latency for 256 and 512 px tiles on macOS, Windows, Linux (x64)
 - [x] Check `crossOriginIsolated` under COOP/COEP in each webview
-- [ ] Build `spikes/desktop-print` comparing `window.print()` and native print paths per OS
-- [ ] Write both results with recommendations for ADR 0008
+- [x] Build `spikes/desktop-print` comparing `window.print()` and native print paths per OS
+- [x] Write both results with recommendations for ADR 0008
 
 ### D2. Shell and native core
 

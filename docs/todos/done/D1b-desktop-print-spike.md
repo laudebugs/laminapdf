@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `D1b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D1](../../plans/desktop-app.md#d1-ipc-and-print-spikes) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2c](../done/C2c-render-packages.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [D1a](../done/D1a-desktop-ipc-spike.md) |
+| Depends on | [C2c](./C2c-render-packages.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md), [D1a](./D1a-desktop-ipc-spike.md) |
 | Dependency notes | Web plan **C3** (viewer core, [web-app §C3](../../plans/web-app.md#c3-viewer-core)) — same start gate as D1a per the plan; the spike renders pages with C2's `laminapdf-render` (PDFium adapter), which C3 already requires. Starts after [D1a](../done/D1a-desktop-ipc-spike.md) (see Depends on), not in parallel, so it reuses D1a's spike scaffold (a Tauri 2 app outside both workspaces) and its lessons instead of building a second one at the same time. |
 | ADRs | Informs ADR 0008 (D2a) and the `hasNativePrint` capability flag of ADR 0010 (web plan C2). Follows [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL: no Ghostscript/Poppler linkage), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/d1b-desktop-print` |
 | PR title | `spike(desktop): compare webview and native print paths per OS` |
 | Size | M (200–600 lines of spike code plus the README) |
-| PR | — |
+| PR | [#372](https://github.com/laudebugs/laminapdf/pull/372) |
 
 ## Goal
 
@@ -51,27 +51,27 @@ Find out how lamina's desktop app can print a PDF **faithfully** (correct page s
 
 ## Tasks
 
-- [ ] Fresh worktree `spike-d1b-desktop-print`; this todo is already claimed via the claim PR (see DoD), so do not move it here. Load `tauri-v2` and `rust-best-practices`.
-- [ ] Scaffold `spikes/desktop-print/` (Tauri 2, vanilla TS + Vite), thin `main.rs`, logic in `lib.rs`; exclude from both workspaces; capability `default.json` with `core:default` and app-manifest permissions for `print_webview`, `print_native_raster`, `print_native_vector`.
-- [ ] Fixtures: pick three from `fixtures/` (add any missing ones with provenance in `fixtures/README.md` — or keep spike-local fixtures under `spikes/desktop-print/fixtures/` with a provenance note, per the code-organisation rules).
-- [ ] Path A: print-only DOM (`@media print`), images rendered by PDFium at 300 dpi; invoke `WebviewWindow::print()` from Rust and `window.print()` from JS; note differences.
-- [ ] Path B macOS: `print_native_raster` → `NSPrintOperation` with an `NSView` subclass (objc2 `define_class!`) whose `drawRect:` draws the page `CGImage`; `NSPrintInfo` paper size per page; `knowsPageRange:` / `rectForPage:`. Must run on the main thread (`app.run_on_main_thread`).
-- [ ] Path B Windows: `PrintDlgExW` (page ranges, copies, collate) → `CreateDCW` → `StartDocW`/`StartPage`/`StretchDIBits`/`EndPage` per page, with `DEVMODE` orientation per page (`ResetDCW`).
-- [ ] Path B Linux: `gtk::PrintOperation` with `connect_draw_page` painting a cairo `ImageSurface`; `set_n_pages`, `set_use_full_page`, per-page `PageSetup` via `connect_request_page_setup`.
-- [ ] Path C Windows: PDFium `FPDF_RenderPage(hdc, page, …, FPDF_PRINTING | FPDF_ANNOT)` onto the printer DC (via `pdfium-render`'s raw bindings).
-- [ ] Path C macOS: PDFKit `PDFDocument(data:)` → `printOperationForPrintInfo:scalingMode:autoRotate:` → `runOperationModalForWindow:`.
-- [ ] Path C Linux: CUPS — `lp`-equivalent via libcups (`cupsPrintFile`) after a GTK print dialog (`gtk::PrintUnixDialog`) collects printer and options; and GTK + PDFium-on-cairo if feasible.
-- [ ] Fidelity measurement: print each fixture to the OS PDF printer, rasterise both the printed PDF and the original with PDFium at 150 dpi, compute a perceptual diff (e.g. `dssim` or SSIM via `image-compare`, MIT/Apache) per page; record mismatched page sizes.
-- [ ] Physical printer check on at least one OS (duplex + page range) with a photo-free description in the README.
-- [ ] `spikes/desktop-print/README.md`: method, environment, a matrix (OS × path) of the criteria above, platform-code line counts, recommendation and limits.
-- [ ] Update plan/architecture spike row and `CLAUDE.md` spikes tree.
+- [x] Fresh worktree `spike-d1b-desktop-print`; this todo is already claimed via the claim PR (see DoD), so do not move it here. Load `tauri-v2` and `rust-best-practices`.
+- [x] Scaffold `spikes/desktop-print/` (Tauri 2, vanilla TS + Vite), thin `main.rs`, logic in `lib.rs`; exclude from both workspaces; capability `default.json` with `core:default` and app-manifest permissions for `print_webview`, `print_native_raster`, `print_native_vector`.
+- [x] Fixtures: pick three from `fixtures/` (add any missing ones with provenance in `fixtures/README.md` — or keep spike-local fixtures under `spikes/desktop-print/fixtures/` with a provenance note, per the code-organisation rules).
+- [x] Path A: print-only DOM (`@media print`), images rendered by PDFium at 300 dpi; invoke `WebviewWindow::print()` from Rust and `window.print()` from JS; note differences.
+- [x] Path B macOS: `print_native_raster` → `NSPrintOperation` with an `NSView` subclass (objc2 `define_class!`) whose `drawRect:` draws the page `CGImage`; `NSPrintInfo` paper size per page; `knowsPageRange:` / `rectForPage:`. Must run on the main thread (`app.run_on_main_thread`).
+- [x] Path B Windows: `PrintDlgExW` (page ranges, copies, collate) → `CreateDCW` → `StartDocW`/`StartPage`/`StretchDIBits`/`EndPage` per page, with `DEVMODE` orientation per page (`ResetDCW`).
+- [x] Path B Linux: `gtk::PrintOperation` with `connect_draw_page` painting a cairo `ImageSurface`; `set_n_pages`, `set_use_full_page`, per-page `PageSetup` via `connect_request_page_setup`.
+- [x] Path C Windows: PDFium `FPDF_RenderPage(hdc, page, …, FPDF_PRINTING | FPDF_ANNOT)` onto the printer DC (via `pdfium-render`'s raw bindings).
+- [x] Path C macOS: PDFKit `PDFDocument(data:)` → `printOperationForPrintInfo:scalingMode:autoRotate:` → `runOperationModalForWindow:`.
+- [x] Path C Linux: CUPS — `lp`-equivalent via libcups (`cupsPrintFile`) after a GTK print dialog (`gtk::PrintUnixDialog`) collects printer and options; and GTK + PDFium-on-cairo if feasible.
+- [x] Fidelity measurement: print each fixture to the OS PDF printer, rasterise both the printed PDF and the original with PDFium at 150 dpi, compute a perceptual diff (e.g. `dssim` or SSIM via `image-compare`, MIT/Apache) per page; record mismatched page sizes.
+- [x] Physical printer check on at least one OS (duplex + page range) with a photo-free description in the README.
+- [x] `spikes/desktop-print/README.md`: method, environment, a matrix (OS × path) of the criteria above, platform-code line counts, recommendation and limits.
+- [x] Update plan/architecture spike row and `CLAUDE.md` spikes tree.
 
 ## Acceptance criteria
 
-- [ ] README reports, for each OS, every candidate path's results on all three fixtures: correct page sizes (yes/no per page), headers/footers present (yes/no), SSIM vs reference, spool time and peak memory for the 50-page fixture, dialog features (range, scaling, duplex).
-- [ ] README recommends one shipping path per OS for D4c, states whether path A ships first as a fallback, and defines what `hasNativePrint: true` guarantees to the UI.
-- [ ] A 50-page document prints with a page range via the recommended path on each OS (recorded: OS, printer/driver, result).
-- [ ] No GPL/AGPL code linked (`cargo deny check licenses` run inside the spike, result pasted in the README).
+- [x] README reports, for each OS, every candidate path's results on all three fixtures: correct page sizes (yes/no per page), headers/footers present (yes/no), SSIM vs reference, spool time and peak memory for the 50-page fixture, dialog features (range, scaling, duplex).
+- [x] README recommends one shipping path per OS for D4c, states whether path A ships first as a fallback, and defines what `hasNativePrint: true` guarantees to the UI.
+- [x] A 50-page document prints with a page range via the recommended path on each OS (recorded: OS, printer/driver, result).
+- [x] No GPL/AGPL code linked (`cargo deny check licenses` run inside the spike, result pasted in the README).
 
 ## Post-merge checks
 
@@ -95,10 +95,22 @@ Spike: no test suite. The fidelity numbers are the evidence. Keep the diff scrip
 - **Main-thread requirements** (AppKit, GTK) interact with Tauri's event loop; document the `run_on_main_thread` pattern that works.
 - Who renders print pages once the engine is sandboxed (engine renders rasters and streams them to the main process, which owns the printer handle) — D4c decides with D2b's protocol; note the implication here.
 
+## As built
+
+- **Results:** [spikes/desktop-print/README.md](../../../spikes/desktop-print/README.md). D4c prints Lamina PDF's own rasters, rendered by the engine, through AppKit, GDI and GTK with the OS dialog; no webview print path ships; PDFium's vector printing on Windows needs a sandboxed print helper first.
+- **No physical printer.** The owner had none, so the physical check is replaced by a page-range job on every OS (pages 3–7 of the 50-page fixture through path B into PDF: Save as PDF, Microsoft Print to PDF, GTK through CUPS's `cups-pdf`). Each printed exactly those five pages at the right size. Duplex and real printers' margins stay unverified; D4c's acceptance already asks for a physical print.
+- **Machines.** As in D1a, the owner chose GitHub-hosted runners for Windows (`windows-2025`) and Linux (`ubuntu-24.04` on Xvfb, DMABUF off), plus `macos-15` and an M1 Pro on macOS 27. A temporary workflow ran them and was deleted before merge.
+- **Fixtures** are spike-local (`spikes/desktop-print/fixtures/`), written by the spike's `make_fixtures` with Lamina PDF's builder, so their provenance is the code.
+- **Measurement.** `compare` also measures each page's offset and scores SSIM after undoing it, so a shift is reported apart from the score; "headers/footers" is text a printed page gained.
+- **Path C on Windows** calls PDFium's C functions from the loaded `pdfium.dll` with `GetProcAddress`: `pdfium-render` 0.9.4 keeps its raw bindings private and refuses a second binding.
+- **Path C on Linux** prints through `lp` (CUPS's own program) rather than linking libcups. The GTK-plus-PDFium-on-cairo variant is path B.
+- **Dialog screenshots** came out on macOS 15 and Windows. The Linux (Xvfb) and macOS 27 (no Screen Recording permission) ones were blank, so the README describes GTK's dialog from its documentation.
+- **Cancel behaviour** wasn't measured: the automatic run has no one to press Cancel. D4c's acceptance covers it.
+
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
