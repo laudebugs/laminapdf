@@ -66,10 +66,7 @@ describe("outline and named destinations", () => {
 describe("page links", () => {
   beforeAll(() => loadExtract());
 
-  const facts = JSON.parse(readText("fixtures/links/expected.json")).files["links.pdf"] as Record<
-    string,
-    unknown
-  >[][];
+  const facts = JSON.parse(readText("fixtures/links/expected.json")).files["links.pdf"] as Record<string, unknown>[][];
 
   /** A link as fixtures/links/expected.json describes it. */
   function fact(link: PageLink): Record<string, unknown> {
