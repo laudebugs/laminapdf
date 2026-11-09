@@ -1,0 +1,12 @@
+date: 2026-11-09T16:00Z
+uname: Linux 7.0.0-1017-azure x86_64
+rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13)
+tauri: version = "2.12.5"
+os: Ubuntu 24.04.5 LTS
+cpu: AMD EPYC 9V45 96-Core Processor, 4 cores
+memory: 15 GiB
+webkit2gtk-4.1: 2.52.6
+session: XDG_SESSION_TYPE= GDK_BACKEND=wayland DISPLAY= WAYLAND_DISPLAY=wayland-spike
+WEBKIT_DISABLE_DMABUF_RENDERER=0
+gl: 
+unknown

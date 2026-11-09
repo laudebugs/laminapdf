@@ -2,6 +2,7 @@
 """Median of each transport's runs per machine and combination, as Markdown tables.
 
     python3 scripts/summarise.py results/ > results/summary.md
+    python3 scripts/summarise.py results/ --compact   # the README's one table per machine
 
 Standard library only. Reads results/<label>-<source>-<tile>-dpr<n>.csv (the measured runs),
 <label>-sweep.csv, <label>-headers-{off,on}-coi.csv and <label>-failure.csv.
@@ -91,9 +92,35 @@ def isolation(folder: Path, label: str) -> list[str]:
     ]
 
 
+COMPACT = ["pdf-256-dpr1", "pdf-256-dpr2", "pdf-512-dpr1", "pdf-512-dpr2"]
+
+
+def compact(labels: dict[str, dict[str, list[dict]]]) -> None:
+    """Per machine: transport × combination, each cell `tiles/s · MB/s · ready p50/p95 ms · dropped`."""
+    for label in sorted(labels):
+        print(f"**{label}**\n")
+        print("| transport | " + " | ".join(c.removeprefix("pdf-").replace("-dpr", " px, DPR ") for c in COMPACT) + " |")
+        print("| --- | " + " | ".join("---" for _ in COMPACT) + " |")
+        for t in ORDER:
+            cells = []
+            for c in COMPACT:
+                rs = [r for r in labels[label].get(c, []) if r["transport"] == t]
+                cells.append(
+                    f"{median(rs, 'burst_tiles_per_s')} · {median(rs, 'burst_mb_per_s')} · "
+                    f"{median(rs, 'ready_p50_ms')}/{median(rs, 'ready_p95_ms')} · {median(rs, 'dropped_frames')}"
+                    if rs
+                    else ""
+                )
+            print(f"| {t} | " + " | ".join(cells) + " |")
+        print()
+
+
 def main() -> None:
     folder = Path(sys.argv[1] if len(sys.argv) > 1 else "results")
     labels = combos(folder)
+    if "--compact" in sys.argv:
+        compact(labels)
+        return
     extra = {p.name.removesuffix("-headers-off-coi.csv") for p in folder.glob("*-headers-off-coi.csv")}
     for label in sorted(set(labels) | extra):
         print(f"## {label}\n")
