@@ -101,7 +101,6 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "embedded-file-forbidden":
     case "embedded-file-without-mime-type":
     case "flow-content-too-large":
-    case "flow-layout-unstable":
     case "invalid-argument":
     case "unknown-option":
     case "worker-version-mismatch":
@@ -139,6 +138,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "worker-failed":
     case "wasm-trap":
     case "model-failed":
+    case "flow-layout-unstable":
       return "internal";
     default: {
       const unhandled: never = code;
