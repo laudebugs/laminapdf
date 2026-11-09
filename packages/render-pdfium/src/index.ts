@@ -8,7 +8,7 @@
 //   pageToTile's matrix;
 // - straight RGBA through FPDF_REVERSE_BYTE_ORDER, copied out once into the result.
 // PDFium is synchronous: the AbortSignal is checked before and after the engine call.
-import { init, type WrappedPdfiumModule } from "@embedpdf/pdfium";
+import { init } from "@embedpdf/pdfium";
 import {
   checkInputSize,
   checkOpen,
@@ -32,16 +32,18 @@ import {
   type Rgba8,
   readFailure,
   readRange,
+  recolours,
+  recolourTile,
   type TilePlan,
   throwIfAborted,
   type WasmSource,
   WHITE,
 } from "@laminapdf/render";
+import { heap, type Pdfium } from "./engine.js";
+import { annotationRects, pageImages, userToTile } from "./regions.js";
 
 /** The pinned package (ADR 0004 §3); its pdfium.wasm's SHA-256 is checked at build time. */
 export const PDFIUM_PACKAGE = "@embedpdf/pdfium@2.15.1";
-
-type Pdfium = WrappedPdfiumModule;
 
 // fpdfview.h
 const FPDF_ANNOT = 0x01;
@@ -133,10 +135,6 @@ export class PdfiumBackend implements RenderBackend {
   open(source: RenderSource, options: RenderOpenOptions = {}): RenderDocument {
     return PdfiumDocument.open(this.#pdfium, source, options);
   }
-}
-
-function heap(p: Pdfium): WebAssembly.Memory {
-  return (p.pdfium.wasmExports as unknown as { memory: WebAssembly.Memory }).memory;
 }
 
 /** What the source refused during one engine call: missing ranges, or a failed read. */
@@ -339,10 +337,28 @@ class PdfiumDocument implements RenderDocument {
     const bitmap = p.FPDFBitmap_CreateEx(width, height, FPDFBITMAP_BGRA, buffer, width * 4);
     try {
       if (bitmap === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate the tile");
-      this.#fillBackground(bitmap, plan, request.background === undefined ? WHITE : request.background);
-      this.#draw(bitmap, page, plan, info, request);
-      const pixels = new Uint8ClampedArray(plan.byteLength);
-      pixels.set(new Uint8Array(heap(p).buffer, buffer, plan.byteLength));
+      const background = request.background === undefined ? WHITE : request.background;
+      const flags = flagsOf(request.flags);
+      const copy = () => new Uint8ClampedArray(heap(p).buffer.slice(buffer, buffer + plan.byteLength));
+      const drawn = (annotations: boolean) => {
+        this.#fillBackground(bitmap, plan, background);
+        this.#draw(bitmap, page, plan, info, request, annotations);
+        return copy();
+      };
+      if (!recolours(request.appearance)) return { width, height, pixels: drawn(flags.annotations) };
+      // Recoloured: the content alone, then (when the page has any) the annotations drawn again
+      // over it, whose pixels keep their colours; images keep theirs too.
+      const pixels = drawn(false);
+      const toTile = userToTile(p, page, info, plan, request.rotation ?? 0);
+      const rects = flags.annotations ? annotationRects(p, page, toTile) : [];
+      const annotated = rects.length > 0 ? { pixels: drawn(true), rects } : undefined;
+      const images = pageImages(p, this.#doc, page, toTile);
+      recolourTile(request.appearance ?? "original", width, pixels, {
+        images: images.opaque,
+        seeThrough: images.seeThrough,
+        background,
+        ...(annotated === undefined ? {} : { annotated }),
+      });
       return { width, height, pixels };
     } finally {
       if (bitmap !== 0) p.FPDFBitmap_Destroy(bitmap);
@@ -354,8 +370,15 @@ class PdfiumDocument implements RenderDocument {
    * Draws the page into the bitmap. Widgets need the whole page laid out and shifted, since
    * FPDF_FFLDraw takes no matrix; without them the matrix call draws only the tile.
    */
-  #draw(bitmap: number, page: number, plan: TilePlan, info: RenderPage, request: RenderRequest): void {
-    const flags = flagsOf(request.flags);
+  #draw(
+    bitmap: number,
+    page: number,
+    plan: TilePlan,
+    info: RenderPage,
+    request: RenderRequest,
+    annotations: boolean,
+  ): void {
+    const flags = { ...flagsOf(request.flags), annotations };
     const renderFlags = renderFlagsOf(flags);
     const rotation = request.rotation ?? 0;
     if (flags.annotations && flags.formWidgets) {

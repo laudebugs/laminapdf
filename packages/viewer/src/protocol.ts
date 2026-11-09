@@ -4,7 +4,13 @@
 // holds what both sides agree on: the method map (params and results), the priorities and the
 // coalescing key.
 
-import { type CloneableWasmSource, flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
+import {
+  type CloneableWasmSource,
+  flagsOf,
+  type PageAppearance,
+  type RenderLimits,
+  type RenderRequest,
+} from "@laminapdf/render";
 import type {
   DocumentProperties,
   Limits,
@@ -251,11 +257,11 @@ export function renderKeyFields(key: string): RenderKeyFields {
 
 /**
  * The coalescing key of a render on document `id`: the document and the whole normalised
- * RenderRequest (page, scale, clip, rotation, flags and background), so two requests share a run
- * only when their pixels are the same (ADR 0009 §3.3).
+ * RenderRequest (page, scale, clip, rotation, flags, background and appearance), so two requests
+ * share a run only when their pixels are the same (ADR 0009 §3.3).
  */
 export function renderKey(request: RenderRequest, id: number): string {
-  const { page, scale, clip, rotation = 0, flags, background } = request;
+  const { page, scale, clip, rotation = 0, flags, background, appearance } = request;
   return JSON.stringify([
     id,
     page,
@@ -264,5 +270,18 @@ export function renderKey(request: RenderRequest, id: number): string {
     rotation,
     flagsOf(flags),
     background === undefined ? "white" : background,
+    appearanceKey(appearance),
   ]);
+}
+
+/** The request field for `appearance`: none for the pages' own colours, so their keys don't change. */
+export function appearanceField(appearance: PageAppearance): { appearance?: PageAppearance } {
+  return appearance === "original" ? {} : { appearance };
+}
+
+/** A page appearance as a string: equal for the same appearance, whatever the object. */
+export function appearanceKey(appearance: PageAppearance | undefined): string {
+  if (appearance === undefined || typeof appearance === "string") return appearance ?? "original";
+  const { ink: i, paper: p } = appearance;
+  return `high-contrast:${i.r},${i.g},${i.b},${i.a}:${p.r},${p.g},${p.b},${p.a}`;
 }

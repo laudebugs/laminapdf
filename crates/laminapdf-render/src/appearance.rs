@@ -13,7 +13,7 @@
 //!   rectangle of one that changes most of it, so text under a highlight keeps its colour.
 //!
 //! The colour maps use integer arithmetic only, so `@laminapdf/render`'s port gives the same
-//! bytes (`fixtures/render/appearance.json` holds both to it). Text drawn as part of an image
+//! bytes (`fixtures/appearance/colours.json` holds both to it). Text drawn as part of an image
 //! keeps its colours, and so does the area an image's quad covers when the image is clipped
 //! or transparent there.
 
