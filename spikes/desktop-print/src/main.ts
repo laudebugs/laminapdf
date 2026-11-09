@@ -46,7 +46,9 @@ async function prepare(name: string): Promise<void> {
     const page = document.createElement("div");
     page.className = `page size${sizes.indexOf(`${p.w} ${p.h}`)}`;
     const img = document.createElement("img");
-    img.src = `${base}page/${name}/${i}`;
+    // The fixture's name from the app's own plan, encoded: nothing read from the page reaches
+    // the URL (CodeQL js/xss-through-dom).
+    img.src = `${base}page/${encodeURIComponent(fixture.name)}/${i}`;
     img.alt = `page ${i + 1}`;
     page.append(img);
     printRoot.append(page);
