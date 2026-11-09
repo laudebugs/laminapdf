@@ -8,7 +8,7 @@ A recipe's reader should see what its code makes without leaving the page, and c
 
 An example gets a preview only when it makes something a reader can look at. Three kinds follow from that rule:
 
-- **It makes a PDF:** Code and Result tabs, with pictures of every page and the link to open the PDF. The Rust and TypeScript twins write the same bytes, so one Result serves both languages.
+- **It makes a PDF:** a Result tab after the TypeScript and Rust tabs, in one row, with pictures of every page and the link to open the PDF. The Rust and TypeScript twins write the same bytes, so one Result serves both languages.
 - **It turns a PDF into text:** Code and Output tabs, with the text it prints, taken from its golden.
 - **It sets something up, or checks something:** code only. A Worker's `wrangler.toml`, a test helper or a worker client has no output worth showing.
 

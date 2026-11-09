@@ -2,7 +2,7 @@
 // iPhone 15 and iPad Pro 11 in WebKit (the nightly's WebKit leg), Pixel 8 in Chromium, also narrowed
 // to 320 px (every PR); Firefox has no mobile emulation. Each
 // opens a file, pans and zooms it with synthetic touches (the viewer owns the gestures: pinch keeps
-// the point under the fingers within 2 px), never scrolls sideways, and passes axe; the phone shows
+// the point under the fingers within 2 px), never scrolls sideways, copies its text and passes axe; the phone shows
 // the bottom bar and the tablet the desktop shell.
 
 import { env } from "node:process";
@@ -189,6 +189,25 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
       const moved = await page.evaluate(() => (document.querySelector(".lamina-viewer") as HTMLElement).scrollTop);
       // 240 px of drag, or all the room the page has below, less a pixel for rounding.
       expect(moved - top).toBeGreaterThanOrEqual(Math.min(200, room - 1));
+      await clean(watched);
+    });
+
+    it(`${profile.label}: selects and copies the page's text`, async () => {
+      const watched = await open();
+      const { page } = watched;
+      await page.locator(".lamina-text-layer span").first().waitFor({ timeout: 30_000 });
+      const copied = await page.evaluate(() => {
+        const box = document.querySelector(".lamina-text-layer") as HTMLElement;
+        document.getSelection()?.selectAllChildren(box);
+        const event = new ClipboardEvent("copy", {
+          clipboardData: new DataTransfer(),
+          bubbles: true,
+          cancelable: true,
+        });
+        document.dispatchEvent(event);
+        return event.clipboardData?.getData("text/plain") ?? "";
+      });
+      expect(copied.trim()).toBe("Hello, World");
       await clean(watched);
     });
 

@@ -15,7 +15,7 @@ import {
 } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
-import { Document, isLaminaPdfError, type OpenOptions, wasmMemory } from "@laminapdf/sdk";
+import { Document, isLaminaPdfError, loadExtract, type OpenOptions, wasmMemory } from "@laminapdf/sdk";
 import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
 import type {
   BackendInit,
@@ -38,6 +38,13 @@ interface Open {
   readonly render: RenderDocument;
   /** Where a remote document's bytes come from; undefined when they are all in memory. */
   readonly remote: HttpRangeByteSource | undefined;
+  /**
+   * How to open it again as a text-capable copy (its bytes in memory, the options it opened
+   * with): kept only while that copy may be needed, since the options hold the password.
+   */
+  reopen: { readonly bytes: Uint8Array | undefined; readonly options: ViewerOpenOptions } | undefined;
+  /** The copy opened in the extract module, for a document opened before that module loaded. */
+  text?: Promise<Document> | undefined;
 }
 
 /**
@@ -68,7 +75,81 @@ export async function initBackend(init: BackendInit): Promise<{ name: string; ve
   }
   const loaded = await pending;
   backend = loaded;
+  // The text layer's module, loaded once the page can render: documents opened after it can give
+  // their text, and the first page never waits for it.
+  void extractModule().catch(() => {
+    // Tried again when text is first asked for.
+  });
   return { name: loaded.name, version: loaded.version };
+}
+
+/** The extract module's load, started after the backend's. */
+let extract: Promise<void> | undefined;
+
+/** The extract module's load: the one under way, or a new one after a failed one. */
+function extractModule(): Promise<void> {
+  if (extract === undefined) {
+    const load = loadExtract();
+    extract = load;
+    // A failed load is forgotten (the next call tries again), while its callers still see it fail.
+    load.catch(() => {
+      if (extract === load) extract = undefined;
+    });
+  }
+  return extract;
+}
+
+/**
+ * The open document as the extract module reads it, for its text and structure: itself when it
+ * opened in that module, else a copy opened from the same bytes with the same options once the
+ * module has loaded (a document opened before it: a link opened as the reader starts).
+ */
+export async function textModel(signal: AbortSignal): Promise<Document> {
+  const opened = current();
+  if (opened.model.canExtractText) return opened.model;
+  // The copy, opened or opening; else none can be opened (its bytes were let go), and the base
+  // document answers `extract-module-not-loaded` itself.
+  if (opened.text !== undefined) return untilAborted(opened.text, signal);
+  if (opened.reopen === undefined) return opened.model;
+  const { bytes, options } = opened.reopen;
+  // One copy for every caller, opened with no caller's signal: a page that scrolls away aborts
+  // its own wait, never the copy the other pages and the structure tree wait for.
+  opened.text = (async () => {
+    await extractModule();
+    const { model } =
+      bytes !== undefined
+        ? await openModel((o) => Document.open(bytes, o), options)
+        : await openModel((o) => Document.openRange(opened.remote as HttpRangeByteSource, o), options);
+    if (!model.canExtractText) {
+      model.free();
+      throw new RenderError("render-failed", "the extract module didn't load");
+    }
+    // The copy is open: the password and bytes it needed are no longer kept.
+    opened.reopen = undefined;
+    return model;
+  })();
+  opened.text.catch(() => {
+    opened.text = undefined;
+  });
+  return untilAborted(opened.text, signal);
+}
+
+/**
+ * What a text-capable copy of `model` would open from: nothing for a document that can already
+ * give its text, since the options hold the password and are kept only while needed.
+ */
+function reopenFor(model: Document, bytes: Uint8Array | undefined, options: ViewerOpenOptions): Open["reopen"] {
+  return model.canExtractText ? undefined : { bytes, options };
+}
+
+/** `promise`, or a rejection as soon as `signal` aborts, whichever comes first. */
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  signal.throwIfAborted();
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason);
+    signal.addEventListener("abort", abort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+  });
 }
 
 function currentBackend(): RenderBackend {
@@ -82,6 +163,11 @@ function closeOpen(): void {
   if (open === undefined) return;
   open.render.close();
   open.model.free();
+  // A text-capable copy goes with it, once opened (a failed one has nothing to free).
+  open.text?.then(
+    (copy) => copy.free(),
+    () => {},
+  );
   open = undefined;
 }
 
@@ -200,7 +286,13 @@ export async function openDocument(
   // The new pair is open: only now is the previous document closed, so a failed open (a wrong
   // password, a broken file) leaves it working.
   closeOpen();
-  open = { id: nextDocument++, model, render, remote };
+  open = {
+    id: nextDocument++,
+    model,
+    render,
+    remote,
+    reopen: reopenFor(model, remote === undefined ? bytes : undefined, options),
+  };
   // ADR 0003 warnings (a repaired xref, a dropped object) for the UI.
   for (const warning of model.warnings) emit("warning", warning);
   return {

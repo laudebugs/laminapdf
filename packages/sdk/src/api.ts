@@ -108,6 +108,8 @@ export type {
   RenderMode,
   SaveOptions,
   SaveReport,
+  StructureKid,
+  StructureNode,
   TextLayout,
   TextRunInfo,
   UndoOutcome,
