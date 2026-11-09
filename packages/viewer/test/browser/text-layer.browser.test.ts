@@ -1,12 +1,24 @@
 // The text layer (todo C5a) over real pages in Chromium, Firefox and WebKit: copy gives the text
 // Lamina PDF extracts in five scripts, the encrypted copy too; spans lie over their glyph quads at
 // 100 %, 200 % and a quarter turn; a selection runs across pages and stays while the view scrolls;
-// a tagged file's structure owns its spans, and an untagged file says so once.
+// a tagged file's structure owns its spans, and an untagged file says so once; a real mouse drag
+// selects a word, whatever layers lie over the text, and the selection's tint never hides the ink.
 
 import { Builder, Document, Font, init } from "@laminapdf/sdk";
+import { decodePng } from "@laminapdf/test-utils/browser-harness";
 import { createViewer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { commands } from "vitest/browser";
 import { viewer as client, ENCRYPTED, PASSWORD, read } from "./helpers.js";
+
+declare module "vitest/browser" {
+  interface BrowserCommands {
+    /** Drags the real mouse across the element `selector` names (vitest.browser.config.ts). */
+    dragAcross: (selector: string) => Promise<void>;
+    /** A PNG screenshot of the element `selector` names, base64 (vitest.browser.config.ts). */
+    screenshotOf: (selector: string) => Promise<string>;
+  }
+}
 
 let client_: ViewerClient | undefined;
 let view: Viewer | undefined;
@@ -239,5 +251,101 @@ describe("structure", () => {
       .poll(() => document.querySelectorAll(".lamina-structure[role=status]").length, { timeout: 10_000 })
       .toBe(1);
     expect(document.querySelector(".lamina-structure")?.textContent).toBe("Untagged document");
+  });
+});
+
+describe("pointer", () => {
+  /** The first span of page 0 with more than `min` characters, wholly in view, marked for `dragAcross`. */
+  async function word(min = 8): Promise<HTMLElement> {
+    const span = (await spansOf(0)).find((s) => {
+      const box = s.getBoundingClientRect();
+      const inView =
+        box.top >= 0 && box.bottom <= window.innerHeight && box.left >= 0 && box.right <= window.innerWidth;
+      return (s.textContent ?? "").trim().length > min && inView;
+    });
+    if (span === undefined) throw new Error("no word in view on page 0");
+    span.id = "drag-target";
+    return span;
+  }
+
+  /** The element the browser gives a press at the centre of `span`. */
+  function hitAt(span: HTMLElement): Element | null {
+    const box = span.getBoundingClientRect();
+    return document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+  }
+
+  /**
+   * The selection is the start of `span`'s text, most of it: the drag stops 2 px inside the span,
+   * which can fall before a narrow last letter.
+   */
+  function expectStartOf(span: HTMLElement): void {
+    const text = span.textContent?.trim() ?? "";
+    const selected = document.getSelection()?.toString().trim() ?? "";
+    expect(selected.length).toBeGreaterThanOrEqual(text.length - 1);
+    expect(text.startsWith(selected)).toBe(true);
+  }
+
+  it("selects a word under a mouse drag: the layers over the text let the pointer through", async () => {
+    await show(await read("fixtures/golden/text-latin.pdf"));
+    const span = await word();
+    expect(hitAt(span)).toBe(span);
+    await commands.dragAcross("#drag-target");
+    expectStartOf(span);
+  });
+
+  it("keeps the text under a layer added on top, even one that covers the page", async () => {
+    const v = await show(await read("fixtures/golden/text-latin.pdf"));
+    v.addLayer({
+      name: "notes",
+      onMount(_page, slot) {
+        const cover = document.createElement("div");
+        Object.assign(cover.style, { position: "absolute", inset: "0" });
+        slot.append(cover);
+      },
+    });
+    const span = await word();
+    expect(hitAt(span)).toBe(span);
+    await commands.dragAcross("#drag-target");
+    expectStartOf(span);
+  });
+});
+
+describe("selection tint", () => {
+  /** How many pixels of `selector`'s screenshot are ink: darker than any selection tint. */
+  async function inkPixels(selector: string): Promise<number> {
+    const png = Uint8Array.from(atob(await commands.screenshotOf(selector)), (c) => c.charCodeAt(0));
+    const { pixels: data } = await decodePng(png);
+    let ink = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const luma = 0.2126 * (data[i] ?? 255) + 0.7152 * (data[i + 1] ?? 255) + 0.0722 * (data[i + 2] ?? 255);
+      if (luma < 100) ink++;
+    }
+    return ink;
+  }
+
+  it("leaves a selected word's ink as dark as drawn under an opaque tint", async () => {
+    await show(await read("fixtures/golden/text-latin.pdf"));
+    // An app's tint, opaque as the Paper selection tint is.
+    const style = document.createElement("style");
+    style.textContent = ".lamina-text-layer span::selection { background: #cedbdd; }";
+    document.head.append(style);
+    try {
+      const span = (await spansOf(0)).find((s) => {
+        const box = s.getBoundingClientRect();
+        const inView =
+          box.top >= 0 && box.bottom <= window.innerHeight && box.left >= 0 && box.right <= window.innerWidth;
+        return (s.textContent ?? "").trim().length > 8 && inView;
+      });
+      if (span === undefined) throw new Error("no word in view on page 0");
+      span.id = "tinted";
+      // The page's sharp pixels are in once the word shows ink.
+      await expect.poll(() => inkPixels("#tinted"), { timeout: 20_000 }).toBeGreaterThan(20);
+      const before = await inkPixels("#tinted");
+      document.getSelection()?.selectAllChildren(span);
+      const after = await inkPixels("#tinted");
+      expect(after).toBeGreaterThanOrEqual(before * 0.8);
+    } finally {
+      style.remove();
+    }
   });
 });
