@@ -80,8 +80,10 @@ export class FindController {
     this.#host = host;
   }
 
+  /** Find's state now (a new object after each change). */
   getState = (): FindState => this.#state;
 
+  /** Calls `listener` after every change of state (for `useSyncExternalStore`); returns a function that stops it. */
   subscribe = (listener: () => void): (() => void) => {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);

@@ -35,6 +35,7 @@ export interface FindSlice {
 
 /** Find as the bar drives it: `viewer.find` fits. */
 export interface FindControls extends ExternalStore<FindSlice> {
+  /** Searches for `query` with `options`, replacing any search under way; an empty query clears. */
   find(query: string, options?: FindOptionsSlice): void;
 }
 
