@@ -36,6 +36,8 @@ if (-not $p.WaitForExit(1800 * 1000)) { $p.Kill(); Write-Warning "auto run timed
 Invoke-Checked { & src-tauri\target\release\compare.exe fixtures results\out "results\$Label-fidelity.csv" }
 
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+# .NET resolves relative paths against the process's directory, not PowerShell's location.
+$dialogs = (Resolve-Path results\dialogs).Path
 foreach ($path in "raster", "vector", "webview", "windowprint") {
   $env:LAMINA_SPIKE_MODE = "dialog-$path"
   $p = Start-Process -FilePath $app -PassThru
@@ -43,7 +45,7 @@ foreach ($path in "raster", "vector", "webview", "windowprint") {
   $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
   $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
   [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-  $bmp.Save("results\dialogs\$Label-$path.png", [System.Drawing.Imaging.ImageFormat]::Png)
+  $bmp.Save((Join-Path $dialogs "$Label-$path.png"), [System.Drawing.Imaging.ImageFormat]::Png)
   Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
 }
 Write-Output "results in $(Resolve-Path results)"

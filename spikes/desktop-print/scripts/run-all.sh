@@ -40,13 +40,14 @@ src-tauri/target/release/compare fixtures results/out "results/$label-fidelity.c
 screenshot() {
   case "$(uname)" in
     Darwin) screencapture -x "$1" ;;
-    *) import -window root "$1" ;;
+    *) xwd -root -silent | convert xwd:- "$1" ;;
   esac
 }
 for path in raster vector webview windowprint; do
-  LAMINA_SPIKE_MODE="dialog-$path" LAMINA_SPIKE_LABEL="$label" "$app" &
+  LAMINA_SPIKE_MODE="dialog-$path" LAMINA_SPIKE_LABEL="$label" "$app" > "results/dialogs/$label-$path.log" 2>&1 &
   pid=$!
   sleep 12
+  kill -0 "$pid" 2>/dev/null || echo "the app had exited before the $path screenshot" >> "results/dialogs/$label-$path.log"
   screenshot "results/dialogs/$label-$path.png" || echo "no screenshot for $path" >&2
   kill "$pid" 2>/dev/null || true
   wait "$pid" 2>/dev/null || true
