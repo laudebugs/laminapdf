@@ -124,6 +124,7 @@ pub mod flow {
     pub use laminapdf_build::flow::*;
 }
 mod revisions;
+mod structure;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
@@ -133,6 +134,7 @@ pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
+pub use structure::{StructureKid, StructureNode};
 
 /// The JSON Schema of the error and warning object, `laminapdf.error/1` (ADR 0026 §1), as
 /// `cargo xtask gen codes` writes it. Tools that embed it in schemas of their own, such as
