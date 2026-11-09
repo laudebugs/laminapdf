@@ -25,13 +25,13 @@ export function watchFragment(win: Window, engine: Engine): () => void {
     const action = fragmentAction(parseFragment(win.location.hash), heldUrl(reader.getState()), ALLOW_LOCAL_HTTP);
     switch (action.type) {
       case "open":
-        void engine.openRemote(action.url, action.page);
+        void engine.openRemote(action.url, action.place);
         return;
       case "close":
         reader.close();
         return;
       case "navigate":
-        engine.goToPage(action.page);
+        engine.goTo(action.place);
         return;
       case "invalid":
         engine.showLinkProblem(action.problem);
