@@ -151,7 +151,7 @@ const EN = {
   "network.badge.unexpected": "Unexpected site",
   "network.unexpected.title": "A request went to an unexpected site",
   "network.unexpected.body":
-    "Lamina PDF asked {origin} for something it never means to request. If you didn't cause it, a browser extension may have; please tell us.",
+    "Lamina PDF contacted {origin}, which it never does on purpose. If you didn't cause it, a browser extension may have; please tell us.",
   "network.document.title": "Document traffic",
   "network.column.origin": "Site",
   "network.column.files": "Files",
@@ -185,7 +185,7 @@ const EN = {
   "network.feed.sw.off": "Offline service worker · not installed",
   "network.proves.title": "What this proves",
   "network.proves.body":
-    "Every request this page and its document worker make is counted here as it happens, from the browser's own timing records and from the calls that can send data. A blocked request sent nothing, so it isn't counted.",
+    "This panel counts every request this page and its document worker make, as it happens, from the browser's own timing records and from the calls that can send data. A blocked request sent nothing, so it isn't counted.",
   "network.proves.limit":
     "Browser extensions make requests of their own, which no page can see. Your browser's developer tools show those too.",
   "network.copy": "Copy report",
