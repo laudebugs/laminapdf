@@ -152,6 +152,26 @@ impl Builder {
         Ok(report)
     }
 
+    /// Lays `markdown` out as a flow and adds its pages ([`laminapdf::markdown`](crate::markdown),
+    /// ADR 0032 §6): CommonMark with tables, footnotes, strikethrough and task lists, its front
+    /// matter as the document's metadata. Without fonts in `options` it sets the standard 14
+    /// Helvetica family and Courier: Latin text only, and refused under PDF/UA-1
+    /// (`font-not-embedded`). Its warnings (`markdown-html-ignored`, `markdown-image-missing`,
+    /// the flow's) are in the finished document's [`Document::warnings`].
+    ///
+    /// # Errors
+    /// As [`Builder::flow`]; `missing-glyph` for a character the fonts lack.
+    #[cfg(feature = "markdown")]
+    pub fn markdown(
+        &mut self,
+        markdown: &str,
+        options: &crate::markdown::MarkdownOptions,
+    ) -> Result<crate::flow::FlowReport> {
+        let report = self.0.markdown(markdown, options)?;
+        self.1.extend(report.warnings.iter().cloned().map(crate::Warning::from));
+        Ok(report)
+    }
+
     /// A page of `size`, added by [`PageBuilder::finish`].
     pub fn page(&mut self, size: PageSize) -> PageBuilder<'_> {
         self.0.page(size)

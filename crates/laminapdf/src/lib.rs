@@ -124,6 +124,14 @@ pub mod reveal;
 pub mod flow {
     pub use laminapdf_build::flow::*;
 }
+/// Markdown in, flowing pages out ([ADR 0032] §6): `laminapdf-build`'s Markdown front end, for
+/// [`Builder::markdown`].
+///
+/// [ADR 0032]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0032-flowing-layout-and-document-inputs.md
+#[cfg(feature = "markdown")]
+pub mod markdown {
+    pub use laminapdf_build::markdown::*;
+}
 mod revisions;
 mod structure;
 mod warning;

@@ -264,6 +264,8 @@
             "tounicode-conflict",
             "whole-font-rebuilt",
             "flow-keep-broken",
+            "markdown-html-ignored",
+            "markdown-image-missing",
             "covered-text",
             "redaction-not-applied",
             "text-in-earlier-revision"

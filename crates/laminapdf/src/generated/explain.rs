@@ -3883,6 +3883,63 @@ assert_eq!(report.warnings[0].code(), "flow-keep-broken");
 
 - `page`: the page the blocks start on, counted from 0 within the flow.
 "#,
+        "markdown-html-ignored" => r#"# `markdown-html-ignored`
+
+- Type: warning
+- Kind: `unsupported` (valid input that Lamina PDF can't handle yet)
+
+## What happened
+
+`Builder::markdown` found raw HTML in the Markdown, such as a `<div>` block or an inline `<span>`, and left it out of the PDF. The rest of the document was laid out as usual. One warning is raised for each HTML block and each piece of inline HTML.
+
+## Why
+
+Markdown lets authors mix in HTML, and a browser would draw it. Laying out HTML needs a web page's layout rules, which a PDF builder doesn't have. Rather than print the tags as text, the builder leaves the HTML out and says where it was.
+
+## How to fix
+
+Write the content in Markdown instead: `**bold**` for `<b>`, a table for `<table>`, an image for `<img>`. If the HTML is only a comment, such as `<!-- draft -->`, remove it or ignore the warning.
+
+## Example
+
+```rust
+let report = builder.markdown("Hello <span>there</span>\n", &MarkdownOptions::new())?;
+assert_eq!(report.warnings[0].code(), "markdown-html-ignored");
+```
+
+## Data fields
+
+- `offset`: where the HTML starts, as a byte offset into the Markdown.
+"#,
+        "markdown-image-missing" => r#"# `markdown-image-missing`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Builder::markdown` met an image, such as `![Chart](chart.png)`, whose bytes weren't passed in. It left the image out of the PDF and laid out the rest of the document as usual.
+
+## Why
+
+The builder reads no files and fetches nothing from the network, so it can only draw images the caller supplies. An image path the options don't list, or a web address, has nothing behind it.
+
+## How to fix
+
+Read the image yourself and pass it with `MarkdownOptions::with_image`, under the same path the Markdown uses.
+
+## Example
+
+```rust
+let chart = Image::png(&std::fs::read("chart.png")?)?;
+let options = MarkdownOptions::new().with_image("chart.png", chart);
+builder.markdown("![Chart](chart.png)\n", &options)?;
+```
+
+## Data fields
+
+- `offset`: where the image starts, as a byte offset into the Markdown.
+"#,
         "render-too-large" => r"# `render-too-large`
 
 - Type: error
