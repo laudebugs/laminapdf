@@ -10,6 +10,15 @@ export type { FindController, FindResult, FindState } from "./find/controller.js
 export type { FindOptions } from "./find/fold.js";
 export type { FindSnippet } from "./find/page.js";
 export type { CopyMode } from "./layers/copy.js";
+export type {
+  HistoryEntry,
+  HistoryPlace,
+  HistoryState,
+  NavigationHistory,
+  NavigationHistoryOptions,
+} from "./history/history.js";
+export type { LinkLayerOptions, LinkWords } from "./layers/link-layer.js";
+export { type ExternalLink, externalLink, type OpenableLink } from "./layers/link-url.js";
 export type { TextLayerOptions, TextSelection } from "./layers/text-layer.js";
 export type { Rotation } from "./layout/page-layout.js";
 export { type NetworkSink, watchNetwork } from "./network/watch.js";

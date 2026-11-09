@@ -182,6 +182,11 @@ export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "
 export { formatBytes } from "./reader/bytes.js";
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
 export {
+  ExternalLinkDialog,
+  type ExternalLinkDialogProps,
+  type ExternalLinkTarget,
+} from "./reader/external-link.js";
+export {
   FindBar,
   type FindBarProps,
   type FindControls,

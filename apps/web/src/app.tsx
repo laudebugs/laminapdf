@@ -11,6 +11,8 @@ import {
   CommandRegistry,
   CommandsProvider,
   DebugMenu,
+  ExternalLinkDialog,
+  type ExternalStore,
   FocusModeItem,
   Inspector,
   LeftRail,
@@ -39,13 +41,13 @@ import {
   useShell,
   useStoreState,
 } from "@laminapdf/ui";
-import type { Viewer } from "@laminapdf/viewer";
+import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
-import { pageLabel } from "./outline.ts";
+import { type PageInfo, pageLabel } from "./outline.ts";
 import { railTabs } from "./rail.tsx";
 import type { SelectionSurfaces } from "./selection.tsx";
 import { useSelection } from "./selection.tsx";
@@ -65,6 +67,39 @@ function ViewerHost({ viewer, visible }: { viewer: Viewer | undefined; visible: 
   return <div ref={host} className="web-viewer" hidden={!visible} />;
 }
 
+/** A history with nowhere to go, for a top bar without a view. */
+const NOWHERE: HistoryState = { current: undefined, back: undefined, forward: undefined };
+const NO_HISTORY: ExternalStore<HistoryState> = { getState: () => NOWHERE, subscribe: () => () => undefined };
+
+/**
+ * Back and Forward (R07): where each goes, as page labels, and their handlers. Both step the
+ * browser's history, which holds the view's jumps (open/history.ts), so the reader's buttons and
+ * the browser's own do the same thing; with nowhere to go in this document they do nothing, so
+ * Back never leaves the reader.
+ */
+function useHistory(
+  viewer: Viewer | undefined,
+  pages: readonly PageInfo[],
+): {
+  history: { readonly back: string | undefined; readonly forward: string | undefined };
+  actions: Readonly<Record<"nav.back" | "nav.forward", () => void>>;
+} {
+  const state = useStoreState(viewer?.history ?? NO_HISTORY, (s) => s);
+  const label = (entry: HistoryState["back"]) => (entry === undefined ? undefined : pageLabel(pages, entry.point.page));
+  const actions = useMemo(
+    () => ({
+      "nav.back": () => {
+        if (viewer?.history.getState().back !== undefined) window.history.back();
+      },
+      "nav.forward": () => {
+        if (viewer?.history.getState().forward !== undefined) window.history.forward();
+      },
+    }),
+    [viewer],
+  );
+  return { history: { back: label(state.back), forward: label(state.forward) }, actions };
+}
+
 /** Names the window after the open document (its title, else its file name); nothing leaves the page. */
 function useWindowTitle(fileName: string | undefined, title: string | undefined): void {
   useEffect(() => {
@@ -82,6 +117,7 @@ function useReaderCommands(
   shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
   rail: boolean,
   find: FindActions,
+  history: ReturnType<typeof useHistory>["actions"],
   selection: SelectionSurfaces["actions"],
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
@@ -100,11 +136,11 @@ function useReaderCommands(
       actions: {
         ...shellActions(shell.layout, shell.modes, { rail }),
         "palette.open": shell.openPalette,
-        ...(viewer === undefined ? {} : { ...find, ...selection }),
+        ...(viewer === undefined ? {} : { ...find, ...history, ...selection }),
         "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
       },
     }),
-    [platform, reader, viewer, shell, modes, rail, find, selection],
+    [platform, reader, viewer, shell, modes, rail, find, history, selection],
   );
   return { registry, context };
 }
@@ -199,6 +235,29 @@ function useRepairsPanel(
   return { inspector, showRepairs };
 }
 
+/** The reader's dialogs: the password prompt, and the confirmation before a web link opens. */
+function ReaderDialogs({
+  engine,
+  link,
+  platform,
+}: {
+  engine: Engine;
+  link: EngineState["externalLink"];
+  platform: Platform;
+}): ReactNode {
+  return (
+    <>
+      <PasswordDialog reader={engine.reader} />
+      <ExternalLinkDialog
+        link={link}
+        onOpen={(href) => void platform.openExternal(href).catch(reportError)}
+        onCopy={(href) => void platform.copyText(href).catch(reportError)}
+        onClose={() => engine.closeExternalLink()}
+      />
+    </>
+  );
+}
+
 /** The inspector's panel and the status bar's items: the network indicator first. */
 function usePanels(
   layout: ShellLayout,
@@ -257,8 +316,18 @@ export function App({
     return pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined;
   }, [engineState.pages]);
   const fileName = open ? state.file.name : undefined;
+  const history = useHistory(shown, engineState.pages);
   const selection = useSelection(shown, find, platform, KEYS);
-  const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions, selection.actions);
+  const commands = useReaderCommands(
+    platform,
+    reader,
+    shown,
+    shell,
+    tabs.length > 0,
+    find.actions,
+    history.actions,
+    selection.actions,
+  );
   useWindowTitle(fileName, engineState.title);
   const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
   const debugMenu = debug ? (
@@ -277,6 +346,7 @@ export function App({
             keys={KEYS}
             sidebarOpen={sidebar}
             findOpen={find.open}
+            {...(shown === undefined ? {} : { history: history.history })}
             {...(labels === undefined ? {} : { labels })}
             home={<span className="web-wordmark">{APP_NAME}</span>}
             debug={debugMenu}
@@ -309,7 +379,7 @@ export function App({
         ) : null}
         {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
         <ViewerHost viewer={viewer} visible={open} />
-        <PasswordDialog reader={reader} />
+        <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
       </ReaderShell>
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
       {selection.toolbar}

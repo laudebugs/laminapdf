@@ -1,5 +1,6 @@
 // The address fragment, read when the page loads and on every `hashchange` and `popstate`, acted
-// on through the engine (navigation.ts decides what each change asks for). The remote address
+// on through the engine (navigation.ts decides what each change asks for). An entry the reader's
+// own history made (history.ts) goes back to its exact place instead. The remote address
 // stays in the fragment only: it is never put in a path, a query or the window's title. When the
 // reader lets a remote file go (closed, or replaced by a local file), or leaves an unusable link's
 // page, the `url` key is removed with replaceState, so a reload doesn't open it again and no
@@ -7,6 +8,7 @@
 
 import type { ReaderState } from "@laminapdf/ui";
 import { type Engine, remoteUrlOf } from "../session.ts";
+import { followHistory } from "./history.ts";
 import { fragmentAction } from "./navigation.ts";
 import { buildFragment, parseFragment, remoteUrl } from "./url-fragment.ts";
 
@@ -21,7 +23,10 @@ function heldUrl(state: ReaderState): string | undefined {
 /** Starts following `win`'s fragment for `engine`; returns the function that stops it. */
 export function watchFragment(win: Window, engine: Engine): () => void {
   const { reader } = engine;
+  const history = followHistory(win, engine);
   const apply = () => {
+    // Back or Forward to a place a jump left from or landed on: the view goes there itself.
+    if (history.restore()) return;
     const action = fragmentAction(parseFragment(win.location.hash), heldUrl(reader.getState()), ALLOW_LOCAL_HTTP);
     switch (action.type) {
       case "open":
@@ -65,5 +70,6 @@ export function watchFragment(win: Window, engine: Engine): () => void {
     win.removeEventListener("hashchange", apply);
     win.removeEventListener("popstate", apply);
     for (const stop of unsubscribe) stop();
+    history.stop();
   };
 }

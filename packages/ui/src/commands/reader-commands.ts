@@ -184,7 +184,8 @@ function pageCommands(): AnyCommand[] {
       shortcuts: [keys("page", "Home")],
       home: ["view-menu"],
       enabled: withViewer((s) => (s.currentPage > 0 ? true : message("command.reason.firstPage"))),
-      run: viewerRun((viewer) => viewer.goToPage(0)),
+      // The first and last page are jumps, as going to a page is; the next and previous are steps.
+      run: viewerRun((viewer) => viewer.jumpToPage(0)),
     },
     {
       id: "nav.last-page",
@@ -193,7 +194,7 @@ function pageCommands(): AnyCommand[] {
       shortcuts: [keys("page", "End")],
       home: ["view-menu"],
       enabled: withViewer((s) => (s.currentPage < s.pageCount - 1 ? true : message("command.reason.lastPage"))),
-      run: viewerRun((viewer, s) => viewer.goToPage(s.pageCount - 1)),
+      run: viewerRun((viewer, s) => viewer.jumpToPage(s.pageCount - 1)),
     },
     {
       id: "nav.go-to-page",
@@ -203,7 +204,8 @@ function pageCommands(): AnyCommand[] {
       home: ["page-indicator"],
       args: pageArgs(),
       enabled: viewerOpen,
-      run: (ctx, page: number) => ctx.viewer?.goToPage(page),
+      // Going to a page is a jump: Back returns to where the reader was.
+      run: (ctx, page: number) => ctx.viewer?.jumpToPage(page),
     } satisfies Command<number>,
   ];
 }

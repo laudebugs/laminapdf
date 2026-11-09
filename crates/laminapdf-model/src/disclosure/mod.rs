@@ -13,10 +13,10 @@ mod objects;
 use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Object, Result};
-use laminapdf_syntax::text::decode_text_string;
 
 use crate::document::Document;
 use crate::outline::ActionKind;
+use crate::values::text_of;
 
 /// The XMP metadata packet the catalog's `/Metadata` names (§14.3.2).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -265,14 +265,6 @@ impl Scan<'_> {
 fn name_of(obj: &Object) -> Option<String> {
     match obj {
         Object::Name(n) => Some(String::from_utf8_lossy(n.as_bytes()).into_owned()),
-        _ => None,
-    }
-}
-
-/// A text string, decoded (PDFDocEncoding or UTF-16, §7.9.2.2).
-fn text_of(obj: &Object) -> Option<String> {
-    match obj {
-        Object::String(s) => Some(decode_text_string(&s.bytes)),
         _ => None,
     }
 }
