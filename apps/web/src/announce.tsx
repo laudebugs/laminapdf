@@ -34,11 +34,15 @@ export function useAnnouncements(
   }, [announcer, fileName, count]);
   useEffect(() => {
     if (viewer === undefined) return;
+    // A fit mode refitting after a resize or an open is not news: only a new mode or percentage is.
+    let mode = viewer.getState().zoom;
     const stops = [
       viewer.on("pagechange", ({ page }) => announcer.polite(spokenPage(pages, page), "page")),
-      viewer.on("zoomchange", ({ percent }) =>
-        announcer.polite(message("announce.zoom", { percent: Math.round(percent) }), "zoom"),
-      ),
+      viewer.on("zoomchange", ({ zoom, percent }) => {
+        const changed = typeof zoom === "number" || zoom !== mode;
+        mode = zoom;
+        if (changed) announcer.polite(message("announce.zoom", { percent: Math.round(percent) }), "zoom");
+      }),
     ];
     return () => {
       for (const stop of stops) stop();
