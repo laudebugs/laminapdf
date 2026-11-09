@@ -1,5 +1,6 @@
 // The sites' select in a real browser, as Select.astro renders it: its name from the label, shown
-// or hidden; chosen with the keyboard and the pointer, the chevron letting presses through; the
+// above it or hidden; chosen with the keyboard (Tab, then a typed letter) and pressed with the
+// pointer, the chevron letting presses through; the
 // field's colours and the focus ring from the Paper tokens; no inline style; and no axe violation,
 // in the light and the dark theme.
 
@@ -51,6 +52,9 @@ for (const theme of ["light", "dark"] as const) {
       mount(SELECTS.shown, theme);
       await expect.element(page.getByRole("combobox", { name: "Theme" })).toBeVisible();
       await expect.element(page.getByText("Theme")).toBeVisible();
+      // Above the field, as design language §7.19 places a field's label.
+      const shown = document.querySelector(".site-select-label")?.getBoundingClientRect();
+      expect(shown?.bottom).toBeLessThanOrEqual(document.querySelector("select")?.getBoundingClientRect().top ?? 0);
       mount(SELECTS.hidden, theme);
       await expect.element(page.getByRole("combobox", { name: "Select theme" })).toBeVisible();
       const label = document.querySelector(".site-select-label");
@@ -67,6 +71,25 @@ for (const theme of ["light", "dark"] as const) {
       await userEvent.selectOptions(select, "light");
       expect(select.value).toBe("light");
       expect(changes).toEqual(["light"]);
+    });
+
+    it("changes when a letter is typed on it, as a keyboard user picks an option", async () => {
+      const select = mount(SELECTS.hidden, theme);
+      const changes: string[] = [];
+      select.addEventListener("change", () => changes.push(select.value));
+      await userEvent.tab();
+      await userEvent.keyboard("d");
+      expect(select.value).toBe("dark");
+      expect(changes).toEqual(["dark"]);
+    });
+
+    it("takes the focus from a press on it, the chevron's side included", async () => {
+      const select = mount(SELECTS.hidden, theme);
+      const box = select.getBoundingClientRect();
+      // Press where the chevron sits, 16 px from the right edge.
+      await page.elementLocator(select).click({ position: { x: box.width - 16, y: box.height / 2 } });
+      expect(document.activeElement).toBe(select);
+      await userEvent.keyboard("{Escape}");
     });
 
     it("shows the focus ring when the keyboard reaches it", async () => {

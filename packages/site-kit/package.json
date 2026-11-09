@@ -27,6 +27,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@laminapdf/icons": "workspace:*"
+  },
   "devDependencies": {
     "@laminapdf/fonts": "workspace:*",
     "@laminapdf/test-utils": "workspace:*",

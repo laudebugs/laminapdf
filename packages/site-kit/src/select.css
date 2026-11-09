@@ -1,17 +1,26 @@
 /* The sites' select (Select.astro), design language §7.19: a native <select> with the Paper field's
    edge and fill, 32 px high, padding 0 30px 0 10px, and the 16 px chevron in text-3, 8 px from the
-   right edge. Drawn from the Paper tokens, which each site loads first; they follow its data-theme. */
+   right edge; a shown label above it, 12/600 text-3, 8 px away. Drawn from the Paper tokens, which
+   each site loads first; they follow its data-theme.
+   The twin of @laminapdf/ui's field.css (.paper-field, .paper-select) and density.css's touch sizes,
+   which are React-only and live in @layer paper.*; a change to §7.19 changes both. */
 
 .site-select {
+  position: relative;
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--paper-space-8);
-  color: var(--paper-text-2);
   font: var(--paper-type-body);
 }
 
+.site-select-label {
+  font: var(--paper-type-label);
+  color: var(--paper-text-3);
+}
+
 /* Hidden from sight, still the select's name. */
-.site-select-label-hidden {
+.site-select .site-select-label-hidden {
   position: absolute;
   inline-size: 1px;
   block-size: 1px;

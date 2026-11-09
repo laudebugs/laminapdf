@@ -4,7 +4,8 @@
 // of `dark`, `light` and `auto`, whose value Starlight's theme provider (an inline script in the
 // head, which sets the theme before the first paint) fills in through `updatePickers`, and the
 // choice in localStorage under `starlight-theme`. The script below is Starlight's own switching
-// logic (@astrojs/starlight/components/ThemeSelect.astro), so a Starlight update that changes that
+// logic (@astrojs/starlight/components/ThemeSelect.astro), under its names so the two diff easily,
+// with localStorage wrapped for browsers that refuse it; a Starlight update that changes that
 // contract needs a look here. The header and the phone menu both use this switch.
 import Select from "@laminapdf/site-kit/Select.astro";
 
@@ -32,7 +33,7 @@ const t = Astro.locals.t;
   type Theme = "auto" | "dark" | "light";
 
   /** Where Starlight keeps the choice. */
-  const STORAGE_KEY = "starlight-theme";
+  const storageKey = "starlight-theme";
 
   /** A theme from any value; anything unknown is `auto`. */
   const parseTheme = (theme: unknown): Theme =>
@@ -40,7 +41,7 @@ const t = Astro.locals.t;
 
   function loadTheme(): Theme {
     try {
-      return parseTheme(localStorage.getItem(STORAGE_KEY));
+      return parseTheme(localStorage.getItem(storageKey));
     } catch {
       return "auto";
     }
@@ -49,32 +50,33 @@ const t = Astro.locals.t;
   /** Stores the choice; `auto` is stored as no choice, as Starlight does. */
   function storeTheme(theme: Theme): void {
     try {
-      localStorage.setItem(STORAGE_KEY, theme === "auto" ? "" : theme);
+      localStorage.setItem(storageKey, theme === "auto" ? "" : theme);
     } catch {
       // Storage refused (a private window, blocked site data): the choice lasts for this page.
     }
   }
 
-  const systemTheme = (): "dark" | "light" => (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  const getPreferredColorScheme = (): "dark" | "light" =>
+    matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 
   /** Shows `theme` on the page and in every switch on it, and stores it. */
-  function choose(theme: Theme): void {
+  function onThemeChange(theme: Theme): void {
     StarlightThemeProvider.updatePickers(theme);
-    document.documentElement.dataset.theme = theme === "auto" ? systemTheme() : theme;
+    document.documentElement.dataset.theme = theme === "auto" ? getPreferredColorScheme() : theme;
     storeTheme(theme);
   }
 
   // Auto follows the system while the page is open.
   matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
-    if (loadTheme() === "auto") choose("auto");
+    if (loadTheme() === "auto") onThemeChange("auto");
   });
 
   class ThemeSelect extends HTMLElement {
     constructor() {
       super();
-      choose(loadTheme());
+      onThemeChange(loadTheme());
       this.querySelector("select")?.addEventListener("change", (event) => {
-        if (event.currentTarget instanceof HTMLSelectElement) choose(parseTheme(event.currentTarget.value));
+        if (event.currentTarget instanceof HTMLSelectElement) onThemeChange(parseTheme(event.currentTarget.value));
       });
     }
   }

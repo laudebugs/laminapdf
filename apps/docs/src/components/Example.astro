@@ -7,11 +7,11 @@
 // when the runner was built (scripts/build-runner.mjs); it loads nothing until it is pressed.
 import { existsSync } from "node:fs";
 import { TabItem, Tabs } from "@astrojs/starlight/components";
+// @laminapdf/icons' own files, inlined at build time.
+import downloadIcon from "@laminapdf/icons/svg/download.svg?raw";
+import playIcon from "@laminapdf/icons/svg/play.svg?raw";
+import resetIcon from "@laminapdf/icons/svg/reset.svg?raw";
 import { decorativeIcon } from "@laminapdf/site-kit/icon";
-// @laminapdf/icons' own files, inlined at build time (its package exports only a built dist/).
-import downloadIcon from "../../../../packages/icons/svg/download.svg?raw";
-import playIcon from "../../../../packages/icons/svg/play.svg?raw";
-import resetIcon from "../../../../packages/icons/svg/reset.svg?raw";
 import manifest from "../../public/examples/preview/manifest.json";
 import { RUNNABLE } from "../../runner/examples.ts";
 import ExampleCode from "./ExampleCode.astro";
