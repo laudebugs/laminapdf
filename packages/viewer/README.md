@@ -61,20 +61,20 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 
 The document Web Worker reads each page's text at `background` priority, after the tiles in view, and caches the text of the last 24 pages. Text needs the extract module, which the document Web Worker loads once the render backend is ready, so the first page never waits for it. Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet.
 
-**Destinations.** `ViewerClient.outline()` reads the document's outline in the document Web Worker, and `namedDestination(name)` finds one named destination. Each item's target is a page and a view in page space, as Lamina PDF resolves it, whatever the file wrote. `goToDestination(target)` applies the view's zoom when it sets one, then puts its point at the viewport's top-left (ISO 32000-2 §12.3.2.2):
+**Destinations.** `ViewerClient.outline()` reads the document's outline in the document Web Worker, and `namedDestination(name)` finds one named destination. Each item's target is a page and a view in page space: points from the displayed page's top-left, y down, whichever coordinates the file used. `goToDestination(target)` follows the target's view (ISO 32000-2 §12.3.2.2). It applies the target's zoom, if it has one, and then puts the target's point at the viewport's top-left:
 - **A point** (`at`, from `/XYZ`) at its zoom, or at the current zoom when the file gives none.
 - **Fit the page** (`fit`, from `/Fit` and `/FitB`).
 - **Fit the width** from a top (`fit-width`, from `/FitH` and `/FitBH`), or the height from a left (`fit-height`, from `/FitV` and `/FitBV`).
 - **Fit a rectangle** (`fit-rect`, from `/FitR`).
 
-A coordinate the file leaves out keeps the current scroll on that axis, or goes to the page's top. A view rotated by `rotate()` turns the point with the page, and a fit always fits the viewport's own width or height, as in pdf.js.
+A left the file leaves out keeps the current horizontal scroll, and a top it leaves out goes to the page's top. A view rotated by `rotate()` turns the point with the page, and a fit always fits the viewport's own width or height, as in pdf.js.
 
 **Thumbnails.** `new ThumbnailStrip(client, viewer, { width?, margin?, cacheBytes?, label?, name? })` makes a list of the pages as small pictures, for a sidebar. `mount(container)` puts it on the page, and `open(document)` shows the document the viewer opened. Size its `element` with CSS; it scrolls inside.
-- **Like the view, it mounts only what it shows.** It keeps the thumbnails in view and 4 either side. Each borrows a canvas from the strip's own pool, and a thumbnail scrolled away aborts its render.
+- **Like the viewer, it mounts only what is near its view.** It keeps the thumbnails in view and 4 either side. Each borrows a canvas from the strip's own pool, and a thumbnail scrolled away aborts its render.
 - **Renders wait for the main view.** Thumbnails render at `background` priority, so the pages in view always come first. Bitmaps stay in a cache of their own, 32 MB by default.
 - **It follows the viewer.** The current page is marked `aria-selected` and scrolled into the strip; a rotation turns every thumbnail.
 - **Keyboard and pointer.** A click, or Enter or Space, goes to that page. The arrow keys, Home and End move the focus, and only one thumbnail is in the Tab order.
-- **Names.** Each thumbnail is named by its page label and number ("Page iv (4 of 120)") and captioned with its label. `label` replaces both, and `name` the list's own name, for another language.
+- **Names.** Each thumbnail is named by its page label and number ("Page iv (4 of 120)") and captioned with its label. For another language, pass `label` to replace both and `name` to replace the list's own name.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
@@ -185,8 +185,8 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
   - crashes, including an encrypted file;
   - the password count.
 - `test/browser/navigation.browser.test.ts` covers the thumbnails strip over a 1,000-page document:
-  - at most the thumbnails in view and 4 either side mounted, scrolling the whole strip;
-  - a visible render queued after thumbnails running first;
+  - while the whole strip scrolls, no more than the thumbnails in view and 4 either side mounted;
+  - a visible render, queued behind thumbnails, running first;
   - a click and the keyboard going to a page;
   - page labels in the names;
   - the outline and a named destination of the links-and-outlines reference PDF landing on their pages.

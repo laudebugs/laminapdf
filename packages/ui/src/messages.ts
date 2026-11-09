@@ -16,7 +16,7 @@ const EN = {
   "reader.outline": "Document outline",
   "reader.outline.none": "This file has no outline",
   "reader.outline.usePages": "Use Pages to move through it.",
-  "reader.outline.failed": "The outline couldn't be read",
+  "reader.outline.failed": "Lamina PDF couldn't read this outline",
   "shell.focus.item": "Focus mode",
   "shell.focus.on": "Focus mode on. Sidebar and toolbar hidden.",
   "shell.focus.off": "Focus mode off.",

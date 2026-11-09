@@ -96,7 +96,11 @@ function OutlinePanel({ engine, viewer, layout }: { engine: Engine; viewer: View
   const items = typeof outline === "object" ? outline.items : NO_ITEMS;
   const current = useCurrentSection(viewer, items);
   if (outline === "failed") {
-    return <EmptyState title={message("reader.outline.failed")} headingLevel={3} icon="list" />;
+    return (
+      <EmptyState title={message("reader.outline.failed")} headingLevel={3} icon="list">
+        {message("reader.outline.usePages")}
+      </EmptyState>
+    );
   }
   if (typeof outline !== "object") return null;
   if (items.length === 0) {
