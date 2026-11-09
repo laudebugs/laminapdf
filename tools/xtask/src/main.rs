@@ -137,10 +137,12 @@ tasks:
                     target/size-report.json, fail above packages/wasm/size-budgets.json
   deny              cargo-deny (licences, advisories, bans, sources) + npm licence check
   npm-licenses      npm licence check only (pnpm licenses list)
-  docs-links [--external] [--json]
+  docs-links [--external [--cache <file>]] [--json]
                     check every relative link and #anchor in the tracked Markdown files;
                     --external checks the http(s) URLs over the network instead (nightly;
-                    allowlist in .config/link-check.toml, report in target/nightly/links/)
+                    allowlist in .config/link-check.toml, report in target/nightly/links/);
+                    --cache <file> skips URLs that answered OK in the last 4 to 7 days and
+                    updates the file
   todos [--check]   check the todo files, point each Depends on link at its todo's folder, print
                     the todos that can start now and write the whole board (never committed) to
                     target/todos/board.md; --check only verifies
@@ -380,9 +382,8 @@ fn main() -> Result<()> {
         ("doctor", [flag]) if flag == "--install" => doctor::run(&ws, true),
         ("docs-links", []) => docs_links::run(&ws.root, false),
         ("docs-links", [flag]) if flag == "--json" => docs_links::run(&ws.root, true),
-        ("docs-links", [flag]) if flag == "--external" => docs_links::external::run(&ws.root, false),
-        ("docs-links", [a, b]) if [a, b].iter().all(|f| *f == "--external" || *f == "--json") && a != b => {
-            docs_links::external::run(&ws.root, true)
+        ("docs-links", args) if args.iter().any(|a| a == "--external") => {
+            docs_links::external::run(&ws.root, &docs_links::cache::parse_args(args)?)
         }
         ("todos", []) => todos::run(&ws.root, false),
         ("todos", [flag]) if flag == "--check" => todos::run(&ws.root, true),

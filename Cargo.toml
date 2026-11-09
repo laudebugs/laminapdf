@@ -220,6 +220,13 @@ lto = "thin"
 [profile.dist]
 inherits = "release"
 
+# `cargo xtask scaling`: release code without the release profile's link-time optimisation,
+# which made the nightly link every test binary for half an hour. The tests measure ratios
+# (twice the input, at most about twice the time), which optimisation level, not LTO, decides.
+[profile.scaling]
+inherits = "release"
+lto = false
+
 # Size-optimised profile for WebAssembly builds (`cargo xtask wasm`); the spike's settings.
 [profile.wasm-release]
 inherits = "release"
