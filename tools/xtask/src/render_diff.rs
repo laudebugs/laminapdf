@@ -258,13 +258,13 @@ fn blame(
             "render-diff: {} files crashed or hung; each engine alone",
             failed.len()
         ));
-        // One file per process, so every crash is "broken" to the runner: expected here. Both
-        // engines at once, each with half the time both had together (a file renders in seconds;
-        // these hung for minutes, and waiting out the full limit again cost the nightly 12).
+        // One file per process, under the per-file limit (a chunk of one gets no longer), so
+        // every crash is "broken" to the runner: expected here. Both engines at once. Each keeps
+        // the full limit: a shorter one would blame an engine that is slow but finishes.
         let one = runner::Limits {
             chunk: 1,
-            chunk_timeout: limits().file_timeout / 2,
-            file_timeout: limits().file_timeout / 2,
+            chunk_timeout: limits().file_timeout,
+            ..limits()
         };
         let (hayro_reader, pdfium_reader) = (engine("hayro"), engine("pdfium"));
         let (hayro, pdfium) = std::thread::scope(|scope| {

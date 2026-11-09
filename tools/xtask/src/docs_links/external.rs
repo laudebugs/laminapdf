@@ -573,9 +573,9 @@ pub(crate) fn check_all(
                             Outcome::Missing {
                                 last: Probe::Network(_) | Probe::Status(500..=599),
                                 ..
-                            } => unreachable += 1,
+                            } => (unreachable, refused) = (unreachable + 1, 0),
                             Outcome::Refused { status, .. } => {
-                                refused += 1;
+                                (unreachable, refused) = (0, refused + 1);
                                 last_refusal = *status;
                             }
                             _ => (unreachable, refused) = (0, 0),
@@ -617,6 +617,12 @@ fn markdown_report(urls: &BTreeMap<String, Vec<Site>>, results: &BTreeMap<String
         count("refused"),
         count("allowed"),
     );
+    if count("cached") > 0 {
+        out.push_str(
+            "Cached links answered OK in the last 4 to 7 days and weren't fetched tonight: a page that broke since \
+             is found at its next check, within a week.\n\n",
+        );
+    }
     for (title, keep) in [
         ("Missing", Outcome::is_missing as fn(&Outcome) -> bool),
         ("Flaky (passed on a retry)", Outcome::is_flaky),

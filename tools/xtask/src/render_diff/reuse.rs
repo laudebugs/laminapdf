@@ -21,9 +21,13 @@ use crate::util::{git_stdout, github_output, sha256_hex, summary};
 pub(super) const STAMP: &str = "inputs.sha256";
 
 /// Paths besides the renderer's own crates that decide the result: its lockfile and toolchain,
-/// the corpus manifest, and xtask's comparison, sampling, runner and PDFium pin.
-const ALSO: [&str; 9] = [
+/// the root manifest (the workspace crates inherit their dependencies, features and lints from
+/// it) and cargo's config, the corpus manifest, and xtask's comparison, sampling, runner and
+/// PDFium pin.
+const ALSO: [&str; 11] = [
     "tools/render/Cargo.lock",
+    "Cargo.toml",
+    ".cargo/config.toml",
     "rust-toolchain.toml",
     "fixtures/corpus-manifest.toml",
     "tools/xtask/src/render_diff.rs",
@@ -100,11 +104,20 @@ pub(super) fn reused(out: &Path, key: &str) -> Result<bool> {
     if !matches(out, key) {
         return Ok(false);
     }
-    step("render-diff: nothing that decides the result changed since the last report; reusing it");
+    let made_on = fs::read_to_string(out.join("report.json"))
+        .ok()
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        .and_then(|report| report.get("commit").and_then(Value::as_str).map(str::to_owned))
+        .unwrap_or_else(|| "an earlier commit".to_owned());
+    step(&format!(
+        "render-diff: nothing that decides the result changed since the report made on {made_on}; reusing it"
+    ));
+    // No new point for the history, and so nothing to push or compare.
     github_output("regression", "false")?;
+    github_output("reused", "true")?;
     let markdown = fs::read_to_string(out.join("summary.md")).unwrap_or_default();
     summary(&format!(
-        "{markdown}\n_Reused: the renderer's code, the corpus and the settings are the same as when this report was made._\n"
+        "{markdown}\n_Reused from the run on {made_on}: the renderer's code, the corpus and the settings are the same as then._\n"
     ))?;
     Ok(true)
 }

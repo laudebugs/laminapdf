@@ -440,35 +440,72 @@ mod tests {
 
     use super::*;
 
-    /// Every (package, test file) whose `#[ignore = "…"]` reason sends it to the nightly lane or
-    /// to `cargo xtask scaling`.
+    /// The Rust files under `dir`, at any depth.
+    fn rust_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) -> Result<()> {
+        let Ok(entries) = fs::read_dir(dir) else { return Ok(()) };
+        for entry in entries {
+            let path = entry?.path();
+            if path.is_dir() {
+                rust_files(&path, out)?;
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                out.push(path);
+            }
+        }
+        Ok(())
+    }
+
+    /// Whether `source` has an `#[ignore …]` attribute (on one line or several) whose reason
+    /// sends the test to the nightly lane or to `cargo xtask scaling`.
+    fn ignores_for_scaling(source: &str) -> bool {
+        source.match_indices("#[ignore").any(|(at, _)| {
+            let attribute = source[at..].split(']').next().unwrap_or_default();
+            attribute.contains("nightly lane") || attribute.contains("xtask scaling")
+        })
+    }
+
+    /// Every (package, test target) with a test ignored for the nightly lane, from each crate's
+    /// `tests/` and `src/`. A top-level `tests/<name>.rs` is the target `<name>`; anything else
+    /// (a unit test in `src/`, a helper module) is named by its path, which `SCALING_TESTS` can't
+    /// list, so the comparison fails and says where it is: move such a test into `tests/`.
     fn ignored_for_scaling(root: &Path) -> Result<BTreeSet<(String, String)>> {
         let mut found = BTreeSet::new();
         for krate in fs::read_dir(root.join("crates"))? {
             let krate = krate?.path();
-            let Ok(tests) = fs::read_dir(krate.join("tests")) else {
+            let Some(package) = krate.file_name().and_then(|n| n.to_str()).map(str::to_owned) else {
                 continue;
             };
-            for file in tests {
-                let file = file?.path();
-                if file.extension().is_none_or(|e| e != "rs") {
+            let mut files = Vec::new();
+            rust_files(&krate.join("tests"), &mut files)?;
+            rust_files(&krate.join("src"), &mut files)?;
+            for file in files {
+                if !ignores_for_scaling(&fs::read_to_string(&file)?) {
                     continue;
                 }
-                let source = fs::read_to_string(&file)?;
-                let scaling = source.lines().any(|line| {
-                    let line = line.trim();
-                    line.starts_with("#[ignore") && (line.contains("nightly lane") || line.contains("xtask scaling"))
-                });
-                if scaling {
-                    let name = |p: &Path| p.file_stem().and_then(|s| s.to_str()).map(str::to_owned);
-                    let (Some(package), Some(test)) = (name(&krate), name(&file)) else {
-                        continue;
-                    };
-                    found.insert((package, test));
-                }
+                let target = match (file.parent() == Some(krate.join("tests").as_path()), file.file_stem()) {
+                    (true, Some(stem)) => stem.to_string_lossy().into_owned(),
+                    _ => file
+                        .strip_prefix(&krate)
+                        .unwrap_or(&file)
+                        .to_string_lossy()
+                        .into_owned(),
+                };
+                found.insert((package.clone(), target));
             }
         }
         Ok(found)
+    }
+
+    #[test]
+    fn ignores_for_scaling_should_read_attributes_over_several_lines() {
+        assert!(ignores_for_scaling(
+            "#[ignore = \"timing-based; run with --release in the nightly lane\"]"
+        ));
+        assert!(ignores_for_scaling(
+            "#[ignore =\n    \"timing-based; the nightly lane\"\n]"
+        ));
+        assert!(!ignores_for_scaling(
+            "#[ignore = \"needs PDFium\"]\n// the nightly lane runs other things"
+        ));
     }
 
     #[test]
