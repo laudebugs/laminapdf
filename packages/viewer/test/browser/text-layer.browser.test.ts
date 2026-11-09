@@ -8,7 +8,7 @@ import { Builder, Document, Font, init } from "@laminapdf/sdk";
 import { decodePng } from "@laminapdf/test-utils/browser-harness";
 import { createViewer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import { viewer as client, ENCRYPTED, PASSWORD, read } from "./helpers.js";
 
 declare module "vitest/browser" {
@@ -102,8 +102,9 @@ describe("copy", () => {
     const root = view?.element as HTMLElement;
     document.getSelection()?.selectAllChildren(root);
     const spans = (await spansOf(0)).map((s) => s.textContent).join("");
+    const canvas = root.querySelector("canvas") as HTMLCanvasElement;
     expect([
-      getComputedStyle(root).userSelect,
+      getComputedStyle(canvas).userSelect,
       getComputedStyle((await spansOf(0))[0] as HTMLElement).userSelect,
       squash(copy()) === squash(await laminaText("fixtures/golden/text-latin.pdf")),
       (document.getSelection()?.toString() ?? "").replace(/\s/g, "") === spans.replace(/\s/g, ""),
@@ -291,6 +292,23 @@ describe("pointer", () => {
     expect(hitAt(span)).toBe(span);
     await commands.dragAcross("#drag-target");
     expectStartOf(span);
+  });
+
+  it("selects a word under a mouse drag after a text field on the page has had the focus", async () => {
+    // Firefox stopped selecting under a `user-select: none` ancestor once a field had the focus.
+    await show(await read("fixtures/golden/text-latin.pdf"));
+    const field = document.createElement("input");
+    document.body.append(field);
+    try {
+      field.focus();
+      await userEvent.keyboard("12");
+      field.blur();
+      const span = await word();
+      await commands.dragAcross("#drag-target");
+      expectStartOf(span);
+    } finally {
+      field.remove();
+    }
   });
 
   it("keeps the text under a layer added on top, even one that covers the page", async () => {

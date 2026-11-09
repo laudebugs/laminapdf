@@ -15,6 +15,7 @@ import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { FindController } from "../find/controller.js";
+import { selectable } from "../layers/box.js";
 import { HighlightLayer } from "../layers/highlight-layer.js";
 import { TextLayer, type TextLayerOptions } from "../layers/text-layer.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
@@ -766,8 +767,11 @@ export class Viewer {
       slot.className = `lamina-layer-${name}`;
       Object.assign(slot.style, { position: "absolute", inset: "0" });
       // The slots above the text cover the whole page: taking the pointer, they would sit between
-      // every press and the spans, and no drag could select text.
-      if (name !== "text") slot.style.pointerEvents = "none";
+      // every press and the spans, and no drag could select text. Nor are they part of a selection.
+      if (name !== "text") {
+        slot.style.pointerEvents = "none";
+        selectable(slot, "none");
+      }
       view.slots.set(name, slot);
       view.shell.append(slot);
     }
@@ -1113,6 +1117,7 @@ export class Viewer {
     });
     if (old === undefined) {
       canvas.className = "lamina-page-detail";
+      selectable(canvas, "none");
       if (view.canvas === undefined) view.shell.prepend(canvas);
       else view.canvas.after(canvas);
     }
@@ -1209,6 +1214,7 @@ export class Viewer {
     }
     if (canvas === undefined) return undefined;
     canvas.className = "lamina-page-canvas";
+    selectable(canvas, "none");
     Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%" });
     view.shell.prepend(canvas);
     view.canvas = canvas;

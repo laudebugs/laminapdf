@@ -1,6 +1,7 @@
 // A page layer's box: a div sized in page points, scaled and turned by one CSS transform to the
 // page's current size, so what a layer places in points stays over the rendered page at every
-// zoom and rotation. The text and highlight layers share it.
+// zoom and rotation. The text and highlight layers share it, and the viewer's parts share
+// `selectable`.
 
 import type { Rotation } from "../layout/page-layout.js";
 
@@ -28,4 +29,10 @@ export function placeBox(
     height: `${points.height}px`,
     transform: boxTransform(points, size, rotation),
   });
+}
+
+/** Sets `element`'s `user-select`, with WebKit's prefix (Safari before 26 reads only that). */
+export function selectable(element: HTMLElement, value: "none" | "text"): void {
+  element.style.setProperty("user-select", value);
+  element.style.setProperty("-webkit-user-select", value);
 }
