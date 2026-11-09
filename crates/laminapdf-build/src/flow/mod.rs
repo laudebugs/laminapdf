@@ -48,6 +48,9 @@ mod tests;
 use laminapdf_model::{PageId, Pt};
 
 pub use contents::Contents;
+pub(crate) use contents::destination;
+#[cfg(feature = "markdown")]
+pub(crate) use contents::plain_text;
 pub use model::{
     Figure, Flow, FlowBlock, Inline, List, ListItem, ListKind, Margins, PageRegion, PageTemplate, Paragraph,
     ParagraphStyle, TextStyle,
@@ -124,13 +127,13 @@ impl Builder {
                         top: Some(Pt::new(*top)),
                         zoom: None,
                     };
-                    self.destination(contents::destination(first, n), index, fit);
+                    self.destination(destination(first, n), index, fit);
                 }
             }
         }
         if flow.outline && !items.headings.is_empty() {
             self.outline(contents::outline(&items.headings, |n| {
-                LinkTarget::Named(contents::destination(first, n))
+                LinkTarget::Named(destination(first, n))
             }))?;
         }
         Ok(FlowReport {

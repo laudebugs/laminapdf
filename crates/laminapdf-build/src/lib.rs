@@ -77,6 +77,8 @@ mod error;
 mod finish;
 #[cfg(feature = "text")]
 pub mod flow;
+#[cfg(feature = "markdown")]
+pub mod markdown;
 mod meta;
 mod nav;
 mod page;
