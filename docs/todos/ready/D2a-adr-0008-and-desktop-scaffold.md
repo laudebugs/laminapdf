@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](../done/C4a-ui-chrome-and-platform.md), [D1a](../done/D1a-desktop-ipc-spike.md), [D1b](./D1b-desktop-print-spike.md), [U6b](../done/U6b-self-hosted-fonts.md) |
-| Dependency notes | [D1a](../done/D1a-desktop-ipc-spike.md), [D1b](D1b-desktop-print-spike.md); web plan **C4** (`@laminapdf/ui` with the `Platform` interface, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and therefore ADR 0010 from web **C2** ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs)) |
+| Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](../done/C4a-ui-chrome-and-platform.md), [D1a](../done/D1a-desktop-ipc-spike.md), [D1b](../ongoing/D1b-desktop-print-spike.md), [U6b](../done/U6b-self-hosted-fonts.md) |
+| Dependency notes | [D1a](../done/D1a-desktop-ipc-spike.md), [D1b](../ongoing/D1b-desktop-print-spike.md); web plan **C4** (`@laminapdf/ui` with the `Platform` interface, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and therefore ADR 0010 from web **C2** ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs)) |
 | ADRs | **Writes ADR 0008** (desktop shell). Implements ADR 0010 (Platform adapter) for desktop. Follows [0001](../../decisions/0001-core-language-and-licence.md), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/d2a-desktop-scaffold` |
 | PR title | `feat(desktop): add ADR 0008 and the Tauri 2 app scaffold` |

@@ -95,7 +95,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D1. IPC and print spikes
 
-**Todos:** [D1a](../todos/done/D1a-desktop-ipc-spike.md), [D1b](../todos/ready/D1b-desktop-print-spike.md)
+**Todos:** [D1a](../todos/done/D1a-desktop-ipc-spike.md), [D1b](../todos/ongoing/D1b-desktop-print-spike.md)
 
 **Deliverable:** `spikes/desktop-ipc/` measuring Channel vs `ipc::Response` vs `lamina://` scheme for 256/512 px tiles on macOS, Windows and Linux, and whether WKWebView/WebView2/WebKitGTK honour COOP/COEP; `spikes/desktop-print/` comparing `window.print()` with native print paths per OS.
 **Accepted when:** both READMEs report numbers per OS and recommend a tile transport and a print path.

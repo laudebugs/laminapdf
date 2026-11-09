@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D1b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D1](../../plans/desktop-app.md#d1-ipc-and-print-spikes) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C2c](../done/C2c-render-packages.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [D1a](../done/D1a-desktop-ipc-spike.md) |
@@ -44,7 +44,7 @@ Find out how lamina's desktop app can print a PDF **faithfully** (correct page s
 
 **Out of scope** (and which todo covers it)
 
-- Production print implementation, Print menu item and shortcut: [D4c](D4c-native-printing.md) (with menus from [D4b](D4b-native-menus.md)).
+- Production print implementation, Print menu item and shortcut: [D4c](../ready/D4c-native-printing.md) (with menus from [D4b](../ready/D4b-native-menus.md)).
 - Tile transport: [D1a](../done/D1a-desktop-ipc-spike.md).
 - Print from the sandboxed engine process (who renders print pages): decided in D4c on top of D2b's protocol.
 - Physical-printer testing on every OS: only one physical printer check is required (any OS); others use print-to-PDF drivers.
