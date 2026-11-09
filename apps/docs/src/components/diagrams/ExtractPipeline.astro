@@ -1,0 +1,73 @@
+---
+// "From page to Markdown" (recipes/extract-markdown): the stages extraction runs, the text it sets
+// aside under `dropped` with every `reason` the JSON gives, and the three outputs. Text is set aside
+// twice: runs a reader can't see (or the file marks as artifacts) per page, before lines; running
+// headers, footers and page numbers once every page is read, after blocks. The accent follows the
+// stage that decides the order blocks come out in. Caption and text description: registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import Box from "./kit/Box.astro";
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import Markers from "./kit/Markers.astro";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { prefix, labelledby, describedby } = Astro.props;
+const wide = `${prefix}-wide`;
+const narrow = `${prefix}-narrow`;
+/** The `reason` values of a dropped entry in laminapdf.extract/1 (DropReason), split by the stage that sets the text aside. */
+const RUN_REASONS = ["invisible", "off-page", "tiny", "clipped", "low-contrast", "covered", "artifact"];
+const PAGE_REASONS = ["running-header", "running-footer", "page-number"];
+---
+
+<Svg viewBox="0 0 720 282" layout="wide" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={wide} />
+  <Box x={0} y={0} w={150} h={60} label="Text runs" sub="from every page" />
+  <Arrow d="M150 30 H188" prefix={wide} />
+  <Box x={190} y={0} w={150} h={60} label="Lines" sub="runs joined" />
+  <Arrow d="M340 30 H378" prefix={wide} />
+  <Box x={380} y={0} w={150} h={60} label="Blocks" sub="paragraphs, tables" />
+  <Arrow d="M530 30 H568" prefix={wide} />
+  <Box x={570} y={0} w={150} h={60} label="Reading order" sub="tags, else columns" focus />
+
+  <Arrow d="M75 60 V108" prefix={wide} />
+  <Box x={0} y={110} w={150} h={60} label="Set aside" sub="into dropped" />
+  <Label x={0} y={198} text={RUN_REASONS.slice(0, 4).join(" · ")} kind="mono" />
+  <Label x={0} y={220} text={RUN_REASONS.slice(4).join(" · ")} kind="mono" />
+  <Arrow d="M455 60 V140 H152" prefix={wide} />
+  <Label x={190} y={110} text={PAGE_REASONS.slice(0, 2).join(" · ")} kind="mono" />
+  <Label x={190} y={130} text={PAGE_REASONS[2] ?? ""} kind="mono" />
+
+  <Arrow d="M645 60 V86 H550 V252" prefix={wide} head={false} />
+  <Arrow d="M550 140 H568" prefix={wide} />
+  <Arrow d="M550 196 H568" prefix={wide} />
+  <Arrow d="M550 252 H568" prefix={wide} />
+  <Box x={570} y={120} w={150} h={40} label="Markdown" />
+  <Box x={570} y={170} w={150} h={52} label="JSON" sub="laminapdf.extract/1" />
+  <Box x={570} y={232} w={150} h={40} label="Chunks" />
+</Svg>
+
+<Svg viewBox="0 0 320 500" layout="narrow" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={narrow} />
+  <Box x={0} y={0} w={180} h={56} label="Text runs" sub="from every page" />
+  <Arrow d="M180 28 H198" prefix={narrow} />
+  <Box x={200} y={0} w={120} h={56} label="Set aside" sub="into dropped" />
+  {RUN_REASONS.map((reason, i) => <Label x={200} y={82 + i * 20} text={reason} kind="mono" />)}
+  <Arrow d="M180 214 H312 V58" prefix={narrow} />
+  {PAGE_REASONS.map((reason, i) => <Label x={196} y={236 + i * 20} text={reason} kind="mono" />)}
+
+  <Arrow d="M90 56 V84" prefix={narrow} />
+  <Box x={0} y={86} w={180} h={56} label="Lines" sub="runs joined" />
+  <Arrow d="M90 142 V170" prefix={narrow} />
+  <Box x={0} y={172} w={180} h={56} label="Blocks" sub="paragraphs, tables" />
+  <Arrow d="M90 228 V256" prefix={narrow} />
+  <Box x={0} y={258} w={180} h={56} label="Reading order" sub="tags, else columns" focus />
+
+  <Arrow d="M90 314 V328 H200 V476" prefix={narrow} head={false} />
+  <Arrow d="M200 360 H182" prefix={narrow} />
+  <Arrow d="M200 418 H182" prefix={narrow} />
+  <Arrow d="M200 476 H182" prefix={narrow} />
+  <Box x={0} y={340} w={180} h={40} label="Markdown" />
+  <Box x={0} y={392} w={180} h={52} label="JSON" sub="laminapdf.extract/1" />
+  <Box x={0} y={456} w={180} h={40} label="Chunks" />
+</Svg>

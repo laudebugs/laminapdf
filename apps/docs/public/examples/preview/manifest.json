@@ -14,6 +14,60 @@
         }
       ]
     },
+    "flowing_report": {
+      "sha256": "644755c3f8819f657ef940c97dd68cb7a84b30eb3abbe95eee75cdf36e3e2b3b",
+      "bytes": 46471,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
     "generate_then_edit": {
       "sha256": "dbde950a020c7c28a7034994e3549a1d1279e051c1a84e18aff7eebd33b7b9a3",
       "bytes": 2545,
