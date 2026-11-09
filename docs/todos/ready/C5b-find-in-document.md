@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [web reader §6 C5. Text, selection and search](../../plans/web-app.md#c5-text-selection-and-search) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C5a](../ongoing/C5a-text-layer-and-selection.md) |
-| Dependency notes | [C5a](../ongoing/C5a-text-layer-and-selection.md); library **B9** ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](../done/C3c-viewer-perf-harness.md) (adds a find scenario to the perf harness and is measured against its budgets) |
+| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C5a](../done/C5a-text-layer-and-selection.md) |
+| Dependency notes | [C5a](../done/C5a-text-layer-and-selection.md); library **B9** ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](../done/C3c-viewer-perf-harness.md) (adds a find scenario to the perf harness and is measured against its budgets) |
 | ADRs | Follows 0009 (find controller in the framework-free viewer; search runs in the worker at background priority), [0018](../../decisions/0018-test-strategy.md) §1 tier 4/6 (facts from independent tools: pdf.js counts) |
 | Branch | `feat/c5b-find-in-document` |
 | PR title | `feat(viewer): add find in document with streaming results and highlights` |
@@ -22,7 +22,7 @@ Let users find text across a whole document without blocking scrolling: the work
 
 - **Design (Paper):** [R05 Find in document](../../design/paper/reader-a.md#r05-find-in-document). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [web-app.md §4 functional 5](../../plans/web-app.md#functional) and [non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (search row).
-- [C5a](../ongoing/C5a-text-layer-and-selection.md) — text runs and quads; text-layer span mapping used for highlight rectangles.
+- [C5a](../done/C5a-text-layer-and-selection.md) — text runs and quads; text-layer span mapping used for highlight rectangles.
 - [C3a](../done/C3a-viewer-worker-rpc.md) — priorities and cancellation (a new query cancels the old one).
 - [C3c](../done/C3c-viewer-perf-harness.md) — harness to measure search timings.
 - [ADR 0018 §1](../../decisions/0018-test-strategy.md#1-tiers) — expected facts produced by independent tools (pdf.js) and stored in `fixtures/corpus/expected.json`, with an exceptions file for deliberate differences.

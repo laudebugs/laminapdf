@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C5a](../ongoing/C5a-text-layer-and-selection.md), [U1b](../done/U1b-command-registry-and-palette.md), [U2b](../done/U2b-reading-order-ground-truth.md), [U3a](../done/U3a-responsive-mobile-and-touch.md) |
+| Depends on | [C5a](../done/C5a-text-layer-and-selection.md), [U1b](../done/U1b-command-registry-and-palette.md), [U2b](../done/U2b-reading-order-ground-truth.md), [U3a](../done/U3a-responsive-mobile-and-touch.md) |
 | ADRs | Implements 0024 (selection surfaces); follows 0009 |
 | Branch | `feat/u2a-selection-surfaces` |
 | PR title | `feat(ui): add the selection toolbar, the touch action bar and copy modes` |
@@ -23,7 +23,7 @@ Fix the friction users report most after speed: copying from multi-column PDFs g
 - [UI/UX plan §5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) and ADR 0024.
 - [Research: selection menus](../../research/product/pdf-app-product-and-ux.md#selection-menus-float-them-on-desktop-never-over-the-os-menu-on-mobile) — Android ActionMode, iOS UIEditMenuInteraction, Wikimedia T202723.
 - [Competitive teardown: friction](../../research/product/notes/competitive-teardown.md) — multi-column copy, hard line breaks, Okular's "copy without line breaks", Preview's Option-drag.
-- [C5a](../ongoing/C5a-text-layer-and-selection.md) — the text layer and the selection events with rects and runs.
+- [C5a](../done/C5a-text-layer-and-selection.md) — the text layer and the selection events with rects and runs.
 - [U2b](../done/U2b-reading-order-ground-truth.md) — the reading-order metric copy-as-paragraph is held to.
 
 ## Scope

@@ -43,7 +43,7 @@ Complete the reader's opening story and prove its privacy promise. Remote PDFs o
 
 - OPFS caching of large remote/local files and recent files → [C7b](../ready/C7b-offline-pwa.md).
 - Opt-in CORS proxy (open question; would be a later server feature under ADR 0011).
-- Text extraction from encrypted files → [C5a](../ongoing/C5a-text-layer-and-selection.md) (acceptance there).
+- Text extraction from encrypted files → [C5a](../done/C5a-text-layer-and-selection.md) (acceptance there).
 
 ## Tasks
 
