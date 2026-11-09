@@ -40,7 +40,11 @@ pub fn contrast(a: [u8; 4], b: [u8; 4]) -> f64 {
     let luminance = |[r, g, b, _]: [u8; 4]| {
         let linear = |c: u8| {
             let c = f64::from(c) / 255.0;
-            if c <= 0.039_28 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+            if c <= 0.039_28 {
+                c / 12.92
+            } else {
+                ((c + 0.055) / 1.055).powf(2.4)
+            }
         };
         0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
     };

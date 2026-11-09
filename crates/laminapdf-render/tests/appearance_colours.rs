@@ -1,6 +1,10 @@
 //! The page appearance colour maps against `fixtures/appearance/colours.json`, the table that
 //! `@laminapdf/render`'s port checks too, so both give the same bytes.
-#![allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "tests: a panic is a test failure")]
+#![allow(
+    clippy::unwrap_used,
+    clippy::indexing_slicing,
+    reason = "tests: a panic is a test failure"
+)]
 
 use laminapdf_render::{PageAppearance, Rgba8};
 use laminapdf_test_fixtures::fixture;
