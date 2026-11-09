@@ -376,12 +376,13 @@ impl Pager<'_> {
         let head = layout.height(table, Section::Head);
         let foot = layout.height(table, Section::Foot);
         let tallest = layout.rows.iter().skip(heads).map(|r| r.height).fold(0.0, f64::max);
-        if head + tallest > self.body_height() + 1e-6 {
+        // Every row but the first may land on a later page, under the header copies.
+        let (top, bottom) = self.template.for_page(usize::MAX).body_y();
+        if head + tallest > self.body_height().min(bottom - top) + 1e-6 {
             return Err(Error::FlowContentTooLarge { what: "table row" });
         }
         self.y += self.gap(i);
-        let x = self.page_template().margins.left + self.items.entries.get(i).map_or(0.0, |it| it.indent);
-        self.place_rows(i, &layout, 0..heads, x, false);
+        self.place_rows(i, &layout, 0..heads, false);
         let last_body = layout.rows.len() - table.count(Section::Foot);
         for row in heads..layout.rows.len() {
             let height = layout.rows.get(row).map_or(0.0, |r| r.height);
@@ -391,21 +392,23 @@ impl Pager<'_> {
                 // A row that fits here moves only when a fresh page holds what it needs.
                 if self.y + height > self.bottom() + 1e-6 || head + needed <= self.body_height() + 1e-6 {
                     self.new_page();
-                    self.place_rows(i, &layout, 0..heads, x, true);
+                    self.place_rows(i, &layout, 0..heads, true);
                 }
                 if self.y + needed > self.bottom() + 1e-6 {
                     // The last body row and the footer fit no page together.
                     self.warn_keep_broken();
                 }
             }
-            self.place_rows(i, &layout, row..row + 1, x, false);
+            self.place_rows(i, &layout, row..row + 1, false);
         }
         self.after = self.items.entries.get(i).map_or(0.0, |it| it.space_after);
         Ok(())
     }
 
-    /// Places rows `rows` of item `i`'s table from the current position.
-    fn place_rows(&mut self, i: usize, layout: &Rc<TableLayout>, rows: std::ops::Range<usize>, x: f64, repeat: bool) {
+    /// Places rows `rows` of item `i`'s table from the current position, at the current page's
+    /// left margin.
+    fn place_rows(&mut self, i: usize, layout: &Rc<TableLayout>, rows: std::ops::Range<usize>, repeat: bool) {
+        let x = self.page_template().margins.left + self.items.entries.get(i).map_or(0.0, |it| it.indent);
         for row in rows {
             let height = layout.rows.get(row).map_or(0.0, |r| r.height);
             self.push(Placed::Row {

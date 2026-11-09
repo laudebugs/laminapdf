@@ -106,7 +106,8 @@ impl TableCell {
     }
 }
 
-/// A row of cells. A row with fewer cells than the table has columns leaves the rest empty.
+/// A row of cells. A row with fewer cells than the table has columns ends in empty cells; cells
+/// past the last column are left out.
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct TableRow {
@@ -175,7 +176,7 @@ pub struct Table {
 }
 
 impl Table {
-    /// A table with these columns, no rows, 4 points of padding in each cell, no rules, and
+    /// A table with these columns (a table with none draws no cells), no rows, 4 points of padding in each cell, no rules, and
     /// 6 points of space after it.
     #[must_use]
     pub fn new(columns: impl IntoIterator<Item = ColumnWidth>) -> Self {
@@ -250,6 +251,23 @@ impl Table {
         self
     }
 
+    /// The table without its rows: what drawing it needs once its cells are sources.
+    pub(crate) fn look(&self) -> Self {
+        Self {
+            columns: self.columns.clone(),
+            header: Vec::new(),
+            body: Vec::new(),
+            footer: Vec::new(),
+            padding: self.padding,
+            frame: self.frame.clone(),
+            header_rule: self.header_rule.clone(),
+            row_rule: self.row_rule.clone(),
+            header_background: self.header_background.clone(),
+            space_before: self.space_before,
+            space_after: self.space_after,
+        }
+    }
+
     /// With `before` and `after` points of space around the table.
     #[must_use]
     pub const fn with_space(mut self, before: f64, after: f64) -> Self {
@@ -284,7 +302,8 @@ pub(crate) struct RowItem {
     pub(crate) cells: Vec<CellItem>,
 }
 
-/// A table as the flow holds it: its rows in order (header, body, footer) and its look.
+/// A table as the flow holds it: its rows in order (header, body, footer) and its look
+/// ([`Table::look`]).
 #[derive(Debug, Clone)]
 pub(crate) struct TableItem {
     pub(crate) table: Table,
@@ -411,11 +430,21 @@ pub(crate) fn layout(item: &TableItem, sources: &[Source], available: f64) -> Re
     Ok(TableLayout { width: x, rows })
 }
 
-/// Each column's widest one-column cell, padding included (just the padding for a column
-/// with none).
+/// Each automatic column's widest one-column cell, padding included (just the padding for a
+/// column with none); 0 for the other columns, which never read it.
 fn natural_widths(item: &TableItem, sources: &[Source], padding: f64) -> Result<Vec<f64>> {
-    let mut natural = vec![2.0 * padding; item.table.columns.len()];
-    for cell in item.rows.iter().flat_map(|r| &r.cells).filter(|c| c.span == 1) {
+    let columns = &item.table.columns;
+    let mut natural: Vec<f64> = columns
+        .iter()
+        .map(|c| if *c == ColumnWidth::Auto { 2.0 * padding } else { 0.0 })
+        .collect();
+    let auto = |col: usize| columns.get(col) == Some(&ColumnWidth::Auto);
+    for cell in item
+        .rows
+        .iter()
+        .flat_map(|r| &r.cells)
+        .filter(|c| c.span == 1 && auto(c.col))
+    {
         let mut widest = 0.0_f64;
         for source in cell.sources.iter().filter_map(|&s| sources.get(s)) {
             for line in source.lines(0, f64::from(f32::MAX))? {
@@ -450,17 +479,27 @@ fn column_widths(columns: &[ColumnWidth], natural: &[f64], available: f64) -> Ve
     let autos: Vec<usize> = (0..columns.len())
         .filter(|&i| columns.get(i) == Some(&ColumnWidth::Auto))
         .collect();
-    let wanted: Vec<f64> = autos.iter().map(|&i| natural.get(i).copied().unwrap_or(0.0)).collect();
-    let auto_widths = fair_share(&wanted, left);
+    let weight = |c: &ColumnWidth| match c {
+        ColumnWidth::Fraction(f) => clean(*f),
+        _ => 0.0,
+    };
+    let weights: f64 = columns.iter().map(weight).sum();
+    let fractions = columns.iter().filter(|c| weight(c) > 0.0).count();
+    let mut wanted: Vec<f64> = autos.iter().map(|&i| natural.get(i).copied().unwrap_or(0.0)).collect();
+    if wanted.iter().sum::<f64>() > left {
+        // Automatic columns too wide together: the fraction columns share the narrowing as
+        // columns that want any width, so a long cell can't leave them nothing.
+        wanted.extend(std::iter::repeat_n(f64::INFINITY, fractions));
+    }
+    let mut shares = fair_share(&wanted, left);
+    let fraction_total: f64 = shares.drain(autos.len()..).sum();
+    let auto_widths = shares;
     let auto_total: f64 = auto_widths.iter().sum();
-    let weights: f64 = columns
-        .iter()
-        .map(|c| match c {
-            ColumnWidth::Fraction(f) => clean(*f),
-            _ => 0.0,
-        })
-        .sum();
-    let rest = (left - auto_total).max(0.0);
+    let rest = if fraction_total > 0.0 {
+        fraction_total
+    } else {
+        (left - auto_total).max(0.0)
+    };
     let mut out = Vec::with_capacity(columns.len());
     let mut next_auto = auto_widths.into_iter();
     for c in columns {
@@ -540,6 +579,18 @@ mod tests {
         let cols = [ColumnWidth::Fixed(300.0), ColumnWidth::Fixed(100.0), ColumnWidth::Auto];
         let widths = column_widths(&cols, &[0.0, 0.0, 50.0], 200.0);
         assert_eq!(widths, vec![150.0, 50.0, 0.0]);
+    }
+
+    #[test]
+    fn a_wide_auto_column_leaves_the_fraction_columns_their_share() {
+        let cols = [
+            ColumnWidth::Auto,
+            ColumnWidth::Fraction(1.0),
+            ColumnWidth::Fraction(3.0),
+        ];
+        let widths = column_widths(&cols, &[600.0, 0.0, 0.0], 480.0);
+        // Three columns share 480 points; the fractions split their two thirds one to three.
+        assert_eq!(widths, vec![160.0, 80.0, 240.0]);
     }
 
     #[test]

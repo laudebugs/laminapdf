@@ -89,27 +89,27 @@ pub(crate) fn draw_row(
         let Some(node) = row.cells.get(cell.cell).map(|c| c.node) else {
             continue;
         };
-        let draw = |s: &mut Surface, tagged: bool| -> Result<()> {
+        let draw = |s: &mut Surface, tagged: bool, links: bool| -> Result<()> {
             for block in &cell.blocks {
                 let Some(source) = items.sources.get(block.source) else {
                     continue;
                 };
                 let mut y = at.top + cell.top + block.top;
                 for line in &block.lines {
-                    draw_line(s, tagged, source, line, at.x + cell.x + padding, y);
+                    draw_line(s, tagged, links, source, line, at.x + cell.x + padding, y);
                     y += line.height;
                 }
             }
             Ok(())
         };
         if !flow.tagged {
-            draw(s, false)?;
+            draw(s, false, !at.repeat)?;
         } else if at.repeat {
-            s.artifact(ArtifactKind::Pagination, |s| draw(s, false))?;
+            s.artifact(ArtifactKind::Pagination, |s| draw(s, false, false))?;
         } else {
             // An empty cell is still opened, so every row has its cells.
             let id = ensure(s, items, node, open, order)?;
-            s.resume(id, |s| draw(s, true))?;
+            s.resume(id, |s| draw(s, true, true))?;
         }
     }
     let bottom = at.top + laid.height;

@@ -371,4 +371,56 @@ mod tables {
         assert!(laid.len() > 2);
         assert!(widths.iter().all(|w| (w - 200.0).abs() < 1e-9), "{widths:?}");
     }
+
+    #[test]
+    fn rows_on_later_pages_start_at_those_pages_margin() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let first = template(&font, 300.0, 10.0).with_margins(Margins::new(50.0, 50.0, 50.0, 80.0));
+        let flow = Flow::new(template(&font, 300.0, 10.0).with_first_page(first))
+            .block(FlowBlock::Table(invoice(&style, 20)));
+        let laid = pages(&flow).unwrap();
+        let lefts: Vec<Vec<f64>> = laid
+            .iter()
+            .map(|p| {
+                p.placed
+                    .iter()
+                    .filter_map(|x| match x {
+                        Placed::Row { x, .. } => Some(*x),
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .collect();
+        assert!(lefts[0].iter().all(|x| *x == 80.0));
+        assert!(lefts[1..].iter().flatten().all(|x| *x == 50.0));
+    }
+
+    #[test]
+    fn a_row_too_tall_for_the_later_pages_fails() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        // The first page holds 20 lines, the later ones 10; an 11-line row fits only the first.
+        let first = template(&font, 300.0, 20.0);
+        let tall = (0..11).map(|i| format!("Line {i}")).collect::<Vec<_>>().join("\u{2028}");
+        let table = invoice(&style, 1).row(TableRow::plain([tall, String::new()], &style));
+        let flow = Flow::new(template(&font, 300.0, 10.0).with_first_page(first)).block(FlowBlock::Table(table));
+        assert!(matches!(pages(&flow), Err(Error::FlowContentTooLarge { what: "table row" })));
+    }
+
+    #[test]
+    fn a_short_row_ends_in_empty_cells_and_extra_cells_are_left_out() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let table = Table::new([ColumnWidth::Auto; 3])
+            .row(TableRow::plain(["a"], &style))
+            .row(TableRow::plain(["a", "b", "c", "d"], &style));
+        let items = Items::new(&[FlowBlock::Table(table)]);
+        let cells: Vec<Vec<(usize, usize)>> = items.tables[0]
+            .rows
+            .iter()
+            .map(|r| r.cells.iter().map(|c| (c.col, c.sources.len())).collect())
+            .collect();
+        assert_eq!(cells, vec![vec![(0, 1), (1, 0), (2, 0)], vec![(0, 1), (1, 1), (2, 1)]]);
+    }
 }

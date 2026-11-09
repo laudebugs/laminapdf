@@ -169,7 +169,7 @@ impl Items {
             }
         }
         self.tables.push(TableItem {
-            table: table.clone(),
+            table: table.look(),
             rows,
         });
         let mut item = Self::item(Content::Table(self.tables.len() - 1), Some(node), keep, indent);
@@ -187,11 +187,7 @@ impl Items {
                 break;
             }
             let span = usize::try_from(cell.span).unwrap_or(1).clamp(1, columns - col);
-            let tag = if section == Section::Head {
-                Tag::new(TagKind::TH).with_scope(TableScope::Column)
-            } else {
-                Tag::new(TagKind::TD)
-            };
+            let tag = cell_tag(section);
             #[expect(
                 clippy::cast_possible_truncation,
                 reason = "a span is at most the column count, from a u32"
@@ -220,6 +216,19 @@ impl Items {
                 node,
             });
             col += span;
+        }
+        // Missing cells are empty ones, so every row has a cell per column in the structure.
+        while col < columns {
+            let tag = cell_tag(section);
+            let node = self.node(tag, Some(tr));
+            cells.push(CellItem {
+                sources: Vec::new(),
+                col,
+                span: 1,
+                valign: super::table::VerticalAlign::Top,
+                node,
+            });
+            col += 1;
         }
         RowItem { section, cells }
     }
@@ -276,5 +285,14 @@ impl Items {
             return false;
         };
         a.keep_with_next || (a.keep.is_some() && a.keep == b.keep)
+    }
+}
+
+/// A cell's element: `TH` heading its column in a header row, `TD` elsewhere.
+fn cell_tag(section: Section) -> Tag {
+    if section == Section::Head {
+        Tag::new(TagKind::TH).with_scope(TableScope::Column)
+    } else {
+        Tag::new(TagKind::TD)
     }
 }

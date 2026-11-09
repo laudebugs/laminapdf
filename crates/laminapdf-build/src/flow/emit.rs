@@ -190,7 +190,7 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
                 _ => None,
             });
             if let Some(source) = source {
-                draw_line(s, flow.tagged, source, line, *x, *top);
+                draw_line(s, flow.tagged, true, source, line, *x, *top);
             }
         }
         Placed::Label { item, line, x, top } => {
@@ -200,7 +200,7 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
                 .and_then(|it| it.label)
                 .and_then(|(i, _)| items.sources.get(i));
             if let Some(source) = source {
-                draw_line(s, flow.tagged, source, line, *x, *top);
+                draw_line(s, flow.tagged, true, source, line, *x, *top);
             }
         }
         Placed::Figure {
@@ -229,8 +229,9 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
 }
 
 /// Draws `line` of `source` with its top at `top` and the frame's left edge at `x`: each run,
-/// in logical order, cut where the colour, link or language of its text changes.
-pub(super) fn draw_line(s: &mut Surface, tagged: bool, source: &Source, line: &MLine, x: f64, top: f64) {
+/// in logical order, cut where the colour, link or language of its text changes. `links`
+/// draws its links' annotations (left out for a copy, such as a repeated header row).
+pub(super) fn draw_line(s: &mut Surface, tagged: bool, links: bool, source: &Source, line: &MLine, x: f64, top: f64) {
     let baseline = top + line.baseline;
     for run in line
         .line
@@ -249,10 +250,14 @@ pub(super) fn draw_line(s: &mut Surface, tagged: bool, source: &Source, line: &M
             };
             let width = piece.width(run.size);
             let text = source.text.get(piece.text_range.clone()).unwrap_or_default().to_owned();
-            let link_spec = look.link.and_then(|l| source.links.get(l)).map(|target| LinkSpec {
-                target: target.clone(),
-                contents: Some(text.trim().to_owned()),
-            });
+            let link_spec = look
+                .link
+                .filter(|_| links)
+                .and_then(|l| source.links.get(l))
+                .map(|target| LinkSpec {
+                    target: target.clone(),
+                    contents: Some(text.trim().to_owned()),
+                });
             let tag = look
                 .lang
                 .as_ref()
@@ -342,7 +347,7 @@ fn furniture(s: &mut Surface, flow: &Flow, index: usize, fields: &Fields<'_>, he
         let draw = |s: &mut Surface| -> Result<()> {
             for (source, line) in &lines {
                 let top = middle - line.height / 2.0;
-                draw_line(s, false, source, line, x, top);
+                draw_line(s, false, true, source, line, x, top);
             }
             Ok(())
         };

@@ -133,3 +133,31 @@ fn automatic_columns_keep_their_widths_on_every_page() {
 fn the_document_is_the_same_twice() {
     assert_eq!(flow_table(), flow_table());
 }
+
+#[test]
+fn a_link_in_a_repeated_header_is_drawn_once_under_pdf_ua() {
+    use laminapdf_build::flow::{
+        ColumnWidth, Flow, FlowBlock, PageTemplate, Paragraph, Table, TableCell, TableRow, TextStyle,
+    };
+    use laminapdf_build::{BuildOptions, Builder, LinkTarget, Metadata, PageSize, Profile};
+    let mut b = Builder::new(BuildOptions::new().with_profile(Profile::PdfUa1).with_compress(false));
+    let font = b
+        .font(laminapdf_text::Font::from_bytes(laminapdf_test_fixtures::fixture("fonts/NotoSans-Regular.ttf")).unwrap())
+        .unwrap();
+    let style = TextStyle::new(&font, 10.0);
+    let target = LinkTarget::Uri("https://example.com/prices".into());
+    let header = TableRow::new().cell(TableCell::new(Paragraph::new(Default::default()).link("Price list", &style, target)));
+    let mut table = Table::new([ColumnWidth::Fraction(1.0)]).header(header);
+    for i in 0..80 {
+        table = table.row(TableRow::plain([format!("Row {i}")], &style));
+    }
+    b.flow(&Flow::new(PageTemplate::new(PageSize::A5)).block(FlowBlock::Table(table)))
+        .unwrap();
+    b.metadata(Metadata::default().with_title("Prices")).lang("en");
+    let bytes = common::save(b.finish().unwrap());
+    let doc = reopen(&bytes);
+    assert!(doc.pages().unwrap().len() > 1);
+    let links = bytes.windows(13).filter(|w| *w == b"/Subtype /Lin").count();
+    assert_eq!(links, 1, "the header's link is annotated on the first page only");
+}
+
