@@ -39,7 +39,7 @@ No public benchmark measures reading order, yet column-aware copy, reflow and sc
 **Out of scope** (and which todo covers it)
 
 - Improving the extraction algorithm itself → B9 follow-ups (this PR measures).
-- Reflow-specific scoring of block roles → [U4c](../ready/U4c-approximate-reader-mode.md) reuses the corpus.
+- Reflow-specific scoring of block roles → [U4c](../ongoing/U4c-approximate-reader-mode.md) reuses the corpus.
 
 ## Tasks
 

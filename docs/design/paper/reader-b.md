@@ -194,7 +194,7 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Artboards.** `R14-reader-tagged.dc.html`, `R14-reader-approximate.dc.html`, `R14-reader-phone.dc.html`, `R14-reader-approximate-phone.dc.html`.
 
-**Todos.** [U4b](../../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md).
+**Todos.** [U4b](../../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ongoing/U4c-approximate-reader-mode.md).
 
 ## R15 Offline, install and update
 

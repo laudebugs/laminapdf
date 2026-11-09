@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U4c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §6 U4. Trust and reflow](../../plans/ui-ux.md#u4-trust-and-reflow) |
 | Round / milestone | Round U (UI/UX) — after M2 |
 | Depends on | [U4b](../done/U4b-reader-mode-from-structure-tree.md) |
@@ -35,7 +35,7 @@ Extend reader mode to the other half of PDFs, which carry no tags, with a pure-R
 **Out of scope** (and which todo covers it)
 
 - ML layout models → a later todo after a weights-licence audit (none in the core).
-- OCR for scanned pages → [E13c](./E13c-ocr-text-layer.md) / [E13d](./E13d-local-ocr.md); scanned pages show as images until then.
+- OCR for scanned pages → [E13c](../ready/E13c-ocr-text-layer.md) / [E13d](../ready/E13d-local-ocr.md); scanned pages show as images until then.
 
 ## Tasks
 
