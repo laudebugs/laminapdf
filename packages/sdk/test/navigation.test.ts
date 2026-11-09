@@ -12,7 +12,12 @@ beforeAll(() => init());
 describe("outline in the base module", () => {
   it("throws extract-module-not-loaded", () => {
     const doc = Document.open(read(FILE));
-    expect(isLaminaPdfError(thrown(() => doc.outline()), "extract-module-not-loaded")).toBe(true);
+    expect(
+      isLaminaPdfError(
+        thrown(() => doc.outline()),
+        "extract-module-not-loaded",
+      ),
+    ).toBe(true);
     doc.free();
   });
 });
