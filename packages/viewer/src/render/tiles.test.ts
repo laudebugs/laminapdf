@@ -68,27 +68,21 @@ describe("tiles", () => {
       { width: 792, height: 612 },
     ];
     const zooms = Array.from({ length: 791 }, (_, i) => 10 + i);
-    let checked = 0;
-    for (const page of pages) {
-      for (const dpr of [1, 1.25, 1.5, 2, 2.5, 3]) {
-        for (const zoom of zooms) {
-          for (const rotation of [0, 90] as const) {
-            const cssScale = (zoom / 100) * (96 / 72);
-            const [w, h] = rotation === 90 ? [page.height, page.width] : [page.width, page.height];
-            const css = { width: w * cssScale, height: h * cssScale };
-            const wanted = pagePixels(page, cssScale * dpr, rotation);
-            // A pool that grants everything fits as CanvasPool.fit does: the request, rounded.
-            const fitted = {
-              width: Math.max(1, Math.round(wanted.width)),
-              height: Math.max(1, Math.round(wanted.height)),
-            };
-            expect(sharpScale(cssScale, dpr, css, fitted, wanted)).toBe(cssScale * dpr);
-            checked++;
-          }
-        }
-      }
+    const cases = pages.flatMap((page) =>
+      [1, 1.25, 1.5, 2, 2.5, 3].flatMap((dpr) =>
+        zooms.flatMap((zoom) => ([0, 90] as const).map((rotation) => ({ page, dpr, zoom, rotation }))),
+      ),
+    );
+    expect(cases).toHaveLength(37_968);
+    for (const { page, dpr, zoom, rotation } of cases) {
+      const cssScale = (zoom / 100) * (96 / 72);
+      const [w, h] = rotation === 90 ? [page.height, page.width] : [page.width, page.height];
+      const css = { width: w * cssScale, height: h * cssScale };
+      const wanted = pagePixels(page, cssScale * dpr, rotation);
+      // A pool that grants everything fits as CanvasPool.fit does: the request, rounded.
+      const fitted = { width: Math.max(1, Math.round(wanted.width)), height: Math.max(1, Math.round(wanted.height)) };
+      expect(sharpScale(cssScale, dpr, css, fitted, wanted)).toBe(cssScale * dpr);
     }
-    expect(checked).toBe(37_968);
   });
 
   it("makes the low pass at most 256 px wide and half the sharp scale", () => {
