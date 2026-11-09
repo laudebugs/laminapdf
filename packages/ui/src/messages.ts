@@ -299,6 +299,7 @@ const EN = {
   "properties.contains.javascript": "JavaScript",
   "properties.contains.noJavascript": "no JavaScript",
   "properties.yes": "Yes",
+  "properties.cipher.other": "a cipher Lamina PDF doesn't name, {bits}-bit",
   "properties.paper.usLetter": "US Letter",
   "properties.paper.usLegal": "US Legal",
   "properties.paper.tabloid": "Tabloid",

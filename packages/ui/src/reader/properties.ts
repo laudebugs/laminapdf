@@ -23,7 +23,7 @@ export interface PropertiesPermissions {
  * shape, as @laminapdf/ui depends on neither the SDK nor the viewer, and the reader's typecheck
  * fails if the SDK's union ever names one this lacks.
  */
-export type PropertiesCipher = "rc4" | "aes-128" | "aes-256" | "identity";
+export type PropertiesCipher = "rc4" | "aes-128" | "aes-256" | "identity" | "other";
 
 /** One font the pages use. */
 export interface PropertiesFont {
@@ -286,7 +286,7 @@ function documentRows(p: DocumentPropertiesData, ctx: PropertiesContext): Proper
 }
 
 /** Each cipher's name as people write it. */
-const CIPHER_NAMES: Readonly<Record<PropertiesCipher, string>> = {
+const CIPHER_NAMES: Readonly<Record<Exclude<PropertiesCipher, "other">, string>> = {
   rc4: "RC4",
   "aes-128": "AES",
   "aes-256": "AES",
@@ -295,6 +295,7 @@ const CIPHER_NAMES: Readonly<Record<PropertiesCipher, string>> = {
 
 /** `AES 256-bit`, `RC4 128-bit`: the cipher's name and the key length. */
 function cipherName(cipher: PropertiesCipher, bits: number): string {
+  if (cipher === "other") return message("properties.cipher.other", { bits });
   return `${CIPHER_NAMES[cipher]} ${bits}-bit`;
 }
 

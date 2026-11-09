@@ -100,3 +100,11 @@ describe("properties", () => {
     expect(text).toContain("Security\nEncryption: None");
   });
 });
+
+describe("a cipher this version doesn't name", () => {
+  it("still reads as password protected, never as unencrypted", () => {
+    const rows = propertySections({ ...BASE, encryption: { revision: 7, keyBits: 256, cipher: "other" } }, CONTEXT)
+      .security.rows;
+    expect(rows[0]?.value).toBe("Password protected · a cipher Lamina PDF doesn't name, 256-bit (revision 7)");
+  });
+});

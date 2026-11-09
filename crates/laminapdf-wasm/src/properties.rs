@@ -165,6 +165,9 @@ pub(crate) enum CipherJs {
     /// No encryption of streams (`/Identity`).
     #[serde(rename = "identity")]
     Identity,
+    /// A cipher this version doesn't name.
+    #[serde(rename = "other")]
+    Other,
 }
 
 impl From<Cipher> for CipherJs {
@@ -173,8 +176,9 @@ impl From<Cipher> for CipherJs {
             Cipher::Rc4 => Self::Rc4,
             Cipher::Aes128 => Self::Aes128,
             Cipher::Aes256 => Self::Aes256,
-            // `Identity`, and any cipher a later version adds, encrypts nothing this reader names.
-            _ => Self::Identity,
+            Cipher::Identity => Self::Identity,
+            // A cipher a later version adds still encrypts: it is never reported as Identity.
+            _ => Self::Other,
         }
     }
 }
