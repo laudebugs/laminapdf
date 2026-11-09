@@ -13,6 +13,7 @@ import { type PixelRect, pagePixels } from "@laminapdf/render";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
+import { TextLayer, type TextLayerOptions } from "../layers/text-layer.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { type OpenedDocument, type Priority, renderKey, renderKeyFields } from "../protocol.js";
 import { backdropRatio, bounds, contains, lowScale, sharpScale, tilesFor } from "../render/tiles.js";
@@ -116,6 +117,16 @@ export interface CreateViewerOptions {
   readonly dpr?: () => number;
   /** The initial zoom (default `fit-width`). */
   readonly zoom?: Zoom;
+  /**
+   * The text layer: selectable, copyable text over every page, and a tagged document's structure
+   * for screen readers (default on; `false` leaves it out, an object sets its options).
+   */
+  readonly text?: boolean | TextLayerOptions;
+}
+
+/** `first..last`, both included. */
+function range(first: number, last: number): number[] {
+  return Array.from({ length: Math.max(0, last - first + 1) }, (_, k) => first + k);
 }
 
 /** The built-in layer slots, bottom to top, above the canvas. */
@@ -237,6 +248,10 @@ export class Viewer {
   readonly #spacer: HTMLDivElement;
   readonly #pages = new Map<number, PageView>();
   readonly #layers: PageLayer[] = [];
+  /** The text layer, unless `text: false`. */
+  readonly #text: TextLayer | undefined;
+  /** Pages kept mounted whatever the scroll (`keepMounted`): those a selection touches. */
+  #pinned = new Set<number>();
   readonly #listeners = new Set<() => void>();
   readonly #events = new Map<keyof ViewerEventMap, Set<(data: never) => void>>();
   readonly #cleanup: (() => void)[] = [];
@@ -294,6 +309,16 @@ export class Viewer {
       visibleRange: { first: 0, last: -1 },
     };
     this.#listen();
+    if (options.text !== false) {
+      const host = {
+        root: this.#root,
+        client: this.#client,
+        rotation: () => this.#rotation,
+        keepMounted: (pages: Iterable<number>) => this.keepMounted(pages),
+      };
+      this.#text = new TextLayer(host, options.text === true || options.text === undefined ? {} : options.text);
+      this.addLayer(this.#text);
+    }
   }
 
   /** The scroll container (append it, or use {@link mount}). */
@@ -312,6 +337,7 @@ export class Viewer {
     this.#unmountAll();
     this.#cache.clear();
     this.#document = document;
+    this.#text?.open(document);
     this.#sizes = document.pages.map((p) => ({ width: p.width, height: p.height }));
     this.#layout = undefined;
     this.#root.scrollTop = 0;
@@ -341,6 +367,18 @@ export class Viewer {
     const l = listener as (data: never) => void;
     set.add(l);
     return () => set.delete(l);
+  }
+
+  /**
+   * Keeps `pages` mounted wherever the view scrolls, until the next call replaces them: the pages
+   * a text selection touches, so scrolling never takes the selection away. Each counts against
+   * the canvas pool.
+   */
+  keepMounted(pages: Iterable<number>): void {
+    const next = new Set(pages);
+    if (next.size === this.#pinned.size && [...next].every((p) => this.#pinned.has(p))) return;
+    this.#pinned = next;
+    this.#schedule();
   }
 
   /** Adds a layer to every page, mounted now and later; returns a function that removes it. */
@@ -387,6 +425,8 @@ export class Viewer {
     if (!isRotation(next)) throw new RangeError(`rotate() takes a multiple of 90, got ${delta}`);
     this.#rotation = next;
     this.#rezoom(undefined);
+    // A half turn keeps every page's size, so no layer hears of it from a resize.
+    this.#text?.refresh();
   }
 
   /** The document point at viewport position (`x`, `y`) in CSS px. */
@@ -431,6 +471,7 @@ export class Viewer {
     clearTimeout(this.#settling);
     this.#unmountAll();
     this.#cache.clear();
+    this.#text?.destroy();
     for (const f of this.#cleanup.splice(0)) f();
     this.#root.remove();
   }
@@ -567,11 +608,15 @@ export class Viewer {
     this.#emit("renderstats", this.stats());
   }
 
-  /** Unmounts the shells outside `first..last`, mounts the missing ones and positions them all. */
+  /**
+   * Unmounts the shells outside `first..last` (but the pinned ones), mounts the missing ones and
+   * positions them all.
+   */
   #placeShells(frame: Frame, first: number, last: number): void {
     const { layout, width } = frame;
-    for (const [i, view] of this.#pages) if (i < first || i > last) this.#unmount(view);
-    for (let i = first; i <= last; i++) {
+    const pinned = [...this.#pinned].filter((i) => i >= 0 && i < layout.pageCount && (i < first || i > last));
+    for (const [i, view] of this.#pages) if ((i < first || i > last) && !this.#pinned.has(i)) this.#unmount(view);
+    for (const i of [...pinned, ...range(first, last)]) {
       const view = this.#pages.get(i) ?? this.#mount(i);
       const w = layout.widths[i] as number;
       const h = layout.heights[i] as number;

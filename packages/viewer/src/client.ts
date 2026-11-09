@@ -46,7 +46,10 @@ const DEFAULT_TIMEOUTS = Object.freeze({ soft: 10_000, hard: 120_000 });
 export interface ViewerOptions {
   /** The render engine; PDFium needs its `.wasm` URL from your bundler (`pdfium.wasm?url`). */
   readonly backend: BackendInit;
-  /** Where the worker loads Lamina PDF's own WebAssembly from (`@laminapdf/sdk/worker`'s `init`). */
+  /**
+   * Where the worker loads Lamina PDF's own WebAssembly from (`@laminapdf/sdk/worker`'s `init`).
+   * By default the base module and the extract module, whose text the text layer selects and copies.
+   */
   readonly lamina?: WorkerWasmSource | WorkerInitOptions;
   /** Render timeouts in ms (`soft` emits `render-slow`; `hard` restarts or emits `render-stuck`). */
   readonly timeouts?: { readonly soft?: number; readonly hard?: number };
@@ -167,7 +170,7 @@ export class ViewerClient {
         if (bitmap instanceof ImageBitmap) bitmap.close();
       },
       ...(options.signal === undefined ? {} : { signal: options.signal }),
-      ...(options.lamina === undefined ? {} : { init: options.lamina }),
+      init: options.lamina ?? { extract: true },
     });
     const client = new ViewerClient(pdf, options);
     try {
@@ -193,7 +196,9 @@ export class ViewerClient {
   ): Promise<Result<M>> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     const { signal, priority, key } = options;
-    const level = method === "render" ? PRIORITY[priority ?? "visible"] : PRIORITY.document;
+    // Renders, and calls that name a priority (text, at `background`), queue with the tiles; other
+    // document calls run first.
+    const level = method === "render" || priority !== undefined ? PRIORITY[priority ?? "visible"] : PRIORITY.document;
     try {
       return (await this.#pdf.request(method, params, {
         priority: level,
@@ -242,6 +247,20 @@ export class ViewerClient {
   /** Page `index`'s size, rotation, ID and label. */
   pageInfo(index: number, options?: ViewerCallOptions) {
     return this.call("pageInfo", [index], options);
+  }
+
+  /**
+   * Page `index`'s text runs and glyph quads, read by Lamina PDF (needs the extract or text
+   * module, loaded by default). At `background` priority unless `options` says otherwise.
+   */
+  pageText(index: number, options: ViewerCallOptions = {}) {
+    const key = `text:${this.#document?.id ?? 0}:${index}`;
+    return this.call("pageText", [index], { priority: "background", key, ...options });
+  }
+
+  /** Whether the open document says it is tagged, and its structure tree when it has one. */
+  structure(options?: ViewerCallOptions) {
+    return this.call("structure", [], options);
   }
 
   /**

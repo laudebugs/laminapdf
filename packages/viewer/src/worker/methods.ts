@@ -6,6 +6,7 @@ import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { BackendInit, SourceInit, ViewerOpenOptions } from "../protocol.js";
 import { closeDocument, current, initBackend, openDocument, workerMemory } from "./document.js";
 import { render, reply } from "./render.js";
+import { pageText, replyText, structure } from "./text.js";
 
 /** The viewer's worker methods, by name (see `Methods` in protocol.ts). */
 export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
@@ -25,4 +26,9 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     reply: (tile) => reply(tile as Parameters<typeof reply>[0]),
   },
   memory: { run: () => workerMemory() },
+  pageText: {
+    run: ([index], { signal }) => pageText(index as number, signal),
+    reply: (text) => replyText(text as Parameters<typeof replyText>[0]),
+  },
+  structure: { run: (_params, { signal }) => structure(signal) },
 };

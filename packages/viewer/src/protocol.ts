@@ -5,7 +5,7 @@
 // coalescing key.
 
 import { type CloneableWasmSource, flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
-import type { Limits, PageInfo } from "@laminapdf/sdk";
+import type { Limits, PageInfo, StructureNode } from "@laminapdf/sdk";
 
 /** Which engine draws the pages (ADR 0004: PDFium by default, hayro the CI oracle). */
 export type BackendName = "pdfium" | "hayro";
@@ -75,6 +75,42 @@ export interface Methods {
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
   memory: { params: []; result: WorkerMemory };
+  pageText: { params: [index: number]; result: PageTextData };
+  structure: { params: []; result: StructureData };
+}
+
+/** One text run of a page: glyphs of one font, size and direction on one baseline, in logical order. */
+export interface TextRunData {
+  /** Its text in logical order (document text; an `/ActualText` replacement when `actualText`). */
+  readonly text: string;
+  /** Font size in points, the text matrix applied. */
+  readonly size: number;
+  /** Vertical writing. */
+  readonly vertical: boolean;
+  /** The text replaces its glyphs (`/ActualText`). */
+  readonly actualText: boolean;
+  /** Drawn invisibly (`Tr` 3 or 7: an OCR layer, hidden text); selectable all the same. */
+  readonly invisible: boolean;
+  /** Its glyphs: `[start, end)` into `quads` (8 numbers each). */
+  readonly glyphs: readonly [number, number];
+  /** The marked-content ID it is in, which links it to the structure tree. */
+  readonly mcid?: number;
+}
+
+/**
+ * A page's text: its runs, and every glyph's quad as 8 numbers (bottom-left, bottom-right,
+ * top-right, top-left, each `x, y`) in page space (ADR 0027: points from the displayed page's
+ * top-left, y down).
+ */
+export interface PageTextData {
+  readonly runs: readonly TextRunData[];
+  readonly quads: Float32Array;
+}
+
+/** Whether the document says it is tagged, and its structure tree when it has one. */
+export interface StructureData {
+  readonly tagged: boolean;
+  readonly tree?: readonly StructureNode[];
 }
 
 /** How much of a remote file the worker has read: the `progress` event. */
