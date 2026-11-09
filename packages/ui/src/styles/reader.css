@@ -584,6 +584,11 @@
   .paper-network-table thead th {
     font: var(--paper-type-caption);
     color: var(--paper-muted);
+    white-space: nowrap;
+  }
+
+  .paper-network-table thead th + th {
+    padding-inline-start: var(--paper-space-8);
   }
 
   .paper-network-origin {
@@ -615,15 +620,6 @@
   .paper-network-disclosure:focus-visible {
     outline: var(--paper-focus-ring-width) solid var(--paper-focus);
     outline-offset: var(--paper-focus-ring-offset);
-  }
-
-  .paper-network-hidden {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 
   .paper-network-steps {

@@ -108,7 +108,8 @@ function DocumentTable({ rows }: { rows: readonly NetworkOriginRow[] }): ReactNo
         {rows.map((row) => (
           <tr key={row.origin} data-unexpected={row.unexpected || undefined}>
             <th scope="row">
-              <span className="paper-network-origin">{row.origin}</span>
+              {/* R13 names a site by its host: https:// is every one's scheme, and http:// is refused. */}
+              <span className="paper-network-origin">{row.origin.replace(/^https:\/\//, "")}</span>
               <span className="paper-network-purpose">
                 {message(row.unexpected ? "network.purpose.unexpected" : "network.purpose.document")}
               </span>
@@ -139,7 +140,7 @@ function AppFiles({ rows, total, open }: { rows: readonly NetworkAppRow[]; total
       </button>
       <p className="paper-network-note">{message("network.app.note")}</p>
       <table id={id} className="paper-network-table" hidden={!shown}>
-        <caption className="paper-network-hidden">{message("network.app.caption")}</caption>
+        <caption className="paper-visually-hidden">{message("network.app.caption")}</caption>
         <thead>
           <tr>
             <th scope="col">{message("network.column.files")}</th>

@@ -10,6 +10,7 @@ import {
   EmptyState,
   IconButton,
   ModeSwitcher,
+  NetworkActivityPanel,
   NetworkIndicator,
   Notice,
   OpenFailure,
@@ -533,6 +534,24 @@ const repairs: Example[] = [
     component: "RemoteFailure",
     state: "unencoded link",
     element: () => <RemoteFailure reason="not-encoded" onChooseFile={noop} onHome={noop} />,
+  },
+  {
+    component: "NetworkActivityPanel",
+    state: "file from a link",
+    element: () => (
+      <NetworkActivityPanel
+        since="09:12"
+        documentRequests={5}
+        documentRows={[{ origin: "https://files.example.org", requests: 5, bytes: 327_680, unexpected: false }]}
+        appRequests={11}
+        appRows={[{ purpose: "webassembly", requests: 3, bytes: 4_812_000 }]}
+        blocked={[]}
+        fileHost="files.example.org"
+        feeds={{ page: true, worker: true, serviceWorker: false }}
+        onClose={noop}
+        onCopy={noop}
+      />
+    ),
   },
 ];
 

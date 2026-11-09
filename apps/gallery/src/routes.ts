@@ -62,6 +62,7 @@ export const ROUTES: readonly Route[] = [
       "RemoteFailure",
     ],
   },
+  { id: "network", title: "Network activity", components: ["NetworkActivityPanel"] },
   {
     id: "reader-shell",
     title: "Reader shell",

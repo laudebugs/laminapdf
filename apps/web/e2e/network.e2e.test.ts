@@ -45,8 +45,8 @@ async function panelCounts(page: Page): Promise<{ document: number; app: number 
   if (!(await panel.isVisible()))
     await page.getByRole("button", { name: /network requests? for this document/ }).click();
   await panel.waitFor();
-  const document = Number(await panel.locator(".paper-network-number").innerText());
-  const appText = await panel.getByRole("button", { name: /^App files/ }).innerText();
+  const document = Number(await panel.locator(".paper-network-number").textContent());
+  const appText = (await panel.getByRole("button", { name: /^App files/ }).textContent()) ?? "";
   return { document, app: Number(/(\d+)/.exec(appText)?.[1]) };
 }
 
@@ -87,7 +87,7 @@ describe(`the network indicator in ${BROWSER}`, () => {
     await (await chooser).setFiles(new URL("hello.pdf", CORPUS).pathname);
     await page.locator(".web-viewer canvas").first().waitFor();
     await settle(page);
-    expect(await page.getByRole("button", { name: /network requests? for this document/ }).innerText()).toContain(
+    expect(await page.getByRole("button", { name: /network requests? for this document/ }).textContent()).toContain(
       "0 network requests for this document",
     );
     expect(await panelCounts(page)).toEqual(split(log));
@@ -108,7 +108,9 @@ describe(`the network indicator in ${BROWSER}`, () => {
     expect(counts).toEqual(expected);
     expect(counts.document).toBeGreaterThan(0);
     const panel = page.getByRole("complementary", { name: "Network activity" });
-    expect(await panel.getByRole("rowheader").allInnerTexts()).toEqual([expect.stringContaining(host.origin)]);
+    expect(await panel.getByRole("rowheader").allTextContents()).toEqual([
+      expect.stringContaining(new URL(host.origin).host),
+    ]);
     await context.close();
   });
 
@@ -141,7 +143,7 @@ describe(`the network indicator in ${BROWSER}`, () => {
     );
     await settle(page);
     const indicator = page.getByRole("button", { name: /network requests? for this document/ });
-    expect(await indicator.innerText()).toContain(new URL(host.origin).host);
+    expect(await indicator.textContent()).toContain(new URL(host.origin).host);
     expect(await panelCounts(page)).toEqual(split(log));
     const panel = page.getByRole("complementary", { name: "Network activity" });
     await panel.getByText("A request went to an unexpected site").waitFor();
