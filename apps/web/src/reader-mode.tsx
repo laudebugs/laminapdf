@@ -21,6 +21,8 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { pageLabel } from "./outline.ts";
+import { cropClip } from "./reader-crop.ts";
+import { type OriginBox, outlineOrigin } from "./reader-origin.ts";
 import { blockAt } from "./reader-start.ts";
 import type { DocumentReflow, Engine } from "./session.ts";
 
@@ -87,13 +89,7 @@ function Crop({ engine, block }: { engine: Engine; block: Block }): ReactNode {
     if (bbox === null) return;
     const controller = new AbortController();
     const scale = 2 * Math.min(2, Math.max(1, window.devicePixelRatio || 1));
-    const [x, y, width, height] = bbox;
-    const clip = {
-      x: Math.floor(x * scale),
-      y: Math.floor(y * scale),
-      width: Math.max(1, Math.ceil(width * scale)),
-      height: Math.max(1, Math.ceil(height * scale)),
-    };
+    const clip = cropClip(bbox, scale, engine.getState().pages[block.page]);
     void engine.renderPart({ page: block.page, scale, clip }, controller.signal).then(
       ({ bitmap }) => {
         const target = canvas.current;
@@ -136,7 +132,18 @@ interface ReaderContent {
   readonly topPage: number;
   enter(): void;
   leave(): void;
+  /** Leaves at `block`'s place on its page and outlines it there: "View original page". */
+  leaveAt(block: Block): void;
+  /** Leaves at the top of `page`: a page image's "Open page n". */
+  openPage(page: number): void;
   onTopBlock(index: number): void;
+}
+
+/** Where the page view goes once reader mode is off, and what it outlines there. */
+interface JumpTarget {
+  readonly page: number;
+  readonly y: number;
+  readonly outline?: OriginBox;
 }
 
 /**
@@ -145,13 +152,14 @@ interface ReaderContent {
  * while it was hidden isn't reported in every browser, so its page would be wrong), and the
  * canvas takes the focus the column took with it.
  */
-function useJumpBack(on: boolean, viewer: Viewer | undefined): (to: { page: number; y: number } | undefined) => void {
-  const jump = useRef<{ page: number; y: number }>(undefined);
+function useJumpBack(on: boolean, viewer: Viewer | undefined): (to: JumpTarget | undefined) => void {
+  const jump = useRef<JumpTarget>(undefined);
   useEffect(() => {
     const to = jump.current;
     if (on || to === undefined || viewer === undefined) return;
     jump.current = undefined;
     viewer.goToDestination({ page: to.page, view: { kind: "at", y: to.y } });
+    if (to.outline !== undefined) outlineOrigin(viewer, to.outline);
     if (document.activeElement === null || document.activeElement === document.body) {
       document.querySelector<HTMLElement>(".paper-reader-canvas")?.focus();
     }
@@ -159,6 +167,19 @@ function useJumpBack(on: boolean, viewer: Viewer | undefined): (to: { page: numb
   return useCallback((to) => {
     jump.current = to;
   }, []);
+}
+
+/** Calls `leave` when another document, or none, takes `document`'s place, and closes the settings panel. */
+function useLeaveOnNewDocument(document: unknown, layout: ShellLayout, leave: () => void): void {
+  const shownFor = useRef(document);
+  const latest = useRef(leave);
+  latest.current = leave;
+  useEffect(() => {
+    if (shownFor.current === document) return;
+    shownFor.current = document;
+    latest.current();
+    if (layout.getState().inspector?.id === READER_SETTINGS_PANEL) layout.closeInspector();
+  }, [document, layout]);
 }
 
 /**
@@ -178,16 +199,11 @@ function useReaderContent(
   const [topPage, setTopPage] = useState(0);
   // Counts entries and documents: a reflow that arrives for an older one is dropped.
   const turn = useRef(0);
-  // Another document, or none, leaves reader mode and its settings panel.
-  const shownFor = useRef(document);
-  useEffect(() => {
-    if (shownFor.current === document) return;
-    shownFor.current = document;
+  useLeaveOnNewDocument(document, layout, () => {
     turn.current += 1;
     setOn(false);
     setContent(undefined);
-    if (layout.getState().inspector?.id === READER_SETTINGS_PANEL) layout.closeInspector();
-  }, [document, layout]);
+  });
   const enter = useCallback(() => {
     turn.current += 1;
     const mine = turn.current;
@@ -204,25 +220,37 @@ function useReaderContent(
         const startAt = blockAt(blocks, point);
         top.current = startAt;
         setTopPage(blocks[startAt]?.page ?? point?.page ?? 0);
-        const view: ReaderViewContent = reflow.available
-          ? { status: "ready", blocks, ...(reflow.lang === undefined ? {} : { lang: reflow.lang }) }
-          : { status: "unavailable", untagged: reflow.reason === "untagged" };
-        setContent({ view, blocks, startAt });
+        setContent({ view: viewOf(reflow, blocks), blocks, startAt });
       },
       () => {
-        if (mine === turn.current)
-          setContent({ view: { status: "unavailable", untagged: false }, blocks: [], startAt: 0 });
+        if (mine === turn.current) setContent({ view: { status: "unavailable" }, blocks: [], startAt: 0 });
       },
     );
   }, [engine, viewer]);
   const jump = useJumpBack(on, viewer);
+  const leaveTo = useCallback(
+    (to: JumpTarget | undefined) => {
+      turn.current += 1;
+      setOn(false);
+      if (layout.getState().inspector?.id === READER_SETTINGS_PANEL) layout.closeInspector();
+      jump(to);
+    },
+    [layout, jump],
+  );
   const leave = useCallback(() => {
-    turn.current += 1;
-    setOn(false);
-    if (layout.getState().inspector?.id === READER_SETTINGS_PANEL) layout.closeInspector();
     const block = content?.blocks[top.current];
-    jump(block?.bbox ? { page: block.page, y: block.bbox[1] } : undefined);
-  }, [content, layout, jump]);
+    leaveTo(block?.bbox ? { page: block.page, y: block.bbox[1] } : undefined);
+  }, [content, leaveTo]);
+  const leaveAt = useCallback(
+    (block: Block) => {
+      const size = engine.getState().pages[block.page];
+      if (block.bbox === null) return leaveTo({ page: block.page, y: 0 });
+      const outline = size === undefined ? {} : { outline: { page: block.page, bbox: block.bbox, size } };
+      leaveTo({ page: block.page, y: block.bbox[1], ...outline });
+    },
+    [engine, leaveTo],
+  );
+  const openPage = useCallback((page: number) => leaveTo({ page, y: 0 }), [leaveTo]);
   const onTopBlock = useCallback(
     (index: number) => {
       top.current = index;
@@ -230,7 +258,20 @@ function useReaderContent(
     },
     [content],
   );
-  return { on, content, topPage, enter, leave, onTopBlock };
+  return { on, content, topPage, enter, leave, leaveAt, openPage, onTopBlock };
+}
+
+/** The view's content for `reflow`: its blocks, and why it is approximate when it is. */
+function viewOf(reflow: DocumentReflow, blocks: readonly Block[]): ReaderViewContent {
+  if (!reflow.available) return { status: "unavailable" };
+  const approximate =
+    reflow.source === "approximate" ? (reflow.reason === "untagged" ? "untagged" : "tree") : undefined;
+  return {
+    status: "ready",
+    blocks,
+    ...(reflow.lang === undefined ? {} : { lang: reflow.lang }),
+    ...(approximate === undefined ? {} : { approximate }),
+  };
 }
 
 /** The handlers of reader mode's commands. */
@@ -280,6 +321,9 @@ export function useReaderMode(
       renderCrop={(block: ReaderBlock) => <Crop engine={engine} block={block as Block} />}
       {...(content === undefined ? {} : { startAt: content.startAt })}
       onTopBlock={reader.onTopBlock}
+      onViewOriginal={(block: ReaderBlock) => reader.leaveAt(block as Block)}
+      onOpenPage={reader.openPage}
+      nameOfPage={(page: number) => pageLabel(pages, page)}
     />
   ) : undefined;
   const inspector = settingsOpen ? (
@@ -289,7 +333,11 @@ export function useReaderMode(
   ) : undefined;
   const status = on ? (
     <StatusBarItem key="reader-mode" onPress={leave}>
-      {message("reader.mode.status")}
+      {message(
+        content?.view.status === "ready" && content.view.approximate !== undefined
+          ? "reader.mode.status.approximate"
+          : "reader.mode.status",
+      )}
     </StatusBarItem>
   ) : undefined;
   return {

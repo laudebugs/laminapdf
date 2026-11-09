@@ -1,13 +1,16 @@
 // Reader mode (R14): a document's blocks reflowed into one reading column, at the reader's text
 // size, line spacing and line length, with figures, formulas and tables kept as crops of their
-// page, and the panel that changes those settings. The app makes the blocks (the structure tree's
-// order) and draws the crops; this only lays them out.
+// page, and the panel that changes those settings. The app makes the blocks (in the structure
+// tree's order, or, approximate, the page layout's) and draws the crops; this only lays them out.
+// The approximate view also says so, offers each block's original page, and shows the pages it
+// couldn't read with confidence as their images.
 
 import { type ReactNode, useEffect, useId, useRef } from "react";
 import { Badge } from "../components/badge.js";
 import { Button, IconButton } from "../components/button.js";
 import { Radio, RadioGroup } from "../components/choice.js";
 import { EmptyState } from "../components/empty-state.js";
+import { Notice } from "../components/notice.js";
 import { Skeleton } from "../components/progress.js";
 import { message } from "../messages.js";
 import { DockedPanel } from "./docked-panel.js";
@@ -40,7 +43,10 @@ export function readerTextSize(size: number): number {
 
 /** One block of the reading view: what the app's reflow gives it. */
 export interface ReaderBlock {
-  /** `heading`, `paragraph`, `list-item`, `quote`, `caption`, `note`, `figure`, `formula`, `table` or `other`. */
+  /**
+   * `heading`, `paragraph`, `list-item`, `quote`, `caption`, `note`, `figure`, `formula`, `table`,
+   * `page-image` (a whole page, approximate only) or `other`.
+   */
   readonly kind: string;
   readonly text: string;
   /** The page it is on, 0-based. */
@@ -52,22 +58,30 @@ export interface ReaderBlock {
   readonly depth?: number;
   /** A crop's alternate text. */
   readonly alt?: string;
+  /** Why a page image isn't reflowed: `scanned` or `uncertain`. */
+  readonly why?: string;
 }
 
 /** Whether `block` is shown as a crop of its page rather than as text. */
 export function isCropBlock(block: ReaderBlock): boolean {
-  return block.kind === "figure" || block.kind === "formula" || block.kind === "table";
+  return ["figure", "formula", "table", "page-image"].includes(block.kind);
 }
+
+/** Why the view is approximate: the file has no tags, or its tags don't match its pages. */
+export type ReaderApproximation = "untagged" | "tree";
 
 /** What the view has to show. */
 export type ReaderViewContent =
   | { readonly status: "loading" }
-  /**
-   * The document can't be reflowed, because it has no tags or its tree can't be trusted: the
-   * empty state, with Back to page.
-   */
-  | { readonly status: "unavailable"; readonly untagged: boolean }
-  | { readonly status: "ready"; readonly blocks: readonly ReaderBlock[]; readonly lang?: string };
+  /** No page has text or a picture to show: the empty state, with Back to page. */
+  | { readonly status: "unavailable" }
+  | {
+      readonly status: "ready";
+      readonly blocks: readonly ReaderBlock[];
+      readonly lang?: string;
+      /** Set when the order comes from the page layout, not the tags: the view says why. */
+      readonly approximate?: ReaderApproximation;
+    };
 
 /** Props of `ReaderView`. */
 export interface ReaderViewProps {
@@ -83,6 +97,19 @@ export interface ReaderViewProps {
   startAt?: number;
   /** Called with the index of the block at the top of the column as it scrolls. */
   onTopBlock?: (index: number) => void;
+  /** Leaves reader mode at a block's place on its page, outlined: each approximate block's "View original page". */
+  onViewOriginal?: (block: ReaderBlock, index: number) => void;
+  /** Leaves reader mode at a page: a page image's "Open page n". */
+  onOpenPage?: (page: number) => void;
+  /** A page as people number it (its label, or its number); the 1-based number when left out. */
+  nameOfPage?: (page: number) => string;
+}
+
+/** What each block needs besides itself: the approximate view's ways back to the page. */
+interface BlockActions {
+  readonly viewOriginal?: (block: ReaderBlock, index: number) => void;
+  readonly openPage?: (page: number) => void;
+  readonly nameOf: (page: number) => string;
 }
 
 /** A text block as its element. */
@@ -145,6 +172,60 @@ function CropBlock({ block, children }: { block: ReaderBlock; children: ReactNod
   );
 }
 
+/** A whole page shown as its image, with why and the way to open it. */
+function PageImageBlock({
+  block,
+  actions,
+  children,
+}: {
+  block: ReaderBlock;
+  actions: BlockActions;
+  children: ReactNode;
+}): ReactNode {
+  const page = actions.nameOf(block.page);
+  const why = message(block.why === "scanned" ? "reader.mode.pageImage.scanned" : "reader.mode.pageImage.uncertain");
+  return (
+    <figure className="paper-reader-crop paper-reader-page-image">
+      <div className="paper-reader-crop-image" role="img" aria-label={message("reader.mode.pageImage.label", { page })}>
+        {children}
+      </div>
+      <figcaption className="paper-reader-alt">
+        {why}{" "}
+        {actions.openPage === undefined ? null : (
+          <Button variant="secondary" onPress={() => actions.openPage?.(block.page)}>
+            {message("reader.mode.openPage", { page })}
+          </Button>
+        )}
+      </figcaption>
+    </figure>
+  );
+}
+
+/** A block's "View original page", shown on hover or focus. */
+function ViewOriginal({
+  block,
+  index,
+  actions,
+}: {
+  block: ReaderBlock;
+  index: number;
+  actions: BlockActions;
+}): ReactNode {
+  if (actions.viewOriginal === undefined || block.kind === "page-image") return null;
+  return (
+    <span className="paper-reader-view-original">
+      <Button
+        variant="secondary"
+        icon="single-page"
+        aria-label={message("reader.mode.viewOriginal.label", { page: actions.nameOf(block.page) })}
+        onPress={() => actions.viewOriginal?.(block, index)}
+      >
+        {message("reader.mode.viewOriginal")}
+      </Button>
+    </span>
+  );
+}
+
 /** The blocks' indices as the column scrolls: which one is at the top. */
 function useTopBlock(column: React.RefObject<HTMLElement | null>, onTopBlock: ((index: number) => void) | undefined) {
   useEffect(() => {
@@ -169,7 +250,7 @@ function useTopBlock(column: React.RefObject<HTMLElement | null>, onTopBlock: ((
 }
 
 /** Consecutive list items as one list. */
-function ListGroup({ group }: { group: Group }): ReactNode {
+function ListGroup({ group, actions }: { group: Group; actions: BlockActions }): ReactNode {
   return (
     <ul className="paper-reader-list">
       {group.entries.map(({ index, block }) => (
@@ -186,6 +267,7 @@ function ListGroup({ group }: { group: Group }): ReactNode {
             </span>
           )}
           {block.text}
+          <ViewOriginal block={block} index={index} actions={actions} />
         </li>
       ))}
     </ul>
@@ -196,25 +278,44 @@ function ListGroup({ group }: { group: Group }): ReactNode {
 function Blocks({
   blocks,
   renderCrop,
+  actions,
 }: {
   blocks: readonly ReaderBlock[];
   renderCrop: ReaderViewProps["renderCrop"];
+  actions: BlockActions;
 }): ReactNode {
   return groups(blocks).map((group) =>
     group.list ? (
-      <ListGroup key={group.entries[0]?.index} group={group} />
+      <ListGroup key={group.entries[0]?.index} group={group} actions={actions} />
     ) : (
       group.entries.map(({ index, block }) => (
         <div key={index} className="paper-reader-block" data-block={index} data-kind={block.kind}>
-          {isCropBlock(block) ? (
-            <CropBlock block={block}>{renderCrop(block, index)}</CropBlock>
-          ) : (
-            <TextBlock block={block} />
-          )}
+          <OneBlock block={block} crop={() => renderCrop(block, index)} actions={actions} />
+          <ViewOriginal block={block} index={index} actions={actions} />
         </div>
       ))
     ),
   );
+}
+
+/** One block that isn't a list item: its text, its crop, or its page image. */
+function OneBlock({
+  block,
+  crop,
+  actions,
+}: {
+  block: ReaderBlock;
+  crop: () => ReactNode;
+  actions: BlockActions;
+}): ReactNode {
+  if (block.kind === "page-image") {
+    return (
+      <PageImageBlock block={block} actions={actions}>
+        {crop()}
+      </PageImageBlock>
+    );
+  }
+  return isCropBlock(block) ? <CropBlock block={block}>{crop()}</CropBlock> : <TextBlock block={block} />;
 }
 
 /** Placeholder lines while the blocks load. */
@@ -235,7 +336,7 @@ function useFocusOnShow(element: React.RefObject<HTMLElement | null>): void {
 }
 
 /** Why reader mode can't show the document, and the way back. */
-function Unavailable({ untagged, onBack }: { untagged: boolean; onBack: () => void }): ReactNode {
+function Unavailable({ onBack }: { onBack: () => void }): ReactNode {
   const root = useRef<HTMLElement>(null);
   useFocusOnShow(root);
   return (
@@ -255,9 +356,56 @@ function Unavailable({ untagged, onBack }: { untagged: boolean; onBack: () => vo
           </Button>
         }
       >
-        {message(untagged ? "reader.mode.untagged.body" : "reader.mode.unavailable.body")}
+        {message("reader.mode.unavailable.body")}
       </EmptyState>
     </section>
+  );
+}
+
+/** The approximate view's ways back to the page, from `ReaderView`'s props. */
+function blockActions(
+  approximate: ReaderApproximation | undefined,
+  props: {
+    readonly onViewOriginal: ReaderViewProps["onViewOriginal"] | undefined;
+    readonly onOpenPage: ReaderViewProps["onOpenPage"] | undefined;
+    readonly nameOfPage: ReaderViewProps["nameOfPage"] | undefined;
+  },
+): BlockActions {
+  return {
+    ...(approximate === undefined || props.onViewOriginal === undefined ? {} : { viewOriginal: props.onViewOriginal }),
+    ...(props.onOpenPage === undefined ? {} : { openPage: props.onOpenPage }),
+    nameOf: props.nameOfPage ?? ((page) => String(page + 1)),
+  };
+}
+
+/** The column's head: Back to page and the source badge, then, approximate, the notice saying why. */
+function ReaderHead({
+  pageName,
+  onBack,
+  approximate,
+}: {
+  pageName: string;
+  onBack: () => void;
+  approximate: ReaderApproximation | undefined;
+}): ReactNode {
+  return (
+    <>
+      <div className="paper-reader-mode-head">
+        <Button variant="secondary" icon="back" onPress={onBack}>
+          {message("reader.mode.back", { page: pageName })}
+        </Button>
+        {approximate === undefined ? (
+          <Badge tone="accent">{message("reader.mode.badge")}</Badge>
+        ) : (
+          <Badge tone="warning">{message("reader.mode.badge.approximate")}</Badge>
+        )}
+      </div>
+      {approximate === undefined ? null : (
+        <Notice tone="warning" title={message("reader.mode.approximate.title")}>
+          {message(approximate === "untagged" ? "reader.mode.approximate.untagged" : "reader.mode.approximate.tree")}
+        </Notice>
+      )}
+    </>
   );
 }
 
@@ -270,6 +418,9 @@ export function ReaderView({
   renderCrop,
   startAt,
   onTopBlock,
+  onViewOriginal,
+  onOpenPage,
+  nameOfPage,
 }: ReaderViewProps): ReactNode {
   const column = useRef<HTMLElement>(null);
   useFocusOnShow(column);
@@ -287,7 +438,9 @@ export function ReaderView({
       root.scrollTop += block.getBoundingClientRect().top - root.getBoundingClientRect().top - head;
     }
   }, [blocks, startAt]);
-  if (content.status === "unavailable") return <Unavailable untagged={content.untagged} onBack={onBack} />;
+  if (content.status === "unavailable") return <Unavailable onBack={onBack} />;
+  const approximate = content.status === "ready" ? content.approximate : undefined;
+  const actions = blockActions(approximate, { onViewOriginal, onOpenPage, nameOfPage });
   return (
     <section
       ref={column}
@@ -304,12 +457,7 @@ export function ReaderView({
         data-line-length={settings.lineLength}
         style={{ fontSize: `${readerTextSize(settings.textSize)}px` }}
       >
-        <div className="paper-reader-mode-head">
-          <Button variant="secondary" icon="back" onPress={onBack}>
-            {message("reader.mode.back", { page: pageName })}
-          </Button>
-          <Badge tone="accent">{message("reader.mode.badge")}</Badge>
-        </div>
+        <ReaderHead pageName={pageName} onBack={onBack} approximate={approximate} />
         {blocks === undefined ? (
           <div className="paper-reader-loading">
             {LOADING.map((line) => (
@@ -317,7 +465,7 @@ export function ReaderView({
             ))}
           </div>
         ) : (
-          <Blocks blocks={blocks} renderCrop={renderCrop} />
+          <Blocks blocks={blocks} renderCrop={renderCrop} actions={actions} />
         )}
       </article>
     </section>

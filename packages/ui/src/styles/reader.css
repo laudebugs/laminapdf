@@ -793,6 +793,38 @@
     margin-block-start: var(--paper-space-4);
   }
 
+  /* The approximate view's "View original page": over the block's top corner, taking no room,
+     and unseen until the block is hovered or holds the focus. Without hover (touch), it sits
+     under the block and always shows. */
+  .paper-reader-block {
+    position: relative;
+  }
+
+  .paper-reader-view-original {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    opacity: 0;
+  }
+
+  .paper-reader-block:hover > .paper-reader-view-original,
+  .paper-reader-block:focus-within > .paper-reader-view-original {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .paper-reader-view-original {
+      position: static;
+      display: block;
+      margin-block-end: var(--paper-space-8);
+      opacity: 1;
+    }
+  }
+
+  .paper-reader-mode-head + .paper-notice {
+    margin-block-end: var(--paper-space-16);
+  }
+
   .paper-reader-loading {
     display: grid;
     gap: var(--paper-space-12);
