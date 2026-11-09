@@ -22,6 +22,7 @@
   "devDependencies": {
     "@astrojs/starlight": "0.42.7",
     "@codemirror/lang-javascript": "6.2.5",
+    "@codemirror/language": "6.13.1",
     "@laminapdf/fonts": "workspace:*",
     "@laminapdf/render": "workspace:*",
     "@laminapdf/render-hayro": "workspace:*",
@@ -29,6 +30,7 @@
     "@laminapdf/site-kit": "workspace:*",
     "@laminapdf/test-utils": "workspace:*",
     "@laminapdf/tokens": "workspace:*",
+    "@lezer/highlight": "1.2.5",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "astro": "7.4.2",
