@@ -86,7 +86,7 @@ Use raw-binary IPC, never JSON. Return page tiles as `tauri::ipc::Response` or s
 
 ### Gaps
 - No official Tauri benchmark comparing Channel, custom protocol and `ipc::Response` throughput. Prototype-measure it on all three OS webviews, since WebKitGTK custom-scheme performance may differ.
-  - *Update (2026-11-09, [`desktop-ipc` spike](../../../../spikes/desktop-ipc/README.md)):* measured on all three webviews. In medians of 5 runs at 512 px, lossless WebP over a `lamina://` scheme moved 2.5–2.7× more tiles per second than the best raw transport on the Windows and Linux runners (no GPU) and tied on an M1 Pro; `ipc::Response` and a raw scheme were within 6 % of each other at 512 px, and the channel was the slowest raw transport. WebKitGTK fetches custom schemes as the others do. Only WebView2 becomes cross-origin isolated with `SharedArrayBuffer`.
+  - *Update (2026-11-09, [`desktop-ipc` spike](../../../../spikes/desktop-ipc/README.md)):* measured on all three webviews. In medians of 5 runs at 512 px, lossless WebP over a `lamina://` scheme moved 2.5–2.7× more tiles per second than the best raw transport on the Windows and Linux runners (no GPU) and tied on an M1 Pro; `ipc::Response` and a raw scheme were within 6 % of each other at 512 px, DPR 2, and the channel was the slowest raw transport. WebKitGTK fetches custom schemes as the others do. Only WebView2 becomes cross-origin isolated with `SharedArrayBuffer`.
 
 ## Q4. File system, file associations, drag & drop, printing, sandboxing, multi-window
 

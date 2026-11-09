@@ -254,7 +254,9 @@ async function runOnce(plan: Plan, combo: Combo, timing: Timing, verify: boolean
     // Leave nothing running into the retry: drop this run's bitmaps and let its requests land.
     finished = true;
     for (const c of cache.values()) c.bitmap.close();
-    while (inflight.size > 0) await new Promise((r) => setTimeout(r, 16));
+    // Bounded: a frozen webview may never settle its fetches.
+    const deadline = performance.now() + 10_000;
+    while (inflight.size > 0 && performance.now() < deadline) await new Promise((r) => setTimeout(r, 16));
     throw stalled;
   }
 
