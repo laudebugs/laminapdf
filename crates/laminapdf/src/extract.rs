@@ -18,10 +18,11 @@ pub use laminapdf_extract::{
     Block, BlockKind, Cell, Chunk, ChunkOptions, Coordinates, DropOptions, DropReason, Dropped, ExtractLimits,
     ExtractOptions, ExtractedPage, ExtractedSource, Extraction, Flags, LayoutModel, LayoutRegion, MarkdownOptions,
     ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer,
-    ReadingOrder, Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal, Region, RegionLabel, Rendered, Span,
-    SplitOn, StructRef, StructSource, TableDetector, TableMode, TextLayer, TextLayerStatus, TextLayerThresholds,
-    TextRange, chunks_jsonl, tokens_approx,
+    ReadingOrder, Region, RegionLabel, Rendered, Span, SplitOn, StructRef, StructSource, TableDetector, TableMode,
+    TextLayer, TextLayerStatus, TextLayerThresholds, TextRange, chunks_jsonl, tokens_approx,
 };
+#[cfg(feature = "reflow")]
+pub use laminapdf_extract::{Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal};
 pub use laminapdf_text::{Code, Glyph, PageText, PageTextRun, Quad, UserSpaceVector};
 
 use crate::job::{Budget, CancelToken, JobCore, Step};
@@ -92,6 +93,7 @@ impl Document {
     ///
     /// # Errors
     /// `cancelled`; reading errors (the page tree, the structure tree, a page's content).
+    #[cfg(feature = "reflow")]
     pub fn reflow(&self, cancel: &CancelToken) -> Result<Reflow> {
         Ok(laminapdf_extract::reflow(self.ops(), cancel)?)
     }

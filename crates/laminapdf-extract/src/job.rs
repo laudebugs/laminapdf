@@ -51,10 +51,12 @@ pub struct ExtractJob {
     /// Whether the layout model and the OCR engine gave a result, for `generator.models`.
     used: (bool, bool),
     /// What reader mode reads besides the blocks, page by page, when it runs the job.
+    #[cfg(feature = "reflow")]
     pub(crate) feed: Option<Vec<PageFeed>>,
 }
 
 /// What one page gave reader mode besides its blocks ([`crate::reflow`]).
+#[cfg(feature = "reflow")]
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PageFeed {
     /// The page index.
@@ -116,6 +118,7 @@ pub(crate) enum TreeSource {
     /// The job reads it, when its reading order may come from the tree.
     Read,
     /// The caller read it already (reader mode), or found none.
+    #[cfg(feature = "reflow")]
     Given(Option<TaggedIndex>),
 }
 
@@ -139,6 +142,7 @@ pub(crate) fn extract_job_with(
     };
     // The tree is read once, here; each page checks its own part of it.
     let tree = match (tree, options.reading_order) {
+        #[cfg(feature = "reflow")]
         (TreeSource::Given(index), _) => index,
         (TreeSource::Read, ReadingOrder::Tagged) => TaggedIndex::read(doc)?,
         (TreeSource::Read, ReadingOrder::Auto) if doc.is_tagged()? => TaggedIndex::read(doc)?,
@@ -166,6 +170,7 @@ pub(crate) fn extract_job_with(
         pending: None,
         request: None,
         used: (false, false),
+        #[cfg(feature = "reflow")]
         feed: None,
     })
 }
@@ -237,6 +242,7 @@ impl ExtractJob {
     }
 
     /// Makes `cancel` the job's token, as [`extract`] does.
+    #[cfg(feature = "reflow")]
     pub(crate) fn set_cancel(&mut self, cancel: &CancelToken) {
         self.cancel = cancel.clone();
     }
@@ -351,6 +357,7 @@ impl ExtractJob {
                 TreeUse::Ignored(_) => self.tree_pages.1 += 1,
                 TreeUse::None => {}
             }
+            #[cfg(feature = "reflow")]
             if let Some(feed) = &mut self.feed {
                 feed.push(PageFeed {
                     index,

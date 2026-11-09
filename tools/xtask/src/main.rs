@@ -583,7 +583,7 @@ fn clippy(ws: &Workspace) -> Result<()> {
     for features in [
         &["-p", "laminapdf-wasm"][..],
         &["-p", "laminapdf-wasm", "--features", "text"],
-        &["-p", "laminapdf-wasm", "--features", "extract"],
+        &["-p", "laminapdf-wasm", "--features", "extract,reflow"],
         &["-p", "laminapdf", "--no-default-features"],
         // The reader configuration: extraction without the builder (B9c).
         &["-p", "laminapdf", "--no-default-features", "--features", "extract"],

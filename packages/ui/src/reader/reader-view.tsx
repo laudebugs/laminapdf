@@ -326,8 +326,11 @@ export function ReaderView({
 
 /** Props of `ReaderSettingsPanel`. */
 export interface ReaderSettingsPanelProps {
+  /** The settings the panel shows. */
   settings: ReaderSettings;
+  /** Called with the new settings when one control changes, or with the defaults on Reset. */
   onChange: (settings: ReaderSettings) => void;
+  /** Called when the panel's close button is pressed. */
   onClose: () => void;
 }
 

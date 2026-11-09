@@ -123,7 +123,7 @@ pub(crate) const MODULES: [Module; 4] = [
         name: "extract",
         krate: "laminapdf-wasm",
         artefact: "laminapdf_wasm",
-        features: &["--features", "extract"],
+        features: &["--features", "extract,reflow"],
     },
     // laminapdf-render's hayro adapter (C2c, ADR 0004 §5): its own crate, wrapped by
     // @laminapdf/render-hayro; never loaded by @laminapdf/sdk.

@@ -28,6 +28,9 @@ serde = ["dep:serde", "dep:serde_json"]
 # JSON Schema derives (schemars) on the output types: tests/json_schema.rs writes and checks
 # schemas/extract.schema.json with it. No shipped surface needs it at run time.
 schema = ["serde", "dep:schemars"]
+# Reader mode (`reflow`): blocks in the structure tree's order with figure crops. Off by default so
+# the WASM text module, which builders load, leaves it out (ADR 0016 §6); the extract module has it.
+reflow = []
 
 [dependencies]
 laminapdf-content = { workspace = true }
@@ -50,3 +53,7 @@ serde_json = { workspace = true }
 
 [lints]
 workspace = true
+
+[[test]]
+name = "reflow"
+required-features = ["reflow"]

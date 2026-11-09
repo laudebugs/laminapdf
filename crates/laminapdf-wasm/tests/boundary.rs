@@ -310,7 +310,7 @@ fn page_text_crosses_as_a_struct_of_arrays() {
 }
 
 /// `WasmDocument.reflow` (the extract module): reader mode's JSON in one string.
-#[cfg(all(feature = "extract", not(feature = "text")))]
+#[cfg(feature = "reflow")]
 #[wasm_bindgen_test]
 fn reflow_crosses_as_json_and_refuses_an_untagged_file() {
     const MIXED: &[u8] = include_bytes!("../../../fixtures/reflow/mixed.pdf");

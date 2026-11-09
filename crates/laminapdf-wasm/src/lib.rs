@@ -42,7 +42,7 @@ mod navigation;
 mod properties;
 // Reader mode is for the reader, which loads the extract module: the text module (for builders)
 // leaves it out and keeps its size budget.
-#[cfg(all(feature = "extract", not(feature = "text")))]
+#[cfg(feature = "reflow")]
 mod reflow;
 mod source;
 #[cfg(feature = "extract")]
