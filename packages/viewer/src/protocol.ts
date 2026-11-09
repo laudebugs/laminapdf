@@ -5,7 +5,7 @@
 // coalescing key.
 
 import { type CloneableWasmSource, flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
-import type { Limits, PageInfo, StructureNode } from "@laminapdf/sdk";
+import type { Limits, OutlineNode, PageInfo, StructureNode, Target } from "@laminapdf/sdk";
 
 /** Which engine draws the pages (ADR 0004: PDFium by default, hayro the CI oracle). */
 export type BackendName = "pdfium" | "hayro";
@@ -77,6 +77,8 @@ export interface Methods {
   memory: { params: []; result: WorkerMemory };
   pageText: { params: [index: number]; result: PageTextData };
   structure: { params: []; result: StructureData };
+  outline: { params: []; result: OutlineNode[] };
+  namedDestination: { params: [name: string]; result: Target | undefined };
 }
 
 /** One text run of a page: glyphs of one font, size and direction on one baseline, in logical order. */

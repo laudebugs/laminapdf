@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C5a](../done/C5a-text-layer-and-selection.md), [C6a](./C6a-thumbnails-outline-page-labels.md) |
+| Depends on | [C5a](../done/C5a-text-layer-and-selection.md), [C6a](../done/C6a-thumbnails-outline-page-labels.md) |
 | ADRs | Follows 0004 (link geometry from lamina's model, not the renderer), 0009 (framework-free link layer), 0010 (`Platform.openExternal`), 0011 (no referrer, external links confirm before leaving) |
 | Branch | `feat/c6b-links-and-history` |
 | PR title | `feat(viewer): add the link layer with external-link confirmation and navigation history` |
@@ -23,7 +23,7 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 - [04 §1 navigation](../../research/pdf/04-interactive-security.md#1-navigation) — link annotations (ISO 32000-2 §12.5.6.5), actions (§12.6.4: GoTo, GoToR, URI, Named, Launch, JavaScript), named destinations (`/Dests` name tree, §12.3.2.4).
 - [web-app.md §2 scope](../../plans/web-app.md#2-scope-and-non-goals) — external links confirm before leaving; PDF JavaScript is never executed.
 - [web-app.md §4 functional 6](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) (`Referrer-Policy: no-referrer`).
-- [C6a](./C6a-thumbnails-outline-page-labels.md) — destination resolution and mapping.
+- [C6a](../done/C6a-thumbnails-outline-page-labels.md) — destination resolution and mapping.
 - [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) — `lamina-layer-annot` slot.
 
 ## Scope

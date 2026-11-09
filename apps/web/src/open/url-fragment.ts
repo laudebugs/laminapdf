@@ -79,6 +79,12 @@ export function fragmentPage(fragment: Fragment): number | undefined {
   return Number(value);
 }
 
+/** The named destination the fragment names (`nameddest=chapter-2`, as pdf.js reads it), when not empty. */
+export function fragmentDestination(fragment: Fragment): string | undefined {
+  const value = entry(fragment, "nameddest")?.value;
+  return value === undefined || value === "" ? undefined : value;
+}
+
 /** Hosts that plain `http:` may name in development builds (a local test server). */
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
 

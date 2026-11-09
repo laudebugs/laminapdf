@@ -16,6 +16,7 @@ import type {
   MetadataInit,
   Op as OpJs,
   OutlineEntryInit,
+  OutlineNodeJs,
   OverflowInit,
   PageInfoJs,
   PageLabelInit,
@@ -27,6 +28,8 @@ import type {
   SaveReportJs,
   StructureKidJs,
   StructureNodeJs,
+  TargetJs,
+  TargetViewJs,
   TextLayoutJs,
   TextRunJs,
   UndoOutcomeJs,
@@ -86,6 +89,20 @@ export type LinkTarget = LinkTargetInit;
 export type Fit = FitInit;
 /** An outline (bookmarks) item with its children. */
 export type OutlineEntry = OutlineEntryInit;
+
+/** One item of a document's outline (its bookmarks), with where it goes and its children. */
+export type OutlineNode = OutlineNodeJs;
+
+/** A place in a document: a 0-based page index and how to show it. */
+export type Target = TargetJs;
+
+/**
+ * How a {@link Target} shows its page, in page space (points from the displayed page's top-left,
+ * y down), by `kind`: `"at"` puts (`x`, `y`) at the viewport's top-left at `zoom`, `"fit"` fits
+ * the page, `"fit-width"` its width from `y`, `"fit-height"` its height from `x`, `"fit-rect"` the
+ * rectangle. A coordinate the file leaves unset is absent: keep the current one.
+ */
+export type TargetView = TargetViewJs;
 /** A page-label range, by its first page. */
 export type PageLabel = PageLabelInit;
 /** The document's metadata (Info and XMP). */

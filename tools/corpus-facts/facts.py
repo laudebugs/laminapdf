@@ -52,6 +52,31 @@ def outline_titles(reader):
     return out
 
 
+def outline_pages(reader):
+    """Each outline item's 0-based page index, in `outline_titles`' order: None for an item
+    whose destination names no page of the file (a URI, another file, a broken reference)."""
+    out = []
+    stack = [iter(reader.outline)]
+    while stack:
+        item = next(stack[-1], None)
+        if item is None:
+            stack.pop()
+        elif isinstance(item, list):
+            stack.append(iter(item))
+        else:
+            try:
+                page = reader.get_destination_page_number(item)
+            except Exception:  # noqa: BLE001 - an item without a page is its own fact
+                page = None
+            out.append(page if isinstance(page, int) and page >= 0 else None)
+    return out
+
+
+def page_labels(reader, root):
+    """Every page's label (ISO 32000-2 §12.4.2) for a file with /PageLabels, else None."""
+    return list(reader.page_labels) if "/PageLabels" in root else None
+
+
 @contextlib.contextmanager
 def captured_warnings():
     """Collects pypdf's warnings for the whole block: pypdf parses pages and the outline
@@ -97,6 +122,8 @@ def corpus_facts_of(reader, data):
         "first_page_mediabox": [float(v) for v in reader.pages[0].mediabox] if len(reader.pages) else None,
         "root_keys": sorted(root.keys()),
         "outline_titles": outline_titles(reader),
+        "outline_pages": outline_pages(reader),
+        "page_labels": page_labels(reader, root),
     }
 
 

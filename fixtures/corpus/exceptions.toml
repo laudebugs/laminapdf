@@ -1,11 +1,20 @@
 # Deliberate differences between lamina and the independent facts in expected.json
 # (ADR 0018 tier 4). Each entry names the file, the fact, and the ADR 0003 §1 rule that
-# explains lamina's answer; crates/laminapdf-model/tests/corpus.rs skips exactly these.
+# explains lamina's answer, or the ISO 32000-2 section it follows where the independent tool
+# falls short; crates/laminapdf-model/tests/corpus.rs and crates/laminapdf/tests/navigation.rs
+# skip exactly these.
 #
 # [[exception]]
 # file = "example.pdf"
-# facts = ["page_count"]         # page_count and/or outline_titles
+# facts = ["page_count"]         # page_count, outline_titles and/or outline_pages
+# items = [4]                    # outline_pages only: the items (in outline_titles' order) that differ
 # rule = "ADR 0003 §1: Page tree" # the tolerance rule lamina follows
 # reason = "pypdf trusts /Count; lamina's walk is authoritative"
 #
-# None so far: lamina agrees with pypdf on every corpus file.
+
+[[exception]]
+file = "outline.pdf"
+facts = ["outline_pages"]
+items = [4]
+rule = "ISO 32000-2 §12.3.2.4: a named destination's value may be a dictionary whose /D is the destination"
+reason = "Appendix's GoTo action names (appendix), whose /Dests tree value is << /D [6 0 R /XYZ …] >>: lamina follows it to page index 2; pypdf's get_destination_page_number gives up on a GoTo action's named destination"

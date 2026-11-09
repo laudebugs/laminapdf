@@ -264,6 +264,19 @@ export class ViewerClient {
   }
 
   /**
+   * The open document's outline (bookmarks): top-level items, each with its children and where
+   * it goes as a page and a page-space view; empty without one. Read when first asked for.
+   */
+  outline(options?: ViewerCallOptions) {
+    return this.call("outline", [], options);
+  }
+
+  /** Where the named destination `name` goes, or `undefined` when the document has no such name. */
+  namedDestination(name: string, options?: ViewerCallOptions) {
+    return this.call("namedDestination", [name], options);
+  }
+
+  /**
    * Renders `request` as an ImageBitmap (close it when done). Identical requests in flight are
    * drawn once. An aborted render rejects with `AbortError` and never paints.
    */

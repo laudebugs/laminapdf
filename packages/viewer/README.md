@@ -43,6 +43,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 | `createViewer({ client, margin?, gap?, pool?, detailPool?, cacheBytes?, backdropMaxPixels?, canvasMaxPixels?, device?, settleMs?, zoom?, text? })` | Makes a viewer over a `ViewerClient`. `text` is on by default; `false` leaves the text layer out, and an object sets its `outline`, `untaggedLabel` and `onSelection`. |
 | `mount(container)`, `open(document)`, `destroy()` | Puts it on the page, shows a document, takes it down. |
 | `goToPage(index, { anchor })`, `setZoom(zoom, { anchor })`, `rotate(delta)` | Navigation. `zoom` is a mode or a percentage. |
+| `goToDestination(target)` | Goes to an outline item's or a named destination's target (below). |
 | `getState()`, `subscribe(listener)` | The view state (`currentPage`, `pageCount`, `zoom`, `percent`, `rotation`, `scrollTop`, `visibleRange`), for `useSyncExternalStore`. |
 | `on("pagechange" \| "zoomchange" \| "renderstats", …)`, `stats()` | Events and counters. `renderstats` counts renders, for measuring performance. |
 | `addLayer({ name, onMount, onUnmount, onZoom })` | Mounts a layer into each page. |
@@ -59,6 +60,21 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 - **Structure.** For a tagged document, a hidden tree of ARIA elements follows the structure tree. Headings carry their levels, and figures their alternate text; paragraphs, lists and tables keep their roles. Each element owns its text spans through `aria-owns`, matched by page and marked-content ID (the number a tagged PDF gives each piece of a page's content), so a screen reader reads the document in structure order. For a document without a structure tree, a screen reader hears "Untagged document" once (`untaggedLabel`).
 
 The document Web Worker reads each page's text at `background` priority, after the tiles in view, and caches the text of the last 24 pages. Text needs the extract module, which the document Web Worker loads once the render backend is ready, so the first page never waits for it. Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet.
+
+**Destinations.** `ViewerClient.outline()` reads the document's outline in the document Web Worker, and `namedDestination(name)` finds one named destination. Each item's target is a page and a view in page space: points from the displayed page's top-left, y down, whichever coordinates the file used. `goToDestination(target)` follows the target's view (ISO 32000-2 §12.3.2.2). It applies the target's zoom, if it has one, and then puts the target's point at the viewport's top-left:
+- **A point** (`at`, from `/XYZ`) at its zoom, or at the current zoom when the file gives none.
+- **Fit the page** (`fit`, from `/Fit` and `/FitB`).
+- **Fit the width** from a top (`fit-width`, from `/FitH` and `/FitBH`), or the height from a left (`fit-height`, from `/FitV` and `/FitBV`).
+- **Fit a rectangle** (`fit-rect`, from `/FitR`).
+
+A left the file leaves out keeps the current horizontal scroll, and a top it leaves out goes to the page's top. A view rotated by `rotate()` turns the point with the page, and a fit always fits the viewport's own width or height, as in pdf.js.
+
+**Thumbnails.** `new ThumbnailStrip(client, viewer, { width?, margin?, cacheBytes?, label?, name? })` makes a list of the pages as small pictures, for a sidebar. `mount(container)` puts it on the page, and `open(document)` shows the document the viewer opened. Size its `element` with CSS; it scrolls inside.
+- **Like the viewer, it mounts only what is near its view.** It keeps the thumbnails in view and 4 either side. Each borrows a canvas from the strip's own pool, and a thumbnail scrolled away aborts its render.
+- **Renders wait for the main view.** Thumbnails render at `background` priority, so the pages in view always come first. Bitmaps stay in a cache of their own, 32 MB by default.
+- **It follows the viewer.** The current page is marked `aria-selected` and scrolled into the strip; a rotation turns every thumbnail.
+- **Keyboard and pointer.** A click, or Enter or Space, goes to that page. The arrow keys, Home and End move the focus, and only one thumbnail is in the Tab order.
+- **Names.** Each thumbnail is named by its page label and number ("Page iv (4 of 120)") and captioned with its label. For another language, pass `label` to replace both and `name` to replace the list's own name.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
@@ -142,6 +158,10 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `pageInfo` | `index` | `PageInfo` (displayed size in points, rotation, ID, label) | document |
 | `render` | ADR 0004 `RenderRequest` | `{ bitmap: ImageBitmap, width, height }` (transferred) | `visible` > `prefetch` > `background` |
 | `memory` | — | `WorkerMemory`: the bytes of the backend's and Lamina PDF's WebAssembly memories | document. `client.memory()`; the perf harness samples it. |
+| `pageText` | `index` | `PageTextData`: the page's runs and glyph quads | `background` |
+| `structure` | — | `StructureData`: whether the document is tagged, and its structure tree | document |
+| `outline` | — | `OutlineNode[]`: the outline, each item's target in page space | document |
+| `namedDestination` | `name` | `Target \| undefined` | document |
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).
 
@@ -164,7 +184,13 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
   - slow, stuck and stopped renders;
   - crashes, including an encrypted file;
   - the password count.
-- Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
+- `test/browser/navigation.browser.test.ts` covers the thumbnails strip over a 1,000-page document:
+  - while the whole strip scrolls, no more than the thumbnails in view and 4 either side mounted;
+  - a visible render, queued behind thumbnails, running first;
+  - a click and the keyboard going to a page;
+  - page labels in the names;
+  - the outline and a named destination of the links-and-outlines reference PDF landing on their pages.
+- Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps, and where each kind of destination puts the view at each rotation. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
 - Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite examples`. `examples/viewer-demo.html` is the viewer, with zoom buttons; `examples/rpc-demo.html` draws page 1 through the RPC alone. The perf harness has its own page, `perf/page/` ([Performance](#performance)).
 
 ### Performance
