@@ -72,7 +72,7 @@ export interface PrintJob {
   render(page: number, signal: AbortSignal): Promise<PrintPage>;
   /** `fit` scales each page to the paper; `actual` prints it at its own size. */
   readonly scale: "fit" | "actual";
-  /** Told after each page is ready, then once more as the print window opens. */
+  /** Told after each page is ready; the last call (`ready === total`) comes as the print window opens. */
   readonly onProgress?: (ready: number, total: number) => void;
   /** Stops preparing: no print window opens, and what was drawn is let go. */
   readonly signal?: AbortSignal;

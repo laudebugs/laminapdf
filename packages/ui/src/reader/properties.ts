@@ -4,7 +4,7 @@
 // lines that Copy all writes. The properties are a shape here, as the viewer is: @laminapdf/ui
 // depends on neither @laminapdf/sdk nor @laminapdf/viewer.
 
-import { message } from "../messages.js";
+import { countMessage, type MessageId, message } from "../messages.js";
 
 /** What the author permits (`/P`): a request to readers, not a lock. */
 export interface PropertiesPermissions {
@@ -17,6 +17,13 @@ export interface PropertiesPermissions {
   readonly accessibility: boolean;
   readonly assemble: boolean;
 }
+
+/**
+ * The cipher a file's streams use. The list is Rust's (laminapdf-wasm's `CipherJs`); this copy is a
+ * shape, as @laminapdf/ui depends on neither the SDK nor the viewer, and the reader's typecheck
+ * fails if the SDK's union ever names one this lacks.
+ */
+export type PropertiesCipher = "rc4" | "aes-128" | "aes-256" | "identity";
 
 /** One font the pages use. */
 export interface PropertiesFont {
@@ -48,7 +55,7 @@ export interface DocumentPropertiesData {
     | {
         readonly revision: number;
         readonly keyBits: number;
-        readonly cipher: string;
+        readonly cipher: PropertiesCipher;
         readonly permissions?: PropertiesPermissions | undefined;
       }
     | undefined;
@@ -152,23 +159,23 @@ export function formatFileSize(bytes: number, locale?: string): string {
   return message("properties.size", { size: `${short} ${unit}`, bytes: exact });
 }
 
-/** Paper sizes in points, portrait, by the name the dialog gives them. */
-const PAPERS: readonly (readonly [string, number, number])[] = [
-  ["US Letter", 612, 792],
-  ["US Legal", 612, 1008],
-  ["Tabloid", 792, 1224],
+/** Paper sizes in points, portrait: the ISO ones by their own names, the others from the catalogue. */
+const PAPERS: readonly (readonly [string | MessageId, number, number])[] = [
+  ["properties.paper.usLetter", 612, 792],
+  ["properties.paper.usLegal", 612, 1008],
+  ["properties.paper.tabloid", 792, 1224],
   ["A3", 841.89, 1190.55],
   ["A4", 595.28, 841.89],
   ["A5", 419.53, 595.28],
 ];
 
-/** A page size's name: a paper (`A4`, `US Letter`, either way up), else its size in inches or millimetres. */
+/** A page size's name: a paper (`A4`, `US Letter`, either way up), else its size in inches. */
 export function paperName(width: number, height: number): string {
   const [short, long] = width <= height ? [width, height] : [height, width];
   const paper = PAPERS.find(([, w, h]) => Math.abs(w - short) < 2 && Math.abs(h - long) < 2);
-  if (paper !== undefined) return paper[0];
+  if (paper !== undefined) return paper[0].startsWith("properties.") ? message(paper[0] as MessageId) : paper[0];
   const inches = (pt: number) => Math.round((pt / 72) * 100) / 100;
-  return `${inches(width)} × ${inches(height)} in`;
+  return message("properties.paper.inches", { width: inches(width), height: inches(height) });
 }
 
 /** The page sizes: `A4 · all pages`, or `Mixed: 22 US Letter, 2 Tabloid`, most common first. */
@@ -205,7 +212,7 @@ export interface PropertiesContext {
   readonly locale?: string | undefined;
 }
 
-const yes = (flag: boolean) => message(flag ? "properties.yes" : "properties.no");
+const yesOrNo = (flag: boolean) => message(flag ? "properties.yes" : "properties.no");
 
 function description(p: DocumentPropertiesData, locale: string | undefined): PropertyRow[] {
   const xmp = p.xmp === undefined ? {} : readXmp(p.xmp);
@@ -256,11 +263,11 @@ function pagesValue(count: number, labels: readonly string[] | undefined): strin
 
 function documentRows(p: DocumentPropertiesData, ctx: PropertiesContext): PropertyRow[] {
   const contains = [
-    p.contains.attachments === 0
-      ? message("properties.contains.noAttachments")
-      : message(p.contains.attachments === 1 ? "properties.contains.attachment" : "properties.contains.attachments", {
-          count: p.contains.attachments,
-        }),
+    countMessage(p.contains.attachments, {
+      zero: "properties.contains.noAttachments",
+      one: "properties.contains.attachment",
+      many: "properties.contains.attachments",
+    }),
     message(p.contains.forms ? "properties.contains.form" : "properties.contains.noForms"),
     message(p.contains.javascript ? "properties.contains.javascript" : "properties.contains.noJavascript"),
   ].join(" · ");
@@ -271,16 +278,23 @@ function documentRows(p: DocumentPropertiesData, ctx: PropertiesContext): Proper
   rows.push(
     { label: message("properties.fileSize"), value: formatFileSize(p.fileSize, ctx.locale) },
     { label: message("properties.tagged"), value: message(p.tagged ? "properties.tagged.yes" : "properties.no") },
-    { label: message("properties.fastWebView"), value: yes(p.linearized) },
+    { label: message("properties.fastWebView"), value: yesOrNo(p.linearized) },
     { label: message("properties.contains"), value: contains },
   );
   return rows;
 }
 
+/** Each cipher's name as people write it. */
+const CIPHER_NAMES: Readonly<Record<PropertiesCipher, string>> = {
+  rc4: "RC4",
+  "aes-128": "AES",
+  "aes-256": "AES",
+  identity: "Identity",
+};
+
 /** `AES 256-bit`, `RC4 128-bit`: the cipher's name and the key length. */
-function cipherName(cipher: string, bits: number): string {
-  const name = cipher.startsWith("aes") ? "AES" : cipher === "rc4" ? "RC4" : cipher;
-  return `${name} ${bits}-bit`;
+function cipherName(cipher: PropertiesCipher, bits: number): string {
+  return `${CIPHER_NAMES[cipher]} ${bits}-bit`;
 }
 
 /** What the author restricted, and what they allow: `Printing: not allowed · Copying text: allowed`. */
@@ -319,12 +333,11 @@ function securityRows(p: DocumentPropertiesData): PropertyRow[] {
   }
   rows.push({
     label: message("properties.signatures"),
-    value:
-      p.signatures === 0
-        ? message("properties.signatures.none")
-        : message(p.signatures === 1 ? "properties.signatures.one" : "properties.signatures.many", {
-            count: p.signatures,
-          }),
+    value: countMessage(p.signatures, {
+      zero: "properties.signatures.none",
+      one: "properties.signatures.one",
+      many: "properties.signatures.many",
+    }),
   });
   return rows;
 }
@@ -353,7 +366,7 @@ export function propertySections(
 
 /** Copy all: every section as plain text, a `Label: value` line per row, the fonts one per line. */
 export function propertiesText(p: DocumentPropertiesData, ctx: PropertiesContext): string {
-  const { description: d, document, security } = propertySections(p, ctx);
+  const { description: descriptionSection, document, security } = propertySections(p, ctx);
   const block = (section: PropertySection) =>
     [section.title, ...section.rows.map((row) => `${row.label}: ${row.value}`)].join("\n");
   const fonts = [
@@ -362,5 +375,5 @@ export function propertiesText(p: DocumentPropertiesData, ctx: PropertiesContext
       [f.name ?? message("properties.font.unnamed"), f.kind ?? "", fontStorage(f)].filter(Boolean).join(" · "),
     ),
   ].join("\n");
-  return [block(d), block(document), fonts, block(security)].join("\n\n");
+  return [block(descriptionSection), block(document), fonts, block(security)].join("\n\n");
 }

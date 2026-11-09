@@ -42,8 +42,8 @@ fn an_encrypted_files_permissions_and_cipher_are_read() {
     .unwrap();
     let encryption = doc.properties().unwrap().encryption.unwrap();
     assert_eq!(
-        (encryption.revision, encryption.key_bits, encryption.cipher.as_str()),
-        (6, 256, "aes-256")
+        (encryption.revision, encryption.key_bits, encryption.cipher),
+        (6, 256, laminapdf::Cipher::Aes256)
     );
     assert!(encryption.permissions.is_some());
 }

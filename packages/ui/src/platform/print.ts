@@ -25,6 +25,11 @@ export function printRules(pages: readonly { width: number; height: number }[], 
     "img.lamina-print-page { display: block; break-after: page; }",
     "img.lamina-print-page:last-child { break-after: auto; }",
   ];
+  // Fit to paper: a page the paper can't hold (a browser that ignores named page sizes, or paper
+  // the print window changed) shrinks to it, keeping its shape, rather than being cut off.
+  if (scale === "fit") {
+    rules.push("img.lamina-print-page { max-inline-size: 100vw; max-block-size: 100vh; object-fit: contain; }");
+  }
   pages.forEach(({ width, height }, i) => {
     const size = scale === "fit" ? `size: ${round(width)}pt ${round(height)}pt; ` : "";
     rules.push(`@page p${i} { ${size}margin: 0; }`, `.lamina-print-page-${i} { page: p${i}; }`);
@@ -33,6 +38,9 @@ export function printRules(pages: readonly { width: number; height: number }[], 
 }
 
 const round = (n: number) => Math.round(n * 100) / 100;
+
+/** How long the frame waits for `afterprint` before letting the pages go. */
+const AFTERPRINT_WAIT_MS = 10 * 60_000;
 
 /** Prepares `job`'s pages in a hidden frame, then opens the print window. */
 export async function printPages(scope: PrintScope, job: PrintJob): Promise<void> {
@@ -95,10 +103,11 @@ export async function printPages(scope: PrintScope, job: PrintJob): Promise<void
       win.focus();
       win.print();
       done();
-      // A browser that never sends afterprint for a frame mustn't keep the pages forever.
+      // A browser that never sends afterprint for a frame mustn't keep the pages forever. Firefox
+      // and Safari return from print() at once, so the window may stay open a while: ten minutes.
       setTimeout(() => {
         if (pending > 0) resolve();
-      }, 60_000);
+      }, AFTERPRINT_WAIT_MS);
     });
   } finally {
     cleanUp();

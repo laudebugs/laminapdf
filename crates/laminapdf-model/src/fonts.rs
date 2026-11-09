@@ -26,11 +26,25 @@ pub struct FontResource {
     pub embedded: bool,
     /// `/BaseFont` starts with a subset tag: six capital letters and `+` (§9.9.2).
     pub subset: bool,
-    /// `/Encoding` when it is a name (or a Type 0 font's CMap name); `Some("custom")` for an
-    /// encoding dictionary or an embedded CMap; `None` when absent.
-    pub encoding: Option<String>,
-    /// The font dictionary's object number, when it is an indirect object.
-    pub object: Option<u32>,
+    /// `/Encoding`; `None` when absent.
+    pub encoding: Option<FontEncoding>,
+}
+
+/// A font's `/Encoding` (§9.6.5, §9.7.5).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum FontEncoding {
+    /// A named encoding or predefined CMap (`WinAnsiEncoding`, `Identity-H`), lossily decoded.
+    Named(String),
+    /// An encoding dictionary or an embedded CMap stream.
+    Custom,
+}
+
+/// How a font is known once listed: its object number, or for a direct font its type and name.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum FontKey {
+    Object(u32),
+    Direct(Option<String>, Option<String>),
 }
 
 impl Pages<'_> {
@@ -60,8 +74,8 @@ struct Walk<'d> {
     max_depth: usize,
     /// Form XObjects, Type 3 fonts and resource dictionaries already read, by object number.
     seen_containers: BTreeSet<u32>,
-    /// Fonts already listed: an object number, or for a direct font its fields.
-    seen_fonts: BTreeSet<String>,
+    /// Fonts already listed.
+    seen_fonts: BTreeSet<FontKey>,
     out: Vec<FontResource>,
 }
 
@@ -104,8 +118,8 @@ impl Walk<'_> {
         let subtype = font.get_name("Subtype").map(lossy);
         let base = font.get_name("BaseFont").map(lossy);
         let key = match reference {
-            Some(num) => num.to_string(),
-            None => format!("{subtype:?}/{base:?}"),
+            Some(num) => FontKey::Object(num),
+            None => FontKey::Direct(subtype.clone(), base.clone()),
         };
         if !self.seen_fonts.insert(key) {
             return Ok(());
@@ -132,7 +146,6 @@ impl Walk<'_> {
             embedded,
             subset,
             encoding,
-            object: reference,
         });
         // A Type 3 font draws its glyphs with content of its own, which can use fonts too.
         if type3 {
@@ -172,13 +185,13 @@ impl Walk<'_> {
             .any(|key| descriptor.get(key).is_some()))
     }
 
-    fn encoding(&self, font: &Dict) -> Result<Option<String>> {
+    fn encoding(&self, font: &Dict) -> Result<Option<FontEncoding>> {
         let Some(value) = font.get("Encoding") else {
             return Ok(None);
         };
         Ok(match self.doc.read(value)?.as_deref() {
-            Some(Object::Name(n)) => Some(lossy(n.as_bytes())),
-            Some(Object::Dict(_) | Object::Stream(_)) => Some("custom".to_owned()),
+            Some(Object::Name(n)) => Some(FontEncoding::Named(lossy(n.as_bytes()))),
+            Some(Object::Dict(_) | Object::Stream(_)) => Some(FontEncoding::Custom),
             _ => None,
         })
     }

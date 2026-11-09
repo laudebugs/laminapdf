@@ -43,14 +43,29 @@ export interface OutputDocument {
 /** A failure to show, by the action that failed. */
 type Problem = "print" | "download";
 
+/** At 300 dpi, the most pixels a whole print may draw (about 120 US Letter pages); more prints at 150. */
+const MAX_HIGH_QUALITY_PIXELS = 1_000_000_000;
+
+/**
+ * The resolution `choice` prints at: High quality lowered to Standard when its pages would draw
+ * more than MAX_HIGH_QUALITY_PIXELS, since the frame holds every page's image until it prints.
+ */
+export function printDpi(choice: PrintChoice, pages: readonly PageInfo[]): { dpi: number; lowered: boolean } {
+  if (choice.dpi !== 300) return { dpi: choice.dpi, lowered: false };
+  const perPoint = (300 / 72) ** 2;
+  const pixels = choice.pages.reduce((sum, i) => sum + (pages[i]?.width ?? 0) * (pages[i]?.height ?? 0) * perPoint, 0);
+  return pixels > MAX_HIGH_QUALITY_PIXELS ? { dpi: 150, lowered: true } : { dpi: 300, lowered: false };
+}
+
 /** Whether `error` is a stopped print, which needs no message. */
 const aborted = (error: unknown) => error instanceof DOMException && error.name === "AbortError";
 
 /** Print… and its progress: the dialog, then the pages drawn one by one, then the print window. */
 function usePrint(engine: Engine, platform: Platform, onProblem: (problem: Problem) => void) {
   const [open, setOpen] = useState(false);
-  const [permissions, setPermissions] = useState<DocumentProperties["encryption"]>();
+  const [encryption, setEncryption] = useState<DocumentProperties["encryption"]>();
   const [progress, setProgress] = useState<{ ready: number; total: number }>();
+  const [lowered, setLowered] = useState(false);
   const running = useRef<AbortController | undefined>(undefined);
 
   const start = () => {
@@ -59,18 +74,20 @@ function usePrint(engine: Engine, platform: Platform, onProblem: (problem: Probl
     // prints as one that restricts nothing.
     void engine.properties().then(
       (properties) => {
-        setPermissions(properties.encryption);
+        setEncryption(properties.encryption);
         setOpen(true);
       },
       () => {
-        setPermissions(undefined);
+        setEncryption(undefined);
         setOpen(true);
       },
     );
   };
 
-  const print = async (choice: PrintChoice) => {
+  const print = async (choice: PrintChoice, pages: readonly PageInfo[]) => {
     setOpen(false);
+    const { dpi, lowered } = printDpi(choice, pages);
+    setLowered(lowered);
     const controller = new AbortController();
     running.current = controller;
     setProgress({ ready: 0, total: choice.pages.length });
@@ -79,7 +96,7 @@ function usePrint(engine: Engine, platform: Platform, onProblem: (problem: Probl
         pages: choice.pages,
         scale: choice.scale,
         signal: controller.signal,
-        render: (page, signal) => engine.printPage(page, { dpi: choice.dpi, annotations: choice.annotations }, signal),
+        render: (page, signal) => engine.printPage(page, { dpi, annotations: choice.annotations }, signal),
         // Every page ready: the print window opens, and the progress dialog makes way for it.
         onProgress: (ready, total) => setProgress(ready < total ? { ready, total } : undefined),
       });
@@ -104,11 +121,15 @@ function usePrint(engine: Engine, platform: Platform, onProblem: (problem: Probl
             pageCount={document.pages.length}
             currentPage={document.viewer.getState().currentPage}
             labels={document.labels}
-            permissions={permissions?.permissions}
-            onPrint={(choice) => void print(choice)}
+            permissions={encryption?.permissions}
+            onPrint={(choice) => void print(choice, document.pages)}
             onClose={() => setOpen(false)}
           />
-          <PrintProgressDialog progress={progress} onCancel={() => running.current?.abort()} />
+          <PrintProgressDialog
+            progress={progress}
+            notice={lowered ? message("print.quality.lowered") : undefined}
+            onCancel={() => running.current?.abort()}
+          />
         </>
       ),
   };
@@ -171,10 +192,10 @@ function ProblemDialog({ problem, onClose }: { problem: Problem | undefined; onC
       }}
       role="alertdialog"
       title={message(problem === "download" ? "download.failed" : "print.failed")}
-      closeLabel={message("print.close")}
+      closeLabel={message("problem.close")}
       actions={
         <Button variant="primary" autoFocus onPress={onClose}>
-          {message("print.close")}
+          {message("problem.close")}
         </Button>
       }
     />

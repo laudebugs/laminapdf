@@ -324,9 +324,10 @@ The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (
 
 - The page range is its own field, "Pages to print", below a third radio named "Some pages", rather than a field inside the radio's row.
 - The Sepia notice waits for the web reader's page appearance, which isn't built yet.
-- A page too large to hold at the chosen quality is drawn at a lower resolution without a notice, since the worker caps every page at 16 million pixels.
+- A single page too large to hold at the chosen quality is drawn at a lower resolution without a notice, since the worker caps every page at 16 million pixels. A long High-quality print does get R09's notice: past a billion pixels in all, it prints at Standard.
 - A download's name comes from the file or its address; `Content-Disposition` isn't read, since the document worker's range requests don't keep it.
 - A failed print or download says so in an alertdialog rather than a toast, as toasts never carry errors (§7.20).
+- The print frame's static rules sit in the same adopted stylesheet as its page sizes, rather than in a linked stylesheet, so printing fetches nothing.
 
 **Artboards.** `R09-print.dc.html`, `R09-print-progress.dc.html`, `R09-print-restricted.dc.html`, `R09-download.dc.html`.
 

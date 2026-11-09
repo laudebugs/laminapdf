@@ -2,7 +2,7 @@
 // hold a hyphen (`A-1`), so a part that is a whole label is that page; otherwise a range splits at
 // an en dash, or at a hyphen between two numbers or labels.
 
-import { message } from "../messages.js";
+import { countMessage, message } from "../messages.js";
 
 /** The pages a range names (0-based, in the order given), or why it names none. */
 export type PrintPagesResult =
@@ -21,7 +21,7 @@ function pageOf(part: string, total: number, labels: readonly string[] | undefin
 /** `pages (1–21, A-1–A-3)` for the error: the count, and the labels' first and last when labelled. */
 function described(total: number, labels: readonly string[] | undefined): string {
   if (labels === undefined || labels.length === 0) {
-    return total === 1 ? message("print.range.pagesOne") : message("print.range.pages", { total });
+    return countMessage(total, { one: "print.range.pagesOne", many: "print.range.pages" });
   }
   return message("print.range.pagesLabelled", { total, first: labels[0] ?? "", last: labels.at(-1) ?? "" });
 }

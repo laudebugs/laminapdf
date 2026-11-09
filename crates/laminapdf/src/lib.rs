@@ -145,6 +145,8 @@ pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
+pub use laminapdf_cos::Cipher;
+pub use laminapdf_model::FontEncoding;
 pub use links::{LinkTo, PageLink};
 pub use navigation::{OutlineNode, PageTarget, PageTargetView};
 pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};

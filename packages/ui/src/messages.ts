@@ -299,6 +299,10 @@ const EN = {
   "properties.contains.javascript": "JavaScript",
   "properties.contains.noJavascript": "no JavaScript",
   "properties.yes": "Yes",
+  "properties.paper.usLetter": "US Letter",
+  "properties.paper.usLegal": "US Legal",
+  "properties.paper.tabloid": "Tabloid",
+  "properties.paper.inches": "{width} × {height} in",
   "properties.no": "No",
   "properties.fonts.name": "Name",
   "properties.fonts.type": "Type",
@@ -328,7 +332,7 @@ const EN = {
   "print.title": "Print",
   "print.close": "Close",
   "print.pages": "Pages",
-  "print.pages.all": "All {total} pages",
+  "print.pages.all": "All {count} pages",
   "print.pages.allOne": "The 1 page",
   "print.pages.current": "Current page ({page})",
   "print.pages.range": "Some pages",
@@ -337,7 +341,7 @@ const EN = {
   "print.pages.rangeHelp": "Use page numbers or labels, for example 1–5, 11, A-1.",
   "print.range.empty": "Enter the pages to print, for example 1–5, 11.",
   "print.range.noPage": "There's no page {page}. This file has {pages}.",
-  "print.range.pages": "{total} pages",
+  "print.range.pages": "{count} pages",
   "print.range.pagesOne": "1 page",
   "print.range.pagesLabelled": "{total} pages ({first}–{last})",
   "print.range.backwards": "The range {range} runs backwards. Write it lowest page first.",
@@ -363,9 +367,12 @@ const EN = {
   "print.progress.description":
     "Lamina PDF draws each page at print quality on this device. Your browser's print window opens when all {total} pages are ready.",
   "print.progress.value": "Page {page} of {total}",
+  "print.progress.announce": "{percent}% of the pages ready",
+  "print.quality.lowered": "Printing at standard quality to stay within this device's memory.",
   "print.failed": "Lamina PDF couldn't prepare the pages for print.",
   "download.done": "Downloaded {name}",
   "download.failed": "Lamina PDF couldn't download the file.",
+  "problem.close": "Close",
   "link.page": "Link to page {page}",
   "link.nextPage": "Goes to the next page",
   "link.previousPage": "Goes to the previous page",
@@ -453,6 +460,20 @@ export type Catalogue = { readonly [Id in MessageId]: string };
 
 /** The English catalogue. */
 export const ENGLISH: Catalogue = EN;
+
+/**
+ * The message for `count`: `ids.zero` (when given) for 0, `ids.one` for 1, `ids.many` otherwise,
+ * with `{count}` and any other `values` filled in. English needs no more forms; a catalogue that
+ * does would add them here.
+ */
+export function countMessage(
+  count: number,
+  ids: { readonly zero?: MessageId; readonly one: MessageId; readonly many: MessageId },
+  values: Readonly<Record<string, string | number>> = {},
+): string {
+  const id = count === 0 && ids.zero !== undefined ? ids.zero : count === 1 ? ids.one : ids.many;
+  return message(id, { count, ...values });
+}
 
 /**
  * The message `id` from `catalogue`, with each `{name}` replaced by `values[name]`. A placeholder

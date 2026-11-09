@@ -13,10 +13,12 @@ describe("printRules", () => {
     expect(rules).toContain("@page p0 { size: 612pt 792pt; margin: 0; }");
     expect(rules).toContain("@page p1 { size: 841.89pt 595.28pt; margin: 0; }");
     expect(rules).toContain(".lamina-print-page-1 { page: p1; }");
+    expect(rules.some((r) => r.includes("max-block-size: 100vh") && r.includes("object-fit: contain"))).toBe(true);
   });
 
   it("leaves the paper size to the print window at actual size", () => {
     const rules = printRules([{ width: 612, height: 792 }], "actual");
     expect(rules).toContain("@page p0 { margin: 0; }");
+    expect(rules.some((r) => r.includes("object-fit"))).toBe(false);
   });
 });

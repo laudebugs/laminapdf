@@ -1,7 +1,7 @@
 //! A document's properties across the boundary: `WasmDocument.properties()` (the extract and text
 //! modules, so the base module stays in its size budget).
 
-use laminapdf::{DocumentProperties, FontSummary};
+use laminapdf::{Cipher, DocumentProperties, FontEncoding, FontSummary};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -97,8 +97,8 @@ pub(crate) struct EncryptionJs {
     pub revision: u8,
     /// The key length in bits.
     pub key_bits: u16,
-    /// `"rc4"`, `"aes-128"`, `"aes-256"` or `"identity"`.
-    pub cipher: String,
+    /// The cipher streams use.
+    pub cipher: CipherJs,
     /// What `/P` permits; absent when the handler gives no permissions.
     #[tsify(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -144,10 +144,52 @@ pub(crate) struct FontJs {
     pub embedded: bool,
     /// The file holds only the glyphs used.
     pub subset: bool,
-    /// Its encoding's name, or `"custom"`.
+    /// Its encoding; absent when the font gives none.
     #[tsify(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub encoding: Option<String>,
+    pub encoding: Option<EncodingJs>,
+}
+
+/// The cipher a file's streams use (ISO 32000-2 §7.6): the one list, which the `.d.ts` gets as a union.
+#[derive(Debug, Serialize, Tsify)]
+pub(crate) enum CipherJs {
+    /// RC4 (deprecated).
+    #[serde(rename = "rc4")]
+    Rc4,
+    /// AES with a 128-bit key (deprecated in PDF 2.0).
+    #[serde(rename = "aes-128")]
+    Aes128,
+    /// AES with a 256-bit key.
+    #[serde(rename = "aes-256")]
+    Aes256,
+    /// No encryption of streams (`/Identity`).
+    #[serde(rename = "identity")]
+    Identity,
+}
+
+impl From<Cipher> for CipherJs {
+    fn from(cipher: Cipher) -> Self {
+        match cipher {
+            Cipher::Rc4 => Self::Rc4,
+            Cipher::Aes128 => Self::Aes128,
+            Cipher::Aes256 => Self::Aes256,
+            // `Identity`, and any cipher a later version adds, encrypts nothing this reader names.
+            _ => Self::Identity,
+        }
+    }
+}
+
+/// A font's encoding: a named one (`WinAnsiEncoding`, `Identity-H`), or the font's own.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub(crate) enum EncodingJs {
+    /// A named encoding or predefined CMap.
+    Named {
+        /// Its name.
+        name: String,
+    },
+    /// An encoding dictionary or an embedded CMap.
+    Custom,
 }
 
 impl From<&FontSummary> for FontJs {
@@ -157,7 +199,11 @@ impl From<&FontSummary> for FontJs {
             kind: f.kind.clone(),
             embedded: f.embedded,
             subset: f.subset,
-            encoding: f.encoding.clone(),
+            encoding: f.encoding.as_ref().map(|e| match e {
+                FontEncoding::Named(name) => EncodingJs::Named { name: name.clone() },
+                // `Custom`, and any form a later version adds, is the font's own.
+                _ => EncodingJs::Custom,
+            }),
         }
     }
 }
@@ -168,7 +214,7 @@ impl From<DocumentProperties> for PropertiesJs {
             version: e.version,
             revision: e.revision,
             key_bits: e.key_bits,
-            cipher: e.cipher,
+            cipher: CipherJs::from(e.cipher),
             permissions: e.permissions.map(|p| PermissionsJs {
                 print: p.print,
                 print_high_quality: p.print_high_quality,

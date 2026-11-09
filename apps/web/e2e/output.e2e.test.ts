@@ -189,6 +189,54 @@ describe(`print, download and properties in ${BROWSER}`, () => {
     await page.close();
   });
 
+  it("asks before printing a file whose author restricted printing, then prints it", async () => {
+    const watched = await load();
+    const { page } = watched;
+    const encrypted = new URL("../../../fixtures/encrypted/", import.meta.url);
+    const passwords = JSON.parse(readFileSync(new URL("passwords.json", encrypted), "utf8")) as {
+      files: Record<string, { user: string }>;
+    };
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose a file" }).click();
+    await (await chooser).setFiles(new URL("r5-aes-256-user.pdf", encrypted).pathname);
+    const prompt = page.getByRole("dialog", { name: "Enter the password" });
+    await prompt.getByLabel("Password", { exact: true }).fill(passwords.files["r5-aes-256-user.pdf"]?.user ?? "");
+    await prompt.getByRole("button", { name: "Open" }).click();
+    await page.locator(".web-viewer canvas").first().waitFor();
+    await page.keyboard.press("ControlOrMeta+p");
+    const dialog = page.getByRole("dialog", { name: "Print" });
+    await dialog.getByText("The author restricted printing of this file.").waitFor();
+    await dialog.getByRole("button", { name: "Print anyway…" }).click();
+    const confirm = page.getByRole("alertdialog", { name: "Print a restricted file?" });
+    await confirm.waitFor();
+    await expect
+      .poll(() => confirm.getByRole("button", { name: "Cancel" }).evaluate((el) => el === document.activeElement))
+      .toBe(true);
+    expect(await prints(page)).toEqual([]);
+    await confirm.getByRole("button", { name: "Print anyway" }).click();
+    await expect.poll(() => prints(page), { timeout: 60_000 }).toHaveLength(1);
+    expect((await prints(page))[0]?.images).toHaveLength(2);
+    await page.close();
+  });
+
+  it("prints a range given by page labels", async () => {
+    const watched = await load();
+    const { page } = watched;
+    await choose(
+      watched,
+      "labelled.pdf",
+      readFileSync(new URL("../../../fixtures/golden/links-and-outlines.pdf", import.meta.url)),
+    );
+    await more(page, "Print…");
+    const dialog = page.getByRole("dialog", { name: "Print" });
+    // The file's pages are labelled i, ii, 1 and 2: "ii-1" is its second and third pages.
+    await dialog.getByRole("textbox", { name: "Pages to print" }).fill("ii-1");
+    await dialog.getByRole("button", { name: "Print…" }).click();
+    await expect.poll(() => prints(page), { timeout: 60_000 }).toHaveLength(1);
+    expect((await prints(page))[0]?.images).toHaveLength(2);
+    await page.close();
+  });
+
   it("stops preparing on Cancel, and opens no print window", async () => {
     const watched = await load();
     const { page } = watched;

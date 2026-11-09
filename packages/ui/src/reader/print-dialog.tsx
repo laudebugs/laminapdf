@@ -12,7 +12,7 @@ import { Checkbox, Radio, RadioGroup } from "../components/choice.js";
 import { Select, TextInput } from "../components/field.js";
 import { Notice } from "../components/notice.js";
 import { ProgressBar } from "../components/progress.js";
-import { message } from "../messages.js";
+import { countMessage, message } from "../messages.js";
 import { Dialog } from "../overlays/dialog.js";
 import { parsePrintPages } from "./print-pages.js";
 
@@ -150,9 +150,7 @@ function PrintFields({
     <>
       <RadioGroup label={message("print.pages")} value={form.mode} onChange={(v) => form.setMode(v as PagesMode)}>
         <Radio value="all">
-          {props.pageCount === 1
-            ? message("print.pages.allOne")
-            : message("print.pages.all", { total: props.pageCount })}
+          {countMessage(props.pageCount, { one: "print.pages.allOne", many: "print.pages.all" })}
         </Radio>
         <Radio value="current">{message("print.pages.current", { page: currentLabel(props) })}</Radio>
         <Radio value="range">{message("print.pages.range")}</Radio>
@@ -300,15 +298,21 @@ export function PrintDialog(props: PrintDialogProps): ReactNode {
 export interface PrintProgressDialogProps {
   /** Pages ready and the total, while preparing; the dialog is closed without it. */
   progress: { readonly ready: number; readonly total: number } | undefined;
+  /** A note on how the pages are prepared, such as a lower quality than asked for. */
+  notice?: string | undefined;
   /** Cancel, Escape: stop preparing. */
   onCancel: () => void;
 }
 
-/** Counts the pages drawn for print, with Cancel focused. */
-export function PrintProgressDialog({ progress, onCancel }: PrintProgressDialogProps): ReactNode {
+/** The quarter reached, 0 to 4, so screen readers hear every 25 % rather than every page. */
+const quarter = (ready: number, total: number) => (total === 0 ? 0 : Math.floor((ready / total) * 4));
+
+/** Counts the pages drawn for print, with Cancel focused; announces every 25 %. */
+export function PrintProgressDialog({ progress, notice, onCancel }: PrintProgressDialogProps): ReactNode {
   const total = progress?.total ?? 0;
   const ready = progress?.ready ?? 0;
   const percent = total === 0 ? 0 : Math.round((ready / total) * 100);
+  const announced = quarter(ready, total) * 25;
   return (
     <Dialog
       isOpen={progress !== undefined}
@@ -325,10 +329,15 @@ export function PrintProgressDialog({ progress, onCancel }: PrintProgressDialogP
         </Button>
       }
     >
+      {notice === undefined ? null : <Notice title={notice} />}
+      {/* The bar itself isn't live: its label changes every page. This region speaks each quarter. */}
       <ProgressBar
         label={message("print.progress.value", { page: Math.min(ready + 1, total), total })}
         value={percent}
       />
+      <p className="paper-visually-hidden" aria-live="polite">
+        {announced === 0 ? "" : message("print.progress.announce", { percent: announced })}
+      </p>
     </Dialog>
   );
 }

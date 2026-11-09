@@ -3,7 +3,8 @@
 //! signatures, and whether it holds JavaScript, attachments or a form. Everything is read by
 //! Lamina PDF's own parser; nothing is validated (a signature is counted, never checked).
 
-use laminapdf_model::{ActionKind, PdfDate};
+use laminapdf_cos::Cipher;
+use laminapdf_model::{ActionKind, FontEncoding, PdfDate};
 
 use crate::document::{Document, DocumentInfo};
 use crate::error::Result;
@@ -65,8 +66,8 @@ pub struct EncryptionSummary {
     pub revision: u8,
     /// The file key's length in bits.
     pub key_bits: u16,
-    /// The cipher streams use: `"rc4"`, `"aes-128"`, `"aes-256"` or `"identity"`.
-    pub cipher: String,
+    /// The cipher streams use.
+    pub cipher: Cipher,
     /// What `/P` permits; `None` when the handler gives no permissions.
     pub permissions: Option<DocumentPermissions>,
 }
@@ -109,8 +110,8 @@ pub struct FontSummary {
     pub embedded: bool,
     /// The file holds only the glyphs used.
     pub subset: bool,
-    /// Its encoding's name, `"custom"`, or `None`.
-    pub encoding: Option<String>,
+    /// Its encoding; `None` when the font gives none.
+    pub encoding: Option<FontEncoding>,
 }
 
 impl Document {
@@ -189,7 +190,7 @@ impl Document {
             version: encryption.version,
             revision: encryption.revision,
             key_bits: encryption.key_bits,
-            cipher: encryption.stream_cipher.name().to_owned(),
+            cipher: encryption.stream_cipher,
             permissions,
         })
     }
