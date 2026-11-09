@@ -149,6 +149,11 @@ impl<'d> Pages<'d> {
         Outline::without_items(self.doc, self).links(page)
     }
 
+    /// The document these pages belong to.
+    pub(crate) const fn document(&self) -> &'d Document {
+        self.doc
+    }
+
     /// The page labels, read once per [`Pages`].
     fn labels(&self) -> Result<&PageLabels> {
         if let Some(labels) = self.labels.get() {
