@@ -13,7 +13,7 @@
     "build": "vite build",
     "preview": "wrangler dev --local --port 8788",
     "test": "vitest run -c vitest.config.ts",
-    "typecheck:wasm": "tsc --noEmit -p tsconfig.json",
+    "typecheck:wasm": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p src/sw/tsconfig.json",
     "e2e": "vitest run -c vitest.e2e.config.ts",
     "smoke": "node e2e/live.ts && vitest run -c vitest.smoke.config.ts"
   },

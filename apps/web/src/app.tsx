@@ -51,6 +51,8 @@ import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
+import { useOffline } from "./offline/offline.tsx";
+import type { AppUpdates } from "./offline/updates.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { railTabs } from "./rail.tsx";
@@ -299,7 +301,7 @@ function ReaderDialogs({
   );
 }
 
-/** The inspector's panel and the status bar's items: the network indicator first. */
+/** The inspector's panel, the status bar's items (the network indicator first) and the offline notice (R15). */
 function usePanels(
   layout: ShellLayout,
   platform: Platform,
@@ -307,14 +309,21 @@ function usePanels(
   fileName: string | undefined,
   engine: EngineState,
   debug: boolean,
-): { inspector: ReactNode; status: ReactNode[] } {
+  offline: { readonly updates: AppUpdates; readonly toasts: ToastQueue; readonly documentOpen: boolean },
+): { inspector: ReactNode; status: ReactNode[]; notice: ReactNode } {
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, platform, fileName, engine.repairs);
   const { indicator, inspector: networkPanel } = useNetworkPanel(layout, platform, network);
+  const connection = useOffline(offline.updates, offline.toasts, offline.documentOpen);
   // One inspector at a time: whichever panel the layout holds draws, the other draws nothing.
   const inspector = repairsPanel ?? networkPanel;
   return {
     inspector,
-    status: [...(indicator === undefined ? [] : [indicator]), ...statusItems(engine, debug, showRepairs)],
+    status: [
+      ...(indicator === undefined ? [] : [indicator]),
+      ...statusItems(engine, debug, showRepairs),
+      ...connection.status,
+    ],
+    notice: connection.notice,
   };
 }
 
@@ -395,18 +404,28 @@ function Canvas({
   );
 }
 
-/** The reader over `engine`, on `platform`; `debug` shows the debug menu (`#debug`). */
-export function App({
-  engine,
-  platform,
-  network,
-  debug,
-}: {
-  engine: Engine;
-  platform: Platform;
-  network: NetworkMonitor;
-  debug: boolean;
-}): ReactNode {
+/** Props of `App`. */
+export interface AppProps {
+  readonly engine: Engine;
+  readonly platform: Platform;
+  readonly network: NetworkMonitor;
+  /** The service worker's update flow (R15). */
+  readonly updates: AppUpdates;
+  /** Shows the debug menu (`#debug`). */
+  readonly debug: boolean;
+}
+
+/** The rail's tabs for the open document, made again only when the view, the strip or find changes. */
+function useRailTabs(engine: Engine, layout: ShellLayout, open: boolean, finding: boolean) {
+  const { strip, viewer } = useStoreState(engine, (s) => s);
+  return useMemo(
+    () => railTabs(engine, layout, open ? { strip, viewer, finding } : undefined),
+    [engine, layout, open, strip, viewer, finding],
+  );
+}
+
+/** The reader over `engine`, on `platform`. */
+export function App({ engine, platform, network, updates, debug }: AppProps): ReactNode {
   const { reader } = engine;
   const state = useReaderState(reader);
   const engineState = useStoreState(engine, (s) => s);
@@ -419,13 +438,8 @@ export function App({
   const shown = open ? viewer : undefined;
   const settings = useSettings(shell.openPalette);
   const { toasts, labels, output, moreItems } = useDocumentMenu(engine, platform, state, shown, settings.actions);
-  // The rail's panels are made again only when the view or the strip changes.
-  const { strip } = engineState;
   const find = useFind(shown, open ? state.file : undefined);
-  const tabs = useMemo(
-    () => railTabs(engine, layout, open ? { strip, viewer, finding: find.open } : undefined),
-    [engine, layout, open, strip, viewer, find.open],
-  );
+  const tabs = useRailTabs(engine, layout, open, find.open);
   const fileName = open ? state.file.name : undefined;
   const rail = tabs.length > 0;
   const history = useHistory(shown, engineState.pages);
@@ -441,7 +455,11 @@ export function App({
   );
   useWindowTitle(fileName, engineState.title);
   const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState.pages);
-  const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
+  const { inspector, status, notice } = usePanels(layout, platform, network, fileName, engineState, debug, {
+    updates,
+    toasts,
+    documentOpen: open,
+  });
   return (
     <CommandsProvider
       registry={commands.registry}
@@ -453,6 +471,7 @@ export function App({
         layout={layout}
         modes={modes}
         {...(find.bar === undefined ? {} : { secondaryToolbar: find.bar })}
+        notice={notice}
         topBar={
           <ReaderTopBar
             reader={reader}

@@ -1,0 +1,25 @@
+/* The offline notice (R15): a strip under the top bar on the surface colour, a hairline below, the
+   offline icon, the message (wrapping on a phone) and the dismiss button at the end. */
+@layer paper.components {
+  .paper-offline-notice {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-10);
+    padding: var(--paper-space-8) var(--paper-space-16);
+    background: var(--paper-surface);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+  }
+
+  .paper-offline-notice p {
+    flex: 1;
+    min-inline-size: 0;
+    margin: 0;
+  }
+
+  .paper-offline-notice > svg {
+    flex: none;
+    color: var(--paper-text-2);
+  }
+}

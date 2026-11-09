@@ -13,6 +13,7 @@ import { createWebPlatform, PlatformProvider } from "@laminapdf/ui";
 import { createRoot } from "react-dom/client";
 import { App } from "./app.tsx";
 import { wantsDebug } from "./document.ts";
+import { AppUpdates } from "./offline/updates.ts";
 import { watchFragment } from "./open/watch.ts";
 import { Engine } from "./session.ts";
 
@@ -40,8 +41,26 @@ const platform = createWebPlatform();
 const engine = new Engine(platform, "pdfium", { outlineText: wantsDebug(location.hash), network: networkMonitor });
 // `#url=` opens a remote file now and whenever the fragment changes.
 watchFragment(window, engine);
+// The service worker (R15), in production builds only: the dev server's modules change under it.
+const updates = new AppUpdates(
+  import.meta.env.PROD && "serviceWorker" in navigator ? navigator.serviceWorker : undefined,
+  () => location.reload(),
+);
+// After the load event, so installing the shell's files never competes with the first page.
+// A browser that refuses it (a private window, an untrusted certificate) leaves the reader working online.
+window.addEventListener(
+  "load",
+  () => void updates.start().catch((error: unknown) => console.warn("the service worker didn't register:", error)),
+  { once: true },
+);
 createRoot(root).render(
   <PlatformProvider platform={platform}>
-    <App engine={engine} platform={platform} network={networkMonitor} debug={wantsDebug(location.hash)} />
+    <App
+      engine={engine}
+      platform={platform}
+      network={networkMonitor}
+      updates={updates}
+      debug={wantsDebug(location.hash)}
+    />
   </PlatformProvider>,
 );
