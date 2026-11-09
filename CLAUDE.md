@@ -487,7 +487,8 @@ pnpm changeset version       # release prep: consume the changesets, bump the fi
 cargo xtask version sync [--check]  # the fixed group's version (members read from .changeset/config.json; all must agree)
                              #   into [workspace.package], the internal [workspace.dependencies], every tracked
                              #   Cargo.lock, CHANGELOG.md (every member's entries merged) and @laminapdf/sdk's VERSION (packages/sdk/src/version.ts);
-                             #   --check fails on any drift or a crate without version.workspace = true (part of `check docs`)
+                             #   --check fails on any drift or a crate without version.workspace = true (part of `check docs`); both fail on a private
+                             #   packages/* or apps/* package missing from .changeset/config.json's `ignore` (Changesets would version it)
 cargo xtask version check-tag <tag>  # fail unless <tag> is v<version> (the release lane)
 cargo xtask verify-install [node|deno|bun|chromium|workerd|rust]… [--node <bin>]… [--git-ref <tag-or-sha>] [--git-url <url>] [--keep]
                              # after `wasm`: pnpm pack @laminapdf/wasm and @laminapdf/sdk (not the render packages yet), run the quick start in clean projects in the temp dir

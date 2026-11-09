@@ -321,13 +321,7 @@ fn fixed_group(config: &str) -> Result<Vec<String>> {
 /// one a member's name points to (`@laminapdf/render` → `packages/render`); two folders with the same
 /// member name fail.
 fn find_packages(root: &Path, names: &[String]) -> Result<BTreeMap<String, (PathBuf, Value)>> {
-    let dir = root.join(PACKAGES_DIR);
-    let mut folders: Vec<PathBuf> = fs::read_dir(&dir)
-        .with_context(|| format!("listing {}", dir.display()))?
-        .filter_map(|entry| entry.ok().map(|e| e.path()))
-        .filter(|path| path.join("package.json").is_file())
-        .collect();
-    folders.sort();
+    let folders = package_folders(root, PACKAGES_DIR)?;
     let mut found: BTreeMap<String, (PathBuf, Value)> = BTreeMap::new();
     for folder in folders {
         let path = folder.join("package.json");
@@ -369,7 +363,19 @@ fn find_packages(root: &Path, names: &[String]) -> Result<BTreeMap<String, (Path
     Ok(found)
 }
 
-fn read_json(path: &Path) -> Result<Value> {
+/// The folders under `root/dir` that hold a `package.json`, sorted.
+pub(crate) fn package_folders(root: &Path, dir: &str) -> Result<Vec<PathBuf>> {
+    let dir = root.join(dir);
+    let mut folders: Vec<PathBuf> = fs::read_dir(&dir)
+        .with_context(|| format!("listing {}", dir.display()))?
+        .filter_map(|entry| entry.ok().map(|e| e.path()))
+        .filter(|path| path.join("package.json").is_file())
+        .collect();
+    folders.sort();
+    Ok(folders)
+}
+
+pub(crate) fn read_json(path: &Path) -> Result<Value> {
     serde_json::from_str(&read(path)?).with_context(|| format!("{} is not JSON", path.display()))
 }
 

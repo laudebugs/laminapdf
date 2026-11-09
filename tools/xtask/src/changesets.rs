@@ -9,6 +9,8 @@
 
 use std::{collections::BTreeSet, fs, path::Path};
 
+use crate::version::{package_folders, read_json};
+
 use anyhow::{Context, Result};
 use serde_json::Value;
 
@@ -28,7 +30,7 @@ pub(crate) fn private_packages_outside_ignore(root: &Path) -> Result<Vec<String>
         .map(|names| names.iter().filter_map(Value::as_str).collect())
         .unwrap_or_default();
     let mut problems = Vec::new();
-    for name in private_packages(root) {
+    for name in private_packages(root)? {
         if !ignored.contains(name.as_str()) {
             problems.push(format!(
                 ".changeset/config.json: add the private package {name} to `ignore`, or Changesets versions it \
@@ -39,25 +41,21 @@ pub(crate) fn private_packages_outside_ignore(root: &Path) -> Result<Vec<String>
     Ok(problems)
 }
 
-/// The names of the workspace's packages whose `package.json` says `"private": true`, sorted.
-fn private_packages(root: &Path) -> BTreeSet<String> {
+/// The names of the workspace's packages whose `package.json` says `"private": true`, sorted. A
+/// manifest that doesn't parse can't say, so it is skipped with a warning; `version sync` fails on
+/// it when it is a fixed-group member's.
+fn private_packages(root: &Path) -> Result<BTreeSet<String>> {
     let mut names = BTreeSet::new();
-    for dir in WORKSPACE_DIRS {
-        let Ok(entries) = fs::read_dir(root.join(dir)) else {
-            continue;
-        };
-        for entry in entries.filter_map(Result::ok) {
-            let path = entry.path().join("package.json");
-            if !path.is_file() {
-                continue;
-            }
-            // A package that doesn't parse is version sync's to report when it matters (a fixed-group
-            // member); here it can't say it is private, so it is passed over.
-            let Ok(package) = fs::read_to_string(&path).map(|text| serde_json::from_str::<Value>(&text)) else {
-                continue;
-            };
-            let Ok(package) = package else {
-                continue;
+    // A workspace may lack either folder (the tests' trees have no `apps`).
+    for dir in WORKSPACE_DIRS.into_iter().filter(|dir| root.join(dir).is_dir()) {
+        for folder in package_folders(root, dir)? {
+            let path = folder.join("package.json");
+            let package = match read_json(&path) {
+                Ok(package) => package,
+                Err(error) => {
+                    eprintln!("warning: skipping {}: {error:#}", path.display());
+                    continue;
+                }
             };
             let private = package.get("private").and_then(Value::as_bool) == Some(true);
             if let (true, Some(name)) = (private, package.get("name").and_then(Value::as_str)) {
@@ -65,7 +63,7 @@ fn private_packages(root: &Path) -> BTreeSet<String> {
             }
         }
     }
-    names
+    Ok(names)
 }
 
 #[cfg(test)]
@@ -105,11 +103,5 @@ mod tests {
             ],
         );
         assert_eq!(private_packages_outside_ignore(&tree.0).unwrap(), Vec::<String>::new());
-    }
-
-    #[test]
-    fn the_repository_should_ignore_every_private_package() {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        assert_eq!(private_packages_outside_ignore(&root).unwrap(), Vec::<String>::new());
     }
 }
