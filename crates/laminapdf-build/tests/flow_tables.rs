@@ -146,7 +146,11 @@ fn a_link_in_a_repeated_header_is_drawn_once_under_pdf_ua() {
         .unwrap();
     let style = TextStyle::new(&font, 10.0);
     let target = LinkTarget::Uri("https://example.com/prices".into());
-    let header = TableRow::new().cell(TableCell::new(Paragraph::new(Default::default()).link("Price list", &style, target)));
+    let header = TableRow::new().cell(TableCell::new(Paragraph::new(Default::default()).link(
+        "Price list",
+        &style,
+        target,
+    )));
     let mut table = Table::new([ColumnWidth::Fraction(1.0)]).header(header);
     for i in 0..80 {
         table = table.row(TableRow::plain([format!("Row {i}")], &style));
@@ -160,4 +164,3 @@ fn a_link_in_a_repeated_header_is_drawn_once_under_pdf_ua() {
     let links = bytes.windows(13).filter(|w| *w == b"/Subtype /Lin").count();
     assert_eq!(links, 1, "the header's link is annotated on the first page only");
 }
-

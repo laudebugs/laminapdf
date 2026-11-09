@@ -377,8 +377,8 @@ mod tables {
         let font = font();
         let style = TextStyle::new(&font, 10.0);
         let first = template(&font, 300.0, 10.0).with_margins(Margins::new(50.0, 50.0, 50.0, 80.0));
-        let flow = Flow::new(template(&font, 300.0, 10.0).with_first_page(first))
-            .block(FlowBlock::Table(invoice(&style, 20)));
+        let flow =
+            Flow::new(template(&font, 300.0, 10.0).with_first_page(first)).block(FlowBlock::Table(invoice(&style, 20)));
         let laid = pages(&flow).unwrap();
         let lefts: Vec<Vec<f64>> = laid
             .iter()
@@ -402,10 +402,16 @@ mod tables {
         let style = TextStyle::new(&font, 10.0);
         // The first page holds 20 lines, the later ones 10; an 11-line row fits only the first.
         let first = template(&font, 300.0, 20.0);
-        let tall = (0..11).map(|i| format!("Line {i}")).collect::<Vec<_>>().join("\u{2028}");
+        let tall = (0..11)
+            .map(|i| format!("Line {i}"))
+            .collect::<Vec<_>>()
+            .join("\u{2028}");
         let table = invoice(&style, 1).row(TableRow::plain([tall, String::new()], &style));
         let flow = Flow::new(template(&font, 300.0, 10.0).with_first_page(first)).block(FlowBlock::Table(table));
-        assert!(matches!(pages(&flow), Err(Error::FlowContentTooLarge { what: "table row" })));
+        assert!(matches!(
+            pages(&flow),
+            Err(Error::FlowContentTooLarge { what: "table row" })
+        ));
     }
 
     #[test]
