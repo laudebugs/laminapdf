@@ -140,8 +140,9 @@ jobs:
           python-version: "3.13"
       - uses: ./.github/actions/host-rust
         with:
-          # No other job builds this, and the nightly lane saves no cache.
-          cache: false
+          # This job's own dependency cache (per job and OS), saved by the scheduled runs on
+          # main: the next night rebuilds only Lamina PDF's crates.
+          cache: true
       # Corpus checkouts are fetched and SHA-256 verified on each fresh VM.
       - name: Point xtask at the corpus folder and the venv
         run: |
@@ -292,10 +293,12 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/host-rust
         with:
-          # No other job builds this, and the nightly lane saves no cache.
-          cache: false
-      # cargo test --release -- --ignored; a failure is retried once and a pass on retry is
-      # reported as flaky (flaky=true), never hidden (ADR 0018 §4).
+          # This job's own dependency cache (per job and OS), saved by the scheduled runs on
+          # main: the next night rebuilds only Lamina PDF's crates.
+          cache: true
+      # The scaling tests (SCALING_TESTS in tools/xtask/src/nightly.rs) built with the `scaling`
+      # profile, release without LTO; a failure is retried once and a pass on retry is reported
+      # as flaky (flaky=true), never hidden (ADR 0018 §4).
       - id: scaling
         run: cargo xtask scaling
 
@@ -323,8 +326,9 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/host-rust
         with:
-          # No other job builds this, and the nightly lane saves no cache.
-          cache: false
+          # This job's own dependency cache (per job and OS), saved by the scheduled runs on
+          # main: the next night rebuilds only Lamina PDF's crates.
+          cache: true
       # history.jsonl on the orphan bench-data branch: one record per night (commit, runner,
       # ns/iter per benchmark). Created by the first run on main. The token goes only to the
       # bench-history steps, never to the step that builds and runs the benchmarks.
@@ -460,13 +464,28 @@ jobs:
           cache: true
           shared-key: xtask
           save: "false"
+      # The links that answered OK in the last 4 to 7 days aren't fetched again (xtask's
+      # docs_links/cache.rs); every other link is. Restored from the last night's run, saved by
+      # main's recording nights only.
+      - name: Restore the checked links
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/link-check/cache.json
+          key: link-check-${{ github.run_id }}
+          restore-keys: link-check-
       # curl per URL: HEAD, then a one-byte GET if HEAD is refused; timeouts, 429 and 5xx are
       # retried once and a pass on retry is reported as flaky (flaky=true). A final 403 or 429 is
       # refused (a warning). A missing page or site (404, 410, no answer) doesn't fail the job:
       # missing=true, and the report job opens "Missing links in the docs on <ref>" from
       # missing.md, with each link's reason. Allowlist: .config/link-check.toml.
       - id: links
-        run: cargo xtask docs-links --external
+        run: cargo xtask docs-links --external --cache target/link-check/cache.json
+      - name: Save the checked links
+        if: ${{ !cancelled() && steps.links.outcome == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && toJSON(inputs.record) != 'false' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/link-check/cache.json
+          key: link-check-${{ github.run_id }}
       - name: Upload the report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -498,8 +517,9 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/host-rust
         with:
-          # No other job builds this, and the nightly lane saves no cache.
-          cache: false
+          # This job's own dependency cache (per job and OS), saved by the scheduled runs on
+          # main: the next night rebuilds only Lamina PDF's crates.
+          cache: true
       - name: Point xtask at the corpus folder
         run: echo "LAMINA_PDF_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
       - run: cargo xtask corpus fetch
@@ -510,10 +530,19 @@ jobs:
         with:
           mode: fetch
           token: ${{ github.token }}
+      # The last report and the key of what it was made from (xtask's render_diff/reuse.rs):
+      # when the renderer's code, the corpus and the settings are unchanged, --reuse reports it
+      # again instead of rendering the corpus for half an hour.
+      - name: Restore the last report
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/nightly/render-diff
+          key: render-diff-report-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
+          restore-keys: render-diff-report-${{ runner.os }}-${{ runner.arch }}-
       - id: render-diff
         name: Render diff
         run: >-
-          cargo xtask render-diff --corpus external --pages 20
+          cargo xtask render-diff --corpus external --pages 20 --reuse
           ${RENDER_DIFF_SAMPLE:+--sample "$RENDER_DIFF_SAMPLE"}
           --history "$HISTORY" --runner "github-hosted/macos-15-arm64"
           ${{ env.RECORD == 'true' && '--record' || '' }}
@@ -524,6 +553,12 @@ jobs:
           mode: push
           token: ${{ github.token }}
           message: "bench(render-diff): ${{ github.sha }}"
+      - name: Save the report for the next night
+        if: ${{ !cancelled() && steps.render-diff.outcome == 'success' && env.RECORD == 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/nightly/render-diff
+          key: render-diff-report-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
       - name: Upload the report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -544,8 +579,9 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/host-rust
         with:
-          # No other job builds this, and the nightly lane saves no cache.
-          cache: false
+          # This job's own dependency cache (per job and OS), saved by the scheduled runs on
+          # main: the next night rebuilds only Lamina PDF's crates.
+          cache: true
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -575,8 +611,9 @@ jobs:
           python-version: "3.13"
       - uses: ./.github/actions/host-rust
         with:
-          # No other job builds this, and the nightly lane saves no cache.
-          cache: false
+          # This job's own dependency cache (per job and OS), saved by the scheduled runs on
+          # main: the next night rebuilds only Lamina PDF's crates.
+          cache: true
       # pdf.js: xtask installs tools/roundtrip's pinned pdfjs-dist with npm when it is missing.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
