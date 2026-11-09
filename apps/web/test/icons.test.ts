@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { WEBSITE_ICONS } from "../vite.config";
+import { WEBSITE_ICONS } from "../vite.config.ts";
 
 // The reader shows the website's icon (vite.config.ts's `websiteIcons` copies the files): every
 // icon is linked by index.html and exists in the website's public/.

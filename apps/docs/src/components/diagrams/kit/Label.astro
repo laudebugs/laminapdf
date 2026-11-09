@@ -1,12 +1,13 @@
 ---
 // Text on its own: `mono` for an API name, `sub` for a muted note, `point` for a position the
-// diagram is about (in the accent), plain otherwise. On a PageSheet every kind but `point` takes the
-// page's ink, and `point` the page's accent.
+// diagram is about (in the accent), `badge` for a number on an accent dot, plain otherwise. On a
+// PageSheet every kind but `point` and `badge` takes the page's ink; `point` takes the page's
+// accent and `badge` the page's paper.
 interface Props {
   x: number;
   y: number;
   text: string;
-  kind?: "plain" | "mono" | "sub" | "point";
+  kind?: "plain" | "mono" | "sub" | "point" | "badge";
   anchor?: "start" | "middle" | "end";
 }
 const { x, y, text, kind = "plain", anchor = "start" } = Astro.props;

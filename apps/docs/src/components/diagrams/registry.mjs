@@ -43,6 +43,23 @@ export const DIAGRAMS = {
       "User space starts at that corner too, with its x axis going down and its y axis going right. " +
       "The heading in the file now runs down the right edge, from `[692, 72]` to `[720, 272]` in page space.",
   },
+  "extract-pipeline": {
+    caption:
+      "Extraction joins a page's text runs into lines and blocks, orders them, then writes Markdown, JSON and chunks.",
+    text:
+      "Extraction starts from each page's text runs. " +
+      "It sets aside runs a reader can't see, and runs the file marks as artifacts, into `dropped` with their reason: `invisible`, `off-page`, `tiny`, `clipped`, `low-contrast`, `covered` or `artifact`. " +
+      "The other runs are joined into lines, and the lines into blocks: paragraphs, headings and tables. " +
+      "Once every page is read, it also sets aside headers, footers and page numbers that repeat across pages, as `running-header`, `running-footer` or `page-number`. " +
+      "Reading order then puts the blocks in sequence: from the file's structure tree when it is tagged and the tree covers the page's text, else by cutting the page into columns. " +
+      "The ordered blocks become the three outputs: Markdown, the `laminapdf.extract/1` JSON and chunks.",
+  },
+  "reading-order": {
+    caption: "On a two-column page, a title across both columns comes first, then the left column, then the right.",
+    text:
+      "A page has a title across both columns and three blocks in each column. " +
+      "Extraction numbers the title 1, the left column's blocks 2 to 4 from top to bottom, and the right column's blocks 5 to 7.",
+  },
 };
 
 /**
