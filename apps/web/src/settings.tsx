@@ -22,10 +22,10 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 /** Where the appearance is kept; public/appearance.js reads the same key before the first paint. */
-export const APPEARANCE_KEY = "lamina.appearance";
+const APPEARANCE_KEY = "lamina.appearance";
 
 /** The stored appearance, or the default where storage is blocked or holds nothing. */
-export function readAppearance(): Appearance {
+function readAppearance(): Appearance {
   try {
     return parseAppearance(localStorage.getItem(APPEARANCE_KEY));
   } catch {
