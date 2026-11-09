@@ -72,13 +72,14 @@ describe(`the theme switch in ${BROWSER}`, () => {
   });
 
   it("goes back to the system's theme on Auto, storing no choice", async () => {
-    const { context, page } = await open("light");
+    const { context, page, errors } = await open("light");
     const select = page.getByRole("combobox", { name: "Select theme" }).first();
     await select.selectOption("dark");
     expect(await shownTheme(page)).toBe("dark");
     await select.selectOption("auto");
     expect(await shownTheme(page)).toBe("light");
     expect(await stored(page)).toBe("");
+    expect(errors).toEqual([]);
     await context.close();
   });
 
