@@ -293,6 +293,21 @@ describe("documents", () => {
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
   });
 
+  it("resolves an open whose cancel came after the worker had opened the file", async () => {
+    // A repaired file's warnings come after the worker commits the open and before its answer,
+    // so a cancel sent on the first one always crosses the answer.
+    const client = await track(testViewer());
+    const first = await client.open(await read("fixtures/corpus/hello.pdf"));
+    const controller = new AbortController();
+    const off = client.on("warning", () => controller.abort());
+    const opened = await client.open(await read("fixtures/corpus/hello-broken.pdf"), {}, { signal: controller.signal });
+    off();
+    expect(controller.signal.aborted).toBe(true);
+    expect(opened.id).not.toBe(first.id);
+    expect(client.document?.id).toBe(opened.id);
+    (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
+  });
+
   it("says which open made the document it holds, for a page whose cancel crossed the answer", async () => {
     const client = await track(testViewer());
     const opened = await client.call("openDocument", [await read("fixtures/corpus/hello.pdf"), {}, 41]);
