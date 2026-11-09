@@ -90,20 +90,25 @@ pub fn print_raster(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -
                 let _ = cr.paint();
                 cr.restore().ok();
             });
+            let settings = gtk::PrintSettings::new();
             if let Some((first, last)) = crate::page_range() {
-                let settings = gtk::PrintSettings::new();
                 settings.set_print_pages(gtk::PrintPages::Ranges);
                 // GTK's ranges are 0-based and inclusive.
                 settings.set_page_ranges(&[gtk::PageRange::new(first as i32 - 1, last as i32 - 1)]);
-                op.set_print_settings(Some(&settings));
             }
+            // Without a dialog: GTK's own print pipeline to its "Print to File" printer, as a
+            // dialog print goes. (`Export` skips the print settings: it wrote all 50 pages
+            // for a 3-7 range.)
             let action = match &out {
                 Some(path) => {
-                    op.set_export_filename(path);
-                    PrintOperationAction::Export
+                    settings.set_printer("Print to File");
+                    settings.set(gtk::PRINT_SETTINGS_OUTPUT_FILE_FORMAT, Some("pdf"));
+                    settings.set(gtk::PRINT_SETTINGS_OUTPUT_URI, Some(&format!("file://{}", path.display())));
+                    PrintOperationAction::Print
                 }
                 None => PrintOperationAction::PrintDialog,
             };
+            op.set_print_settings(Some(&settings));
             match op.run(action, Some(&window)) {
                 Ok(PrintOperationResult::Apply) => Ok(()),
                 Ok(other) => Err(format!("print operation ended with {other:?}")),

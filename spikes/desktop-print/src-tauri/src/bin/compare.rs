@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let printed = match std::fs::read(&out).map_err(|e| e.to_string()).and_then(|b| pdf::open(&b)) {
             Ok(d) => d,
             Err(e) => {
-                writeln!(f, "{label},{path},{fixture},,,,,,,,,unreadable: {}", e.replace(',', ";"))?;
+                writeln!(f, "{label},{path},{fixture},,,,,,,,,,,unreadable: {}", e.replace(',', ";"))?;
                 continue;
             }
         };
@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .flat_map(|p| words(&p.text().map(|t| t.all()).unwrap_or_default()))
             .collect();
         if rn != pn {
-            writeln!(f, "{label},{path},{fixture_name},,,,,,,,,{pn} pages printed for {rn}")?;
+            writeln!(f, "{label},{path},{fixture_name},,,,,,,,,,,{pn} pages printed for {rn}")?;
         }
         for i in 0..rn.min(pn) {
             let (rp, pp) = (reference.pages().get(i + skip)?, printed.pages().get(i)?);
