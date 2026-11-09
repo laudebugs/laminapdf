@@ -70,8 +70,11 @@ export function useSettingsSection(
 
 /** Props of `SettingsDialog`. */
 export interface SettingsDialogProps {
+  /** The sections to show. */
   readonly registry: SettingsRegistry;
+  /** Whether the dialog is open. */
   readonly isOpen: boolean;
+  /** Called with false when the dialog closes. */
   readonly onOpenChange: (open: boolean) => void;
 }
 
@@ -122,7 +125,9 @@ export function SettingsDialog({ registry, isOpen, onOpenChange }: SettingsDialo
 
 /** Props of `ViewSettingsButton`. */
 export interface ViewSettingsButtonProps extends AppearanceFieldsProps {
+  /** Whether the popover is open. */
   readonly isOpen: boolean;
+  /** Called when the button or Escape opens or closes the popover. */
   readonly onOpenChange: (open: boolean) => void;
   /** Opens the Settings dialog ("More settings…"). */
   readonly onMoreSettings: () => void;

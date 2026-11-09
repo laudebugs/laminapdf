@@ -14,10 +14,13 @@ import { Dialog } from "../overlays/dialog.js";
 
 /** Props of `ShortcutsDialog`. */
 export interface ShortcutsDialogProps {
+  /** Whether the dialog is open. */
   readonly isOpen: boolean;
+  /** Called with false when the dialog closes. */
   readonly onOpenChange: (open: boolean) => void;
-  /** Whether single-key shortcuts are on, and the switch that turns them off. */
+  /** Whether single-key shortcuts are on. */
   readonly singleKeys: boolean;
+  /** Called when the dialog's switch turns single-key shortcuts on or off. */
   readonly onSingleKeysChange: (on: boolean) => void;
   /** Opens the command palette, offered when nothing matches. */
   readonly onOpenPalette: () => void;

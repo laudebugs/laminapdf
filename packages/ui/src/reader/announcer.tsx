@@ -62,10 +62,12 @@ export class Announcer {
     this.#timers.clear();
   }
 
+  /** What the two regions say now. */
   getState(): Announcements {
     return this.#state;
   }
 
+  /** Calls `listener` after each change; returns a function that stops it. */
   subscribe(listener: () => void): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);

@@ -70,7 +70,9 @@ export function applyAppearance(root: HTMLElement, appearance: Appearance): void
 
 /** Props of the appearance controls. */
 export interface AppearanceFieldsProps {
+  /** The look the controls show. */
   readonly appearance: Appearance;
+  /** Called with the whole new look when one control changes. */
   readonly onChange: (appearance: Appearance) => void;
 }
 
