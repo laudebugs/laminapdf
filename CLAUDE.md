@@ -185,7 +185,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   progress` and its reader progress.ts; sources.ts: the code panel and packages from the tested examples, the CLI
 │                        #   README and the docs install page; copy.ts: the words, approved by the owner; rounds.ts: the areas' plain
 │                        #   names; highlight.ts: the code panel's colours at build time, Shiki's tokens as classes coloured by the
-│                        #   --paper-code-* tokens, since the CSP blocks inline styles), src/scripts/ (tabs.ts), scripts/share-image.mjs (public/og.png and the PNG favicons, run by hand); public/_headers (ADR 0011 §4's website headers,
+│                        #   --paper-code-* tokens, since the CSP blocks inline styles), src/scripts/ (tabs.ts), scripts/share-image.mjs (public/og.png and the PNG favicons, run by hand) and story-image.mjs
+│                        #   (~/git/lamina-stories/<story>/visuals/*.html → PNG at each file's lamina-size, styled by story-card.css), both over paper-render.mjs; public/_headers (ADR 0011 §4's website headers,
 │                        #   test/headers.test.ts holds them to the ADR); @laminapdf/site-kit's checks after every build; wrangler.toml
 │                        #   (lamina-pdf-site, the apex as a custom domain); deployed by .github/workflows/site.yml, which W1b's PR gives
 │                        #   for the owner to commit; README.md has the owner's setup
@@ -244,6 +245,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── pdfium-wasm/     # Round C1b: PDFium-WASM beside laminapdf-wasm in one web worker (measurements in its README; ADRs 0004, 0009)
 │   ├── lamina-ffi/      # Round L6a: the façade over UniFFI 0.32 for Swift and Kotlin (findings in its README; ADR 0029)
 │   └── flow-layout/     # T4a: flowing layout by our own paginator over Surface, by Typst 0.15.1, and by Typst's frames through Surface (findings in its README; ADR 0032)
+├── .agents/skills/      # the repository's agent skills (rust-best-practices, lamina-story); .claude/skills links here
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs (each links to its todos)
