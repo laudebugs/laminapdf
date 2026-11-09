@@ -20,6 +20,7 @@
 
 mod history;
 mod report;
+mod reuse;
 mod rows;
 use history::{Sampling, history_entries, issue_body, issue_title, regressions};
 use report::{html, sources_table};
@@ -50,7 +51,7 @@ const KEY: &str = "render-diff";
 const DPI: u32 = 96;
 
 const USAGE: &str = "usage: cargo xtask render-diff [--corpus external] [--source <name>]… [--pages <N>] [--sample <N>] \
-                     [--jobs <N>] [--top <N>] [--history <dir> [--runner <label>] [--record] [--dry-run]]";
+                     [--jobs <N>] [--top <N>] [--reuse] [--history <dir> [--runner <label>] [--record] [--dry-run]]";
 
 /// What `cargo xtask render-diff` was asked to do.
 #[derive(Debug, PartialEq, Eq)]
@@ -64,6 +65,9 @@ pub(crate) struct Args {
     pub(crate) runner: String,
     pub(crate) record: bool,
     pub(crate) dry_run: bool,
+    /// Reuse the report already in the output folder when nothing that decides it changed
+    /// ([`reuse`]); the nightly restores that folder from the Actions cache.
+    pub(crate) reuse: bool,
 }
 
 impl Default for Args {
@@ -72,12 +76,14 @@ impl Default for Args {
             sources: Vec::new(),
             pages: None,
             sample: None,
-            jobs: 4,
+            // Rendering is CPU-bound: one lane per core.
+            jobs: std::thread::available_parallelism().map_or(4, |n| n.get().min(16)),
             top: 50,
             history: None,
             runner: "local".to_owned(),
             record: false,
             dry_run: false,
+            reuse: false,
         }
     }
 }
@@ -107,6 +113,7 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
             "--runner" => parsed.runner.clone_from(rest.next().context(USAGE)?),
             "--record" => parsed.record = true,
             "--dry-run" => parsed.dry_run = true,
+            "--reuse" => parsed.reuse = true,
             other => bail!("unknown argument {other:?}; {USAGE}"),
         }
     }
@@ -251,12 +258,13 @@ fn blame(
             "render-diff: {} files crashed or hung; each engine alone",
             failed.len()
         ));
-        // One file per process, under the per-file limit (a chunk of one gets no longer), so
-        // every crash is "broken" to the runner: expected here. Both engines at once.
+        // One file per process, so every crash is "broken" to the runner: expected here. Both
+        // engines at once, each with half the time both had together (a file renders in seconds;
+        // these hung for minutes, and waiting out the full limit again cost the nightly 12).
         let one = runner::Limits {
             chunk: 1,
-            chunk_timeout: limits().file_timeout,
-            ..limits()
+            chunk_timeout: limits().file_timeout / 2,
+            file_timeout: limits().file_timeout / 2,
         };
         let (hayro_reader, pdfium_reader) = (engine("hayro"), engine("pdfium"));
         let (hayro, pdfium) = std::thread::scope(|scope| {
@@ -450,6 +458,15 @@ fn all_rows(inputs: &[(String, PathBuf)], rendered: &Rendered, cap: Option<u32>)
 }
 
 /// `cargo xtask render-diff …`.
+/// Empties `out` for a new run, with its `work/images` folder.
+fn fresh_folder(out: &Path) -> Result<()> {
+    if out.exists() {
+        fs::remove_dir_all(out).with_context(|| format!("removing {}", out.display()))?;
+    }
+    fs::create_dir_all(out.join("work/images"))?;
+    Ok(())
+}
+
 pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     let mut inputs = corpus::verified_inputs(ws, &args.sources)?;
     inputs.sort();
@@ -460,10 +477,13 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
         bail!("no inputs: nothing would be rendered (check --source and --sample)");
     }
     let out = ws.root.join("target/nightly/render-diff");
-    if out.exists() {
-        fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
+    let key = args.reuse.then(|| reuse::inputs_key(&ws.root, args)).flatten();
+    if let Some(key) = &key
+        && reuse::reused(&out, key)?
+    {
+        return Ok(());
     }
-    fs::create_dir_all(out.join("work/images"))?;
+    fresh_folder(&out)?;
     let rendered = render_all(ws, args, &inputs, &out)?;
     let rows = all_rows(&inputs, &rendered, args.pages);
     let header = rendered.header;
@@ -538,6 +558,9 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     fs::write(out.join("summary.md"), &markdown)?;
     summary(&markdown)?;
     fs::remove_dir_all(out.join("work")).with_context(|| "removing the work folder".to_owned())?;
+    if let Some(key) = key {
+        fs::write(out.join(reuse::STAMP), key + "\n")?;
+    }
     println!(
         "render-diff: {} rows, pass+minor {:.2} %, pass {:.2} %",
         all.rows,
