@@ -15,24 +15,24 @@ Tauri has no print API beyond printing the webview. How should Lamina PDF's desk
 
 ## Answer
 
-**Print with Lamina PDF's own rasters through each OS's print API (path B).** It is the only path D4c can ship on all three OSes, because Lamina PDF's sandboxed engine renders the pages, and on Windows and Linux it was also faithful. On those two, every page of every fixture printed at its own size and orientation (all four pages of the mixed-size fixture, including US Letter landscape and A5), with no content offset, SSIM 0.96–0.999 against the original, and no added text.
+**Print with Lamina PDF's own rasters through each OS's print API (path B).** It is the only path D4c can ship on all three OSes, because Lamina PDF's sandboxed engine renders the pages, and on Windows and Linux it was also faithful. On those two, every page of every fixture printed at its own size and orientation (all four pages of the mixed-size fixture, including US Letter landscape and A5), with no content offset, SSIM 0.95–0.999 against the original, and no added text.
 
 **macOS falls short on placement and mixed page sizes.** On macOS, path B printed every page of the 50-page A4 fixture at the right size, but every even page landed 17.8 pt low, even after correcting for the printer's imageable area. AppKit also snapped the US Letter and A5 pages to A4 (two of four sizes right).
 
-**PDFium's vector path on Windows was the most faithful result of all, but it can't ship as it stands.** `FPDF_RenderPage` onto the printer's device context scored SSIM 0.98–0.997 with every size right, in a 17 MB file against path B's 42 MB. It parses the untrusted PDF in the main process, though, which ADR 0008's sandboxed engine rules out. The other vector paths lost page sizes: PDFKit moved the content 18 pt and put every page on A4 portrait, and CUPS printed every page on the printer's default paper.
+**PDFium's vector path on Windows was the most faithful result of all, but it can't ship as it stands.** `FPDF_RenderPage` onto the printer's device context scored SSIM 0.98–0.997 with every size right, in a 16.6 MB file against path B's 41.6 MB. It parses the untrusted PDF in the main process, though, which ADR 0008's sandboxed engine rules out. The other vector paths lost page sizes: PDFKit moved the content 18 pt and put every page on A4 portrait, and CUPS printed every page on the printer's default paper.
 
-**The webview path is the worst everywhere and shouldn't ship, even as a fallback.** WebView2's `PrintToPdf` put every page on US Letter (no page of the 50 sized right; SSIM 0.79). WebKitGTK split every page across two sheets (100 sheets for 50 pages). WKWebView printed uniform A4 pages well (SSIM 0.96) but forced every page of the mixed-size fixture onto A4 portrait. In a Tauri app on macOS, `window.print()` does nothing at all. The webview also peaked at 1.4–2.3 GB while holding 50 page images.
+**The webview path is the worst everywhere and shouldn't ship, even as a fallback.** WebView2's `PrintToPdf`, with its default settings, put every page on US Letter (no page of the 50 sized right; SSIM 0.79). WebKitGTK split every page across two sheets (100 sheets for 50 pages). WKWebView printed uniform A4 pages well (SSIM 0.96) but forced every page of the mixed-size fixture onto A4 portrait. In a Tauri app on macOS, `window.print()` does nothing at all. The webview also peaked at 1.4–2.3 GB while holding 50 page images.
 
 ## Recommendation (inputs to D4c and ADR 0008)
 
 | Decision | Recommendation | The numbers behind it |
 | --- | --- | --- |
-| Shipping path | **B on every OS:** Lamina PDF's PDFium rasters at the printer's resolution (capped at 300 dpi) through `NSPrintOperation`, GDI and `GtkPrintOperation`, with the OS print dialog | Windows and Linux: 4/4 mixed sizes, no page moved more than 2 pt, SSIM ≥ 0.96. macOS, 50 A4 pages: SSIM ≥ 0.943 |
+| Shipping path | **B on every OS:** Lamina PDF's PDFium rasters at the printer's resolution (capped at 300 dpi) through `NSPrintOperation`, GDI and `GtkPrintOperation`, with the OS print dialog | Windows and Linux: 4/4 mixed sizes, no page moved more than 2 pt, SSIM ≥ 0.95. macOS, 50 A4 pages: SSIM ≥ 0.943, but even pages 17.8 pt low |
 | Who renders | The sandboxed engine renders each print page and streams it to the main process, which owns the printer handle (D4c, on D2b's protocol) | Path B needs no PDF parsing outside the engine; path C does |
-| Webview fallback | **None.** Don't ship path A first, and don't keep it as a fallback | WebView2: 0/50 pages at the right size; WebKitGTK: 100 sheets for 50 pages; WKWebView: `window.print()` does nothing |
-| Windows vector upgrade | Path C (`FPDF_RenderPage` onto the printer DC) later, only behind a sandboxed print helper or an owner-accepted ADR 0008 exception | SSIM 0.98–0.997, 4/4 sizes, 17 MB against 42 MB for 50 pages |
+| Webview fallback | **None.** Don't ship path A first, and don't keep it as a fallback | WebView2's `PrintToPdf`: 0/50 pages at the right size; WebKitGTK: 100 sheets for 50 pages; WKWebView: `window.print()` does nothing and mixed sizes land on A4 |
+| Windows vector upgrade | Path C (`FPDF_RenderPage` onto the printer DC) later, only behind a sandboxed print helper or an owner-accepted ADR 0008 exception | SSIM 0.98–0.997, 4/4 sizes, 16.6 MB against 41.6 MB for 50 pages |
 | macOS work for D4c | Per-page paper sizes (AppKit snapped US Letter and A5 to A4), the even-page offset (17.8 pt), and memory: AppKit kept every drawn page until the job ended | 2/4 mixed sizes right; 25 of 50 pages moved; 3.3 GB peak for 50 pages, against 127 MB with GDI |
-| D4c's fidelity bar | Print-to-PDF output at ≥ 0.94 SSIM (150 dpi, after aligning), each page's size within 2 pt and its content within 2 pt of place | The lowest path B score on a correctly placed page: 0.943 (macOS); 0.96 on Windows and Linux. macOS doesn't meet the 2 pt placement yet (its even pages) |
+| D4c's fidelity bar | Print-to-PDF output at ≥ 0.95 SSIM (150 dpi, after aligning), each page's size within 2 pt and its content within 2 pt of place | The lowest path B score on a page at the right size and place: 0.9515 (Linux, the page-range job through CUPS); 0.954 on macOS and 0.976 on Windows. macOS's even pages don't meet the 2 pt placement yet |
 | `hasNativePrint` | `true` on all three OSes, meaning: the OS print dialog (printer, page range, copies, and the driver's duplex and scaling); every page rendered by Lamina PDF's own renderer at print resolution, on paper of its own size and orientation; no browser headers, footers or margins. It doesn't promise vector output | ADR 0010's table says the flag means "print can hand the PDF to the OS print system". Path B doesn't hand over the PDF, so ADR 0008 or D4c should restate the flag this way |
 
 ADR 0008 should record that printing renders in the engine and prints rasters through each OS's API, that no webview print path ships, and that a vector path needs a sandboxed helper first.
@@ -49,9 +49,11 @@ ADR 0008 should record that printing renders in the engine and prints rasters th
 
 | Path | macOS | Windows | Linux |
 | --- | --- | --- | --- |
-| A webview | WKWebView's `printOperationWithPrintInfo:`, run modally on its window, saving to a file | WebView2's `ICoreWebView2_7::PrintToPdf` (default settings) | WebKitGTK's `PrintOperation::print()` to GTK's "Print to File" printer |
+| A webview | WKWebView's `printOperationWithPrintInfo:`, run modally on its window, saving to a file | WebView2's `ICoreWebView2_7::PrintToPdf` with its default settings | WebKitGTK's `PrintOperation::print()` to GTK's "Print to File" printer |
 | B native raster | `NSPrintOperation` over an `NSView` that draws a 300 dpi PDFium raster per page; each page's paper size set in `beginPageInRect:atPlacement:` | `StartDocW` to "Microsoft Print to PDF", per page `ResetDCW` (paper and orientation), `StretchDIBits` of a raster at the device's resolution, capped at 300 dpi | `gtk::PrintOperation` with a custom paper per page and a `draw-page` handler painting the raster through cairo, to "Print to File" |
 | C native vector | PDFKit's `printOperationForPrintInfo:scalingMode:autoRotate:` (Apple's renderer) | `FPDF_RenderPage` onto the printer DC (GDI calls), taken from the loaded `pdfium.dll` with `GetProcAddress` | `lp` to a CUPS `cups-pdf` printer with the original bytes |
+
+Path A calls each webview's own print API rather than Tauri's `WebviewWindow::print()`, which can't write a file. That method is wry's `print()`, which on macOS calls the same `printOperationWithPrintInfo:`, on Linux opens the same WebKitGTK `PrintOperation`'s dialog, and on Windows evaluates `window.print()`. So the macOS and Linux results describe Tauri's own print, and the Windows file output describes `PrintToPdf` with default settings: `window.print()` on Windows opens WebView2's dialog, which this spike screenshotted but didn't print through.
 
 A page-range job prints pages 3–7 of `mixed-50` through path B, setting the range where the dialog would: `NSPrintFirstPage`/`NSPrintLastPage` on macOS, the page list `PrintDlgExW` returns on Windows, GTK print settings on Linux.
 
@@ -145,8 +147,8 @@ Every run opened each path's dialog and took a screenshot after 12 s (`results/d
 
 | OS | Paths B and C | Path A from Rust | Path A, `window.print()` |
 | --- | --- | --- | --- |
-| macOS 15 | AppKit's print panel: printer, presets, copies, a page range (all, from–to, selection), a page preview, Layout (pages per sheet; two-sided where the printer has it) and the PDF menu | No panel within 12 s | No panel: WKWebView ignores it in a Tauri app |
-| Windows Server 2025 | `PrintDlgExW`: printer, page range (all, pages), copies, collate; duplex and scaling sit in the driver's Preferences | WebView2's system dialog: the same | A print dialog opened behind the app window, and the page went blank while the print DOM was built |
+| macOS 15 | AppKit's print panel: printer, presets, copies, a page range (all, from–to, selection), a page preview, a collapsed Layout section and the PDF menu. Two-sided printing and scaling live in the panel's printer-specific sections, which weren't opened | No panel within 12 s | No panel: WKWebView ignores it in a Tauri app |
+| Windows Server 2025 | `PrintDlgExW`'s General tab: printer, page range (all, pages), copies, collate. It has no duplex or scaling controls; on Windows those belong to the driver's Preferences, which weren't opened | WebView2's system dialog: the same | A print dialog opened behind the app window, and the page went blank while the print DOM was built |
 | Ubuntu 24.04 | GTK's print dialog. The Xvfb screenshots came out blank, so this column is from GTK's documentation: a General tab (printer, page range, copies, collate, reverse) and a Page Setup tab (two-sided, pages per side, scale, paper size, orientation) ([GtkPrintUnixDialog](https://docs.gtk.org/gtk3/class.PrintUnixDialog.html)) | Not captured (blank screenshot) | Not captured (blank screenshot) |
 
 The macOS 27 screenshots were black too: the terminal had no Screen Recording permission. macOS 15 shows the same AppKit panel.
@@ -164,6 +166,10 @@ Five things the docs don't say, or that needed care:
 - **PDFium's raw API from Rust:** `pdfium-render` 0.9.4 keeps its bindings and document handles private and refuses a second binding (`PdfiumLibraryBindingsAlreadyInitialized`). Path C on Windows takes the five functions it needs from the loaded `pdfium.dll` with `GetProcAddress`; D4c would put that in its own edge crate.
 - **Main-thread rules:** AppKit and GTK print only from the main thread. Each call hops there with `AppHandle::run_on_main_thread` and waits on a channel; GTK and Win32 handles cross threads only as numbers or as values looked up on the main thread.
 - **Spooling isn't instant on Windows.** `EndDoc` returns before Microsoft Print to PDF finishes the file, so the job waits for the file's size to settle.
+
+### Platform code
+
+Non-blank, non-comment lines of the spike's code: `macos.rs` 227 (AppKit, PDFKit and WKWebView), `windows.rs` 321 (GDI, `PrintDlgExW`, WebView2 and the PDFium symbols), `linux.rs` 207 (GTK, CUPS and WebKitGTK). Each file holds all three paths for its OS, so path B alone is roughly a third of each, about 70–110 lines per OS. The shared part (`lib.rs`, `pdf.rs`) is 411 lines, most of it the automatic run and its measurements rather than printing.
 
 ## Licences
 

@@ -98,12 +98,13 @@ Spike: no test suite. The fidelity numbers are the evidence. Keep the diff scrip
 ## As built
 
 - **Results:** [spikes/desktop-print/README.md](../../../spikes/desktop-print/README.md). D4c prints Lamina PDF's own rasters, rendered by the engine, through AppKit, GDI and GTK with the OS dialog; no webview print path ships; PDFium's vector printing on Windows needs a sandboxed print helper first.
-- **No physical printer.** The owner had none, so the physical check is replaced by a page-range job on every OS (pages 3–7 of the 50-page fixture through path B into PDF: Save as PDF, Microsoft Print to PDF, GTK through CUPS's `cups-pdf`). Each printed exactly those five pages at the right size. Duplex and real printers' margins stay unverified; D4c's acceptance already asks for a physical print.
+- **No physical printer.** The owner had none, so the physical check is replaced by a page-range job on every OS (pages 3–7 of the 50-page fixture through path B into PDF: Save as PDF, Microsoft Print to PDF, GTK through CUPS's `cups-pdf`). Each printed exactly those five pages at the right size; on macOS pages 4 and 6 sat 17.8 pt low, as every even page does there. Duplex and real printers' margins stay unverified; D4c's acceptance already asks for a physical print.
 - **Machines.** As in D1a, the owner chose GitHub-hosted runners for Windows (`windows-2025`) and Linux (`ubuntu-24.04` on Xvfb, DMABUF off), plus `macos-15` and an M1 Pro on macOS 27. A temporary workflow ran them and was deleted before merge.
 - **Fixtures** are spike-local (`spikes/desktop-print/fixtures/`), written by the spike's `make_fixtures` with Lamina PDF's builder, so their provenance is the code.
 - **Measurement.** `compare` also measures each page's offset and scores SSIM after undoing it, so a shift is reported apart from the score; "headers/footers" is text a printed page gained.
 - **Path C on Windows** calls PDFium's C functions from the loaded `pdfium.dll` with `GetProcAddress`: `pdfium-render` 0.9.4 keeps its raw bindings private and refuses a second binding.
 - **Path C on Linux** prints through `lp` (CUPS's own program) rather than linking libcups. The GTK-plus-PDFium-on-cairo variant is path B.
+- **Path A** calls each webview's own print API (WKWebView's print operation, WebView2's `PrintToPdf`, WebKitGTK's `PrintOperation`) instead of `WebviewWindow::print()`, which can't print to a file. Tauri's method is wry's `print()`: the same WKWebView and WebKitGTK calls on macOS and Linux, `window.print()` on Windows, so only Windows' file output (`PrintToPdf`) differs from what Tauri's API would print.
 - **Dialog screenshots** came out on macOS 15 and Windows. The Linux (Xvfb) and macOS 27 (no Screen Recording permission) ones were blank, so the README describes GTK's dialog from its documentation.
 - **Cancel behaviour** wasn't measured: the automatic run has no one to press Cancel. D4c's acceptance covers it.
 

@@ -8,7 +8,6 @@ use std::path::Path;
 use std::sync::mpsc::channel;
 
 use objc2::rc::Retained;
-use objc2::runtime::AnyObject;
 use objc2::{AnyThread, DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send};
 use objc2_app_kit::{
     NSBitmapImageRep, NSCompositingOperation, NSDeviceRGBColorSpace, NSImage, NSPaperOrientation, NSPrintInfo,
@@ -87,6 +86,9 @@ struct Pages {
     sizes: Vec<PageSize>,
     /// Each page's top in the view, in points.
     tops: Vec<f64>,
+    /// The printer's imageable origin from the paper's top-left corner, read once before the
+    /// job starts (reading it from the live print info picks up the previous page's paper).
+    offset: (f64, f64),
 }
 
 define_class!(
@@ -118,24 +120,23 @@ define_class!(
             // AppKit puts this rect at the printer's imageable origin, not the paper's corner.
             // Starting the rect that far into the page puts the page's corner on the paper's
             // corner (actual size; the hardware margins clip, as in any viewer).
-            let (dx, dy) = MainThreadMarker::new()
-                .and_then(NSPrintOperation::currentOperation)
-                .map(|op| {
-                    let info = op.printInfo();
-                    let (paper, bounds) = (info.paperSize(), info.imageablePageBounds());
-                    // Flipped view: the top margin is the paper above the imageable area.
-                    (bounds.origin.x, paper.height - bounds.origin.y - bounds.size.height)
-                })
-                .unwrap_or((0.0, 0.0));
+            let (dx, dy) = p.offset;
             NSRect::new(NSPoint::new(dx, p.tops[i] + dy), NSSize::new(f64::from(s.w) - dx, f64::from(s.h) - dy))
         }
 
         /// Gives each page its own paper size and orientation before AppKit starts it.
         #[unsafe(method(beginPageInRect:atPlacement:))]
         fn begin_page(&self, rect: NSRect, location: NSPoint) {
-            if let Some(op) = MainThreadMarker::new().and_then(NSPrintOperation::currentOperation) {
+            let op = MainThreadMarker::new().and_then(NSPrintOperation::currentOperation);
+            let size = op.as_ref().and_then(|op| {
+                let pages = self.ivars().borrow();
+                let i = usize::try_from(op.currentPage() - 1).ok()?;
+                pages.as_ref()?.sizes.get(i).copied()
+            });
+            if let (Some(op), Some(s)) = (op, size) {
+                // The page's own size (not `rect`, which the offset has shortened).
                 let info = op.printInfo();
-                let (w, h) = (rect.size.width, rect.size.height);
+                let (w, h) = (f64::from(s.w), f64::from(s.h));
                 info.setPaperSize(NSSize::new(w.min(h), w.max(h)));
                 info.setOrientation(if w > h { NSPaperOrientation::Landscape } else { NSPaperOrientation::Portrait });
             }
@@ -154,7 +155,8 @@ define_class!(
                     continue;
                 }
                 let Ok(raster) = pdf::render(&p.doc, i as u16, RASTER_DPI) else { continue };
-                if let Some(image) = ns_image(&raster) {
+                // Release each page's image when it's drawn, not when the job ends.
+                objc2::rc::autoreleasepool(|_| if let Some(image) = ns_image(&raster) {
                     let dest = NSRect::new(NSPoint::new(0.0, top), NSSize::new(w, h));
                     // SAFETY: drawing into the current (print) graphics context from drawRect:.
                     unsafe {
@@ -167,7 +169,7 @@ define_class!(
                             None,
                         );
                     }
-                }
+                });
             }
         }
     }
@@ -215,11 +217,14 @@ pub fn print_raster(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -
             y += f64::from(s.h);
         }
         let width = sizes.iter().map(|s| f64::from(s.w)).fold(0.0, f64::max);
-        let view = PageView::alloc(mtm).set_ivars(RefCell::new(Some(Pages { doc, sizes: sizes.clone(), tops })));
+        let info = print_info(sizes[0], out.as_deref())?;
+        let (paper, bounds) = (info.paperSize(), info.imageablePageBounds());
+        // Flipped view: the top margin is the paper above the imageable area.
+        let offset = (bounds.origin.x, paper.height - bounds.origin.y - bounds.size.height);
+        let view = PageView::alloc(mtm).set_ivars(RefCell::new(Some(Pages { doc, sizes: sizes.clone(), tops, offset })));
         let frame = NSRect::new(NSPoint::ZERO, NSSize::new(width, y));
         // SAFETY: NSView's designated initializer.
         let view: Retained<PageView> = unsafe { msg_send![super(view), initWithFrame: frame] };
-        let info = print_info(sizes[0], out.as_deref())?;
         let op = NSPrintOperation::printOperationWithView_printInfo(&view, &info);
         run(&op, out.is_none())
     })
@@ -250,13 +255,12 @@ pub fn print_webview(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) 
     window
         .with_webview(move |webview| {
             let result = (|| {
-                let mtm = MainThreadMarker::new().ok_or("not the main thread")?;
+                MainThreadMarker::new().ok_or("not the main thread")?;
                 // SAFETY: on macOS, wry's inner webview is its WKWebView.
                 let wk: &WKWebView = unsafe { &*webview.inner().cast::<WKWebView>() };
                 let info = print_info(first, out.as_deref())?;
                 // SAFETY: a valid print info.
                 let op = unsafe { wk.printOperationWithPrintInfo(&info) };
-                let _ = mtm;
                 // WebKit's operation must run modally on its window: a synchronous runOperation
                 // kept paginating (a 4-page document grew past 5 GB). The job then waits for
                 // the output file to stop growing.
@@ -279,6 +283,3 @@ pub fn print_webview(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) 
         .map_err(|e| e.to_string())?;
     rx.recv().map_err(|e| e.to_string())?
 }
-
-#[allow(dead_code)]
-fn _assert_any(_: &AnyObject) {}

@@ -191,25 +191,29 @@ fn job(handle: &AppHandle, name: &str, path: PrintPath, out: Option<&Path>) -> R
         PrintPath::Vector => platform::print_vector(handle, fixture, out),
         PrintPath::Webview => platform::print_webview(handle, fixture, out),
     };
-    if let (Ok(()), Some(out)) = (&result, out) {
-        // Some spoolers finish writing after the API returns.
-        m.out_bytes = wait_for_file(out, Duration::from_secs(300))?;
-    }
     m.spool_ms = spool.elapsed().as_millis();
+    if let (Ok(()), Some(out)) = (&result, out) {
+        // Some spoolers finish writing after the API returns: the job ends at the file's last
+        // change, not after the wait that proves it stopped changing.
+        let (size, last_change) = wait_for_file(out, Duration::from_secs(300))?;
+        m.out_bytes = size;
+        m.spool_ms = m.spool_ms.max(last_change.duration_since(spool).as_millis());
+    }
     let sample = app.probe.stop();
     m.main_rss_peak_mb = sample.main_rss_peak_mb;
     m.web_rss_peak_mb = sample.web_rss_peak_mb;
     result.map(|()| m)
 }
 
-/// Waits until `path` exists and its size has held for half a second; returns the size.
-pub fn wait_for_file(path: &Path, timeout: Duration) -> Result<u64, String> {
+/// Waits until `path` exists and its size has held for a second; returns the size and when
+/// it last changed.
+pub fn wait_for_file(path: &Path, timeout: Duration) -> Result<(u64, Instant), String> {
     let deadline = Instant::now() + timeout;
     let (mut last, mut since) = (u64::MAX, Instant::now());
     while Instant::now() < deadline {
         let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
-        if size > 0 && size == last && since.elapsed() >= Duration::from_millis(500) {
-            return Ok(size);
+        if size > 0 && size == last && since.elapsed() >= Duration::from_secs(1) {
+            return Ok((size, since));
         }
         if size != last {
             (last, since) = (size, Instant::now());
@@ -232,6 +236,29 @@ fn append_row(path: &Path, row: &[(&str, String)]) {
     let _ = f.write_all(text.as_bytes());
 }
 
+/// One job's CSV row.
+fn record(csv: &Path, label: &str, path: PrintPath, fixture: &str, result: Result<Metrics, String>) {
+    let (ok, error, m) = match result {
+        Ok(m) => (true, String::new(), m),
+        Err(e) => {
+            println!("[auto]   failed: {e}");
+            (false, e, Metrics::default())
+        }
+    };
+    append_row(csv, &[
+        ("label", label.to_owned()),
+        ("path", path.name().into()),
+        ("fixture", fixture.into()),
+        ("ok", ok.to_string()),
+        ("prep_ms", m.prep_ms.to_string()),
+        ("spool_ms", m.spool_ms.to_string()),
+        ("main_rss_peak_mb", format!("{:.0}", m.main_rss_peak_mb)),
+        ("web_rss_peak_mb", format!("{:.0}", m.web_rss_peak_mb)),
+        ("out_bytes", m.out_bytes.to_string()),
+        ("error", error),
+    ]);
+}
+
 /// `auto`: every fixture through every path into `results/out/`, one CSV row per job.
 fn drive_auto(handle: &AppHandle) {
     let app = handle.state::<App>();
@@ -251,25 +278,7 @@ fn drive_auto(handle: &AppHandle) {
             let out = out_dir.join(format!("{}-{}-{fixture}.pdf", app.label, path.name()));
             let _ = std::fs::remove_file(&out);
             println!("[auto] {} {fixture}", path.name());
-            let (ok, error, m) = match job(handle, fixture, path, Some(&out)) {
-                Ok(m) => (true, String::new(), m),
-                Err(e) => (false, e, Metrics::default()),
-            };
-            if !ok {
-                println!("[auto]   failed: {error}");
-            }
-            append_row(&csv, &[
-                ("label", app.label.clone()),
-                ("path", path.name().into()),
-                ("fixture", fixture.into()),
-                ("ok", ok.to_string()),
-                ("prep_ms", m.prep_ms.to_string()),
-                ("spool_ms", m.spool_ms.to_string()),
-                ("main_rss_peak_mb", format!("{:.0}", m.main_rss_peak_mb)),
-                ("web_rss_peak_mb", format!("{:.0}", m.web_rss_peak_mb)),
-                ("out_bytes", m.out_bytes.to_string()),
-                ("error", error),
-            ]);
+            record(&csv, &app.label, path, fixture, job(handle, fixture, path, Some(&out)));
         }
     }
     // The page-range check: pages 3–7 of the 50-page fixture through path B, no dialog.
@@ -282,22 +291,7 @@ fn drive_auto(handle: &AppHandle) {
         *PAGE_RANGE.lock().unwrap_or_else(PoisonError::into_inner) = Some((first, last));
         let result = job(handle, fixture, PrintPath::Raster, Some(&out));
         *PAGE_RANGE.lock().unwrap_or_else(PoisonError::into_inner) = None;
-        let (ok, error, m) = match result {
-            Ok(m) => (true, String::new(), m),
-            Err(e) => (false, e, Metrics::default()),
-        };
-        append_row(&csv, &[
-            ("label", app.label.clone()),
-            ("path", "raster".into()),
-            ("fixture", format!("{fixture}@{first}-{last}")),
-            ("ok", ok.to_string()),
-            ("prep_ms", "0".into()),
-            ("spool_ms", m.spool_ms.to_string()),
-            ("main_rss_peak_mb", format!("{:.0}", m.main_rss_peak_mb)),
-            ("web_rss_peak_mb", format!("{:.0}", m.web_rss_peak_mb)),
-            ("out_bytes", m.out_bytes.to_string()),
-            ("error", error),
-        ]);
+        record(&csv, &app.label, PrintPath::Raster, &format!("{fixture}@{first}-{last}"), result);
     }
     handle.exit(0);
 }
@@ -324,7 +318,10 @@ fn page_png(handle: &AppHandle, uri_path: &str) -> Result<Vec<u8>, String> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-#[allow(clippy::disallowed_types, reason = "tauri::generate_context! builds a HashMap on some targets")]
+#[cfg_attr(
+    not(target_os = "linux"),
+    expect(clippy::disallowed_types, reason = "tauri::generate_context! builds a HashMap (not on Linux)")
+)]
 pub fn run() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let results = std::env::var_os("LAMINA_SPIKE_RESULTS").map_or_else(|| root.join("../results"), PathBuf::from);

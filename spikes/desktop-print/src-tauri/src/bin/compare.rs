@@ -90,7 +90,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             writeln!(f, "{label},{path},{fixture_name},,,,,,,,,,,{pn} pages printed for {rn}")?;
         }
         for i in 0..rn.min(pn) {
-            let (rp, pp) = (reference.pages().get(i + skip)?, printed.pages().get(i)?);
+            let Ok(rp) = reference.pages().get(i + skip) else {
+                writeln!(f, "{label},{path},{fixture_name},,,,,,,,,,,no page {} in the original", i + skip + 1)?;
+                continue;
+            };
+            let pp = printed.pages().get(i)?;
             let (rw, rh, ow, oh) = (rp.width().value, rp.height().value, pp.width().value, pp.height().value);
             let size_ok = (rw - ow).abs() <= SIZE_TOLERANCE && (rh - oh).abs() <= SIZE_TOLERANCE;
             let (px_w, px_h) = ((rw * DPI / 72.0).round() as i32, (rh * DPI / 72.0).round() as i32);
@@ -121,7 +125,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Ink per row and per column (sum of darkness), the profiles the offset search compares.
-#[allow(clippy::needless_range_loop, reason = "x and y index the pixels and both profiles")]
+#[expect(clippy::needless_range_loop, reason = "x and y index the pixels and both profiles")]
 fn profiles(b: &Bitmap) -> (Vec<u64>, Vec<u64>) {
     let (w, h) = (b.width as usize, b.height as usize);
     let (mut rows, mut cols) = (vec![0u64; h], vec![0u64; w]);
@@ -136,14 +140,24 @@ fn profiles(b: &Bitmap) -> (Vec<u64>, Vec<u64>) {
     (rows, cols)
 }
 
-/// The shift (in pixels, up to ±60, printed minus original) that best lines the profiles up.
+/// The search range: ±120 px is ±57.6 pt at 150 dpi.
+const MAX_SHIFT: i32 = 120;
+
+/// The shift (in pixels, printed minus original) that best lines the profiles up; on a tie
+/// (blank or flat profiles) the smallest shift wins, so an empty page reads 0, not the edge.
 fn best_shift(a: &[u64], b: &[u64]) -> i32 {
     let n = a.len() as i32;
-    (-60..=60)
-        .min_by_key(|&s| {
-            (60..n - 60).map(|i| a[i as usize].abs_diff(b[(i + s) as usize])).sum::<u64>()
-        })
-        .unwrap_or(0)
+    let cost = |s: i32| (MAX_SHIFT..n - MAX_SHIFT).map(|i| a[i as usize].abs_diff(b[(i + s) as usize])).sum::<u64>();
+    let mut shifts: Vec<i32> = (-MAX_SHIFT..=MAX_SHIFT).collect();
+    shifts.sort_by_key(|s| s.abs());
+    let mut best = (0, u64::MAX);
+    for s in shifts {
+        let c = cost(s);
+        if c < best.1 {
+            best = (s, c);
+        }
+    }
+    best.0
 }
 
 fn offset(a: &Bitmap, b: &Bitmap) -> (i32, i32) {

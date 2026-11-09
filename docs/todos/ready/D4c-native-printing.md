@@ -85,6 +85,8 @@ None.
 
 ## Risks and open questions
 
+- **From D1b** ([desktop-print spike](../../../spikes/desktop-print/README.md)): print path B (engine rasters through AppKit, GDI, GTK); no webview fallback. On macOS, AppKit snapped US Letter and A5 to A4 when the paper was set in `beginPageInRect:atPlacement:`, left every even page 17.8 pt low after the imageable-area correction, and held 3.3 GB for 50 pages at 300 dpi: per-page paper, placement and streaming need work here. The fidelity bar D1b measured is SSIM ≥ 0.95 at 150 dpi after alignment, sizes and placement within 2 pt. `hasNativePrint` should mean the OS dialog plus Lamina PDF's own rasters on paper of each page's size, not handing the PDF to the OS (ADR 0010's table): restate it in ADR 0008 or here.
+
 - **Decision recorded (owner to confirm in the PR): raster only, no vector printing in the main process.** The macOS PDFKit path, Windows PDFium-on-DC/EMF playback and Linux raw-PDF-to-CUPS all make something other than the sandboxed engine parse untrusted bytes, breaking ADR 0008. Vector printing comes back only through (a) a sandboxed print helper process (follow-up todo) or (b) an ADR 0008 exception the owner signs off explicitly, naming the OS, the parser and the accepted risk. ADR 0008 gets a "printing" line saying this.
 - **Raster cost**: 600 dpi A4 RGBA is ~140 MB per page uncompressed; render in bands and measure spool size and time for the 50-page check; drop to 300 dpi for non-photo printers if needed (record).
 - **Linux** uses `GtkPrintOperation` + cairo (no direct CUPS PDF submission); `libcups` comes in through GTK — coordinate with D6b's packaging.

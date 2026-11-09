@@ -169,7 +169,13 @@ fn open_target(handle: &AppHandle, n: usize, out: Option<&Path>) -> Result<Optio
                     // SAFETY: the dialog returns a movable block holding a DEVMODEW.
                     unsafe {
                         let p = GlobalLock(dlg.hDevMode).cast::<DEVMODEW>();
-                        let dm = (!p.is_null()).then(|| *p);
+                        // Keep only the public DEVMODEW: ResetDCW must not read driver bytes
+                        // past the struct we copied.
+                        let dm = (!p.is_null()).then(|| {
+                            let mut dm = *p;
+                            dm.dmDriverExtra = 0;
+                            dm
+                        });
                         let _ = GlobalUnlock(dlg.hDevMode);
                         let _ = GlobalFree(Some(dlg.hDevMode));
                         dm
@@ -295,7 +301,7 @@ struct Raw {
 fn raw() -> Result<Raw, String> {
     pdf::pdfium()?; // loads and initialises pdfium.dll
     // SAFETY: GetModuleHandleW on a loaded module; each symbol is cast to its C signature
-    // from fpdfview.h.
+    // from fpdfview.h (FPDF_CALLCONV is the C convention on x64; stdcall only on 32-bit).
     unsafe {
         let module = GetModuleHandleW(w!("pdfium.dll")).map_err(|e| format!("pdfium.dll: {e}"))?;
         let sym = |name: &[u8]| {
