@@ -1,10 +1,11 @@
 // Text as find compares it, close to pdf.js's rules so match counts agree: compatibility forms
 // folded (NFKC: `ﬁ` → `fi`, a no-break space → a space), soft hyphens dropped, a hyphen that ends a
 // line joined to the next line's word, runs of white space as one space, and unless asked
-// otherwise, case and Latin diacritics ignored (pdf.js's defaults). Case folds with
-// `toLowerCase`, not `toLocaleLowerCase`: a document's language isn't the reader's, and a
-// Turkish locale would make `I` miss `i`. Only the combining marks of U+0300–U+036F count as
-// diacritics, so the vowel signs of Arabic, Hebrew and Indic scripts still have to match.
+// otherwise, case and diacritics ignored (pdf.js's defaults). Case folds with `toLowerCase`, not
+// `toLocaleLowerCase`: a document's language isn't the reader's, and a Turkish locale would make
+// `I` miss `i`. Diacritics are every combining mark (`\p{M}`), as pdf.js takes them: Latin
+// accents, and also Hebrew points, Arabic harakat and Indic vowel signs, which the query loses
+// too, so `שלום` finds the pointed `שָׁלוֹם`.
 // Each folded UTF-16 unit remembers which source unit it came from, so a match maps back.
 
 /** How find compares text. */
@@ -13,7 +14,7 @@ export interface FindOptions {
   readonly matchCase?: boolean;
   /** Only whole words match (default: any part of a word). */
   readonly wholeWords?: boolean;
-  /** Accents and other Latin diacritics count (default: they don't). */
+  /** Accents and other combining marks count (default: they don't). */
   readonly matchDiacritics?: boolean;
 }
 
@@ -24,7 +25,7 @@ export interface Folded {
 }
 
 const SOFT_HYPHEN = 0xad;
-const DIACRITICS = /[̀-ͯ]/g;
+const DIACRITICS = /\p{M}/gu;
 const SPACE = /\s/;
 
 /** One source character as find compares it. */

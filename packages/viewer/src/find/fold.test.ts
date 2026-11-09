@@ -39,8 +39,12 @@ describe("fold", () => {
     expect(text("I")).toBe("i");
   });
 
-  it("keeps Arabic, Hebrew and Devanagari marks, and CJK as it is", () => {
-    for (const s of ["كِتَاب", "שָׁלוֹם", "हिन्दी", "漢字かな"]) expect(text(s)).toBe(s.normalize("NFKC"));
+  it("drops Hebrew points and Arabic harakat with the accents, as pdf.js does", () => {
+    expect([text("שָׁלוֹם"), text("كِتَاب")]).toEqual(["שלום", "كتاب"]);
+  });
+
+  it("keeps the marks when diacritics count, and CJK as it is", () => {
+    expect([text("שָׁלוֹם", { matchDiacritics: true }), text("漢字かな")]).toEqual(["שָׁלוֹם", "漢字かな"]);
   });
 
   it("maps each folded unit back to its source unit", () => {
