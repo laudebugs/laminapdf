@@ -7,7 +7,7 @@ import {
   resolve,
   undo,
   withDocument,
-} from "./page-appearance.tsx";
+} from "./page-appearance-choices.ts";
 
 const none: PageAppearanceChoices = { documents: {} };
 

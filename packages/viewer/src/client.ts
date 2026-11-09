@@ -232,7 +232,17 @@ export class ViewerClient {
     call: ViewerCallOptions = {},
   ): Promise<OpenedDocument> {
     const { password: _, ...rest } = options;
-    const opened = await this.call("openDocument", [source, options], call);
+    let opened: OpenedDocument;
+    try {
+      opened = await this.call("openDocument", [source, options], call);
+    } catch (e) {
+      // A cancel can cross the answer: the worker may have committed the open. Tell it which
+      // document this page goes on with, so the two agree (it runs before any queued render).
+      const kept = this.#document;
+      if (kept !== undefined && call.signal?.aborted === true)
+        void this.call("keepDocument", [kept.id]).catch(() => {});
+      throw e;
+    }
     this.#reopen = { source, options: rest };
     this.#document = opened;
     return opened;

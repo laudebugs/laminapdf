@@ -94,6 +94,8 @@ export interface WorkerMemory {
 export interface Methods {
   initBackend: { params: [BackendInit]; result: { name: BackendName; version: string } };
   openDocument: { params: [source: SourceInit, options: ViewerOpenOptions]; result: OpenedDocument };
+  /** After a cancelled open: the document the page goes on with (the worker may have committed the open). */
+  keepDocument: { params: [document: number]; result: undefined };
   closeDocument: { params: []; result: undefined };
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };

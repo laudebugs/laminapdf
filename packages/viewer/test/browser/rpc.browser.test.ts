@@ -289,6 +289,29 @@ describe("documents", () => {
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
   });
 
+  it("keeps the previous document for a page that gave up on an open the worker had committed", async () => {
+    // What a cancel that crosses the open's answer leaves: the worker opened the second document,
+    // and the page goes on with the first.
+    const client = await track(testViewer());
+    const first = await client.open(await read("fixtures/corpus/hello.pdf"));
+    const second = await client.open(await read("fixtures/corpus/text-example.pdf"));
+    // What the client sends when its open's cancel won: it goes on with the first.
+    await client.call("keepDocument", [first.id]);
+    (await client.call("render", [{ page: 0, scale: 0.5 }, first.id])).bitmap.close();
+    // The first came back, so the second is gone.
+    const gone = await rejection(client.call("render", [{ page: 0, scale: 0.5 }, second.id]));
+    expect((gone as { code?: string }).code).toBe("disposed");
+  });
+
+  it("lets the previous document go once the page names the new one", async () => {
+    const client = await track(testViewer());
+    const first = await client.open(await read("fixtures/corpus/hello.pdf"));
+    await client.open(await read("fixtures/corpus/text-example.pdf"));
+    (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
+    const gone = await rejection(client.call("render", [{ page: 0, scale: 0.5 }, first.id]));
+    expect((gone as { code?: string }).code).toBe("disposed");
+  });
+
   it("renders the reopened document when asked during a restart", async () => {
     const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
