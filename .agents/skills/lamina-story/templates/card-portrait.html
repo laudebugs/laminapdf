@@ -1,0 +1,43 @@
+<!doctype html>
+<!--
+  The portrait card: 1080 × 1350 (4:5), for LinkedIn and Threads.
+  Copy it to ~/git/lamina-stories/<story>/visuals/<name>-portrait.html.
+  The image explains; words only label it. Keep ONE figure, .bars (a chart from the fact table's
+  numbers) or .drawing (an SVG illustration or diagram), delete the other, and replace the example
+  (the flow-layout spike's sizes) with the story's own. The look is apps/site/scripts/story-card.css;
+  colours only from --paper-* tokens, never a hex value.
+  Render: pnpm --filter @laminapdf/site story-image ~/git/lamina-stories/<story>
+-->
+<html lang="en" data-theme="light" data-shape="portrait"><head><meta charset="utf-8">
+<meta name="lamina-size" content="1080x1350">
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/fonts.css">
+<link rel="stylesheet" href="/story-card.css">
+</head><body><div class="sheet">
+  <div class="top"><span class="wordmark">Lamina PDF</span><span class="kicker">Kicker: the topic</span></div>
+  <h1>The headline: ten words at most</h1>
+
+  <div class="figure bars">
+    <div class="bar"><div class="name"><span>Typst, embedded</span><span class="value">7.4&nbsp;MB</span></div>
+      <div class="track"><div class="fill" style="--v: 1"></div></div></div>
+    <div class="bar ours"><div class="name"><span>Our own layout engine</span><span class="value">19&nbsp;KB</span></div>
+      <div class="track"><div class="fill" style="--v: 0.0026"></div></div></div>
+    <div class="note">Added to the WebAssembly download, gzipped</div>
+  </div>
+
+  <div class="figure drawing">
+    <!-- Example: a page cut into tiles (simplified); the one the renderer refused is marked. -->
+    <svg viewBox="0 0 808 820" role="img" aria-label="A page split into tiles, one marked as refused">
+      <rect class="page" x="104" y="20" width="600" height="760" rx="4"/>
+      <g class="rule">
+        <line x1="404" y1="20" x2="404" y2="780"/><line x1="104" y1="273" x2="704" y2="273"/><line x1="104" y1="526" x2="704" y2="526"/>
+      </g>
+      <rect class="good" x="104" y="20" width="300" height="253"/>
+      <rect class="bad" x="404" y="273" width="300" height="253"/>
+      <text class="label bad-text" x="554" y="408" text-anchor="middle">refused</text>
+      <text class="label" x="404" y="815" text-anchor="middle">One short caption under the drawing</text>
+    </svg>
+  </div>
+
+  <div class="foot"><span>laminapdf.com</span><span>Source: where the fact comes from</span></div>
+</div></body></html>

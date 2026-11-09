@@ -1,12 +1,13 @@
 ---
 // A byte strip: a file's bytes as segments side by side, left to right in file order, each a Box
-// (so `fresh` marks bytes a save adds). The strip is as wide as its segments together.
+// (so `fresh` marks bytes a save adds, and `focus` the segments a page is about). The strip is as wide as its segments together.
 import Box from "./Box.astro";
 
 interface Segment {
   w: number;
   label: string;
   fresh?: boolean;
+  focus?: boolean;
 }
 interface Props {
   x: number;
@@ -21,4 +22,4 @@ const placed = segments.map((segment, i) => ({
 }));
 ---
 
-{placed.map((s) => <Box x={s.x} y={y} w={s.w} h={h} label={s.label} fresh={s.fresh ?? false} />)}
+{placed.map((s) => <Box x={s.x} y={y} w={s.w} h={h} label={s.label} fresh={s.fresh ?? false} focus={s.focus ?? false} />)}

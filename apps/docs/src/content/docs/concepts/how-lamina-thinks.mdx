@@ -48,3 +48,5 @@ In JavaScript, Lamina PDF is WebAssembly, split into three modules so a page dow
 - **Text:** everything in base, plus fonts, shaped text and extraction.
 
 `init()` loads the base module, and `init({ text: true })` or `init({ extract: true })` loads one of the others. Call `loadText()` or `loadExtract()` to add a module later, when a page first needs it. Rust has one crate, with features instead.
+
+<Diagram name="package-map-modules" />
