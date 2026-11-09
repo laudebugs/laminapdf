@@ -162,7 +162,7 @@ describe("PageInput", () => {
     renderIn(<TopBar reader={await openedController()} viewer={viewer} />);
     await userEvent.click(input());
     await userEvent.keyboard("12{Enter}");
-    expect(viewer.calls).toEqual([{ method: "goToPage", value: 11 }]);
+    expect(viewer.calls).toEqual([{ method: "jumpToPage", value: 11 }]);
   });
 
   it("announces a page that doesn't exist, and goes back to the current one", async () => {
@@ -223,7 +223,7 @@ describe("PageInput", () => {
     expect(host.querySelector(".paper-page-input-total")?.textContent).toBe("(22 / 24)");
     await userEvent.click(input());
     await userEvent.keyboard("a-3{Enter}");
-    expect(viewer.calls).toEqual([{ method: "goToPage", value: 23 }]);
+    expect(viewer.calls).toEqual([{ method: "jumpToPage", value: 23 }]);
   });
 });
 

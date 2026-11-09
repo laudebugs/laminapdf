@@ -1,8 +1,8 @@
-//! Moving through a document across the boundary: `WasmDocument.outline()` and
-//! `namedDestination(name)`, each target a page index and a view in page space (the extract
-//! and text modules, so the base module stays in its size budget).
+//! Moving through a document across the boundary: `WasmDocument.outline()`,
+//! `namedDestination(name)` and `pageLinks(index)`, each target a page index and a view in page
+//! space (the extract and text modules, so the base module stays in its size budget).
 
-use laminapdf::{OutlineNode, PageTarget, PageTargetView};
+use laminapdf::{LinkTo, OutlineNode, PageLink, PageTarget, PageTargetView};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -112,8 +112,127 @@ impl From<PageTarget> for TargetJs {
     }
 }
 
+/// One link on a page, in page space. Its TypeScript type is written below: tsify gives a
+/// flattened enum as `interface … extends` a union, which TypeScript refuses.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PageLinkJs {
+    /// Its rectangle: `[x0, y0, x1, y1]`, top-left and bottom-right.
+    pub rect: [f64; 4],
+    /// The areas that follow it, eight numbers per area (four corners, `x` then `y`); left out
+    /// when the rectangle is the area.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub quads: Vec<f64>,
+    /// Its description (`/Contents`, document text).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contents: Option<String>,
+    /// What following it does.
+    #[serde(flatten)]
+    pub to: LinkToJs,
+}
+
+/// What following a link does, by `kind`.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(tag = "kind", rename_all = "kebab-case", rename_all_fields = "camelCase")]
+pub(crate) enum LinkToJs {
+    /// A destination in this document.
+    Dest {
+        /// Where it goes; left out when it names no page here.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        target: Option<TargetJs>,
+    },
+    /// A named destination.
+    Named {
+        /// Its name.
+        name: String,
+        /// Where it goes; left out when the name names no page here.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        target: Option<TargetJs>,
+    },
+    /// A URI, as stored (not checked).
+    Uri {
+        /// The address.
+        uri: String,
+    },
+    /// A place in another file.
+    Remote {
+        /// The file's name, when readable.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        file: Option<String>,
+    },
+    /// A named action.
+    NamedAction {
+        /// `NextPage`, `PrevPage`, `FirstPage`, `LastPage` or another name.
+        name: String,
+    },
+    /// An action a reader never runs.
+    Unsupported {
+        /// Its type: `Launch`, `JavaScript`, `SubmitForm`…
+        action: String,
+    },
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const PAGE_LINK_TS: &str = r#"
+/** One link on a page, in page space, and what following it does (by `kind`). */
+export type PageLinkJs = {
+  /** Its rectangle: `[x0, y0, x1, y1]`, top-left and bottom-right. */
+  rect: [number, number, number, number];
+  /** The areas that follow it, eight numbers per area; absent when the rectangle is the area. */
+  quads?: number[];
+  /** Its description (`/Contents`, document text). */
+  contents?: string;
+} & LinkToJs;
+"#;
+
+impl From<&PageLink> for PageLinkJs {
+    fn from(link: &PageLink) -> Self {
+        let r = &link.rect;
+        let to = match &link.to {
+            LinkTo::Destination {
+                name: Some(name),
+                target,
+            } => LinkToJs::Named {
+                name: name.clone(),
+                target: target.map(TargetJs::from),
+            },
+            LinkTo::Destination { name: None, target } => LinkToJs::Dest {
+                target: target.map(TargetJs::from),
+            },
+            LinkTo::Uri(uri) => LinkToJs::Uri { uri: uri.clone() },
+            LinkTo::OtherFile(file) => LinkToJs::Remote { file: file.clone() },
+            LinkTo::NamedAction(name) => LinkToJs::NamedAction { name: name.clone() },
+            LinkTo::Unsupported(action) => LinkToJs::Unsupported { action: action.clone() },
+            // A kind a later façade adds: never run.
+            _ => LinkToJs::Unsupported {
+                action: "Unknown".to_owned(),
+            },
+        };
+        Self {
+            rect: [r.x0.get(), r.y0.get(), r.x1.get(), r.y1.get()],
+            quads: link
+                .quads
+                .iter()
+                .flat_map(|q| q.iter().flat_map(|p| [p.x.get(), p.y.get()]))
+                .collect(),
+            contents: link.contents.clone(),
+            to,
+        }
+    }
+}
+
 #[wasm_bindgen]
 impl WasmDocument {
+    /// The visible links on page `index`, in annotation order (the extract and text modules).
+    ///
+    /// # Errors
+    /// `page-index-out-of-range`, `data-pending` and the reading errors.
+    #[wasm_bindgen(js_name = pageLinks, unchecked_return_type = "PageLinkJs[]")]
+    pub fn page_links(&self, index: u32) -> JsResult<JsValue> {
+        let links = self.shared().borrow().page_links(index).map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&links.iter().map(PageLinkJs::from).collect::<Vec<_>>()))
+    }
+
     /// The outline's top-level items, each with its children; empty without an outline (the
     /// extract and text modules).
     ///

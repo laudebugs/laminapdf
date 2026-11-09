@@ -10,6 +10,7 @@ import {
   CommandsProvider,
   DebugMenu,
   Dialog,
+  ExternalLinkDialog,
   FocusModeItem,
   IconButton,
   Inspector,
@@ -45,6 +46,20 @@ const SHORTCUT = { mac: "⌘F", other: "Ctrl+F" };
 /** The dialogs: the three widths, a destructive confirm, and the reader's password prompt. */
 export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "password") return <PasswordPrompt />;
+  if (state === "external-link") {
+    // R07's drawn state: the page's text shows a shorter address than the link's real target.
+    return (
+      <ExternalLinkDialog
+        link={{
+          href: "https://surveys.example.org/2026/capacity?region=north",
+          parts: { before: "https://", host: "surveys.example.org", after: "/2026/capacity?region=north" },
+        }}
+        onOpen={noop}
+        onCopy={noop}
+        onClose={noop}
+      />
+    );
+  }
   const size = state === "form" ? "form" : state === "wide" ? "wide" : "default";
   if (state === "alert") {
     return (
