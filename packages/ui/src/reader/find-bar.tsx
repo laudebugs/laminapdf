@@ -121,8 +121,7 @@ export function FindBar({ find, onClose }: FindBarProps): ReactNode {
     find.find(draft, options);
   };
   return (
-    <div
-      role="search"
+    <search
       className="paper-find-bar"
       aria-label={message("find.label")}
       data-shortcut-scope="find-field"
@@ -174,6 +173,6 @@ export function FindBar({ find, onClose }: FindBarProps): ReactNode {
       <span className="paper-visually-hidden" role="status" aria-live="polite">
         {announced}
       </span>
-    </div>
+    </search>
   );
 }

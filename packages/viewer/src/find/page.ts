@@ -83,8 +83,8 @@ export function searchText(page: PageGlyphs): SearchText {
   return { text, lo: Int32Array.from(lo), hi: Int32Array.from(hi), runOf };
 }
 
-/** The quads of source units `[start, end)`: one per run, from its first glyph to its last. */
-function quadsOf(page: PageGlyphs, search: SearchText, start: number, end: number): MatchQuads {
+/** The glyphs `[first, last]` that source units `[start, end)` cover, per run. */
+function glyphsByRun(search: SearchText, start: number, end: number): Map<number, [number, number]> {
   const byRun = new Map<number, [number, number]>();
   for (let u = start; u < end; u++) {
     const a = search.lo[u] ?? 0;
@@ -94,24 +94,19 @@ function quadsOf(page: PageGlyphs, search: SearchText, start: number, end: numbe
     const seen = byRun.get(run);
     byRun.set(run, seen === undefined ? [a, b - 1] : [Math.min(seen[0], a), Math.max(seen[1], b - 1)]);
   }
-  const out: number[] = [];
+  return byRun;
+}
+
+/** The quads of source units `[start, end)`: one per run, from its first glyph to its last. */
+function quadsOf(page: PageGlyphs, search: SearchText, start: number, end: number): MatchQuads {
   const q = page.quads;
-  for (const [first, last] of byRun.values()) {
+  const at = (i: number) => q[i] ?? 0;
+  return [...glyphsByRun(search, start, end).values()].flatMap(([first, last]) => {
     const f = first * 8;
     const l = last * 8;
     // Bottom-left and top-left of the first glyph, bottom-right and top-right of the last.
-    out.push(
-      q[f] ?? 0,
-      q[f + 1] ?? 0,
-      q[l + 2] ?? 0,
-      q[l + 3] ?? 0,
-      q[l + 4] ?? 0,
-      q[l + 5] ?? 0,
-      q[f + 6] ?? 0,
-      q[f + 7] ?? 0,
-    );
-  }
-  return out;
+    return [at(f), at(f + 1), at(l + 2), at(l + 3), at(l + 4), at(l + 5), at(f + 6), at(f + 7)];
+  });
 }
 
 /** Every match of `query` on `page`, each as its quads. */
