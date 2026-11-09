@@ -3,11 +3,13 @@
 // `state` URL parameter), so a screenshot holds exactly one overlay.
 
 import {
+  AppearanceSettings,
   BottomSheet,
   Button,
   CommandPalette,
   CommandRegistry,
   CommandsProvider,
+  DEFAULT_APPEARANCE,
   DebugMenu,
   Dialog,
   ExternalLinkDialog,
@@ -33,13 +35,18 @@ import {
   SelectionActionBar,
   SelectionToolbar,
   SelectionToolbarDivider,
+  SettingsDialog,
+  SettingsRegistry,
   ShellLayout,
+  ShortcutsDialog,
   Switch,
   shellActions,
   TextInput,
   ToastQueue,
   ToastRegion,
   Tooltip,
+  useSettingsSection,
+  ViewSettingsButton,
 } from "@laminapdf/ui";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
@@ -100,10 +107,43 @@ function OutputDialog({ state }: { state: string }): ReactNode {
   );
 }
 
+/** Settings, Keyboard shortcuts (inside the reader's commands) and the View settings popover. */
+function SettingsDialogs({ state }: { state: string }): ReactNode {
+  const [appearance, setAppearance] = useState(DEFAULT_APPEARANCE);
+  const [settings] = useState(() => new SettingsRegistry());
+  const [commands] = useState(() => {
+    const registry = new CommandRegistry();
+    registerReaderCommands(registry);
+    return { registry, context: { platform: fakePlatform(), actions: { "help.shortcuts": noop } } };
+  });
+  useSettingsSection(settings, "appearance", "Appearance and accessibility", () => (
+    <AppearanceSettings appearance={appearance} onChange={setAppearance} />
+  ));
+  if (state === "settings") return <SettingsDialog registry={settings} isOpen onOpenChange={noop} />;
+  if (state === "view-settings") {
+    return (
+      <ViewSettingsButton
+        appearance={appearance}
+        onChange={setAppearance}
+        isOpen
+        onOpenChange={noop}
+        onMoreSettings={noop}
+      />
+    );
+  }
+  return (
+    <CommandsProvider registry={commands.registry} context={commands.context} keys="other">
+      <ShortcutsDialog isOpen onOpenChange={noop} singleKeys onSingleKeysChange={noop} onOpenPalette={noop} />
+    </CommandsProvider>
+  );
+}
+
 /** The dialogs: the three widths, a destructive confirm, the reader's password prompt, print and properties. */
 export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "password") return <PasswordPrompt />;
   if (state.startsWith("print") || state === "properties") return <OutputDialog state={state} />;
+  if (state === "settings" || state === "shortcuts" || state === "view-settings")
+    return <SettingsDialogs state={state} />;
   if (state === "external-link") {
     // R07's drawn state: the page's text shows a shorter address than the link's real target.
     return (

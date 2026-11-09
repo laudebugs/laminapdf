@@ -11,6 +11,8 @@ import { ROUTES } from "../src/routes.ts";
 const NESTED: Readonly<Record<string, string>> = {
   Radio: "RadioGroup",
   TabPanel: "SegmentedTabs",
+  AppearanceFields: "ViewSettingsButton",
+  AppearanceSettings: "SettingsDialog",
 };
 
 /** Exports that draw nothing themselves, with why. */
@@ -26,6 +28,9 @@ const NOT_DRAWN: Readonly<Record<string, string>> = {
   RegistryPalette: "CommandPalette (on the overlays route) filled from a command registry",
   ShellLayout: "the shell's layout store, which the shell-regions route drives",
   ToastQueue: "the toast region's queue, not a component",
+  Announcer: "the live regions' store of what to say, not a component",
+  LiveRegions: "two live regions screen readers hear, drawn out of sight",
+  SettingsRegistry: "the Settings dialog's store of sections, which the dialogs route fills",
 };
 
 /** The value exports of @laminapdf/ui whose names start with a capital (components and classes). */

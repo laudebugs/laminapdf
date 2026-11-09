@@ -314,6 +314,45 @@ function zoomModeCommands(): AnyCommand[] {
   ];
 }
 
+/** The View settings popover and the Settings dialog. */
+function settingsCommands(): AnyCommand[] {
+  return [
+    delegated({
+      id: "view.settings",
+      title: title("view.settings"),
+      keywords: ["theme", "accent", "appearance", "dark"],
+      group: "view",
+      icon: "view-settings",
+      home: ["top-bar"],
+    }),
+    delegated({
+      id: "app.settings",
+      title: title("app.settings"),
+      keywords: ["preferences", "options", "motion", "accessibility"],
+      group: "app",
+      icon: "settings",
+      shortcuts: [desktop("Mod+,")],
+      home: ["view-settings", "help-menu"],
+    }),
+    // R15: the app's handlers exist only while the browser offers an install or an update waits.
+    delegated({
+      id: "app.install",
+      title: title("app.install"),
+      keywords: ["install", "app", "offline", "open with"],
+      group: "app",
+      icon: "download",
+      home: ["file-menu"],
+    }),
+    delegated({
+      id: "app.reload-update",
+      title: title("app.reload-update"),
+      keywords: ["update", "new version", "reload"],
+      group: "app",
+      home: ["status-bar"],
+    }),
+  ];
+}
+
 /** The view settings. */
 function viewSettingCommands(): AnyCommand[] {
   return [
@@ -530,6 +569,7 @@ export function readerCommands(): readonly AnyCommand[] {
     ...historyAndZoomCommands(),
     ...zoomModeCommands(),
     ...viewSettingCommands(),
+    ...settingsCommands(),
     ...findCommands(),
     ...appCommands(),
     ...selectionCommands(),

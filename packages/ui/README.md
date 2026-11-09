@@ -77,7 +77,7 @@ const toasts = new ToastQueue();
 const toast = toasts.add({ message: "Highlight deleted", action: { label: "Undo", onPress: undo } });
 ```
 
-`add` returns a handle whose `dismiss()` removes the toast early.
+`add` returns a handle whose `dismiss()` removes the toast early. A toast stays 4 s unless its `timeout` says otherwise; one that waits on the user (`timeout: Infinity`) can carry `dismissLabel` ("Later"), a second button that only closes it.
 
 Overlays stack in the design language's z-order, which the tokens hold: docked chrome, then sheets, then dialogs over the scrim, then menus, popovers and tooltips, then toasts. A menu opened from a dialog draws above it. Escape closes the innermost open layer only, and focus goes back to the control that opened it. A dialog that asks a required question stays open, and so does everything beneath it.
 
@@ -135,6 +135,9 @@ const context = { platform, reader, viewer, actions: { ...shellActions(layout, m
 - **The outline** (`OutlineTree`) is the Outline tab's tree. Up and Down move between rows, Right and Left open and close one, Home and End go to the ends, and typing finds a row by its title. Enter or a click goes to the row's section. Each row shows its page label, and long outlines draw only the rows in view. `current` marks the item that holds the reading position and opens its parents. `currentOutlineItem(items, top)` finds that item: the latest one at or before the top of the view.
 - **Find's results** (`FindResults`) is the rail's Results tab while find is open. Its `find` prop takes what `FindBar` takes plus `results()` and `goTo(ordinal)`, so you can pass `viewer.find`. `heading(page)` names each page's group, such as "Page 3 · Repairs backlog". Each match is a link: the match in bold, with the text around it. The current one is tinted and ringed, carries `aria-current="true"`, and stays in view as Next and Previous move it. A click or Enter goes to it, then calls `onNavigate`. With no matches, it offers to turn off whichever of Whole words or Match case is on.
 - **Leaving for the web** (`ExternalLinkDialog`) asks before a link in the document opens a website. Pass the pending link as `link`: its `href`, and the `parts` from `@laminapdf/viewer`'s `externalLink`, which split the address around its host. The address shows in full with its host in bold, so link text that claims another address can't hide this one. Cancel has focus. Open website calls `onOpen` and closes, and Copy link calls `onCopy` and stays.
+- **The offline notice** (`OfflineNotice`) goes in `ReaderShell`'s `notice` slot, under the top bar and above any secondary toolbar, while the browser is offline. It is a polite status, so a screen reader hears it once, and Dismiss calls `onDismiss`.
+- **The Recent list** (`RecentList`) shows the home screen's recent documents from `platform.recent`. Each row gives the name over "This device" and its page count, with the date it was last opened. A local file without a kept handle adds "Choose the file again to reopen". Rows call `onOpen` with their entry, and Clear list calls `onClear`. The list draws nothing while it is empty. `RecentFiles.add(file, { pages })` keeps the page count. Entries never hold a URL, so the web reader lists local files only.
+- **Install** (`InstallDialog`) says what installing the reader gives and that the browser asks to confirm, with Not now and Install. Show it only where the browser offers an install.
 - **Print** (`PrintDialog`) asks which pages (all, the current one, or a range of numbers or labels such as `1–5, 11, A-1`), the scale, the quality and whether comments print, then calls `onPrint` with a `PrintChoice`. A range that names a page the file lacks shows the error under the field and focuses it. `PrintProgressDialog` counts the pages drawn, with Cancel. On the web, `Platform.print` prints them from a hidden frame, one page at a time.
 - **A restricted file's print** follows the author's `permissions`, when given. If printing is restricted, `PrintDialog` says so and asks once more in an alertdialog, with Cancel focused, before `onPrint`; if only high quality is, Quality stays at Standard.
 - **Document properties** (`PropertiesDialog`) shows a `DocumentPropertiesData`, the shape `@laminapdf/sdk`'s `doc.properties()` returns, in four sections. It merges the Info and XMP fields, and XMP wins where they differ. It gives the pages with their label runs, the sizes by paper name, the fonts in a table, and the encryption with the author's permissions; it counts signatures and never verifies them. Each value has a copy button and Copy all copies every section as text, both through `onCopy`.
@@ -180,15 +183,31 @@ registry.register({
 });
 ```
 
-`registerReaderCommands` adds the reader's 39 commands. Those the reader and the viewer can do run in this package. The rest, such as find, print and the sidebar, are the shell's: it passes a handler for each in the context's `actions`. Until it does, every view leaves the command out, as it leaves out a command whose capability the platform never has.
+`registerReaderCommands` adds the reader's 46 commands. Those the reader and the viewer can do run in this package. The rest, such as find, print and the sidebar, are the shell's: it passes a handler for each in the context's `actions`. Until it does, every view leaves the command out, as it leaves out a command whose capability the platform never has.
 
 The shell gives `CommandsProvider` the registry and a `CommandContext`: the platform, the reader, the viewer, the page labels and its handlers. The provider also listens for shortcuts. Keys with Ctrl, Alt or ⌘ work anywhere; single keys such as Page Down or `+` work only while focus is in the canvas, and never in a text field. Views read the registry through two hooks and a component:
 
 - `useCommand(id)` gives a button or menu item its title, shortcut, availability and `run`, and re-renders when they change.
 - `useShortcutMap()` lists every bound shortcut by group, for the shortcut help and native menu accelerators.
 - `RegistryPalette` is the palette: ranked rows with their shortcuts, recent commands first, disabled ones with their reason, and a page that asks for missing arguments.
+- `ShortcutsDialog` is Keyboard shortcuts, built from `useShortcutMap()`: searchable, with the match count announced, the single-key switch, and the browser keys the reader takes while a document is open. Its rows mark a single key "Off" while single keys are off.
 
 A Node test checks every shortcut against the keys the browser, the OS and assistive tech keep (`NEVER_BIND`), and against the browser keys a command may take only with a reason (`OVERRIDES`). It also fails when two commands share keys where their scopes meet. A new browser or OS key a command needs goes in `OVERRIDES`, with the reason.
+
+## Settings, appearance and announcements
+
+The app's look is an `Appearance`: a theme (`light`, `dark`, `high-contrast`, or `system` to follow the OS), an accent (`teal`, `blue`, `plum`, `green`), motion (`system` or `reduce`) and whether single-key shortcuts are on. `applyAppearance(document.documentElement, appearance)` sets it as `data-theme`, `data-accent` and `data-motion`, which the tokens and styles read, so a switch re-renders nothing. `parseAppearance` reads a stored one, with a default for anything missing. Storing it is the app's job, and so is setting it before the first paint, before React runs.
+
+`ViewSettingsButton` is the top bar's View button with its popover: theme and accent, then More settings…. `SettingsDialog` is the app's one Settings dialog. It shows the sections of a `SettingsRegistry` in the order they were added, so later work adds a section rather than a dialog:
+
+```tsx
+const [settings] = useState(() => new SettingsRegistry());
+useSettingsSection(settings, "appearance", message("settings.appearance"), () => (
+  <AppearanceSettings appearance={appearance} onChange={setAppearance} />
+));
+```
+
+`Announcer` speaks what changes without focus moving. `polite(text, kind)` waits until nothing newer of the same kind, such as a page or a zoom, has come for a moment. So scrolling past twenty pages says only the last, and two kinds due together are said together. `assertive(text)` speaks at once, for errors. Render its `LiveRegions` once, for the app's life.
 
 ## The home screen, repairs and failures
 

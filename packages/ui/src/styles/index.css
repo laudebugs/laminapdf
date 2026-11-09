@@ -10,6 +10,7 @@
 @import "./field.css";
 @import "./choice.css";
 @import "./swatches.css";
+@import "./settings.css";
 @import "./appearance-chips.css";
 @import "./badge.css";
 @import "./notice.css";
@@ -24,6 +25,8 @@
 @import "./dialog.css";
 @import "./external-link.css";
 @import "./properties.css";
+@import "./offline.css";
+@import "./recent.css";
 @import "./print.css";
 @import "./popover.css";
 @import "./tooltip.css";

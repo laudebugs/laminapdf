@@ -50,7 +50,7 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 - One command: `app_info` → `{ version, os, arch, webview_version }` to prove the IPC + permission plumbing end to end.
 - CI: a `desktop` job in the full lane building `apps/desktop` on `ubuntu-22.04`, `macos-14`, `windows-2022` (`pnpm --filter @laminapdf/desktop tauri build --debug --no-bundle`), plus clippy/test of `laminapdf-desktop` in `cargo xtask check rust` (Linux needs `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev` installed in CI).
 - `cargo xtask` updates: `check ts` covers `apps/desktop`; `doctor` lists the Linux system packages; `portability` keeps excluding app-layer crates.
-- `cargo deny` passes with Tauri's dependency tree (add licence exceptions only with justification per ADR 0019).
+- `cargo deny` passes with Tauri's dependency tree (add licence exceptions only with justification per ADR 0019). The MPL-2.0 crates Tauri 2.12 itself pulls in (`selectors`, `cssparser`, `cssparser-macros`, `dtoa-short`, `option-ext`) already have per-crate exceptions (owner decision 2026-11-09, ADR 0019); recheck the list against the tree D2a pins, and put the MPL-2.0 text in the desktop app's third-party notices.
 
 **Out of scope** (and which todo covers it)
 

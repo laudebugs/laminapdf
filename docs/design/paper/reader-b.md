@@ -36,7 +36,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Artboards.** `R10-view-settings.dc.html`, `R10-page-dark.dc.html`, `R10-view-settings-phone.dc.html`. The `accent` tweak of each board is also the selected swatch of the Accent row. On the phone the Accent row is below Theme, under the medium detent's fold (the sheet scrolls).
 
-**Todos.** [C7a](../../todos/ready/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md).
+**Todos.** [C7a](../../todos/done/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md).
 
 ## R11 Dark UI theme
 
@@ -58,7 +58,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Artboards.** `R11-dark-theme.dc.html`.
 
-**Todos.** [C7a](../../todos/ready/C7a-accessibility-and-theming.md).
+**Todos.** [C7a](../../todos/done/C7a-accessibility-and-theming.md).
 
 ## R12 Keyboard shortcuts
 
@@ -107,7 +107,7 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 
 **Artboards.** `R12-shortcut-help.dc.html`.
 
-**Todos.** [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md).
+**Todos.** [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/done/C7a-accessibility-and-theming.md).
 
 ## R13 Network activity panel
 
@@ -208,9 +208,17 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Platform differences.** The desktop app has its own updater (S06), and the offline notice doesn’t apply to it. On the phone, the offline notice is a strip under the top bar, and the update toast sits above the bottom bar in place of the page pill.
 
+**As built ([C7b](../../todos/done/C7b-offline-pwa.md)).** The web reader ships the install dialog, the offline notice with Offline in the status bar, and the update toast with Reload and Later. Five parts differ from the boards:
+
+- Install appears only where the browser offers one (`beforeinstallprompt`, Chromium). Safari’s Add to Dock how-to waits for a later todo, so Safari shows no item, like Firefox.
+- With a document open, the toast says “you’ll need to open this file again” (reopening at the same page is [T5b](../../todos/ready/T5b-reopen-at-last-position.md)).
+- The status bar’s Update ready reloads at once rather than opening a popover with Reload.
+- Reload is never disabled, since the reader can’t change a file yet.
+- Open from URL keeps its own error while offline; the field’s offline message comes with the URL form’s next change.
+
 **Artboards.** `R15-install.dc.html`, `R15-offline.dc.html`, `R15-update.dc.html`.
 
-**Todos.** [C7b](../../todos/ready/C7b-offline-pwa.md).
+**Todos.** [C7b](../../todos/done/C7b-offline-pwa.md).
 
 ## R16 Focus mode
 

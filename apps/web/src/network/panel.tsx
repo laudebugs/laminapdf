@@ -13,6 +13,7 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import { type ReactNode, useMemo } from "react";
+import { serviceWorkerControl } from "../offline/control.ts";
 import type { NetworkMonitor, NetworkState, NetworkSummary } from "./monitor.ts";
 import { summarize } from "./monitor.ts";
 import { networkReport } from "./report.ts";
@@ -80,6 +81,7 @@ function NetworkInspector({
   network: NetworkMonitor;
 }): ReactNode {
   const { state, summary } = useSummary(network);
+  const controlled = useStoreState(serviceWorkerControl, (s) => s);
   const fileHost = hostOf(state.documentUrl);
   const since = state.openedAt === undefined ? undefined : clock(state.openedAt);
   return (
@@ -92,7 +94,7 @@ function NetworkInspector({
         appRows={summary.appRows}
         blocked={summary.blocked.map((v) => ({ blocked: v.blockedUri, directive: v.directive }))}
         {...(fileHost === undefined ? {} : { fileHost })}
-        feeds={{ page: true, worker: state.workerFeed, serviceWorker: false }}
+        feeds={{ page: true, worker: state.workerFeed, serviceWorker: controlled }}
         onClose={() => layout.closeInspector()}
         onCopy={() => void platform.copyText(networkReport(summary, since))}
       />

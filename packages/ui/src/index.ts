@@ -175,11 +175,28 @@ export type {
   PlatformStorage,
   PrintJob,
   PrintPage,
+  RecentDetails,
   RecentFile,
   RecentFiles,
   SaveResult,
 } from "./platform/types.js";
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
+export { ANNOUNCE_DELAY, type Announcements, Announcer, LiveRegions } from "./reader/announcer.js";
+export {
+  ACCENTS,
+  type Accent,
+  type Appearance,
+  AppearanceFields,
+  type AppearanceFieldsProps,
+  AppearanceSettings,
+  applyAppearance,
+  DEFAULT_APPEARANCE,
+  MOTIONS,
+  type Motion,
+  parseAppearance,
+  UI_THEMES,
+  type UiTheme,
+} from "./reader/appearance.js";
 export { formatBytes } from "./reader/bytes.js";
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
 export {
@@ -203,6 +220,7 @@ export {
   type FindResultsProps,
 } from "./reader/find-results.js";
 export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
+export { InstallDialog, type InstallDialogProps } from "./reader/install-dialog.js";
 export { WholeFileDownload, type WholeFileDownloadProps } from "./reader/loading.js";
 export {
   NetworkActivityPanel,
@@ -212,6 +230,7 @@ export {
   type NetworkOriginRow,
   networkIndicatorText,
 } from "./reader/network.js";
+export { OfflineNotice, type OfflineNoticeProps } from "./reader/offline-notice.js";
 export { OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
 export {
   currentOutlineItem,
@@ -249,6 +268,7 @@ export {
   type PropertiesDialogProps,
   type PropertiesState,
 } from "./reader/properties-dialog.js";
+export { RecentList, type RecentListProps, recentMeta } from "./reader/recent-list.js";
 export {
   OpenFailure,
   type OpenFailureProps,
@@ -259,7 +279,17 @@ export {
   type RepairDetailsProps,
   type RepairKind,
 } from "./reader/repair.js";
+export {
+  SettingsDialog,
+  type SettingsDialogProps,
+  SettingsRegistry,
+  type SettingsSection,
+  useSettingsSection,
+  ViewSettingsButton,
+  type ViewSettingsButtonProps,
+} from "./reader/settings.js";
 export { ReaderShell, type ReaderShellProps } from "./reader/shell.js";
+export { ShortcutsDialog, type ShortcutsDialogProps } from "./reader/shortcuts-dialog.js";
 export { ReaderTopBar, type ReaderTopBarProps } from "./reader/top-bar.js";
 export {
   MAX_ZOOM,

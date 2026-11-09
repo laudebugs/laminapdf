@@ -28,11 +28,13 @@ import {
   type Viewer,
   ViewerClient,
 } from "@laminapdf/viewer";
+import { spokenPage } from "./announce.tsx";
 import { type DocumentWarning, repairsFrom } from "./document.ts";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
 import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
+import { readChoices } from "./storage-choices.ts";
 
 /** A document's properties, as the document worker reads them. */
 export type DocumentProperties = Awaited<ReturnType<ViewerClient["properties"]>>;
@@ -94,6 +96,7 @@ async function startSession(
   backend: DebugBackend,
   debug: boolean,
   onExternal: (link: OpenableLink) => void,
+  pageName: (index: number, count: number) => string,
 ): Promise<Session> {
   const client = await ViewerClient.create({
     backend: backend === "pdfium" ? { backend: "pdfium", wasm: pdfiumWasm } : { backend: "hayro" },
@@ -108,6 +111,8 @@ async function startSession(
       words: LINK_WORDS,
       ...(debug ? { onInert: logInert } : {}),
     },
+    // Each page is a region named by its label and position; a jump moves focus to its page.
+    pages: { name: pageName, roleDescription: message("viewer.page.role"), focusOnJump: true },
   });
   return { backend, client, viewer, strip: new ThumbnailStrip(client, viewer, { name: message("shell.rail.pages") }) };
 }
@@ -355,7 +360,12 @@ export class Engine implements ExternalStore<EngineState> {
   }
 
   #start(backend: DebugBackend): Promise<Session> {
-    const session = startSession(backend, this.#outline, (link) => this.confirmExternalLink(link));
+    const session = startSession(
+      backend,
+      this.#outline,
+      (link) => this.confirmExternalLink(link),
+      (index) => spokenPage(this.#state.pages, index),
+    );
     session.then(
       (started) => {
         if (this.#session !== session) return;
@@ -409,7 +419,12 @@ export class Engine implements ExternalStore<EngineState> {
     let opened: Awaited<ReturnType<ViewerClient["open"]>>;
     let warnings: DocumentWarning[];
     try {
-      opened = await session.client.open(await sourceOf(file), password === undefined ? {} : { password });
+      // A large file's disk copy outlives the document only while the user lets recent files be kept.
+      const keepCopy = readChoices().rememberLocal;
+      opened = await session.client.open(
+        await sourceOf(file),
+        password === undefined ? { keepCopy } : { password, keepCopy },
+      );
     } finally {
       warnings = this.#incoming.splice(0);
     }

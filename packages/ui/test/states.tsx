@@ -15,6 +15,7 @@ import {
   NetworkActivityPanel,
   NetworkIndicator,
   Notice,
+  OfflineNotice,
   OpenFailure,
   OutlineRow,
   OutlineTree,
@@ -27,6 +28,7 @@ import {
   RadioGroup,
   type ReaderState,
   ReaderTopBar,
+  RecentList,
   RemoteFailure,
   RepairDetails,
   RepairedNotice,
@@ -654,6 +656,41 @@ const repairs: Example[] = [
     component: "RemoteFailure",
     state: "unencoded link",
     element: () => <RemoteFailure reason="not-encoded" onChooseFile={noop} onHome={noop} />,
+  },
+  {
+    component: "OfflineNotice",
+    state: "offline",
+    element: () => <OfflineNotice onDismiss={noop} />,
+  },
+  {
+    component: "RecentList",
+    state: "three files",
+    element: () => (
+      <RecentList
+        entries={[
+          {
+            id: "a",
+            name: "Q3-board-report.pdf",
+            size: 1_262_480,
+            lastOpened: 1_793_000_000_000,
+            pages: 24,
+            hasHandle: true,
+          },
+          {
+            id: "b",
+            name: "Tenant-survey-2026.pdf",
+            size: 412_000,
+            lastOpened: 1_792_900_000_000,
+            pages: 6,
+            hasHandle: true,
+          },
+          { id: "c", name: "Asset-register-summary.pdf", size: 88_000, lastOpened: 1_792_800_000_000, pages: 3 },
+        ]}
+        onOpen={noop}
+        onClear={noop}
+        locale="en-GB"
+      />
+    ),
   },
   {
     component: "NetworkActivityPanel",

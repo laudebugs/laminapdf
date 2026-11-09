@@ -30,6 +30,12 @@
     overflow: hidden;
   }
 
+  /* The second row: a notice (R15's offline strip) over the secondary toolbar, each optional. */
+  .paper-reader-under {
+    grid-row: 2;
+    min-inline-size: 0;
+  }
+
   .paper-reader-secondary {
     min-block-size: var(--paper-secondary-toolbar-height);
     border-block-end: var(--paper-border-width) solid var(--paper-hairline);
@@ -626,5 +632,34 @@
     margin: 0;
     padding-inline-start: var(--paper-space-16);
     font: var(--paper-type-caption);
+  }
+}
+
+/* The skip link: out of sight until Tab reaches it, then over the top bar's start. */
+@layer paper.components {
+  .paper-skip-link {
+    position: absolute;
+    inset-block-start: var(--paper-space-8);
+    inset-inline-start: var(--paper-space-8);
+    z-index: var(--paper-z-toast);
+    padding: var(--paper-space-6) var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-chip-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-surface);
+    color: var(--paper-accent);
+    font: var(--paper-type-control);
+    box-shadow: var(--paper-shadow-float);
+    transform: translateY(-200%);
+  }
+
+  .paper-skip-link:focus-visible {
+    transform: none;
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
+
+  .paper-reader-canvas:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-inset);
   }
 }

@@ -46,34 +46,41 @@ import {
 } from "@laminapdf/ui";
 import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useAnnouncements } from "./announce.tsx";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
+import { clearDocumentCache } from "./offline/document-cache.ts";
+import { useInstall } from "./offline/install.tsx";
+import { useOffline } from "./offline/offline.tsx";
+import type { AppUpdates } from "./offline/updates.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { railTabs } from "./rail.tsx";
+import { type Recent, useRecent } from "./recent.tsx";
 import type { SelectionSurfaces } from "./selection.tsx";
 import { useSelection } from "./selection.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
+import { type Settings, useSettings } from "./settings.tsx";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
 const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 
-type MoreId = "save-copy" | "print" | "properties" | "open" | "rotate";
+type MoreId = "save-copy" | "print" | "properties" | "install" | "open" | "rotate" | "settings" | "shortcuts";
 
 /** The More menu's commands, by item. */
 const MORE_COMMANDS = {
   "save-copy": "file.save-copy",
   print: "file.print",
   properties: "file.properties",
-} as const satisfies Record<Exclude<MoreId, "open" | "rotate">, OutputCommand>;
+} as const satisfies Record<Exclude<MoreId, "install" | "open" | "rotate" | "settings" | "shortcuts">, OutputCommand>;
 
 /**
  * The More menu (R09): Download a copy, Print… and Document properties, which need an open
  * document, then the reader's own items.
  */
-function moreEntries(open: boolean): GatedEntry<MoreId>[] {
+function moreEntries(open: boolean, installable: boolean): GatedEntry<MoreId>[] {
   const needsDocument = open ? {} : { isDisabled: true, disabledReason: message("command.reason.noDocument") };
   return [
     { id: "save-copy", label: message("command.file.save-copy"), icon: "download", ...needsDocument },
@@ -85,8 +92,14 @@ function moreEntries(open: boolean): GatedEntry<MoreId>[] {
       ...needsDocument,
     },
     { id: "properties", label: message("menu.properties"), icon: "info", ...needsDocument },
+    // R15: only while the browser offers an install.
+    ...(installable
+      ? [{ id: "install" as const, label: message("command.app.install"), icon: "download" as const }]
+      : []),
     { id: "open", label: message("reader.open.choose") },
     { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
+    { id: "settings", label: message("command.app.settings"), icon: "settings" },
+    { id: "shortcuts", label: message("command.help.shortcuts"), icon: "keyboard" },
   ];
 }
 
@@ -153,6 +166,8 @@ function useReaderCommands(
     ReturnType<typeof useHistory>["actions"] &
     Output["actions"] &
     SelectionSurfaces["actions"],
+  /** The handlers that work with or without a document: the settings'. */
+  appActions: Settings["actions"],
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -170,11 +185,12 @@ function useReaderCommands(
       actions: {
         ...shellActions(shell.layout, shell.modes, { rail }),
         "palette.open": shell.openPalette,
+        ...appActions,
         ...(viewer === undefined ? {} : documentActions),
         "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
       },
     }),
-    [platform, reader, viewer, shell, modes, rail, documentActions],
+    [platform, reader, viewer, shell, modes, rail, documentActions, appActions],
   );
   return { registry, context };
 }
@@ -292,7 +308,7 @@ function ReaderDialogs({
   );
 }
 
-/** The inspector's panel and the status bar's items: the network indicator first. */
+/** The inspector's panel, the status bar's items (the network indicator first) and the offline notice (R15). */
 function usePanels(
   layout: ShellLayout,
   platform: Platform,
@@ -300,14 +316,21 @@ function usePanels(
   fileName: string | undefined,
   engine: EngineState,
   debug: boolean,
-): { inspector: ReactNode; status: ReactNode[] } {
+  offline: { readonly updates: AppUpdates; readonly toasts: ToastQueue; readonly documentOpen: boolean },
+): { inspector: ReactNode; status: ReactNode[]; notice: ReactNode } {
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, platform, fileName, engine.repairs);
   const { indicator, inspector: networkPanel } = useNetworkPanel(layout, platform, network);
+  const connection = useOffline(offline.updates, offline.toasts, offline.documentOpen);
   // One inspector at a time: whichever panel the layout holds draws, the other draws nothing.
   const inspector = repairsPanel ?? networkPanel;
   return {
     inspector,
-    status: [...(indicator === undefined ? [] : [indicator]), ...statusItems(engine, debug, showRepairs)],
+    status: [
+      ...(indicator === undefined ? [] : [indicator]),
+      ...statusItems(engine, debug, showRepairs),
+      ...connection.status,
+    ],
+    notice: connection.notice,
   };
 }
 
@@ -320,12 +343,18 @@ function useDocumentMenu(
   platform: Platform,
   state: ReaderState,
   shown: Viewer | undefined,
+  settings: Settings,
+  updates: AppUpdates,
 ): {
   toasts: ToastQueue;
   labels: readonly string[] | undefined;
   output: Output;
   moreItems: { items: ReturnType<typeof useGatedEntries<MoreId>>; onAction: (id: MoreId) => void };
+  recent: Recent;
+  /** The handlers that work with or without a document: the settings', recent files', install and update. */
+  appActions: Settings["actions"];
 } {
+  const appActions = settings.actions;
   const pages = useStoreState(engine, (s) => s.pages);
   const [toasts] = useState(() => new ToastQueue());
   const labels = useMemo(
@@ -337,27 +366,99 @@ function useDocumentMenu(
       ? { fileName: state.file.name, pages, labels, viewer: shown }
       : undefined;
   const output = useOutput(engine, platform, toasts, document);
-  const items = useGatedEntries<MoreId>(moreEntries(document !== undefined));
+  const recent = useRecent(platform, engine, state, settings.registry, toasts, () =>
+    clearDocumentCache(platform.storage),
+  );
+  const install = useInstall();
+  const items = useGatedEntries<MoreId>(moreEntries(document !== undefined, install.available));
   const onAction = (id: MoreId) => {
     if (id === "open") engine.reader.close();
     else if (id === "rotate") engine.getState().viewer?.rotate(90);
+    else if (id === "settings") appActions["app.settings"]?.(undefined);
+    else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
+    else if (id === "install") install.actions["app.install"]?.();
     else output.actions[MORE_COMMANDS[id]]();
   };
-  return { toasts, labels, output, moreItems: { items, onAction } };
+  return {
+    toasts,
+    labels,
+    output: { ...output, dialogs: [output.dialogs, install.dialog] },
+    moreItems: { items, onAction },
+    recent,
+    appActions: {
+      ...appActions,
+      ...recent.actions,
+      ...install.actions,
+      ...(updates.getState().ready ? { "app.reload-update": () => updates.reload() } : {}),
+    },
+  };
 }
 
-/** The reader over `engine`, on `platform`; `debug` shows the debug menu (`#debug`). */
-export function App({
+/** The debug menu (#debug): which backend draws the pages. */
+function EngineDebugMenu({ engine, backend }: { engine: Engine; backend: EngineState["backend"] }): ReactNode {
+  return <DebugMenu backend={backend} onBackendChange={(next) => void engine.switchBackend(next)} keys={KEYS} />;
+}
+
+/** What the canvas shows: the home, a link's failure, an open failure, and the view. */
+function Canvas({
   engine,
+  state,
   platform,
-  network,
-  debug,
+  viewer,
+  recent,
 }: {
   engine: Engine;
+  state: ReaderState;
   platform: Platform;
-  network: NetworkMonitor;
-  debug: boolean;
+  viewer: Viewer | undefined;
+  /** The home screen's Recent list. */
+  recent: ReactNode;
 }): ReactNode {
+  const { reader } = engine;
+  const linkProblem = useStoreState(engine, (s) => s.linkProblem);
+  return (
+    <>
+      {state.phase === "empty" && linkProblem === undefined ? (
+        <OpenDropZone reader={reader} keys={KEYS}>
+          {recent}
+          <p className="web-privacy">{message("reader.open.privacy")}</p>
+        </OpenDropZone>
+      ) : null}
+      {state.phase === "empty" && linkProblem !== undefined ? (
+        <RemoteFailure
+          reason={linkProblem}
+          onHome={() => engine.dismissLinkProblem()}
+          onChooseFile={() => void reader.openFromPicker()}
+        />
+      ) : null}
+      {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
+      <ViewerHost viewer={viewer} visible={state.phase === "open"} />
+    </>
+  );
+}
+
+/** Props of `App`. */
+export interface AppProps {
+  readonly engine: Engine;
+  readonly platform: Platform;
+  readonly network: NetworkMonitor;
+  /** The service worker's update flow (R15). */
+  readonly updates: AppUpdates;
+  /** Shows the debug menu (`#debug`). */
+  readonly debug: boolean;
+}
+
+/** The rail's tabs for the open document, made again only when the view, the strip or find changes. */
+function useRailTabs(engine: Engine, layout: ShellLayout, open: boolean, finding: boolean) {
+  const { strip, viewer } = useStoreState(engine, (s) => s);
+  return useMemo(
+    () => railTabs(engine, layout, open ? { strip, viewer, finding } : undefined),
+    [engine, layout, open, strip, viewer, finding],
+  );
+}
+
+/** The reader over `engine`, on `platform`. */
+export function App({ engine, platform, network, updates, debug }: AppProps): ReactNode {
   const { reader } = engine;
   const state = useReaderState(reader);
   const engineState = useStoreState(engine, (s) => s);
@@ -368,35 +469,43 @@ export function App({
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
-  const { toasts, labels, output, moreItems } = useDocumentMenu(engine, platform, state, shown);
-  // The rail's panels are made again only when the view or the strip changes.
-  const { strip } = engineState;
+  const settings = useSettings(shell.openPalette);
+  const menu = useDocumentMenu(engine, platform, state, shown, settings, updates);
+  const { toasts, labels, output, moreItems, recent } = menu;
   const find = useFind(shown, open ? state.file : undefined);
-  const tabs = useMemo(
-    () => railTabs(engine, layout, open ? { strip, viewer, finding: find.open } : undefined),
-    [engine, layout, open, strip, viewer, find.open],
-  );
+  const tabs = useRailTabs(engine, layout, open, find.open);
   const fileName = open ? state.file.name : undefined;
   const rail = tabs.length > 0;
   const history = useHistory(shown, engineState.pages);
   const selection = useSelection(shown, find, platform, KEYS);
-  const commands = useReaderCommands(platform, reader, shown, shell, rail, {
-    ...find.actions,
-    ...history.actions,
-    ...output.actions,
-    ...selection.actions,
-  });
+  const commands = useReaderCommands(
+    platform,
+    reader,
+    shown,
+    shell,
+    rail,
+    { ...find.actions, ...history.actions, ...output.actions, ...selection.actions },
+    menu.appActions,
+  );
   useWindowTitle(fileName, engineState.title);
-  const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
-  const debugMenu = debug ? (
-    <DebugMenu backend={backend} onBackendChange={(next) => void engine.switchBackend(next)} keys={KEYS} />
-  ) : undefined;
+  const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState.pages);
+  const { inspector, status, notice } = usePanels(layout, platform, network, fileName, engineState, debug, {
+    updates,
+    toasts,
+    documentOpen: open,
+  });
   return (
-    <CommandsProvider registry={commands.registry} context={commands.context} keys={KEYS}>
+    <CommandsProvider
+      registry={commands.registry}
+      context={commands.context}
+      keys={KEYS}
+      singleKeys={settings.appearance.singleKeys}
+    >
       <ReaderShell
         layout={layout}
         modes={modes}
         {...(find.bar === undefined ? {} : { secondaryToolbar: find.bar })}
+        notice={notice}
         topBar={
           <ReaderTopBar
             reader={reader}
@@ -407,7 +516,8 @@ export function App({
             {...(shown === undefined ? {} : { history: history.history })}
             {...(labels === undefined ? {} : { labels })}
             home={<span className="web-wordmark">{APP_NAME}</span>}
-            debug={debugMenu}
+            debug={debug ? <EngineDebugMenu engine={engine} backend={backend} /> : undefined}
+            view={settings.viewButton}
             more={moreItems}
           />
         }
@@ -421,25 +531,14 @@ export function App({
           </>
         }
       >
-        {state.phase === "empty" && engineState.linkProblem === undefined ? (
-          <OpenDropZone reader={reader} keys={KEYS}>
-            <p className="web-privacy">{message("reader.open.privacy")}</p>
-          </OpenDropZone>
-        ) : null}
-        {state.phase === "empty" && engineState.linkProblem !== undefined ? (
-          <RemoteFailure
-            reason={engineState.linkProblem}
-            onHome={() => engine.dismissLinkProblem()}
-            onChooseFile={() => void reader.openFromPicker()}
-          />
-        ) : null}
-        {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
-        <ViewerHost viewer={viewer} visible={open} />
+        <Canvas engine={engine} state={state} platform={platform} viewer={viewer} recent={recent.home} />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
         {output.dialogs}
       </ReaderShell>
       <ToastRegion queue={toasts} aria-label={message("shell.toasts")} />
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
+      {settings.dialogs}
+      {liveRegions}
       {selection.toolbar}
     </CommandsProvider>
   );

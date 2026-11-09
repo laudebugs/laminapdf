@@ -46,6 +46,8 @@ export interface ReaderTopBarProps<Id extends string> {
   home?: ReactNode;
   /** A `DebugMenu`, which the shell shows only for `#debug`. */
   debug?: ReactNode;
+  /** The View settings button with its popover (`ViewSettingsButton`, R10), after Find. */
+  view?: ReactNode;
   /** The More menu's items, gated by capability where they need one (`useGatedEntries`). */
   more: {
     /** The menu's entries. */
@@ -168,6 +170,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
             onPress={() => find.run()}
           />
         )}
+        {props.view}
         {palette.availability.state === "hidden" ? null : (
           <AriaButton className="paper-commands-button" onPress={() => palette.run()}>
             <span>{message("reader.commands")}</span>

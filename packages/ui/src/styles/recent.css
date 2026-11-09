@@ -1,0 +1,75 @@
+/* The Recent list (R01): a heading with Clear list beside it, then one row per document, its
+   name in Newsreader over a muted meta line, the date at the end; at least 44 px tall on touch. */
+@layer paper.components {
+  .paper-recent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    inline-size: 100%;
+  }
+
+  .paper-recent-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-recent-title {
+    margin: 0;
+    font: var(--paper-type-heading);
+    letter-spacing: var(--paper-type-heading-letter-spacing);
+  }
+
+  .paper-recent-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-recent-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--paper-space-12);
+    inline-size: 100%;
+    min-block-size: var(--paper-target-min-touch);
+    padding: var(--paper-space-8) var(--paper-space-4);
+    border: 0;
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    background: transparent;
+    color: var(--paper-text);
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .paper-recent-row[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  .paper-recent-row[data-focus-visible] {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-inset);
+  }
+
+  .paper-recent-name {
+    grid-column: 1;
+    font: var(--paper-type-document-name);
+    letter-spacing: var(--paper-type-document-name-letter-spacing);
+    overflow-wrap: anywhere;
+  }
+
+  .paper-recent-meta {
+    grid-column: 1;
+    color: var(--paper-text-3);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-recent-date {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    color: var(--paper-text-3);
+    font: var(--paper-type-caption);
+  }
+}

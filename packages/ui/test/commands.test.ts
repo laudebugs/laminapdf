@@ -176,8 +176,8 @@ describe("CommandRegistry", () => {
 describe("the reader's commands", () => {
   const commands = readerCommands();
 
-  it("are ADR 0024's 44, each with a visible home besides the palette", () => {
-    expect(commands).toHaveLength(44);
+  it("are ADR 0024's 48, each with a visible home besides the palette", () => {
+    expect(commands).toHaveLength(48);
     expect(commands.filter((c) => c.home.length === 0).map((c) => c.id)).toEqual([]);
   });
 
@@ -322,7 +322,7 @@ describe("rankCommands", () => {
     expect(rankCommands("", items, ["nav.next-page"])[0]?.item.id).toBe("nav.next-page");
   });
 
-  it("ranks 44 commands quickly enough for every keystroke", () => {
+  it("ranks 46 commands quickly enough for every keystroke", () => {
     const many = readerCommands().map((c) => ({ id: c.id, title: String(c.title), keywords: c.keywords ?? [] }));
     const start = performance.now();
     for (const query of ["z", "zo", "zoo", "zoom", "zoom 1", "go to 12", "pr", "pri"]) rankCommands(query, many);
