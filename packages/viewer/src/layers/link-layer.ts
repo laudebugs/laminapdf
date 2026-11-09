@@ -33,7 +33,7 @@ export interface LinkWords {
   otherFile(file: string | undefined): string;
   /** A link whose address can't be opened (a `javascript:`, `file:` or `data:` one). */
   refused(uri: string): string;
-  /** A link that runs an action a reader never runs (`Launch`, `JavaScript`…). */
+  /** A link that asks to run an action, which the reader never does (`Launch`, `JavaScript`…). */
   readonly unsupported: string;
   /** A link whose destination isn't in the document. */
   readonly broken: string;
@@ -51,7 +51,7 @@ const ENGLISH: LinkWords = {
       ? "Links to another file, which can't be opened from here"
       : `Links to another file, ${file}, which can't be opened from here`,
   refused: (uri) => `This link's address can't be opened: ${uri}`,
-  unsupported: "This link runs an action the reader doesn't run",
+  unsupported: "This link asks to run an action. The reader never runs these.",
   broken: "This link's destination isn't in the document",
 };
 

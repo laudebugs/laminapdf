@@ -159,7 +159,7 @@ describe(`links and history in ${BROWSER}`, () => {
     const before = page.url();
     for (const name of [
       /doesn't open this kind of link: javascript:/,
-      "This link runs an action Lamina PDF doesn't run.",
+      "This link asks to run an action. Lamina PDF never runs these.",
     ]) {
       await page.getByRole("link", { name }).first().click({ force: true });
     }

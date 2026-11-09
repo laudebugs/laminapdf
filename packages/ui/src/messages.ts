@@ -204,7 +204,7 @@ const EN = {
   "link.otherFile": "Links to another file, {file}, which Lamina PDF can't open from here.",
   "link.otherFile.unnamed": "Links to another file, which Lamina PDF can't open from here.",
   "link.refused": "Lamina PDF doesn't open this kind of link: {uri}",
-  "link.unsupported": "This link runs an action Lamina PDF doesn't run.",
+  "link.unsupported": "This link asks to run an action. Lamina PDF never runs these.",
   "link.broken": "This link goes to a place that isn't in the document.",
   "command.find.open": "Find in document",
   "command.find.next": "Next match",
