@@ -5,6 +5,7 @@ import type { RenderRequest } from "@laminapdf/render";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { BackendInit, SourceInit, ViewerOpenOptions } from "../protocol.js";
 import { closeDocument, current, initBackend, openDocument, workerMemory } from "./document.js";
+import { networkLog } from "./network.js";
 import { render, reply } from "./render.js";
 import { forgetText, pageText, replyText, structure } from "./text.js";
 
@@ -31,6 +32,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     reply: (tile) => reply(tile as Parameters<typeof reply>[0]),
   },
   memory: { run: () => workerMemory() },
+  networkLog: { run: () => networkLog() },
   pageText: {
     run: ([index], { signal }) => pageText(index as number, signal),
     reply: (text) => replyText(text as Parameters<typeof replyText>[0]),

@@ -181,6 +181,15 @@ export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
 export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
 export { WholeFileDownload, type WholeFileDownloadProps } from "./reader/loading.js";
+export {
+  formatBytes,
+  NetworkActivityPanel,
+  type NetworkActivityPanelProps,
+  type NetworkAppRow,
+  type NetworkBlockedRow,
+  type NetworkOriginRow,
+  networkIndicatorText,
+} from "./reader/network.js";
 export { OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
 export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";

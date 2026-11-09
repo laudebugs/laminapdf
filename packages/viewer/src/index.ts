@@ -8,15 +8,19 @@ export type { RestartReason, ViewerCallOptions, ViewerEvent, ViewerEvents, Viewe
 export { ViewerClient } from "./client.js";
 export type { TextLayerOptions, TextSelection } from "./layers/text-layer.js";
 export type { Rotation } from "./layout/page-layout.js";
+export { type NetworkSink, watchNetwork } from "./network/watch.js";
 export type {
   BackendInit,
   BackendName,
   LoadProgress,
   MethodName,
   Methods,
+  NetworkRecord,
+  NetworkSource,
   OpenedDocument,
   PageTextData,
   Params,
+  PolicyViolation,
   Priority,
   RemoteSource,
   RenderedBitmap,
@@ -26,6 +30,7 @@ export type {
   TextRunData,
   ViewerOpenOptions,
   WorkerMemory,
+  WorkerNetworkLog,
 } from "./protocol.js";
 export type {
   CreateViewerOptions,

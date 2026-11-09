@@ -77,6 +77,7 @@ export interface Methods {
   memory: { params: []; result: WorkerMemory };
   pageText: { params: [index: number]; result: PageTextData };
   structure: { params: []; result: StructureData };
+  networkLog: { params: []; result: WorkerNetworkLog };
 }
 
 /** One text run of a page: glyphs of one font, size and direction on one baseline, in logical order. */
@@ -111,6 +112,43 @@ export interface PageTextData {
 export interface StructureData {
   readonly tagged: boolean;
   readonly tree?: readonly StructureNode[];
+}
+
+/** Which JavaScript context made a request: the page, or the document worker. */
+export type NetworkSource = "page" | "worker";
+
+/** One network request a context made, as `watchNetwork` reports it. */
+export interface NetworkRecord {
+  readonly url: string;
+  readonly method: string;
+  /**
+   * What made it: `fetch`, `xmlhttprequest`, `websocket` and `beacon` for wrapped calls, else the
+   * Resource Timing `initiatorType` (`script`, `link`, `css`, `img`, `navigation` …).
+   */
+  readonly initiator: string;
+  /** Bytes received, when known (0 otherwise). */
+  readonly bytes: number;
+  /** The call failed or was refused (a CORS refusal, a network error, a beacon not queued). */
+  readonly failed: boolean;
+  readonly source: NetworkSource;
+  /** `Date.now()` when it was reported. */
+  readonly at: number;
+}
+
+/** A request the Content Security Policy blocked: nothing was sent. */
+export interface PolicyViolation {
+  readonly directive: string;
+  readonly blockedUri: string;
+  readonly source: NetworkSource;
+  readonly at: number;
+}
+
+/** The document worker's network log: every request and blocked request since it started. */
+export interface WorkerNetworkLog {
+  /** Different for each worker the client starts, so a restarted worker's records stay apart. */
+  readonly worker: string;
+  readonly requests: readonly NetworkRecord[];
+  readonly violations: readonly PolicyViolation[];
 }
 
 /** How much of a remote file the worker has read: the `progress` event. */
