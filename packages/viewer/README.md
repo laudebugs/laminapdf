@@ -53,7 +53,11 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 | `pointAt(x, y)`, `positionOf(point)` | Converts between viewport positions and document points. |
 | `MIN_ZOOM`, `MAX_ZOOM` | The bounds of a percentage zoom, 10 and 800, for a zoom control's range. |
 
+<<<<<<< HEAD
 **Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The text layer fills the first, links the second and find highlights the third. The text slot takes pointer events; the other slots pass them through, except to elements a layer marks, such as a link's anchor. A layer with another name gets its own slot on top.
+=======
+**Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The text layer fills the first; find's highlights mount in `highlight`, and links will mount in `annot`, through `addLayer`. A layer with another name gets its own slot on top. Every slot above the text lets the pointer through (`pointer-events: none`), so text stays selectable under it; an element a layer wants clicked, such as a link, sets `pointer-events: auto` on itself.
+>>>>>>> origin/main
 
 **Text.** The text layer makes every page's text selectable, copyable and readable by screen readers, whichever backend draws the page.
 - **Spans.** Each text run of Lamina PDF's extraction gets one transparent span, placed from its glyphs' quads, never from the renderer's. A rotated or vertical run gets a rotated span, and a span reads right to left when its first letter does. The spans sit in a box sized in points, which one CSS transform scales and turns to the page, so a zoom or a rotation moves no span.

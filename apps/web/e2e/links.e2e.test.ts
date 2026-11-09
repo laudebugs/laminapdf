@@ -150,6 +150,8 @@ describe(`links and history in ${BROWSER}`, () => {
     const popup = page.waitForEvent("popup");
     await page.getByRole("button", { name: "Open website" }).click();
     const opened = await popup;
+    // The new tab starts blank and then navigates: read it once it has loaded.
+    await opened.waitForLoadState();
     await expect.poll(() => landing().length).toBeGreaterThan(0);
     // No Referer, or (WebKit) an empty one: either way the site learns nothing of the reader.
     expect(landing()[0]?.headers.referer ?? "").toBe("");
