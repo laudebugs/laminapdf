@@ -58,6 +58,8 @@ class DemoViewer implements ViewerControls {
     return () => this.#listeners.delete(listener);
   };
   goToPage = (index: number) => this.#set({ currentPage: index });
+  // A stand-in records no history: a jump is a plain move.
+  jumpToPage = (index: number) => this.goToPage(index);
   setZoom = (zoom: Zoom) => this.#set({ zoom, percent: typeof zoom === "number" ? zoom : 100 });
   rotate = () => undefined;
   #set(next: Partial<ViewerSlice>) {

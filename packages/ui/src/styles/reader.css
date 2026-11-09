@@ -89,6 +89,24 @@
     gap: var(--paper-space-14);
   }
 
+  /* The viewer's link anchors (R07): the focus ring the design language gives every control; in
+     forced colours, the system's highlight. The viewer adds no style sheet of its own. */
+  .lamina-link:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  @media (forced-colors: active) {
+    .lamina-link:focus-visible {
+      outline-color: Highlight;
+    }
+  }
+
+  .paper-top-bar-history {
+    display: flex;
+    gap: var(--paper-space-2);
+  }
+
   .paper-page-input {
     display: flex;
     align-items: center;

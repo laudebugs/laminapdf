@@ -1,4 +1,4 @@
-# Fixture generators in tools/fixtures/: fonts.py (fontTools: MIT), text_facts.py and build_facts.py (pypdf:
+# Fixture generators in tools/fixtures/: fonts.py (fontTools: MIT), text_facts.py, build_facts.py and link_facts.py (pypdf:
 # BSD-3-Clause; also needs qpdf at the version pinned in tools/xtask/src/doctor.rs), structure_facts.py
 # (pypdfium2: Apache-2.0 OR BSD-3-Clause, with PDFium's BSD-3-Clause binaries; same pin as
 # tools/render/requirements.txt). Tools only:

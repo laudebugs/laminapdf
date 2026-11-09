@@ -5,6 +5,7 @@
 //! or nested deeper than [`Limits::max_tree_depth`](laminapdf_cos::Limits::max_tree_depth) is
 //! skipped with its subtree ([`Warning::OutlineItemSkipped`]).
 
+use std::borrow::Cow;
 use std::cell::OnceCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -109,6 +110,25 @@ pub enum ActionKind {
 }
 
 impl ActionKind {
+    /// The `/S` name the file uses for this type (`Other`'s as stored, lossily decoded).
+    #[must_use]
+    pub fn as_name(&self) -> Cow<'_, str> {
+        Cow::Borrowed(match self {
+            Self::GoTo => "GoTo",
+            Self::GoToR => "GoToR",
+            Self::GoToE => "GoToE",
+            Self::Launch => "Launch",
+            Self::Thread => "Thread",
+            Self::Uri => "URI",
+            Self::Named => "Named",
+            Self::JavaScript => "JavaScript",
+            Self::SubmitForm => "SubmitForm",
+            Self::ResetForm => "ResetForm",
+            Self::ImportData => "ImportData",
+            Self::Other(name) => return String::from_utf8_lossy(name),
+        })
+    }
+
     pub(crate) fn from_name(name: &[u8]) -> Self {
         match name {
             b"GoTo" => Self::GoTo,
@@ -179,6 +199,24 @@ impl<'d> Outline<'d> {
 
     pub(crate) fn with_pages(doc: &'d Document, pages: &'d Pages<'d>) -> Result<Self> {
         Self::build(doc, PageSource::Borrowed(pages))
+    }
+
+    /// An outline without its items, for resolving destinations alone (a page's links)
+    /// without walking a bookmark tree that can hold thousands of items.
+    pub(crate) const fn without_items(doc: &'d Document, pages: &'d Pages<'d>) -> Self {
+        Self {
+            doc,
+            items: Vec::new(),
+            roots: Vec::new(),
+            by_id: BTreeMap::new(),
+            pages: PageSource::Borrowed(pages),
+            names: OnceCell::new(),
+        }
+    }
+
+    /// The document it reads.
+    pub(crate) const fn doc(&self) -> &'d Document {
+        self.doc
     }
 
     fn build(doc: &'d Document, pages: PageSource<'d>) -> Result<Self> {
@@ -390,7 +428,7 @@ impl<'d> Outline<'d> {
     }
 
     /// Resolves a destination value (`/Dest` or a `GoTo` action's `/D`).
-    fn destination(&self, value: &Object) -> Result<Option<Destination>> {
+    pub(crate) fn destination(&self, value: &Object) -> Result<Option<Destination>> {
         let Some(resolved) = self.doc.read(value)? else {
             return Ok(None);
         };

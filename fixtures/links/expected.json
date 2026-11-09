@@ -1,0 +1,218 @@
+{
+  "pypdf_version": "6.21.3",
+  "files": {
+    "links.pdf": [
+      [
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            736.0,
+            400.0,
+            754.0
+          ],
+          "page": 2
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            700.0,
+            400.0,
+            718.0
+          ],
+          "page": 1
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            664.0,
+            400.0,
+            682.0
+          ],
+          "page": 2
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            628.0,
+            400.0,
+            646.0
+          ],
+          "uri": "https://example.com/a?b=c#d"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            592.0,
+            400.0,
+            610.0
+          ],
+          "uri": "mailto:someone@example.com"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            556.0,
+            400.0,
+            574.0
+          ],
+          "uri": "https://bücher.example/"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            520.0,
+            400.0,
+            538.0
+          ],
+          "uri": "javascript:alert(1)"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            484.0,
+            400.0,
+            502.0
+          ],
+          "uri": "file:///etc/passwd"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            448.0,
+            400.0,
+            466.0
+          ],
+          "uri": "data:text/html,hi"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            412.0,
+            400.0,
+            430.0
+          ],
+          "file": "budget-2026.pdf"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            376.0,
+            400.0,
+            394.0
+          ],
+          "named": "NextPage"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            340.0,
+            400.0,
+            358.0
+          ],
+          "named": "LastPage"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            304.0,
+            400.0,
+            322.0
+          ],
+          "action": "Launch"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            268.0,
+            400.0,
+            286.0
+          ],
+          "action": "JavaScript"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            232.0,
+            400.0,
+            250.0
+          ],
+          "action": "SubmitForm"
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            196.0,
+            400.0,
+            214.0
+          ],
+          "page": 1
+        },
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            160.0,
+            400.0,
+            178.0
+          ],
+          "page": null
+        },
+        {
+          "hidden": true,
+          "rect": [
+            72.0,
+            80.0,
+            400.0,
+            98.0
+          ],
+          "page": 1
+        },
+        {
+          "hidden": false,
+          "rect": null,
+          "page": 1
+        }
+      ],
+      [
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            636.0,
+            400.0,
+            654.0
+          ],
+          "named": "FirstPage"
+        }
+      ],
+      [
+        {
+          "hidden": false,
+          "rect": [
+            72.0,
+            636.0,
+            400.0,
+            654.0
+          ],
+          "named": "PrevPage"
+        }
+      ]
+    ]
+  }
+}

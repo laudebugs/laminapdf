@@ -114,7 +114,7 @@ describe("RegistryPalette", () => {
     expect(calls.find((c) => c.id === "view.page-layout")?.args).toBe("two-up");
     expect(calls.find((c) => c.id === "file.open-url")?.args).toBe("https://example.com/a.pdf");
     expect(new Set(calls.map((c) => c.id)).size).toBe(calls.length);
-    expect(viewer.calls).toContainEqual({ method: "goToPage", value: 11 });
+    expect(viewer.calls).toContainEqual({ method: "jumpToPage", value: 11 });
     expect(viewer.calls).toContainEqual({ method: "setZoom", value: 150 });
   });
 
@@ -164,7 +164,7 @@ describe("RegistryPalette", () => {
     await frame();
     expect(rows()[0]?.textContent).toContain("Go to page: A-2");
     await userEvent.keyboard("{Enter}");
-    expect(viewer.calls).toEqual([{ method: "goToPage", value: 22 }]);
+    expect(viewer.calls).toEqual([{ method: "jumpToPage", value: 22 }]);
   });
 
   it("asks for missing arguments on a page of its own, and says why a try didn't parse", async () => {
@@ -182,7 +182,7 @@ describe("RegistryPalette", () => {
     await userEvent.keyboard("{Backspace}{Backspace}12{Enter}");
     await frame();
     expect(palette()).toBeNull();
-    expect(viewer.calls).toEqual([{ method: "goToPage", value: 11 }]);
+    expect(viewer.calls).toEqual([{ method: "jumpToPage", value: 11 }]);
   });
 
   it("shows a disabled command with why, each row's shortcut, and the result count", async () => {

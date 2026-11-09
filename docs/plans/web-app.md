@@ -128,7 +128,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** thumbnails, outline, links (with external-link confirmation), page labels, history, print, download, document properties dialog.
 **Accepted when:** link and outline targets match `expected.json`; printing a 50-page document works in Chrome, Firefox and Safari; download is byte-identical to the input.
-**Todos:** [C6a](../todos/done/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/ready/C6b-links-and-history.md), [C6c](../todos/ready/C6c-print-download-properties.md)
+**Todos:** [C6a](../todos/done/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/done/C6b-links-and-history.md), [C6c](../todos/ready/C6c-print-download-properties.md)
 
 ### C7. Accessibility, offline and launch
 
@@ -204,9 +204,9 @@ Ticked by the PR that completes them.
 ### C6. Navigation, print and properties
 - [x] Thumbnails sidebar (rendered at low priority, virtualised)
 - [x] Outline sidebar with expand/collapse and current-section tracking
-- [ ] Link layer: internal destinations, URIs with confirmation, named destinations
+- [x] Link layer: internal destinations, URIs with confirmation, named destinations
 - [x] Page labels in the page indicator and go-to-page
-- [ ] Back/forward navigation history
+- [x] Back/forward navigation history
 - [ ] Print path at print DPI; download of original bytes
 - [ ] Document properties dialog (metadata, fonts, version, encryption, signatures present)
 

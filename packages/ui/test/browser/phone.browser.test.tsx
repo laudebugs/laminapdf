@@ -157,6 +157,7 @@ describe("the phone's top bar", () => {
         return () => listeners.delete(l);
       },
       goToPage: () => undefined,
+      jumpToPage: () => undefined,
       setZoom: () => undefined,
       rotate: () => undefined,
     };

@@ -1,0 +1,191 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Names << /Dests 10 0 R >> /Dests << /appendix [6 0 R /Fit] >> >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 5 0 R 6 0 R] /Count 3 /MediaBox [0 0 612 792] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 7 0 R /Resources << /Font << /F1 3 0 R >> >> /Annots [20 0 R 21 0 R 22 0 R 23 0 R 24 0 R 25 0 R 26 0 R 27 0 R 28 0 R 29 0 R 30 0 R 31 0 R 32 0 R 33 0 R 34 0 R 35 0 R 36 0 R 37 0 R 38 0 R] >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 8 0 R /Resources << /Font << /F1 3 0 R >> >> /Annots [60 0 R] >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 9 0 R /Resources << /Font << /F1 3 0 R >> >> /Annots [61 0 R] >>
+endobj
+7 0 obj
+<< /Length 901 >>
+stream
+BT /F1 12 Tf 76 741 Td (Explicit destination: page 3) Tj ET
+BT /F1 12 Tf 76 705 Td (Named destination (string): page 2) Tj ET
+BT /F1 12 Tf 76 669 Td (GoTo a named destination (name): page 3) Tj ET
+BT /F1 12 Tf 76 633 Td (https, with /Contents) Tj ET
+BT /F1 12 Tf 76 597 Td (mailto) Tj ET
+BT /F1 12 Tf 76 561 Td (International host) Tj ET
+BT /F1 12 Tf 76 525 Td (javascript: (refused)) Tj ET
+BT /F1 12 Tf 76 489 Td (file: (refused)) Tj ET
+BT /F1 12 Tf 76 453 Td (data: (refused)) Tj ET
+BT /F1 12 Tf 76 417 Td (GoToR: another file) Tj ET
+BT /F1 12 Tf 76 381 Td (Named action: NextPage) Tj ET
+BT /F1 12 Tf 76 345 Td (Named action: LastPage) Tj ET
+BT /F1 12 Tf 76 309 Td (Launch (never run)) Tj ET
+BT /F1 12 Tf 76 273 Td (JavaScript (never run)) Tj ET
+BT /F1 12 Tf 76 237 Td (SubmitForm (never run)) Tj ET
+BT /F1 12 Tf 76 201 Td (QuadPoints: page 2) Tj ET
+BT /F1 12 Tf 76 165 Td (Broken destination) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Length 101 >>
+stream
+BT /F1 24 Tf 72 720 Td (Page 2: chapter) Tj ET
+BT /F1 12 Tf 76 641 Td (Named action: FirstPage) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Length 101 >>
+stream
+BT /F1 24 Tf 72 720 Td (Page 3: appendix) Tj ET
+BT /F1 12 Tf 76 641 Td (Named action: PrevPage) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Names [(chapter) [5 0 R /FitH 600]] >>
+endobj
+20 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 736 400 754] /Border [0 0 1] /Dest [6 0 R /XYZ 72 700 0] >>
+endobj
+21 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 700 400 718] /Border [0 0 1] /Dest (chapter) >>
+endobj
+22 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 664 400 682] /Border [0 0 1] /A << /S /GoTo /D /appendix >> >>
+endobj
+23 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 628 400 646] /Border [0 0 1] /Contents (The project site) /A << /S /URI /URI (https://example.com/a?b=c#d) >> >>
+endobj
+24 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 592 400 610] /Border [0 0 1] /A << /S /URI /URI (mailto:someone@example.com) >> >>
+endobj
+25 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 556 400 574] /Border [0 0 1] /A << /S /URI /URI (https://b\303\274cher.example/) >> >>
+endobj
+26 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 520 400 538] /Border [0 0 1] /A << /S /URI /URI (javascript:alert\(1\)) >> >>
+endobj
+27 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 484 400 502] /Border [0 0 1] /A << /S /URI /URI (file:///etc/passwd) >> >>
+endobj
+28 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 448 400 466] /Border [0 0 1] /A << /S /URI /URI (data:text/html,hi) >> >>
+endobj
+29 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 412 400 430] /Border [0 0 1] /A << /S /GoToR /F << /Type /Filespec /F (budget-2026.pdf) /UF (budget-2026.pdf) >> /D [0 /Fit] >> >>
+endobj
+30 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 376 400 394] /Border [0 0 1] /A << /S /Named /N /NextPage >> >>
+endobj
+31 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 340 400 358] /Border [0 0 1] /A << /S /Named /N /LastPage >> >>
+endobj
+32 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 304 400 322] /Border [0 0 1] /A << /S /Launch /F (calc.exe) >> >>
+endobj
+33 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 268 400 286] /Border [0 0 1] /A << /S /JavaScript /JS (app.alert\(1\)) >> >>
+endobj
+34 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 232 400 250] /Border [0 0 1] /A << /S /SubmitForm /F << /FS /URL /F (https://example.com/) >> >> >>
+endobj
+35 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 196 400 214] /Border [0 0 1] /QuadPoints [72 214 236 214 72 196 236 196 236 214 400 214 236 196 400 196] /Dest [5 0 R /Fit] >>
+endobj
+36 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 160 400 178] /Border [0 0 1] /Dest [99 0 R /Fit] >>
+endobj
+37 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 80 400 98] /F 2 /Dest [5 0 R /Fit] >>
+endobj
+38 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 80] /Dest [5 0 R /Fit] >>
+endobj
+60 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 636 400 654] /A << /S /Named /N /FirstPage >> >>
+endobj
+61 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 636 400 654] /A << /S /Named /N /PrevPage >> >>
+endobj
+xref
+0 62
+0000000000 65535 f
+0000000015 00000 n
+0000000127 00000 n
+0000000220 00000 n
+0000000290 00000 n
+0000000535 00000 n
+0000000654 00000 n
+0000000773 00000 n
+0000001725 00000 n
+0000001877 00000 n
+0000002029 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000002088 00000 n
+0000002205 00000 n
+0000002310 00000 n
+0000002430 00000 n
+0000002600 00000 n
+0000002740 00000 n
+0000002884 00000 n
+0000003019 00000 n
+0000003151 00000 n
+0000003282 00000 n
+0000003470 00000 n
+0000003591 00000 n
+0000003712 00000 n
+0000003835 00000 n
+0000003969 00000 n
+0000004126 00000 n
+0000004310 00000 n
+0000004419 00000 n
+0000004514 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000004597 00000 n
+0000004703 00000 n
+trailer
+<< /Size 62 /Root 1 0 R >>
+startxref
+4808
+%%EOF
