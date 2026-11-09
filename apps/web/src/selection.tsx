@@ -54,12 +54,12 @@ function useToolbarSetting(storage: PlatformStorage): [boolean, () => void] {
       live = false;
     };
   }, [storage]);
+  // Kept from the committed value, outside the state updater, which React may run twice.
   const toggle = useCallback(() => {
-    setOn((was) => {
-      void storage.set(TOOLBAR_KEY, !was).catch(() => undefined);
-      return !was;
-    });
-  }, [storage]);
+    const next = !on;
+    setOn(next);
+    void storage.set(TOOLBAR_KEY, next).catch(() => undefined);
+  }, [storage, on]);
   return [on, toggle];
 }
 
