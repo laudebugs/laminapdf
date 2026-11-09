@@ -42,11 +42,11 @@ export interface EngineState {
 }
 
 /** Starts `backend`'s document worker and makes a view over it. */
-async function startSession(backend: DebugBackend): Promise<Session> {
+async function startSession(backend: DebugBackend, outline: boolean): Promise<Session> {
   const client = await ViewerClient.create({
     backend: backend === "pdfium" ? { backend: "pdfium", wasm: pdfiumWasm } : { backend: "hayro" },
   });
-  return { backend, client, viewer: createViewer({ client }) };
+  return { backend, client, viewer: createViewer({ client, text: { outline } }) };
 }
 
 /** Remote files by the PlatformFile that stands for each in the reader. */
@@ -125,7 +125,11 @@ export class Engine implements ExternalStore<EngineState> {
   /** The page to show once `file` has opened (from `#page=`): only that open uses it. */
   #page: { readonly file: PlatformFile; readonly page: number } | undefined;
 
-  constructor(platform: Platform, backend: DebugBackend) {
+  /** #debug outlines each text span, to check it lies over its glyphs. */
+  readonly #outline: boolean;
+
+  constructor(platform: Platform, backend: DebugBackend, options: { readonly outlineText?: boolean } = {}) {
+    this.#outline = options.outlineText === true;
     this.reader = new ReaderController(platform, (file, password) => this.#open(file, password));
     this.#state = {
       backend,
@@ -187,7 +191,7 @@ export class Engine implements ExternalStore<EngineState> {
   }
 
   #start(backend: DebugBackend): Promise<Session> {
-    const session = startSession(backend);
+    const session = startSession(backend, this.#outline);
     session.then(
       (started) => {
         if (this.#session !== session) return;

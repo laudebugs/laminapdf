@@ -33,6 +33,7 @@ export const DOCUMENT_METHODS = {
   extract: 1,
   hasUnsavedChanges: 0,
   info: 0,
+  isTagged: 0,
   page: 1,
   pageById: 1,
   pageCount: 0,
@@ -42,6 +43,7 @@ export const DOCUMENT_METHODS = {
   redo: 0,
   save: 1,
   saveWithReport: 1,
+  structureTree: 0,
   undo: 0,
   warnings: 0,
 } as const satisfies Record<RemotableDocumentMember, number>;

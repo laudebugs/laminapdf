@@ -178,3 +178,26 @@ describe("tagging", () => {
     expect(isLaminaPdfError(e, "invalid-argument") && e.didYouMean).toContain("layout");
   });
 });
+
+describe("reading a tagged document's structure", () => {
+  const golden = () => Document.open(read("fixtures/golden/tagged-report.pdf"));
+
+  it("says a tagged document is tagged, and an untagged one isn't", () => {
+    using tagged = golden();
+    using plain = Document.open(read("fixtures/golden/examples/hello.pdf"));
+    expect([tagged.isTagged, plain.isTagged]).toEqual([true, false]);
+  });
+
+  it("gives the structure tree, with marked content by page, and nothing for an untagged document", () => {
+    using doc = golden();
+    using plain = Document.open(read("fixtures/golden/examples/hello.pdf"));
+    const [root] = doc.structureTree() ?? [];
+    const first = root?.kids.find((kid) => kid.type === "node");
+    expect([
+      root?.kind,
+      first?.type === "node" && first.kind,
+      first?.type === "node" && first.kids[0],
+      plain.structureTree(),
+    ]).toEqual(["Document", "H1", { type: "content", page: 0, mcid: 0 }, undefined]);
+  });
+});

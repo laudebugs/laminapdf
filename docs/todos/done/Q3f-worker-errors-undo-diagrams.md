@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q3f` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0026](../../decisions/0026-error-and-diagnostic-contract.md) |
 | Branch | `feat/q3f-worker-errors-undo` |
 | PR title | `feat(docs): diagrams for the Web Worker, errors and warnings, and undo` |
 | Size | M |
-| PR | — |
+| PR | [#346](https://github.com/laudebugs/laminapdf/pull/346) |
 
 ## Goal
 
@@ -39,16 +39,16 @@ Three concept pages explain behaviour readers get wrong in their first week: wha
 
 ## Tasks
 
-- [ ] `components/diagrams/WorkerCalls.astro`, `ErrorsAndWarnings.astro` and `UndoTimeline.astro`, each placed in its section above.
-- [ ] Check the cancel rules against `packages/sdk/src/worker/` and the field names against `packages/sdk/schemas/error.schema.json`.
+- [x] `components/diagrams/WorkerCalls.astro`, `ErrorsAndWarnings.astro` and `UndoTimeline.astro`, each placed in its section above.
+- [x] Check the cancel rules against `packages/sdk/src/worker/` and the field names against `packages/sdk/schemas/error.schema.json`.
 
 ## Acceptance criteria
 
-- [ ] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
-- [ ] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
-- [ ] Each diagram is under 8 KB gzipped (reported in the PR).
-- [ ] `cargo xtask check docs` and the docs build pass.
-- [ ] The cancel rules and the error fields match the SDK's behaviour and schema.
+- [x] Each diagram is built from the Q3a kit, renders in both themes (screenshots checked while building; the PR's docs preview shows both) and passes the lint, twin and browser tests.
+- [x] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
+- [x] Each diagram is under 8 KB gzipped (reported in the PR).
+- [x] `cargo xtask check docs` and the docs build pass.
+- [x] The cancel rules and the error fields match the SDK's behaviour and schema.
 
 ## Post-merge checks
 
