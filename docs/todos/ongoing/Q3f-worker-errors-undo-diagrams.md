@@ -11,7 +11,7 @@
 | Branch | `feat/q3f-worker-errors-undo` |
 | PR title | `feat(docs): diagrams for the Web Worker, errors and warnings, and undo` |
 | Size | M |
-| PR | — |
+| PR | [#346](https://github.com/laudebugs/laminapdf/pull/346) |
 
 ## Goal
 

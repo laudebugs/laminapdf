@@ -11,7 +11,7 @@
 | Branch | `feat/q3d-package-map` |
 | PR title | `feat(docs): a diagram of the published packages and modules` |
 | Size | S |
-| PR | — |
+| PR | [#346](https://github.com/laudebugs/laminapdf/pull/346) |
 
 ## Goal
 
