@@ -26,6 +26,7 @@ use windows::Win32::Graphics::Gdi::{
     StretchDIBits,
 };
 use windows::Win32::Storage::Xps::{DOCINFOW, EndDoc, EndPage, StartDocW, StartPage};
+use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
 use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
 use windows::Win32::UI::Controls::Dialogs::{
     PD_NOCURRENTPAGE, PD_NOSELECTION, PD_RESULT_PRINT, PD_RETURNDC, PRINTDLGEXW, PRINTPAGERANGE, PrintDlgExW,
@@ -276,10 +277,42 @@ pub fn print_raster(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -
     })
 }
 
+/// The five PDFium entry points path C calls directly. pdfium-render 0.9.4 keeps its raw
+/// bindings and handles private and refuses a second binding, so they come from the DLL it
+/// already loaded and initialised (`GetProcAddress`); D4c would do the same in its own crate.
+struct Raw {
+    load_mem_document64: unsafe extern "C" fn(*const c_void, usize, *const i8) -> *mut c_void,
+    load_page: unsafe extern "C" fn(*mut c_void, i32) -> *mut c_void,
+    render_page: unsafe extern "C" fn(HDC, *mut c_void, i32, i32, i32, i32, i32, i32),
+    close_page: unsafe extern "C" fn(*mut c_void),
+    close_document: unsafe extern "C" fn(*mut c_void),
+}
+
+fn raw() -> Result<Raw, String> {
+    pdf::pdfium()?; // loads and initialises pdfium.dll
+    // SAFETY: GetModuleHandleW on a loaded module; each symbol is cast to its C signature
+    // from fpdfview.h.
+    unsafe {
+        let module = GetModuleHandleW(w!("pdfium.dll")).map_err(|e| format!("pdfium.dll: {e}"))?;
+        let sym = |name: &[u8]| {
+            GetProcAddress(module, windows::core::PCSTR(name.as_ptr())).ok_or_else(|| {
+                format!("pdfium.dll has no {}", String::from_utf8_lossy(&name[..name.len() - 1]))
+            })
+        };
+        Ok(Raw {
+            load_mem_document64: std::mem::transmute(sym(b"FPDF_LoadMemDocument64\0")?),
+            load_page: std::mem::transmute(sym(b"FPDF_LoadPage\0")?),
+            render_page: std::mem::transmute(sym(b"FPDF_RenderPage\0")?),
+            close_page: std::mem::transmute(sym(b"FPDF_ClosePage\0")?),
+            close_document: std::mem::transmute(sym(b"FPDF_CloseDocument\0")?),
+        })
+    }
+}
+
 pub fn print_vector(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -> Result<(), String> {
-    let bindings = pdf::raw_bindings()?;
+    let raw = raw()?;
     // SAFETY: the bytes outlive the document, which is closed before returning.
-    let doc = unsafe { bindings.FPDF_LoadMemDocument64(&fixture.bytes, None) };
+    let doc = unsafe { (raw.load_mem_document64)(fixture.bytes.as_ptr().cast(), fixture.bytes.len(), std::ptr::null()) };
     if doc.is_null() {
         return Err("PDFium can't open the file".into());
     }
@@ -287,17 +320,17 @@ pub fn print_vector(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -
         // SAFETY: a page of the open document, rendered onto the DC inside StartPage/EndPage
         // and closed at once.
         unsafe {
-            let page = bindings.FPDF_LoadPage(doc, i as i32);
+            let page = (raw.load_page)(doc, i as i32);
             if page.is_null() {
                 return Err(format!("PDFium can't load page {}", i + 1));
             }
-            bindings.FPDF_RenderPage(dc, page, r.x, r.y, r.w, r.h, 0, FPDF_ANNOT | FPDF_PRINTING);
-            bindings.FPDF_ClosePage(page);
+            (raw.render_page)(dc, page, r.x, r.y, r.w, r.h, 0, FPDF_ANNOT | FPDF_PRINTING);
+            (raw.close_page)(page);
         }
         Ok(())
     });
     // SAFETY: closes the document opened above.
-    unsafe { bindings.FPDF_CloseDocument(doc) };
+    unsafe { (raw.close_document)(doc) };
     result
 }
 

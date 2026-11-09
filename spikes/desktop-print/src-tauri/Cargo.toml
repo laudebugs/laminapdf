@@ -46,11 +46,10 @@ windows = { version = "=0.62.2", features = [
     "Win32_UI_Controls_Dialogs",
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Com",
+    "Win32_System_LibraryLoader",
     "Win32_System_Memory",
 ] }
 webview2-com = "=0.39.1"
-# The same pin with PDFium's GDI entry point (FPDF_RenderPage onto an HDC) for path C.
-pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe", "pdfium_use_win32"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "=0.18.2"

@@ -18,15 +18,6 @@ pub fn pdfium() -> Result<&'static Pdfium, String> {
     Ok(PDFIUM.get_or_init(|| Pdfium::new(bindings)))
 }
 
-/// A second, raw binding to the same library, for PDFium calls `pdfium-render` doesn't wrap
-/// (path C on Windows: `FPDF_RenderPage` onto a printer DC). `pdfium-render` 0.9.4 keeps its
-/// own bindings private; loading the library again reuses the loaded copy.
-pub fn raw_bindings() -> Result<Box<dyn pdfium_render::prelude::PdfiumLibraryBindings>, String> {
-    pdfium()?; // initialises the library once
-    let dir = std::env::var_os("LAMINA_PDF_PDFIUM_DIR").ok_or("set LAMINA_PDF_PDFIUM_DIR")?;
-    Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path(Path::new(&dir))).map_err(|e| e.to_string())
-}
-
 /// A page's displayed size in points (`/Rotate` applied).
 #[derive(Debug, Clone, Copy, serde::Serialize)]
 pub struct PageSize {
