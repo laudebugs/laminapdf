@@ -20,7 +20,7 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 
 ## Context
 
-- [UI/UX plan §5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) — the viewer only **emits** selection events (client rects, selected runs, pointer type); menus, copy modes and the touch action bar are [U2a](../ongoing/U2a-selection-surfaces-and-copy-modes.md)'s, so nothing here draws over the OS selection menu.
+- [UI/UX plan §5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) — the viewer only **emits** selection events (client rects, selected runs, pointer type); menus, copy modes and the touch action bar are [U2a](../done/U2a-selection-surfaces-and-copy-modes.md)'s, so nothing here draws over the OS selection menu.
 - [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction) — glyph runs with Unicode, quads, direction, `ActualText`, MCIDs; accepted when five-script fixtures match and quads lie within tolerance of PDFium's char boxes.
 - [03 text and fonts §8 extraction](../../research/pdf/03-text-and-fonts.md) — extraction model, reading order, ToUnicode.
 - [Research: web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — layering: raster canvas, transparent DOM text layer, struct-tree layer via `aria-owns` (pdf.js pattern), core must expose `StructTreeRoot`/`MarkInfo`.

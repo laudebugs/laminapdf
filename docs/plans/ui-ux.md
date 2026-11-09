@@ -101,7 +101,7 @@ Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/
 - **Copy as paragraph** is the default: column-aware, line breaks joined inside paragraphs, hyphenation repaired from lamina's extraction (B9). **Copy exact** keeps the layout's line breaks. Rectangular (column) selection with Alt/Option-drag, as in Preview.
 - Quality is measured, not assumed: [U2b](../todos/done/U2b-reading-order-ground-truth.md) builds a reading-order ground-truth corpus and metric (no public benchmark measures reading order).
 
-Delivered by [C5a](../todos/done/C5a-text-layer-and-selection.md) (text layer and selection events) and [U2a](../todos/ongoing/U2a-selection-surfaces-and-copy-modes.md) (menus and copy modes).
+Delivered by [C5a](../todos/done/C5a-text-layer-and-selection.md) (text layer and selection events) and [U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md) (menus and copy modes).
 
 ### 5.4 Mobile and touch (R17)
 
@@ -187,7 +187,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** selection toolbar and bottom action bar, copy as paragraph / copy exact / column selection; a reading-order ground-truth corpus with a metric in CI; page appearance modes in both render backends.
 **Accepted when:** copy-as-paragraph meets the U2b reading-order threshold on the corpus; Sepia and Dark modes leave opaque raster images pixel-identical to Original, and never recolour any image's samples.
-**Todos:** [U2a](../todos/ongoing/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/done/U2b-reading-order-ground-truth.md), [U2c](../todos/ready/U2c-page-appearance-modes.md)
+**Todos:** [U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/done/U2b-reading-order-ground-truth.md), [U2c](../todos/ready/U2c-page-appearance-modes.md)
 
 ### U3. Mobile and touch
 
@@ -269,8 +269,8 @@ Ticked by the PR that completes them.
 - [x] Left rail, docked inspector, mode switcher, secondary toolbar slot and focus mode ([U1c](../todos/done/U1c-inverted-l-shell-and-modes.md))
 
 ### U2. Reading quality
-- [ ] Desktop selection toolbar and touch bottom action bar
-- [ ] Copy as paragraph, copy exact and rectangular selection
+- [x] Desktop selection toolbar and touch bottom action bar ([U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md))
+- [x] Copy as paragraph, copy exact and rectangular selection ([U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md))
 - [x] Reading-order ground-truth corpus and metric in CI ([U2b](../todos/done/U2b-reading-order-ground-truth.md): 22 generated files, first mean 0.787, ratchet in `fixtures/reading-order/threshold.json`)
 - [ ] Page appearance modes (Original, Sepia, Dark, High contrast) in both render backends
 

@@ -44,7 +44,7 @@ Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) buil
 - Anchored positioning, the selection mini toolbar shell and the command palette shell → [U6j](./U6j-positioning-and-palette-shell.md).
 - The layer stack, z-order tokens, `Dialog`, menus, tooltips and the toast region → [U6e](../done/U6e-overlays-and-sheets.md).
 - Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](../done/U1b-command-registry-and-palette.md).
-- When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../ongoing/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](../done/U3a-responsive-mobile-and-touch.md).
+- When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../done/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](../done/U3a-responsive-mobile-and-touch.md).
 - Which panels become sheets on the phone → [U3a](../done/U3a-responsive-mobile-and-touch.md).
 - Gallery pages and screenshots → [U6f](../done/U6f-gallery-and-visual-tests.md).
 
