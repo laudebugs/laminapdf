@@ -2,17 +2,18 @@
 // Lamina PDF's extraction, laid over the rendered glyphs, so the browser's own selection, copy
 // and screen readers work on the page's text. Spans are placed in page points inside a box that
 // one CSS transform scales and rotates to the page's current size, so a zoom or a rotation moves
-// no span. The viewer is the one selection root: only spans are selectable, never canvases, gaps
-// or the app around it, so a selection runs from one page into the next; the pages it touches
-// stay mounted while it lasts. Copy writes the extracted text: by paragraph in the extraction's
-// reading order, or exact, as laid out (layers/copy.ts). Alt/Option-drag, or a drag in column
-// mode, selects the runs inside a rectangle instead (a column of a multi-column page), which the
-// layer marks itself, since a browser selection can't hold a rectangle.
+// no span. Only the spans are selectable, never canvases or gaps, so a selection runs from one
+// page into the next; the pages it touches stay mounted while it lasts. Copy writes the extracted
+// text of the part of a selection inside the viewer: by paragraph in the extraction's reading
+// order, or exact, as laid out (layers/copy.ts). Alt/Option-drag, or a drag in column mode,
+// selects the runs inside a rectangle instead (a column of a multi-column page), which the layer
+// marks itself, since a browser selection can't hold a rectangle.
 
 import type { ViewerClient } from "../client.js";
 import type { Rotation } from "../layout/page-layout.js";
 import { range as range_ } from "../layout/range.js";
 import type { OpenedDocument, ReadingBlock } from "../protocol.js";
+import { setUserSelect } from "../view/user-select.js";
 import type { PageLayer } from "../view/viewer.js";
 import { placeBox } from "./box.js";
 import { type CopyMode, copySelection } from "./copy.js";
@@ -21,7 +22,7 @@ import { StructureLayer } from "./structure-layer.js";
 
 /** What the text layer needs of its viewer. */
 export interface TextLayerHost {
-  /** The viewer's root: the selection root, and where the structure tree lives. */
+  /** The viewer's root: where selections start, and where the structure tree lives. */
   readonly root: HTMLElement;
   readonly client: Pick<ViewerClient, "pageText" | "structure" | "readingOrder">;
   /** The view's rotation now. */
@@ -105,9 +106,8 @@ export class TextLayer implements PageLayer {
     this.#host = host;
     this.#options = options;
     this.#structure = new StructureLayer(host.root, options.untaggedLabel ?? "Untagged document", this.#idPrefix);
-    // Nothing in the viewer is selectable but the spans (set on each): canvases, gaps and other
-    // layers stay out of every selection.
-    selectable(host.root, "none");
+    // Only the spans are selectable (set on each); what holds nothing to select sets `none` on
+    // itself (view/user-select.ts says why no ancestor of the spans may).
     this.#listen(document, "selectionchange", () => this.#selectionChanged());
     this.#listen(document, "copy", (e) => this.#copy(e as ClipboardEvent));
     this.#listen(host.root, "keydown", (e) => this.#selectAll(e as KeyboardEvent));
@@ -276,7 +276,7 @@ export class TextLayer implements PageLayer {
         transformOrigin: "0 0",
         ...(this.#options.outline === true ? { outline: "1px solid rgb(220 0 0 / 0.7)" } : {}),
       });
-      selectable(span, "text");
+      setUserSelect(span, "text");
       this.#specs.set(span, { page, spec });
       fragment.append(span);
       return span;
@@ -314,12 +314,32 @@ export class TextLayer implements PageLayer {
     return [...this.#pages.entries()].sort(([a], [b]) => a - b).flatMap(([, text]) => text.spans);
   }
 
-  /** The selection's range, when it is in this viewer's text. */
+  /**
+   * The selection's range in this viewer. A selection that runs on past the viewer into the app
+   * around it is cut at the first or last mounted span, so copy, the pinned pages and
+   * `onSelection` keep to the page text. `undefined` when it doesn't reach the viewer, or when its
+   * other end is in another viewer: neither could tell the whole of it, so both leave it to the
+   * browser.
+   */
   #range(): Range | undefined {
     const selection = document.getSelection();
     if (selection === null || selection.rangeCount === 0 || selection.isCollapsed) return undefined;
     const range = selection.getRangeAt(0);
-    return this.#host.root.contains(range.commonAncestorContainer) ? range : undefined;
+    const root = this.#host.root;
+    if (root.contains(range.commonAncestorContainer)) return range;
+    if (!range.intersectsNode(root)) return undefined;
+    const outside = (node: Node) => !root.contains(node);
+    const inOtherViewer = (node: Node) =>
+      outside(node) && (node instanceof Element ? node : node.parentElement)?.closest(".lamina-viewer") != null;
+    if (inOtherViewer(range.startContainer) || inOtherViewer(range.endContainer)) return undefined;
+    const spans = this.#spansInOrder();
+    const first = spans[0];
+    const last = spans.at(-1);
+    if (first === undefined || last === undefined) return undefined;
+    const inside = range.cloneRange();
+    if (outside(range.startContainer)) inside.setStart(first, 0);
+    if (outside(range.endContainer)) inside.setEnd(last, last.childNodes.length);
+    return inside.collapsed ? undefined : inside;
   }
 
   /** The selected part of each span the selection touches, in order. */
@@ -571,12 +591,6 @@ function rectBetween(start: { readonly x: number; readonly y: number }, now: { c
     width: Math.abs(now.clientX - start.x),
     height: Math.abs(now.clientY - start.y),
   };
-}
-
-/** Sets `element`'s `user-select`, with WebKit's prefix (Safari before 26 reads only that). */
-function selectable(element: HTMLElement, value: "none" | "text"): void {
-  element.style.setProperty("user-select", value);
-  element.style.setProperty("-webkit-user-select", value);
 }
 
 /** The index of the page `node` is on, from its shell. */

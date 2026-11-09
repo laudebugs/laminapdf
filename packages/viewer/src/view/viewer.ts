@@ -37,6 +37,7 @@ import {
 } from "../zoom/zoom.js";
 import { type DeviceHints, deviceHints, viewerBudgets } from "./budgets.js";
 import { TouchGestures, type TouchHost } from "./touch.js";
+import { setUserSelect } from "./user-select.js";
 
 /** Where a mounted page's pixels are. */
 export type PageRenderState = "placeholder" | "low" | "sharp" | "error";
@@ -875,8 +876,13 @@ export class Viewer {
       slot.className = `lamina-layer-${name}`;
       Object.assign(slot.style, { position: "absolute", inset: "0" });
       // The slots above the text cover the whole page: taking the pointer, they would sit between
-      // every press and the spans, and no drag could select text.
-      if (name !== "text") slot.style.pointerEvents = "none";
+      // every press and the spans, and no drag could select text. Nor are they part of a selection:
+      // each element the viewer adds that holds nothing to select sets `none` itself, never an
+      // ancestor of the spans (user-select.ts).
+      if (name !== "text") {
+        slot.style.pointerEvents = "none";
+        setUserSelect(slot, "none");
+      }
       view.slots.set(name, slot);
       view.shell.append(slot);
     }
@@ -1222,6 +1228,7 @@ export class Viewer {
     });
     if (old === undefined) {
       canvas.className = "lamina-page-detail";
+      setUserSelect(canvas, "none");
       if (view.canvas === undefined) view.shell.prepend(canvas);
       else view.canvas.after(canvas);
     }
@@ -1318,6 +1325,7 @@ export class Viewer {
     }
     if (canvas === undefined) return undefined;
     canvas.className = "lamina-page-canvas";
+    setUserSelect(canvas, "none");
     Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%" });
     view.shell.prepend(canvas);
     view.canvas = canvas;

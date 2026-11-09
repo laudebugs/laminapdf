@@ -8,7 +8,7 @@ import { Builder, Document, Font, init } from "@laminapdf/sdk";
 import { decodePng } from "@laminapdf/test-utils/browser-harness";
 import { createViewer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import { viewer as client, ENCRYPTED, PASSWORD, read } from "./helpers.js";
 
 declare module "vitest/browser" {
@@ -97,13 +97,33 @@ describe("copy", () => {
     expect(squash(copy())).toBe(squash(await laminaText("fixtures/golden/build-text-multiscript.pdf")));
   });
 
+  it("copies only the page text when a selection runs on past the viewer into the app", async () => {
+    await show(await read("fixtures/golden/text-latin.pdf"));
+    const root = view?.element as HTMLElement;
+    const outside = document.createElement("p");
+    outside.textContent = "Text of the app around the viewer";
+    root.after(outside);
+    try {
+      const [first] = await spansOf(0);
+      const start = first?.firstChild as Text;
+      const end = outside.firstChild as Text;
+      document.getSelection()?.setBaseAndExtent(start, 0, end, end.length);
+      const copied = copy();
+      expect(copied).toContain((first?.textContent ?? "").trim());
+      expect(copied).not.toContain("Text of the app");
+    } finally {
+      outside.remove();
+    }
+  });
+
   it("selects only the spans' text when the whole viewer is selected: never a canvas or a gap", async () => {
     await show(await read("fixtures/golden/text-latin.pdf"));
     const root = view?.element as HTMLElement;
     document.getSelection()?.selectAllChildren(root);
     const spans = (await spansOf(0)).map((s) => s.textContent).join("");
+    const canvas = root.querySelector("canvas") as HTMLCanvasElement;
     expect([
-      getComputedStyle(root).userSelect,
+      getComputedStyle(canvas).userSelect,
       getComputedStyle((await spansOf(0))[0] as HTMLElement).userSelect,
       squash(copy()) === squash(await laminaText("fixtures/golden/text-latin.pdf")),
       (document.getSelection()?.toString() ?? "").replace(/\s/g, "") === spans.replace(/\s/g, ""),
@@ -210,6 +230,80 @@ describe("selection across pages", () => {
       false,
     ]);
   });
+
+  /** A paragraph of the app's own text, before or after the viewer. */
+  function appText(where: "before" | "after"): HTMLParagraphElement {
+    const p = document.createElement("p");
+    p.textContent = `The app's text ${where} the viewer`;
+    if (where === "before") view?.element.before(p);
+    else view?.element.after(p);
+    return p;
+  }
+
+  it("keeps the pages of a selection that starts before the viewer, and copies only their text", async () => {
+    const v = await show(pages(30));
+    const before = appText("before");
+    try {
+      const [first] = await spansOf(1);
+      const start = before.firstChild as Text;
+      document.getSelection()?.setBaseAndExtent(start, 0, (first as HTMLElement).firstChild as Text, 6);
+      const copied = copy();
+      await new Promise((r) => setTimeout(r, 200));
+      v.goToPage(25);
+      await new Promise((r) => setTimeout(r, 500));
+      const mounted = [0, 1].map((p) => document.querySelector(`.lamina-page[data-page-index="${p}"]`) !== null);
+      expect([
+        copied.startsWith("Page 1 first line"),
+        copied.endsWith("Page 2"),
+        copied.includes("app"),
+        mounted,
+      ]).toEqual([true, true, false, [true, true]]);
+    } finally {
+      before.remove();
+    }
+  });
+
+  it("copies the mounted pages' text when a selection runs from before the viewer to after it", async () => {
+    await show(pages(30));
+    const before = appText("before");
+    const after = appText("after");
+    try {
+      const end = after.firstChild as Text;
+      document.getSelection()?.setBaseAndExtent(before.firstChild as Text, 0, end, end.length);
+      const copied = copy();
+      expect([copied.startsWith("Page 1 first line"), copied.includes("app")]).toEqual([true, false]);
+    } finally {
+      before.remove();
+      after.remove();
+    }
+  });
+
+  it("leaves a selection from one viewer into another to the browser", async () => {
+    const v = await show(pages(3));
+    const otherClient = await client("pdfium");
+    const otherHost = document.createElement("div");
+    Object.assign(otherHost.style, { width: "800px", height: "900px" });
+    document.body.append(otherHost);
+    const other = createViewer({ client: otherClient });
+    try {
+      other.mount(otherHost);
+      other.open(await otherClient.open(pages(3)));
+      const [mine] = await spansOf(0);
+      await expect
+        .poll(() => otherHost.querySelectorAll(".lamina-text-layer span").length, { timeout: 20_000 })
+        .toBeGreaterThan(0);
+      const theirs = otherHost.querySelector(".lamina-text-layer span") as HTMLElement;
+      document
+        .getSelection()
+        ?.setBaseAndExtent((mine as HTMLElement).firstChild as Text, 0, theirs.firstChild as Text, 4);
+      // Neither viewer writes the clipboard: the copy event goes to the browser untouched.
+      expect([copy(), v.element.contains(mine as Node)]).toEqual(["", true]);
+    } finally {
+      other.destroy();
+      otherClient.terminate();
+      otherHost.remove();
+    }
+  });
 });
 
 describe("structure", () => {
@@ -292,6 +386,29 @@ describe("pointer", () => {
     expect(hitAt(span)).toBe(span);
     await commands.dragAcross("#drag-target");
     expectStartOf(span);
+  });
+
+  // Firefox stopped selecting under a `user-select: none` ancestor once a field had had the focus,
+  // however the field lost it, and while it still had it.
+  it.each([
+    ["it keeps the focus", async () => {}],
+    ["Escape", async () => userEvent.keyboard("{Escape}")],
+    ["blur", async (field: HTMLInputElement) => field.blur()],
+    ["Tab", async () => userEvent.tab()],
+  ] as const)("selects a word under a mouse drag after a text field had the focus (then: %s)", async (_name, leave) => {
+    await show(await read("fixtures/golden/text-latin.pdf"));
+    const field = document.createElement("input");
+    document.body.append(field);
+    try {
+      field.focus();
+      await userEvent.keyboard("12");
+      await leave(field);
+      const span = await word();
+      await commands.dragAcross("#drag-target");
+      expectStartOf(span);
+    } finally {
+      field.remove();
+    }
   });
 
   it("keeps the text under a layer added on top, even one that covers the page", async () => {
