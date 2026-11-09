@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q3b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md) (what each mode does) |
 | Branch | `feat/q3b-save-diagrams` |
 | PR title | `feat(docs): diagrams for the two save modes and how a save picks one` |
 | Size | S |
-| PR | — |
+| PR | [#337](https://github.com/laudebugs/laminapdf/pull/337) |
 
 ## Goal
 
@@ -36,18 +36,19 @@ Saving is where readers hit the library's hardest rule: an incremental save keep
 
 ## Tasks
 
-- [ ] `components/diagrams/kit/Strip.astro`: a byte strip, segments with labels side by side, built from `Box` and tested like the rest of the kit.
-- [ ] `components/diagrams/SaveModes.astro` (two `Strip`s) under "Choose a save mode".
-- [ ] `components/diagrams/SaveDecision.astro` under "When a file refuses a save"; each refusal box names its error code in mono and links to nothing (the page's code table links).
-- [ ] Check every option and code name against `packages/sdk/src` and `fixtures/codes.json`.
+- [x] `components/diagrams/kit/Strip.astro`: a byte strip, segments with labels side by side, built from `Box` and tested like the rest of the kit.
+- [x] `components/diagrams/SaveModes.astro` (two `Strip`s) under "Choose a save mode".
+- [x] `components/diagrams/SaveDecision.astro` under "When a file refuses a save"; each refusal box names its error code in mono and links to nothing (the page's code table links).
+- [x] Check every option and code name against `packages/sdk/src` and `fixtures/codes.json`.
+- [x] (Added in review) `kit/Box.astro`: a `mono` label for API names, and API names in backticks in its sub lines set in mono.
 
 ## Acceptance criteria
 
-- [ ] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
-- [ ] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
-- [ ] Each diagram is under 8 KB gzipped (reported in the PR).
-- [ ] `cargo xtask check docs` and the docs build pass.
-- [ ] Every mode, option and error code in the diagrams exists under that name in `@laminapdf/sdk` and `fixtures/codes.json`.
+- [x] Each diagram is built from the Q3a kit, renders in both themes (screenshots checked while building; the PR's docs preview shows both) and passes the lint, twin and browser tests.
+- [x] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
+- [x] Each diagram is under 8 KB gzipped (reported in the PR).
+- [x] `cargo xtask check docs` and the docs build pass.
+- [x] Every mode, option and error code in the diagrams exists under that name in `@laminapdf/sdk` and `fixtures/codes.json`.
 
 ## Post-merge checks
 

@@ -1,7 +1,7 @@
 ---
-// An example in its languages, with what it makes beside the code: a Result tab with a picture of
-// every page and a link to the PDF, for an example that builds one; an Output tab with the text it
-// prints, for one that reads a PDF. The pictures and the manifest come from `cargo xtask
+// An example in its languages, with what it makes beside the code, in one row of tabs: TypeScript
+// and Rust, then a Result tab with a picture of every page and a link to the PDF, for an example that
+// builds one, or an Output tab with the text it prints, for one that reads a PDF. The pictures and the manifest come from `cargo xtask
 // docs-previews`, which renders the example goldens; `cargo xtask check docs` keeps them in step.
 // The six examples in runner/examples.ts also get "Edit and run" on their Result tab (todo B7e),
 // when the runner was built (scripts/build-runner.mjs); it loads nothing until it is pressed.
@@ -14,6 +14,7 @@ import resetIcon from "../../../../packages/icons/svg/reset.svg?raw";
 import manifest from "../../public/examples/preview/manifest.json";
 import { RUNNABLE } from "../../runner/examples.ts";
 import ExampleCode from "./ExampleCode.astro";
+import Snippet from "./Snippet.astro";
 
 interface Props {
   /** The TypeScript file, from the repository root (as `Snippet` takes it). */
@@ -64,14 +65,23 @@ const size = (bytes: number) => (bytes < 1024 ? `${bytes} bytes` : `${Math.round
 const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
 ---
 
-{/* Code first, by default on every page: the outer tabs keep no memory, while the language tabs
-     inside share the site's remembered TypeScript or Rust choice. */}
+{/* One row: the code first, then what it makes. The row shares the site's remembered TypeScript
+     or Rust choice (`syncKey`), so a reader who picks Rust sees Rust on every example. Only the
+     language is remembered: the script below puts it back when Result or Output is picked, so no
+     page opens on its pictures. */}
 {
   outcome ? (
-    <Tabs>
-      <TabItem label="Code">
-        <ExampleCode ts={ts} rust={rust} />
-      </TabItem>
+    <Tabs syncKey="lang">
+      {ts !== undefined && (
+        <TabItem label="TypeScript">
+          <Snippet file={ts} />
+        </TabItem>
+      )}
+      {rust !== undefined && (
+        <TabItem label="Rust">
+          <Snippet file={rust} />
+        </TabItem>
+      )}
       {pictures.length > 0 && (
         <TabItem label="Result">
           {source !== undefined && (
@@ -130,6 +140,30 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
 }
 
 <script>
+  // Starlight remembers a synced row's last tab in localStorage. Here only TypeScript or Rust may be
+  // remembered: after a pick of Result or Output (by click or arrow key), the language goes back.
+  const KEY = "starlight-synced-tabs__lang";
+  const LANGUAGES = new Set(["TypeScript", "Rust"]);
+  const keep = (event: Event) => {
+    if (!(event.target instanceof Element) || event.target.closest("starlight-tabs") === null) return;
+    // Storage can be blocked (a private window); Starlight then remembers nothing either.
+    let before: string | null;
+    try {
+      before = localStorage.getItem(KEY);
+    } catch {
+      return;
+    }
+    // After Starlight's own handler: between listeners of a real event, microtasks run, so a task.
+    setTimeout(() => {
+      const now = localStorage.getItem(KEY);
+      if (now === null || LANGUAGES.has(now)) return;
+      if (before !== null && LANGUAGES.has(before)) localStorage.setItem(KEY, before);
+      else localStorage.removeItem(KEY);
+    }, 0);
+  };
+  document.addEventListener("click", keep, true);
+  document.addEventListener("keydown", keep, true);
+
   // "Edit and run": the editor and the runner load on the first press, from the docs site only.
   class LaminaRun extends HTMLElement {
     connectedCallback(): void {
