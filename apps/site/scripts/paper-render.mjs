@@ -1,6 +1,6 @@
 // Renders HTML in the Paper look to PNG, in Playwright's Chromium: the page loads the site's own tokens
 // and fonts from a made-up origin that a route answers from disk, so nothing is fetched from the
-// network. Used by share-image.mjs (the site's share image and favicons) and story-image.mjs (the
+// network: every other request is aborted. Used by share-image.mjs (the site's share image and favicons) and story-image.mjs (the
 // pictures for the posts in the stories folder, ~/git/lamina-stories).
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -9,17 +9,29 @@ import { chromium } from "playwright";
 const ORIGIN = "http://paper.invalid";
 const TOKENS = new URL(import.meta.resolve("@laminapdf/tokens/tokens.css"));
 const FONTS = new URL(import.meta.resolve("@laminapdf/fonts/fonts.css"));
+/** The fonts' folder: a font file must resolve inside it. */
+const FONTS_DIR = new URL(".", FONTS);
 const TYPES = { ".css": "text/css", ".woff2": "font/woff2", ".html": "text/html" };
 
 /** The `<link>` lines a page needs for the tokens and the fonts. */
 export const PAPER_LINKS = `<link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/fonts.css">`;
 
-/** The file `pathname` names: the page itself, one of `files`, the tokens, or the fonts' style sheet and files. */
+/**
+ * What `pathname` names: the page itself, one of `files`, the tokens, or a file inside the fonts'
+ * folder (its style sheet and font files); `undefined` for anything else. A page's HTML may come
+ * from a story, so a path that would leave the fonts' folder (`/../…`) is refused, never read.
+ */
 function file(pathname, html, files) {
   if (pathname === "/") return { body: html, type: TYPES[".html"] };
-  const url = files[pathname] ?? (pathname === "/tokens.css" ? TOKENS : new URL(`.${pathname}`, FONTS));
-  return { path: fileURLToPath(url), type: TYPES[pathname.slice(pathname.lastIndexOf("."))] };
+  // No file this renderer serves needs escapes or backslashes; refusing them keeps every path plain.
+  if (/[%\\]/.test(pathname)) return undefined;
+  const type = TYPES[pathname.slice(pathname.lastIndexOf("."))];
+  if (type === undefined) return undefined;
+  if (Object.hasOwn(files, pathname)) return { path: fileURLToPath(files[pathname]), type };
+  if (pathname === "/tokens.css") return { path: fileURLToPath(TOKENS), type };
+  const url = new URL(`.${pathname}`, FONTS);
+  return url.href.startsWith(FONTS_DIR.href) ? { path: fileURLToPath(url), type } : undefined;
 }
 
 /**
@@ -37,8 +49,14 @@ export async function withPaperRenderer(draw, { files = {} } = {}) {
   try {
     await draw(async (html, width, height, out, options = {}) => {
       const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
-      await page.route(`${ORIGIN}/**`, (route) => {
-        const { body, path, type } = file(new URL(route.request().url()).pathname, html, files);
+      // Deny by default: only the made-up origin is answered, from the allowed files; every
+      // other request (another host, a refused path) is aborted or answered 404.
+      await page.route("**/*", (route) => {
+        const url = new URL(route.request().url());
+        if (url.origin !== ORIGIN) return route.abort();
+        const found = file(url.pathname, html, files);
+        if (found === undefined) return route.fulfill({ status: 404 });
+        const { body, path, type } = found;
         return route.fulfill(path === undefined ? { body, contentType: type } : { path, contentType: type });
       });
       await page.goto(`${ORIGIN}/`, { waitUntil: "load" });
