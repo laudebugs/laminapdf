@@ -3,10 +3,10 @@
 
 import type { NetworkSummary } from "./monitor.ts";
 
-/** The plain-text report of `summary`, for a file opened at `since`. */
-export function networkReport(summary: NetworkSummary, since: string): string {
+/** The plain-text report of `summary`, for a file opened at `since`, or none open. */
+export function networkReport(summary: NetworkSummary, since: string | undefined): string {
   const lines = [
-    `Lamina PDF network activity since ${since}`,
+    since === undefined ? "Lamina PDF network activity (no file open)" : `Lamina PDF network activity since ${since}`,
     `Document requests: ${summary.documentRequests}`,
     ...summary.documentRows.map(
       (row) =>

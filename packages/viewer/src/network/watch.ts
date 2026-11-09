@@ -17,6 +17,9 @@ import type { NetworkRecord, NetworkSource, PolicyViolation } from "../protocol.
 /** The entries a wrapped call also leaves in Resource Timing, read from the call instead. */
 const WRAPPED_INITIATORS = new Set(["fetch", "xmlhttprequest", "beacon"]);
 
+/** The `blockedURI`s of violations that block no request (CSP3 §5.3's keywords for them). */
+const NOT_REQUESTS = new Set(["", "inline", "eval", "wasm-eval", "trusted-types-policy", "trusted-types-sink"]);
+
 /** What `watchNetwork` reports to. */
 export interface NetworkSink {
   request(record: NetworkRecord): void;
@@ -31,6 +34,7 @@ type Scope = typeof globalThis & {
   location?: { href: string };
   navigator?: Navigator & { sendBeacon?: Navigator["sendBeacon"] };
   addEventListener?: (type: string, listener: (event: Event) => void) => void;
+  removeEventListener?: (type: string, listener: (event: Event) => void) => void;
 };
 
 /** `input`'s absolute URL, against the scope's address. */
@@ -51,7 +55,8 @@ function lengthOf(header: string | null): number {
 
 /**
  * Starts reporting every request `scope` makes to `sink`, as `source`. Returns the function that
- * puts the scope's own `fetch`, `XMLHttpRequest`, `WebSocket` and `sendBeacon` back (for tests).
+ * stops it: the scope's own `fetch`, `XMLHttpRequest`, `WebSocket` and `sendBeacon` put back, the
+ * observers disconnected and the violation listener removed.
  */
 export function watchNetwork(scope: Scope, sink: NetworkSink, source: NetworkSource): () => void {
   const base = scope.location?.href;
@@ -63,18 +68,15 @@ export function watchNetwork(scope: Scope, sink: NetworkSink, source: NetworkSou
     scope.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = urlOf(input, base);
       const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
+      // Stamped when the call starts: a request belongs to the file that was opening then.
+      const at = Date.now();
       try {
         const response = await originalFetch.call(scope, input, init);
-        report({
-          url,
-          method,
-          initiator: "fetch",
-          bytes: lengthOf(response.headers.get("Content-Length")),
-          failed: false,
-        });
+        const bytes = lengthOf(response.headers.get("Content-Length"));
+        report({ url, method, initiator: "fetch", bytes, failed: false }, at);
         return response;
       } catch (e) {
-        report({ url, method, initiator: "fetch", bytes: 0, failed: true });
+        report({ url, method, initiator: "fetch", bytes: 0, failed: true }, at);
         throw e;
       }
     };
@@ -84,12 +86,15 @@ export function watchNetwork(scope: Scope, sink: NetworkSink, source: NetworkSou
   }
 
   restore.push(...wrapXhr(scope, base, report), ...wrapWebSocket(scope, base, report));
-  restore.push(...wrapBeacon(scope, base, report));
-  observeResources(scope, report);
-  scope.addEventListener?.("securitypolicyviolation", (event) => {
+  restore.push(...wrapBeacon(scope, base, report), ...observeResources(scope, report));
+  const onViolation = (event: Event) => {
     const e = event as SecurityPolicyViolationEvent;
+    // Inline code, eval and Trusted Types violations block no request: only a blocked URL is one.
+    if (NOT_REQUESTS.has(e.blockedURI)) return;
     sink.violation({ directive: e.effectiveDirective, blockedUri: e.blockedURI, source, at: Date.now() });
-  });
+  };
+  scope.addEventListener?.("securitypolicyviolation", onViolation);
+  restore.push(() => scope.removeEventListener?.("securitypolicyviolation", onViolation));
   return () => {
     for (const undo of restore) undo();
   };
@@ -111,9 +116,10 @@ function wrapXhr(scope: Scope, base: string | undefined, report: Report): (() =>
   Xhr.prototype.send = function (this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null) {
     const call = seen.get(this);
     if (call !== undefined) {
+      const at = Date.now();
       this.addEventListener("loadend", () => {
         const bytes = lengthOf(this.getResponseHeader("Content-Length"));
-        report({ ...call, initiator: "xmlhttprequest", bytes, failed: this.status === 0 });
+        report({ ...call, initiator: "xmlhttprequest", bytes, failed: this.status === 0 }, at);
       });
     }
     return send.call(this, body);
@@ -162,9 +168,9 @@ function wrapBeacon(scope: Scope, base: string | undefined, report: Report): (()
 }
 
 /** What the browser loaded by itself: Resource Timing entries (and the page's own load), buffered. */
-function observeResources(scope: Scope, report: Report): void {
+function observeResources(scope: Scope, report: Report): (() => void)[] {
   const Observer = scope.PerformanceObserver;
-  if (Observer === undefined) return;
+  if (Observer === undefined) return [];
   const types = new Set(Observer.supportedEntryTypes ?? []);
   // A document navigates once, but Chromium reports its navigation entry again when the load ends.
   let navigated = false;
@@ -184,10 +190,14 @@ function observeResources(scope: Scope, report: Report): void {
       at,
     );
   };
+  const observers: PerformanceObserver[] = [];
   for (const type of ["navigation", "resource"]) {
     if (!types.has(type)) continue;
-    new Observer((list) => {
+    const observer = new Observer((list) => {
       for (const entry of list.getEntries()) take(entry);
-    }).observe({ type, buffered: true });
+    });
+    observer.observe({ type, buffered: true });
+    observers.push(observer);
   }
+  return observers.map((observer) => () => observer.disconnect());
 }

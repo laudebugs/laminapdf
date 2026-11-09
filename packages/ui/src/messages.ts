@@ -128,6 +128,7 @@ const EN = {
   "remote.home": "Open a file instead",
   "network.title": "Network activity",
   "network.since": "Since you opened this file at {time}",
+  "network.since.none": "Since this page loaded, with no file open",
   "network.close": "Close network activity",
   "network.count": "{count} network requests for this document",
   "network.count.one": "1 network request for this document",

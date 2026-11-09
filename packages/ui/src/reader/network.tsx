@@ -7,6 +7,7 @@ import { Badge } from "../components/badge.js";
 import { Button, IconButton } from "../components/button.js";
 import { Notice } from "../components/notice.js";
 import { message } from "../messages.js";
+import { formatBytes } from "./bytes.js";
 
 /** One origin's requests since the file opened. */
 export interface NetworkOriginRow {
@@ -33,8 +34,8 @@ export interface NetworkBlockedRow {
 
 /** Props of `NetworkActivityPanel`. */
 export interface NetworkActivityPanelProps {
-  /** When the file opened, as the panel shows it ("09:12"). */
-  since: string;
+  /** When the file opened, as the panel shows it ("09:12"); left out while no file is open. */
+  since?: string;
   /** Requests that weren't the app's own files, since the file opened. */
   documentRequests: number;
   documentRows: readonly NetworkOriginRow[];
@@ -47,13 +48,6 @@ export interface NetworkActivityPanelProps {
   feeds: { readonly page: boolean; readonly worker: boolean; readonly serviceWorker: boolean };
   onClose: () => void;
   onCopy: () => void;
-}
-
-/** `bytes` in the units a reader expects. */
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return message("network.bytes", { value: String(bytes) });
-  if (bytes < 1024 * 1024) return message("network.kb", { value: (bytes / 1024).toFixed(1) });
-  return message("network.mb", { value: (bytes / (1024 * 1024)).toFixed(1) });
 }
 
 /** The summary's sentence and badge, from what was sent and where. */
@@ -96,7 +90,7 @@ export function networkIndicatorText(
 function DocumentTable({ rows }: { rows: readonly NetworkOriginRow[] }): ReactNode {
   return (
     <table className="paper-network-table">
-      <caption className="paper-network-overline">{message("network.document.title")}</caption>
+      <caption className="paper-repair-overline">{message("network.document.title")}</caption>
       <thead>
         <tr>
           <th scope="col">{message("network.column.origin")}</th>
@@ -171,7 +165,7 @@ export function NetworkActivityPanel(props: NetworkActivityPanelProps): ReactNod
   const unexpected = documentRows.filter((row) => row.unexpected).map((row) => row.origin);
   return (
     <aside
-      className="paper-network"
+      className="paper-repair"
       aria-labelledby={title}
       onKeyDown={(event) => {
         if (event.key !== "Escape") return;
@@ -184,7 +178,9 @@ export function NetworkActivityPanel(props: NetworkActivityPanelProps): ReactNod
           <h2 id={title} className="paper-repair-title">
             {message("network.title")}
           </h2>
-          <p className="paper-repair-file">{message("network.since", { time: since })}</p>
+          <p className="paper-repair-file">
+            {since === undefined ? message("network.since.none") : message("network.since", { time: since })}
+          </p>
         </div>
         <IconButton icon="close" label={message("network.close")} onPress={onClose} />
       </header>
@@ -203,7 +199,7 @@ export function NetworkActivityPanel(props: NetworkActivityPanelProps): ReactNod
       <AppFiles rows={appRows} total={appRequests} open={documentRequests === 0} />
       {blocked.length === 0 ? null : (
         <section className="paper-network-section">
-          <h3 className="paper-network-overline">{message("network.blocked.title")}</h3>
+          <h3 className="paper-repair-overline">{message("network.blocked.title")}</h3>
           <ul className="paper-repair-list">
             {blocked.map((row, index) => (
               // Blocked requests can repeat; their order is their identity.
@@ -219,7 +215,7 @@ export function NetworkActivityPanel(props: NetworkActivityPanelProps): ReactNod
         </section>
       )}
       <section className="paper-network-section">
-        <h3 className="paper-network-overline">{message("network.feeds.title")}</h3>
+        <h3 className="paper-repair-overline">{message("network.feeds.title")}</h3>
         <ul className="paper-repair-list">
           <li>{message(feeds.page ? "network.feed.page" : "network.feed.page.off")}</li>
           <li>{message(feeds.worker ? "network.feed.worker" : "network.feed.worker.off")}</li>
@@ -227,7 +223,7 @@ export function NetworkActivityPanel(props: NetworkActivityPanelProps): ReactNod
         </ul>
       </section>
       <section className="paper-network-section">
-        <h3 className="paper-network-overline">{message("network.proves.title")}</h3>
+        <h3 className="paper-repair-overline">{message("network.proves.title")}</h3>
         <p className="paper-network-note">{message("network.proves.body")}</p>
         <p className="paper-network-note">{message("network.proves.limit")}</p>
       </section>

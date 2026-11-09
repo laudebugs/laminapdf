@@ -178,11 +178,11 @@ export type {
   SaveResult,
 } from "./platform/types.js";
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
+export { formatBytes } from "./reader/bytes.js";
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
 export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
 export { WholeFileDownload, type WholeFileDownloadProps } from "./reader/loading.js";
 export {
-  formatBytes,
   NetworkActivityPanel,
   type NetworkActivityPanelProps,
   type NetworkAppRow,

@@ -25,6 +25,8 @@ export interface NetworkState {
    * was made, so an earlier linked file's requests stay document traffic once another file opens.
    */
   readonly openings: readonly { readonly at: number; readonly url: string | undefined }[];
+  /** Counts changes: the arrays above grow in place, so a memo keys on this. */
+  readonly version: number;
 }
 
 /** One origin's requests since the document opened. */
@@ -85,21 +87,23 @@ export function summarize(state: NetworkState, appOrigin: string): NetworkSummar
   const appRows = new Map<RequestPurpose, AppRow & { requests: number; bytes: number }>();
   let total = 0;
   // A request the policy blocked sent nothing, though a wrapped call fails like any other and some
-  // engines still give it a timing entry: each violation cancels one record of its address.
+  // engines still give it a timing entry: each violation cancels one record of its address. Some
+  // engines name only the origin of a blocked cross-origin URL, so an origin matches its URLs too.
   const blocked = new Map<string, number>();
   for (const v of state.violations) {
     const key = `${v.source} ${v.blockedUri}`;
     blocked.set(key, (blocked.get(key) ?? 0) + 1);
   }
+  /** Spends one violation of `key`, if any is left. */
+  const spend = (key: string) => {
+    const left = blocked.get(key) ?? 0;
+    if (left > 0) blocked.set(key, left - 1);
+    return left > 0;
+  };
   for (const record of state.requests) {
     const origin = originOf(record.url);
     if (origin === undefined) continue;
-    const key = `${record.source} ${record.url}`;
-    const left = blocked.get(key) ?? 0;
-    if (left > 0) {
-      blocked.set(key, left - 1);
-      continue;
-    }
+    if (spend(`${record.source} ${record.url}`) || spend(`${record.source} ${origin}`)) continue;
     total += 1;
     const group = classifyRequest(record.url, { appOrigin, documentUrl: documentAt(record.at) });
     if (group === "app") {
@@ -129,13 +133,18 @@ export class NetworkMonitor {
   readonly #listeners = new Set<() => void>();
   /** Worker records and violations already merged, by `<worker>:<index>`. */
   readonly #seen = new Set<string>();
+  // The log only grows: one array each, appended to in place, which every state shares (copying
+  // it on each request would make a long session's work grow with the square of its requests).
+  readonly #requests: NetworkRecord[] = [];
+  readonly #violations: PolicyViolation[] = [];
   #state: NetworkState = {
-    requests: [],
-    violations: [],
+    requests: this.#requests,
+    violations: this.#violations,
     workerFeed: false,
     openedAt: undefined,
     documentUrl: undefined,
     openings: [],
+    version: 0,
   };
 
   getState = (): NetworkState => this.#state;
@@ -147,33 +156,35 @@ export class NetworkMonitor {
 
   /** A request the page made. */
   pageRequest(record: NetworkRecord): void {
-    this.#set({ requests: [...this.#state.requests, record] });
+    this.#requests.push(record);
+    this.#set({});
   }
 
   /** A request the page's policy blocked. */
   pageViolation(violation: PolicyViolation): void {
-    this.#set({ violations: [...this.#state.violations, violation] });
+    this.#violations.push(violation);
+    this.#set({});
   }
 
   /** A request the document worker made, the `index`th of worker `worker`'s log. */
   workerRequest(worker: string, index: number, record: NetworkRecord): void {
-    if (this.#first(`r:${worker}:${index}`)) this.#set({ requests: [...this.#state.requests, record] });
+    if (!this.#first(`r:${worker}:${index}`)) return;
+    this.#requests.push(record);
+    this.#set({});
   }
 
   /** A request the document worker's policy blocked. */
   workerViolation(worker: string, index: number, violation: PolicyViolation): void {
-    if (this.#first(`v:${worker}:${index}`)) this.#set({ violations: [...this.#state.violations, violation] });
+    if (!this.#first(`v:${worker}:${index}`)) return;
+    this.#violations.push(violation);
+    this.#set({});
   }
 
   /** The document worker's whole log: what its events haven't brought yet joins the store. */
   workerLog(log: WorkerNetworkLog): void {
-    const requests = log.requests.filter((_, i) => this.#first(`r:${log.worker}:${i}`));
-    const violations = log.violations.filter((_, i) => this.#first(`v:${log.worker}:${i}`));
-    this.#set({
-      requests: [...this.#state.requests, ...requests],
-      violations: [...this.#state.violations, ...violations],
-      workerFeed: true,
-    });
+    this.#requests.push(...log.requests.filter((_, i) => this.#first(`r:${log.worker}:${i}`)));
+    this.#violations.push(...log.violations.filter((_, i) => this.#first(`v:${log.worker}:${i}`)));
+    this.#set({ workerFeed: true });
   }
 
   /** A document began opening at `at`: from a `#url=` link at `documentUrl`, or a local file. */
@@ -192,8 +203,9 @@ export class NetworkMonitor {
     return true;
   }
 
+  /** A new state object on every change, so a subscriber's snapshot comparison sees it. */
   #set(next: Partial<NetworkState>): void {
-    this.#state = { ...this.#state, ...next };
+    this.#state = { ...this.#state, ...next, version: this.#state.version + 1 };
     for (const listener of this.#listeners) listener();
   }
 }

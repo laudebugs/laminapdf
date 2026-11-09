@@ -515,13 +515,6 @@
    display face, tables of origin · requests · bytes with a purpose line under each origin, and the
    App files disclosure. */
 @layer paper.components {
-  .paper-network {
-    display: grid;
-    align-content: start;
-    gap: var(--paper-space-12);
-    padding: var(--paper-space-16);
-  }
-
   .paper-network-summary {
     display: flex;
     align-items: baseline;
@@ -534,22 +527,10 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .paper-network-note,
-  .paper-network-overline {
-    margin: 0;
-  }
-
   .paper-network-note {
+    margin: 0;
     font: var(--paper-type-caption);
     color: var(--paper-muted);
-  }
-
-  .paper-network-overline {
-    font: var(--paper-type-overline);
-    letter-spacing: var(--paper-type-overline-letter-spacing);
-    color: var(--paper-muted);
-    text-align: start;
-    text-transform: uppercase;
   }
 
   .paper-network-section {
@@ -565,6 +546,7 @@
 
   .paper-network-table caption {
     padding-block-end: var(--paper-space-8);
+    text-align: start;
   }
 
   .paper-network-table th,

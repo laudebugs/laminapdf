@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { Button } from "../components/button.js";
 import { ProgressBar } from "../components/progress.js";
 import { message } from "../messages.js";
+import { megabytes } from "./bytes.js";
 
 /** Props of `WholeFileDownload`. */
 export interface WholeFileDownloadProps {
@@ -16,9 +17,6 @@ export interface WholeFileDownloadProps {
   /** Stops the download; the shell goes back to the home screen. */
   onCancel: () => void;
 }
-
-const MB = 1024 * 1024;
-const megabytes = (bytes: number) => (bytes / MB).toFixed(1);
 
 /** The whole-file download card. */
 export function WholeFileDownload({ loaded, total, onCancel }: WholeFileDownloadProps): ReactNode {
