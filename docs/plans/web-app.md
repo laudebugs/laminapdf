@@ -122,7 +122,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`laminapdf-content` interpreter + `laminapdf-text`), selection and copy, find bar with streaming results and highlights. The API exists ([B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md)): `await init({ extract: true })` loads the extract module (about 525 KB gzip), and `doc.page(i).text()` returns lines, runs and every glyph's quad in page space, with `buffers` to transfer the arrays from a worker.
 **Accepted when:** copy from fixtures in five scripts equals expected text, including encrypted fixtures; search results match pdf.js counts on the corpus; selection works with screen readers on tagged fixtures.
-**Todos:** [C5a](../todos/done/C5a-text-layer-and-selection.md), [C5b](../todos/done/C5b-find-in-document.md)
+**Todos:** [C5a](../todos/done/C5a-text-layer-and-selection.md), [C5b](../todos/done/C5b-find-in-document.md), [C5c](../todos/done/C5c-find-results-tab.md)
 
 ### C6. Navigation, print and properties
 

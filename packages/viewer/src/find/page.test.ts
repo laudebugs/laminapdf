@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TextRunData } from "../protocol.ts";
-import { findOnPage, type PageGlyphs, searchText } from "./page.ts";
+import { findOnPage, matchRanges, type PageGlyphs, type SearchText, searchText, snippetOf } from "./page.ts";
 
 /** One glyph per character, 10 wide, along a baseline at `y` from `x`; runs given as [text, x, y]. */
 function page(runs: readonly (readonly [string, number, number, ("rtl" | "actual")?])[]): PageGlyphs {
@@ -94,5 +94,90 @@ describe("findOnPage", () => {
       find(p, "cat", { matchCase: true }).length,
       find(p, "cat", { wholeWords: true }).length,
     ]).toEqual([3, 2, 2]);
+  });
+});
+
+describe("snippetOf", () => {
+  const textOnly = (text: string): SearchText => ({
+    text,
+    lo: new Int32Array(text.length),
+    hi: new Int32Array(text.length),
+    runOf: new Int32Array(0),
+  });
+  const snippets = (text: string, query: string, options = {}) => {
+    const search = textOnly(text);
+    const { folded, ranges } = matchRanges(search, query, options);
+    return ranges.map((r) => snippetOf(search, folded, r));
+  };
+
+  it("keeps the whole line when it is short, with the match as the page spells it", () => {
+    expect(snippets("The Café opens at nine.", "cafe")).toEqual([
+      { before: "The ", match: "Café", after: " opens at nine." },
+    ]);
+  });
+
+  it("cuts long context at a word on each side and marks the cut", () => {
+    const text = `${"alpha beta gamma delta epsilon zeta eta theta "}needle${" iota kappa lambda mu nu xi omicron pi rho"}`;
+    const [s] = snippets(text, "needle");
+    expect(s?.before.startsWith("…")).toBe(true);
+    expect(s?.after.endsWith("…")).toBe(true);
+    // Whole words only: no word is cut in half.
+    const words = new Set(text.split(" "));
+    for (const w of [
+      ...(s?.before.slice(1).trim().split(" ") ?? []),
+      ...(s?.after.slice(0, -1).trim().split(" ") ?? []),
+    ]) {
+      expect(words.has(w)).toBe(true);
+    }
+    expect((s?.before.length ?? 0) <= 41 && (s?.after.length ?? 0) <= 41).toBe(true);
+  });
+
+  it("collapses the page's line breaks and runs of spaces to single spaces", () => {
+    expect(snippets("first line\nsecond   line", "second")).toEqual([
+      { before: "first line ", match: "second", after: " line" },
+    ]);
+  });
+
+  it("never splits a character outside the BMP at a cut, whichever half the cut lands on", () => {
+    // Each 𝒜 is two units and the "b" one, so a cut 40 units out lands between an 𝒜's halves.
+    const text = `${"𝒜".repeat(21)}b針b${"𝒜".repeat(21)}`;
+    const [s] = snippets(text, "針");
+    expect(s?.match).toBe("針");
+    expect(/^…(?:𝒜)+b$/u.test(s?.before ?? "")).toBe(true);
+    expect(/^b(?:𝒜)+…$/u.test(s?.after ?? "")).toBe(true);
+  });
+
+  it("keeps a match's last character whole: a character outside the BMP, or one with combining marks", () => {
+    expect(snippets("see 🎉🎉 here", "🎉🎉")).toEqual([{ before: "see ", match: "🎉🎉", after: " here" }]);
+    expect(snippets("The Cafe\u0301 opens", "cafe")).toEqual([
+      { before: "The ", match: "Cafe\u0301", after: " opens" },
+    ]);
+  });
+
+  it("keeps a word the cut lands at the start or end of", () => {
+    const left = `${"x".repeat(9)} ${"abcd ".repeat(8)}needle`;
+    const [l] = snippets(left, "needle");
+    // The cut 40 units back lands at the first "abcd": it is kept whole.
+    expect(l?.before).toBe(`…${"abcd ".repeat(8)}`);
+    const right = `needle${" abcd".repeat(8)} ${"x".repeat(9)}`;
+    const [r] = snippets(right, "needle");
+    expect(r?.after).toBe(`${" abcd".repeat(8)}…`);
+  });
+
+  it("cuts inside a long word when only spaces separate it from the match, rather than show nothing", () => {
+    const [one] = snippets(`${"y".repeat(60)} needle ${"z".repeat(60)}`, "needle");
+    expect(one?.before).toBe(`…${"y".repeat(39)} `);
+    expect(one?.after).toBe(` ${"z".repeat(39)}…`);
+    // Text from a PDF often has two spaces, or a space and a line break.
+    const [two] = snippets(`${"y".repeat(60)}  needle \n${"z".repeat(60)}`, "needle");
+    expect(two?.before).toBe(`…${"y".repeat(38)} `);
+    expect(two?.after).toBe(` ${"z".repeat(38)}…`);
+  });
+
+  it("never starts or ends a cut on a combining mark", () => {
+    const word = "e\u0301".repeat(40);
+    const [s] = snippets(`${word} needle ${word}`, "needle");
+    expect(/^…e/u.test(s?.before ?? "")).toBe(true);
+    expect(/e\u0301…$/u.test(s?.after ?? "")).toBe(true);
   });
 });

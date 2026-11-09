@@ -2,11 +2,13 @@
 // the document's outline as a tree, read from the document worker the first time the tab shows.
 // The outline marks the section at the top of the view, worked out at most every 150 ms while the
 // view scrolls. Where the rail covers the page (a drawer, or the phone's Contents sheet), going
-// somewhere from it closes it, so the page shows.
+// somewhere from it closes it, so the page shows. While find is open, a Results tab lists its
+// matches.
 
 import {
   currentOutlineItem,
   EmptyState,
+  FindResults,
   message,
   OutlineTree,
   type OutlineTreeItem,
@@ -17,7 +19,8 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import type { ThumbnailStrip, Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { resultHeadings } from "./find-headings.ts";
 import { downThePage } from "./outline.ts";
 import type { Engine } from "./session.ts";
 
@@ -124,11 +127,31 @@ function OutlinePanel({ engine, viewer, layout }: { engine: Engine; viewer: View
   );
 }
 
+/** Find's results, headed by page label and outline section; the outline is read for the headings. */
+function ResultsPanel({ engine, viewer, layout }: { engine: Engine; viewer: Viewer; layout: ShellLayout }): ReactNode {
+  const pages = useStoreState(engine, (s) => s.pages);
+  const outline = useStoreState(engine, (s) => s.outline);
+  const closeIfCovering = useCloseAfterJump(layout);
+  useEffect(() => {
+    if (outline === undefined) void engine.loadOutline();
+  }, [engine, outline]);
+  const items = typeof outline === "object" ? outline.items : NO_ITEMS;
+  const heading = useMemo(() => resultHeadings(pages, items), [pages, items]);
+  return <FindResults find={viewer.find} heading={heading} onNavigate={closeIfCovering} />;
+}
+
 /** The rail's tabs while a document is open; none otherwise. */
 export function railTabs(
   engine: Engine,
   layout: ShellLayout,
-  view: { readonly strip: ThumbnailStrip | undefined; readonly viewer: Viewer | undefined } | undefined,
+  view:
+    | {
+        readonly strip: ThumbnailStrip | undefined;
+        readonly viewer: Viewer | undefined;
+        /** Find is open: the Results tab shows. */
+        readonly finding: boolean;
+      }
+    | undefined,
 ): RailTab[] {
   const strip = view?.strip;
   const viewer = view?.viewer;
@@ -140,5 +163,15 @@ export function railTabs(
       label: message("shell.rail.outline"),
       panel: <OutlinePanel engine={engine} viewer={viewer} layout={layout} />,
     },
+    // Find's contextual tab, while find is open (R05); closing find takes it away.
+    ...(view?.finding === true
+      ? [
+          {
+            id: "results",
+            label: message("shell.rail.results"),
+            panel: <ResultsPanel engine={engine} viewer={viewer} layout={layout} />,
+          },
+        ]
+      : []),
   ];
 }

@@ -8,6 +8,7 @@
 
 import type { FindPageResult } from "../protocol.js";
 import type { FindOptions } from "./fold.js";
+import type { FindSnippet } from "./page.js";
 
 /** Pages searched per call: small enough that a render queued meanwhile waits little. */
 const PAGES_PER_CALL = 4;
@@ -30,6 +31,16 @@ export interface FindState {
   readonly pagesWithoutText: number;
   /** Which search the state belongs to, rising with each new query. */
   readonly search: number;
+}
+
+/** One match, for a list of results. */
+export interface FindResult {
+  /** Its position among every match found so far, 0-based, in document order (as `FindState.current`). */
+  readonly ordinal: number;
+  /** Its page, 0-based. */
+  readonly page: number;
+  /** The match in its line. */
+  readonly snippet: FindSnippet;
 }
 
 /** What the controller needs of the viewer and its client. */
@@ -72,6 +83,9 @@ export class FindController {
   readonly #listeners = new Set<() => void>();
   #state: FindState = IDLE;
   #byPage = new Map<number, readonly (readonly number[])[]>();
+  #snippets = new Map<number, readonly FindSnippet[]>();
+  /** The last list `results()` made, and the state it was made for. */
+  #results: { readonly state: FindState; readonly list: readonly FindResult[] } | undefined;
   #current: Place | undefined;
   #abort: AbortController | undefined;
   #start = 0;
@@ -95,6 +109,7 @@ export class FindController {
     const search = this.#state.search + 1;
     const cleared = [...this.#byPage.keys()];
     this.#byPage = new Map();
+    this.#snippets = new Map();
     this.#current = undefined;
     const pageCount = this.#host.pageCount();
     this.#start = Math.min(Math.max(0, this.#host.currentPage()), Math.max(0, pageCount - 1));
@@ -114,6 +129,25 @@ export class FindController {
     this.#move(-1);
   }
 
+  /** Makes the match at `ordinal` (as `FindResult.ordinal`) current and scrolls it into view. */
+  goTo(ordinal: number): void {
+    if (Number.isInteger(ordinal) && ordinal >= 0 && ordinal < this.#state.total) this.#select(ordinal);
+  }
+
+  /**
+   * Every match found so far, in document order. While a search runs the list grows as pages are
+   * searched; the same array comes back until find's state next changes.
+   */
+  results(): readonly FindResult[] {
+    if (this.#results?.state === this.#state) return this.#results.list;
+    const list: FindResult[] = [];
+    for (const page of [...this.#snippets.keys()].sort((a, b) => a - b)) {
+      for (const snippet of this.#snippets.get(page) ?? []) list.push({ ordinal: list.length, page, snippet });
+    }
+    this.#results = { state: this.#state, list };
+    return list;
+  }
+
   /** Ends find: the search stops and every highlight goes. */
   close(): void {
     this.find("");
@@ -131,6 +165,7 @@ export class FindController {
   reset(): void {
     this.#stop();
     this.#byPage = new Map();
+    this.#snippets = new Map();
     this.#current = undefined;
     this.#set({ ...IDLE, search: this.#state.search + 1 });
   }
@@ -170,10 +205,11 @@ export class FindController {
     let total = this.#state.total;
     let noText = this.#state.pagesWithoutText;
     const painted: number[] = [];
-    for (const { page, matches, noText: empty } of results) {
+    for (const { page, matches, snippets, noText: empty } of results) {
       if (empty === true) noText += 1;
       if (matches.length === 0) continue;
       this.#byPage.set(page, matches);
+      this.#snippets.set(page, snippets);
       total += matches.length;
       painted.push(page);
     }
@@ -221,7 +257,11 @@ export class FindController {
     const now = this.#state.current;
     // A search makes its first match current as soon as it finds one, so `now` is set whenever
     // there is a match; the fallback only guards the types.
-    const next = now === undefined ? 0 : (now + step + total) % total;
+    this.#select(now === undefined ? 0 : (now + step + total) % total);
+  }
+
+  /** Makes match `next` current, repaints the pages that changed and scrolls it into view. */
+  #select(next: number): void {
     const place = this.#placeAt(next);
     if (place === undefined) return;
     const before = this.#current?.page;

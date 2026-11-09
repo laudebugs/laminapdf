@@ -6,8 +6,9 @@
 export type { CanvasPoolOptions } from "./canvas/pool.js";
 export type { RestartReason, ViewerCallOptions, ViewerEvent, ViewerEvents, ViewerOptions } from "./client.js";
 export { ViewerClient } from "./client.js";
-export type { FindController, FindState } from "./find/controller.js";
+export type { FindController, FindResult, FindState } from "./find/controller.js";
 export type { FindOptions } from "./find/fold.js";
+export type { FindSnippet } from "./find/page.js";
 export type { TextLayerOptions, TextSelection } from "./layers/text-layer.js";
 export type { Rotation } from "./layout/page-layout.js";
 export type {

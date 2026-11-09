@@ -8,6 +8,10 @@ import type { OpenedDocument, Rotation, Viewer, ViewerClient } from "@laminapdf/
 
 /** A page's facts (size and label), as the viewer opened them. */
 export type PageInfo = OpenedDocument["pages"][number];
+
+/** Page `index`'s label, or its number (1-based) when it has none. */
+export const pageLabel = (pages: readonly PageInfo[], index: number): string =>
+  pages[index]?.label ?? String(index + 1);
 /** An outline item, as the document worker reads it. */
 type OutlineNode = Awaited<ReturnType<ViewerClient["outline"]>>[number];
 /** Where an outline item goes. */
@@ -40,9 +44,7 @@ export function outlineModel(nodes: readonly OutlineNode[], pages: readonly Page
         id,
         title: node.title,
         open: node.open,
-        ...(target === undefined
-          ? {}
-          : { page: pages[target.page]?.label ?? String(target.page + 1), at: placeOf(target, pages) }),
+        ...(target === undefined ? {} : { page: pageLabel(pages, target.page), at: placeOf(target, pages) }),
         children: convert(node.children, id),
       };
     });

@@ -7,7 +7,7 @@
 
 import { layoutSpans, type Piece, separator } from "../layers/spans.js";
 import type { TextRunData } from "../protocol.js";
-import { type FindOptions, type Folded, fold, foldQuery, matches } from "./fold.js";
+import { type FindOptions, type Folded, fold, foldQuery, isLowSurrogate, matches } from "./fold.js";
 
 /** A page's runs and glyphs, as the document Web Worker keeps them. */
 export interface PageGlyphs {
@@ -137,4 +137,80 @@ export function quadsOfMatches(
 export function findOnPage(page: PageGlyphs, search: SearchText, query: string, options: FindOptions): MatchQuads[] {
   const { folded, ranges } = matchRanges(search, query, options);
   return quadsOfMatches(page, search, folded, ranges);
+}
+
+/** A match in its line: the text before it, the match, and the text after, as the page has them. */
+export interface FindSnippet {
+  /** Up to about 40 characters, starting at a word, "…" first where cut. */
+  readonly before: string;
+  readonly match: string;
+  /** Up to about 40 characters, ending at a word, "…" last where cut. */
+  readonly after: string;
+}
+
+/** About how many characters of context a snippet keeps on each side of its match. */
+const SNIPPET_CONTEXT = 40;
+
+const SPACES = /\s+/gu;
+
+/** `text[from, to)` with white space collapsed to single spaces. */
+const collapsed = (text: string, from: number, to: number) => text.slice(from, to).replace(SPACES, " ");
+
+const SPACE = /\s/u;
+const MARK = /\p{M}/u;
+
+/** Where context starting `SNIPPET_CONTEXT` units before `start` begins: at a word, or a whole character. */
+function contextStart(text: string, start: number): number {
+  let at = Math.max(0, start - SNIPPET_CONTEXT);
+  if (at === 0 || SPACE.test(text[at - 1] ?? "")) return at;
+  // The first word that starts inside the window, unless only spaces lie between it and the match.
+  const space = text.slice(at, start).search(/\s/u);
+  if (space >= 0 && /\S/u.test(text.slice(at + space + 1, start))) return at + space + 1;
+  // Inside a long word: start at a whole character, never on its second half or its marks.
+  if (isLowSurrogate(text.charCodeAt(at))) at += 1;
+  while (at < start && MARK.test(String.fromCodePoint(text.codePointAt(at) ?? 0))) at += 1;
+  return at;
+}
+
+/** Where context ending `SNIPPET_CONTEXT` units after `end` stops: after a word, or at a whole character. */
+function contextEnd(text: string, end: number): number {
+  let at = Math.min(text.length, end + SNIPPET_CONTEXT);
+  if (at === text.length || SPACE.test(text[at] ?? "")) return at;
+  // Before the last word cut by the window, unless only spaces lie between the match and it.
+  const space = text.slice(end, at).search(/\s\S*$/u);
+  if (space > 0 && /\S/u.test(text.slice(end, end + space))) return end + space;
+  // Inside a long word: stop after a whole character, with its second half and its marks.
+  if (isLowSurrogate(text.charCodeAt(at))) at -= 1;
+  return wholeCharacterEnd(text, at);
+}
+
+/** Past the character that starts at `at - 1`: its low surrogate and any combining marks after it. */
+function wholeCharacterEnd(text: string, at: number): number {
+  let end = at;
+  if (end < text.length && isLowSurrogate(text.charCodeAt(end))) end += 1;
+  while (end < text.length) {
+    const code = text.codePointAt(end) ?? 0;
+    const char = String.fromCodePoint(code);
+    if (!MARK.test(char)) break;
+    end += char.length;
+  }
+  return end;
+}
+
+/** The snippet of the match `range` of `folded`, the folded text of `search`. */
+export function snippetOf(search: SearchText, folded: Folded, range: readonly [number, number]): FindSnippet {
+  const text = search.text;
+  const [a, b] = range;
+  const start = folded.from[a] ?? 0;
+  // Folding maps a character to its first unit and drops its marks: the match takes them back.
+  const end = wholeCharacterEnd(text, (folded.from[b - 1] ?? start) + 1);
+  const from = contextStart(text, start);
+  const to = contextEnd(text, end);
+  const before = collapsed(text, from, start).trimStart();
+  const after = collapsed(text, end, to).trimEnd();
+  return {
+    before: from > 0 && before !== "" ? `…${before}` : before,
+    match: collapsed(text, start, end),
+    after: to < text.length && after !== "" ? `${after}…` : after,
+  };
 }

@@ -75,11 +75,14 @@ export function foldQuery(query: string, options: FindOptions = {}): string {
 
 const WORD = /[\p{L}\p{N}\p{M}_]/u;
 
+/** Whether UTF-16 unit `code` is the second half of a surrogate pair. */
+export const isLowSurrogate = (code: number): boolean => code >= 0xdc00 && code <= 0xdfff;
+
 /** The character that ends just before `at` in `text`, a surrogate pair whole. */
 function charBefore(text: string, at: number): string {
   if (at <= 0) return "";
   const low = text.charCodeAt(at - 1);
-  const pair = low >= 0xdc00 && low <= 0xdfff && at >= 2;
+  const pair = isLowSurrogate(low) && at >= 2;
   return String.fromCodePoint(text.codePointAt(pair ? at - 2 : at - 1) ?? 0);
 }
 

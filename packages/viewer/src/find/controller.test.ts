@@ -14,7 +14,15 @@ function host(counts: readonly number[], currentPage = 0) {
           signal,
           resolve: () =>
             resolve(
-              pages.map((page) => ({ page, matches: Array.from({ length: counts[page] ?? 0 }, (_, i) => [page, i]) })),
+              pages.map((page) => ({
+                page,
+                matches: Array.from({ length: counts[page] ?? 0 }, (_, i) => [page, i]),
+                snippets: Array.from({ length: counts[page] ?? 0 }, (_, i) => ({
+                  before: "",
+                  match: `p${page}m${i}`,
+                  after: "",
+                })),
+              })),
             ),
         });
       }),
@@ -96,5 +104,53 @@ describe("FindController", () => {
     await settle(calls);
     find.close();
     expect([find.getState().total, find.matchesOn(0).matches.length, calls.length]).toEqual([0, 0, 0]);
+  });
+
+  it("lists every match in document order, whatever order the pages were searched in", async () => {
+    const { fake, calls } = host([2, 0, 1, 3], 2);
+    const find = new FindController(fake);
+    find.find("x");
+    await settle(calls);
+    const list = find.results();
+    expect(list.map((r) => [r.ordinal, r.page, r.snippet.match])).toEqual([
+      [0, 0, "p0m0"],
+      [1, 0, "p0m1"],
+      [2, 2, "p2m0"],
+      [3, 3, "p3m0"],
+      [4, 3, "p3m1"],
+      [5, 3, "p3m2"],
+    ]);
+    // The same list until the state changes.
+    expect(find.results()).toBe(list);
+    find.next();
+    expect(find.results()).not.toBe(list);
+  });
+
+  it("goes to a result by its ordinal and keeps Next going from there", async () => {
+    const { fake, calls, revealed } = host([2, 0, 1, 3]);
+    const find = new FindController(fake);
+    find.find("x");
+    await settle(calls);
+    find.goTo(4);
+    expect(find.getState().current).toBe(4);
+    expect(revealed.at(-1)).toEqual([3, [3, 1]]);
+    find.next();
+    expect(find.getState().current).toBe(5);
+    // Out of range or not a whole number: nothing changes.
+    for (const bad of [-1, 6, 1.5]) find.goTo(bad);
+    expect(find.getState().current).toBe(5);
+  });
+
+  it("empties the list for a new query and on close", async () => {
+    const { fake, calls } = host([1, 1]);
+    const find = new FindController(fake);
+    find.find("x");
+    await settle(calls);
+    expect(find.results()).toHaveLength(2);
+    find.find("y");
+    expect(find.results()).toEqual([]);
+    await settle(calls);
+    find.close();
+    expect(find.results()).toEqual([]);
   });
 });

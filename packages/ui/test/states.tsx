@@ -9,6 +9,7 @@ import {
   Checkbox,
   EmptyState,
   FindBar,
+  FindResults,
   IconButton,
   ModeSwitcher,
   NetworkIndicator,
@@ -479,6 +480,36 @@ const findBar: Example[] = [
   },
 ];
 
+/** A page's results heading, as the reader makes them. */
+const resultHeading = (page: number) => (page === 2 ? "Page 3 · Repairs backlog" : `Page ${page + 1}`);
+const RESULTS = [
+  { ordinal: 0, page: 2, snippet: { before: "…the ", match: "repairs", after: " backlog for the third quarter…" } },
+  { ordinal: 1, page: 2, snippet: { before: "Open ", match: "repairs", after: " are listed by site." } },
+  { ordinal: 2, page: 6, snippet: { before: "…when ", match: "repairs", after: " ran over budget." } },
+];
+
+const findResults: Example[] = [
+  {
+    component: "FindResults",
+    state: "results, the second current",
+    element: () => {
+      const find = new FakeFind({ query: "repairs", total: 3, current: 1, searched: 24 });
+      find.list = RESULTS;
+      return <FindResults find={find} heading={resultHeading} />;
+    },
+  },
+  {
+    component: "FindResults",
+    state: "no matches, Whole words on",
+    element: () => (
+      <FindResults
+        find={new FakeFind({ query: "backlogs", searched: 24, options: { wholeWords: true } })}
+        heading={resultHeading}
+      />
+    ),
+  },
+];
+
 const topBar: Example[] = [
   {
     component: "ReaderTopBar",
@@ -625,6 +656,7 @@ const OUTLINE: readonly OutlineTreeItem[] = [
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
+  ...findResults,
   ...buttons,
   ...toggles,
   ...rail,

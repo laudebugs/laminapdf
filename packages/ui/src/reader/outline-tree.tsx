@@ -75,13 +75,18 @@ function after(a: OutlinePlace, b: OutlinePlace): boolean {
  * before the first.
  */
 export function currentOutlineItem(items: readonly OutlineTreeItem[], top: OutlinePlace): string | undefined {
-  let found: { id: string; at: OutlinePlace } | undefined;
+  return outlineItemAt(items, top)?.id;
+}
+
+/** The item {@link currentOutlineItem} names, for its title. */
+export function outlineItemAt(items: readonly OutlineTreeItem[], top: OutlinePlace): OutlineTreeItem | undefined {
+  let found: { item: OutlineTreeItem; at: OutlinePlace } | undefined;
   for (const [item] of walk(items)) {
     const at = item.at;
     if (at === undefined || after(at, top)) continue;
-    if (found === undefined || !after(found.at, at)) found = { id: item.id, at };
+    if (found === undefined || !after(found.at, at)) found = { item, at };
   }
-  return found?.id;
+  return found?.item;
 }
 
 /** The ids of the items the file opens with their children shown. */

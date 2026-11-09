@@ -2,7 +2,7 @@
 // links-and-outlines reference PDF, whose four pages say "chapter" four times (twice as "Chapter"):
 // Ctrl+F or ⌘F opens the find bar with the focus in its field; typing shows the first highlight
 // and the count; Enter and Shift+Enter move between matches across pages; Match case and Whole
-// words change the count; Escape closes the bar, clears the highlights and gives the focus back.
+// words change the count; the rail's Results tab lists the matches and goes to one; Escape closes the bar, clears the highlights and gives the focus back.
 // No CSP violation or other origin throughout.
 
 import { readFileSync } from "node:fs";
@@ -100,6 +100,31 @@ describe(`find in ${BROWSER}`, () => {
     await expect.poll(() => count(page), { timeout: 15_000 }).toMatch(/ of 4$/);
     await page.getByRole("button", { name: "Whole words" }).click();
     await expect.poll(() => count(page), { timeout: 15_000 }).toBe("No matches");
+    await clean(watched);
+  });
+
+  it("lists every match in the rail's Results tab, goes to one on a click, and drops the tab on close", async () => {
+    const watched = await finding("chapter");
+    const { page } = watched;
+    await expect.poll(() => count(page), { timeout: 15_000 }).toBe("1 of 4");
+    const results = page.getByRole("tab", { name: "Results" });
+    // The rail starts open on a wide window; open it if it isn't.
+    if ((await results.count()) === 0) await page.getByRole("button", { name: "Sidebar" }).click();
+    await results.click();
+    const links = page.locator(".paper-find-result");
+    await expect.poll(() => links.count()).toBe(4);
+    const headings = await page.locator(".paper-find-results-heading").allTextContents();
+    expect(headings.length).toBeGreaterThan(1);
+    expect(headings.every((h) => h.startsWith("Page "))).toBe(true);
+    expect(await page.locator('.paper-find-result[aria-current="true"]').count()).toBe(1);
+    // The last match is on the fourth page, labelled "2".
+    await links.nth(3).click();
+    await expect.poll(() => count(page)).toBe("4 of 4");
+    await expect.poll(() => page.getByRole("textbox", { name: "Page" }).inputValue()).toBe("2");
+    expect(await links.nth(3).getAttribute("aria-current")).toBe("true");
+    await page.getByRole("button", { name: "Close find" }).click();
+    await expect.poll(() => results.count()).toBe(0);
+    expect(await page.getByRole("tab", { name: "Pages", selected: true }).count()).toBe(1);
     await clean(watched);
   });
 
