@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TextRunData } from "../protocol.ts";
-import { findOnPage, type PageGlyphs, searchText } from "./page.ts";
+import { findOnPage, matchRanges, type PageGlyphs, type SearchText, searchText, snippetOf } from "./page.ts";
 
 /** One glyph per character, 10 wide, along a baseline at `y` from `x`; runs given as [text, x, y]. */
 function page(runs: readonly (readonly [string, number, number, ("rtl" | "actual")?])[]): PageGlyphs {
@@ -94,5 +94,55 @@ describe("findOnPage", () => {
       find(p, "cat", { matchCase: true }).length,
       find(p, "cat", { wholeWords: true }).length,
     ]).toEqual([3, 2, 2]);
+  });
+});
+
+describe("snippetOf", () => {
+  const textOnly = (text: string): SearchText => ({
+    text,
+    lo: new Int32Array(text.length),
+    hi: new Int32Array(text.length),
+    runOf: new Int32Array(0),
+  });
+  const snippets = (text: string, query: string, options = {}) => {
+    const search = textOnly(text);
+    const { folded, ranges } = matchRanges(search, query, options);
+    return ranges.map((r) => snippetOf(search, folded, r));
+  };
+
+  it("keeps the whole line when it is short, with the match as the page spells it", () => {
+    expect(snippets("The Café opens at nine.", "cafe")).toEqual([
+      { before: "The ", match: "Café", after: " opens at nine." },
+    ]);
+  });
+
+  it("cuts long context at a word on each side and marks the cut", () => {
+    const text = `${"alpha beta gamma delta epsilon zeta eta theta "}needle${" iota kappa lambda mu nu xi omicron pi rho"}`;
+    const [s] = snippets(text, "needle");
+    expect(s?.before.startsWith("…")).toBe(true);
+    expect(s?.after.endsWith("…")).toBe(true);
+    // Whole words only: no word is cut in half.
+    const words = new Set(text.split(" "));
+    for (const w of [
+      ...(s?.before.slice(1).trim().split(" ") ?? []),
+      ...(s?.after.slice(0, -1).trim().split(" ") ?? []),
+    ]) {
+      expect(words.has(w)).toBe(true);
+    }
+    expect((s?.before.length ?? 0) <= 41 && (s?.after.length ?? 0) <= 41).toBe(true);
+  });
+
+  it("collapses the page's line breaks and runs of spaces to single spaces", () => {
+    expect(snippets("first line\nsecond   line", "second")).toEqual([
+      { before: "first line ", match: "second", after: " line" },
+    ]);
+  });
+
+  it("never splits a character outside the BMP where text has no spaces", () => {
+    const text = `${"𝒜".repeat(30)}針${"𝒜".repeat(30)}`;
+    const [s] = snippets(text, "針");
+    expect(s?.match).toBe("針");
+    expect(/^…(?:𝒜)+$/u.test(s?.before ?? "")).toBe(true);
+    expect(/^(?:𝒜)+…$/u.test(s?.after ?? "")).toBe(true);
   });
 });

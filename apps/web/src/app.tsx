@@ -211,16 +211,16 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const shown = open ? viewer : undefined;
   // The rail's panels are made again only when the view or the strip changes.
   const { strip } = engineState;
+  const find = useFind(shown, open ? state.file : undefined);
   const tabs = useMemo(
-    () => railTabs(engine, layout, open ? { strip, viewer } : undefined),
-    [engine, layout, open, strip, viewer],
+    () => railTabs(engine, layout, open ? { strip, viewer } : undefined, find.open),
+    [engine, layout, open, strip, viewer, find.open],
   );
   const labels = useMemo(() => {
     const pages = engineState.pages;
     return pages.some((p) => p.label !== undefined) ? pages.map((p) => p.label ?? String(p.index + 1)) : undefined;
   }, [engineState.pages]);
   const fileName = open ? state.file.name : undefined;
-  const find = useFind(shown, open ? state.file : undefined);
   const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions);
   useWindowTitle(fileName, engineState.title);
   const { inspector, showRepairs } = useRepairsPanel(layout, platform, fileName, repairs);

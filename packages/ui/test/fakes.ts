@@ -5,6 +5,7 @@
 import type { Capabilities, Platform, PlatformFile, RecentFile } from "../src/platform/types.ts";
 import type { WebScope } from "../src/platform/web.ts";
 import type { FindOptionsSlice, FindSlice } from "../src/reader/find-bar.tsx";
+import type { FindResultItem } from "../src/reader/find-results.tsx";
 import type { ViewerSlice, Zoom } from "../src/reader/viewer-controls.ts";
 
 /** Every flag false: a platform that can do nothing optional. */
@@ -241,5 +242,18 @@ export class FakeFind {
 
   find(query: string, options?: FindOptionsSlice): void {
     this.calls.push({ query, options });
+  }
+
+  /** The matches the Results tab lists; tests set them. */
+  list: readonly FindResultItem[] = [];
+  readonly went: number[] = [];
+
+  results(): readonly FindResultItem[] {
+    return this.list;
+  }
+
+  goTo(ordinal: number): void {
+    this.went.push(ordinal);
+    this.set({ current: ordinal });
   }
 }

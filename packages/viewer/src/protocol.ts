@@ -7,6 +7,7 @@
 import { type CloneableWasmSource, flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
 import type { Limits, OutlineNode, PageInfo, StructureNode, Target } from "@laminapdf/sdk";
 import type { FindOptions } from "./find/fold.js";
+import type { FindSnippet } from "./find/page.js";
 
 /** Which engine draws the pages (ADR 0004: PDFium by default, hayro the CI oracle). */
 export type BackendName = "pdfium" | "hayro";
@@ -87,6 +88,8 @@ export interface Methods {
 export interface FindPageResult {
   readonly page: number;
   readonly matches: readonly (readonly number[])[];
+  /** Each match in its line, in the same order. */
+  readonly snippets: readonly FindSnippet[];
   /** The page has no text to search (a scan without an OCR layer). */
   readonly noText?: true;
 }

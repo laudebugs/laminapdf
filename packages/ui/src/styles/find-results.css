@@ -1,0 +1,58 @@
+/* Find's Results tab (R05, §7.30): a heading per page in the label style, then one link per match:
+   body text with the match in weight 600; the current one on the accent tint with an inset accent
+   ring, so it doesn't rely on colour alone. */
+@layer paper.components {
+  .paper-find-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-12);
+    padding: var(--paper-space-8);
+  }
+
+  .paper-find-results-heading {
+    margin: 0 0 var(--paper-space-4);
+    padding-inline: var(--paper-space-8);
+    color: var(--paper-text-3);
+    font: var(--paper-type-label);
+  }
+
+  .paper-find-results-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-find-result {
+    display: block;
+    min-block-size: var(--ui-target);
+    padding-block: var(--paper-space-6);
+    padding-inline: var(--paper-space-8);
+    border-radius: var(--paper-radius-4);
+    color: var(--paper-text-2);
+    font: var(--paper-type-body);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-find-result:hover {
+    background: var(--paper-hover);
+  }
+
+  .paper-find-result:focus-visible {
+    /* A plain link, so base.css's [data-focus-visible] ring doesn't reach it: the same ring, tight. */
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: calc(-1 * var(--paper-focus-ring-width));
+  }
+
+  .paper-find-result[aria-current="true"] {
+    background: var(--paper-accent-tint);
+    box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
+  }
+
+  .paper-find-result-match {
+    color: var(--paper-text);
+    font-weight: 600;
+  }
+}

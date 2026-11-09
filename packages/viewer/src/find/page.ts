@@ -138,3 +138,58 @@ export function findOnPage(page: PageGlyphs, search: SearchText, query: string, 
   const { folded, ranges } = matchRanges(search, query, options);
   return quadsOfMatches(page, search, folded, ranges);
 }
+
+/** A match in its line: the text before it, the match, and the text after, as the page has them. */
+export interface FindSnippet {
+  /** Up to about 40 characters, starting at a word, "…" first where cut. */
+  readonly before: string;
+  readonly match: string;
+  /** Up to about 40 characters, ending at a word, "…" last where cut. */
+  readonly after: string;
+}
+
+/** About how many characters of context a snippet keeps on each side of its match. */
+const SNIPPET_CONTEXT = 40;
+
+const SPACES = /\s+/gu;
+const isLowSurrogate = (code: number) => code >= 0xdc00 && code <= 0xdfff;
+
+/** `text[from, to)` with white space collapsed to single spaces. */
+const collapsed = (text: string, from: number, to: number) => text.slice(from, to).replace(SPACES, " ");
+
+/** Where context starting `SNIPPET_CONTEXT` units before `start` begins: at the next word, or a whole character. */
+function contextStart(text: string, start: number): number {
+  let at = Math.max(0, start - SNIPPET_CONTEXT);
+  if (at === 0) return 0;
+  const space = text.slice(at, start).search(/\s/u);
+  if (space >= 0) return at + space + 1;
+  if (isLowSurrogate(text.charCodeAt(at))) at += 1;
+  return at;
+}
+
+/** Where context ending `SNIPPET_CONTEXT` units after `end` stops: after the last whole word, or a whole character. */
+function contextEnd(text: string, end: number): number {
+  let at = Math.min(text.length, end + SNIPPET_CONTEXT);
+  if (at === text.length) return at;
+  const space = text.slice(end, at).search(/\s\S*$/u);
+  if (space >= 0) return end + space;
+  if (isLowSurrogate(text.charCodeAt(at))) at -= 1;
+  return at;
+}
+
+/** The snippet of the match `range` of `folded`, the folded text of `search`. */
+export function snippetOf(search: SearchText, folded: Folded, range: readonly [number, number]): FindSnippet {
+  const text = search.text;
+  const [a, b] = range;
+  const start = folded.from[a] ?? 0;
+  const end = (folded.from[b - 1] ?? start) + 1;
+  const from = contextStart(text, start);
+  const to = contextEnd(text, end);
+  const before = collapsed(text, from, start).trimStart();
+  const after = collapsed(text, end, to).trimEnd();
+  return {
+    before: from > 0 && before !== "" ? `…${before}` : before,
+    match: collapsed(text, start, end),
+    after: to < text.length && after !== "" ? `${after}…` : after,
+  };
+}

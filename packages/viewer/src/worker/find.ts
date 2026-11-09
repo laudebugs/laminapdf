@@ -6,7 +6,7 @@
 // read again only where it has matches.
 
 import type { FindOptions } from "../find/fold.js";
-import { matchRanges, quadsOfMatches, type SearchText, searchText } from "../find/page.js";
+import { matchRanges, quadsOfMatches, type SearchText, searchText, snippetOf } from "../find/page.js";
 import type { FindPageResult } from "../protocol.js";
 import { current } from "./document.js";
 import { pageGlyphs } from "./text.js";
@@ -55,7 +55,12 @@ export async function find(
     const { folded, ranges } = matchRanges(search, query, options);
     const quads =
       ranges.length === 0 ? [] : quadsOfMatches(await pageGlyphs(page, signal, false), search, folded, ranges);
-    out.push({ page, matches: quads.map((q) => [...q]), ...(empty ? { noText: true } : {}) });
+    out.push({
+      page,
+      matches: quads.map((q) => [...q]),
+      snippets: ranges.map((r) => snippetOf(search, folded, r)),
+      ...(empty ? { noText: true } : {}),
+    });
   }
   return out;
 }
