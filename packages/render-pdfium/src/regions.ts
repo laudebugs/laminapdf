@@ -134,12 +134,13 @@ function addImage(p: Pdfium, image: ImageObject, m: Matrix, images: PageImages):
   const [x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0, x4 = 0, y4 = 0] = floats(p, at, 8);
   const quad: Quad = [apply(m, x1, y1), apply(m, x2, y2), apply(m, x3, y3), apply(m, x4, y4)];
   if (!touches(quad, ...scan.tile)) return;
-  let alpha = scan.alpha.get(place);
-  if (alpha === undefined) {
-    alpha = hasAlpha(p, doc, page, object);
-    scan.alpha.set(place, alpha);
+  // The drawing state first: it costs nothing, while the samples are decoded (once per image).
+  let through = p.FPDFPageObj_HasTransparency(object);
+  if (!through) {
+    through = scan.alpha.get(place) ?? hasAlpha(p, doc, page, object);
+    scan.alpha.set(place, through);
   }
-  (p.FPDFPageObj_HasTransparency(object) || alpha ? images.seeThrough : images.opaque).push(quad);
+  (through ? images.seeThrough : images.opaque).push(quad);
 }
 
 /**

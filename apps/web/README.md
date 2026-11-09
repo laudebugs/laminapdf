@@ -77,11 +77,11 @@ The More menu holds Download a copy, Print… (also `Ctrl P`, or `⌘P` on a Mac
 
 ## Page appearance
 
-View settings › Page appearance draws the pages in Sepia, Dark or High contrast. Photos and annotation colours stay as they are. The choice is for this document or for all documents, and this document's choice wins. A toast confirms it, with Undo.
+View settings › Page appearance draws the pages in Sepia, Dark or High contrast, apart from the UI theme. Images and annotation colours stay as they are. You can apply it to this document or to all documents; a choice for this document overrides the one for all. A toast confirms it, with Undo.
 
-With no choice made, a system in forced colours (Windows contrast themes) gets High contrast, drawn in the system's own text and background colours. The page appearance is separate from the UI theme.
+With no choice made, a system in forced colours (Windows contrast themes) gets High contrast, drawn in the system's own text and background colours.
 
-The choices stay in this browser's `localStorage`. A local file's choice is kept under a hash of its name and size. A linked file's lasts until the tab closes, since nothing about a linked file is stored.
+The choices stay in this browser's `localStorage`. A local file's choice is kept under a hash of its name and size. A linked file's choice lasts only until the tab closes, because the reader stores nothing about linked files.
 
 ## Offline, installing and what stays in the browser
 

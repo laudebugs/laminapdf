@@ -386,7 +386,12 @@ class PdfiumDocument implements RenderDocument {
     let flags = this.#whole.get(request.page);
     if (flags === undefined) {
       const scale = DECISION_SIDE / Math.max(info.width, info.height, 1);
-      const small = { page: request.page, scale, ...(request.flags === undefined ? {} : { flags: request.flags }) };
+      const small = {
+        page: request.page,
+        scale,
+        ...(request.flags === undefined ? {} : { flags: request.flags }),
+        ...(request.background === undefined ? {} : { background: request.background }),
+      };
       const without = this.#renderPage(page, { ...small, flags: { ...request.flags, annotations: false } });
       const withAnnotations = this.#renderPage(page, small);
       const smallRects = annotationRects(

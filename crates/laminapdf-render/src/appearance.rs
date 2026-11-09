@@ -242,7 +242,9 @@ pub fn mostly_changed(rects: &[Quad], plain: &[u8], annotated: &[u8], width: u32
         .map(|rect| {
             let inside = rect.pixels(width, height);
             let differing = inside.iter().filter(|&&i| changed(plain, annotated, i)).count();
-            !inside.is_empty() && differing * 2 >= inside.len()
+            // Too small to cover a pixel of the small drawing: kept whole, as a highlight that
+            // small would be (a large page's 256 px drawing can miss a line of text).
+            inside.is_empty() || differing * 2 >= inside.len()
         })
         .collect()
 }

@@ -6,7 +6,7 @@
 "@laminapdf/wasm": minor
 ---
 
-Pages can be drawn in Sepia, Dark or High contrast instead of their own colours. Photos and annotations keep theirs, and so does text under a highlight.
+Pages can be drawn in Sepia, Dark or High contrast instead of their own colours. Images and annotations keep theirs, and so does text under a highlight.
 
 - **Render request:** `RenderRequest.appearance` is `"original"` (the default), `"sepia"`, `"dark"` or `{ kind: "high-contrast", ink, paper }`, for both backends.
 - **Colour maps:** `recolourRgb` and `recolourTile` in `@laminapdf/render` give the same bytes as the Rust crate's.

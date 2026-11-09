@@ -76,7 +76,7 @@ const EN = {
   "pageAppearance.sepia": "Sepia",
   "pageAppearance.dark": "Dark",
   "pageAppearance.high-contrast": "High contrast",
-  "pageAppearance.scope": "Use it for",
+  "pageAppearance.scope": "Apply to",
   "pageAppearance.scope.document": "This document",
   "pageAppearance.scope.all": "All documents",
   "pageAppearance.help": "Photos and annotation colours stay as they are.",

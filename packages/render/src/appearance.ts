@@ -232,7 +232,8 @@ export function mostlyChanged(
   const height = Math.floor(plain.length / 4 / width);
   return rects.map((rect) => {
     const inside = pixelsIn(rect, width, height);
-    return inside.length > 0 && inside.filter((i) => changed(plain, over, i)).length * 2 >= inside.length;
+    // Too small to cover a pixel of the small drawing: kept whole, as a highlight that small would be.
+    return inside.length === 0 || inside.filter((i) => changed(plain, over, i)).length * 2 >= inside.length;
   });
 }
 
