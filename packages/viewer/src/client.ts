@@ -285,6 +285,11 @@ export class ViewerClient {
     return this.call("namedDestination", [name], options);
   }
 
+  /** Page `index`'s links, in annotation order, each with what following it does (the link layer asks as pages mount). */
+  pageLinks(index: number, options?: ViewerCallOptions) {
+    return this.call("pageLinks", [index], options);
+  }
+
   /**
    * Renders `request` as an ImageBitmap (close it when done). Identical requests in flight are
    * drawn once. An aborted render rejects with `AbortError` and never paints.

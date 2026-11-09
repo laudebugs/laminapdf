@@ -1,7 +1,7 @@
-// doc.outline() and doc.namedDestination(): the links-and-outlines golden's outline against
+// doc.outline(), doc.namedDestination() and doc.pageLinks(): the links-and-outlines golden's outline against
 // pypdf's facts (fixtures/build/facts.json, as crates/laminapdf/tests/navigation.rs reads them),
 // views in page space, and the base module's refusal.
-import { Document, init, isLaminaPdfError, loadExtract, type OutlineNode } from "@laminapdf/sdk";
+import { Document, init, isLaminaPdfError, loadExtract, type OutlineNode, type PageLink } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, readText, thrown } from "./helpers.js";
 
@@ -60,5 +60,44 @@ describe("outline and named destinations", () => {
   it("is undefined for an unknown name", () => {
     using doc = Document.open(read(FILE));
     expect(doc.namedDestination("nowhere")).toBeUndefined();
+  });
+});
+
+describe("page links", () => {
+  beforeAll(() => loadExtract());
+
+  const facts = JSON.parse(readText("fixtures/links/expected.json")).files["links.pdf"] as Record<
+    string,
+    unknown
+  >[][];
+
+  /** A link as fixtures/links/expected.json describes it. */
+  function fact(link: PageLink): Record<string, unknown> {
+    switch (link.kind) {
+      case "dest":
+      case "named":
+        return { page: link.target?.page ?? null };
+      case "uri":
+        return { uri: link.uri };
+      case "remote":
+        return { file: link.file ?? null };
+      case "named-action":
+        return { named: link.name };
+      case "unsupported":
+        return { action: link.action };
+    }
+  }
+
+  it("matches pypdf's links on every page", () => {
+    using doc = Document.open(read("fixtures/links/links.pdf"));
+    const expected = facts.map((page) =>
+      page.filter((l) => l.hidden === false && l.rect !== null).map(({ hidden: _h, rect: _r, ...rest }) => rest),
+    );
+    expect(Array.from({ length: doc.pageCount }, (_, i) => doc.pageLinks(i).map(fact))).toEqual(expected);
+  });
+
+  it("gives rectangles in page space", () => {
+    using doc = Document.open(read("fixtures/links/links.pdf"));
+    expect(doc.pageLinks(0)[0]?.rect).toEqual([72, 38, 400, 56]);
   });
 });

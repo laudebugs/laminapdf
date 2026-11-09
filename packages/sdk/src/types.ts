@@ -17,6 +17,7 @@ import type {
   Op as OpJs,
   OutlineEntryInit,
   OutlineNodeJs,
+  PageLinkJs,
   OverflowInit,
   PageInfoJs,
   PageLabelInit,
@@ -92,6 +93,16 @@ export type OutlineEntry = OutlineEntryInit;
 
 /** One item of a document's outline (its bookmarks), with where it goes and its children. */
 export type OutlineNode = OutlineNodeJs;
+
+/**
+ * One link on a page, in page space: its `rect` (`[x0, y0, x1, y1]`), the `quads` that follow it
+ * when the file gives them (eight numbers per area), its `contents` (a description), and what it
+ * does by `kind`: `"dest"` and `"named"` go to a `target` in this document (absent when it names
+ * no page here), `"uri"` to a `uri` as the file stores it, `"remote"` to another `file`,
+ * `"named-action"` runs a named action (`NextPage`, `PrevPage`, `FirstPage`, `LastPage`), and
+ * `"unsupported"` names an `action` a reader never runs (`Launch`, `JavaScript`…).
+ */
+export type PageLink = PageLinkJs;
 
 /** A place in a document: a 0-based page index and how to show it. */
 export type Target = TargetJs;

@@ -20,6 +20,7 @@ import type {
   OpenOptions,
   OpLog,
   OutlineNode,
+  PageLink,
   PageInfo,
   Progress,
   SaveOptions,
@@ -381,6 +382,17 @@ export class Document extends Handle<BaseGlue> {
    */
   namedDestination(name: string): Target | undefined {
     return this.call(() => this.#extracting("doc.namedDestination()").namedDestination(name));
+  }
+
+  /**
+   * The visible links on page `index` (0-based), in the page's annotation order, each with what
+   * following it does. Nothing is run: a link to a `Launch` or `JavaScript` action is reported as
+   * `"unsupported"`. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.outline}.
+   */
+  pageLinks(index: number): PageLink[] {
+    return this.call(() => this.#extracting("doc.pageLinks()").pageLinks(index));
   }
 
   /**

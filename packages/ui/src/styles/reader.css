@@ -89,6 +89,11 @@
     gap: var(--paper-space-14);
   }
 
+  .paper-top-bar-history {
+    display: flex;
+    gap: var(--paper-space-2);
+  }
+
   .paper-page-input {
     display: flex;
     align-items: center;

@@ -181,6 +181,24 @@ impl<'d> Outline<'d> {
         Self::build(doc, PageSource::Borrowed(pages))
     }
 
+    /// An outline without its items, for resolving destinations alone (a page's links)
+    /// without walking a bookmark tree that can hold thousands of items.
+    pub(crate) const fn destinations(doc: &'d Document, pages: &'d Pages<'d>) -> Self {
+        Self {
+            doc,
+            items: Vec::new(),
+            roots: Vec::new(),
+            by_id: BTreeMap::new(),
+            pages: PageSource::Borrowed(pages),
+            names: OnceCell::new(),
+        }
+    }
+
+    /// The document it reads.
+    pub(crate) const fn doc(&self) -> &'d Document {
+        self.doc
+    }
+
     fn build(doc: &'d Document, pages: PageSource<'d>) -> Result<Self> {
         let mut outline = Self {
             doc,
@@ -390,7 +408,7 @@ impl<'d> Outline<'d> {
     }
 
     /// Resolves a destination value (`/Dest` or a `GoTo` action's `/D`).
-    fn destination(&self, value: &Object) -> Result<Option<Destination>> {
+    pub(crate) fn destination(&self, value: &Object) -> Result<Option<Destination>> {
         let Some(resolved) = self.doc.read(value)? else {
             return Ok(None);
         };

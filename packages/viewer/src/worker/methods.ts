@@ -7,7 +7,7 @@ import type { FindOptions } from "../find/fold.js";
 import type { BackendInit, SourceInit, ViewerOpenOptions } from "../protocol.js";
 import { closeDocument, current, initBackend, openDocument, workerMemory } from "./document.js";
 import { find, forgetSearch } from "./find.js";
-import { namedDestination, outline } from "./navigation.js";
+import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
 import { render, reply } from "./render.js";
 import { forgetText, pageText, replyText, structure } from "./text.js";
 
@@ -21,6 +21,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     run: () => {
       forgetText();
       forgetSearch();
+      forgetLinks();
       return closeDocument();
     },
   },
@@ -46,4 +47,5 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   outline: { run: (_params, { signal }) => outline(signal) },
   namedDestination: { run: ([name], { signal }) => namedDestination(name as string, signal) },
+  pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
 };

@@ -137,6 +137,15 @@ impl<'d> Pages<'d> {
         Outline::with_pages(self.doc, self)
     }
 
+    /// The visible link annotations of `page` (one of these pages), as
+    /// [`Outline::links`], without walking the outline.
+    ///
+    /// # Errors
+    /// As [`Outline::links`].
+    pub fn links(&self, page: &Page<'_>) -> Result<Vec<crate::Link>> {
+        Outline::destinations(self.doc, self).links(page)
+    }
+
     /// The page labels, read once per [`Pages`].
     fn labels(&self) -> Result<&PageLabels> {
         if let Some(labels) = self.labels.get() {
@@ -442,6 +451,9 @@ impl<'p> Page<'p> {
 }
 
 /// `obj` as a rectangle of four numbers, tolerantly; `None` when it is anything else.
+/// `/F` bits that hide an annotation: Hidden (2) and `NoView` (6), §12.5.3.
+pub(crate) const HIDDEN_ANNOT_FLAGS: i64 = (1 << 1) | (1 << 5);
+
 pub(crate) fn read_rect(doc: &Document, obj: &Object) -> Result<Option<UserSpaceRect>> {
     let Some(arr) = doc.read(obj)? else {
         return Ok(None);

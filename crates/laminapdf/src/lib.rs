@@ -112,6 +112,7 @@ mod generated {
     pub(crate) mod explain;
 }
 mod job;
+mod links;
 mod navigation;
 #[cfg(feature = "extract")]
 mod redaction;
@@ -135,6 +136,7 @@ pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
+pub use links::{LinkTo, PageLink};
 pub use navigation::{OutlineNode, PageTarget, PageTargetView};
 pub use structure::{StructureKid, StructureNode};
 

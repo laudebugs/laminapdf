@@ -1,10 +1,17 @@
-// Moving through the open document: its outline and named destinations, read by Lamina PDF in the
-// worker (the extract module, which the text layer loads too), each target a page and a view in
-// page space. The outline is read when a reader first asks for it, since it can hold thousands of
-// items.
+// Moving through the open document: its outline, named destinations and each page's links, read
+// by Lamina PDF in the worker (the extract module, which the text layer loads too), each target a
+// page and a view in page space. The outline is read when a reader first asks for it, since it can
+// hold thousands of items. The last pages' links are kept, since a page scrolled back into view
+// asks again.
 
-import type { OutlineNode, Target } from "@laminapdf/sdk";
-import { textModel } from "./document.js";
+import type { OutlineNode, PageLink, Target } from "@laminapdf/sdk";
+import { current, textModel } from "./document.js";
+
+/** How many pages' links stay cached (as many as their text). */
+const CACHED_PAGES = 24;
+
+/** The cache, by document ID and page, oldest first. */
+const links = new Map<string, readonly PageLink[]>();
 
 /** The outline's top-level items, each with its children; empty without one. */
 export async function outline(signal: AbortSignal): Promise<OutlineNode[]> {
@@ -16,4 +23,29 @@ export async function outline(signal: AbortSignal): Promise<OutlineNode[]> {
 export async function namedDestination(name: string, signal: AbortSignal): Promise<Target | undefined> {
   const model = await textModel(signal);
   return model.ensure(() => model.namedDestination(name), { signal });
+}
+
+/** Page `index`'s links, in annotation order (cached). */
+export async function pageLinks(index: number, signal: AbortSignal): Promise<readonly PageLink[]> {
+  const { id } = current();
+  const key = `${id}:${index}`;
+  const cached = links.get(key);
+  if (cached !== undefined) {
+    links.delete(key);
+    links.set(key, cached);
+    return cached;
+  }
+  const model = await textModel(signal);
+  const read = await model.ensure(() => model.pageLinks(index), { signal });
+  links.set(key, read);
+  for (const old of links.keys()) {
+    if (links.size <= CACHED_PAGES) break;
+    links.delete(old);
+  }
+  return read;
+}
+
+/** Forgets every page's links: the document closed. */
+export function forgetLinks(): void {
+  links.clear();
 }

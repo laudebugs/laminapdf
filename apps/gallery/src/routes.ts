@@ -85,8 +85,8 @@ export const ROUTES: readonly Route[] = [
     id: "dialogs",
     title: "Dialogs",
     components: [],
-    renders: ["Dialog", "PasswordDialog"],
-    states: ["default", "form", "wide", "alert", "password"],
+    renders: ["Dialog", "PasswordDialog", "ExternalLinkDialog"],
+    states: ["default", "form", "wide", "alert", "password", "external-link"],
   },
   {
     id: "sheets",

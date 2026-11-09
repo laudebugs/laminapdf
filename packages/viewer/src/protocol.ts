@@ -5,7 +5,7 @@
 // coalescing key.
 
 import { type CloneableWasmSource, flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
-import type { Limits, OutlineNode, PageInfo, StructureNode, Target } from "@laminapdf/sdk";
+import type { Limits, OutlineNode, PageInfo, PageLink, StructureNode, Target } from "@laminapdf/sdk";
 import type { FindOptions } from "./find/fold.js";
 import type { FindSnippet } from "./find/page.js";
 
@@ -81,6 +81,7 @@ export interface Methods {
   structure: { params: []; result: StructureData };
   outline: { params: []; result: OutlineNode[] };
   namedDestination: { params: [name: string]; result: Target | undefined };
+  pageLinks: { params: [index: number]; result: readonly PageLink[] };
   find: { params: [query: string, options: FindOptions, pages: readonly number[]]; result: FindPageResult[] };
 }
 

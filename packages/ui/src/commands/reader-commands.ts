@@ -203,7 +203,8 @@ function pageCommands(): AnyCommand[] {
       home: ["page-indicator"],
       args: pageArgs(),
       enabled: viewerOpen,
-      run: (ctx, page: number) => ctx.viewer?.goToPage(page),
+      // Going to a page is a jump: Back returns to where the reader was.
+      run: (ctx, page: number) => (ctx.viewer?.jumpToPage ?? ctx.viewer?.goToPage)?.call(ctx.viewer, page),
     } satisfies Command<number>,
   ];
 }
