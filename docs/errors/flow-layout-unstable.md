@@ -1,7 +1,7 @@
 # `flow-layout-unstable`
 
 - Type: error
-- Kind: `usage` (the caller misused the API)
+- Kind: `internal` (a bug in Lamina PDF or a broken invariant)
 
 ## What happened
 
@@ -9,18 +9,20 @@
 
 ## Why
 
-A contents page lists each heading with the page it starts on, but the contents page takes up room itself. The flow lays everything out, writes the page numbers into the contents page, and lays out again. Usually the numbers settle on the second pass. They keep changing when the contents page sits on the same pages as the headings it lists, so that each new set of numbers makes the contents page longer or shorter and moves the headings again.
+A contents page lists each heading with the page it starts on, but those pages aren't known until the flow is laid out. So the flow lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps the same room for its number however wide the number is, so the contents page's length never depends on the numbers, and the second layout finds the same pages.
+
+The flow still checks up to four layouts. This error means the numbers kept changing all the same: a fault in Lamina PDF's layout, not in your document.
 
 ## How to fix
 
-Put a page break after the contents block, so the contents page has pages of its own and the headings after it don't move when its numbers change. Listing fewer heading levels with `Contents::with_levels` also makes the contents page shorter.
+Report the flow that fails, with the blocks and page template that produce it. Until it is fixed, a page break after the contents block may avoid the error, since the headings after it then start on pages of their own.
 
 ## Example
 
 ```rust
 let flow = Flow::new(template)
     .block(FlowBlock::Contents(Contents::new(&style)))
-    .block(FlowBlock::PageBreak) // the contents page keeps its own pages
+    .block(FlowBlock::PageBreak) // the headings start on their own pages
     .block(FlowBlock::Heading(1, Paragraph::plain("Introduction", &heading)));
 builder.flow(&flow)?;
 ```

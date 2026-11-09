@@ -894,9 +894,9 @@
     },
     {
       "code": "flow-layout-unstable",
-      "kind": "usage",
+      "kind": "internal",
       "summary": "a flow's contents page kept changing its page numbers after four layouts",
-      "hint": "give the contents page its own pages with a page break after it, or list fewer heading levels",
+      "hint": "report the flow that fails; a page break after the contents block may avoid it until it is fixed",
       "since": "0.2.0"
     }
   ],

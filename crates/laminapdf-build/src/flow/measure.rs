@@ -89,7 +89,10 @@ impl Source {
             markers: Vec::new(),
             last_style: None,
         };
-        let mut paragraph_lang = None;
+        // The paragraph's language and empty-line size are its first text's, even after a note.
+        let first = first_style(paragraph);
+        let paragraph_lang = first.as_ref().and_then(|s| s.language.clone());
+        source.size = first.as_ref().map_or(0.0, |s| s.size);
         for inline in &paragraph.inlines {
             let (text, style, link) = match inline {
                 Inline::Text(text, style) => (text.as_str(), style, None),
@@ -117,10 +120,6 @@ impl Source {
                     continue;
                 }
             };
-            if source.spans.is_empty() {
-                source.size = style.size;
-                paragraph_lang.clone_from(&style.language);
-            }
             let link = link.map(|target| {
                 source.links.push(target.clone());
                 source.links.len() - 1
@@ -161,18 +160,17 @@ impl Source {
     /// it (or the note body's first style when it starts the paragraph).
     fn marker(&mut self, body: &Paragraph, paragraph_lang: Option<&str>) {
         let index = self.note_base + self.notes.len();
-        let base = self.last_style.clone().or_else(|| first_style(body));
+        // A note with no text anywhere to style its number after has no marker, and no number.
+        let Some(base) = self.last_style.clone().or_else(|| first_style(body)) else {
+            return;
+        };
         self.notes.push(body.clone());
-        let Some(base) = base else { return };
         let style = base
             .clone()
             .with_size(base.size * 0.65)
             .with_rise(base.rise + base.size * 0.35);
         let start = self.text.len();
         self.markers.push((start, index));
-        if self.spans.is_empty() {
-            self.size = base.size;
-        }
         self.push(&(index + 1).to_string(), &style, None, paragraph_lang);
         // The text after the marker is in the style before it, and so is a second marker.
         self.last_style = Some(base);
@@ -244,7 +242,7 @@ fn shift(line: &mut Line, by: usize) {
 }
 
 /// The style of `paragraph`'s first text.
-fn first_style(paragraph: &Paragraph) -> Option<TextStyle> {
+pub(crate) fn first_style(paragraph: &Paragraph) -> Option<TextStyle> {
     paragraph.inlines.iter().find_map(|i| match i {
         Inline::Text(_, style) | Inline::Link(_, style, _) => Some(style.clone()),
         Inline::LineBreak | Inline::Note(_) => None,

@@ -63,7 +63,7 @@ A footnote is part of a paragraph: `Paragraph::note(body)` puts a raised number 
 
 A contents block, `FlowBlock::Contents`, lists the flow's headings with the page each one starts on. Each entry is indented by its heading's level, with dots leading to its number, and the entry links to its heading. By default it lists levels 1 and 2; `Contents::with_levels` changes that. The report in the example puts its contents on the cover.
 
-The flow can't know the page numbers before it has laid the pages out, and the contents page takes up room itself. So the flow lays everything out, prints the numbers it found, and lays out again until no number changes. It usually settles on the second layout. If the numbers still change after four layouts, `Builder::flow` fails with `flow-layout-unstable`. A page break after the contents block prevents that, because the headings then no longer move when the contents page grows.
+The flow can't know the page numbers before it has laid the pages out. So it lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps the same room for its number however wide the number is, so the contents page keeps its length and the second layout confirms the numbers. A number wider than four digits would run into its entry's text.
 
 Every heading also gets a bookmark: a reader shows the document's outline in its sidebar, nested by heading level, and each bookmark goes to its heading. Turn them off with `Flow::with_outline(false)`.
 

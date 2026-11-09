@@ -146,9 +146,11 @@ fn node_of(items: &Items, placed: &Placed) -> Option<usize> {
 /// A contents entry's dot leaders or the rule above a page's notes, as a `Layout` artifact.
 fn decoration(s: &mut Surface, tagged: bool, placed: &Placed) -> Result<()> {
     layout_artifact(s, tagged, |s| match *placed {
-        Placed::Leader { from, to, y } => {
-            // Dots on a 4-point grid from the number back, so the leaders of every entry line up.
-            let mut x = to - LEADER_STEP;
+        Placed::Leader { from, to, y, edge } => {
+            // Dots on a 4-point grid from the right edge, so the leaders of every entry line up
+            // whatever the width of its number; the first dot half a step before the number.
+            let steps = ((edge - to + LEADER_STEP / 2.0) / LEADER_STEP).ceil();
+            let mut x = edge - steps * LEADER_STEP;
             s.path(|p| {
                 while x > from + LEADER_STEP / 2.0 {
                     p.circle(PointPt::from_points(x, y - 1.0), Pt::new(0.5));

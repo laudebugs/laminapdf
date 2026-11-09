@@ -170,7 +170,7 @@ A PR that adds a code adds:
 | [`embedded-file-forbidden`](embedded-file-forbidden.md) | `usage` | PDF/A-2 doesn't allow attached files that aren't PDF/A themselves |
 | [`embedded-file-without-mime-type`](embedded-file-without-mime-type.md) | `usage` | an attached file has no MIME type, which every PDF/A profile requires |
 | [`flow-content-too-large`](flow-content-too-large.md) | `usage` | a line or a figure of a flow is taller than the page's body, so no page can hold it |
-| [`flow-layout-unstable`](flow-layout-unstable.md) | `usage` | a flow's contents page kept changing its page numbers after four layouts |
+| [`flow-layout-unstable`](flow-layout-unstable.md) | `internal` | a flow's contents page kept changing its page numbers after four layouts |
 
 ## Build warnings (`laminapdf-build`)
 

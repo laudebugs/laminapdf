@@ -87,28 +87,32 @@ impl Builder {
     /// in the document, and the flow's structure elements are closed.
     pub fn flow(&mut self, flow: &Flow) -> Result<FlowReport> {
         let first = self.page_count();
-        let headings = contents::headings(&flow.blocks);
-        let lay = |numbers: &[usize]| -> Result<((items::Items, paginate::Laid), Vec<usize>)> {
-            let items = items::Items::new(&flow.blocks, numbers, first);
-            let laid = paginate::paginate(&items, &flow.template, flow.section_level, first)?;
-            let found = items
-                .heading_at
-                .iter()
-                .map(|&i| {
-                    laid.starts
-                        .get(i)
-                        .copied()
-                        .flatten()
-                        .map_or(0, |(page, _)| first + page + 1)
-                })
-                .collect();
-            Ok(((items, laid), found))
-        };
+        let mut items = items::Items::new(&flow.blocks, first);
+        let measures = paginate::Measures::default();
+        let lay =
+            |items: &items::Items| paginate::paginate(items, &flow.template, flow.section_level, first, &measures);
         let contents = contents::has_contents(&flow.blocks);
-        let (items, laid) = if contents {
-            contents::settle(vec![first + 1; headings.len()], lay)?
+        let laid = if contents {
+            // Every layout but the numbers' is measured once: only the numbers change.
+            contents::settle(vec![first + 1; items.headings.len()], |numbers| {
+                items.set_numbers(numbers);
+                measures.forget(&items.number_sources());
+                let laid = lay(&items)?;
+                let found = items
+                    .heading_at
+                    .iter()
+                    .map(|&i| {
+                        laid.starts
+                            .get(i)
+                            .copied()
+                            .flatten()
+                            .map_or(0, |(page, _)| first + page + 1)
+                    })
+                    .collect();
+                Ok((laid, found))
+            })?
         } else {
-            lay(&[])?.0
+            lay(&items)?
         };
         let pages = emit::emit(self, flow, &items, &laid.pages, first)?;
         if contents || flow.outline {
@@ -124,8 +128,8 @@ impl Builder {
                 }
             }
         }
-        if flow.outline && !headings.is_empty() {
-            self.outline(contents::outline(&headings, |n| {
+        if flow.outline && !items.headings.is_empty() {
+            self.outline(contents::outline(&items.headings, |n| {
                 LinkTarget::Named(contents::destination(first, n))
             }))?;
         }

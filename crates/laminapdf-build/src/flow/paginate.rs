@@ -50,8 +50,9 @@ pub(crate) enum Placed {
         x: f64,
         top: f64,
     },
-    /// Dot leaders from `from` to `to` on the baseline `y` (a `Layout` artifact).
-    Leader { from: f64, to: f64, y: f64 },
+    /// Dot leaders from `from` to `to` on the baseline `y`, on a grid from the right edge
+    /// `edge` (a `Layout` artifact).
+    Leader { from: f64, to: f64, y: f64, edge: f64 },
     /// A line of footnote `note`'s body at the foot of the page.
     NoteLine {
         note: usize,
@@ -88,17 +89,39 @@ pub(crate) struct Laid {
     pub(crate) starts: Vec<Option<(usize, f64)>>,
 }
 
-/// Lays `items` out through `template`: every page, before any is drawn.
-pub(crate) fn paginate(items: &Items, template: &PageTemplate, section_level: u8, first_page: usize) -> Result<Laid> {
+/// What laying a flow out measured, kept across the layouts of a flow with a contents page.
+#[derive(Debug, Default)]
+pub(crate) struct Measures {
+    /// Lines by (source, first byte, width bits), each paragraph broken once per width.
+    lines: RefCell<BTreeMap<(usize, usize, u64), Lines>>,
+    /// Tables laid out, by (table, width bits).
+    tables: RefCell<BTreeMap<(usize, u64), Rc<TableLayout>>>,
+}
+
+impl Measures {
+    /// Drops what was measured of `sources`, whose text changed.
+    pub(crate) fn forget(&self, sources: &[usize]) {
+        self.lines.borrow_mut().retain(|(s, _, _), _| !sources.contains(s));
+    }
+}
+
+/// Lays `items` out through `template`: every page, before any is drawn. `measures` holds
+/// what earlier layouts of the same items measured.
+pub(crate) fn paginate(
+    items: &Items,
+    template: &PageTemplate,
+    section_level: u8,
+    first_page: usize,
+    measures: &Measures,
+) -> Result<Laid> {
     let mut pager = Pager {
         first_page,
         items,
+        measures,
         template,
         section_level,
         pages: Vec::new(),
         warnings: Vec::new(),
-        measured: RefCell::new(BTreeMap::new()),
-        tables: RefCell::new(BTreeMap::new()),
         y: 0.0,
         fresh: true,
         after: 0.0,
@@ -153,10 +176,7 @@ pub(super) struct Pager<'a> {
     section_level: u8,
     pub(super) pages: Vec<PageOut>,
     warnings: Vec<Warning>,
-    /// Lines by (source, first byte, width bits), each paragraph broken once per width.
-    pub(super) measured: RefCell<BTreeMap<(usize, usize, u64), Lines>>,
-    /// Tables laid out, by (table, width bits).
-    tables: RefCell<BTreeMap<(usize, u64), Rc<TableLayout>>>,
+    measures: &'a Measures,
     /// Where the next item starts, page space.
     y: f64,
     /// Nothing is placed on the page yet.
@@ -230,14 +250,14 @@ impl Pager<'_> {
     /// Source `s` from byte `from` broken at `width`, measured once per flow.
     pub(super) fn source_lines(&self, s: usize, from: usize, width: f64) -> Result<Lines> {
         let key = (s, from, width.to_bits());
-        if let Some(lines) = self.measured.borrow().get(&key) {
+        if let Some(lines) = self.measures.lines.borrow().get(&key) {
             return Ok(Rc::clone(lines));
         }
         let source = self.items.sources.get(s).ok_or(Error::InvalidGeometry {
             what: "a flow item names no paragraph",
         })?;
         let lines = Rc::new(source.lines(from, width)?.into_iter().map(Rc::new).collect::<Vec<_>>());
-        self.measured.borrow_mut().insert(key, Rc::clone(&lines));
+        self.measures.lines.borrow_mut().insert(key, Rc::clone(&lines));
         Ok(lines)
     }
 
@@ -284,7 +304,9 @@ impl Pager<'_> {
                 } else {
                     item.orphans
                 };
-                lines.iter().take(n).map(|l| l.height).sum()
+                // The lines and the footnotes they cite, which take room at the page's foot.
+                let notes: Vec<usize> = lines.iter().take(n).flat_map(|l| self.line_notes(i, l)).collect();
+                lines.iter().take(n).map(|l| l.height).sum::<f64>() + self.notes_cost(&[], &notes)?
             }
             Content::Figure(_) => self.figure_size(i).1,
             Content::Table(t) => {
@@ -396,14 +418,14 @@ impl Pager<'_> {
         let later = (self.template.for_page(usize::MAX).body_width() - indent).max(1.0);
         let width = self.width(i).min(later);
         let key = (t, width.to_bits());
-        if let Some(layout) = self.tables.borrow().get(&key) {
+        if let Some(layout) = self.measures.tables.borrow().get(&key) {
             return Ok(Rc::clone(layout));
         }
         let table = self.items.tables.get(t).ok_or(Error::InvalidGeometry {
             what: "a flow item names no table",
         })?;
         let laid = Rc::new(layout(table, &self.items.sources, width)?);
-        self.tables.borrow_mut().insert(key, Rc::clone(&laid));
+        self.measures.tables.borrow_mut().insert(key, Rc::clone(&laid));
         Ok(laid)
     }
 
@@ -414,12 +436,16 @@ impl Pager<'_> {
         let Some(table) = self.items.tables.get(t) else {
             return Ok(());
         };
-        let start = self.demand(i, false)?;
+        let heads = table.count(Section::Head);
+        let head_notes: Vec<usize> = (0..heads).flat_map(|row| self.row_notes(t, row)).collect();
+        let start = self.demand(i, false)? + self.notes_cost(&[], &head_notes)?;
         if self.y + self.gap(i) + start > self.bottom() + 1e-6 && !self.fresh {
             self.new_page();
         }
+        if self.y + self.gap(i) + start > self.bottom() + 1e-6 && !head_notes.is_empty() {
+            return Err(Error::FlowContentTooLarge { what: "footnote" });
+        }
         let layout = self.table(i)?;
-        let heads = table.count(Section::Head);
         let head = layout.height(table, Section::Head);
         let foot = layout.height(table, Section::Foot);
         let tallest = layout.rows.iter().skip(heads).map(|r| r.height).fold(0.0, f64::max);
@@ -438,9 +464,13 @@ impl Pager<'_> {
             let needed = notes + if row + 1 == last_body { height + foot } else { height };
             if self.y + needed > self.bottom() + 1e-6 {
                 // A row that fits here moves only when a fresh page holds what it needs.
-                if self.y + height > self.bottom() + 1e-6 || head + needed <= self.body_height() + 1e-6 {
+                if self.y + height + notes > self.bottom() + 1e-6 || head + needed <= self.body_height() + 1e-6 {
                     self.new_page();
                     self.place_rows(i, t, &layout, 0..heads, true)?;
+                }
+                if self.y + height + notes > self.bottom() + 1e-6 {
+                    // Even a fresh page can't hold the row with its notes.
+                    return Err(Error::FlowContentTooLarge { what: "footnote" });
                 }
                 if self.y + needed > self.bottom() + 1e-6 {
                     // The last body row and the footer fit no page together.
@@ -525,7 +555,10 @@ impl Pager<'_> {
                 } else if !self.fresh {
                     0
                 } else if fit == 0 {
-                    return Err(Error::FlowContentTooLarge { what: "line" });
+                    // The first line fits a fresh page on its own: its notes are what doesn't.
+                    let alone = rest.first().is_some_and(|l| l.height <= room + 1e-6);
+                    let what = if alone { "footnote" } else { "line" };
+                    return Err(Error::FlowContentTooLarge { what });
                 } else {
                     // Even a fresh page can't keep the rules: as many lines as fit.
                     fit
@@ -566,10 +599,8 @@ impl Pager<'_> {
         };
         let left = self.page_template().margins.left + item.indent;
         if first {
-            if item.heading == Some(self.section_level)
-                && let Content::Para(s) = item.content
-            {
-                self.section = self.items.sources.get(s).map(|s| s.text.replace('\u{2028}', " "));
+            if item.heading == Some(self.section_level) {
+                self.section.clone_from(&item.title);
                 if let Some(page) = self.pages.last_mut() {
                     page.section.clone_from(&self.section);
                 }
@@ -602,6 +633,7 @@ impl Pager<'_> {
                     from,
                     to: x,
                     y: baseline,
+                    edge: right,
                 });
                 let top = baseline - number.baseline;
                 self.push(Placed::Entry {
@@ -619,14 +651,14 @@ impl Pager<'_> {
     /// The marker `source` as one line, measured once per flow (an error is the flow's).
     fn label(&self, source: usize) -> Result<Option<Rc<MLine>>> {
         let key = (source, 0, u64::MAX);
-        if let Some(lines) = self.measured.borrow().get(&key) {
+        if let Some(lines) = self.measures.lines.borrow().get(&key) {
             return Ok(lines.first().cloned());
         }
         let Some(s) = self.items.sources.get(source) else {
             return Ok(None);
         };
         let lines: Lines = Rc::new(s.lines(0, f64::from(f32::MAX))?.into_iter().map(Rc::new).collect());
-        self.measured.borrow_mut().insert(key, Rc::clone(&lines));
+        self.measures.lines.borrow_mut().insert(key, Rc::clone(&lines));
         Ok(lines.first().cloned())
     }
 

@@ -249,14 +249,16 @@ pub enum Error {
         /// The file's name (**untrusted**: caller text).
         name: String,
     },
-    /// A line or a figure of a flow is taller than the page's body: no page can hold it.
+    /// A line, figure, table row or footnote of a flow is taller than the page's body: no page
+    /// can hold it.
     #[error("a flow {what} is taller than the page's body")]
     FlowContentTooLarge {
-        /// What is too tall: `line` or `figure` (fixed text).
+        /// What is too tall: `line`, `figure`, `table row` or `footnote` (fixed text).
         what: &'static str,
     },
     /// A flow with a contents page was laid out four times and its page numbers still
-    /// changed: each layout moved the headings that the contents page lists.
+    /// changed. A contents page keeps the same room for every number, so the second layout
+    /// settles them: this is a guard against a fault in the layout.
     #[error("a flow's contents page did not settle in four layouts")]
     FlowLayoutUnstable,
     /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
@@ -385,8 +387,8 @@ impl Error {
             | Self::DeviceColorWithoutOutputIntent { .. }
             | Self::EmbeddedFileForbidden { .. }
             | Self::EmbeddedFileWithoutMimeType { .. }
-            | Self::FlowContentTooLarge { .. }
-            | Self::FlowLayoutUnstable => ErrorKind::Usage,
+            | Self::FlowContentTooLarge { .. } => ErrorKind::Usage,
+            Self::FlowLayoutUnstable => ErrorKind::Internal,
         }
     }
 
