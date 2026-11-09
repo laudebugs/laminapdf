@@ -27,6 +27,10 @@ const dragAcross: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   });
 };
 
+/** A PNG screenshot of the element `selector` names, base64: what the reader sees there. */
+const screenshotOf: BrowserCommand<[selector: string]> = async (ctx, selector) =>
+  (await ctx.iframe.locator(selector).screenshot()).toString("base64");
+
 export default defineConfig({
   optimizeDeps: { exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@embedpdf/pdfium", "@laminapdf/viewer"] },
   server: { fs: { allow: ["../.."] } },
@@ -36,7 +40,7 @@ export default defineConfig({
     browser: {
       enabled: true,
       headless: true,
-      commands: { dragAcross },
+      commands: { dragAcross, screenshotOf },
       provider: playwright(),
       instances: [
         { browser: "chromium", name: "chromium" },

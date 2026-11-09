@@ -2,9 +2,10 @@
 // Lamina PDF extracts in five scripts, the encrypted copy too; spans lie over their glyph quads at
 // 100 %, 200 % and a quarter turn; a selection runs across pages and stays while the view scrolls;
 // a tagged file's structure owns its spans, and an untagged file says so once; a real mouse drag
-// selects a word, whatever layers lie over the text.
+// selects a word, whatever layers lie over the text, and the selection's tint never hides the ink.
 
 import { Builder, Document, Font, init } from "@laminapdf/sdk";
+import { decodePng } from "@laminapdf/test-utils/browser-harness";
 import { createViewer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { commands } from "vitest/browser";
@@ -14,6 +15,8 @@ declare module "vitest/browser" {
   interface BrowserCommands {
     /** Drags the real mouse across the element `selector` names (vitest.browser.config.ts). */
     dragAcross: (selector: string) => Promise<void>;
+    /** A PNG screenshot of the element `selector` names, base64 (vitest.browser.config.ts). */
+    screenshotOf: (selector: string) => Promise<string>;
   }
 }
 
@@ -304,5 +307,43 @@ describe("pointer", () => {
     expect(hitAt(span)).toBe(span);
     await commands.dragAcross("#drag-target");
     expectStartOf(span);
+  });
+});
+
+describe("selection tint", () => {
+  /** How many pixels of `selector`'s screenshot are ink: darker than any selection tint. */
+  async function inkPixels(selector: string): Promise<number> {
+    const png = Uint8Array.from(atob(await commands.screenshotOf(selector)), (c) => c.charCodeAt(0));
+    const { pixels: data } = await decodePng(png);
+    let ink = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const luma = 0.2126 * (data[i] ?? 255) + 0.7152 * (data[i + 1] ?? 255) + 0.0722 * (data[i + 2] ?? 255);
+      if (luma < 100) ink++;
+    }
+    return ink;
+  }
+
+  it("leaves a selected word's ink as dark as drawn under an opaque tint", async () => {
+    await show(await read("fixtures/golden/text-latin.pdf"));
+    // An app's tint, opaque as the Paper selection tint is.
+    const style = document.createElement("style");
+    style.textContent = ".lamina-text-layer span::selection { background: #cedbdd; }";
+    document.head.append(style);
+    try {
+      const span = (await spansOf(0)).find((s) => {
+        const box = s.getBoundingClientRect();
+        return (s.textContent ?? "").trim().length > 8 && box.top >= 0 && box.bottom <= window.innerHeight;
+      });
+      if (span === undefined) throw new Error("no word in view on page 0");
+      span.id = "tinted";
+      // The page's sharp pixels are in once the word shows ink.
+      await expect.poll(() => inkPixels("#tinted"), { timeout: 20_000 }).toBeGreaterThan(20);
+      const before = await inkPixels("#tinted");
+      document.getSelection()?.selectAllChildren(span);
+      const after = await inkPixels("#tinted");
+      expect(after).toBeGreaterThanOrEqual(before * 0.8);
+    } finally {
+      style.remove();
+    }
   });
 });

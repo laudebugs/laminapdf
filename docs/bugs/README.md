@@ -4,6 +4,7 @@ One folder per bug we diagnosed, named after its symptom. Each holds `detail.md`
 
 | Bug | Symptom | Cause | Fixed in |
 | --- | --- | --- | --- |
+| [`selection-hides-text`](selection-hides-text/detail.md) | Selecting text in the reader hid it behind solid blocks of the selection colour. | The opaque selection tint was painted over the page's glyphs, not under the ink. | `@laminapdf/viewer` ([resolution](selection-hides-text/resolution.md)) |
 | [`text-not-selectable-in-reader`](text-not-selectable-in-reader/detail.md) | In the reader, dragging the mouse across a page's text selected nothing. | The layer slots above the text covered the whole page and took every press. | `@laminapdf/viewer` ([resolution](text-not-selectable-in-reader/resolution.md)) |
 | [`viewer-blurry-at-zoom`](viewer-blurry-at-zoom/detail.md) | In the reader, part of a page stayed blurry at most zoom levels; 100 % and 200 % looked fine. | The viewer and the renderer sized the page differently, one pixel apart, so the renderer refused the right-hand tile. | `@laminapdf/viewer`, `@laminapdf/render` ([resolution](viewer-blurry-at-zoom/resolution.md)) |
 | [`viewer-flicker-while-zooming`](viewer-flicker-while-zooming/detail.md) | The page flashed blurry at every pause in a pinch or ctrl+wheel zoom. | Each repaint for the new zoom filled the canvas with the low-resolution pass, throwing away the sharp pixels it showed. | `@laminapdf/viewer` ([resolution](viewer-flicker-while-zooming/resolution.md)) |

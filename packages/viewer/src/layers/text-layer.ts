@@ -115,7 +115,16 @@ export class TextLayer implements PageLayer {
   onMount(page: number, slot: HTMLElement): void {
     const box = document.createElement("div");
     box.className = "lamina-text-layer";
-    Object.assign(box.style, { position: "absolute", left: "0", top: "0", transformOrigin: "0 0" });
+    // The spans lie over the canvas, so an app's ::selection fill (opaque, as a selection tint is)
+    // would paint over the glyphs it selects. Multiplied, the fill shows where the page is paper and
+    // the ink stays as dark as drawn: the tint sits under the text, as the find highlights do.
+    Object.assign(box.style, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      transformOrigin: "0 0",
+      mixBlendMode: "multiply",
+    });
     slot.append(box);
     const text: PageText = { box, abort: new AbortController(), spans: [] };
     this.#pages.set(page, text);
