@@ -411,7 +411,7 @@ function findCommands(): AnyCommand[] {
   ];
 }
 
-/** The selection's commands besides Copy (UI/UX plan §5.3, U2a): its other copy, search, share and settings. */
+/** The selection's commands besides Copy (UI/UX plan §5.3): its other copy, search, share and settings. */
 function selectionCommands(): AnyCommand[] {
   return [
     delegated({
