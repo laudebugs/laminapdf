@@ -101,10 +101,11 @@ describe("the thumbnails strip", () => {
     const strip = view.strip.element;
     await until(() => strip.querySelectorAll("canvas").length === strip.querySelectorAll("[role=option]").length);
     const before = ((await hook(rpc, "__renderLog", [])) as number[]).length;
-    const busy = hook(rpc, "__busy", [200]);
+    // Holds the worker long enough for a slow machine to queue the next thumbnails behind it.
+    const busy = hook(rpc, "__busy", [1500]);
     view.strip.element.scrollTop = 3000;
-    await frame();
-    await frame();
+    // Thumbnails mounted without a canvas yet have their renders queued.
+    await until(() => strip.querySelectorAll("[role=option]").length > strip.querySelectorAll("canvas").length);
     const visible = rpc.render({ page: 0, scale: 0.777 }, { priority: "visible" });
     await busy;
     (await visible).bitmap.close();
