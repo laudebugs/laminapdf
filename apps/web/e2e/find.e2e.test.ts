@@ -76,9 +76,10 @@ describe(`find in ${BROWSER}`, () => {
     await page.keyboard.press("Enter");
     await page.keyboard.press("Enter");
     await expect.poll(() => count(page)).toBe("3 of 4");
-    await expect.poll(shown).toBe("3");
+    // The page box shows page labels: pages 3 and 4 of this file are "1" and "2".
+    await expect.poll(shown).toBe("1");
     await page.keyboard.press("Enter");
-    await expect.poll(shown).toBe("4");
+    await expect.poll(shown).toBe("2");
     await page.keyboard.press("Enter");
     await expect.poll(() => count(page)).toBe("1 of 4");
     await page.keyboard.press("Shift+Enter");
