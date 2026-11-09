@@ -90,33 +90,49 @@ pub fn print_raster(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -
                 let _ = cr.paint();
                 cr.restore().ok();
             });
-            let settings = gtk::PrintSettings::new();
-            if let Some((first, last)) = crate::page_range() {
-                settings.set_print_pages(gtk::PrintPages::Ranges);
-                // GTK's ranges are 0-based and inclusive.
-                settings.set_page_ranges(&[gtk::PageRange::new(first as i32 - 1, last as i32 - 1)]);
-            }
-            // Without a dialog: GTK's own print pipeline to its "Print to File" printer, as a
-            // dialog print goes. (`Export` skips the print settings: it wrote all 50 pages
-            // for a 3-7 range.)
-            let action = match &out {
-                Some(path) => {
-                    settings.set_printer("Print to File");
-                    settings.set(gtk::PRINT_SETTINGS_OUTPUT_FILE_FORMAT, Some("pdf"));
-                    settings.set(gtk::PRINT_SETTINGS_OUTPUT_URI, Some(&format!("file://{}", path.display())));
+            // Without a dialog, a whole document goes to PDF through GTK's Export, which skips
+            // the print settings (it wrote all 50 pages for a 3-7 range). A page range goes
+            // through GTK's print pipeline to the CUPS PDF printer instead, as a dialog print
+            // to a real printer would; the job collects that printer's output. (Printing to
+            // GTK's "Print to File" without a dialog wrote nothing.)
+            let mut cups_out = None;
+            let action = match (&out, crate::page_range()) {
+                (Some(path), Some((first, last))) => {
+                    let settings = gtk::PrintSettings::new();
+                    settings.set_printer(&std::env::var("LAMINA_SPIKE_CUPS_PRINTER").unwrap_or_else(|_| "PDF".into()));
+                    settings.set_print_pages(gtk::PrintPages::Ranges);
+                    // GTK's ranges are 0-based and inclusive.
+                    settings.set_page_ranges(&[gtk::PageRange::new(first as i32 - 1, last as i32 - 1)]);
+                    op.set_print_settings(Some(&settings));
+                    cups_out = Some(path.clone());
                     PrintOperationAction::Print
                 }
-                None => PrintOperationAction::PrintDialog,
+                (Some(path), None) => {
+                    op.set_export_filename(path);
+                    PrintOperationAction::Export
+                }
+                (None, _) => PrintOperationAction::PrintDialog,
             };
-            op.set_print_settings(Some(&settings));
+            let since = std::time::SystemTime::now();
             match op.run(action, Some(&window)) {
-                Ok(PrintOperationResult::Apply) => Ok(()),
+                Ok(PrintOperationResult::Apply) => match cups_out {
+                    Some(path) => collect_cups_output(&cups_dir(), since, &path),
+                    None => Ok(()),
+                },
                 Ok(other) => Err(format!("print operation ended with {other:?}")),
                 Err(e) => Err(e.to_string()),
             }
         })();
         let _ = tx.send(result);
     })
+}
+
+/// Where the `cups-pdf` printer writes (`LAMINA_SPIKE_CUPS_OUT`, default `~/PDF`).
+fn cups_dir() -> PathBuf {
+    std::env::var_os("LAMINA_SPIKE_CUPS_OUT").map_or_else(
+        || PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join("PDF"),
+        PathBuf::from,
+    )
 }
 
 /// Waits for a new PDF in `dir` (newer than `since`) and moves it to `out`.
@@ -155,13 +171,9 @@ pub fn print_vector(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -
     match out {
         Some(out) => {
             let printer = std::env::var("LAMINA_SPIKE_CUPS_PRINTER").unwrap_or_else(|_| "PDF".into());
-            let dir = std::env::var_os("LAMINA_SPIKE_CUPS_OUT").map_or_else(
-                || PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join("PDF"),
-                PathBuf::from,
-            );
             let since = std::time::SystemTime::now();
             lp(&printer, &title, &fixture.path, None)?;
-            collect_cups_output(&dir, since, out)
+            collect_cups_output(&cups_dir(), since, out)
         }
         None => {
             // The GTK dialog picks the printer and pages; CUPS prints the original bytes.
