@@ -24,3 +24,7 @@ let flow = Flow::new(template)
     .block(FlowBlock::Heading(1, Paragraph::plain("Introduction", &heading)));
 builder.flow(&flow)?;
 ```
+
+## Data fields
+
+None.

@@ -15,8 +15,8 @@
       ]
     },
     "flowing_invoice": {
-      "sha256": "5704ec1411925f6d57eb9bab0ada569cebba7726e61ab4f95c09c4af7ffa2b28",
-      "bytes": 27790,
+      "sha256": "7a31cf0d6889c799b89431b7f9c67ca08b615d1e00fa43182bd0689b9306591e",
+      "bytes": 27911,
       "pages": [
         {
           "width": 1190,
@@ -33,9 +33,13 @@
       ]
     },
     "flowing_report": {
-      "sha256": "644755c3f8819f657ef940c97dd68cb7a84b30eb3abbe95eee75cdf36e3e2b3b",
-      "bytes": 46471,
+      "sha256": "184322d4d4a86bd0724c498645e5931811490d4bf7f1db575e5e77892ded0155",
+      "bytes": 58511,
       "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
         {
           "width": 839,
           "height": 1190

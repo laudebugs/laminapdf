@@ -1,6 +1,6 @@
 ---
 title: Pages that flow
-description: Pour headings, paragraphs, lists, tables and images into as many pages as they need, with careful page breaks, running headers and "Page X of Y" footers.
+description: Pour headings, paragraphs, tables and images into as many pages as they need, with footnotes, a contents page, running headers and "Page X of Y" footers.
 ---
 
 import Snippet from "../../../components/Snippet.astro";
@@ -11,18 +11,18 @@ It keeps headings with their text and never leaves a single line of a paragraph 
 
 ## The example
 
-The example builds a 12-page report: a cover, then five sections of headings, paragraphs, a bulleted list and a photo. One paragraph is in Arabic and one in Hindi, and each is split by a page break. Every page after the cover names its section in the header and says "Page 3 of 12" in the footer. The report is built under PDF/UA-1, the accessibility standard, so the build fails if the output breaks one of its rules.
+The example builds a 13-page report: a cover with a contents page, then five sections of headings, paragraphs, a footnote, a bulleted list and a photo. One paragraph is in Arabic and one in Hindi, and each is split by a page break. Every page after the cover names its section in the header and says "Page 3 of 13" in the footer, and every section has a bookmark. The report is built under PDF/UA-1, the accessibility standard, so the build fails if the output breaks one of its rules.
 
 <Snippet file="crates/laminapdf/examples/flowing_report.rs" />
 
-The result is twelve A5 pages: [open the reference PDF](/examples/pdf/flowing_report.pdf).
+The result is thirteen A5 pages: [open the reference PDF](/examples/pdf/flowing_report.pdf).
 
 ## Blocks, styles and the template
 
 A `Flow` is a list of blocks and the `PageTemplate` they flow through.
 
-- **Paragraphs** are made of pieces of text, each in its own `TextStyle`: its fonts, size, colour, language and a baseline rise for superscripts. A bold word is a piece in the bold font. A link is a piece with a target, and a line break is a piece of its own.
-- **Tables** have header rows, body rows and footer rows; the next section covers them.
+- **Paragraphs** are made of pieces of text, each in its own `TextStyle`: its fonts, size, colour, language and a baseline rise for superscripts. A bold word is a piece in the bold font. A link is a piece with a target, and a line break or a footnote is a piece of its own.
+- **Tables** have header rows, body rows and footer rows, and a **contents** block lists the headings with their pages; later sections cover both.
 - **Headings** run from level 1 to 6. **Lists** are bulleted or numbered, and an item can hold a nested list. A **figure** is an image with its alternate text, as wide as the page's text column unless you give it a width.
 - **Spacers, page breaks and keep groups** shape the layout: a spacer adds space, a page break starts a new page, and a `Keep` group keeps its blocks on one page.
 
@@ -57,6 +57,16 @@ Columns get their widths once, for the whole table, so they line up from page to
 
 A cell holds one or more paragraphs. `with_align` lines its text up at the start, centre or end (numbers at the end), and `with_vertical_align` places it in the row. `with_span` stretches a cell over several columns, as the invoice's "Total" does. Rules come from `with_frame`, `with_header_rule` and `with_row_rules`, and `with_header_background` shades the header rows.
 
+## Footnotes, a contents page and bookmarks
+
+A footnote is part of a paragraph: `Paragraph::note(body)` puts a raised number where you add it and the note's body at the foot of the same page. Notes are numbered 1, 2, 3 through the flow. A short rule separates them from the text above, and the page's footer stays below them. When a line's notes don't fit at the foot of its page, the line moves to the next page with them.
+
+A contents block, `FlowBlock::Contents`, lists the flow's headings with the page each one starts on. Each entry is indented by its heading's level, with dots leading to its number, and the entry links to its heading. By default it lists levels 1 and 2; `Contents::with_levels` changes that. The report in the example puts its contents on the cover.
+
+The flow can't know the page numbers before it has laid the pages out, and the contents page takes up room itself. So the flow lays everything out, prints the numbers it found, and lays out again until no number changes. It usually settles on the second layout. If the numbers still change after four layouts, `Builder::flow` fails with `flow-layout-unstable`. A page break after the contents block prevents that, because the headings then no longer move when the contents page grows.
+
+Every heading also gets a bookmark: a reader shows the document's outline in its sidebar, nested by heading level, and each bookmark goes to its heading. Turn them off with `Flow::with_outline(false)`.
+
 ## Fields in headers and footers
 
 A slot's text can hold fields, which the flow fills in on each page:
@@ -72,7 +82,11 @@ Write `{{` and `}}` for a literal brace. `{pages}` is right on every page becaus
 
 The output is tagged unless you turn tagging off with `with_tagged(false)`. Paragraphs are `P` elements, headings `H1` to `H6`, lists `L` with their items, figures `Figure` with their alternate text, and links `Link`. A paragraph's language, taken from its first piece, is set on its element; a piece in another language is a `Span` with that language. A paragraph split across pages stays one element, so a screen reader reads it as one.
 
-A table is one `Table` element however many pages it crosses, with `THead`, `TBody` and `TFoot` around its rows. Header cells are `TH` elements that head their columns, and a cell across several columns records how many it spans. The header rows drawn again on later pages are marked as page furniture, like headers and footers, so a screen reader and Lamina PDF's extraction read the table's header once. The table's rules and background are marked as decoration too.
+A table is one `Table` element however many pages it crosses, with `THead`, `TBody` and `TFoot` around its rows. Header cells are `TH` elements that head their columns, and a cell across several columns records how many it spans.
+
+The header rows drawn again on later pages are marked as page furniture, like headers and footers, so a screen reader and Lamina PDF's extraction read the table's header once. The table's rules and background are marked as decoration too.
+
+A footnote's number is a `Reference` and its body a `Note` with its own identifier, inside the paragraph that cites it. A contents page is a `TOC` element with a `TOCI` for each entry, each holding its links; its dots are decoration.
 
 Headers and footers are marked as page furniture rather than content: screen readers skip them, and Lamina PDF's own extraction leaves them out of the text.
 

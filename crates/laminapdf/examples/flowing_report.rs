@@ -1,15 +1,17 @@
-//! A report that flows across pages: a cover, then sections whose paragraphs break between
-//! pages, with the section's title in a running header and "Page X of Y" in the footer.
+//! A report that flows across pages: a cover with a contents page, then sections whose
+//! paragraphs break between pages, footnotes at the foot of their page, the section's title in
+//! a running header and "Page X of Y" in the footer.
 //!
 //! Lines split with at least two at the foot and the head of a page, headings stay with what
-//! follows them, and the photo moves whole. The output is tagged and checked against PDF/UA-1.
-//! Run it with `cargo run -p laminapdf --example flowing_report -- regular.ttf bold.ttc arabic.ttf
-//! devanagari.ttf photo.jpg`.
+//! follows them, and the photo moves whole. The output is tagged, has bookmarks, and is checked
+//! against PDF/UA-1. Run it with `cargo run -p laminapdf --example flowing_report -- regular.ttf
+//! bold.ttc arabic.ttf devanagari.ttf photo.jpg`.
 
 use std::error::Error;
 
 use laminapdf::flow::{
-    Figure, Flow, FlowBlock, List, ListItem, ListKind, PageRegion, PageTemplate, Paragraph, ParagraphStyle, TextStyle,
+    Contents, Figure, Flow, FlowBlock, List, ListItem, ListKind, PageRegion, PageTemplate, Paragraph, ParagraphStyle,
+    TextStyle,
 };
 use laminapdf::{BuildOptions, Builder, Font, Image, Metadata, PageSize, Profile, SaveOptions};
 
@@ -46,16 +48,12 @@ pub(crate) fn build(options: BuildOptions, fonts: [Vec<u8>; 4], photo: Vec<u8>) 
     let header = PageRegion::new().with_end("{section}");
     let footer = PageRegion::new().with_center("Page {page} of {pages}");
     let pages = PageTemplate::new(PageSize::A5).with_furniture(Some(header), Some(footer), &small);
+    let (cover, team) = (heading.clone().with_size(24.0), "A report from the reader's team.");
     let mut flow = Flow::new(pages.with_first_page(PageTemplate::new(PageSize::A5)))
         .with_title(TITLE)
-        .block(FlowBlock::Heading(
-            1,
-            Paragraph::plain(TITLE, &heading.clone().with_size(24.0)),
-        ))
-        .block(FlowBlock::Paragraph(Paragraph::plain(
-            "A report from the reader's team.",
-            &body,
-        )))
+        .block(FlowBlock::Paragraph(Paragraph::plain(TITLE, &cover)))
+        .block(FlowBlock::Paragraph(Paragraph::plain(team, &body)))
+        .block(FlowBlock::Contents(Contents::new(&body)))
         .block(FlowBlock::PageBreak);
     let photo = Image::jpeg(photo)?;
     for (i, topic) in TOPICS.iter().enumerate() {
@@ -72,11 +70,14 @@ fn section(flow: Flow, i: usize, topic: &str, body: &TextStyle, heading: &TextSt
         topic.to_lowercase()
     );
     let mut flow = flow.block(FlowBlock::Heading(1, Paragraph::plain(topic, heading)));
+    let note = Paragraph::plain(
+        format!("Measured on our test files for {topic}."),
+        &body.clone().with_size(9.0),
+    );
     for n in 0..4 {
-        let style = ParagraphStyle::new().with_space(0.0, 8.0);
-        flow = flow.block(FlowBlock::Paragraph(
-            Paragraph::new(style).text(sentence.repeat(n + 4), body),
-        ));
+        let p = Paragraph::new(ParagraphStyle::new().with_space(0.0, 8.0)).text(sentence.repeat(n + 4), body);
+        let p = if n == 3 { p.note(note.clone()) } else { p };
+        flow = flow.block(FlowBlock::Paragraph(p));
     }
     let foreign = match i {
         1 => Some((format!("{ARABIC} ").repeat(8).trim_end().to_owned(), "ar")),
