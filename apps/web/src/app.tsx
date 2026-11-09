@@ -17,6 +17,7 @@ import {
   Inspector,
   LeftRail,
   type ModeRegistry,
+  type MoreItems,
   message,
   OpenDropZone,
   OpenFailure,
@@ -44,7 +45,7 @@ import {
 import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
-import { type FindActions, useFind } from "./find.tsx";
+import { type Find, type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { type PageInfo, pageLabel } from "./outline.ts";
@@ -143,6 +144,52 @@ function useReaderCommands(
     [platform, reader, viewer, shell, modes, rail, find, history, selection],
   );
   return { registry, context };
+}
+
+/** The top bar's More entries (Choose a file, Rotate) and what each does. */
+function useMoreItems(reader: ReaderController, viewer: Viewer | undefined): MoreItems<MoreId> {
+  const more = useGatedEntries<MoreId>([
+    { id: "open", label: message("reader.open.choose") },
+    { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
+  ]);
+  return { items: more, onAction: (id: MoreId) => (id === "open" ? reader.close() : viewer?.rotate(90)) };
+}
+
+/** Each page's label for the page input, or undefined when the document gives none. */
+function usePageLabels(pages: EngineState["pages"]): string[] | undefined {
+  return useMemo(
+    () => (pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined),
+    [pages],
+  );
+}
+
+/** The reader's commands with the viewer's history and selection handlers, and the selection's surfaces. */
+function useViewerCommands(
+  platform: Platform,
+  reader: ReaderController,
+  viewer: Viewer | undefined,
+  shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
+  rail: boolean,
+  find: Find,
+  engine: EngineState,
+): {
+  commands: ReturnType<typeof useReaderCommands>;
+  history: ReturnType<typeof useHistory>;
+  selection: SelectionSurfaces;
+} {
+  const history = useHistory(viewer, engine.pages);
+  const selection = useSelection(viewer, find, platform, KEYS);
+  const commands = useReaderCommands(
+    platform,
+    reader,
+    viewer,
+    shell,
+    rail,
+    find.actions,
+    history.actions,
+    selection.actions,
+  );
+  return { commands, history, selection };
 }
 
 /** The status bar's items: the repaired notice, and under #debug the first page's timing. */
@@ -297,11 +344,7 @@ export function App({
   const { layout, modes } = useShell(platform.storage);
   const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
   const sidebar = useStoreState(layout, (s) => s.rail.open);
-  const more = useGatedEntries<MoreId>([
-    { id: "open", label: message("reader.open.choose") },
-    { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
-  ]);
-  const moreItems = { items: more, onAction: (id: MoreId) => (id === "open" ? reader.close() : viewer?.rotate(90)) };
+  const moreItems = useMoreItems(reader, viewer);
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
   // The rail's panels are made again only when the view or the strip changes.
@@ -311,23 +354,10 @@ export function App({
     () => railTabs(engine, layout, open ? { strip, viewer, finding: find.open } : undefined),
     [engine, layout, open, strip, viewer, find.open],
   );
-  const labels = useMemo(() => {
-    const pages = engineState.pages;
-    return pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined;
-  }, [engineState.pages]);
+  const labels = usePageLabels(engineState.pages);
   const fileName = open ? state.file.name : undefined;
-  const history = useHistory(shown, engineState.pages);
-  const selection = useSelection(shown, find, platform, KEYS);
-  const commands = useReaderCommands(
-    platform,
-    reader,
-    shown,
-    shell,
-    tabs.length > 0,
-    find.actions,
-    history.actions,
-    selection.actions,
-  );
+  const rail = tabs.length > 0;
+  const { commands, history, selection } = useViewerCommands(platform, reader, shown, shell, rail, find, engineState);
   useWindowTitle(fileName, engineState.title);
   const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
   const debugMenu = debug ? (
@@ -354,9 +384,7 @@ export function App({
           />
         }
         rail={<LeftRail layout={layout} tabs={tabs} />}
-        bottomBar={
-          selection.bar ?? <PhoneBottomBar layout={layout} rail={tabs.length > 0} more={moreItems} keys={KEYS} />
-        }
+        bottomBar={selection.bar ?? <PhoneBottomBar layout={layout} rail={rail} more={moreItems} keys={KEYS} />}
         {...(inspector === undefined ? {} : { inspector })}
         status={
           <>

@@ -56,7 +56,11 @@ function setup(viewer = new FakeViewer({ currentPage: 2 })) {
         (args: unknown) => (c.id === "palette.open" ? openPalette() : calls.push({ id: c.id, args })),
       ]),
   ) as Partial<Record<CommandId, (args: unknown) => void>>;
-  const context = { ...base, platform: fakePlatform({ flags: { canReopenRecent: true, canOpenUrl: true, canShare: true } }), actions };
+  const context = {
+    ...base,
+    platform: fakePlatform({ flags: { canReopenRecent: true, canOpenUrl: true, canShare: true } }),
+    actions,
+  };
   const shell = { setOpen: (_open: boolean) => {} };
   openPalette = () => shell.setOpen(true);
   const app = <PaletteApp registry={registry} context={context} shell={shell} />;

@@ -156,18 +156,17 @@ export function joinLines(lines: readonly string[]): string {
   for (const raw of lines) {
     const line = raw.trim();
     if (line === "") continue;
-    if (out === "") {
-      out = line;
-      continue;
-    }
-    const lowerNext = /^\p{Ll}/u.test(line);
-    if (out.endsWith(SOFT_HYPHEN)) out = out.slice(0, -1) + (lowerNext ? "" : "-");
-    else if (out.endsWith("-") && !out.endsWith(" -")) {
-      if (lowerNext) out = out.slice(0, -1);
-    } else out += " ";
-    out += line;
+    out = out === "" ? line : joinTwo(out, line);
   }
   return out.replaceAll(SOFT_HYPHEN, "");
+}
+
+/** `out` followed by the next `line`, by `joinLines`' rule. */
+function joinTwo(out: string, line: string): string {
+  const lowerNext = /^\p{Ll}/u.test(line);
+  if (out.endsWith(SOFT_HYPHEN)) return out.slice(0, -1) + (lowerNext ? "" : "-") + line;
+  if (out.endsWith("-") && !out.endsWith(" -")) return (lowerNext ? out.slice(0, -1) : out) + line;
+  return `${out} ${line}`;
 }
 
 /** `text` safe in HTML. */

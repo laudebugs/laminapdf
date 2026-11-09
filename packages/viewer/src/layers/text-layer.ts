@@ -376,7 +376,11 @@ export class TextLayer implements PageLayer {
   #retell(): void {
     if (!this.#selecting) return;
     if (this.#column !== undefined) {
-      this.#tell(this.#column.pieces, this.#column.spans.map((s) => s.getBoundingClientRect()), true);
+      this.#tell(
+        this.#column.pieces,
+        this.#column.spans.map((s) => s.getBoundingClientRect()),
+        true,
+      );
       return;
     }
     const range = this.#range();
