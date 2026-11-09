@@ -1,6 +1,7 @@
 // The document worker and its RPC in Chromium, Firefox and WebKit (C3a's acceptance criteria).
 import { isLaminaPdfError, type LaminaPdfError } from "@laminapdf/sdk";
 import { connect } from "@laminapdf/sdk/worker";
+import type { OpenedDocument } from "@laminapdf/viewer";
 import { afterEach, describe, expect, it } from "vitest";
 import { CORPUS, ENCRYPTED, expected, hook, next, PASSWORD, read, rejection, testViewer, viewer } from "./helpers.js";
 
@@ -279,37 +280,25 @@ describe("documents", () => {
     const client = await track(testViewer());
     const first = await client.open(await read("fixtures/corpus/hello.pdf"));
     const controller = new AbortController();
-    const opening = rejection(
-      client.open(await read("fixtures/corpus/text-example.pdf"), {}, { signal: controller.signal }),
+    const opening = client.open(await read("fixtures/corpus/text-example.pdf"), {}, { signal: controller.signal }).then(
+      (document) => document,
+      (e: unknown) => e,
     );
-    // The cancel crosses while the worker opens synchronously.
+    // The cancel crosses while the worker opens synchronously. It either stops the open, which
+    // leaves the first document, or comes too late, when the open resolves after all: the page
+    // and the worker agree either way, so the next render works.
     queueMicrotask(() => controller.abort());
-    expect(isAbort(await opening)).toBe(true);
-    expect(client.document?.id).toBe(first.id);
+    const outcome = await opening;
+    expect(client.document?.id).toBe(isAbort(outcome) ? first.id : (outcome as OpenedDocument).id);
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
   });
 
-  it("keeps the previous document for a page that gave up on an open the worker had committed", async () => {
-    // What a cancel that crosses the open's answer leaves: the worker opened the second document,
-    // and the page goes on with the first.
+  it("says which open made the document it holds, for a page whose cancel crossed the answer", async () => {
     const client = await track(testViewer());
-    const first = await client.open(await read("fixtures/corpus/hello.pdf"));
-    const second = await client.open(await read("fixtures/corpus/text-example.pdf"));
-    // What the client sends when its open's cancel won: it goes on with the first.
-    await client.call("keepDocument", [first.id]);
-    (await client.call("render", [{ page: 0, scale: 0.5 }, first.id])).bitmap.close();
-    // The first came back, so the second is gone.
-    const gone = await rejection(client.call("render", [{ page: 0, scale: 0.5 }, second.id]));
-    expect((gone as { code?: string }).code).toBe("disposed");
-  });
-
-  it("lets the previous document go once the page names the new one", async () => {
-    const client = await track(testViewer());
-    const first = await client.open(await read("fixtures/corpus/hello.pdf"));
-    await client.open(await read("fixtures/corpus/text-example.pdf"));
-    (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
-    const gone = await rejection(client.call("render", [{ page: 0, scale: 0.5 }, first.id]));
-    expect((gone as { code?: string }).code).toBe("disposed");
+    const opened = await client.call("openDocument", [await read("fixtures/corpus/hello.pdf"), {}, 41]);
+    expect(await client.call("currentDocument", [])).toEqual({ document: opened, ticket: 41 });
+    await client.close();
+    expect(await client.call("currentDocument", [])).toBeUndefined();
   });
 
   it("renders the reopened document when asked during a restart", async () => {

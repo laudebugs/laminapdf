@@ -8,8 +8,8 @@ import type { BackendInit, PrintOptions, SourceInit, ViewerOpenOptions } from ".
 import {
   closeDocument,
   current,
+  currentDocument,
   initBackend,
-  keepDocument,
   openDocument,
   textModel,
   workerMemory,
@@ -25,9 +25,10 @@ import { forgetText, pageText, readingOrder, replyText, structure } from "./text
 export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   initBackend: { run: ([init]) => initBackend(init as BackendInit) },
   openDocument: {
-    run: ([source, options], { signal }) => openDocument(source as SourceInit, options as ViewerOpenOptions, signal),
+    run: ([source, options, ticket], { signal }) =>
+      openDocument(source as SourceInit, options as ViewerOpenOptions, signal, ticket as number | undefined),
   },
-  keepDocument: { run: ([id]) => keepDocument(id as number) },
+  currentDocument: { run: () => currentDocument() },
   closeDocument: {
     run: () => {
       forgetText();

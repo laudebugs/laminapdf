@@ -138,6 +138,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
   - A queued render is dropped.
   - A running one finishes, because synchronous WebAssembly can't be interrupted. Its late answer's bitmap is closed unpainted (`onDiscard`).
   - (`@laminapdf/sdk/worker` itself rejects with a `cancelled` LaminaPdfError; the viewer maps it to `AbortError`.)
+  - An open is the exception. A cancel can reach the page after the Web Worker already opened the new file and closed the old one. So after a cancelled open, `open()` asks the Web Worker which document it holds (`currentDocument`). If this open made it, the cancel came too late: `open()` resolves with that document after all, and the page and the Web Worker agree. Otherwise it rejects with `AbortError`, and the old document stays open.
 - **Timeouts:** the page keeps the timers, because a Web Worker inside a render can't post anything.
   - Defaults are `soft` 10 s (`render-slow`) and `hard` 120 s.
   - At the hard cap the client calls `stop("hard-timeout")`. For a document that needed a password, it emits `render-stuck` instead and waits for the user's `stop()`.
@@ -185,7 +186,8 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | Method | Params | Result | Priority |
 | --- | --- | --- | --- |
 | `initBackend` | `{ backend: "pdfium" \| "hayro", wasm? }` | `{ name, version }` | document. Sent by `create()`, before a file is chosen, so the WebAssembly downloads in parallel with file selection. |
-| `openDocument` | `source` (`Blob`, `ArrayBuffer`, `Uint8Array`), `{ password?, limits?, renderLimits? }` | `{ pageCount, pages, needsPassword, backend }` | document |
+| `openDocument` | `source` (`Blob`, `ArrayBuffer`, `Uint8Array`), `{ password?, limits?, renderLimits? }`, `ticket?` (the client's number for this open) | `{ pageCount, pages, needsPassword, backend }` | document |
+| `currentDocument` | — | `{ document, ticket }` of the open document, or `undefined`: `open()` asks after a cancelled open | document |
 | `closeDocument` | — | — | document |
 | `pageInfo` | `index` | `PageInfo` (displayed size in points, rotation, ID, label) | document |
 | `find` | `query`, `FindOptions`, `pages` | `FindPageResult[]`: each page's matches as quads, and whether it has no text | `background` |

@@ -55,6 +55,8 @@ interface Open {
   reopen: { readonly bytes: Uint8Array | undefined; readonly options: ViewerOpenOptions } | undefined;
   /** The copy opened in the extract module, for a document opened before that module loaded. */
   text?: Promise<Document> | undefined;
+  /** What its open answered, and the page's number for that open (`currentDocument`). */
+  answer?: { readonly document: OpenedDocument; readonly ticket: number | undefined };
 }
 
 /**
@@ -63,12 +65,6 @@ interface Open {
  */
 const MAX_FILL_ROUNDS = 1024;
 let open: Open | undefined;
-/**
- * The document open before `open`, kept until the page names one of them: a cancel can reach the
- * page after this worker committed the open, and the page then goes on with the previous
- * document, so it must still be here (`current`).
- */
-let previous: Open | undefined;
 let nextDocument = 1;
 
 /** PDFium needs its `.wasm` from the app (hayro finds its own). */
@@ -177,25 +173,17 @@ function currentBackend(): RenderBackend {
   return backend;
 }
 
-/** Frees `doc`'s pair, its OPFS copy and its text-capable copy. */
-function closeDocumentPair(doc: Open | undefined): void {
-  if (doc === undefined) return;
-  doc.render.close();
-  doc.model.free();
-  doc.local?.close();
+function closeOpen(): void {
+  if (open === undefined) return;
+  open.render.close();
+  open.model.free();
+  open.local?.close();
   // A text-capable copy goes with it, once opened (a failed one has nothing to free).
-  doc.text?.then(
+  open.text?.then(
     (copy) => copy.free(),
     () => {},
   );
-}
-
-/** Closes every document this worker holds. */
-function closeOpen(): void {
-  closeDocumentPair(open);
-  closeDocumentPair(previous);
   open = undefined;
-  previous = undefined;
 }
 
 function isRemote(init: SourceInit): init is RemoteSource {
@@ -289,11 +277,14 @@ export async function openDocument(
   init: SourceInit,
   options: ViewerOpenOptions,
   signal: AbortSignal,
+  ticket?: number,
 ): Promise<OpenedDocument> {
   const engine = currentBackend();
   const from = await bytesFor(init, options, signal);
   try {
-    return await openFrom(engine, from, options, signal);
+    const document = await openFrom(engine, from, options, signal);
+    if (open !== undefined) open.answer = { document, ticket };
+    return document;
   } catch (e) {
     if (from.kind === "copy") from.source.close();
     throw e;
@@ -342,10 +333,9 @@ async function openFrom(
     model.free();
     throw new RenderError("cancelled", "the open was cancelled");
   }
-  // The new pair is open: only now is the previous document set aside, so a failed open (a wrong
-  // password, a broken file) leaves it working. It is closed once the page names the new one.
-  closeDocumentPair(previous);
-  previous = open;
+  // The new pair is open: only now is the previous document closed, so a failed open (a wrong
+  // password, a broken file) leaves it working.
+  closeOpen();
   open = {
     id: nextDocument++,
     model,
@@ -372,37 +362,23 @@ export function workerMemory(): WorkerMemory {
   return { backend: backend?.memory() ?? 0, sdk };
 }
 
+/**
+ * The open document's answer and the page's number for the open that made it: after a cancelled
+ * open, the page asks, since the cancel can cross an open this worker had already committed.
+ */
+export function currentDocument():
+  | { readonly document: OpenedDocument; readonly ticket: number | undefined }
+  | undefined {
+  return open?.answer;
+}
+
 export function closeDocument(): undefined {
   closeOpen();
   return undefined;
 }
 
-/**
- * The page goes on with document `id` after it cancelled an open: if this worker had already
- * committed that open (the cancel crossed its answer), `id` is the previous document, which comes
- * back and the newer one goes; otherwise nothing changes but the previous document letting go.
- */
-export function keepDocument(id: number): undefined {
-  if (previous !== undefined && id === previous.id) {
-    closeDocumentPair(open);
-    open = previous;
-    previous = undefined;
-  } else if (id === open?.id) {
-    closeDocumentPair(previous);
-    previous = undefined;
-  }
-  return undefined;
-}
-
-/**
- * The open document (`disposed` when there is none, or when `id` names a document since replaced).
- * Naming the newest document lets the previous one go: the page has its answer.
- */
+/** The open document (`disposed` when there is none, or when `id` names a document since replaced). */
 export function current(id?: number): Open {
-  if (id !== undefined && previous !== undefined && id === open?.id) {
-    closeDocumentPair(previous);
-    previous = undefined;
-  }
   if (open === undefined || (id !== undefined && id !== open.id)) {
     throw new RenderError("disposed", "that document is not open in this worker");
   }

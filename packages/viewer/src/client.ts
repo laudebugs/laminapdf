@@ -128,6 +128,8 @@ export class ViewerClient {
   /** What to reopen after a restart: the source and the options without the password. */
   #reopen: { readonly source: SourceInit; readonly options: Omit<ViewerOpenOptions, "password"> } | undefined;
   #document: OpenedDocument | undefined;
+  /** Opens asked for so far: each open's ticket. */
+  #opens = 0;
   #recovering: Promise<void> | undefined;
   #nextRender = 1;
   /** Each pending render's timers, by coalescing key: started on `render-start`, paused on `render-fetching`. */
@@ -232,20 +234,26 @@ export class ViewerClient {
     call: ViewerCallOptions = {},
   ): Promise<OpenedDocument> {
     const { password: _, ...rest } = options;
+    const ticket = ++this.#opens;
     let opened: OpenedDocument;
     try {
-      opened = await this.call("openDocument", [source, options], call);
+      opened = await this.call("openDocument", [source, options, ticket], call);
     } catch (e) {
-      // A cancel can cross the answer: the worker may have committed the open. Tell it which
-      // document this page goes on with, so the two agree (it runs before any queued render).
-      const kept = this.#document;
-      if (kept !== undefined && call.signal?.aborted === true)
-        void this.call("keepDocument", [kept.id]).catch(() => {});
-      throw e;
+      // A cancel can cross the answer of an open the worker had already committed: then the
+      // cancel came too late, and this page takes the document the worker now holds.
+      const landed = call.signal?.aborted === true ? await this.#committed(ticket) : undefined;
+      if (landed === undefined) throw e;
+      opened = landed;
     }
     this.#reopen = { source, options: rest };
     this.#document = opened;
     return opened;
+  }
+
+  /** The worker's document, if open `ticket` made it (the worker runs one call at a time, so it answers after that open). */
+  async #committed(ticket: number): Promise<OpenedDocument | undefined> {
+    const now = await this.call("currentDocument", []).catch(() => undefined);
+    return now?.ticket === ticket ? now.document : undefined;
   }
 
   /** The open document, if any. */

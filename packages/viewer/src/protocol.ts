@@ -93,9 +93,13 @@ export interface WorkerMemory {
 /** The viewer's methods: params and result per method. `client.call` is typed by it. */
 export interface Methods {
   initBackend: { params: [BackendInit]; result: { name: BackendName; version: string } };
-  openDocument: { params: [source: SourceInit, options: ViewerOpenOptions]; result: OpenedDocument };
-  /** After a cancelled open: the document the page goes on with (the worker may have committed the open). */
-  keepDocument: { params: [document: number]; result: undefined };
+  /** `ticket`: the page's number for this open, which `currentDocument` gives back. */
+  openDocument: { params: [source: SourceInit, options: ViewerOpenOptions, ticket?: number]; result: OpenedDocument };
+  /** The open document's answer and its open's ticket; asked after a cancelled open. */
+  currentDocument: {
+    params: [];
+    result: { readonly document: OpenedDocument; readonly ticket: number | undefined } | undefined;
+  };
   closeDocument: { params: []; result: undefined };
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
