@@ -68,8 +68,8 @@ fn job_ids(workflow: &str) -> Vec<&str> {
     jobs(workflow).into_iter().map(|(id, _)| id).collect()
 }
 
-/// The items of `key: [a, b]` or `key: a` among `lines`. The list may sit on the key's own line
-/// or, as Biome writes a list too long for one line, alone on the next.
+/// The items of `key: [a, b]` or `key: a` among `lines`. The list may sit on the key's own line,
+/// alone on the next, or, as Biome writes a list too long for a line, one item to a line until `]`.
 fn flow_list<'a>(lines: &[&'a str], key: &str) -> Vec<&'a str> {
     let prefix = format!("{key}:");
     let Some(at) = lines.iter().position(|l| l.trim().starts_with(&prefix)) else {
@@ -79,17 +79,32 @@ fn flow_list<'a>(lines: &[&'a str], key: &str) -> Vec<&'a str> {
         .get(at)
         .and_then(|l| l.trim().strip_prefix(prefix.as_str()))
         .unwrap_or_default();
-    let value = if own.trim().is_empty() {
-        lines.get(at + 1).map(|l| l.trim()).unwrap_or_default()
+    // The value: on the key's line, else on the next; a `[` list that doesn't close there runs on
+    // to the line that holds its `]`, one item to a line, as Biome formats a long list.
+    let (first, mut next) = if own.trim().is_empty() {
+        (lines.get(at + 1).copied(), at + 2)
     } else {
-        own
+        (Some(own), at + 1)
     };
-    let value = value.split(" #").next().unwrap_or_default().trim();
-    let list = value
-        .strip_prefix('[')
-        .and_then(|l| l.strip_suffix(']'))
-        .unwrap_or(value);
-    list.split(',').map(str::trim).filter(|i| !i.is_empty()).collect()
+    let mut parts: Vec<&str> = first.into_iter().collect();
+    let opens = |part: &str| part.trim().starts_with('[');
+    let closes = |part: &str| part.split(" #").next().unwrap_or_default().contains(']');
+    if parts.first().is_some_and(|p| opens(p) && !closes(p)) {
+        while let Some(line) = lines.get(next) {
+            parts.push(line);
+            next += 1;
+            if closes(line) {
+                break;
+            }
+        }
+    }
+    parts
+        .into_iter()
+        .map(|part| part.split(" #").next().unwrap_or_default().trim())
+        .flat_map(|part| part.trim_start_matches('[').trim_end_matches(']').split(','))
+        .map(str::trim)
+        .filter(|item| !item.is_empty() && !item.starts_with('#'))
+        .collect()
 }
 
 /// The ids in `job`'s `needs: [a, b]` or `needs: a`, read only from that job's own lines.
