@@ -183,7 +183,7 @@ describe(`the network indicator in ${BROWSER}`, () => {
     await context.close();
   });
 
-  it("never sends a plain-HTTP request: the policy blocks it, and the panel lists it as blocked", async () => {
+  it("never sends a plain-HTTP request, and counts what the browser sent instead", async () => {
     const { context, log, page } = await openLocal();
     const plain = `${host.origin.replace("https:", "http:")}/cors/ranges/hello.pdf`;
     await page.evaluate(
@@ -197,8 +197,12 @@ describe(`the network indicator in ${BROWSER}`, () => {
     await settle(page);
     expect(log.some((url) => url.startsWith("http:"))).toBe(false);
     expect(await panelCounts(page)).toEqual(split(log));
-    const panel = page.getByRole("complementary", { name: "Network activity" });
-    await panel.getByText("Blocked by the page's policy").waitFor();
+    // Chromium leaves loopback addresses un-upgraded, so connect-src blocks the request and reports
+    // it; WebKit upgrades or drops it without a report. Either way nothing went out over HTTP.
+    if (BROWSER === "chromium") {
+      const panel = page.getByRole("complementary", { name: "Network activity" });
+      await panel.getByText("Blocked by the page's policy").waitFor();
+    }
     await context.close();
   });
 
