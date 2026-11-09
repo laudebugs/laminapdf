@@ -9,7 +9,7 @@ import { type Fragment, fragmentDestination, fragmentPage, type RemoteUrlProblem
 export type FragmentPlace = { readonly page: number } | { readonly dest: string };
 
 /** The place `fragment` names: `nameddest` before `page`, as pdf.js reads them. */
-export function fragmentPlace(fragment: Fragment): FragmentPlace | undefined {
+function fragmentPlace(fragment: Fragment): FragmentPlace | undefined {
   const dest = fragmentDestination(fragment);
   if (dest !== undefined) return { dest };
   const page = fragmentPage(fragment);

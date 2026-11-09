@@ -109,6 +109,9 @@ describe("the thumbnails strip", () => {
     const visible = rpc.render({ page: 0, scale: 0.777 }, { priority: "visible" });
     await busy;
     (await visible).bitmap.close();
+    // The log is read once the queued thumbnails have painted: a document call such as the
+    // log's own outranks a background render, so reading it sooner would come before them.
+    await until(() => strip.querySelectorAll("canvas").length === strip.querySelectorAll("[role=option]").length);
     const queued = ((await hook(rpc, "__renderLog", [])) as number[]).slice(before);
     // Thumbnails queued first, but the visible render ran first.
     expect(queued.length).toBeGreaterThan(1);
