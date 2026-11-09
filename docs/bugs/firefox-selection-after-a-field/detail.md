@@ -1,10 +1,10 @@
 # In Firefox, the reader stops selecting text once a text field has had the focus
 
-In Firefox, a mouse drag across a page's text selected nothing after the reader's page box, or any other text field on the page, had had the focus. Typing a page number and pressing Enter was enough: from then on, no drag in the document selected anything until the page was reloaded. Chromium and WebKit kept selecting. The fix is in [resolution.md](resolution.md).
+In Firefox, a mouse drag across a page's text selected nothing after the user had focused the reader's page box or any other text field. Typing a page number and pressing Enter was enough: from then on, no drag in the document selected anything until the page was reloaded. Chromium and WebKit kept selecting. The fix is in [resolution.md](resolution.md).
 
 ## What the user saw
 
-A reader typed a page into the page box, pressed Enter and tried to select a sentence on that page. The drag left no selection. Scrolling, clicking elsewhere and pressing Tab out of the box didn't bring selection back.
+A user typed a page number into the page box, pressed Enter and tried to select a sentence on that page. The drag left no selection. Scrolling, clicking elsewhere and pressing Tab out of the box didn't bring selection back.
 
 ## How to reproduce it
 
@@ -23,11 +23,11 @@ Throwaway e2e probes drove the built reader with Playwright's mouse in Firefox a
 | --- | --- | --- |
 | Nothing | "Page 1" | "Page 1" |
 | Page box: type `A-1`, Enter | "" | "Page 2" |
-| Page box: focus, then Escape | "" (it reports the box's own "i") | "Page 1" |
+| Page box: focus, then Escape | "i" | "Page 1" |
 | A plain `<input>` added by the probe: type, click away | "" | "Page 1" |
-| Then: clear the selection, blur, click the span, or move the selection into the viewer | "" | "Page 1" |
+| Any of the above, then clear the selection, blur, click the span, or move the selection into the viewer | "" | "Page 1" |
 
-The element under the pointer was the span each time, so nothing covered the text. The drag moved the focus to the viewer and left a collapsed selection on the span's text node: Firefox began the selection and never extended it.
+The "i" is the page box's own value, the first page's label: while a field has the focus, Firefox's `getSelection()` reports the field's selected text, so the drag left the document's selection empty there too. The element under the pointer was the span each time, so nothing covered the text. The drag moved the focus to the viewer and left a collapsed selection on the span's text node.
 
 The same steps in the viewer's own browser tests, with no app around it, failed in Firefox alone. Changing one style at a time there found the trigger:
 
@@ -41,6 +41,6 @@ The same steps in the viewer's own browser tests, with no app around it, failed 
 
 ## The cause
 
-The text layer made the viewer's root `user-select: none` so that only the spans, set back to `text`, could be selected. That is the usual way to keep canvases and gaps out of a selection, and it worked in every engine until a text field took the focus. After that, Firefox began a mouse selection on a `user-select: text` span but wouldn't extend it while any ancestor was `user-select: none`, even with the spans' own ancestors set back to `text`. Other engines extend it. This looks like a Firefox bug; this repository's tests don't pin down its exact trigger beyond the table above.
+The text layer made the viewer's root `user-select: none` so that only the spans, set back to `text`, could be selected. A `none` root with `text` spans is the usual way to keep canvases and gaps out of a selection, and it worked in every engine until a text field took the focus. After that, Firefox began a mouse selection on a span but didn't extend it while any ancestor was `user-select: none`, even when every element between the root and the spans was set back to `text`. Chromium and WebKit extend it, so this looks like a Firefox bug; the table above is as far as these tests narrow its trigger.
 
 No test selected text after a field had had the focus. The viewer's drag tests ran in a fresh page, and the reader's e2e tests never combined the page box with a drag.

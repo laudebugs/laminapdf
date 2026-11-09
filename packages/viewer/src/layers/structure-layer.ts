@@ -7,7 +7,7 @@
 
 import type { StructureKid, StructureNode } from "@laminapdf/sdk";
 import type { StructureData } from "../protocol.js";
-import { selectable } from "./box.js";
+import { setUserSelect } from "../view/user-select.js";
 
 /** An ARIA role (and level) per standard structure type; types not here are plain groups. */
 const ROLES: Readonly<Record<string, string>> = {
@@ -63,7 +63,7 @@ export class StructureLayer {
     tree.className = "lamina-structure";
     Object.assign(tree.style, HIDDEN);
     // Hidden from sight, never from a drag: it takes no part in a selection.
-    selectable(tree, "none");
+    setUserSelect(tree, "none");
     const untagged = structure.tree === undefined || structure.tree.length === 0;
     if (untagged) tree.setAttribute("role", "status");
     else for (const node of structure.tree) tree.append(this.#element(node, undefined));

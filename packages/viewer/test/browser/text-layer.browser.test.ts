@@ -97,6 +97,25 @@ describe("copy", () => {
     expect(squash(copy())).toBe(squash(await laminaText("fixtures/golden/build-text-multiscript.pdf")));
   });
 
+  it("copies only the page text when a selection runs on past the viewer into the app", async () => {
+    await show(await read("fixtures/golden/text-latin.pdf"));
+    const root = view?.element as HTMLElement;
+    const outside = document.createElement("p");
+    outside.textContent = "Text of the app around the viewer";
+    root.after(outside);
+    try {
+      const [first] = await spansOf(0);
+      const start = first?.firstChild as Text;
+      const end = outside.firstChild as Text;
+      document.getSelection()?.setBaseAndExtent(start, 0, end, end.length);
+      const copied = copy();
+      expect(copied).toContain((first?.textContent ?? "").trim());
+      expect(copied).not.toContain("Text of the app");
+    } finally {
+      outside.remove();
+    }
+  });
+
   it("selects only the spans' text when the whole viewer is selected: never a canvas or a gap", async () => {
     await show(await read("fixtures/golden/text-latin.pdf"));
     const root = view?.element as HTMLElement;
@@ -294,15 +313,21 @@ describe("pointer", () => {
     expectStartOf(span);
   });
 
-  it("selects a word under a mouse drag after a text field on the page has had the focus", async () => {
-    // Firefox stopped selecting under a `user-select: none` ancestor once a field had the focus.
+  // Firefox stopped selecting under a `user-select: none` ancestor once a field had had the focus,
+  // however the field lost it, and while it still had it.
+  it.each([
+    ["it keeps the focus", async () => {}],
+    ["Escape", async () => userEvent.keyboard("{Escape}")],
+    ["blur", async (field: HTMLInputElement) => field.blur()],
+    ["Tab", async () => userEvent.tab()],
+  ] as const)("selects a word under a mouse drag after a text field had the focus (then: %s)", async (_name, leave) => {
     await show(await read("fixtures/golden/text-latin.pdf"));
     const field = document.createElement("input");
     document.body.append(field);
     try {
       field.focus();
       await userEvent.keyboard("12");
-      field.blur();
+      await leave(field);
       const span = await word();
       await commands.dragAcross("#drag-target");
       expectStartOf(span);

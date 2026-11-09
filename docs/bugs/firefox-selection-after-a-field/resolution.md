@@ -7,21 +7,22 @@
 No ancestor of the spans is `user-select: none` any more. The viewer's root keeps the browser's default, and the elements with nothing to select set `none` on themselves instead:
 
 - the page canvases and the detail canvases (`view/viewer.ts`);
-- every layer slot but `text`, which already let the pointer through;
+- every layer slot except the text layer's, which holds the spans (`view/viewer.ts`);
 - the hidden structure tree (`layers/structure-layer.ts`).
 
-The spans set `text`, as before. One helper, `selectable` in `layers/box.ts`, writes the property with WebKit's prefix for all of them.
+The spans set `text`, as before. One helper, `setUserSelect` in `view/user-select.ts`, writes the property with WebKit's prefix for all of them, and its comment says why no ancestor of the spans may be `none`.
 
-A selection still never takes in a canvas or a gap. A drag that leaves the viewer can now take in the app's own text, such as the top bar's, in Firefox too. Chromium and WebKit already did that before the fix, so the root's `none` had only held the selection inside the viewer in Firefox. Copy still writes only the page text, since the text layer builds it from its spans.
+Without the root's `none`, a drag can run on past the viewer into the app's own text, as it already could in Chromium before the fix. The text layer used to drop such a selection whole: copy fell back to the browser's, which took in the app's text, the pages it touched were no longer kept mounted, and `onSelection` reported nothing. The text layer now reads the part of the selection inside the viewer (`TextLayer.#range`), so copy writes only the page text and the pages stay mounted, whichever engine runs.
 
 ## How it was checked
 
-- **Regression test** (`packages/viewer/test/browser/text-layer.browser.test.ts`, "selects a word under a mouse drag after a text field on the page has had the focus", in Chromium, Firefox and WebKit): a field takes the focus and two keys, loses the focus, then a real mouse drag across a word selects it. With the root's `none` put back, the test fails in Firefox and passes in the others.
-- **Updated test**: "selects only the spans' text when the whole viewer is selected" checked the root's `user-select`; it now checks a canvas's, and still checks that the selection and the copied text are only the spans' text.
-- **The reproduction again**: in the built reader in Firefox, every case of the table in the diagnosis now selects the word.
+- **Regression tests** (`packages/viewer/test/browser/text-layer.browser.test.ts`, in Chromium, Firefox and WebKit): a field takes the focus and two key presses, then it keeps the focus, gets Escape, loses the focus or is left with Tab; each time a real mouse drag across a word selects it. With the root's `none` put back, all four fail in Firefox and pass in the others.
+- **Copy past the viewer**: a selection from a span to a paragraph after the viewer copies the span's text and none of the paragraph's. Without the clipping it fails.
+- **Updated test**: "selects only the spans' text when the whole viewer is selected" checked the root's `user-select`; it now checks a canvas's, and still checks the selection and the copied text.
+- **The reproduction again**: in the built reader in Firefox, each row of the diagnosis's first table now selects the word ("Page 1", or "Page 2" after going there). A drag from "Page 1" up into the top bar selects the top bar's text in Chromium, Firefox and WebKit alike. Before the fix, Chromium did the same, and Firefox selected one letter.
 - **The suites**: the viewer's browser tests (text layer, viewer, navigation) in the three engines, `tsc` and Biome.
 
 ## Left for later
 
-- **The app's own text.** A drag that starts on the page and leaves the viewer selects the top bar's and status bar's text in every engine. Setting `user-select: none` on those bars (siblings of the viewer, not ancestors) in `@laminapdf/ui` would keep a selection to the document.
-- **Reporting it upstream.** The Firefox behaviour deserves a minimal test case on Bugzilla.
+- **The app's own text.** A drag that leaves the viewer still highlights the top bar's and status bar's text, though copy leaves it out. Setting `user-select: none` on those bars (siblings of the viewer, not ancestors) in `@laminapdf/ui` would keep the highlight to the document.
+- **Reporting it upstream.** The Firefox behaviour deserves a minimal test case on Bugzilla, with the trigger narrowed beyond the diagnosis's table.

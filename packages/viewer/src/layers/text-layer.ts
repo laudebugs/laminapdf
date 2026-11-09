@@ -2,15 +2,17 @@
 // Lamina PDF's extraction, laid over the rendered glyphs, so the browser's own selection, copy
 // and screen readers work on the page's text. Spans are placed in page points inside a box that
 // one CSS transform scales and rotates to the page's current size, so a zoom or a rotation moves
-// no span. Only the spans are selectable, never canvases or gaps, so a selection runs from one page
-// into the next; the pages it touches stay mounted while it lasts. Copy writes the extracted text, joined in reading order.
+// no span. Only the spans are selectable, never canvases or gaps, so a selection runs from one
+// page into the next; the pages it touches stay mounted while it lasts. Copy writes the extracted
+// text, joined in reading order, of the part of a selection inside the viewer.
 
 import type { ViewerClient } from "../client.js";
 import type { Rotation } from "../layout/page-layout.js";
 import { range as range_ } from "../layout/range.js";
 import type { OpenedDocument } from "../protocol.js";
+import { setUserSelect } from "../view/user-select.js";
 import type { PageLayer } from "../view/viewer.js";
-import { placeBox, selectable } from "./box.js";
+import { placeBox } from "./box.js";
 import { joinPieces, layoutSpans, type Piece, type SpanSpec } from "./spans.js";
 import { StructureLayer } from "./structure-layer.js";
 
@@ -81,10 +83,8 @@ export class TextLayer implements PageLayer {
     this.#host = host;
     this.#options = options;
     this.#structure = new StructureLayer(host.root, options.untaggedLabel ?? "Untagged document", this.#idPrefix);
-    // Only the spans are selectable (set on each); the canvases, the other layers' slots and the
-    // structure tree set `none` on themselves. The root and the elements around the spans don't:
-    // Firefox stops a mouse drag from selecting under a `user-select: none` ancestor once any text
-    // field on the page has had the focus.
+    // Only the spans are selectable (set on each); what holds nothing to select sets `none` on
+    // itself (view/user-select.ts says why no ancestor of the spans may).
     this.#listen(document, "selectionchange", () => this.#selectionChanged());
     this.#listen(document, "copy", (e) => this.#copy(e as ClipboardEvent));
     this.#listen(host.root, "keydown", (e) => this.#selectAll(e as KeyboardEvent));
@@ -203,7 +203,7 @@ export class TextLayer implements PageLayer {
         transformOrigin: "0 0",
         ...(this.#options.outline === true ? { outline: "1px solid rgb(220 0 0 / 0.7)" } : {}),
       });
-      selectable(span, "text");
+      setUserSelect(span, "text");
       this.#specs.set(span, { page, spec });
       fragment.append(span);
       return span;
@@ -241,12 +241,22 @@ export class TextLayer implements PageLayer {
     return [...this.#pages.entries()].sort(([a], [b]) => a - b).flatMap(([, text]) => text.spans);
   }
 
-  /** The selection's range, when it is in this viewer's text. */
+  /**
+   * The selection's range in this viewer: its part inside the root, when a drag ran on past the
+   * viewer into the app around it, so copy, the pinned pages and `onSelection` keep to the page
+   * text; `undefined` when it doesn't reach the viewer.
+   */
   #range(): Range | undefined {
     const selection = document.getSelection();
     if (selection === null || selection.rangeCount === 0 || selection.isCollapsed) return undefined;
     const range = selection.getRangeAt(0);
-    return this.#host.root.contains(range.commonAncestorContainer) ? range : undefined;
+    const root = this.#host.root;
+    if (root.contains(range.commonAncestorContainer)) return range;
+    if (!range.intersectsNode(root)) return undefined;
+    const inside = range.cloneRange();
+    if (!root.contains(inside.startContainer)) inside.setStart(root, 0);
+    if (!root.contains(inside.endContainer)) inside.setEnd(root, root.childNodes.length);
+    return inside;
   }
 
   /** The selected part of each span the selection touches, in order. */
