@@ -144,6 +144,24 @@ export interface CreateViewerOptions {
   readonly links?: boolean | LinkLayerOptions;
   /** The back and forward history's options. */
   readonly history?: NavigationHistoryOptions;
+  /** What assistive technology hears of each page, and where focus goes after a jump. */
+  readonly pages?: PageRegionOptions;
+}
+
+/**
+ * Each page shell is a region that assistive technology names ("Page iv, 4 of 120") and can land
+ * on: the viewer has no strings of its own, so the app gives the words.
+ */
+export interface PageRegionOptions {
+  /** A page's name, from its index and the page count (default "Page 4 of 120"). */
+  readonly name?: (index: number, count: number) => string;
+  /** What a page is called as a kind of region (default "page"). */
+  readonly roleDescription?: string;
+  /**
+   * Whether a history jump (a link, the outline, a thumbnail, go to page) moves focus to the page
+   * it lands on, once that page is mounted (default false).
+   */
+  readonly focusOnJump?: boolean;
 }
 
 /** The built-in layer slots, bottom to top, above the canvas. */
@@ -279,6 +297,11 @@ export class Viewer {
   readonly history: NavigationHistory;
   /** Pages kept mounted whatever the scroll (`keepMounted`): those a selection touches. */
   #pinned = new Set<number>();
+  readonly #regions: PageRegionOptions;
+  /** The page a jump landed on, focused once it is mounted. */
+  #focusTarget: number | undefined;
+  /** True while a jump that leaves focus where it is (a find match) runs. */
+  #keepFocus = false;
   readonly #listeners = new Set<() => void>();
   readonly #events = new Map<keyof ViewerEventMap, Set<(data: never) => void>>();
   readonly #cleanup: (() => void)[] = [];
@@ -339,12 +362,21 @@ export class Viewer {
     this.#text = this.#textLayer(options.text);
     if (this.#text !== undefined) this.addLayer(this.#text);
     this.history = new NavigationHistory({ place: () => this.#place(), show: (p) => this.#show(p) }, options.history);
+    this.#regions = options.pages ?? {};
+    if (this.#regions.focusOnJump === true) {
+      this.history.onEntry((entry, replaced) => {
+        if (replaced || this.#keepFocus) return;
+        this.#focusTarget = entry.point.page;
+        this.#schedule();
+      });
+    }
     this.find = new FindController({
       find: (query, find, pages, signal) => this.#client.find(query, find, pages, { signal }),
       pageCount: () => this.#sizes.length,
       currentPage: () => this.#state.currentPage,
       // Each match find moves to is a jump, so Back returns to where the search started.
-      reveal: (page, quads) => this.history.jump(() => this.#reveal(page, quads)),
+      // A match is a jump too, but focus stays in the find field.
+      reveal: (page, quads) => this.#jumpKeepingFocus(() => this.#reveal(page, quads)),
       redraw: (pages) => this.#highlights.refresh(pages),
     });
     this.#highlights = new HighlightLayer({
@@ -373,6 +405,7 @@ export class Viewer {
     this.#cache.clear();
     this.#document = document;
     this.#pinned = new Set();
+    this.#focusTarget = undefined;
     this.find.reset();
     this.history.reset();
     this.#text?.open(document);
@@ -792,6 +825,7 @@ export class Viewer {
     const [first, last] = this.#mountRange(frame);
     // Writes.
     this.#placeShells(frame, first, last);
+    this.#focusJumpTarget();
     this.#setState({
       currentPage: layout.pageAt(frame.top + frame.height / 2),
       scrollTop: frame.top,
@@ -825,6 +859,24 @@ export class Viewer {
     if (this.#pages.size > this.#peakMounted) this.#peakMounted = this.#pages.size;
   }
 
+  #jumpKeepingFocus(go: () => void): void {
+    this.#keepFocus = true;
+    try {
+      this.history.jump(go);
+    } finally {
+      this.#keepFocus = false;
+    }
+  }
+
+  /** Focuses the page the last jump landed on, once it is mounted, keeping the scroll where it is. */
+  #focusJumpTarget(): void {
+    const target = this.#focusTarget;
+    const view = target === undefined ? undefined : this.#pages.get(target);
+    if (view === undefined) return;
+    this.#focusTarget = undefined;
+    view.shell.focus({ preventScroll: true });
+  }
+
   #notifyResize(view: PageView, width: number, height: number): void {
     for (const layer of this.#layers) layer.onZoom?.(view.index, this.#slot(view, layer.name), { width, height });
   }
@@ -845,6 +897,11 @@ export class Viewer {
     const shell = document.createElement("div");
     shell.className = "lamina-page";
     shell.dataset.pageIndex = String(index);
+    // A region for assistive technology, and a place focus can land after a jump.
+    shell.setAttribute("role", "region");
+    shell.setAttribute("aria-roledescription", this.#regions.roleDescription ?? "page");
+    shell.setAttribute("aria-label", this.#pageName(index));
+    shell.tabIndex = -1;
     Object.assign(shell.style, { position: "absolute", contain: "strict", background: "#fff" });
     this.#spacer.append(shell);
     const view: PageView = {
@@ -895,6 +952,11 @@ export class Viewer {
     view.controller = new AbortController();
     view.pass++;
     view.busy = false;
+  }
+
+  #pageName(index: number): string {
+    const count = this.#sizes.length;
+    return this.#regions.name?.(index, count) ?? `Page ${index + 1} of ${count}`;
   }
 
   #unmount(view: PageView): void {

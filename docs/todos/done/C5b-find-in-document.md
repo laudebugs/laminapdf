@@ -41,7 +41,7 @@ Let users find text across a whole document without blocking scrolling: the work
 **Out of scope** (and which todo covers it)
 
 - Regex search, search across multiple documents, search in annotations/form fields (later editor rounds).
-- Full keyboard map/help → [C7a](../ready/C7a-accessibility-and-theming.md).
+- Full keyboard map/help → [C7a](./C7a-accessibility-and-theming.md).
 
 ## Tasks
 

@@ -46,6 +46,17 @@ exceptions = [
     { name = "uniffi_meta", allow = ["MPL-2.0"] },
     { name = "uniffi_pipeline", allow = ["MPL-2.0"] },
     { name = "uniffi_udl", allow = ["MPL-2.0"] },
+    # Tauri 2 (the desktop shell, ADR 0008): MPL-2.0 crates that Tauri itself depends on, allowed
+    # for these crates only (owner decision 2026-11-09, found by the desktop-ipc spike). selectors,
+    # cssparser, cssparser-macros and dtoa-short come through dom_query in tauri-utils, which
+    # parses the app's HTML to inject the CSP; option-ext comes through dirs in tauri and wry.
+    # Every Tauri 2 app has them. As with UniFFI, lamina stays MIT OR Apache-2.0; the sources are
+    # unmodified on crates.io, and the desktop app's third-party notices will carry the MPL-2.0 text (D2a).
+    { name = "selectors", allow = ["MPL-2.0"] },
+    { name = "cssparser", allow = ["MPL-2.0"] },
+    { name = "cssparser-macros", allow = ["MPL-2.0"] },
+    { name = "dtoa-short", allow = ["MPL-2.0"] },
+    { name = "option-ext", allow = ["MPL-2.0"] },
     # MIT-0 (MIT without the notice condition; OSI-approved, more permissive than MIT). Reached
     # only through boon → fluent-uri, the JSON Schema validator of xtask and the façade's tests
     # (L1b): never in a library build. Every 2020-12 validator in Rust (boon, jsonschema) uses

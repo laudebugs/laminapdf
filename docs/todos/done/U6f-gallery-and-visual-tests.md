@@ -24,7 +24,7 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 - Design language [§8.6 page appearance vs UI theme](../../design/paper/design-language.md#86-page-appearance-vs-ui-theme), [§8.9 checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa) (forced colours, reduced motion, 200% zoom, 320 px reflow), [§10 authoring notes](../../design/paper/design-language.md#10-authoring-notes-for-the-design-canvas) (artboard file names and `canvas.json`).
 - Inputs: [U6a](../done/U6a-paper-tokens.md) tokens, [U6b](../done/U6b-self-hosted-fonts.md) fonts (needed for stable screenshots), [U6c](../done/U6c-icon-set.md) icons, [U6d](../done/U6d-core-components.md) components and its `test/states.ts` helper, [U6e](../done/U6e-overlays-and-sheets.md) overlays.
 - [ADR 0018](../../decisions/0018-test-strategy.md) (lanes; [flaky tests](../../decisions/0018-test-strategy.md#4-flaky-tests) are quarantined, not retried silently); [code organization §1](../../guidelines/code-organization.md#1-top-level-layout) (apps are never depended on) and [§6](../../guidelines/code-organization.md#6-tests-and-fixtures) (goldens change only through an explicit command and are reviewed like code).
-- [C7a](../ready/C7a-accessibility-and-theming.md) runs axe on the *app's* states; this todo runs it on the components in isolation, so both exist and neither replaces the other.
+- [C7a](./C7a-accessibility-and-theming.md) runs axe on the *app's* states; this todo runs it on the components in isolation, so both exist and neither replaces the other.
 
 ## Scope
 
@@ -41,7 +41,7 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 
 **Out of scope** (and which todo covers it)
 
-- Full-app states (reader with a document, dialogs in context) and the manual screen-reader pass → [C7a](../ready/C7a-accessibility-and-theming.md); render-backend screenshots of PDF pages → [X3b](../done/X3b-render-diff-nightly.md).
+- Full-app states (reader with a document, dialogs in context) and the manual screen-reader pass → [C7a](./C7a-accessibility-and-theming.md); render-backend screenshots of PDF pages → [X3b](../done/X3b-render-diff-nightly.md).
 - Deploying the gallery publicly or as a docs-site page → [B7a](../done/B7a-docs-site.md) may embed it later; preview deploys → [C4d](../done/C4d-deploy-previews-and-production.md) could add it.
 - Writing the missing area documents or canvases → the paper-design work and each area's todos; this todo only checks them.
 - Screenshots in Firefox and WebKit (their rendering of fonts differs; axe runs there instead): revisit if a cross-engine visual bug slips through.

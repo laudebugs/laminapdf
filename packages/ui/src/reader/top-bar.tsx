@@ -39,8 +39,8 @@ export interface ReaderTopBarProps<Id extends string> {
   findOpen?: boolean;
   /**
    * Whether reader mode is on: the Reader toggle shows it, pressed, and runs `view.reader-mode`;
-   * while it is on, the page input and zoom hide and a Reader settings button runs
-   * `view.reader-settings`.
+   * while it is on, the page input and zoom hide and the Reader settings button, which runs
+   * `view.reader-settings`, takes the View button's place.
    */
   readerMode?: boolean;
   /** Whether the reader settings panel is open: the Reader settings button's `aria-expanded`. */
@@ -54,6 +54,8 @@ export interface ReaderTopBarProps<Id extends string> {
   home?: ReactNode;
   /** A `DebugMenu`, which the shell shows only for `#debug`. */
   debug?: ReactNode;
+  /** The View settings button with its popover (`ViewSettingsButton`, R10), after Find. */
+  view?: ReactNode;
   /** The More menu's items, gated by capability where they need one (`useGatedEntries`). */
   more: {
     /** The menu's entries. */
@@ -135,29 +137,32 @@ export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): R
   return phone ? <PhoneTopBar {...props} hidden={hidden} /> : <DesktopTopBar {...props} />;
 }
 
-/** The Reader toggle, and while reader mode is on, the Reader settings button. */
-function ReaderButtons({ readerMode, settingsOpen }: { readerMode: boolean; settingsOpen: boolean }): ReactNode {
+/** The Reader toggle: pressed while reader mode is on. */
+function ReaderToggle({ readerMode }: { readerMode: boolean }): ReactNode {
   const reader = useCommand("view.reader-mode");
-  const settings = useCommand("view.reader-settings");
   if (reader.availability.state === "hidden") return null;
   return (
-    <>
-      <ToggleButton
-        icon="reader"
-        aria-label={message("command.view.reader-mode")}
-        isSelected={readerMode}
-        isDisabled={reader.availability.state === "disabled"}
-        onChange={() => reader.run()}
-      />
-      {!readerMode || settings.availability.state === "hidden" ? null : (
-        <IconButton
-          icon="view-settings"
-          label={message("command.view.reader-settings")}
-          aria-expanded={settingsOpen}
-          onPress={() => settings.run()}
-        />
-      )}
-    </>
+    <ToggleButton
+      icon="reader"
+      aria-label={message("command.view.reader-mode")}
+      isSelected={readerMode}
+      isDisabled={reader.availability.state === "disabled"}
+      onChange={() => reader.run()}
+    />
+  );
+}
+
+/** The Reader settings button, which takes the View button's place while reader mode is on (R14). */
+function ReaderSettingsButton({ open }: { open: boolean }): ReactNode {
+  const settings = useCommand("view.reader-settings");
+  if (settings.availability.state === "hidden") return null;
+  return (
+    <IconButton
+      icon="view-settings"
+      label={message("command.view.reader-settings")}
+      aria-expanded={open}
+      onPress={() => settings.run()}
+    />
   );
 }
 
@@ -191,9 +196,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
             <ZoomControl viewer={viewer} keys={keys} />
           </>
         )}
-        {state.phase !== "open" ? null : (
-          <ReaderButtons readerMode={props.readerMode === true} settingsOpen={props.readerSettingsOpen === true} />
-        )}
+        {state.phase !== "open" ? null : <ReaderToggle readerMode={props.readerMode === true} />}
         {state.phase !== "open" || find.availability.state === "hidden" ? null : (
           // A plain button: pressing it again puts the focus back in the field, so it is never a
           // toggle; it shows find is open with `aria-expanded`.
@@ -205,6 +208,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
             onPress={() => find.run()}
           />
         )}
+        {props.readerMode === true ? <ReaderSettingsButton open={props.readerSettingsOpen === true} /> : props.view}
         {palette.availability.state === "hidden" ? null : (
           <AriaButton className="paper-commands-button" onPress={() => palette.run()}>
             <span>{message("reader.commands")}</span>

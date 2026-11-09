@@ -112,7 +112,7 @@ describe("RegistryPalette", () => {
       expect(palette(), `${command.id} closes the palette`).toBeNull();
       ran.push(command.id);
     }
-    expect(ran).toHaveLength(42);
+    expect(ran).toHaveLength(44);
     expect(reader.openFromPicker).toHaveBeenCalledOnce();
     // Each delegated command reached its handler, with parsed arguments where it takes them.
     expect(calls.find((c) => c.id === "view.page-layout")?.args).toBe("two-up");

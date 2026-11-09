@@ -180,6 +180,22 @@ export type {
   SaveResult,
 } from "./platform/types.js";
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
+export { ANNOUNCE_DELAY, type Announcements, Announcer, LiveRegions } from "./reader/announcer.js";
+export {
+  ACCENTS,
+  type Accent,
+  type Appearance,
+  AppearanceFields,
+  type AppearanceFieldsProps,
+  AppearanceSettings,
+  applyAppearance,
+  DEFAULT_APPEARANCE,
+  MOTIONS,
+  type Motion,
+  parseAppearance,
+  UI_THEMES,
+  type UiTheme,
+} from "./reader/appearance.js";
 export { formatBytes } from "./reader/bytes.js";
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
 export {
@@ -274,7 +290,17 @@ export {
   type RepairDetailsProps,
   type RepairKind,
 } from "./reader/repair.js";
+export {
+  SettingsDialog,
+  type SettingsDialogProps,
+  SettingsRegistry,
+  type SettingsSection,
+  useSettingsSection,
+  ViewSettingsButton,
+  type ViewSettingsButtonProps,
+} from "./reader/settings.js";
 export { ReaderShell, type ReaderShellProps } from "./reader/shell.js";
+export { ShortcutsDialog, type ShortcutsDialogProps } from "./reader/shortcuts-dialog.js";
 export { ReaderTopBar, type ReaderTopBarProps } from "./reader/top-bar.js";
 export {
   MAX_ZOOM,

@@ -94,6 +94,9 @@ export const ROUTES: readonly Route[] = [
       "PrintDialog",
       "PrintProgressDialog",
       "PropertiesDialog",
+      "SettingsDialog",
+      "ShortcutsDialog",
+      "ViewSettingsButton",
     ],
     states: [
       "default",
@@ -106,6 +109,9 @@ export const ROUTES: readonly Route[] = [
       "print-restricted",
       "print-progress",
       "properties",
+      "settings",
+      "shortcuts",
+      "view-settings",
     ],
   },
   {

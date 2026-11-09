@@ -53,6 +53,7 @@ export { ThumbnailStrip, type ThumbnailStripOptions } from "./thumbnails/strip.j
 export type {
   CreateViewerOptions,
   PageLayer,
+  PageRegionOptions,
   PageRenderState,
   RenderStats,
   ViewerEventMap,
