@@ -1,0 +1,11 @@
+label,path,fixture,ok,prep_ms,spool_ms,main_rss_peak_mb,web_rss_peak_mb,out_bytes,error
+macos-m1pro,raster,mixed-50,true,0,8790,3287,60,39668563,
+macos-m1pro,raster,mixed-sizes,true,0,1013,448,60,650352,
+macos-m1pro,raster,vectors,true,0,692,289,60,494861,
+macos-m1pro,vector,mixed-50,true,0,582,224,60,70693,
+macos-m1pro,vector,mixed-sizes,true,0,530,224,61,15337,
+macos-m1pro,vector,vectors,true,0,528,225,61,22095,
+macos-m1pro,webview,mixed-sizes,true,60,1148,361,367,724327,
+macos-m1pro,webview,vectors,true,63,731,367,331,531508,
+macos-m1pro,webview,mixed-50,true,1993,11634,1737,1582,39652079,
+macos-m1pro,raster,mixed-50@3-7,true,0,1319,714,216,3972986,

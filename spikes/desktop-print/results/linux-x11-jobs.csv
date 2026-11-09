@@ -1,0 +1,11 @@
+label,path,fixture,ok,prep_ms,spool_ms,main_rss_peak_mb,web_rss_peak_mb,out_bytes,error
+linux-x11,raster,mixed-50,true,0,13479,255,198,31704358,
+linux-x11,raster,mixed-sizes,true,0,1210,219,198,310325,
+linux-x11,raster,vectors,true,0,713,220,198,415847,
+linux-x11,vector,mixed-50,true,0,1313,186,198,60829,
+linux-x11,vector,mixed-sizes,true,0,1213,186,198,7971,
+linux-x11,vector,vectors,true,0,1213,186,198,9027,
+linux-x11,webview,mixed-sizes,true,213,951,230,352,310549,
+linux-x11,webview,vectors,true,184,623,230,388,416611,
+linux-x11,webview,mixed-50,true,3165,13588,2019,2053,32374514,
+linux-x11,raster,mixed-50@3-7,true,0,8261,391,519,4229454,

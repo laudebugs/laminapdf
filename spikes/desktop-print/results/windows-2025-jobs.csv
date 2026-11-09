@@ -1,0 +1,11 @@
+label,path,fixture,ok,prep_ms,spool_ms,main_rss_peak_mb,web_rss_peak_mb,out_bytes,error
+windows-2025,raster,mixed-50,true,0,31386,127,286,43644881,
+windows-2025,raster,mixed-sizes,true,0,3005,125,285,969855,
+windows-2025,raster,vectors,true,0,1423,126,285,813996,
+windows-2025,vector,mixed-50,true,0,50517,63,292,17438293,
+windows-2025,vector,mixed-sizes,true,0,1408,59,279,37431,
+windows-2025,vector,vectors,true,0,1022,59,279,31881,
+windows-2025,webview,mixed-sizes,true,210,1433,52,527,311316,
+windows-2025,webview,vectors,true,129,867,51,531,426815,
+windows-2025,webview,mixed-50,true,2157,15589,1405,861,32582018,
+windows-2025,raster,mixed-50@3-7,true,0,3783,130,517,4779898,
