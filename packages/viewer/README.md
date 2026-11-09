@@ -40,16 +40,25 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 
 | Member | What it does |
 | --- | --- |
-| `createViewer({ client, margin?, gap?, pool?, detailPool?, cacheBytes?, backdropMaxPixels?, canvasMaxPixels?, device?, settleMs?, zoom? })` | Makes a viewer over a `ViewerClient`. |
+| `createViewer({ client, margin?, gap?, pool?, detailPool?, cacheBytes?, backdropMaxPixels?, canvasMaxPixels?, device?, settleMs?, zoom?, text? })` | Makes a viewer over a `ViewerClient`. `text` is on by default; `false` leaves the text layer out, and an object sets its `outline`, `untaggedLabel` and `onSelection`. |
 | `mount(container)`, `open(document)`, `destroy()` | Puts it on the page, shows a document, takes it down. |
 | `goToPage(index, { anchor })`, `setZoom(zoom, { anchor })`, `rotate(delta)` | Navigation. `zoom` is a mode or a percentage. |
 | `getState()`, `subscribe(listener)` | The view state (`currentPage`, `pageCount`, `zoom`, `percent`, `rotation`, `scrollTop`, `visibleRange`), for `useSyncExternalStore`. |
 | `on("pagechange" \| "zoomchange" \| "renderstats", …)`, `stats()` | Events and counters. `renderstats` counts renders, for measuring performance. |
 | `addLayer({ name, onMount, onUnmount, onZoom })` | Mounts a layer into each page. |
+| `keepMounted(pages)` | Keeps these pages mounted wherever the view scrolls, replacing the previous set; `[]` releases them. The text layer pins the pages a selection touches. |
 | `pointAt(x, y)`, `positionOf(point)` | Converts between viewport positions and document points. |
 | `MIN_ZOOM`, `MAX_ZOOM` | The bounds of a percentage zoom, 10 and 800, for a zoom control's range. |
 
-**Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The coming text layer, find highlights and links will mount there through `addLayer`. A layer with another name gets its own slot on top.
+**Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The text layer fills the first; find highlights and links will mount in the others through `addLayer`. A layer with another name gets its own slot on top.
+
+**Text.** The text layer makes every page's text selectable, copyable and readable by screen readers, whichever backend draws the page.
+- **Spans.** Each text run of Lamina PDF's extraction gets one transparent span, placed from its glyphs' quads, never from the renderer's. A rotated or vertical run gets a rotated span, and a span reads right to left when its first letter does. The spans sit in a box sized in points, which one CSS transform scales and turns to the page, so a zoom or a rotation moves no span.
+- **Selection.** Selection stays inside the viewer, and only spans are selectable. A drag runs from one page into the next and never takes in a canvas or a gap. The pages a selection touches stay mounted while it lasts. Ctrl/⌘+A in the viewer selects the text of the mounted pages only.
+- **Copy** writes the extracted text in reading order: a space at a gap, a new line at a new baseline and between pages, soft hyphens dropped. `onSelection` gives the app the selected text, its rects, its pages and the pointer that made it.
+- **Structure.** For a tagged document, a hidden tree of ARIA elements follows the structure tree. Headings carry their levels, and figures their alternate text; paragraphs, lists and tables keep their roles. Each element owns its text spans through `aria-owns`, matched by page and marked-content ID (the number a tagged PDF gives each piece of a page's content), so a screen reader reads the document in structure order. For a document without a structure tree, a screen reader hears "Untagged document" once (`untaggedLabel`).
+
+The document Web Worker reads each page's text at `background` priority, after the tiles in view, and caches the text of the last 24 pages. Text needs the extract module, which the document Web Worker loads once the render backend is ready, so the first page never waits for it. Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
@@ -103,7 +112,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 
 ## For contributors
 
-The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/ready/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/ready/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ready/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
+The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/done/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/ready/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ready/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
 
 ### Architecture
 

@@ -5,10 +5,10 @@
 // local file must cause neither.
 
 import { readdirSync, readFileSync } from "node:fs";
+import { getLocal } from "@laminapdf/test-utils/wrangler-dev";
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { BROWSER, launch } from "./browser.ts";
-import { getLocal } from "./local-tls.ts";
 import {
   ASSET_CACHE,
   bytes,
@@ -25,6 +25,7 @@ import {
 
 const APP = new URL("../", import.meta.url);
 const origin = inject("origin");
+const ca = inject("ca");
 
 /** A built asset's path whose file name matches `pattern`. */
 function asset(pattern: RegExp): string {
@@ -33,9 +34,9 @@ function asset(pattern: RegExp): string {
   return `/assets/${name}`;
 }
 
-/** `GET path` from the local server, which has a self-signed certificate (local-tls.ts), without following redirects. */
+/** `GET path` from the local server, which has a self-signed certificate (@laminapdf/test-utils/wrangler-dev), without following redirects. */
 function get(server: string, path: string): Promise<Response> {
-  return getLocal(new URL(path, server));
+  return getLocal(new URL(path, server), ca);
 }
 
 describe("what the server sends", () => {
@@ -89,7 +90,7 @@ describe(`opening local files in ${BROWSER}`, () => {
     await browser?.close();
   });
 
-  /** Opens the app at `path` in this run's browser, after `init`. The server's certificate is self-signed (local-tls.ts). */
+  /** Opens the app at `path` in this run's browser, after `init`. The server's certificate is self-signed (@laminapdf/test-utils/wrangler-dev). */
   const load = (path = "/", init?: InitScript): Promise<Watched> =>
     loadPage(browser, origin, path, init, { ignoreHTTPSErrors: true });
 

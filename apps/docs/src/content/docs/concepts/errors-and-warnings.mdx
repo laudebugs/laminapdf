@@ -3,6 +3,7 @@ title: Errors and warnings
 description: One coded error shape on every surface, and warnings for what Lamina PDF repaired.
 ---
 
+import Diagram from "../../../components/Diagram.astro";
 import Snippet from "../../../components/Snippet.astro";
 
 Real PDFs are often damaged, so Lamina PDF separates a call that failed from one that worked around a problem. An error stops the call. A warning lets it finish and tells you what was repaired, dropped or approximated. Both carry a stable code your program can branch on.
@@ -17,7 +18,9 @@ A warning means the call went ahead, but Lamina PDF had to repair, drop or appro
 
 ## Every surface has the same fields
 
-Errors and warnings have the same fields in TypeScript and Rust: `code`, `kind`, `message`, `hint`, `location`, `data` and `docsUrl`. `toJSON()` in TypeScript gives the same object as `serde` does in Rust, so a server and a browser can pass them to each other unchanged.
+Errors and warnings have the same fields in TypeScript and Rust: `code`, `kind`, `message`, `hint`, `location`, `data` and `docsUrl`. A usage error can also carry `didYouMean`, the closest names to one Lamina PDF didn't recognise. `toJSON()` in TypeScript gives the same object as `serde` does in Rust, so a server and a browser can pass them to each other unchanged.
+
+<Diagram name="errors-and-warnings" />
 
 - **`kind` sorts errors by who can fix them**, such as `input`, `limit`, `usage`, `state` or `io`. For example, a server returns a 4xx status for `input` and `limit` and a 5xx for the rest, as the [Cloudflare Workers quick start](/quick-start/workers/) does.
 - **Text from the document is untrusted**, so it never appears in `message` or `hint`. It goes only in `data`, where you can escape it before you show it.

@@ -88,12 +88,12 @@ Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks 
 | ID | Delivers | Diagrams (§2) |
 | --- | --- | --- |
 | [Q3a](../todos/done/Q3a-diagram-kit-and-first-diagram.md) | The kit, `Diagram.astro`, the styles, the twin rule, the three checks | 1 |
-| [Q3b](../todos/ready/Q3b-save-diagrams.md) | The two save diagrams | 2, 3 |
+| [Q3b](../todos/done/Q3b-save-diagrams.md) | The two save diagrams | 2, 3 |
 | [Q3c](../todos/done/Q3c-coordinates-diagram.md) | Page space and user space, upright and rotated | 4 |
-| [Q3d](../todos/ready/Q3d-package-map-diagram.md) | The packages and modules | 5 |
+| [Q3d](../todos/done/Q3d-package-map-diagram.md) | The packages and modules | 5 |
 | [Q3e](../todos/done/Q3e-extraction-diagrams.md) | From page to Markdown, and reading order | 6, 7 |
-| [Q3f](../todos/ready/Q3f-worker-errors-undo-diagrams.md) | Web Worker, errors and warnings, transactions | 8, 9, 10 |
-| [Q3g](../todos/ready/Q3g-drawing-and-ranges-pages.md) | Two new pages, each with its diagram | 11, 12 |
+| [Q3f](../todos/done/Q3f-worker-errors-undo-diagrams.md) | Web Worker, errors and warnings, transactions | 8, 9, 10 |
+| [Q3g](../todos/done/Q3g-drawing-and-ranges-pages.md) | Two new pages, each with its diagram | 11, 12 |
 
 ## 7. Risks
 
@@ -104,14 +104,14 @@ Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks 
 ## 8. Open questions
 
 - Should the docs offer the high-contrast theme in their theme switch? The diagrams would follow it for free, but the docs pages haven't been checked in it. Decide in Q3a's review; the browser test covers forced colours either way.
-- Do the two new pages (Q3g) belong under "Concepts" and "Guides" in the sidebar, or in a new "How it works" group? Decide when Q3g starts, with the sidebar's owner.
+- Decided in Q3g: the two new pages go into the sidebar's existing groups, "How a page is drawn" under "Concepts" and "Open large files by ranges" under "Read and edit PDFs", beside "Open files you don't trust". A "How it works" group would hold two pages, and the concept pages already answer how it works.
 
 ## 9. To-dos
 
 - [x] Q3a: the kit, the checks and "Open, edit, save"
-- [ ] Q3b: the save diagrams
+- [x] Q3b: the save diagrams
 - [x] Q3c: page space and user space
-- [ ] Q3d: the packages and modules
+- [x] Q3d: the packages and modules
 - [x] Q3e: the extraction diagrams
-- [ ] Q3f: Web Worker, errors and warnings, transactions
-- [ ] Q3g: the drawing and ranges pages
+- [x] Q3f: Web Worker, errors and warnings, transactions
+- [x] Q3g: the drawing and ranges pages

@@ -19,7 +19,7 @@ Lamina PDF hands one big job to another project: turning pages into pixels. Real
 
 ## PDFium only draws, and only in a Web Worker
 
-PDFium is C++ reading files you didn't write, so Lamina PDF keeps it at arm's length. The viewer runs it inside a Web Worker, away from your page. PDFium never changes the document either: every edit goes through Lamina PDF, which also writes the saved file. Text, selection and links come from Lamina PDF's own reading of the file, never from the renderer. Lamina PDF also checks that the two agree: its tests compare each page's size and every character's position with PDFium's.
+PDFium is C++ reading files you didn't write, so Lamina PDF keeps it at arm's length. The viewer runs it inside a Web Worker, away from your page. PDFium never changes the document either: every edit goes through Lamina PDF, which also writes the saved file. Text, selection and links come from Lamina PDF's own model of the file, never from the renderer. Lamina PDF also checks that the two agree: its tests compare each page's size and every character's position with PDFium's. [How a page is drawn](/concepts/drawing-pages/) shows the two side by side.
 
 ## You pay for PDFium only when you show pages
 

@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `C5a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [web reader §6 C5. Text, selection and search](../../plans/web-app.md#c5-text-selection-and-search) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../done/C4c-remote-files-encryption-privacy.md) |
-| Dependency notes | Library **B9** (text extraction: `laminapdf-content`, `laminapdf-text`, `page.text()` in `@laminapdf/sdk`; [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C4c](../done/C4c-remote-files-encryption-privacy.md) (app opens local, remote and encrypted files); [C3c](../done/C3c-viewer-perf-harness.md) (perf harness scenario and long-task budget) |
+| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md) |
+| Dependency notes | Library **B9** (text extraction: `laminapdf-content`, `laminapdf-text`, `page.text()` in `@laminapdf/sdk`; [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C4c](./C4c-remote-files-encryption-privacy.md) (app opens local, remote and encrypted files); [C3c](./C3c-viewer-perf-harness.md) (perf harness scenario and long-task budget) |
 | ADRs | Follows 0004's two-parsers rule (text geometry from lamina, never from the renderer), 0009 (framework-free layer in `@laminapdf/viewer`), ADR 0023 (content-stream reading, from B9) |
 | Branch | `feat/c5a-text-layer` |
 | PR title | `feat(viewer): add the text layer with selection, copy and struct-tree linking` |
 | Size | L (600–1,500 lines incl. tests) |
-| PR | — |
+| PR | [#345](https://github.com/laudebugs/laminapdf/pull/345) |
 
 ## Goal
 
@@ -20,13 +20,13 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 
 ## Context
 
-- [UI/UX plan §5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) — the viewer only **emits** selection events (client rects, selected runs, pointer type); menus, copy modes and the touch action bar are [U2a](./U2a-selection-surfaces-and-copy-modes.md)'s, so nothing here draws over the OS selection menu.
+- [UI/UX plan §5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) — the viewer only **emits** selection events (client rects, selected runs, pointer type); menus, copy modes and the touch action bar are [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md)'s, so nothing here draws over the OS selection menu.
 - [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction) — glyph runs with Unicode, quads, direction, `ActualText`, MCIDs; accepted when five-script fixtures match and quads lie within tolerance of PDFium's char boxes.
 - [03 text and fonts §8 extraction](../../research/pdf/03-text-and-fonts.md) — extraction model, reading order, ToUnicode.
 - [Research: web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — layering: raster canvas, transparent DOM text layer, struct-tree layer via `aria-owns` (pdf.js pattern), core must expose `StructTreeRoot`/`MarkInfo`.
 - [rendering notes §3](../../research/architecture/notes/rendering.md) and [web-frontend notes §3, §7](../../research/architecture/notes/web-frontend.md) — text-layer technique, accessibility through DOM layers, untagged documents.
 - [web-app.md §4 functional 4](../../plans/web-app.md#functional) and [§7 risks](../../plans/web-app.md#7-risks) (two parsers disagree on geometry; untagged PDFs).
-- [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) — `PageLayerHost` slots (`lamina-layer-text`).
+- [C3b](./C3b-viewer-virtualiser-and-zoom.md) — `PageLayerHost` slots (`lamina-layer-text`).
 
 ## Scope
 
@@ -41,33 +41,33 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 
 **Out of scope** (and which todo covers it)
 
-- Find, highlights and match navigation → [C5b](./C5b-find-in-document.md).
-- Link layer → [C6b](./C6b-links-and-history.md).
+- Find, highlights and match navigation → [C5b](../ready/C5b-find-in-document.md).
+- Link layer → [C6b](../ready/C6b-links-and-history.md).
 - Annotation/form DOM layers (display is raster by PDFium in the reader).
-- Full keyboard/screen-reader audit → [C7a](./C7a-accessibility-and-theming.md).
+- Full keyboard/screen-reader audit → [C7a](../ready/C7a-accessibility-and-theming.md).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Confirm B9's `@laminapdf/sdk` API (`page.text()` shape); write a worker adapter producing compact, transferable run data (`Float32Array` of quads + string table) to keep RPC cheap.
-- [ ] Add RPC methods and types; worker cache keyed by page; cancellation on page unmount.
-- [ ] Text-layer builder with a pure function `layoutSpans(runs, viewport) → SpanSpec[]` (unit-testable) and a DOM renderer that reuses span elements across zoom changes.
-- [ ] Width fitting: measure each span's natural width once (canvas `measureText` with a generic font, cached per font-size bucket) and set `transform: … scaleX(k)`; avoid layout thrash (batch reads then writes).
-- [ ] RTL and vertical text: set `dir="rtl"` for RTL runs; rotate spans for vertical writing; test Arabic/Hebrew selection order.
-- [ ] Selection root and `user-select` rules as in Scope; pin pages intersecting the active selection in the virtualiser (`selectionchange` → a `keepMounted(pageIndices)` hook on the C3b virtualiser, added in this PR if C3b has none; pinned pages count against the canvas pool); copy handler and newline/space heuristics consistent with B9's reading order, joining pages in page order with a page break newline.
-- [ ] Struct tree: RPC + layer + `aria-owns`; `MarkInfo /Marked` check; fallback for untagged.
-- [ ] Two-parser guard: in dev/debug builds, overlay text-quad outlines on the canvas (debug menu toggle) to spot misalignment; nightly test compares quads to PDFium char boxes on the corpus (reusing B9's quad test data).
-- [ ] Encrypted documents: text extraction runs in lamina with the password from the open call (no second prompt).
-- [ ] Selection and copy on the phone and tablet profiles of `apps/web/e2e/devices.e2e.test.ts` (U3a left copy to this todo).
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Claimed by opening the work PR, whose first commit moved this file, as CLAUDE.md's working agreement now does.
+- [x] Confirm B9's `@laminapdf/sdk` API (`page.text()` shape); write a worker adapter producing compact, transferable run data (`Float32Array` of quads + string table) to keep RPC cheap.
+- [x] Add RPC methods and types; worker cache keyed by page; cancellation on page unmount.
+- [x] Text-layer builder with a pure function `layoutSpans(runs, viewport) → SpanSpec[]` (unit-testable) and a DOM renderer that reuses span elements across zoom changes.
+- [x] Width fitting: measure each span's natural width once (canvas `measureText` with a generic font, cached per font-size bucket) and set `transform: … scaleX(k)`; avoid layout thrash (batch reads then writes). Built as one batched read of each span's laid-out width (the box untransformed), then one batch of writes: canvas `measureText` falls back to other fonts than the page for some characters (mathematical bold missed by 1.8 px).
+- [x] RTL and vertical text: set `dir="rtl"` for RTL runs; rotate spans for vertical writing; test Arabic/Hebrew selection order.
+- [x] Selection root and `user-select` rules as in Scope; pin pages intersecting the active selection in the virtualiser (`selectionchange` → a `keepMounted(pageIndices)` hook on the C3b virtualiser, added in this PR if C3b has none; pinned pages count against the canvas pool); copy handler and newline/space heuristics consistent with B9's reading order, joining pages in page order with a page break newline.
+- [x] Struct tree: RPC + layer + `aria-owns`; `MarkInfo /Marked` check; fallback for untagged.
+- [x] Two-parser guard: in dev/debug builds, overlay text-quad outlines on the canvas (debug menu toggle) to spot misalignment; nightly test compares quads to PDFium char boxes on the corpus (reusing B9's quad test data). The outline is on under `#debug` (`createViewer`'s `text.outline`) rather than a menu toggle; `cargo xtask quads` already compares Lamina PDF's quads with PDFium's char boxes.
+- [x] Encrypted documents: text extraction runs in lamina with the password from the open call (no second prompt).
+- [x] Selection and copy on the phone and tablet profiles of `apps/web/e2e/devices.e2e.test.ts` (U3a left copy to this todo).
 
 ## Acceptance criteria
 
-- [ ] **Copy equals expected text** for the B9 five-script fixtures (Latin, Arabic, Devanagari, Hebrew, CJK) in Chromium, Firefox and WebKit: Playwright selects all text on a page (`Selection.selectAllChildren` on that page's text layer, or drag-select from the first to the last span), copies, reads the clipboard, and compares with the fixture's expected text (normalised whitespace).
-- [ ] The same holds for the encrypted versions of those fixtures (B2 encryption × B9 text).
-- [ ] Alignment: for every span on the corpus fixtures at 100 % and 200 % zoom and 90° rotation, the span's bounding box lies within 1.5 CSS px (or 2 % of font size) of the lamina quad transformed to the viewport (asserted from layout maths; visual spot-check screenshots attached to the PR).
-- [ ] On a tagged fixture, the accessibility tree (Playwright `page.accessibility.snapshot()` / Chromium AX tree) shows headings and paragraphs in struct-tree order with the text spans as children; an untagged fixture announces "untagged document".
-- [ ] Text-layer construction for a typical page takes no main-thread task > 50 ms (perf harness from C3c, informational).
-- [ ] Selection works across page boundaries: a Playwright drag from the middle of page 1 to the middle of page 2 copies the tail of page 1 then the head of page 2 in order, in three engines; scrolling while the selection exists does not drop it (the touched pages stay mounted); canvas and gap areas are never part of the selection.
+- [x] **Copy equals expected text** for the B9 five-script fixtures (Latin, Arabic, Devanagari, Hebrew, CJK) in Chromium, Firefox and WebKit: Playwright selects all text on a page (`Selection.selectAllChildren` on that page's text layer, or drag-select from the first to the last span), copies, reads the clipboard, and compares with the fixture's expected text (normalised whitespace).
+- [x] The same holds for the encrypted versions of those fixtures (B2 encryption × B9 text).
+- [x] Alignment: for every span on the corpus fixtures at 100 % and 200 % zoom and 90° rotation, the span's bounding box lies within 1.5 CSS px (or 2 % of font size) of the lamina quad transformed to the viewport (asserted from layout maths; visual spot-check screenshots attached to the PR). Asserted in three browsers on `golden/text-latin.pdf` (`packages/viewer/test/browser/text-layer.browser.test.ts`); the copy tests cover the five-script page.
+- [x] On a tagged fixture, the accessibility tree (Playwright `page.accessibility.snapshot()` / Chromium AX tree) shows headings and paragraphs in struct-tree order with the text spans as children; an untagged fixture announces "untagged document". Asserted on the DOM the accessibility tree reads (roles in structure order, the figure's alt text, `aria-owns` naming the heading's spans) rather than a Chromium AX snapshot, so all three engines run it.
+- [x] Text-layer construction for a typical page takes no main-thread task > 50 ms (perf harness from C3c, informational). The perf harness's viewers now build the text layer on every page, so its long-task figures include it.
+- [x] Selection works across page boundaries: a Playwright drag from the middle of page 1 to the middle of page 2 copies the tail of page 1 then the head of page 2 in order, in three engines; scrolling while the selection exists does not drop it (the touched pages stay mounted); canvas and gap areas are never part of the selection. The selection is a Range from page 1's last line into page 2 rather than a mouse drag, which the three engines' automation moves differently.
 
 ## Post-merge checks
 
@@ -90,8 +90,8 @@ Unit tests for `layoutSpans` (matrices, rotation, RTL, vertical); Vitest browser
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

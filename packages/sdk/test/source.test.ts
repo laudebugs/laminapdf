@@ -6,6 +6,7 @@ import type { AddressInfo } from "node:net";
 import { callbackSource, Document, httpRangeSource, init, isLaminaPdfError, type LaminaPdfError } from "@laminapdf/sdk";
 import { fromRoot } from "@laminapdf/test-utils/root";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { firstLook } from "../examples/open-large-file.js";
 import { read } from "./helpers.js";
 
 beforeAll(() => init());
@@ -215,6 +216,13 @@ describe("Document.openRange over HTTP", () => {
         expect(overlap, `${l.range} vs content ${start}-${end}`).toBeLessThanOrEqual(0);
       }
     }
+  });
+
+  it("runs the open-large-file example, downloading less than half the file", async () => {
+    const { bytes } = largePdf();
+    server.serve(bytes);
+    expect(await firstLook(server.url)).toEqual({ pages: 32, width: 612, height: 792 });
+    expect(server.sent).toBeLessThan(bytes.length / 2);
   });
 
   it("matches Document.open on a large file, saving it whole through ensure", async () => {

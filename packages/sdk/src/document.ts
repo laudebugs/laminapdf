@@ -3,7 +3,7 @@
 // pages and save jobs are handles (internal/handle.ts): a page or save job is freed with its
 // document.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
-import type { PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
+import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
@@ -23,6 +23,7 @@ import type {
   Progress,
   SaveOptions,
   SaveReport,
+  StructureNode,
   UndoOutcome,
 } from "./types.js";
 
@@ -421,6 +422,38 @@ export class Document extends Handle<BaseGlue> {
   /** The Info dictionary's text entries (document text). @throws {@link LaminaPdfError} reading errors. */
   get info(): DocumentInfo {
     return this.call(() => this.#doc.info());
+  }
+
+  /**
+   * Whether the document says it is tagged (`/MarkInfo /Marked true`); it doesn't check the tree.
+   * Needs a document opened while the extract or text module was loaded, as `page.text()` does.
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`; reading errors.
+   */
+  get isTagged(): boolean {
+    return this.call(() => this.#extracting("doc.isTagged").isTagged());
+  }
+
+  /**
+   * The structure tree's top-level elements in reading order, or `undefined` for a document
+   * without one. A text run's `mcid` (on {@link PageTextRun}) links it to the element whose
+   * `{ type: "content", page, mcid }` kid names it. Needs the extract or text module, as
+   * `page.text()` does.
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`; reading errors.
+   */
+  structureTree(): StructureNode[] | undefined {
+    return this.call(() => this.#extracting("doc.structureTree()").structureTree());
+  }
+
+  /** The document as the extract module made it, or `extract-module-not-loaded` naming `what`. */
+  #extracting(what: string): ExtractWasmDocument {
+    const doc = this.#doc as Partial<ExtractWasmDocument>;
+    if (typeof doc.structureTree !== "function" || typeof doc.isTagged !== "function") {
+      throw packageError(
+        "extract-module-not-loaded",
+        `${what} needs a document opened while the extract or text module was loaded`,
+      );
+    }
+    return doc as ExtractWasmDocument;
   }
 
   /** Every warning so far (build warnings first), each the ADR 0026 §1 object. */

@@ -36,6 +36,7 @@ export function sidebar(typeDoc) {
         { label: "Pages and coordinates", slug: "concepts/pages-and-coordinates" },
         { label: "Errors and warnings", slug: "concepts/errors-and-warnings" },
         { label: "What Lamina PDF writes and what it borrows", slug: "concepts/dependencies" },
+        { label: "How a page is drawn", slug: "concepts/drawing-pages" },
       ],
     },
     {
@@ -56,6 +57,7 @@ export function sidebar(typeDoc) {
         { label: "Save a PDF", slug: "guides/save-a-pdf" },
         { label: "Open password-protected files", slug: "guides/password-protected-files" },
         { label: "Open files you don't trust", slug: "guides/untrusted-files" },
+        { label: "Open large files by ranges", slug: "guides/open-large-files" },
       ],
     },
     {

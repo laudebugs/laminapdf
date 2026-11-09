@@ -47,7 +47,7 @@ function changed() {
  * with `source-changed`. A server that ignores
  * `Range` (it answers `200`) is read with that one full download.
  *
- * The server must allow `Range` (across origins: `Access-Control-Allow-Headers: Range` and
+ * The server must allow `Range` (across origins: `Access-Control-Allow-Headers: Range, If-Range` and
  * `Access-Control-Expose-Headers: Content-Range, Content-Length, ETag`) and must not compress
  * the response.
  *

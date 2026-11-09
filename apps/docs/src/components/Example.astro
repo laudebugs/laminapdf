@@ -1,11 +1,20 @@
 ---
-// An example in its languages, with what it makes beside the code: a Result tab with a picture of
-// every page and a link to the PDF, for an example that builds one; an Output tab with the text it
-// prints, for one that reads a PDF. The pictures and the manifest come from `cargo xtask
+// An example in its languages, with what it makes beside the code, in one row of tabs: TypeScript
+// and Rust, then a Result tab with a picture of every page and a link to the PDF, for an example that
+// builds one, or an Output tab with the text it prints, for one that reads a PDF. The pictures and the manifest come from `cargo xtask
 // docs-previews`, which renders the example goldens; `cargo xtask check docs` keeps them in step.
+// The six examples in runner/examples.ts also get "Edit and run" on their Result tab (todo B7e),
+// when the runner was built (scripts/build-runner.mjs); it loads nothing until it is pressed.
+import { existsSync } from "node:fs";
 import { TabItem, Tabs } from "@astrojs/starlight/components";
+// @laminapdf/icons' own files, inlined at build time (its package exports only a built dist/).
+import downloadIcon from "../../../../packages/icons/svg/download.svg?raw";
+import playIcon from "../../../../packages/icons/svg/play.svg?raw";
+import resetIcon from "../../../../packages/icons/svg/reset.svg?raw";
 import manifest from "../../public/examples/preview/manifest.json";
+import { RUNNABLE } from "../../runner/examples.ts";
 import ExampleCode from "./ExampleCode.astro";
+import Snippet from "./Snippet.astro";
 
 interface Props {
   /** The TypeScript file, from the repository root (as `Snippet` takes it). */
@@ -25,7 +34,17 @@ const OUTPUTS: Record<string, string> = import.meta.glob(["../../../../fixtures/
   eager: true,
 });
 
+// The TypeScript examples, for the editor's first text: the file as the Code tab shows it.
+const SOURCES: Record<string, string> = import.meta.glob(["../../../../packages/sdk/examples/*.ts"], {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+/** Whether the runner was built: the docs build runs scripts/build-runner.mjs first, from apps/docs. */
+const RUNNER = existsSync("public/run/worker.js");
+
 const { ts, rust, result, output } = Astro.props;
+const source = ts !== undefined && RUNNER && RUNNABLE[ts] !== undefined ? SOURCES[`../../../../${ts}`] : undefined;
 const examples = result === undefined ? [] : typeof result === "string" ? [result] : result;
 const pictures = examples.map((stem) => {
   const entry = (manifest.examples as Record<string, (typeof manifest.examples)["hello"] | undefined>)[stem];
@@ -39,20 +58,54 @@ if (output !== undefined && text === undefined) {
   throw new Error(`Example: ${output} is not one of the outputs apps/docs may show`);
 }
 const outcome = pictures.length > 0 || text !== undefined;
+/** An icon beside a button's label: decorative, so hidden from assistive technology. */
+const icon = (svg: string) =>
+  svg.replace("<svg ", '<svg class="run-icon" width="16" height="16" aria-hidden="true" focusable="false" ');
 const size = (bytes: number) => (bytes < 1024 ? `${bytes} bytes` : `${Math.round(bytes / 1024)} KB`);
 const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
 ---
 
-{/* Code first, by default on every page: the outer tabs keep no memory, while the language tabs
-     inside share the site's remembered TypeScript or Rust choice. */}
+{/* One row: the code first, then what it makes. The row shares the site's remembered TypeScript
+     or Rust choice (`syncKey`), so a reader who picks Rust sees Rust on every example. Only the
+     language is remembered: the script below puts it back when Result or Output is picked, so no
+     page opens on its pictures. */}
 {
   outcome ? (
-    <Tabs>
-      <TabItem label="Code">
-        <ExampleCode ts={ts} rust={rust} />
-      </TabItem>
+    <Tabs syncKey="lang">
+      {ts !== undefined && (
+        <TabItem label="TypeScript">
+          <Snippet file={ts} />
+        </TabItem>
+      )}
+      {rust !== undefined && (
+        <TabItem label="Rust">
+          <Snippet file={rust} />
+        </TabItem>
+      )}
       {pictures.length > 0 && (
         <TabItem label="Result">
+          {source !== undefined && (
+            <lamina-run class="example-run not-content" data-file={ts} data-source={source}>
+              <button type="button" class="run-open">
+                <Fragment set:html={icon(playIcon)} />
+                Edit and run
+              </button>
+              <div class="run-bar" hidden>
+                <button type="button" class="run-run">
+                  <Fragment set:html={icon(playIcon)} />
+                  Run
+                </button>
+                <button type="button" class="run-reset">
+                  <Fragment set:html={icon(resetIcon)} />
+                  Reset
+                </button>
+                <button type="button" class="run-download" hidden>
+                  <Fragment set:html={icon(downloadIcon)} />
+                  Download PDF
+                </button>
+              </div>
+            </lamina-run>
+          )}
           {pictures.map((example) => (
             <figure class="example-result">
               <div class:list={["example-pages", { "example-pages-many": example.pages.length > 1 }]}>
@@ -86,7 +139,137 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   )
 }
 
+<script>
+  // Starlight remembers a synced row's last tab in localStorage. Here only TypeScript or Rust may be
+  // remembered: after a pick of Result or Output (by click or arrow key), the language goes back.
+  const KEY = "starlight-synced-tabs__lang";
+  const LANGUAGES = new Set(["TypeScript", "Rust"]);
+  const keep = (event: Event) => {
+    if (!(event.target instanceof Element) || event.target.closest("starlight-tabs") === null) return;
+    // Storage can be blocked (a private window); Starlight then remembers nothing either.
+    let before: string | null;
+    try {
+      before = localStorage.getItem(KEY);
+    } catch {
+      return;
+    }
+    // After Starlight's own handler: between listeners of a real event, microtasks run, so a task.
+    setTimeout(() => {
+      const now = localStorage.getItem(KEY);
+      if (now === null || LANGUAGES.has(now)) return;
+      if (before !== null && LANGUAGES.has(before)) localStorage.setItem(KEY, before);
+      else localStorage.removeItem(KEY);
+    }, 0);
+  };
+  document.addEventListener("click", keep, true);
+  document.addEventListener("keydown", keep, true);
+
+  // "Edit and run": the editor and the runner load on the first press, from the docs site only.
+  class LaminaRun extends HTMLElement {
+    connectedCallback(): void {
+      const button = this.querySelector<HTMLButtonElement>(".run-open");
+      const bar = this.querySelector<HTMLElement>(".run-bar");
+      const run = this.querySelector<HTMLButtonElement>(".run-run");
+      const reset = this.querySelector<HTMLButtonElement>(".run-reset");
+      const download = this.querySelector<HTMLButtonElement>(".run-download");
+      const { file, source } = this.dataset;
+      if (button === null || bar === null || run === null || reset === null || download === null) return;
+      if (file === undefined || source === undefined) return;
+      const open = async () => {
+        button.disabled = true;
+        button.lastChild?.replaceWith(" Loading the editor…");
+        let editor: typeof import("../../runner/editor.ts");
+        try {
+          editor = await import("../../runner/editor.ts");
+        } catch {
+          // A deploy may have replaced the editor's file since the page loaded: try again.
+          button.lastChild?.replaceWith(" Couldn't load the editor; try again");
+          button.disabled = false;
+          return;
+        }
+        button.removeEventListener("click", open);
+        const pictures = document.createElement("div");
+        // The Result tab's pictures stay until a run draws its own pages.
+        for (const figure of this.parentElement?.querySelectorAll(".example-result") ?? []) pictures.append(figure);
+        this.after(pictures);
+        button.remove();
+        editor.openRunner({ bar, run, reset, download }, file, source, pictures);
+      };
+      button.addEventListener("click", open);
+    }
+  }
+  customElements.define("lamina-run", LaminaRun);
+</script>
+
 <style>
+  .example-run {
+    display: block;
+    margin-bottom: 1rem;
+  }
+  .example-run :global(.run-editor) {
+    border: 1px solid var(--sl-color-gray-5);
+    max-height: 32rem;
+    overflow: auto;
+    font-size: var(--sl-text-sm);
+  }
+  .example-run .run-bar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+  }
+  .example-run button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0;
+    font: inherit;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 0.25rem;
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-white);
+    cursor: pointer;
+  }
+  .example-run button[hidden],
+  .example-run .run-bar[hidden] {
+    display: none;
+  }
+  .example-run :global(.run-icon) {
+    flex: none;
+  }
+  .example-run button:disabled {
+    cursor: progress;
+  }
+  .example-run :global(.run-status:empty) {
+    display: none;
+  }
+  .example-run :global(.run-error) {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--sl-color-red);
+    background: var(--sl-color-red-low);
+    white-space: pre-wrap;
+  }
+  .example-run :global(.run-hint) {
+    margin-top: 0.25rem;
+  }
+  .example-run :global(.run-pages) {
+    display: grid;
+    grid-template-columns: minmax(0, 26rem);
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  .example-run :global(.run-pages-many) {
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  }
+  .example-run :global(.run-page) {
+    margin: 0;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--sl-color-gray-5);
+    background: #fff;
+  }
   .example-result {
     margin: 0;
   }

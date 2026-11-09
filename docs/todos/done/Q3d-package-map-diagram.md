@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q3d` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | None |
 | Branch | `feat/q3d-package-map` |
 | PR title | `feat(docs): a diagram of the published packages and modules` |
 | Size | S |
-| PR | — |
+| PR | [#346](https://github.com/laudebugs/laminapdf/pull/346) |
 
 ## Goal
 
@@ -36,16 +36,16 @@ The install page lists a dozen packages, and readers ask which one they need and
 
 ## Tasks
 
-- [ ] `components/diagrams/PackageMap.astro` with a `focus` prop (`sdk`, `modules`, `viewer`, none).
-- [ ] Place it under "Every published package" with no focus, and under "Three modules in JavaScript" focused on the modules.
+- [x] `components/diagrams/PackageMap.astro` with a `focus` prop (`sdk`, `modules`, `viewer`, none). The modules page uses `PackageMapModules.astro`, which draws it focused on the modules: a page names a diagram, and a name has one drawing.
+- [x] Place it under "Every published package" with no focus, and under "Three modules in JavaScript" focused on the modules.
 
 ## Acceptance criteria
 
-- [ ] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
-- [ ] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
-- [ ] Each diagram is under 8 KB gzipped (reported in the PR).
-- [ ] `cargo xtask check docs` and the docs build pass.
-- [ ] Every package name in the diagram is published under that name (`install.mdx`'s table and the npm registry).
+- [x] Each diagram is built from the Q3a kit, renders in both themes (screenshots checked while building; the PR's docs preview shows both) and passes the lint, twin and browser tests.
+- [x] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
+- [x] Each diagram is under 8 KB gzipped (reported in the PR).
+- [x] `cargo xtask check docs` and the docs build pass.
+- [x] Every package name in the diagram is published under that name (`install.mdx`'s table and the npm registry).
 
 ## Post-merge checks
 

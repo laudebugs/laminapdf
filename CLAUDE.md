@@ -76,14 +76,16 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/test-utils/ # @laminapdf/test-utils (private, workspace-only, outside Changesets): the test helpers the
 │                        #   packages share, exported as TypeScript source: render-contract (the RenderBackend suite both
 │                        #   adapters run, Node + browsers), browser-harness, browser-config (renderBrowserConfig),
-│                        #   firefox (firefoxProvider, firefoxEnv), root (fromRoot)
+│                        #   firefox (firefoxProvider, firefoxEnv), root (fromRoot), wrangler-dev (the sites' e2e server over HTTPS, getLocal)
 ├── packages/render-pdfium/  # @laminapdf/render-pdfium: @embedpdf/pdfium 2.15.1 (pdfium.wasm SHA-256 checked by
 │                        #   scripts/verify-pdfium.mjs) behind RenderBackend; THIRD_PARTY_NOTICES.md
 ├── packages/render-hayro/   # @laminapdf/render-hayro: lamina_pdf_render_hayro behind RenderBackend
 ├── packages/viewer/     # @laminapdf/viewer: the viewer core (ADR 0009); C3a: ViewerClient (typed RPC over
 │                        #   @laminapdf/sdk/worker's request(), timers, restart), src/worker/ (serve() with the viewer's
 │                        #   methods: openDocument, render → ImageBitmap); C4c: src/source/http-range.ts (HttpRangeByteSource:
-│                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); C3b: createViewer (src/layout/, view/, canvas/,
+│                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); C5a: src/layers/ (the text
+│                        #   layer: a transparent span per run from Lamina PDF's quads, selection across pages, keepMounted pins, copy; the
+│                        #   structure tree as ARIA elements owning spans by MCID), worker/text.ts (pageText, structure); C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)
@@ -165,7 +167,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
 │                        #   files (src/components/Snippet.astro; Example.astro adds a Result tab with pictures of each page, apps/docs/public/examples/preview/ from
-│                        #   `cargo xtask docs-previews`, checked against the goldens by `check docs`, or an Output tab), the code table from fixtures/codes.json, the Benchmarks page
+│                        #   `cargo xtask docs-previews`, checked against the goldens by `check docs`, or an Output tab; B7e: "Edit and run" on six TS examples,
+│                        #   runner/ (CodeMirror editor, a module worker at /run/worker.js running the edit with Sucrase, @laminapdf/sdk and
+│                        #   @laminapdf/render-hayro, its own CSP with 'unsafe-eval' in public/_headers), built by scripts/build-runner.mjs when
+│                        #   the WebAssembly is built; e2e/ against `wrangler dev`, run by `cargo xtask pdf-runtimes <browser>`), the code table from fixtures/codes.json, the Benchmarks page
 │                        #   from src/data/benchmarks.json (src/lib/benchmarks.ts checks it and makes the tables for the page's
 │                        #   src/components/Benchmarks.astro and its Markdown twin), code pages from
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/), the shared site header
@@ -180,7 +185,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   progress` and its reader progress.ts; sources.ts: the code panel and packages from the tested examples, the CLI
 │                        #   README and the docs install page; copy.ts: the words, approved by the owner; rounds.ts: the areas' plain
 │                        #   names; highlight.ts: the code panel's colours at build time, Shiki's tokens as classes coloured by the
-│                        #   --paper-code-* tokens, since the CSP blocks inline styles), src/scripts/ (tabs.ts), scripts/share-image.mjs (public/og.png and the PNG favicons, run by hand); public/_headers (ADR 0011 §4's website headers,
+│                        #   --paper-code-* tokens, since the CSP blocks inline styles), src/scripts/ (tabs.ts), scripts/share-image.mjs (public/og.png and the PNG favicons, run by hand) and story-image.mjs
+│                        #   (~/git/lamina-stories/<story>/visuals/*.html → PNG at each file's lamina-size, styled by story-card.css), both over paper-render.mjs; public/_headers (ADR 0011 §4's website headers,
 │                        #   test/headers.test.ts holds them to the ADR); @laminapdf/site-kit's checks after every build; wrangler.toml
 │                        #   (lamina-pdf-site, the apex as a custom domain); deployed by .github/workflows/site.yml, which W1b's PR gives
 │                        #   for the owner to commit; README.md has the owner's setup
@@ -239,6 +245,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── pdfium-wasm/     # Round C1b: PDFium-WASM beside laminapdf-wasm in one web worker (measurements in its README; ADRs 0004, 0009)
 │   ├── lamina-ffi/      # Round L6a: the façade over UniFFI 0.32 for Swift and Kotlin (findings in its README; ADR 0029)
 │   └── flow-layout/     # T4a: flowing layout by our own paginator over Surface, by Typst 0.15.1, and by Typst's frames through Surface (findings in its README; ADR 0032)
+├── .agents/skills/      # the repository's agent skills (rust-best-practices, lamina-story); .claude/skills links here
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs (each links to its todos)
@@ -497,6 +504,8 @@ pnpm --filter @laminapdf/web dev     # the web reader (after `wasm` and the view
                              #   `preview` serves dist/ through `wrangler dev` with the production headers on port 8788
 cargo xtask web build        # the reader into apps/web/dist/ from a fresh checkout: the WebAssembly modules without their tests,
                              #   @laminapdf/sdk, the packages the app imports, then the app (what web-deploy.yml deploys)
+cargo xtask web docs-runner  # what the docs' example runner needs (B7e): the WebAssembly modules without their tests,
+                             #   @laminapdf/sdk, @laminapdf/render and -hayro; the docs build then makes the runner
 pnpm --filter @laminapdf/site dev    # the website at localhost:4321; `build` writes apps/site/dist/ (noindex unless
                              #   LAMINA_PDF_ENV=production) and fails on a page that breaks the website's rules
 pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` writes apps/docs/dist/ (what deploys), with a

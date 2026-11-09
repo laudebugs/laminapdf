@@ -15,7 +15,14 @@
       }
     },
     {
-      "includes": ["astro.config.mjs", "plugins/**", "test/browser/**"],
+      "includes": [
+        "astro.config.mjs",
+        "plugins/**",
+        "runner/editor.ts",
+        "e2e/**",
+        "vitest.*.config.ts",
+        "test/browser/**"
+      ],
       "linter": {
         "rules": {
           "style": {

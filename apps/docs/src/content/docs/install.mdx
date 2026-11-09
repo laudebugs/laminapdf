@@ -3,6 +3,8 @@ title: Install
 description: Install Lamina PDF from npm or crates.io, and find every published package.
 ---
 
+import Diagram from "../../components/Diagram.astro";
+
 Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both are alpha releases, so name the version when you install them. A plain `npm install` or `cargo add` picks a `0.0.0` placeholder that only reserves the name.
 
 ## TypeScript: `@laminapdf/sdk`
@@ -51,6 +53,8 @@ Most projects need only the two above. The table links every published package t
 | `laminapdf-source` | [crates.io](https://crates.io/crates/laminapdf-source) | Byte sources filled range by range, for remote files |
 | `laminapdf-render` | [crates.io](https://crates.io/crates/laminapdf-render) | The Rust interface that page renderers implement |
 | `laminapdf-render-pdfium` | [crates.io](https://crates.io/crates/laminapdf-render-pdfium) | The native PDFium renderer |
+
+<Diagram name="package-map" />
 
 ## Try a change before it's released
 
