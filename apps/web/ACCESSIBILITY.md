@@ -21,6 +21,7 @@ Lamina PDF's web reader aims to meet WCAG 2.2 AA in its own interface and to wor
 ## Known limits
 
 - **Only pages near the view exist in the page.** A screen reader's "read all" stops at the last mounted page. Use the outline, the page regions, Go to page or Page Down to move on.
+- **Safari's Tab skips buttons and links** unless Option is held or "Press Tab to highlight each item" is on in Safari's settings; the keyboard test presses Option+Tab in WebKit on macOS, as those readers do.
 - **F6 region cycling is the desktop app's.** Browsers keep F6 for their address bar, so the web reader offers the skip link and landmarks instead.
 - **Page regions carry no `aria-setsize` or `aria-posinset`.** Those attributes are not allowed on a region; each page's name gives its position instead.
 - **Palette rows.** axe's experimental rule `label-content-name-mismatch` is off for the palette. A row's group and shortcut describe the row rather than name it, as in a menu, and `@laminapdf/ui`'s tests check that description.

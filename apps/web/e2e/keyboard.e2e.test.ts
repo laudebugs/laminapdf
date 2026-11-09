@@ -3,6 +3,7 @@
 // back, open the document's properties and the print dialog, each from the keyboard; the live
 // region says the page.
 
+import { platform } from "node:process";
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { BROWSER, launch } from "./browser.ts";
@@ -22,10 +23,16 @@ const focused = (page: Page) =>
 const said = (page: Page) =>
   page.evaluate(() => document.querySelector('[aria-live="polite"][aria-atomic="true"]')?.textContent ?? "");
 
+/**
+ * Tab on macOS WebKit (as in Safari) moves only between text fields unless Option is held, as
+ * Safari's users do or set "Press Tab to highlight each item".
+ */
+const TAB = BROWSER === "webkit" && platform === "darwin" ? "Alt+Tab" : "Tab";
+
 /** Presses Tab (or Shift+Tab, `back`) until the focus is on `name` (at most 40 times). */
 async function tabTo(page: Page, name: string, back = false): Promise<void> {
   for (let i = 0; i < 40; i++) {
-    await page.keyboard.press(back ? "Shift+Tab" : "Tab");
+    await page.keyboard.press(back ? `Shift+${TAB}` : TAB);
     if ((await focused(page)) === name) return;
   }
   throw new Error(`Tab never reached ${name}`);
