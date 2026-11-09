@@ -214,22 +214,20 @@ pub const FIGURE_ALT: &str = "Four coloured squares in a grid";
 pub const FORMULA_ALT: &str = "E equals m c squared";
 pub const TABLE_ALT: &str = "Two rows of two numbers";
 
-/// The `mixed` file: a heading, a paragraph, a figure and its caption, a formula, a block
-/// quote, a two-item list and a two-by-two table, drawn last first.
-#[expect(
-    clippy::too_many_lines,
-    reason = "one file: its blocks, its tree in reading order, then its drawing in reverse"
-)]
-fn mixed() -> Sample {
-    let layout = Layout {
-        name: "mixed",
-        pages: 1,
-        rotate: laminapdf_model::Rotation::None,
-        blocks: Vec::new(),
-        about: "a figure, a formula, a quote, a list and a table",
-    };
-    let mut b = Builder::new(options().with_tagged(true));
-    let latin = Block {
+/// The `mixed` file's text blocks.
+struct MixedText {
+    heading: Block,
+    intro: Block,
+    caption: Block,
+    formula: Block,
+    quote: Block,
+    items: [Block; 2],
+    cells: Vec<Block>,
+}
+
+/// A Latin block of the `mixed` file.
+fn latin() -> Block {
+    Block {
         page: 0,
         role: Role::Paragraph,
         text: String::new(),
@@ -237,44 +235,81 @@ fn mixed() -> Sample {
         size: 11.0,
         script: Script::Latin,
         align: laminapdf_build::Alignment::Start,
-    };
-    let probe = Layout {
-        blocks: vec![latin.clone()],
-        ..layout
-    };
-    let fonts = fonts(&mut b, &probe);
+    }
+}
+
+fn mixed_text() -> MixedText {
     let text = |seed, count, area, size| Block {
         text: words(Script::Latin, seed, count),
         area,
         size,
-        ..latin.clone()
+        ..latin()
     };
-    let heading = text(301, 4, (56.0, 56.0, 480.0, 30.0), 20.0);
-    let intro = text(302, 30, (56.0, 100.0, 480.0, 60.0), 11.0);
-    let caption = text(303, 6, (56.0, 300.0, 480.0, 16.0), 9.0);
-    let formula = Block {
-        text: "E = mc2".to_owned(),
-        ..text(0, 1, (56.0, 330.0, 200.0, 20.0), 14.0)
+    let cell = |area, t: &str| Block {
+        text: t.to_owned(),
+        ..text(0, 1, area, 11.0)
     };
-    let quote = text(304, 20, (90.0, 370.0, 410.0, 40.0), 11.0);
-    let items = [
-        text(305, 5, (80.0, 430.0, 400.0, 16.0), 11.0),
-        text(306, 5, (80.0, 450.0, 400.0, 16.0), 11.0),
-    ];
-    let cells = [
-        text(0, 1, (56.0, 490.0, 100.0, 16.0), 11.0),
-        text(0, 1, (160.0, 490.0, 100.0, 16.0), 11.0),
-        text(0, 1, (56.0, 510.0, 100.0, 16.0), 11.0),
-        text(0, 1, (160.0, 510.0, 100.0, 16.0), 11.0),
-    ];
-    let cells: Vec<Block> = cells
-        .into_iter()
-        .zip(["12", "34", "56", "78"])
-        .map(|(b, t)| Block {
-            text: t.to_owned(),
-            ..b
-        })
-        .collect();
+    MixedText {
+        heading: text(301, 4, (56.0, 56.0, 480.0, 30.0), 20.0),
+        intro: text(302, 30, (56.0, 100.0, 480.0, 60.0), 11.0),
+        caption: text(303, 6, (56.0, 300.0, 480.0, 16.0), 9.0),
+        formula: Block {
+            text: "E = mc2".to_owned(),
+            ..text(0, 1, (56.0, 330.0, 200.0, 20.0), 14.0)
+        },
+        quote: text(304, 20, (90.0, 370.0, 410.0, 40.0), 11.0),
+        items: [
+            text(305, 5, (80.0, 430.0, 400.0, 16.0), 11.0),
+            text(306, 5, (80.0, 450.0, 400.0, 16.0), 11.0),
+        ],
+        cells: vec![
+            cell((56.0, 490.0, 100.0, 16.0), "12"),
+            cell((160.0, 490.0, 100.0, 16.0), "34"),
+            cell((56.0, 510.0, 100.0, 16.0), "56"),
+            cell((160.0, 510.0, 100.0, 16.0), "78"),
+        ],
+    }
+}
+
+/// What reader mode should make of the `mixed` file.
+fn mixed_json(t: &MixedText) -> String {
+    let blocks = json!([
+        { "page": 0, "kind": "heading", "text": t.heading.text },
+        { "page": 0, "kind": "paragraph", "text": t.intro.text },
+        { "page": 0, "kind": "figure", "alt": FIGURE_ALT, "box": [56.0, 180.0, 160.0, 110.0] },
+        { "page": 0, "kind": "caption", "text": t.caption.text },
+        { "page": 0, "kind": "formula", "alt": FORMULA_ALT },
+        { "page": 0, "kind": "quote", "text": t.quote.text },
+        { "page": 0, "kind": "list-item", "text": t.items[0].text },
+        { "page": 0, "kind": "list-item", "text": t.items[1].text },
+        { "page": 0, "kind": "table", "alt": TABLE_ALT },
+    ]);
+    let value = json!({ "file": "mixed.pdf", "layout": "mixed", "tree": "in reading order", "available": true, "blocks": blocks });
+    serde_json::to_string_pretty(&value).unwrap() + "\n"
+}
+
+/// The `mixed` file: a heading, a paragraph, a figure and its caption, a formula, a block
+/// quote, a two-item list and a two-by-two table, drawn last first.
+fn mixed() -> Sample {
+    let layout = Layout {
+        name: "mixed",
+        pages: 1,
+        rotate: laminapdf_model::Rotation::None,
+        blocks: vec![latin()],
+        about: "a figure, a formula, a quote, a list and a table",
+    };
+    let mut b = Builder::new(options().with_tagged(true));
+    let fonts = fonts(&mut b, &layout);
+    let t = mixed_text();
+    let MixedText {
+        heading,
+        intro,
+        caption,
+        formula,
+        quote,
+        items,
+        cells,
+    } = &t;
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
     // The tree, in reading order.
@@ -309,17 +344,17 @@ fn mixed() -> Sample {
     for (item, body) in items.iter().zip(&bodies).rev() {
         put(s, *body, &fonts, &layout, item);
     }
-    put(s, qp, &fonts, &layout, &quote);
-    put(s, math, &fonts, &layout, &formula);
-    put(s, cap, &fonts, &layout, &caption);
+    put(s, qp, &fonts, &layout, quote);
+    put(s, math, &fonts, &layout, formula);
+    put(s, cap, &fonts, &layout, caption);
     let area = RectPt::from_xywh(Pt::new(56.0), Pt::new(180.0), Pt::new(160.0), Pt::new(110.0));
     s.resume(figure, |s| {
         s.image(&picture(), area);
         Ok(())
     })
     .unwrap();
-    put(s, p, &fonts, &layout, &intro);
-    put(s, h1, &fonts, &layout, &heading);
+    put(s, p, &fonts, &layout, intro);
+    put(s, h1, &fonts, &layout, heading);
     page.finish().unwrap();
     for element in [h1, p, figure, cap, math, qp, bq, list, table]
         .into_iter()
@@ -329,23 +364,10 @@ fn mixed() -> Sample {
     {
         b.close_element(element).unwrap();
     }
-    let pdf = save(b.finish().unwrap());
-    let blocks = json!([
-        { "page": 0, "kind": "heading", "text": heading.text },
-        { "page": 0, "kind": "paragraph", "text": intro.text },
-        { "page": 0, "kind": "figure", "alt": FIGURE_ALT, "box": [56.0, 180.0, 160.0, 110.0] },
-        { "page": 0, "kind": "caption", "text": caption.text },
-        { "page": 0, "kind": "formula", "alt": FORMULA_ALT },
-        { "page": 0, "kind": "quote", "text": quote.text },
-        { "page": 0, "kind": "list-item", "text": items[0].text },
-        { "page": 0, "kind": "list-item", "text": items[1].text },
-        { "page": 0, "kind": "table", "alt": TABLE_ALT },
-    ]);
-    let value = json!({ "file": "mixed.pdf", "layout": "mixed", "tree": "in reading order", "available": true, "blocks": blocks });
     Sample {
         name: "mixed".to_owned(),
-        pdf,
-        json: serde_json::to_string_pretty(&value).unwrap() + "\n",
+        pdf: save(b.finish().unwrap()),
+        json: mixed_json(&t),
     }
 }
 

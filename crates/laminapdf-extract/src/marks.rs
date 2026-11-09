@@ -3,6 +3,8 @@
 //! under the text, and the images and paths that tell a scan or outlined text from a page of
 //! text.
 
+use std::collections::BTreeMap;
+
 use laminapdf_content::{
     FormXObject, ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor, transformed_box,
 };
@@ -21,6 +23,10 @@ pub(crate) struct Drawn {
     pub(crate) image_boxes: Vec<RectPt>,
     /// How many paths it fills or strokes.
     pub(crate) paths: usize,
+    /// What each marked-content sequence (by MCID) paints besides text, its images and its
+    /// filled or stroked paths, as one box in page space clipped to the page: reader mode
+    /// crops a figure to it.
+    pub(crate) mcid_boxes: BTreeMap<i64, RectPt>,
 }
 
 /// The visitor [`laminapdf_text::TextExtractor::page_with`] is given.
@@ -30,6 +36,8 @@ pub(crate) struct Marks<'f> {
     backdrops: Backdrops,
     frame: PageFrame,
     drawn: Drawn,
+    /// The open marked-content sequences' MCIDs, innermost last.
+    marked: Vec<Option<i64>>,
 }
 
 impl<'f> Marks<'f> {
@@ -41,7 +49,20 @@ impl<'f> Marks<'f> {
             backdrops: Backdrops::new(frame),
             frame: *frame,
             drawn: Drawn::default(),
+            marked: Vec::new(),
         }
+    }
+
+    /// Adds `bbox` to the box of the innermost marked content with an MCID, if any.
+    fn mark(&mut self, bbox: RectPt) {
+        let Some(mcid) = self.marked.iter().rev().find_map(|m| *m) else {
+            return;
+        };
+        let merged = match self.drawn.mcid_boxes.get(&mcid) {
+            Some(b) => b.union(&bbox),
+            None => bbox,
+        };
+        self.drawn.mcid_boxes.insert(mcid, merged);
     }
 
     /// The table rules (when collected), the covers, the backdrops and what was drawn.
@@ -78,6 +99,13 @@ impl Visitor for Marks<'_> {
         self.backdrops.paint_path(paint);
         if paint.paint.draws() {
             self.drawn.paths += 1;
+            if let Some(bbox) = paint
+                .bounds
+                .map(|b| self.frame.rect_to_page(&b))
+                .and_then(|b| clip_to_page(&b, self.frame.width(), self.frame.height()))
+            {
+                self.mark(bbox);
+            }
         }
     }
 
@@ -87,6 +115,7 @@ impl Visitor for Marks<'_> {
         self.drawn.images += 1;
         if let Some(bbox) = image_box(&self.frame, &image.state.ctm) {
             self.drawn.image_boxes.push(bbox);
+            self.mark(bbox);
         }
     }
 
@@ -97,10 +126,12 @@ impl Visitor for Marks<'_> {
 
     fn begin_marked(&mut self, marked: &MarkedContent<'_>) {
         self.paint.begin_marked(marked);
+        self.marked.push(marked.mcid);
     }
 
     fn end_marked(&mut self) {
         self.paint.end_marked();
+        self.marked.pop();
     }
 
     fn enter_xobject(&mut self, form: &FormXObject<'_>) {

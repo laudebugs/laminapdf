@@ -50,6 +50,19 @@ pub struct ExtractJob {
     request: Option<ModelRequest>,
     /// Whether the layout model and the OCR engine gave a result, for `generator.models`.
     used: (bool, bool),
+    /// What reader mode reads besides the blocks, page by page, when it runs the job.
+    pub(crate) feed: Option<Vec<PageFeed>>,
+}
+
+/// What one page gave reader mode besides its blocks ([`crate::reflow`]).
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct PageFeed {
+    /// The page index.
+    pub(crate) index: usize,
+    /// How the page used the structure tree.
+    pub(crate) tree: TreeUse,
+    /// What each MCID paints besides text ([`Drawn::mcid_boxes`]).
+    pub(crate) boxes: std::collections::BTreeMap<i64, laminapdf_model::RectPt>,
 }
 
 /// A page whose text is read, waiting for its models' results.
@@ -134,6 +147,7 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
         pending: None,
         request: None,
         used: (false, false),
+        feed: None,
     })
 }
 
@@ -201,6 +215,11 @@ impl ExtractJob {
     #[must_use]
     pub fn cancel_token(&self) -> CancelToken {
         self.cancel.clone()
+    }
+
+    /// Makes `cancel` the job's token, as [`extract`] does.
+    pub(crate) fn set_cancel(&mut self, cancel: &CancelToken) {
+        self.cancel = cancel.clone();
     }
 
     /// The model result the job waits for, when its models are the host's
@@ -310,8 +329,15 @@ impl ExtractJob {
             )?;
             match out.tree {
                 TreeUse::Used => self.tree_pages.0 += 1,
-                TreeUse::Ignored => self.tree_pages.1 += 1,
+                TreeUse::Ignored(_) => self.tree_pages.1 += 1,
                 TreeUse::None => {}
+            }
+            if let Some(feed) = &mut self.feed {
+                feed.push(PageFeed {
+                    index,
+                    tree: out.tree,
+                    boxes: pending.drawn.mcid_boxes,
+                });
             }
             self.out.pages.push(out.info);
             self.out.blocks.extend(out.blocks);

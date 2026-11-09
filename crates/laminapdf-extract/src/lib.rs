@@ -48,6 +48,7 @@ mod output;
 mod page;
 mod paint;
 mod plugins;
+mod reflow;
 mod regions;
 mod segments;
 mod tables;
@@ -74,4 +75,5 @@ pub use plugins::{
     LayoutModel, LayoutRegion, ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord,
     PageRaster, PageRenderer, RegionLabel,
 };
+pub use reflow::{Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal, reflow};
 pub use tables::TableMode;
