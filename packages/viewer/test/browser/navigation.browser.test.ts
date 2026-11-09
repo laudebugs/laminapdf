@@ -97,26 +97,44 @@ describe("the thumbnails strip", () => {
 
   it("renders behind the main view's visible pages", async () => {
     const view = await opened(thousand);
-    // Let the first thumbnails finish, then hold the worker while more queue.
     const strip = view.strip.element;
-    await until(() => strip.querySelectorAll("canvas").length === strip.querySelectorAll("[role=option]").length);
-    const before = ((await hook(rpc, "__renderLog", [])) as number[]).length;
-    // Holds the worker long enough for a slow machine to queue the next thumbnails behind it.
-    const busy = hook(rpc, "__busy", [1500]);
-    view.strip.element.scrollTop = 3000;
-    // Thumbnails mounted without a canvas yet have their renders queued.
-    await until(() => strip.querySelectorAll("[role=option]").length > strip.querySelectorAll("canvas").length);
-    const visible = rpc.render({ page: 0, scale: 0.777 }, { priority: "visible" });
-    await busy;
-    (await visible).bitmap.close();
-    // The log is read once the queued thumbnails have painted: a document call such as the
-    // log's own outranks a background render, so reading it sooner would come before them.
-    await until(() => strip.querySelectorAll("canvas").length === strip.querySelectorAll("[role=option]").length);
-    const queued = ((await hook(rpc, "__renderLog", [])) as number[]).slice(before);
-    // Thumbnails queued first, but the visible render ran first.
-    expect(queued.length).toBeGreaterThan(1);
-    expect(queued[0]).toBe(0.777);
+    const painted = () => strip.querySelectorAll("canvas").length === strip.querySelectorAll("[role=option]").length;
+    // The worker is held while thumbnails queue and the visible render is sent. A slow machine can
+    // take longer to queue them than the hold lasts; then the order proves nothing, so the hold
+    // doubles and it runs again.
+    for (const [attempt, hold] of [1500, 3000, 6000].entries()) {
+      await until(painted);
+      const before = ((await hook(rpc, "__renderLog", [])) as number[]).length;
+      const released = hook(rpc, "__busy", [hold]) as Promise<number>;
+      strip.scrollTop = 3000 * (attempt + 1);
+      // Thumbnails mounted without a canvas yet have their renders queued. Once the hold is over
+      // they may paint before this sees them, which the check below catches: so it never fails.
+      for (
+        let i = 0;
+        i < 600 && !(strip.querySelectorAll("[role=option]").length > strip.querySelectorAll("canvas").length);
+        i++
+      ) {
+        await frame();
+      }
+      const visible = rpc.render({ page: 0, scale: 0.777 }, { priority: "visible" });
+      const sent = Date.now();
+      const heldUntil = await released;
+      (await visible).bitmap.close();
+      // The log is read once the queued thumbnails have painted: a document call such as the
+      // log's own outranks a background render, so reading it sooner would come before them.
+      await until(painted);
+      const queued = ((await hook(rpc, "__renderLog", [])) as number[]).slice(before);
+      // Sent with a margin before the worker let go: it was queued behind the hold.
+      if (sent < heldUntil - 100) {
+        // Thumbnails queued first, but the visible render ran first.
+        expect(queued.length).toBeGreaterThan(1);
+        expect(queued[0]).toBe(0.777);
+        close(view);
+        return;
+      }
+    }
     close(view);
+    throw new Error("the worker let go before the visible render was sent, with every hold");
   });
 
   it("goes to a page on a click", async () => {
