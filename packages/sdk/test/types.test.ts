@@ -138,6 +138,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "worker-failed":
     case "wasm-trap":
     case "model-failed":
+    case "flow-layout-unstable":
       return "internal";
     default: {
       const unhandled: never = code;

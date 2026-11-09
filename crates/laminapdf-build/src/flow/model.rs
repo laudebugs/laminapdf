@@ -86,6 +86,9 @@ pub enum Inline {
     Link(String, TextStyle, LinkTarget),
     /// A line break inside the paragraph.
     LineBreak,
+    /// A footnote: a raised number here, in the style of the text before it, and the body at
+    /// the foot of the page that holds the number.
+    Note(Box<Paragraph>),
 }
 
 /// How a paragraph sits in the flow.
@@ -207,6 +210,15 @@ impl Paragraph {
     #[must_use]
     pub fn link(mut self, text: impl Into<String>, style: &TextStyle, target: LinkTarget) -> Self {
         self.inlines.push(Inline::Link(text.into(), style.clone(), target));
+        self
+    }
+
+    /// With a footnote added here: notes are numbered from 1 through the flow, the number is
+    /// drawn raised in the style of the text before it, and `body` goes at the foot of the
+    /// page that holds the number, after the number again.
+    #[must_use]
+    pub fn note(mut self, body: Paragraph) -> Self {
+        self.inlines.push(Inline::Note(Box::new(body)));
         self
     }
 
@@ -350,6 +362,8 @@ pub enum FlowBlock {
     Keep(Vec<FlowBlock>),
     /// A table (`Table`), its header rows repeated on every page it continues on.
     Table(super::table::Table),
+    /// A contents page (`TOC`): the flow's headings with the pages they start on.
+    Contents(super::contents::Contents),
 }
 
 /// What a header or footer slot holds: text with fields `{page}`, `{pages}`, `{section}` and
@@ -498,6 +512,7 @@ pub struct Flow {
     pub(crate) tagged: bool,
     pub(crate) section_level: u8,
     pub(crate) title: Option<String>,
+    pub(crate) outline: bool,
 }
 
 impl Flow {
@@ -510,6 +525,7 @@ impl Flow {
             tagged: true,
             section_level: 1,
             title: None,
+            outline: true,
         }
     }
 
@@ -531,6 +547,14 @@ impl Flow {
     #[must_use]
     pub const fn with_section_level(mut self, level: u8) -> Self {
         self.section_level = level;
+        self
+    }
+
+    /// With the document outline (bookmarks) made from the flow's headings turned on or off
+    /// (on by default): one item per heading, nested as the headings are.
+    #[must_use]
+    pub const fn with_outline(mut self, outline: bool) -> Self {
+        self.outline = outline;
         self
     }
 

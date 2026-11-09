@@ -6,7 +6,7 @@ use proptest::prelude::*;
 
 use super::items::Items;
 use super::model::{Flow, FlowBlock, Margins, PageTemplate, Paragraph, ParagraphStyle, TextStyle};
-use super::paginate::{PageOut, Placed, paginate};
+use super::paginate::{Measures, PageOut, Placed, paginate};
 use crate::builder::{BuildOptions, Builder};
 use crate::error::Error;
 use crate::page::PageSize;
@@ -40,8 +40,8 @@ fn lines(n: usize, style: &TextStyle, para: ParagraphStyle) -> Paragraph {
 }
 
 fn pages(flow: &Flow) -> Result<Vec<PageOut>, Error> {
-    let items = Items::new(&flow.blocks);
-    paginate(&items, &flow.template, 1, 0).map(|(pages, _)| pages)
+    let items = Items::new(&flow.blocks, 0);
+    paginate(&items, &flow.template, 1, 0, &Measures::default()).map(|laid| laid.pages)
 }
 
 /// Each page's lines as (item, first byte).
@@ -421,12 +421,140 @@ mod tables {
         let table = Table::new([ColumnWidth::Auto; 3])
             .row(TableRow::plain(["a"], &style))
             .row(TableRow::plain(["a", "b", "c", "d"], &style));
-        let items = Items::new(&[FlowBlock::Table(table)]);
+        let items = Items::new(&[FlowBlock::Table(table)], 0);
         let cells: Vec<Vec<(usize, usize)>> = items.tables[0]
             .rows
             .iter()
             .map(|r| r.cells.iter().map(|c| (c.col, c.sources.len())).collect())
             .collect();
         assert_eq!(cells, vec![vec![(0, 1), (1, 0), (2, 0)], vec![(0, 1), (1, 1), (2, 1)]]);
+    }
+}
+
+mod notes {
+    use super::*;
+
+    /// Each page's paragraph lines (item, first byte) and the notes at its foot (note, top).
+    fn notes(pages: &[PageOut]) -> Vec<(usize, Vec<(usize, f64)>)> {
+        pages
+            .iter()
+            .map(|p| {
+                let lines = p.placed.iter().filter(|x| matches!(x, Placed::Line { .. })).count();
+                let notes = p
+                    .placed
+                    .iter()
+                    .filter_map(|x| match x {
+                        Placed::NoteLine { note, top, .. } => Some((*note, *top)),
+                        _ => None,
+                    })
+                    .collect();
+                (lines, notes)
+            })
+            .collect()
+    }
+
+    fn one_by_one() -> ParagraphStyle {
+        tight().with_widows_and_orphans(1, 1)
+    }
+
+    #[test]
+    fn a_line_whose_note_does_not_fit_moves_to_the_next_page_with_it() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        // Ten lines a page; the ninth line cites a note of three lines, which with the gap
+        // above it can't fit under eight lines, so the ninth line goes on with its note.
+        let body = lines(3, &style, one_by_one());
+        let p = lines(9, &style, one_by_one()).note(body);
+        let flow = Flow::new(template(&font, 300.0, 10.0)).block(FlowBlock::Paragraph(p));
+        let laid = notes(&pages(&flow).unwrap());
+        assert_eq!(laid.len(), 2);
+        assert_eq!((laid[0].0, laid[0].1.len()), (8, 0));
+        assert_eq!(laid[1].0, 1);
+        assert_eq!(laid[1].1.iter().map(|n| n.0).collect::<Vec<_>>(), [0, 0, 0]);
+    }
+
+    #[test]
+    fn a_page_with_three_notes_puts_them_in_order_under_the_text() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let note = |n: usize| Paragraph::plain(format!("Note {n}."), &style);
+        let p = lines(2, &style, one_by_one())
+            .note(note(1))
+            .text("More.", &style)
+            .note(note(2))
+            .note(note(3));
+        let flow = Flow::new(template(&font, 300.0, 10.0)).block(FlowBlock::Paragraph(p));
+        let laid = pages(&flow).unwrap();
+        let page = notes(&laid);
+        assert_eq!(page.len(), 1);
+        let order: Vec<usize> = page[0].1.iter().map(|n| n.0).collect();
+        assert_eq!(order, [0, 1, 2]);
+        assert!(page[0].1.windows(2).all(|w| w[0].1 < w[1].1), "notes go down the page");
+        let last_line = laid[0]
+            .placed
+            .iter()
+            .filter_map(|x| match x {
+                Placed::Line { top, line, .. } => Some(top + line.height),
+                _ => None,
+            })
+            .fold(0.0, f64::max);
+        assert!(page[0].1[0].1 > last_line, "the notes are below the text");
+    }
+
+    #[test]
+    fn notes_are_numbered_through_the_flow() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let p = |n| Paragraph::plain(format!("Text {n}"), &style).note(Paragraph::plain("A note.", &style));
+        let items = Items::new(&[FlowBlock::Paragraph(p(1)), FlowBlock::Paragraph(p(2))], 0);
+        let markers: Vec<String> = items
+            .sources
+            .iter()
+            .flat_map(|s| {
+                s.markers
+                    .iter()
+                    .map(|(at, n)| (s.text.get(*at..).unwrap_or("").to_owned(), *n))
+            })
+            .map(|(text, n)| format!("{n}:{text}"))
+            .collect();
+        assert_eq!(markers, ["0:1", "1:2"]);
+        assert_eq!(items.notes.len(), 2);
+    }
+
+    #[test]
+    fn a_heading_s_note_stays_out_of_the_section_field() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let heading = Paragraph::plain("Introduction", &style).note(Paragraph::plain("A note.", &style));
+        let flow = Flow::new(template(&font, 300.0, 10.0)).block(FlowBlock::Heading(1, heading));
+        let laid = pages(&flow).unwrap();
+        assert_eq!(laid[0].section.as_deref(), Some("Introduction"));
+    }
+
+    #[test]
+    fn a_note_taller_than_any_page_fails_as_a_footnote() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let p = Paragraph::plain("Text", &style).note(lines(12, &style, tight()));
+        let flow = Flow::new(template(&font, 300.0, 10.0)).block(FlowBlock::Paragraph(p));
+        assert!(matches!(
+            pages(&flow),
+            Err(Error::FlowContentTooLarge { what: "footnote" })
+        ));
+    }
+
+    #[test]
+    fn a_note_with_no_text_to_style_it_takes_no_number() {
+        let font = font();
+        let style = TextStyle::new(&font, 10.0);
+        let empty = Paragraph::new(ParagraphStyle::new()).note(Paragraph::new(ParagraphStyle::new()));
+        let p = Paragraph::plain("Text", &style).note(Paragraph::plain("A note.", &style));
+        let items = Items::new(&[FlowBlock::Paragraph(empty), FlowBlock::Paragraph(p)], 0);
+        assert_eq!(items.notes.len(), 1);
+        let marker = items
+            .sources
+            .iter()
+            .find_map(|s| s.markers.first().map(|(at, _)| s.text.get(*at..)));
+        assert_eq!(marker, Some(Some("1")));
     }
 }

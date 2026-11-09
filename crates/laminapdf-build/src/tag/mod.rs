@@ -82,11 +82,17 @@ pub enum TagKind {
     TBody,
     /// `TFoot`: a table's footer rows, such as totals.
     TFoot,
+    /// `TOC`: a table of contents (of `TOCI`s).
+    TOC,
+    /// `TOCI`: an item of a table of contents.
+    TOCI,
+    /// `Reference`: a citation of content elsewhere, such as a footnote's marker.
+    Reference,
 }
 
 impl TagKind {
     /// Every kind, in declaration order.
-    pub const ALL: [Self; 28] = [
+    pub const ALL: [Self; 31] = [
         Self::Document,
         Self::Part,
         Self::Sect,
@@ -115,6 +121,9 @@ impl TagKind {
         Self::THead,
         Self::TBody,
         Self::TFoot,
+        Self::TOC,
+        Self::TOCI,
+        Self::Reference,
     ];
 
     /// The structure type's name (`/S`), such as `"H1"`.
@@ -149,6 +158,9 @@ impl TagKind {
             Self::THead => "THead",
             Self::TBody => "TBody",
             Self::TFoot => "TFoot",
+            Self::TOC => "TOC",
+            Self::TOCI => "TOCI",
+            Self::Reference => "Reference",
         }
     }
 
@@ -233,7 +245,7 @@ impl Tag {
 
     /// An element with a custom type `name`, which the `RoleMap` maps to `role` (§14.8.3).
     /// Standard types are never remapped: a `name` that is one of [`TagKind`]'s is that kind,
-    /// and any other standard type of PDF 1.7 or 2.0 (`Div`, `BlockQuote`, `TOC`, `TOCI`,
+    /// and any other standard type of PDF 1.7 or 2.0 (`Div`, `BlockQuote`, `Index`, `BibEntry`,
     /// `Formula`, `H7`, …) is written as `/S` unmapped, with `role` only saying how the builder
     /// treats it (a `Formula` written with the role `Figure` needs alternate text).
     #[must_use]
@@ -463,11 +475,15 @@ mod tests {
             TagKind::THead => 25,
             TagKind::TBody => 26,
             TagKind::TFoot => 27,
+            TagKind::TOC => 28,
+            TagKind::TOCI => 29,
+            TagKind::Reference => 30,
         };
         assert_eq!(
             TagKind::ALL.map(index),
             [
-                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+                28, 29, 30
             ]
         );
     }

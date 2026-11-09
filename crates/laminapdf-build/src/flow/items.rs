@@ -1,9 +1,11 @@
 //! A flow's blocks flattened into the items the paginator places, each with the structure
 //! element its content belongs to.
 
-use super::measure::Source;
-use super::model::{Figure, FlowBlock, List, ListKind, Paragraph, ParagraphStyle};
+use super::contents::{Contents, Heading, destination, headings, plain_text};
+use super::measure::{Source, first_style};
+use super::model::{Figure, FlowBlock, Inline, List, ListKind, Paragraph, ParagraphStyle, TextStyle};
 use super::table::{CellItem, RowItem, Section, Table, TableItem, TableRow};
+use crate::nav::LinkTarget;
 use crate::tag::{TableScope, Tag, TagKind};
 
 /// What an item draws.
@@ -42,6 +44,19 @@ pub(crate) struct Item {
     pub(crate) label: Option<(usize, usize)>,
     /// The heading level, for `{section}`.
     pub(crate) heading: Option<u8>,
+    /// A heading's text without its footnotes, for `{section}`.
+    pub(crate) title: Option<String>,
+    /// A contents entry's page number: a source drawn at the end of its last line.
+    pub(crate) entry: Option<usize>,
+    /// Room kept at the end of each line, points (a contents entry's number).
+    pub(crate) reserve: f64,
+}
+
+/// A footnote: its body (a source, its number first) and its `Note` element.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct NoteItem {
+    pub(crate) source: usize,
+    pub(crate) node: usize,
 }
 
 /// A structure element and its parent (`None`: the document's).
@@ -59,13 +74,28 @@ pub(crate) struct Items {
     pub(crate) figures: Vec<Figure>,
     pub(crate) tables: Vec<TableItem>,
     pub(crate) nodes: Vec<Node>,
+    /// The flow's footnotes, in order.
+    pub(crate) notes: Vec<NoteItem>,
+    /// The flow's headings, in order.
+    pub(crate) headings: Vec<Heading>,
+    /// Each heading's item, in order.
+    pub(crate) heading_at: Vec<usize>,
+    /// Each contents entry's page number: its heading, its source and its style.
+    numbers: Vec<(usize, usize, TextStyle)>,
+    /// The flow's first page: its headings' destinations are named after it.
+    first: usize,
     keeps: usize,
 }
 
 impl Items {
-    /// `blocks` flattened.
-    pub(crate) fn new(blocks: &[FlowBlock]) -> Self {
-        let mut items = Self::default();
+    /// `blocks` flattened for the flow whose first page is the document's page `first`; a
+    /// contents page prints 0 for every heading until [`Items::set_numbers`].
+    pub(crate) fn new(blocks: &[FlowBlock], first: usize) -> Self {
+        let mut items = Self {
+            headings: headings(blocks),
+            first,
+            ..Self::default()
+        };
         for block in blocks {
             items.block(block, None, None, 0.0);
         }
@@ -97,6 +127,7 @@ impl Items {
                 let node = self.node(Tag::new(kind), parent);
                 let mut p = p.clone();
                 p.style.keep_with_next = true;
+                self.heading_at.push(self.entries.len());
                 self.paragraph(&p, node, keep, indent, None, Some(level));
             }
             FlowBlock::List(list) => self.list(list, parent, keep, indent),
@@ -107,6 +138,7 @@ impl Items {
                 self.entries.push(item);
             }
             FlowBlock::Table(table) => self.table(table, parent, keep, indent),
+            FlowBlock::Contents(contents) => self.contents(contents, parent, keep, indent),
             FlowBlock::Spacer(height) => {
                 let item = Self::item(Content::Spacer(height.max(0.0)), None, keep, indent);
                 self.entries.push(item);
@@ -199,14 +231,15 @@ impl Items {
                 if let Some(align) = cell.align {
                     p.style = p.style.with_align(align);
                 }
-                let source = Source::new(&p);
-                if let (Some(lang), Some(n)) = (source.lang.clone(), self.nodes.get_mut(node))
-                    && n.tag.lang().is_none()
+                let source = self.source(&p, node);
+                if let (Some(lang), Some(n)) = (
+                    self.sources.get(source).and_then(|s| s.lang.clone()),
+                    self.nodes.get_mut(node),
+                ) && n.tag.lang().is_none()
                 {
                     n.tag = n.tag.clone().with_lang(lang);
                 }
-                self.sources.push(source);
-                sources.push(self.sources.len() - 1);
+                sources.push(source);
             }
             cells.push(CellItem {
                 sources,
@@ -248,6 +281,67 @@ impl Items {
             node,
             label: None,
             heading: None,
+            title: None,
+            entry: None,
+            reserve: 0.0,
+        }
+    }
+
+    /// `p` as a source numbering its footnotes after the flow's earlier ones; each note's body
+    /// becomes a `Note` element inside `node`, the element of the text that cites it.
+    fn source(&mut self, p: &Paragraph, node: usize) -> usize {
+        let source = Source::numbered(p, self.notes.len());
+        let bodies = source.notes.clone();
+        self.sources.push(source);
+        let index = self.sources.len() - 1;
+        for body in bodies {
+            let number = self.notes.len() + 1;
+            let text = Source::new(&note_body(&body, number));
+            let tag = Tag::new(TagKind::Note);
+            let element = self.node(text.lang.clone().map_or(tag.clone(), |l| tag.with_lang(l)), Some(node));
+            self.sources.push(text);
+            self.notes.push(NoteItem {
+                source: self.sources.len() - 1,
+                node: element,
+            });
+        }
+        index
+    }
+
+    /// A contents page (`TOC`): an entry (`TOCI`) per heading up to its levels, indented by
+    /// level, its text and its page number links to the heading.
+    fn contents(&mut self, contents: &Contents, parent: Option<usize>, keep: Option<usize>, indent: f64) {
+        let toc = self.node(Tag::new(TagKind::TOC), parent);
+        let style = ParagraphStyle::new().with_space(0.0, contents.style.size * 0.3);
+        let listed: Vec<(usize, Heading)> = self
+            .headings
+            .iter()
+            .cloned()
+            .enumerate()
+            .filter(|(_, h)| h.level <= contents.levels)
+            .collect();
+        for (n, heading) in listed {
+            let target = || LinkTarget::Named(destination(self.first, n));
+            let text = Paragraph::new(style.clone()).link(heading.text, &contents.style, target());
+            let tag = Tag::new(TagKind::TOCI);
+            let lang = contents.style.language.clone();
+            let toci = self.node(lang.map_or(tag.clone(), |l| tag.with_lang(l)), Some(toc));
+            self.sources.push(self.number(n, 0, &contents.style));
+            let number = self.sources.len() - 1;
+            self.numbers.push((n, number, contents.style.clone()));
+            self.sources.push(Source::new(&text));
+            let level_indent = f64::from(heading.level - 1) * contents.indent.max(0.0);
+            let mut item = Self::item(
+                Content::Para(self.sources.len() - 1),
+                Some(toci),
+                keep,
+                indent + level_indent,
+            );
+            item.space_after = style.space_after;
+            item.entry = Some(number);
+            // Room for a number of four digits and the leaders' gap.
+            item.reserve = contents.style.size * 3.0;
+            self.entries.push(item);
         }
     }
 
@@ -260,13 +354,15 @@ impl Items {
         label: Option<(usize, usize)>,
         heading: Option<u8>,
     ) {
-        let source = Source::new(p);
+        let source = self.source(p, node);
         // The paragraph's own language goes on its element; its other languages on spans.
-        if let (Some(lang), Some(n)) = (source.lang.clone(), self.nodes.get_mut(node)) {
+        if let (Some(lang), Some(n)) = (
+            self.sources.get(source).and_then(|s| s.lang.clone()),
+            self.nodes.get_mut(node),
+        ) {
             n.tag = n.tag.clone().with_lang(lang);
         }
-        self.sources.push(source);
-        let mut item = Self::item(Content::Para(self.sources.len() - 1), Some(node), keep, indent);
+        let mut item = Self::item(Content::Para(source), Some(node), keep, indent);
         let s = &p.style;
         item.space_before = s.space_before;
         item.space_after = s.space_after;
@@ -276,7 +372,29 @@ impl Items {
         item.orphans = s.orphans;
         item.label = label;
         item.heading = heading;
+        item.title = heading.map(|_| plain_text(p));
         self.entries.push(item);
+    }
+
+    /// Heading `n`'s page number `page` as a contents entry draws it: a link to the heading.
+    fn number(&self, n: usize, page: usize, style: &TextStyle) -> Source {
+        let target = LinkTarget::Named(destination(self.first, n));
+        Source::new(&Paragraph::new(ParagraphStyle::new()).link(page.to_string(), style, target))
+    }
+
+    /// Makes the contents entries print `pages` (one per heading, in order).
+    pub(crate) fn set_numbers(&mut self, pages: &[usize]) {
+        for (n, source, style) in self.numbers.clone() {
+            let number = self.number(n, pages.get(n).copied().unwrap_or(0), &style);
+            if let Some(slot) = self.sources.get_mut(source) {
+                *slot = number;
+            }
+        }
+    }
+
+    /// The sources [`Items::set_numbers`] replaces.
+    pub(crate) fn number_sources(&self) -> Vec<usize> {
+        self.numbers.iter().map(|(_, source, _)| *source).collect()
     }
 
     /// Whether item `i` must stay on the page of item `i + 1`.
@@ -295,4 +413,16 @@ fn cell_tag(section: Section) -> Tag {
     } else {
         Tag::new(TagKind::TD)
     }
+}
+
+/// A footnote's body as drawn at the foot of the page: its number, then its text, without
+/// footnotes of its own (a note inside a note is left out).
+fn note_body(body: &Paragraph, number: usize) -> Paragraph {
+    let mut out = Paragraph::new(body.style.clone());
+    if let Some(style) = first_style(body) {
+        out = out.text(format!("{number}\u{a0}"), &style);
+    }
+    out.inlines
+        .extend(body.inlines.iter().filter(|i| !matches!(i, Inline::Note(_))).cloned());
+    out
 }

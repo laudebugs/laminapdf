@@ -84,6 +84,7 @@
             "embedded-file-forbidden",
             "embedded-file-without-mime-type",
             "flow-content-too-large",
+            "flow-layout-unstable",
             "render-too-large",
             "render-failed",
             "render-backend-unavailable",

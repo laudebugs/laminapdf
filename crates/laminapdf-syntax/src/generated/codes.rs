@@ -196,6 +196,8 @@ pub enum ErrorCode {
     EmbeddedFileWithoutMimeType,
     /// `flow-content-too-large`: a line or a figure of a flow is taller than the page's body, so no page can hold it.
     FlowContentTooLarge,
+    /// `flow-layout-unstable`: a flow's contents page kept changing its page numbers after four layouts.
+    FlowLayoutUnstable,
     /// `render-too-large`: the requested tile is larger than the render limits allow; nothing was allocated.
     RenderTooLarge,
     /// `render-failed`: the render engine could not open the document or draw the page.
@@ -326,6 +328,7 @@ impl ErrorCode {
         Self::EmbeddedFileForbidden,
         Self::EmbeddedFileWithoutMimeType,
         Self::FlowContentTooLarge,
+        Self::FlowLayoutUnstable,
         Self::RenderTooLarge,
         Self::RenderFailed,
         Self::RenderBackendUnavailable,
@@ -447,6 +450,7 @@ impl ErrorCode {
             Self::EmbeddedFileForbidden => "embedded-file-forbidden",
             Self::EmbeddedFileWithoutMimeType => "embedded-file-without-mime-type",
             Self::FlowContentTooLarge => "flow-content-too-large",
+            Self::FlowLayoutUnstable => "flow-layout-unstable",
             Self::RenderTooLarge => "render-too-large",
             Self::RenderFailed => "render-failed",
             Self::RenderBackendUnavailable => "render-backend-unavailable",
@@ -556,6 +560,7 @@ impl ErrorCode {
             Self::EmbeddedFileForbidden => ErrorKind::Usage,
             Self::EmbeddedFileWithoutMimeType => ErrorKind::Usage,
             Self::FlowContentTooLarge => ErrorKind::Usage,
+            Self::FlowLayoutUnstable => ErrorKind::Internal,
             Self::RenderTooLarge => ErrorKind::Limit,
             Self::RenderFailed => ErrorKind::Input,
             Self::RenderBackendUnavailable => ErrorKind::Io,
@@ -665,6 +670,7 @@ impl ErrorCode {
             Self::EmbeddedFileForbidden => "PDF/A-2 doesn't allow attached files that aren't PDF/A themselves",
             Self::EmbeddedFileWithoutMimeType => "an attached file has no MIME type, which every PDF/A profile requires",
             Self::FlowContentTooLarge => "a line or a figure of a flow is taller than the page's body, so no page can hold it",
+            Self::FlowLayoutUnstable => "a flow's contents page kept changing its page numbers after four layouts",
             Self::RenderTooLarge => "the requested tile is larger than the render limits allow; nothing was allocated",
             Self::RenderFailed => "the render engine could not open the document or draw the page",
             Self::RenderBackendUnavailable => "the render engine is not available: its library or module could not be loaded",
@@ -774,6 +780,7 @@ impl ErrorCode {
             Self::EmbeddedFileForbidden => "choose PDF/A-3b, which allows attached files of any kind",
             Self::EmbeddedFileWithoutMimeType => "pass the file's MIME type, such as text/xml or application/octet-stream",
             Self::FlowContentTooLarge => "make the figure smaller, the text size smaller or the page's margins narrower",
+            Self::FlowLayoutUnstable => "report the flow that fails; a page break after the contents block may avoid it until it is fixed",
             Self::RenderTooLarge => "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
             Self::RenderFailed => "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
             Self::RenderBackendUnavailable => "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",

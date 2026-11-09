@@ -3799,7 +3799,7 @@ builder.finish()?; // embedded-file-without-mime-type: pass "text/xml"
 
 ## What happened
 
-`Builder::flow` found a figure, or a single line of text, taller than the body of a page: the space between the top and bottom margins. No page can hold it, so the flow stopped and added no pages.
+`Builder::flow` found a figure, a single line of text or a table row taller than the body of a page: the space between the top and bottom margins. No page can hold it, so the flow stopped and added no pages. A line or row counts together with the footnotes it cites, since its notes go at the foot of its page.
 
 ## Why
 
@@ -3807,7 +3807,7 @@ A flow moves a figure to the next page when it doesn't fit, and splits a paragra
 
 ## How to fix
 
-Make the figure narrower with `Figure::with_width`, so its height shrinks with it. For a line, use a smaller text size or a smaller line height. Or give the page more room with a taller page size or smaller top and bottom margins.
+Make the figure narrower with `Figure::with_width`, so its height shrinks with it. For a line, use a smaller text size or a smaller line height. For a footnote, shorten the note or split it into two. Or give the page more room with a taller page size or smaller top and bottom margins.
 
 ## Example
 
@@ -3819,7 +3819,40 @@ builder.flow(&flow)?; // flow-content-too-large
 
 ## Data fields
 
-- `what`: what is too tall, `line` or `figure`.
+- `what`: what is too tall: `line`, `figure`, `table row`, or `footnote` when a line or table row and its footnotes fit on no page together.
+"#,
+        "flow-layout-unstable" => r#"# `flow-layout-unstable`
+
+- Type: error
+- Kind: `internal` (a bug in Lamina PDF or a broken invariant)
+
+## What happened
+
+`Builder::flow` laid out a flow with a contents page four times, and the page numbers on the contents page still changed. The flow stopped and added no pages.
+
+## Why
+
+A contents page lists each heading with the page it starts on, but those pages aren't known until the flow is laid out. So the flow lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps the same room for its number however wide the number is, so the contents page's length never depends on the numbers, and the second layout finds the same pages.
+
+The flow still checks up to four layouts. This error means the numbers kept changing anyway, which points to a fault in Lamina PDF's layout rather than in your document.
+
+## How to fix
+
+Report the flow that fails, with the blocks and page template that produce it. Until it is fixed, a page break after the contents block may avoid the error, since the headings after it then start on pages of their own.
+
+## Example
+
+```rust
+let flow = Flow::new(template)
+    .block(FlowBlock::Contents(Contents::new(&style)))
+    .block(FlowBlock::PageBreak) // the headings start on their own pages
+    .block(FlowBlock::Heading(1, Paragraph::plain("Introduction", &heading)));
+builder.flow(&flow)?;
+```
+
+## Data fields
+
+None.
 "#,
         "flow-keep-broken" => r#"# `flow-keep-broken`
 

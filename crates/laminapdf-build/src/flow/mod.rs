@@ -32,19 +32,22 @@
 //! # Ok::<(), laminapdf_build::Error>(())
 //! ```
 
+mod contents;
 mod draw_table;
 mod emit;
 mod items;
 mod measure;
 mod model;
+mod notes;
 mod paginate;
 mod table;
 mod template;
 #[cfg(test)]
 mod tests;
 
-use laminapdf_model::PageId;
+use laminapdf_model::{PageId, Pt};
 
+pub use contents::Contents;
 pub use model::{
     Figure, Flow, FlowBlock, Inline, List, ListItem, ListKind, Margins, PageRegion, PageTemplate, Paragraph,
     ParagraphStyle, TextStyle,
@@ -54,6 +57,7 @@ pub use template::{Fields, fill_fields};
 
 use crate::builder::Builder;
 use crate::error::{Result, Warning};
+use crate::nav::{Fit, LinkTarget};
 
 /// What [`Builder::flow`] did.
 #[derive(Debug, Clone, PartialEq)]
@@ -70,16 +74,68 @@ impl Builder {
     /// the document's pages, those added before the flow included; the first-page template is
     /// the flow's first page.
     ///
+    /// Every heading gets a named destination, and the outline gains an item per heading
+    /// unless [`Flow::with_outline`] turns it off (each flow adds its own items after the
+    /// outline's). A flow with a [`Contents`] block is laid out again until the page numbers
+    /// it prints stop changing, at most four times.
+    ///
     /// # Errors
     /// [`Error::FlowContentTooLarge`](crate::Error::FlowContentTooLarge) for a line or a
-    /// figure taller than a page's body; shaping errors (`missing-glyph`, `font-not-shapable`);
-    /// the errors of finishing a page. Pages drawn before a failure stay in the document, and
-    /// the flow's structure elements are closed.
+    /// figure taller than a page's body; [`Error::FlowLayoutUnstable`](crate::Error::FlowLayoutUnstable)
+    /// for a contents page whose numbers don't settle; shaping errors (`missing-glyph`,
+    /// `font-not-shapable`); the errors of finishing a page. Pages drawn before a failure stay
+    /// in the document, and the flow's structure elements are closed.
     pub fn flow(&mut self, flow: &Flow) -> Result<FlowReport> {
-        let items = items::Items::new(&flow.blocks);
         let first = self.page_count();
-        let (pages, warnings) = paginate::paginate(&items, &flow.template, flow.section_level, first)?;
-        let pages = emit::emit(self, flow, &items, &pages, first)?;
-        Ok(FlowReport { pages, warnings })
+        let mut items = items::Items::new(&flow.blocks, first);
+        let measures = paginate::Measures::default();
+        let lay =
+            |items: &items::Items| paginate::paginate(items, &flow.template, flow.section_level, first, &measures);
+        let contents = contents::has_contents(&flow.blocks);
+        let laid = if contents {
+            // Every layout but the numbers' is measured once: only the numbers change.
+            contents::settle(vec![first + 1; items.headings.len()], |numbers| {
+                items.set_numbers(numbers);
+                measures.forget(&items.number_sources());
+                let laid = lay(&items)?;
+                let found = items
+                    .heading_at
+                    .iter()
+                    .map(|&i| {
+                        laid.starts
+                            .get(i)
+                            .copied()
+                            .flatten()
+                            .map_or(0, |(page, _)| first + page + 1)
+                    })
+                    .collect();
+                Ok((laid, found))
+            })?
+        } else {
+            lay(&items)?
+        };
+        let pages = emit::emit(self, flow, &items, &laid.pages, first)?;
+        if contents || flow.outline {
+            for (n, &item) in items.heading_at.iter().enumerate() {
+                if let Some(Some((page, top))) = laid.starts.get(item) {
+                    let index = u32::try_from(first + page).unwrap_or(u32::MAX);
+                    let fit = Fit::Xyz {
+                        left: None,
+                        top: Some(Pt::new(*top)),
+                        zoom: None,
+                    };
+                    self.destination(contents::destination(first, n), index, fit);
+                }
+            }
+        }
+        if flow.outline && !items.headings.is_empty() {
+            self.outline(contents::outline(&items.headings, |n| {
+                LinkTarget::Named(contents::destination(first, n))
+            }))?;
+        }
+        Ok(FlowReport {
+            pages,
+            warnings: laid.warnings,
+        })
     }
 }

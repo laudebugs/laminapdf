@@ -249,12 +249,18 @@ pub enum Error {
         /// The file's name (**untrusted**: caller text).
         name: String,
     },
-    /// A line or a figure of a flow is taller than the page's body: no page can hold it.
+    /// A line, figure, table row or footnote of a flow is taller than the page's body: no page
+    /// can hold it.
     #[error("a flow {what} is taller than the page's body")]
     FlowContentTooLarge {
-        /// What is too tall: `line` or `figure` (fixed text).
+        /// What is too tall: `line`, `figure`, `table row` or `footnote` (fixed text).
         what: &'static str,
     },
+    /// A flow with a contents page was laid out four times and its page numbers still
+    /// changed. A contents page keeps the same room for every number, so the second layout
+    /// settles them: this is a guard against a fault in the layout.
+    #[error("a flow's contents page did not settle in four layouts")]
+    FlowLayoutUnstable,
     /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
     #[cfg(feature = "text")]
     #[error(transparent)]
@@ -298,6 +304,7 @@ impl Error {
         "embedded-file-forbidden",
         "embedded-file-without-mime-type",
         "flow-content-too-large",
+        "flow-layout-unstable",
     ];
 
     /// A stable kebab-case code for this error.
@@ -334,6 +341,7 @@ impl Error {
             Self::EmbeddedFileForbidden { .. } => "embedded-file-forbidden",
             Self::EmbeddedFileWithoutMimeType { .. } => "embedded-file-without-mime-type",
             Self::FlowContentTooLarge { .. } => "flow-content-too-large",
+            Self::FlowLayoutUnstable => "flow-layout-unstable",
             #[cfg(feature = "text")]
             Self::Text(e) => e.code(),
             Self::Cos(e) => e.code(),
@@ -380,6 +388,7 @@ impl Error {
             | Self::EmbeddedFileForbidden { .. }
             | Self::EmbeddedFileWithoutMimeType { .. }
             | Self::FlowContentTooLarge { .. } => ErrorKind::Usage,
+            Self::FlowLayoutUnstable => ErrorKind::Internal,
         }
     }
 
@@ -424,7 +433,8 @@ impl Error {
             | Self::GlyphWithoutUnicode { .. }
             | Self::EmbeddedFileForbidden { .. }
             | Self::EmbeddedFileWithoutMimeType { .. }
-            | Self::FlowContentTooLarge { .. } => Location::NONE,
+            | Self::FlowContentTooLarge { .. }
+            | Self::FlowLayoutUnstable => Location::NONE,
         }
     }
 }
@@ -549,6 +559,7 @@ mod tests {
                 name: String::new(),
             },
             Error::FlowContentTooLarge { what: "line" },
+            Error::FlowLayoutUnstable,
         ]
     }
 
