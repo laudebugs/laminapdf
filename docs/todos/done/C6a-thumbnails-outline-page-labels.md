@@ -40,7 +40,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 
 **Out of scope** (and which todo covers it)
 
-- Link annotations, named destinations from links, back/forward history → [C6b](../ready/C6b-links-and-history.md) (this PR's `goToDestination` is reused).
+- Link annotations, named destinations from links, back/forward history → [C6b](../ongoing/C6b-links-and-history.md) (this PR's `goToDestination` is reused).
 - Editing the outline (editor E3).
 
 ## Tasks

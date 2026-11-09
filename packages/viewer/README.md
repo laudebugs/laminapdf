@@ -136,7 +136,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 
 ## For contributors
 
-The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/done/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/done/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ready/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
+The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/done/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/done/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ongoing/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
 
 ### Architecture
 

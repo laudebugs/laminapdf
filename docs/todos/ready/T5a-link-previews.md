@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T5](../../plans/trust-and-proof.md#t5-long-reading) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [C6b](./C6b-links-and-history.md), [U3a](../done/U3a-responsive-mobile-and-touch.md) |
+| Depends on | [C6b](../ongoing/C6b-links-and-history.md), [U3a](../done/U3a-responsive-mobile-and-touch.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) §3 (commands), §4 (the surface follows the pointer), §6 (sheets on the phone) and §8 (accessibility); [0009](../../decisions/0009-web-client-architecture.md) (one document worker, its render RPC); [0004](../../decisions/0004-render-backend.md) (bounded tiles, link geometry from Lamina PDF's model, never from the renderer); [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space); [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (no request) |
 | Branch | `feat/t5a-link-previews` |
 | PR title | `feat(viewer): preview internal links and citations before jumping` |
@@ -21,7 +21,7 @@ Readers of papers and manuals want to see where a link or a citation goes withou
 
 - **Evidence:** the [readers note](../../research/hacker-news/notes/readers.md) (want 16, "Citations and link previews"; §6, recommendation 7) and the report's [R7](../../research/hacker-news/pdf-users-on-hacker-news.md#r7-serve-long-reading-reflow-a-dark-page-papers-and-manuals), which names link previews as one of the two gaps in long reading.
 - **Design (Paper):** [R07 Links and history](../../design/paper/reader-a.md#r07-links-and-history) draws the preview (artboard `R07-link-preview.dc.html`) and its phone form (a sheet with **Go to page 11**); [design language §7.27](../../design/paper/design-language.md#727-tooltip-and-link-preview) specifies it as *proposed*: a 248 px card with a 92 px crop of the target page's top, shown after 300 ms, `role="tooltip"`, hoverable, Escape dismisses. Build to match; record the region preview's wider card as a deviation in R07 ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- **[C6b](./C6b-links-and-history.md)** builds what this extends: the `pageLinks(page)` RPC (link rects, `kind`, resolved destination), the link layer in `packages/viewer/src/layers/link-layer.ts` (anchors over each link, Tab order), `NavigationHistory` with `nav.back`/`nav.forward`, and the external-link dialog. Its scope draws no preview, although R07 lists C6b as the screen's todo.
+- **[C6b](../ongoing/C6b-links-and-history.md)** builds what this extends: the `pageLinks(page)` RPC (link rects, `kind`, resolved destination), the link layer in `packages/viewer/src/layers/link-layer.ts` (anchors over each link, Tab order), `NavigationHistory` with `nav.back`/`nav.forward`, and the external-link dialog. Its scope draws no preview, although R07 lists C6b as the screen's todo.
 - **[C6a](../done/C6a-thumbnails-outline-page-labels.md):** `resolveDestination`, `goToDestination(dest)` (every fit type, rotated pages), the outline RPC with titles and the current-section rule, page labels.
 - **[C5a](../done/C5a-text-layer-and-selection.md):** the `pageText(page)` RPC (runs and quads, cached per page in the worker), used here for the crop's width and the preview's text.
 - **[C3a](../done/C3a-viewer-worker-rpc.md) and [C3b](../done/C3b-viewer-virtualiser-and-zoom.md):** `ViewerClient.render(request, { priority, signal })` with `RenderRequest.clip`, the `visible` priority, late bitmaps closed by the worker client (`onDiscard`), and `RenderStats`.

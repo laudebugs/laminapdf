@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C5b](../done/C5b-find-in-document.md), [C6a](../done/C6a-thumbnails-outline-page-labels.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md), [U1b](../done/U1b-command-registry-and-palette.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md) |
+| Depends on | [C5b](../done/C5b-find-in-document.md), [C6a](../done/C6a-thumbnails-outline-page-labels.md), [C6b](../ongoing/C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md), [U1b](../done/U1b-command-registry-and-palette.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md) |
 | ADRs | Follows 0009 (a11y primitives), 0010 (shortcuts consistent across shells; platform modifiers) |
 | Branch | `feat/c7a-accessibility` |
 | PR title | `feat(ui): add the keyboard map, help dialog, focus management, themes and axe checks` |

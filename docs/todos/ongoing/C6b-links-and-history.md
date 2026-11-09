@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C6b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C5a](../done/C5a-text-layer-and-selection.md), [C6a](../done/C6a-thumbnails-outline-page-labels.md) |
@@ -39,8 +39,8 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 **Out of scope** (and which todo covers it)
 
 - Form widget links and annotation interactivity beyond links (editor rounds).
-- Full keyboard-shortcut map → [C7a](./C7a-accessibility-and-theming.md).
-- Link previews on hover, focus and long-press (R07's preview card and its phone sheet) → [T5a](./T5a-link-previews.md).
+- Full keyboard-shortcut map → [C7a](../ready/C7a-accessibility-and-theming.md).
+- Link previews on hover, focus and long-press (R07's preview card and its phone sheet) → [T5a](../ready/T5a-link-previews.md).
 
 ## Tasks
 
