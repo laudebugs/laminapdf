@@ -19,6 +19,35 @@ pub struct Bitmap {
     pub rgba: Vec<u8>,
 }
 
+impl Bitmap {
+    /// The pixels of the rectangle `[x0, y0, x1, y1)` (pixels, clipped to the bitmap), row by row.
+    #[must_use]
+    pub fn pixels_in(&self, [x0, y0, x1, y1]: [u32; 4]) -> Vec<[u8; 4]> {
+        let mut out = Vec::new();
+        for y in y0..y1.min(self.height) {
+            for x in x0..x1.min(self.width) {
+                let i = ((y * self.width + x) * 4) as usize;
+                out.push([self.rgba[i], self.rgba[i + 1], self.rgba[i + 2], self.rgba[i + 3]]);
+            }
+        }
+        out
+    }
+}
+
+/// The WCAG 2 contrast ratio of two opaque sRGB colours (alpha ignored), 1 to 21.
+#[must_use]
+pub fn contrast(a: [u8; 4], b: [u8; 4]) -> f64 {
+    let luminance = |[r, g, b, _]: [u8; 4]| {
+        let linear = |c: u8| {
+            let c = f64::from(c) / 255.0;
+            if c <= 0.039_28 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+        };
+        0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+    };
+    let (la, lb) = (luminance(a), luminance(b));
+    (la.max(lb) + 0.05) / (la.min(lb) + 0.05)
+}
+
 /// Writes `bitmap` to `path` as an RGBA PNG.
 pub fn write_png(path: &Path, bitmap: &Bitmap) {
     let file = std::fs::File::create(path).unwrap();

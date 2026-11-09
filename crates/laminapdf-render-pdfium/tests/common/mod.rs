@@ -17,7 +17,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use laminapdf_render::{
-    ByteSource, CancelToken, HayroBackend, RenderBackend, RenderDocument, RenderError, RenderOpenOptions, RenderRequest,
+    ByteSource, CancelToken, HayroBackend, PageAppearance, RenderBackend, RenderDocument, RenderError,
+    RenderOpenOptions, RenderRequest, Rgba8,
 };
 use laminapdf_render_pdfium::PdfiumBackend;
 pub use laminapdf_test_fixtures::image::Bitmap;
@@ -104,4 +105,59 @@ pub fn render_file(backend: &dyn RenderBackend, file: &str) -> Vec<Bitmap> {
 /// `<stem>-p<N>.png`, N 1-based.
 pub fn golden_name(file: &str, index: usize) -> String {
     format!("{}-p{}.png", file.trim_end_matches(".pdf"), index + 1)
+}
+
+/// The page appearance fixtures (`tools/fixtures/appearance.py`): one page each.
+pub const APPEARANCE_FILES: [&str; 5] = ["text", "vector", "photo", "mixed", "annotated"];
+
+/// Each page appearance by its golden name; High contrast as white ink on black paper.
+pub const APPEARANCES: [(&str, PageAppearance); 4] = [
+    ("original", PageAppearance::Original),
+    ("sepia", PageAppearance::Sepia),
+    ("dark", PageAppearance::Dark),
+    (
+        "high-contrast",
+        PageAppearance::HighContrast {
+            ink: Rgba8 {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 255,
+            },
+            paper: Rgba8 {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 255,
+            },
+        },
+    ),
+];
+
+/// The appearance golden folder of `backend`.
+pub fn appearance_dir(backend: &str) -> PathBuf {
+    fixtures_dir().join("golden/render-appearance").join(backend)
+}
+
+/// `fixtures/appearance/<stem>.pdf`'s page at the golden resolution, on white, in `appearance`.
+pub fn render_appearance(backend: &dyn RenderBackend, stem: &str, appearance: PageAppearance) -> Bitmap {
+    let doc = open(
+        backend,
+        fixture(&format!("appearance/{stem}.pdf")),
+        &RenderOpenOptions::new(),
+    )
+    .unwrap_or_else(|e| panic!("{} can't open {stem}: {e}", backend.name()));
+    let req = RenderRequest::page(0, DPI / 72.0).with_appearance(appearance);
+    render(doc.as_ref(), &req).unwrap_or_else(|e| panic!("{} can't render {stem}: {e}", backend.name()))
+}
+
+/// A page-space rectangle (points, top-left origin) in golden-resolution pixels, `inset` in.
+pub fn points_to_pixels([x0, y0, x1, y1]: [f32; 4], inset: u32) -> [u32; 4] {
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "small positive points"
+    )]
+    let px = |v: f32| (v * DPI / 72.0).round() as u32;
+    [px(x0) + inset, px(y0) + inset, px(x1) - inset, px(y1) - inset]
 }

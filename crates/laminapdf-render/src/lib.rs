@@ -11,6 +11,7 @@
 //! [ADR 0004]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0004-render-backend.md
 #![forbid(unsafe_code)]
 
+mod appearance;
 mod backend;
 mod error;
 #[cfg(feature = "hayro")]
@@ -18,6 +19,7 @@ mod hayro;
 mod request;
 mod source;
 
+pub use appearance::{Annotated, DARK, Kept, PageAppearance, Quad, SEPIA, recolour_tile};
 pub use backend::{RenderBackend, RenderDocument};
 pub use error::RenderError;
 #[cfg(feature = "hayro")]
