@@ -34,6 +34,9 @@ mod invoice;
 #[path = "../examples/links_and_outlines.rs"]
 mod links_and_outlines;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/markdown_to_pdf.rs"]
+mod markdown_to_pdf;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/multilingual.rs"]
 mod multilingual;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -79,6 +82,7 @@ const EDIT_ID: &[u8; 16] = b"lamina-ex-edit!!";
 const FLOW_ID: &[u8; 16] = b"lamina-ex-flow!!";
 const FLOWING_ID: &[u8; 16] = b"lamina-ex-flowng";
 const FLOWING_INVOICE_ID: &[u8; 16] = b"lamina-ex-flowiv";
+const MARKDOWN_ID: &[u8; 16] = b"lamina-ex-mrkdwn";
 const PRODUCER: &str = "lamina examples";
 const CREATED: &str = "D:20261030120000Z";
 const EDITED: &str = "D:20261030130000Z";
@@ -98,7 +102,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 13] = [
+const EXAMPLES: [(&str, Build); 14] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -134,6 +138,11 @@ const EXAMPLES: [(&str, Build); 13] = [
             fixture(NOTO),
             fixture("fonts/NotoSans-RegularBold.ttc"),
         )
+    }),
+    ("markdown_to_pdf", || {
+        let markdown = String::from_utf8(fixture("markdown/report.md"))?;
+        let fonts = [NOTO, "fonts/NotoSans-RegularBold.ttc", SCRIPT_FONTS[1], SCRIPT_FONTS[2]];
+        markdown_to_pdf::build(options(MARKDOWN_ID)?, &markdown, fonts.map(fixture), fixture(PHOTO))
     }),
 ];
 

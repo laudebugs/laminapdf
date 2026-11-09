@@ -39,7 +39,7 @@ Add the two page features that need more than one region of the page or more tha
 
 - Tables across pages: [T4c](../done/T4c-flow-tables-notes-contents.md).
 - Endnotes, links from a note back to its marker, an index, cross-references such as "see page 12", and roman numbers for front matter: later.
-- Markdown footnotes: [T4d](../ready/T4d-markdown-documents.md).
+- Markdown footnotes: [T4d](../done/T4d-markdown-documents.md).
 
 ## Tasks
 

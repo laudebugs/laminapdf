@@ -24,6 +24,8 @@ default = ["text"]
 # 14). Without it: pages, paths, colour, images, links, navigation and metadata, the base of the
 # WASM split (ADR 0016 §4).
 text = ["dep:laminapdf-text"]
+# Markdown in, flowing pages out (ADR 0032 §6): `Builder::markdown` over pulldown-cmark.
+markdown = ["text", "dep:pulldown-cmark"]
 
 [dependencies]
 laminapdf-cos = { workspace = true }
@@ -31,6 +33,7 @@ laminapdf-model = { workspace = true }
 laminapdf-ops = { workspace = true }
 laminapdf-syntax = { workspace = true }
 laminapdf-text = { workspace = true, optional = true }
+pulldown-cmark = { workspace = true, optional = true }
 pdf-writer = { workspace = true }
 # zlib for PNG image data (surface/png/decode.rs; the same copy laminapdf-syntax's Flate uses).
 miniz_oxide = { workspace = true }

@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use laminapdf_model::{FillRule, PointPt, Pt, RectPt};
 
-use super::emit::{draw_line, ensure};
+use super::emit::{draw_line, draw_strikes, ensure};
 use super::items::{Content, Items};
 use super::model::Flow;
 use super::table::{Section, TableItem, TableLayout, TableRule};
@@ -89,14 +89,15 @@ pub(crate) fn draw_row(
         let Some(node) = row.cells.get(cell.cell).map(|c| c.node) else {
             continue;
         };
-        let draw = |s: &mut Surface, tagged: bool, links: bool| -> Result<()> {
+        let mut strikes = Vec::new();
+        let mut draw = |s: &mut Surface, tagged: bool, links: bool| -> Result<()> {
             for block in &cell.blocks {
                 let Some(source) = items.sources.get(block.source) else {
                     continue;
                 };
                 let mut y = at.top + cell.top + block.top;
                 for line in &block.lines {
-                    draw_line(s, tagged, links, source, line, at.x + cell.x + padding, y);
+                    strikes.extend(draw_line(s, tagged, links, source, line, at.x + cell.x + padding, y));
                     y += line.height;
                 }
             }
@@ -111,6 +112,7 @@ pub(crate) fn draw_row(
             let id = ensure(s, items, node, open, order)?;
             s.resume(id, |s| draw(s, true, true))?;
         }
+        draw_strikes(s, flow.tagged, &strikes)?;
     }
     let bottom = at.top + laid.height;
     match part {

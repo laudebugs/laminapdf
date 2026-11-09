@@ -36,6 +36,9 @@ impl Shaper for HarfRust {
         let run_text = sub(text, range.clone())?;
         let before = sub(text, 0..range.start)?;
         let after = sub(text, range.end..text.len())?;
+        if let Some(standard) = font.standard14() {
+            return standard_run(font, standard, run_text, range, options);
+        }
         let font_ref = font.font_ref()?;
 
         let script = options
@@ -131,6 +134,52 @@ impl Shaper for HarfRust {
             font: font.info().postscript_name.clone(),
         })
     }
+}
+
+/// `text` (at `range` of the whole text) laid out in a standard 14 font, which has no font
+/// program to shape with: one glyph per character, left to right, its AFM width as its advance
+/// (in the AFM's 1000 units per em). What [`Standard14::draws_nothing`](crate::Standard14::draws_nothing) names advances by 0.
+///
+/// # Errors
+/// [`Error::MissingGlyph`] for a character the font lacks.
+fn standard_run(
+    font: &Font,
+    standard: crate::Standard14,
+    text: &str,
+    range: Range<usize>,
+    options: &ShapeOptions,
+) -> Result<ShapedRun> {
+    let mut glyphs = Vec::with_capacity(text.len());
+    for (at, ch) in text.char_indices() {
+        let (gid, advance) = if crate::Standard14::draws_nothing(ch) {
+            (standard.glyph_for_char(' ').unwrap_or(GlyphId::NOTDEF), 0)
+        } else {
+            let gid = standard.glyph_for_char(ch).ok_or_else(|| Error::MissingGlyph {
+                ch,
+                font: font.info().postscript_name.clone(),
+            })?;
+            (gid, i32::from(standard.glyph_width(gid).unwrap_or(0)))
+        };
+        glyphs.push(ShapedGlyph {
+            gid,
+            cluster: range.start + at,
+            x_advance: advance,
+            y_advance: 0,
+            x_offset: 0,
+            y_offset: 0,
+        });
+    }
+    Ok(ShapedRun {
+        glyphs,
+        text_range: range,
+        direction: Direction::LeftToRight,
+        script: options
+            .script
+            .or_else(|| Script::dominant(text))
+            .unwrap_or(Script::COMMON),
+        units_per_em: font.info().units_per_em,
+        font: font.info().postscript_name.clone(),
+    })
 }
 
 /// The character HarfRust shapes for `ch`. Fonts have no glyphs for control characters

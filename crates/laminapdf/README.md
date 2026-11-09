@@ -35,6 +35,7 @@ Edges should still adapt the next budget from the time the last step took (ADR 0
 
 - `build`: the builder without text (`laminapdf-build` without its `text` feature): pages, paths, colour, images, links, navigation and metadata. The WASM base module's builder ([ADR 0016](../../docs/decisions/0016-package-design.md) §4).
 - `text` (default; implies `build`): fonts and text (`laminapdf-text`). Without `build` or `text` the crate opens, reads, edits and saves only; `cargo xtask portability` checks the three builds for wasm32, iOS and Android.
+- `markdown` (default; implies `text`): `laminapdf::markdown` and `Builder::markdown`, Markdown in and flowing pages out over `pulldown-cmark` ([ADR 0032](../../docs/decisions/0032-flowing-layout-and-document-inputs.md) §6). The workspace's own crates take `laminapdf` without default features and turn it on where they need it.
 - `saslprep` (default): SASLprep (RFC 4013) for R5/R6 passwords. Left out of the WASM modules, whose TS layer normalises passwords to NFKC (ADR 0016 §7).
 
 ## Examples and goldens

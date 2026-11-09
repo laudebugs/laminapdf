@@ -60,7 +60,7 @@ pub(crate) struct Heading {
     pub(crate) text: String,
 }
 
-/// The flow's headings, in order, including those inside `Keep` groups.
+/// The flow's headings, in order, including those inside `Keep` groups and quotes.
 pub(crate) fn headings(blocks: &[FlowBlock]) -> Vec<Heading> {
     let mut out = Vec::new();
     collect(blocks, &mut out);
@@ -74,7 +74,7 @@ fn collect(blocks: &[FlowBlock], out: &mut Vec<Heading>) {
                 level: (*level).clamp(1, 6),
                 text: plain_text(p),
             }),
-            FlowBlock::Keep(inner) => collect(inner, out),
+            FlowBlock::Keep(inner) | FlowBlock::Quote(inner) => collect(inner, out),
             _ => {}
         }
     }
@@ -85,7 +85,7 @@ pub(crate) fn plain_text(paragraph: &Paragraph) -> String {
     let mut text = String::new();
     for inline in &paragraph.inlines {
         match inline {
-            Inline::Text(t, _) | Inline::Link(t, _, _) => text.push_str(t),
+            Inline::Text(t, _) | Inline::Link(t, _, _) | Inline::Code(t, _) => text.push_str(t),
             Inline::LineBreak => text.push(' '),
             Inline::Note(_) => {}
         }
@@ -103,7 +103,7 @@ pub(crate) fn destination(first: usize, n: usize) -> String {
 pub(crate) fn has_contents(blocks: &[FlowBlock]) -> bool {
     blocks.iter().any(|b| match b {
         FlowBlock::Contents(_) => true,
-        FlowBlock::Keep(inner) => has_contents(inner),
+        FlowBlock::Keep(inner) | FlowBlock::Quote(inner) => has_contents(inner),
         _ => false,
     })
 }

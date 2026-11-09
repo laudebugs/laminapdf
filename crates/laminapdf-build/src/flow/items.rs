@@ -8,6 +8,13 @@ use super::table::{CellItem, RowItem, Section, Table, TableItem, TableRow};
 use crate::nav::LinkTarget;
 use crate::tag::{TableScope, Tag, TagKind};
 
+/// How far a block quote's blocks are indented, points.
+const QUOTE_INDENT: f64 = 18.0;
+/// How far a code block is indented, points.
+const CODE_INDENT: f64 = 12.0;
+/// The space above and below a rule, points.
+const RULE_SPACE: f64 = 6.0;
+
 /// What an item draws.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum Content {
@@ -17,6 +24,8 @@ pub(crate) enum Content {
     Figure(usize),
     /// [`Items::tables`]`[i]`.
     Table(usize),
+    /// A horizontal rule across the body.
+    Rule,
     /// Space of a height, points.
     Spacer(f64),
     /// The end of a page.
@@ -139,6 +148,19 @@ impl Items {
             }
             FlowBlock::Table(table) => self.table(table, parent, keep, indent),
             FlowBlock::Contents(contents) => self.contents(contents, parent, keep, indent),
+            FlowBlock::Quote(blocks) => {
+                let quote = self.node(Tag::new(TagKind::BlockQuote), parent);
+                for b in blocks {
+                    self.block(b, Some(quote), keep, indent + QUOTE_INDENT);
+                }
+            }
+            FlowBlock::CodeBlock(text, style) => self.code_block(text, style, parent, keep, indent),
+            FlowBlock::Rule => {
+                let mut item = Self::item(Content::Rule, None, keep, indent);
+                item.space_before = RULE_SPACE;
+                item.space_after = RULE_SPACE;
+                self.entries.push(item);
+            }
             FlowBlock::Spacer(height) => {
                 let item = Self::item(Content::Spacer(height.max(0.0)), None, keep, indent);
                 self.entries.push(item);
@@ -164,9 +186,10 @@ impl Items {
         let marker_style = ParagraphStyle::new().with_space(0.0, 0.0);
         for (n, entry) in list.items.iter().enumerate() {
             let li = self.node(Tag::new(TagKind::LI), Some(l));
-            let marker = match list.kind {
-                ListKind::Bullet => "•".to_owned(),
-                ListKind::Numbered => format!("{}.", n + 1),
+            let marker = match (&entry.marker, list.kind) {
+                (Some(marker), _) => marker.clone(),
+                (None, ListKind::Bullet) => "•".to_owned(),
+                (None, ListKind::Numbered) => format!("{}.", list.start + n),
             };
             self.sources
                 .push(Source::single(&marker, &list.marker, marker_style.clone()));
@@ -374,6 +397,22 @@ impl Items {
         item.heading = heading;
         item.title = heading.map(|_| plain_text(p));
         self.entries.push(item);
+    }
+
+    /// A block of code: a `P` holding a `Code` element, each line of `text` a line of the
+    /// paragraph, indented and wrapped at the body's width.
+    fn code_block(&mut self, text: &str, style: &TextStyle, parent: Option<usize>, keep: Option<usize>, indent: f64) {
+        let p = self.node(Tag::new(TagKind::P), parent);
+        let code = self.node(Tag::new(TagKind::Code), Some(p));
+        let mut paragraph = Paragraph::new(ParagraphStyle::new().with_space(4.0, 8.0));
+        for (n, line) in text.trim_end_matches('\n').split('\n').enumerate() {
+            if n > 0 {
+                paragraph = paragraph.line_break();
+            }
+            // An empty line keeps its height: a no-break space, which draws nothing.
+            paragraph = paragraph.text(if line.is_empty() { "\u{a0}" } else { line }, style);
+        }
+        self.paragraph(&paragraph, code, keep, indent + CODE_INDENT, None, None);
     }
 
     /// Heading `n`'s page number `page` as a contents entry draws it: a link to the heading.

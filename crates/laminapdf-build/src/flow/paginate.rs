@@ -60,8 +60,8 @@ pub(crate) enum Placed {
         x: f64,
         top: f64,
     },
-    /// The rule above a page's footnotes (a `Layout` artifact).
-    NoteRule { x: f64, y: f64, width: f64 },
+    /// A horizontal rule: above a page's footnotes, or a flow's `Rule` (a `Layout` artifact).
+    Rule { x: f64, y: f64, width: f64 },
     /// Item `item`'s figure in a box, page space.
     Figure {
         item: usize,
@@ -144,6 +144,7 @@ pub(crate) fn paginate(
                 }
             }
             Content::Spacer(h) => pager.spacer(h),
+            Content::Rule => pager.rule(i),
             Content::Para(_) | Content::Figure(_) | Content::Table(_) => {
                 if i >= checked {
                     checked = pager.keep_chain(i)?;
@@ -224,6 +225,20 @@ impl Pager<'_> {
         }
         let before = self.items.entries.get(i).map_or(0.0, |it| it.space_before);
         self.after.max(before)
+    }
+
+    /// A rule across item `i`'s width, with its space above and below.
+    fn rule(&mut self, i: usize) {
+        let gap = self.gap(i);
+        if self.y + gap > self.bottom() {
+            self.new_page();
+        }
+        self.y += self.gap(i);
+        let indent = self.items.entries.get(i).map_or(0.0, |it| it.indent);
+        let x = self.page_template().margins.left + indent;
+        let width = self.width(i);
+        self.push(Placed::Rule { x, y: self.y, width });
+        self.after = self.items.entries.get(i).map_or(0.0, |it| it.space_after);
     }
 
     fn spacer(&mut self, h: f64) {
@@ -329,7 +344,7 @@ impl Pager<'_> {
                 }
             }
             Content::Spacer(h) => h,
-            Content::Break => 0.0,
+            Content::Rule | Content::Break => 0.0,
         })
     }
 

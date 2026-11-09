@@ -99,7 +99,7 @@ The library plan lists flowing layout as a non-goal for now and asks, in its ope
 | [T4b](../todos/done/T4b-flow-layout-core.md) | Flowing layout: paragraphs across pages, keep-together, running headers and footers, page X of Y | L | T4f, T4g |
 | [T4c](../todos/done/T4c-flow-tables-notes-contents.md) | Flowing layout: tables across pages with repeated headers and kept totals | L | T4b |
 | [T4h](../todos/done/T4h-flow-notes-contents-outline.md) | Flowing layout: footnotes, a contents page with page numbers, and the outline | L | T4b |
-| [T4d](../todos/ready/T4d-markdown-documents.md) | Markdown in Rust, flowing pages out | L | T4c, T4h |
+| [T4d](../todos/done/T4d-markdown-documents.md) | Markdown in Rust, flowing pages out | L | T4c, T4h |
 | [T4i](../todos/ready/T4i-build-command-and-bindings.md) | `laminapdf build`, its MCP tool and the TypeScript `markdown` call | L | T4d |
 | [T4e](../todos/ready/T4e-json-documents-and-templates.md) | JSON documents and templates in Rust and the CLI | L | T4i |
 | [T4j](../todos/ready/T4j-documents-in-typescript.md) | Typed documents and `builder.flow` in TypeScript | L | T4e, T4i |
@@ -212,7 +212,7 @@ Work the agents found while writing the todos, left out of Round T for now:
 - [ ] T1: publish the proof ([T1a](../todos/done/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/done/T1c-publish-performance-numbers.md), [T1d](../todos/done/T1d-snapshot-testing-guide.md))
 - [x] T2: find what files hide ([T2a](../todos/done/T2a-covered-text-flag.md), [T2b](../todos/done/T2b-check-failed-redactions.md), [T2c](../todos/done/T2c-reveal-command.md))
 - [ ] T3: extraction users can check ([T3a](../todos/done/T3a-text-layer-status.md), [T3b](../todos/done/T3b-reading-order-confidence.md), [T3c](../todos/done/T3c-tables-across-pages.md))
-- [ ] T4: pages that flow ([T4a](../todos/done/T4a-adr-0032-layout-engine.md), [T4f](../todos/done/T4f-flow-builder-groundwork.md), [T4g](../todos/done/T4g-flow-styled-spans.md), [T4b](../todos/done/T4b-flow-layout-core.md), [T4c](../todos/done/T4c-flow-tables-notes-contents.md), [T4h](../todos/done/T4h-flow-notes-contents-outline.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4i](../todos/ready/T4i-build-command-and-bindings.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md), [T4j](../todos/ready/T4j-documents-in-typescript.md))
+- [ ] T4: pages that flow ([T4a](../todos/done/T4a-adr-0032-layout-engine.md), [T4f](../todos/done/T4f-flow-builder-groundwork.md), [T4g](../todos/done/T4g-flow-styled-spans.md), [T4b](../todos/done/T4b-flow-layout-core.md), [T4c](../todos/done/T4c-flow-tables-notes-contents.md), [T4h](../todos/done/T4h-flow-notes-contents-outline.md), [T4d](../todos/done/T4d-markdown-documents.md), [T4i](../todos/ready/T4i-build-command-and-bindings.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md), [T4j](../todos/ready/T4j-documents-in-typescript.md))
 - [ ] T5: long reading ([T5a](../todos/ready/T5a-link-previews.md), [T5b](../todos/ready/T5b-reopen-at-last-position.md))
 - [ ] T6: chained jobs in the CLI ([T6a](../todos/ready/T6a-cli-page-commands.md), [T6b](../todos/ready/T6b-cli-optimize-target-size.md))
 - [ ] The owner answers §9's open questions

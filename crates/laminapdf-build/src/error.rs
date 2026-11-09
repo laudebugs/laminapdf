@@ -451,17 +451,32 @@ pub enum Warning {
         /// The page they start on (0-based, within the flow).
         page: u32,
     },
+    /// Markdown held raw HTML, which is left out.
+    #[error("raw HTML in the Markdown was left out")]
+    MarkdownHtmlIgnored {
+        /// Where it starts: a byte offset into the Markdown.
+        offset: usize,
+    },
+    /// Markdown named an image the caller didn't supply (a remote one is never fetched), so
+    /// it was left out.
+    #[error("an image the Markdown names wasn't supplied and was left out")]
+    MarkdownImageMissing {
+        /// Where the image starts: a byte offset into the Markdown.
+        offset: usize,
+    },
 }
 
 impl Warning {
     /// Every code [`Warning::code`] can return.
-    pub const CODES: &'static [&'static str] = &["flow-keep-broken"];
+    pub const CODES: &'static [&'static str] = &["flow-keep-broken", "markdown-html-ignored", "markdown-image-missing"];
 
     /// A stable kebab-case code for this warning.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
             Self::FlowKeepBroken { .. } => "flow-keep-broken",
+            Self::MarkdownHtmlIgnored { .. } => "markdown-html-ignored",
+            Self::MarkdownImageMissing { .. } => "markdown-image-missing",
         }
     }
 
@@ -471,11 +486,13 @@ impl Warning {
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
-            Self::FlowKeepBroken { .. } => ErrorKind::Usage,
+            Self::FlowKeepBroken { .. } | Self::MarkdownImageMissing { .. } => ErrorKind::Usage,
+            Self::MarkdownHtmlIgnored { .. } => ErrorKind::Unsupported,
         }
     }
 
-    /// Where it happened: the page.
+    /// Where it happened: the page, for a flow's warning; a Markdown warning's byte offset is
+    /// in its data instead (an offset into the Markdown, not the PDF).
     #[must_use]
     pub fn location(&self) -> Location {
         match *self {
@@ -483,6 +500,7 @@ impl Warning {
                 page_index: Some(u64::from(page)),
                 ..Location::NONE
             },
+            Self::MarkdownHtmlIgnored { .. } | Self::MarkdownImageMissing { .. } => Location::NONE,
         }
     }
 }

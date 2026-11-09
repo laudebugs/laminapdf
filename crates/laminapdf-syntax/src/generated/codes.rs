@@ -908,6 +908,10 @@ pub enum WarningCode {
     WholeFontRebuilt,
     /// `flow-keep-broken`: blocks kept together are taller than a page, so the flow split them.
     FlowKeepBroken,
+    /// `markdown-html-ignored`: the Markdown holds raw HTML, which the PDF leaves out.
+    MarkdownHtmlIgnored,
+    /// `markdown-image-missing`: the Markdown names an image that wasn't supplied, so the PDF leaves it out.
+    MarkdownImageMissing,
     /// `covered-text`: a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file.
     CoveredText,
     /// `redaction-not-applied`: a page has redaction marks that were never applied, so the text under them is still in the file.
@@ -964,6 +968,8 @@ impl WarningCode {
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
+        Self::MarkdownHtmlIgnored,
+        Self::MarkdownImageMissing,
         Self::CoveredText,
         Self::RedactionNotApplied,
         Self::TextInEarlierRevision,
@@ -1031,6 +1037,8 @@ impl WarningCode {
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
+            Self::MarkdownHtmlIgnored => "markdown-html-ignored",
+            Self::MarkdownImageMissing => "markdown-image-missing",
             Self::CoveredText => "covered-text",
             Self::RedactionNotApplied => "redaction-not-applied",
             Self::TextInEarlierRevision => "text-in-earlier-revision",
@@ -1086,6 +1094,8 @@ impl WarningCode {
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
+            Self::MarkdownHtmlIgnored => ErrorKind::Unsupported,
+            Self::MarkdownImageMissing => ErrorKind::Usage,
             Self::CoveredText => ErrorKind::Security,
             Self::RedactionNotApplied => ErrorKind::Security,
             Self::TextInEarlierRevision => ErrorKind::Security,
@@ -1141,6 +1151,8 @@ impl WarningCode {
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
+            Self::MarkdownHtmlIgnored => "the Markdown holds raw HTML, which the PDF leaves out",
+            Self::MarkdownImageMissing => "the Markdown names an image that wasn't supplied, so the PDF leaves it out",
             Self::CoveredText => "a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file",
             Self::RedactionNotApplied => "a page has redaction marks that were never applied, so the text under them is still in the file",
             Self::TextInEarlierRevision => "an earlier revision of the file holds text that the latest revision no longer has",
@@ -1196,6 +1208,8 @@ impl WarningCode {
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
+            Self::MarkdownHtmlIgnored => "write the content in Markdown instead of HTML, or remove the HTML",
+            Self::MarkdownImageMissing => "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",
             Self::CoveredText => "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
             Self::RedactionNotApplied => "apply the redactions in a tool that removes what they cover, then save a full rewrite",
             Self::TextInEarlierRevision => "save the file as a full rewrite, which keeps only the latest revision",
