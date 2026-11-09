@@ -84,7 +84,11 @@ export interface ViewerEventMap {
 
 /** A layer that later todos mount into each page (text, annotations, highlights, …). */
 export interface PageLayer {
-  /** Its slot: `text`, `annot` and `highlight` exist on every page; another name gets a new one on top. */
+  /**
+   * Its slot: `text`, `annot` and `highlight` exist on every page; another name gets a new one on top.
+   * Every slot but `text` lets the pointer through, so the text stays selectable under it: an element a
+   * layer wants clicked (a link) sets `pointer-events: auto` itself.
+   */
   readonly name: string;
   /** Page `page` was mounted: `element` is the layer's slot in its shell. */
   onMount?(page: number, element: HTMLElement): void;
@@ -761,6 +765,9 @@ export class Viewer {
       slot = document.createElement("div");
       slot.className = `lamina-layer-${name}`;
       Object.assign(slot.style, { position: "absolute", inset: "0" });
+      // The slots above the text cover the whole page: taking the pointer, they would sit between
+      // every press and the spans, and no drag could select text.
+      if (name !== "text") slot.style.pointerEvents = "none";
       view.slots.set(name, slot);
       view.shell.append(slot);
     }

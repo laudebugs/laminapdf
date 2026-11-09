@@ -1,12 +1,21 @@
 // The text layer (todo C5a) over real pages in Chromium, Firefox and WebKit: copy gives the text
 // Lamina PDF extracts in five scripts, the encrypted copy too; spans lie over their glyph quads at
 // 100 %, 200 % and a quarter turn; a selection runs across pages and stays while the view scrolls;
-// a tagged file's structure owns its spans, and an untagged file says so once.
+// a tagged file's structure owns its spans, and an untagged file says so once; a real mouse drag
+// selects a word, whatever layers lie over the text.
 
 import { Builder, Document, Font, init } from "@laminapdf/sdk";
 import { createViewer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { commands } from "vitest/browser";
 import { viewer as client, ENCRYPTED, PASSWORD, read } from "./helpers.js";
+
+declare module "vitest/browser" {
+  interface BrowserCommands {
+    /** Drags the real mouse across the element `selector` names (vitest.browser.config.ts). */
+    dragAcross: (selector: string) => Promise<void>;
+  }
+}
 
 let client_: ViewerClient | undefined;
 let view: Viewer | undefined;
@@ -239,5 +248,48 @@ describe("structure", () => {
       .poll(() => document.querySelectorAll(".lamina-structure[role=status]").length, { timeout: 10_000 })
       .toBe(1);
     expect(document.querySelector(".lamina-structure")?.textContent).toBe("Untagged document");
+  });
+});
+
+describe("pointer", () => {
+  /** The first span of page 0 with more than `min` characters, in view, marked for `dragAcross`. */
+  async function word(min = 8): Promise<HTMLElement> {
+    const span = (await spansOf(0)).find((s) => {
+      const box = s.getBoundingClientRect();
+      return (s.textContent ?? "").trim().length > min && box.top >= 0 && box.bottom <= window.innerHeight;
+    });
+    if (span === undefined) throw new Error("no word in view on page 0");
+    span.id = "drag-target";
+    return span;
+  }
+
+  /** The element the browser gives a press at the centre of `span`. */
+  function hitAt(span: HTMLElement): Element | null {
+    const box = span.getBoundingClientRect();
+    return document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+  }
+
+  it("selects a word under a mouse drag: the layers over the text let the pointer through", async () => {
+    await show(await read("fixtures/golden/text-latin.pdf"));
+    const span = await word();
+    expect(hitAt(span)).toBe(span);
+    await commands.dragAcross("#drag-target");
+    expect(document.getSelection()?.toString().trim()).toBe(span.textContent?.trim());
+  });
+
+  it("keeps the text under a layer added on top, even one that covers the page", async () => {
+    const v = await show(await read("fixtures/golden/text-latin.pdf"));
+    v.addLayer({
+      name: "notes",
+      onMount(_page, slot) {
+        const cover = document.createElement("div");
+        Object.assign(cover.style, { position: "absolute", inset: "0" });
+        slot.append(cover);
+      },
+    });
+    const span = await word();
+    expect(hitAt(span)).toBe(span);
+    await commands.dragAcross("#drag-target");
+    expect(document.getSelection()?.toString().trim()).toBe(span.textContent?.trim());
   });
 });
