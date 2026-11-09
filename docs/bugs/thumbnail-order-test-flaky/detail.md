@@ -30,4 +30,8 @@ The thumbnail strip renders at `background` priority, so a page the main view sh
 
 ## The cause
 
-The hold was a fixed time, and steps 2 to 4 run on the page's own frames. On a slow runner those frames can take longer than 1.5 s. The hold then ends before the test sends the visible render, and the worker starts the first queued thumbnail. The log's first entry, 0.418, is a thumbnail's scale, far below the visible render's 0.777. Nothing in the viewer was wrong; the test's setup lost a race, and it couldn't tell that from a real failure.
+The test had two wrong assumptions; nothing in the viewer was wrong.
+
+First, the hold was a fixed time, and steps 2 to 4 run on the page's own frames. On a slow runner those frames can take longer than 1.5 s. The hold then ends before the test sends the visible render, and the worker starts the first queued thumbnail.
+
+Second, step 5 expected the test's render to be the first in the log, but the main view renders at `visible` priority too. A thumbnail renders at 0.196 (120 px over a 612 pt page). The failing log's first entry, 0.418, is the main view's own render: the 256 px wide test view's fit-width scale. On a slow runner the main view still had a render queued when the hold began. It ran first, as its priority says it should. The first fix took 0.418 for a thumbnail, so it addressed only the timing, and CI failed again with the timing check passing.
