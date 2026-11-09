@@ -77,12 +77,11 @@ pub(crate) fn draw_row(
     {
         let rect = RectPt::from_points(at.x, at.top, layout.width, laid.height);
         layout_artifact(s, flow.tagged, |s| {
-            s.save().fill_color(color.clone());
-            s.path(|p| {
-                p.rect(rect);
-            })
-            .fill(FillRule::NonZero);
-            s.restore();
+            s.fill_color(color.clone())
+                .path(|p| {
+                    p.rect(rect);
+                })
+                .fill(FillRule::NonZero);
         })?;
     }
     let padding = table.table.padding.max(0.0);
@@ -171,14 +170,15 @@ fn stroke(s: &mut Surface, rule: &TableRule, build: impl FnOnce(&mut crate::surf
         width: Pt::new(rule.width.max(0.0)),
         ..StrokeStyle::default()
     };
-    s.save().stroke_color(rule.color.clone());
-    s.path(build).stroke(&style);
-    s.restore();
+    s.stroke_color(rule.color.clone()).path(build).stroke(&style);
 }
 
-/// Runs `draw` inside a `Layout` artifact when the flow is tagged.
+/// Runs `draw` inside a `Layout` artifact when the flow is tagged, its colours restored after.
+/// The save is outside the artifact: marked content can't span a `q` or `Q`, so the builder
+/// would end the artifact there and start another.
 fn layout_artifact(s: &mut Surface, tagged: bool, draw: impl FnOnce(&mut Surface)) -> Result<()> {
-    if tagged {
+    s.save();
+    let drawn = if tagged {
         s.artifact(ArtifactKind::Layout, |s| {
             draw(s);
             Ok(())
@@ -186,7 +186,9 @@ fn layout_artifact(s: &mut Surface, tagged: bool, draw: impl FnOnce(&mut Surface
     } else {
         draw(s);
         Ok(())
-    }
+    };
+    s.restore();
+    drawn
 }
 
 #[cfg(test)]

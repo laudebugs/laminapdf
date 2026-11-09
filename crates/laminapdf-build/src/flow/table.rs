@@ -364,7 +364,9 @@ pub(crate) fn layout(item: &TableItem, sources: &[Source], available: f64) -> Re
             let left = starts.get(cell.col).copied().unwrap_or(x);
             let right = starts.get(cell.col + cell.span).copied().unwrap_or(x);
             let width = right - left;
-            let text_width = (width - 2.0 * padding).max(1.0);
+            // An automatic column is exactly as wide as its widest line: the allowance keeps
+            // rounding (the breaker measures in f32) from wrapping that line's last glyph.
+            let text_width = (width - 2.0 * padding).max(1.0) + 0.01;
             let mut blocks = Vec::with_capacity(cell.sources.len());
             let mut y = 0.0;
             let mut after: Option<f64> = None;
