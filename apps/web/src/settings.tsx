@@ -15,10 +15,11 @@ import {
   SettingsRegistry,
   ShortcutsDialog,
   type UiTheme,
+  usePhone,
   useSettingsSection,
   ViewSettingsButton,
 } from "@laminapdf/ui";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 /** Where the appearance is kept; public/appearance.js reads the same key before the first paint. */
 export const APPEARANCE_KEY = "lamina.appearance";
@@ -60,6 +61,9 @@ export function useSettings(openPalette: () => void): Settings {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [registry] = useState(() => new SettingsRegistry());
+  // A phone's top bar has no View button to anchor the popover: View settings opens Settings.
+  const phone = useRef(false);
+  phone.current = usePhone();
   useEffect(() => {
     applyAppearance(document.documentElement, appearance);
     saveAppearance(appearance);
@@ -69,7 +73,7 @@ export function useSettings(openPalette: () => void): Settings {
   ));
   const actions = useMemo(
     () => ({
-      "view.settings": () => setViewOpen(true),
+      "view.settings": () => (phone.current ? setSettingsOpen(true) : setViewOpen(true)),
       "app.settings": () => setSettingsOpen(true),
       "help.shortcuts": () => setShortcutsOpen(true),
       "view.theme": (theme: unknown) => setAppearance((a) => ({ ...a, theme: theme as UiTheme })),

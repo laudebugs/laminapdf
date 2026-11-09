@@ -82,6 +82,7 @@ const EN = {
   "announce.opened.one": "Opened {name}, 1 page",
   "announce.zoom": "Zoom {percent}%",
   "help.shortcuts.title": "Keyboard shortcuts",
+  "help.shortcuts.close": "Close",
   "help.shortcuts.mac": "Shortcuts on macOS. Single keys work while the page has focus.",
   "help.shortcuts.other": "Shortcuts on Windows and Linux. Single keys work while the page has focus.",
   "help.shortcuts.search": "Search shortcuts",

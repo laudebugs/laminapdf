@@ -20,6 +20,8 @@ export class Announcer {
   readonly #listeners = new Set<() => void>();
   readonly #timers = new Map<string, ReturnType<typeof setTimeout>>();
   readonly #delay: number;
+  /** The kind and time of the last polite message said, to join one of another kind due with it. */
+  #last: { kind: string; at: number } | undefined;
 
   constructor(delay = ANNOUNCE_DELAY) {
     this.#delay = delay;
@@ -27,7 +29,7 @@ export class Announcer {
 
   /**
    * Says `text` politely once nothing newer of the same `kind` ("page", "zoom") has come for a
-   * moment; a newer one replaces it.
+   * moment; a newer one replaces it. Said within a moment of another kind's, the two are joined.
    */
   polite(text: string, kind = "status"): void {
     const pending = this.#timers.get(kind);
@@ -36,7 +38,15 @@ export class Announcer {
       kind,
       setTimeout(() => {
         this.#timers.delete(kind);
-        this.#say("polite", text);
+        // Another kind said a moment ago may not have been read yet: say both.
+        const last = this.#last;
+        const now = Date.now();
+        const joined =
+          last !== undefined && last.kind !== kind && now - last.at < this.#delay
+            ? `${this.#state.polite.replace(/\u200b$/, "")}. ${text}`
+            : text;
+        this.#last = { kind, at: now };
+        this.#say("polite", joined);
       }, this.#delay),
     );
   }

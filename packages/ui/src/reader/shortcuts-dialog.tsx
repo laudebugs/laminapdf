@@ -40,7 +40,7 @@ export function ShortcutsDialog(props: ShortcutsDialogProps): ReactNode {
       onOpenChange={props.onOpenChange}
       title={message("help.shortcuts.title")}
       description={message(platform === "mac" ? "help.shortcuts.mac" : "help.shortcuts.other")}
-      closeLabel={message("settings.close")}
+      closeLabel={message("help.shortcuts.close")}
       size="wide"
     >
       <div className="paper-shortcuts">

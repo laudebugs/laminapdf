@@ -440,7 +440,7 @@ export function App({
     settings.actions,
   );
   useWindowTitle(fileName, engineState.title);
-  const liveRegions = useAnnouncements(shown, fileName, engineState.pages);
+  const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState.pages);
   const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
   return (
     <CommandsProvider

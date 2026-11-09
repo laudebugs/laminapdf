@@ -4,7 +4,7 @@
 
 import { Announcer, LiveRegions, message } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { PageInfo } from "./outline.ts";
 
 /** The page `index` as it is spoken: its label when the document has one. */
@@ -15,29 +15,35 @@ export function spokenPage(pages: readonly PageInfo[], index: number): string {
 }
 
 /**
- * Announces `viewer`'s page and zoom changes, and `fileName` with its page count when a document
+ * Announces `viewer`'s page and zoom changes, and `file` with its page count each time a document
  * opens; returns the live regions to render once.
  */
 export function useAnnouncements(
   viewer: Viewer | undefined,
-  fileName: string | undefined,
+  file: { readonly name: string } | undefined,
   pages: readonly PageInfo[],
 ): ReactNode {
   const [announcer] = useState(() => new Announcer());
   const count = pages.length;
+  // Read when a page is announced, so a new page list never restarts the listeners.
+  const latest = useRef(pages);
   useEffect(() => {
-    if (fileName === undefined || count === 0) return;
+    latest.current = pages;
+  });
+  const fileName = file?.name;
+  useEffect(() => {
+    if (file === undefined || fileName === undefined || count === 0) return;
     announcer.polite(
       message(count === 1 ? "announce.opened.one" : "announce.opened", { name: fileName, count }),
       "open",
     );
-  }, [announcer, fileName, count]);
+  }, [announcer, file, fileName, count]);
   useEffect(() => {
     if (viewer === undefined) return;
     // A fit mode refitting after a resize or an open is not news: only a new mode or percentage is.
     let mode = viewer.getState().zoom;
     const stops = [
-      viewer.on("pagechange", ({ page }) => announcer.polite(spokenPage(pages, page), "page")),
+      viewer.on("pagechange", ({ page }) => announcer.polite(spokenPage(latest.current, page), "page")),
       viewer.on("zoomchange", ({ zoom, percent }) => {
         const changed = typeof zoom === "number" || zoom !== mode;
         mode = zoom;
@@ -48,6 +54,6 @@ export function useAnnouncements(
       for (const stop of stops) stop();
       announcer.cancel();
     };
-  }, [announcer, viewer, pages]);
+  }, [announcer, viewer]);
   return <LiveRegions announcer={announcer} />;
 }

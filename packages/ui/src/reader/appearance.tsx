@@ -1,8 +1,8 @@
 // The app's look (R10, R11, plan §5.5): the UI theme, the accent and reduced motion, set as
 // attributes on the root element so switching only swaps CSS custom properties (no re-render).
 // The tokens read `data-theme` (none: match the system) and `data-accent`; the shell's styles read
-// `data-motion="reduce"` as they read `prefers-reduced-motion`. The page's own colours are U2c's
-// page appearance, never these.
+// `data-motion="reduce"` as they read `prefers-reduced-motion`. The page's own colours are the page
+// appearance's, never these.
 
 import { Icon } from "@laminapdf/icons/react";
 import type { ReactNode } from "react";

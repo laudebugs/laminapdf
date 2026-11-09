@@ -75,12 +75,17 @@ describe("the announcer", () => {
     announcer.assertive("This file is damaged");
     expect(announcer.getState().assertive).toBe("This file is damaged");
     vi.advanceTimersByTime(100);
-    // Both kinds came due together: the later one is what the region holds.
+    // Both kinds came due together: both are said.
+    expect(announcer.getState().polite).toBe("Page 4 of 9. Zoom 150%");
+    vi.advanceTimersByTime(1000);
+    announcer.polite("Zoom 150%", "zoom");
+    vi.advanceTimersByTime(100);
     expect(announcer.getState().polite).toBe("Zoom 150%");
+    vi.advanceTimersByTime(1000);
     announcer.polite("Zoom 150%", "zoom");
     vi.advanceTimersByTime(100);
     // The same words again are changed so that they are read again.
-    expect(announcer.getState().polite).toBe("Zoom 150%​");
+    expect(announcer.getState().polite).toBe("Zoom 150%\u200b");
     vi.useRealTimers();
   });
 });
