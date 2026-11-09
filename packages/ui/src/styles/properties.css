@@ -1,0 +1,134 @@
+/* The document properties dialog (R08): a body that scrolls under a fixed header and footer, four
+   sections with Heading titles, values as a two-column list (148 px labels), each value's copy
+   button shown on hover or focus, and a fonts table. Long values wrap; nothing scrolls sideways. */
+@layer paper.components {
+  .paper-properties-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-20);
+    max-block-size: calc(100vh - 232px);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .paper-properties-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-properties-heading {
+    margin: 0;
+    font: var(--paper-type-heading);
+    letter-spacing: var(--paper-type-heading-letter-spacing);
+  }
+
+  .paper-properties-list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-properties-row {
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: var(--paper-space-12);
+    align-items: start;
+  }
+
+  .paper-properties-row dt {
+    font: var(--paper-type-label);
+    letter-spacing: var(--paper-type-label-letter-spacing);
+    font-weight: 600;
+    color: var(--paper-text-3);
+    padding-block-start: var(--paper-space-4);
+  }
+
+  .paper-properties-row dd {
+    margin: 0;
+    display: flex;
+    gap: var(--paper-space-4);
+    align-items: start;
+  }
+
+  .paper-properties-value {
+    flex: 1;
+    min-inline-size: 0;
+    padding-block-start: var(--paper-space-2);
+    overflow-wrap: anywhere;
+    font: var(--paper-type-body);
+  }
+
+  /* The copy button keeps its place, so the value never moves, and shows on hover or focus. */
+  .paper-properties-row .paper-icon-button {
+    opacity: 0;
+  }
+
+  .paper-properties-row:hover .paper-icon-button,
+  .paper-properties-row:focus-within .paper-icon-button {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .paper-properties-row .paper-icon-button {
+      opacity: 1;
+    }
+  }
+
+  .paper-properties-fonts {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font: var(--paper-type-body);
+    table-layout: fixed;
+  }
+
+  .paper-properties-fonts th {
+    text-align: start;
+    font: var(--paper-type-label);
+    font-weight: 600;
+    color: var(--paper-text-3);
+    padding-block: var(--paper-space-4);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-properties-fonts td {
+    padding-block: var(--paper-space-4);
+    padding-inline-end: var(--paper-space-8);
+    overflow-wrap: anywhere;
+    vertical-align: top;
+  }
+
+  .paper-properties-note,
+  .paper-properties-empty {
+    margin: 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-body);
+  }
+
+  /* A phone's sheet: labels above their values, the fonts table as a list. */
+  @media (max-width: 599px) {
+    .paper-properties-row {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+
+    .paper-properties-fonts thead {
+      display: none;
+    }
+
+    .paper-properties-fonts tr {
+      display: block;
+      padding-block: var(--paper-space-4);
+      border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    }
+
+    .paper-properties-fonts td {
+      display: inline;
+    }
+
+    .paper-properties-fonts td + td::before {
+      content: " · ";
+    }
+  }
+}
