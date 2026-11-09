@@ -33,6 +33,7 @@ run() {
   local watchdog=$!
   wait "$pid" || code=$?
   kill "$watchdog" 2>/dev/null || true
+  if [ "$code" -ne 0 ]; then echo "$2 ($LAMINA_SPIKE_LABEL) exited $code (143: timed out after $1 s)" >&2; fi
   return "$code"
 }
 

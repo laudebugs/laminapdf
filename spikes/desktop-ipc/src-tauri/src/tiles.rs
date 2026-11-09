@@ -205,7 +205,10 @@ impl Tiles {
         let mut cache = self.cache.lock().unwrap_or_else(PoisonError::into_inner);
         cache.bytes += tile.rgba.len();
         let tick = cache.tick;
-        cache.tiles.insert(*req, (Arc::clone(&tile), tick));
+        // Two misses for one tile can race; the second replaces the first.
+        if let Some((old, _)) = cache.tiles.insert(*req, (Arc::clone(&tile), tick)) {
+            cache.bytes -= old.rgba.len();
+        }
         while cache.bytes > self.budget {
             let Some(oldest) = cache.tiles.iter().min_by_key(|(_, (_, used))| *used).map(|(k, _)| *k) else {
                 break;

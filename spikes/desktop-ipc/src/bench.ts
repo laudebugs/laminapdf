@@ -114,6 +114,7 @@ async function runOnce(plan: Plan, combo: Combo, timing: Timing, verify: boolean
   let bytes = 0;
   let delivered = 0;
   let wasted = 0;
+  let finished = false; // after the run, late tiles are closed, not cached
 
   // Long tasks where the webview reports them (Chromium: WebView2), else rAF gaps only.
   const longTaskApi = PerformanceObserver.supportedEntryTypes?.includes("longtask") ?? false;
@@ -141,6 +142,10 @@ async function runOnce(plan: Plan, combo: Combo, timing: Timing, verify: boolean
     t.fetch(nextId++, req, verify).then(
       (d) => {
         inflight.delete(key);
+        if (finished) {
+          d.bitmap.close();
+          return;
+        }
         ready.push(performance.now() - started);
         bytes += d.bytes;
         delivered++;
@@ -171,8 +176,15 @@ async function runOnce(plan: Plan, combo: Combo, timing: Timing, verify: boolean
   const start = await nextFrame();
   let prev = start;
   const end = start + timing.scrollMs + 2 * timing.holdMs;
+  let stalled: unknown = null;
   for (;;) {
-    const now = await nextFrame();
+    let now: number;
+    try {
+      now = await nextFrame();
+    } catch (e) {
+      stalled = e;
+      break;
+    }
     if (failure) break;
     gaps.push(now - prev);
     prev = now;
@@ -238,6 +250,13 @@ async function runOnce(plan: Plan, combo: Combo, timing: Timing, verify: boolean
   }
   const runMs = prev - start;
   observer?.disconnect();
+  if (stalled) {
+    // Leave nothing running into the retry: drop this run's bitmaps and let its requests land.
+    finished = true;
+    for (const c of cache.values()) c.bitmap.close();
+    while (inflight.size > 0) await new Promise((r) => setTimeout(r, 16));
+    throw stalled;
+  }
 
   // Burst: tiles this run already asked for (rendered and cached in Rust), as fast as possible.
   const burstReqs = (seen ?? requested).slice(0, timing.burst);
@@ -258,6 +277,7 @@ async function runOnce(plan: Plan, combo: Combo, timing: Timing, verify: boolean
   };
   await Promise.all(Array.from({ length: combo.inflight }, worker));
   const burstMs = performance.now() - burstStart;
+  finished = true;
   for (const c of cache.values()) c.bitmap.close();
   // Let late tiles land before the next run starts.
   while (inflight.size > 0) await new Promise((r) => setTimeout(r, 16));

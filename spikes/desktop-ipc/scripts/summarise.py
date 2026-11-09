@@ -20,7 +20,6 @@ COLUMNS = [
     ("burst MB/s", "burst_mb_per_s", 0),
     ("ready p50 ms", "ready_p50_ms", 1),
     ("ready p95 ms", "ready_p95_ms", 1),
-    ("paint p95 ms", "lat_p95_ms", 0),
     ("dropped frames", "dropped_frames", 0),
     ("blank frames %", "blank_frame_pct", 0),
     ("400 % fill ms", "zoom400_fill_ms", 0),
