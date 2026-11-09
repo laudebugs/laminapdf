@@ -41,7 +41,7 @@ When blocks you asked to keep together are taller than a page, the flow splits t
 
 ## Tables across pages
 
-A table can run over as many pages as its rows need, and the flow keeps it readable on each one. The second example builds a three-page invoice of 60 rows with a total at the end:
+A table can run over as many pages as its rows need, with its header on each page and every row whole. The second example builds a three-page invoice of 60 rows with a total at the end:
 
 <Snippet file="crates/laminapdf/examples/flowing_invoice.rs" />
 
@@ -50,14 +50,12 @@ The result is three A4 pages: [open the reference PDF](/examples/pdf/flowing_inv
 A table follows three rules when it crosses a page:
 
 - **The header rows repeat** at the top of every page the table continues on.
-- **A body row never splits.** A row that doesn't fit what is left of a page starts the next one.
-- **The footer rows stay with the last body row,** so a total never starts a page alone. When the last row and the footer can't fit on one page together, the last row moves with them.
+- **A body row never splits.** A row that doesn't fit what is left of a page starts the next one, and a row taller than a page fails with `flow-content-too-large`.
+- **The footer rows stay with the last body row,** so a total never starts a page alone. When the footer doesn't fit under the last row, that row moves to the next page with the footer.
 
 Columns get their widths once, for the whole table, so they line up from page to page. A column is `Fixed` (a width in points), `Auto` (as wide as its widest cell) or a `Fraction` (a share of the width the others leave). When automatic columns are too wide together, the widest ones narrow first, so a column of numbers keeps its width while the descriptions wrap.
 
-A cell holds one or more paragraphs. `with_align` lines its text up at the start, centre or end (numbers at the end), `with_vertical_align` places it in the row, and `with_span` stretches it over several columns, as the invoice's "Total" does. Rules come from `with_frame`, `with_header_rule` and `with_row_rules`, and `with_header_background` shades the header rows.
-
-A row taller than a page fails with `flow-content-too-large`.
+A cell holds one or more paragraphs. `with_align` lines its text up at the start, centre or end (numbers at the end), and `with_vertical_align` places it in the row. `with_span` stretches a cell over several columns, as the invoice's "Total" does. Rules come from `with_frame`, `with_header_rule` and `with_row_rules`, and `with_header_background` shades the header rows.
 
 ## Fields in headers and footers
 
@@ -74,7 +72,7 @@ Write `{{` and `}}` for a literal brace. `{pages}` is right on every page becaus
 
 The output is tagged unless you turn tagging off with `with_tagged(false)`. Paragraphs are `P` elements, headings `H1` to `H6`, lists `L` with their items, figures `Figure` with their alternate text, and links `Link`. A paragraph's language, taken from its first piece, is set on its element; a piece in another language is a `Span` with that language. A paragraph split across pages stays one element, so a screen reader reads it as one.
 
-A table is one `Table` element however many pages it crosses, with `THead`, `TBody` and `TFoot` around its rows. Header cells are `TH` elements that head their columns, and a cell across several columns says how many. The header rows drawn again on later pages are marked as page furniture, like headers and footers, so a screen reader and Lamina PDF's extraction read the table's header once. Its rules and background are decoration and are marked as such.
+A table is one `Table` element however many pages it crosses, with `THead`, `TBody` and `TFoot` around its rows. Header cells are `TH` elements that head their columns, and a cell across several columns records how many it spans. The header rows drawn again on later pages are marked as page furniture, like headers and footers, so a screen reader and Lamina PDF's extraction read the table's header once. The table's rules and background are marked as decoration too.
 
 Headers and footers are marked as page furniture rather than content: screen readers skip them, and Lamina PDF's own extraction leaves them out of the text.
 
