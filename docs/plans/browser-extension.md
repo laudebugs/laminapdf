@@ -32,7 +32,7 @@ The web reader can open a remote PDF only when the site that serves it sends COR
 ## 4. What Round K doesn't do
 
 - **Editing in the extension.** The extension ships the reader. When the [editor](full-editor.md) arrives, the extension can carry it in a later round.
-- **A redirect-only extension** that sends PDFs to `app.laminapdf.com`. It keeps the CORS limit and can't open `file://` PDFs ([research §1](../research/browser-extension/browser-extension.md#the-extension-fixes-the-web-readers-cors-wall-but-each-engine-intercepts-pdfs-differently)).
+- **A redirect-only extension** that sends PDFs to `app.laminapdf.com`. It keeps the CORS limit ([research §1](../research/browser-extension/browser-extension.md#the-extension-fixes-the-web-readers-cors-wall-but-each-engine-intercepts-pdfs-differently)).
 - **Replacing PDFs embedded in pages** (`<embed>`, `<object>`), side panels, and an enterprise settings schema. §10 lists them for later.
 - **Mobile browsers other than Safari.** Chromium on Android installs no Chrome Web Store extensions, and Firefox for Android waits for demand on desktop (§10).
 - **Telemetry.** The extension sends nothing. Opt-in telemetry follows [U5c](../todos/ready/U5c-opt-in-usage-telemetry.md) if it ever comes.
@@ -95,7 +95,7 @@ The web reader can open a remote PDF only when the site that serves it sends COR
 
 ## 9. Open questions
 
-K1a answers questions 1 to 7 before ADR 0033 is written; the todo named after the others answers them.
+K1a answers questions 1 to 7 before ADR 0033 is written; questions 8 and 9 name the todo that answers them.
 
 1. Does a Firefox `onHeadersReceived` redirect beat the built-in pdf.js viewer on current releases?
 2. Do cookie-gated and one-time PDF links survive Chromium's second fetch from the extension, and does keeping the original `Referer`, as pdf.js does, help?
@@ -104,7 +104,7 @@ K1a answers questions 1 to 7 before ADR 0033 is written; the todo named after th
 5. Which `minimum_chrome_version` do Brave, Opera and Vivaldi tolerate for `browser.*` and response-header rules?
 6. Can a strict `connect-src` confine the viewer while it fetches PDFs from any site?
 7. Does `use_dynamic_url` stop sites from detecting the extension through its viewer page?
-8. Do enterprise force-installs grant optional host permissions? K2c checks it on a managed Chrome profile before its enterprise notes go out.
+8. Do enterprise force-installs grant optional host permissions? K2c checks it on a managed Chrome profile and records the result in `RELEASE.md`.
 9. Is Safari's button-first flow useful enough to ship? K4a decides on a TestFlight build; the Apple account's fee is already paid for the desktop app (D6a).
 
 ## 10. Later

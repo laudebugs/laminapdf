@@ -29,7 +29,7 @@ Let the user choose to open every PDF in Lamina PDF. The onboarding page offers 
 **In scope**
 
 - Dynamic declarativeNetRequest rules for `main_frame` and `sub_frame` PDF responses, with the probe that turns them off where the response-header condition is ignored.
-- Onboarding and settings: automatic opening on or off, `permissions.request` for access to all sites, `file://` access explained.
+- Onboarding and settings: automatic opening on or off, `permissions.request` for access to all sites, local files pointed to the reader's file picker and drag and drop.
 - The fallback: a control in the reader that reopens the PDF in the browser's viewer, and automatic fallback on a failed fetch.
 - `#page=` and `#nameddest=` carried from the original URL.
 - Revoked access detected at start-up (`permissions.contains`), turning automatic opening off and saying so.
