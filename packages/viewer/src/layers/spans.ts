@@ -142,7 +142,8 @@ export function joinPieces(pieces: readonly Piece[]): string {
   return out.replaceAll(SOFT_HYPHEN, "");
 }
 
-function separator(a: Piece, b: Piece): string {
+/** What goes between two pieces as copy writes them: a new line, a space or nothing. */
+export function separator(a: Piece, b: Piece): string {
   if (a.page !== b.page) return "\n";
   const along = { x: Math.cos(a.span.angle), y: Math.sin(a.span.angle) };
   const up = { x: along.y, y: -along.x };

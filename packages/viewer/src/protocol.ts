@@ -6,6 +6,7 @@
 
 import { type CloneableWasmSource, flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
 import type { Limits, PageInfo, StructureNode } from "@laminapdf/sdk";
+import type { FindOptions } from "./find/fold.js";
 
 /** Which engine draws the pages (ADR 0004: PDFium by default, hayro the CI oracle). */
 export type BackendName = "pdfium" | "hayro";
@@ -77,6 +78,15 @@ export interface Methods {
   memory: { params: []; result: WorkerMemory };
   pageText: { params: [index: number]; result: PageTextData };
   structure: { params: []; result: StructureData };
+  find: { params: [query: string, options: FindOptions, pages: readonly number[]]; result: FindPageResult[] };
+}
+
+/** One page's find results: each match as its quads (8 numbers per run it touches), in page space. */
+export interface FindPageResult {
+  readonly page: number;
+  readonly matches: readonly (readonly number[])[];
+  /** The page has no text to search (a scan without an OCR layer). */
+  readonly noText?: true;
 }
 
 /** One text run of a page: glyphs of one font, size and direction on one baseline, in logical order. */

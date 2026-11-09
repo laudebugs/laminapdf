@@ -1,0 +1,126 @@
+// A page's text as find searches it: its runs joined as copy joins them (a new line at a new
+// baseline, a space at a gap), with, for every character, the glyphs it came from. A run's text
+// is in logical order and its glyphs in drawing order, so a character maps to its glyph when the
+// glyphs spell the run forwards, or backwards (right-to-left text), and to the whole run when
+// they spell neither (an `/ActualText` replacement, or reordered marks). A match then becomes one
+// quad per run it touches, from its first glyph to its last.
+
+import { layoutSpans, type Piece, separator } from "../layers/spans.js";
+import type { TextRunData } from "../protocol.js";
+import { type FindOptions, fold, foldQuery, matches } from "./fold.js";
+
+/** A page's runs and glyphs, as the document Web Worker keeps them. */
+export interface PageGlyphs {
+  readonly runs: readonly TextRunData[];
+  /** 8 numbers per glyph: bottom-left, bottom-right, top-right, top-left, each `x, y`, in page space. */
+  readonly quads: Float32Array;
+  /** Glyph `i`'s text is `glyphText.slice(glyphOffsets[i], glyphOffsets[i + 1])`. */
+  readonly glyphText: string;
+  readonly glyphOffsets: Uint32Array;
+}
+
+/** A page's text for searching, with the glyphs behind each UTF-16 unit. */
+export interface SearchText {
+  readonly text: string;
+  /** For unit `i`, the glyphs `[lo[i], hi[i])`; an empty range for a separator. */
+  readonly lo: Int32Array;
+  readonly hi: Int32Array;
+  /** The run each glyph belongs to. */
+  readonly runOf: Int32Array;
+}
+
+/** One match: a quad (8 numbers, as above) per run it touches, in order. */
+export type MatchQuads = readonly number[];
+
+/** Glyph `g`'s text. */
+function glyphString(page: PageGlyphs, g: number): string {
+  return page.glyphText.slice(page.glyphOffsets[g] ?? 0, page.glyphOffsets[g + 1] ?? 0);
+}
+
+/** For each UTF-16 unit of `run.text`, the glyph range it came from. */
+function mapRun(page: PageGlyphs, run: TextRunData): [number, number][] {
+  const [start, end] = run.glyphRange;
+  const units: [number, number][] = [];
+  const walk = (glyphs: number[]): boolean => {
+    units.length = 0;
+    for (const g of glyphs) for (let k = 0; k < glyphString(page, g).length; k++) units.push([g, g + 1]);
+    return units.length === run.text.length && glyphs.map((g) => glyphString(page, g)).join("") === run.text;
+  };
+  const forwards = Array.from({ length: end - start }, (_, k) => start + k);
+  if (walk(forwards) || walk([...forwards].reverse())) return units;
+  return Array.from({ length: run.text.length }, () => [start, end] as [number, number]);
+}
+
+/** `page`'s text in reading order, mapped to its glyphs. */
+export function searchText(page: PageGlyphs): SearchText {
+  const spans = layoutSpans(page.runs, page.quads);
+  let text = "";
+  const lo: number[] = [];
+  const hi: number[] = [];
+  const glyphs = Math.max(0, page.glyphOffsets.length - 1);
+  const runOf = new Int32Array(glyphs).fill(-1);
+  let before: Piece | undefined;
+  for (const span of spans) {
+    const run = page.runs[span.run];
+    if (run === undefined) continue;
+    const piece: Piece = { page: 0, text: run.text, span };
+    if (before !== undefined) {
+      const gap = separator(before, piece);
+      for (let k = 0; k < gap.length; k++) {
+        lo.push(0);
+        hi.push(0);
+      }
+      text += gap;
+    }
+    for (const [a, b] of mapRun(page, run)) {
+      lo.push(a);
+      hi.push(b);
+    }
+    for (let g = run.glyphRange[0]; g < run.glyphRange[1]; g++) runOf[g] = span.run;
+    text += run.text;
+    before = piece;
+  }
+  return { text, lo: Int32Array.from(lo), hi: Int32Array.from(hi), runOf };
+}
+
+/** The quads of source units `[start, end)`: one per run, from its first glyph to its last. */
+function quadsOf(page: PageGlyphs, search: SearchText, start: number, end: number): MatchQuads {
+  const byRun = new Map<number, [number, number]>();
+  for (let u = start; u < end; u++) {
+    const a = search.lo[u] ?? 0;
+    const b = search.hi[u] ?? 0;
+    if (b <= a) continue;
+    const run = search.runOf[a] ?? -1;
+    const seen = byRun.get(run);
+    byRun.set(run, seen === undefined ? [a, b - 1] : [Math.min(seen[0], a), Math.max(seen[1], b - 1)]);
+  }
+  const out: number[] = [];
+  const q = page.quads;
+  for (const [first, last] of byRun.values()) {
+    const f = first * 8;
+    const l = last * 8;
+    // Bottom-left and top-left of the first glyph, bottom-right and top-right of the last.
+    out.push(
+      q[f] ?? 0,
+      q[f + 1] ?? 0,
+      q[l + 2] ?? 0,
+      q[l + 3] ?? 0,
+      q[l + 4] ?? 0,
+      q[l + 5] ?? 0,
+      q[f + 6] ?? 0,
+      q[f + 7] ?? 0,
+    );
+  }
+  return out;
+}
+
+/** Every match of `query` on `page`, each as its quads. */
+export function findOnPage(page: PageGlyphs, search: SearchText, query: string, options: FindOptions): MatchQuads[] {
+  const folded = fold(search.text, options);
+  const wanted = foldQuery(query, options);
+  return matches(folded.text, wanted, options.wholeWords === true).map(([a, b]) => {
+    const start = folded.from[a] ?? 0;
+    const end = (folded.from[b - 1] ?? start) + 1;
+    return quadsOf(page, search, start, end);
+  });
+}
