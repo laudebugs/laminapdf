@@ -3,7 +3,8 @@
 // scroll the same way.
 
 import { type Browser, type BrowserContext, devices, type Page } from "playwright";
-import { budgetBytes, viewerBudgets } from "../src/view/budgets.ts";
+// The built module: its own imports end in .js, which Node resolves only once compiled.
+import { budgetBytes, viewerBudgets } from "../dist/view/budgets.js";
 import type { BrowserResult } from "./report.ts";
 import "./types.ts";
 

@@ -59,15 +59,22 @@ export function lowScale(sharpScale: number, widthPt: number): number {
 
 /**
  * The sharp scale (device px per pt) of a page `css` CSS px in size at layout scale `layoutScale`:
- * `layoutScale × dpr`, lowered when the canvas pool could only `fit` fewer pixels. The canvas is
- * then `pagePixels` at this scale, which never exceeds `fitted` on either side.
+ * `layoutScale × dpr`, unless the canvas pool could only `fit` fewer pixels than `wanted`, the page
+ * in whole pixels at that scale (`pagePixels`); then lowered to what fits. The canvas is then
+ * `pagePixels` at this scale, which never exceeds `fitted` on either side.
+ *
+ * `wanted` is in whole pixels, as the pool fits them: comparing `fitted` with the fractional CSS
+ * size instead takes the pool's rounding (79.33 px to 79) for a cap, which lowers the scale a
+ * hair below the full one and sends every page asking for a detail canvas it doesn't need.
  */
 export function sharpScale(
   layoutScale: number,
   dpr: number,
   css: { readonly width: number; readonly height: number },
   fitted: { readonly width: number; readonly height: number },
+  wanted: { readonly width: number; readonly height: number },
 ): number {
+  if (fitted.width >= wanted.width && fitted.height >= wanted.height) return layoutScale * dpr;
   return layoutScale * Math.min(dpr, fitted.width / css.width, fitted.height / css.height);
 }
 

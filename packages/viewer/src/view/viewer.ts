@@ -895,8 +895,10 @@ export class Viewer {
     // exactly as the renderer sizes it, so every tile fits inside.
     const css = { width: cssW, height: cssH };
     const ratio = backdropRatio(dpr, css, this.#backdropMaxPixels);
-    const fitted = this.#pool.fit(canvas, cssW * ratio, cssH * ratio);
-    const scale = sharpScale(layout.scale, ratio, css, fitted);
+    // The pool is asked for the page in whole pixels, as the renderer sizes it at that ratio.
+    const wanted = pagePixels(this.#sizes[index] as PageSize, layout.scale * ratio, layout.rotation);
+    const fitted = this.#pool.fit(canvas, wanted.width, wanted.height);
+    const scale = sharpScale(layout.scale, ratio, css, fitted, wanted);
     const { width, height } = pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation);
     // What the canvas shows now, if it is this page in this orientation at another zoom: drawn back
     // at the new size, so a re-zoom never trades sharp pixels for blurry ones.
