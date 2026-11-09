@@ -37,7 +37,7 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 **Out of scope** (and which todo covers it)
 
 - Turning budgets into hard CI gates and adding the app-shell JS size budget → [C7c](../ready/C7c-performance-gates-and-launch.md).
-- Search performance → measured in [C5b](../ready/C5b-find-in-document.md) using this harness.
+- Search performance → measured in [C5b](../ongoing/C5b-find-in-document.md) using this harness.
 
 ## Tasks
 

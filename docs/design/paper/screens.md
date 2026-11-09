@@ -24,7 +24,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | R02 | Loading states: placeholders at true aspect, low-res then sharp tiles, progress for large files | W | [C3b](../../todos/done/C3b-viewer-virtualiser-and-zoom.md) |
 | R03 | Password prompt (password-required, wrong-password) | W, M | [C4c](../../todos/done/C4c-remote-files-encryption-privacy.md) |
 | R04 | Repaired / damaged file: status-bar notice and details panel; unrecoverable error page | W | [C4b](../../todos/done/C4b-web-app-shell.md) |
-| R05 | Find in document: find bar, match count, results list in the rail, case/whole-word options | W, M | [C5b](../../todos/ready/C5b-find-in-document.md) |
+| R05 | Find in document: find bar, match count, results list in the rail, case/whole-word options | W, M | [C5b](../../todos/ongoing/C5b-find-in-document.md) |
 | R06 | Rail tabs: Pages (thumbnails with page labels) · Outline (nested, expand/collapse) · contextual tabs (Attachments, Results…) | W | [C6a](../../todos/ready/C6a-thumbnails-outline-page-labels.md) |
 | R07 | Links and history: link hover target preview, back/forward after following a link | W | [C6b](../../todos/ready/C6b-links-and-history.md) |
 | R08 | Document properties (dialog: title, author, PDF version, page size, fonts, security, tagged) | W | [C6c](../../todos/ready/C6c-print-download-properties.md) |

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C5b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C5. Text, selection and search](../../plans/web-app.md#c5-text-selection-and-search) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C5a](../done/C5a-text-layer-and-selection.md) |

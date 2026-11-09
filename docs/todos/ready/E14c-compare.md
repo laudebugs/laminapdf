@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E14](../../plans/full-editor.md#e14-compare-revisions-and-batch) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [C5b](./C5b-find-in-document.md), [E14b](./E14b-revision-browser.md) |
+| Depends on | [C5b](../ongoing/C5b-find-in-document.md), [E14b](./E14b-revision-browser.md) |
 | Dependency notes | [E14b](E14b-revision-browser.md), `C5` ([web-app §C5](../../plans/web-app.md#c5-text-selection-and-search): text layer and search) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e14c-compare` |
