@@ -175,6 +175,7 @@ export type {
   PlatformStorage,
   PrintJob,
   PrintPage,
+  RecentDetails,
   RecentFile,
   RecentFiles,
   SaveResult,
@@ -266,6 +267,7 @@ export {
   type PropertiesDialogProps,
   type PropertiesState,
 } from "./reader/properties-dialog.js";
+export { RecentList, type RecentListProps, recentMeta } from "./reader/recent-list.js";
 export {
   OpenFailure,
   type OpenFailureProps,

@@ -275,17 +275,31 @@ function recentFiles(store: KeyValueStore, capabilities: Capabilities): RecentFi
   };
   const recent: RecentFiles = {
     list,
-    add: (file) =>
+    add: (file, details = {}) =>
       serial(async () => {
         const entries = await list();
-        const same = entries.find((entry) => entry.name === file.name && entry.size === file.size);
+        // A linked document is its address; a local one, its name and size.
+        const same = entries.find((entry) =>
+          details.url === undefined
+            ? entry.url === undefined && entry.name === file.name && entry.size === file.size
+            : entry.url === details.url,
+        );
         const id = same?.id ?? crypto.randomUUID();
-        const entry: RecentFile = { id, name: file.name, size: file.size, lastOpened: Date.now() };
+        const hasHandle = details.url === undefined && capabilities.canReopenRecent && isFileHandle(file.handle);
+        const entry: RecentFile = {
+          id,
+          name: file.name,
+          size: file.size,
+          lastOpened: Date.now(),
+          ...(details.pages === undefined ? {} : { pages: details.pages }),
+          ...(details.url === undefined ? {} : { url: details.url }),
+          hasHandle,
+        };
         const kept = [entry, ...entries.filter((e) => e.id !== id)];
         for (const dropped of kept.splice(RECENT_LIMIT)) await store.delete(handleKey(dropped.id));
         await store.set(RECENT, kept);
         // A handle from an earlier open of a file with this name and size would reopen that file.
-        if (capabilities.canReopenRecent && isFileHandle(file.handle)) await store.set(handleKey(id), file.handle);
+        if (hasHandle) await store.set(handleKey(id), file.handle);
         else await store.delete(handleKey(id));
       }),
     remove: (id) =>

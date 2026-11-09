@@ -51,11 +51,13 @@ import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
+import { clearDocumentCache } from "./offline/document-cache.ts";
 import { useOffline } from "./offline/offline.tsx";
 import type { AppUpdates } from "./offline/updates.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { railTabs } from "./rail.tsx";
+import { type Recent, useRecent } from "./recent.tsx";
 import type { SelectionSurfaces } from "./selection.tsx";
 import { useSelection } from "./selection.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
@@ -336,13 +338,15 @@ function useDocumentMenu(
   platform: Platform,
   state: ReaderState,
   shown: Viewer | undefined,
-  appActions: Settings["actions"],
+  settings: Settings,
 ): {
   toasts: ToastQueue;
   labels: readonly string[] | undefined;
   output: Output;
   moreItems: { items: ReturnType<typeof useGatedEntries<MoreId>>; onAction: (id: MoreId) => void };
+  recent: Recent;
 } {
+  const appActions = settings.actions;
   const pages = useStoreState(engine, (s) => s.pages);
   const [toasts] = useState(() => new ToastQueue());
   const labels = useMemo(
@@ -354,6 +358,9 @@ function useDocumentMenu(
       ? { fileName: state.file.name, pages, labels, viewer: shown }
       : undefined;
   const output = useOutput(engine, platform, toasts, document);
+  const recent = useRecent(platform, engine, state, settings.registry, toasts, () =>
+    clearDocumentCache(platform.storage),
+  );
   const items = useGatedEntries<MoreId>(moreEntries(document !== undefined));
   const onAction = (id: MoreId) => {
     if (id === "open") engine.reader.close();
@@ -362,7 +369,7 @@ function useDocumentMenu(
     else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
     else output.actions[MORE_COMMANDS[id]]();
   };
-  return { toasts, labels, output, moreItems: { items, onAction } };
+  return { toasts, labels, output, moreItems: { items, onAction }, recent };
 }
 
 /** The debug menu (#debug): which backend draws the pages. */
@@ -376,11 +383,14 @@ function Canvas({
   state,
   platform,
   viewer,
+  recent,
 }: {
   engine: Engine;
   state: ReaderState;
   platform: Platform;
   viewer: Viewer | undefined;
+  /** The home screen's Recent list. */
+  recent: ReactNode;
 }): ReactNode {
   const { reader } = engine;
   const linkProblem = useStoreState(engine, (s) => s.linkProblem);
@@ -388,6 +398,7 @@ function Canvas({
     <>
       {state.phase === "empty" && linkProblem === undefined ? (
         <OpenDropZone reader={reader} keys={KEYS}>
+          {recent}
           <p className="web-privacy">{message("reader.open.privacy")}</p>
         </OpenDropZone>
       ) : null}
@@ -437,7 +448,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
   const settings = useSettings(shell.openPalette);
-  const { toasts, labels, output, moreItems } = useDocumentMenu(engine, platform, state, shown, settings.actions);
+  const { toasts, labels, output, moreItems, recent } = useDocumentMenu(engine, platform, state, shown, settings);
   const find = useFind(shown, open ? state.file : undefined);
   const tabs = useRailTabs(engine, layout, open, find.open);
   const fileName = open ? state.file.name : undefined;
@@ -451,7 +462,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
     shell,
     rail,
     { ...find.actions, ...history.actions, ...output.actions, ...selection.actions },
-    settings.actions,
+    { ...settings.actions, ...recent.actions },
   );
   useWindowTitle(fileName, engineState.title);
   const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState.pages);
@@ -497,7 +508,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           </>
         }
       >
-        <Canvas engine={engine} state={state} platform={platform} viewer={viewer} />
+        <Canvas engine={engine} state={state} platform={platform} viewer={viewer} recent={recent.home} />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
         {output.dialogs}
       </ReaderShell>

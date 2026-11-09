@@ -13,6 +13,7 @@ import { createWebPlatform, PlatformProvider } from "@laminapdf/ui";
 import { createRoot } from "react-dom/client";
 import { App } from "./app.tsx";
 import { wantsDebug } from "./document.ts";
+import { openLaunchedFiles } from "./offline/launch.ts";
 import { AppUpdates } from "./offline/updates.ts";
 import { watchFragment } from "./open/watch.ts";
 import { Engine } from "./session.ts";
@@ -41,6 +42,10 @@ const platform = createWebPlatform();
 const engine = new Engine(platform, "pdfium", { outlineText: wantsDebug(location.hash), network: networkMonitor });
 // `#url=` opens a remote file now and whenever the fragment changes.
 watchFragment(window, engine);
+// A file the operating system opened with the installed reader ("Open with", the manifest's
+// file_handlers; Chromium) opens through the same path as one chosen here. The reader shows one
+// document, so of several files the first opens.
+openLaunchedFiles(platform, engine.reader);
 // The service worker (R15), in production builds only: the dev server's modules change under it.
 const updates = new AppUpdates(
   import.meta.env.PROD && "serviceWorker" in navigator ? navigator.serviceWorker : undefined,

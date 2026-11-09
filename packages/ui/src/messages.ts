@@ -419,6 +419,22 @@ const EN = {
   "print.quality.lowered": "Printing at standard quality to stay within this device's memory.",
   "print.failed": "Lamina PDF couldn't prepare the pages for print.",
   "download.done": "Downloaded {name}",
+  "recent.title": "Recent",
+  "recent.clear": "Clear list",
+  "recent.thisDevice": "This device",
+  "recent.page": "1 page",
+  "recent.pages": "{count} pages",
+  "recent.chooseAgain": "Choose the file again to reopen",
+  "storage.title": "Storage and privacy",
+  "storage.rememberLocal": "Remember recent local files",
+  "storage.rememberLocal.help":
+    "The names of files you open on this device are listed on the home screen. They stay in this browser.",
+  "storage.rememberRemote": "Remember remote URLs",
+  "storage.rememberRemote.help":
+    "Addresses of linked files are listed too. Off by default: an address can say more than a file name.",
+  "storage.clear": "Clear recent files and cached documents",
+  "storage.clear.help": "Removes the recent list and every copy of a document this browser keeps for the reader.",
+  "storage.cleared": "Recent files and cached documents cleared",
   "offline.title": "You're offline.",
   "offline.body":
     "Lamina PDF keeps working: files on this device open, render and search as usual. Opening a file from a web address needs a connection.",

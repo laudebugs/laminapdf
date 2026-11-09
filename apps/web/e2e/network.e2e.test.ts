@@ -21,13 +21,16 @@ const BLOCKED_BY_POLICY = /^csp$|BLOCKED_BY_CSP|Content Security Policy|CONTENT_
 
 /**
  * A context whose every http(s) request is logged, but the favicon the browser asks for by itself
- * (made by no page or worker code, so no feed can see it) and those its policy refused (some
- * engines report them as requests that failed; nothing was sent).
+ * (made by no page or worker code, so no feed can see it), those its policy refused (some
+ * engines report them as requests that failed; nothing was sent), and the service worker's own
+ * downloads of the reader's files when it installs (same-origin app files, never a document; the
+ * worker answers only its own origin, and no page or document worker sees its requests).
  */
 async function logged(browser: Browser): Promise<{ context: BrowserContext; log: string[] }> {
   const context = await browser.newContext({ ignoreHTTPSErrors: true });
   const log: string[] = [];
   context.on("request", (request) => {
+    if (request.serviceWorker() !== null) return;
     const url = request.url();
     if (/^https?:/.test(url) && new URL(url).pathname !== "/favicon.ico") log.push(url);
   });

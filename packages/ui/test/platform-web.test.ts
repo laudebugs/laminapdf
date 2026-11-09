@@ -348,6 +348,28 @@ describe("storage and recent files on the web", () => {
     expect(await platform.recent.reopen?.(entry?.id ?? "")).toBeUndefined();
   });
 
+  it("keeps a document's page count, and a linked document by its address", async () => {
+    const { recent } = createWebPlatform(fakeScope());
+    await recent.add(fakeFile("report.pdf"), { pages: 24 });
+    const remote = { ...fakeFile("report.pdf"), size: 0 };
+    await recent.add(remote, { url: "https://example.org/a/report.pdf", pages: 3 });
+    await recent.add(remote, { url: "https://example.org/b/report.pdf" });
+    await recent.add(remote, { url: "https://example.org/a/report.pdf", pages: 3 });
+    const entries = await recent.list();
+    expect(entries.map((e) => [e.url ?? "local", e.pages])).toEqual([
+      ["https://example.org/a/report.pdf", 3],
+      ["https://example.org/b/report.pdf", undefined],
+      ["local", 24],
+    ]);
+    expect(entries.every((e) => e.hasHandle === false)).toBe(true);
+  });
+
+  it("says which entries kept a handle", async () => {
+    const platform = createWebPlatform(chromiumLike({ indexedDB: fakeIndexedDb() }));
+    await platform.recent.add({ ...fakeFile("kept.pdf"), handle: fakeHandle("kept.pdf").handle });
+    expect((await platform.recent.list())[0]?.hasHandle).toBe(true);
+  });
+
   it("removes one recent document, or all of them", async () => {
     const { recent } = createWebPlatform(fakeScope());
     await recent.add(fakeFile("a.pdf"));
