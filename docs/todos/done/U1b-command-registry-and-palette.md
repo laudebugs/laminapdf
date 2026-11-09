@@ -37,7 +37,7 @@ Make every reader action a registered command and give power users a Cmd/Ctrl+K 
 
 **Out of scope** (and which todo covers it)
 
-- Shortcut help dialog UI → [C7a](../ready/C7a-accessibility-and-theming.md) (reads `useShortcutMap()`).
+- Shortcut help dialog UI → [C7a](./C7a-accessibility-and-theming.md) (reads `useShortcutMap()`).
 - Native menus → [D4b](../ready/D4b-native-menus.md).
 - Editor commands → each E round registers its own.
 

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../done/C4c-remote-files-encryption-privacy.md), [C4d](../done/C4d-deploy-previews-and-production.md), [C5b](../done/C5b-find-in-document.md), [C7a](../ongoing/C7a-accessibility-and-theming.md) |
+| Depends on | [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../done/C4c-remote-files-encryption-privacy.md), [C4d](../done/C4d-deploy-previews-and-production.md), [C5b](../done/C5b-find-in-document.md), [C7a](../done/C7a-accessibility-and-theming.md) |
 | ADRs | Follows 0011 (immutable hashed assets, headers; nothing leaves the device; local storage clearable), 0010 (`Platform.storage`, `hasFileHandlers` capability), 0009 |
 | Branch | `feat/c7b-offline-pwa` |
 | PR title | `feat(web): make the reader an installable offline pwa with file handling and recent files` |
@@ -34,7 +34,7 @@ After one visit, the reader works with no network: a service worker precaches th
 - `launchQueue.setConsumer` handling in `apps/web` to open launched files through the same open pipeline; capability `hasFileHandlers`.
 - OPFS: worker-side `OpfsByteSource` using `createSyncAccessHandle`; large local files (> threshold, e.g. 200 MB) and remote files without range support stream into OPFS once, then are read randomly; quota checks (`navigator.storage.estimate()`), `navigator.storage.persist()` only on user action; cleanup policy (LRU by size, user clear).
 - Recent files: IndexedDB store of metadata (name, size, page count, last opened, last page, thumbnail of page 1 as a small blob — stored locally only); on Chromium, the `FileSystemFileHandle` is stored to reopen with permission prompt; elsewhere, reopening needs the user to pick the file again (or the OPFS copy if cached); remote entries store the URL locally (never sent anywhere) — **only if the user opts in** ("Remember remote URLs", default **off**); with it off, remote documents are not added to recents at all.
-- Settings: a **"Storage and privacy" section added to the settings dialog that [C7a](./C7a-accessibility-and-theming.md) owns** (C7b does not build its own settings UI; it registers a section through C7a's settings-section API): "Clear recent files and cached documents" (wipes IndexedDB + OPFS), "Remember recent local files" (default **on**, local only, clearly explained), "Remember remote URLs" (default **off**, opt-in; privacy-first).
+- Settings: a **"Storage and privacy" section added to the settings dialog that [C7a](../done/C7a-accessibility-and-theming.md) owns** (C7b does not build its own settings UI; it registers a section through C7a's settings-section API): "Clear recent files and cached documents" (wipes IndexedDB + OPFS), "Remember recent local files" (default **on**, local only, clearly explained), "Remember remote URLs" (default **off**, opt-in; privacy-first).
 - Empty state lists recent files (keyboard accessible).
 
 **Out of scope** (and which todo covers it)
