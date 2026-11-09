@@ -452,6 +452,7 @@ function selectionCommands(): AnyCommand[] {
       keywords: ["send", "selected text"],
       group: "edit",
       icon: "share",
+      requires: "canShare",
       home: ["context-menu"],
       enabled: documentOpen,
     }),

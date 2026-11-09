@@ -115,7 +115,8 @@ export class TextLayer implements PageLayer {
     this.#listen(document, "pointermove", (e) => this.#dragTo(e as PointerEvent));
     this.#listen(document, "pointerup", (e) => this.#pointerUp(e as PointerEvent));
     this.#listen(document, "pointercancel", (e) => this.#pointerUp(e as PointerEvent));
-    this.#listen(host.root, "keydown", (e) => {
+    // On the document: the drag that made a column selection kept the focus where it was.
+    this.#listen(document, "keydown", (e) => {
       if ((e as KeyboardEvent).key === "Escape" && this.#column !== undefined) this.#clearColumn(true);
     });
   }
@@ -166,6 +167,7 @@ export class TextLayer implements PageLayer {
   open(document: OpenedDocument): void {
     this.#points = document.pages.map((p) => ({ width: p.width, height: p.height }));
     this.#structure.reset();
+    this.#blocks.clear();
     const opening = ++this.#generation;
     this.#host.client
       .structure()
@@ -339,25 +341,46 @@ export class TextLayer implements PageLayer {
   #selectedPieces(): Piece[] | undefined {
     const range = this.#range();
     if (range !== undefined) return this.#pieces(range);
-    return this.#column?.pieces;
+    // The column, unless something else is selected or a field has the focus: that copy is theirs.
+    const selection = document.getSelection();
+    const elsewhere = selection !== null && selection.rangeCount > 0 && !selection.isCollapsed;
+    const field = document.activeElement?.closest("input, textarea, [contenteditable]") ?? null;
+    return elsewhere || field !== null ? undefined : this.#column?.pieces;
   }
 
-  /** Page `page`'s reading-order blocks if read; else starts reading them for the next copy. */
+  /**
+   * Page `page`'s reading-order blocks if read; else starts reading them, and tells the app the
+   * selection again once they come, its text then in reading order. A page whose blocks can't be
+   * read gets none, once: its text is joined in run order.
+   */
   #blocksOf(page: number): readonly ReadingBlock[] | undefined {
     const known = this.#blocks.get(page);
     if (known === "reading") return undefined;
     if (known !== undefined) return known;
     this.#blocks.set(page, "reading");
+    const asked = this.#generation;
+    const store = (blocks: readonly ReadingBlock[]) => {
+      // Another document opened since: these blocks are the old one's.
+      if (asked !== this.#generation || this.#blocks.get(page) !== "reading") return;
+      this.#blocks.set(page, blocks);
+      this.#retell();
+    };
     this.#host.client
       .readingOrder(page)
-      .then((blocks) => {
-        if (this.#blocks.get(page) === "reading") this.#blocks.set(page, blocks);
-      })
-      .catch(() => {
-        // No blocks (a page without text, the extract module missing): copied in run order.
-        if (this.#blocks.get(page) === "reading") this.#blocks.delete(page);
-      });
+      .then(store)
+      .catch(() => store([]));
     return undefined;
+  }
+
+  /** Tells the app about the selection as it is now (its text may read better with new blocks). */
+  #retell(): void {
+    if (!this.#selecting) return;
+    if (this.#column !== undefined) {
+      this.#tell(this.#column.pieces, this.#column.spans.map((s) => s.getBoundingClientRect()), true);
+      return;
+    }
+    const range = this.#range();
+    if (range !== undefined) this.#tell(this.#pieces(range), [...range.getClientRects()], false);
   }
 
   #copy(event: ClipboardEvent): void {
@@ -389,7 +412,12 @@ export class TextLayer implements PageLayer {
     const range = this.#range();
     // A browser selection replaces a column selection.
     if (range !== undefined && this.#column !== undefined) this.#clearColumn(false);
-    if (range === undefined && this.#column !== undefined) return;
+    if (range === undefined && this.#column !== undefined) {
+      // A selection made elsewhere (a field, the outline) ends the column's; a collapsed one doesn't.
+      const selection = document.getSelection();
+      if (selection !== null && selection.rangeCount > 0 && !selection.isCollapsed) this.#clearColumn(true);
+      return;
+    }
     if (range === undefined) {
       // A selection elsewhere on the page (an input, another viewer): told once, when it leaves.
       if (!this.#selecting) return;
@@ -415,8 +443,14 @@ export class TextLayer implements PageLayer {
     const pages = [...new Set(pieces.map((p) => p.page))];
     for (const page of pages) this.#blocksOf(page);
     if (this.#options.onSelection === undefined) return;
+    // The text only when asked for (Search for, Share): joining it on every change of a drag costs.
+    let text: string | undefined;
+    const blocksOf = (page: number) => this.#blocksOf(page);
     this.#options.onSelection({
-      text: copySelection(pieces, "paragraph", (page) => this.#blocksOf(page)).text,
+      get text() {
+        text ??= copySelection(pieces, "paragraph", blocksOf).text;
+        return text;
+      },
       rects,
       pages,
       pointerType: this.#pointerType,
@@ -428,6 +462,9 @@ export class TextLayer implements PageLayer {
   #pointerDownIn(event: PointerEvent): void {
     this.#pointerType = event.pointerType;
     this.#pointerDown = true;
+    // The page the press is on: its blocks are read while the drag goes on, for the copy after it.
+    const page = event.target instanceof Node ? pageOf(event.target) : undefined;
+    if (page !== undefined && this.#pages.has(page)) this.#blocksOf(page);
     if (this.#column !== undefined) this.#clearColumn(true);
     const rectangle = (event.altKey || this.#columnMode) && event.pointerType !== "touch" && event.button === 0;
     if (!rectangle) return;

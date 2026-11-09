@@ -11,6 +11,7 @@ import {
   type KeyPlatform,
   type MoreItems,
   message,
+  type Platform,
   type PlatformStorage,
   SelectionActionBar,
   SelectionToolbar,
@@ -18,7 +19,7 @@ import {
   useMediaQuery,
 } from "@laminapdf/ui";
 import type { TextSelection, Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Find } from "./find.tsx";
 
 /** Where the toolbar setting is kept. */
@@ -53,12 +54,12 @@ function useToolbarSetting(storage: PlatformStorage): [boolean, () => void] {
       live = false;
     };
   }, [storage]);
-  const toggle = () => {
+  const toggle = useCallback(() => {
     setOn((was) => {
       void storage.set(TOOLBAR_KEY, !was).catch(() => undefined);
       return !was;
     });
-  };
+  }, [storage]);
   return [on, toggle];
 }
 
@@ -89,28 +90,32 @@ function useViewerSelection(viewer: Viewer | undefined): [TextSelection | undefi
 export function useSelection(
   viewer: Viewer | undefined,
   find: Find,
-  storage: PlatformStorage,
+  platform: Platform,
   keys: KeyPlatform,
 ): SelectionSurfaces {
   const [selection, scrolled] = useViewerSelection(viewer);
-  const [toolbarOn, toggleToolbar] = useToolbarSetting(storage);
+  const [toolbarOn, toggleToolbar] = useToolbarSetting(platform.storage);
   const [dismissed, setDismissed] = useState<TextSelection | undefined>(undefined);
   const coarse = useMediaQuery("(pointer: coarse)");
-  const share = typeof navigator.share === "function";
+  // Read when a command runs, so the handlers (and the registry's context) stay the same while a
+  // drag changes the selection.
+  const current = useRef({ selection, searchFor: find.searchFor });
+  current.current = { selection, searchFor: find.searchFor };
   const actions = useMemo<Partial<Record<CommandId, () => void>>>(() => {
     if (viewer === undefined) return {};
-    const text = () => selection?.text ?? "";
+    const text = () => current.current.selection?.text ?? "";
     return {
       "edit.copy": () => void viewer.copySelection("paragraph"),
       "edit.copy-exact": () => void viewer.copySelection("exact"),
       "edit.select-column-mode": () => {
         viewer.columnSelect = !viewer.columnSelect;
       },
-      "selection.search": () => find.searchFor(text()),
+      "selection.search": () => current.current.searchFor(text()),
       "selection.toggle-toolbar": toggleToolbar,
-      ...(share ? { "selection.share": () => void navigator.share({ text: text() }).catch(() => undefined) } : {}),
+      // The registry shows Share only where the platform can (`requires: "canShare"`).
+      "selection.share": () => void platform.shareText(text()).catch(() => undefined),
     };
-  }, [viewer, selection, find, toggleToolbar, share]);
+  }, [viewer, toggleToolbar, platform]);
   const touch =
     selection !== undefined && (selection.pointerType === "touch" || (selection.pointerType === "" && coarse));
   const showToolbar =

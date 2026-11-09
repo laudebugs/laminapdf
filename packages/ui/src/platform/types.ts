@@ -30,6 +30,8 @@ export interface Capabilities {
   readonly crossOriginIsolated: boolean;
   /** No browser sits around the app, so it may bind keys a browser keeps for itself. */
   readonly ownsKeyboard: boolean;
+  /** `shareText` hands text to the system's share sheet. */
+  readonly canShare: boolean;
 }
 
 /** One of the capability flags. */
@@ -129,6 +131,8 @@ export interface Platform {
   print(job: PrintJob): Promise<void>;
   /** Plain text to the system clipboard (write only). */
   copyText(text: string): Promise<void>;
+  /** Hands `text` to the system's share sheet (where `canShare`); rejects when the user cancels. */
+  shareText(text: string): Promise<void>;
   /** Opens a URL outside the app, after the UI's own confirmation. http(s) and mailto only. */
   openExternal(url: string): Promise<void>;
 

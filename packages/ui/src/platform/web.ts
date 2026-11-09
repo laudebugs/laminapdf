@@ -72,6 +72,7 @@ export function detectCapabilities(scope: WebScope): Capabilities {
     canOpenUrl: true,
     crossOriginIsolated: scope.crossOriginIsolated === true,
     ownsKeyboard: false,
+    canShare: typeof scope.navigator?.share === "function",
   };
 }
 
@@ -107,6 +108,7 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
     },
     print: () => Promise.reject(new Error(message("platform.error.print"))),
     copyText: (text) => scope.navigator.clipboard.writeText(text),
+    shareText: (text) => scope.navigator.share({ text }),
     async openExternal(url) {
       const { protocol } = new URL(url);
       if (!["http:", "https:", "mailto:"].includes(protocol)) throw new Error(message("platform.error.externalScheme"));

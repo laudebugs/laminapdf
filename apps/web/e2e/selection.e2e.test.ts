@@ -37,7 +37,7 @@ async function open(watched: Watched): Promise<void> {
         last = now;
         return still;
       },
-      { timeout: 20_000, intervals: [300] },
+      { timeout: 20_000, interval: 300 },
     )
     .toBe(true);
 }

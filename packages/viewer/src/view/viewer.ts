@@ -387,11 +387,6 @@ export class Viewer {
   }
 
   /**
-   * Keeps `pages` mounted wherever the view scrolls, until the next call replaces them: the pages
-   * a text selection touches, so scrolling never takes the selection away. A pinned page out of
-   * view keeps its shell and its text; its canvas goes back to the pool like any other.
-   */
-  /**
    * Copies the text selection to the clipboard: by paragraph in reading order, or exact, as laid
    * out. Call it in a user gesture (a click, a key). Resolves false when nothing is selected or
    * the clipboard refused.
@@ -409,6 +404,11 @@ export class Viewer {
     if (this.#text !== undefined) this.#text.columnMode = on;
   }
 
+  /**
+   * Keeps `pages` mounted wherever the view scrolls, until the next call replaces them: the pages
+   * a text selection touches, so scrolling never takes the selection away. A pinned page out of
+   * view keeps its shell and its text; its canvas goes back to the pool like any other.
+   */
   keepMounted(pages: Iterable<number>): void {
     const next = new Set(pages);
     if (next.size === this.#pinned.size && [...next].every((p) => this.#pinned.has(p))) return;

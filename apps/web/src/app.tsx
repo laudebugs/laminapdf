@@ -257,7 +257,7 @@ export function App({
     return pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined;
   }, [engineState.pages]);
   const fileName = open ? state.file.name : undefined;
-  const selection = useSelection(shown, find, platform.storage, KEYS);
+  const selection = useSelection(shown, find, platform, KEYS);
   const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions, selection.actions);
   useWindowTitle(fileName, engineState.title);
   const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);

@@ -85,18 +85,18 @@ describe("joinLines", () => {
 
   it("repairs a word broken by a hyphen before a lowercase letter", () => {
     expect(joinLines(["a broken hy-", "phen here"])).toBe("a broken hyphen here");
-    expect(joinLines(["a broken hy‐", "phen"])).toBe("a broken hyphen");
   });
 
-  it("keeps a hyphen before a capital, a digit or a space", () => {
-    expect(joinLines(["Jean-", "Paul"])).toBe("Jean- Paul");
-    expect(joinLines(["pre-", "2020"])).toBe("pre- 2020");
+  it("keeps a hyphen before a capital or a digit, with no space, as the extraction does", () => {
+    expect(joinLines(["Jean-", "Paul"])).toBe("Jean-Paul");
+    expect(joinLines(["pre-", "2020"])).toBe("pre-2020");
     expect(joinLines(["a dash -", "then"])).toBe("a dash - then");
   });
 
-  it("joins after a soft hyphen and drops every soft hyphen", () => {
-    expect(joinLines(["hyphen­", "ation"])).toBe("hyphenation");
-    expect(joinLines(["hy­phen"])).toBe("hyphen");
+  it("joins after a soft hyphen, writes it as a hyphen before a capital, and drops the rest", () => {
+    expect(joinLines(["hyphen\u00ad", "ation"])).toBe("hyphenation");
+    expect(joinLines(["Jean\u00ad", "Paul"])).toBe("Jean-Paul");
+    expect(joinLines(["hy\u00adphen"])).toBe("hyphen");
   });
 
   it("skips empty lines", () => {

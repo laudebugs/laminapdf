@@ -145,19 +145,27 @@ function linesOf(pieces: readonly Piece[]): string[] {
 }
 
 /**
- * `lines` as one: joined by a space, but a word broken at a line's end joined again: after a soft
- * hyphen, or after a hyphen when the next line starts with a lowercase letter (a hyphen before a
- * capital or a digit, as in "Jean-" / "Paul" or "pre-" / "2020", stays).
+ * `lines` as one, by the extraction's own rule (`join_lines` in laminapdf-extract's
+ * `text_fix.rs`), so a paragraph copies as `extract()` gives it: joined by a space, except after
+ * a soft hyphen or a word-final hyphen. There a lowercase continuation joins the word again (the
+ * hyphen dropped), and anything else follows the hyphen with no space ("Jean-" "Paul" gives
+ * "Jean-Paul"; a soft hyphen becomes a hyphen). A spaced dash ("a -") is followed by a space.
  */
 export function joinLines(lines: readonly string[]): string {
   let out = "";
   for (const raw of lines) {
     const line = raw.trim();
     if (line === "") continue;
-    if (out === "") out = line;
-    else if (out.endsWith(SOFT_HYPHEN)) out = out.slice(0, -1) + line;
-    else if (/\p{L}[-‐]$/u.test(out) && /^\p{Ll}/u.test(line)) out = out.slice(0, -1) + line;
-    else out += ` ${line}`;
+    if (out === "") {
+      out = line;
+      continue;
+    }
+    const lowerNext = /^\p{Ll}/u.test(line);
+    if (out.endsWith(SOFT_HYPHEN)) out = out.slice(0, -1) + (lowerNext ? "" : "-");
+    else if (out.endsWith("-") && !out.endsWith(" -")) {
+      if (lowerNext) out = out.slice(0, -1);
+    } else out += " ";
+    out += line;
   }
   return out.replaceAll(SOFT_HYPHEN, "");
 }
