@@ -3,7 +3,8 @@
 // to 320 px (every PR); Firefox has no mobile emulation. Each
 // opens a file, pans and zooms it with synthetic touches (the viewer owns the gestures: pinch keeps
 // the point under the fingers within 2 px), never scrolls sideways, copies its text and passes axe; the phone shows
-// the bottom bar and the tablet the desktop shell.
+// the bottom bar and the tablet the desktop shell. Each goes to an outline item and a thumbnail from
+// the rail (the phone's Contents sheet, the tablet's drawer), which closes so the page shows.
 
 import { env } from "node:process";
 import axe from "axe-core";
@@ -80,6 +81,19 @@ const scrollTo = (page: Page, at: number) =>
     await new Promise((resolve) => requestAnimationFrame(resolve));
     return root.scrollHeight - root.clientHeight - root.scrollTop;
   }, at);
+
+/** The indices of the pages in view, in order. */
+const pagesInView = (page: Page) =>
+  page.evaluate(() => {
+    const view = (document.querySelector(".lamina-viewer") as HTMLElement).getBoundingClientRect();
+    return [...document.querySelectorAll<HTMLElement>(".web-viewer .lamina-page")]
+      .filter((p) => {
+        const r = p.getBoundingClientRect();
+        return r.bottom > view.top + 1 && r.top < view.bottom - 1;
+      })
+      .map((p) => Number(p.dataset.pageIndex))
+      .sort((a, b) => a - b);
+  });
 
 /** The first page's box, in viewport CSS px: its shell, since a detail canvas covers only the part in view. */
 const firstPage = (page: Page) =>
@@ -208,6 +222,34 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
         return event.clipboardData?.getData("text/plain") ?? "";
       });
       expect(copied.trim()).toBe("Hello, World");
+      await clean(watched);
+    });
+
+    it(`${profile.label}: goes to an outline item and a thumbnail from the ${profile.phone ? "Contents sheet" : "sidebar"}`, async () => {
+      const device = devices[profile.device];
+      const viewport = profile.width === undefined ? device?.viewport : { width: profile.width, height: 640 };
+      const watched = await load(browser, origin, "/", WITHOUT_PICKER, {
+        ...device,
+        ...(viewport === undefined ? {} : { viewport }),
+        ignoreHTTPSErrors: true,
+      });
+      await chooseFile(watched, "outline.pdf");
+      const { page } = watched;
+      await page.locator(".web-viewer canvas").first().waitFor();
+      const rail = () => page.getByRole("button", { name: profile.phone ? "Pages" : "Sidebar" }).click();
+      await rail();
+      await page.getByRole("tab", { name: "Outline" }).click();
+      await page.getByRole("row", { name: /Appendix/ }).click();
+      // The last page can't scroll to the top: it is in view, and page 1 isn't.
+      await expect.poll(async () => (await pagesInView(page)).includes(2)).toBe(true);
+      expect((await pagesInView(page)).includes(0)).toBe(false);
+      // The rail covered the page, so it closed.
+      expect(await page.getByRole("tab", { name: "Outline" }).count()).toBe(0);
+      await rail();
+      await page.getByRole("tab", { name: "Pages" }).click();
+      await page.getByRole("option", { name: "Page A-1 (2 of 3)" }).click();
+      await expect.poll(async () => (await pagesInView(page))[0]).toBe(1);
+      expect(await page.getByRole("tab", { name: "Pages" }).count()).toBe(0);
       await clean(watched);
     });
 

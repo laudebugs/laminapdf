@@ -73,6 +73,20 @@
     color: inherit;
   }
 
+  /* The tree (OutlineTree): rows are items, focused by the arrow keys (base.css draws the ring). */
+  .paper-outline-tree {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .paper-outline-item {
+    border-radius: var(--paper-radius-4);
+  }
+
+  .paper-outline-item[data-hovered] .paper-outline-link {
+    background: var(--paper-hover);
+  }
+
   @media (forced-colors: active) {
     .paper-outline-row[data-current] .paper-outline-link {
       forced-color-adjust: none;
