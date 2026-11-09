@@ -63,6 +63,14 @@ The policy itself stays as ADR 0011 sets it, with `connect-src 'self' https:` so
 
 Browser extensions make requests no page can see, so the panel says so; your browser's developer tools show those too.
 
+## Reader mode
+
+Reader mode turns a tagged PDF into one column of text that the reader can size: the Reader button in the top bar, the `R` key, or "Reader mode" in the command palette. The column follows the file's structure tree, so headings, lists, quotes and notes come out as real HTML in the order the author tagged, whatever order the page draws them in. Figures, formulas and tables stay pictures: each is a crop of its page, drawn by the document worker, named by its alternate text or by "The file gives no description of it". Reader settings (in the inspector) set the text size from 14 to 32 px, the line spacing and the line length, for every document; the column takes the page's paper and ink.
+
+Reader mode keeps the reader's place both ways. It starts the column at the block at the top of the page view, and "Back to page n", Escape or the toggle return the page view to the block at the column's top. The page view stays laid out under the column, unseen and inert, so it can move there at once.
+
+Not every tagged file can be trusted, so reader mode checks the tree before it shows anything. It refuses a file with no tags, an empty tree, a tree whose content sits mostly in bare spans, a tree that covers too little of the visible text on more than a quarter of its pages, and a tree whose order the pages' layout contradicts. The column then shows "Reader mode isn't available for this document" and Back to page. The checks run in `laminapdf-extract` (`reflow`), and the reflow comes from the extract module only, which the reader loads.
+
 ## Printing, downloads and properties
 
 The More menu holds Download a copy, Print… (also `Ctrl P`, or `⌘P` on a Mac; while a document is open, the shortcut opens the reader's print, not the browser's) and Document properties…. All three work on this device; nothing about the file goes to any server.

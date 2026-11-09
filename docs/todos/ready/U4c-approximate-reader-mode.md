@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U4. Trust and reflow](../../plans/ui-ux.md#u4-trust-and-reflow) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [U4b](../ongoing/U4b-reader-mode-from-structure-tree.md) |
+| Depends on | [U4b](../done/U4b-reader-mode-from-structure-tree.md) |
 | ADRs | Follows 0024; records any model or heuristic choice in the PR (no ML model without a licence check of its weights) |
 | Branch | `feat/u4c-approximate-reader-mode` |
 | PR title | `feat(reflow): add the approximate reader mode for untagged pdfs` |
@@ -21,7 +21,7 @@ Extend reader mode to the other half of PDFs, which carry no tags, with a pure-R
 
 - **Design (Paper):** [R14 Reader mode](../../design/paper/reader-b.md#r14-reader-mode). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.8](../../plans/ui-ux.md#58-reader-mode-reflow-and-local-intelligence-r15-r16); [differentiation notes](../../research/product/notes/differentiation-mvp.md) — layout models and their licences (DocLayout-YOLO AGPL-3.0; Marker weights OpenRAIL-M with commercial limits; Docling code MIT, weights unchecked).
-- [U4b](../ongoing/U4b-reader-mode-from-structure-tree.md) — `Block` model and the reading view; [U2b](../done/U2b-reading-order-ground-truth.md) — scoring.
+- [U4b](../done/U4b-reader-mode-from-structure-tree.md) — `Block` model and the reading view; [U2b](../done/U2b-reading-order-ground-truth.md) — scoring.
 - [B9d](../done/B9d-text-runs-quads-and-page-text.md) — text runs with fonts, sizes and positions.
 
 ## Scope

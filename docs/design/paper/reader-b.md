@@ -184,9 +184,11 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Platform differences.** On the phone (*R14-reader-phone*), the top bar shows Back (“Back to page 3”), the title with “Reader · from the document’s tags”, and a Reader settings button. Reader is active in the bottom bar (accent tint), and text is 18–20 px. Settings open as a sheet at the medium detent (*R14-reader-approximate-phone*, which also shows the Approximate notice) with 44 px controls and no line-length control. On the phone, tapping a block reveals “View original page” under it. The tablet uses the web layout.
 
+**As built (U4b).** Tier 1 on the web, with these differences from the boards. The settings panel has text size, line spacing, line length and Reset; its Appearance chips wait for R10's page appearance setting (U2c), and the column already takes the page appearance's paper and ink. The top bar adds a Reader settings button beside the Reader toggle while reader mode is on, since it has no View button yet. "Back to page n" and the badge sit in a head that stays at the column's top, so pressing Back never scrolls the column and changes the page it names. Tables show as crops, like figures and formulas, with their alternate text; their cells aren't an HTML table yet. Not built: the phone's bottom-bar Reader button and settings sheet (the palette reaches reader mode there), "View original page" on a block, links inside the text, Find in the column, and "How Reader mode works". The empty state's sentence names why: no tags ("It has no tags, so Lamina PDF can't tell the order its text is read in."), or a tree that can't be trusted (the board's sentence).
+
 **Artboards.** `R14-reader-tagged.dc.html`, `R14-reader-approximate.dc.html`, `R14-reader-phone.dc.html`, `R14-reader-approximate-phone.dc.html`.
 
-**Todos.** [U4b](../../todos/ongoing/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md).
+**Todos.** [U4b](../../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md).
 
 ## R15 Offline, install and update
 

@@ -195,6 +195,7 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `outline` | — | `OutlineNode[]`: the outline, each item's target in page space | document |
 | `namedDestination` | `name` | `Target \| undefined` | document |
 | `pageLinks` | `index` | `PageLink[]`: the page's links in page space, by `kind`; the last 24 pages' are cached | document |
+| `reflow` | — | `Reflow`: the document for reader mode, its blocks in the structure tree's order with figures, formulas and tables as crops, or why not | document. `client.reflow()`; the extract module only |
 | `networkLog` | — | `WorkerNetworkLog`: every request and blocked request since the Web Worker started | document. `client.networkLog()`: what the `network` and `csp-violation` events reported, those sent before anyone listened included; `index` merges the two. |
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).

@@ -36,7 +36,7 @@ Let people read comfortably at night and in sepia without the broken photo negat
 **Out of scope** (and which todo covers it)
 
 - UI themes (light, dark, high contrast chrome) → [C7a](./C7a-accessibility-and-theming.md).
-- Recolouring in reader mode (it uses CSS text colours) → [U4b](../ongoing/U4b-reader-mode-from-structure-tree.md).
+- Recolouring in reader mode (it uses CSS text colours) → [U4b](../done/U4b-reader-mode-from-structure-tree.md).
 
 ## Tasks
 
