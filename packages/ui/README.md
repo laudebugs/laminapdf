@@ -193,7 +193,7 @@ A Node test checks every shortcut against the keys the browser, the OS and assis
 
 ## Settings, appearance and announcements
 
-The app's look is an `Appearance`: a theme (`light`, `dark`, `high-contrast`, or `system` to follow the OS), an accent (`teal`, `blue`, `plum`, `green`), motion (`system` or `reduce`) and whether single-key shortcuts are on. `applyAppearance(document.documentElement, appearance)` sets it as `data-theme`, `data-accent` and `data-motion`, which the tokens and styles read, so a switch re-renders nothing. `parseAppearance` reads a stored one, with a default for anything missing. The app stores it and sets it again before the first paint.
+The app's look is an `Appearance`: a theme (`light`, `dark`, `high-contrast`, or `system` to follow the OS), an accent (`teal`, `blue`, `plum`, `green`), motion (`system` or `reduce`) and whether single-key shortcuts are on. `applyAppearance(document.documentElement, appearance)` sets it as `data-theme`, `data-accent` and `data-motion`, which the tokens and styles read, so a switch re-renders nothing. `parseAppearance` reads a stored one, with a default for anything missing. Storing it is the app's job, and so is setting it before the first paint, before React runs.
 
 `ViewSettingsButton` is the top bar's View button with its popover: theme and accent, then More settings…. `SettingsDialog` is the app's one Settings dialog. It shows the sections of a `SettingsRegistry` in the order they were added, so later work adds a section rather than a dialog:
 
@@ -204,7 +204,7 @@ useSettingsSection(settings, "appearance", message("settings.appearance"), () =>
 ));
 ```
 
-`Announcer` speaks what changes without focus moving. `polite(text, kind)` waits until nothing newer of the same kind (a page, a zoom) has come for a moment, so scrolling past twenty pages says only the last; `assertive(text)` speaks at once, for errors. Render its `LiveRegions` once, for the app's life.
+`Announcer` speaks what changes without focus moving. `polite(text, kind)` waits until nothing newer of the same kind, such as a page or a zoom, has come for a moment. So scrolling past twenty pages says only the last, and two kinds due together are said together. `assertive(text)` speaks at once, for errors. Render its `LiveRegions` once, for the app's life.
 
 ## The home screen, repairs and failures
 
