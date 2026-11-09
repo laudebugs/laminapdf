@@ -58,6 +58,7 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 - [ ] Struct tree: RPC + layer + `aria-owns`; `MarkInfo /Marked` check; fallback for untagged.
 - [ ] Two-parser guard: in dev/debug builds, overlay text-quad outlines on the canvas (debug menu toggle) to spot misalignment; nightly test compares quads to PDFium char boxes on the corpus (reusing B9's quad test data).
 - [ ] Encrypted documents: text extraction runs in lamina with the password from the open call (no second prompt).
+- [ ] Selection and copy on the phone and tablet profiles of `apps/web/e2e/devices.e2e.test.ts` (U3a left copy to this todo).
 
 ## Acceptance criteria
 

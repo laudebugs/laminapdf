@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C5a](./C5a-text-layer-and-selection.md), [U1b](../done/U1b-command-registry-and-palette.md), [U2b](../done/U2b-reading-order-ground-truth.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
+| Depends on | [C5a](./C5a-text-layer-and-selection.md), [U1b](../done/U1b-command-registry-and-palette.md), [U2b](../done/U2b-reading-order-ground-truth.md), [U3a](../done/U3a-responsive-mobile-and-touch.md) |
 | ADRs | Implements 0024 (selection surfaces); follows 0009 |
 | Branch | `feat/u2a-selection-surfaces` |
 | PR title | `feat(ui): add the selection toolbar, the touch action bar and copy modes` |

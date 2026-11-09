@@ -193,7 +193,9 @@ fn build(e: &laminapdf_build::Error) -> Data {
         }
         E::InvalidIccProfile { reason } => data([("reason", json!(reason))]),
         E::InvalidColor { text } => data([("text", json!(text))]),
-        E::InvalidGeometry { what } | E::InvalidPageLabels { what } => data([("what", json!(what))]),
+        E::InvalidGeometry { what } | E::InvalidPageLabels { what } | E::FlowContentTooLarge { what } => {
+            data([("what", json!(what))])
+        }
         E::TextOverflow { fits, needed } => data([("fits", json!(fits)), ("needed", json!(needed))]),
         E::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
         E::UnknownDestination { name } => data([("name", json!(name))]),
@@ -243,6 +245,16 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
         Warning::Font(w) => text_warning(w),
         #[cfg(feature = "extract")]
         Warning::Redaction(w) => redaction_warning(w),
+        #[cfg(feature = "text")]
+        Warning::Build(w) => build_warning(w),
+    }
+}
+
+#[cfg(feature = "text")]
+fn build_warning(w: &laminapdf_build::Warning) -> Data {
+    match w {
+        laminapdf_build::Warning::FlowKeepBroken { page } => data([("page", json!(page))]),
+        _ => Data::new(),
     }
 }
 

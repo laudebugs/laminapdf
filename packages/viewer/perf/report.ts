@@ -44,6 +44,16 @@ export interface BrowserResult {
   readonly fling: { readonly toSharpMs: number; readonly counters: Counters };
   /** ctrl+wheel bursts on the 10-page file. */
   readonly zoom: { readonly recording: Recording; readonly toSharpMs: readonly number[] };
+  /**
+   * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
+   * touch budgets), against those budgets; null in a browser without one (Firefox).
+   */
+  readonly mobile: {
+    readonly device: string;
+    readonly peakMemory: MemorySample;
+    /** The canvases and bitmap cache the viewer's budgets allow on that device, in bytes. */
+    readonly budgetBytes: number;
+  } | null;
 }
 
 /** One row of the report: `pass` is null where nothing was measured or there is no target. */
@@ -113,6 +123,7 @@ export function checks(result: BrowserResult): Check[] {
       pass: second.total <= first.total * (1 + TARGETS.memoryGrowth),
     },
     { name: "Cancelled renders that painted", target: "0", value: String(painted), pass: painted === 0 },
+    mobileMemory(result),
     {
       name: "Zoom bursts: longest frame, slowest to sharp",
       target: "—",
@@ -120,6 +131,20 @@ export function checks(result: BrowserResult): Check[] {
       pass: null,
     },
   ];
+}
+
+/** The phone's canvases and bitmaps at their peak, against the budgets the viewer gives that device. */
+function mobileMemory({ mobile }: BrowserResult): Check {
+  const name = "Canvases and bitmaps on a phone, 1,000 pages";
+  if (mobile === null)
+    return { name, target: "≤ the touch budgets", value: "not measured (no phone profile)", pass: null };
+  const used = mobile.peakMemory.canvases + mobile.peakMemory.bitmaps;
+  return {
+    name,
+    target: `≤ ${mb(mobile.budgetBytes)} (${mobile.device})`,
+    value: mb(used),
+    pass: used <= mobile.budgetBytes,
+  };
 }
 
 const mark = (pass: boolean | null) => (pass === null ? "" : pass ? " (pass)" : " (miss)");
@@ -166,5 +191,10 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
     "memory-peak-bytes": Math.round(Math.max(...result.scroll.passes.map((p) => p.peakMemory.total))),
   };
   if (result.firstPage.coldMs !== null) entries["first-page-cold"] = ns(result.firstPage.coldMs);
+  if (result.mobile !== null) {
+    entries["mobile-memory-peak-bytes"] = Math.round(
+      result.mobile.peakMemory.canvases + result.mobile.peakMemory.bitmaps,
+    );
+  }
   return entries;
 }

@@ -216,6 +216,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Error::from(B::ColorComponents { expected: 1, actual: 0 }),
         Error::from(B::InvalidColor { text: s() }),
         Error::from(B::InvalidGeometry { what: "w" }),
+        Error::from(B::FlowContentTooLarge { what: "line" }),
         Error::from(B::TextOverflow { fits: 1, needed: 2 }),
         Error::from(B::PageIndexOutOfRange { index: 1, count: 1 }),
         Error::from(B::UnknownDestination { name: s() }),
@@ -367,6 +368,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }
         .into(),
         TW::WholeFontRebuilt { font: s() }.into(),
+        Warning::Build(laminapdf_build::Warning::FlowKeepBroken { page: 1 }),
         Warning::Redaction(laminapdf::RedactionWarning::CoveredText {
             page: 0,
             chars: 9,
@@ -453,6 +455,7 @@ fn the_generated_tables_agree_with_the_wrapped_crates() {
         let (code, kind) = match w {
             Warning::Document(i) => (i.code(), i.kind()),
             Warning::Font(i) => (i.code(), i.kind()),
+            Warning::Build(i) => (i.code(), i.kind()),
             _ => continue,
         };
         if (w.code(), w.kind()) != (code, kind) {
