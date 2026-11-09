@@ -26,6 +26,8 @@ import type {
   RenderModeInit,
   SaveOptionsInit,
   SaveReportJs,
+  StructureKidJs,
+  StructureNodeJs,
   TargetJs,
   TargetViewJs,
   TextLayoutJs,
@@ -60,6 +62,13 @@ export type SaveReport = SaveReportJs;
 export type PageInfo = PageInfoJs;
 /** The Info dictionary's text entries (document text). */
 export type DocumentInfo = DocumentInfoJs;
+/**
+ * An element of a tagged document's structure tree: its standard type (`H1`, `P`, `LI`,
+ * `Figure` …), alternate text, language, actual text, and kids in reading order (document text).
+ */
+export type StructureNode = StructureNodeJs;
+/** A kid of a {@link StructureNode}: an element, or marked content `mcid` on page `page`. */
+export type StructureKid = StructureKidJs;
 /** The pages an edit touched. */
 export type Edited = EditedJs;
 /** How an undo or redo went. */

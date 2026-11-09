@@ -544,3 +544,90 @@ fn request_js(request: &ModelRequest) -> ModelRequestJs {
         },
     }
 }
+
+/// One element of the structure tree (`laminapdf::StructureNode`; its strings are document text).
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct StructureNodeJs {
+    /// Its standard structure type (`H1`, `P`, `LI`, `Figure` …), through the `/RoleMap`.
+    pub kind: String,
+    /// `/Alt`: alternate text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub alt: Option<String>,
+    /// `/Lang`: the language of its content.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub lang: Option<String>,
+    /// `/ActualText`: the text its content stands for.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub actual_text: Option<String>,
+    /// Its kids, in reading order.
+    pub kids: Vec<StructureKidJs>,
+}
+
+/// A kid of a structure element: an element, or marked content on a page.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub(crate) enum StructureKidJs {
+    /// A child element.
+    Node(StructureNodeJs),
+    /// Marked content `mcid` on page `page` (0-based).
+    Content {
+        /// The page.
+        page: u32,
+        /// The marked-content ID.
+        mcid: f64,
+    },
+}
+
+impl From<laminapdf::StructureNode> for StructureNodeJs {
+    fn from(n: laminapdf::StructureNode) -> Self {
+        Self {
+            kind: n.kind,
+            alt: n.alt,
+            lang: n.lang,
+            actual_text: n.actual_text,
+            kids: n
+                .kids
+                .into_iter()
+                .filter_map(|kid| match kid {
+                    laminapdf::StructureKid::Node(node) => Some(StructureKidJs::Node(node.into())),
+                    #[expect(clippy::cast_precision_loss, reason = "an MCID is a small non-negative integer")]
+                    laminapdf::StructureKid::Content { page, mcid } => Some(StructureKidJs::Content {
+                        page,
+                        mcid: mcid as f64,
+                    }),
+                    _ => None,
+                })
+                .collect(),
+        }
+    }
+}
+
+#[wasm_bindgen]
+impl WasmDocument {
+    /// Whether the document says it is tagged (`/MarkInfo /Marked true`; the extract and text modules).
+    ///
+    /// # Errors
+    /// Reading errors.
+    #[wasm_bindgen(js_name = isTagged)]
+    pub fn is_tagged(&self) -> JsResult<bool> {
+        self.shared().borrow().is_tagged().map_err(|e| lamina_error(&e))
+    }
+
+    /// The structure tree's top-level elements in reading order, or `undefined` without one (the
+    /// extract and text modules, beside `WasmPage.text`, whose runs it links by MCID).
+    ///
+    /// # Errors
+    /// Reading errors.
+    #[wasm_bindgen(js_name = structureTree, unchecked_return_type = "StructureNodeJs[] | undefined")]
+    pub fn structure_tree(&self) -> JsResult<JsValue> {
+        let tree = self.shared().borrow().structure_tree().map_err(|e| lamina_error(&e))?;
+        Ok(match tree {
+            None => JsValue::UNDEFINED,
+            Some(roots) => to_js(&roots.into_iter().map(StructureNodeJs::from).collect::<Vec<_>>()),
+        })
+    }
+}

@@ -101,7 +101,7 @@ Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/
 - **Copy as paragraph** is the default: column-aware, line breaks joined inside paragraphs, hyphenation repaired from lamina's extraction (B9). **Copy exact** keeps the layout's line breaks. Rectangular (column) selection with Alt/Option-drag, as in Preview.
 - Quality is measured, not assumed: [U2b](../todos/done/U2b-reading-order-ground-truth.md) builds a reading-order ground-truth corpus and metric (no public benchmark measures reading order).
 
-Delivered by [C5a](../todos/ready/C5a-text-layer-and-selection.md) (text layer and selection events) and [U2a](../todos/ready/U2a-selection-surfaces-and-copy-modes.md) (menus and copy modes).
+Delivered by [C5a](../todos/done/C5a-text-layer-and-selection.md) (text layer and selection events) and [U2a](../todos/ready/U2a-selection-surfaces-and-copy-modes.md) (menus and copy modes).
 
 ### 5.4 Mobile and touch (R17)
 
@@ -222,7 +222,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [C2a](../todos/done/C2a-render-adrs.md) | ADR 0004's `RenderBackend` renders tiles `(page, scale, clip)` into bounded bitmaps; PDFium never writes documents |
 | [C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md) | The four-step render pipeline in §5.6 and the mobile bitmap caps |
 | [C4a](../todos/done/C4a-ui-chrome-and-platform.md) | Depends on U1a (ADR 0024 fixes the layout first); `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
-| [C5a](../todos/ready/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
+| [C5a](../todos/done/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
 | [C6a](../todos/ongoing/C6a-thumbnails-outline-page-labels.md) | Depends on U1c; thumbnails and outline fill the left rail's tabs instead of a sidebar of their own |
 | [C7a](../todos/ready/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
 | [C2a](../todos/done/C2a-render-adrs.md) (ADR 0011) | Telemetry optional, opt-in and off by default (owner decision 2026-10-29) |

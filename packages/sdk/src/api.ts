@@ -109,6 +109,8 @@ export type {
   RenderMode,
   SaveOptions,
   SaveReport,
+  StructureKid,
+  StructureNode,
   Target,
   TargetView,
   TextLayout,
