@@ -5,7 +5,7 @@
 import type { Rotation } from "../layout/page-layout.js";
 
 /** The page's box: its size in points, scaled and turned to `size` (CSS px) at `rotation`. */
-export function boxTransform(
+function boxTransform(
   points: { readonly width: number; readonly height: number },
   size: { readonly width: number; readonly height: number },
   rotation: Rotation,
