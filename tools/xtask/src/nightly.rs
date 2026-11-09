@@ -38,34 +38,48 @@ pub(crate) const FUZZ_SECONDS: u64 = 600;
 /// The baseline is the median of this many previous records from the same runner.
 pub(crate) const BASELINE_RUNS: usize = 5;
 
-/// The release-mode `#[ignore]`d tests: scaling ratios and anything else too slow or
-/// timing-sensitive for the PR lanes.
-const SCALING_ARGS: [&str; 11] = [
-    "test",
-    "--release",
-    "--locked",
-    "--workspace",
-    // Its ignored tests need native PDFium and hold only on the macOS arm64 runner:
-    // `cargo xtask render-golden` runs them.
-    "--exclude",
-    "laminapdf-render-pdfium",
-    "--all-features",
-    "--tests",
-    "--",
-    "--ignored",
-    "--test-threads=1",
+/// The scaling tests: the `#[ignore]`d tests whose reason sends them to the nightly lane or to
+/// `cargo xtask scaling`, as (package, test target). The other ignored tests belong to other
+/// commands (golden writers, `differential --full`, PDFium's and Heron's own checks), and
+/// `scaling_tests_should_be_every_test_ignored_for_the_nightly_lane` keeps this list complete.
+const SCALING_TESTS: [(&str, &str); 3] = [
+    ("laminapdf-cos", "reader_cache"),
+    ("laminapdf-text", "extract_runs"),
+    ("laminapdf", "budget"),
 ];
 
-/// `cargo xtask scaling`: the ignored release-mode tests (incl. `reader_cache`'s
+/// `cargo test` for [`SCALING_TESTS`]: the `scaling` profile (release without LTO, see the root
+/// Cargo.toml), every test even after a failure, one thread so they don't compete for the CPU.
+fn scaling_args() -> Vec<&'static str> {
+    let mut args = vec![
+        "test",
+        "--profile",
+        "scaling",
+        "--locked",
+        "--all-features",
+        "--no-fail-fast",
+    ];
+    for (package, _) in SCALING_TESTS {
+        args.extend(["-p", package]);
+    }
+    for (_, test) in SCALING_TESTS {
+        args.extend(["--test", test]);
+    }
+    args.extend(["--", "--ignored", "--test-threads=1"]);
+    args
+}
+
+/// `cargo xtask scaling`: the scaling tests ([`SCALING_TESTS`], incl. `reader_cache`'s
 /// `pages_should_scale_linearly_with_shared_resources`), one thread so they don't compete for
 /// the CPU. A failure is retried once; a pass on retry succeeds but is reported as flaky
 /// (`flaky=true` in `$GITHUB_OUTPUT`, which opens a nightly issue), never hidden (ADR 0018 §4).
 pub(crate) fn scaling(ws: &Workspace) -> Result<()> {
-    if ws.cargo(&SCALING_ARGS).is_ok() {
+    let args = scaling_args();
+    if ws.cargo(&args).is_ok() {
         return github_output("flaky", "false");
     }
     step("scaling: failed; retrying once to tell a flaky test from a real failure");
-    ws.cargo(&SCALING_ARGS)
+    ws.cargo(&args)
         .context("scaling tests failed twice: a real failure, not flakiness")?;
     println!("::warning::scaling tests failed once and passed on retry: flaky, see ADR 0018 §4");
     github_output("flaky", "true")?;
@@ -418,7 +432,64 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+    use std::path::Path;
+
     use super::*;
+
+    /// Every (package, test file) whose `#[ignore = "…"]` reason sends it to the nightly lane or
+    /// to `cargo xtask scaling`.
+    fn ignored_for_scaling(root: &Path) -> Result<BTreeSet<(String, String)>> {
+        let mut found = BTreeSet::new();
+        for krate in fs::read_dir(root.join("crates"))? {
+            let krate = krate?.path();
+            let Ok(tests) = fs::read_dir(krate.join("tests")) else {
+                continue;
+            };
+            for file in tests {
+                let file = file?.path();
+                if file.extension().is_none_or(|e| e != "rs") {
+                    continue;
+                }
+                let source = fs::read_to_string(&file)?;
+                let scaling = source.lines().any(|line| {
+                    let line = line.trim();
+                    line.starts_with("#[ignore") && (line.contains("nightly lane") || line.contains("xtask scaling"))
+                });
+                if scaling {
+                    let name = |p: &Path| p.file_stem().and_then(|s| s.to_str()).map(str::to_owned);
+                    let (Some(package), Some(test)) = (name(&krate), name(&file)) else {
+                        continue;
+                    };
+                    found.insert((package, test));
+                }
+            }
+        }
+        Ok(found)
+    }
+
+    #[test]
+    fn scaling_tests_should_be_every_test_ignored_for_the_nightly_lane() -> Result<()> {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let listed = SCALING_TESTS
+            .iter()
+            .map(|(p, t)| ((*p).to_owned(), (*t).to_owned()))
+            .collect();
+        assert_eq!(
+            ignored_for_scaling(&root)?,
+            listed,
+            "SCALING_TESTS and the tests ignored for the nightly lane differ"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn scaling_args_should_name_each_package_and_test_once() {
+        let args = scaling_args();
+        assert_eq!(args.iter().filter(|a| **a == "--test").count(), SCALING_TESTS.len());
+        assert!(args.windows(2).any(|w| w == ["--profile", "scaling"]));
+        assert!(args.ends_with(&["--", "--ignored", "--test-threads=1"]));
+    }
 
     #[test]
     fn parse_bencher_should_read_names_and_nanoseconds() {
