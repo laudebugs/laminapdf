@@ -646,24 +646,6 @@ fn attachments(r: &Reveal) -> Vec<AttachmentEntry> {
         .collect()
 }
 
-fn kind_name(kind: &ActionKind) -> String {
-    match kind {
-        ActionKind::GoTo => "GoTo".into(),
-        ActionKind::GoToR => "GoToR".into(),
-        ActionKind::GoToE => "GoToE".into(),
-        ActionKind::Launch => "Launch".into(),
-        ActionKind::Thread => "Thread".into(),
-        ActionKind::Uri => "URI".into(),
-        ActionKind::Named => "Named".into(),
-        ActionKind::JavaScript => "JavaScript".into(),
-        ActionKind::SubmitForm => "SubmitForm".into(),
-        ActionKind::ResetForm => "ResetForm".into(),
-        ActionKind::ImportData => "ImportData".into(),
-        ActionKind::Other(name) => String::from_utf8_lossy(name).into_owned(),
-        _ => "Other".into(),
-    }
-}
-
 fn active_content(actions: &[Action], xfa: bool) -> ActiveContent {
     let scripts: Vec<&Action> = actions.iter().filter(|a| a.kind == ActionKind::JavaScript).collect();
     ActiveContent {
@@ -679,7 +661,7 @@ fn active_content(actions: &[Action], xfa: bool) -> ActiveContent {
                     _ => ("document", None),
                 };
                 ActionEntry {
-                    kind: kind_name(&a.kind),
+                    kind: a.kind.as_name().into_owned(),
                     trigger: match &a.trigger {
                         Trigger::OpenAction => "open-action".into(),
                         Trigger::Activate => "activate".into(),

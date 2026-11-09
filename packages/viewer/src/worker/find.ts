@@ -8,34 +8,22 @@
 import type { FindOptions } from "../find/fold.js";
 import { matchRanges, quadsOfMatches, type SearchText, searchText, snippetOf } from "../find/page.js";
 import type { FindPageResult } from "../protocol.js";
-import { current } from "./document.js";
+import { RecentPages } from "./recent-pages.js";
 import { pageGlyphs } from "./text.js";
 
 /** The cache's budget, in bytes of UTF-16 text and glyph maps. */
 const SEARCH_CACHE_BYTES = 32 * 1024 * 1024;
 
-const cache = new Map<string, SearchText>();
-let cacheBytes = 0;
-
 const bytesOf = (s: SearchText) => s.text.length * 2 + s.lo.byteLength + s.hi.byteLength + s.runOf.byteLength;
+
+const cache = new RecentPages<SearchText>(SEARCH_CACHE_BYTES, bytesOf);
 
 /** Page `index`'s searchable text, cached by document and page. */
 async function searchable(index: number, signal: AbortSignal): Promise<SearchText> {
-  const key = `${current().id}:${index}`;
-  const hit = cache.get(key);
-  if (hit !== undefined) {
-    cache.delete(key);
-    cache.set(key, hit);
-    return hit;
-  }
+  const hit = cache.get(index);
+  if (hit !== undefined) return hit;
   const search = searchText(await pageGlyphs(index, signal, false));
-  cache.set(key, search);
-  cacheBytes += bytesOf(search);
-  for (const [old, value] of cache) {
-    if (cacheBytes <= SEARCH_CACHE_BYTES) break;
-    cache.delete(old);
-    cacheBytes -= bytesOf(value);
-  }
+  cache.set(index, search);
   return search;
 }
 
@@ -68,5 +56,4 @@ export async function find(
 /** Forgets every page's searchable text: the document closed. */
 export function forgetSearch(): void {
   cache.clear();
-  cacheBytes = 0;
 }

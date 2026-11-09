@@ -37,7 +37,7 @@ While find is open, the rail gains a **Results** tab that lists every match in p
 
 - The phone's find layout (a top-bar field, a Previous · Results · Next bar and a non-modal Results sheet): a later phone todo. On a phone the tab shows in the Contents sheet like the others.
 - More tabs overflow: the reader has no Attachments tab yet, so three tabs fit.
-- Results clicks as history jumps (R07): [C6b](../ready/C6b-links-and-history.md).
+- Results clicks as history jumps (R07): [C6b](../done/C6b-links-and-history.md).
 
 ## Tasks
 
