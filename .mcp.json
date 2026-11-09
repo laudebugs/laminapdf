@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "linkedin": {
-      "command": "uv",
-      "args": ["--directory", "/Users/laudebugs/git/linkedin-mcp", "run", "linkedin-mcp", "serve"]
-    }
-  }
-}
