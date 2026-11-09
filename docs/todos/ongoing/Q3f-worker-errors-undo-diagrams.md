@@ -44,7 +44,7 @@ Three concept pages explain behaviour readers get wrong in their first week: wha
 
 ## Acceptance criteria
 
-- [x] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
+- [x] Each diagram is built from the Q3a kit, renders in both themes (screenshots checked while building; the PR's docs preview shows both) and passes the lint, twin and browser tests.
 - [x] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
 - [x] Each diagram is under 8 KB gzipped (reported in the PR).
 - [x] `cargo xtask check docs` and the docs build pass.
