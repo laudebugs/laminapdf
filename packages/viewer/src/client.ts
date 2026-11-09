@@ -277,6 +277,15 @@ export class ViewerClient {
   }
 
   /**
+   * Page `index`'s text blocks in reading order (Lamina PDF's extraction), for copy as paragraph.
+   * At `background` priority unless `options` says otherwise.
+   */
+  readingOrder(index: number, options: ViewerCallOptions = {}) {
+    const key = `order:${this.#document?.id ?? 0}:${index}`;
+    return this.call("readingOrder", [index], { priority: "background", key, ...options });
+  }
+
+  /**
    * The matches of `query` on each of `pages`, at `background` priority unless `options` says
    * otherwise, so renders run first. The find controller calls it a few pages at a time.
    */

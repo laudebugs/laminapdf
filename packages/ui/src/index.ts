@@ -142,6 +142,7 @@ export {
   type PaletteItem,
   type PaletteSection,
 } from "./overlays/palette.js";
+export { type Box, selectionBox } from "./overlays/place.js";
 export {
   Menu,
   type MenuEntry,
@@ -259,6 +260,8 @@ export {
   MoreSheet,
   PhoneBottomBar,
   type PhoneBottomBarProps,
+  SelectionActionBar,
+  type SelectionActionBarProps,
   usePhone,
 } from "./shell/phone.js";
 export { useShell } from "./shell/use-shell.js";

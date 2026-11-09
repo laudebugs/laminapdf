@@ -4,22 +4,26 @@
 // one CSS transform scales and rotates to the page's current size, so a zoom or a rotation moves
 // no span. The viewer is the one selection root: only spans are selectable, never canvases, gaps
 // or the app around it, so a selection runs from one page into the next; the pages it touches
-// stay mounted while it lasts. Copy writes the extracted text, joined in reading order.
+// stay mounted while it lasts. Copy writes the extracted text: by paragraph in the extraction's
+// reading order, or exact, as laid out (layers/copy.ts). Alt/Option-drag, or a drag in column
+// mode, selects the runs inside a rectangle instead (a column of a multi-column page), which the
+// layer marks itself, since a browser selection can't hold a rectangle.
 
 import type { ViewerClient } from "../client.js";
 import type { Rotation } from "../layout/page-layout.js";
 import { range as range_ } from "../layout/range.js";
-import type { OpenedDocument } from "../protocol.js";
+import type { OpenedDocument, ReadingBlock } from "../protocol.js";
 import type { PageLayer } from "../view/viewer.js";
 import { placeBox } from "./box.js";
-import { joinPieces, layoutSpans, type Piece, type SpanSpec } from "./spans.js";
+import { type CopyMode, copySelection } from "./copy.js";
+import { layoutSpans, type Piece, type SpanSpec } from "./spans.js";
 import { StructureLayer } from "./structure-layer.js";
 
 /** What the text layer needs of its viewer. */
 export interface TextLayerHost {
   /** The viewer's root: the selection root, and where the structure tree lives. */
   readonly root: HTMLElement;
-  readonly client: Pick<ViewerClient, "pageText" | "structure">;
+  readonly client: Pick<ViewerClient, "pageText" | "structure" | "readingOrder">;
   /** The view's rotation now. */
   rotation(): Rotation;
   /** Keeps these pages mounted (the ones the selection touches). */
@@ -28,7 +32,7 @@ export interface TextLayerHost {
 
 /** A selection in the text layer, for the app's selection surfaces (UI/UX plan §5.3). */
 export interface TextSelection {
-  /** The selected text, as copy writes it. */
+  /** The selected text, as copy writes it (by paragraph). */
   readonly text: string;
   /** Its client rects, to place a toolbar or a menu near. */
   readonly rects: readonly DOMRect[];
@@ -36,6 +40,13 @@ export interface TextSelection {
   readonly pages: readonly number[];
   /** The pointer that made it: `mouse`, `pen`, `touch`, or `""` for the keyboard. */
   readonly pointerType: string;
+  /**
+   * The selection is done: the pointer that makes it is up (false during a drag, when a toolbar
+   * would get in the way). A keyboard selection is always settled.
+   */
+  readonly settled: boolean;
+  /** A rectangle's runs (column selection), rather than the browser's selection. */
+  readonly column: boolean;
 }
 
 /** The text layer's options (`createViewer`'s `text`). */
@@ -71,6 +82,18 @@ export class TextLayer implements PageLayer {
   /** Each mounted page's size in CSS px, as the last resize gave it. */
   readonly #sizes = new Map<number, { readonly width: number; readonly height: number }>();
   #pointerType = "";
+  /** A pointer is down in the viewer: a selection it makes isn't settled until it comes up. */
+  #pointerDown = false;
+  /** The mode the next copy event writes in (a command may ask for exact). */
+  #copyMode: CopyMode = "paragraph";
+  /** Each page's reading-order blocks, once read; a page being read has a pending entry. */
+  readonly #blocks = new Map<number, readonly ReadingBlock[] | "reading">();
+  /** Whether a plain drag selects a rectangle (column mode), as an Alt-drag always does. */
+  #columnMode = false;
+  /** The column selection: its pieces and spans, while it lasts. */
+  #column: { readonly pieces: Piece[]; readonly spans: HTMLElement[] } | undefined;
+  /** The rectangle being dragged out for a column selection. */
+  #drag: { readonly x: number; readonly y: number; readonly box: HTMLDivElement; readonly pointer: number } | undefined;
   /** Span ids' prefix, unique to this viewer, so two viewers on a page never share an id. */
   readonly #idPrefix = `lamina-text-${nextViewer++}-`;
   /** Counts opens: a structure tree answered for an earlier document is dropped. */
@@ -88,9 +111,55 @@ export class TextLayer implements PageLayer {
     this.#listen(document, "selectionchange", () => this.#selectionChanged());
     this.#listen(document, "copy", (e) => this.#copy(e as ClipboardEvent));
     this.#listen(host.root, "keydown", (e) => this.#selectAll(e as KeyboardEvent));
-    this.#listen(host.root, "pointerdown", (e) => {
-      this.#pointerType = (e as PointerEvent).pointerType;
+    this.#listen(host.root, "pointerdown", (e) => this.#pointerDownIn(e as PointerEvent));
+    this.#listen(document, "pointermove", (e) => this.#dragTo(e as PointerEvent));
+    this.#listen(document, "pointerup", (e) => this.#pointerUp(e as PointerEvent));
+    this.#listen(document, "pointercancel", (e) => this.#pointerUp(e as PointerEvent));
+    this.#listen(host.root, "keydown", (e) => {
+      if ((e as KeyboardEvent).key === "Escape" && this.#column !== undefined) this.#clearColumn(true);
     });
+  }
+
+  /** Whether a plain drag selects a rectangle (column mode). */
+  get columnMode(): boolean {
+    return this.#columnMode;
+  }
+
+  set columnMode(on: boolean) {
+    this.#columnMode = on;
+  }
+
+  /**
+   * Copies the selection in `mode` to the clipboard, as the copy event would (for a command or a
+   * toolbar button; it must run in a user gesture). Resolves false when nothing is selected or
+   * the clipboard refused.
+   */
+  async copy(mode: CopyMode = "paragraph"): Promise<boolean> {
+    const pieces = this.#selectedPieces();
+    if (pieces === undefined || pieces.length === 0) return false;
+    // The browser's own copy, in this gesture: the copy event writes both formats.
+    this.#copyMode = mode;
+    try {
+      if (document.execCommand("copy")) return true;
+    } catch {
+      // No synchronous copy here: the async clipboard below.
+    } finally {
+      this.#copyMode = "paragraph";
+    }
+    const copied = copySelection(pieces, mode, (page) => this.#blocksOf(page));
+    try {
+      if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write !== undefined) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/plain": new Blob([copied.text], { type: "text/plain" }),
+            "text/html": new Blob([copied.html], { type: "text/html" }),
+          }),
+        ]);
+      } else await navigator.clipboard.writeText(copied.text);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** A new document: its page sizes, and its structure tree, read once. */
@@ -147,6 +216,8 @@ export class TextLayer implements PageLayer {
     this.#structure.unlink(page);
     this.#pages.delete(page);
     this.#sizes.delete(page);
+    this.#blocks.delete(page);
+    if (this.#column?.pieces.some((p) => p.page === page)) this.#clearColumn(true);
   }
 
   onZoom(page: number, _slot: HTMLElement, size: { readonly width: number; readonly height: number }): void {
@@ -264,10 +335,37 @@ export class TextLayer implements PageLayer {
     return pieces;
   }
 
-  #copy(event: ClipboardEvent): void {
+  /** The selection's pieces: the browser selection's in this viewer, else the column's. */
+  #selectedPieces(): Piece[] | undefined {
     const range = this.#range();
-    if (range === undefined || event.clipboardData === null) return;
-    event.clipboardData.setData("text/plain", joinPieces(this.#pieces(range)));
+    if (range !== undefined) return this.#pieces(range);
+    return this.#column?.pieces;
+  }
+
+  /** Page `page`'s reading-order blocks if read; else starts reading them for the next copy. */
+  #blocksOf(page: number): readonly ReadingBlock[] | undefined {
+    const known = this.#blocks.get(page);
+    if (known === "reading") return undefined;
+    if (known !== undefined) return known;
+    this.#blocks.set(page, "reading");
+    this.#host.client
+      .readingOrder(page)
+      .then((blocks) => {
+        if (this.#blocks.get(page) === "reading") this.#blocks.set(page, blocks);
+      })
+      .catch(() => {
+        // No blocks (a page without text, the extract module missing): copied in run order.
+        if (this.#blocks.get(page) === "reading") this.#blocks.delete(page);
+      });
+    return undefined;
+  }
+
+  #copy(event: ClipboardEvent): void {
+    const pieces = this.#selectedPieces();
+    if (pieces === undefined || event.clipboardData === null) return;
+    const copied = copySelection(pieces, this.#copyMode, (page) => this.#blocksOf(page));
+    event.clipboardData.setData("text/plain", copied.text);
+    event.clipboardData.setData("text/html", copied.html);
     event.preventDefault();
   }
 
@@ -289,6 +387,9 @@ export class TextLayer implements PageLayer {
 
   #selectionChanged(): void {
     const range = this.#range();
+    // A browser selection replaces a column selection.
+    if (range !== undefined && this.#column !== undefined) this.#clearColumn(false);
+    if (range === undefined && this.#column !== undefined) return;
     if (range === undefined) {
       // A selection elsewhere on the page (an input, another viewer): told once, when it leaves.
       if (!this.#selecting) return;
@@ -306,15 +407,129 @@ export class TextLayer implements PageLayer {
     const [low, high] = [start ?? end, end ?? start];
     if (low !== undefined && high !== undefined)
       this.#host.keepMounted(range_(Math.min(low, high), Math.max(low, high)));
+    this.#tell(this.#pieces(range), [...range.getClientRects()], false);
+  }
+
+  /** Tells the app about a selection of `pieces` (and reads their pages' blocks for copy). */
+  #tell(pieces: Piece[], rects: DOMRect[], column: boolean): void {
+    const pages = [...new Set(pieces.map((p) => p.page))];
+    for (const page of pages) this.#blocksOf(page);
     if (this.#options.onSelection === undefined) return;
-    const pieces = this.#pieces(range);
     this.#options.onSelection({
-      text: joinPieces(pieces),
-      rects: [...range.getClientRects()],
-      pages: [...new Set(pieces.map((p) => p.page))],
+      text: copySelection(pieces, "paragraph", (page) => this.#blocksOf(page)).text,
+      rects,
+      pages,
       pointerType: this.#pointerType,
+      settled: !this.#pointerDown,
+      column,
     });
   }
+
+  #pointerDownIn(event: PointerEvent): void {
+    this.#pointerType = event.pointerType;
+    this.#pointerDown = true;
+    if (this.#column !== undefined) this.#clearColumn(true);
+    const rectangle = (event.altKey || this.#columnMode) && event.pointerType !== "touch" && event.button === 0;
+    if (!rectangle) return;
+    // A rectangle, not a run of text: the browser's selection stays out of it.
+    event.preventDefault();
+    document.getSelection()?.removeAllRanges();
+    const box = document.createElement("div");
+    box.className = "lamina-column-selection";
+    Object.assign(box.style, {
+      position: "fixed",
+      left: `${event.clientX}px`,
+      top: `${event.clientY}px`,
+      width: "0",
+      height: "0",
+      border: "1px dashed currentColor",
+      background: "rgb(45 93 168 / 0.08)",
+      pointerEvents: "none",
+      zIndex: "1",
+    });
+    this.#host.root.append(box);
+    this.#drag = { x: event.clientX, y: event.clientY, box, pointer: event.pointerId };
+  }
+
+  #dragTo(event: PointerEvent): void {
+    const drag = this.#drag;
+    if (drag === undefined || event.pointerId !== drag.pointer) return;
+    const r = rectBetween(drag, event);
+    Object.assign(drag.box.style, {
+      left: `${r.left}px`,
+      top: `${r.top}px`,
+      width: `${r.width}px`,
+      height: `${r.height}px`,
+    });
+  }
+
+  #pointerUp(event: PointerEvent): void {
+    const wasDown = this.#pointerDown;
+    this.#pointerDown = false;
+    const drag = this.#drag;
+    if (drag !== undefined && event.pointerId === drag.pointer) {
+      this.#drag = undefined;
+      drag.box.remove();
+      this.#selectColumn(rectBetween(drag, event));
+      return;
+    }
+    if (!wasDown) return;
+    // The drag ended: the selection is settled, and the app may show its toolbar now.
+    const range = this.#range();
+    if (range !== undefined) this.#tell(this.#pieces(range), [...range.getClientRects()], false);
+  }
+
+  /** Selects the runs whose centre is inside `area` (client coordinates), in page and run order. */
+  #selectColumn(area: { left: number; top: number; width: number; height: number }): void {
+    if (area.width < 2 || area.height < 2) return;
+    const spans: HTMLElement[] = [];
+    const pieces: Piece[] = [];
+    const rects: DOMRect[] = [];
+    for (const span of this.#spansInOrder()) {
+      const info = this.#specs.get(span);
+      if (info === undefined) continue;
+      const r = span.getBoundingClientRect();
+      const [x, y] = [r.left + r.width / 2, r.top + r.height / 2];
+      if (x < area.left || x > area.left + area.width || y < area.top || y > area.top + area.height) continue;
+      spans.push(span);
+      rects.push(r);
+      pieces.push({ page: info.page, text: span.textContent ?? "", span: info.spec });
+    }
+    if (pieces.length === 0) return;
+    for (const span of spans) span.classList.add("lamina-column-selected");
+    // The browser draws no selection for these: a tint marks them, under the ink as the
+    // selection's own would be.
+    for (const span of spans) span.style.backgroundColor = "rgb(45 93 168 / 0.25)";
+    this.#column = { pieces, spans };
+    this.#selecting = true;
+    this.#host.keepMounted(new Set(pieces.map((p) => p.page)));
+    this.#tell(pieces, rects, true);
+  }
+
+  /** Ends the column selection; `tell` says so to the app (not when a browser selection replaces it). */
+  #clearColumn(tell: boolean): void {
+    const column = this.#column;
+    if (column === undefined) return;
+    this.#column = undefined;
+    for (const span of column.spans) {
+      span.classList.remove("lamina-column-selected");
+      span.style.backgroundColor = "";
+    }
+    if (!tell) return;
+    this.#selecting = false;
+    this.#host.keepMounted([]);
+    this.#options.onSelection?.(undefined);
+  }
+}
+
+/** The rectangle between a drag's start and the pointer now, in client coordinates. */
+function rectBetween(start: { readonly x: number; readonly y: number }, now: { clientX: number; clientY: number }) {
+  return {
+    left: Math.min(start.x, now.clientX),
+    top: Math.min(start.y, now.clientY),
+    width: Math.abs(now.clientX - start.x),
+    height: Math.abs(now.clientY - start.y),
+  };
 }
 
 /** Sets `element`'s `user-select`, with WebKit's prefix (Safari before 26 reads only that). */

@@ -15,8 +15,9 @@ import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { FindController } from "../find/controller.js";
+import type { CopyMode } from "../layers/copy.js";
 import { HighlightLayer } from "../layers/highlight-layer.js";
-import { TextLayer, type TextLayerOptions } from "../layers/text-layer.js";
+import { TextLayer, type TextLayerOptions, type TextSelection } from "../layers/text-layer.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { range } from "../layout/range.js";
 import { type OpenedDocument, type Priority, renderKey, renderKeyFields } from "../protocol.js";
@@ -80,6 +81,8 @@ export interface ViewerEventMap {
   pagechange: { readonly page: number };
   zoomchange: { readonly zoom: Zoom; readonly percent: number };
   renderstats: RenderStats;
+  /** The text selection changed: `undefined` when it left the viewer (UI/UX plan §5.3). */
+  selectionchange: { readonly selection: TextSelection | undefined };
 }
 
 /** A layer that later todos mount into each page (text, annotations, highlights, …). */
@@ -323,7 +326,14 @@ export class Viewer {
         rotation: () => this.#rotation,
         keepMounted: (pages: Iterable<number>) => this.keepMounted(pages),
       };
-      this.#text = new TextLayer(host, options.text === true || options.text === undefined ? {} : options.text);
+      const textOptions = options.text === true || options.text === undefined ? {} : options.text;
+      this.#text = new TextLayer(host, {
+        ...textOptions,
+        onSelection: (selection) => {
+          textOptions.onSelection?.(selection);
+          this.#emit("selectionchange", { selection });
+        },
+      });
       this.addLayer(this.#text);
     }
     this.find = new FindController({
@@ -396,6 +406,24 @@ export class Viewer {
    * a text selection touches, so scrolling never takes the selection away. A pinned page out of
    * view keeps its shell and its text; its canvas goes back to the pool like any other.
    */
+  /**
+   * Copies the text selection to the clipboard: by paragraph in reading order, or exact, as laid
+   * out. Call it in a user gesture (a click, a key). Resolves false when nothing is selected or
+   * the clipboard refused.
+   */
+  copySelection(mode: CopyMode = "paragraph"): Promise<boolean> {
+    return this.#text?.copy(mode) ?? Promise.resolve(false);
+  }
+
+  /** Whether a plain drag selects a rectangle, as an Alt/Option-drag does (column selection). */
+  get columnSelect(): boolean {
+    return this.#text?.columnMode ?? false;
+  }
+
+  set columnSelect(on: boolean) {
+    if (this.#text !== undefined) this.#text.columnMode = on;
+  }
+
   keepMounted(pages: Iterable<number>): void {
     const next = new Set(pages);
     if (next.size === this.#pinned.size && [...next].every((p) => this.#pinned.has(p))) return;

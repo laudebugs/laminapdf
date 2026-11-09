@@ -203,8 +203,9 @@ describe("selection across pages", () => {
     v.goToPage(25);
     await new Promise((r) => setTimeout(r, 500));
     const mounted = [0, 1].map((p) => document.querySelector(`.lamina-page[data-page-index="${p}"]`) !== null);
+    // Copy as paragraph: each page's text is a block of its own, a blank line between them.
     expect([copied, mounted, document.getSelection()?.isCollapsed]).toEqual([
-      "1 last line\nPage 2",
+      "1 last line\n\nPage 2",
       [true, true],
       false,
     ]);

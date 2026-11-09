@@ -5,7 +5,7 @@
 // a page scrolled back into view asks again.
 
 import type { PageGlyphs } from "../find/page.js";
-import type { PageTextData, StructureData, TextRunData } from "../protocol.js";
+import type { PageTextData, ReadingBlock, StructureData, TextRunData } from "../protocol.js";
 import { current, textModel } from "./document.js";
 
 /** How many pages' text stay cached (a screenful of pages and the margin, at most zoom). */
@@ -76,7 +76,33 @@ export async function structure(signal: AbortSignal): Promise<StructureData> {
   return tree === undefined ? { tagged } : { tagged, tree };
 }
 
+/** The reading-order blocks cached, by document ID and page (a few pages: a selection's). */
+const blocks = new Map<string, ReadingBlock[]>();
+
+/**
+ * Page `index`'s blocks in reading order (cached). Running headers and footers stay in, as
+ * blocks of their own: a selection that takes them in copies them.
+ */
+export async function readingOrder(index: number, signal: AbortSignal): Promise<ReadingBlock[]> {
+  const key = `${current().id}:${index}`;
+  const cached = blocks.get(key);
+  if (cached !== undefined) return cached;
+  const model = await textModel(signal);
+  const extraction = await model.ensure(
+    () => model.extract({ format: "json", pages: [index], drop: { furniture: false } }),
+    { signal },
+  );
+  const found = extraction.blocks.map((b) => ({ bbox: b.bbox, type: b.type }));
+  blocks.set(key, found);
+  for (const old of blocks.keys()) {
+    if (blocks.size <= CACHED_PAGES) break;
+    blocks.delete(old);
+  }
+  return found;
+}
+
 /** Forgets every page's text: the document closed. */
 export function forgetText(): void {
   cache.clear();
+  blocks.clear();
 }

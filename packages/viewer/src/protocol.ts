@@ -83,6 +83,19 @@ export interface Methods {
   outline: { params: []; result: OutlineNode[] };
   namedDestination: { params: [name: string]; result: Target | undefined };
   find: { params: [query: string, options: FindOptions, pages: readonly number[]]; result: FindPageResult[] };
+  readingOrder: { params: [index: number]; result: ReadingBlock[] };
+}
+
+/**
+ * One block of a page's text in reading order, as Lamina PDF's extraction finds it (ADR 0030):
+ * where it is, in page space (points from the displayed page's top-left, y down), and what kind
+ * of block it is. Copy as paragraph joins the selected text block by block in this order.
+ */
+export interface ReadingBlock {
+  /** Its box: `[x, y, width, height]`. */
+  readonly bbox: readonly [number, number, number, number];
+  /** `paragraph`, `heading`, `list-item`, `caption`, `footnote`, `table` or `other`. */
+  readonly type: string;
 }
 
 /** One page's find results: each match as its quads (8 numbers per run it touches), in page space. */

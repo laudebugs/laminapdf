@@ -47,6 +47,8 @@ import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { pageLabel } from "./outline.ts";
 import { railTabs } from "./rail.tsx";
+import type { SelectionSurfaces } from "./selection.tsx";
+import { useSelection } from "./selection.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
@@ -80,6 +82,7 @@ function useReaderCommands(
   shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
   rail: boolean,
   find: FindActions,
+  selection: SelectionSurfaces["actions"],
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -97,11 +100,11 @@ function useReaderCommands(
       actions: {
         ...shellActions(shell.layout, shell.modes, { rail }),
         "palette.open": shell.openPalette,
-        ...(viewer === undefined ? {} : find),
+        ...(viewer === undefined ? {} : { ...find, ...selection }),
         "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
       },
     }),
-    [platform, reader, viewer, shell, modes, rail, find],
+    [platform, reader, viewer, shell, modes, rail, find, selection],
   );
   return { registry, context };
 }
@@ -254,7 +257,8 @@ export function App({
     return pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined;
   }, [engineState.pages]);
   const fileName = open ? state.file.name : undefined;
-  const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions);
+  const selection = useSelection(shown, find, platform.storage, KEYS);
+  const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions, selection.actions);
   useWindowTitle(fileName, engineState.title);
   const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
   const debugMenu = debug ? (
@@ -280,7 +284,9 @@ export function App({
           />
         }
         rail={<LeftRail layout={layout} tabs={tabs} />}
-        bottomBar={<PhoneBottomBar layout={layout} rail={tabs.length > 0} more={moreItems} keys={KEYS} />}
+        bottomBar={
+          selection.bar ?? <PhoneBottomBar layout={layout} rail={tabs.length > 0} more={moreItems} keys={KEYS} />
+        }
         {...(inspector === undefined ? {} : { inspector })}
         status={
           <>
@@ -306,6 +312,7 @@ export function App({
         <PasswordDialog reader={reader} />
       </ReaderShell>
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
+      {selection.toolbar}
     </CommandsProvider>
   );
 }

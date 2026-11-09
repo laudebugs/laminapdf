@@ -19,6 +19,8 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/golden/links-and-outlines.pdf",
     "../../../../fixtures/golden/examples/hello.pdf",
     "../../../../fixtures/text/extracted.json",
+    "../../../../fixtures/reading-order/*.pdf",
+    "../../../../fixtures/reading-order/*.json",
   ],
   { query: "?url", import: "default", eager: true },
 );

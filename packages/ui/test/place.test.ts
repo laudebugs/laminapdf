@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { intersect, placeAbove } from "../src/overlays/place.ts";
+import { type Box, intersect, placeAbove, selectionBox } from "../src/overlays/place.ts";
 
 const viewport = { top: 0, left: 0, width: 800, height: 600 };
 const line = (top: number, left = 300) => ({ top, left, width: 200, height: 20 });
@@ -48,5 +48,37 @@ describe("intersect", () => {
     const empty = intersect(viewport, away);
     expect(empty).toEqual({ top: 700, left: 900, width: 0, height: 0 });
     expect(placeAbove(line(300), 100, 40, empty, 8, 8)).toBeNull();
+  });
+});
+
+describe("selectionBox", () => {
+  const overlaps = (a: Box, b: Box) =>
+    a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
+
+  it("covers every rectangle and skips empty ones", () => {
+    const box = selectionBox([line(100, 300), { top: 120, left: 50, width: 400, height: 20 }, line(0, 0)]);
+    expect(box).toEqual({ top: 0, left: 0, width: 500, height: 140 });
+    expect(selectionBox([{ top: 5, left: 5, width: 0, height: 10 }])).toBeNull();
+  });
+
+  // A toolbar 220 × 38 against selections of one to three lines across the viewport, at its edges
+  // too: above, flipped below or shifted sideways, it never covers a selected line.
+  const positions = Array.from({ length: 20 }, (_, k) => ({
+    top: k < 4 ? k * 6 : k >= 16 ? 600 - 20 * ((k % 3) + 1) - (k - 16) * 4 : 30 + k * 30,
+    left: k % 2 === 0 ? (k * 37) % 700 : k % 3 === 0 ? -40 : 620,
+    lines: (k % 3) + 1,
+  }));
+  it.each(positions)("never covers the selection at top $top, left $left ($lines lines)", ({ top, left, lines }) => {
+    const rects = Array.from({ length: lines }, (_, i) => ({
+      top: top + i * 20,
+      left: i === 0 ? left : 40,
+      width: i === lines - 1 ? 180 : 400,
+      height: 18,
+    }));
+    const anchor = selectionBox(rects) as Box;
+    const place = placeAbove(anchor, 220, 38, viewport, 8, 8);
+    expect(place).not.toBeNull();
+    const toolbar = { top: place?.top ?? 0, left: place?.left ?? 0, width: 220, height: 38 };
+    for (const r of rects) expect(overlaps(toolbar, r), JSON.stringify({ toolbar, r })).toBe(false);
   });
 });

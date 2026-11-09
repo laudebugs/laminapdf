@@ -11,7 +11,7 @@
 | Branch | `feat/u2a-selection-surfaces` |
 | PR title | `feat(ui): add the selection toolbar, the touch action bar and copy modes` |
 | Size | M (300–600 lines incl. tests) |
-| PR | — |
+| PR | [#363](https://github.com/laudebugs/laminapdf/pull/363) |
 
 ## Goal
 
