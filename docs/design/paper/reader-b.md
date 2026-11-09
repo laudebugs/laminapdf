@@ -140,9 +140,11 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 
 **Platform differences.** The desktop app shows the indicator only if something networks (updates): U4a scope. Phone: the More row opens this panel as a sheet at the large detent.
 
+**As built (U4a).** Three differences from the boards. “How to check it yourself” opens its steps in the panel, since the privacy page it should open comes with the launch (C7c). The status item is a toggle: it opens the panel and closes it, and its pressed state is `aria-expanded`. The phone’s More › Network activity row waits for its sheet; the palette’s `privacy.network-activity` reaches the panel there.
+
 **Artboards.** `R13-network-panel.dc.html`, `R13-network-remote.dc.html`.
 
-**Todos.** [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md).
+**Todos.** [U4a](../../todos/done/U4a-network-indicator-and-privacy-proof.md).
 
 ## R14 Reader mode
 

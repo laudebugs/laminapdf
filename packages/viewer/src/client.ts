@@ -29,8 +29,10 @@ import {
   type BackendInit,
   type LoadProgress,
   type MethodName,
+  type NetworkRecord,
   type OpenedDocument,
   type Params,
+  type PolicyViolation,
   PRIORITY,
   type Priority,
   type RenderedBitmap,
@@ -38,6 +40,7 @@ import {
   renderKey,
   type SourceInit,
   type ViewerOpenOptions,
+  type WorkerNetworkLog,
 } from "./protocol.js";
 
 /** Default render timeouts (ADR 0009 §3.7), in ms. */
@@ -73,6 +76,10 @@ export interface ViewerEvents {
   "render-start": { readonly page: number; readonly scale: number; readonly key: string };
   /** A remote document's render stopped drawing to fetch bytes it needs; `render-start` follows when it draws again. */
   "render-fetching": { readonly key: string };
+  /** The document worker made a network request (`worker` names the worker, so a restart's records stay apart). */
+  network: { readonly worker: string; readonly index: number; readonly record: NetworkRecord };
+  /** The worker's Content Security Policy blocked a request it tried. */
+  "csp-violation": { readonly worker: string; readonly index: number; readonly violation: PolicyViolation };
   /** A render passed the soft timeout: offer Stop. */
   "render-slow": { readonly id: number; readonly page: number };
   /** An encrypted document's render passed the hard cap: `stop()` would ask for the password again. */
@@ -144,6 +151,8 @@ export class ViewerClient {
   #onEvent(name: string, data: unknown): void {
     if (name === "warning") this.#events.emit("warning", data as ViewerEvents["warning"]);
     else if (name === "progress") this.#events.emit("progress", data as LoadProgress);
+    else if (name === "network") this.#events.emit("network", data as ViewerEvents["network"]);
+    else if (name === "csp-violation") this.#events.emit("csp-violation", data as ViewerEvents["csp-violation"]);
     else if (name === "render-start") {
       const started = data as ViewerEvents["render-start"];
       this.#drawing = started.key;
@@ -238,6 +247,14 @@ export class ViewerClient {
     this.#reopen = undefined;
     this.#document = undefined;
     await this.call("closeDocument", []);
+  }
+
+  /**
+   * Every request the document worker has made, and had blocked, since it started: what its
+   * `network` and `csp-violation` events reported, including those sent before anyone listened.
+   */
+  networkLog(options?: ViewerCallOptions): Promise<WorkerNetworkLog> {
+    return this.call("networkLog", [], options);
   }
 
   /** The worker's WebAssembly memory in bytes (see `WorkerMemory`), for measuring. */

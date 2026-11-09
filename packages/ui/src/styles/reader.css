@@ -528,3 +528,103 @@
     color: var(--paper-muted);
   }
 }
+
+/* The network activity panel (R13): the repair panel's header and rows, a summary count in the
+   display face, tables of origin · requests · bytes with a purpose line under each origin, and the
+   App files disclosure. */
+@layer paper.components {
+  .paper-network-summary {
+    display: flex;
+    align-items: baseline;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-network-number {
+    font: var(--paper-type-display);
+    letter-spacing: var(--paper-type-display-letter-spacing);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-network-note {
+    margin: 0;
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-network-section {
+    display: grid;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-network-table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font: var(--paper-type-body);
+  }
+
+  .paper-network-table caption {
+    padding-block-end: var(--paper-space-8);
+    text-align: start;
+  }
+
+  .paper-network-table th,
+  .paper-network-table td {
+    padding-block: var(--paper-space-6);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .paper-network-table td {
+    padding-inline-start: var(--paper-space-8);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .paper-network-table thead th {
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+    white-space: nowrap;
+  }
+
+  .paper-network-table thead th + th {
+    padding-inline-start: var(--paper-space-8);
+  }
+
+  .paper-network-origin {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-network-purpose {
+    display: block;
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-network-table tr[data-unexpected] .paper-network-origin {
+    color: var(--paper-warning);
+  }
+
+  .paper-network-disclosure {
+    justify-self: start;
+    min-block-size: var(--ui-target);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: var(--paper-type-label);
+    text-decoration: underline;
+  }
+
+  .paper-network-disclosure:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
+
+  .paper-network-steps {
+    margin: 0;
+    padding-inline-start: var(--paper-space-16);
+    font: var(--paper-type-caption);
+  }
+}

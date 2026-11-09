@@ -2,6 +2,8 @@
 // preloaded, one platform and one engine for the page, and the app rendered into #app. The engine
 // starts loading the render backend at once, while the user picks a file.
 
+// First: the page's network feed wraps fetch and friends before any other module runs.
+import { networkMonitor } from "./network/page-feed.ts";
 import "@laminapdf/tokens/tokens.css";
 import "@laminapdf/fonts/fonts.css";
 import "@laminapdf/ui/styles.css";
@@ -35,11 +37,11 @@ const root = document.getElementById("app");
 if (root === null) throw new Error("index.html has no #app");
 // One platform for the page: two would each open the recent-files store and take the launch queue.
 const platform = createWebPlatform();
-const engine = new Engine(platform, "pdfium", { outlineText: wantsDebug(location.hash) });
+const engine = new Engine(platform, "pdfium", { outlineText: wantsDebug(location.hash), network: networkMonitor });
 // `#url=` opens a remote file now and whenever the fragment changes.
 watchFragment(window, engine);
 createRoot(root).render(
   <PlatformProvider platform={platform}>
-    <App engine={engine} platform={platform} debug={wantsDebug(location.hash)} />
+    <App engine={engine} platform={platform} network={networkMonitor} debug={wantsDebug(location.hash)} />
   </PlatformProvider>,
 );

@@ -27,6 +27,7 @@ import {
   ViewerClient,
 } from "@laminapdf/viewer";
 import { type DocumentWarning, repairsFrom } from "./document.ts";
+import type { NetworkMonitor } from "./network/monitor.ts";
 import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
 import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
@@ -185,8 +186,16 @@ export class Engine implements ExternalStore<EngineState> {
   /** #debug outlines each text span, to check it lies over its glyphs. */
   readonly #outline: boolean;
 
-  constructor(platform: Platform, backend: DebugBackend, options: { readonly outlineText?: boolean } = {}) {
+  /** Where the document worker's requests are counted (the page's are counted by page-feed.ts). */
+  readonly #network: NetworkMonitor | undefined;
+
+  constructor(
+    platform: Platform,
+    backend: DebugBackend,
+    options: { readonly outlineText?: boolean; readonly network?: NetworkMonitor } = {},
+  ) {
     this.#outline = options.outlineText === true;
+    this.#network = options.network;
     this.reader = new ReaderController(platform, (file, password) => this.#open(file, password));
     this.#state = {
       backend,
@@ -318,6 +327,7 @@ export class Engine implements ExternalStore<EngineState> {
           const file = this.#file;
           if (this.#session === session && file !== undefined) void this.reader.open(file);
         });
+        this.#watchWorkerNetwork(started.client);
         this.#set({ viewer: started.viewer, strip: started.strip });
       },
       // A backend that can't load fails the next open, which the reader reports.
@@ -326,9 +336,30 @@ export class Engine implements ExternalStore<EngineState> {
     return session;
   }
 
+  /**
+   * Counts the document worker's requests: its events from now on, and its whole log, which
+   * holds what it requested before anyone listened (loading the backend). A restarted worker is a
+   * new worker, with a log of its own.
+   */
+  #watchWorkerNetwork(client: ViewerClient): void {
+    const network = this.#network;
+    if (network === undefined) return;
+    client.on("network", ({ worker, index, record }) => network.workerRequest(worker, index, record));
+    client.on("csp-violation", ({ worker, index, violation }) => network.workerViolation(worker, index, violation));
+    const readLog = () =>
+      void client.networkLog().then(
+        (log) => network.workerLog(log),
+        () => undefined,
+      );
+    client.on("restarted", readLog);
+    readLog();
+  }
+
   async #open(file: PlatformFile, password: string | undefined): Promise<OpenedDocument> {
     // Opening anything leaves an unusable link's page behind.
     if (this.#state.linkProblem !== undefined) this.#set({ linkProblem: undefined });
+    // The network panel counts document traffic from this moment.
+    this.#network?.documentOpening(Date.now(), remoteUrlOf(file));
     this.#turn += 1;
     const turn = this.#turn;
     const latest = () => turn === this.#turn;
@@ -374,6 +405,7 @@ export class Engine implements ExternalStore<EngineState> {
       close: () => {
         if (!latest()) return;
         this.#file = undefined;
+        this.#network?.documentClosed();
         this.#set({ title: undefined, pages: [], outline: undefined, repairs: [], timing: undefined });
         if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
       },

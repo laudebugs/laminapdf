@@ -21,7 +21,10 @@
     "@laminapdf/fonts",
     "@laminapdf/icons",
     "@laminapdf/ui",
-    "@laminapdf/cli"
+    "@laminapdf/cli",
+    "@laminapdf/web",
+    "@laminapdf/gallery",
+    "@laminapdf/layout-heron"
   ],
   "privatePackages": {
     "version": true,

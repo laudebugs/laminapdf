@@ -83,7 +83,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/viewer/     # @laminapdf/viewer: the viewer core (ADR 0009); C3a: ViewerClient (typed RPC over
 │                        #   @laminapdf/sdk/worker's request(), timers, restart), src/worker/ (serve() with the viewer's
 │                        #   methods: openDocument, render → ImageBitmap); C4c: src/source/http-range.ts (HttpRangeByteSource:
-│                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); C5a: src/layers/ (the text
+│                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); U4a:
+│                        #   src/network/watch.ts (watchNetwork: fetch, XHR, WebSocket, sendBeacon wrapped, Resource Timing for the rest),
+│                        #   worker/network.ts (the worker's log, imported first; networkLog, `network`/`csp-violation` events); C5a: src/layers/ (the text
 │                        #   layer: a transparent span per run from Lamina PDF's quads, selection across pages, keepMounted pins, copy; the
 │                        #   structure tree as ARIA elements owning spans by MCID), worker/text.ts (pageText, structure); C6a: worker/navigation.ts
 │                        #   (outline, namedDestination), zoom/destination.ts (a page-space target → zoom and scroll; Viewer.goToDestination),
@@ -161,7 +163,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   warnings, the #debug backend switch, remote files as PlatformFiles naming their address), src/app.tsx,
 │                        #   src/document.ts (window title, repair list; Node tests), src/open/ (C4c: url-fragment.ts parses and
 │                        #   writes `#url=…&page=…` keeping raw values, navigation.ts, watch.ts on load/hashchange/popstate; C6b: history.ts,
-│                        #   each viewer jump a browser history entry marked with its id);
+│                        #   each viewer jump a browser history entry marked with its id),
+│                        #   src/network/ (U4a: page-feed.ts, main.tsx's first import; classify.ts, the one classifier of app files,
+│                        #   document traffic and unexpected sites; monitor.ts, the log and its summary; panel.tsx, R13's indicator and panel);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
@@ -490,7 +494,8 @@ pnpm changeset version       # release prep: consume the changesets, bump the fi
 cargo xtask version sync [--check]  # the fixed group's version (members read from .changeset/config.json; all must agree)
                              #   into [workspace.package], the internal [workspace.dependencies], every tracked
                              #   Cargo.lock, CHANGELOG.md (every member's entries merged) and @laminapdf/sdk's VERSION (packages/sdk/src/version.ts);
-                             #   --check fails on any drift or a crate without version.workspace = true (part of `check docs`)
+                             #   --check fails on any drift or a crate without version.workspace = true (part of `check docs`); both fail on a private
+                             #   packages/* or apps/* package missing from .changeset/config.json's `ignore` (Changesets would version it)
 cargo xtask version check-tag <tag>  # fail unless <tag> is v<version> (the release lane)
 cargo xtask verify-install [node|deno|bun|chromium|workerd|rust]… [--node <bin>]… [--git-ref <tag-or-sha>] [--git-url <url>] [--keep]
                              # after `wasm`: pnpm pack @laminapdf/wasm and @laminapdf/sdk (not the render packages yet), run the quick start in clean projects in the temp dir

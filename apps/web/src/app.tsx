@@ -45,6 +45,8 @@ import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type FindActions, useFind } from "./find.tsx";
+import type { NetworkMonitor } from "./network/monitor.ts";
+import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { railTabs } from "./rail.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
@@ -132,6 +134,7 @@ function useReaderCommands(
         ...shellActions(shell.layout, shell.modes, { rail }),
         "palette.open": shell.openPalette,
         ...(viewer === undefined ? {} : { ...find, ...history }),
+        "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
       },
     }),
     [platform, reader, viewer, shell, modes, rail, find, history],
@@ -252,12 +255,41 @@ function ReaderDialogs({
   );
 }
 
+/** The inspector's panel and the status bar's items: the network indicator first. */
+function usePanels(
+  layout: ShellLayout,
+  platform: Platform,
+  network: NetworkMonitor,
+  fileName: string | undefined,
+  engine: EngineState,
+  debug: boolean,
+): { inspector: ReactNode; status: ReactNode[] } {
+  const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, platform, fileName, engine.repairs);
+  const { indicator, inspector: networkPanel } = useNetworkPanel(layout, platform, network);
+  // One inspector at a time: whichever panel the layout holds draws, the other draws nothing.
+  const inspector = repairsPanel ?? networkPanel;
+  return {
+    inspector,
+    status: [...(indicator === undefined ? [] : [indicator]), ...statusItems(engine, debug, showRepairs)],
+  };
+}
+
 /** The reader over `engine`, on `platform`; `debug` shows the debug menu (`#debug`). */
-export function App({ engine, platform, debug }: { engine: Engine; platform: Platform; debug: boolean }): ReactNode {
+export function App({
+  engine,
+  platform,
+  network,
+  debug,
+}: {
+  engine: Engine;
+  platform: Platform;
+  network: NetworkMonitor;
+  debug: boolean;
+}): ReactNode {
   const { reader } = engine;
   const state = useReaderState(reader);
   const engineState = useStoreState(engine, (s) => s);
-  const { backend, viewer, repairs } = engineState;
+  const { backend, viewer } = engineState;
   const [palette, setPalette] = useState(false);
   const { layout, modes } = useShell(platform.storage);
   const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
@@ -284,8 +316,7 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const history = useHistory(shown, engineState.pages);
   const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions, history.actions);
   useWindowTitle(fileName, engineState.title);
-  const { inspector, showRepairs } = useRepairsPanel(layout, platform, fileName, repairs);
-  const status = statusItems(engineState, debug, showRepairs);
+  const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
   const debugMenu = debug ? (
     <DebugMenu backend={backend} onBackendChange={(next) => void engine.switchBackend(next)} keys={KEYS} />
   ) : undefined;

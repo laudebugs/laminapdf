@@ -20,6 +20,7 @@ export type { LinkLayerOptions, LinkWords } from "./layers/link-layer.js";
 export { type ExternalLink, externalLink, type OpenableLink } from "./layers/link-url.js";
 export type { TextLayerOptions, TextSelection } from "./layers/text-layer.js";
 export type { Rotation } from "./layout/page-layout.js";
+export { type NetworkSink, watchNetwork } from "./network/watch.js";
 export type {
   BackendInit,
   BackendName,
@@ -27,9 +28,12 @@ export type {
   LoadProgress,
   MethodName,
   Methods,
+  NetworkRecord,
+  NetworkSource,
   OpenedDocument,
   PageTextData,
   Params,
+  PolicyViolation,
   Priority,
   RemoteSource,
   RenderedBitmap,
@@ -39,6 +43,7 @@ export type {
   TextRunData,
   ViewerOpenOptions,
   WorkerMemory,
+  WorkerNetworkLog,
 } from "./protocol.js";
 export { ThumbnailStrip, type ThumbnailStripOptions } from "./thumbnails/strip.js";
 export type {
