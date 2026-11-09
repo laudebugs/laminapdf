@@ -15,7 +15,14 @@ import {
 } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
-import { Document, isLaminaPdfError, loadExtract, type OpenOptions, wasmMemory } from "@laminapdf/sdk";
+import {
+  Document,
+  isLaminaPdfError,
+  loadExtract,
+  type OpenOptions,
+  type RangeSource,
+  wasmMemory,
+} from "@laminapdf/sdk";
 import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
 import type {
   BackendInit,
@@ -26,6 +33,7 @@ import type {
   WorkerMemory,
 } from "../protocol.js";
 import { HttpRangeByteSource } from "../source/http-range.js";
+import { COPY_ABOVE, OpfsByteSource } from "../source/opfs.js";
 import { blobSource, readAll } from "../source.js";
 
 let backend: RenderBackend | undefined;
@@ -38,6 +46,8 @@ interface Open {
   readonly render: RenderDocument;
   /** Where a remote document's bytes come from; undefined when they are all in memory. */
   readonly remote: HttpRangeByteSource | undefined;
+  /** A large local file's OPFS copy it is read from; undefined when it is in memory. */
+  readonly local: OpfsByteSource | undefined;
   /**
    * How to open it again as a text-capable copy (its bytes in memory, the options it opened
    * with): kept only while that copy may be needed, since the options hold the password.
@@ -119,7 +129,7 @@ export async function textModel(signal: AbortSignal): Promise<Document> {
     const { model } =
       bytes !== undefined
         ? await openModel((o) => Document.open(bytes, o), options)
-        : await openModel((o) => Document.openRange(opened.remote as HttpRangeByteSource, o), options);
+        : await openModel((o) => Document.openRange((opened.remote ?? opened.local) as RangeSource, o), options);
     if (!model.canExtractText) {
       model.free();
       throw new RenderError("render-failed", "the extract module didn't load");
@@ -163,6 +173,7 @@ function closeOpen(): void {
   if (open === undefined) return;
   open.render.close();
   open.model.free();
+  open.local?.close();
   // A text-capable copy goes with it, once opened (a failed one has nothing to free).
   open.text?.then(
     (copy) => copy.free(),
@@ -240,6 +251,7 @@ export async function openDocument(
 ): Promise<OpenedDocument> {
   const engine = currentBackend();
   let remote: HttpRangeByteSource | undefined;
+  let local: OpfsByteSource | undefined;
   let bytes: Uint8Array | undefined;
   if (isRemote(init)) {
     remote = await HttpRangeByteSource.open(init.url, { signal, onProgress: (p) => emit("progress", p) });
@@ -247,18 +259,43 @@ export async function openDocument(
     bytes = remote.whole;
     if (bytes !== undefined) remote = undefined;
   } else {
-    bytes = await bytesOf(init, signal);
+    // A large file is read from its OPFS copy where the browser can keep one, else from memory.
+    if (init instanceof File && init.size > (options.copyAbove ?? COPY_ABOVE)) {
+      local = await OpfsByteSource.open(init, signal, (loaded, total) => emit("progress", { loaded, total }));
+    }
+    if (local === undefined) bytes = await bytesOf(init, signal);
   }
+  try {
+    return await openFrom(engine, { bytes, remote, local }, options, signal);
+  } catch (e) {
+    local?.close();
+    throw e;
+  }
+}
+
+/** Opens Lamina PDF's document and the backend's over the bytes, the remote file or the copy. */
+async function openFrom(
+  engine: RenderBackend,
+  from: {
+    readonly bytes: Uint8Array | undefined;
+    readonly remote: HttpRangeByteSource | undefined;
+    readonly local: OpfsByteSource | undefined;
+  },
+  options: ViewerOpenOptions,
+  signal: AbortSignal,
+): Promise<OpenedDocument> {
+  const { bytes, remote, local } = from;
   const { password, renderLimits } = options;
+  const ranged = (remote ?? local) as RangeSource;
   const { model, needsPassword } =
     bytes !== undefined
       ? await openModel((o) => Document.open(bytes, o), options)
-      : await openModel((o) => Document.openRange(remote as HttpRangeByteSource, { ...o, signal }), options);
+      : await openModel((o) => Document.openRange(ranged, { ...o, signal }), options);
   let render: RenderDocument;
   let pages: OpenedDocument["pages"];
   let title: string | undefined;
   try {
-    const source = remote ?? bytesSource(bytes as Uint8Array);
+    const source = remote ?? local ?? bytesSource(bytes as Uint8Array);
     const renderOptions = {
       ...(password === undefined ? {} : { password }),
       ...(renderLimits === undefined ? {} : { limits: renderLimits }),
@@ -291,6 +328,7 @@ export async function openDocument(
     model,
     render,
     remote,
+    local,
     reopen: reopenFor(model, remote === undefined ? bytes : undefined, options),
   };
   // ADR 0003 warnings (a repaired xref, a dropped object) for the UI.

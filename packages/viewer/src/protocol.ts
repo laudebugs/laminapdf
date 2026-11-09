@@ -45,6 +45,11 @@ export interface ViewerOpenOptions {
   readonly limits?: Partial<Limits>;
   /** The backend's render limits (ADR 0004). */
   readonly renderLimits?: Partial<RenderLimits>;
+  /**
+   * A local file larger than this many bytes is copied into the origin-private file system and
+   * read from there, not held in memory (default 200 MiB; tests lower it).
+   */
+  readonly copyAbove?: number;
 }
 
 /** An open document, as layout needs it up front. */
