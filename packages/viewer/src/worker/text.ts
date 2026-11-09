@@ -5,7 +5,7 @@
 // a page scrolled back into view asks again.
 
 import type { PageGlyphs } from "../find/page.js";
-import type { PageTextData, StructureData, TextRunData } from "../protocol.js";
+import type { PageTextData, ReadingBlock, StructureData, TextRunData } from "../protocol.js";
 import { textModel } from "./document.js";
 import { CACHED_PAGES, RecentPages } from "./recent-pages.js";
 
@@ -60,7 +60,28 @@ export async function structure(signal: AbortSignal): Promise<StructureData> {
   return tree === undefined ? { tagged } : { tagged, tree };
 }
 
+/** The reading-order blocks of the last pages a selection reached. */
+const blocks = new RecentPages<ReadingBlock[]>(CACHED_PAGES);
+
+/**
+ * Page `index`'s blocks in reading order (cached). Running headers and footers stay in, as
+ * blocks of their own: a selection that takes them in copies them.
+ */
+export async function readingOrder(index: number, signal: AbortSignal): Promise<ReadingBlock[]> {
+  const cached = blocks.get(index);
+  if (cached !== undefined) return cached;
+  const model = await textModel(signal);
+  const extraction = await model.ensure(
+    () => model.extract({ format: "json", pages: [index], drop: { furniture: false } }),
+    { signal },
+  );
+  const found = extraction.blocks.map((b) => ({ bbox: b.bbox, type: b.type }));
+  blocks.set(index, found);
+  return found;
+}
+
 /** Forgets every page's text: the document closed. */
 export function forgetText(): void {
   cache.clear();
+  blocks.clear();
 }

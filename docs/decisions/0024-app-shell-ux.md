@@ -1,7 +1,7 @@
 # 0024 — App shell UX: a docked inverted-L layout, modes, one command registry, selection surfaces and page appearance
 
 - Status: Accepted (2026-11-04, when U1a's PR merges)
-- Date: 2026-11-04
+- Date: 2026-11-04 (amended 2026-11-09: U2a's five selection commands in the appendix)
 
 ## Context
 
@@ -210,7 +210,7 @@ The shell targets WCAG 2.2 level AA. These rules come straight from the W3C text
 
 ## Appendix: the reader v0.1 command set
 
-U1b registers these 39 commands. Shortcuts follow the design language's table, and "page" means the page has focus. A "menu" is the command's group in the web's overflow menu and in the desktop app's menu bar. Three ids are new in this ADR and join the design language's appendix in this PR: `mode.comment` (§2), `view.set-zoom` (a percentage) and `view.rotate-display` (a quarter turn of the view, which never changes the file).
+U1b registered these 39 commands, and U2a added the five below `selection.actions` (amended 2026-11-09), so the reader registers 44. Shortcuts follow the design language's table, and "page" means the page has focus. A "menu" is the command's group in the web's overflow menu and in the desktop app's menu bar. Three ids are new in this ADR and join the design language's appendix in this PR: `mode.comment` (§2), `view.set-zoom` (a percentage) and `view.rotate-display` (a quarter turn of the view, which never changes the file).
 
 | Id | Title | Arguments | Shortcut (macOS / others) | Visible home |
 | --- | --- | --- | --- | --- |
@@ -252,4 +252,9 @@ U1b registers these 39 commands. Shortcuts follow the design language's table, a
 | `help.shortcuts` | Keyboard shortcuts | — | ? (page); F1 (desktop app) | Help menu |
 | `layer.close` | Close the open panel or dialog | — | Esc | Every layer's close button |
 | `selection.actions` | Show selection actions | — | ⇧F10 / Shift F10 | Context menu |
+| `edit.copy-exact` | Copy exact (the layout's line breaks kept) | — | — | Mini toolbar, context menu |
+| `edit.select-column-mode` | Select by column (a drag selects a rectangle, as Alt-drag does) | — | — | Context menu |
+| `selection.search` | Search for the selection | — | — | Mini toolbar, context menu |
+| `selection.share` | Share the selection (where the device can share) | — | — | Context menu, the phone's selection bar |
+| `selection.toggle-toolbar` | Show or hide the selection toolbar | — | — | View settings |
 | `mode.read` | Read mode | — | — | Mode switcher |

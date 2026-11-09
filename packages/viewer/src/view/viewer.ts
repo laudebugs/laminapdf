@@ -16,9 +16,10 @@ import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { FindController } from "../find/controller.js";
 import { type HistoryPlace, NavigationHistory, type NavigationHistoryOptions } from "../history/history.js";
+import type { CopyMode } from "../layers/copy.js";
 import { HighlightLayer } from "../layers/highlight-layer.js";
 import { LinkLayer, type LinkLayerOptions } from "../layers/link-layer.js";
-import { TextLayer, type TextLayerOptions } from "../layers/text-layer.js";
+import { TextLayer, type TextLayerOptions, type TextSelection } from "../layers/text-layer.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { range } from "../layout/range.js";
 import { type OpenedDocument, type Priority, renderKey, renderKeyFields } from "../protocol.js";
@@ -83,6 +84,8 @@ export interface ViewerEventMap {
   pagechange: { readonly page: number };
   zoomchange: { readonly zoom: Zoom; readonly percent: number };
   renderstats: RenderStats;
+  /** The text selection changed: `undefined` when it left the viewer (UI/UX plan §5.3). */
+  selectionchange: { readonly selection: TextSelection | undefined };
 }
 
 /** A layer that later todos mount into each page (text, annotations, highlights, …). */
@@ -333,16 +336,8 @@ export class Viewer {
       visibleRange: { first: 0, last: -1 },
     };
     this.#listen();
-    if (options.text !== false) {
-      const host = {
-        root: this.#root,
-        client: this.#client,
-        rotation: () => this.#rotation,
-        keepMounted: (pages: Iterable<number>) => this.keepMounted(pages),
-      };
-      this.#text = new TextLayer(host, options.text === true || options.text === undefined ? {} : options.text);
-      this.addLayer(this.#text);
-    }
+    this.#text = this.#textLayer(options.text);
+    if (this.#text !== undefined) this.addLayer(this.#text);
     this.history = new NavigationHistory({ place: () => this.#place(), show: (p) => this.#show(p) }, options.history);
     this.find = new FindController({
       find: (query, find, pages, signal) => this.#client.find(query, find, pages, { signal }),
@@ -410,6 +405,25 @@ export class Viewer {
     const l = listener as (data: never) => void;
     set.add(l);
     return () => set.delete(l);
+  }
+
+  /**
+   * Copies the text selection to the clipboard: by paragraph in reading order, or exact, as laid
+   * out. Call it in a user gesture (a click, a key). Resolves false when nothing is selected or
+   * the clipboard refused.
+   */
+  copySelection(mode: CopyMode = "paragraph"): Promise<boolean> {
+    return this.#text?.copy(mode) ?? Promise.resolve(false);
+  }
+
+  /** Whether a plain drag selects a rectangle, as an Alt/Option-drag does (column selection). */
+  get columnSelect(): boolean {
+    return this.#text?.columnMode ?? false;
+  }
+
+  /** Turns column selection by plain drag on or off; Alt/Option-drag selects a rectangle either way. */
+  set columnSelect(on: boolean) {
+    if (this.#text !== undefined) this.#text.columnMode = on;
   }
 
   /**
@@ -645,6 +659,25 @@ export class Viewer {
 
   #viewport() {
     return { width: this.#root.clientWidth || 800, height: this.#root.clientHeight || 600 };
+  }
+
+  /** The text layer `option` asks for, or none (`false`); it reports the selection as an event too. */
+  #textLayer(option: boolean | TextLayerOptions | undefined): TextLayer | undefined {
+    if (option === false) return undefined;
+    const host = {
+      root: this.#root,
+      client: this.#client,
+      rotation: () => this.#rotation,
+      keepMounted: (pages: Iterable<number>) => this.keepMounted(pages),
+    };
+    const textOptions = option === true || option === undefined ? {} : option;
+    return new TextLayer(host, {
+      ...textOptions,
+      onSelection: (selection) => {
+        textOptions.onSelection?.(selection);
+        this.#emit("selectionchange", { selection });
+      },
+    });
   }
 
   #emit<E extends keyof ViewerEventMap>(event: E, data: ViewerEventMap[E]): void {

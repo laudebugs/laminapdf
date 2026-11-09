@@ -1,8 +1,8 @@
 // The text layer's geometry, pure: one span per text run, placed from its glyphs' quads (Lamina
 // PDF's, never the renderer's: ADR 0004's two-parsers rule) in page space, points from the
 // displayed page's top-left, y down. The span's own frame follows the run's baseline, so a rotated
-// or vertical run gets a rotated span, and a right-to-left run reads right to left. Also how the
-// pieces of a selection join into the copied text.
+// or vertical run gets a rotated span, and a right-to-left run reads right to left. Also where one
+// piece of a selection's text ends a line or a word (copy.ts joins them).
 
 import type { TextRunData } from "../protocol.js";
 
@@ -116,30 +116,11 @@ function extent(quads: Float32Array, start: number, end: number, along: Vec, up:
   return { minA, maxA, minB, maxB };
 }
 
-/** U+00AD, which marks where a word may break: written as a code, since it is invisible. */
-const SOFT_HYPHEN = String.fromCharCode(0xad);
-
 /** A selected piece of a span's text, with where its span is, for joining. */
 export interface Piece {
   readonly page: number;
   readonly text: string;
   readonly span: SpanSpec;
-}
-
-/**
- * The copied text of `pieces`, in page and reading order: a new line between pages and where the
- * next span starts a new line (its baseline moved by more than half a line), a space where it
- * starts past a gap on the same line. Soft hyphens, which mark where a line may break, go.
- */
-export function joinPieces(pieces: readonly Piece[]): string {
-  let out = "";
-  let before: Piece | undefined;
-  for (const piece of pieces) {
-    if (before !== undefined) out += separator(before, piece);
-    out += piece.text;
-    before = piece;
-  }
-  return out.replaceAll(SOFT_HYPHEN, "");
 }
 
 /** What goes between two pieces as copy writes them: a new line, a space or nothing. */

@@ -109,6 +109,7 @@ describe("the web platform's capabilities", () => {
       canOpenUrl: true,
       crossOriginIsolated: true,
       ownsKeyboard: false,
+      canShare: false,
     });
     expect(detectCapabilities(chromiumLike({ indexedDB: {} as IDBFactory })).canReopenRecent).toBe(true);
   });

@@ -53,6 +53,8 @@ import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { railTabs } from "./rail.tsx";
+import type { SelectionSurfaces } from "./selection.tsx";
+import { useSelection } from "./selection.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
@@ -146,8 +148,11 @@ function useReaderCommands(
   viewer: Viewer | undefined,
   shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
   rail: boolean,
-  /** The handlers that need an open document: find, Back and Forward, print, download and properties. */
-  documentActions: FindActions & ReturnType<typeof useHistory>["actions"] & Output["actions"],
+  /** The handlers that need an open document: find, Back and Forward, print, download, properties and the selection's. */
+  documentActions: FindActions &
+    ReturnType<typeof useHistory>["actions"] &
+    Output["actions"] &
+    SelectionSurfaces["actions"],
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -372,11 +377,14 @@ export function App({
     [engine, layout, open, strip, viewer, find.open],
   );
   const fileName = open ? state.file.name : undefined;
+  const rail = tabs.length > 0;
   const history = useHistory(shown, engineState.pages);
-  const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, {
+  const selection = useSelection(shown, find, platform, KEYS);
+  const commands = useReaderCommands(platform, reader, shown, shell, rail, {
     ...find.actions,
     ...history.actions,
     ...output.actions,
+    ...selection.actions,
   });
   useWindowTitle(fileName, engineState.title);
   const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
@@ -404,7 +412,7 @@ export function App({
           />
         }
         rail={<LeftRail layout={layout} tabs={tabs} />}
-        bottomBar={<PhoneBottomBar layout={layout} rail={tabs.length > 0} more={moreItems} keys={KEYS} />}
+        bottomBar={selection.bar ?? <PhoneBottomBar layout={layout} rail={rail} more={moreItems} keys={KEYS} />}
         {...(inspector === undefined ? {} : { inspector })}
         status={
           <>
@@ -432,6 +440,7 @@ export function App({
       </ReaderShell>
       <ToastRegion queue={toasts} aria-label={message("shell.toasts")} />
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
+      {selection.toolbar}
     </CommandsProvider>
   );
 }

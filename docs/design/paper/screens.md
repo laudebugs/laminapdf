@@ -10,10 +10,10 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| F01 | Web reader v0.1 (Reader top bar), selection mini toolbar | W | [C4a](../../todos/done/C4a-ui-chrome-and-platform.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
+| F01 | Web reader v0.1 (Reader top bar), selection mini toolbar | W | [C4a](../../todos/done/C4a-ui-chrome-and-platform.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/done/U2a-selection-surfaces-and-copy-modes.md) |
 | F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 | F03 | Phone, reading | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
-| F04 | Phone, text selected, Pages sheet | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
+| F04 | Phone, text selected, Pages sheet | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md), [U2a](../../todos/done/U2a-selection-surfaces-and-copy-modes.md) |
 | F05 | Style tile | — | [U1a](../../todos/done/U1a-adr-0024-app-shell-ux.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
 
 ## R. Reader (web reader v0.1 and the shared viewer)

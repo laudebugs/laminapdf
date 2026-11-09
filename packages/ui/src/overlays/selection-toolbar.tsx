@@ -43,6 +43,7 @@ export function SelectionToolbar({
   const place = useAnchoredPlacement(ref, anchor, bounds);
   const returnTo = useRef<HTMLElement | null>(null);
   useShiftF10(ref, returnTo);
+  useKeptSelection(ref);
   useLayoutEffect(() => {
     // Hiding the toolbar would drop the focus inside it to the page: it goes back where it came from.
     if (place === null && ref.current?.contains(document.activeElement) === true) returnTo.current?.focus();
@@ -159,6 +160,34 @@ function useShiftF10(toolbar: RefObject<HTMLElement | null>, returnTo: RefObject
       document.removeEventListener("focusin", onFocusIn);
     };
   }, [toolbar, returnTo]);
+}
+
+/**
+ * WebKit drops the page's selection when a button takes focus, and the toolbar's actions act on
+ * that selection: the last range selected is put back whenever focus moves into the toolbar.
+ */
+function useKeptSelection(toolbar: RefObject<HTMLElement | null>): void {
+  useEffect(() => {
+    let kept: Range | undefined;
+    const onSelectionChange = () => {
+      const selection = document.getSelection();
+      if (selection !== null && selection.rangeCount > 0 && !selection.isCollapsed) kept = selection.getRangeAt(0);
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      const selection = document.getSelection();
+      const into = event.target instanceof Node && toolbar.current?.contains(event.target) === true;
+      if (!into || kept === undefined || selection === null || !selection.isCollapsed) return;
+      selection.removeAllRanges();
+      selection.addRange(kept);
+    };
+    onSelectionChange();
+    document.addEventListener("selectionchange", onSelectionChange);
+    document.addEventListener("focusin", onFocusIn);
+    return () => {
+      document.removeEventListener("selectionchange", onSelectionChange);
+      document.removeEventListener("focusin", onFocusIn);
+    };
+  }, [toolbar]);
 }
 
 /** Whether the toolbar can take focus: shown (it has a placement) and not inert under a modal layer. */

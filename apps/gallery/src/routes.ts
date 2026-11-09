@@ -80,7 +80,7 @@ export const ROUTES: readonly Route[] = [
     id: "shell-regions",
     title: "Shell regions",
     components: [],
-    renders: ["ReaderShell", "LeftRail", "Inspector", "FocusModeItem", "PhoneBottomBar"],
+    renders: ["ReaderShell", "LeftRail", "Inspector", "FocusModeItem", "PhoneBottomBar", "SelectionActionBar"],
   },
   {
     id: "dialogs",

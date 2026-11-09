@@ -16,6 +16,7 @@ export type {
   NavigationHistory,
   NavigationHistoryOptions,
 } from "./history/history.js";
+export type { CopyMode } from "./layers/copy.js";
 export type { LinkLayerOptions, LinkWords } from "./layers/link-layer.js";
 export { type ExternalLink, externalLink, type OpenableLink } from "./layers/link-url.js";
 export type { TextLayerOptions, TextSelection } from "./layers/text-layer.js";
@@ -37,6 +38,7 @@ export type {
   PrintedPage,
   PrintOptions,
   Priority,
+  ReadingBlock,
   RemoteSource,
   RenderedBitmap,
   Result,

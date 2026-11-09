@@ -411,6 +411,56 @@ function findCommands(): AnyCommand[] {
   ];
 }
 
+/** The selection's commands besides Copy (UI/UX plan §5.3): its other copy, search, share and settings. */
+function selectionCommands(): AnyCommand[] {
+  return [
+    delegated({
+      id: "edit.copy-exact",
+      title: title("edit.copy-exact"),
+      keywords: ["clipboard", "line breaks", "layout"],
+      group: "edit",
+      icon: "copy",
+      home: ["mini-toolbar", "context-menu"],
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "edit.select-column-mode",
+      title: title("edit.select-column-mode"),
+      keywords: ["rectangle", "column", "select", "Alt drag"],
+      group: "edit",
+      icon: "select",
+      home: ["context-menu"],
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "selection.search",
+      title: title("selection.search"),
+      keywords: ["find", "selected text"],
+      group: "find",
+      icon: "find",
+      home: ["mini-toolbar", "context-menu"],
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "selection.toggle-toolbar",
+      title: title("selection.toggle-toolbar"),
+      keywords: ["mini toolbar", "settings", "selection"],
+      group: "view",
+      home: ["view-settings"],
+    }),
+    delegated({
+      id: "selection.share",
+      title: title("selection.share"),
+      keywords: ["send", "selected text"],
+      group: "edit",
+      icon: "share",
+      requires: "canShare",
+      home: ["context-menu"],
+      enabled: documentOpen,
+    }),
+  ];
+}
+
 /** Copying, privacy, the palette, help, layers and the selection. */
 function appCommands(): AnyCommand[] {
   return [
@@ -482,6 +532,7 @@ export function readerCommands(): readonly AnyCommand[] {
     ...viewSettingCommands(),
     ...findCommands(),
     ...appCommands(),
+    ...selectionCommands(),
   ];
 }
 
