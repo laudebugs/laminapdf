@@ -12,7 +12,7 @@
 | Branch | `spike/d1a-desktop-ipc` |
 | PR title | `spike(desktop): measure Tauri tile transports and cross-origin isolation` |
 | Size | M (200–600 lines of spike code plus the README with results) |
-| PR | — |
+| PR | [#364](https://github.com/laudebugs/laminapdf/pull/364) |
 
 ## Goal
 
