@@ -17,6 +17,22 @@ export const DIAGRAMS = {
       "A save then either appends the edits after the original bytes (`incremental`) or writes every byte of a new file (`fullRewrite`). " +
       "An incremental save leaves the original bytes untouched, so signatures over them stay valid.",
   },
+  "save-modes": {
+    caption: "An incremental save appends a revision; a full rewrite writes every byte again.",
+    text:
+      "An incremental save (`incremental`) keeps the original bytes and appends one revision after them. " +
+      "A signature over those bytes stays valid for the edits it allows. " +
+      "A full rewrite (`fullRewrite`) writes every byte again as one new file. Signatures over the original bytes are no longer valid, so a signed file saves this way only when you pass `invalidateSignatures: true`, which removes them.",
+  },
+  "save-decision": {
+    caption: "What a file allows, and the options you pass, decide its save mode or the error the save fails with.",
+    text:
+      "Every save plans before it writes, and an unchanged document comes first: in `auto` and `incremental` mode it saves incrementally and returns the bytes you opened, whatever else is true of it. " +
+      "A signed file saves incrementally, with the edits its signatures allow. Any other save fails with `would-invalidate-signatures` unless you pass `invalidateSignatures: true`, which saves anyway and removes the signatures that no longer hold. " +
+      "A repaired file needs a full rewrite: `auto` picks `fullRewrite`, and asking for `incremental` fails with `requires-rewrite`. " +
+      "An encrypted file you edited saves as `fullRewrite` without its encryption when you pass `removeEncryption: true`; otherwise every mode fails with `encrypted-base`. " +
+      "An edited file in two of these states meets both rules: a signed file that was repaired fails until you pass `invalidateSignatures: true`.",
+  },
   "drawing-pages": {
     caption: "A renderer draws the pixels; Lamina PDF reads the text from the same bytes.",
     text:

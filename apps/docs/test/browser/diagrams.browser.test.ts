@@ -77,12 +77,16 @@ function contrast(a: string, b: string): number {
 
 /** The fill behind `text`: the filled shape under its centre, else the page. */
 function behind(text: SVGTextElement): string {
+  // A tall diagram runs past the window: bring each label into it before asking what is under it.
+  text.scrollIntoView({ block: "center" });
   const box = text.getBoundingClientRect();
   const under = document.elementsFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-  // Nothing at all under a label means it is outside the window, not on the page.
-  if (!under.includes(text)) throw new Error(`"${text.textContent}" is outside the window`);
+  // A label or one of its own spans (an API name in mono); neither under it, once it is in the
+  // window, means the drawing clips it.
+  const own = (element: Element) => element === text || text.contains(element);
+  if (!under.some(own)) throw new Error(`"${text.textContent}" is not drawn there: it lies outside the drawing`);
   for (const element of under) {
-    if (element === text || !(element instanceof SVGGeometryElement)) continue;
+    if (own(element) || !(element instanceof SVGGeometryElement)) continue;
     const fill = getComputedStyle(element).fill;
     if (fill !== "none" && !fill.startsWith("url(")) return fill;
   }

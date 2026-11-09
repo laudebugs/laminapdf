@@ -1,0 +1,24 @@
+---
+// A byte strip: a file's bytes as segments side by side, left to right in file order, each a Box
+// (so `fresh` marks bytes a save adds). The strip is as wide as its segments together.
+import Box from "./Box.astro";
+
+interface Segment {
+  w: number;
+  label: string;
+  fresh?: boolean;
+}
+interface Props {
+  x: number;
+  y: number;
+  h: number;
+  segments: readonly Segment[];
+}
+const { x, y, h, segments } = Astro.props;
+const placed = segments.map((segment, i) => ({
+  ...segment,
+  x: x + segments.slice(0, i).reduce((sum, s) => sum + s.w, 0),
+}));
+---
+
+{placed.map((s) => <Box x={s.x} y={y} w={s.w} h={h} label={s.label} fresh={s.fresh ?? false} />)}
