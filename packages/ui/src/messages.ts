@@ -8,7 +8,6 @@ const EN = {
   "platform.picker.pdf": "PDF documents",
   "platform.error.notWritable": "This file can't be saved in place.",
   "platform.error.externalScheme": "Only web and email links open outside Lamina PDF.",
-  "platform.error.print": "Printing isn't available yet.",
   "shell.rail.resize": "Resize the sidebar",
   "shell.rail.close": "Close the sidebar",
   "shell.rail.pages": "Pages",

@@ -23,6 +23,7 @@ import type {
   PageLinkJs,
   ProfileInit,
   ProgressJs,
+  PropertiesJs,
   RectJs,
   RenderModeInit,
   SaveOptionsInit,
@@ -103,6 +104,14 @@ export type OutlineNode = OutlineNodeJs;
  * `"unsupported"` names an `action` a reader never runs (`Launch`, `JavaScript`…).
  */
 export type PageLink = PageLinkJs;
+
+/**
+ * What a properties view shows about a document: its Info entries and dates (ISO 8601), the
+ * XMP packet's text, version, pages, file size, linearization and tagging, its `encryption`
+ * (with the author's `permissions`, a request rather than a lock), the `fonts` its pages use,
+ * the `signatures` present (not verified) and what it `contains` besides its pages.
+ */
+export type DocumentProperties = PropertiesJs;
 
 /** A place in a document: a 0-based page index and how to show it. */
 export type Target = TargetJs;

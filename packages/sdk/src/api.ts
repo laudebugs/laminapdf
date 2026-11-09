@@ -88,6 +88,7 @@ export type {
   Color,
   Direction,
   DocumentInfo,
+  DocumentProperties,
   Edited,
   Fit,
   Limits,
