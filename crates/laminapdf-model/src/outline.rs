@@ -346,6 +346,20 @@ impl<'d> Outline<'d> {
         Ok(cell.get_or_init(|| pages).as_ref())
     }
 
+    /// The named destination `name` (ISO 32000-2 §12.3.2.4), from the `/Names /Dests` tree or
+    /// the catalog's `/Dests` dictionary: `None` when the document names no such destination,
+    /// a [`Destination`] without a page when the name is there but its target can't be read.
+    ///
+    /// # Errors
+    /// As [`Outline::roots`]: strict mode, when reading the names or the page tree raises a
+    /// warning.
+    pub fn named_destination(&self, name: &[u8]) -> Result<Option<Destination>> {
+        if !self.named()?.contains_key(name) {
+            return Ok(None);
+        }
+        self.destination(&Object::Name(laminapdf_syntax::Name::new(name)))
+    }
+
     /// Named destinations: the `/Names /Dests` tree first, then the catalog's `/Dests`
     /// dictionary (PDF 1.1), keyed by name bytes.
     fn named(&self) -> Result<&BTreeMap<Vec<u8>, Object>> {
