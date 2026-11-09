@@ -128,7 +128,7 @@ With these six todos done, `laminapdf.com` tells a visitor what Lamina PDF is, w
 
 ## 9. Stories off the site
 
-The owner asked (2026-11-09) for short posts that tell Lamina PDF's story one part at a time, on LinkedIn, X and Threads: to bring people to the product, and to share what building it with AI agents teaches. Each post tells one story, carries at least one image per platform that shows what words explain badly (a chart, a drawing, a diagram), and must be technically correct.
+On 2026-11-09 the owner asked for short posts on LinkedIn, X and Threads that tell Lamina PDF's story one part at a time. They should bring people to the product and share what building it with AI agents teaches. Each post tells one story, carries at least one image per platform that shows what words explain badly (a chart, a drawing, a diagram), and must be technically correct.
 
 - **The skill.** [`lamina-story`](../../.agents/skills/lamina-story/SKILL.md) turns one part of the project into a LinkedIn post of 150–200 words, a post for X and one for Threads, with their images. It checks every fact against the repository, has a second agent try to refute each one, and never posts.
 - **The images.** HTML cards in the Paper look, drawn by `apps/site/scripts/story-image.mjs` with the site's own tokens and fonts, through the same renderer as the site's share image (`paper-render.mjs`): 1080 × 1350 for LinkedIn and Threads, 1600 × 900 for X.

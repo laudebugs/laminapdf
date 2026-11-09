@@ -1,9 +1,10 @@
 ---
 name: lamina-story
 description: >
-  Writes one short, verified story about Lamina PDF for social media: a LinkedIn post of 150–200
-  words, a shorter version for X and Threads, and at least one Paper-styled image (a chart, drawing or diagram) for each, in each platform's size, from one part of
-  the project's real history (a bug, a decision, a benchmark, how the work is done with AI agents).
+  Writes one short, verified story about Lamina PDF for social media, from one part of the
+  project's real history (a bug, a decision, a benchmark, how the work is done with AI agents).
+  Each story is a LinkedIn post of 150–200 words, a shorter post for X and one for Threads, and at
+  least one Paper-styled image (a chart, drawing or diagram) per platform, in its size.
   Use it when the owner asks for a post, a story, a LinkedIn or X update, or "something to share"
   about Lamina PDF, or asks which stories are left to tell. It reads and updates the coverage map in
   docs/stories/README.md so no part of the project is told twice. It never posts anything.
@@ -34,7 +35,7 @@ This is the owner's request, written out once so every run serves it:
 - **Never post, schedule or send anything.** The skill writes files; the owner publishes.
 - **The prose is written with `/writing`, reviewed with `/writing-review`, and fact-checked**, every time: the three posts, the alt text and the words on the images. Load `/writing` before drafting; run `/writing-review` on the draft and fix its findings; then check every claim against the repository (step 6). A story that skipped one of the three isn't ready, whatever its deadline.
 - **Every fact comes from the repository** and has a row in the story's fact table: a number, a name, a date, a "first", a comparison. A fact you can't source is cut or turned into the owner's opinion, in the owner's words.
-- **Nothing private.** No secrets, no internal hostnames, no people's names other than the owner's, no customer or user data. The repository is private: write about what it shows, never link into it, and name a file only on an image's footer (where it shows the claim has a source).
+- **Nothing private.** No secrets, no internal hostnames, no people's names other than the owner's, no customer or user data. The repository is private: write about what it shows, never link into it, and name a file only in an image's footer, where the path shows that the claim has a source.
 - **The owner's own life** (why they started, how they feel) is theirs to tell. Write a placeholder and ask; don't invent a feeling or an anecdote.
 - **Claims about AI** are claims too. "Agents review every PR" needs its source (the working agreements in `CLAUDE.md`, a merged PR). No hype about what AI did; say what it did.
 
@@ -62,7 +63,7 @@ If any line is weak, choose another angle before writing prose.
 
 ### 4. Write the three posts
 
-Load the `/writing` skill before the first word, and follow it for all three posts and the alt text. Then:
+Follow `/writing` (see the rules), then:
 
 - **LinkedIn (150–200 words).** Hook in the first line, then short paragraphs of one to three sentences. Plain words: explain any term a non-expert would trip on, or cut it. One idea; no list of features. End on the payoff and one call to action. At most three hashtags, on the last line. First person: the owner is telling it.
 - **X (≤ 280 characters, counted with the link).** The hook and the turn. One link at most.
@@ -85,7 +86,7 @@ A post may carry more than one image (a sequence that builds the story: the symp
 
 **The image explains; words only label it.** Decide first what the reader should *see*: the thing that went wrong, the size of a difference, the shape of a process. Then pick the figure that shows it:
 
-- `.bars`, a chart: for a measurement or a comparison. Lengths come from the fact table's numbers on a linear scale from zero (`--v` is each value over the largest), with the value printed beside each bar. Never a truncated axis or a log scale without saying so; a bar too small to see is the point, so let it be small.
+- `.bars`, a chart: for a measurement or a comparison. Lengths come from the fact table's numbers on a linear scale from zero (`--v` is each value over the largest), with the value printed beside each bar. Never truncate the axis, and use a log scale only when the card says so. When one bar is too small to see, that is the story: let it be small.
 - `.drawing`, an SVG illustration or diagram: for what happened or how something works. A page and its tiles, a document's revisions stacked, text hidden under a black box, a pipeline of three stages. Draw with the template's classes (`page`, `ink`, `rule`, `good`, `bad`, `label`), which take their colours from the `--paper-*` tokens. Keep it to the few shapes the story needs, and label parts directly rather than with a legend.
 
 Copy the template into the story's `visuals/` folder as `<name>-portrait.html` and `<name>-landscape.html` (one pair per image), keep one figure and delete the other, and replace the example with the story's own. Fill in the kicker (the topic in two or three words), the headline (ten words at most), and the footer's source.
@@ -111,12 +112,12 @@ The story isn't ready until all of these hold, and the story file records each o
 
 1. **Every fact has a source.** Each claim in the posts and on the images has a row in the fact table, with the file and line or the command and its output.
 2. **A second reader tried to break it.** Start a fresh subagent with no context but the story file and the repository. Ask it to refute each claim from the sources: is the number the same, does the source say what the post says, does the post overstate it ("always", "first", "fastest")? Fix what it finds, and record its verdict per row.
-3. **The prose passes `/writing-review`.** Run it on the three posts and the alt text, fix every finding, record how many there were and what changed in the story file's checks, then count the words again. If a fix changed a claim, check that claim again.
+3. **The prose passes `/writing-review`.** Run it on the three posts and the alt text, and fix every finding. Record in the story file's checks how many there were and what changed, then count the words again. If a fix changed a claim, check that claim again.
 4. **The limits hold.** LinkedIn 150–200 words; X ≤ 280 characters; Threads ≤ 500 characters; the images render without the overflow error.
 5. **Nothing private** (see the rules above).
 
 ### 7. Record it and hand it over
 
 - The story's folder is `docs/stories/<NNN>-<slug>/` (the next number in the map): `story.md` from [`templates/story.md`](templates/story.md), `visuals/<name>-portrait.html` and `visuals/<name>-landscape.html` for each image, and their PNGs.
-- In the coverage map, set the topic's **Status** to `drafted` with a link to the story (`drafted: [001](001-slug/story.md)`), and add the story to the **Told** table. The story file's **Status** says the same. Once the owner has posted it, they set both to `told` with the date, or ask you to.
+- In the coverage map, set the topic's **Status** to `drafted` with a link to the story (`drafted: [001](001-slug/story.md)`), and add it to **The stories** table. The story file's **Status** says the same. Once the owner has posted it, they set both to `told` with the date, or ask you to.
 - Commit on a branch and open a PR. A story is an exempt, board-free PR when it touches only `docs/stories/`. Show the owner the three posts, the images and the fact table, and ask for approval or changes.

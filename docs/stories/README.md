@@ -2,11 +2,11 @@
 
 Short posts that tell Lamina PDF's story one part at a time, for LinkedIn, X and Threads. Each tells one moment from the project: a bug and how it was proven fixed, a decision and what it cost, a measurement and why it matters, how the work gets done with AI agents. The aim is twofold: to bring people to Lamina PDF, and to share what building it this way teaches.
 
-The [`lamina-story` skill](../../.agents/skills/lamina-story/SKILL.md) writes them. Ask an agent for "a story about …", or for "the next story". Each story is a LinkedIn post of 150–200 words, a post for X and one for Threads, and at least one image per platform in the Paper look. Every fact is checked against the repository before the owner sees it, and only the owner posts.
+The [`lamina-story` skill](../../.agents/skills/lamina-story/SKILL.md) writes them. Ask an agent for "a story about …", or for "the next story". Each story is a LinkedIn post of 150–200 words, a post for X and one for Threads, and at least one image per platform in the Paper look. Every post is written with `/writing`, reviewed with `/writing-review` and fact-checked against the repository before the owner sees it, and only the owner posts.
 
 ## How a story is kept
 
-Each story has a folder, `<NNN>-<slug>/`: `story.md` (the posts, the alt text, the counts, the fact table with its evidence, and the checks) and `visuals/` (each image's HTML and its rendered PNG). Every post is written with `/writing`, reviewed with `/writing-review` and fact-checked against the repository before the owner sees it. The images are drawn from HTML in the site's tokens, fonts and one card style sheet (`apps/site/scripts/story-card.css`):
+Each story has a folder, `<NNN>-<slug>/`: `story.md` (the posts, the alt text, the counts, the fact table with its evidence, and the checks) and `visuals/` (each image's HTML and its rendered PNG). The images are drawn from HTML in the site's tokens, fonts and one card style sheet (`apps/site/scripts/story-card.css`):
 
 ```bash
 pnpm --filter @laminapdf/site story-image docs/stories/<NNN>-<slug>
@@ -45,9 +45,9 @@ One row per story worth telling. **Status** is `open` (not drafted), `drafted` w
 | Decisions written down | Every architecture choice is an ADR, so agents and people work from the same record | [ADRs](../decisions/README.md) | open |
 | A release every day | A bot cuts a release after the nightly passes | [release README](../../tools/release/README.md) | open |
 
-## Told
+## The stories
 
-Stories in the order they were drafted, with where they were posted.
+Every story, in the order it was drafted, with its status and where it was posted.
 
 | # | Story | Topic | Status | Posted |
 | --- | --- | --- | --- | --- |
