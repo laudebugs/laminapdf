@@ -1,0 +1,38 @@
+---
+// "Incremental save and full rewrite" (guides/save-a-pdf, "Choose a save mode"): the bytes each
+// mode writes. An incremental save keeps the original bytes, which a signature covers, and appends
+// a revision (the accent's tint: the bytes it adds); a full rewrite writes one new file. Caption and
+// text description: registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import Strip from "./kit/Strip.astro";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { prefix, labelledby, describedby } = Astro.props;
+---
+
+<Svg viewBox="0 0 720 276" layout="wide" labelledby={labelledby} describedby={describedby}>
+  <Label x={0} y={20} text="incremental" kind="mono" />
+  <Label x={270} y={44} text="a signature covers these" kind="sub" anchor="middle" />
+  <Arrow d="M2 62 V54 H538 V62" prefix={prefix} head={false} />
+  <Strip x={0} y={64} h={48} segments={[{ w: 540, label: "Original bytes" }, { w: 180, label: "+ revision", fresh: true }]} />
+  <Label x={0} y={136} text="signatures stay valid" kind="sub" />
+
+  <Label x={0} y={184} text="fullRewrite" kind="mono" />
+  <Strip x={0} y={194} h={48} segments={[{ w: 720, label: "Every byte written again" }]} />
+  <Label x={0} y={266} text="signatures no longer valid" kind="sub" />
+</Svg>
+
+<Svg viewBox="0 0 320 276" layout="narrow" labelledby={labelledby} describedby={describedby}>
+  <Label x={0} y={20} text="incremental" kind="mono" />
+  <Label x={110} y={44} text="a signature covers these" kind="sub" anchor="middle" />
+  <Arrow d="M2 62 V54 H218 V62" prefix={prefix} head={false} />
+  <Strip x={0} y={64} h={48} segments={[{ w: 220, label: "Original bytes" }, { w: 100, label: "+ revision", fresh: true }]} />
+  <Label x={0} y={136} text="signatures stay valid" kind="sub" />
+
+  <Label x={0} y={184} text="fullRewrite" kind="mono" />
+  <Strip x={0} y={194} h={48} segments={[{ w: 320, label: "Every byte written again" }]} />
+  <Label x={0} y={266} text="signatures no longer valid" kind="sub" />
+</Svg>
