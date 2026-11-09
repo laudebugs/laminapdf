@@ -40,6 +40,7 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
+import { useFind } from "./find.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
@@ -71,6 +72,7 @@ function useReaderCommands(
   reader: ReaderController,
   viewer: Viewer | undefined,
   shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
+  find: Record<string, () => void>,
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -85,9 +87,13 @@ function useReaderCommands(
       reader,
       ...(viewer === undefined ? {} : { viewer }),
       // No rail tabs yet, so the sidebar command has no handler and stays out of every view.
-      actions: { ...shellActions(shell.layout, shell.modes, { rail: false }), "palette.open": shell.openPalette },
+      actions: {
+        ...shellActions(shell.layout, shell.modes, { rail: false }),
+        "palette.open": shell.openPalette,
+        ...(viewer === undefined ? {} : find),
+      },
     }),
-    [platform, reader, viewer, shell, modes],
+    [platform, reader, viewer, shell, modes, find],
   );
   return { registry, context };
 }
@@ -199,8 +205,9 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const moreItems = { items: more, onAction: (id: MoreId) => (id === "open" ? reader.close() : viewer?.rotate(90)) };
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
-  const commands = useReaderCommands(platform, reader, shown, shell);
   const fileName = open ? state.file.name : undefined;
+  const find = useFind(shown, open ? state.file : undefined);
+  const commands = useReaderCommands(platform, reader, shown, shell, find.actions);
   useWindowTitle(fileName, engineState.title);
   const { inspector, showRepairs } = useRepairsPanel(layout, platform, fileName, repairs);
   const status = statusItems(engineState, debug, showRepairs);
@@ -212,6 +219,7 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
       <ReaderShell
         layout={layout}
         modes={modes}
+        {...(find.bar === undefined ? {} : { secondaryToolbar: find.bar })}
         topBar={
           <ReaderTopBar
             reader={reader}
