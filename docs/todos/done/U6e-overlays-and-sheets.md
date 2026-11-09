@@ -40,7 +40,7 @@ Give every short-lived layer in lamina one implementation with correct focus, ke
 - Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](../done/U1b-command-registry-and-palette.md).
 - When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar components → [U3a](../done/U3a-responsive-mobile-and-touch.md).
 - Which panels become sheets on the phone (outline, find, view settings) → [U3a](../done/U3a-responsive-mobile-and-touch.md); the inspector as a sheet → [U3a](../done/U3a-responsive-mobile-and-touch.md) / [U1c](../done/U1c-inverted-l-shell-and-modes.md).
-- Specific dialogs (password, properties, print, settings, close with unsaved changes) → their todos ([C4a](./C4a-ui-chrome-and-platform.md), [C6c](../ready/C6c-print-download-properties.md), [C7a](../ready/C7a-accessibility-and-theming.md), [E2i](../ready/E2i-signed-gating-and-close.md)).
+- Specific dialogs (password, properties, print, settings, close with unsaved changes) → their todos ([C4a](./C4a-ui-chrome-and-platform.md), [C6c](../ongoing/C6c-print-download-properties.md), [C7a](../ready/C7a-accessibility-and-theming.md), [E2i](../ready/E2i-signed-gating-and-close.md)).
 - F6 region cycling and the global shortcut dispatcher → [C7a](../ready/C7a-accessibility-and-theming.md), [U1b](../done/U1b-command-registry-and-palette.md).
 - Gallery pages and screenshots → [U6f](../done/U6f-gallery-and-visual-tests.md).
 

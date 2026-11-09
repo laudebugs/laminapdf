@@ -281,7 +281,7 @@ Each value has a copy button on hover or focus (drawn focused on Title, “Copy 
 
 **Artboards.** `R08-properties.dc.html`.
 
-**Todos.** [C6c](../../todos/ready/C6c-print-download-properties.md).
+**Todos.** [C6c](../../todos/ongoing/C6c-print-download-properties.md).
 
 ## R09 Print and Download a copy
 
@@ -307,12 +307,12 @@ The radios and checkboxes are native inputs, visually hidden inside their labels
 **States.**
 
 - *Preparing* (drawn, `R09-print-progress`): “Preparing pages for print”, “lamina draws each page at print quality on this device. Your browser’s print window opens when all 24 pages are ready.”, a determinate bar “Page 9 of 24 · 38%”, **Cancel** (focused; `print.cancel`, as S05). Cancel stops rendering and frees memory.
-- *Printing restricted by the author* (drawn, `R09-print-restricted`, both steps: the print dialog dimmed underneath, the confirmation on top): when the file’s permissions don’t allow printing (the `/P` print bits, ISO 32000-2 §7.6.4.2), the print dialog shows a `warning` notice “The author restricted printing of this file.” and its button reads **Print anyway…**; it opens an `alertdialog` “Print a restricted file?” explaining that the restriction is a request, not a lock, and asking to print only with permission: **Cancel** (default focus) and **Print anyway**. When only high-quality printing is restricted, Quality is fixed at Standard with the note “The author allows printing at standard quality only.” **Owner decision needed:** [C4c](../../todos/done/C4c-remote-files-encryption-privacy.md) says owner-password permissions are “not enforced beyond display in v0.1”, while [C6c](../../todos/ready/C6c-print-download-properties.md)’s risk note recommends respecting the print bits with a warning and confirmation. This design follows C6c (warn and confirm, never block); if the owner keeps C4c’s rule, drop the confirmation and keep only the notice.
+- *Printing restricted by the author* (drawn, `R09-print-restricted`, both steps: the print dialog dimmed underneath, the confirmation on top): when the file’s permissions don’t allow printing (the `/P` print bits, ISO 32000-2 §7.6.4.2), the print dialog shows a `warning` notice “The author restricted printing of this file.” and its button reads **Print anyway…**; it opens an `alertdialog` “Print a restricted file?” explaining that the restriction is a request, not a lock, and asking to print only with permission: **Cancel** (default focus) and **Print anyway**. When only high-quality printing is restricted, Quality is fixed at Standard with the note “The author allows printing at standard quality only.” **Owner decision needed:** [C4c](../../todos/done/C4c-remote-files-encryption-privacy.md) says owner-password permissions are “not enforced beyond display in v0.1”, while [C6c](../../todos/ongoing/C6c-print-download-properties.md)’s risk note recommends respecting the print bits with a warning and confirmation. This design follows C6c (warn and confirm, never block); if the owner keeps C4c’s rule, drop the confirmation and keep only the notice.
 - *Range error:* “There’s no page 30. This file has 24 pages (1–21, A-1–A-3).” under the field; Print stays enabled and focuses the field.
 - *Too large for memory:* High quality on a very long range falls back to Standard with a notice “Printing at standard quality to stay within this device’s memory.”
 - *Download done:* toast (§7.20) “Downloaded Q3-board-report.pdf”. An encrypted file downloads still encrypted; a remote file is streamed from the cache and its host without changes; the name comes from the URL or `Content-Disposition`, sanitised.
 
-**Behaviour.** Printing renders pages in the worker into a hidden iframe (CSP-safe, [C6c](../../todos/ready/C6c-print-download-properties.md)) and calls the browser’s print; it changes nothing in the file. Download a copy (`file.save-copy`) writes the document as it currently is; the v0.1 reader cannot change it, so that is the original bytes, byte for byte, even if the file was repaired in memory (R04). The menu item’s tooltip says “The file exactly as it was opened”. No shortcut: `Ctrl S` / `⌘S` is Save, in edit sessions only.
+**Behaviour.** Printing renders pages in the worker into a hidden iframe (CSP-safe, [C6c](../../todos/ongoing/C6c-print-download-properties.md)) and calls the browser’s print; it changes nothing in the file. Download a copy (`file.save-copy`) writes the document as it currently is; the v0.1 reader cannot change it, so that is the original bytes, byte for byte, even if the file was repaired in memory (R04). The menu item’s tooltip says “The file exactly as it was opened”. No shortcut: `Ctrl S` / `⌘S` is Save, in edit sessions only.
 
 The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (`file.print`, `Ctrl P`) · Document properties… (`file.properties`) │ Network activity (`privacy.network-activity`) · Install lamina… (`app.install`, only where the browser offers it) · Get the desktop app (link to S11) │ Keyboard shortcuts (`help.shortcuts`, `?`) · Privacy and help │ Open another file… (`file.open`, `Ctrl O`). It is the web counterpart of Reader B’s phone More sheet (R18), which adds View settings because the phone top bar has no View button.
 
@@ -322,7 +322,7 @@ The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (
 
 **Artboards.** `R09-print.dc.html`, `R09-print-progress.dc.html`, `R09-print-restricted.dc.html`, `R09-download.dc.html`.
 
-**Todos.** [C6c](../../todos/ready/C6c-print-download-properties.md).
+**Todos.** [C6c](../../todos/ongoing/C6c-print-download-properties.md).
 
 ## New components
 

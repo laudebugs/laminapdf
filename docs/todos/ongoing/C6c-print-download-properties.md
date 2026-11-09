@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C6c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../done/C4c-remote-files-encryption-privacy.md), [C5a](../done/C5a-text-layer-and-selection.md) |
