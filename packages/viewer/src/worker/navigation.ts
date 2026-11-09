@@ -6,8 +6,7 @@
 
 import type { OutlineNode, PageLink, Target } from "@laminapdf/sdk";
 import { textModel } from "./document.js";
-import { RecentPages } from "./recent-pages.js";
-import { CACHED_PAGES } from "./text.js";
+import { CACHED_PAGES, RecentPages } from "./recent-pages.js";
 
 /** The last pages' links. */
 const links = new RecentPages<readonly PageLink[]>(CACHED_PAGES);

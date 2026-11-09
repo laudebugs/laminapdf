@@ -5,6 +5,7 @@
 //! or nested deeper than [`Limits::max_tree_depth`](laminapdf_cos::Limits::max_tree_depth) is
 //! skipped with its subtree ([`Warning::OutlineItemSkipped`]).
 
+use std::borrow::Cow;
 use std::cell::OnceCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -111,8 +112,8 @@ pub enum ActionKind {
 impl ActionKind {
     /// The `/S` name the file uses for this type (`Other`'s as stored, lossily decoded).
     #[must_use]
-    pub fn as_name(&self) -> std::borrow::Cow<'_, str> {
-        std::borrow::Cow::Borrowed(match self {
+    pub fn as_name(&self) -> Cow<'_, str> {
+        Cow::Borrowed(match self {
             Self::GoTo => "GoTo",
             Self::GoToR => "GoToR",
             Self::GoToE => "GoToE",

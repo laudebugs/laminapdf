@@ -7,10 +7,7 @@
 import type { PageGlyphs } from "../find/page.js";
 import type { PageTextData, StructureData, TextRunData } from "../protocol.js";
 import { textModel } from "./document.js";
-import { RecentPages } from "./recent-pages.js";
-
-/** How many pages' text and links stay cached (a screenful of pages and the margin, at most zoom). */
-export const CACHED_PAGES = 24;
+import { CACHED_PAGES, RecentPages } from "./recent-pages.js";
 
 /** The last pages' text. Each keeps its glyphs' text too, for find; only the runs and quads reach the page. */
 const cache = new RecentPages<PageGlyphs>(CACHED_PAGES);

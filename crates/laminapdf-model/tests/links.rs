@@ -97,3 +97,18 @@ fn a_link_without_a_rectangle_or_that_hides_is_left_out() {
     let pages = doc.pages().unwrap();
     assert_eq!(pages.links(&pages.get(0).unwrap()).unwrap(), []);
 }
+
+#[test]
+fn another_files_name_is_read_from_a_string_or_a_name() {
+    let found = actions(&[
+        "/A << /S /GoToR /F << /Type /Filespec /UF (budget.pdf) >> >>",
+        "/A << /S /GoToR /F << /Type /Filespec /F /budget.pdf >> >>",
+    ]);
+    assert_eq!(
+        found,
+        [
+            LinkAction::OtherFile(Some("budget.pdf".to_owned())),
+            LinkAction::OtherFile(Some("budget.pdf".to_owned()))
+        ]
+    );
+}

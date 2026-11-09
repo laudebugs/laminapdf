@@ -5,6 +5,9 @@
 
 import { current } from "./document.js";
 
+/** How many pages' text and links stay cached (a screenful of pages and the margin, at most zoom). */
+export const CACHED_PAGES = 24;
+
 /** A cache of the pages read last, of the open document and those before it. */
 export class RecentPages<T> {
   readonly #entries = new Map<string, T>();

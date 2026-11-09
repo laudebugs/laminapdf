@@ -204,7 +204,8 @@ export class LinkLayer implements PageLayer {
     // A link without an `href` (a web link) gets no click from Enter: it follows it here.
     box.addEventListener("keydown", (e) => {
       const anchor = e.target instanceof HTMLElement ? e.target : undefined;
-      if (e.key === "Enter" && anchor !== undefined && !anchor.hasAttribute("href")) this.#click(e);
+      // One follow per press, as a native link's click: a held key's repeats ask nothing more.
+      if (e.key === "Enter" && !e.repeat && anchor !== undefined && !anchor.hasAttribute("href")) this.#click(e);
     });
     // A middle click on a web link would open it without asking: it asks too.
     box.addEventListener("auxclick", (e) => {
