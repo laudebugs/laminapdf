@@ -1,0 +1,73 @@
+---
+// "Reading order on a two-column page" (recipes/extract-markdown): a page with a title across both
+// columns and three blocks in each column, numbered in the order extraction gives them. The accent
+// is the order: the numbers and the path through them. Blocks are written in points on a US Letter
+// page and scaled here. Caption and text description: registry.mjs.
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import PageSheet from "./kit/PageSheet.astro";
+import { LETTER, scaleRect } from "./kit/page.ts";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { labelledby, describedby } = Astro.props;
+
+/** The blocks in reading order, in points from the page's top-left corner. */
+const BLOCKS = [
+  { x0: 54, y0: 54, x1: 558, y1: 124 },
+  { x0: 54, y0: 148, x1: 294, y1: 300 },
+  { x0: 54, y0: 310, x1: 294, y1: 520 },
+  { x0: 54, y0: 540, x1: 294, y1: 738 },
+  { x0: 318, y0: 148, x1: 558, y1: 360 },
+  { x0: 318, y0: 380, x1: 558, y1: 560 },
+  { x0: 318, y0: 580, x1: 558, y1: 738 },
+];
+const LEGEND = ["1: the title, across both columns", "2–4: down the left column", "5–7: then down the right column"];
+/** A badge's radius, and how far its centre sits inside its block's top-left corner, in drawing units. */
+const BADGE = 12;
+const BADGE_INSET = 18;
+
+/** The page at (x, y), `s` drawing units to a point, and its blocks scaled. */
+function sheet(x: number, y: number, s: number) {
+  const blocks = BLOCKS.map((b, i) => ({ n: String(i + 1), ...scaleRect(x, y, s, b) }));
+  // Each badge sits in its block's top-left corner, or halfway down a block too short for that.
+  const badges = blocks.map((b) => ({ n: b.n, x: b.x + BADGE_INSET, y: b.y + Math.min(BADGE_INSET, b.h / 2) }));
+  return {
+    x,
+    y,
+    w: LETTER.w * s,
+    h: LETTER.h * s,
+    blocks,
+    badges,
+    // The order, badge to badge: down the left column, then up to the top of the right.
+    path: `M${badges.map((b) => `${b.x} ${b.y}`).join(" L")}`,
+  };
+}
+
+const layouts = [
+  { layout: "wide" as const, viewBox: "0 0 720 330", page: sheet(40, 6, 0.4), legend: { x: 330, y: 120 } },
+  { layout: "narrow" as const, viewBox: "0 0 320 412", page: sheet(37, 6, 0.4), legend: { x: 37, y: 352 } },
+];
+---
+
+{
+  layouts.map(({ layout, viewBox, page, legend }) => (
+    <Svg viewBox={viewBox} layout={layout} labelledby={labelledby} describedby={describedby}>
+      <PageSheet x={page.x} y={page.y} w={page.w} h={page.h}>
+        {page.blocks.map((b) => (
+          <rect class="dg-ink-line" x={b.x} y={b.y} width={b.w} height={b.h} />
+        ))}
+        <path class="dg-order" d={page.path} />
+        {page.badges.map((b) => (
+          <>
+            <circle class="dg-badge-dot" cx={b.x} cy={b.y} r={BADGE} />
+            <Label x={b.x} y={b.y + 5} text={b.n} kind="badge" anchor="middle" />
+          </>
+        ))}
+      </PageSheet>
+      {LEGEND.map((line, i) => (
+        <Label x={legend.x} y={legend.y + i * 22} text={line} />
+      ))}
+    </Svg>
+  ))
+}
