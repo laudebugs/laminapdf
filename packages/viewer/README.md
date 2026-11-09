@@ -69,12 +69,12 @@ The document Web Worker reads each page's text at `background` priority, after t
 
 A coordinate the file leaves out keeps the current scroll on that axis, or goes to the page's top. A view rotated by `rotate()` turns the point with the page, and a fit always fits the viewport's own width or height, as in pdf.js.
 
-**Thumbnails.** `new ThumbnailStrip(client, viewer, { width?, margin?, cacheBytes?, label? })` makes a list of the pages as small pictures, for a sidebar. `mount(container)` puts it on the page, and `open(document)` shows the document the viewer opened. Size its `element` with CSS; it scrolls inside.
+**Thumbnails.** `new ThumbnailStrip(client, viewer, { width?, margin?, cacheBytes?, label?, name? })` makes a list of the pages as small pictures, for a sidebar. `mount(container)` puts it on the page, and `open(document)` shows the document the viewer opened. Size its `element` with CSS; it scrolls inside.
 - **Like the view, it mounts only what it shows.** It keeps the thumbnails in view and 4 either side. Each borrows a canvas from the strip's own pool, and a thumbnail scrolled away aborts its render.
 - **Renders wait for the main view.** Thumbnails render at `background` priority, so the pages in view always come first. Bitmaps stay in a cache of their own, 32 MB by default.
 - **It follows the viewer.** The current page is marked `aria-selected` and scrolled into the strip; a rotation turns every thumbnail.
 - **Keyboard and pointer.** A click, or Enter or Space, goes to that page. The arrow keys, Home and End move the focus, and only one thumbnail is in the Tab order.
-- **Names.** Each thumbnail is named by its page label and number ("Page iv (4 of 120)") and captioned with its label. `label` replaces both, for another language.
+- **Names.** Each thumbnail is named by its page label and number ("Page iv (4 of 120)") and captioned with its label. `label` replaces both, and `name` the list's own name, for another language.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
@@ -189,7 +189,7 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
   - a visible render queued after thumbnails running first;
   - a click and the keyboard going to a page;
   - page labels in the names;
-  - the outline and a named destination of the links-and-outlines golden landing on their pages.
+  - the outline and a named destination of the links-and-outlines reference PDF landing on their pages.
 - Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps, and where each kind of destination puts the view at each rotation. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
 - Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite examples`. `examples/viewer-demo.html` is the viewer, with zoom buttons; `examples/rpc-demo.html` draws page 1 through the RPC alone. The perf harness has its own page, `perf/page/` ([Performance](#performance)).
 

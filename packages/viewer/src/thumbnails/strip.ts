@@ -1,4 +1,4 @@
-// The thumbnails strip (web-app §6 C6): one small picture per page in a scrolling list, the
+// The thumbnails strip: one small picture per page in a scrolling list, the
 // current page marked, a click or Enter going there. Like the viewer it mounts only the
 // thumbnails in view and a few either side (the same `PageLayout` at thumbnail scale), each with
 // a canvas from its own small pool, rendered at `background` priority so the main view's pages
@@ -27,6 +27,8 @@ export interface ThumbnailStripOptions {
    * name adds "Page … of …".
    */
   readonly label?: (page: PageInfo, count: number) => { readonly caption: string; readonly name: string };
+  /** The list's own accessible name (default "Pages"). */
+  readonly name?: string;
 }
 
 /** Space for the caption under each thumbnail, and between thumbnails, in CSS px. */
@@ -48,7 +50,8 @@ interface Item {
   readonly frame: HTMLElement;
   canvas: HTMLCanvasElement | undefined;
   abort: AbortController | undefined;
-  drawn: boolean;
+  /** Painted, or failed to render: either way not asked for again while mounted. */
+  done: boolean;
 }
 
 /** The pages as thumbnails. Make one with `new ThumbnailStrip(client, viewer)`, then `mount` and `open`. */
@@ -84,7 +87,7 @@ export class ThumbnailStrip {
     const root = document.createElement("div");
     root.className = "lamina-thumbnails";
     root.setAttribute("role", "listbox");
-    root.setAttribute("aria-label", "Pages");
+    root.setAttribute("aria-label", options.name ?? "Pages");
     Object.assign(root.style, { position: "relative", overflowY: "auto", overflowX: "hidden" });
     this.#spacer = document.createElement("div");
     this.#spacer.style.position = "relative";
@@ -98,6 +101,10 @@ export class ThumbnailStrip {
     on("click", (e) => this.#clicked(e));
     on("keydown", (e) => this.#key(e));
     this.#cleanup.push(viewer.subscribe(() => this.#viewChanged()));
+    // A strip shown later (its tab opened, its sheet raised) mounts what it now shows.
+    const resized = new ResizeObserver(() => this.#schedule());
+    resized.observe(root);
+    this.#cleanup.push(() => resized.disconnect());
   }
 
   /** Puts the strip in `container`. */
@@ -116,11 +123,6 @@ export class ThumbnailStrip {
     this.#rotation = this.#viewer.getState().rotation;
     this.element.scrollTop = 0;
     this.#relayout();
-  }
-
-  /** How many thumbnails are mounted now (tests check the strip never mounts more than it shows). */
-  get mounted(): number {
-    return this.#items.size;
   }
 
   /** Takes the strip down: renders aborted, canvases and bitmaps freed, listeners removed. */
@@ -179,6 +181,8 @@ export class ThumbnailStrip {
   #update(): void {
     const layout = this.#layout;
     if (layout === undefined || layout.pageCount === 0) return;
+    // Nothing renders while the strip is out of the page or hidden (its tab not shown).
+    if (!this.element.isConnected || this.element.clientHeight === 0) return;
     const top = this.element.scrollTop;
     const view = layout.rangeIn(top, top + Math.max(1, this.element.clientHeight));
     const first = Math.max(0, view.first - this.#margin);
@@ -187,7 +191,7 @@ export class ThumbnailStrip {
     for (let index = first; index <= last; index++) {
       const item = this.#items.get(index) ?? this.#mount(index, layout);
       this.#mark(item);
-      if (!item.drawn && item.abort === undefined) void this.#draw(item, layout);
+      if (!item.done && item.abort === undefined) void this.#draw(item, layout);
     }
   }
 
@@ -223,7 +227,7 @@ export class ThumbnailStrip {
     label.setAttribute("aria-hidden", "true");
     root.append(frame, label);
     this.#spacer.append(root);
-    const item: Item = { index, root, frame, canvas: undefined, abort: undefined, drawn: false };
+    const item: Item = { index, root, frame, canvas: undefined, abort: undefined, done: false };
     this.#items.set(index, item);
     return item;
   }
@@ -249,8 +253,12 @@ export class ThumbnailStrip {
           { priority: "background", signal: abort.signal },
         );
         bitmap = rendered.bitmap;
-      } catch {
-        // Aborted (scrolled away, a new document) or failed: the placeholder stays.
+      } catch (error) {
+        // Scrolled away or a new document: drawn again if it comes back into view.
+        if (abort.signal.aborted) return;
+        // A failed render keeps its placeholder, and isn't asked for again while mounted.
+        item.done = true;
+        reportError(error);
         return;
       } finally {
         if (item.abort === abort) item.abort = undefined;
@@ -279,7 +287,7 @@ export class ThumbnailStrip {
     });
     canvas.getContext("2d")?.drawImage(bitmap, 0, 0, size.width, size.height);
     if (canvas.parentElement !== item.frame) item.frame.append(canvas);
-    item.drawn = true;
+    item.done = true;
   }
 
   #unmount(item: Item): void {

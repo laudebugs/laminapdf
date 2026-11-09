@@ -63,18 +63,30 @@ function* walk(
   }
 }
 
+/** Whether place `a` comes after place `b` in the document. */
+function after(a: OutlinePlace, b: OutlinePlace): boolean {
+  return a.page > b.page || (a.page === b.page && a.y > b.y);
+}
+
 /**
- * The section that holds `top` (the place at the top of the viewport): the last item in document
- * order whose place is at or before it, which is the deepest one when the outline follows the
- * document. `undefined` before the first.
+ * The section that holds `top` (the place at the top of the viewport): the item whose place is
+ * the latest at or before it, and of items at the same place the deepest (the last in document
+ * order). An item that points back before the chapter being read never wins over it. `undefined`
+ * before the first.
  */
 export function currentOutlineItem(items: readonly OutlineTreeItem[], top: OutlinePlace): string | undefined {
-  let found: string | undefined;
+  let found: { id: string; at: OutlinePlace } | undefined;
   for (const [item] of walk(items)) {
     const at = item.at;
-    if (at !== undefined && (at.page < top.page || (at.page === top.page && at.y <= top.y))) found = item.id;
+    if (at === undefined || after(at, top)) continue;
+    if (found === undefined || !after(found.at, at)) found = { id: item.id, at };
   }
-  return found;
+  return found?.id;
+}
+
+/** The ids of the items the file opens with their children shown. */
+function openIds(all: readonly (readonly [OutlineTreeItem, readonly string[]])[]): Set<Key> {
+  return new Set(all.filter(([i]) => i.open).map(([i]) => i.id));
 }
 
 /** One row, then its children. */
@@ -115,9 +127,9 @@ function Item({ item, current }: { item: OutlineTreeItem; current: string | unde
 /** The document outline as a tree, inside the rail's Outline tab. */
 export function OutlineTree({ items, current, onNavigate }: OutlineTreeProps): ReactNode {
   const all = useMemo(() => [...walk(items)], [items]);
-  const [expanded, setExpanded] = useState<Set<Key>>(() => new Set(all.filter(([i]) => i.open).map(([i]) => i.id)));
+  const [expanded, setExpanded] = useState<Set<Key>>(() => openIds(all));
   // A new outline starts as the file says.
-  useEffect(() => setExpanded(new Set(all.filter(([i]) => i.open).map(([i]) => i.id))), [all]);
+  useEffect(() => setExpanded(openIds(all)), [all]);
   // The current section shows: its ancestors open.
   useEffect(() => {
     const parents = all.find(([i]) => i.id === current)?.[1] ?? [];

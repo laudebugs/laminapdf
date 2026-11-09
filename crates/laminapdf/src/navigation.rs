@@ -3,7 +3,7 @@
 //! points from the displayed page's top-left, y down), so a viewer goes there without reading
 //! PDF user space. Page labels (§12.4.2) are on [`crate::PageInfo::label`].
 
-use laminapdf_model::{PageFrame, UserSpacePoint, View};
+use laminapdf_model::{Destination, PageFrame, UserSpacePoint, View};
 
 use crate::document::Document;
 use crate::error::Result;
@@ -96,7 +96,11 @@ impl Document {
         let Some(dest) = outline.named_destination(name.as_bytes())? else {
             return Ok(None);
         };
-        Ok(target(dest.page_index, &dest.view, &self.frames()?))
+        // One page's frame, not every page's.
+        let Some(index) = dest.page_index else { return Ok(None) };
+        let pages = self.ops().pages()?;
+        let Some(page) = pages.get(index) else { return Ok(None) };
+        Ok(target(&dest, &page.frame()?, index))
     }
 
     /// Every page's frame, in order, for moving destinations into page space.
@@ -108,7 +112,9 @@ impl Document {
 
 fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Result<OutlineNode> {
     let target = match item.target()? {
-        Some(dest) => target(dest.page_index, &dest.view, frames),
+        Some(dest) => dest
+            .page_index
+            .and_then(|index| target(&dest, frames.get(index)?, index)),
         None => None,
     };
     Ok(OutlineNode {
@@ -122,20 +128,19 @@ fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Re
     })
 }
 
-/// A destination's page and view in page space, or `None` without a page of this document.
-fn target(page_index: Option<usize>, view: &View, frames: &[PageFrame]) -> Option<PageTarget> {
-    let index = page_index?;
-    let frame = frames.get(index)?;
+/// `dest` on page `index`, whose frame is `frame`, in page space (`None` past `u32`).
+fn target(dest: &Destination, frame: &PageFrame, index: usize) -> Option<PageTarget> {
     Some(PageTarget {
         page: u32::try_from(index).ok()?,
-        view: page_view(view, frame),
+        view: page_view(&dest.view, frame),
     })
 }
 
 /// `view` in page space. On a page turned a quarter, user space's x runs down the page and its
 /// y across it, so an `/XYZ` left or top sets the other page axis. `/FitH` and `/FitV` still fit
-/// the displayed width and height there, as pdf.js and Lamina PDF's builder read them, but their
-/// operand names no displayed top or left, so it is dropped.
+/// the displayed width and height there, as pdf.js does. Their operand names no displayed top or
+/// left there, so it is dropped, as Lamina PDF's builder writes it (`null`); pdf.js instead maps
+/// it as a point, which moves the other axis.
 fn page_view(view: &View, frame: &PageFrame) -> PageTargetView {
     let turned = matches!(frame.rotate().degrees(), 90 | 270);
     // (x, y) in page space of a user-space point whose unset coordinates stay unset.

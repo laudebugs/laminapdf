@@ -15,7 +15,7 @@ import type {
   RemoteFailureReason,
   RepairKind,
 } from "@laminapdf/ui";
-import { ReaderController } from "@laminapdf/ui";
+import { message, ReaderController } from "@laminapdf/ui";
 import { createViewer, type SourceInit, ThumbnailStrip, type Viewer, ViewerClient } from "@laminapdf/viewer";
 import { type DocumentWarning, repairsFrom } from "./document.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
@@ -40,7 +40,7 @@ export interface EngineState {
   /** The open document's pages (sizes and labels), empty while none is open. */
   readonly pages: readonly PageInfo[];
   /** The open document's outline once the Outline tab asked for it (`loadOutline`). */
-  readonly outline: OutlineModel | "loading" | undefined;
+  readonly outline: OutlineModel | "loading" | "failed" | undefined;
   /** The open document's metadata title, when it has one. */
   readonly title: string | undefined;
   /** The open document's repairs, one per warning code. */
@@ -57,7 +57,7 @@ async function startSession(backend: DebugBackend, outline: boolean): Promise<Se
     backend: backend === "pdfium" ? { backend: "pdfium", wasm: pdfiumWasm } : { backend: "hayro" },
   });
   const viewer = createViewer({ client, text: { outline } });
-  return { backend, client, viewer, strip: new ThumbnailStrip(client, viewer) };
+  return { backend, client, viewer, strip: new ThumbnailStrip(client, viewer, { name: message("shell.rail.pages") }) };
 }
 
 /** Remote files by the PlatformFile that stands for each in the reader. */
@@ -187,9 +187,15 @@ export class Engine implements ExternalStore<EngineState> {
     const turn = this.#turn;
     this.#set({ outline: "loading" });
     const session = await this.#session;
-    const nodes = await session.client.outline().catch(() => []);
-    // Another document opened meanwhile: its own tab asks again.
-    if (turn === this.#turn) this.#set({ outline: outlineModel(nodes, this.#state.pages) });
+    try {
+      const nodes = await session.client.outline();
+      // Another document opened meanwhile: its own tab asks again.
+      if (turn === this.#turn) this.#set({ outline: outlineModel(nodes, this.#state.pages) });
+    } catch (error) {
+      // The tab says the outline couldn't be read, rather than that there is none.
+      if (turn === this.#turn) this.#set({ outline: "failed" });
+      reportError(error);
+    }
   }
 
   /** Goes to outline item `id` of the open document. */
@@ -206,15 +212,22 @@ export class Engine implements ExternalStore<EngineState> {
     else if (state.phase !== "empty" && state.phase !== "error") this.#place = { file: state.file, place };
   }
 
-  /** Goes to `place` in the open document: a page, or a named destination it has (else nothing). */
+  /**
+   * Goes to `place` in the open document: a page, or a named destination it has. A name the
+   * document lacks moves nothing, as in pdf.js; a destination that can't be read is reported.
+   */
   async #goTo(place: FragmentPlace): Promise<void> {
     const session = await this.#session;
     if ("page" in place) {
       session.viewer.goToPage(place.page - 1);
       return;
     }
-    const target = await session.client.namedDestination(place.dest).catch(() => undefined);
-    if (target !== undefined) session.viewer.goToDestination(target);
+    try {
+      const target = await session.client.namedDestination(place.dest);
+      if (target !== undefined) session.viewer.goToDestination(target);
+    } catch (error) {
+      reportError(error);
+    }
   }
 
   /** Moves to `backend`: a new document worker, and the open file reopened in it. */

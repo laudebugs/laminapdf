@@ -1,7 +1,7 @@
 // Moving through a document (C6a) in Chromium, Firefox and WebKit: the thumbnails strip over a
 // generated 1,000-page document (mounting only what it shows, rendering at background priority
 // behind the main view, click and keyboard going to a page, page labels in its names), and the
-// outline and named destinations of the links-and-outlines golden landing on their pages.
+// outline and named destinations of the links-and-outlines reference PDF landing on their pages.
 import { Builder, init } from "@laminapdf/sdk";
 import { createViewer, ThumbnailStrip, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -89,7 +89,7 @@ describe("the thumbnails strip", () => {
       strip.element.scrollTop = top;
       await frame();
       await frame();
-      peak = Math.max(peak, strip.mounted);
+      peak = Math.max(peak, strip.element.querySelectorAll("[role=option]").length);
     }
     expect(peak).toBeLessThanOrEqual(bound);
     close(view);
@@ -98,7 +98,8 @@ describe("the thumbnails strip", () => {
   it("renders behind the main view's visible pages", async () => {
     const view = await opened(thousand);
     // Let the first thumbnails finish, then hold the worker while more queue.
-    await until(() => view.strip.element.querySelectorAll("canvas").length > 0);
+    const strip = view.strip.element;
+    await until(() => strip.querySelectorAll("canvas").length === strip.querySelectorAll("[role=option]").length);
     const before = ((await hook(rpc, "__renderLog", [])) as number[]).length;
     const busy = hook(rpc, "__busy", [200]);
     view.strip.element.scrollTop = 3000;

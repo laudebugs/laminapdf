@@ -18,6 +18,7 @@ import {
 } from "@laminapdf/ui";
 import type { ThumbnailStrip, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { downThePage } from "./outline.ts";
 import type { Engine } from "./session.ts";
 
 /** How often the current section is worked out while the view moves, in ms. */
@@ -40,17 +41,17 @@ function useCloseAfterJump(layout: ShellLayout): () => void {
 /** Puts the strip's list in the tab's panel. */
 function PagesPanel({ strip, layout }: { strip: ThumbnailStrip; layout: ShellLayout }): ReactNode {
   const host = useRef<HTMLDivElement>(null);
-  const jumped = useCloseAfterJump(layout);
+  const closeIfCovering = useCloseAfterJump(layout);
   useEffect(() => {
     if (host.current !== null) strip.mount(host.current);
   }, [strip]);
   // The strip goes to a page on a click, or on Enter or Space on a thumbnail.
   const onKeyUp = (e: { key: string }) => {
-    if (e.key === "Enter" || e.key === " ") jumped();
+    if (e.key === "Enter" || e.key === " ") closeIfCovering();
   };
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: listens for the strip's own options, which take the clicks and keys
-    <div ref={host} className="web-thumbnails" onClick={jumped} onKeyUp={onKeyUp} />
+    <div ref={host} className="web-thumbnails" onClick={closeIfCovering} onKeyUp={onKeyUp} />
   );
 }
 
@@ -61,10 +62,16 @@ function useCurrentSection(viewer: Viewer, items: readonly OutlineTreeItem[]): s
     let timer: ReturnType<typeof setTimeout> | undefined;
     const update = () => {
       timer = undefined;
-      const top = viewer.pointAt(0, TOP_PROBE);
+      // The middle of the viewport's width: on a turned view, across is down the page.
+      const top = viewer.pointAt(viewer.element.clientWidth / 2, TOP_PROBE);
+      if (top === undefined) {
+        setCurrent(undefined);
+        return;
+      }
       // Above the first page the probe is in its gap: that is still the first page's top.
-      const y = top === undefined ? 0 : Math.min(1, Math.max(0, top.y));
-      setCurrent(top === undefined ? undefined : currentOutlineItem(items, { page: top.page, y }));
+      const clamp = (v: number) => Math.min(1, Math.max(0, v));
+      const y = clamp(downThePage(clamp(top.x), clamp(top.y), viewer.getState().rotation));
+      setCurrent(currentOutlineItem(items, { page: top.page, y }));
     };
     update();
     const off = viewer.subscribe(() => {
@@ -81,13 +88,16 @@ function useCurrentSection(viewer: Viewer, items: readonly OutlineTreeItem[]): s
 /** The outline, read when the tab first shows. */
 function OutlinePanel({ engine, viewer, layout }: { engine: Engine; viewer: Viewer; layout: ShellLayout }): ReactNode {
   const outline = useStoreState(engine, (s) => s.outline);
-  const jumped = useCloseAfterJump(layout);
+  const closeIfCovering = useCloseAfterJump(layout);
   // Read once per document: a document opened while the tab shows clears it, so it reads again.
   useEffect(() => {
     if (outline === undefined) void engine.loadOutline();
   }, [engine, outline]);
   const items = typeof outline === "object" ? outline.items : NO_ITEMS;
   const current = useCurrentSection(viewer, items);
+  if (outline === "failed") {
+    return <EmptyState title={message("reader.outline.failed")} headingLevel={3} icon="list" />;
+  }
   if (typeof outline !== "object") return null;
   if (items.length === 0) {
     return (
@@ -102,16 +112,21 @@ function OutlinePanel({ engine, viewer, layout }: { engine: Engine; viewer: View
       {...(current === undefined ? {} : { current })}
       onNavigate={(id) => {
         void engine.goToOutlineItem(id);
-        jumped();
+        closeIfCovering();
       }}
     />
   );
 }
 
 /** The rail's tabs while a document is open; none otherwise. */
-export function railTabs(engine: Engine, layout: ShellLayout, open: boolean): RailTab[] {
-  const { strip, viewer } = engine.getState();
-  if (!open || strip === undefined || viewer === undefined) return [];
+export function railTabs(
+  engine: Engine,
+  layout: ShellLayout,
+  view: { readonly strip: ThumbnailStrip | undefined; readonly viewer: Viewer | undefined } | undefined,
+): RailTab[] {
+  const strip = view?.strip;
+  const viewer = view?.viewer;
+  if (strip === undefined || viewer === undefined) return [];
   return [
     { id: "pages", label: message("shell.rail.pages"), panel: <PagesPanel strip={strip} layout={layout} /> },
     {

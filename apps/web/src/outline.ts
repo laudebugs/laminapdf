@@ -4,7 +4,7 @@
 // going to an item.
 
 import type { OutlinePlace, OutlineTreeItem } from "@laminapdf/ui";
-import type { OpenedDocument, Viewer, ViewerClient } from "@laminapdf/viewer";
+import type { OpenedDocument, Rotation, Viewer, ViewerClient } from "@laminapdf/viewer";
 
 /** A page's facts (size and label), as the viewer opened them. */
 export type PageInfo = OpenedDocument["pages"][number];
@@ -47,4 +47,21 @@ export function outlineModel(nodes: readonly OutlineNode[], pages: readonly Page
       };
     });
   return { items: convert(nodes, ""), targets };
+}
+
+/**
+ * How far down its unturned page a point of the page box on screen is (0 to 1), for a view
+ * turned clockwise by `rotation`: outline places are measured on the page as the file draws it.
+ */
+export function downThePage(x: number, y: number, rotation: Rotation): number {
+  switch (rotation) {
+    case 90:
+      return 1 - x;
+    case 180:
+      return 1 - y;
+    case 270:
+      return x;
+    default:
+      return y;
+  }
 }

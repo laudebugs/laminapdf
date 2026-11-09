@@ -1,7 +1,7 @@
 // The outline tab's items: path ids, page labels, places down the page, and targets by id.
 import type { ViewerClient } from "@laminapdf/viewer";
 import { describe, expect, it } from "vitest";
-import { outlineModel, type PageInfo } from "./outline.ts";
+import { downThePage, outlineModel, type PageInfo } from "./outline.ts";
 
 type OutlineNode = Awaited<ReturnType<ViewerClient["outline"]>>[number];
 
@@ -48,5 +48,17 @@ describe("outlineModel", () => {
 
   it("numbers a page without a label", () => {
     expect(outlineModel(NODES, [page(0), page(1), page(2)]).items[0]?.page).toBe("2");
+  });
+});
+
+describe("downThePage", () => {
+  // A point a tenth down the page and a quarter across it, as the turned view shows it.
+  it.each([
+    [0, 0.25, 0.1],
+    [90, 0.9, 0.25],
+    [180, 0.75, 0.9],
+    [270, 0.1, 0.75],
+  ] as const)("undoes a view turned %i°", (rotation, x, y) => {
+    expect(downThePage(x, y, rotation)).toBeCloseTo(0.1);
   });
 });

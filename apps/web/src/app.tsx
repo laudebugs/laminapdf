@@ -203,10 +203,11 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const moreItems = { items: more, onAction: (id: MoreId) => (id === "open" ? reader.close() : viewer?.rotate(90)) };
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
-  // The rail's panels follow the engine; they are made again only when it changes.
+  // The rail's panels are made again only when the view or the strip changes.
+  const { strip } = engineState;
   const tabs = useMemo(
-    () => railTabs(engine, layout, open),
-    [engine, layout, open, engineState.strip, engineState.viewer],
+    () => railTabs(engine, layout, open ? { strip, viewer } : undefined),
+    [engine, layout, open, strip, viewer],
   );
   const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0);
   const labels = useMemo(() => {

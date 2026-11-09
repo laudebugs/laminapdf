@@ -111,9 +111,7 @@ fn corpus_outline_pages_match_pypdf() {
             .any(|(_, _, f)| f.as_array().is_some_and(|a| !a.is_empty()))
     );
     for (name, bytes, fact) in files {
-        let Ok(doc) = Document::open_bytes(bytes, OpenOptions::default()) else {
-            continue;
-        };
+        let doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap();
         let mut flat = Vec::new();
         flatten(&doc.outline().unwrap(), 0, &mut flat);
         let skip: &[usize] = excused.iter().find(|(f, _)| *f == name).map_or(&[], |(_, items)| items);
