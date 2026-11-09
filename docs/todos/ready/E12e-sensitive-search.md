@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E12](../../plans/full-editor.md#e12-redaction) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [C5b](./C5b-find-in-document.md), [E12b](./E12b-mark-and-review.md), [E12d](./E12d-scrub-and-rewrite.md) |
+| Depends on | [C5b](../done/C5b-find-in-document.md), [E12b](./E12b-mark-and-review.md), [E12d](./E12d-scrub-and-rewrite.md) |
 | Dependency notes | [E12b](E12b-mark-and-review.md), [E12d](E12d-scrub-and-rewrite.md) (`ApplyRedactions` complete, for the search → mark → apply → verify e2e), `C5` ([web-app §C5](../../plans/web-app.md#c5-text-selection-and-search): text layer and search) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e12e-sensitive-search` |

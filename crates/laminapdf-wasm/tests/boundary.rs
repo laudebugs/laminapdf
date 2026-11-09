@@ -215,6 +215,24 @@ fn a_text_call_that_fails_draws_nothing() {
     assert!(!bytes.windows(5).any(|w| w == b"Hello"));
 }
 
+/// `WasmDocument.outline` and `namedDestination` (the extract and text modules): nested items
+/// with page targets, views tagged by `kind`, and `undefined` for an unknown name.
+#[cfg(feature = "extract")]
+#[wasm_bindgen_test]
+fn the_outline_and_named_destinations_cross_as_records() {
+    use js_sys::Array;
+    const NAV: &[u8] = include_bytes!("../../../fixtures/golden/links-and-outlines.pdf");
+    let doc = WasmDocument::open_bytes(NAV.to_vec(), &JsValue::UNDEFINED).unwrap();
+    let outline: Array = doc.outline().unwrap().dyn_into().unwrap();
+    let chapters = outline.get(2);
+    assert_eq!(string(&chapters, "title").as_deref(), Some("Chapters"));
+    let children: Array = get(&chapters, "children").dyn_into().unwrap();
+    assert_eq!(get(&get(&children.get(0), "target"), "page").as_f64(), Some(2.0));
+    let contents = doc.named_destination("contents").unwrap();
+    assert_eq!(string(&get(&contents, "view"), "kind").as_deref(), Some("fit"));
+    assert!(doc.named_destination("nowhere").unwrap().is_undefined());
+}
+
 /// `WasmPage.text` (the extract and text modules): lines, runs as records, one quad per glyph
 /// in a `Float32Array`, glyph text with UTF-16 offsets.
 #[cfg(feature = "extract")]

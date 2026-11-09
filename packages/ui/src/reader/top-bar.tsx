@@ -35,6 +35,8 @@ export interface ReaderTopBarProps<Id extends string> {
   labels?: readonly string[];
   /** Whether the sidebar is open: the toggle shows it, and runs `view.toggle-sidebar` when pressed. */
   sidebarOpen?: boolean;
+  /** Whether the find bar is open: the Find button shows it, pressed, and runs `find.open` when pressed. */
+  findOpen?: boolean;
   /** The file area without a document: the wordmark, or Back. "No document open" when left out. */
   home?: ReactNode;
   /** A `DebugMenu`, which the shell shows only for `#debug`. */
@@ -126,6 +128,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
   const { viewer, keys, more } = props;
   const sidebar = useCommand("view.toggle-sidebar");
   const palette = useCommand("palette.open");
+  const find = useCommand("find.open");
   return (
     <header className="paper-top-bar">
       <div className="paper-top-bar-file">
@@ -147,6 +150,17 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
             <PageInput viewer={viewer} {...(props.labels === undefined ? {} : { labels: props.labels })} />
             <ZoomControl viewer={viewer} keys={keys} />
           </>
+        )}
+        {state.phase !== "open" || find.availability.state === "hidden" ? null : (
+          // A plain button: pressing it again puts the focus back in the field, so it is never a
+          // toggle; it shows find is open with `aria-expanded`.
+          <IconButton
+            icon="find"
+            label={message("command.find.open")}
+            aria-expanded={props.findOpen === true}
+            isDisabled={find.availability.state === "disabled"}
+            onPress={() => find.run()}
+          />
         )}
         {palette.availability.state === "hidden" ? null : (
           <AriaButton className="paper-commands-button" onPress={() => palette.run()}>

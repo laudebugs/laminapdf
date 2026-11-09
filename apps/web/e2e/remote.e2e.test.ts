@@ -19,7 +19,7 @@ const BIG = largePdf(50);
 const link = (url: string, page?: number) =>
   `/#url=${encodeURIComponent(url)}${page === undefined ? "" : `&page=${page}`}`;
 
-/** The page input's value: the page the viewer shows. */
+/** The page input's value: the label of the page the viewer shows (outline.pdf's are i, A-1, A-2). */
 const shownPage = (page: Page) => page.getByRole("textbox", { name: "Page" }).inputValue();
 
 describe(`remote files in ${BROWSER}`, () => {
@@ -93,7 +93,18 @@ describe(`remote files in ${BROWSER}`, () => {
     const url = `${host.origin}/cors/ranges/outline.pdf?x=1&page=2`;
     const watched = await load(link(url, 3));
     await watched.page.locator(".web-viewer canvas").first().waitFor();
-    await expect.poll(() => shownPage(watched.page)).toBe("3");
+    await expect.poll(() => shownPage(watched.page)).toBe("A-2");
+    await clean(watched);
+  });
+
+  it("opens a link at its named destination", async () => {
+    const watched = await load(`${link(`${host.origin}/cors/ranges/outline.pdf`)}&nameddest=chapter2`);
+    await watched.page.locator(".web-viewer canvas").first().waitFor();
+    await expect.poll(() => shownPage(watched.page)).toBe("A-1");
+    await watched.page.evaluate(() => {
+      location.hash = location.hash.replace("nameddest=chapter2", "nameddest=appendix");
+    });
+    await expect.poll(() => shownPage(watched.page)).toBe("A-2");
     await clean(watched);
   });
 
@@ -108,11 +119,11 @@ describe(`remote files in ${BROWSER}`, () => {
     await page.evaluate(() => {
       location.hash = `${location.hash}&page=2`;
     });
-    await expect.poll(() => shownPage(page)).toBe("2");
+    await expect.poll(() => shownPage(page)).toBe("A-1");
     await page.goBack();
     await expect.poll(() => page.evaluate(() => location.hash.includes("page="))).toBe(false);
     await page.goForward();
-    await expect.poll(() => shownPage(page)).toBe("2");
+    await expect.poll(() => shownPage(page)).toBe("A-1");
     expect(probes()).toBe(1);
     await clean(watched);
   });

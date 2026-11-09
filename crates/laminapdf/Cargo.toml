@@ -25,7 +25,7 @@ categories = ["encoding", "parser-implementations", "text-processing", "wasm"]
 layer = "core"
 
 [features]
-default = ["text", "saslprep"]
+default = ["text", "saslprep", "markdown"]
 # SASLprep for R5/R6 passwords (RFC 4013; laminapdf-syntax's `saslprep`). Left out of the WASM
 # base module (ADR 0016 §5).
 saslprep = ["laminapdf-cos/saslprep"]
@@ -38,6 +38,10 @@ build = ["dep:laminapdf-build"]
 extract = ["dep:laminapdf-text", "dep:laminapdf-extract"]
 # Fonts and text on top of the builder (laminapdf-text: shaping, bidi, line breaking, subsetting).
 text = ["build", "extract", "laminapdf-build/text"]
+# Markdown in, flowing pages out (ADR 0032 §5): `laminapdf::markdown` and `Builder::markdown`, over
+# pulldown-cmark. On by default; the workspace's crates (the WASM modules, the CLI) turn it on
+# where they need it.
+markdown = ["text", "laminapdf-build/markdown"]
 # `laminapdf::explain(code)`: every code's explain page (docs/errors/<code>.md, ADR 0026 §6), about
 # 80 KB of text. Off by default and in the WASM modules; the CLI turns it on.
 explain = []
@@ -68,6 +72,8 @@ laminapdf-text = { path = "../laminapdf-text" }
 # tests/redaction.rs appends revisions with the spike-era incremental_update.
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
+# tests/navigation.rs reads the corpus exceptions (fixtures/corpus/exceptions.toml).
+toml = { workspace = true }
 # The report bench checks its bytes against the TS suite's REPORT_SHA256.
 criterion = { workspace = true }
 sha2 = { workspace = true }
@@ -122,6 +128,14 @@ required-features = ["text"]
 
 [[example]]
 name = "flowing_report"
+required-features = ["text"]
+
+[[example]]
+name = "markdown_to_pdf"
+required-features = ["markdown"]
+
+[[example]]
+name = "flowing_invoice"
 required-features = ["text"]
 
 # Not a golden example: lamina's page text for the nightly lane's live text differential

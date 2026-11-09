@@ -122,13 +122,13 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`laminapdf-content` interpreter + `laminapdf-text`), selection and copy, find bar with streaming results and highlights. The API exists ([B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md)): `await init({ extract: true })` loads the extract module (about 525 KB gzip), and `doc.page(i).text()` returns lines, runs and every glyph's quad in page space, with `buffers` to transfer the arrays from a worker.
 **Accepted when:** copy from fixtures in five scripts equals expected text, including encrypted fixtures; search results match pdf.js counts on the corpus; selection works with screen readers on tagged fixtures.
-**Todos:** [C5a](../todos/done/C5a-text-layer-and-selection.md), [C5b](../todos/ready/C5b-find-in-document.md)
+**Todos:** [C5a](../todos/done/C5a-text-layer-and-selection.md), [C5b](../todos/done/C5b-find-in-document.md), [C5c](../todos/done/C5c-find-results-tab.md)
 
 ### C6. Navigation, print and properties
 
 **Deliverable:** thumbnails, outline, links (with external-link confirmation), page labels, history, print, download, document properties dialog.
 **Accepted when:** link and outline targets match `expected.json`; printing a 50-page document works in Chrome, Firefox and Safari; download is byte-identical to the input.
-**Todos:** [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/ready/C6b-links-and-history.md), [C6c](../todos/ready/C6c-print-download-properties.md)
+**Todos:** [C6a](../todos/done/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/ready/C6b-links-and-history.md), [C6c](../todos/ready/C6c-print-download-properties.md)
 
 ### C7. Accessibility, offline and launch
 
@@ -198,14 +198,14 @@ Ticked by the PR that completes them.
 - [x] Expose glyph runs and quads from the B9 extraction API through the worker RPC ([C5a](../todos/done/C5a-text-layer-and-selection.md))
 - [x] Build the DOM text layer aligned to rendered glyphs at every zoom ([C5a](../todos/done/C5a-text-layer-and-selection.md))
 - [x] Link the struct tree via `aria-owns` for tagged files ([C5a](../todos/done/C5a-text-layer-and-selection.md))
-- [ ] Implement the find controller with streaming results, highlights and options
-- [ ] Copy/extraction tests in five scripts (copy: [C5a](../todos/done/C5a-text-layer-and-selection.md)); search-count parity tests vs pdf.js
+- [x] Implement the find controller with streaming results, highlights and options
+- [x] Copy/extraction tests in five scripts (copy: [C5a](../todos/done/C5a-text-layer-and-selection.md)); search-count parity tests vs pdf.js ([C5b](../todos/done/C5b-find-in-document.md))
 
 ### C6. Navigation, print and properties
-- [ ] Thumbnails sidebar (rendered at low priority, virtualised)
-- [ ] Outline sidebar with expand/collapse and current-section tracking
+- [x] Thumbnails sidebar (rendered at low priority, virtualised)
+- [x] Outline sidebar with expand/collapse and current-section tracking
 - [ ] Link layer: internal destinations, URIs with confirmation, named destinations
-- [ ] Page labels in the page indicator and go-to-page
+- [x] Page labels in the page indicator and go-to-page
 - [ ] Back/forward navigation history
 - [ ] Print path at print DPI; download of original bytes
 - [ ] Document properties dialog (metadata, fonts, version, encryption, signatures present)

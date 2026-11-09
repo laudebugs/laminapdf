@@ -112,12 +112,12 @@ describe("fragmentAction", () => {
   const withUrl = (page?: number) => parseFragment(fragmentFor(url, page));
 
   it("opens a new address at its page", () => {
-    expect(fragmentAction(withUrl(5), undefined)).toEqual({ type: "open", url, page: 5 });
-    expect(fragmentAction(withUrl(), "https://other/a.pdf")).toEqual({ type: "open", url, page: undefined });
+    expect(fragmentAction(withUrl(5), undefined)).toEqual({ type: "open", url, place: { page: 5 } });
+    expect(fragmentAction(withUrl(), "https://other/a.pdf")).toEqual({ type: "open", url, place: undefined });
   });
 
   it("only navigates when the page alone changed", () => {
-    expect(fragmentAction(withUrl(3), url)).toEqual({ type: "navigate", page: 3 });
+    expect(fragmentAction(withUrl(3), url)).toEqual({ type: "navigate", place: { page: 3 } });
     expect(fragmentAction(withUrl(), url)).toEqual({ type: "none" });
   });
 
@@ -126,8 +126,26 @@ describe("fragmentAction", () => {
   });
 
   it("navigates within a local file", () => {
-    expect(fragmentAction(parseFragment("page=2"), undefined)).toEqual({ type: "navigate", page: 2 });
+    expect(fragmentAction(parseFragment("page=2"), undefined)).toEqual({ type: "navigate", place: { page: 2 } });
     expect(fragmentAction(parseFragment(""), undefined)).toEqual({ type: "none" });
+  });
+
+  it("goes to a named destination, before a page", () => {
+    expect(fragmentAction(parseFragment("nameddest=chapter-2&page=4"), undefined)).toEqual({
+      type: "navigate",
+      place: { dest: "chapter-2" },
+    });
+    expect(fragmentAction(parseFragment(`${fragmentFor(url)}&nameddest=a%20b`), url)).toEqual({
+      type: "navigate",
+      place: { dest: "a b" },
+    });
+  });
+
+  it("ignores an empty named destination", () => {
+    expect(fragmentAction(parseFragment("nameddest=&page=2"), undefined)).toEqual({
+      type: "navigate",
+      place: { page: 2 },
+    });
   });
 
   it("reports an invalid address", () => {

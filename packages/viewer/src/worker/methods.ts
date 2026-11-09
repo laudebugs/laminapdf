@@ -3,8 +3,11 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
+import type { FindOptions } from "../find/fold.js";
 import type { BackendInit, SourceInit, ViewerOpenOptions } from "../protocol.js";
 import { closeDocument, current, initBackend, openDocument, workerMemory } from "./document.js";
+import { find, forgetSearch } from "./find.js";
+import { namedDestination, outline } from "./navigation.js";
 import { networkLog } from "./network.js";
 import { render, reply } from "./render.js";
 import { forgetText, pageText, replyText, structure } from "./text.js";
@@ -18,6 +21,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   closeDocument: {
     run: () => {
       forgetText();
+      forgetSearch();
       return closeDocument();
     },
   },
@@ -38,4 +42,10 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     reply: (text) => replyText(text as Parameters<typeof replyText>[0]),
   },
   structure: { run: (_params, { signal }) => structure(signal) },
+  find: {
+    run: ([query, options, pages], { signal }) =>
+      find(query as string, options as FindOptions, pages as readonly number[], signal),
+  },
+  outline: { run: (_params, { signal }) => outline(signal) },
+  namedDestination: { run: ([name], { signal }) => namedDestination(name as string, signal) },
 };

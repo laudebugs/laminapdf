@@ -41,8 +41,8 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 
 - Perf harness and CI budgets → [C3c](./C3c-viewer-perf-harness.md), [C7c](../ready/C7c-performance-gates-and-launch.md).
 - Toolbar/UI → [C4a](./C4a-ui-chrome-and-platform.md).
-- Text, link and highlight layers → [C5a](../done/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md), [C6b](../ready/C6b-links-and-history.md) (this PR provides the per-page layer slots they mount into).
-- Thumbnails → [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
+- Text, link and highlight layers → [C5a](../done/C5a-text-layer-and-selection.md), [C5b](../done/C5b-find-in-document.md), [C6b](../ready/C6b-links-and-history.md) (this PR provides the per-page layer slots they mount into).
+- Thumbnails → [C6a](../done/C6a-thumbnails-outline-page-labels.md).
 
 ## Tasks
 

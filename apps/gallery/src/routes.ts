@@ -48,12 +48,19 @@ export const ROUTES: readonly Route[] = [
     title: "Status bar items",
     components: ["StatusBarItem", "PageLabel", "NetworkIndicator", "RepairedNotice", "ShortcutChip"],
   },
-  { id: "rail", title: "Thumbnails and outline rows", components: ["Thumbnail", "OutlineRow"], pageRelated: true },
+  {
+    id: "rail",
+    title: "Thumbnails and outline rows",
+    components: ["Thumbnail", "OutlineRow", "OutlineTree"],
+    pageRelated: true,
+  },
   {
     id: "reader",
     title: "Reader chrome",
     components: [
       "ReaderTopBar",
+      "FindBar",
+      "FindResults",
       "PageInput",
       "ZoomControl",
       "WholeFileDownload",

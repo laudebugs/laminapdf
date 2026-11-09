@@ -196,6 +196,8 @@ pub enum ErrorCode {
     EmbeddedFileWithoutMimeType,
     /// `flow-content-too-large`: a line or a figure of a flow is taller than the page's body, so no page can hold it.
     FlowContentTooLarge,
+    /// `flow-layout-unstable`: a flow's contents page kept changing its page numbers after four layouts.
+    FlowLayoutUnstable,
     /// `render-too-large`: the requested tile is larger than the render limits allow; nothing was allocated.
     RenderTooLarge,
     /// `render-failed`: the render engine could not open the document or draw the page.
@@ -326,6 +328,7 @@ impl ErrorCode {
         Self::EmbeddedFileForbidden,
         Self::EmbeddedFileWithoutMimeType,
         Self::FlowContentTooLarge,
+        Self::FlowLayoutUnstable,
         Self::RenderTooLarge,
         Self::RenderFailed,
         Self::RenderBackendUnavailable,
@@ -447,6 +450,7 @@ impl ErrorCode {
             Self::EmbeddedFileForbidden => "embedded-file-forbidden",
             Self::EmbeddedFileWithoutMimeType => "embedded-file-without-mime-type",
             Self::FlowContentTooLarge => "flow-content-too-large",
+            Self::FlowLayoutUnstable => "flow-layout-unstable",
             Self::RenderTooLarge => "render-too-large",
             Self::RenderFailed => "render-failed",
             Self::RenderBackendUnavailable => "render-backend-unavailable",
@@ -556,6 +560,7 @@ impl ErrorCode {
             Self::EmbeddedFileForbidden => ErrorKind::Usage,
             Self::EmbeddedFileWithoutMimeType => ErrorKind::Usage,
             Self::FlowContentTooLarge => ErrorKind::Usage,
+            Self::FlowLayoutUnstable => ErrorKind::Internal,
             Self::RenderTooLarge => ErrorKind::Limit,
             Self::RenderFailed => ErrorKind::Input,
             Self::RenderBackendUnavailable => ErrorKind::Io,
@@ -665,6 +670,7 @@ impl ErrorCode {
             Self::EmbeddedFileForbidden => "PDF/A-2 doesn't allow attached files that aren't PDF/A themselves",
             Self::EmbeddedFileWithoutMimeType => "an attached file has no MIME type, which every PDF/A profile requires",
             Self::FlowContentTooLarge => "a line or a figure of a flow is taller than the page's body, so no page can hold it",
+            Self::FlowLayoutUnstable => "a flow's contents page kept changing its page numbers after four layouts",
             Self::RenderTooLarge => "the requested tile is larger than the render limits allow; nothing was allocated",
             Self::RenderFailed => "the render engine could not open the document or draw the page",
             Self::RenderBackendUnavailable => "the render engine is not available: its library or module could not be loaded",
@@ -774,6 +780,7 @@ impl ErrorCode {
             Self::EmbeddedFileForbidden => "choose PDF/A-3b, which allows attached files of any kind",
             Self::EmbeddedFileWithoutMimeType => "pass the file's MIME type, such as text/xml or application/octet-stream",
             Self::FlowContentTooLarge => "make the figure smaller, the text size smaller or the page's margins narrower",
+            Self::FlowLayoutUnstable => "report the flow that fails; a page break after the contents block may avoid it until it is fixed",
             Self::RenderTooLarge => "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
             Self::RenderFailed => "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
             Self::RenderBackendUnavailable => "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
@@ -901,6 +908,10 @@ pub enum WarningCode {
     WholeFontRebuilt,
     /// `flow-keep-broken`: blocks kept together are taller than a page, so the flow split them.
     FlowKeepBroken,
+    /// `markdown-html-ignored`: the Markdown holds raw HTML, which the PDF leaves out.
+    MarkdownHtmlIgnored,
+    /// `markdown-image-missing`: the Markdown names an image that wasn't supplied, so the PDF leaves it out.
+    MarkdownImageMissing,
     /// `covered-text`: a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file.
     CoveredText,
     /// `redaction-not-applied`: a page has redaction marks that were never applied, so the text under them is still in the file.
@@ -957,6 +968,8 @@ impl WarningCode {
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
+        Self::MarkdownHtmlIgnored,
+        Self::MarkdownImageMissing,
         Self::CoveredText,
         Self::RedactionNotApplied,
         Self::TextInEarlierRevision,
@@ -1024,6 +1037,8 @@ impl WarningCode {
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
+            Self::MarkdownHtmlIgnored => "markdown-html-ignored",
+            Self::MarkdownImageMissing => "markdown-image-missing",
             Self::CoveredText => "covered-text",
             Self::RedactionNotApplied => "redaction-not-applied",
             Self::TextInEarlierRevision => "text-in-earlier-revision",
@@ -1079,6 +1094,8 @@ impl WarningCode {
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
+            Self::MarkdownHtmlIgnored => ErrorKind::Unsupported,
+            Self::MarkdownImageMissing => ErrorKind::Usage,
             Self::CoveredText => ErrorKind::Security,
             Self::RedactionNotApplied => ErrorKind::Security,
             Self::TextInEarlierRevision => ErrorKind::Security,
@@ -1134,6 +1151,8 @@ impl WarningCode {
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
+            Self::MarkdownHtmlIgnored => "the Markdown holds raw HTML, which the PDF leaves out",
+            Self::MarkdownImageMissing => "the Markdown names an image that wasn't supplied, so the PDF leaves it out",
             Self::CoveredText => "a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file",
             Self::RedactionNotApplied => "a page has redaction marks that were never applied, so the text under them is still in the file",
             Self::TextInEarlierRevision => "an earlier revision of the file holds text that the latest revision no longer has",
@@ -1189,6 +1208,8 @@ impl WarningCode {
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
+            Self::MarkdownHtmlIgnored => "write the content in Markdown instead of HTML, or remove the HTML",
+            Self::MarkdownImageMissing => "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",
             Self::CoveredText => "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
             Self::RedactionNotApplied => "apply the redactions in a tool that removes what they cover, then save a full rewrite",
             Self::TextInEarlierRevision => "save the file as a full rewrite, which keeps only the latest revision",

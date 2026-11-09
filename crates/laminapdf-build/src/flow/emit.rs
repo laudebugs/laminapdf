@@ -3,10 +3,12 @@
 //! `/Subtype`, and the structure elements kept open across pages (ADR 0032 §4).
 
 use std::collections::BTreeMap;
+use std::rc::Rc;
 
-use laminapdf_model::{PageId, PointPt, RectPt};
+use laminapdf_model::{FillRule, PageId, PointPt, Pt, RectPt};
 use laminapdf_text::{Alignment, ShapedRun};
 
+use super::draw_table::{Part, RowAt, draw_row, draw_rules, layout_artifact};
 use super::items::{Content, Items};
 use super::measure::{Look, MLine, Source};
 use super::model::{Flow, PageRegion, ParagraphStyle, TextStyle};
@@ -16,6 +18,8 @@ use crate::annot::link::LinkSpec;
 use crate::builder::Builder;
 use crate::error::Result;
 use crate::surface::Surface;
+use crate::surface::color::Color;
+use crate::surface::style::StrokeStyle;
 use crate::surface::text::ShapedPiece;
 use crate::tag::{Artifact, ElementId, Tag, TagKind};
 
@@ -68,7 +72,46 @@ fn draw_pages(
         furniture(s, flow, index, &fields, true)?;
         let mut leaf: Option<usize> = None;
         let mut batch: Vec<&Placed> = Vec::new();
+        let mut part: Option<Part> = None;
         for placed in &page.placed {
+            if let Placed::Row {
+                item,
+                table,
+                row,
+                x,
+                top,
+                repeat,
+            } = placed
+            {
+                if !batch.is_empty() {
+                    draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
+                    batch.clear();
+                }
+                let at = RowAt {
+                    item: *item,
+                    layout: Rc::clone(table),
+                    row: *row,
+                    x: *x,
+                    top: *top,
+                    repeat: *repeat,
+                };
+                if let Some(p) = part.take_if(|p| !p.holds(&at)) {
+                    draw_rules(s, flow, items, &p)?;
+                }
+                draw_row(s, flow, items, &at, &mut part, &mut open, order)?;
+                continue;
+            }
+            if let Some(p) = part.take() {
+                draw_rules(s, flow, items, &p)?;
+            }
+            if matches!(placed, Placed::Leader { .. } | Placed::Rule { .. }) {
+                if !batch.is_empty() {
+                    draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
+                    batch.clear();
+                }
+                decoration(s, flow.tagged, placed)?;
+                continue;
+            }
             let node = node_of(items, placed);
             if node != leaf && !batch.is_empty() {
                 draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
@@ -80,6 +123,9 @@ fn draw_pages(
         if !batch.is_empty() {
             draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
         }
+        if let Some(p) = part.take() {
+            draw_rules(s, flow, items, &p)?;
+        }
         furniture(s, flow, index, &fields, false)?;
         ids.push(pb.finish()?);
     }
@@ -89,13 +135,51 @@ fn draw_pages(
 /// The element `placed` draws into.
 fn node_of(items: &Items, placed: &Placed) -> Option<usize> {
     match placed {
-        Placed::Line { item, .. } | Placed::Figure { item, .. } => items.entries.get(*item).and_then(|i| i.node),
+        Placed::Line { item, .. } | Placed::Figure { item, .. } | Placed::Entry { item, .. } => {
+            items.entries.get(*item).and_then(|i| i.node)
+        }
         Placed::Label { item, .. } => items.entries.get(*item).and_then(|i| i.label).map(|(_, n)| n),
+        Placed::NoteLine { note, .. } => items.notes.get(*note).map(|n| n.node),
+        Placed::Row { .. } | Placed::Leader { .. } | Placed::Rule { .. } => None,
     }
 }
 
+/// A contents entry's dot leaders or the rule above a page's notes, as a `Layout` artifact.
+fn decoration(s: &mut Surface, tagged: bool, placed: &Placed) -> Result<()> {
+    layout_artifact(s, tagged, |s| match *placed {
+        Placed::Leader { from, to, y, edge } => {
+            // Dots on a 4-point grid from the right edge, so the leaders of every entry line up
+            // whatever the width of its number; the first dot half a step before the number.
+            let steps = ((edge - to + LEADER_STEP / 2.0) / LEADER_STEP).ceil();
+            let mut x = edge - steps * LEADER_STEP;
+            s.path(|p| {
+                while x > from + LEADER_STEP / 2.0 {
+                    p.circle(PointPt::from_points(x, y - 1.0), Pt::new(0.5));
+                    x -= LEADER_STEP;
+                }
+            })
+            .fill(FillRule::NonZero);
+        }
+        Placed::Rule { x, y, width } => {
+            let style = StrokeStyle {
+                width: Pt::new(0.5),
+                ..StrokeStyle::default()
+            };
+            s.path(|p| {
+                p.move_to(PointPt::from_points(x, y))
+                    .line_to(PointPt::from_points(x + width, y));
+            })
+            .stroke(&style);
+        }
+        _ => {}
+    })
+}
+
+/// The distance between two leader dots, points.
+const LEADER_STEP: f64 = 4.0;
+
 /// Opens `node` (its parents first) unless it is open, and returns it.
-fn ensure(
+pub(super) fn ensure(
     s: &mut Surface,
     items: &Items,
     node: usize,
@@ -130,22 +214,57 @@ fn draw_batch(
     open: &mut BTreeMap<usize, ElementId>,
     order: &mut Vec<ElementId>,
 ) -> Result<()> {
-    let draw = |s: &mut Surface| -> Result<()> {
+    let mut strikes = Vec::new();
+    let mut draw = |s: &mut Surface| -> Result<()> {
         for placed in batch {
-            draw_placed(s, flow, items, placed);
+            strikes.extend(draw_placed(s, flow, items, placed));
         }
         Ok(())
     };
     match leaf.filter(|_| flow.tagged) {
         Some(node) => {
             let id = ensure(s, items, node, open, order)?;
-            s.resume(id, draw)
+            s.resume(id, draw)?;
         }
-        None => draw(s),
+        None => draw(s)?,
     }
+    draw_strikes(s, flow.tagged, &strikes)
 }
 
-fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
+/// A line through struck-through text, from `x0` to `x1` on `y`, `width` thick.
+#[derive(Debug, Clone)]
+pub(super) struct Strike {
+    x0: f64,
+    x1: f64,
+    y: f64,
+    width: f64,
+    color: Option<Color>,
+}
+
+/// Draws `strikes` as a `Layout` artifact (outside the text's element: an artifact can't be
+/// inside its marked content).
+pub(super) fn draw_strikes(s: &mut Surface, tagged: bool, strikes: &[Strike]) -> Result<()> {
+    if strikes.is_empty() {
+        return Ok(());
+    }
+    layout_artifact(s, tagged, |s| {
+        for strike in strikes {
+            let style = StrokeStyle {
+                width: Pt::new(strike.width),
+                ..StrokeStyle::default()
+            };
+            s.stroke_color(strike.color.clone().unwrap_or(Color::gray(0.0)));
+            s.path(|p| {
+                p.move_to(PointPt::from_points(strike.x0, strike.y))
+                    .line_to(PointPt::from_points(strike.x1, strike.y));
+            })
+            .stroke(&style);
+        }
+    })
+}
+
+/// Draws `placed`, returning the lines its struck-through text needs.
+fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) -> Vec<Strike> {
     match placed {
         Placed::Line { item, line, x, top } => {
             let source = items.entries.get(*item).and_then(|it| match it.content {
@@ -153,7 +272,22 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
                 _ => None,
             });
             if let Some(source) = source {
-                draw_line(s, flow.tagged, source, line, *x, *top);
+                return draw_line(s, flow.tagged, true, source, line, *x, *top);
+            }
+        }
+        Placed::Entry { item, line, x, top } => {
+            let source = items
+                .entries
+                .get(*item)
+                .and_then(|it| it.entry)
+                .and_then(|e| items.sources.get(e));
+            if let Some(source) = source {
+                return draw_line(s, flow.tagged, true, source, line, *x, *top);
+            }
+        }
+        Placed::NoteLine { note, line, x, top } => {
+            if let Some(source) = items.notes.get(*note).and_then(|n| items.sources.get(n.source)) {
+                return draw_line(s, flow.tagged, true, source, line, *x, *top);
             }
         }
         Placed::Label { item, line, x, top } => {
@@ -163,7 +297,7 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
                 .and_then(|it| it.label)
                 .and_then(|(i, _)| items.sources.get(i));
             if let Some(source) = source {
-                draw_line(s, flow.tagged, source, line, *x, *top);
+                return draw_line(s, flow.tagged, true, source, line, *x, *top);
             }
         }
         Placed::Figure {
@@ -186,13 +320,29 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) {
                 }
             }
         }
+        // Drawn by `draw_table`, with the table's rules.
+        Placed::Row { .. } | Placed::Leader { .. } | Placed::Rule { .. } => {}
     }
+    Vec::new()
 }
 
 /// Draws `line` of `source` with its top at `top` and the frame's left edge at `x`: each run,
-/// in logical order, cut where the colour, link or language of its text changes.
-fn draw_line(s: &mut Surface, tagged: bool, source: &Source, line: &MLine, x: f64, top: f64) {
+/// in logical order, cut where the colour, link or language of its text changes. `links`
+/// draws its links' annotations (left out for a copy, such as a repeated header row).
+/// Returns the lines its struck-through text needs, which the caller draws outside the text's
+/// element.
+#[must_use]
+pub(super) fn draw_line(
+    s: &mut Surface,
+    tagged: bool,
+    links: bool,
+    source: &Source,
+    line: &MLine,
+    x: f64,
+    top: f64,
+) -> Vec<Strike> {
     let baseline = top + line.baseline;
+    let mut strikes = Vec::new();
     for run in line
         .line
         .drawing_order()
@@ -210,15 +360,24 @@ fn draw_line(s: &mut Surface, tagged: bool, source: &Source, line: &MLine, x: f6
             };
             let width = piece.width(run.size);
             let text = source.text.get(piece.text_range.clone()).unwrap_or_default().to_owned();
-            let link_spec = look.link.and_then(|l| source.links.get(l)).map(|target| LinkSpec {
-                target: target.clone(),
-                contents: Some(text.trim().to_owned()),
-            });
-            let tag = look
-                .lang
-                .as_ref()
-                .filter(|_| tagged)
-                .map(|lang| Box::new(Tag::new(TagKind::Span).with_lang(lang.clone())));
+            let link_spec = look
+                .link
+                .filter(|_| links)
+                .and_then(|l| source.links.get(l))
+                .map(|target| LinkSpec {
+                    target: target.clone(),
+                    contents: Some(text.trim().to_owned()),
+                });
+            // A footnote's marker is a `Reference`, code a `Code`, a span in another language a
+            // `Span`.
+            let tag = match (&look.lang, look.note, look.code) {
+                (_, Some(_), _) => Some(Tag::new(TagKind::Reference)),
+                (_, None, true) => Some(Tag::new(TagKind::Code)),
+                (Some(lang), None, false) => Some(Tag::new(TagKind::Span).with_lang(lang.clone())),
+                (None, None, false) => None,
+            }
+            .filter(|_| tagged)
+            .map(Box::new);
             let mut rebased = piece;
             let start = rebased.text_range.start;
             rebased.text_range = 0..rebased.text_range.end - start;
@@ -236,9 +395,19 @@ fn draw_line(s: &mut Surface, tagged: bool, source: &Source, line: &MLine, x: f6
                 link: link_spec,
                 tag,
             });
+            if look.strike {
+                strikes.push(Strike {
+                    x0: pen,
+                    x1: pen + width,
+                    y: baseline - size * 0.3,
+                    width: size * 0.06,
+                    color: look.color.clone(),
+                });
+            }
             pen += width;
         }
     }
+    strikes
 }
 
 /// `run`'s glyphs (visual order) cut where the look of their text changes.
@@ -303,7 +472,8 @@ fn furniture(s: &mut Surface, flow: &Flow, index: usize, fields: &Fields<'_>, he
         let draw = |s: &mut Surface| -> Result<()> {
             for (source, line) in &lines {
                 let top = middle - line.height / 2.0;
-                draw_line(s, false, source, line, x, top);
+                // Header and footer slots have no struck-through text.
+                drop(draw_line(s, false, true, source, line, x, top));
             }
             Ok(())
         };

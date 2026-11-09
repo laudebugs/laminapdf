@@ -24,6 +24,7 @@ import {
   type WorkerInitOptions,
   type WorkerWasmSource,
 } from "@laminapdf/sdk/worker";
+import type { FindOptions } from "./find/fold.js";
 import {
   type BackendInit,
   type LoadProgress,
@@ -275,9 +276,30 @@ export class ViewerClient {
     return this.call("pageText", [index], { priority: "background", key, ...options });
   }
 
+  /**
+   * The matches of `query` on each of `pages`, at `background` priority unless `options` says
+   * otherwise, so renders run first. The find controller calls it a few pages at a time.
+   */
+  find(query: string, find: FindOptions, pages: readonly number[], options: ViewerCallOptions = {}) {
+    return this.call("find", [query, find, pages], { priority: "background", ...options });
+  }
+
   /** Whether the open document says it is tagged, and its structure tree when it has one. */
   structure(options?: ViewerCallOptions) {
     return this.call("structure", [], options);
+  }
+
+  /**
+   * The open document's outline (bookmarks): top-level items, each with its children and where
+   * it goes as a page and a page-space view; empty without one. Read when first asked for.
+   */
+  outline(options?: ViewerCallOptions) {
+    return this.call("outline", [], options);
+  }
+
+  /** Where the named destination `name` goes, or `undefined` when the document has no such name. */
+  namedDestination(name: string, options?: ViewerCallOptions) {
+    return this.call("namedDestination", [name], options);
   }
 
   /**

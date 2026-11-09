@@ -8,6 +8,8 @@ import {
   Button,
   Checkbox,
   EmptyState,
+  FindBar,
+  FindResults,
   IconButton,
   ModeSwitcher,
   NetworkActivityPanel,
@@ -15,6 +17,8 @@ import {
   Notice,
   OpenFailure,
   OutlineRow,
+  OutlineTree,
+  type OutlineTreeItem,
   PageAppearanceChips,
   PageInput,
   PageLabel,
@@ -44,7 +48,7 @@ import {
   ZoomControl,
 } from "../src/index.ts";
 import { WithCommands } from "./commands.tsx";
-import { FakeViewer, fakeFile } from "./fakes.ts";
+import { FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
 
 /** One rendering of one component in one state. */
 export interface Example {
@@ -289,6 +293,16 @@ const rail: Example[] = [
     element: () => <OutlineRow title="Open repairs by region" page="3" level={2} onPress={noop} toggle="space" />,
   },
   {
+    component: "OutlineTree",
+    state: "nested, current section open",
+    element: () => <OutlineTree items={OUTLINE} current="1.1" onNavigate={noop} />,
+  },
+  {
+    component: "OutlineTree",
+    state: "closed",
+    element: () => <OutlineTree items={OUTLINE.map((i) => ({ ...i, open: false }))} onNavigate={noop} />,
+  },
+  {
     component: "OutlineRow",
     state: "collapsed",
     element: () => (
@@ -410,6 +424,92 @@ const MORE = { items: [{ id: "open", label: "Open another file…" }], onAction:
 
 /** The shell's handlers the top bar's toggle and Commands button run. */
 const SHELL = { "view.toggle-sidebar": noop, "palette.open": noop };
+
+const FIND_ACTIONS = {
+  "find.next": noop,
+  "find.previous": noop,
+  "find.match-case": noop,
+  "find.whole-words": noop,
+  "find.close": noop,
+};
+
+const findBar: Example[] = [
+  {
+    component: "FindBar",
+    state: "done: 3 of 9",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const find = new FakeFind({
+        query: "repairs",
+        total: 9,
+        current: 2,
+        searched: 24,
+        options: { wholeWords: true },
+      });
+      return (
+        <WithCommands reader={reader} viewer={new FakeViewer()} actions={FIND_ACTIONS}>
+          <FindBar find={find} onClose={noop} />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "FindBar",
+    state: "counting, with pages without text",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const find = new FakeFind({ query: "repairs", total: 40, searched: 14, done: false, pagesWithoutText: 4 });
+      return (
+        <WithCommands reader={reader} viewer={new FakeViewer()} actions={FIND_ACTIONS}>
+          <FindBar find={find} onClose={noop} />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "FindBar",
+    state: "no matches",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const find = new FakeFind({ query: "backlogs", searched: 24 });
+      return (
+        <WithCommands reader={reader} viewer={new FakeViewer()} actions={FIND_ACTIONS}>
+          <FindBar find={find} onClose={noop} />
+        </WithCommands>
+      );
+    },
+  },
+];
+
+/** A page's results heading, as the reader makes them. */
+const resultHeading = (page: number) => (page === 2 ? "Page 3 · Repairs backlog" : `Page ${page + 1}`);
+const RESULTS = [
+  { ordinal: 0, page: 2, snippet: { before: "…the ", match: "repairs", after: " backlog for the third quarter…" } },
+  { ordinal: 1, page: 2, snippet: { before: "Open ", match: "repairs", after: " are listed by site." } },
+  { ordinal: 2, page: 6, snippet: { before: "…when ", match: "repairs", after: " ran over budget." } },
+];
+
+const findResults: Example[] = [
+  {
+    component: "FindResults",
+    state: "results, the second current",
+    element: () => {
+      const find = new FakeFind({ query: "repairs", total: 3, current: 1, searched: 24 });
+      find.list = RESULTS;
+      return <FindResults find={find} heading={resultHeading} />;
+    },
+  },
+  {
+    component: "FindResults",
+    state: "no matches, Whole words on",
+    element: () => (
+      <FindResults
+        find={new FakeFind({ query: "backlogs", searched: 24, options: { wholeWords: true } })}
+        heading={resultHeading}
+      />
+    ),
+  },
+];
 
 const topBar: Example[] = [
   {
@@ -556,8 +656,26 @@ const repairs: Example[] = [
 ];
 
 /** Every example, grouped as the design language's §7 orders the components. */
+/** A two-level outline with labelled pages (the outline tree's states). */
+const OUTLINE: readonly OutlineTreeItem[] = [
+  { id: "0", title: "Summary", page: "i", children: [] },
+  {
+    id: "1",
+    title: "2. Repairs backlog",
+    page: "3",
+    open: true,
+    children: [
+      { id: "1.0", title: "Open repairs by region", page: "3", children: [] },
+      { id: "1.1", title: "Closed this quarter", page: "4", children: [] },
+    ],
+  },
+  { id: "2", title: "3. Budget", page: "7", children: [{ id: "2.0", title: "Capital", page: "8", children: [] }] },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
+  ...findBar,
+  ...findResults,
   ...buttons,
   ...toggles,
   ...rail,

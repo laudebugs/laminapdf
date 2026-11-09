@@ -34,6 +34,8 @@ export const DOCUMENT_METHODS = {
   hasUnsavedChanges: 0,
   info: 0,
   isTagged: 0,
+  namedDestination: 1,
+  outline: 0,
   page: 1,
   pageById: 1,
   pageCount: 0,

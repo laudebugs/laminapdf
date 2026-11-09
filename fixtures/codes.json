@@ -891,6 +891,13 @@
       "summary": "a line or a figure of a flow is taller than the page's body, so no page can hold it",
       "hint": "make the figure smaller, the text size smaller or the page's margins narrower",
       "since": "0.2.0"
+    },
+    {
+      "code": "flow-layout-unstable",
+      "kind": "internal",
+      "summary": "a flow's contents page kept changing its page numbers after four layouts",
+      "hint": "report the flow that fails; a page break after the contents block may avoid it until it is fixed",
+      "since": "0.2.0"
     }
   ],
   "buildWarnings": [
@@ -899,6 +906,20 @@
       "kind": "usage",
       "summary": "blocks kept together are taller than a page, so the flow split them",
       "hint": "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
+      "since": "0.2.0"
+    },
+    {
+      "code": "markdown-html-ignored",
+      "kind": "unsupported",
+      "summary": "the Markdown holds raw HTML, which the PDF leaves out",
+      "hint": "write the content in Markdown instead of HTML, or remove the HTML",
+      "since": "0.2.0"
+    },
+    {
+      "code": "markdown-image-missing",
+      "kind": "usage",
+      "summary": "the Markdown names an image that wasn't supplied, so the PDF leaves it out",
+      "hint": "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",
       "since": "0.2.0"
     }
   ],

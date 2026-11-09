@@ -10,7 +10,7 @@ use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
 
 /// How a stretch of text looks: its fonts (the first, then fallbacks for characters it lacks),
-/// size, colour, baseline rise and language.
+/// size, colour, baseline rise, language, and whether it is struck through.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct TextStyle {
@@ -19,6 +19,7 @@ pub struct TextStyle {
     pub(crate) color: Option<Color>,
     pub(crate) rise: f64,
     pub(crate) language: Option<String>,
+    pub(crate) strike: bool,
 }
 
 impl TextStyle {
@@ -31,6 +32,7 @@ impl TextStyle {
             color: None,
             rise: 0.0,
             language: None,
+            strike: false,
         }
     }
 
@@ -69,6 +71,13 @@ impl TextStyle {
         self
     }
 
+    /// With a line through the text (deleted text), drawn as decoration in its colour.
+    #[must_use]
+    pub const fn with_strikethrough(mut self, strike: bool) -> Self {
+        self.strike = strike;
+        self
+    }
+
     /// The size in points.
     #[must_use]
     pub const fn size(&self) -> f64 {
@@ -84,8 +93,13 @@ pub enum Inline {
     Text(String, TextStyle),
     /// Text in a style that links to `target`.
     Link(String, TextStyle, LinkTarget),
+    /// Computer code in a style (tagged `Code`).
+    Code(String, TextStyle),
     /// A line break inside the paragraph.
     LineBreak,
+    /// A footnote: a raised number here, in the style of the text before it, and the body at
+    /// the foot of the page that holds the number.
+    Note(Box<Paragraph>),
 }
 
 /// How a paragraph sits in the flow.
@@ -210,6 +224,22 @@ impl Paragraph {
         self
     }
 
+    /// With a footnote added here: notes are numbered from 1 through the flow, the number is
+    /// drawn raised in the style of the text before it, and `body` goes at the foot of the
+    /// page that holds the number, after the number again.
+    #[must_use]
+    pub fn note(mut self, body: Paragraph) -> Self {
+        self.inlines.push(Inline::Note(Box::new(body)));
+        self
+    }
+
+    /// With `text` in `style` added as computer code (a `Code` element).
+    #[must_use]
+    pub fn code(mut self, text: impl Into<String>, style: &TextStyle) -> Self {
+        self.inlines.push(Inline::Code(text.into(), style.clone()));
+        self
+    }
+
     /// With a line break added.
     #[must_use]
     pub fn line_break(mut self) -> Self {
@@ -242,6 +272,7 @@ pub enum ListKind {
 pub struct ListItem {
     pub(crate) paragraph: Paragraph,
     pub(crate) nested: Option<List>,
+    pub(crate) marker: Option<String>,
 }
 
 impl ListItem {
@@ -251,7 +282,15 @@ impl ListItem {
         Self {
             paragraph,
             nested: None,
+            marker: None,
         }
+    }
+
+    /// With its own marker instead of the list's bullet or number, such as a task list's ☐.
+    #[must_use]
+    pub fn with_marker(mut self, marker: impl Into<String>) -> Self {
+        self.marker = Some(marker.into());
+        self
     }
 
     /// With `list` nested under the item.
@@ -270,6 +309,7 @@ pub struct List {
     pub(crate) items: Vec<ListItem>,
     pub(crate) indent: f64,
     pub(crate) marker: TextStyle,
+    pub(crate) start: usize,
 }
 
 impl List {
@@ -281,7 +321,15 @@ impl List {
             items: Vec::new(),
             indent: 18.0,
             marker: marker.clone(),
+            start: 1,
         }
+    }
+
+    /// Numbered from `start` (1 by default).
+    #[must_use]
+    pub const fn with_start(mut self, start: usize) -> Self {
+        self.start = start;
+        self
     }
 
     /// With `item` added.
@@ -348,6 +396,17 @@ pub enum FlowBlock {
     PageBreak,
     /// Blocks kept on one page.
     Keep(Vec<FlowBlock>),
+    /// A table (`Table`), its header rows repeated on every page it continues on.
+    Table(super::table::Table),
+    /// A contents page (`TOC`): the flow's headings with the pages they start on.
+    Contents(super::contents::Contents),
+    /// A block quotation (`BlockQuote`): its blocks indented 18 points.
+    Quote(Vec<FlowBlock>),
+    /// A block of computer code: its text in `style`, a line per line of the text, indented 12
+    /// points and wrapped at the body's width (a `P` holding a `Code` element).
+    CodeBlock(String, TextStyle),
+    /// A horizontal rule across the body (a `Layout` artifact), with 6 points above and below.
+    Rule,
 }
 
 /// What a header or footer slot holds: text with fields `{page}`, `{pages}`, `{section}` and
@@ -496,6 +555,7 @@ pub struct Flow {
     pub(crate) tagged: bool,
     pub(crate) section_level: u8,
     pub(crate) title: Option<String>,
+    pub(crate) outline: bool,
 }
 
 impl Flow {
@@ -508,6 +568,7 @@ impl Flow {
             tagged: true,
             section_level: 1,
             title: None,
+            outline: true,
         }
     }
 
@@ -529,6 +590,14 @@ impl Flow {
     #[must_use]
     pub const fn with_section_level(mut self, level: u8) -> Self {
         self.section_level = level;
+        self
+    }
+
+    /// With the document outline (bookmarks) made from the flow's headings turned on or off
+    /// (on by default): one item per heading, nested as the headings are.
+    #[must_use]
+    pub const fn with_outline(mut self, outline: bool) -> Self {
+        self.outline = outline;
         self
     }
 

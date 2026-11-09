@@ -2,8 +2,9 @@
 // from Choose a file, a drop anywhere in the window or a paste; the canvas then shows the document,
 // or the failure page when it can't be opened. A repaired file gets the status bar's notice and
 // the repair details panel, docked as the shell's inspector. Focus mode (Ctrl+\ or the palette) hides
-// the secondary toolbar; the rail arrives with its tabs (thumbnails and the outline). #debug adds the
-// backend switch and the first page's timing.
+// the secondary toolbar. The rail holds the open document's thumbnails and outline (on a phone, the
+// Contents sheet), and the page input takes its page labels. #debug adds the backend switch and the
+// first page's timing.
 
 import {
   type CommandContext,
@@ -12,6 +13,7 @@ import {
   DebugMenu,
   FocusModeItem,
   Inspector,
+  LeftRail,
   type ModeRegistry,
   message,
   OpenDropZone,
@@ -40,8 +42,14 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
+<<<<<<< HEAD
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
+=======
+import { type FindActions, useFind } from "./find.tsx";
+import { pageLabel } from "./outline.ts";
+import { railTabs } from "./rail.tsx";
+>>>>>>> origin/main
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
@@ -73,6 +81,8 @@ function useReaderCommands(
   reader: ReaderController,
   viewer: Viewer | undefined,
   shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
+  rail: boolean,
+  find: FindActions,
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -86,14 +96,22 @@ function useReaderCommands(
       platform,
       reader,
       ...(viewer === undefined ? {} : { viewer }),
+<<<<<<< HEAD
       // No rail tabs yet, so the sidebar command has no handler and stays out of every view.
       actions: {
         ...shellActions(shell.layout, shell.modes, { rail: false }),
         "palette.open": shell.openPalette,
         "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
+=======
+      // Without rail tabs (no document open) the sidebar command has no handler and stays out of view.
+      actions: {
+        ...shellActions(shell.layout, shell.modes, { rail }),
+        "palette.open": shell.openPalette,
+        ...(viewer === undefined ? {} : find),
+>>>>>>> origin/main
       },
     }),
-    [platform, reader, viewer, shell, modes],
+    [platform, reader, viewer, shell, modes, rail, find],
   );
   return { registry, context };
 }
@@ -215,8 +233,19 @@ export function App({
   const moreItems = { items: more, onAction: (id: MoreId) => (id === "open" ? reader.close() : viewer?.rotate(90)) };
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
-  const commands = useReaderCommands(platform, reader, shown, shell);
+  // The rail's panels are made again only when the view or the strip changes.
+  const { strip } = engineState;
+  const find = useFind(shown, open ? state.file : undefined);
+  const tabs = useMemo(
+    () => railTabs(engine, layout, open ? { strip, viewer, finding: find.open } : undefined),
+    [engine, layout, open, strip, viewer, find.open],
+  );
+  const labels = useMemo(() => {
+    const pages = engineState.pages;
+    return pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined;
+  }, [engineState.pages]);
   const fileName = open ? state.file.name : undefined;
+  const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions);
   useWindowTitle(fileName, engineState.title);
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, platform, fileName, repairs);
   const { indicator, inspector: networkPanel } = useNetworkPanel(layout, platform, network);
@@ -231,18 +260,22 @@ export function App({
       <ReaderShell
         layout={layout}
         modes={modes}
+        {...(find.bar === undefined ? {} : { secondaryToolbar: find.bar })}
         topBar={
           <ReaderTopBar
             reader={reader}
             {...(shown === undefined ? {} : { viewer: shown })}
             keys={KEYS}
             sidebarOpen={sidebar}
+            findOpen={find.open}
+            {...(labels === undefined ? {} : { labels })}
             home={<span className="web-wordmark">{APP_NAME}</span>}
             debug={debugMenu}
             more={moreItems}
           />
         }
-        bottomBar={<PhoneBottomBar layout={layout} rail={false} more={moreItems} keys={KEYS} />}
+        rail={<LeftRail layout={layout} tabs={tabs} />}
+        bottomBar={<PhoneBottomBar layout={layout} rail={tabs.length > 0} more={moreItems} keys={KEYS} />}
         {...(inspector === undefined ? {} : { inspector })}
         status={
           <>

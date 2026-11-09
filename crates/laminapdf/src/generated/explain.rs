@@ -3799,7 +3799,7 @@ builder.finish()?; // embedded-file-without-mime-type: pass "text/xml"
 
 ## What happened
 
-`Builder::flow` found a figure, or a single line of text, taller than the body of a page: the space between the top and bottom margins. No page can hold it, so the flow stopped and added no pages.
+`Builder::flow` found a figure, a single line of text or a table row taller than the body of a page: the space between the top and bottom margins. No page can hold it, so the flow stopped and added no pages. A line or row counts together with the footnotes it cites, since its notes go at the foot of its page.
 
 ## Why
 
@@ -3807,7 +3807,7 @@ A flow moves a figure to the next page when it doesn't fit, and splits a paragra
 
 ## How to fix
 
-Make the figure narrower with `Figure::with_width`, so its height shrinks with it. For a line, use a smaller text size or a smaller line height. Or give the page more room with a taller page size or smaller top and bottom margins.
+Make the figure narrower with `Figure::with_width`, so its height shrinks with it. For a line, use a smaller text size or a smaller line height. For a footnote, shorten the note or split it into two. Or give the page more room with a taller page size or smaller top and bottom margins.
 
 ## Example
 
@@ -3819,7 +3819,40 @@ builder.flow(&flow)?; // flow-content-too-large
 
 ## Data fields
 
-- `what`: what is too tall, `line` or `figure`.
+- `what`: what is too tall: `line`, `figure`, `table row`, or `footnote` when a line or table row and its footnotes fit on no page together.
+"#,
+        "flow-layout-unstable" => r#"# `flow-layout-unstable`
+
+- Type: error
+- Kind: `internal` (a bug in Lamina PDF or a broken invariant)
+
+## What happened
+
+`Builder::flow` laid out a flow with a contents page four times, and the page numbers on the contents page still changed. The flow stopped and added no pages.
+
+## Why
+
+A contents page lists each heading with the page it starts on, but those pages aren't known until the flow is laid out. So the flow lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps the same room for its number however wide the number is, so the contents page's length never depends on the numbers, and the second layout finds the same pages.
+
+The flow still checks up to four layouts. This error means the numbers kept changing anyway, which points to a fault in Lamina PDF's layout rather than in your document.
+
+## How to fix
+
+Report the flow that fails, with the blocks and page template that produce it. Until it is fixed, a page break after the contents block may avoid the error, since the headings after it then start on pages of their own.
+
+## Example
+
+```rust
+let flow = Flow::new(template)
+    .block(FlowBlock::Contents(Contents::new(&style)))
+    .block(FlowBlock::PageBreak) // the headings start on their own pages
+    .block(FlowBlock::Heading(1, Paragraph::plain("Introduction", &heading)));
+builder.flow(&flow)?;
+```
+
+## Data fields
+
+None.
 "#,
         "flow-keep-broken" => r#"# `flow-keep-broken`
 
@@ -3849,6 +3882,63 @@ assert_eq!(report.warnings[0].code(), "flow-keep-broken");
 ## Data fields
 
 - `page`: the page the blocks start on, counted from 0 within the flow.
+"#,
+        "markdown-html-ignored" => r#"# `markdown-html-ignored`
+
+- Type: warning
+- Kind: `unsupported` (valid input that Lamina PDF can't handle yet)
+
+## What happened
+
+`Builder::markdown` found raw HTML in the Markdown, such as a `<div>` block or an inline `<span>`, left it out of the PDF and laid out the rest as usual. The builder raises one warning for each HTML block and each inline HTML tag.
+
+## Why
+
+Markdown lets authors mix in HTML, and a browser would draw it. Laying out HTML needs a web page's layout rules, which a PDF builder doesn't have. Rather than print the tags as text, the builder leaves the HTML out and says where it was.
+
+## How to fix
+
+Write the content in Markdown instead: `**bold**` for `<b>`, a table for `<table>`, an image for `<img>`. If the HTML is only a comment, such as `<!-- draft -->`, remove it or ignore the warning.
+
+## Example
+
+```rust
+let report = builder.markdown("Hello <span>there</span>\n", &MarkdownBuildOptions::new())?;
+assert_eq!(report.warnings[0].code(), "markdown-html-ignored");
+```
+
+## Data fields
+
+- `offset`: where the HTML starts, as a byte offset into the Markdown.
+"#,
+        "markdown-image-missing" => r#"# `markdown-image-missing`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Builder::markdown` met an image, such as `![Chart](chart.png)`, whose bytes weren't passed in. It left the image out of the PDF and laid out the rest of the document as usual.
+
+## Why
+
+The builder reads no files and fetches nothing from the network, so it can only draw images the caller supplies. An image path the options don't list, or a web address, has nothing behind it.
+
+## How to fix
+
+Read the image yourself and pass it with `MarkdownBuildOptions::with_image`, under the same path the Markdown uses.
+
+## Example
+
+```rust
+let chart = Image::png(&std::fs::read("chart.png")?)?;
+let options = MarkdownBuildOptions::new().with_image("chart.png", chart);
+builder.markdown("![Chart](chart.png)\n", &options)?;
+```
+
+## Data fields
+
+- `offset`: where the image starts, as a byte offset into the Markdown.
 "#,
         "render-too-large" => r"# `render-too-large`
 

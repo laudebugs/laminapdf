@@ -37,7 +37,9 @@ Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by 
 
 A link of the form `https://app.laminapdf.com/#url=<address>&page=<n>` opens the PDF at `<address>`, at page `<n>`. The address sits in the fragment, after `#`, which browsers never send to a server. The reader's document worker then fetches the file straight from its site with HTTP Range requests, so a large file shows its first page after only a small part has arrived.
 
-The address must be encoded as a whole with `encodeURIComponent`: `#url=https%3A%2F%2Fexample.com%2Freport.pdf%3Fv%3D2&page=5` opens `https://example.com/report.pdf?v=2` at page 5. The reader refuses an address pasted without encoding, since its own `&page=` could then belong to the address. It also opens only `https://` addresses. When only `page` changes, the reader moves within the open document; Back and Forward never fetch it again. Leaving the document drops `url` from the address without adding a history entry, so a reload shows the home screen.
+The address must be encoded as a whole with `encodeURIComponent`: `#url=https%3A%2F%2Fexample.com%2Freport.pdf%3Fv%3D2&page=5` opens `https://example.com/report.pdf?v=2` at page 5. The reader refuses an address pasted without encoding, since its own `&page=` could then belong to the address. It also opens only `https://` addresses. When only `page` or `nameddest` changes, the reader moves within the open document; Back and Forward never fetch it again. Leaving the document drops `url` from the address without adding a history entry, so a reload shows the home screen.
+
+`&nameddest=<name>` opens a named destination, a place the PDF's author named, such as `chapter-2`, instead of a page, as in pdf.js: `#url=…&nameddest=chapter-2`. `page` and `nameddest` also work on a file opened from your device.
 
 The file's site must send it uncompressed and allow other sites to read it, with these response headers:
 
@@ -94,7 +96,9 @@ It also opens the panel from the keyboard and runs axe.
 
 `e2e/text.e2e.test.ts` checks the text layer in the built reader. Copying page 1 of the five-script reference PDF gives the lines in `fixtures/text/page-text.json`. The same holds for its AES-256 copy once the test types its password. A tagged file's first heading owns the spans of its text, and an untagged file says once that it is untagged.
 
-`e2e/devices.e2e.test.ts` runs the reader in Playwright's phone and tablet profiles. Every pull request runs Pixel 8 in Chromium, at its own width and narrowed to 320 px. The nightly's WebKit run adds iPhone 15 and iPad Pro 11. Firefox has no mobile emulation. Each opens a file and checks the layout: the bottom bar on the phones, the desktop shell on the tablet, nothing past the window's edge, and 44 px targets in both bars. It zooms with a double tap and pans with one finger. A pinch must keep the point under the fingers within 2 px. axe must report no serious or critical violations.
+`e2e/find.e2e.test.ts` checks find. Ctrl+F or ⌘F opens the find bar with the focus in its field, and typing shows the first highlight and the count. Enter and Shift+Enter move between matches across pages, and Match case and Whole words change the count. Escape closes the bar, clears the highlights and gives the focus back. Find also works in an encrypted file once its password is typed, and in a linked file read by range requests.
+
+`e2e/devices.e2e.test.ts` runs the reader in Playwright's phone and tablet profiles. Every pull request runs Pixel 8 in Chromium, at its own width and narrowed to 320 px. The nightly's WebKit run adds iPhone 15 and iPad Pro 11. Firefox has no mobile emulation. Each opens a file and checks the layout: the bottom bar on the phones, the desktop shell on the tablet, nothing past the window's edge, and 44 px targets in both bars. It zooms with a double tap and pans with one finger. A pinch must keep the point under the fingers within 2 px. Find works from the phone's Search button and from the tablet's keyboard. axe must report no serious or critical violations.
 
 ```sh
 pnpm --filter @laminapdf/web build

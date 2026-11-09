@@ -78,6 +78,14 @@
     background: var(--paper-hover);
   }
 
+  /* A button whose panel is open (the top bar's Find, R05): the pressed look of a tool toggle. */
+  .paper-icon-button[aria-expanded="true"] {
+    outline: var(--paper-border-width) solid var(--paper-accent);
+    outline-offset: calc(-1 * var(--paper-border-width));
+    background: var(--paper-accent-tint);
+    color: var(--paper-accent);
+  }
+
   .paper-button:is([data-variant="ghost"], [data-variant="danger"])[data-pressed],
   .paper-icon-button[data-pressed] {
     background: var(--paper-pressed);

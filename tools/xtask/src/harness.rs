@@ -21,7 +21,7 @@ mod fuzz_run;
 pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 10] = [
+pub(crate) const FUZZ_TARGETS: [&str; 11] = [
     "lex",
     "parse_object",
     "flate_decode",
@@ -32,6 +32,7 @@ pub(crate) const FUZZ_TARGETS: [&str; 10] = [
     "save_roundtrip",
     "extract_text",
     "extract",
+    "markdown",
 ];
 
 /// Default `cargo xtask fuzz` run time in seconds (the scheduled workflow uses 600).
@@ -749,7 +750,8 @@ const SAVE_SEED_CONTROL: [u8; 8] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04]
 /// saved crash inputs in `fixtures/regressions/<target>/` and everything under
 /// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`,
 /// follow [`SAVE_SEED_CONTROL`] for `save_roundtrip` (which also gets `fixtures/signed/`), and
-/// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead;
+/// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead and `markdown` from
+/// `fixtures/markdown/`;
 /// crash inputs and hand-written seeds are copied verbatim (they already are what the target
 /// reads). Seed names carry their source path, so files from different folders never
 /// collide. Returns the corpus directory.
@@ -760,6 +762,9 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
     if target == "ops_json" {
         // Op logs, not PDFs: the frozen samples of the op format.
         fixtures.extend(files_in(&ws.root.join("fixtures/ops/v1"))?);
+    } else if target == "markdown" {
+        // Markdown, not PDFs: the example's report (and fuzz/seeds/markdown/, copied below).
+        fixtures.extend(files_in(&ws.root.join("fixtures/markdown"))?);
     } else {
         for dir in ["fixtures/corpus", "fixtures/golden", "fixtures/content"] {
             fixtures.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));

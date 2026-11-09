@@ -15,16 +15,23 @@ import type {
   RemoteFailureReason,
   RepairKind,
 } from "@laminapdf/ui";
-import { ReaderController } from "@laminapdf/ui";
-import { createViewer, type SourceInit, type Viewer, ViewerClient } from "@laminapdf/viewer";
+import { message, ReaderController } from "@laminapdf/ui";
+import { createViewer, type SourceInit, ThumbnailStrip, type Viewer, ViewerClient } from "@laminapdf/viewer";
 import { type DocumentWarning, repairsFrom } from "./document.ts";
+<<<<<<< HEAD
 import type { NetworkMonitor } from "./network/monitor.ts";
+=======
+import type { FragmentPlace } from "./open/navigation.ts";
+import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
+>>>>>>> origin/main
 
 /** One backend's document worker and the view over it. */
 interface Session {
   readonly backend: DebugBackend;
   readonly client: ViewerClient;
   readonly viewer: Viewer;
+  /** The rail's Pages tab. */
+  readonly strip: ThumbnailStrip;
 }
 
 /** What the chrome shows besides the reader's lifecycle. */
@@ -32,6 +39,12 @@ export interface EngineState {
   readonly backend: DebugBackend;
   /** The view, once its backend has loaded. */
   readonly viewer: Viewer | undefined;
+  /** The rail's thumbnails of the same pages. */
+  readonly strip: ThumbnailStrip | undefined;
+  /** The open document's pages (sizes and labels), empty while none is open. */
+  readonly pages: readonly PageInfo[];
+  /** The open document's outline once the Outline tab asked for it (`loadOutline`). */
+  readonly outline: OutlineModel | "loading" | "failed" | undefined;
   /** The open document's metadata title, when it has one. */
   readonly title: string | undefined;
   /** The open document's repairs, one per warning code. */
@@ -47,7 +60,8 @@ async function startSession(backend: DebugBackend, outline: boolean): Promise<Se
   const client = await ViewerClient.create({
     backend: backend === "pdfium" ? { backend: "pdfium", wasm: pdfiumWasm } : { backend: "hayro" },
   });
-  return { backend, client, viewer: createViewer({ client, text: { outline } }) };
+  const viewer = createViewer({ client, text: { outline } });
+  return { backend, client, viewer, strip: new ThumbnailStrip(client, viewer, { name: message("shell.rail.pages") }) };
 }
 
 /** Remote files by the PlatformFile that stands for each in the reader. */
@@ -123,8 +137,8 @@ export class Engine implements ExternalStore<EngineState> {
    */
   #incoming: DocumentWarning[] = [];
   #state: EngineState;
-  /** The page to show once `file` has opened (from `#page=`): only that open uses it. */
-  #page: { readonly file: PlatformFile; readonly page: number } | undefined;
+  /** Where to go once `file` has opened (from `#page=` or `#nameddest=`): only that open uses it. */
+  #place: { readonly file: PlatformFile; readonly place: FragmentPlace } | undefined;
 
   /** #debug outlines each text span, to check it lies over its glyphs. */
   readonly #outline: boolean;
@@ -143,6 +157,9 @@ export class Engine implements ExternalStore<EngineState> {
     this.#state = {
       backend,
       viewer: undefined,
+      strip: undefined,
+      pages: [],
+      outline: undefined,
       title: undefined,
       repairs: [],
       timing: undefined,
@@ -158,10 +175,10 @@ export class Engine implements ExternalStore<EngineState> {
     return () => this.#listeners.delete(listener);
   };
 
-  /** Opens the remote file at `url`, then shows `page` (1-based) when given. */
-  openRemote(url: string, page?: number): Promise<void> {
+  /** Opens the remote file at `url`, then goes to `place` when given. */
+  openRemote(url: string, place?: FragmentPlace): Promise<void> {
     const file = remoteFile(url);
-    this.#page = page === undefined ? undefined : { file, page };
+    this.#place = place === undefined ? undefined : { file, place };
     return this.reader.open(file);
   }
 
@@ -176,11 +193,53 @@ export class Engine implements ExternalStore<EngineState> {
     this.#set({ linkProblem: undefined });
   }
 
-  /** Shows page `page` (1-based) of the open document, or of the one opening when it opens. */
-  goToPage(page: number): void {
+  /** Reads the open document's outline, once: the Outline tab shows it. */
+  async loadOutline(): Promise<void> {
+    if (this.#state.outline !== undefined || this.reader.getState().phase !== "open") return;
+    const turn = this.#turn;
+    this.#set({ outline: "loading" });
+    const session = await this.#session;
+    try {
+      const nodes = await session.client.outline();
+      // Another document opened meanwhile: its own tab asks again.
+      if (turn === this.#turn) this.#set({ outline: outlineModel(nodes, this.#state.pages) });
+    } catch (error) {
+      // The tab says the outline couldn't be read, rather than that there is none.
+      if (turn === this.#turn) this.#set({ outline: "failed" });
+      reportError(error);
+    }
+  }
+
+  /** Goes to outline item `id` of the open document. */
+  async goToOutlineItem(id: string): Promise<void> {
+    const outline = this.#state.outline;
+    const target = typeof outline === "object" ? outline.targets.get(id) : undefined;
+    if (target !== undefined) (await this.#session).viewer.goToDestination(target);
+  }
+
+  /** Goes to `place` in the open document, or in the one opening once it opens. */
+  goTo(place: FragmentPlace): void {
     const state = this.reader.getState();
-    if (state.phase === "open") this.#state.viewer?.goToPage(page - 1);
-    else if (state.phase !== "empty" && state.phase !== "error") this.#page = { file: state.file, page };
+    if (state.phase === "open") void this.#goTo(place);
+    else if (state.phase !== "empty" && state.phase !== "error") this.#place = { file: state.file, place };
+  }
+
+  /**
+   * Goes to `place` in the open document: a page, or a named destination it has. A name the
+   * document lacks moves nothing, as in pdf.js; a destination that can't be read is reported.
+   */
+  async #goTo(place: FragmentPlace): Promise<void> {
+    const session = await this.#session;
+    if ("page" in place) {
+      session.viewer.goToPage(place.page - 1);
+      return;
+    }
+    try {
+      const target = await session.client.namedDestination(place.dest);
+      if (target !== undefined) session.viewer.goToDestination(target);
+    } catch (error) {
+      reportError(error);
+    }
   }
 
   /** Moves to `backend`: a new document worker, and the open file reopened in it. */
@@ -190,9 +249,10 @@ export class Engine implements ExternalStore<EngineState> {
     const file = this.#file;
     this.reader.close();
     this.#turn += 1;
-    this.#set({ backend, viewer: undefined });
+    this.#set({ backend, viewer: undefined, strip: undefined });
     this.#session = this.#start(backend);
-    void old.then(({ client, viewer }) => {
+    void old.then(({ client, viewer, strip }) => {
+      strip.destroy();
       viewer.destroy();
       client.terminate();
     });
@@ -213,8 +273,12 @@ export class Engine implements ExternalStore<EngineState> {
           const file = this.#file;
           if (this.#session === session && file !== undefined) void this.reader.open(file);
         });
+<<<<<<< HEAD
         this.#watchWorkerNetwork(started.client);
         this.#set({ viewer: started.viewer });
+=======
+        this.#set({ viewer: started.viewer, strip: started.strip });
+>>>>>>> origin/main
       },
       // A backend that can't load fails the next open, which the reader reports.
       () => undefined,
@@ -262,10 +326,18 @@ export class Engine implements ExternalStore<EngineState> {
     // so nothing here is shown, and closing it must not close the document the worker holds now.
     if (!latest()) return { pageCount: opened.pageCount };
     session.viewer.open(opened);
+    session.strip.open(opened);
     this.#file = file;
-    const page = this.#page?.file === file ? this.#page.page : undefined;
-    this.#page = undefined;
-    this.#set({ title: opened.title, repairs: repairsFrom(warnings), timing: undefined, linkProblem: undefined });
+    const place = this.#place?.file === file ? this.#place.place : undefined;
+    this.#place = undefined;
+    this.#set({
+      title: opened.title,
+      pages: opened.pages,
+      outline: undefined,
+      repairs: repairsFrom(warnings),
+      timing: undefined,
+      linkProblem: undefined,
+    });
     const firstPage = () => {
       const state = session.viewer.stats().pages[0];
       return state === "low" || state === "sharp" || state === "error";
@@ -273,7 +345,7 @@ export class Engine implements ExternalStore<EngineState> {
     // The view shows once the reader is open, so the page asked for is scrolled to after the first paint.
     void whenPainted(firstPage, () => !latest()).then((painted) => {
       if (!painted) return;
-      if (page !== undefined) session.viewer.goToPage(page - 1);
+      if (place !== undefined) void this.#goTo(place);
       const backend = `${opened.backend.name} ${opened.backend.version}`;
       this.#set({ timing: { backend, firstPageMs: Math.round(performance.now() - started) } });
     });
@@ -282,8 +354,12 @@ export class Engine implements ExternalStore<EngineState> {
       close: () => {
         if (!latest()) return;
         this.#file = undefined;
+<<<<<<< HEAD
         this.#network?.documentClosed();
         this.#set({ title: undefined, repairs: [], timing: undefined });
+=======
+        this.#set({ title: undefined, pages: [], outline: undefined, repairs: [], timing: undefined });
+>>>>>>> origin/main
         if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
       },
     };

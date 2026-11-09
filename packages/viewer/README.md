@@ -43,6 +43,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 | `createViewer({ client, margin?, gap?, pool?, detailPool?, cacheBytes?, backdropMaxPixels?, canvasMaxPixels?, device?, settleMs?, zoom?, text? })` | Makes a viewer over a `ViewerClient`. `text` is on by default; `false` leaves the text layer out, and an object sets its `outline`, `untaggedLabel` and `onSelection`. |
 | `mount(container)`, `open(document)`, `destroy()` | Puts it on the page, shows a document, takes it down. |
 | `goToPage(index, { anchor })`, `setZoom(zoom, { anchor })`, `rotate(delta)` | Navigation. `zoom` is a mode or a percentage. |
+| `goToDestination(target)` | Goes to an outline item's or a named destination's target (below). |
 | `getState()`, `subscribe(listener)` | The view state (`currentPage`, `pageCount`, `zoom`, `percent`, `rotation`, `scrollTop`, `visibleRange`), for `useSyncExternalStore`. |
 | `on("pagechange" \| "zoomchange" \| "renderstats", …)`, `stats()` | Events and counters. `renderstats` counts renders, for measuring performance. |
 | `addLayer({ name, onMount, onUnmount, onZoom })` | Mounts a layer into each page. |
@@ -59,6 +60,29 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 - **Structure.** For a tagged document, a hidden tree of ARIA elements follows the structure tree. Headings carry their levels, and figures their alternate text; paragraphs, lists and tables keep their roles. Each element owns its text spans through `aria-owns`, matched by page and marked-content ID (the number a tagged PDF gives each piece of a page's content), so a screen reader reads the document in structure order. For a document without a structure tree, a screen reader hears "Untagged document" once (`untaggedLabel`).
 
 The document Web Worker reads each page's text at `background` priority, after the tiles in view, and caches the text of the last 24 pages. Text needs the extract module, which the document Web Worker loads once the render backend is ready, so the first page never waits for it. Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet.
+
+**Find.** `viewer.find` searches the whole document and highlights what it finds.
+- **How it searches.** `find(query, { matchCase, wholeWords, matchDiacritics })` starts from the current page, reaches the last page and wraps to the first. The document Web Worker searches four pages per call, at `background` priority, so the pages in view render first and scrolling never waits. It keeps each page's searchable text in a cache of its own, up to 32 MB, so the next query, such as one you typed more letters into, searches the pages it has already read without reading their text again.
+- **What it compares.** Find normalises text the way pdf.js does, so the counts match: ligatures unfolded, soft hyphens dropped, a word split by a hyphen at a line's end joined, white space collapsed. Case and diacritics are ignored unless asked, and diacritics are every combining mark: Latin accents, Hebrew points, Arabic harakat, Indic vowel signs. Whole words means no letter or digit runs on at either end.
+- **Results.** Matches stream in by page: `getState()` gives `total`, `current`, `searched`, `pagesWithoutText` and `done` as matches arrive. The first match on or after the current page shows as soon as it's found. `next()` and `previous()` move in document order and wrap, scrolling a match to the viewport's centre when it's out of view.
+- **The list of results.** `results()` lists every match found so far in document order, each with its `ordinal`, its `page` and a `snippet` of `{ before, match, after }`. The snippet keeps up to about 40 characters of the page's text on each side, cut at a word, with the match as the page spells it. `goTo(ordinal)` makes one current and scrolls it into view, and `next()` and `previous()` go on from there. The list is the same array until find's state next changes, so a React component can read it on each render.
+- **Cancelling.** A new query, or `close()`, stops the search under way; its late results never show.
+- **Highlights.** Every match on a mounted page gets a box with the class `lamina-find-match` in the `highlight` slot; the current match also has `lamina-find-current`. Colour them with `--lamina-find-match` and `--lamina-find-current`; the current one also has an outline, `--lamina-find-current-outline`, so it never differs by colour alone. The boxes take no pointer events, so they never get in a selection's way.
+
+**Destinations.** `ViewerClient.outline()` reads the document's outline in the document Web Worker, and `namedDestination(name)` finds one named destination. Each item's target is a page and a view in page space: points from the displayed page's top-left, y down, whichever coordinates the file used. `goToDestination(target)` follows the target's view (ISO 32000-2 §12.3.2.2). It applies the target's zoom, if it has one, and then puts the target's point at the viewport's top-left:
+- **A point** (`at`, from `/XYZ`) at its zoom, or at the current zoom when the file gives none.
+- **Fit the page** (`fit`, from `/Fit` and `/FitB`).
+- **Fit the width** from a top (`fit-width`, from `/FitH` and `/FitBH`), or the height from a left (`fit-height`, from `/FitV` and `/FitBV`).
+- **Fit a rectangle** (`fit-rect`, from `/FitR`).
+
+A left the file leaves out keeps the current horizontal scroll, and a top it leaves out goes to the page's top. A view rotated by `rotate()` turns the point with the page, and a fit always fits the viewport's own width or height, as in pdf.js.
+
+**Thumbnails.** `new ThumbnailStrip(client, viewer, { width?, margin?, cacheBytes?, label?, name? })` makes a list of the pages as small pictures, for a sidebar. `mount(container)` puts it on the page, and `open(document)` shows the document the viewer opened. Size its `element` with CSS; it scrolls inside.
+- **Like the viewer, it mounts only what is near its view.** It keeps the thumbnails in view and 4 either side. Each borrows a canvas from the strip's own pool, and a thumbnail scrolled away aborts its render.
+- **Renders wait for the main view.** Thumbnails render at `background` priority, so the pages in view always come first. Bitmaps stay in a cache of their own, 32 MB by default.
+- **It follows the viewer.** The current page is marked `aria-selected` and scrolled into the strip; a rotation turns every thumbnail.
+- **Keyboard and pointer.** A click, or Enter or Space, goes to that page. The arrow keys, Home and End move the focus, and only one thumbnail is in the Tab order.
+- **Names.** Each thumbnail is named by its page label and number ("Page iv (4 of 120)") and captioned with its label. For another language, pass `label` to replace both and `name` to replace the list's own name.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
@@ -116,7 +140,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 
 ## For contributors
 
-The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/done/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/ready/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ready/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
+The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/done/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/done/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/done/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ready/C6b-links-and-history.md) (links); C4c will read documents by range through `@laminapdf/sdk`'s `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
 
 ### Architecture
 
@@ -144,9 +168,17 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `openDocument` | `source` (`Blob`, `ArrayBuffer`, `Uint8Array`), `{ password?, limits?, renderLimits? }` | `{ pageCount, pages, needsPassword, backend }` | document |
 | `closeDocument` | — | — | document |
 | `pageInfo` | `index` | `PageInfo` (displayed size in points, rotation, ID, label) | document |
+| `find` | `query`, `FindOptions`, `pages` | `FindPageResult[]`: each page's matches as quads, and whether it has no text | `background` |
 | `render` | ADR 0004 `RenderRequest` | `{ bitmap: ImageBitmap, width, height }` (transferred) | `visible` > `prefetch` > `background` |
 | `memory` | — | `WorkerMemory`: the bytes of the backend's and Lamina PDF's WebAssembly memories | document. `client.memory()`; the perf harness samples it. |
+<<<<<<< HEAD
 | `networkLog` | — | `WorkerNetworkLog`: every request and blocked request since the Web Worker started | document. `client.networkLog()`: what the `network` and `csp-violation` events reported, those sent before anyone listened included; `index` merges the two. |
+=======
+| `pageText` | `index` | `PageTextData`: the page's runs and glyph quads | `background` |
+| `structure` | — | `StructureData`: whether the document is tagged, and its structure tree | document |
+| `outline` | — | `OutlineNode[]`: the outline, each item's target in page space | document |
+| `namedDestination` | `name` | `Target \| undefined` | document |
+>>>>>>> origin/main
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).
 
@@ -169,7 +201,15 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
   - slow, stuck and stopped renders;
   - crashes, including an encrypted file;
   - the password count.
+- `test/find-parity.test.ts` (Node) checks find's counts against pdf.js's find controller on every case of `fixtures/text/search.json`.
 - Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
+- `test/browser/navigation.browser.test.ts` covers the thumbnails strip over a 1,000-page document:
+  - while the whole strip scrolls, no more than the thumbnails in view and 4 either side mounted;
+  - a visible render, queued behind thumbnails, running first;
+  - a click and the keyboard going to a page;
+  - page labels in the names;
+  - the outline and a named destination of the links-and-outlines reference PDF landing on their pages.
+- Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps, and where each kind of destination puts the view at each rotation. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
 - Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite examples`. `examples/viewer-demo.html` is the viewer, with zoom buttons; `examples/rpc-demo.html` draws page 1 through the RPC alone. The perf harness has its own page, `perf/page/` ([Performance](#performance)).
 
 ### Performance

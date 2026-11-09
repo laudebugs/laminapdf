@@ -112,6 +112,7 @@ mod generated {
     pub(crate) mod explain;
 }
 mod job;
+mod navigation;
 #[cfg(feature = "extract")]
 mod redaction;
 #[cfg(feature = "extract")]
@@ -122,6 +123,14 @@ pub mod reveal;
 #[cfg(feature = "text")]
 pub mod flow {
     pub use laminapdf_build::flow::*;
+}
+/// Markdown in, flowing pages out ([ADR 0032] §6): `laminapdf-build`'s Markdown front end, for
+/// [`Builder::markdown`].
+///
+/// [ADR 0032]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0032-flowing-layout-and-document-inputs.md
+#[cfg(feature = "markdown")]
+pub mod markdown {
+    pub use laminapdf_build::markdown::*;
 }
 mod revisions;
 mod structure;
@@ -134,6 +143,7 @@ pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
+pub use navigation::{OutlineNode, PageTarget, PageTargetView};
 pub use structure::{StructureKid, StructureNode};
 
 /// The JSON Schema of the error and warning object, `laminapdf.error/1` (ADR 0026 §1), as

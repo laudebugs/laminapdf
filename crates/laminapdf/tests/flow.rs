@@ -1,8 +1,9 @@
 //! Flowing layout through the façade (todo T4b), where building and extraction meet: the
-//! 12-page example's running header and "Page n of 12" footer read back on every page but the
+//! 13-page example's running header and "Page n of 13" footer read back on every page but the
 //! cover, and `Document::extract` drops them; every paragraph is one `P` element however many
 //! pages it crosses; and the spike's report keeps Typst's tagging (one element per paragraph,
-//! `/Subtype /Header` and `/Footer`) and reads back as written.
+//! `/Subtype /Header` and `/Footer`) and reads back as written. The invoice's table (todo T4c)
+//! repeats its header row on three pages, and extraction reads that header once.
 #![cfg(feature = "text")]
 #![allow(
     clippy::unwrap_used,
@@ -11,6 +12,9 @@
     reason = "tests: a panic is a test failure"
 )]
 
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/flowing_invoice.rs"]
+mod flowing_invoice;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/flowing_report.rs"]
 mod flowing_report;
@@ -64,10 +68,10 @@ fn paragraph_pages(bytes: &[u8]) -> Vec<Vec<usize>> {
 }
 
 #[test]
-fn every_page_after_the_cover_has_its_section_and_page_of_twelve() {
+fn every_page_after_the_cover_has_its_section_and_page_of_thirteen() {
     let doc = Document::open_bytes(example(), OpenOptions::default()).unwrap();
     let pages = lines(&doc);
-    assert_eq!(pages.len(), 12);
+    assert_eq!(pages.len(), 13);
     assert!(
         !pages[0]
             .iter()
@@ -75,7 +79,7 @@ fn every_page_after_the_cover_has_its_section_and_page_of_twelve() {
     );
     for (n, page) in pages.iter().enumerate().skip(1) {
         assert!(TOPICS.contains(&page[0].as_str()), "page {}: {:?}", n + 1, page[0]);
-        assert_eq!(page.last().unwrap(), &format!("Page {} of 12", n + 1));
+        assert_eq!(page.last().unwrap(), &format!("Page {} of 13", n + 1));
     }
 }
 
@@ -84,17 +88,17 @@ fn extraction_drops_the_header_and_footer() {
     let doc = Document::open_bytes(example(), OpenOptions::default()).unwrap();
     let extraction = doc.extract(&ExtractOptions::new()).unwrap();
     let blocks: Vec<&str> = extraction.blocks.iter().map(|b| b.text.as_str()).collect();
-    assert!(!blocks.iter().any(|t| t.contains(" of 12")), "a footer in the text");
+    assert!(!blocks.iter().any(|t| t.contains(" of 13")), "a footer in the text");
     let dropped = extraction.dropped.iter().filter(|d| d.reason == DropReason::Artifact);
-    // A header and a footer on each of the 11 pages after the cover.
-    assert_eq!(dropped.count(), 22);
+    // A header and a footer on each of the 12 pages after the cover.
+    assert_eq!(dropped.count(), 24);
 }
 
 #[test]
 fn every_paragraph_is_one_element_and_some_cross_pages() {
     let pages = paragraph_pages(&example());
-    // The cover's line, four paragraphs per section, the Arabic and the Hindi one.
-    assert_eq!(pages.len(), 1 + 4 * TOPICS.len() + 2);
+    // The cover's title and line, four paragraphs per section, the Arabic and the Hindi one.
+    assert_eq!(pages.len(), 2 + 4 * TOPICS.len() + 2);
     assert!(
         pages
             .iter()
@@ -158,4 +162,89 @@ fn the_arabic_and_hindi_paragraphs_read_back_across_their_page_breaks() {
             .collect();
         assert_eq!(bare(&read), bare(&format!("{sentence} ").repeat(repeats)));
     }
+}
+
+#[test]
+fn extraction_reads_the_invoice_s_repeated_header_once() {
+    let bytes = flowing_invoice::build(BuildOptions::new(), fixture(FONTS[0]), fixture(FONTS[1])).unwrap();
+    let doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap();
+    assert_eq!(doc.page_count().unwrap(), 3);
+    // Every page shows the header row.
+    for page in lines(&doc) {
+        assert!(page.iter().any(|l| l.contains("Description")), "{page:?}");
+    }
+    let extraction = doc.extract(&ExtractOptions::new()).unwrap();
+    let text: String = extraction
+        .blocks
+        .iter()
+        .map(|b| b.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert_eq!(text.matches("Description").count(), 1, "{text}");
+    assert_eq!(text.matches("Total").count(), 1);
+    for item in ["001", "030", "060"] {
+        assert!(text.contains(item), "row {item} is in the text");
+    }
+}
+
+/// The 0-based page each element of `kind` starts on, in structure order.
+fn element_pages(bytes: &[u8], kind: &[u8]) -> Vec<usize> {
+    let doc = laminapdf_model::Document::open(bytes.to_vec(), OpenOptions::default()).unwrap();
+    let pages: Vec<_> = doc.pages().unwrap().iter().map(|p| p.id().clone()).collect();
+    let tree: StructTree = doc.structure().unwrap().unwrap();
+    tree.elements()
+        .into_iter()
+        .filter(|e| e.kind == kind)
+        .map(|e| {
+            std::iter::once(e)
+                .chain(e.descendants())
+                .find_map(|e| {
+                    e.kids.iter().find_map(|k| match k {
+                        StructKid::Mcid { page, .. } => pages.iter().position(|p| Some(p) == page.as_ref()),
+                        _ => None,
+                    })
+                })
+                .unwrap()
+        })
+        .collect()
+}
+
+#[test]
+fn the_contents_page_lists_each_section_s_page_and_the_outline_goes_there() {
+    let bytes = example();
+    let sections = element_pages(&bytes, b"H1");
+    let doc = Document::open_bytes(bytes.clone(), OpenOptions::default()).unwrap();
+    let cover = &lines(&doc)[0];
+    let listed: Vec<(String, usize)> = cover
+        .iter()
+        .filter_map(|l| l.rsplit_once(' '))
+        .filter(|(title, _)| TOPICS.contains(&title.trim()))
+        .map(|(title, n)| (title.trim().to_owned(), n.parse().unwrap()))
+        .collect();
+    let expected: Vec<(String, usize)> = TOPICS
+        .iter()
+        .zip(&sections)
+        .map(|(t, p)| ((*t).to_owned(), p + 1))
+        .collect();
+    assert_eq!(listed, expected);
+    let model = laminapdf_model::Document::open(bytes, OpenOptions::default()).unwrap();
+    let outline = model.outline().unwrap();
+    let items: Vec<(String, Option<usize>)> = outline
+        .iter()
+        .map(|i| (i.title().unwrap(), i.target().unwrap().and_then(|d| d.page_index)))
+        .collect();
+    let bookmarks: Vec<(String, Option<usize>)> = TOPICS
+        .iter()
+        .zip(&sections)
+        .map(|(t, p)| ((*t).to_owned(), Some(*p)))
+        .collect();
+    assert_eq!(items, bookmarks);
+}
+
+#[test]
+fn every_footnote_is_on_the_page_of_its_marker() {
+    let bytes = example();
+    let markers = element_pages(&bytes, b"Reference");
+    assert_eq!(markers.len(), TOPICS.len());
+    assert_eq!(markers, element_pages(&bytes, b"Note"));
 }

@@ -14,10 +14,32 @@
         }
       ]
     },
-    "flowing_report": {
-      "sha256": "644755c3f8819f657ef940c97dd68cb7a84b30eb3abbe95eee75cdf36e3e2b3b",
-      "bytes": 46471,
+    "flowing_invoice": {
+      "sha256": "7a31cf0d6889c799b89431b7f9c67ca08b615d1e00fa43182bd0689b9306591e",
+      "bytes": 27911,
       "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "flowing_report": {
+      "sha256": "7053d09d72742c98875a36413780c112215be8e90722d2efa0d2ac628a0255b8",
+      "bytes": 58228,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
         {
           "width": 839,
           "height": 1190
@@ -111,6 +133,28 @@
     "links_and_outlines": {
       "sha256": "e094221354635103768d301d080621b618836e6279e25efaeff7bd1c08319f81",
       "bytes": 2593,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
+    "markdown_to_pdf": {
+      "sha256": "ea7e21df505168652a806b3d6818da2526fea0db297f5321e7da12a75547c2cc",
+      "bytes": 53639,
       "pages": [
         {
           "width": 839,

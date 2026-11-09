@@ -18,6 +18,12 @@ pub(crate) struct Look {
     pub(crate) link: Option<usize>,
     /// The span's own language, tagged as a `Span` with `/Lang` when it isn't the paragraph's.
     pub(crate) lang: Option<String>,
+    /// For a footnote's marker, the note's index in the flow (tagged as a `Reference`).
+    pub(crate) note: Option<usize>,
+    /// Computer code (tagged `Code`).
+    pub(crate) code: bool,
+    /// Struck through.
+    pub(crate) strike: bool,
 }
 
 /// A paragraph's text with its spans, ready to break at any width.
@@ -35,6 +41,14 @@ pub(crate) struct Source {
     pub(crate) lang: Option<String>,
     /// The size of an empty line (the first style's).
     size: f64,
+    /// Its footnotes' bodies, in order; the first is the flow's note [`Source::note_base`].
+    pub(crate) notes: Vec<Paragraph>,
+    /// The flow's index of its first footnote.
+    pub(crate) note_base: usize,
+    /// Each footnote marker's first byte and its note's index in the flow.
+    pub(crate) markers: Vec<(usize, usize)>,
+    /// The style of the last text pushed, for a marker after it.
+    last_style: Option<TextStyle>,
 }
 
 /// A line of a paragraph and its height.
@@ -57,8 +71,14 @@ fn f32_of(v: f64) -> f32 {
 
 impl Source {
     /// `paragraph` with its inlines joined into one text; a line break is U+2028, which ends a
-    /// line but not the bidi paragraph.
+    /// line but not the bidi paragraph. A paragraph with footnotes needs [`Source::numbered`].
     pub(crate) fn new(paragraph: &Paragraph) -> Self {
+        Self::numbered(paragraph, 0)
+    }
+
+    /// `paragraph` as [`Source::new`] has it, its footnotes numbered from the flow's note
+    /// `note_base` (0-based; the marker shows `note_base + 1`).
+    pub(crate) fn numbered(paragraph: &Paragraph, note_base: usize) -> Self {
         let mut source = Self {
             text: String::new(),
             fonts: Vec::new(),
@@ -68,12 +88,26 @@ impl Source {
             style: paragraph.style.clone(),
             lang: None,
             size: 0.0,
+            notes: Vec::new(),
+            note_base,
+            markers: Vec::new(),
+            last_style: None,
         };
-        let mut paragraph_lang = None;
+        // The paragraph's language and empty-line size are its first text's, even after a note.
+        let first = first_style(paragraph);
+        let paragraph_lang = first.as_ref().and_then(|s| s.language.clone());
+        source.size = first.as_ref().map_or(0.0, |s| s.size);
         for inline in &paragraph.inlines {
             let (text, style, link) = match inline {
                 Inline::Text(text, style) => (text.as_str(), style, None),
                 Inline::Link(text, style, target) => (text.as_str(), style, Some(target)),
+                Inline::Code(text, style) => {
+                    source.push(text, style, None, paragraph_lang.as_deref());
+                    if let Some(look) = source.looks.last_mut() {
+                        look.code = true;
+                    }
+                    continue;
+                }
                 Inline::LineBreak => {
                     // In the style of the text before it, so its line keeps that height.
                     let Some(prev) = source.spans.last().cloned() else {
@@ -85,14 +119,20 @@ impl Source {
                     let mut span = prev;
                     span.range = start..source.text.len();
                     source.spans.push(span);
-                    source.looks.extend(look.map(|l| Look { link: None, ..l }));
+                    source.looks.extend(look.map(|l| Look {
+                        link: None,
+                        note: None,
+                        code: false,
+                        strike: false,
+                        ..l
+                    }));
+                    continue;
+                }
+                Inline::Note(body) => {
+                    source.marker(body, paragraph_lang.as_deref());
                     continue;
                 }
             };
-            if source.spans.is_empty() {
-                source.size = style.size;
-                paragraph_lang.clone_from(&style.language);
-            }
             let link = link.map(|target| {
                 source.links.push(target.clone());
                 source.links.len() - 1
@@ -109,6 +149,7 @@ impl Source {
     }
 
     fn push(&mut self, text: &str, style: &TextStyle, link: Option<usize>, paragraph_lang: Option<&str>) {
+        self.last_style = Some(style.clone());
         let fonts: Vec<usize> = style.fonts.iter().map(|f| self.font_index(f)).collect();
         let start = self.text.len();
         self.text.push_str(text);
@@ -124,7 +165,34 @@ impl Source {
             color: style.color.clone(),
             link,
             lang: style.language.clone().filter(|l| Some(l.as_str()) != paragraph_lang),
+            note: None,
+            code: false,
+            strike: style.strike,
         });
+    }
+
+    /// A footnote's marker: its number, raised and smaller, in the style of the text before
+    /// it (or the note body's first style when it starts the paragraph).
+    fn marker(&mut self, body: &Paragraph, paragraph_lang: Option<&str>) {
+        let index = self.note_base + self.notes.len();
+        // A note with no text anywhere to style its number after has no marker, and no number.
+        let Some(base) = self.last_style.clone().or_else(|| first_style(body)) else {
+            return;
+        };
+        self.notes.push(body.clone());
+        let style = base
+            .clone()
+            .with_size(base.size * 0.65)
+            .with_rise(base.rise + base.size * 0.35);
+        let start = self.text.len();
+        self.markers.push((start, index));
+        self.push(&(index + 1).to_string(), &style, None, paragraph_lang);
+        // The text after the marker is in the style before it, and so is a second marker.
+        self.last_style = Some(base);
+        if let Some(look) = self.looks.last_mut() {
+            look.note = Some(index);
+            look.lang = None;
+        }
     }
 
     fn font_index(&mut self, font: &FontHandle) -> usize {
@@ -186,4 +254,12 @@ fn shift(line: &mut Line, by: usize) {
             glyph.cluster += by;
         }
     }
+}
+
+/// The style of `paragraph`'s first text.
+pub(crate) fn first_style(paragraph: &Paragraph) -> Option<TextStyle> {
+    paragraph.inlines.iter().find_map(|i| match i {
+        Inline::Text(_, style) | Inline::Link(_, style, _) | Inline::Code(_, style) => Some(style.clone()),
+        Inline::LineBreak | Inline::Note(_) => None,
+    })
 }

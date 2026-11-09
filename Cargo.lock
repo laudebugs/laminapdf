@@ -1302,6 +1302,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+ "toml",
 ]
 
 [[package]]
@@ -1320,6 +1321,7 @@ dependencies = [
  "pdf-writer",
  "png",
  "proptest",
+ "pulldown-cmark",
  "serde_json",
  "sha2",
  "thiserror",

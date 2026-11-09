@@ -115,11 +115,15 @@ fn is_markdown(path: &Path) -> bool {
     path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
 }
 
-/// Build output and installed packages are not documentation, even if something tracks them.
+/// Build output and installed packages are not documentation, even if something tracks them;
+/// nor are Markdown test inputs (`fixtures/markdown/`, `fuzz/seeds/`), whose image links name
+/// files the tests pass in.
 fn is_excluded(path: &Path) -> bool {
     let parts: Vec<_> = path.iter().collect();
     parts.contains(&"node_modules".as_ref())
         || (parts.first() == Some(&"spikes".as_ref()) && parts.contains(&"target".as_ref()))
+        || path.starts_with("fixtures/markdown")
+        || path.starts_with("fuzz/seeds")
 }
 
 /// Checks the links in `files` (paths relative to `root`) against `tracked`; returns every
@@ -572,6 +576,15 @@ mod tests {
         assert!(
             is_excluded(Path::new("spikes/pdf-basics/rust/target/doc/x.md"))
                 && is_excluded(Path::new("a/node_modules/b/README.md"))
+        );
+    }
+
+    #[test]
+    fn markdown_test_inputs_are_excluded() {
+        assert!(
+            is_excluded(Path::new("fixtures/markdown/report.md"))
+                && is_excluded(Path::new("fuzz/seeds/markdown/latin.md"))
+                && !is_excluded(Path::new("fixtures/README.md"))
         );
     }
 

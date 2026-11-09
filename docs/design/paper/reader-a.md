@@ -181,7 +181,11 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Artboards.** `R05-find.dc.html`, `R05-find-phone.dc.html`.
 
-**Todos.** [C5b](../../todos/ready/C5b-find-in-document.md).
+**Todos.** [C5b](../../todos/done/C5b-find-in-document.md), [C5c](../../todos/done/C5c-find-results-tab.md).
+
+**As built ([C5b](../../todos/done/C5b-find-in-document.md)).** The web reader ships the find bar and the top-bar Find button (a button with `aria-expanded`, since pressing it again returns to the field), with the count, Previous and Next, Match case, Whole words, the context note, Close, and the count announced to screen readers (`aria-live="polite"`). Two parts wait for later todos. Recording Next and Previous in the back and forward history waits for R07 ([C6b](../../todos/ready/C6b-links-and-history.md)). The phone layout (a top-bar field over a Previous · Results · Next bar) comes later too: until then a phone shows the same find bar, wrapped to the screen's width. The reader draws each match as the upright box around its glyphs, so a match on rotated text gets an upright box rather than a rotated one; that is accepted for v0.1.
+
+**As built ([C5c](../../todos/done/C5c-find-results-tab.md)).** While find is open, the rail has a Results tab after Pages and Outline; closing find takes it away and the rail shows Pages. Each group's heading is the page's label and the outline section in effect at the top of that page, the section the Outline tab marks when that page is scrolled to the top. So a match under a heading that starts partway down the page is listed under the previous section. Each snippet is cut from the page's text, about 40 characters each side of the match. A word joined across a line-end hyphen keeps its hyphen in the snippet, as "exam- ple", since the snippet shows the page's own text. Until the reader has an Attachments tab, the rail has three tabs. It keeps its 220 px width and needs no More tabs button. On a phone the tab is in the Contents sheet with the others until the phone's find layout is built.
 
 ## R06 Rail tabs
 
@@ -211,7 +215,7 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **As built ([U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md)).** The rail is built. It stays closed until first opened, then each browser remembers its open state, width and tab. Its handle resizes it by pointer or arrow keys, and below 1024 px it becomes a drawer with a scrim. Its tabs come with C6a, and until then the web reader leaves the Sidebar button out of the top bar, since the rail would have nothing to show.
 
-**Todos.** [C6a](../../todos/ready/C6a-thumbnails-outline-page-labels.md) (Pages, Outline, page labels); [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) (Attachments).
+**Todos.** [C6a](../../todos/done/C6a-thumbnails-outline-page-labels.md) (Pages, Outline, page labels); [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) (Attachments).
 
 ## R07 Links and history
 

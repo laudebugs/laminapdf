@@ -94,6 +94,7 @@ export type ErrorCode =
   | "embedded-file-forbidden"
   | "embedded-file-without-mime-type"
   | "flow-content-too-large"
+  | "flow-layout-unstable"
   | "render-too-large"
   | "render-failed"
   | "render-backend-unavailable"
@@ -177,6 +178,8 @@ export type WarningCode =
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
+  | "markdown-html-ignored"
+  | "markdown-image-missing"
   | "covered-text"
   | "redaction-not-applied"
   | "text-in-earlier-revision";
@@ -277,6 +280,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "embedded-file-forbidden",
   "embedded-file-without-mime-type",
   "flow-content-too-large",
+  "flow-layout-unstable",
   "render-too-large",
   "render-failed",
   "render-backend-unavailable",
@@ -361,6 +365,8 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
+  "markdown-html-ignored",
+  "markdown-image-missing",
   "covered-text",
   "redaction-not-applied",
   "text-in-earlier-revision",
@@ -491,7 +497,10 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "embedded-file-forbidden": "usage",
   "embedded-file-without-mime-type": "usage",
   "flow-content-too-large": "usage",
+  "flow-layout-unstable": "internal",
   "flow-keep-broken": "usage",
+  "markdown-html-ignored": "unsupported",
+  "markdown-image-missing": "usage",
   "render-too-large": "limit",
   "render-failed": "input",
   "render-backend-unavailable": "io",
@@ -657,7 +666,10 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "embedded-file-forbidden": "choose PDF/A-3b, which allows attached files of any kind",
   "embedded-file-without-mime-type": "pass the file's MIME type, such as text/xml or application/octet-stream",
   "flow-content-too-large": "make the figure smaller, the text size smaller or the page's margins narrower",
+  "flow-layout-unstable": "report the flow that fails; a page break after the contents block may avoid it until it is fixed",
   "flow-keep-broken": "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
+  "markdown-html-ignored": "write the content in Markdown instead of HTML, or remove the HTML",
+  "markdown-image-missing": "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",
   "render-too-large": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
   "render-failed": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
   "render-backend-unavailable": "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
