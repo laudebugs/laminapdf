@@ -82,7 +82,8 @@ function useReaderSettings(platform: Platform): [ReaderSettings, (next: ReaderSe
 export function blockAt(blocks: readonly Block[], point: { page: number; y: number } | undefined): number {
   if (point === undefined || blocks.length === 0) return 0;
   const index = blocks.findIndex(
-    (b) => b.page > point.page || (b.page === point.page && (b.bbox === null || b.bbox[1] + b.bbox[3] > point.y)),
+    // A crop with no box has no place on its page: it starts the column only from a later page.
+    (b) => b.page > point.page || (b.page === point.page && b.bbox !== null && b.bbox[1] + b.bbox[3] > point.y),
   );
   return index === -1 ? blocks.length - 1 : index;
 }
