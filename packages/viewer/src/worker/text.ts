@@ -23,8 +23,12 @@ export async function pageText(index: number, signal: AbortSignal): Promise<Page
   return { runs, quads };
 }
 
-/** Page `index`'s runs, quads and glyph text, from the cache or read now. */
-export async function pageGlyphs(index: number, signal: AbortSignal): Promise<PageGlyphs> {
+/**
+ * Page `index`'s runs, quads and glyph text, from the cache or read now. `keep: false` (find)
+ * reads a page without caching it, so a search through every page never pushes out the text of
+ * the pages in view.
+ */
+export async function pageGlyphs(index: number, signal: AbortSignal, keep = true): Promise<PageGlyphs> {
   const { id } = current();
   const key = `${id}:${index}`;
   const cached = cache.get(key);
@@ -49,6 +53,7 @@ export async function pageGlyphs(index: number, signal: AbortSignal): Promise<Pa
   // The arrays are this worker's own (the SDK copied them out of WebAssembly memory).
   const { quads, glyphText, glyphOffsets } = text.buffers;
   const data: PageGlyphs = { runs, quads, glyphText, glyphOffsets };
+  if (!keep) return data;
   cache.set(key, data);
   for (const old of cache.keys()) {
     if (cache.size <= CACHED_PAGES) break;

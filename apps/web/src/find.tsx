@@ -7,12 +7,17 @@ import { FindBar } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
-/** The find commands' handlers, and the bar while find is open. */
+/** The handlers of the registry's find commands. */
+export type FindActions = Readonly<Record<"find.open" | "find.next" | "find.previous", () => void>>;
+
+/** The find commands' handlers, the bar while find is open, and whether it is. */
 export function useFind(
   viewer: Viewer | undefined,
   file: object | undefined,
-): { actions: Record<"find.open" | "find.next" | "find.previous", () => void>; bar: ReactNode | undefined } {
+): { actions: FindActions; bar: ReactNode | undefined; open: boolean } {
   const [open, setOpen] = useState(false);
+  // Counts `find.open` while the bar is open, which puts the focus back in its field.
+  const [focusRequest, setFocusRequest] = useState(0);
   // Another document, or none: find closes.
   useEffect(() => {
     setOpen(false);
@@ -22,7 +27,7 @@ export function useFind(
     () => ({
       "find.open": () => {
         if (!open) setOpen(true);
-        else document.querySelector<HTMLInputElement>(".paper-find-input")?.select();
+        else setFocusRequest((n) => n + 1);
       },
       "find.next": () => viewer?.find.next(),
       "find.previous": () => viewer?.find.previous(),
@@ -33,6 +38,9 @@ export function useFind(
     viewer?.find.close();
     setOpen(false);
   };
-  const bar = open && viewer !== undefined ? <FindBar find={viewer.find} onClose={close} /> : undefined;
-  return { actions, bar };
+  const bar =
+    open && viewer !== undefined ? (
+      <FindBar find={viewer.find} onClose={close} focusRequest={focusRequest} />
+    ) : undefined;
+  return { actions, bar, open: bar !== undefined };
 }

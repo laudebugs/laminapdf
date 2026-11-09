@@ -183,6 +183,8 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Todos.** [C5b](../../todos/done/C5b-find-in-document.md).
 
+**As built ([C5b](../../todos/done/C5b-find-in-document.md)).** The web reader ships the find bar and the top-bar Find button, with the count, Previous and Next, Match case, Whole words, the context note, Close and the polite count. Three parts wait for later todos. The Results tab needs the rail's tabs. Next and Previous as history jumps come with R07's history ([C6b](../../todos/ready/C6b-links-and-history.md)). The phone layout (a top-bar field over a Previous · Results · Next bar) comes later too: until then a phone shows the same find bar, wrapped to the screen's width. Each match is drawn as the box around its glyphs, so a match on rotated text gets an upright box.
+
 ## R06 Rail tabs
 
 **Purpose.** Move through a long document by its outline, its pages and its labels, with attached files one tab away.

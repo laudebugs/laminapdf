@@ -20,7 +20,7 @@ describe("findCount", () => {
     [{}, "…"],
     [{ total: 40 }, "40+"],
     [{ total: 9, current: 2, done: true }, "3 of 9"],
-    [{ total: 9, done: true }, "9 matches"],
+    [{ total: 9, done: true }, "1 of 9"],
     [{ done: true }, "No matches"],
   ] as const)("%o → %s", (s, want) => {
     expect(findCount(state(s))).toBe(want);

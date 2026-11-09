@@ -6,6 +6,7 @@
 // paint on the pages mounted now and on each page as it mounts. A new query, new options or
 // `close()` aborts the search under way, and its late results are dropped by the search's id.
 
+import type { FindPageResult } from "../protocol.js";
 import type { FindOptions } from "./fold.js";
 
 /** Pages searched per call: small enough that a render queued meanwhile waits little. */
@@ -38,9 +39,7 @@ export interface FindHost {
     options: FindOptions,
     pages: readonly number[],
     signal: AbortSignal,
-  ): Promise<
-    readonly { readonly page: number; readonly matches: readonly (readonly number[])[]; readonly noText?: true }[]
-  >;
+  ): Promise<readonly FindPageResult[]>;
   pageCount(): number;
   currentPage(): number;
   /** Scrolls match `quads` of `page` into view (centred when it is out of view). */
@@ -147,7 +146,7 @@ export class FindController {
     const order = this.#order(this.#state.pageCount);
     for (let at = 0; at < order.length; at += PAGES_PER_CALL) {
       const pages = order.slice(at, at + PAGES_PER_CALL);
-      let results: Awaited<ReturnType<FindHost["find"]>>;
+      let results: readonly FindPageResult[];
       try {
         results = await this.#host.find(query, options, pages, abort.signal);
       } catch (error) {
@@ -165,7 +164,7 @@ export class FindController {
   }
 
   /** Adds one call's results: the count, the first match to show, the pages to paint. */
-  #take(results: Awaited<ReturnType<FindHost["find"]>>, search: number): void {
+  #take(results: readonly FindPageResult[], search: number): void {
     let total = this.#state.total;
     let noText = this.#state.pagesWithoutText;
     const painted: number[] = [];
@@ -218,7 +217,8 @@ export class FindController {
     const total = this.#state.total;
     if (total === 0) return;
     const now = this.#state.current;
-    const next = now === undefined ? (step === 1 ? 0 : total - 1) : (now + step + total) % total;
+    // Before a current match, Next takes the first from the start page on, Previous the last before it.
+    const next = now === undefined ? this.#firstFromStart(step) : (now + step + total) % total;
     const place = this.#placeAt(next);
     if (place === undefined) return;
     const before = this.#current?.page;
@@ -226,6 +226,14 @@ export class FindController {
     this.#set({ current: next });
     this.#host.redraw(before === undefined || before === place.page ? [place.page] : [before, place.page]);
     this.#reveal();
+  }
+
+  /** The ordinal of the first match on or after the start page (Next), or the last before it (Previous). */
+  #firstFromStart(step: 1 | -1): number {
+    const total = this.#state.total;
+    const after = [...this.#byPage.keys()].filter((p) => p >= this.#start).sort((a, b) => a - b)[0];
+    const first = after === undefined ? 0 : this.#ordinal({ page: after, index: 0 });
+    return step === 1 ? first : (first - 1 + total) % total;
   }
 
   #reveal(): void {

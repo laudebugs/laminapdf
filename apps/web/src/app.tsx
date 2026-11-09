@@ -40,7 +40,7 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
-import { useFind } from "./find.tsx";
+import { type FindActions, useFind } from "./find.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
@@ -72,7 +72,7 @@ function useReaderCommands(
   reader: ReaderController,
   viewer: Viewer | undefined,
   shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
-  find: Record<string, () => void>,
+  find: FindActions,
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -226,6 +226,7 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
             {...(shown === undefined ? {} : { viewer: shown })}
             keys={KEYS}
             sidebarOpen={sidebar}
+            findOpen={find.open}
             home={<span className="web-wordmark">{APP_NAME}</span>}
             debug={debugMenu}
             more={moreItems}

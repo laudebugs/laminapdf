@@ -24,11 +24,7 @@ body {
   /* Find marks in the page appearance's colours (design language §2.6). */
   --lamina-find-match: var(--paper-page-find-match);
   --lamina-find-current: var(--paper-page-find-current);
-}
-
-/* The current match also gets an outline, so it never differs by colour alone. */
-.web-viewer .lamina-find-current {
-  outline: 2px solid var(--paper-page-find-current-outline);
+  --lamina-find-current-outline: var(--paper-page-find-current-outline);
 }
 
 .web-wordmark {

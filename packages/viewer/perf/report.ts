@@ -48,14 +48,14 @@ export interface BrowserResult {
   /** ctrl+wheel bursts on the 10-page file. */
   readonly zoom: { readonly recording: Recording; readonly toSharpMs: readonly number[] };
   /**
-   * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
-   * touch budgets), against those budgets; null in a browser without one (Firefox).
-   */
-  /**
    * Find on the 1,000-page file from page 1: a word on every page and one on page 778 only, while
    * the view scrolls.
    */
   readonly find: { readonly common: FindTiming; readonly rare: FindTiming; readonly recording: Recording };
+  /**
+   * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
+   * touch budgets), against those budgets; null in a browser without one (Firefox).
+   */
   readonly mobile: {
     readonly device: string;
     readonly peakMemory: MemorySample;

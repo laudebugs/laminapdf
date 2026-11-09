@@ -1,4 +1,4 @@
-/* The find bar (§7.30): in the secondary-toolbar slot, a 28 px field (`find-field-width`) with a search icon's
+/* The find bar (§7.30): in the secondary-toolbar slot, a 28 px tall field, 300 px wide (`find-field-width`), with a search icon's
    room and the count inside it in muted tabular figures, the buttons, a divider, the two toggles
    (§7.24 without icons), the note and Close. */
 @layer paper.components {

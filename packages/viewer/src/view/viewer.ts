@@ -516,14 +516,18 @@ export class Viewer {
       ys.push(y);
     }
     const viewportWidth = this.#root.clientWidth;
-    const left = layout.leftOf(page, viewportWidth) + Math.min(...xs) * (layout.widths[page] as number);
-    const right = layout.leftOf(page, viewportWidth) + Math.max(...xs) * (layout.widths[page] as number);
-    const top = layout.offsetOf(page) + Math.min(...ys) * (layout.heights[page] as number);
-    const bottom = layout.offsetOf(page) + Math.max(...ys) * (layout.heights[page] as number);
+    const pageLeft = layout.leftOf(page, viewportWidth);
+    const pageTop = layout.offsetOf(page);
+    const width = layout.widths[page] ?? 0;
+    const height = layout.heights[page] ?? 0;
+    const left = pageLeft + Math.min(...xs) * width;
+    const right = pageLeft + Math.max(...xs) * width;
+    const top = pageTop + Math.min(...ys) * height;
+    const bottom = pageTop + Math.max(...ys) * height;
     const view = this.#scroll();
-    const height = this.#root.clientHeight;
-    if (top < view.top || bottom > view.top + height) {
-      this.#root.scrollTop = Math.max(0, (top + bottom) / 2 - height / 2);
+    const viewportHeight = this.#root.clientHeight;
+    if (top < view.top || bottom > view.top + viewportHeight) {
+      this.#root.scrollTop = Math.max(0, (top + bottom) / 2 - viewportHeight / 2);
     }
     if (left < view.left || right > view.left + viewportWidth) {
       this.#root.scrollLeft = Math.max(0, (left + right) / 2 - viewportWidth / 2);

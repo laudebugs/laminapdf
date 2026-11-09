@@ -7,7 +7,7 @@
 
 import { layoutSpans, type Piece, separator } from "../layers/spans.js";
 import type { TextRunData } from "../protocol.js";
-import { type FindOptions, fold, foldQuery, matches } from "./fold.js";
+import { type FindOptions, type Folded, fold, foldQuery, matches } from "./fold.js";
 
 /** A page's runs and glyphs, as the document Web Worker keeps them. */
 export interface PageGlyphs {
@@ -109,13 +109,32 @@ function quadsOf(page: PageGlyphs, search: SearchText, start: number, end: numbe
   });
 }
 
-/** Every match of `query` on `page`, each as its quads. */
-export function findOnPage(page: PageGlyphs, search: SearchText, query: string, options: FindOptions): MatchQuads[] {
+/** Every match of `query` in `search`'s text, as `[start, end)` of the folded text, with that text. */
+export function matchRanges(
+  search: SearchText,
+  query: string,
+  options: FindOptions,
+): { readonly folded: Folded; readonly ranges: [number, number][] } {
   const folded = fold(search.text, options);
-  const wanted = foldQuery(query, options);
-  return matches(folded.text, wanted, options.wholeWords === true).map(([a, b]) => {
+  return { folded, ranges: matches(folded.text, foldQuery(query, options), options.wholeWords === true) };
+}
+
+/** The quads of matches `ranges` of `folded`, the folded text of `search`. */
+export function quadsOfMatches(
+  page: PageGlyphs,
+  search: SearchText,
+  folded: Folded,
+  ranges: readonly (readonly [number, number])[],
+): MatchQuads[] {
+  return ranges.map(([a, b]) => {
     const start = folded.from[a] ?? 0;
     const end = (folded.from[b - 1] ?? start) + 1;
     return quadsOf(page, search, start, end);
   });
+}
+
+/** Every match of `query` on `page`, each as its quads. */
+export function findOnPage(page: PageGlyphs, search: SearchText, query: string, options: FindOptions): MatchQuads[] {
+  const { folded, ranges } = matchRanges(search, query, options);
+  return quadsOfMatches(page, search, folded, ranges);
 }

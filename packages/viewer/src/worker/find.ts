@@ -6,8 +6,7 @@
 // read again only where it has matches.
 
 import type { FindOptions } from "../find/fold.js";
-import { fold, foldQuery, matches } from "../find/fold.js";
-import { findOnPage, type SearchText, searchText } from "../find/page.js";
+import { matchRanges, quadsOfMatches, type SearchText, searchText } from "../find/page.js";
 import type { FindPageResult } from "../protocol.js";
 import { current } from "./document.js";
 import { pageGlyphs } from "./text.js";
@@ -29,7 +28,7 @@ async function searchable(index: number, signal: AbortSignal): Promise<SearchTex
     cache.set(key, hit);
     return hit;
   }
-  const search = searchText(await pageGlyphs(index, signal));
+  const search = searchText(await pageGlyphs(index, signal, false));
   cache.set(key, search);
   cacheBytes += bytesOf(search);
   for (const [old, value] of cache) {
@@ -47,16 +46,15 @@ export async function find(
   pages: readonly number[],
   signal: AbortSignal,
 ): Promise<FindPageResult[]> {
-  const wanted = foldQuery(query, options);
   const out: FindPageResult[] = [];
   for (const page of pages) {
     signal.throwIfAborted();
     const search = await searchable(page, signal);
     const empty = search.text.trim() === "";
-    // Most pages have no match: count on the folded text first, read glyphs only for matches.
-    const found =
-      wanted === "" ? 0 : matches(fold(search.text, options).text, wanted, options.wholeWords === true).length;
-    const quads = found === 0 ? [] : findOnPage(await pageGlyphs(page, signal), search, query, options);
+    // Most pages have no match: the glyphs are read again only for a page that has one.
+    const { folded, ranges } = matchRanges(search, query, options);
+    const quads =
+      ranges.length === 0 ? [] : quadsOfMatches(await pageGlyphs(page, signal, false), search, folded, ranges);
     out.push({ page, matches: quads.map((q) => [...q]), ...(empty ? { noText: true } : {}) });
   }
   return out;

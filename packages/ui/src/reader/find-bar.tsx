@@ -7,7 +7,7 @@
 // goes back to where it was when the bar closes. Find comes in as a shape, like the viewer: the
 // viewer's `viewer.find` fits.
 
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
 import { Input } from "react-aria-components";
 import { useCommand } from "../commands/react.js";
 import { IconButton } from "../components/button.js";
@@ -48,9 +48,8 @@ export function findCount(state: FindSlice): string {
   if (state.query.trim() === "") return "";
   if (state.total === 0) return state.done ? message("find.none") : message("find.counting");
   if (!state.done) return message("find.more", { total: state.total });
-  return state.current === undefined
-    ? message("find.total", { total: state.total })
-    : message("find.of", { current: state.current + 1, total: state.total });
+  // Once every page is searched with a match, the first one found is current.
+  return message("find.of", { current: (state.current ?? 0) + 1, total: state.total });
 }
 
 /** The note after the toggles: the pages searched so far, and those with no text. */
@@ -82,22 +81,11 @@ function useAnnounced(text: string): string {
   return said;
 }
 
-/** Props of `FindBar`. */
-export interface FindBarProps {
-  readonly find: FindControls;
-  /** Close was pressed, or Escape in the bar: the app closes find and unmounts the bar. */
-  readonly onClose: () => void;
-}
-
-/** The find bar. Mount it while find is open; closing unmounts it. */
-export function FindBar({ find, onClose }: FindBarProps): ReactNode {
-  const state = useStoreState(find, (s) => s);
-  const [draft, setDraft] = useState(state.query);
-  const field = useRef<HTMLInputElement>(null);
-  const counted = useId();
-  const next = useCommand("find.next");
-  const previous = useCommand("find.previous");
-  // Focus starts in the field, and returns where it was when the bar goes.
+/**
+ * The field's focus: it starts there, goes back there when `focusRequest` changes (`find.open`
+ * again), and returns where it was when the bar goes.
+ */
+function useFieldFocus(field: RefObject<HTMLInputElement | null>, focusRequest: number): void {
   useEffect(() => {
     const before = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
     field.current?.focus();
@@ -105,13 +93,50 @@ export function FindBar({ find, onClose }: FindBarProps): ReactNode {
     return () => {
       if (before?.isConnected === true) before.focus();
     };
-  }, []);
-  // Searches as you type, once typing pauses.
+  }, [field]);
+  useEffect(() => {
+    if (focusRequest === 0) return;
+    field.current?.focus();
+    field.current?.select();
+  }, [field, focusRequest]);
+}
+
+/** Searches for `draft` once typing pauses. */
+function useSearchAsYouType(find: FindControls, draft: string): void {
   useEffect(() => {
     if (draft === find.getState().query) return;
     const timer = setTimeout(() => find.find(draft, find.getState().options), DEBOUNCE);
     return () => clearTimeout(timer);
   }, [draft, find]);
+}
+
+/** Escape anywhere in the bar closes it. */
+function closeOnEscape(e: KeyboardEvent, onClose: () => void): void {
+  if (e.key !== "Escape") return;
+  e.preventDefault();
+  e.stopPropagation();
+  onClose();
+}
+
+/** Props of `FindBar`. */
+export interface FindBarProps {
+  readonly find: FindControls;
+  /** Close was pressed, or Escape in the bar: the app closes find and unmounts the bar. */
+  readonly onClose: () => void;
+  /** Change it to put the focus back in the field, its text selected (`find.open` again). */
+  readonly focusRequest?: number;
+}
+
+/** The find bar. Mount it while find is open; closing unmounts it. */
+export function FindBar({ find, onClose, focusRequest = 0 }: FindBarProps): ReactNode {
+  const state = useStoreState(find, (s) => s);
+  const [draft, setDraft] = useState(state.query);
+  const field = useRef<HTMLInputElement>(null);
+  const counted = useId();
+  const next = useCommand("find.next");
+  const previous = useCommand("find.previous");
+  useFieldFocus(field, focusRequest);
+  useSearchAsYouType(find, draft);
   const count = findCount(state);
   const announced = useAnnounced(count);
   const none = state.done && state.total === 0;
@@ -125,12 +150,7 @@ export function FindBar({ find, onClose }: FindBarProps): ReactNode {
       className="paper-find-bar"
       aria-label={message("find.label")}
       data-shortcut-scope="find-field"
-      onKeyDown={(e) => {
-        if (e.key !== "Escape") return;
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }}
+      onKeyDown={(e) => closeOnEscape(e, onClose)}
     >
       <span className="paper-find-field">
         <Input

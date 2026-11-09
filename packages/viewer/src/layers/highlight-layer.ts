@@ -3,7 +3,8 @@
 // that a CSS transform scales and turns to the page, so a zoom or a rotation moves none of them.
 // Each match quad is drawn as its bounding box. The current match gets its own class. The viewer
 // adds no style sheet: colours come from `--lamina-find-match` and `--lamina-find-current`, and
-// the boxes take no pointer events, so they never stand in a selection's way.
+// the current match also gets an outline (`--lamina-find-current-outline`), so it never differs
+// by colour alone. The boxes take no pointer events, so they never stand in a selection's way.
 
 import type { Rotation } from "../layout/page-layout.js";
 import type { PageLayer } from "../view/viewer.js";
@@ -106,6 +107,7 @@ export class HighlightLayer implements PageLayer {
             ? "var(--lamina-find-current, rgba(237, 191, 106, 0.6))"
             : "var(--lamina-find-match, rgba(246, 227, 188, 0.6))",
           mixBlendMode: "multiply",
+          outline: isCurrent ? "2px solid var(--lamina-find-current-outline, #8a5300)" : "",
         });
         marks.push(mark);
       }

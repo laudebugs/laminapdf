@@ -75,9 +75,21 @@ export function foldQuery(query: string, options: FindOptions = {}): string {
 
 const WORD = /[\p{L}\p{N}\p{M}_]/u;
 
-/** Whether `text[start, end)` stands as whole words: no letter or digit runs on at either end. */
+/** The character that ends just before `at` in `text`, a surrogate pair whole. */
+function charBefore(text: string, at: number): string {
+  if (at <= 0) return "";
+  const low = text.charCodeAt(at - 1);
+  const pair = low >= 0xdc00 && low <= 0xdfff && at >= 2;
+  return String.fromCodePoint(text.codePointAt(pair ? at - 2 : at - 1) ?? 0);
+}
+
+/**
+ * Whether `text[start, end)` stands as whole words: no letter, digit or mark runs on at either
+ * end. This is pdf.js's test, by character class, rather than `Intl.Segmenter`'s word breaks,
+ * so whole-word counts agree with pdf.js's.
+ */
 function wholeAt(text: string, start: number, end: number): boolean {
-  const before = start > 0 ? String.fromCodePoint(text.codePointAt(start - 1) ?? 0) : "";
+  const before = charBefore(text, start);
   const after = end < text.length ? String.fromCodePoint(text.codePointAt(end) ?? 0) : "";
   // A query that starts or ends in a non-word character may sit against a word.
   const first = text.slice(start, start + 2);

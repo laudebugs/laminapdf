@@ -1,4 +1,4 @@
-// Find counts from pdf.js (todo C5b; ADR 0018 tier 4): for each file and query below, how many
+// Find counts from pdf.js (ADR 0018 tier 4): for each file and query below, how many
 // matches pdf.js's own find controller (PDFFindController, the one its viewer uses) counts on
 // each page, with each query's options. The reader's find must count the same, which
 // packages/viewer/test/find-parity.test.ts checks against the committed facts, with the
