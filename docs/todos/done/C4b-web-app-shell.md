@@ -42,7 +42,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@laminap
 
 - `#url=` remote files, range requests, encrypted-file prompt flow, privacy assertions → [C4c](../done/C4c-remote-files-encryption-privacy.md).
 - CI deploys, preview URLs, production → [C4d](../done/C4d-deploy-previews-and-production.md).
-- Service worker, manifest, `file_handlers` → [C7b](../ready/C7b-offline-pwa.md).
+- Service worker, manifest, `file_handlers` → [C7b](../done/C7b-offline-pwa.md).
 
 ## Tasks
 

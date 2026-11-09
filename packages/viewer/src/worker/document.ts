@@ -15,7 +15,14 @@ import {
 } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
-import { Document, isLaminaPdfError, loadExtract, type OpenOptions, wasmMemory } from "@laminapdf/sdk";
+import {
+  Document,
+  isLaminaPdfError,
+  loadExtract,
+  type OpenOptions,
+  type RangeSource,
+  wasmMemory,
+} from "@laminapdf/sdk";
 import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
 import type {
   BackendInit,
@@ -26,6 +33,7 @@ import type {
   WorkerMemory,
 } from "../protocol.js";
 import { HttpRangeByteSource } from "../source/http-range.js";
+import { COPY_ABOVE, OpfsByteSource } from "../source/opfs.js";
 import { blobSource, readAll } from "../source.js";
 
 let backend: RenderBackend | undefined;
@@ -38,6 +46,8 @@ interface Open {
   readonly render: RenderDocument;
   /** Where a remote document's bytes come from; undefined when they are all in memory. */
   readonly remote: HttpRangeByteSource | undefined;
+  /** A large local file's OPFS copy it is read from; undefined when it is in memory. */
+  readonly local: OpfsByteSource | undefined;
   /**
    * How to open it again as a text-capable copy (its bytes in memory, the options it opened
    * with): kept only while that copy may be needed, since the options hold the password.
@@ -112,6 +122,8 @@ export async function textModel(signal: AbortSignal): Promise<Document> {
   if (opened.text !== undefined) return untilAborted(opened.text, signal);
   if (opened.reopen === undefined) return opened.model;
   const { bytes, options } = opened.reopen;
+  const ranged = opened.remote ?? opened.local;
+  if (bytes === undefined && ranged === undefined) return opened.model;
   // One copy for every caller, opened with no caller's signal: a page that scrolls away aborts
   // its own wait, never the copy the other pages and the structure tree wait for.
   opened.text = (async () => {
@@ -119,7 +131,7 @@ export async function textModel(signal: AbortSignal): Promise<Document> {
     const { model } =
       bytes !== undefined
         ? await openModel((o) => Document.open(bytes, o), options)
-        : await openModel((o) => Document.openRange(opened.remote as HttpRangeByteSource, o), options);
+        : await openModel((o) => Document.openRange(ranged as RangeSource, o), options);
     if (!model.canExtractText) {
       model.free();
       throw new RenderError("render-failed", "the extract module didn't load");
@@ -163,6 +175,7 @@ function closeOpen(): void {
   if (open === undefined) return;
   open.render.close();
   open.model.free();
+  open.local?.close();
   // A text-capable copy goes with it, once opened (a failed one has nothing to free).
   open.text?.then(
     (copy) => copy.free(),
@@ -232,6 +245,31 @@ async function openModel(
   }
 }
 
+/** Where an opening document's bytes are: in memory, at a remote site, or in an OPFS copy. */
+type DocumentBytes =
+  | { readonly kind: "memory"; readonly bytes: Uint8Array }
+  | { readonly kind: "remote"; readonly source: HttpRangeByteSource }
+  | { readonly kind: "copy"; readonly source: OpfsByteSource };
+
+/** Where `init`'s bytes will be read from. */
+async function bytesFor(init: SourceInit, options: ViewerOpenOptions, signal: AbortSignal): Promise<DocumentBytes> {
+  if (isRemote(init)) {
+    const remote = await HttpRangeByteSource.open(init.url, { signal, onProgress: (p) => emit("progress", p) });
+    // A server without range support sent the whole file: read it as a local one.
+    return remote.whole === undefined ? { kind: "remote", source: remote } : { kind: "memory", bytes: remote.whole };
+  }
+  // A large file is read from its OPFS copy where the browser can keep one, else from memory.
+  if (init instanceof File && init.size > (options.copyAbove ?? COPY_ABOVE)) {
+    const copy = await OpfsByteSource.open(init, {
+      signal,
+      onProgress: (loaded, total) => emit("progress", { loaded, total }),
+      keep: options.keepCopy ?? true,
+    });
+    if (copy !== undefined) return { kind: "copy", source: copy };
+  }
+  return { kind: "memory", bytes: await bytesOf(init, signal) };
+}
+
 /** Opens the worker's document (closing any previous one) and reports its warnings as events. */
 export async function openDocument(
   init: SourceInit,
@@ -239,26 +277,33 @@ export async function openDocument(
   signal: AbortSignal,
 ): Promise<OpenedDocument> {
   const engine = currentBackend();
-  let remote: HttpRangeByteSource | undefined;
-  let bytes: Uint8Array | undefined;
-  if (isRemote(init)) {
-    remote = await HttpRangeByteSource.open(init.url, { signal, onProgress: (p) => emit("progress", p) });
-    // A server without range support sent the whole file: read it as a local one.
-    bytes = remote.whole;
-    if (bytes !== undefined) remote = undefined;
-  } else {
-    bytes = await bytesOf(init, signal);
+  const from = await bytesFor(init, options, signal);
+  try {
+    return await openFrom(engine, from, options, signal);
+  } catch (e) {
+    if (from.kind === "copy") from.source.close();
+    throw e;
   }
+}
+
+/** Opens Lamina PDF's document and the backend's over `from`. */
+async function openFrom(
+  engine: RenderBackend,
+  from: DocumentBytes,
+  options: ViewerOpenOptions,
+  signal: AbortSignal,
+): Promise<OpenedDocument> {
   const { password, renderLimits } = options;
   const { model, needsPassword } =
-    bytes !== undefined
-      ? await openModel((o) => Document.open(bytes, o), options)
-      : await openModel((o) => Document.openRange(remote as HttpRangeByteSource, { ...o, signal }), options);
+    from.kind === "memory"
+      ? await openModel((o) => Document.open(from.bytes, o), options)
+      : await openModel((o) => Document.openRange(from.source, { ...o, signal }), options);
+  const remote = from.kind === "remote" ? from.source : undefined;
   let render: RenderDocument;
   let pages: OpenedDocument["pages"];
   let title: string | undefined;
   try {
-    const source = remote ?? bytesSource(bytes as Uint8Array);
+    const source = from.kind === "memory" ? bytesSource(from.bytes) : from.source;
     const renderOptions = {
       ...(password === undefined ? {} : { password }),
       ...(renderLimits === undefined ? {} : { limits: renderLimits }),
@@ -291,7 +336,8 @@ export async function openDocument(
     model,
     render,
     remote,
-    reopen: reopenFor(model, remote === undefined ? bytes : undefined, options),
+    local: from.kind === "copy" ? from.source : undefined,
+    reopen: reopenFor(model, from.kind === "memory" ? from.bytes : undefined, options),
   };
   // ADR 0003 warnings (a repaired xref, a dropped object) for the UI.
   for (const warning of model.warnings) emit("warning", warning);

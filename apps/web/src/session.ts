@@ -34,6 +34,7 @@ import type { NetworkMonitor } from "./network/monitor.ts";
 import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
 import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
+import { readChoices } from "./storage-choices.ts";
 
 /** A document's properties, as the document worker reads them. */
 export type DocumentProperties = Awaited<ReturnType<ViewerClient["properties"]>>;
@@ -418,7 +419,12 @@ export class Engine implements ExternalStore<EngineState> {
     let opened: Awaited<ReturnType<ViewerClient["open"]>>;
     let warnings: DocumentWarning[];
     try {
-      opened = await session.client.open(await sourceOf(file), password === undefined ? {} : { password });
+      // A large file's disk copy outlives the document only while the user lets recent files be kept.
+      const keepCopy = readChoices().rememberLocal;
+      opened = await session.client.open(
+        await sourceOf(file),
+        password === undefined ? { keepCopy } : { password, keepCopy },
+      );
     } finally {
       warnings = this.#incoming.splice(0);
     }
