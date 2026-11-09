@@ -60,3 +60,7 @@ workspace = true
 [[test]]
 name = "reflow"
 required-features = ["reflow"]
+
+[[test]]
+name = "approximate"
+required-features = ["reflow"]

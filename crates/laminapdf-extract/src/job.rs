@@ -65,6 +65,9 @@ pub(crate) struct PageFeed {
     pub(crate) tree: TreeUse,
     /// What each MCID paints besides text ([`Drawn::mcid_boxes`]).
     pub(crate) boxes: Vec<(i64, laminapdf_model::RectPt)>,
+    /// The page's images, clipped to the page ([`Drawn::image_boxes`]): the approximate
+    /// reader mode's figures.
+    pub(crate) images: Vec<laminapdf_model::RectPt>,
 }
 
 /// A page whose text is read, waiting for its models' results.
@@ -363,6 +366,7 @@ impl ExtractJob {
                     index,
                     tree: out.tree,
                     boxes: pending.drawn.mcid_boxes,
+                    images: pending.drawn.image_boxes,
                 });
             }
             self.out.pages.push(out.info);

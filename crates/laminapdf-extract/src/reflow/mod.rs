@@ -1,5 +1,6 @@
-//! Reader mode: a tagged document as reflowable blocks in the structure tree's order,
-//! or a refusal when its tree can't be trusted.
+//! Reader mode: a document as reflowable blocks, in its structure tree's order when the tree can
+//! be trusted (tier 1, below), else in the order extraction reads from the page layout, labelled
+//! approximate (tier 2, [`approximate`]).
 //!
 //! The text comes from extraction with [`ReadingOrder::Auto`], whose blocks already follow the
 //! tree on each page where it passes ADR 0030 §2's checks, with headings, list items, captions,
@@ -11,7 +12,7 @@
 //!   images and paths, since the builders that write a `BBox` attribute (§14.8.5.4.3) are few;
 //!   a caption stays text even inside one;
 //! - marks the paragraphs inside a `BlockQuote` as quotes;
-//! - refuses a document whose tree is missing or empty, whose content sits mostly in no
+//! - turns to the layout (tier 2) for a document whose tree is missing or empty, whose content sits mostly in no
 //!   block-level element (bare `Span`s and `NonStruct`s), which the per-page checks ignored on
 //!   too many pages, or whose order disagrees with the layout's (a rank correlation between the
 //!   tree's order and XY-Cut++'s, which a reversed single column doesn't escape the per-page
@@ -24,6 +25,7 @@
 //! `BlockQuote` a quote around its paragraphs; `Figure`, `Formula` and `Table` crops; the
 //! grouping types (`Document`, `Part`, `Sect`, `Div`, `Art`, `NonStruct`, …) say nothing.
 
+mod approximate;
 mod order;
 mod tree;
 
@@ -58,10 +60,13 @@ pub(crate) const MIN_AGREEMENT: f64 = 0.5;
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[non_exhaustive]
 pub struct Reflow {
-    /// Whether reader mode can show the document; when it can't, `reason` says why and
-    /// `blocks` is empty.
+    /// Whether reader mode can show the document; when it can't, `blocks` is empty. Only a
+    /// document with nothing to show, no text and no picture on any page, can't be shown.
     pub available: bool,
-    /// Why it can't; `None` when it can.
+    /// Where the blocks' order comes from.
+    pub source: ReflowSource,
+    /// Why the structure tree wasn't used: set whenever `source` is
+    /// [`ReflowSource::Approximate`] (an untagged file is [`ReflowRefusal::Untagged`]).
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub reason: Option<ReflowRefusal>,
     /// The document's language (the catalog's `/Lang`), for the reading view's `lang`.
@@ -73,7 +78,19 @@ pub struct Reflow {
     pub checks: ReflowChecks,
 }
 
-/// Why reader mode refuses a document.
+/// Where reader mode's order comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
+#[non_exhaustive]
+pub enum ReflowSource {
+    /// The document's structure tree, which passed every check.
+    Tags,
+    /// The page layout, as extraction reads it: headings, lists and the order of columns are
+    /// guessed, so the reading view says so.
+    Approximate,
+}
+
+/// Why reader mode doesn't use a document's structure tree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[non_exhaustive]
@@ -88,6 +105,8 @@ pub enum ReflowRefusal {
     Coverage,
     /// Its order disagrees with the pages' layout.
     Order,
+    /// No page has text or a picture to show.
+    Nothing,
 }
 
 impl ReflowRefusal {
@@ -100,6 +119,7 @@ impl ReflowRefusal {
             Self::Generic => "generic",
             Self::Coverage => "coverage",
             Self::Order => "order",
+            Self::Nothing => "nothing",
         }
     }
 }
@@ -122,6 +142,9 @@ pub struct ReflowChecks {
     /// Kendall's τ between the tree's block order and the layout's, over the pages that used the
     /// tree with three blocks or more, weighted by their blocks; `None` when there are none.
     pub agreement: Option<f64>,
+    /// Pages the approximate reading view shows as their image (scanned, or read with too
+    /// little confidence); 0 with tags.
+    pub page_images: usize,
 }
 
 /// What a block is.
@@ -159,6 +182,12 @@ pub enum ReflowKind {
     Formula,
     /// A table, shown likewise.
     Table,
+    /// A whole page shown as its image, in the approximate reading view only: its `text` is the
+    /// page's text in layout order, for searching, but the view doesn't reflow it.
+    PageImage {
+        /// Why the page isn't reflowed.
+        why: PageImageReason,
+    },
     /// Text in no element reader mode knows.
     Other,
 }
@@ -167,8 +196,22 @@ impl ReflowKind {
     /// Whether the block is shown as a crop of its page.
     #[must_use]
     pub const fn is_crop(&self) -> bool {
-        matches!(self, Self::Figure | Self::Formula | Self::Table)
+        matches!(
+            self,
+            Self::Figure | Self::Formula | Self::Table | Self::PageImage { .. }
+        )
     }
+}
+
+/// Why the approximate reading view shows a page as its image.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
+#[non_exhaustive]
+pub enum PageImageReason {
+    /// The page is a picture of text (a scan): no visible text, or an OCR layer under an image.
+    Scanned,
+    /// Extraction doubted the order of too much of its text (columns too close, or a grid).
+    Uncertain,
 }
 
 /// One block of the reading view.
@@ -179,7 +222,8 @@ pub struct ReflowBlock {
     /// What it is.
     #[cfg_attr(feature = "serde", serde(flatten))]
     pub kind: ReflowKind,
-    /// The text; empty for a crop.
+    /// The text; empty for a crop, but for an approximate table's or page image's, which
+    /// keeps the text extraction read there (for searching; the view shows the crop).
     pub text: String,
     /// The page it is on (a crop's first page).
     pub page: usize,
@@ -201,18 +245,6 @@ fn ser_box<S: serde::Serializer>(bbox: &Option<RectPt>, serializer: S) -> Result
     }
 }
 
-impl Reflow {
-    fn refused(reason: ReflowRefusal, lang: Option<String>, checks: ReflowChecks) -> Self {
-        Self {
-            available: false,
-            reason: Some(reason),
-            lang,
-            blocks: Vec::new(),
-            checks,
-        }
-    }
-}
-
 /// `doc` for reader mode, stopped by `cancel`.
 ///
 /// # Errors
@@ -222,7 +254,7 @@ pub fn reflow(doc: &Document, cancel: &CancelToken) -> Result<Reflow, ExtractErr
     let lang = catalog_lang(doc)?;
     let tree = if doc.is_tagged()? { doc.structure()? } else { None };
     let Some(tree) = tree else {
-        return Ok(Reflow::refused(ReflowRefusal::Untagged, lang, ReflowChecks::default()));
+        return approximate::reflow(doc, ReflowRefusal::Untagged, lang, ReflowChecks::default(), cancel);
     };
     let pages = doc.pages()?;
     let page_ids: BTreeMap<PageId, usize> = (0..pages.len())
@@ -235,13 +267,13 @@ pub fn reflow(doc: &Document, cancel: &CancelToken) -> Result<Reflow, ExtractErr
         ..ReflowChecks::default()
     };
     if facts.content == 0 {
-        return Ok(Reflow::refused(ReflowRefusal::Empty, lang, checks));
+        return approximate::reflow(doc, ReflowRefusal::Empty, lang, checks, cancel);
     }
     if checks.generic_share > MAX_GENERIC {
-        return Ok(Reflow::refused(ReflowRefusal::Generic, lang, checks));
+        return approximate::reflow(doc, ReflowRefusal::Generic, lang, checks, cancel);
     }
     let index = TaggedIndex::from_tree(doc, &tree)?;
-    let (extraction, feed) = run(doc, index, cancel)?;
+    let (extraction, feed) = run(doc, ReadingOrder::Auto, TreeSource::Given(index), cancel)?;
     for page in &feed {
         match page.tree {
             TreeUse::Used => checks.pages_used += 1,
@@ -252,11 +284,12 @@ pub fn reflow(doc: &Document, cancel: &CancelToken) -> Result<Reflow, ExtractErr
     }
     checks.agreement = order::agreement(&extraction.blocks, &facts, cancel)?;
     if let Some(reason) = verdict(&checks) {
-        return Ok(Reflow::refused(reason, lang, checks));
+        return approximate::reflow(doc, reason, lang, checks, cancel);
     }
     let blocks = assemble(&extraction.blocks, &facts, &feed);
     Ok(Reflow {
         available: true,
+        source: ReflowSource::Tags,
         reason: None,
         lang,
         blocks,
@@ -311,14 +344,16 @@ fn catalog_lang(doc: &Document) -> Result<Option<String>, ExtractError> {
     })
 }
 
-/// The extraction reader mode reads, with what each page gave besides its blocks.
+/// The extraction reader mode reads, in `order` with the tree from `tree`, with what each page
+/// gave besides its blocks.
 fn run(
     doc: &Document,
-    index: Option<TaggedIndex>,
+    order: ReadingOrder,
+    tree: TreeSource,
     cancel: &CancelToken,
 ) -> Result<(crate::Extraction, Vec<PageFeed>), ExtractError> {
-    let options = ExtractOptions::default().with_reading_order(ReadingOrder::Auto);
-    let mut job = extract_job_with(doc, &options, TreeSource::Given(index))?;
+    let options = ExtractOptions::default().with_reading_order(order);
+    let mut job = extract_job_with(doc, &options, tree)?;
     job.feed = Some(Vec::new());
     job.set_cancel(cancel);
     loop {

@@ -22,7 +22,9 @@ pub use laminapdf_extract::{
     TextLayer, TextLayerStatus, TextLayerThresholds, TextRange, chunks_jsonl, tokens_approx,
 };
 #[cfg(feature = "reflow")]
-pub use laminapdf_extract::{Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal};
+pub use laminapdf_extract::{
+    PageImageReason, Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal, ReflowSource,
+};
 pub use laminapdf_text::{Code, Glyph, PageText, PageTextRun, Quad, UserSpaceVector};
 
 use crate::job::{Budget, CancelToken, JobCore, Step};

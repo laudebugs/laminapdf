@@ -16,5 +16,15 @@
       "mean": 0.7896,
       "by": "T3b: the corpus grows from 22 files to 28 with three hard layouts (pull-quote, narrow-gutter, wrapped-grid), drawn both ways; the content-order score of the files already there doesn't change, so the mean moves only because the set does"
     }
-  ]
+  ],
+  "approximate": {
+    "mean": 0.9256,
+    "history": [
+      {
+        "date": "2026-11-09",
+        "mean": 0.9256,
+        "by": "U4c: first run of the approximate reader mode (layout order, figures and tables as crops, low-confidence pages as images with their text kept): every file but the three hard layouts scores 1.000; narrow-gutter (0.545), pull-quote (0.714) and wrapped-grid (0.700) lose order as extraction's layout order does, and no file trails copy as paragraph"
+      }
+    ]
+  }
 }
