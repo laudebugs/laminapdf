@@ -11,7 +11,10 @@ import {
   CommandRegistry,
   CommandsProvider,
   DebugMenu,
+  ExternalLinkDialog,
+  type ExternalStore,
   FocusModeItem,
+  type GatedEntry,
   Inspector,
   LeftRail,
   type ModeRegistry,
@@ -34,25 +37,58 @@ import {
   type ShellLayout,
   StatusBarItem,
   shellActions,
+  ToastQueue,
+  ToastRegion,
   useGatedEntries,
   useReaderState,
   useShell,
   useStoreState,
 } from "@laminapdf/ui";
-import type { Viewer } from "@laminapdf/viewer";
+import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
-import { pageLabel } from "./outline.ts";
+import { type PageInfo, pageLabel } from "./outline.ts";
+import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { railTabs } from "./rail.tsx";
+import type { SelectionSurfaces } from "./selection.tsx";
+import { useSelection } from "./selection.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
 const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 
-type MoreId = "open" | "rotate";
+type MoreId = "save-copy" | "print" | "properties" | "open" | "rotate";
+
+/** The More menu's commands, by item. */
+const MORE_COMMANDS = {
+  "save-copy": "file.save-copy",
+  print: "file.print",
+  properties: "file.properties",
+} as const satisfies Record<Exclude<MoreId, "open" | "rotate">, OutputCommand>;
+
+/**
+ * The More menu (R09): Download a copy, Print… and Document properties, which need an open
+ * document, then the reader's own items.
+ */
+function moreEntries(open: boolean): GatedEntry<MoreId>[] {
+  const needsDocument = open ? {} : { isDisabled: true, disabledReason: message("command.reason.noDocument") };
+  return [
+    { id: "save-copy", label: message("command.file.save-copy"), icon: "download", ...needsDocument },
+    {
+      id: "print",
+      label: message("print.print"),
+      icon: "printer",
+      shortcut: { mac: "Mod+P", other: "Mod+P" },
+      ...needsDocument,
+    },
+    { id: "properties", label: message("menu.properties"), icon: "info", ...needsDocument },
+    { id: "open", label: message("reader.open.choose") },
+    { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
+  ];
+}
 
 /** Mounts `viewer` into a box that fills the canvas, and shows it while `visible`. */
 function ViewerHost({ viewer, visible }: { viewer: Viewer | undefined; visible: boolean }): ReactNode {
@@ -61,6 +97,39 @@ function ViewerHost({ viewer, visible }: { viewer: Viewer | undefined; visible: 
     if (viewer !== undefined && host.current !== null) viewer.mount(host.current);
   }, [viewer]);
   return <div ref={host} className="web-viewer" hidden={!visible} />;
+}
+
+/** A history with nowhere to go, for a top bar without a view. */
+const NOWHERE: HistoryState = { current: undefined, back: undefined, forward: undefined };
+const NO_HISTORY: ExternalStore<HistoryState> = { getState: () => NOWHERE, subscribe: () => () => undefined };
+
+/**
+ * Back and Forward (R07): where each goes, as page labels, and their handlers. Both step the
+ * browser's history, which holds the view's jumps (open/history.ts), so the reader's buttons and
+ * the browser's own do the same thing; with nowhere to go in this document they do nothing, so
+ * Back never leaves the reader.
+ */
+function useHistory(
+  viewer: Viewer | undefined,
+  pages: readonly PageInfo[],
+): {
+  history: { readonly back: string | undefined; readonly forward: string | undefined };
+  actions: Readonly<Record<"nav.back" | "nav.forward", () => void>>;
+} {
+  const state = useStoreState(viewer?.history ?? NO_HISTORY, (s) => s);
+  const label = (entry: HistoryState["back"]) => (entry === undefined ? undefined : pageLabel(pages, entry.point.page));
+  const actions = useMemo(
+    () => ({
+      "nav.back": () => {
+        if (viewer?.history.getState().back !== undefined) window.history.back();
+      },
+      "nav.forward": () => {
+        if (viewer?.history.getState().forward !== undefined) window.history.forward();
+      },
+    }),
+    [viewer],
+  );
+  return { history: { back: label(state.back), forward: label(state.forward) }, actions };
 }
 
 /** Names the window after the open document (its title, else its file name); nothing leaves the page. */
@@ -79,7 +148,11 @@ function useReaderCommands(
   viewer: Viewer | undefined,
   shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
   rail: boolean,
-  find: FindActions,
+  /** The handlers that need an open document: find, Back and Forward, print, download, properties and the selection's. */
+  documentActions: FindActions &
+    ReturnType<typeof useHistory>["actions"] &
+    Output["actions"] &
+    SelectionSurfaces["actions"],
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -97,11 +170,11 @@ function useReaderCommands(
       actions: {
         ...shellActions(shell.layout, shell.modes, { rail }),
         "palette.open": shell.openPalette,
-        ...(viewer === undefined ? {} : find),
+        ...(viewer === undefined ? {} : documentActions),
         "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
       },
     }),
-    [platform, reader, viewer, shell, modes, rail, find],
+    [platform, reader, viewer, shell, modes, rail, documentActions],
   );
   return { registry, context };
 }
@@ -196,6 +269,29 @@ function useRepairsPanel(
   return { inspector, showRepairs };
 }
 
+/** The reader's dialogs: the password prompt, and the confirmation before a web link opens. */
+function ReaderDialogs({
+  engine,
+  link,
+  platform,
+}: {
+  engine: Engine;
+  link: EngineState["externalLink"];
+  platform: Platform;
+}): ReactNode {
+  return (
+    <>
+      <PasswordDialog reader={engine.reader} />
+      <ExternalLinkDialog
+        link={link}
+        onOpen={(href) => void platform.openExternal(href).catch(reportError)}
+        onCopy={(href) => void platform.copyText(href).catch(reportError)}
+        onClose={() => engine.closeExternalLink()}
+      />
+    </>
+  );
+}
+
 /** The inspector's panel and the status bar's items: the network indicator first. */
 function usePanels(
   layout: ShellLayout,
@@ -213,6 +309,41 @@ function usePanels(
     inspector,
     status: [...(indicator === undefined ? [] : [indicator]), ...statusItems(engine, debug, showRepairs)],
   };
+}
+
+/**
+ * The More menu and what its document items need: the page labels, the output's handlers and
+ * dialogs (print, download, properties), and the toasts they end with.
+ */
+function useDocumentMenu(
+  engine: Engine,
+  platform: Platform,
+  state: ReaderState,
+  shown: Viewer | undefined,
+): {
+  toasts: ToastQueue;
+  labels: readonly string[] | undefined;
+  output: Output;
+  moreItems: { items: ReturnType<typeof useGatedEntries<MoreId>>; onAction: (id: MoreId) => void };
+} {
+  const pages = useStoreState(engine, (s) => s.pages);
+  const [toasts] = useState(() => new ToastQueue());
+  const labels = useMemo(
+    () => (pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined),
+    [pages],
+  );
+  const document =
+    state.phase === "open" && shown !== undefined
+      ? { fileName: state.file.name, pages, labels, viewer: shown }
+      : undefined;
+  const output = useOutput(engine, platform, toasts, document);
+  const items = useGatedEntries<MoreId>(moreEntries(document !== undefined));
+  const onAction = (id: MoreId) => {
+    if (id === "open") engine.reader.close();
+    else if (id === "rotate") engine.getState().viewer?.rotate(90);
+    else output.actions[MORE_COMMANDS[id]]();
+  };
+  return { toasts, labels, output, moreItems: { items, onAction } };
 }
 
 /** The reader over `engine`, on `platform`; `debug` shows the debug menu (`#debug`). */
@@ -235,13 +366,9 @@ export function App({
   const { layout, modes } = useShell(platform.storage);
   const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
   const sidebar = useStoreState(layout, (s) => s.rail.open);
-  const more = useGatedEntries<MoreId>([
-    { id: "open", label: message("reader.open.choose") },
-    { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
-  ]);
-  const moreItems = { items: more, onAction: (id: MoreId) => (id === "open" ? reader.close() : viewer?.rotate(90)) };
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
+  const { toasts, labels, output, moreItems } = useDocumentMenu(engine, platform, state, shown);
   // The rail's panels are made again only when the view or the strip changes.
   const { strip } = engineState;
   const find = useFind(shown, open ? state.file : undefined);
@@ -249,12 +376,16 @@ export function App({
     () => railTabs(engine, layout, open ? { strip, viewer, finding: find.open } : undefined),
     [engine, layout, open, strip, viewer, find.open],
   );
-  const labels = useMemo(() => {
-    const pages = engineState.pages;
-    return pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined;
-  }, [engineState.pages]);
   const fileName = open ? state.file.name : undefined;
-  const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions);
+  const rail = tabs.length > 0;
+  const history = useHistory(shown, engineState.pages);
+  const selection = useSelection(shown, find, platform, KEYS);
+  const commands = useReaderCommands(platform, reader, shown, shell, rail, {
+    ...find.actions,
+    ...history.actions,
+    ...output.actions,
+    ...selection.actions,
+  });
   useWindowTitle(fileName, engineState.title);
   const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
   const debugMenu = debug ? (
@@ -273,6 +404,7 @@ export function App({
             keys={KEYS}
             sidebarOpen={sidebar}
             findOpen={find.open}
+            {...(shown === undefined ? {} : { history: history.history })}
             {...(labels === undefined ? {} : { labels })}
             home={<span className="web-wordmark">{APP_NAME}</span>}
             debug={debugMenu}
@@ -280,7 +412,7 @@ export function App({
           />
         }
         rail={<LeftRail layout={layout} tabs={tabs} />}
-        bottomBar={<PhoneBottomBar layout={layout} rail={tabs.length > 0} more={moreItems} keys={KEYS} />}
+        bottomBar={selection.bar ?? <PhoneBottomBar layout={layout} rail={rail} more={moreItems} keys={KEYS} />}
         {...(inspector === undefined ? {} : { inspector })}
         status={
           <>
@@ -303,9 +435,12 @@ export function App({
         ) : null}
         {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
         <ViewerHost viewer={viewer} visible={open} />
-        <PasswordDialog reader={reader} />
+        <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
+        {output.dialogs}
       </ReaderShell>
+      <ToastRegion queue={toasts} aria-label={message("shell.toasts")} />
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
+      {selection.toolbar}
     </CommandsProvider>
   );
 }

@@ -155,6 +155,8 @@
   --paper-shortcut-chip-glyph-lift: 0.75px;
   --paper-dialog-width: 440px;
   --paper-dialog-width-form: 560px;
+  --paper-properties-label-width: 148px;
+  --paper-properties-chrome-height: 232px;
   --paper-dialog-width-wide: 820px;
   --paper-menu-width: 260px;
   --paper-menu-item-height: 32px;

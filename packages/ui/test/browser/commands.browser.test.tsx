@@ -56,7 +56,11 @@ function setup(viewer = new FakeViewer({ currentPage: 2 })) {
         (args: unknown) => (c.id === "palette.open" ? openPalette() : calls.push({ id: c.id, args })),
       ]),
   ) as Partial<Record<CommandId, (args: unknown) => void>>;
-  const context = { ...base, platform: fakePlatform({ flags: { canReopenRecent: true, canOpenUrl: true } }), actions };
+  const context = {
+    ...base,
+    platform: fakePlatform({ flags: { canReopenRecent: true, canOpenUrl: true, canShare: true } }),
+    actions,
+  };
   const shell = { setOpen: (_open: boolean) => {} };
   openPalette = () => shell.setOpen(true);
   const app = <PaletteApp registry={registry} context={context} shell={shell} />;
@@ -88,7 +92,7 @@ const INLINE: Partial<Record<CommandId, string>> = {
   "view.accent": "Accent colour plum",
 };
 
-/** Thirty-seven search-and-run cycles in one test: about 17 s in Firefox on a busy runner. */
+/** Forty-two search-and-run cycles in one test: about 20 s in Firefox on a busy runner. */
 const EVERY_COMMAND_MS = 60_000;
 
 describe("RegistryPalette", () => {
@@ -108,13 +112,13 @@ describe("RegistryPalette", () => {
       expect(palette(), `${command.id} closes the palette`).toBeNull();
       ran.push(command.id);
     }
-    expect(ran).toHaveLength(37);
+    expect(ran).toHaveLength(42);
     expect(reader.openFromPicker).toHaveBeenCalledOnce();
     // Each delegated command reached its handler, with parsed arguments where it takes them.
     expect(calls.find((c) => c.id === "view.page-layout")?.args).toBe("two-up");
     expect(calls.find((c) => c.id === "file.open-url")?.args).toBe("https://example.com/a.pdf");
     expect(new Set(calls.map((c) => c.id)).size).toBe(calls.length);
-    expect(viewer.calls).toContainEqual({ method: "goToPage", value: 11 });
+    expect(viewer.calls).toContainEqual({ method: "jumpToPage", value: 11 });
     expect(viewer.calls).toContainEqual({ method: "setZoom", value: 150 });
   });
 
@@ -164,7 +168,7 @@ describe("RegistryPalette", () => {
     await frame();
     expect(rows()[0]?.textContent).toContain("Go to page: A-2");
     await userEvent.keyboard("{Enter}");
-    expect(viewer.calls).toEqual([{ method: "goToPage", value: 22 }]);
+    expect(viewer.calls).toEqual([{ method: "jumpToPage", value: 22 }]);
   });
 
   it("asks for missing arguments on a page of its own, and says why a try didn't parse", async () => {
@@ -182,7 +186,7 @@ describe("RegistryPalette", () => {
     await userEvent.keyboard("{Backspace}{Backspace}12{Enter}");
     await frame();
     expect(palette()).toBeNull();
-    expect(viewer.calls).toEqual([{ method: "goToPage", value: 11 }]);
+    expect(viewer.calls).toEqual([{ method: "jumpToPage", value: 11 }]);
   });
 
   it("shows a disabled command with why, each row's shortcut, and the result count", async () => {

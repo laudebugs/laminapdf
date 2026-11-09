@@ -15,8 +15,11 @@ import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { FindController } from "../find/controller.js";
+import { type HistoryPlace, NavigationHistory, type NavigationHistoryOptions } from "../history/history.js";
+import type { CopyMode } from "../layers/copy.js";
 import { HighlightLayer } from "../layers/highlight-layer.js";
-import { TextLayer, type TextLayerOptions } from "../layers/text-layer.js";
+import { LinkLayer, type LinkLayerOptions } from "../layers/link-layer.js";
+import { TextLayer, type TextLayerOptions, type TextSelection } from "../layers/text-layer.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { range } from "../layout/range.js";
 import { type OpenedDocument, type Priority, renderKey, renderKeyFields } from "../protocol.js";
@@ -34,6 +37,7 @@ import {
 } from "../zoom/zoom.js";
 import { type DeviceHints, deviceHints, viewerBudgets } from "./budgets.js";
 import { TouchGestures, type TouchHost } from "./touch.js";
+import { setUserSelect } from "./user-select.js";
 
 /** Where a mounted page's pixels are. */
 export type PageRenderState = "placeholder" | "low" | "sharp" | "error";
@@ -80,6 +84,8 @@ export interface ViewerEventMap {
   pagechange: { readonly page: number };
   zoomchange: { readonly zoom: Zoom; readonly percent: number };
   renderstats: RenderStats;
+  /** The text selection changed: `undefined` when it left the viewer (UI/UX plan §5.3). */
+  selectionchange: { readonly selection: TextSelection | undefined };
 }
 
 /** A layer that later todos mount into each page (text, annotations, highlights, …). */
@@ -131,6 +137,13 @@ export interface CreateViewerOptions {
    * for screen readers (default on; `false` leaves it out, an object sets its options).
    */
   readonly text?: boolean | TextLayerOptions;
+  /**
+   * The link layer: an anchor over each link, internal ones going there as history jumps (default
+   * on; `false` leaves it out, an object sets its options).
+   */
+  readonly links?: boolean | LinkLayerOptions;
+  /** The back and forward history's options. */
+  readonly history?: NavigationHistoryOptions;
 }
 
 /** The built-in layer slots, bottom to top, above the canvas. */
@@ -255,8 +268,15 @@ export class Viewer {
   /** The text layer, unless `text: false`. */
   readonly #text: TextLayer | undefined;
   readonly #highlights: HighlightLayer;
+  /** The link layer, unless `links: false`. */
+  readonly #links: LinkLayer | undefined;
   /** Find in this viewer's document: query, options, matches, next and previous. */
   readonly find: FindController;
+  /**
+   * Back and forward through the places jumped from and to: links, `jumpToPage`,
+   * `jumpToDestination` and find's matches record a jump; scrolling doesn't.
+   */
+  readonly history: NavigationHistory;
   /** Pages kept mounted whatever the scroll (`keepMounted`): those a selection touches. */
   #pinned = new Set<number>();
   readonly #listeners = new Set<() => void>();
@@ -316,21 +336,15 @@ export class Viewer {
       visibleRange: { first: 0, last: -1 },
     };
     this.#listen();
-    if (options.text !== false) {
-      const host = {
-        root: this.#root,
-        client: this.#client,
-        rotation: () => this.#rotation,
-        keepMounted: (pages: Iterable<number>) => this.keepMounted(pages),
-      };
-      this.#text = new TextLayer(host, options.text === true || options.text === undefined ? {} : options.text);
-      this.addLayer(this.#text);
-    }
+    this.#text = this.#textLayer(options.text);
+    if (this.#text !== undefined) this.addLayer(this.#text);
+    this.history = new NavigationHistory({ place: () => this.#place(), show: (p) => this.#show(p) }, options.history);
     this.find = new FindController({
       find: (query, find, pages, signal) => this.#client.find(query, find, pages, { signal }),
       pageCount: () => this.#sizes.length,
       currentPage: () => this.#state.currentPage,
-      reveal: (page, quads) => this.#reveal(page, quads),
+      // Each match find moves to is a jump, so Back returns to where the search started.
+      reveal: (page, quads) => this.history.jump(() => this.#reveal(page, quads)),
       redraw: (pages) => this.#highlights.refresh(pages),
     });
     this.#highlights = new HighlightLayer({
@@ -339,6 +353,7 @@ export class Viewer {
       rotation: () => this.#rotation,
     });
     this.addLayer(this.#highlights);
+    this.#links = this.#linkLayer(options.links);
   }
 
   /** The scroll container (append it, or use {@link mount}). */
@@ -359,6 +374,7 @@ export class Viewer {
     this.#document = document;
     this.#pinned = new Set();
     this.find.reset();
+    this.history.reset();
     this.#text?.open(document);
     this.#sizes = document.pages.map((p) => ({ width: p.width, height: p.height }));
     this.#layout = undefined;
@@ -389,6 +405,25 @@ export class Viewer {
     const l = listener as (data: never) => void;
     set.add(l);
     return () => set.delete(l);
+  }
+
+  /**
+   * Copies the text selection to the clipboard: by paragraph in reading order, or exact, as laid
+   * out. Call it in a user gesture (a click, a key). Resolves false when nothing is selected or
+   * the clipboard refused.
+   */
+  copySelection(mode: CopyMode = "paragraph"): Promise<boolean> {
+    return this.#text?.copy(mode) ?? Promise.resolve(false);
+  }
+
+  /** Whether a plain drag selects a rectangle, as an Alt/Option-drag does (column selection). */
+  get columnSelect(): boolean {
+    return this.#text?.columnMode ?? false;
+  }
+
+  /** Turns column selection by plain drag on or off; Alt/Option-drag selects a rectangle either way. */
+  set columnSelect(on: boolean) {
+    if (this.#text !== undefined) this.#text.columnMode = on;
   }
 
   /**
@@ -449,6 +484,16 @@ export class Viewer {
     this.#schedule();
   }
 
+  /** {@link goToPage} as a history jump: Back returns to where the view was. */
+  jumpToPage(index: number): void {
+    this.history.jump(() => this.goToPage(index));
+  }
+
+  /** {@link goToDestination} as a history jump: Back returns to where the view was. */
+  jumpToDestination(target: Target): void {
+    this.history.jump(() => this.goToDestination(target));
+  }
+
   /**
    * Sets the zoom (a mode, or a percentage clamped to 10–800 %), keeping the document point at
    * `anchor` (viewport CSS px; default its centre) where it is.
@@ -471,6 +516,7 @@ export class Viewer {
     // A half turn keeps every page's size, so no layer hears of it from a resize.
     this.#text?.refresh();
     this.#highlights.refresh();
+    this.#links?.refresh();
   }
 
   /** The document point at viewport position (`x`, `y`) in CSS px. */
@@ -517,11 +563,56 @@ export class Viewer {
     this.#cache.clear();
     this.find.reset();
     this.#text?.destroy();
+    this.#links?.destroy();
     for (const f of this.#cleanup.splice(0)) f();
     this.#root.remove();
   }
 
   // --- internals ---
+
+  /** The link layer, added to every page, unless `links` is `false`. */
+  #linkLayer(links: CreateViewerOptions["links"]): LinkLayer | undefined {
+    if (links === false) return undefined;
+    const layer = new LinkLayer(
+      {
+        root: this.#root,
+        client: this.#client,
+        points: (page) => this.#sizes[page],
+        rotation: () => this.#rotation,
+        pageCount: () => this.#sizes.length,
+        goTo: (target) => this.jumpToDestination(target),
+        goToPage: (page) => this.jumpToPage(page),
+      },
+      links === true || links === undefined ? {} : links,
+    );
+    this.addLayer(layer);
+    return layer;
+  }
+
+  /**
+   * Where the view is, for the history: the document point a gap below the viewport's top-left (so
+   * a page that `goToPage` put at the top, half a gap down, is the one named), and the zoom.
+   */
+  #place(): HistoryPlace | undefined {
+    const layout = this.#layout;
+    if (layout === undefined || layout.pageCount === 0) return undefined;
+    return { point: pointAt(layout, this.#root.clientWidth, this.#scroll(), { x: 0, y: this.#gap }), zoom: this.#zoom };
+  }
+
+  /** Puts the view back at a history `place`: its zoom, then its point a gap below the viewport's top-left. */
+  #show(place: HistoryPlace): void {
+    this.#touch.stopMomentum();
+    if (place.zoom !== this.#zoom) {
+      this.#zoom = place.zoom;
+      this.#rezoom(undefined);
+    }
+    const layout = this.#layout;
+    if (layout === undefined || place.point.page >= layout.pageCount) return;
+    const at = contentPosition(layout, this.#root.clientWidth, place.point);
+    this.#root.scrollTop = Math.max(0, at.y - this.#gap);
+    this.#root.scrollLeft = Math.max(0, at.x);
+    this.#schedule();
+  }
 
   /**
    * Scrolls so that `quads` (a find match, in page `page`'s points) are in view: nothing moves
@@ -568,6 +659,25 @@ export class Viewer {
 
   #viewport() {
     return { width: this.#root.clientWidth || 800, height: this.#root.clientHeight || 600 };
+  }
+
+  /** The text layer `option` asks for, or none (`false`); it reports the selection as an event too. */
+  #textLayer(option: boolean | TextLayerOptions | undefined): TextLayer | undefined {
+    if (option === false) return undefined;
+    const host = {
+      root: this.#root,
+      client: this.#client,
+      rotation: () => this.#rotation,
+      keepMounted: (pages: Iterable<number>) => this.keepMounted(pages),
+    };
+    const textOptions = option === true || option === undefined ? {} : option;
+    return new TextLayer(host, {
+      ...textOptions,
+      onSelection: (selection) => {
+        textOptions.onSelection?.(selection);
+        this.#emit("selectionchange", { selection });
+      },
+    });
   }
 
   #emit<E extends keyof ViewerEventMap>(event: E, data: ViewerEventMap[E]): void {
@@ -766,8 +876,13 @@ export class Viewer {
       slot.className = `lamina-layer-${name}`;
       Object.assign(slot.style, { position: "absolute", inset: "0" });
       // The slots above the text cover the whole page: taking the pointer, they would sit between
-      // every press and the spans, and no drag could select text.
-      if (name !== "text") slot.style.pointerEvents = "none";
+      // every press and the spans, and no drag could select text. Nor are they part of a selection:
+      // each element the viewer adds that holds nothing to select sets `none` itself, never an
+      // ancestor of the spans (user-select.ts).
+      if (name !== "text") {
+        slot.style.pointerEvents = "none";
+        setUserSelect(slot, "none");
+      }
       view.slots.set(name, slot);
       view.shell.append(slot);
     }
@@ -1113,6 +1228,7 @@ export class Viewer {
     });
     if (old === undefined) {
       canvas.className = "lamina-page-detail";
+      setUserSelect(canvas, "none");
       if (view.canvas === undefined) view.shell.prepend(canvas);
       else view.canvas.after(canvas);
     }
@@ -1209,6 +1325,7 @@ export class Viewer {
     }
     if (canvas === undefined) return undefined;
     canvas.className = "lamina-page-canvas";
+    setUserSelect(canvas, "none");
     Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%" });
     view.shell.prepend(canvas);
     view.canvas = canvas;

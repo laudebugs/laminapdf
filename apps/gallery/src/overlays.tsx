@@ -10,6 +10,7 @@ import {
   CommandsProvider,
   DebugMenu,
   Dialog,
+  ExternalLinkDialog,
   FocusModeItem,
   IconButton,
   Inspector,
@@ -23,9 +24,13 @@ import {
   PhoneBottomBar,
   Popover,
   PopoverTrigger,
+  PrintDialog,
+  PrintProgressDialog,
+  PropertiesDialog,
   ReaderController,
   ReaderShell,
   registerReaderCommands,
+  SelectionActionBar,
   SelectionToolbar,
   SelectionToolbarDivider,
   ShellLayout,
@@ -42,9 +47,77 @@ import { type ReactNode, useEffect, useState } from "react";
 const noop = () => {};
 const SHORTCUT = { mac: "⌘F", other: "Ctrl+F" };
 
-/** The dialogs: the three widths, a destructive confirm, and the reader's password prompt. */
+/** R08's sample file: a 24-page report, labelled 1–21 then A-1–A-3, with two fonts and two signatures. */
+const PROPERTIES = {
+  title: "Q3 Board Report",
+  author: "Finance team",
+  creator: "Northwind report template",
+  producer: "Northwind print service",
+  created: "2026-10-14T09:12:00",
+  modified: "2026-10-28T16:04:00",
+  version: "1.7",
+  pageCount: 24,
+  fileSize: 1_262_480,
+  linearized: true,
+  tagged: true,
+  fonts: [
+    { name: "SourceSerif4-Regular", kind: "Type0", embedded: true, subset: true },
+    { name: "Helvetica", kind: "Type1", embedded: false, subset: false },
+  ],
+  signatures: 2,
+  contains: { javascript: false, attachments: 3, forms: false },
+};
+const LABELS = [...Array.from({ length: 21 }, (_, i) => String(i + 1)), "A-1", "A-2", "A-3"];
+const PAGES = Array.from({ length: 24 }, (_, i) =>
+  i < 22 ? { width: 612, height: 792 } : { width: 792, height: 1224 },
+);
+
+/** Print (R09), restricted or not, and its progress; Document properties (R08). */
+function OutputDialog({ state }: { state: string }): ReactNode {
+  if (state === "print-progress") return <PrintProgressDialog progress={{ ready: 8, total: 24 }} onCancel={noop} />;
+  if (state === "properties") {
+    return (
+      <PropertiesDialog
+        isOpen
+        fileName="Q3-board-report.pdf"
+        state={{ status: "ready", properties: PROPERTIES }}
+        context={{ pages: PAGES, labels: LABELS }}
+        onCopy={noop}
+        onClose={noop}
+      />
+    );
+  }
+  return (
+    <PrintDialog
+      isOpen
+      pageCount={24}
+      currentPage={2}
+      labels={LABELS}
+      {...(state === "print-restricted" ? { permissions: { print: false, printHighQuality: false } } : {})}
+      onPrint={noop}
+      onClose={noop}
+    />
+  );
+}
+
+/** The dialogs: the three widths, a destructive confirm, the reader's password prompt, print and properties. */
 export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "password") return <PasswordPrompt />;
+  if (state.startsWith("print") || state === "properties") return <OutputDialog state={state} />;
+  if (state === "external-link") {
+    // R07's drawn state: the page's text shows a shorter address than the link's real target.
+    return (
+      <ExternalLinkDialog
+        link={{
+          href: "https://surveys.example.org/2026/capacity?region=north",
+          parts: { before: "https://", host: "surveys.example.org", after: "/2026/capacity?region=north" },
+        }}
+        onOpen={noop}
+        onCopy={noop}
+        onClose={noop}
+      />
+    );
+  }
   const size = state === "form" ? "form" : state === "wide" ? "wide" : "default";
   if (state === "alert") {
     return (
@@ -277,7 +350,10 @@ export function ShellRegions(): ReactNode {
     registerReaderCommands(registry);
     const platform = fakePlatform();
     const reader = new ReaderController(platform, async () => ({ pageCount: 24 }));
-    const context = { platform, reader, actions: shellActions(focus, new ModeRegistry(), { rail: true }) };
+    // The selection bar's buttons need handlers to show; here they do nothing.
+    const selection = { "edit.copy": () => undefined, "selection.search": () => undefined };
+    const actions = { ...shellActions(focus, new ModeRegistry(), { rail: true }), ...selection };
+    const context = { platform, reader, actions };
     return { layout, focus, registry, context };
   });
   const tabs = [
@@ -301,6 +377,7 @@ export function ShellRegions(): ReactNode {
           <p>The page</p>
         </ReaderShell>
         <PhoneBottomBar layout={shell.layout} rail more={MORE} keys="other" />
+        <SelectionActionBar more={MORE} keys="other" />
       </div>
     </CommandsProvider>
   );

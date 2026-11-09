@@ -142,6 +142,7 @@ export {
   type PaletteItem,
   type PaletteSection,
 } from "./overlays/palette.js";
+export { type Box, selectionBox } from "./overlays/place.js";
 export {
   Menu,
   type MenuEntry,
@@ -173,6 +174,7 @@ export type {
   PlatformFile,
   PlatformStorage,
   PrintJob,
+  PrintPage,
   RecentFile,
   RecentFiles,
   SaveResult,
@@ -180,6 +182,11 @@ export type {
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
 export { formatBytes } from "./reader/bytes.js";
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
+export {
+  ExternalLinkDialog,
+  type ExternalLinkDialogProps,
+  type ExternalLinkTarget,
+} from "./reader/external-link.js";
 export {
   FindBar,
   type FindBarProps,
@@ -216,6 +223,32 @@ export {
 } from "./reader/outline-tree.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
 export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
+export {
+  type PrintChoice,
+  PrintDialog,
+  type PrintDialogProps,
+  type PrintPermissions,
+  PrintProgressDialog,
+  type PrintProgressDialogProps,
+} from "./reader/print-dialog.js";
+export { type PrintPagesResult, parsePrintPages } from "./reader/print-pages.js";
+export {
+  type DocumentPropertiesData,
+  formatFileSize,
+  type PropertiesCipher,
+  type PropertiesContext,
+  type PropertyRow,
+  type PropertySection,
+  pageSizeSummary,
+  propertiesText,
+  readXmp,
+  type XmpFields,
+} from "./reader/properties.js";
+export {
+  PropertiesDialog,
+  type PropertiesDialogProps,
+  type PropertiesState,
+} from "./reader/properties-dialog.js";
 export {
   OpenFailure,
   type OpenFailureProps,
@@ -259,6 +292,8 @@ export {
   MoreSheet,
   PhoneBottomBar,
   type PhoneBottomBarProps,
+  SelectionActionBar,
+  type SelectionActionBarProps,
   usePhone,
 } from "./shell/phone.js";
 export { useShell } from "./shell/use-shell.js";

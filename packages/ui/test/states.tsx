@@ -527,6 +527,26 @@ const topBar: Example[] = [
   },
   {
     component: "ReaderTopBar",
+    state: "after a jump: Back to page 2",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const viewer = new FakeViewer({ currentPage: 10 });
+      return (
+        <WithCommands reader={reader} viewer={viewer} actions={{ ...SHELL, "nav.back": noop, "nav.forward": noop }}>
+          <ReaderTopBar
+            reader={reader}
+            viewer={viewer}
+            keys="other"
+            sidebarOpen
+            history={{ back: "2", forward: undefined }}
+            more={MORE}
+          />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "ReaderTopBar",
     state: "locked",
     element: () => {
       const reader = holding({ phase: "needs-password", file, wrong: false });

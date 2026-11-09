@@ -10,12 +10,20 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 /** The handlers of the registry's find commands. */
 export type FindActions = Readonly<Record<"find.open" | "find.next" | "find.previous", () => void>>;
 
-/** The find commands' handlers, the bar while find is open, and whether it is. */
-export function useFind(
-  viewer: Viewer | undefined,
-  file: object | undefined,
-): { actions: FindActions; bar: ReactNode | undefined; open: boolean } {
+/** Find's commands, and a search for given text (the selection's `Search for`). */
+export interface Find {
+  readonly actions: FindActions;
+  readonly bar: ReactNode | undefined;
+  readonly open: boolean;
+  /** Opens find searching for `text`, the bar's field holding it. */
+  readonly searchFor: (text: string) => void;
+}
+
+/** The find commands' handlers, the bar while find is open, whether it is, and a search from outside the bar. */
+export function useFind(viewer: Viewer | undefined, file: object | undefined): Find {
   const [open, setOpen] = useState(false);
+  // A new bar for each search started from outside it, so its field starts with that search's text.
+  const [searches, setSearches] = useState(0);
   // Counts `find.open` while the bar is open, which puts the focus back in its field.
   const [focusRequest, setFocusRequest] = useState(0);
   // Another document, or none: find closes.
@@ -40,7 +48,14 @@ export function useFind(
   };
   const bar =
     open && viewer !== undefined ? (
-      <FindBar find={viewer.find} onClose={close} focusRequest={focusRequest} />
+      <FindBar key={searches} find={viewer.find} onClose={close} focusRequest={focusRequest} />
     ) : undefined;
-  return { actions, bar, open: bar !== undefined };
+  const searchFor = (text: string) => {
+    const query = text.replace(/\s+/g, " ").trim();
+    if (viewer === undefined || query === "") return;
+    viewer.find.find(query, viewer.find.getState().options);
+    setSearches((n) => n + 1);
+    setOpen(true);
+  };
+  return { actions, bar, open: bar !== undefined, searchFor };
 }

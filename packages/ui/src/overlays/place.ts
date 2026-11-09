@@ -67,3 +67,18 @@ export function intersect(a: Box, b: Box): Box {
     height: Math.max(0, Math.min(a.top + a.height, b.top + b.height) - top),
   };
 }
+
+/**
+ * The box a selection toolbar is placed against: every rectangle of the selection, so the toolbar
+ * goes above the first line or below the last one and never over a selected line. Null for no
+ * rectangles.
+ */
+export function selectionBox(rects: readonly Box[]): Box | null {
+  const drawn = rects.filter((r) => r.width > 0 && r.height > 0);
+  if (drawn.length === 0) return null;
+  const top = Math.min(...drawn.map((r) => r.top));
+  const left = Math.min(...drawn.map((r) => r.left));
+  const bottom = Math.max(...drawn.map((r) => r.top + r.height));
+  const right = Math.max(...drawn.map((r) => r.left + r.width));
+  return { top, left, width: right - left, height: bottom - top };
+}

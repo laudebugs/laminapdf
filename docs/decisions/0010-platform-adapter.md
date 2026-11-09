@@ -1,6 +1,6 @@
 # 0010 — Platform adapter: one `Platform` interface, capability flags, no platform checks in UI code
 
-- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`)
+- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), and 2026-11-09 by U2a (`canShare`, `shareText`)
 - Date: 2026-10-31
 
 ## Context
@@ -43,6 +43,8 @@ export interface Platform {
   print(job: PrintJob): Promise<void>;
   /** Plain text to the system clipboard (write only; lamina never reads the clipboard unasked). */
   copyText(text: string): Promise<void>;
+  /** Text to the system's share sheet, where `canShare` (amended 2026-11-09). */
+  shareText(text: string): Promise<void>;
   /** Open a URL outside the app, after the UI's own confirmation (C6b). http(s) and mailto only. */
   openExternal(url: string): Promise<void>;
 
@@ -99,6 +101,7 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 | `canOpenUrl` | documents can be opened from an `http(s)` URL (range requests, ADR 0011 §2) | `true` | `true` |
 | `crossOriginIsolated` | the threaded variant may run (ADR 0009 §5) | `self.crossOriginIsolated` (`false` in v0.1, which ships no COOP/COEP) | measured in D1a |
 | `ownsKeyboard` | no browser sits around the app, so it may bind keys a browser keeps for itself (⌘W, ⌘[, F1; ADR 0024 §3) | `false` | `true` |
+| `canShare` | `shareText` hands text to the system's share sheet (the selection's Share, UI/UX plan §5.3) | `typeof navigator.share === "function"` | `false` until the desktop platform implements it |
 
 ### 3. Rules
 

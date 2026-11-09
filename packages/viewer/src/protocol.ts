@@ -5,7 +5,15 @@
 // coalescing key.
 
 import { type CloneableWasmSource, flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
-import type { Limits, OutlineNode, PageInfo, StructureNode, Target } from "@laminapdf/sdk";
+import type {
+  DocumentProperties,
+  Limits,
+  OutlineNode,
+  PageInfo,
+  PageLink,
+  StructureNode,
+  Target,
+} from "@laminapdf/sdk";
 import type { FindOptions } from "./find/fold.js";
 import type { FindSnippet } from "./find/page.js";
 
@@ -82,7 +90,43 @@ export interface Methods {
   networkLog: { params: []; result: WorkerNetworkLog };
   outline: { params: []; result: OutlineNode[] };
   namedDestination: { params: [name: string]; result: Target | undefined };
+  pageLinks: { params: [index: number]; result: readonly PageLink[] };
+  properties: { params: []; result: DocumentProperties };
+  printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };
+  fileBytes: { params: []; result: Uint8Array };
   find: { params: [query: string, options: FindOptions, pages: readonly number[]]; result: FindPageResult[] };
+  readingOrder: { params: [index: number]; result: ReadingBlock[] };
+}
+
+/**
+ * One block of a page's text in reading order, as Lamina PDF's extraction finds it (ADR 0030):
+ * where it is, in page space (points from the displayed page's top-left, y down), and what kind
+ * of block it is. Copy as paragraph joins the selected text block by block in this order.
+ */
+export interface ReadingBlock {
+  /** Its box: `[x, y, width, height]`. */
+  readonly bbox: readonly [number, number, number, number];
+  /** `paragraph`, `heading`, `list-item`, `caption`, `footnote`, `table` or `other`. */
+  readonly type: string;
+}
+
+/** How a page is drawn for printing. */
+export interface PrintOptions {
+  /** Dots per inch: 150 (standard) or 300 (high). Lowered for a page too large to hold. */
+  readonly dpi: number;
+  /** Draw annotations as their print flags say (comments, highlights, stamps); off leaves them out. */
+  readonly annotations: boolean;
+}
+
+/** One page drawn for printing. */
+export interface PrintedPage {
+  /** The page as a PNG. */
+  readonly image: Blob;
+  /** Its displayed size in points (`/Rotate` applied), which the printed page takes. */
+  readonly width: number;
+  readonly height: number;
+  /** The resolution it was drawn at: below the one asked for when the page was too large. */
+  readonly dpi: number;
 }
 
 /** One page's find results: each match as its quads (8 numbers per run it touches), in page space. */

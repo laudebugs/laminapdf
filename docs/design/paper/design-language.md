@@ -1579,6 +1579,7 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `edit.bring-forward` | Bring forward | Add and edit A02, A05 | — |  |
 | `edit.bring-to-front` | Bring to front | Add and edit A02, A05 | — |  |
 | `edit.copy` | Copy | Reader B R11, R12; Desktop shell S03; Add and edit A05 | ⌘C · Ctrl C | Also copies selected text in Read |
+| `edit.copy-exact` | Copy exact | Reader B R11, R12 | — | The layout's line breaks kept (U2a) |
 | `edit.crop-image` | Crop image | Add and edit A02 | — |  |
 | `edit.cut` | Cut | Add and edit A05 | ⌘X · Ctrl X |  |
 | `edit.delete` | Delete selection | Add and edit A01, A02, A05 | ⌫ · Delete (object) — shared key, scoped |  |
@@ -1604,6 +1605,7 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `edit.revert-object` | Revert object | Add and edit A05 | — |  |
 | `edit.revert-text` | Revert text | Add and edit A04 | — |  |
 | `edit.select-all` | Select all | Desktop shell S03 | — |  |
+| `edit.select-column-mode` | Select by column | Reader B R11 | — | A drag selects a rectangle, as Alt/Option-drag does (U2a) |
 | `edit.send-backward` | Send backward | Add and edit A02, A05 | — |  |
 | `edit.send-to-back` | Send to back | Add and edit A02, A05 | — |  |
 | `edit.set-fill` | Set fill | Add and edit A02 | — |  |
@@ -1819,6 +1821,9 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `security.remove-protection` | Remove protection… | Sign, protect, redact G06 | — |  |
 | `security.sanitise` | Sanitise document… | Sign, protect, redact G07 | — |  |
 | `selection.actions` | Show selection actions | Reader B R12 | Shift F10 |  |
+| `selection.search` | Search for the selection | Reader B R11, R12 | — | (U2a) |
+| `selection.share` | Share the selection | Reader B R12 | — | Where the device can share (U2a) |
+| `selection.toggle-toolbar` | Show or hide the selection toolbar | Reader B R11 | — | (U2a) |
 | `session.reopen-selected` | Reopen selected tabs | Desktop shell S08 | — |  |
 | `session.show-missing` | Show missing file | Desktop shell S02 | — |  |
 | `session.start-empty` | Start with no documents | Desktop shell S08 | — |  |

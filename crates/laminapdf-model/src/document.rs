@@ -93,6 +93,25 @@ impl Document {
         IdAllocator::new(&self.cos)
     }
 
+    /// The XMP metadata packet (the catalog's `/Metadata` stream, ISO 32000-2 §14.3.2),
+    /// decoded; `None` without one, or when its stream can't be decoded.
+    ///
+    /// # Errors
+    /// Reading errors that aren't repairs (`data-pending`, a failed source).
+    pub fn xmp_packet(&self) -> Result<Option<Vec<u8>>> {
+        let catalog = self.catalog()?;
+        let Some(metadata) = catalog.get("Metadata") else {
+            return Ok(None);
+        };
+        let Some(object) = self.read(metadata)? else {
+            return Ok(None);
+        };
+        let Object::Stream(stream) = &*object else {
+            return Ok(None);
+        };
+        tolerant(self.decode_stream(stream))
+    }
+
     /// The pages, in page-tree order.
     ///
     /// # Errors

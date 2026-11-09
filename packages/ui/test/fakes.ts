@@ -23,6 +23,7 @@ const NO_CAPABILITIES: Capabilities = {
   canOpenUrl: false,
   crossOriginIsolated: false,
   ownsKeyboard: false,
+  canShare: false,
 };
 
 /** A file over `bytes`, as a picker or a drop would give it. */
@@ -39,6 +40,8 @@ export function fakeFile(name = "report.pdf", bytes = new Uint8Array([37, 80, 68
 export interface FakeCalls {
   readonly openFiles: { multiple: boolean }[];
   readonly copied: string[];
+  /** What `shareText` was given. */
+  readonly shared: string[];
 }
 
 /**
@@ -52,7 +55,7 @@ export function fakePlatform(
     picked?: PlatformFile[];
   } = {},
 ): Platform & { readonly calls: FakeCalls } {
-  const calls: FakeCalls = { openFiles: [], copied: [] };
+  const calls: FakeCalls = { openFiles: [], copied: [], shared: [] };
   const capabilities = { ...NO_CAPABILITIES, ...options.flags };
   const values = new Map<string, unknown>();
   let recent: RecentFile[] = [];
@@ -78,6 +81,9 @@ export function fakePlatform(
     print: async () => undefined,
     async copyText(text) {
       calls.copied.push(text);
+    },
+    async shareText(text) {
+      calls.shared.push(text);
     },
     openExternal: async () => undefined,
     storage: {
@@ -194,6 +200,10 @@ export class FakeViewer {
 
   goToPage(index: number): void {
     this.calls.push({ method: "goToPage", value: index });
+  }
+
+  jumpToPage(index: number): void {
+    this.calls.push({ method: "jumpToPage", value: index });
   }
 
   setZoom(zoom: Zoom): void {

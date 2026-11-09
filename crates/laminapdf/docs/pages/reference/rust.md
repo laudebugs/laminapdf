@@ -1,0 +1,36 @@
+---
+title: "Rust API (rustdoc)"
+description: "Where to read the API documentation of the Lamina PDF crates."
+version: "0.2.0-alpha.4"
+url: "https://docs.laminapdf.com/reference/rust/"
+---
+
+# Rust API (rustdoc)
+
+Where to read the API documentation of the Lamina PDF crates.
+
+docs.rs builds the API documentation of every Lamina PDF crate on crates.io. Start with [`laminapdf` on docs.rs](https://docs.rs/laminapdf/0.2.0-alpha.4/laminapdf/), the crate to depend on. It wraps the core crates and holds `Document`, `Builder`, `Error`, `Warning`, jobs and `CancelToken`.
+
+The other crates are documented the same way:
+
+- [`laminapdf-syntax`](https://docs.rs/laminapdf-syntax/0.2.0-alpha.4/laminapdf_syntax/)
+- [`laminapdf-cos`](https://docs.rs/laminapdf-cos/0.2.0-alpha.4/laminapdf_cos/)
+- [`laminapdf-model`](https://docs.rs/laminapdf-model/0.2.0-alpha.4/laminapdf_model/)
+- [`laminapdf-ops`](https://docs.rs/laminapdf-ops/0.2.0-alpha.4/laminapdf_ops/)
+- [`laminapdf-save`](https://docs.rs/laminapdf-save/0.2.0-alpha.4/laminapdf_save/)
+- [`laminapdf-content`](https://docs.rs/laminapdf-content/0.2.0-alpha.4/laminapdf_content/)
+- [`laminapdf-text`](https://docs.rs/laminapdf-text/0.2.0-alpha.4/laminapdf_text/)
+- [`laminapdf-build`](https://docs.rs/laminapdf-build/0.2.0-alpha.4/laminapdf_build/)
+- [`laminapdf-render-pdfium`](https://docs.rs/laminapdf-render-pdfium/0.2.0-alpha.4/laminapdf_render_pdfium/)
+
+docs.rs couldn't build `laminapdf-source` and `laminapdf-render` at 0.2.0-alpha.2, so their docs come with the next release; until then, build them yourself as below. [Install](../../pages/install.md#every-published-package) lists every crate, with its page on crates.io.
+
+## Build the docs yourself
+
+To read the docs of a change before it's released, build them from a checkout of Lamina PDF:
+
+```sh
+cargo doc --workspace --no-deps --all-features --open
+```
+
+The command opens the docs in your browser. Every public item of every crate is documented.

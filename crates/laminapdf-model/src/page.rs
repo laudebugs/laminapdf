@@ -137,6 +137,23 @@ impl<'d> Pages<'d> {
         Outline::with_pages(self.doc, self)
     }
 
+    /// The visible link annotations of `page` (one of these pages), in `/Annots` order (§12.5.6.5).
+    /// Hidden ones (`/F` with Hidden or `NoView`, §12.5.3) and those without a usable `/Rect` are
+    /// left out. Destinations resolve through the named destinations, read once per call; the
+    /// outline's items aren't walked.
+    ///
+    /// # Errors
+    /// Reading errors (the annotations, named destinations, the page tree); in strict mode a
+    /// warning they raise.
+    pub fn links(&self, page: &Page<'_>) -> Result<Vec<crate::Link>> {
+        Outline::without_items(self.doc, self).links(page)
+    }
+
+    /// The document these pages belong to.
+    pub(crate) const fn document(&self) -> &'d Document {
+        self.doc
+    }
+
     /// The page labels, read once per [`Pages`].
     fn labels(&self) -> Result<&PageLabels> {
         if let Some(labels) = self.labels.get() {
@@ -440,6 +457,9 @@ impl<'p> Page<'p> {
         Ok(self.pages.labels()?.label(self.index))
     }
 }
+
+/// `/F` bits that hide an annotation: Hidden (2) and `NoView` (6), §12.5.3.
+pub(crate) const HIDDEN_ANNOT_FLAGS: i64 = (1 << 1) | (1 << 5);
 
 /// `obj` as a rectangle of four numbers, tolerantly; `None` when it is anything else.
 pub(crate) fn read_rect(doc: &Document, obj: &Object) -> Result<Option<UserSpaceRect>> {

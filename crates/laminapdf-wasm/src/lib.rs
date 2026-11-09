@@ -38,6 +38,8 @@ mod extract;
 mod memory;
 #[cfg(feature = "extract")]
 mod navigation;
+#[cfg(feature = "extract")]
+mod properties;
 mod source;
 #[cfg(feature = "extract")]
 mod text;

@@ -1,5 +1,12 @@
 # @laminapdf/render-pdfium
 
+## 0.2.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [baec4bc]
+  - @laminapdf/render@0.2.0-alpha.4
+
 ## 0.2.0-alpha.3
 
 ### Patch Changes

@@ -183,7 +183,7 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Todos.** [C5b](../../todos/done/C5b-find-in-document.md), [C5c](../../todos/done/C5c-find-results-tab.md).
 
-**As built ([C5b](../../todos/done/C5b-find-in-document.md)).** The web reader ships the find bar and the top-bar Find button (a button with `aria-expanded`, since pressing it again returns to the field), with the count, Previous and Next, Match case, Whole words, the context note, Close, and the count announced to screen readers (`aria-live="polite"`). Two parts wait for later todos. Recording Next and Previous in the back and forward history waits for R07 ([C6b](../../todos/ready/C6b-links-and-history.md)). The phone layout (a top-bar field over a Previous · Results · Next bar) comes later too: until then a phone shows the same find bar, wrapped to the screen's width. The reader draws each match as the upright box around its glyphs, so a match on rotated text gets an upright box rather than a rotated one; that is accepted for v0.1.
+**As built ([C5b](../../todos/done/C5b-find-in-document.md)).** The web reader ships the find bar and the top-bar Find button (a button with `aria-expanded`, since pressing it again returns to the field), with the count, Previous and Next, Match case, Whole words, the context note, Close, and the count announced to screen readers (`aria-live="polite"`). Since [C6b](../../todos/done/C6b-links-and-history.md), Next, Previous and a result's click are history jumps, as R07 says. One part waits for a later todo: the phone layout (a top-bar field over a Previous · Results · Next bar). Until then a phone shows the same find bar, wrapped to the screen's width. The reader draws each match as the upright box around its glyphs, so a match on rotated text gets an upright box rather than a rotated one; that is accepted for v0.1.
 
 **As built ([C5c](../../todos/done/C5c-find-results-tab.md)).** While find is open, the rail has a Results tab after Pages and Outline; closing find takes it away and the rail shows Pages. Each group's heading is the page's label and the outline section in effect at the top of that page, the section the Outline tab marks when that page is scrolled to the top. So a match under a heading that starts partway down the page is listed under the previous section. Each snippet is cut from the page's text, about 40 characters each side of the match. A word joined across a line-end hyphen keeps its hyphen in the snippet, as "exam- ple", since the snippet shows the page's own text. Until the reader has an Attachments tab, the rail has three tabs. It keeps its 220 px width and needs no More tabs button. On a phone the tab is in the Contents sheet with the others until the phone's find layout is built.
 
@@ -244,7 +244,13 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Artboards.** `R07-link-preview.dc.html`, `R07-external-link.dc.html`.
 
-**Todos.** [C6b](../../todos/ready/C6b-links-and-history.md) (links, the external-link dialog, history); [T5a](../../todos/ready/T5a-link-previews.md) (the link preview).
+**Todos.** [C6b](../../todos/done/C6b-links-and-history.md) (links, the external-link dialog, history); [T5a](../../todos/ready/T5a-link-previews.md) (the link preview).
+
+**As built ([C6b](../../todos/done/C6b-links-and-history.md)).** The web reader ships the link layer, the external-link dialog and Back and Forward, which sit before the page input. Four parts differ from the boards or wait for later todos:
+- **Names.** A link without a description is named "Link to page 11", without the target's outline title, which comes with the preview ([T5a](../../todos/ready/T5a-link-previews.md)). Until then, hovering a link that does something shows nothing extra. A link that does nothing has a hover note saying why, as the board shows; for an action, it reads "This link asks to run an action. Lamina PDF never runs these."
+- **Not run.** Actions a link would run are never run. They aren't yet listed in R04's Not run section, which lists repairs only.
+- **Commands.** `nav.follow-link`, `nav.open-external-link` and `nav.copy-link` aren't registered. A click or Enter follows a link, and the dialog's buttons open or copy it.
+- **Phone.** The phone's top bar has no Back or Forward, and More doesn't hold them yet. The OS back gesture still steps the reader's history, because each jump is a browser history entry.
 
 ## R08 Document properties
 
@@ -275,7 +281,7 @@ Each value has a copy button on hover or focus (drawn focused on Title, “Copy 
 
 **Artboards.** `R08-properties.dc.html`.
 
-**Todos.** [C6c](../../todos/ready/C6c-print-download-properties.md).
+**Todos.** [C6c](../../todos/done/C6c-print-download-properties.md).
 
 ## R09 Print and Download a copy
 
@@ -301,12 +307,12 @@ The radios and checkboxes are native inputs, visually hidden inside their labels
 **States.**
 
 - *Preparing* (drawn, `R09-print-progress`): “Preparing pages for print”, “lamina draws each page at print quality on this device. Your browser’s print window opens when all 24 pages are ready.”, a determinate bar “Page 9 of 24 · 38%”, **Cancel** (focused; `print.cancel`, as S05). Cancel stops rendering and frees memory.
-- *Printing restricted by the author* (drawn, `R09-print-restricted`, both steps: the print dialog dimmed underneath, the confirmation on top): when the file’s permissions don’t allow printing (the `/P` print bits, ISO 32000-2 §7.6.4.2), the print dialog shows a `warning` notice “The author restricted printing of this file.” and its button reads **Print anyway…**; it opens an `alertdialog` “Print a restricted file?” explaining that the restriction is a request, not a lock, and asking to print only with permission: **Cancel** (default focus) and **Print anyway**. When only high-quality printing is restricted, Quality is fixed at Standard with the note “The author allows printing at standard quality only.” **Owner decision needed:** [C4c](../../todos/done/C4c-remote-files-encryption-privacy.md) says owner-password permissions are “not enforced beyond display in v0.1”, while [C6c](../../todos/ready/C6c-print-download-properties.md)’s risk note recommends respecting the print bits with a warning and confirmation. This design follows C6c (warn and confirm, never block); if the owner keeps C4c’s rule, drop the confirmation and keep only the notice.
+- *Printing restricted by the author* (drawn, `R09-print-restricted`, both steps: the print dialog dimmed underneath, the confirmation on top): when the file’s permissions don’t allow printing (the `/P` print bits, ISO 32000-2 §7.6.4.2), the print dialog shows a `warning` notice “The author restricted printing of this file.” and its button reads **Print anyway…**; it opens an `alertdialog` “Print a restricted file?” explaining that the restriction is a request, not a lock, and asking to print only with permission: **Cancel** (default focus) and **Print anyway**. When only high-quality printing is restricted, Quality is fixed at Standard with the note “The author allows printing at standard quality only.” **Owner decision needed:** [C4c](../../todos/done/C4c-remote-files-encryption-privacy.md) says owner-password permissions are “not enforced beyond display in v0.1”, while [C6c](../../todos/done/C6c-print-download-properties.md)’s risk note recommends respecting the print bits with a warning and confirmation. This design follows C6c (warn and confirm, never block); if the owner keeps C4c’s rule, drop the confirmation and keep only the notice.
 - *Range error:* “There’s no page 30. This file has 24 pages (1–21, A-1–A-3).” under the field; Print stays enabled and focuses the field.
 - *Too large for memory:* High quality on a very long range falls back to Standard with a notice “Printing at standard quality to stay within this device’s memory.”
 - *Download done:* toast (§7.20) “Downloaded Q3-board-report.pdf”. An encrypted file downloads still encrypted; a remote file is streamed from the cache and its host without changes; the name comes from the URL or `Content-Disposition`, sanitised.
 
-**Behaviour.** Printing renders pages in the worker into a hidden iframe (CSP-safe, [C6c](../../todos/ready/C6c-print-download-properties.md)) and calls the browser’s print; it changes nothing in the file. Download a copy (`file.save-copy`) writes the document as it currently is; the v0.1 reader cannot change it, so that is the original bytes, byte for byte, even if the file was repaired in memory (R04). The menu item’s tooltip says “The file exactly as it was opened”. No shortcut: `Ctrl S` / `⌘S` is Save, in edit sessions only.
+**Behaviour.** Printing renders pages in the worker into a hidden iframe (CSP-safe, [C6c](../../todos/done/C6c-print-download-properties.md)) and calls the browser’s print; it changes nothing in the file. Download a copy (`file.save-copy`) writes the document as it currently is; the v0.1 reader cannot change it, so that is the original bytes, byte for byte, even if the file was repaired in memory (R04). The menu item’s tooltip says “The file exactly as it was opened”. No shortcut: `Ctrl S` / `⌘S` is Save, in edit sessions only.
 
 The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (`file.print`, `Ctrl P`) · Document properties… (`file.properties`) │ Network activity (`privacy.network-activity`) · Install lamina… (`app.install`, only where the browser offers it) · Get the desktop app (link to S11) │ Keyboard shortcuts (`help.shortcuts`, `?`) · Privacy and help │ Open another file… (`file.open`, `Ctrl O`). It is the web counterpart of Reader B’s phone More sheet (R18), which adds View settings because the phone top bar has no View button.
 
@@ -314,9 +320,18 @@ The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (
 
 **Platform differences.** *Desktop:* print hands off to the native print dialog with a preview (S05, [D4c](../../todos/ready/D4c-native-printing.md)), with the same restriction rule once the owner decides it (Desktop shell’s S05 doesn’t draw the step yet); the menu item is File › Save a copy… (`file.save-copy`, no shortcut, design language decision 18) with a native save panel. In the read-only reader it writes the bytes as opened; in an edit session it writes the document with its changes. *Phone:* Print uses the OS share/print sheet after the same preparing step; Download becomes Share › Save to Files. *Windows/Linux vs macOS:* chips `Ctrl P` / `⌘P`.
 
+**As built ([C6c](../../todos/done/C6c-print-download-properties.md)).** The web reader ships Print with its progress and restricted-print steps, Download a copy and Document properties, all in the More menu. Six parts differ from the boards:
+
+- The page range is its own field, "Pages to print", below a third radio named "Some pages", rather than a field inside the radio's row.
+- The Sepia notice waits for the web reader's page appearance, which isn't built yet.
+- The worker caps every page at 16 million pixels, so it draws a single page too large for the chosen quality at a lower resolution, without a notice. A long High-quality print does get R09's notice: past a billion pixels in all, it prints at Standard.
+- A download's name comes from the file or its address; `Content-Disposition` isn't read, since the document worker's range requests don't keep it.
+- A failed print or download says so in an alertdialog rather than a toast, as toasts never carry errors (§7.20).
+- The print frame's static rules sit in the same adopted stylesheet as its page sizes, rather than in a linked stylesheet, so printing fetches nothing.
+
 **Artboards.** `R09-print.dc.html`, `R09-print-progress.dc.html`, `R09-print-restricted.dc.html`, `R09-download.dc.html`.
 
-**Todos.** [C6c](../../todos/ready/C6c-print-download-properties.md).
+**Todos.** [C6c](../../todos/done/C6c-print-download-properties.md).
 
 ## New components
 

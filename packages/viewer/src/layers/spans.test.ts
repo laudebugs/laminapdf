@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TextRunData } from "../protocol.ts";
-import { joinPieces, layoutSpans, type Piece, type SpanSpec } from "./spans.ts";
+import { layoutSpans, type SpanSpec } from "./spans.ts";
 
 /** Quads for glyphs `width` wide and `height` tall from `x` along a baseline at `y` (upright, y down). */
 function upright(xs: readonly number[], y: number, width: number, height: number): number[] {
@@ -67,40 +67,5 @@ describe("layoutSpans", () => {
     const quads = new Float32Array([...upright([100], 110, 10, 10), ...upright([100], 122, 10, 10)]);
     const [span] = layoutSpans([run("縦書", [0, 2], { vertical: true, mcid: 4 })], quads);
     expect([span && round(span).angle, span && round(span).width, span?.mcid]).toEqual([90, 22, 4]);
-  });
-});
-
-describe("joinPieces", () => {
-  const spec = (left: number, top: number, width: number, extra: Partial<SpanSpec> = {}): SpanSpec => ({
-    run: 0,
-    text: "",
-    left,
-    top,
-    width,
-    height: 10,
-    angle: 0,
-    rtl: false,
-    ...extra,
-  });
-  const piece = (text: string, s: SpanSpec, page = 0): Piece => ({ page, text, span: s });
-
-  it("puts a space at a gap, nothing where runs touch, a new line at a new baseline and between pages", () => {
-    const text = joinPieces([
-      piece("Hello", spec(0, 0, 30)),
-      piece("world", spec(35, 0, 30)),
-      piece("!", spec(65, 0, 3)),
-      piece("Next line", spec(0, 14, 50)),
-      piece("Page two", spec(0, 0, 40), 1),
-    ]);
-    expect(text).toBe("Hello world!\nNext line\nPage two");
-  });
-
-  it("measures a right-to-left line's gaps from the right, and drops soft hyphens", () => {
-    const text = joinPieces([
-      piece("שלום", spec(60, 0, 30, { rtl: true })),
-      piece("עולם", spec(20, 0, 30, { rtl: true })),
-      piece("tog­ether", spec(0, 14, 40)),
-    ]);
-    expect(text).toBe("שלום עולם\ntogether");
   });
 });

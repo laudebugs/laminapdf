@@ -1,0 +1,2 @@
+cross_origin_isolated,fetch_corp_cross-origin,fetch_corp_none,fetch_corp_same-origin,img_corp_cross-origin,img_corp_none,img_corp_same-origin,ipc_invoke,label,origin,scheme_base,shared_array_buffer,user_agent
+false,ok,ok,ok,ok,ok,ok,ok,macos-15-hosted-headers-off,tauri://localhost,lamina://localhost/,unavailable,"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)"

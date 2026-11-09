@@ -4,6 +4,7 @@
 
 import { message } from "../messages.js";
 import { createStore, type KeyValueStore } from "./idb.js";
+import { printPages } from "./print.js";
 import type {
   Capabilities,
   Capability,
@@ -72,6 +73,7 @@ export function detectCapabilities(scope: WebScope): Capabilities {
     canOpenUrl: true,
     crossOriginIsolated: scope.crossOriginIsolated === true,
     ownsKeyboard: false,
+    canShare: typeof scope.navigator?.share === "function",
   };
 }
 
@@ -105,8 +107,9 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
       await write(handle, bytes);
       return { saved: true, name: file.name };
     },
-    print: () => Promise.reject(new Error(message("platform.error.print"))),
+    print: (job) => printPages(scope, job),
     copyText: (text) => scope.navigator.clipboard.writeText(text),
+    shareText: (text) => scope.navigator.share({ text }),
     async openExternal(url) {
       const { protocol } = new URL(url);
       if (!["http:", "https:", "mailto:"].includes(protocol)) throw new Error(message("platform.error.externalScheme"));
