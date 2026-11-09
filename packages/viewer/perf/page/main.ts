@@ -5,7 +5,7 @@
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 import { createViewer, ViewerClient, type Zoom } from "@laminapdf/viewer";
-import type { MemorySample, PerfHook, Recording } from "../types.ts";
+import type { FindTiming, MemorySample, PerfHook, Recording } from "../types.ts";
 
 const host = document.querySelector<HTMLDivElement>("#viewer");
 if (host === null) throw new Error("the page has no #viewer");
@@ -122,6 +122,21 @@ const hook: PerfHook = {
     return performance.now() - start;
   },
   setZoom: (zoom) => viewer.setZoom(zoom as Zoom),
+  find(query) {
+    return new Promise<FindTiming>((resolve) => {
+      const start = performance.now();
+      let firstResultMs: number | null = null;
+      const off = viewer.find.subscribe(() => {
+        const state = viewer.find.getState();
+        if (state.query !== query) return;
+        if (firstResultMs === null && state.total > 0) firstResultMs = performance.now() - start;
+        if (!state.done) return;
+        off();
+        resolve({ firstResultMs, fullMs: performance.now() - start, total: state.total });
+      });
+      viewer.find.find(query);
+    });
+  },
   goToPage: (index) => viewer.goToPage(index),
   scroll: () => ({ top: viewer.element.scrollTop, max: viewer.element.scrollHeight - viewer.element.clientHeight }),
   record() {

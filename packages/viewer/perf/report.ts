@@ -2,13 +2,16 @@
 // (docs/plans/web-app.md, "Non-functional"), the Markdown summary, and the figures the nightly
 // history keeps (`cargo xtask viewer-perf --record`). The checks inform; nothing here fails a run.
 
-import type { Counters, MemorySample, Recording } from "./types.ts";
+import type { Counters, FindTiming, MemorySample, Recording } from "./types.ts";
 
 /** The §4 targets. */
 export const TARGETS = {
   firstPageWarmMs: 700,
   firstPageColdMs: 3000,
   longestTaskMs: 50,
+  /** Find on the 1,000-page file: the first result, and every page searched (§4's search row). */
+  findFirstResultMs: 500,
+  findFullMs: 10_000,
   toSharpMs: 300,
   memoryBytes: 600 * 1024 * 1024,
   /** The second pass may end at most this much above the first (the plan's "stable"). */
@@ -48,6 +51,11 @@ export interface BrowserResult {
    * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
    * touch budgets), against those budgets; null in a browser without one (Firefox).
    */
+  /**
+   * Find on the 1,000-page file from page 1: a word on every page and one on page 778 only, while
+   * the view scrolls.
+   */
+  readonly find: { readonly common: FindTiming; readonly rare: FindTiming; readonly recording: Recording };
   readonly mobile: {
     readonly device: string;
     readonly peakMemory: MemorySample;
@@ -69,16 +77,21 @@ const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
 
 /** The longest main-thread task while scrolling: the Long Tasks API where there is one, else the longest frame. */
 function longestTask(result: BrowserResult): Check {
-  const name = "Longest main-thread task while scrolling";
+  return { ...longestTaskOf(...result.scroll.passes), name: "Longest main-thread task while scrolling" };
+}
+
+/** The longest main-thread task across `recordings`: the Long Tasks API's, else the longest frame. */
+function longestTaskOf(...recordings: readonly Recording[]): Check {
+  const name = "Longest main-thread task";
   const target = `≤ ${TARGETS.longestTaskMs} ms`;
-  const [first, second] = result.scroll.passes;
-  if (first.longTasks !== null && second.longTasks !== null) {
+  const lists = recordings.map((r) => r.longTasks);
+  if (lists.every((l) => l !== null)) {
     // The API reports only tasks over 50 ms, so any entry misses the target.
-    const tasks = [...first.longTasks, ...second.longTasks];
+    const tasks = lists.flatMap((l) => l ?? []);
     if (tasks.length === 0) return { name, target, value: "none over 50 ms", pass: true };
     return { name, target, value: `${tasks.length} over 50 ms, longest ${ms(Math.max(...tasks))}`, pass: false };
   }
-  const longest = Math.max(first.longestFrameMs, second.longestFrameMs);
+  const longest = Math.max(...recordings.map((r) => r.longestFrameMs));
   return { name, target, value: `${ms(longest)} (longest frame)`, pass: longest <= TARGETS.longestTaskMs };
 }
 
@@ -123,6 +136,7 @@ export function checks(result: BrowserResult): Check[] {
       pass: second.total <= first.total * (1 + TARGETS.memoryGrowth),
     },
     { name: "Cancelled renders that painted", target: "0", value: String(painted), pass: painted === 0 },
+    ...findChecks(result),
     mobileMemory(result),
     {
       name: "Zoom bursts: longest frame, slowest to sharp",
@@ -130,6 +144,27 @@ export function checks(result: BrowserResult): Check[] {
       value: `${ms(zoom.recording.longestFrameMs)}, ${ms(Math.max(...zoom.toSharpMs))}`,
       pass: null,
     },
+  ];
+}
+
+/** Find's first result and full pass against §4, and its longest task while the view scrolls. */
+function findChecks({ find }: BrowserResult): Check[] {
+  const first = find.common.firstResultMs;
+  const full = Math.max(find.common.fullMs, find.rare.fullMs);
+  return [
+    {
+      name: "Find, 1,000 pages: first result",
+      target: `≤ ${ms(TARGETS.findFirstResultMs)}`,
+      value: first === null ? "no match" : ms(first),
+      pass: first === null ? false : first <= TARGETS.findFirstResultMs,
+    },
+    {
+      name: "Find, 1,000 pages: every page searched",
+      target: `≤ ${ms(TARGETS.findFullMs)}`,
+      value: `${ms(find.common.fullMs)} (common word), ${ms(find.rare.fullMs)} (rare word)`,
+      pass: full <= TARGETS.findFullMs,
+    },
+    { ...longestTaskOf(find.recording), name: "Longest main-thread task while finding and scrolling" },
   ];
 }
 
@@ -188,9 +223,11 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
     "scroll-longest-frame": ns(Math.max(...result.scroll.passes.map((p) => p.longestFrameMs))),
     "to-sharp": ns(Math.max(...result.scroll.toSharpMs, result.fling.toSharpMs)),
     "zoom-to-sharp": ns(Math.max(...result.zoom.toSharpMs)),
+    "find-full-pass": ns(Math.max(result.find.common.fullMs, result.find.rare.fullMs)),
     "memory-peak-bytes": Math.round(Math.max(...result.scroll.passes.map((p) => p.peakMemory.total))),
   };
   if (result.firstPage.coldMs !== null) entries["first-page-cold"] = ns(result.firstPage.coldMs);
+  if (result.find.common.firstResultMs !== null) entries["find-first-result"] = ns(result.find.common.firstResultMs);
   if (result.mobile !== null) {
     entries["mobile-memory-peak-bytes"] = Math.round(
       result.mobile.peakMemory.canvases + result.mobile.peakMemory.bitmaps,

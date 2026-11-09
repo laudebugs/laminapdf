@@ -5,27 +5,41 @@
 // words change the count; Escape closes the bar, clears the highlights and gives the focus back.
 // No CSP violation or other origin throughout.
 
+import { readFileSync } from "node:fs";
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { BROWSER, launch } from "./browser.ts";
 import { clean, load as loadPage, type Watched, WITHOUT_PICKER } from "./reader.ts";
+import { type RemoteHost, startRemoteHost } from "./remote-host.ts";
 
 const origin = inject("origin");
 const FILE = new URL("../../../fixtures/golden/links-and-outlines.pdf", import.meta.url);
+const ENCRYPTED = new URL("../../../fixtures/text/encrypted/text-shaped-aes-256.pdf", import.meta.url);
 
 /** The count inside the find field ("2 of 4", "No matches"). */
 const count = (page: Page) => page.locator(".paper-find-count").textContent();
 
 describe(`find in ${BROWSER}`, () => {
   let browser: Browser;
+  let host: RemoteHost;
 
   beforeAll(async () => {
     browser = await launch();
+    host = await startRemoteHost();
+    host.add("links-and-outlines.pdf", readFileSync(FILE));
   });
 
   afterAll(async () => {
     await browser?.close();
+    await host?.close();
   });
+
+  /** Opens find with `query` typed, in a reader that already shows a document. */
+  async function typeQuery(page: Page, query: string): Promise<void> {
+    await page.locator(".web-viewer canvas").first().waitFor({ timeout: 30_000 });
+    await page.keyboard.press("ControlOrMeta+F");
+    await page.getByRole("textbox", { name: "Find in document" }).fill(query);
+  }
 
   /** The reference PDF open in a wide window, find open with `query` typed. */
   async function finding(query: string): Promise<Watched> {
@@ -50,7 +64,7 @@ describe(`find in ${BROWSER}`, () => {
     const { page } = watched;
     await expect.poll(() => count(page), { timeout: 15_000 }).toBe("1 of 4");
     await expect.poll(() => page.locator(".lamina-find-current").count()).toBeGreaterThan(0);
-    await expect(page.getByText("Searched all 4 pages")).toBeDefined();
+    await expect.poll(() => page.getByText("Searched all 4 pages").isVisible()).toBe(true);
     await clean(watched);
   });
 
@@ -97,5 +111,35 @@ describe(`find in ${BROWSER}`, () => {
     expect(await page.locator(".lamina-find-match").count()).toBe(0);
     expect(await page.evaluate(() => document.activeElement?.closest("[role=search], search") ?? null)).toBeNull();
     await clean(watched);
+  });
+
+  it("finds text in an encrypted file once its password is typed", async () => {
+    const watched = await loadPage(browser, origin, "/", WITHOUT_PICKER, { ignoreHTTPSErrors: true });
+    const { page } = watched;
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose a file" }).click();
+    await (await chooser).setFiles(ENCRYPTED.pathname);
+    const dialog = page.getByRole("dialog", { name: "Enter the password" });
+    await dialog.getByLabel("Password", { exact: true }).fill("user");
+    await dialog.getByRole("button", { name: "Open" }).click();
+    // pdf.js counts "office" twice on this page (fixtures/text/search.json).
+    await typeQuery(page, "office");
+    await expect.poll(() => count(page), { timeout: 15_000 }).toBe("1 of 2");
+    await clean(watched);
+  });
+
+  it("finds text in a remote file, read by range requests", async () => {
+    const url = `${host.origin}/cors/ranges/links-and-outlines.pdf`;
+    const watched = await loadPage(browser, origin, `/#url=${encodeURIComponent(url)}`, undefined, {
+      ignoreHTTPSErrors: true,
+      home: false,
+    });
+    const { page } = watched;
+    await typeQuery(page, "chapter");
+    await expect.poll(() => count(page), { timeout: 15_000 }).toBe("1 of 4");
+    // The page asked nothing of any origin but its own and the file's host.
+    expect(await watched.violations()).toEqual([]);
+    expect(watched.foreign.filter((u) => new URL(u).origin !== host.origin)).toEqual([]);
+    await page.close();
   });
 });

@@ -41,6 +41,15 @@ export interface Counters {
   readonly peakCanvases: number;
 }
 
+/** One find in the open file: when its first match showed, and when every page was searched. */
+export interface FindTiming {
+  /** ms from the query until the first match was found, or null when there was none. */
+  readonly firstResultMs: number | null;
+  /** ms from the query until every page was searched. */
+  readonly fullMs: number;
+  readonly total: number;
+}
+
 /** `globalThis.__laminaPerf`. */
 export interface PerfHook {
   /** With `?open=<name>`: ms from navigation start until the first page painted (null until then). */
@@ -48,6 +57,8 @@ export interface PerfHook {
   /** Opens fixture `<name>.pdf`, read before the clock starts; ms until the first page painted. */
   open(name: string): Promise<number>;
   setZoom(zoom: string): void;
+  /** Finds `query` in the open file from its current page; resolves once every page is searched. */
+  find(query: string): Promise<FindTiming>;
   goToPage(index: number): void;
   /** The scroll position and its largest value, in CSS px. */
   scroll(): { readonly top: number; readonly max: number };

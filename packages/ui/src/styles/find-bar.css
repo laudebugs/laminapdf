@@ -4,6 +4,7 @@
 @layer paper.components {
   .paper-find-bar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--paper-space-6);
     min-block-size: var(--ui-target);
@@ -14,8 +15,9 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    inline-size: min(var(--paper-find-field-width), 40vw);
-    flex: none;
+    inline-size: var(--paper-find-field-width);
+    max-inline-size: 100%;
+    flex: 0 1 auto;
   }
 
   .paper-find-input {
