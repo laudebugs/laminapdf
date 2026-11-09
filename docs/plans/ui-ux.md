@@ -151,7 +151,7 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 
 ### 5.7 Trust surfaces (R9–R13)
 
-- **Network indicator** ([U4a](../todos/ongoing/U4a-network-indicator-and-privacy-proof.md)): a status-bar item that counts requests made since the document opened, from the page, the document worker and the service worker (expected: 0 for local files, range requests to the file's own host for `#url=`), with a panel listing each origin; checked against an independent Playwright request log. The production CSP (`connect-src 'self' https:`, C4b) blocks plain HTTP; for HTTPS the indicator is the proof.
+- **Network indicator** ([U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md)): a status-bar item that counts requests made since the document opened, from the page, the document worker and the service worker (expected: 0 for local files, range requests to the file's own host for `#url=`), with a panel listing each origin; checked against an independent Playwright request log. The production CSP (`connect-src 'self' https:`, C4b) blocks plain HTTP; for HTTPS the indicator is the proof.
 - **Saving** (editor, [E1e](../todos/ready/E1e-save-and-constraint-banner.md)): explicit save only, incremental by default; the constraint banner says in plain words what saving will do to signatures before it happens.
 - **Annotations and form values** (E4, E8): written into the file with appearance streams, readable by Acrobat, pdf.js, Zotero and Readwise; export of highlights as Markdown.
 - **Signing** (E10, [E10j](../todos/ready/E10j-signature-ui.md)): two separately named actions, "Add a signature image" and "Sign with a certificate", each with one sentence on what it proves; a validation badge on open.
@@ -199,7 +199,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** the network indicator and privacy proof; reader mode from the structure tree, then the approximate reader mode for untagged files.
 **Accepted when:** the indicator shows 0 requests for local files in a Playwright test that also counts requests independently; reader mode round-trips position and passes axe; the approximate mode is labelled and scored against U2b's corpus.
-**Todos:** [U4a](../todos/ongoing/U4a-network-indicator-and-privacy-proof.md), [U4b](../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../todos/ready/U4c-approximate-reader-mode.md)
+**Todos:** [U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md), [U4b](../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../todos/ready/U4c-approximate-reader-mode.md)
 
 ### U5. Product promises
 
@@ -280,7 +280,7 @@ Ticked by the PR that completes them.
 - [ ] `mobile-shell` spike and a recommendation for ADR 0025
 
 ### U4. Trust and reflow
-- [ ] Network indicator and CSP-backed privacy test
+- [x] Network indicator and CSP-backed privacy test ([U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md))
 - [ ] Reader mode from the structure tree
 - [ ] Approximate reader mode for untagged files
 

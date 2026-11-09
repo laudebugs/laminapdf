@@ -15,7 +15,7 @@
 
 ## Goal
 
-Build the Paper component library the shells and editor modes compose: every control in the design language with every state it defines (default, hover, pressed, selected, focus, disabled, error), keyboard behaviour, right-to-left layout and touch sizes, in `@laminapdf/ui`. The components are presentational (props in, events out; no viewer store, no command registry), so [C4a](./C4a-ui-chrome-and-platform.md)'s reader chrome, [U1c](../done/U1c-inverted-l-shell-and-modes.md)'s shell, [C6a](../ready/C6a-thumbnails-outline-page-labels.md)'s rail and [U4a](../ongoing/U4a-network-indicator-and-privacy-proof.md)'s network indicator all wire behaviour into the same look instead of styling their own buttons.
+Build the Paper component library the shells and editor modes compose: every control in the design language with every state it defines (default, hover, pressed, selected, focus, disabled, error), keyboard behaviour, right-to-left layout and touch sizes, in `@laminapdf/ui`. The components are presentational (props in, events out; no viewer store, no command registry), so [C4a](./C4a-ui-chrome-and-platform.md)'s reader chrome, [U1c](../done/U1c-inverted-l-shell-and-modes.md)'s shell, [C6a](../ready/C6a-thumbnails-outline-page-labels.md)'s rail and [U4a](../done/U4a-network-indicator-and-privacy-proof.md)'s network indicator all wire behaviour into the same look instead of styling their own buttons.
 
 ## Context
 
