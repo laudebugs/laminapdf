@@ -420,6 +420,7 @@ export class Viewer {
     return this.#text?.columnMode ?? false;
   }
 
+  /** Turns column selection by plain drag on or off; Alt/Option-drag selects a rectangle either way. */
   set columnSelect(on: boolean) {
     if (this.#text !== undefined) this.#text.columnMode = on;
   }
