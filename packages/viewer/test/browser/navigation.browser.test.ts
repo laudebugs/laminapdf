@@ -97,6 +97,15 @@ describe("the thumbnails strip", () => {
 
   it("renders behind the main view's visible pages", async () => {
     const view = await opened(thousand);
+    try {
+      await rendersBehind(view);
+    } finally {
+      close(view);
+    }
+  });
+
+  /** Holds the worker while thumbnails queue, sends a visible render, and checks it ran first. */
+  async function rendersBehind(view: { viewer: Viewer; strip: ThumbnailStrip }): Promise<void> {
     const strip = view.strip.element;
     const painted = () => strip.querySelectorAll("canvas").length === strip.querySelectorAll("[role=option]").length;
     // The worker is held while thumbnails queue and the visible render is sent. A slow machine can
@@ -124,18 +133,16 @@ describe("the thumbnails strip", () => {
       // log's own outranks a background render, so reading it sooner would come before them.
       await until(painted);
       const queued = ((await hook(rpc, "__renderLog", [])) as number[]).slice(before);
-      // Sent with a margin before the worker let go: it was queued behind the hold.
+      // Sent with a margin before the hold ended: it was queued behind the hold.
       if (sent < heldUntil - 100) {
         // Thumbnails queued first, but the visible render ran first.
         expect(queued.length).toBeGreaterThan(1);
         expect(queued[0]).toBe(0.777);
-        close(view);
         return;
       }
     }
-    close(view);
-    throw new Error("the worker let go before the visible render was sent, with every hold");
-  });
+    throw new Error("the hold ended before the visible render was sent, every time");
+  }
 
   it("goes to a page on a click", async () => {
     const view = await opened(thousand);

@@ -22,7 +22,7 @@ serve({
       },
     },
     // Blocks the worker synchronously for `ms`, as a long render does, and answers with the wall
-    // clock when it let go, so a test can tell whether what it sent meanwhile arrived in time.
+    // clock when the hold ends, so a test can tell whether what it sent meanwhile arrived in time.
     __busy: {
       run: ([ms]) => {
         const until = performance.now() + (ms as number);

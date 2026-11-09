@@ -64,7 +64,7 @@ export function testViewer(
 }
 
 /**
- * Calls one of the test worker's hooks: `__busy` (ms; answers the wall clock when it let go),
+ * Calls one of the test worker's hooks: `__busy` (ms; answers the wall clock when the hold ends),
  * `__renderLog` or `__crash`.
  */
 export function hook(client: ViewerClient, method: "__busy" | "__renderLog" | "__crash", params: unknown[] = []) {
