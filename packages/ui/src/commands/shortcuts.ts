@@ -78,6 +78,13 @@ const hasCommandModifier = (key: string) =>
     .slice(0, -1)
     .some((part) => part === "ctrl" || part === "alt" || part === "meta");
 
+/**
+ * Whether `keys` is a single-key shortcut on `platform` (no Ctrl, Alt or ⌘): the kind Settings can
+ * turn off (WCAG 2.1.4), which also never acts while typing in a field.
+ */
+export const isSingleKey = (keys: string, platform: KeyPlatform): boolean =>
+  !hasCommandModifier(bindingKey(keys, platform));
+
 /** A key list entry: the keys on one or both platforms, in one or both shells, and why. */
 interface KeyRule {
   readonly keys: string;

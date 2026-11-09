@@ -46,6 +46,7 @@ import {
 } from "@laminapdf/ui";
 import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useAnnouncements } from "./announce.tsx";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
@@ -56,18 +57,19 @@ import { railTabs } from "./rail.tsx";
 import type { SelectionSurfaces } from "./selection.tsx";
 import { useSelection } from "./selection.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
+import { type Settings, useSettings } from "./settings.tsx";
 
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
 const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 
-type MoreId = "save-copy" | "print" | "properties" | "open" | "rotate";
+type MoreId = "save-copy" | "print" | "properties" | "open" | "rotate" | "settings" | "shortcuts";
 
 /** The More menu's commands, by item. */
 const MORE_COMMANDS = {
   "save-copy": "file.save-copy",
   print: "file.print",
   properties: "file.properties",
-} as const satisfies Record<Exclude<MoreId, "open" | "rotate">, OutputCommand>;
+} as const satisfies Record<Exclude<MoreId, "open" | "rotate" | "settings" | "shortcuts">, OutputCommand>;
 
 /**
  * The More menu (R09): Download a copy, Print… and Document properties, which need an open
@@ -87,6 +89,8 @@ function moreEntries(open: boolean): GatedEntry<MoreId>[] {
     { id: "properties", label: message("menu.properties"), icon: "info", ...needsDocument },
     { id: "open", label: message("reader.open.choose") },
     { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
+    { id: "settings", label: message("command.app.settings"), icon: "settings" },
+    { id: "shortcuts", label: message("command.help.shortcuts"), icon: "keyboard" },
   ];
 }
 
@@ -153,6 +157,8 @@ function useReaderCommands(
     ReturnType<typeof useHistory>["actions"] &
     Output["actions"] &
     SelectionSurfaces["actions"],
+  /** The handlers that work with or without a document: the settings'. */
+  appActions: Settings["actions"],
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -170,11 +176,12 @@ function useReaderCommands(
       actions: {
         ...shellActions(shell.layout, shell.modes, { rail }),
         "palette.open": shell.openPalette,
+        ...appActions,
         ...(viewer === undefined ? {} : documentActions),
         "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
       },
     }),
-    [platform, reader, viewer, shell, modes, rail, documentActions],
+    [platform, reader, viewer, shell, modes, rail, documentActions, appActions],
   );
   return { registry, context };
 }
@@ -320,6 +327,7 @@ function useDocumentMenu(
   platform: Platform,
   state: ReaderState,
   shown: Viewer | undefined,
+  appActions: Settings["actions"],
 ): {
   toasts: ToastQueue;
   labels: readonly string[] | undefined;
@@ -341,9 +349,50 @@ function useDocumentMenu(
   const onAction = (id: MoreId) => {
     if (id === "open") engine.reader.close();
     else if (id === "rotate") engine.getState().viewer?.rotate(90);
+    else if (id === "settings") appActions["app.settings"]?.(undefined);
+    else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
     else output.actions[MORE_COMMANDS[id]]();
   };
   return { toasts, labels, output, moreItems: { items, onAction } };
+}
+
+/** The debug menu (#debug): which backend draws the pages. */
+function EngineDebugMenu({ engine, backend }: { engine: Engine; backend: EngineState["backend"] }): ReactNode {
+  return <DebugMenu backend={backend} onBackendChange={(next) => void engine.switchBackend(next)} keys={KEYS} />;
+}
+
+/** What the canvas shows: the home, a link's failure, an open failure, and the view. */
+function Canvas({
+  engine,
+  state,
+  platform,
+  viewer,
+}: {
+  engine: Engine;
+  state: ReaderState;
+  platform: Platform;
+  viewer: Viewer | undefined;
+}): ReactNode {
+  const { reader } = engine;
+  const linkProblem = useStoreState(engine, (s) => s.linkProblem);
+  return (
+    <>
+      {state.phase === "empty" && linkProblem === undefined ? (
+        <OpenDropZone reader={reader} keys={KEYS}>
+          <p className="web-privacy">{message("reader.open.privacy")}</p>
+        </OpenDropZone>
+      ) : null}
+      {state.phase === "empty" && linkProblem !== undefined ? (
+        <RemoteFailure
+          reason={linkProblem}
+          onHome={() => engine.dismissLinkProblem()}
+          onChooseFile={() => void reader.openFromPicker()}
+        />
+      ) : null}
+      {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
+      <ViewerHost viewer={viewer} visible={state.phase === "open"} />
+    </>
+  );
 }
 
 /** The reader over `engine`, on `platform`; `debug` shows the debug menu (`#debug`). */
@@ -368,7 +417,8 @@ export function App({
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
-  const { toasts, labels, output, moreItems } = useDocumentMenu(engine, platform, state, shown);
+  const settings = useSettings(shell.openPalette);
+  const { toasts, labels, output, moreItems } = useDocumentMenu(engine, platform, state, shown, settings.actions);
   // The rail's panels are made again only when the view or the strip changes.
   const { strip } = engineState;
   const find = useFind(shown, open ? state.file : undefined);
@@ -380,19 +430,25 @@ export function App({
   const rail = tabs.length > 0;
   const history = useHistory(shown, engineState.pages);
   const selection = useSelection(shown, find, platform, KEYS);
-  const commands = useReaderCommands(platform, reader, shown, shell, rail, {
-    ...find.actions,
-    ...history.actions,
-    ...output.actions,
-    ...selection.actions,
-  });
+  const commands = useReaderCommands(
+    platform,
+    reader,
+    shown,
+    shell,
+    rail,
+    { ...find.actions, ...history.actions, ...output.actions, ...selection.actions },
+    settings.actions,
+  );
   useWindowTitle(fileName, engineState.title);
+  const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState.pages);
   const { inspector, status } = usePanels(layout, platform, network, fileName, engineState, debug);
-  const debugMenu = debug ? (
-    <DebugMenu backend={backend} onBackendChange={(next) => void engine.switchBackend(next)} keys={KEYS} />
-  ) : undefined;
   return (
-    <CommandsProvider registry={commands.registry} context={commands.context} keys={KEYS}>
+    <CommandsProvider
+      registry={commands.registry}
+      context={commands.context}
+      keys={KEYS}
+      singleKeys={settings.appearance.singleKeys}
+    >
       <ReaderShell
         layout={layout}
         modes={modes}
@@ -407,7 +463,8 @@ export function App({
             {...(shown === undefined ? {} : { history: history.history })}
             {...(labels === undefined ? {} : { labels })}
             home={<span className="web-wordmark">{APP_NAME}</span>}
-            debug={debugMenu}
+            debug={debug ? <EngineDebugMenu engine={engine} backend={backend} /> : undefined}
+            view={settings.viewButton}
             more={moreItems}
           />
         }
@@ -421,25 +478,14 @@ export function App({
           </>
         }
       >
-        {state.phase === "empty" && engineState.linkProblem === undefined ? (
-          <OpenDropZone reader={reader} keys={KEYS}>
-            <p className="web-privacy">{message("reader.open.privacy")}</p>
-          </OpenDropZone>
-        ) : null}
-        {state.phase === "empty" && engineState.linkProblem !== undefined ? (
-          <RemoteFailure
-            reason={engineState.linkProblem}
-            onHome={() => engine.dismissLinkProblem()}
-            onChooseFile={() => void reader.openFromPicker()}
-          />
-        ) : null}
-        {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
-        <ViewerHost viewer={viewer} visible={open} />
+        <Canvas engine={engine} state={state} platform={platform} viewer={viewer} />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
         {output.dialogs}
       </ReaderShell>
       <ToastRegion queue={toasts} aria-label={message("shell.toasts")} />
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
+      {settings.dialogs}
+      {liveRegions}
       {selection.toolbar}
     </CommandsProvider>
   );

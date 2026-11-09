@@ -40,8 +40,8 @@ Give every short-lived layer in lamina one implementation with correct focus, ke
 - Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](../done/U1b-command-registry-and-palette.md).
 - When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../done/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar components → [U3a](../done/U3a-responsive-mobile-and-touch.md).
 - Which panels become sheets on the phone (outline, find, view settings) → [U3a](../done/U3a-responsive-mobile-and-touch.md); the inspector as a sheet → [U3a](../done/U3a-responsive-mobile-and-touch.md) / [U1c](../done/U1c-inverted-l-shell-and-modes.md).
-- Specific dialogs (password, properties, print, settings, close with unsaved changes) → their todos ([C4a](./C4a-ui-chrome-and-platform.md), [C6c](../done/C6c-print-download-properties.md), [C7a](../ready/C7a-accessibility-and-theming.md), [E2i](../ready/E2i-signed-gating-and-close.md)).
-- F6 region cycling and the global shortcut dispatcher → [C7a](../ready/C7a-accessibility-and-theming.md), [U1b](../done/U1b-command-registry-and-palette.md).
+- Specific dialogs (password, properties, print, settings, close with unsaved changes) → their todos ([C4a](./C4a-ui-chrome-and-platform.md), [C6c](../done/C6c-print-download-properties.md), [C7a](./C7a-accessibility-and-theming.md), [E2i](../ready/E2i-signed-gating-and-close.md)).
+- F6 region cycling and the global shortcut dispatcher → [C7a](./C7a-accessibility-and-theming.md), [U1b](../done/U1b-command-registry-and-palette.md).
 - Gallery pages and screenshots → [U6f](../done/U6f-gallery-and-visual-tests.md).
 
 ## Tasks
@@ -91,7 +91,7 @@ None.
 - `@laminapdf/ui` gains `Dialog`, `Popover` with `PopoverTrigger`, `Menu` with `MenuTrigger`, `Tooltip`, and `ToastRegion` with `ToastQueue`, all on React Aria Components. `src/overlays/layer-stack.ts` keeps the open layers in the order they were opened from (a menu above its dialog, whichever registers first); `LayerScope` puts each overlay on it, and a document listener closes the innermost layer on an Escape no overlay handled.
 - Decisions, recorded in the design language: a dialog starts on its first field (a checked radio counts for its group) rather than on itself; its close button is last in the tab order; `aria-modal` is set on the element, since React Aria drops the prop. Menus and popovers draw at z 50 rather than the menu spec's 30. Disabled menu items are skipped by the arrows and show their reason as a second line. The popover is modal while open, as React Aria's popovers are. At most three toasts show, and a fourth pushes the oldest out.
 - React Aria writes an inline z-index of 100000 on popovers and tooltips; each overlay sets its own inline z-index from the token, which React Aria spreads after its own.
-- The toast region is not a toast library: no error variant, and its action must also live in a menu or a shortcut, since F6 region cycling is [C7a](../ready/C7a-accessibility-and-theming.md)'s.
+- The toast region is not a toast library: no error variant, and its action must also live in a menu or a shortcut, since F6 region cycling is [C7a](./C7a-accessibility-and-theming.md)'s.
 - Bottom sheets, the phone dialog as a sheet, anchored positioning with the selection toolbar shell and the palette shell moved to [U6i](./U6i-sheets-positioning-and-palette-shell.md) when this todo was claimed.
 
 ## Definition of done

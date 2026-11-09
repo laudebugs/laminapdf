@@ -36,7 +36,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Artboards.** `R10-view-settings.dc.html`, `R10-page-dark.dc.html`, `R10-view-settings-phone.dc.html`. The `accent` tweak of each board is also the selected swatch of the Accent row. On the phone the Accent row is below Theme, under the medium detent's fold (the sheet scrolls).
 
-**Todos.** [C7a](../../todos/ready/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md).
+**Todos.** [C7a](../../todos/done/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md).
 
 ## R11 Dark UI theme
 
@@ -58,7 +58,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Artboards.** `R11-dark-theme.dc.html`.
 
-**Todos.** [C7a](../../todos/ready/C7a-accessibility-and-theming.md).
+**Todos.** [C7a](../../todos/done/C7a-accessibility-and-theming.md).
 
 ## R12 Keyboard shortcuts
 
@@ -107,7 +107,7 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 
 **Artboards.** `R12-shortcut-help.dc.html`.
 
-**Todos.** [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md).
+**Todos.** [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/done/C7a-accessibility-and-theming.md).
 
 ## R13 Network activity panel
 
