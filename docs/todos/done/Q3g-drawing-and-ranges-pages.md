@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q3g` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0004](../../decisions/0004-render-backend.md) |
 | Branch | `feat/q3g-drawing-and-ranges` |
 | PR title | `feat(docs): pages and diagrams for drawing pages and opening large files by ranges` |
 | Size | M |
-| PR | — |
+| PR | [#335](https://github.com/laudebugs/laminapdf/pull/335) |
 
 ## Goal
 
@@ -38,18 +38,18 @@ Two features have no page of their own: how a page is drawn (and why its text ne
 
 ## Tasks
 
-- [ ] Write `concepts/drawing-pages.mdx` and `guides/open-large-files.mdx`: title, a description of 160 characters or fewer, an opening paragraph of 50 words or fewer, then the diagram and the sections that explain it; examples through `<Snippet>` from tested example files, as every page does.
-- [ ] `components/diagrams/DrawingPages.astro` and `RangeLoading.astro`.
-- [ ] Add both pages to `apps/docs/plugins/sidebar.mjs` (plan §8 asks where: decide when starting) and link them from `concepts/dependencies.mdx` and `guides/untrusted-files.mdx`.
+- [x] Write `concepts/drawing-pages.mdx` and `guides/open-large-files.mdx`: title, a description of 160 characters or fewer, an opening paragraph of 50 words or fewer, then the diagram and the sections that explain it; examples through `<Snippet>` from tested example files, as every page does.
+- [x] `components/diagrams/DrawingPages.astro` and `RangeLoading.astro`.
+- [x] Add both pages to `apps/docs/plugins/sidebar.mjs` (plan §8 asks where: decided, the existing groups, "Concepts" and "Read and edit PDFs") and link them from `concepts/dependencies.mdx` and `guides/untrusted-files.mdx`.
 
 ## Acceptance criteria
 
-- [ ] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
-- [ ] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
-- [ ] Each diagram is under 8 KB gzipped (reported in the PR).
-- [ ] `cargo xtask check docs` and the docs build pass.
-- [ ] Both pages pass `cargo xtask check docs-prose` and `docs-snippets`, and appear in the sidebar and in `llms.txt`.
-- [ ] Every example on them runs in the example suite.
+- [x] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
+- [x] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
+- [x] Each diagram is under 8 KB gzipped (reported in the PR).
+- [x] `cargo xtask check docs` and the docs build pass.
+- [x] Both pages pass `cargo xtask check docs-prose` and `docs-snippets`, and appear in the sidebar and in `llms.txt`.
+- [x] Every example on them runs in a test: `draw-page.test.ts` and `source.test.ts` (Node). Neither builds a PDF, so neither belongs in the cross-runtime suite of examples checked against the Rust references, like `open-untrusted` and `compare-pages`.
 
 ## Post-merge checks
 

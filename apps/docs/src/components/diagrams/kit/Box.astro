@@ -9,28 +9,37 @@ interface Props {
   h: number;
   label: string;
   sub?: string;
+  /** A third line under `sub`, for a box that needs two; give the box a height of 76 or more. */
+  sub2?: string;
   focus?: boolean;
   fresh?: boolean;
 }
-const { x, y, w, h, label, sub, focus = false, fresh = false } = Astro.props;
+const { x, y, w, h, label, sub, sub2, focus = false, fresh = false } = Astro.props;
+// The label's and sub lines' baselines, centred as a block: one line, two, or three.
+const [labelY, subY, sub2Y] =
+  sub === undefined
+    ? [y + h / 2 + 5]
+    : sub2 === undefined
+      ? [y + h / 2 - 3, y + h / 2 + 16]
+      : [y + h / 2 - 12, y + h / 2 + 7, y + h / 2 + 26];
+const subClass = ["dg-sub", { "dg-sub-tint": focus || fresh }];
 const cx = x + w / 2;
 const box = focus ? "dg-focus" : fresh ? "dg-fresh" : "dg-box";
 ---
 
 <rect class={box} x={x} y={y} width={w} height={h} rx="4"></rect>
+<text class:list={["dg-label", { "dg-focus-label": focus }]} x={cx} y={labelY} text-anchor="middle">{label}</text>
 {
-  sub === undefined ? (
-    <text class:list={["dg-label", { "dg-focus-label": focus }]} x={cx} y={y + h / 2 + 5} text-anchor="middle">
-      {label}
+  sub !== undefined && (
+    <text class:list={subClass} x={cx} y={subY} text-anchor="middle">
+      {sub}
     </text>
-  ) : (
-    <>
-      <text class:list={["dg-label", { "dg-focus-label": focus }]} x={cx} y={y + h / 2 - 3} text-anchor="middle">
-        {label}
-      </text>
-      <text class:list={["dg-sub", { "dg-sub-tint": focus || fresh }]} x={cx} y={y + h / 2 + 16} text-anchor="middle">
-        {sub}
-      </text>
-    </>
+  )
+}
+{
+  sub2 !== undefined && (
+    <text class:list={subClass} x={cx} y={sub2Y} text-anchor="middle">
+      {sub2}
+    </text>
   )
 }
