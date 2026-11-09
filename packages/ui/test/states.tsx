@@ -8,6 +8,7 @@ import {
   Button,
   Checkbox,
   EmptyState,
+  FindBar,
   IconButton,
   ModeSwitcher,
   NetworkIndicator,
@@ -43,7 +44,7 @@ import {
   ZoomControl,
 } from "../src/index.ts";
 import { WithCommands } from "./commands.tsx";
-import { FakeViewer, fakeFile } from "./fakes.ts";
+import { FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
 
 /** One rendering of one component in one state. */
 export interface Example {
@@ -410,6 +411,62 @@ const MORE = { items: [{ id: "open", label: "Open another file…" }], onAction:
 /** The shell's handlers the top bar's toggle and Commands button run. */
 const SHELL = { "view.toggle-sidebar": noop, "palette.open": noop };
 
+const FIND_ACTIONS = {
+  "find.next": noop,
+  "find.previous": noop,
+  "find.match-case": noop,
+  "find.whole-words": noop,
+  "find.close": noop,
+};
+
+const findBar: Example[] = [
+  {
+    component: "FindBar",
+    state: "done: 3 of 9",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const find = new FakeFind({
+        query: "repairs",
+        total: 9,
+        current: 2,
+        searched: 24,
+        options: { wholeWords: true },
+      });
+      return (
+        <WithCommands reader={reader} viewer={new FakeViewer()} actions={FIND_ACTIONS}>
+          <FindBar find={find} onClose={noop} />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "FindBar",
+    state: "counting, with pages without text",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const find = new FakeFind({ query: "repairs", total: 40, searched: 14, done: false, pagesWithoutText: 4 });
+      return (
+        <WithCommands reader={reader} viewer={new FakeViewer()} actions={FIND_ACTIONS}>
+          <FindBar find={find} onClose={noop} />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "FindBar",
+    state: "no matches",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const find = new FakeFind({ query: "backlogs", searched: 24 });
+      return (
+        <WithCommands reader={reader} viewer={new FakeViewer()} actions={FIND_ACTIONS}>
+          <FindBar find={find} onClose={noop} />
+        </WithCommands>
+      );
+    },
+  },
+];
+
 const topBar: Example[] = [
   {
     component: "ReaderTopBar",
@@ -539,6 +596,7 @@ const repairs: Example[] = [
 /** Every example, grouped as the design language's §7 orders the components. */
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
+  ...findBar,
   ...buttons,
   ...toggles,
   ...rail,

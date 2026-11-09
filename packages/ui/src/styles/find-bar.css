@@ -1,0 +1,56 @@
+/* The find bar (§7.30): in the secondary-toolbar slot, a 28 px field (`find-field-width`) with a search icon's
+   room and the count inside it in muted tabular figures, the buttons, a divider, the two toggles
+   (§7.24 without icons), the note and Close. */
+@layer paper.components {
+  .paper-find-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-6);
+    min-block-size: var(--ui-target);
+    padding-inline: var(--paper-space-12);
+  }
+
+  .paper-find-field {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    inline-size: min(var(--paper-find-field-width), 40vw);
+    flex: none;
+  }
+
+  .paper-find-input {
+    inline-size: 100%;
+    block-size: var(--ui-target);
+    padding-inline: var(--paper-space-8) var(--paper-find-count-inline);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-field);
+    color: var(--paper-text);
+    font: var(--paper-type-control);
+  }
+
+  .paper-find-count {
+    position: absolute;
+    inset-inline-end: var(--paper-space-8);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+    color: var(--paper-muted);
+    pointer-events: none;
+  }
+
+  .paper-find-divider {
+    inline-size: var(--paper-border-width);
+    block-size: var(--paper-space-20);
+    background: var(--paper-hairline);
+  }
+
+  .paper-find-note {
+    flex: 1;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: var(--paper-type-caption);
+    color: var(--paper-text-3);
+  }
+}
