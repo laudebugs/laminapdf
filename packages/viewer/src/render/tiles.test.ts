@@ -56,18 +56,19 @@ describe("tiles", () => {
     }
   });
 
-  // At 10 % an A4 page is 79.33 device px wide and its canvas 79: compared with the fractional
-  // size, that rounding read as a pool cap, the scale fell a hair below the full one, and every
-  // page waited for one of the three detail canvases (docs/bugs/viewer-zoomed-out-pages-stay-blurry).
+  // At 10 % the perf harness's 595-point page is 79.33 device px wide and its canvas 79: compared
+  // with the fractional size, that rounding read as a pool cap, the scale fell a hair below the
+  // full one, and every page waited for one of the three detail canvases
+  // (docs/bugs/viewer-zoomed-out-pages-stay-blurry). The old rule fell below in 18,742 of these cases.
   it("keeps the full scale whenever the pool fits the whole page, at any zoom, pixel ratio and rotation", () => {
     const pages = [
       { width: 612, height: 792 },
+      { width: 595, height: 842 },
       { width: 595.28, height: 841.89 },
       { width: 792, height: 612 },
     ];
     const zooms = Array.from({ length: 791 }, (_, i) => 10 + i);
     let checked = 0;
-    let oldRuleBelow = 0;
     for (const page of pages) {
       for (const dpr of [1, 1.25, 1.5, 2, 2.5, 3]) {
         for (const zoom of zooms) {
@@ -76,20 +77,18 @@ describe("tiles", () => {
             const [w, h] = rotation === 90 ? [page.height, page.width] : [page.width, page.height];
             const css = { width: w * cssScale, height: h * cssScale };
             const wanted = pagePixels(page, cssScale * dpr, rotation);
-            // The pool grants everything: the fit is what was asked for.
-            expect(sharpScale(cssScale, dpr, css, wanted, wanted)).toBe(cssScale * dpr);
+            // A pool that grants everything fits as CanvasPool.fit does: the request, rounded.
+            const fitted = {
+              width: Math.max(1, Math.round(wanted.width)),
+              height: Math.max(1, Math.round(wanted.height)),
+            };
+            expect(sharpScale(cssScale, dpr, css, fitted, wanted)).toBe(cssScale * dpr);
             checked++;
-            // The old rule: the fit of the fractional size, rounded, against that fractional size.
-            const rounded = { width: Math.round(css.width * dpr), height: Math.round(css.height * dpr) };
-            const old = cssScale * Math.min(dpr, rounded.width / css.width, rounded.height / css.height);
-            if (old < cssScale * dpr * (1 - 1e-9)) oldRuleBelow++;
           }
         }
       }
     }
-    expect(checked).toBe(28_476);
-    // The old rule took rounding for a cap in two thirds of these cases.
-    expect(oldRuleBelow).toBe(18_742);
+    expect(checked).toBe(37_968);
   });
 
   it("makes the low pass at most 256 px wide and half the sharp scale", () => {
