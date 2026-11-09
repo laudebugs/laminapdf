@@ -98,3 +98,32 @@ describe("page links", () => {
     expect(doc.pageLinks(0)[0]?.rect).toEqual([72, 38, 400, 56]);
   });
 });
+
+describe("properties", () => {
+  beforeAll(() => loadExtract());
+
+  it("matches pypdf's facts for the corpus's outline and encrypted files", () => {
+    const facts = JSON.parse(readText("fixtures/corpus/expected.json")) as Record<
+      string,
+      {
+        properties: {
+          title: string | null;
+          producer: string | null;
+          encryption_revision: number | null;
+          fonts: string[];
+        };
+      }
+    >;
+    for (const name of ["outline.pdf", "enc.pdf"]) {
+      using doc = Document.open(read(`fixtures/corpus/${name}`));
+      const p = doc.properties();
+      const fonts = [...new Set(p.fonts.flatMap((f) => (f.name === undefined ? [] : [f.name])))].sort();
+      expect({
+        title: p.title ?? null,
+        producer: p.producer ?? null,
+        encryption_revision: p.encryption?.revision ?? null,
+        fonts,
+      }).toEqual({ ...facts[name]?.properties, signatures: undefined });
+    }
+  });
+});

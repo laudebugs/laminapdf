@@ -55,12 +55,27 @@ export type SaveResult =
   | { readonly saved: true; readonly name: string }
   | { readonly saved: false; readonly reason: "cancelled" };
 
-/** A print request: the pages, how to render them at the print resolution, and the original bytes. */
+/** One page drawn for printing: an image, and the size it prints at in points. */
+export interface PrintPage {
+  /** The page as an image (PNG or JPEG). */
+  readonly image: Blob;
+  /** Its size in points, rotation applied. */
+  readonly width: number;
+  readonly height: number;
+}
+
+/** A print request: the pages, how to draw each for printing, and the original bytes. */
 export interface PrintJob {
-  /** Page indices, 0-based. */
+  /** Page indices, 0-based, in the order they print. */
   readonly pages: readonly number[];
-  /** Renders one page at `dpi` for printing. */
-  render(page: number, dpi: number): Promise<ImageBitmap>;
+  /** Draws one page for printing; called one page at a time, so one page's pixels are held at once. */
+  render(page: number, signal: AbortSignal): Promise<PrintPage>;
+  /** `fit` scales each page to the paper; `actual` prints it at its own size. */
+  readonly scale: "fit" | "actual";
+  /** Told after each page is ready; the last call (`ready === total`) comes as the print window opens. */
+  readonly onProgress?: (ready: number, total: number) => void;
+  /** Stops preparing: no print window opens, and what was drawn is let go. */
+  readonly signal?: AbortSignal;
   /** The PDF itself, for platforms that print it natively. */
   readonly bytes?: Uint8Array;
 }

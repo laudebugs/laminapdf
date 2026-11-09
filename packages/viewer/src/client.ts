@@ -34,6 +34,7 @@ import {
   type Params,
   type PolicyViolation,
   PRIORITY,
+  type PrintOptions,
   type Priority,
   type RenderedBitmap,
   type Result,
@@ -300,6 +301,30 @@ export class ViewerClient {
   /** Where the named destination `name` goes, or `undefined` when the document has no such name. */
   namedDestination(name: string, options?: ViewerCallOptions) {
     return this.call("namedDestination", [name], options);
+  }
+
+  /**
+   * What a properties view shows about the open document (`@laminapdf/sdk`'s `properties()`,
+   * read in the worker). It reads every object once: ask when the view opens.
+   */
+  properties(options?: ViewerCallOptions) {
+    return this.call("properties", [], options);
+  }
+
+  /**
+   * Page `index` drawn for printing at `print.dpi` with annotations as their print flags say, as
+   * a PNG, at `background` priority unless `options` says otherwise, so the pages in view draw first.
+   */
+  printPage(index: number, print: PrintOptions, options: ViewerCallOptions = {}) {
+    return this.call("printPage", [index, print], { priority: "background", ...options });
+  }
+
+  /**
+   * Every byte of the open remote file as it was opened, fetched where the block cache lacks
+   * them. A local file's bytes are the page's own: it never asks.
+   */
+  fileBytes(options?: ViewerCallOptions) {
+    return this.call("fileBytes", [], options);
   }
 
   /** Page `index`'s links, in annotation order, each with what following it does (the link layer asks as pages mount). */

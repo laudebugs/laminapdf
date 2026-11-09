@@ -233,6 +233,30 @@ fn the_outline_and_named_destinations_cross_as_records() {
     assert!(doc.named_destination("nowhere").unwrap().is_undefined());
 }
 
+/// `WasmDocument.properties` (the extract and text modules): Info entries, a nested `contains`,
+/// encryption with its permissions, and fonts as records.
+#[cfg(feature = "extract")]
+#[wasm_bindgen_test]
+fn properties_cross_as_one_record() {
+    use js_sys::Array;
+    const OUTLINE: &[u8] = include_bytes!("../../../fixtures/corpus/outline.pdf");
+    const ENC: &[u8] = include_bytes!("../../../fixtures/corpus/enc.pdf");
+    let doc = WasmDocument::open_bytes(OUTLINE.to_vec(), &JsValue::UNDEFINED).unwrap();
+    let p = doc.properties().unwrap();
+    assert_eq!(string(&p, "title").as_deref(), Some("Outline fixture"));
+    assert_eq!(string(&p, "created").as_deref(), Some("2026-10-28T12:00:00Z"));
+    assert_eq!(get(&p, "pageCount").as_f64(), Some(3.0));
+    assert_eq!(get(&get(&p, "contains"), "forms").as_bool(), Some(false));
+    let fonts: Array = get(&p, "fonts").dyn_into().unwrap();
+    assert_eq!(string(&fonts.get(0), "name").as_deref(), Some("Helvetica"));
+    // A missing value is left out, never `null`: the `.d.ts` types it as optional.
+    assert!(Reflect::has(&p, &JsValue::from_str("encryption")).is_ok_and(|has| !has));
+    let enc = WasmDocument::open_bytes(ENC.to_vec(), &JsValue::UNDEFINED).unwrap();
+    let encryption = get(&enc.properties().unwrap(), "encryption");
+    assert_eq!(get(&encryption, "revision").as_f64(), Some(6.0));
+    assert!(get(&get(&encryption, "permissions"), "print").as_bool().is_some());
+}
+
 /// `WasmDocument.pageLinks` (the extract and text modules): a rectangle in page space, the kind
 /// at the top level beside its fields, and `page-index-out-of-range` past the end.
 #[cfg(feature = "extract")]

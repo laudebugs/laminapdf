@@ -27,8 +27,8 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | R05 | Find in document: find bar, match count, results list in the rail, case/whole-word options | W, M | [C5b](../../todos/done/C5b-find-in-document.md), [C5c](../../todos/done/C5c-find-results-tab.md) |
 | R06 | Rail tabs: Pages (thumbnails with page labels) · Outline (nested, expand/collapse) · contextual tabs (Attachments, Results…) | W | [C6a](../../todos/done/C6a-thumbnails-outline-page-labels.md) |
 | R07 | Links and history: link hover target preview, back/forward after following a link | W | [C6b](../../todos/done/C6b-links-and-history.md) |
-| R08 | Document properties (dialog: title, author, PDF version, page size, fonts, security, tagged) | W | [C6c](../../todos/ready/C6c-print-download-properties.md) |
-| R09 | Print and Download a copy (print dialog: range, scale, page appearance warning) | W | [C6c](../../todos/ready/C6c-print-download-properties.md) |
+| R08 | Document properties (dialog: title, author, PDF version, page size, fonts, security, tagged) | W | [C6c](../../todos/done/C6c-print-download-properties.md) |
+| R09 | Print and Download a copy (print dialog: range, scale, page appearance warning) | W | [C6c](../../todos/done/C6c-print-download-properties.md) |
 | R10 | View settings: UI theme (light, dark, high contrast, match system), accent colour (Teal, Blue, Plum, Green), page appearance (Original, Sepia, Dark, High contrast), page layout (single, two-up, continuous), zoom presets | W, M | [C7a](../../todos/ready/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md) |
 | R11 | Dark UI theme (F01 in dark chrome, page Original) | W | [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
 | R12 | Keyboard shortcuts (help generated from the command registry) | W | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
