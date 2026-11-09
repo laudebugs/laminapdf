@@ -94,6 +94,7 @@ export type ErrorCode =
   | "embedded-file-forbidden"
   | "embedded-file-without-mime-type"
   | "flow-content-too-large"
+  | "flow-layout-unstable"
   | "render-too-large"
   | "render-failed"
   | "render-backend-unavailable"
@@ -277,6 +278,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "embedded-file-forbidden",
   "embedded-file-without-mime-type",
   "flow-content-too-large",
+  "flow-layout-unstable",
   "render-too-large",
   "render-failed",
   "render-backend-unavailable",
@@ -491,6 +493,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "embedded-file-forbidden": "usage",
   "embedded-file-without-mime-type": "usage",
   "flow-content-too-large": "usage",
+  "flow-layout-unstable": "usage",
   "flow-keep-broken": "usage",
   "render-too-large": "limit",
   "render-failed": "input",
@@ -657,6 +660,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "embedded-file-forbidden": "choose PDF/A-3b, which allows attached files of any kind",
   "embedded-file-without-mime-type": "pass the file's MIME type, such as text/xml or application/octet-stream",
   "flow-content-too-large": "make the figure smaller, the text size smaller or the page's margins narrower",
+  "flow-layout-unstable": "give the contents page its own pages with a page break after it, or list fewer heading levels",
   "flow-keep-broken": "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
   "render-too-large": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
   "render-failed": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",

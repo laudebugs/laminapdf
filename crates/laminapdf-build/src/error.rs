@@ -255,6 +255,10 @@ pub enum Error {
         /// What is too tall: `line` or `figure` (fixed text).
         what: &'static str,
     },
+    /// A flow with a contents page was laid out four times and its page numbers still
+    /// changed: each layout moved the headings that the contents page lists.
+    #[error("a flow's contents page did not settle in four layouts")]
+    FlowLayoutUnstable,
     /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
     #[cfg(feature = "text")]
     #[error(transparent)]
@@ -334,6 +338,7 @@ impl Error {
             Self::EmbeddedFileForbidden { .. } => "embedded-file-forbidden",
             Self::EmbeddedFileWithoutMimeType { .. } => "embedded-file-without-mime-type",
             Self::FlowContentTooLarge { .. } => "flow-content-too-large",
+            Self::FlowLayoutUnstable => "flow-layout-unstable",
             #[cfg(feature = "text")]
             Self::Text(e) => e.code(),
             Self::Cos(e) => e.code(),
@@ -379,7 +384,8 @@ impl Error {
             | Self::DeviceColorWithoutOutputIntent { .. }
             | Self::EmbeddedFileForbidden { .. }
             | Self::EmbeddedFileWithoutMimeType { .. }
-            | Self::FlowContentTooLarge { .. } => ErrorKind::Usage,
+            | Self::FlowContentTooLarge { .. }
+            | Self::FlowLayoutUnstable => ErrorKind::Usage,
         }
     }
 
@@ -424,7 +430,8 @@ impl Error {
             | Self::GlyphWithoutUnicode { .. }
             | Self::EmbeddedFileForbidden { .. }
             | Self::EmbeddedFileWithoutMimeType { .. }
-            | Self::FlowContentTooLarge { .. } => Location::NONE,
+            | Self::FlowContentTooLarge { .. }
+            | Self::FlowLayoutUnstable => Location::NONE,
         }
     }
 }

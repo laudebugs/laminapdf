@@ -891,6 +891,13 @@
       "summary": "a line or a figure of a flow is taller than the page's body, so no page can hold it",
       "hint": "make the figure smaller, the text size smaller or the page's margins narrower",
       "since": "0.2.0"
+    },
+    {
+      "code": "flow-layout-unstable",
+      "kind": "usage",
+      "summary": "a flow's contents page kept changing its page numbers after four layouts",
+      "hint": "give the contents page its own pages with a page break after it, or list fewer heading levels",
+      "since": "0.2.0"
     }
   ],
   "buildWarnings": [
