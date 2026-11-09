@@ -132,7 +132,7 @@ fn open_target(handle: &AppHandle, n: usize, out: Option<&Path>) -> Result<Optio
     let hwnd = handle
         .get_webview_window("main")
         .and_then(|w| w.hwnd().ok())
-        .map(|h| HWND(h.0))
+        .map(|h| h.0 as isize)
         .ok_or("no main window")?;
     let (tx, rx) = channel();
     let n32 = n as u32;
@@ -141,7 +141,8 @@ fn open_target(handle: &AppHandle, n: usize, out: Option<&Path>) -> Result<Optio
             let mut ranges = [PRINTPAGERANGE { nFromPage: 1, nToPage: n32 }; 16];
             let mut dlg = PRINTDLGEXW {
                 lStructSize: std::mem::size_of::<PRINTDLGEXW>() as u32,
-                hwndOwner: hwnd,
+                // The handle crosses threads as a number: HWND isn't Send.
+                hwndOwner: HWND(hwnd as *mut c_void),
                 Flags: PD_RETURNDC | PD_NOSELECTION | PD_NOCURRENTPAGE,
                 nPageRanges: 1,
                 nMaxPageRanges: ranges.len() as u32,
@@ -276,7 +277,7 @@ pub fn print_raster(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -
 }
 
 pub fn print_vector(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -> Result<(), String> {
-    let bindings = pdf::pdfium()?.bindings();
+    let bindings = pdf::raw_bindings()?;
     // SAFETY: the bytes outlive the document, which is closed before returning.
     let doc = unsafe { bindings.FPDF_LoadMemDocument64(&fixture.bytes, None) };
     if doc.is_null() {
