@@ -91,8 +91,8 @@ The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a 
 | `fpdf2.pdf` | `05-generation-approaches/fpdf2_demo.py`, written by fpdf2 (LGPL-3.0; only its output is committed, no fpdf2 code) | Classic file from a third-party writer |
 | `reportlab.pdf` | `05-generation-approaches/reportlab_demo.py`, written by ReportLab (BSD-3-Clause) | `ASCII85Decode` content (an unsupported filter: only content decoding fails) |
 | `outline.pdf` | [`tools/fixtures/outline.py`](../tools/fixtures/outline.py) (no dependencies) | Three-level outline (closed item, PDFDocEncoding and UTF-16BE titles, explicit, named and `GoTo` destinations), `/Names /Dests` and catalog `/Dests`, page labels, an Info dictionary with a valid and an invalid date |
-| `expected.json` | pypdf over every corpus file ([`tools/corpus-facts/facts.py`](../tools/corpus-facts/facts.py)) | Facts checked by `crates/laminapdf-cos/tests/corpus.rs` and `crates/laminapdf-model/tests/corpus.rs` |
-| `exceptions.toml` | hand-written | Deliberate differences from `expected.json`, each with its ADR 0003 rule (none today) |
+| `expected.json` | pypdf over every corpus file ([`tools/corpus-facts/facts.py`](../tools/corpus-facts/facts.py)) | Facts checked by `crates/laminapdf-cos/tests/corpus.rs` and `crates/laminapdf-model/tests/corpus.rs`; each outline item's page (`outline_pages`) and the page labels (`page_labels`) by `crates/laminapdf/tests/navigation.rs` |
+| `exceptions.toml` | hand-written | Deliberate differences from `expected.json`, each with its ADR 0003 rule or the ISO 32000-2 section Lamina PDF follows where pypdf falls short (one today: `outline.pdf`'s Appendix, a `GoTo` action through a named destination pypdf can't follow) |
 | `pdfjs-operators.json` | pdf.js over every page of `corpus/`, `golden/` and `content/` ([`tools/corpus-facts/pdfjs-operators.mjs`](../tools/corpus-facts/pdfjs-operators.mjs)) | Operator counts checked by `crates/laminapdf-content/tests/corpus.rs` |
 | `pdfjs-exceptions.toml` | hand-written | Pages Lamina PDF can't interpret yet, with the error code and ADR 0003 rule (`reportlab.pdf`: `ASCII85Decode`) |
 
