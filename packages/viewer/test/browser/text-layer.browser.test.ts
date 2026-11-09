@@ -252,11 +252,13 @@ describe("structure", () => {
 });
 
 describe("pointer", () => {
-  /** The first span of page 0 with more than `min` characters, in view, marked for `dragAcross`. */
+  /** The first span of page 0 with more than `min` characters, wholly in view, marked for `dragAcross`. */
   async function word(min = 8): Promise<HTMLElement> {
     const span = (await spansOf(0)).find((s) => {
       const box = s.getBoundingClientRect();
-      return (s.textContent ?? "").trim().length > min && box.top >= 0 && box.bottom <= window.innerHeight;
+      const inView =
+        box.top >= 0 && box.bottom <= window.innerHeight && box.left >= 0 && box.right <= window.innerWidth;
+      return (s.textContent ?? "").trim().length > min && inView;
     });
     if (span === undefined) throw new Error("no word in view on page 0");
     span.id = "drag-target";
@@ -269,12 +271,23 @@ describe("pointer", () => {
     return document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
   }
 
+  /**
+   * The selection is the start of `span`'s text, most of it: the drag stops 2 px inside the span,
+   * which can fall before a narrow last letter.
+   */
+  function expectStartOf(span: HTMLElement): void {
+    const text = span.textContent?.trim() ?? "";
+    const selected = document.getSelection()?.toString().trim() ?? "";
+    expect(selected.length).toBeGreaterThanOrEqual(text.length - 1);
+    expect(text.startsWith(selected)).toBe(true);
+  }
+
   it("selects a word under a mouse drag: the layers over the text let the pointer through", async () => {
     await show(await read("fixtures/golden/text-latin.pdf"));
     const span = await word();
     expect(hitAt(span)).toBe(span);
     await commands.dragAcross("#drag-target");
-    expect(document.getSelection()?.toString().trim()).toBe(span.textContent?.trim());
+    expectStartOf(span);
   });
 
   it("keeps the text under a layer added on top, even one that covers the page", async () => {
@@ -290,6 +303,6 @@ describe("pointer", () => {
     const span = await word();
     expect(hitAt(span)).toBe(span);
     await commands.dragAcross("#drag-target");
-    expect(document.getSelection()?.toString().trim()).toBe(span.textContent?.trim());
+    expectStartOf(span);
   });
 });

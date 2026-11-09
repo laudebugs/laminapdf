@@ -1,10 +1,10 @@
 # The reader's text can't be selected with the mouse
 
-[Resolution](resolution.md).
+Dragging the mouse across a page's text in the reader selected nothing. The two layer slots above the text covered the whole page and took every press, so no drag reached the text's spans. The fix is in [resolution.md](resolution.md).
 
 ## What the user saw
 
-In the web reader, dragging the mouse across a page's text selected nothing, though the viewer's text layer had shipped (C5a) and its browser tests passed.
+In the web reader, dragging the mouse across a page's text selected nothing, though the viewer's text layer had shipped and its browser tests passed.
 
 ## How to reproduce it
 
@@ -35,6 +35,6 @@ The touch gestures were ruled out: they take only fingers and pens, never the mo
 
 ## The cause
 
-`Viewer.#slot` (`packages/viewer/src/view/viewer.ts`) gives each page three slots above its canvas, each `position: absolute; inset: 0`, so each covers the whole page. The two above the text are empty (find highlights mount in one, and their boxes already let the pointer through), but the slots themselves took every press. A drag started on the top slot, which inherits `user-select: none` from the viewer's root, so the browser began no selection.
+`Viewer.#slot` (`packages/viewer/src/view/viewer.ts`) gives each page three slots above its canvas, each `position: absolute; inset: 0`, so each covers the whole page. The two above the text hold nothing a reader clicks: find's highlight boxes, the only content so far, already let the pointer through. The slots themselves took every press. A drag started on the top slot, which inherits `user-select: none` from the viewer's root, so the browser began no selection.
 
 The viewer's text-layer tests selected text through the Selection API (`selectAllChildren`, `addRange`), which never asks which element is under the pointer, so they passed while no mouse drag could reach a span.

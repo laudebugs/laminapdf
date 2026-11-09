@@ -86,8 +86,8 @@ export interface ViewerEventMap {
 export interface PageLayer {
   /**
    * Its slot: `text`, `annot` and `highlight` exist on every page; another name gets a new one on top.
-   * Every slot but `text` lets the pointer through, so the text stays selectable under it: an element a
-   * layer wants clicked (a link) sets `pointer-events: auto` itself.
+   * Every slot but `text` lets the pointer through, so the text stays selectable under it. An element a
+   * layer wants clicked, such as a link, sets `pointer-events: auto` on itself.
    */
   readonly name: string;
   /** Page `page` was mounted: `element` is the layer's slot in its shell. */
