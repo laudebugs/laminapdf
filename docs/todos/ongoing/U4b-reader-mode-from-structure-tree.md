@@ -36,7 +36,7 @@ Give phone readers and people who need larger text a one-tap reader mode that tu
 
 **Out of scope** (and which todo covers it)
 
-- Untagged files → [U4c](./U4c-approximate-reader-mode.md).
+- Untagged files → [U4c](../ready/U4c-approximate-reader-mode.md).
 - Exporting reflowed text as HTML/EPUB → a later E3i extraction follow-up.
 
 ## Tasks
