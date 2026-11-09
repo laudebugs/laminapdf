@@ -34,11 +34,11 @@ use laminapdf_model::{Document, PageId, RectPt};
 use laminapdf_syntax::{Budget, CancelToken, Step};
 
 use crate::error::ExtractError;
-use crate::job::{PageFeed, extract_job};
+use crate::job::{PageFeed, TreeSource, extract_job_with};
 use crate::model::{Block, BlockKind};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::TreeUse;
-use crate::tagged::Implausible;
+use crate::tagged::{Implausible, TaggedIndex};
 use tree::{CropKind, TreeFacts};
 
 /// The most content a tree may hold outside any block-level element.
@@ -240,7 +240,8 @@ pub fn reflow(doc: &Document, cancel: &CancelToken) -> Result<Reflow, ExtractErr
     if checks.generic_share > MAX_GENERIC {
         return Ok(Reflow::refused(ReflowRefusal::Generic, lang, checks));
     }
-    let (extraction, feed) = run(doc, cancel)?;
+    let index = TaggedIndex::from_tree(doc, &tree)?;
+    let (extraction, feed) = run(doc, index, cancel)?;
     for page in &feed {
         match page.tree {
             TreeUse::Used => checks.pages_used += 1,
@@ -311,9 +312,13 @@ fn catalog_lang(doc: &Document) -> Result<Option<String>, ExtractError> {
 }
 
 /// The extraction reader mode reads, with what each page gave besides its blocks.
-fn run(doc: &Document, cancel: &CancelToken) -> Result<(crate::Extraction, Vec<PageFeed>), ExtractError> {
+fn run(
+    doc: &Document,
+    index: Option<TaggedIndex>,
+    cancel: &CancelToken,
+) -> Result<(crate::Extraction, Vec<PageFeed>), ExtractError> {
     let options = ExtractOptions::default().with_reading_order(ReadingOrder::Auto);
-    let mut job = extract_job(doc, &options)?;
+    let mut job = extract_job_with(doc, &options, TreeSource::Given(index))?;
     job.feed = Some(Vec::new());
     job.set_cancel(cancel);
     loop {
@@ -345,8 +350,43 @@ fn element(block: &Block) -> Option<ObjRef> {
     block.struct_ref.as_ref().map(|r| ObjRef::new(r.obj, r.r#gen))
 }
 
-/// One entry of a page's reading order: its place in the tree's order and the block.
-type Entry = (usize, ReflowBlock);
+/// One entry of a page's reading order: its element's place in the tree's order (`None` for
+/// text in no element) and the block.
+type Entry = (Option<usize>, ReflowBlock);
+
+/// A page's entries in reading order. Text in no element follows the text before it on the page.
+/// On a page with no text from the tree (one whose tree the per-page checks ignored, so its text
+/// is in the layout's order), each crop goes before the first text below its top.
+fn page_order(entries: Vec<Entry>) -> Vec<ReflowBlock> {
+    let (text, crops): (Vec<Entry>, Vec<Entry>) = entries.into_iter().partition(|(_, b)| !b.kind.is_crop());
+    if text.iter().all(|(order, _)| order.is_none()) {
+        let top = |b: &ReflowBlock| b.bbox.map_or(f64::INFINITY, |r| r.y0.get());
+        let mut crops: Vec<ReflowBlock> = crops.into_iter().map(|(_, b)| b).collect();
+        crops.sort_by(|a, b| top(a).total_cmp(&top(b)));
+        let mut out = Vec::new();
+        let mut crops = crops.into_iter().peekable();
+        for (_, block) in text {
+            while let Some(crop) = crops.next_if(|c| top(c) < top(&block)) {
+                out.push(crop);
+            }
+            out.push(block);
+        }
+        out.extend(crops);
+        return out;
+    }
+    let mut last = 0;
+    let mut keyed: Vec<(usize, ReflowBlock)> = text
+        .into_iter()
+        .map(|(order, block)| {
+            last = order.unwrap_or(last);
+            (last, block)
+        })
+        .chain(crops.into_iter().map(|(order, block)| (order.unwrap_or(0), block)))
+        .collect();
+    // Stable: blocks of one element keep extraction's order, and text before crops of equal place.
+    keyed.sort_by_key(|(order, _)| *order);
+    keyed.into_iter().map(|(_, b)| b).collect()
+}
 
 /// The blocks of reader mode: the extraction's text blocks, but those inside a crop element,
 /// and the crops, each placed by its element's place in the tree.
@@ -374,7 +414,6 @@ fn assemble(blocks: &[Block], facts: &TreeFacts, feed: &[PageFeed]) -> Vec<Reflo
         })
         .collect();
     let mut pages: BTreeMap<usize, Vec<Entry>> = BTreeMap::new();
-    let mut last_order = 0;
     for block in blocks {
         let object = element(block);
         let crop = object.and_then(|o| facts.in_crop.get(&o)).copied();
@@ -388,11 +427,8 @@ fn assemble(blocks: &[Block], facts: &TreeFacts, feed: &[PageFeed]) -> Vec<Reflo
             }
             continue;
         }
-        // Text outside the tree follows the block before it.
-        let order = object.and_then(|o| facts.order.get(&o)).copied().unwrap_or(last_order);
-        last_order = order;
         pages.entry(block.page).or_default().push((
-            order,
+            object.and_then(|o| facts.order.get(&o)).copied(),
             ReflowBlock {
                 kind: kind_of(block),
                 text: block.text.clone(),
@@ -412,7 +448,7 @@ fn assemble(blocks: &[Block], facts: &TreeFacts, feed: &[PageFeed]) -> Vec<Reflo
             CropKind::Table => ReflowKind::Table,
         };
         pages.entry(page).or_default().push((
-            crop.order,
+            Some(crop.order),
             ReflowBlock {
                 kind,
                 text: String::new(),
@@ -422,19 +458,49 @@ fn assemble(blocks: &[Block], facts: &TreeFacts, feed: &[PageFeed]) -> Vec<Reflo
             },
         ));
     }
-    pages
-        .into_values()
-        .flat_map(|mut entries| {
-            // Stable: blocks of one element keep extraction's order.
-            entries.sort_by_key(|(order, _)| *order);
-            entries.into_iter().map(|(_, b)| b)
-        })
-        .collect()
+    pages.into_values().flat_map(page_order).collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{ReflowChecks, ReflowRefusal, verdict};
+    use laminapdf_model::RectPt;
+
+    use super::{ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal, page_order, verdict};
+
+    fn block(kind: ReflowKind, text: &str, y: f64) -> ReflowBlock {
+        ReflowBlock {
+            kind,
+            text: text.to_owned(),
+            page: 0,
+            bbox: Some(RectPt::from_points(50.0, y, 100.0, 20.0)),
+            alt: None,
+        }
+    }
+
+    fn texts(blocks: &[ReflowBlock]) -> Vec<&str> {
+        blocks.iter().map(|b| b.text.as_str()).collect()
+    }
+
+    #[test]
+    fn untagged_text_follows_the_text_before_it_and_crops_take_their_place_in_the_tree() {
+        let got = page_order(vec![
+            (Some(5), block(ReflowKind::Paragraph, "a", 100.0)),
+            (None, block(ReflowKind::Paragraph, "b", 400.0)),
+            (Some(9), block(ReflowKind::Paragraph, "c", 200.0)),
+            (Some(7), block(ReflowKind::Figure, "fig", 300.0)),
+        ]);
+        assert_eq!(texts(&got), ["a", "b", "fig", "c"]);
+    }
+
+    #[test]
+    fn on_a_page_with_no_tree_text_crops_go_in_by_their_height() {
+        let got = page_order(vec![
+            (None, block(ReflowKind::Paragraph, "top", 100.0)),
+            (None, block(ReflowKind::Paragraph, "bottom", 500.0)),
+            (Some(3), block(ReflowKind::Figure, "fig", 300.0)),
+        ]);
+        assert_eq!(texts(&got), ["top", "fig", "bottom"]);
+    }
 
     #[test]
     fn the_verdict_refuses_ignored_pages_by_their_main_reason_then_a_low_agreement() {

@@ -53,11 +53,13 @@ function settingsFrom(value: unknown): ReaderSettings {
 /** The reader's settings, loaded from and saved to platform storage. */
 function useReaderSettings(platform: Platform): [ReaderSettings, (next: ReaderSettings) => void] {
   const [settings, setSettings] = useState(DEFAULT_READER_SETTINGS);
+  // A change made before the stored settings arrive wins over them.
+  const changed = useRef(false);
   useEffect(() => {
     let live = true;
     void platform.storage.get(SETTINGS_KEY).then(
       (value) => {
-        if (live) setSettings(settingsFrom(value));
+        if (live && !changed.current) setSettings(settingsFrom(value));
       },
       () => undefined,
     );
@@ -67,6 +69,7 @@ function useReaderSettings(platform: Platform): [ReaderSettings, (next: ReaderSe
   }, [platform]);
   const change = useCallback(
     (next: ReaderSettings) => {
+      changed.current = true;
       setSettings(next);
       void platform.storage.set(SETTINGS_KEY, next).catch(() => undefined);
     },
@@ -145,6 +148,28 @@ interface ReaderContent {
 }
 
 /**
+ * Where the page view goes once reader mode is off: the column's top block's place on its page.
+ * The page view stayed laid out under the column; once it is uncovered, it jumps there (a scroll
+ * while it was hidden isn't reported in every browser, so its page would be wrong), and the
+ * canvas takes the focus the column took with it.
+ */
+function useJumpBack(on: boolean, viewer: Viewer | undefined): (to: { page: number; y: number } | undefined) => void {
+  const jump = useRef<{ page: number; y: number }>(undefined);
+  useEffect(() => {
+    const to = jump.current;
+    if (on || to === undefined || viewer === undefined) return;
+    jump.current = undefined;
+    viewer.goToDestination({ page: to.page, view: { kind: "at", y: to.y } });
+    if (document.activeElement === null || document.activeElement === document.body) {
+      document.querySelector<HTMLElement>(".paper-reader-canvas")?.focus();
+    }
+  }, [on, viewer]);
+  return useCallback((to) => {
+    jump.current = to;
+  }, []);
+}
+
+/**
  * Entering reads the open document's reflow and starts the column at the block at the view's
  * top; leaving brings that block's place on its page back to the view's top. A new document
  * (`document`), or none, leaves reader mode.
@@ -159,10 +184,21 @@ function useReaderContent(
   const [content, setContent] = useState<ReaderContent["content"]>();
   const top = useRef(0);
   const [topPage, setTopPage] = useState(0);
+  // Counts entries and documents: a reflow that arrives for an older one is dropped.
+  const turn = useRef(0);
+  // Another document, or none, leaves reader mode and its settings panel.
+  const shownFor = useRef(document);
   useEffect(() => {
-    if (document !== undefined || viewer !== undefined) setOn(false);
-  }, [document, viewer]);
+    if (shownFor.current === document) return;
+    shownFor.current = document;
+    turn.current += 1;
+    setOn(false);
+    setContent(undefined);
+    if (layout.getState().inspector?.id === READER_SETTINGS_PANEL) layout.closeInspector();
+  }, [document, layout]);
   const enter = useCallback(() => {
+    turn.current += 1;
+    const mine = turn.current;
     // The view's top-left, its height on the page (a share of it) in points.
     const at = viewer?.pointAt(16, 16);
     const height = at === undefined ? undefined : engine.getState().pages[at.page]?.height;
@@ -171,6 +207,7 @@ function useReaderContent(
     setContent(undefined);
     void engine.reflow().then(
       (reflow) => {
+        if (mine !== turn.current) return;
         const blocks = reflow.available ? reflow.blocks : [];
         const startAt = blockAt(blocks, point);
         top.current = startAt;
@@ -180,25 +217,20 @@ function useReaderContent(
           : { status: "unavailable", untagged: reflow.reason === "untagged" };
         setContent({ view, blocks, startAt });
       },
-      () => setContent({ view: { status: "unavailable", untagged: false }, blocks: [], startAt: 0 }),
+      () => {
+        if (mine === turn.current)
+          setContent({ view: { status: "unavailable", untagged: false }, blocks: [], startAt: 0 });
+      },
     );
   }, [engine, viewer]);
-  // Where the page view goes once it shows again: the column's top block's place on its page.
-  const jump = useRef<{ page: number; y: number }>(undefined);
+  const jump = useJumpBack(on, viewer);
   const leave = useCallback(() => {
+    turn.current += 1;
     setOn(false);
     if (layout.getState().inspector?.id === READER_SETTINGS_PANEL) layout.closeInspector();
     const block = content?.blocks[top.current];
-    jump.current = block?.bbox ? { page: block.page, y: block.bbox[1] } : undefined;
-  }, [content, layout]);
-  // The page view stayed laid out under the column; once it is uncovered, it jumps there (a
-  // scroll while it was hidden isn't reported in every browser, so its page would be wrong).
-  useEffect(() => {
-    const to = jump.current;
-    if (on || to === undefined || viewer === undefined) return;
-    jump.current = undefined;
-    viewer.goToDestination({ page: to.page, view: { kind: "at", y: to.y } });
-  }, [on, viewer]);
+    jump(block?.bbox ? { page: block.page, y: block.bbox[1] } : undefined);
+  }, [content, layout, jump]);
   const onTopBlock = useCallback(
     (index: number) => {
       top.current = index;
@@ -217,8 +249,11 @@ function readerActions(
   setSettings: (next: ReaderSettings) => void,
 ): ReaderMode["actions"] {
   const set = (patch: Partial<ReaderSettings>) => setSettings({ ...settings, ...patch });
+  const toggle = { "view.reader-mode": () => (reader.on ? reader.leave() : reader.enter()) };
+  // The settings' commands have handlers, so the palette offers them, only while reader mode is on.
+  if (!reader.on) return toggle;
   return {
-    "view.reader-mode": () => (reader.on ? reader.leave() : reader.enter()),
+    ...toggle,
     "view.reader-settings": () =>
       layout.getState().inspector?.id === READER_SETTINGS_PANEL
         ? layout.closeInspector()

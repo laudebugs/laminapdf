@@ -109,7 +109,8 @@ describe(`reader mode in ${BROWSER}`, () => {
     await page.getByRole("button", { name: "Reader mode" }).first().click();
     await page.getByRole("heading", { name: "Reader mode isn't available for this document" }).waitFor();
     await page.getByText("It has no tags").waitFor();
-    await page.getByRole("button", { name: "Back to page" }).click();
+    // Escape leaves the empty state too, as the column does.
+    await page.keyboard.press("Escape");
     await page.locator(".web-viewer canvas").first().waitFor({ state: "visible" });
     await clean(watched);
   });
@@ -119,9 +120,7 @@ describe(`reader mode in ${BROWSER}`, () => {
     const { page } = watched;
     await enter(page);
     await column(page).getByRole("heading").first().waitFor();
-    await column(page)
-      .getByRole("button", { name: /^Back to page/ })
-      .focus();
+    // The column takes the focus on entering, so Escape reaches it straight away.
     await page.keyboard.press("Escape");
     await expect.poll(() => column(page).count()).toBe(0);
     await clean(watched);

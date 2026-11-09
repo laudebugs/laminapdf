@@ -107,6 +107,24 @@ impl Pending {
 /// `page-index-out-of-range` for a page past the last; reading errors (the page tree, the
 /// catalog).
 pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJob, ExtractError> {
+    extract_job_with(doc, options, TreeSource::Read)
+}
+
+/// Where a job's structure tree index comes from.
+#[derive(Debug)]
+pub(crate) enum TreeSource {
+    /// The job reads it, when its reading order may come from the tree.
+    Read,
+    /// The caller read it already (reader mode), or found none.
+    Given(Option<TaggedIndex>),
+}
+
+/// [`extract_job`] with the structure tree's index from `tree`.
+pub(crate) fn extract_job_with(
+    doc: &Document,
+    options: &ExtractOptions,
+    tree: TreeSource,
+) -> Result<ExtractJob, ExtractError> {
     let count = doc.pages()?.len();
     let mut todo = options.pages.clone().unwrap_or_else(|| (0..count).collect());
     // A page asked for twice is extracted once, where it first appears, so block IDs stay unique.
@@ -120,10 +138,11 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
         ReadingOrder::Auto | ReadingOrder::Tagged | ReadingOrder::Layout => StructSource::XyCut,
     };
     // The tree is read once, here; each page checks its own part of it.
-    let tree = match options.reading_order {
-        ReadingOrder::Tagged => TaggedIndex::read(doc)?,
-        ReadingOrder::Auto if doc.is_tagged()? => TaggedIndex::read(doc)?,
-        ReadingOrder::Auto | ReadingOrder::Layout | ReadingOrder::ContentStream => None,
+    let tree = match (tree, options.reading_order) {
+        (TreeSource::Given(index), _) => index,
+        (TreeSource::Read, ReadingOrder::Tagged) => TaggedIndex::read(doc)?,
+        (TreeSource::Read, ReadingOrder::Auto) if doc.is_tagged()? => TaggedIndex::read(doc)?,
+        (TreeSource::Read, ReadingOrder::Auto | ReadingOrder::Layout | ReadingOrder::ContentStream) => None,
     };
     let source = ExtractedSource {
         sha256: None,

@@ -501,7 +501,8 @@ export class Document extends Handle<BaseGlue> {
    * crop of its page with its alternate text, never as reflowed text. A document whose tree is
    * missing or can't be trusted (empty, mostly bare spans, too little of the text, or in an order
    * the pages' layout contradicts) comes back with `available: false` and the `reason`. Needs a
-   * document opened while the extract module was loaded (the text module leaves reader mode out).
+   * document opened in the extract module: load it without the text module, since with both
+   * loaded documents open in the text module, which leaves reader mode out to keep its size.
    *
    * @example
    * ```ts
@@ -517,7 +518,7 @@ export class Document extends Handle<BaseGlue> {
     if (typeof doc.reflow !== "function") {
       throw packageError(
         "extract-module-not-loaded",
-        "doc.reflow() needs a document opened while the extract module was loaded",
+        "doc.reflow() needs a document opened in the extract module: with the text module loaded too, documents open in the text module, which leaves reader mode out",
       );
     }
     const reflow = doc.reflow.bind(doc);

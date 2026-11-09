@@ -220,10 +220,32 @@ function Blocks({
 /** Placeholder lines while the blocks load. */
 const LOADING = ["100%", "96%", "88%", "100%", "64%"].map((width, i) => ({ id: `line-${i}`, width }));
 
+/** Leaves on Escape, for the column and the empty state alike. */
+const escapeTo = (onBack: () => void) => (event: React.KeyboardEvent) => {
+  if (event.key !== "Escape") return;
+  event.stopPropagation();
+  onBack();
+};
+
+/** Gives `element` the focus when it shows, so Escape reaches it and a screen reader starts there. */
+function useFocusOnShow(element: React.RefObject<HTMLElement | null>): void {
+  useEffect(() => {
+    element.current?.focus({ preventScroll: true });
+  }, [element]);
+}
+
 /** Why reader mode can't show the document, and the way back. */
 function Unavailable({ untagged, onBack }: { untagged: boolean; onBack: () => void }): ReactNode {
+  const root = useRef<HTMLElement>(null);
+  useFocusOnShow(root);
   return (
-    <div className="paper-reader-mode paper-reader-mode-empty">
+    <section
+      ref={root}
+      tabIndex={-1}
+      className="paper-reader-mode paper-reader-mode-empty"
+      aria-label={message("reader.mode.title")}
+      onKeyDown={escapeTo(onBack)}
+    >
       <EmptyState
         title={message("reader.mode.unavailable.title")}
         icon="reader"
@@ -235,7 +257,7 @@ function Unavailable({ untagged, onBack }: { untagged: boolean; onBack: () => vo
       >
         {message(untagged ? "reader.mode.untagged.body" : "reader.mode.unavailable.body")}
       </EmptyState>
-    </div>
+    </section>
   );
 }
 
@@ -250,6 +272,7 @@ export function ReaderView({
   onTopBlock,
 }: ReaderViewProps): ReactNode {
   const column = useRef<HTMLElement>(null);
+  useFocusOnShow(column);
   const blocks = content.status === "ready" ? content.blocks : undefined;
   useTopBlock(column, blocks === undefined ? undefined : onTopBlock);
   // Brings the start block to the top once, when the blocks first show.
@@ -268,13 +291,10 @@ export function ReaderView({
   return (
     <section
       ref={column}
+      tabIndex={-1}
       className="paper-reader-mode"
       aria-label={message("reader.mode.title")}
-      onKeyDown={(event) => {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        onBack();
-      }}
+      onKeyDown={escapeTo(onBack)}
     >
       <article
         className="paper-reader-column"

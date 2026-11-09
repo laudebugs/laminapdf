@@ -71,6 +71,7 @@ Give phone readers and people who need larger text a one-tap reader mode that tu
   - *Phone*: no bottom-bar Reader button or settings sheet; reader mode is in the palette, and the column works at phone width.
   - *Not built*: link spans in the text, "View original page" per block, Find in the column, the "How Reader mode works" help page, a table's cells as an HTML table, and a crop of an element over two pages (it shows its first page's part).
   - *The PDF Association's "Deriving HTML from PDF"* couldn't be reached from here; the role mapping follows ISO 32000-2 §14.8.4 and the repository's research notes.
+  - *Reader mode is in the extract module only.* With the text module loaded too, documents open in the text module and `doc.reflow()` throws `extract-module-not-loaded`, saying why; putting it in the text module costs 8 KB over that module's budget, which is the owner's call.
   - *A tree is only refused as a whole.* A page the per-page checks ignore still shows in the layout's order when the rest of the tree passes.
 
 ## Post-merge checks

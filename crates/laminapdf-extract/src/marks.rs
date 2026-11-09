@@ -119,7 +119,9 @@ impl Visitor for Marks<'_> {
 
     fn begin_marked(&mut self, marked: &MarkedContent<'_>) {
         self.paint.begin_marked(marked);
-        self.marked.push(marked.mcid);
+        // A form's own MCIDs belong to the form's structure parent, not the page's: only the
+        // page's are recorded (a page MCID open around a form still takes what the form paints).
+        self.marked.push(marked.mcid.filter(|_| marked.depth == 0));
     }
 
     fn end_marked(&mut self) {
