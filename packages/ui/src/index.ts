@@ -203,6 +203,7 @@ export {
   OutlineTree,
   type OutlineTreeItem,
   type OutlineTreeProps,
+  outlineItemAt,
 } from "./reader/outline-tree.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
 export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";

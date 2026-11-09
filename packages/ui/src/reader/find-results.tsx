@@ -6,7 +6,8 @@
 // searched the list grows; with no match, it says so and offers to turn off the option that may
 // be hiding one. Find comes in as a shape, like the find bar: the viewer's `viewer.find` fits.
 
-import { type MouseEvent, type ReactNode, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useRef } from "react";
+import { Link } from "react-aria-components";
 import { Button } from "../components/button.js";
 import { EmptyState } from "../components/empty-state.js";
 import { message } from "../messages.js";
@@ -57,21 +58,23 @@ function byPage(results: readonly FindResultItem[]): Group[] {
   return groups;
 }
 
-/** The option to turn off when nothing matched: Whole words first, as it hides more. */
-function hidingOption(options: FindOptionsSlice): "wholeWords" | "matchCase" | undefined {
-  if (options.wholeWords === true) return "wholeWords";
-  if (options.matchCase === true) return "matchCase";
-  return undefined;
-}
+/** The options that can hide a match, each with its button's words: Whole words first, as it hides more. */
+const HIDING = [
+  { option: "wholeWords", label: "find.results.turnOffWholeWords" },
+  { option: "matchCase", label: "find.results.turnOffMatchCase" },
+] as const;
+
+/** The option to turn off when nothing matched, if one is on. */
+const hidingOption = (options: FindOptionsSlice) => HIDING.find(({ option }) => options[option] === true);
 
 /** What the tab shows when no match was found. */
 function NoMatches({ find }: { find: FindResultsControls }): ReactNode {
   const { query, options } = find.getState();
-  const option = hidingOption(options);
+  const hiding = hidingOption(options);
   const action =
-    option === undefined ? undefined : (
-      <Button variant="ghost" onPress={() => find.find(query, { ...options, [option]: false })}>
-        {message(option === "wholeWords" ? "find.results.turnOffWholeWords" : "find.results.turnOffMatchCase")}
+    hiding === undefined ? undefined : (
+      <Button variant="ghost" onPress={() => find.find(query, { ...options, [hiding.option]: false })}>
+        {message(hiding.label)}
       </Button>
     );
   return (
@@ -81,6 +84,19 @@ function NoMatches({ find }: { find: FindResultsControls }): ReactNode {
       icon="find"
       {...(action === undefined ? {} : { actions: action })}
     />
+  );
+}
+
+/** One page's group, named by its heading. */
+function ResultGroup({ heading, children }: { heading: string; children: ReactNode }): ReactNode {
+  const id = useId();
+  return (
+    <section className="paper-find-results-group" aria-labelledby={id}>
+      <h3 id={id} className="paper-find-results-heading">
+        {heading}
+      </h3>
+      {children}
+    </section>
   );
 }
 
@@ -98,34 +114,32 @@ export function FindResults({ find, heading, onNavigate }: FindResultsProps): Re
   }, [current]);
   if (state.query.trim() === "") return null;
   if (state.done && state.total === 0) return <NoMatches find={find} />;
-  const go = (e: MouseEvent, ordinal: number) => {
-    e.preventDefault();
+  const go = (ordinal: number) => {
     find.goTo(ordinal);
     onNavigate?.();
   };
   return (
     <div ref={list} className="paper-find-results">
       {groups.map(({ page, items }) => (
-        <section key={page} className="paper-find-results-group" aria-label={heading(page)}>
-          <h3 className="paper-find-results-heading">{heading(page)}</h3>
+        <ResultGroup key={page} heading={heading(page)}>
           <ul className="paper-find-results-list">
             {items.map(({ ordinal, snippet }) => (
               <li key={ordinal}>
-                <a
+                {/* No href: the reader reads `#page=` as a navigation of its own. */}
+                <Link
                   className="paper-find-result"
-                  href={`#page=${page + 1}`}
                   data-ordinal={ordinal}
-                  aria-current={ordinal === current ? "true" : undefined}
-                  onClick={(e) => go(e, ordinal)}
+                  {...(ordinal === current ? { "aria-current": "true" } : {})}
+                  onPress={() => go(ordinal)}
                 >
                   {snippet.before}
                   <strong className="paper-find-result-match">{snippet.match}</strong>
                   {snippet.after}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
-        </section>
+        </ResultGroup>
       ))}
     </div>
   );

@@ -36,14 +36,8 @@
     overflow-wrap: anywhere;
   }
 
-  .paper-find-result:hover {
+  .paper-find-result[data-hovered] {
     background: var(--paper-hover);
-  }
-
-  .paper-find-result:focus-visible {
-    /* A plain link, so base.css's [data-focus-visible] ring doesn't reach it: the same ring, tight. */
-    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
-    outline-offset: calc(-1 * var(--paper-focus-ring-width));
   }
 
   .paper-find-result[aria-current="true"] {

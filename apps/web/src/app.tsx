@@ -43,6 +43,7 @@ import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type FindActions, useFind } from "./find.tsx";
+import { pageLabel } from "./outline.ts";
 import { railTabs } from "./rail.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
@@ -213,12 +214,12 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const { strip } = engineState;
   const find = useFind(shown, open ? state.file : undefined);
   const tabs = useMemo(
-    () => railTabs(engine, layout, open ? { strip, viewer } : undefined, find.open),
+    () => railTabs(engine, layout, open ? { strip, viewer, finding: find.open } : undefined),
     [engine, layout, open, strip, viewer, find.open],
   );
   const labels = useMemo(() => {
     const pages = engineState.pages;
-    return pages.some((p) => p.label !== undefined) ? pages.map((p) => p.label ?? String(p.index + 1)) : undefined;
+    return pages.some((p) => p.label !== undefined) ? pages.map((p) => pageLabel(pages, p.index)) : undefined;
   }, [engineState.pages]);
   const fileName = open ? state.file.name : undefined;
   const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions);

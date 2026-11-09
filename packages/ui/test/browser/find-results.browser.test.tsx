@@ -28,9 +28,13 @@ describe("FindResults", () => {
     const { host } = results();
     const groups = [...host.querySelectorAll("section")];
     expect(groups.map((g) => g.querySelector("h3")?.textContent)).toEqual(["Page 3 · Repairs backlog", "Page 8"]);
-    expect(groups.map((g) => g.getAttribute("aria-label"))).toEqual(["Page 3 · Repairs backlog", "Page 8"]);
-    const links = [...host.querySelectorAll("a")];
-    expect(links.map((a) => a.getAttribute("href"))).toEqual(["#page=3", "#page=3", "#page=8"]);
+    // Each group is named by its own heading.
+    expect(groups.map((g) => document.getElementById(g.getAttribute("aria-labelledby") ?? "")?.tagName)).toEqual([
+      "H3",
+      "H3",
+    ]);
+    const links = [...host.querySelectorAll(".paper-find-result")];
+    expect(links.map((a) => a.getAttribute("role"))).toEqual(["link", "link", "link"]);
     expect(links[1]?.textContent).toBe("…the Backlog of the year…");
     expect(links[1]?.querySelector("strong")?.textContent).toBe("Backlog");
   });
@@ -46,7 +50,7 @@ describe("FindResults", () => {
 
   it("goes to a match on a click or Enter, then tells the reader", async () => {
     const { find, host, went } = results();
-    const links = host.querySelectorAll("a");
+    const links = host.querySelectorAll(".paper-find-result");
     await userEvent.click(links[2] as HTMLElement);
     (links[1] as HTMLElement).focus();
     await userEvent.keyboard("{Enter}");
@@ -78,7 +82,7 @@ describe("FindResults", () => {
 
   it("lists the matches found so far while pages are still searched", () => {
     const { host } = results({ done: false, total: 3 });
-    expect(host.querySelectorAll("a")).toHaveLength(3);
+    expect(host.querySelectorAll(".paper-find-result")).toHaveLength(3);
   });
 
   for (const theme of ["light", "dark", "high-contrast"] as const) {

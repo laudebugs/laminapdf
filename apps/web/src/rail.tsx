@@ -144,8 +144,14 @@ function ResultsPanel({ engine, viewer, layout }: { engine: Engine; viewer: View
 export function railTabs(
   engine: Engine,
   layout: ShellLayout,
-  view: { readonly strip: ThumbnailStrip | undefined; readonly viewer: Viewer | undefined } | undefined,
-  findOpen = false,
+  view:
+    | {
+        readonly strip: ThumbnailStrip | undefined;
+        readonly viewer: Viewer | undefined;
+        /** Find is open: the Results tab shows. */
+        readonly finding: boolean;
+      }
+    | undefined,
 ): RailTab[] {
   const strip = view?.strip;
   const viewer = view?.viewer;
@@ -158,7 +164,7 @@ export function railTabs(
       panel: <OutlinePanel engine={engine} viewer={viewer} layout={layout} />,
     },
     // Find's contextual tab, while find is open (R05); closing find takes it away.
-    ...(findOpen
+    ...(view?.finding === true
       ? [
           {
             id: "results",

@@ -138,11 +138,35 @@ describe("snippetOf", () => {
     ]);
   });
 
-  it("never splits a character outside the BMP where text has no spaces", () => {
-    const text = `${"𝒜".repeat(30)}針${"𝒜".repeat(30)}`;
+  it("never splits a character outside the BMP at a cut, whichever half the cut lands on", () => {
+    // Each 𝒜 is two units and the "b" one, so a cut 40 units out lands between an 𝒜's halves.
+    const text = `${"𝒜".repeat(21)}b針b${"𝒜".repeat(21)}`;
     const [s] = snippets(text, "針");
     expect(s?.match).toBe("針");
-    expect(/^…(?:𝒜)+$/u.test(s?.before ?? "")).toBe(true);
-    expect(/^(?:𝒜)+…$/u.test(s?.after ?? "")).toBe(true);
+    expect(/^…(?:𝒜)+b$/u.test(s?.before ?? "")).toBe(true);
+    expect(/^b(?:𝒜)+…$/u.test(s?.after ?? "")).toBe(true);
+  });
+
+  it("keeps a match's last character whole: a character outside the BMP, or one with combining marks", () => {
+    expect(snippets("see 🎉🎉 here", "🎉🎉")).toEqual([{ before: "see ", match: "🎉🎉", after: " here" }]);
+    expect(snippets("The Cafe\u0301 opens", "cafe")).toEqual([
+      { before: "The ", match: "Cafe\u0301", after: " opens" },
+    ]);
+  });
+
+  it("keeps a word the cut lands at the start or end of", () => {
+    const left = `${"x".repeat(9)} ${"abcd ".repeat(8)}needle`;
+    const [l] = snippets(left, "needle");
+    // The cut 40 units back lands at the first "abcd": it is kept whole.
+    expect(l?.before).toBe(`…${"abcd ".repeat(8)}`);
+    const right = `needle${" abcd".repeat(8)} ${"x".repeat(9)}`;
+    const [r] = snippets(right, "needle");
+    expect(r?.after).toBe(`${" abcd".repeat(8)}…`);
+  });
+
+  it("cuts inside a long word when the only space is next to the match, rather than show nothing", () => {
+    const [s] = snippets(`${"y".repeat(60)} needle ${"z".repeat(60)}`, "needle");
+    expect(s?.before).toBe(`…${"y".repeat(39)} `);
+    expect(s?.after).toBe(` ${"z".repeat(39)}…`);
   });
 });

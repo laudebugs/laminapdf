@@ -7,7 +7,7 @@
 
 import { layoutSpans, type Piece, separator } from "../layers/spans.js";
 import type { TextRunData } from "../protocol.js";
-import { type FindOptions, type Folded, fold, foldQuery, matches } from "./fold.js";
+import { type FindOptions, type Folded, fold, foldQuery, isLowSurrogate, matches } from "./fold.js";
 
 /** A page's runs and glyphs, as the document Web Worker keeps them. */
 export interface PageGlyphs {
@@ -152,29 +152,46 @@ export interface FindSnippet {
 const SNIPPET_CONTEXT = 40;
 
 const SPACES = /\s+/gu;
-const isLowSurrogate = (code: number) => code >= 0xdc00 && code <= 0xdfff;
 
 /** `text[from, to)` with white space collapsed to single spaces. */
 const collapsed = (text: string, from: number, to: number) => text.slice(from, to).replace(SPACES, " ");
 
-/** Where context starting `SNIPPET_CONTEXT` units before `start` begins: at the next word, or a whole character. */
+const SPACE = /\s/u;
+const MARK = /\p{M}/u;
+
+/** Where context starting `SNIPPET_CONTEXT` units before `start` begins: at a word, or a whole character. */
 function contextStart(text: string, start: number): number {
   let at = Math.max(0, start - SNIPPET_CONTEXT);
-  if (at === 0) return 0;
+  if (at === 0 || SPACE.test(text[at - 1] ?? "")) return at;
+  // The first word that starts inside the window, unless that leaves nothing before the match.
   const space = text.slice(at, start).search(/\s/u);
-  if (space >= 0) return at + space + 1;
+  if (space >= 0 && at + space + 1 < start) return at + space + 1;
   if (isLowSurrogate(text.charCodeAt(at))) at += 1;
   return at;
 }
 
-/** Where context ending `SNIPPET_CONTEXT` units after `end` stops: after the last whole word, or a whole character. */
+/** Where context ending `SNIPPET_CONTEXT` units after `end` stops: after a word, or at a whole character. */
 function contextEnd(text: string, end: number): number {
   let at = Math.min(text.length, end + SNIPPET_CONTEXT);
-  if (at === text.length) return at;
+  if (at === text.length || SPACE.test(text[at] ?? "")) return at;
+  // Before the last word cut by the window, unless that leaves nothing after the match.
   const space = text.slice(end, at).search(/\s\S*$/u);
-  if (space >= 0) return end + space;
+  if (space > 0) return end + space;
   if (isLowSurrogate(text.charCodeAt(at))) at -= 1;
   return at;
+}
+
+/** Past the character that starts at `at - 1`: its low surrogate and any combining marks after it. */
+function wholeCharacterEnd(text: string, at: number): number {
+  let end = at;
+  if (end < text.length && isLowSurrogate(text.charCodeAt(end))) end += 1;
+  while (end < text.length) {
+    const code = text.codePointAt(end) ?? 0;
+    const char = String.fromCodePoint(code);
+    if (!MARK.test(char)) break;
+    end += char.length;
+  }
+  return end;
 }
 
 /** The snippet of the match `range` of `folded`, the folded text of `search`. */
@@ -182,7 +199,8 @@ export function snippetOf(search: SearchText, folded: Folded, range: readonly [n
   const text = search.text;
   const [a, b] = range;
   const start = folded.from[a] ?? 0;
-  const end = (folded.from[b - 1] ?? start) + 1;
+  // Folding maps a character to its first unit and drops its marks: the match takes them back.
+  const end = wholeCharacterEnd(text, (folded.from[b - 1] ?? start) + 1);
   const from = contextStart(text, start);
   const to = contextEnd(text, end);
   const before = collapsed(text, from, start).trimStart();
