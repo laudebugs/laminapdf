@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4b](../done/T4b-flow-layout-core.md), [T4c](../done/T4c-flow-tables-notes-contents.md), [T4g](../done/T4g-flow-styled-spans.md), [T4h](./T4h-flow-notes-contents-outline.md) |
+| Depends on | [T4b](../done/T4b-flow-layout-core.md), [T4c](../done/T4c-flow-tables-notes-contents.md), [T4g](../done/T4g-flow-styled-spans.md), [T4h](../ongoing/T4h-flow-notes-contents-outline.md) |
 | ADRs | Implements [ADR 0032](../../decisions/0032-flowing-layout-and-document-inputs.md): the Markdown dialect ([§6](../../decisions/0032-flowing-layout-and-document-inputs.md#6-inputs)), the front end as a `markdown` feature of `laminapdf-build` ([§5](../../decisions/0032-flowing-layout-and-document-inputs.md#5-placement)), the default fonts ([§8](../../decisions/0032-flowing-layout-and-document-inputs.md#8-fonts)) and the tag mapping ([§4](../../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging)). Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#rust-cargo-deny) (the parser's licence) and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
 | Branch | `feat/t4d-markdown-in` |
 | PR title | `feat(build): Markdown in, flowing pages out` |
