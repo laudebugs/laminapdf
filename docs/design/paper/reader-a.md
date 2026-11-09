@@ -320,11 +320,11 @@ The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (
 
 **Platform differences.** *Desktop:* print hands off to the native print dialog with a preview (S05, [D4c](../../todos/ready/D4c-native-printing.md)), with the same restriction rule once the owner decides it (Desktop shell’s S05 doesn’t draw the step yet); the menu item is File › Save a copy… (`file.save-copy`, no shortcut, design language decision 18) with a native save panel. In the read-only reader it writes the bytes as opened; in an edit session it writes the document with its changes. *Phone:* Print uses the OS share/print sheet after the same preparing step; Download becomes Share › Save to Files. *Windows/Linux vs macOS:* chips `Ctrl P` / `⌘P`.
 
-**As built ([C6c](../../todos/done/C6c-print-download-properties.md)).** The web reader ships Print with its progress and restricted-print steps, Download a copy and Document properties, all in the More menu. Five parts differ from the boards:
+**As built ([C6c](../../todos/done/C6c-print-download-properties.md)).** The web reader ships Print with its progress and restricted-print steps, Download a copy and Document properties, all in the More menu. Six parts differ from the boards:
 
 - The page range is its own field, "Pages to print", below a third radio named "Some pages", rather than a field inside the radio's row.
 - The Sepia notice waits for the web reader's page appearance, which isn't built yet.
-- A single page too large to hold at the chosen quality is drawn at a lower resolution without a notice, since the worker caps every page at 16 million pixels. A long High-quality print does get R09's notice: past a billion pixels in all, it prints at Standard.
+- The worker caps every page at 16 million pixels, so it draws a single page too large for the chosen quality at a lower resolution, without a notice. A long High-quality print does get R09's notice: past a billion pixels in all, it prints at Standard.
 - A download's name comes from the file or its address; `Content-Disposition` isn't read, since the document worker's range requests don't keep it.
 - A failed print or download says so in an alertdialog rather than a toast, as toasts never carry errors (§7.20).
 - The print frame's static rules sit in the same adopted stylesheet as its page sizes, rather than in a linked stylesheet, so printing fetches nothing.
