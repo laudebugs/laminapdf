@@ -58,7 +58,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 - **Copy** writes the extracted text in reading order: a space at a gap, a new line at a new baseline and between pages, soft hyphens dropped. `onSelection` gives the app the selected text, its rects, its pages and the pointer that made it, for a selection toolbar.
 - **Structure.** For a tagged document, a hidden tree of ARIA elements follows the structure tree. Headings carry their levels, and figures their alternate text; paragraphs, lists and tables keep their roles. Each element owns its text spans through `aria-owns`, matched by page and marked-content ID, so a screen reader reads the document in structure order. An untagged document says once that it is untagged.
 
-The document Web Worker reads each page's text at `background` priority, after the tiles in view, and keeps the last 24 pages'. Text needs the extract module, which the worker loads once the render backend is ready, so the first page never waits for it. Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet.
+The document Web Worker reads each page's text at `background` priority, after the tiles in view, and keeps the last 24 pages'. Text needs the extract module, which the document Web Worker loads once the render backend is ready, so the first page never waits for it. Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
