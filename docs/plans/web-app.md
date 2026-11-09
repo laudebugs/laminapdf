@@ -134,7 +134,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** keyboard map and help dialog, focus management, ARIA landmarks, high contrast and dark mode; service worker and web app manifest (with `file_handlers`); performance budgets enforced in CI; ADR 0011 privacy page published; public release `web v0.1`.
 **Accepted when:** axe shows zero serious violations; a manual NVDA, VoiceOver and keyboard-only pass is recorded; the app works offline after first load; Lighthouse PWA installability passes; performance targets in §4 are met on the reference machine.
-**Todos:** [C7a](../todos/done/C7a-accessibility-and-theming.md), [C7b](../todos/ready/C7b-offline-pwa.md), [C7c](../todos/ready/C7c-performance-gates-and-launch.md)
+**Todos:** [C7a](../todos/done/C7a-accessibility-and-theming.md), [C7b](../todos/done/C7b-offline-pwa.md), [C7c](../todos/ready/C7c-performance-gates-and-launch.md)
 
 ## 7. Risks
 
@@ -214,7 +214,7 @@ Ticked by the PR that completes them.
 - [x] Keyboard shortcuts (from the command registry, [UI/UX U1b](../todos/done/U1b-command-registry-and-palette.md)) shared with desktop; help dialog
 - [x] Focus management, landmarks, live-region announcements for search and page changes
 - [x] High contrast, dark mode, reduced motion
-- [ ] Service worker caching shell + WASM; web app manifest with `file_handlers`
+- [x] Service worker caching shell + WASM; web app manifest with `file_handlers`
 - [ ] Performance budgets as CI gates
 - [ ] axe in Playwright; record a manual NVDA, VoiceOver and keyboard-only pass
 - [ ] Publish the privacy page; tag `web v0.1` and deploy to production
