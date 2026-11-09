@@ -137,7 +137,7 @@ fn the_document_is_the_same_twice() {
 #[test]
 fn a_link_in_a_repeated_header_is_drawn_once_under_pdf_ua() {
     use laminapdf_build::flow::{
-        ColumnWidth, Flow, FlowBlock, PageTemplate, Paragraph, Table, TableCell, TableRow, TextStyle,
+        ColumnWidth, Flow, FlowBlock, PageTemplate, Paragraph, ParagraphStyle, Table, TableCell, TableRow, TextStyle,
     };
     use laminapdf_build::{BuildOptions, Builder, LinkTarget, Metadata, PageSize, Profile};
     let mut b = Builder::new(BuildOptions::new().with_profile(Profile::PdfUa1).with_compress(false));
@@ -146,7 +146,7 @@ fn a_link_in_a_repeated_header_is_drawn_once_under_pdf_ua() {
         .unwrap();
     let style = TextStyle::new(&font, 10.0);
     let target = LinkTarget::Uri("https://example.com/prices".into());
-    let header = TableRow::new().cell(TableCell::new(Paragraph::new(Default::default()).link(
+    let header = TableRow::new().cell(TableCell::new(Paragraph::new(ParagraphStyle::default()).link(
         "Price list",
         &style,
         target,

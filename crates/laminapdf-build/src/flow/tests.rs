@@ -392,8 +392,8 @@ mod tables {
                     .collect()
             })
             .collect();
-        assert!(lefts[0].iter().all(|x| *x == 80.0));
-        assert!(lefts[1..].iter().flatten().all(|x| *x == 50.0));
+        assert!(lefts[0].iter().all(|x| (x - 80.0).abs() < 1e-9));
+        assert!(lefts[1..].iter().flatten().all(|x| (x - 50.0).abs() < 1e-9));
     }
 
     #[test]
