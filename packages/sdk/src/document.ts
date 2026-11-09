@@ -19,12 +19,20 @@ import type {
   Op,
   OpenOptions,
   OpLog,
+  OutlineNode,
   PageInfo,
   Progress,
   SaveOptions,
   SaveReport,
+  Target,
   UndoOutcome,
 } from "./types.js";
+
+/** The navigation calls of the extract and text modules' documents. */
+interface NavigationCalls {
+  outline(): OutlineNode[];
+  namedDestination(name: string): Target | undefined;
+}
 
 function isThenable(value: unknown): boolean {
   return (
@@ -355,6 +363,44 @@ export class Document extends Handle<BaseGlue> {
       this,
       this.instance,
     );
+  }
+
+  /**
+   * The outline (bookmarks): its top-level items in order, each with its children, and where
+   * each goes as a page and a view in page space; empty without one. Needs a document opened
+   * while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
+   *   module; reading errors (`data-pending` for a range document: use `ensure`).
+   */
+  outline(): OutlineNode[] {
+    const outline = this.#navigation("outline").outline.bind(this.#doc);
+    return this.call(() => outline());
+  }
+
+  /**
+   * Where the named destination `name` goes (the names a link or a `#nameddest=` address uses),
+   * or `undefined` when the document has none by that name. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   */
+  namedDestination(name: string): Target | undefined {
+    const named = this.#navigation("namedDestination").namedDestination.bind(this.#doc);
+    return this.call(() => named(name));
+  }
+
+  /** The document's navigation calls, which only the extract and text modules have. */
+  #navigation(what: string): NavigationCalls {
+    this.assertLive();
+    const doc = this.#doc as WasmDocument & Partial<NavigationCalls>;
+    if (typeof doc.outline !== "function" || typeof doc.namedDestination !== "function") {
+      throw packageError(
+        "extract-module-not-loaded",
+        `doc.${what}() needs a document opened while the extract or text module was loaded`,
+      );
+    }
+    return doc as NavigationCalls;
   }
 
   /**
