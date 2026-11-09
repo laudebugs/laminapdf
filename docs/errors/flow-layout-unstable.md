@@ -11,7 +11,7 @@
 
 A contents page lists each heading with the page it starts on, but those pages aren't known until the flow is laid out. So the flow lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps the same room for its number however wide the number is, so the contents page's length never depends on the numbers, and the second layout finds the same pages.
 
-The flow still checks up to four layouts. This error means the numbers kept changing all the same: a fault in Lamina PDF's layout, not in your document.
+The flow still checks up to four layouts. This error means the numbers kept changing anyway, which points to a fault in Lamina PDF's layout rather than in your document.
 
 ## How to fix
 

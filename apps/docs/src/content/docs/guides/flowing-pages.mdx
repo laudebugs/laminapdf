@@ -22,7 +22,8 @@ The result is thirteen A5 pages: [open the reference PDF](/examples/pdf/flowing_
 A `Flow` is a list of blocks and the `PageTemplate` they flow through.
 
 - **Paragraphs** are made of pieces of text, each in its own `TextStyle`: its fonts, size, colour, language and a baseline rise for superscripts. A bold word is a piece in the bold font. A link is a piece with a target, and a line break or a footnote is a piece of its own.
-- **Tables** have header rows, body rows and footer rows, and a **contents** block lists the headings with their pages; later sections cover both.
+- **Tables** have header rows, body rows and footer rows; a later section covers them.
+- A **contents** block lists the headings with their pages, and footnotes go in paragraphs; both are covered below.
 - **Headings** run from level 1 to 6. **Lists** are bulleted or numbered, and an item can hold a nested list. A **figure** is an image with its alternate text, as wide as the page's text column unless you give it a width.
 - **Spacers, page breaks and keep groups** shape the layout: a spacer adds space, a page break starts a new page, and a `Keep` group keeps its blocks on one page.
 
@@ -63,9 +64,9 @@ A footnote is part of a paragraph: `Paragraph::note(body)` puts a raised number 
 
 A contents block, `FlowBlock::Contents`, lists the flow's headings with the page each one starts on. Each entry is indented by its heading's level, with dots leading to its number, and the entry links to its heading. By default it lists levels 1 and 2; `Contents::with_levels` changes that. The report in the example puts its contents on the cover.
 
-The flow can't know the page numbers before it has laid the pages out. So it lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps the same room for its number however wide the number is, so the contents page keeps its length and the second layout confirms the numbers. A number wider than four digits would run into its entry's text.
+The flow can't know the page numbers before it has laid the pages out. So it lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps room for a number of up to four digits, so the contents page keeps its length and the second layout confirms the numbers.
 
-Every heading also gets a bookmark: a reader shows the document's outline in its sidebar, nested by heading level, and each bookmark goes to its heading. Turn them off with `Flow::with_outline(false)`.
+Every heading also gets a bookmark. PDF readers list the bookmarks in their sidebar, nested by heading level, and each one goes to its heading. Turn them off with `Flow::with_outline(false)`.
 
 ## Fields in headers and footers
 
@@ -86,7 +87,7 @@ A table is one `Table` element however many pages it crosses, with `THead`, `TBo
 
 The header rows drawn again on later pages are marked as page furniture, like headers and footers, so a screen reader and Lamina PDF's extraction read the table's header once. The table's rules and background are marked as decoration too.
 
-A footnote's number is a `Reference` and its body a `Note` with its own identifier, inside the paragraph that cites it. A contents page is a `TOC` element with a `TOCI` for each entry, each holding its links; its dots are decoration.
+A footnote's number is a `Reference` and its body a `Note` with its own identifier, inside the paragraph that cites it. A contents page is a `TOC` element with a `TOCI` for each entry, each holding its links; its dots are marked as decoration.
 
 Headers and footers are marked as page furniture rather than content: screen readers skip them, and Lamina PDF's own extraction leaves them out of the text.
 

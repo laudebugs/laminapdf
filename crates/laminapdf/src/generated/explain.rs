@@ -3799,7 +3799,7 @@ builder.finish()?; // embedded-file-without-mime-type: pass "text/xml"
 
 ## What happened
 
-`Builder::flow` found a figure, a single line of text or a table row taller than the body of a page: the space between the top and bottom margins. A line or row with the footnotes it cites counts as one, since its notes go at the foot of its page. No page can hold it, so the flow stopped and added no pages.
+`Builder::flow` found a figure, a single line of text or a table row taller than the body of a page: the space between the top and bottom margins. No page can hold it, so the flow stopped and added no pages. A line or row counts together with the footnotes it cites, since its notes go at the foot of its page.
 
 ## Why
 
@@ -3819,7 +3819,7 @@ builder.flow(&flow)?; // flow-content-too-large
 
 ## Data fields
 
-- `what`: what is too tall: `line`, `figure`, `table row`, or `footnote` for a line or table row whose footnotes don't fit at the foot of any page with it.
+- `what`: what is too tall: `line`, `figure`, `table row`, or `footnote` when a line or table row and its footnotes fit on no page together.
 "#,
         "flow-layout-unstable" => r#"# `flow-layout-unstable`
 
@@ -3834,7 +3834,7 @@ builder.flow(&flow)?; // flow-content-too-large
 
 A contents page lists each heading with the page it starts on, but those pages aren't known until the flow is laid out. So the flow lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps the same room for its number however wide the number is, so the contents page's length never depends on the numbers, and the second layout finds the same pages.
 
-The flow still checks up to four layouts. This error means the numbers kept changing all the same: a fault in Lamina PDF's layout, not in your document.
+The flow still checks up to four layouts. This error means the numbers kept changing anyway, which points to a fault in Lamina PDF's layout rather than in your document.
 
 ## How to fix
 
