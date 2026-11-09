@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "desktop-ipc",
+  "version": "0.0.0",
+  "identifier": "dev.lamina.spike.ipc",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build"
+  },
+  "app": {
+    "windows": [{ "label": "main", "title": "desktop-ipc spike", "width": 1280, "height": 800, "resizable": false }],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' blob: data: lamina: http://lamina.localhost",
+        "connect-src": "'self' lamina: http://lamina.localhost ipc: http://ipc.localhost"
+      },
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": { "active": false, "icon": ["icons/icon.png"] }
+}
