@@ -11,7 +11,7 @@
 | Branch | `feat/t4c-flow-tables` |
 | PR title | `feat(build): flowing tables across pages with repeated headers and kept totals` |
 | Size | L (≈ 500–700 lines of code with unit tests) |
-| PR | — |
+| PR | [#344](https://github.com/laudebugs/laminapdf/pull/344) |
 
 ## Goal
 
