@@ -16,9 +16,11 @@ import {
   flagsOf,
   limitsOf,
   MAX_WASM_INPUT,
+  mostlyChanged,
   pageToTile,
   pendingError,
   planTile,
+  type Quad,
   type RenderBackend,
   type RenderDocument,
   RenderError,
@@ -52,6 +54,8 @@ const FPDF_REVERSE_BYTE_ORDER = 0x10;
 const FPDF_PRINTING = 0x800;
 const FPDFBITMAP_BGRA = 4;
 const FPDF_ERR_PASSWORD = 4;
+/** The longest side of the page drawing that decides which annotations keep their whole rectangle. */
+const DECISION_SIDE = 256;
 
 type WasmBytes = ArrayBuffer | ArrayBufferView<ArrayBuffer>;
 
@@ -164,6 +168,10 @@ class PdfiumDocument implements RenderDocument {
   readonly #p: Pdfium;
   readonly #limits: RenderLimits;
   readonly #pages = new Map<number, RenderPage>();
+  /** Per page, which annotations keep their whole rectangle when recoloured (decided once, small). */
+  readonly #whole = new Map<number, boolean[]>();
+  /** Per page, whether each image (by its place among the page's images) has transparent samples. */
+  readonly #alpha = new Map<number, Map<number, boolean>>();
   readonly #reads: Reads;
   #doc: number;
   #form: number;
@@ -351,8 +359,11 @@ class PdfiumDocument implements RenderDocument {
       const pixels = drawn(false);
       const toTile = userToTile(p, page, info, plan, request.rotation ?? 0);
       const rects = flags.annotations ? annotationRects(p, page, toTile) : [];
-      const annotated = rects.length > 0 ? { pixels: drawn(true), rects } : undefined;
-      const images = pageImages(p, this.#doc, page, toTile);
+      const annotated =
+        rects.length > 0 ? { pixels: drawn(true), whole: this.#wholeOf(page, request, info, rects) } : undefined;
+      const alpha = this.#alpha.get(request.page) ?? new Map<number, boolean>();
+      this.#alpha.set(request.page, alpha);
+      const images = pageImages(p, this.#doc, page, toTile, { tile: [width, height], alpha });
       recolourTile(request.appearance ?? "original", width, pixels, {
         images: images.opaque,
         seeThrough: images.seeThrough,
@@ -364,6 +375,30 @@ class PdfiumDocument implements RenderDocument {
       if (bitmap !== 0) p.FPDFBitmap_Destroy(bitmap);
       free(buffer);
     }
+  }
+
+  /**
+   * The annotation rectangles (`rects`, in tile pixels) that keep their whole area: decided once
+   * per page on a drawing of the whole page at most DECISION_SIDE pixels on a side, so two tiles
+   * sharing an annotation always agree.
+   */
+  #wholeOf(page: number, request: RenderRequest, info: RenderPage, rects: readonly Quad[]): Quad[] {
+    let flags = this.#whole.get(request.page);
+    if (flags === undefined) {
+      const scale = DECISION_SIDE / Math.max(info.width, info.height, 1);
+      const small = { page: request.page, scale, ...(request.flags === undefined ? {} : { flags: request.flags }) };
+      const without = this.#renderPage(page, { ...small, flags: { ...request.flags, annotations: false } });
+      const withAnnotations = this.#renderPage(page, small);
+      const smallRects = annotationRects(
+        this.#p,
+        page,
+        userToTile(this.#p, page, info, planTile(info, small, this.#limits), 0),
+      );
+      flags = mostlyChanged(smallRects, without.pixels, withAnnotations.pixels, without.width);
+      this.#whole.set(request.page, flags);
+    }
+    const known = flags;
+    return rects.filter((_, i) => known[i] === true);
   }
 
   /**

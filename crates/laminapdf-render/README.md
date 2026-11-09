@@ -42,7 +42,7 @@ Neither engine can recolour as it paints, so each adapter draws the tile, then r
 
 - **Opaque images** keep every pixel. Each adapter finds them with its own parser: hayro through a device that only records where images land, PDFium through its page objects, forms included.
 - **See-through images** (a soft mask, a mask, a blend mode) keep their samples, and the paper around them is recoloured with the page.
-- **Annotations** keep their colours. The tile is drawn again with them, and every pixel they change comes from that drawing. One that changes most of its rectangle, such as a highlight, keeps the whole rectangle, so the text under it keeps its colour too.
+- **Annotations** keep their colours. The tile is drawn again with them, and every pixel they change comes from that drawing. One that changes most of its rectangle, such as a highlight, keeps the whole rectangle, so the text under it keeps its colour too. The adapter decides that once per page, from a small drawing of the whole page (`mostly_changed`), so two tiles that share an annotation agree.
 
 The colour maps use integers only. Dark keeps a colour's hue and turns its lightness over, and High contrast pushes greys toward the ink. `@laminapdf/render` ports them, and `fixtures/appearance/colours.json` holds both to the same bytes.
 

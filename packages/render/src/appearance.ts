@@ -21,14 +21,20 @@ export type PageAppearance =
       readonly paper: Rgba8;
     };
 
-/** Sepia's paper and ink: `@laminapdf/tokens`' `PAGE_APPEARANCES.sepia`. */
-export const SEPIA: { readonly paper: Rgba8; readonly ink: Rgba8 } = Object.freeze({
+/** An appearance's paper (what white becomes) and ink (what black becomes). */
+export interface PagePalette {
+  readonly paper: Rgba8;
+  readonly ink: Rgba8;
+}
+
+/** Sepia's paper and ink: `@laminapdf/tokens`' `PAGE_APPEARANCES.sepia` (a test holds them to it). */
+export const SEPIA: PagePalette = Object.freeze({
   paper: Object.freeze({ r: 0xf4, g: 0xec, b: 0xd8, a: 255 }),
   ink: Object.freeze({ r: 0x3b, g: 0x2f, b: 0x20, a: 255 }),
 });
 
 /** Dark's paper and ink: `@laminapdf/tokens`' `PAGE_APPEARANCES.dark`. */
-export const DARK: { readonly paper: Rgba8; readonly ink: Rgba8 } = Object.freeze({
+export const DARK: PagePalette = Object.freeze({
   paper: Object.freeze({ r: 0x22, g: 0x21, b: 0x1f, a: 255 }),
   ink: Object.freeze({ r: 0xe6, g: 0xe1, b: 0xd8, a: 255 }),
 });
@@ -104,17 +110,30 @@ function contains(quad: Quad, x: number, y: number): boolean {
   return s.every((v) => v >= 0) || s.every((v) => v <= 0);
 }
 
-/** The indices of the pixels whose centres are inside `quad`, in a `width` × `height` tile. */
-function pixelsIn(quad: Quad, width: number, height: number): number[] {
+/** The pixel columns and rows whose centres can be inside `quad`, or `undefined` if none can. */
+function bounds(quad: Quad, width: number, height: number): [number, number, number, number] | undefined {
   const xs = quad.map((p) => p[0]);
   const ys = quad.map((p) => p[1]);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  if (![x0, x1, y0, y1].every(Number.isFinite)) return [];
+  if (![x0, x1, y0, y1].every(Number.isFinite)) return undefined;
   // Pixel centres at i + 0.5: the first and last columns whose centre can be inside.
   const cx0 = Math.max(0, Math.ceil(x0 - 0.5));
   const cx1 = Math.min(width - 1, Math.floor(x1 - 0.5));
   const cy0 = Math.max(0, Math.ceil(y0 - 0.5));
   const cy1 = Math.min(height - 1, Math.floor(y1 - 0.5));
+  return cx0 > cx1 || cy0 > cy1 ? undefined : [cx0, cx1, cy0, cy1];
+}
+
+/** Whether `quad` covers the centre of any pixel of a `width` × `height` tile (its bounding box does, at least). */
+export function touches(quad: Quad, width: number, height: number): boolean {
+  return bounds(quad, width, height) !== undefined;
+}
+
+/** The indices of the pixels whose centres are inside `quad`, in a `width` × `height` tile. */
+function pixelsIn(quad: Quad, width: number, height: number): number[] {
+  const box = bounds(quad, width, height);
+  if (box === undefined) return [];
+  const [cx0, cx1, cy0, cy1] = box;
   const out: number[] = [];
   for (let y = cy0; y <= cy1; y++) {
     for (let x = cx0; x <= cx1; x++) {
@@ -136,8 +155,11 @@ export interface Kept {
   readonly seeThrough?: readonly Quad[];
   /** The tile's background; `null` is transparent. */
   readonly background?: Rgba8 | null;
-  /** The tile drawn again with its annotations, and where each annotation's rectangle lands. */
-  readonly annotated?: { readonly pixels: Uint8ClampedArray; readonly rects: readonly Quad[] };
+  /**
+   * The tile drawn again with its annotations, and the rectangles `mostlyChanged` picked: every
+   * pixel inside them comes from that drawing, so text under a highlight keeps its colour.
+   */
+  readonly annotated?: { readonly pixels: Uint8ClampedArray; readonly whole: readonly Quad[] };
 }
 
 /** Each pixel's fate: 0 recoloured, KEEP as drawn, ANNOTATION from the annotated drawing. */
@@ -161,7 +183,7 @@ export function recolourTile(
   const fates = new Uint8Array(count);
   markImages(fates, pixels, kept, width, height);
   const annotated = kept.annotated;
-  if (annotated !== undefined) markAnnotations(fates, pixels, annotated.pixels, annotated.rects, width, height);
+  if (annotated !== undefined) markAnnotations(fates, pixels, annotated.pixels, annotated.whole, width, height);
   for (let i = 0, o = 0; i < count; i++, o += 4) {
     const fate = fates[i];
     if (fate === KEEP) continue;
@@ -187,31 +209,42 @@ function markImages(fates: Uint8Array, pixels: Uint8ClampedArray, kept: Kept, wi
   }
 }
 
+/** Whether pixel `i` differs between the two drawings. */
+function changed(plain: Uint8ClampedArray, over: Uint8ClampedArray, i: number): boolean {
+  const o = i * 4;
+  return (
+    plain[o] !== over[o] || plain[o + 1] !== over[o + 1] || plain[o + 2] !== over[o + 2] || plain[o + 3] !== over[o + 3]
+  );
+}
+
 /**
- * Marks the pixels taken from the annotated drawing: the whole rectangle of an annotation that
- * changes at least half of it, and every other pixel the annotations change.
+ * Which annotations change at least half of their rectangle (a highlight, a filled shape, a
+ * stamp), decided once for the page: `plain` and `over` are the whole page drawn small, without
+ * and with annotations, `width` pixels wide, and `rects` the rectangles in its pixels. Deciding
+ * per tile instead would split an annotation that two tiles share.
  */
+export function mostlyChanged(
+  rects: readonly Quad[],
+  plain: Uint8ClampedArray,
+  over: Uint8ClampedArray,
+  width: number,
+): boolean[] {
+  const height = Math.floor(plain.length / 4 / width);
+  return rects.map((rect) => {
+    const inside = pixelsIn(rect, width, height);
+    return inside.length > 0 && inside.filter((i) => changed(plain, over, i)).length * 2 >= inside.length;
+  });
+}
+
+/** Marks the pixels taken from the annotated drawing: the whole rectangles, and every other pixel the annotations change. */
 function markAnnotations(
   fates: Uint8Array,
   plain: Uint8ClampedArray,
   over: Uint8ClampedArray,
-  rects: readonly Quad[],
+  whole: readonly Quad[],
   width: number,
   height: number,
 ): void {
-  const changed = (i: number) => {
-    const o = i * 4;
-    return (
-      plain[o] !== over[o] ||
-      plain[o + 1] !== over[o + 1] ||
-      plain[o + 2] !== over[o + 2] ||
-      plain[o + 3] !== over[o + 3]
-    );
-  };
-  for (const rect of rects) {
-    const inside = pixelsIn(rect, width, height);
-    const differing = inside.filter(changed).length;
-    if (differing * 2 >= inside.length) for (const i of inside) fates[i] = ANNOTATION;
-  }
-  for (let i = 0; i < fates.length; i++) if (changed(i)) fates[i] = ANNOTATION;
+  for (const rect of whole) for (const i of pixelsIn(rect, width, height)) fates[i] = ANNOTATION;
+  for (let i = 0; i < fates.length; i++) if (changed(plain, over, i)) fates[i] = ANNOTATION;
 }

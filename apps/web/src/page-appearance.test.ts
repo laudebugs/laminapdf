@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { choose, type PageAppearanceChoices, parseChoices, resolve, withDocument } from "./page-appearance.tsx";
+import {
+  choose,
+  documentKey,
+  type PageAppearanceChoices,
+  parseChoices,
+  resolve,
+  undo,
+  withDocument,
+} from "./page-appearance.tsx";
 
 const none: PageAppearanceChoices = { documents: {} };
 
@@ -63,5 +71,32 @@ describe("choosing a page appearance", () => {
 
   it("with no document open is for all documents", () => {
     expect(choose(none, none, { key: undefined, kept: false }, "sepia", "document").stored.all).toBe("sepia");
+  });
+});
+
+describe("a document's key", () => {
+  it("is the same for the same name and size, and differs otherwise", () => {
+    const key = documentKey({ name: "report.pdf", size: 1234 });
+    expect(key).toMatch(/^[0-9a-f]{16}$/);
+    expect(documentKey({ name: "report.pdf", size: 1234 })).toBe(key);
+    expect(documentKey({ name: "report.pdf", size: 1235 })).not.toBe(key);
+    expect(documentKey({ name: "other.pdf", size: 1234 })).not.toBe(key);
+  });
+});
+
+describe("undoing a choice", () => {
+  const local = { key: "a", kept: true };
+
+  it("brings back only what that choice changed, never a later choice", () => {
+    const start = { stored: none, session: none };
+    const sepia = choose(start.stored, start.session, local, "sepia", "all");
+    const dark = choose(sepia.stored, sepia.session, local, "dark", "document");
+    // Undoing the first (Sepia for all) keeps this document's later Dark.
+    expect(undo(dark, start, sepia, local)).toEqual({
+      stored: { all: undefined, documents: { a: "dark" } },
+      session: none,
+    });
+    // Undoing the second brings back Sepia for all.
+    expect(undo(dark, sepia, dark, local)).toEqual({ stored: { all: "sepia", documents: {} }, session: none });
   });
 });

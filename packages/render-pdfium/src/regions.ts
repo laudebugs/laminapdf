@@ -5,7 +5,7 @@
 // 1 MP are also decoded to look for transparent samples (an /SMask or /Mask of their own).
 
 import type { Quad, RenderPage, TilePlan, ViewRotation } from "@laminapdf/render";
-import { pageToTile } from "@laminapdf/render";
+import { pageToTile, touches } from "@laminapdf/render";
 import { heap, type Pdfium, withScratch } from "./engine.js";
 
 /** An affine matrix `[a, b, c, d, e, f]`. */
@@ -91,13 +91,20 @@ export interface PageImages {
   readonly seeThrough: Quad[];
 }
 
-/** Every image on `page`, forms included. */
-export function pageImages(p: Pdfium, doc: number, page: number, toTile: Matrix): PageImages {
+/** Where images are looked for: the tile's size, and the page's alpha cache by image place. */
+export interface ImageScan {
+  readonly tile: readonly [width: number, height: number];
+  readonly alpha: Map<number, boolean>;
+}
+
+/** Every image on `page` that touches the tile, forms included. */
+export function pageImages(p: Pdfium, doc: number, page: number, toTile: Matrix, scan: ImageScan): PageImages {
   const images: PageImages = { opaque: [], seeThrough: [] };
+  let seen = 0;
   withScratch(p, 32, (at) => {
     const visit = (object: number, m: Matrix): void => {
       const type = p.FPDFPageObj_GetType(object);
-      if (type === FPDF_PAGEOBJ_IMAGE) addImage(p, { doc, page, object, at }, m, images);
+      if (type === FPDF_PAGEOBJ_IMAGE) addImage(p, { doc, page, object, at, place: seen++, scan }, m, images);
       if (type !== FPDF_PAGEOBJ_FORM) return;
       // A form's children are in its own space: its matrix comes first.
       const inner = p.FPDFPageObj_GetMatrix(object, at) ? then(floats(p, at, 6) as unknown as Matrix, m) : m;
@@ -110,18 +117,29 @@ export function pageImages(p: Pdfium, doc: number, page: number, toTile: Matrix)
   return images;
 }
 
-/** Adds an image object's quad under `m`, sorted by whether the page shows through it. */
-function addImage(
-  p: Pdfium,
-  { doc, page, object, at }: { doc: number; page: number; object: number; at: number },
-  m: Matrix,
-  images: PageImages,
-): void {
+/** An image object: where it is, its place among the page's images, and the scan it is part of. */
+interface ImageObject {
+  readonly doc: number;
+  readonly page: number;
+  readonly object: number;
+  readonly at: number;
+  readonly place: number;
+  readonly scan: ImageScan;
+}
+
+/** Adds an image object's quad under `m` if it touches the tile, sorted by whether the page shows through it. */
+function addImage(p: Pdfium, image: ImageObject, m: Matrix, images: PageImages): void {
+  const { doc, page, object, at, place, scan } = image;
   if (!p.FPDFPageObj_GetRotatedBounds(object, at)) return;
   const [x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0, x4 = 0, y4 = 0] = floats(p, at, 8);
   const quad: Quad = [apply(m, x1, y1), apply(m, x2, y2), apply(m, x3, y3), apply(m, x4, y4)];
-  const through = p.FPDFPageObj_HasTransparency(object) || hasAlpha(p, doc, page, object);
-  (through ? images.seeThrough : images.opaque).push(quad);
+  if (!touches(quad, ...scan.tile)) return;
+  let alpha = scan.alpha.get(place);
+  if (alpha === undefined) {
+    alpha = hasAlpha(p, doc, page, object);
+    scan.alpha.set(place, alpha);
+  }
+  (p.FPDFPageObj_HasTransparency(object) || alpha ? images.seeThrough : images.opaque).push(quad);
 }
 
 /**

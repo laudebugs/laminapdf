@@ -17,6 +17,8 @@
 //! [`RenderCache`] lives for one call: its lifetime is tied to the page borrowed from the
 //! document, so it can't be kept on the document without a self-referential type.
 
+use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 
@@ -39,7 +41,7 @@ use laminapdf_cos::ByteSource;
 use laminapdf_syntax::CancelToken;
 use laminapdf_syntax::Rotation;
 
-use crate::appearance::{Annotated, Kept, Quad, recolour_tile};
+use crate::appearance::{Annotated, Kept, Quad, mostly_changed, recolour_tile};
 use crate::backend::{RenderBackend, RenderDocument};
 use crate::error::RenderError;
 use crate::request::{RenderLimits, RenderOpenOptions, RenderPage, RenderRequest, Rgba8, TilePlan};
@@ -101,7 +103,11 @@ impl RenderBackend for HayroBackend {
             }
             _ => failed("open"),
         })?;
-        Ok(Box::new(HayroDocument { pdf, limits }))
+        Ok(Box::new(HayroDocument {
+            pdf,
+            limits,
+            whole: RefCell::default(),
+        }))
     }
 }
 
@@ -119,6 +125,9 @@ impl AsRef<[u8]> for InMemory {
 struct HayroDocument {
     pdf: Pdf,
     limits: RenderLimits,
+    /// Per page, which annotations keep their whole rectangle when recoloured
+    /// ([`mostly_changed`], decided once on a small drawing of the page).
+    whole: RefCell<BTreeMap<u32, Vec<bool>>>,
 }
 
 impl HayroDocument {
@@ -133,6 +142,47 @@ impl HayroDocument {
         }
     }
 }
+
+impl HayroDocument {
+    /// Which of `page`'s annotations keep their whole rectangle, from a drawing of the whole
+    /// page at most [`DECISION_SIDE`] pixels on a side; cached per page.
+    fn whole_rects(
+        &self,
+        page: &hayro::hayro_syntax::page::Page<'_>,
+        request: &RenderRequest,
+        info: &RenderPage,
+    ) -> Result<Vec<bool>, RenderError> {
+        if let Some(flags) = self.whole.borrow().get(&request.page) {
+            return Ok(flags.clone());
+        }
+        let longest = info.width.max(info.height).max(1.0);
+        let small = RenderRequest::page(request.page, DECISION_SIDE / longest)
+            .with_flags(request.flags)
+            .with_background(request.background);
+        let plan = TilePlan::new(info, &small, &self.limits)?;
+        let transform =
+            Affine::new(plan.page_to_tile(info, Rotation::None).to_array()) * page.initial_transform(true).to_kurbo();
+        let size = (
+            u16::try_from(plan.tile.width).map_err(|_| failed("render"))?,
+            u16::try_from(plan.tile.height).map_err(|_| failed("render"))?,
+        );
+        let mut without = vec![0; plan.byte_len()];
+        let mut annotated = vec![0; plan.byte_len()];
+        draw(page, &small, transform, size, false, &mut without)?;
+        draw(page, &small, transform, size, true, &mut annotated)?;
+        let flags = mostly_changed(
+            &annotation_rects(page, transform),
+            &without,
+            &annotated,
+            plan.tile.width,
+        );
+        self.whole.borrow_mut().insert(request.page, flags.clone());
+        Ok(flags)
+    }
+}
+
+/// The longest side of the page drawing [`mostly_changed`] decides on.
+const DECISION_SIDE: f32 = 256.0;
 
 impl RenderDocument for HayroDocument {
     fn page_count(&self) -> u32 {
@@ -187,19 +237,21 @@ impl RenderDocument for HayroDocument {
             } else {
                 Vec::new()
             };
-            let with = if rects.is_empty() {
-                None
+            let (with, whole) = if rects.is_empty() {
+                (None, Vec::new())
             } else {
                 let mut with = vec![0; out.len()];
                 draw(page, request, transform, size, true, &mut with)?;
-                Some(with)
+                let flags = self.whole_rects(page, request, &info)?;
+                let whole = rects.iter().zip(flags).filter(|(_, w)| *w).map(|(q, _)| *q).collect();
+                (Some(with), whole)
             };
             let images = image_quads(page, transform, size)?;
             let kept = Kept {
                 images: &images.opaque,
                 see_through: &images.see_through,
                 background: request.background,
-                annotated: with.as_deref().map(|pixels| Annotated { pixels, rects: &rects }),
+                annotated: with.as_deref().map(|pixels| Annotated { pixels, whole: &whole }),
             };
             recolour_tile(request.appearance, plan.tile.width, out, &kept);
         } else {

@@ -39,10 +39,26 @@ pub enum PageAppearance {
     },
 }
 
-/// Sepia's paper and ink: `@laminapdf/tokens`' `PAGE_APPEARANCES.sepia`.
-pub const SEPIA: (Rgba8, Rgba8) = (rgb(0xF4, 0xEC, 0xD8), rgb(0x3B, 0x2F, 0x20));
+/// An appearance's paper (what white becomes) and ink (what black becomes).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PagePalette {
+    /// What white becomes.
+    pub paper: Rgba8,
+    /// What black becomes.
+    pub ink: Rgba8,
+}
+
+/// Sepia's paper and ink: `@laminapdf/tokens`' `PAGE_APPEARANCES.sepia` (`@laminapdf/render`'s
+/// tests hold both to the tokens).
+pub const SEPIA: PagePalette = PagePalette {
+    paper: rgb(0xF4, 0xEC, 0xD8),
+    ink: rgb(0x3B, 0x2F, 0x20),
+};
 /// Dark's paper and ink: `@laminapdf/tokens`' `PAGE_APPEARANCES.dark`.
-pub const DARK: (Rgba8, Rgba8) = (rgb(0x22, 0x21, 0x1F), rgb(0xE6, 0xE1, 0xD8));
+pub const DARK: PagePalette = PagePalette {
+    paper: rgb(0x22, 0x21, 0x1F),
+    ink: rgb(0xE6, 0xE1, 0xD8),
+};
 
 const fn rgb(r: u8, g: u8, b: u8) -> Rgba8 {
     Rgba8 { r, g, b, a: 255 }
@@ -64,7 +80,7 @@ impl PageAppearance {
             Self::Original => rgb,
             // Each channel from ink (0) to paper (255): black is ink, white is paper.
             Self::Sepia => {
-                let (paper, ink) = SEPIA;
+                let PagePalette { paper, ink } = SEPIA;
                 [
                     lerp(ink.r, paper.r, red),
                     lerp(ink.g, paper.g, green),
@@ -74,7 +90,7 @@ impl PageAppearance {
             // The lightness from ink (black) to paper (white), plus the colour's own offset from
             // its lightness, so a blue bar stays bluish.
             Self::Dark => {
-                let (paper, ink) = DARK;
+                let PagePalette { paper, ink } = DARK;
                 let shift = |from: u8, to: u8, channel: u8| {
                     clamp(i32::from(lerp(from, to, light)) + i32::from(channel) - i32::from(light))
                 };
@@ -165,6 +181,13 @@ impl Quad {
         Some((cx0 as u32, cx1 as u32, cy0 as u32, cy1 as u32))
     }
 
+    /// Whether the quad covers the centre of any pixel of a `width` × `height` tile (its bounding
+    /// box does, at least): a cheap test before work on what it covers.
+    #[must_use]
+    pub fn touches(&self, width: u32, height: u32) -> bool {
+        self.bounds(width, height).is_some()
+    }
+
     /// The indices of the pixels whose centres are inside, in a tile `width` × `height`.
     fn pixels(&self, width: u32, height: u32) -> Vec<usize> {
         let Some((x0, x1, y0, y1)) = self.bounds(width, height) else {
@@ -197,13 +220,37 @@ pub struct Kept<'a> {
     pub annotated: Option<Annotated<'a>>,
 }
 
-/// The same tile drawn with its annotations, and where each annotation's rectangle lands.
+/// The same tile drawn with its annotations, and the rectangles kept whole.
 #[derive(Debug, Clone, Copy)]
 pub struct Annotated<'a> {
     /// The tile with annotations: same size as the one being recoloured.
     pub pixels: &'a [u8],
-    /// Each annotation's `/Rect`, in tile pixels.
-    pub rects: &'a [Quad],
+    /// In tile pixels, the rectangles of the annotations [`mostly_changed`] picked: every pixel
+    /// inside comes from `pixels`, so text under a highlight keeps its colour.
+    pub whole: &'a [Quad],
+}
+
+/// Which annotations change at least half of their rectangle (a highlight, a filled shape, a
+/// stamp), decided once for the page: `plain` and `annotated` are the whole page drawn small,
+/// without and with annotations, `width` pixels wide, and `rects` the rectangles in its pixels.
+/// Deciding per tile instead would split an annotation that two tiles share.
+#[must_use]
+pub fn mostly_changed(rects: &[Quad], plain: &[u8], annotated: &[u8], width: u32) -> Vec<bool> {
+    let height = u32::try_from(plain.len() / (width as usize * BYTES_PER_PIXEL).max(1)).unwrap_or(u32::MAX);
+    rects
+        .iter()
+        .map(|rect| {
+            let inside = rect.pixels(width, height);
+            let differing = inside.iter().filter(|&&i| changed(plain, annotated, i)).count();
+            !inside.is_empty() && differing * 2 >= inside.len()
+        })
+        .collect()
+}
+
+/// Whether pixel `i` differs between the two drawings.
+fn changed(plain: &[u8], annotated: &[u8], i: usize) -> bool {
+    let at = i * BYTES_PER_PIXEL..(i + 1) * BYTES_PER_PIXEL;
+    plain.get(at.clone()) != annotated.get(at)
 }
 
 /// What happens to each pixel of a recoloured tile.
@@ -219,10 +266,8 @@ enum Fate {
 /// Recolours a tile drawn without annotations, in place: straight RGBA8 rows of `width × 4`.
 ///
 /// Pixels of an opaque image keep their colour, and so do those of a see-through image that
-/// aren't the background. With [`Kept::annotated`], an annotation that changes at least half of
-/// its rectangle (a highlight, a filled shape, a stamp) gives that whole rectangle from the
-/// annotated drawing, so text under a highlight keeps its own colour; any other pixel the
-/// annotations change (an ink stroke, a line) comes from it too.
+/// aren't the background. With [`Kept::annotated`], its whole rectangles and every other pixel
+/// the annotations change (an ink stroke, a line) come from the annotated drawing.
 pub fn recolour_tile(appearance: PageAppearance, width: u32, pixels: &mut [u8], kept: &Kept<'_>) {
     if !appearance.recolours() || width == 0 {
         return;
@@ -264,26 +309,16 @@ pub fn recolour_tile(appearance: PageAppearance, width: u32, pixels: &mut [u8], 
     }
 }
 
-/// Marks the pixels taken from the annotated drawing: the whole rectangle of an annotation that
-/// changes at least half of it, and every other pixel the annotations change.
+/// Marks the pixels taken from the annotated drawing: the whole rectangles, and every other
+/// pixel the annotations change.
 fn mark_annotations(fates: &mut [Fate], plain: &[u8], annotated: Annotated<'_>, width: u32, height: u32) {
-    let changed = |i: usize| {
-        let at = i * BYTES_PER_PIXEL..(i + 1) * BYTES_PER_PIXEL;
-        plain.get(at.clone()) != annotated.pixels.get(at)
-    };
-    for rect in annotated.rects {
-        let inside = rect.pixels(width, height);
-        let differing = inside.iter().filter(|&&i| changed(i)).count();
-        if differing * 2 >= inside.len() {
-            for i in inside {
-                if let Some(fate) = fates.get_mut(i) {
-                    *fate = Fate::Annotation;
-                }
-            }
+    for i in annotated.whole.iter().flat_map(|rect| rect.pixels(width, height)) {
+        if let Some(fate) = fates.get_mut(i) {
+            *fate = Fate::Annotation;
         }
     }
     for (i, fate) in fates.iter_mut().enumerate() {
-        if changed(i) {
+        if changed(plain, annotated.pixels, i) {
             *fate = Fate::Annotation;
         }
     }
@@ -291,7 +326,7 @@ fn mark_annotations(fates: &mut [Fate], plain: &[u8], annotated: Annotated<'_>, 
 
 #[cfg(test)]
 mod tests {
-    use super::{Annotated, DARK, Kept, PageAppearance, Quad, SEPIA, recolour_tile};
+    use super::{Annotated, DARK, Kept, PageAppearance, Quad, SEPIA, mostly_changed, recolour_tile};
     use crate::Rgba8;
 
     const WHITE: [u8; 3] = [255, 255, 255];
@@ -308,9 +343,9 @@ mod tests {
 
     #[test]
     fn white_becomes_paper_and_black_becomes_ink() {
-        for (appearance, (paper, ink)) in [(PageAppearance::Sepia, SEPIA), (PageAppearance::Dark, DARK)] {
-            assert_eq!(appearance.recolour_rgb(WHITE), rgb(paper), "{appearance:?}");
-            assert_eq!(appearance.recolour_rgb(BLACK), rgb(ink), "{appearance:?}");
+        for (appearance, palette) in [(PageAppearance::Sepia, SEPIA), (PageAppearance::Dark, DARK)] {
+            assert_eq!(appearance.recolour_rgb(WHITE), rgb(palette.paper), "{appearance:?}");
+            assert_eq!(appearance.recolour_rgb(BLACK), rgb(palette.ink), "{appearance:?}");
         }
     }
 
@@ -352,7 +387,7 @@ mod tests {
             ..Kept::default()
         };
         recolour_tile(PageAppearance::Dark, 2, &mut pixels, &kept);
-        let ink = rgb(DARK.1);
+        let ink = rgb(DARK.ink);
         assert_eq!(pixels, [0, 0, 0, 255, ink[0], ink[1], ink[2], 128]);
     }
 
@@ -362,14 +397,14 @@ mod tests {
         let annotated = [255, 255, 0, 255, 255, 255, 255, 255];
         let annotated = Annotated {
             pixels: &annotated,
-            rects: &[],
+            whole: &[],
         };
         let kept = Kept {
             annotated: Some(annotated),
             ..Kept::default()
         };
         recolour_tile(PageAppearance::Dark, 2, &mut pixels, &kept);
-        let paper = rgb(DARK.0);
+        let paper = rgb(DARK.paper);
         assert_eq!(pixels, [255, 255, 0, 255, paper[0], paper[1], paper[2], 255]);
     }
 
@@ -380,9 +415,11 @@ mod tests {
         let mut pixels = [255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255];
         let over = [255, 255, 0, 255, 0, 0, 0, 255, 255, 255, 0, 255];
         let rect = Quad::from_transform([3.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
+        let plain = pixels;
+        assert_eq!(mostly_changed(&[rect], &plain, &over, 3), [true]);
         let annotated = Annotated {
             pixels: &over,
-            rects: &[rect],
+            whole: &[rect],
         };
         let kept = Kept {
             annotated: Some(annotated),
@@ -403,7 +440,7 @@ mod tests {
             ..Kept::default()
         };
         recolour_tile(PageAppearance::Dark, 2, &mut pixels, &kept);
-        let paper = rgb(DARK.0);
+        let paper = rgb(DARK.paper);
         assert_eq!(pixels, [paper[0], paper[1], paper[2], 255, 40, 120, 200, 255]);
     }
 
@@ -416,6 +453,6 @@ mod tests {
             ..Kept::default()
         };
         recolour_tile(PageAppearance::Sepia, 1, &mut pixels, &kept);
-        assert_eq!(pixels[..3], rgb(SEPIA.1));
+        assert_eq!(pixels[..3], rgb(SEPIA.ink));
     }
 }

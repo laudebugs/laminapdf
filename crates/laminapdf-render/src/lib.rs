@@ -19,7 +19,7 @@ mod hayro;
 mod request;
 mod source;
 
-pub use appearance::{Annotated, DARK, Kept, PageAppearance, Quad, SEPIA, recolour_tile};
+pub use appearance::{Annotated, DARK, Kept, PageAppearance, PagePalette, Quad, SEPIA, mostly_changed, recolour_tile};
 pub use backend::{RenderBackend, RenderDocument};
 pub use error::RenderError;
 #[cfg(feature = "hayro")]

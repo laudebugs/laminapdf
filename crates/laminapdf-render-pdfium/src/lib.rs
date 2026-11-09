@@ -24,7 +24,8 @@ use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
 use laminapdf_render::{
     Annotated, ByteSource, CancelToken, Kept, Matrix, Quad, RenderBackend, RenderDocument, RenderError, RenderLimits,
-    RenderOpenOptions, RenderPage, RenderRequest, Rotation, SourceError, TilePlan, merge_ranges, recolour_tile,
+    RenderOpenOptions, RenderPage, RenderRequest, Rotation, SourceError, TilePlan, merge_ranges, mostly_changed,
+    recolour_tile,
 };
 use pdfium_render::prelude::{
     PdfBitmap, PdfBitmapFormat, PdfColor, PdfDocument, PdfMatrix, PdfPage, PdfPageAnnotationCommon as _, PdfPageObject,
@@ -152,6 +153,8 @@ impl RenderBackend for PdfiumBackend {
             pending,
             limits: *options.limits(),
             pages: RefCell::new(BTreeMap::new()),
+            whole: RefCell::default(),
+            alpha: RefCell::default(),
         }))
     }
 }
@@ -165,6 +168,12 @@ struct PdfiumDocument {
     /// Page geometry already read: `plan` then `render` loads the page once. The document never
     /// changes, so entries never go stale. A `RefCell`: the document is `Send + !Sync`.
     pages: RefCell<BTreeMap<u32, RenderPage>>,
+    /// Per page, which annotations keep their whole rectangle when recoloured
+    /// ([`mostly_changed`], decided once on a small drawing of the page).
+    whole: RefCell<BTreeMap<u32, Vec<bool>>>,
+    /// Whether an image has transparent samples, by page and the image's place in the page's
+    /// objects: decoding it once is enough.
+    alpha: RefCell<BTreeMap<(u32, usize), bool>>,
 }
 
 impl PdfiumDocument {
@@ -198,6 +207,32 @@ impl PdfiumDocument {
             Some(pending) => Err(pending),
             None => outcome,
         }
+    }
+
+    /// Which of `page`'s annotations keep their whole rectangle, from a drawing of the whole
+    /// page at most [`DECISION_SIDE`] pixels on a side; cached per page.
+    fn whole_rects(
+        &self,
+        page: &PdfPage<'_>,
+        request: &RenderRequest,
+        info: &RenderPage,
+    ) -> Result<Vec<bool>, RenderError> {
+        if let Some(flags) = self.whole.borrow().get(&request.page) {
+            return Ok(flags.clone());
+        }
+        let longest = info.width.max(info.height).max(1.0);
+        let small = RenderRequest::page(request.page, DECISION_SIDE / longest)
+            .with_flags(request.flags)
+            .with_background(request.background);
+        let plan = TilePlan::new(info, &small, &self.limits)?;
+        let mut without = vec![0; plan.byte_len()];
+        let mut annotated = vec![0; plan.byte_len()];
+        draw(page, &small, &plan, info, false, &mut without)?;
+        draw(page, &small, &plan, info, true, &mut annotated)?;
+        let rects = annotation_rects(page, &user_to_tile(page, &plan, info, Rotation::None));
+        let flags = mostly_changed(&rects, &without, &annotated, plan.tile.width);
+        self.whole.borrow_mut().insert(request.page, flags.clone());
+        Ok(flags)
     }
 
     fn load(&self, index: u32) -> Result<PdfPage<'_>, RenderError> {
@@ -266,23 +301,32 @@ impl RenderDocument for PdfiumDocument {
                 } else {
                     Vec::new()
                 };
-                let with = if rects.is_empty() {
-                    None
+                let (with, whole) = if rects.is_empty() {
+                    (None, Vec::new())
                 } else {
                     let mut with = vec![0; out.len()];
                     draw(&page, request, &plan, &info, true, &mut with)?;
-                    Some(with)
+                    let flags = self.whole_rects(&page, request, &info)?;
+                    let whole = rects.iter().zip(flags).filter(|(_, w)| *w).map(|(q, _)| *q).collect();
+                    (Some(with), whole)
                 };
-                let mut images = Images::default();
-                let doc = self.doc()?;
+                let mut images = Images {
+                    doc: self.doc()?,
+                    page: request.page,
+                    tile: (plan.tile.width, plan.tile.height),
+                    alpha: &self.alpha,
+                    seen: 0,
+                    opaque: Vec::new(),
+                    see_through: Vec::new(),
+                };
                 for object in page.objects().iter() {
-                    images.add(&object, &user_to_tile, doc);
+                    images.add(&object, &user_to_tile);
                 }
                 let kept = Kept {
                     images: &images.opaque,
                     see_through: &images.see_through,
                     background: request.background,
-                    annotated: with.as_deref().map(|pixels| Annotated { pixels, rects: &rects }),
+                    annotated: with.as_deref().map(|pixels| Annotated { pixels, whole: &whole }),
                 };
                 recolour_tile(request.appearance, plan.tile.width, out, &kept);
             } else {
@@ -403,26 +447,41 @@ fn annotation_rects(page: &PdfPage<'_>, to_tile: &Matrix) -> Vec<Quad> {
         .collect()
 }
 
-/// The page's images in tile pixels, sorted by whether the page shows through them.
-#[derive(Default)]
-struct Images {
+/// The longest side of the page drawing [`mostly_changed`] decides on.
+const DECISION_SIDE: f32 = 256.0;
+
+/// The images of a page that touch the tile, in tile pixels, sorted by whether the page shows
+/// through them.
+struct Images<'d, 'a> {
+    doc: &'d PdfDocument<'a>,
+    page: u32,
+    /// The tile's width and height.
+    tile: (u32, u32),
+    /// The document's alpha cache.
+    alpha: &'d RefCell<BTreeMap<(u32, usize), bool>>,
+    /// Images visited so far: each one's place in the page, for the cache.
+    seen: usize,
     opaque: Vec<Quad>,
     see_through: Vec<Quad>,
 }
 
-impl Images {
-    /// Adds `object` if it is an image, or the images of a form (whose children's bounds are in
-    /// the form's space, so its matrix is applied first).
-    fn add(&mut self, object: &PdfPageObject<'_>, to_tile: &Matrix, doc: &PdfDocument<'_>) {
+impl Images<'_, '_> {
+    /// Adds `object` if it is an image in the tile, or the images of a form (whose children's
+    /// bounds are in the form's space, so its matrix is applied first).
+    fn add(&mut self, object: &PdfPageObject<'_>, to_tile: &Matrix) {
         match object.object_type() {
             PdfPageObjectType::Image => {
-                if let Ok(bounds) = object.bounds() {
-                    let quad = quad_in_tile(&bounds, to_tile);
-                    if object.has_transparency() || has_alpha(object, doc) {
-                        self.see_through.push(quad);
-                    } else {
-                        self.opaque.push(quad);
-                    }
+                let place = self.seen;
+                self.seen += 1;
+                let Ok(bounds) = object.bounds() else { return };
+                let quad = quad_in_tile(&bounds, to_tile);
+                if !quad.touches(self.tile.0, self.tile.1) {
+                    return;
+                }
+                if object.has_transparency() || self.has_alpha(object, place) {
+                    self.see_through.push(quad);
+                } else {
+                    self.opaque.push(quad);
                 }
             }
             PdfPageObjectType::XObjectForm => {
@@ -439,12 +498,23 @@ impl Images {
                         form_matrix.then(to_tile)
                     });
                     for child in form.iter() {
-                        self.add(&child, &inner, doc);
+                        self.add(&child, &inner);
                     }
                 }
             }
             _ => {}
         }
+    }
+
+    /// [`has_alpha`], once per image.
+    fn has_alpha(&self, object: &PdfPageObject<'_>, place: usize) -> bool {
+        let key = (self.page, place);
+        if let Some(&known) = self.alpha.borrow().get(&key) {
+            return known;
+        }
+        let found = has_alpha(object, self.doc);
+        self.alpha.borrow_mut().insert(key, found);
+        found
     }
 }
 

@@ -570,19 +570,25 @@ export class Viewer {
   }
 
   /**
-   * Draws the pages in `appearance` (Sepia, Dark, High contrast or their own colours): pages in
-   * view draw their tiles again over what they show, keeping the scroll position; the others
-   * repaint when they come into view. The thumbnails follow.
+   * Draws the pages in `appearance` (Sepia, Dark, High contrast or their own colours), keeping the
+   * scroll position: pages in view paint again, a quick pass then sharp tiles, and none of their
+   * old pixels is kept; other pages give their canvas back and paint when they come into view.
+   * The thumbnails follow.
    */
   setAppearance(appearance: PageAppearance): void {
     if (appearanceKey(appearance) === appearanceKey(this.#state.appearance)) return;
     const { first, last } = this.#state.visibleRange;
-    for (const view of this.#pages.values()) {
+    for (const view of [...this.#pages.values()]) {
       this.#abort(view);
       view.tiles.clear();
       view.detail?.tiles.clear();
-      // Pages in view draw their tiles over what they show; the others wait until they're seen.
-      if (view.index >= first && view.index <= last) view.appearance = appearanceKey(appearance);
+      if (view.index >= first && view.index <= last) {
+        view.appearance = appearanceKey(appearance);
+        view.painted = "";
+      } else {
+        // Its shell shows the new paper until it is seen (`#readyForAppearance`).
+        this.#releaseCanvas(view);
+      }
     }
     this.#setState({ appearance });
     this.#schedule();
@@ -939,7 +945,11 @@ export class Viewer {
     shell.setAttribute("aria-label", this.#pageName(index));
     shell.tabIndex = -1;
     // The paper shows before the page is drawn: white, or the page appearance's (--lamina-page-paper).
-    Object.assign(shell.style, { position: "absolute", contain: "strict", background: "var(--lamina-page-paper, #fff)" });
+    Object.assign(shell.style, {
+      position: "absolute",
+      contain: "strict",
+      background: "var(--lamina-page-paper, #fff)",
+    });
     this.#spacer.append(shell);
     const view: PageView = {
       index,
@@ -1087,10 +1097,10 @@ export class Viewer {
   }
 
   /**
-   * Whether `view` may paint now: a canvas painted in another appearance, out of view when it
-   * changed, waits until it is seen (`prefetch` doesn't repaint it), then starts afresh.
+   * Whether `view` may paint now, catching it up with the appearance: a page out of view when the
+   * appearance changed waits until it is seen (`prefetch` doesn't paint it), then starts afresh.
    */
-  #inAppearance(view: PageView, priority: PaintPriority): boolean {
+  #readyForAppearance(view: PageView, priority: PaintPriority): boolean {
     const appearance = appearanceKey(this.#state.appearance);
     if (view.appearance === appearance) return true;
     if (priority === "prefetch") return false;
@@ -1127,7 +1137,7 @@ export class Viewer {
     if (view === undefined || this.#document === undefined || view.busy || view.waiting || view.state === "error") {
       return;
     }
-    if (!this.#inAppearance(view, priority) || this.#upToDate(view, priority, frame)) return;
+    if (!this.#readyForAppearance(view, priority) || this.#upToDate(view, priority, frame)) return;
     view.busy = true;
     const pass = view.pass;
     void this.#pass(view, pass, priority, frame)

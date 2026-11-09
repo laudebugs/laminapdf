@@ -61,7 +61,7 @@ fn a_soft_masked_images_opaque_samples_bypass_recolouring() {
 #[ignore = "needs the PDFium library: cargo xtask render-golden"]
 fn the_paper_around_a_soft_masked_image_is_recoloured() {
     // The disc's box corner (x 40–44, y 110–114): inside the image, outside the disc.
-    let paper = [DARK.0.r, DARK.0.g, DARK.0.b, 255];
+    let paper = [DARK.paper.r, DARK.paper.g, DARK.paper.b, 255];
     for backend in backends() {
         let corner = area(
             backend.as_ref(),
@@ -107,10 +107,12 @@ fn text_beside_annotations_is_recoloured() {
 #[test]
 #[ignore = "needs the PDFium library: cargo xtask render-golden"]
 fn dark_body_text_reads_at_seven_to_one() {
-    let paper = [DARK.0.r, DARK.0.g, DARK.0.b, 255];
+    let paper = [DARK.paper.r, DARK.paper.g, DARK.paper.b, 255];
     for backend in backends() {
-        // The body line, y 40–58: its strongest pixel against the paper.
-        let best = area(
+        // The body line, y 40–58: its glyph pixels (any that stand out from the paper), of which
+        // the brightest quarter, the strokes' cores rather than their anti-aliased edges, must
+        // all reach 7:1.
+        let mut glyphs: Vec<f64> = area(
             backend.as_ref(),
             "text",
             PageAppearance::Dark,
@@ -119,8 +121,15 @@ fn dark_body_text_reads_at_seven_to_one() {
         )
         .into_iter()
         .map(|p| contrast(p, paper))
-        .fold(0.0, f64::max);
-        assert!(best >= 7.0, "{}: body text contrast {best:.2}", backend.name());
+        .filter(|&c| c > 1.5)
+        .collect();
+        glyphs.sort_by(|a, b| b.total_cmp(a));
+        let quarter = glyphs.get(glyphs.len() / 4).copied().unwrap_or(0.0);
+        assert!(
+            quarter >= 7.0,
+            "{}: body text contrast {quarter:.2} at its brightest quarter",
+            backend.name()
+        );
     }
 }
 

@@ -2,10 +2,10 @@
 // UI theme. A choice is for this document or for all of them; this document's wins. With no choice
 // at all, `forced-colors: active` picks High contrast, drawn in the system's CanvasText and Canvas.
 // Choices are kept in localStorage: all documents' as a name, each local document's under a hash
-// of its name and size. A linked document's choice lasts until the tab closes: nothing about it is
+// of its name and size (FNV-1a, so the key is there before the document's first render). A linked document's choice lasts until the tab closes: nothing about it is
 // stored (ADR 0011). Choosing shows a toast with Undo.
 
-import type { PageAppearance } from "@laminapdf/tokens";
+import { PAGE_APPEARANCES, type PageAppearance } from "@laminapdf/tokens";
 import {
   message,
   PageAppearanceFields,
@@ -25,7 +25,7 @@ const STORAGE_KEY = "lamina.page-appearance";
 /** At most this many documents keep their own appearance; the oldest go first. */
 const MAX_DOCUMENTS = 200;
 
-const NAMES: readonly PageAppearance[] = ["original", "sepia", "dark", "high-contrast"];
+const NAMES = Object.keys(PAGE_APPEARANCES) as readonly PageAppearance[];
 
 /** What the user chose: for all documents, and for some documents by key. */
 export interface PageAppearanceChoices {
@@ -87,11 +87,21 @@ export function resolve(choices: PageAppearanceChoices, key: string | undefined,
   );
 }
 
-/** A document's key: a hash of its name and size, never its address. */
-async function documentKey(file: PlatformFile): Promise<string> {
-  const bytes = new TextEncoder().encode(`${file.name}\u0000${file.size}`);
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-  return Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("");
+/**
+ * A document's key: a 64-bit FNV-1a hash of its name and size (two 32-bit halves with different
+ * offsets), never its address. Synchronous, so the document's own appearance is known before its
+ * first render.
+ */
+export function documentKey(file: Pick<PlatformFile, "name" | "size">): string {
+  const text = `${file.name}\u0000${file.size}`;
+  let low = 0x811c9dc5;
+  let high = 0x050c5d1f;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    low = Math.imul(low ^ c, 0x01000193) >>> 0;
+    high = Math.imul(high ^ c, 0x01000193) >>> 0;
+  }
+  return high.toString(16).padStart(8, "0") + low.toString(16).padStart(8, "0");
 }
 
 /** A system colour (`CanvasText`, `Canvas`) as the browser resolves it now. */
@@ -138,6 +148,28 @@ export function choose(
   };
 }
 
+/** The stored and this tab's choices. */
+type Choices = { stored: PageAppearanceChoices; session: PageAppearanceChoices };
+
+/**
+ * The choices after undoing one: `before` and `after` are the choices around it. Each slot it
+ * changed (this document's own choice; for all documents also theirs) goes back to `before`'s
+ * value, unless a later choice changed that slot again.
+ */
+export function undo(now: Choices, before: Choices, after: Choices, doc: DocumentPlace): Choices {
+  let { stored, session } = now;
+  const { key } = doc;
+  if (key !== undefined) {
+    if (stored.documents[key] === after.stored.documents[key])
+      stored = withDocument(stored, key, before.stored.documents[key]);
+    if (session.documents[key] === after.session.documents[key]) {
+      session = withDocument(session, key, before.session.documents[key]);
+    }
+  }
+  if (stored.all === after.stored.all) stored = { ...stored, all: before.stored.all };
+  return { stored, session };
+}
+
 /** What the hook gives the app. */
 export interface PageAppearanceControls {
   /** The View settings popover's Page appearance section. */
@@ -148,17 +180,32 @@ export interface PageAppearanceControls {
 
 /** The open document's key, and whether its choice may be kept. */
 function useDocumentPlace(file: PlatformFile | undefined): DocumentPlace {
-  const [key, setKey] = useState<string>();
+  return useMemo(
+    () => ({
+      key: file === undefined ? undefined : documentKey(file),
+      kept: file !== undefined && remoteUrlOf(file) === undefined,
+    }),
+    [file],
+  );
+}
+
+/**
+ * Bumped when the system's colours may have changed (a light or dark switch, the window coming
+ * back into focus after a contrast theme change), so High contrast reads them again.
+ */
+function useSystemColourChanges(): number {
+  const [changes, setChanges] = useState(0);
   useEffect(() => {
-    setKey(undefined);
-    if (file === undefined) return;
-    let current = true;
-    void documentKey(file).then((k) => current && setKey(k), reportError);
+    const bump = () => setChanges((n) => n + 1);
+    const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+    scheme.addEventListener("change", bump);
+    window.addEventListener("focus", bump);
     return () => {
-      current = false;
+      scheme.removeEventListener("change", bump);
+      window.removeEventListener("focus", bump);
     };
-  }, [file]);
-  return { key, kept: file !== undefined && remoteUrlOf(file) === undefined };
+  }, []);
+  return changes;
 }
 
 /**
@@ -179,23 +226,34 @@ export function usePageAppearance(
   const doc = useDocumentPlace(file);
   const merged = { ...choices.stored, documents: { ...choices.stored.documents, ...choices.session.documents } };
   const name = resolve(merged, doc.key, forced);
+  const system = useSystemColourChanges();
+  // High contrast follows the system's colours: read again when they may have changed.
+  const colours = name === "high-contrast" ? system : 0;
   useEffect(() => {
     document.documentElement.dataset.pageAppearance = name;
-    viewer?.setAppearance(forViewer(name));
-  }, [viewer, name]);
+    if (colours >= 0) viewer?.setAppearance(forViewer(name));
+  }, [viewer, name, colours]);
+  // Undo reads the choices as they are when it is pressed, not when the toast showed.
+  const latestChoices = useRef(choices);
+  latestChoices.current = choices;
   const update = (next: typeof choices) => {
+    latestChoices.current = next;
     setChoices(next);
     saveChoices(next.stored);
   };
   const pick = (appearance: PageAppearance, whom: PageAppearanceScope = scope) => {
     const before = choices;
-    update(choose(choices.stored, choices.session, doc, appearance, whom));
+    const after = choose(choices.stored, choices.session, doc, appearance, whom);
+    update(after);
     const forDocument = whom === "document" && doc.key !== undefined;
     toasts.add({
       message: message(forDocument ? "pageAppearance.toast.document" : "pageAppearance.toast.all", {
         name: pageAppearanceName(appearance),
       }),
-      action: { label: message("pageAppearance.undo"), onPress: () => update(before) },
+      action: {
+        label: message("pageAppearance.undo"),
+        onPress: () => update(undo(latestChoices.current, before, after, doc)),
+      },
     });
   };
   // The command map is made once; it reaches the latest choices through this ref.
@@ -207,7 +265,12 @@ export function usePageAppearance(
   );
   const changeScope = (next: PageAppearanceScope) => {
     setScope(next);
-    if (doc.key !== undefined) update(choose(choices.stored, choices.session, doc, name, next));
+    // Only a choice the user made moves; the default (Original, or High contrast under forced
+    // colours) stays a default.
+    const own = doc.key === undefined ? undefined : merged.documents[doc.key];
+    if (doc.key !== undefined && (own !== undefined || choices.stored.all !== undefined)) {
+      update(choose(choices.stored, choices.session, doc, name, next));
+    }
   };
   return {
     section: (

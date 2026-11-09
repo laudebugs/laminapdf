@@ -3,26 +3,29 @@
 // It mirrors laminapdf-render's Rust trait: bounded tiles of a page at a scale, straight-alpha RGBA8
 // rows of width × 4 bytes, validated once by planTile so both adapters agree on sizes.
 
-/**
- * The bytes of a document, read synchronously (PDFium's file access can't await). A read
- * returns `undefined` when those bytes haven't arrived yet: the call then throws `data-pending`
- * with the ranges to fetch (ADR 0004 §1, the web form of `Pending`).
- */
 import type { PageAppearance } from "./appearance.js";
 import { DOCS_URL, KINDS, type RenderErrorCode, type RenderErrorKind } from "./generated/codes.js";
 
 export {
   DARK,
   type Kept,
+  mostlyChanged,
   type PageAppearance,
+  type PagePalette,
   type Quad,
   quadOf,
   recolourRgb,
   recolours,
   recolourTile,
   SEPIA,
+  touches,
 } from "./appearance.js";
 
+/**
+ * The bytes of a document, read synchronously (PDFium's file access can't await). A read
+ * returns `undefined` when those bytes haven't arrived yet: the call then throws `data-pending`
+ * with the ranges to fetch (ADR 0004 §1, the web form of `Pending`).
+ */
 export interface RenderSource {
   readonly size: number;
   /** `length` bytes at `offset` (fewer only at the end), or `undefined` while they haven't arrived. */

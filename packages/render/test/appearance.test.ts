@@ -1,6 +1,16 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { DARK, isRenderError, type PageAppearance, planTile, quadOf, recolourRgb, recolourTile } from "../src/index.js";
+import {
+  DARK,
+  isRenderError,
+  mostlyChanged,
+  type PageAppearance,
+  planTile,
+  quadOf,
+  recolourRgb,
+  recolourTile,
+  SEPIA,
+} from "../src/index.js";
 
 interface Table {
   readonly highContrast: { readonly ink: number[]; readonly paper: number[] };
@@ -54,7 +64,9 @@ describe("recolourTile", () => {
   it("gives a mostly changed annotation its whole rectangle, letters under it included", () => {
     const pixels = new Uint8ClampedArray([255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255]);
     const over = new Uint8ClampedArray([255, 255, 0, 255, 0, 0, 0, 255, 255, 255, 0, 255]);
-    recolourTile("dark", 3, pixels, { annotated: { pixels: over, rects: [quadOf([3, 0, 0, 1, 0, 0])] } });
+    const rect = quadOf([3, 0, 0, 1, 0, 0]);
+    expect(mostlyChanged([rect], pixels, over, 3)).toEqual([true]);
+    recolourTile("dark", 3, pixels, { annotated: { pixels: over, whole: [rect] } });
     expect([...pixels]).toEqual([...over]);
   });
 
@@ -81,6 +93,23 @@ describe("planTile", () => {
         error = e;
       }
       expect(isRenderError(error, "invalid-argument")).toBe(true);
+    }
+  });
+});
+
+describe("the palettes", () => {
+  it("match @laminapdf/tokens' Sepia and Dark paper and ink", () => {
+    const tokens = readFileSync(new URL("../../tokens/src/generated/tokens.ts", import.meta.url), "utf8");
+    const hex = (c: { r: number; g: number; b: number }) =>
+      `#${[c.r, c.g, c.b].map((v) => v.toString(16).padStart(2, "0").toUpperCase()).join("")}`;
+    for (const [name, palette] of [
+      ["sepia", SEPIA],
+      ["dark", DARK],
+    ] as const) {
+      // PAGE_APPEARANCES.<name>.<accent> lists paper, then ink; every accent shares them.
+      const block = tokens.slice(tokens.indexOf(`"${name}": {`, tokens.indexOf("PAGE_APPEARANCES")));
+      const [, paper, ink] = block.match(/"paper": "(#[0-9A-F]{6})",\s*"ink": "(#[0-9A-F]{6})"/) ?? [];
+      expect([paper, ink], name).toEqual([hex(palette.paper), hex(palette.ink)]);
     }
   });
 });

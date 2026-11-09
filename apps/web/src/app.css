@@ -29,6 +29,11 @@ body {
   --lamina-find-current-outline: var(--paper-page-find-current-outline);
 }
 
+/* High contrast pages are drawn in the system's colours, so their paper before drawing is too. */
+:root[data-page-appearance="high-contrast"] .web-viewer {
+  --lamina-page-paper: Canvas;
+}
+
 .web-wordmark {
   font-family: var(--paper-font-serif);
   font-size: 18px;

@@ -1,7 +1,8 @@
 // Page appearance (todo U2c; R10) in the built reader: choosing Dark from View settings recolours
 // the page's paper and text but keeps a highlight's yellow, says so in a toast with Undo, and is
 // remembered for that document only; another document keeps its own colours. Under emulated
-// forced colours (Chromium) the reader starts in High contrast. No CSP violation throughout.
+// forced colours (Chromium) the reader starts in High contrast, its paper the system's Canvas.
+// No CSP violation throughout.
 
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -30,7 +31,7 @@ async function open({ page }: Watched, file: URL, title: string): Promise<void> 
 /** The first page's canvas pixel at (`x`, `y`) in points of a 300-point-wide page. */
 function pixel(page: Page, x: number, y: number): Promise<number[]> {
   return page.evaluate(
-    ([px, py]) => {
+    ([px = 0, py = 0]) => {
       const canvas = document.querySelector<HTMLCanvasElement>('.lamina-page[data-page-index="0"] canvas');
       if (canvas === null) return [];
       const s = canvas.width / 300;
@@ -101,6 +102,16 @@ describe(`page appearance in ${BROWSER}`, () => {
       .poll(() => page.getByRole("button", { name: "High contrast", exact: true }).getAttribute("aria-pressed"))
       .toBe("true");
     await page.keyboard.press("Escape");
+    // The paper is the system's Canvas colour, as the browser resolves it.
+    const canvas = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      probe.style.color = "Canvas";
+      document.body.append(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return (colour.match(/\d+/g) ?? []).slice(0, 3).map(Number);
+    });
+    await expect.poll(async () => close(await pixel(page, 5, 5), canvas)).toBe(true);
     await clean(watched);
   });
 });

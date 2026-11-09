@@ -281,7 +281,7 @@ export function renderKey(request: RenderRequest, id: number): string {
   ]);
 }
 
-/** The request field for `appearance`: none for the pages' own colours, so their keys don't change. */
+/** The request field for `appearance`: none for the pages' own colours, as requests were before page appearances. */
 export function appearanceField(appearance: PageAppearance): { appearance?: PageAppearance } {
   return appearance === "original" ? {} : { appearance };
 }
