@@ -8,6 +8,7 @@ const NAMES: Readonly<Record<string, string>> = {
   C: "Web reader",
   W: "Website",
   D: "Desktop reader",
+  K: "Browser extension",
   U: "Design and interface",
   H: "Hosted service",
   E: "Editor",
