@@ -12,7 +12,7 @@
 | Branch | `feat/c5a-text-layer` |
 | PR title | `feat(viewer): add the text layer with selection, copy and struct-tree linking` |
 | Size | L (600–1,500 lines incl. tests) |
-| PR | — |
+| PR | [#345](https://github.com/laudebugs/laminapdf/pull/345) |
 
 ## Goal
 
