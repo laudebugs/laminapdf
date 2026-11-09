@@ -1,5 +1,5 @@
 /*
- * The story cards (docs/stories/<story>/visuals/*.html; templates in .agents/skills/lamina-story/):
+ * The story cards (~/git/lamina-stories/<story>/visuals/*.html; templates in .agents/skills/lamina-story/):
  * one look for both shapes, chosen by <html data-shape="portrait|landscape">. story-image.mjs serves
  * this file as /story-card.css. Every colour is a --paper-* token; never write a hex value here.
  */
@@ -131,6 +131,11 @@ h1 {
   fill: var(--paper-text);
   font-weight: 600;
 }
+.label.step {
+  fill: var(--paper-text);
+  font-size: 32px;
+  font-weight: 600;
+}
 .label.bad-text {
   fill: var(--paper-danger);
   font-weight: 600;
@@ -231,6 +236,9 @@ h1 {
 }
 [data-shape="landscape"] .bars .note {
   font-size: 24px;
+}
+[data-shape="landscape"] .label.step {
+  font-size: 28px;
 }
 [data-shape="landscape"] .drawing svg {
   max-height: 560px;

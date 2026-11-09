@@ -1,7 +1,7 @@
 // Renders HTML in the Paper look to PNG, in Playwright's Chromium: the page loads the site's own tokens
 // and fonts from a made-up origin that a route answers from disk, so nothing is fetched from the
 // network. Used by share-image.mjs (the site's share image and favicons) and story-image.mjs (the
-// pictures for the posts in docs/stories/).
+// pictures for the posts in the stories folder, ~/git/lamina-stories).
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 

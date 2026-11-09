@@ -32,12 +32,12 @@ The owner wants to tell Lamina PDF's story one part at a time on LinkedIn, X and
 - `.claude/skills` as a link to `.agents/skills`, so every repository skill lives in one folder.
 - `apps/site/scripts/paper-render.mjs`: the share image's renderer, moved out so both scripts use it, with a check that refuses content past the image's edges or its card's; `share-image.mjs` on it, with pixel-identical output.
 - `apps/site/scripts/story-image.mjs` and the `story-image` script: renders a story's `visuals/*.html` at the size each declares, refusing headlines over ten words; `story-card.css`: the cards' one style sheet, both shapes.
-- `docs/stories/README.md`: how stories are kept, and the coverage map seeded with the project's stories and their sources.
+- The coverage map, seeded with the project's stories and their sources. It began as `docs/stories/README.md` and moved, with the stories, to the owner's stories folder (`~/git/lamina-stories`) on 2026-11-09.
 - Docs: the website plan's §9 and todo rows, `docs/README.md`, the git workflow's exempt PRs, `CLAUDE.md`'s layout.
 
 **Out of scope**
 
-- Writing the first story: the owner picks the topic, and that story's PR touches only `docs/stories/`.
+- Writing the stories themselves: they live in the stories folder, outside this repository.
 - Posting: the owner posts by hand.
 
 ## Tasks

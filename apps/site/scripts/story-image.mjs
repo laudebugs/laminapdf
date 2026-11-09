@@ -1,8 +1,8 @@
-// Draws the pictures for a story in docs/stories/ (the lamina-story skill): every visuals/*.html in
+// Draws the pictures for a story in the stories folder, ~/git/lamina-stories (the lamina-story skill): every visuals/*.html in
 // the story's folder becomes the PNG beside it, at the size its <meta name="lamina-size"
 // content="1080x1350"> gives, in the Paper look (paper-render.mjs: the site's tokens and fonts, no
 // network). Run it from the repository root:
-//   pnpm --filter @laminapdf/site story-image docs/stories/<story>
+//   pnpm --filter @laminapdf/site story-image ~/git/lamina-stories/<story>
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { withPaperRenderer } from "./paper-render.mjs";
@@ -14,7 +14,7 @@ const MAX_HEADLINE_WORDS = 10;
 
 const story = process.argv[2];
 if (story === undefined) {
-  console.error("usage: pnpm --filter @laminapdf/site story-image docs/stories/<story>");
+  console.error("usage: pnpm --filter @laminapdf/site story-image ~/git/lamina-stories/<story>");
   process.exit(2);
 }
 // pnpm runs the script in apps/site; INIT_CWD is where it was called from.

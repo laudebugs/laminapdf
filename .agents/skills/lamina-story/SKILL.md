@@ -7,12 +7,19 @@ description: >
   least one Paper-styled image (a chart, drawing or diagram) per platform, in its size.
   Use it when the owner asks for a post, a story, a LinkedIn or X update, or "something to share"
   about Lamina PDF, or asks which stories are left to tell. It reads and updates the coverage map in
-  docs/stories/README.md so no part of the project is told twice. It never posts anything.
+  the stories folder (~/git/lamina-stories on the owner's Mac) so no part of the project is told
+  twice. It never posts anything, and never commits a story to the Lamina PDF repository.
 ---
 
 # Lamina PDF stories
 
 Each run makes one story: one moment from Lamina PDF's history, told so a reader who has never heard of it cares how it ends. The story goes out three ways: a LinkedIn post, a short post for X, and a short post for Threads. Each carries at least one image in the Paper look that shows what the words can't. Every fact in it is checked against the repository before the owner sees it, and the owner posts it by hand.
+
+## Where stories live
+
+Stories live outside the Lamina PDF repository, in the **stories folder**: `~/git/lamina-stories` on the owner's Mac. It holds the coverage map (`README.md`) and one folder per story. The repository holds only this skill and the script that draws the images.
+
+The folder exists only on the owner's Mac, so a session there reads and writes it directly. A cloud session can't reach it: it drafts the story in its own scratch folder, gives the owner the files, and asks the owner (or a session on the Mac) to copy them into the stories folder and update the map.
 
 ## The brief
 
@@ -43,7 +50,7 @@ This is the owner's request, written out once so every run serves it:
 
 ### 1. Read the coverage map and choose the story
 
-Read [`docs/stories/README.md`](../../../docs/stories/README.md). If the owner named a topic, find its row (add one if it's new). If they didn't, offer three topics from rows marked `open`, each as one line: the hook, the turn, and why a reader would care now. Let the owner pick. Never pick a topic marked `told` unless the owner asks for a new angle, and then write the angle in the row.
+Read the coverage map, `README.md` in the stories folder. If the owner named a topic, find its row (add one if it's new). If they didn't, offer three topics from rows marked `open`, each as one line: the hook, the turn, and why a reader would care now. Let the owner pick. Never pick a topic marked `told` unless the owner asks for a new angle, and then write the angle in the row.
 
 ### 2. Gather the facts
 
@@ -101,7 +108,7 @@ The rules for every image:
 Render them from the repository root:
 
 ```bash
-pnpm --filter @laminapdf/site story-image docs/stories/<story>
+pnpm --filter @laminapdf/site story-image ~/git/lamina-stories/<story>
 ```
 
 The script fails when a headline has more than ten words or the content spills past the image or its card; shorten the words rather than shrinking the type. Then open every PNG and look at it: does the figure show the story without the post, does it match the post, does anything crowd an edge?
@@ -118,6 +125,6 @@ The story isn't ready until all of these hold, and the story file records each o
 
 ### 7. Record it and hand it over
 
-- The story's folder is `docs/stories/<NNN>-<slug>/` (the next number in the map): `story.md` from [`templates/story.md`](templates/story.md), `visuals/<name>-portrait.html` and `visuals/<name>-landscape.html` for each image, and their PNGs.
+- The story's folder is `<NNN>-<slug>/` in the stories folder (the next number in the map): `story.md` from [`templates/story.md`](templates/story.md), `visuals/<name>-portrait.html` and `visuals/<name>-landscape.html` for each image, and their PNGs.
 - In the coverage map, set the topic's **Status** to `drafted` with a link to the story (`drafted: [001](001-slug/story.md)`), and add it to **The stories** table. The story file's **Status** says the same. Once the owner has posted it, they set both to `told` with the date, or ask you to.
-- Commit on a branch and open a PR. A story is an exempt, board-free PR when it touches only `docs/stories/`. Show the owner the three posts, the images and the fact table, and ask for approval or changes.
+- Commit nothing to the Lamina PDF repository. If the stories folder is a git repository, commit the story there. Show the owner the three posts, the images and the fact table, and ask for approval or changes.
