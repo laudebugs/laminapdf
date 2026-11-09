@@ -249,6 +249,12 @@ pub enum Error {
         /// The file's name (**untrusted**: caller text).
         name: String,
     },
+    /// A line or a figure of a flow is taller than the page's body: no page can hold it.
+    #[error("a flow {what} is taller than the page's body")]
+    FlowContentTooLarge {
+        /// What is too tall: `line` or `figure` (fixed text).
+        what: &'static str,
+    },
     /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
     #[cfg(feature = "text")]
     #[error(transparent)]
@@ -291,6 +297,7 @@ impl Error {
         "device-color-without-output-intent",
         "embedded-file-forbidden",
         "embedded-file-without-mime-type",
+        "flow-content-too-large",
     ];
 
     /// A stable kebab-case code for this error.
@@ -326,6 +333,7 @@ impl Error {
             Self::DeviceColorWithoutOutputIntent { .. } => "device-color-without-output-intent",
             Self::EmbeddedFileForbidden { .. } => "embedded-file-forbidden",
             Self::EmbeddedFileWithoutMimeType { .. } => "embedded-file-without-mime-type",
+            Self::FlowContentTooLarge { .. } => "flow-content-too-large",
             #[cfg(feature = "text")]
             Self::Text(e) => e.code(),
             Self::Cos(e) => e.code(),
@@ -370,7 +378,8 @@ impl Error {
             | Self::GlyphWithoutUnicode { .. }
             | Self::DeviceColorWithoutOutputIntent { .. }
             | Self::EmbeddedFileForbidden { .. }
-            | Self::EmbeddedFileWithoutMimeType { .. } => ErrorKind::Usage,
+            | Self::EmbeddedFileWithoutMimeType { .. }
+            | Self::FlowContentTooLarge { .. } => ErrorKind::Usage,
         }
     }
 
@@ -414,7 +423,56 @@ impl Error {
             | Self::FontNotEmbedded { .. }
             | Self::GlyphWithoutUnicode { .. }
             | Self::EmbeddedFileForbidden { .. }
-            | Self::EmbeddedFileWithoutMimeType { .. } => Location::NONE,
+            | Self::EmbeddedFileWithoutMimeType { .. }
+            | Self::FlowContentTooLarge { .. } => Location::NONE,
+        }
+    }
+}
+
+/// Something the builder worked around; the output is still valid (listed in
+/// `fixtures/codes.json` under `buildWarnings`).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, thiserror::Error)]
+#[non_exhaustive]
+pub enum Warning {
+    /// Blocks kept together (a `Keep` group, or a heading and what it keeps with) are taller
+    /// than a page, so the flow split them.
+    #[error("blocks kept together are taller than a page and were split")]
+    FlowKeepBroken {
+        /// The page they start on (0-based, within the flow).
+        page: u32,
+    },
+}
+
+impl Warning {
+    /// Every code [`Warning::code`] can return.
+    pub const CODES: &'static [&'static str] = &["flow-keep-broken"];
+
+    /// A stable kebab-case code for this warning.
+    #[must_use]
+    pub const fn code(&self) -> &'static str {
+        match self {
+            Self::FlowKeepBroken { .. } => "flow-keep-broken",
+        }
+    }
+
+    /// Its kind ([ADR 0026] §2).
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::FlowKeepBroken { .. } => ErrorKind::Usage,
+        }
+    }
+
+    /// Where it happened: the page.
+    #[must_use]
+    pub fn location(&self) -> Location {
+        match *self {
+            Self::FlowKeepBroken { page } => Location {
+                page_index: Some(u64::from(page)),
+                ..Location::NONE
+            },
         }
     }
 }
@@ -490,6 +548,7 @@ mod tests {
                 profile: Profile::PdfA3b,
                 name: String::new(),
             },
+            Error::FlowContentTooLarge { what: "line" },
         ]
     }
 
