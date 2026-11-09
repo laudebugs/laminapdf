@@ -225,6 +225,18 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
       await clean(watched);
     });
 
+    it(`${profile.label}: finds text from ${profile.phone ? "the bottom bar's Search" : "the top bar"}, without scrolling sideways`, async () => {
+      const watched = await open();
+      const { page } = watched;
+      if (profile.phone) await page.getByRole("button", { name: "Search" }).click();
+      else await page.keyboard.press("ControlOrMeta+F");
+      const field = page.getByRole("textbox", { name: "Find in document" });
+      await field.fill("hello");
+      await expect.poll(() => page.locator(".paper-find-count").textContent(), { timeout: 15_000 }).toBe("1 of 1");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
+      await clean(watched);
+    });
+
     it(`${profile.label}: goes to an outline item and a thumbnail from the ${profile.phone ? "Contents sheet" : "sidebar"}`, async () => {
       const device = devices[profile.device];
       const viewport = profile.width === undefined ? device?.viewport : { width: profile.width, height: 640 };

@@ -56,6 +56,35 @@ describe("tiles", () => {
     }
   });
 
+  // At 10 % the perf harness's 595-point page is 79.33 device px wide and its canvas 79: compared
+  // with the fractional size, that rounding read as a pool cap, the scale fell a hair below the
+  // full one, and every page waited for one of the three detail canvases
+  // (docs/bugs/viewer-zoomed-out-pages-stay-blurry). The old rule fell below in 18,742 of these cases.
+  it("keeps the full scale whenever the pool fits the whole page, at any zoom, pixel ratio and rotation", () => {
+    const pages = [
+      { width: 612, height: 792 },
+      { width: 595, height: 842 },
+      { width: 595.28, height: 841.89 },
+      { width: 792, height: 612 },
+    ];
+    const zooms = Array.from({ length: 791 }, (_, i) => 10 + i);
+    const cases = pages.flatMap((page) =>
+      [1, 1.25, 1.5, 2, 2.5, 3].flatMap((dpr) =>
+        zooms.flatMap((zoom) => ([0, 90] as const).map((rotation) => ({ page, dpr, zoom, rotation }))),
+      ),
+    );
+    expect(cases).toHaveLength(37_968);
+    for (const { page, dpr, zoom, rotation } of cases) {
+      const cssScale = (zoom / 100) * (96 / 72);
+      const [w, h] = rotation === 90 ? [page.height, page.width] : [page.width, page.height];
+      const css = { width: w * cssScale, height: h * cssScale };
+      const wanted = pagePixels(page, cssScale * dpr, rotation);
+      // A pool that grants everything fits as CanvasPool.fit does: the request, rounded.
+      const fitted = { width: Math.max(1, Math.round(wanted.width)), height: Math.max(1, Math.round(wanted.height)) };
+      expect(sharpScale(cssScale, dpr, css, fitted, wanted)).toBe(cssScale * dpr);
+    }
+  });
+
   it("makes the low pass at most 256 px wide and half the sharp scale", () => {
     expect(lowScale(4, 612)).toBeCloseTo(256 / 612, 9);
     expect(lowScale(0.4, 612)).toBeCloseTo(0.2, 9);
@@ -70,9 +99,11 @@ describe("tiles", () => {
 function expectWholePage(page: RenderPage, cssScale: number, dpr: number, cap: number, rotation: 0 | 90): void {
   const [w, h] = rotation === 90 ? [page.height, page.width] : [page.width, page.height];
   const css = { width: w * cssScale, height: h * cssScale };
-  const fit = (side: number) => Math.max(1, cap === 1 ? Math.round(side * dpr) : Math.floor(side * dpr * cap));
-  const fitted = { width: fit(css.width), height: fit(css.height) };
-  const scale = sharpScale(cssScale, dpr, css, fitted);
+  // The pool is asked for the page in whole pixels (pagePixels at the full scale), as the viewer asks.
+  const wanted = pagePixels(page, cssScale * dpr, rotation);
+  const fit = (side: number) => Math.max(1, cap === 1 ? side : Math.floor(side * cap));
+  const fitted = { width: fit(wanted.width), height: fit(wanted.height) };
+  const scale = sharpScale(cssScale, dpr, css, fitted, wanted);
   const size = pagePixels(page, scale, rotation);
   expect(size.width).toBeLessThanOrEqual(fitted.width);
   expect(size.height).toBeLessThanOrEqual(fitted.height);

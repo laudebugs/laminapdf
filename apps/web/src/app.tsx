@@ -42,6 +42,7 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
+import { type FindActions, useFind } from "./find.tsx";
 import { railTabs } from "./rail.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 
@@ -75,6 +76,7 @@ function useReaderCommands(
   viewer: Viewer | undefined,
   shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
   rail: boolean,
+  find: FindActions,
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -89,9 +91,13 @@ function useReaderCommands(
       reader,
       ...(viewer === undefined ? {} : { viewer }),
       // Without rail tabs (no document open) the sidebar command has no handler and stays out of view.
-      actions: { ...shellActions(shell.layout, shell.modes, { rail }), "palette.open": shell.openPalette },
+      actions: {
+        ...shellActions(shell.layout, shell.modes, { rail }),
+        "palette.open": shell.openPalette,
+        ...(viewer === undefined ? {} : find),
+      },
     }),
-    [platform, reader, viewer, shell, modes, rail],
+    [platform, reader, viewer, shell, modes, rail, find],
   );
   return { registry, context };
 }
@@ -209,12 +215,13 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
     () => railTabs(engine, layout, open ? { strip, viewer } : undefined),
     [engine, layout, open, strip, viewer],
   );
-  const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0);
   const labels = useMemo(() => {
     const pages = engineState.pages;
     return pages.some((p) => p.label !== undefined) ? pages.map((p) => p.label ?? String(p.index + 1)) : undefined;
   }, [engineState.pages]);
   const fileName = open ? state.file.name : undefined;
+  const find = useFind(shown, open ? state.file : undefined);
+  const commands = useReaderCommands(platform, reader, shown, shell, tabs.length > 0, find.actions);
   useWindowTitle(fileName, engineState.title);
   const { inspector, showRepairs } = useRepairsPanel(layout, platform, fileName, repairs);
   const status = statusItems(engineState, debug, showRepairs);
@@ -226,12 +233,14 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
       <ReaderShell
         layout={layout}
         modes={modes}
+        {...(find.bar === undefined ? {} : { secondaryToolbar: find.bar })}
         topBar={
           <ReaderTopBar
             reader={reader}
             {...(shown === undefined ? {} : { viewer: shown })}
             keys={KEYS}
             sidebarOpen={sidebar}
+            findOpen={find.open}
             {...(labels === undefined ? {} : { labels })}
             home={<span className="web-wordmark">{APP_NAME}</span>}
             debug={debugMenu}

@@ -4,6 +4,7 @@
 
 import type { Capabilities, Platform, PlatformFile, RecentFile } from "../src/platform/types.ts";
 import type { WebScope } from "../src/platform/web.ts";
+import type { FindOptionsSlice, FindSlice } from "../src/reader/find-bar.tsx";
 import type { ViewerSlice, Zoom } from "../src/reader/viewer-controls.ts";
 
 /** Every flag false: a platform that can do nothing optional. */
@@ -200,5 +201,45 @@ export class FakeViewer {
 
   rotate(delta: number): void {
     this.calls.push({ method: "rotate", value: delta });
+  }
+}
+
+/** Find as the find bar drives it: a state that tests set, and the calls it was asked to make. */
+export class FakeFind {
+  readonly calls: { query: string; options: FindOptionsSlice | undefined }[] = [];
+  #state: FindSlice;
+  readonly #listeners = new Set<() => void>();
+
+  constructor(state: Partial<FindSlice> = {}) {
+    this.#state = {
+      query: "",
+      options: {},
+      total: 0,
+      current: undefined,
+      searched: 0,
+      pageCount: 24,
+      done: true,
+      pagesWithoutText: 0,
+      ...state,
+    };
+  }
+
+  getState(): FindSlice {
+    return this.#state;
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+
+  /** Changes the state as results arrive, and tells subscribers. */
+  set(next: Partial<FindSlice>): void {
+    this.#state = { ...this.#state, ...next };
+    for (const listener of this.#listeners) listener();
+  }
+
+  find(query: string, options?: FindOptionsSlice): void {
+    this.calls.push({ query, options });
   }
 }

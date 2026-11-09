@@ -11,6 +11,7 @@ import type { Rotation } from "../layout/page-layout.js";
 import { range as range_ } from "../layout/range.js";
 import type { OpenedDocument } from "../protocol.js";
 import type { PageLayer } from "../view/viewer.js";
+import { placeBox } from "./box.js";
 import { joinPieces, layoutSpans, type Piece, type SpanSpec } from "./spans.js";
 import { StructureLayer } from "./structure-layer.js";
 
@@ -56,18 +57,6 @@ interface PageText {
 
 /** Numbers each text layer, for its span ids. */
 let nextViewer = 0;
-
-/** The page's box: its size in points, scaled and turned to `size` (CSS px) at `rotation`. */
-function boxTransform(
-  points: { width: number; height: number },
-  size: { width: number; height: number },
-  rotation: Rotation,
-): string {
-  const turned = rotation === 90 || rotation === 270;
-  const scale = size.width / (turned ? points.height : points.width);
-  const [x, y] = { 0: [0, 0], 90: [size.width, 0], 180: [size.width, size.height], 270: [0, size.height] }[rotation];
-  return `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${scale})`;
-}
 
 /** The text layer of one viewer. */
 export class TextLayer implements PageLayer {
@@ -166,11 +155,7 @@ export class TextLayer implements PageLayer {
     const text = this.#pages.get(page);
     const points = this.#points[page];
     if (text === undefined || points === undefined) return;
-    Object.assign(text.box.style, {
-      width: `${points.width}px`,
-      height: `${points.height}px`,
-      transform: boxTransform(points, size, this.#host.rotation()),
-    });
+    placeBox(text.box, points, size, this.#host.rotation());
   }
 
   /** Stops listening; the viewer calls it on destroy. */

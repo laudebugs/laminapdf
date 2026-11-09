@@ -14,6 +14,8 @@ import type { Target } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
+import { FindController } from "../find/controller.js";
+import { HighlightLayer } from "../layers/highlight-layer.js";
 import { TextLayer, type TextLayerOptions } from "../layers/text-layer.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { range } from "../layout/range.js";
@@ -248,6 +250,9 @@ export class Viewer {
   readonly #layers: PageLayer[] = [];
   /** The text layer, unless `text: false`. */
   readonly #text: TextLayer | undefined;
+  readonly #highlights: HighlightLayer;
+  /** Find in this viewer's document: query, options, matches, next and previous. */
+  readonly find: FindController;
   /** Pages kept mounted whatever the scroll (`keepMounted`): those a selection touches. */
   #pinned = new Set<number>();
   readonly #listeners = new Set<() => void>();
@@ -317,6 +322,19 @@ export class Viewer {
       this.#text = new TextLayer(host, options.text === true || options.text === undefined ? {} : options.text);
       this.addLayer(this.#text);
     }
+    this.find = new FindController({
+      find: (query, find, pages, signal) => this.#client.find(query, find, pages, { signal }),
+      pageCount: () => this.#sizes.length,
+      currentPage: () => this.#state.currentPage,
+      reveal: (page, quads) => this.#reveal(page, quads),
+      redraw: (pages) => this.#highlights.refresh(pages),
+    });
+    this.#highlights = new HighlightLayer({
+      matchesOn: (page) => this.find.matchesOn(page),
+      points: (page) => this.#sizes[page],
+      rotation: () => this.#rotation,
+    });
+    this.addLayer(this.#highlights);
   }
 
   /** The scroll container (append it, or use {@link mount}). */
@@ -336,6 +354,7 @@ export class Viewer {
     this.#cache.clear();
     this.#document = document;
     this.#pinned = new Set();
+    this.find.reset();
     this.#text?.open(document);
     this.#sizes = document.pages.map((p) => ({ width: p.width, height: p.height }));
     this.#layout = undefined;
@@ -447,6 +466,7 @@ export class Viewer {
     this.#rezoom(undefined);
     // A half turn keeps every page's size, so no layer hears of it from a resize.
     this.#text?.refresh();
+    this.#highlights.refresh();
   }
 
   /** The document point at viewport position (`x`, `y`) in CSS px. */
@@ -491,12 +511,52 @@ export class Viewer {
     clearTimeout(this.#settling);
     this.#unmountAll();
     this.#cache.clear();
+    this.find.reset();
     this.#text?.destroy();
     for (const f of this.#cleanup.splice(0)) f();
     this.#root.remove();
   }
 
   // --- internals ---
+
+  /**
+   * Scrolls so that `quads` (a find match, in page `page`'s points) are in view: nothing moves
+   * when they already are, else they come to the viewport's centre.
+   */
+  #reveal(page: number, quads: readonly number[]): void {
+    const layout = this.#layout;
+    const size = this.#sizes[page];
+    if (layout === undefined || size === undefined || page >= layout.pageCount || quads.length < 8) return;
+    this.#touch.stopMomentum();
+    // The corners as fractions of the page, turned with the view (clockwise).
+    const turn = (fx: number, fy: number): [number, number] =>
+      ({ 0: [fx, fy], 90: [1 - fy, fx], 180: [1 - fx, 1 - fy], 270: [fy, 1 - fx] })[this.#rotation] as [number, number];
+    const xs: number[] = [];
+    const ys: number[] = [];
+    for (let at = 0; at + 1 < quads.length; at += 2) {
+      const [x, y] = turn((quads[at] ?? 0) / size.width, (quads[at + 1] ?? 0) / size.height);
+      xs.push(x);
+      ys.push(y);
+    }
+    const viewportWidth = this.#root.clientWidth;
+    const pageLeft = layout.leftOf(page, viewportWidth);
+    const pageTop = layout.offsetOf(page);
+    const width = layout.widths[page] ?? 0;
+    const height = layout.heights[page] ?? 0;
+    const left = pageLeft + Math.min(...xs) * width;
+    const right = pageLeft + Math.max(...xs) * width;
+    const top = pageTop + Math.min(...ys) * height;
+    const bottom = pageTop + Math.max(...ys) * height;
+    const view = this.#scroll();
+    const viewportHeight = this.#root.clientHeight;
+    if (top < view.top || bottom > view.top + viewportHeight) {
+      this.#root.scrollTop = Math.max(0, (top + bottom) / 2 - viewportHeight / 2);
+    }
+    if (left < view.left || right > view.left + viewportWidth) {
+      this.#root.scrollLeft = Math.max(0, (left + right) / 2 - viewportWidth / 2);
+    }
+    this.#schedule();
+  }
 
   #scroll() {
     return { left: this.#root.scrollLeft, top: this.#root.scrollTop };
@@ -895,8 +955,10 @@ export class Viewer {
     // exactly as the renderer sizes it, so every tile fits inside.
     const css = { width: cssW, height: cssH };
     const ratio = backdropRatio(dpr, css, this.#backdropMaxPixels);
-    const fitted = this.#pool.fit(canvas, cssW * ratio, cssH * ratio);
-    const scale = sharpScale(layout.scale, ratio, css, fitted);
+    // The pool is asked for the page in whole pixels, as the renderer sizes it at that ratio.
+    const wanted = pagePixels(this.#sizes[index] as PageSize, layout.scale * ratio, layout.rotation);
+    const fitted = this.#pool.fit(canvas, wanted.width, wanted.height);
+    const scale = sharpScale(layout.scale, ratio, css, fitted, wanted);
     const { width, height } = pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation);
     // What the canvas shows now, if it is this page in this orientation at another zoom: drawn back
     // at the new size, so a re-zoom never trades sharp pixels for blurry ones.

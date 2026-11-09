@@ -32,6 +32,11 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
     },
     fling: { toSharpMs: 280, counters },
     zoom: { recording: recording(), toSharpMs: [150, 200] },
+    find: {
+      common: { firstResultMs: 40, fullMs: 3200, total: 950 },
+      rare: { firstResultMs: 2600, fullMs: 3300, total: 1 },
+      recording: recording(),
+    },
     mobile: {
       device: "Pixel 8",
       peakMemory: { ...memory(150 * MB), canvases: 80 * MB, bitmaps: 60 * MB },
@@ -42,6 +47,24 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
 }
 
 const byName = (r: BrowserResult) => Object.fromEntries(checks(r).map((c) => [c.name, c]));
+
+describe("find checks", () => {
+  it("checks the first result and the full pass against §4", () => {
+    const c = byName(
+      result({
+        find: {
+          common: { firstResultMs: 501, fullMs: 3000, total: 9 },
+          rare: { firstResultMs: 9000, fullMs: 10_001, total: 1 },
+          recording: recording(),
+        },
+      }),
+    );
+    expect([c["Find, 1,000 pages: first result"]?.pass, c["Find, 1,000 pages: every page searched"]?.pass]).toEqual([
+      false,
+      false,
+    ]);
+  });
+});
 
 describe("checks", () => {
   it("passes a run that meets every target, at the boundaries too", () => {
@@ -138,6 +161,8 @@ describe("historyEntries", () => {
       "scroll-longest-frame": 20_000_000,
       "to-sharp": 280_000_000,
       "zoom-to-sharp": 200_000_000,
+      "find-full-pass": 3_300_000_000,
+      "find-first-result": 40_000_000,
       "memory-peak-bytes": 300 * MB,
       "mobile-memory-peak-bytes": 140 * MB,
     });
