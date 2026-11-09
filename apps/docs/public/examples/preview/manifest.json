@@ -14,6 +14,24 @@
         }
       ]
     },
+    "flowing_invoice": {
+      "sha256": "5704ec1411925f6d57eb9bab0ada569cebba7726e61ab4f95c09c4af7ffa2b28",
+      "bytes": 27790,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "flowing_report": {
       "sha256": "644755c3f8819f657ef940c97dd68cb7a84b30eb3abbe95eee75cdf36e3e2b3b",
       "bytes": 46471,
