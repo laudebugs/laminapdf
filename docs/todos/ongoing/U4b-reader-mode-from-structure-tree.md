@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U4b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §6 U4. Trust and reflow](../../plans/ui-ux.md#u4-trust-and-reflow) |
 | Round / milestone | Round U (UI/UX) — after M2 |
 | Depends on | [B8a](../done/B8a-structure-tree.md), [C5a](../done/C5a-text-layer-and-selection.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
