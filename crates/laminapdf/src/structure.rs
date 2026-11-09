@@ -57,7 +57,11 @@ impl Document {
             return Ok(None);
         };
         // One map of the pages, so each marked-content kid finds its page at once.
-        let pages: BTreeMap<PageId, u32> = self.page_infos()?.into_iter().map(|p| (p.id, p.index)).collect();
+        let mut pages: BTreeMap<PageId, u32> = BTreeMap::new();
+        for page in self.page_infos()? {
+            // A page tree that lists one page twice: its first place counts.
+            pages.entry(page.id).or_insert(page.index);
+        }
         let index = |id: &PageId| pages.get(id).copied();
         Ok(Some(tree.roots.iter().map(|elem| node(&tree, elem, &index)).collect()))
     }

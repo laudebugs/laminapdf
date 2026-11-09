@@ -219,7 +219,10 @@ export class TextLayer implements PageLayer {
     // untransformed (its zoom and turn would scale and rotate the rects).
     const placed = text.box.style.transform;
     text.box.style.transform = "none";
-    const natural = text.spans.map((span) => span.getBoundingClientRect().width);
+    // The box is its points wide: what the page around the viewer scales it by (a zoomed host)
+    // comes out of every width.
+    const outside = text.box.getBoundingClientRect().width / Math.max(1, text.box.offsetWidth);
+    const natural = text.spans.map((span) => span.getBoundingClientRect().width / (outside || 1));
     text.box.style.transform = placed;
     specs.forEach((spec, k) => {
       const span = text.spans[k] as HTMLElement;
@@ -303,8 +306,10 @@ export class TextLayer implements PageLayer {
     this.#selecting = true;
     // Every page from the one the selection starts on to the one it ends on, those between too:
     // read from its two ends, not by walking every span while a drag goes on.
-    const low = pageOf(range.startContainer);
-    const high = pageOf(range.endContainer);
+    // An end in a gap between pages counts as the other end's page.
+    const start = pageOf(range.startContainer);
+    const end = pageOf(range.endContainer);
+    const [low, high] = [start ?? end, end ?? start];
     if (low !== undefined && high !== undefined)
       this.#host.keepMounted(range_(Math.min(low, high), Math.max(low, high)));
     if (this.#options.onSelection === undefined) return;

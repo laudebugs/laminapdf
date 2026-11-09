@@ -146,7 +146,8 @@ function separator(a: Piece, b: Piece): string {
   if (a.page !== b.page) return "\n";
   const along = { x: Math.cos(a.span.angle), y: Math.sin(a.span.angle) };
   const up = { x: along.y, y: -along.x };
-  // Baselines, not tops: a drop cap or a superscript on the same line has another top.
+  // Bottoms, not tops: a drop cap or a superscript on the same line has another top, while its
+  // bottom stays within half a line of the line's.
   const lineA = dot({ x: a.span.left, y: a.span.top }, up) - a.span.height;
   const lineB = dot({ x: b.span.left, y: b.span.top }, up) - b.span.height;
   if (Math.abs(lineA - lineB) > Math.max(a.span.height, b.span.height) / 2) return "\n";
