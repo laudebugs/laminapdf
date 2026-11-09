@@ -100,7 +100,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 **Deliverable:** `spikes/desktop-ipc/` measuring Channel vs `ipc::Response` vs `lamina://` scheme for 256/512 px tiles on macOS, Windows and Linux, and whether WKWebView/WebView2/WebKitGTK honour COOP/COEP; `spikes/desktop-print/` comparing `window.print()` with native print paths per OS.
 **Accepted when:** both READMEs report numbers per OS and recommend a tile transport and a print path.
 
-**Result (`desktop-ipc`):** [spikes/desktop-ipc/README.md](../../spikes/desktop-ipc/README.md): lossless WebP tiles of 512 px over the `lamina://` scheme, raw RGBA on the same scheme as the fallback; cross-origin isolation only in WebView2, so the desktop app stays single-threaded; Linux without a GPU driver needs `WEBKIT_DISABLE_DMABUF_RENDERER=1`; Tauri's own dependencies need an MPL-2.0 exception.
+**Result (`desktop-ipc`):** [spikes/desktop-ipc/README.md](../../spikes/desktop-ipc/README.md): lossless WebP tiles of 512 px over the `lamina://` scheme, raw RGBA on the same scheme as the fallback; cross-origin isolation only in WebView2, so the desktop app stays single-threaded; Linux without a GPU driver needs `WEBKIT_DISABLE_DMABUF_RENDERER=1`; Tauri's own dependencies need an MPL-2.0 exception (granted 2026-11-09, `deny.toml`).
 
 ### D2. Shell and native core
 

@@ -196,7 +196,7 @@ The `-on` labels set `WEBKIT_DISABLE_DMABUF_RENDERER=0`, because WebKitGTK disab
 - **`selectors` 0.38.0, `cssparser` 0.37.0, `cssparser-macros` 0.7.1 and `dtoa-short` 0.3.5,** through `dom_query` 0.28.0 in `tauri-utils`, which parses the app's HTML at build time to inject the CSP;
 - **`option-ext` 0.2.0,** through `dirs` 7.0.0 in `tauri` and `wry`.
 
-Any Tauri 2.12 app has them. MPL-2.0 is file-level copyleft, as with UniFFI, for which the owner allowed it per crate on 2026-10-30 (`deny.toml`). The desktop app needs the same decision before it joins the root workspace.
+Any Tauri 2.12 app has them. MPL-2.0 is file-level copyleft, as with UniFFI, for which the owner allowed it per crate on 2026-10-30 (`deny.toml`). The owner granted the same per-crate exception for these five on 2026-11-09 (`deny.toml`, ADR 0019).
 
 ## Observations per OS
 

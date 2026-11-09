@@ -51,7 +51,7 @@ exceptions = [
     # cssparser, cssparser-macros and dtoa-short come through dom_query in tauri-utils, which
     # parses the app's HTML to inject the CSP; option-ext comes through dirs in tauri and wry.
     # Every Tauri 2 app has them. As with UniFFI, lamina stays MIT OR Apache-2.0; the sources are
-    # unmodified on crates.io, and the desktop app's third-party notices carry the MPL-2.0 text.
+    # unmodified on crates.io, and the desktop app's third-party notices will carry the MPL-2.0 text (D2a).
     { name = "selectors", allow = ["MPL-2.0"] },
     { name = "cssparser", allow = ["MPL-2.0"] },
     { name = "cssparser-macros", allow = ["MPL-2.0"] },
