@@ -44,13 +44,14 @@ impl State {
 }
 
 /// The ID letters in board order: plan sections in the order the board lists them.
-pub(crate) const SECTIONS: [(char, &str); 13] = [
+pub(crate) const SECTIONS: [(char, &str); 14] = [
     ('A', "Architecture — Round A"),
     ('B', "Library — Round B"),
     ('L', "Shareable libraries — Rounds L1–L6"),
     ('C', "Web reader — Round C"),
     ('W', "Website — Round W"),
     ('D', "Desktop reader — Round D"),
+    ('K', "Browser extension — Round K"),
     ('U', "UI/UX — Round U"),
     ('H', "Hosted service"),
     ('E', "Editor — Rounds E1–E18"),
@@ -61,7 +62,7 @@ pub(crate) const SECTIONS: [(char, &str); 13] = [
 ];
 
 /// The order IDs sort in (`order_key` in the original board script): letter, number, suffix.
-const LETTER_ORDER: &str = "ABLCWDUEHPQTX";
+const LETTER_ORDER: &str = "ABLCWDKUEHPQTX";
 
 /// Where `cargo xtask todos` writes the board, relative to the root (`target/` is ignored by git).
 pub(crate) const BOARD: &str = "target/todos/board.md";

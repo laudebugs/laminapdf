@@ -233,6 +233,32 @@ fn the_outline_and_named_destinations_cross_as_records() {
     assert!(doc.named_destination("nowhere").unwrap().is_undefined());
 }
 
+/// `WasmDocument.pageLinks` (the extract and text modules): a rectangle in page space, the kind
+/// at the top level beside its fields, and `page-index-out-of-range` past the end.
+#[cfg(feature = "extract")]
+#[wasm_bindgen_test]
+fn page_links_cross_as_records_tagged_by_kind() {
+    use js_sys::Array;
+    const LINKS: &[u8] = include_bytes!("../../../fixtures/links/links.pdf");
+    let doc = WasmDocument::open_bytes(LINKS.to_vec(), &JsValue::UNDEFINED).unwrap();
+    let links: Array = doc.page_links(0).unwrap().dyn_into().unwrap();
+    let first = links.get(0);
+    assert_eq!(string(&first, "kind").as_deref(), Some("dest"));
+    assert_eq!(get(&get(&first, "target"), "page").as_f64(), Some(2.0));
+    let rect: Array = get(&first, "rect").dyn_into().unwrap();
+    assert_eq!(rect.get(1).as_f64(), Some(38.0));
+    assert_eq!(string(&links.get(1), "name").as_deref(), Some("chapter"));
+    assert_eq!(
+        string(&links.get(3), "uri").as_deref(),
+        Some("https://example.com/a?b=c#d")
+    );
+    assert_eq!(string(&links.get(3), "contents").as_deref(), Some("The project site"));
+    assert_eq!(string(&links.get(10), "kind").as_deref(), Some("named-action"));
+    assert_eq!(string(&links.get(12), "action").as_deref(), Some("Launch"));
+    let err = doc.page_links(3).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("page-index-out-of-range"));
+}
+
 /// `WasmPage.text` (the extract and text modules): lines, runs as records, one quad per glyph
 /// in a `Float32Array`, glyph text with UTF-16 offsets.
 #[cfg(feature = "extract")]

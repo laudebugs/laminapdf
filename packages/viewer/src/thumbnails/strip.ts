@@ -340,6 +340,7 @@ export class ThumbnailStrip {
 
   #go(index: number): void {
     this.#focus = index;
-    this.#viewer.goToPage(index);
+    // A jump: Back returns to where the view was (R06).
+    this.#viewer.jumpToPage(index);
   }
 }

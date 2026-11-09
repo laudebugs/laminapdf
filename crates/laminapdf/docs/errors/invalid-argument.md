@@ -1,0 +1,33 @@
+---
+title: "invalid-argument"
+version: "0.2.0-alpha.4"
+url: "https://docs.laminapdf.com/reference/codes/invalid-argument/"
+---
+
+# invalid-argument
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A value passed from JavaScript to `@laminapdf/wasm` is not of the type its declaration describes. It might be a record with a field of the wrong type, or a string that names no known value (a blend mode, a fill rule, a standard 14 font, an op). It might also be a flat-encoded path cut short, a colour with the wrong number of components, or an ID that isn't 32 hex digits.
+
+## Why
+
+The `.d.ts` types describe each argument, but JavaScript (and code written without the types) can pass anything. The binding checks each value as it converts it.
+
+## How to fix
+
+Pass what the declaration says. When the value names an unknown string, `didYouMean` lists the closest allowed ones; `data.detail` says what the conversion found.
+
+## Example
+
+```js
+page.blendMode("multiplly"); // throws { code: "invalid-argument", didYouMean: ["multiply"], … }
+```
+
+## Data fields
+
+- `argument`: the parameter that was wrong (`options`, `path`, `mode`, …).
+- `detail`: what the conversion said (untrusted: it may quote the value passed).

@@ -37,6 +37,11 @@ export interface ReaderTopBarProps<Id extends string> {
   sidebarOpen?: boolean;
   /** Whether the find bar is open: the Find button shows it, pressed, and runs `find.open` when pressed. */
   findOpen?: boolean;
+  /**
+   * Where Back and Forward go, as page labels (`undefined`: nowhere, so the button is disabled);
+   * left out, there are no history buttons. They run `nav.back` and `nav.forward`.
+   */
+  history?: { readonly back: string | undefined; readonly forward: string | undefined };
   /** The file area without a document: the wordmark, or Back. "No document open" when left out. */
   home?: ReactNode;
   /** A `DebugMenu`, which the shell shows only for `#debug`. */
@@ -147,6 +152,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
         {state.phase === "needs-password" ? <LockedPageInput /> : null}
         {viewer === undefined || state.phase !== "open" ? null : (
           <>
+            {props.history === undefined ? null : <HistoryButtons history={props.history} />}
             <PageInput viewer={viewer} {...(props.labels === undefined ? {} : { labels: props.labels })} />
             <ZoomControl viewer={viewer} keys={keys} />
           </>
@@ -181,6 +187,40 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
         </MenuTrigger>
       </div>
     </header>
+  );
+}
+
+/** Back and Forward (R07): named by where they go, disabled when they go nowhere. */
+function HistoryButtons({ history }: { history: NonNullable<ReaderTopBarProps<string>["history"]> }): ReactNode {
+  const back = useCommand("nav.back");
+  const forward = useCommand("nav.forward");
+  if (back.availability.state === "hidden" && forward.availability.state === "hidden") return null;
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: a toolbar group of buttons, as R07 specifies; <fieldset> holds form controls.
+    <div className="paper-top-bar-history" role="group" aria-label={message("reader.history")}>
+      <IconButton
+        icon="back"
+        size={26}
+        label={
+          history.back === undefined
+            ? message("command.nav.back")
+            : message("reader.history.back", { page: history.back })
+        }
+        isDisabled={history.back === undefined || back.availability.state !== "available"}
+        onPress={() => back.run()}
+      />
+      <IconButton
+        icon="forward"
+        size={26}
+        label={
+          history.forward === undefined
+            ? message("command.nav.forward")
+            : message("reader.history.forward", { page: history.forward })
+        }
+        isDisabled={history.forward === undefined || forward.availability.state !== "available"}
+        onPress={() => forward.run()}
+      />
+    </div>
   );
 }
 

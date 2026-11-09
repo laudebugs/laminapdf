@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.laminapdf.com/schemas/renames-1.json",
+  "title": "laminapdf.renames/1",
+  "description": "What old names in Lamina PDF's APIs became: one entry per renamed, moved or deprecated item, so a coding agent can map old code to the current names.",
+  "type": "object",
+  "required": ["schema", "renames"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema": { "const": "laminapdf.renames/1" },
+    "renames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "surface", "kind", "since", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "from": { "type": "string", "minLength": 1, "description": "The old name, as a path (laminapdf::extract::TextRun) or a TypeScript export (Document.save)." },
+          "to": { "type": "string", "minLength": 1, "description": "The name to use now." },
+          "surface": { "enum": ["rust", "ts", "cli"] },
+          "kind": { "enum": ["type", "function", "method", "field", "module", "option", "command", "flag", "code"] },
+          "since": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$", "description": "The first version with the new name." },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

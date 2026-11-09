@@ -159,7 +159,7 @@ describe("CommandRegistry", () => {
     await expect(registry.run("test.missing" as never, opened(viewer))).rejects.toThrow("there is no command");
     expect(viewer.calls).toEqual([]);
     await registry.run("nav.go-to-page", opened(viewer), { text: "12" });
-    expect(viewer.calls).toEqual([{ method: "goToPage", value: 11 }]);
+    expect(viewer.calls).toEqual([{ method: "jumpToPage", value: 11 }]);
   });
 
   it("tells subscribers when a command is added or removed", () => {
@@ -201,8 +201,8 @@ describe("the reader's commands", () => {
     expect(viewer.calls).toEqual([
       { method: "goToPage", value: 3 },
       { method: "goToPage", value: 1 },
-      { method: "goToPage", value: 0 },
-      { method: "goToPage", value: 23 },
+      { method: "jumpToPage", value: 0 },
+      { method: "jumpToPage", value: 23 },
       { method: "setZoom", value: 125 },
       { method: "setZoom", value: "fit-width" },
       { method: "setZoom", value: 150 },

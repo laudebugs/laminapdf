@@ -10,7 +10,8 @@
     "node": ">=22.18"
   },
   "files": [
-    "dist"
+    "dist",
+    "svg"
   ],
   "exports": {
     ".": {
@@ -21,6 +22,7 @@
       "types": "./dist/react/index.d.ts",
       "default": "./dist/react/index.js"
     },
+    "./svg/*": "./svg/*",
     "./package.json": "./package.json"
   },
   "scripts": {

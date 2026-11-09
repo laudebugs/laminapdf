@@ -128,7 +128,7 @@ fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Re
 
 /// `dest` in page space on its page, whose frame is `frame` (`None` without a page index, or past
 /// `u32`).
-fn target(dest: &Destination, frame: &PageFrame) -> Option<PageTarget> {
+pub(crate) fn target(dest: &Destination, frame: &PageFrame) -> Option<PageTarget> {
     let index = dest.page_index?;
     Some(PageTarget {
         page: u32::try_from(index).ok()?,

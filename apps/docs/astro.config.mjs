@@ -93,6 +93,7 @@ export default defineConfig({
         Banner: "./src/components/Banner.astro",
         Header: "./src/components/Header.astro",
         MobileMenuFooter: "./src/components/MobileMenuFooter.astro",
+        ThemeSelect: "./src/components/ThemeSelect.astro",
       },
       // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,
       // then Starlight's colours and fonts mapped onto them.
