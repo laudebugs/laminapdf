@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AppUpdates, type WorkerContainer, type WorkerRegistration } from "./updates.ts";
 
 /** A container and registration that the test drives. */
-function fakes(options: { controlled: boolean; waiting: boolean }) {
+function fakes(options: { controlled: boolean; waiting: boolean; active?: boolean }) {
   const listeners: Record<string, () => void> = {};
   const posted: unknown[] = [];
   const installingListeners: (() => void)[] = [];
@@ -12,6 +12,7 @@ function fakes(options: { controlled: boolean; waiting: boolean }) {
   };
   const registration: WorkerRegistration & { waiting: { postMessage(m: unknown): void } | null } = {
     waiting: options.waiting ? { postMessage: (m: unknown) => posted.push(m) } : null,
+    active: options.active === true ? {} : null,
     installing,
     addEventListener: (type, l) => {
       listeners[type] = l;
@@ -83,6 +84,19 @@ describe("AppUpdates in a second tab", () => {
     // The other tab chose Reload: the new version takes control here too, unasked.
     listeners.controllerchange?.();
     expect(reloads).toEqual([]);
+    expect(updates.getState().ready).toBe(true);
+    updates.reload();
+    expect(reloads).toEqual([1]);
+  });
+});
+
+describe("AppUpdates after a hard reload", () => {
+  it("treats a claim as another tab's update when a version was already active", async () => {
+    const { container, listeners } = fakes({ controlled: false, waiting: true, active: true });
+    const reloads: number[] = [];
+    const updates = new AppUpdates(container, () => reloads.push(1));
+    await updates.start();
+    listeners.controllerchange?.();
     expect(updates.getState().ready).toBe(true);
     updates.reload();
     expect(reloads).toEqual([1]);

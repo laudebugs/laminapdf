@@ -77,16 +77,18 @@ The More menu holds Download a copy, Print… (also `Ctrl P`, or `⌘P` on a Mac
 
 ## Offline, installing and what stays in the browser
 
-After one visit the reader works with no network. Its service worker (`src/sw/service-worker.ts`, compiled into `dist/sw.js` by `plugins/pwa.ts`) keeps the reader's own files: the page, its scripts, styles, fonts, icons and the WebAssembly it loads. It answers only requests to the reader's own site, so a file opened from a `#url=` link never passes through it and is never cached. Offline, it serves the page with the headers it was stored with, so the Content Security Policy and the other headers above still hold. A new version installs in the background and waits: a toast offers Reload, and only Reload switches to it. While offline, a notice under the top bar says what still works, and the status bar says Offline.
+After one visit the reader works with no network. Its service worker (`src/sw/service-worker.ts`, compiled into `dist/sw.js` by `plugins/pwa.ts`) keeps the reader's own files: the page, its scripts, styles, fonts, icons and the WebAssembly it loads. It answers only requests to the reader's own site, so a file opened from a `#url=` link never passes through it and is never cached. Offline, it serves the page with the headers it was stored with, so the Content Security Policy and the other headers above still hold.
+
+A new version installs in the background and waits: a toast offers Reload, and only Reload switches to it. While offline, a notice under the top bar says what still works.
 
 **Installing.** `manifest.webmanifest` makes the reader installable as an app, with its own window and icon. Where the browser offers an install (Chromium), More › Install Lamina PDF… shows it; other browsers install sites from their own menus. An installed copy in Chromium opens PDFs from the operating system's Open with menu (the manifest's `file_handlers`).
 
-**What the browser keeps.** All of it stays in this browser, and nothing is sent anywhere:
+**What the browser keeps.** The reader keeps two things, both in this browser and never sent anywhere:
 
-- The Recent list on the home screen, in IndexedDB: each local file's name, size, page count and when it was opened. Chromium also keeps the file's handle, so a press reopens it; other browsers ask for the file again. A file opened from a link is never listed, and its address is never stored (ADR 0011).
-- A copy of each local file larger than 200 MiB, in the origin-private file system. The document worker reads these large files from the copy rather than holding them in memory. The copies together stay within half the space the browser leaves free, at most 2 GiB, and the copies used longest ago go first.
+- The Recent list on the home screen, in IndexedDB: each local file's name, size, page count and when it was opened. Chromium also keeps the file's handle, so pressing its row reopens it; other browsers ask for the file again. A file opened from a link is never listed, and its address is never stored (ADR 0011).
+- A copy of each local file larger than 200 MiB, in the origin-private file system (OPFS). The document worker reads these large files from the copy rather than holding them in memory. The copies together stay within half the space the browser leaves free, at most 2 GiB; the copies opened longest ago are deleted first.
 
-Settings › Storage and privacy › Remember recent local files is on by default. Turning it off empties the list, and a large file's copy then goes when its document closes.
+Settings › Storage and privacy › Remember recent local files is on by default. Turning it off empties the list and deletes the copies, and a large file's copy is then deleted when its document closes.
 
 Settings › Storage and privacy › Clear recent files and cached documents removes the list and every copy.
 
@@ -116,7 +118,13 @@ Three more suites use `e2e/remote-host.ts`, a local HTTPS server on another port
 
 `e2e/output.e2e.test.ts` prints a 50-page file with landscape pages among portrait ones. It replaces the print frame's `print()` before it runs, then checks that all 50 images loaded at their pages' sizes, with a named `@page` rule each. Throughout, it checks that neither the page nor the frame met a CSP violation and that nothing was fetched. It prints a range by number and by page label, refuses a page the file lacks, and stops on Cancel. For a file whose author restricted printing, the reader asks once more, with Cancel focused, before it prints. Its downloads of a local file, a linked file and an encrypted file must match the originals' SHA-256. Its properties must show what pypdf reads in `fixtures/corpus/expected.json`, close with Escape and pass axe. Playwright's WebKit reports each native `<select>` as an inline style under the reader's policy, even on a page holding only a bare `<select>`, so the WebKit run leaves those reports out.
 
-`e2e/offline.e2e.test.ts` loads the reader once, cuts the network and reloads. The page must come from the service worker with exactly the server's headers, an inline script must stay blocked, and a local file must open, render and be searchable. `e2e/installability.e2e.test.ts` validates the manifest against SchemaStore's schemas (pinned in `e2e/fixtures/`), fetches every icon it names, and asks Chromium whether anything stops an install. `e2e/recent-files.e2e.test.ts` lists and reopens a file, checks that a linked file leaves nothing in IndexedDB, and checks that Clear empties both stores. Every suite's browser accepts the e2e server's self-signed certificate for service workers (`e2e/browser.ts`), so the other suites run with the worker active too.
+`e2e/offline.e2e.test.ts` loads the reader once, cuts the network and reloads. The page must come from the service worker with exactly the server's headers, an inline script must stay blocked, and a local file must open, render and be searchable. 
+
+`e2e/installability.e2e.test.ts` validates the manifest against SchemaStore's schemas (pinned in `e2e/fixtures/`), fetches every icon it names, and asks Chromium whether anything stops an install. It also logs whether the browser offered an install, without failing on it.
+
+`e2e/recent-files.e2e.test.ts` lists and reopens a file, checks that a linked file leaves nothing in IndexedDB, and checks that Clear empties both stores.
+
+Every suite's browser accepts the e2e server's self-signed certificate for service workers (`e2e/browser.ts`), so the other suites run with the worker active too.
 
 `e2e/network.e2e.test.ts` holds the network indicator to Playwright's own record of the browser's requests, which includes the document worker's. On each flow, the panel's counts of document traffic and of app files must equal that record, split by the same `classifyRequest`. The flows are a local file (0 document requests) and a linked file (its host only). The suite then makes requests on purpose:
 

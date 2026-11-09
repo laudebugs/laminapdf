@@ -9,7 +9,7 @@
 import type { RenderSource } from "@laminapdf/render";
 import type { RangeSource } from "@laminapdf/sdk";
 
-/** The OPFS folder of document copies, which the app's "Clear cached documents" empties too. */
+/** The OPFS folder of document copies, which the app's "Clear recent files and cached documents" empties too. */
 export const CACHE_FOLDER = "documents";
 
 /** Files above this many bytes are read from a copy: 200 MiB. */
@@ -90,7 +90,8 @@ export class OpfsByteSource implements RangeSource, RenderSource {
         if (!(await makeRoom(folder, name, file.size))) throw new Error("no room for the copy");
         await copyInto(handle, file, options);
       }
-      await touch(folder, name);
+      // The use record is best effort: another tab may hold it, and the copy is good without it.
+      await touch(folder, name).catch(() => undefined);
       return new OpfsByteSource(handle, folder, name, options.keep);
     } catch (error) {
       // A copy cut short (a cancel, the disk full) is never left to look complete.

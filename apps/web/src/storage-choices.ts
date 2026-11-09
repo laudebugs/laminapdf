@@ -26,8 +26,12 @@ export function parseChoices(stored: string | null): StorageChoices {
   }
 }
 
+/** The choices made in this tab, which outlast a save that storage refused. */
+let current: StorageChoices | undefined;
+
 /** The choices now. */
 export function readChoices(): StorageChoices {
+  if (current !== undefined) return current;
   try {
     return parseChoices(localStorage.getItem(STORAGE_KEY));
   } catch {
@@ -37,6 +41,7 @@ export function readChoices(): StorageChoices {
 
 /** Keeps `choices`; with storage blocked they last until the tab closes. */
 export function saveChoices(choices: StorageChoices): void {
+  current = choices;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(choices));
   } catch {

@@ -20,6 +20,8 @@ export interface WorkerContainer {
 
 /** The parts of a `ServiceWorkerRegistration` used here. */
 export interface WorkerRegistration {
+  /** The version in charge before this page loaded, if any (a hard reload leaves the page uncontrolled). */
+  readonly active?: unknown;
   readonly waiting: { postMessage(message: unknown): void } | null;
   readonly installing: {
     readonly state: string;
@@ -72,6 +74,9 @@ export class AppUpdates implements ExternalStore<UpdateState> {
     });
     const registration = await container.register("/sw.js");
     this.#registration = registration;
+    // A version was already in charge (a hard reload left this page uncontrolled): a later claim
+    // is another tab's update, not the first install.
+    if (registration.active !== null && registration.active !== undefined) hadController = true;
     // A version that installed while no page was watching (a reload, a second tab) already waits.
     if (registration.waiting !== null && container.controller !== null) this.#set({ ready: true });
     registration.addEventListener("updatefound", () => {

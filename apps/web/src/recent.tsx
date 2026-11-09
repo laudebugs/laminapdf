@@ -113,8 +113,9 @@ export function useRecent(
   const change = (next: StorageChoices) => {
     setChoices(next);
     saveChoices(next);
-    // Turning it off forgets what it had listed, so nothing it allowed outlives it.
-    if (!next.rememberLocal) void platform.recent.clear().then(refresh, reportError);
+    // Turning it off forgets the list and the kept copies, so nothing it allowed outlives it (a
+    // copy open now goes when its document closes, or at the next Clear).
+    if (!next.rememberLocal) void clear(true).catch(reportError);
   };
   useSettingsSection(registry, "storage", message("storage.title"), () => (
     <StorageSettings
