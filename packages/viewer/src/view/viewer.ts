@@ -938,7 +938,8 @@ export class Viewer {
     shell.setAttribute("aria-roledescription", this.#regions.roleDescription ?? "page");
     shell.setAttribute("aria-label", this.#pageName(index));
     shell.tabIndex = -1;
-    Object.assign(shell.style, { position: "absolute", contain: "strict", background: "#fff" });
+    // The paper shows before the page is drawn: white, or the page appearance's (--lamina-page-paper).
+    Object.assign(shell.style, { position: "absolute", contain: "strict", background: "var(--lamina-page-paper, #fff)" });
     this.#spacer.append(shell);
     const view: PageView = {
       index,

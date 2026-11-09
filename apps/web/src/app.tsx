@@ -24,6 +24,7 @@ import {
   PasswordDialog,
   PhoneBottomBar,
   type Platform,
+  type PlatformFile,
   type ReaderController,
   type ReaderError,
   ReaderShell,
@@ -57,6 +58,7 @@ import { useOffline } from "./offline/offline.tsx";
 import type { AppUpdates } from "./offline/updates.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
+import { usePageAppearance } from "./page-appearance.tsx";
 import { railTabs } from "./rail.tsx";
 import { type Recent, useRecent } from "./recent.tsx";
 import type { SelectionSurfaces } from "./selection.tsx";
@@ -345,8 +347,8 @@ function useDocumentMenu(
   shown: Viewer | undefined,
   settings: Settings,
   updates: AppUpdates,
+  toasts: ToastQueue,
 ): {
-  toasts: ToastQueue;
   labels: readonly string[] | undefined;
   output: Output;
   moreItems: { items: ReturnType<typeof useGatedEntries<MoreId>>; onAction: (id: MoreId) => void };
@@ -356,7 +358,6 @@ function useDocumentMenu(
 } {
   const appActions = settings.actions;
   const pages = useStoreState(engine, (s) => s.pages);
-  const [toasts] = useState(() => new ToastQueue());
   const labels = useMemo(
     () => (pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined),
     [pages],
@@ -380,7 +381,6 @@ function useDocumentMenu(
     else output.actions[MORE_COMMANDS[id]]();
   };
   return {
-    toasts,
     labels,
     output: { ...output, dialogs: [output.dialogs, install.dialog] },
     moreItems: { items, onAction },
@@ -457,6 +457,16 @@ function useRailTabs(engine: Engine, layout: ShellLayout, open: boolean, finding
   );
 }
 
+/** The settings, with the page appearance of the document `viewer` shows, and the toasts they share. */
+function useAppSettings(
+  openPalette: () => void,
+  viewer: Viewer | undefined,
+  file: PlatformFile | undefined,
+): { settings: Settings; toasts: ToastQueue } {
+  const [toasts] = useState(() => new ToastQueue());
+  return { settings: useSettings(openPalette, usePageAppearance(viewer, file, toasts)), toasts };
+}
+
 /** The reader over `engine`, on `platform`. */
 export function App({ engine, platform, network, updates, debug }: AppProps): ReactNode {
   const { reader } = engine;
@@ -469,9 +479,9 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
-  const settings = useSettings(shell.openPalette);
-  const menu = useDocumentMenu(engine, platform, state, shown, settings, updates);
-  const { toasts, labels, output, moreItems, recent } = menu;
+  const { settings, toasts } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined);
+  const menu = useDocumentMenu(engine, platform, state, shown, settings, updates, toasts);
+  const { labels, output, moreItems, recent } = menu;
   const find = useFind(shown, open ? state.file : undefined);
   const tabs = useRailTabs(engine, layout, open, find.open);
   const fileName = open ? state.file.name : undefined;

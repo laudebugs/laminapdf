@@ -21,6 +21,8 @@ body {
 .web-viewer {
   position: absolute;
   inset: 0;
+  /* A page's paper before it is drawn, in the page appearance's colour. */
+  --lamina-page-paper: var(--paper-page-paper);
   /* Find marks in the page appearance's colours (design language §2.6). */
   --lamina-find-match: var(--paper-page-find-match);
   --lamina-find-current: var(--paper-page-find-current);

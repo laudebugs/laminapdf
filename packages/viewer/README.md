@@ -35,6 +35,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 - **Canvas size on touch devices.** A phone or tablet can't hold the desktop's canvases: iOS Safari reloads a tab whose canvases pass 224–384 MB in all. With a coarse pointer, every canvas holds at most 5 million pixels; on a tablet whose window covers more than 5 million device pixels, the page in view shows its backdrop rather than a detail canvas.
 - **Memory on touch devices.** The two pools and the bitmap cache together stay under 184 MB by default. On a device that reports 2 GB of memory or less (`navigator.deviceMemory`, in Chromium) the limit is 116 MB, and on one that reports 4 GB or more, 304 MB. `createViewer`'s options override each budget, and `device` gives the hints the budgets are chosen from instead of detecting them.
 - **Tall documents.** A document taller than 16 million CSS px at the chosen zoom gets its zoom capped, because browsers stop scrolling near that height.
+- **Page appearance.** `setAppearance("sepia" | "dark" | "original")`, or High contrast with two colours (`{ kind: "high-contrast", ink, paper }`), draws the pages in other colours. Images and annotations keep theirs (`@laminapdf/render` explains how). The pages in view draw their tiles again over what they show, so the scroll position stays where it was. Other mounted pages wait until they come into view. The thumbnails follow, and `getState().appearance` says which is shown. A page's shell shows `--lamina-page-paper` (white by default) until its first pixels arrive.
 
 **API.**
 

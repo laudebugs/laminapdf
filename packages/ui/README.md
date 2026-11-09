@@ -198,7 +198,7 @@ A Node test checks every shortcut against the keys the browser, the OS and assis
 
 The app's look is an `Appearance`: a theme (`light`, `dark`, `high-contrast`, or `system` to follow the OS), an accent (`teal`, `blue`, `plum`, `green`), motion (`system` or `reduce`) and whether single-key shortcuts are on. `applyAppearance(document.documentElement, appearance)` sets it as `data-theme`, `data-accent` and `data-motion`, which the tokens and styles read, so a switch re-renders nothing. `parseAppearance` reads a stored one, with a default for anything missing. Storing it is the app's job, and so is setting it before the first paint, before React runs.
 
-`ViewSettingsButton` is the top bar's View button with its popover: theme and accent, then More settings…. `SettingsDialog` is the app's one Settings dialog. It shows the sections of a `SettingsRegistry` in the order they were added, so later work adds a section rather than a dialog:
+`ViewSettingsButton` is the top bar's View button with its popover: theme and accent, the `page` section, then More settings…. `PageAppearanceFields` is that section for the page appearance: the chips, "This document" or "All documents" while a document is open, and a line saying photos and annotation colours stay as they are. `SettingsDialog` is the app's one Settings dialog. It shows the sections of a `SettingsRegistry` in the order they were added, so later work adds a section rather than a dialog:
 
 ```tsx
 const [settings] = useState(() => new SettingsRegistry());
