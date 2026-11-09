@@ -7,7 +7,7 @@ use laminapdf::{
     BuildOptions, Builder, Document, Fit, OpenOptions, OutlineNode, PageSize, Pt, Rotation, SaveMode, SaveOptions,
     Target, TargetView,
 };
-use laminapdf_test_fixtures::{fixture, json};
+use laminapdf_test_fixtures::{corpus, fixture, json};
 
 fn links_and_outlines() -> Document {
     Document::open_bytes(fixture("golden/links-and-outlines.pdf"), OpenOptions::default()).unwrap()
@@ -58,6 +58,98 @@ fn the_outline_matches_pypdf() {
     let mut actual = Vec::new();
     flatten(&links_and_outlines().outline().unwrap(), 0, &mut actual);
     assert_eq!(actual, expected);
+}
+
+/// Each corpus file's facts under `key` (`fixtures/corpus/expected.json`), with its bytes.
+fn corpus_facts(key: &str) -> Vec<(String, Vec<u8>, serde_json::Value)> {
+    let facts = json("corpus/expected.json");
+    corpus()
+        .into_iter()
+        .filter_map(|(name, bytes)| {
+            let fact = facts.get(&name)?.get(key)?.clone();
+            (!fact.is_null()).then_some((name, bytes, fact))
+        })
+        .collect()
+}
+
+/// The outline items whose page `fixtures/corpus/exceptions.toml` excuses, per file.
+fn excused_items() -> Vec<(String, Vec<usize>)> {
+    let table: toml::Table = String::from_utf8(fixture("corpus/exceptions.toml"))
+        .unwrap()
+        .parse()
+        .unwrap();
+    let entries = table
+        .get("exception")
+        .and_then(toml::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    entries
+        .iter()
+        .filter(|e| {
+            e["facts"]
+                .as_array()
+                .is_some_and(|f| f.iter().any(|v| v.as_str() == Some("outline_pages")))
+        })
+        .map(|e| {
+            let items = e["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|i| usize::try_from(i.as_integer().unwrap()).unwrap());
+            (e["file"].as_str().unwrap().to_owned(), items.collect())
+        })
+        .collect()
+}
+
+#[test]
+fn corpus_outline_pages_match_pypdf() {
+    let files = corpus_facts("outline_pages");
+    let excused = excused_items();
+    assert!(
+        files
+            .iter()
+            .any(|(_, _, f)| f.as_array().is_some_and(|a| !a.is_empty()))
+    );
+    for (name, bytes, fact) in files {
+        let Ok(doc) = Document::open_bytes(bytes, OpenOptions::default()) else {
+            continue;
+        };
+        let mut flat = Vec::new();
+        flatten(&doc.outline().unwrap(), 0, &mut flat);
+        let skip: &[usize] = excused.iter().find(|(f, _)| *f == name).map_or(&[], |(_, items)| items);
+        let pages: Vec<Option<u64>> = flat.into_iter().map(|(_, _, page)| page).collect();
+        let want: Vec<Option<u64>> = fact.as_array().unwrap().iter().map(serde_json::Value::as_u64).collect();
+        let kept = |list: &[Option<u64>]| -> Vec<Option<u64>> {
+            list.iter()
+                .enumerate()
+                .filter(|(i, _)| !skip.contains(i))
+                .map(|(_, p)| *p)
+                .collect()
+        };
+        assert_eq!((pages.len(), kept(&pages)), (want.len(), kept(&want)), "{name}");
+    }
+}
+
+#[test]
+fn corpus_page_labels_match_pypdf() {
+    let files = corpus_facts("page_labels");
+    assert_ne!(files.len(), 0);
+    for (name, bytes, fact) in files {
+        let doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap();
+        let labels: Vec<String> = doc
+            .page_infos()
+            .unwrap()
+            .into_iter()
+            .map(|p| p.label.unwrap_or_default())
+            .collect();
+        let want: Vec<String> = fact
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap().to_owned())
+            .collect();
+        assert_eq!(labels, want, "{name}");
+    }
 }
 
 #[test]

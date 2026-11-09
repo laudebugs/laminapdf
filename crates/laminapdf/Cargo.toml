@@ -68,6 +68,8 @@ laminapdf-text = { path = "../laminapdf-text" }
 # tests/redaction.rs appends revisions with the spike-era incremental_update.
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
+# tests/navigation.rs reads the corpus exceptions (fixtures/corpus/exceptions.toml).
+toml = { workspace = true }
 # The report bench checks its bytes against the TS suite's REPORT_SHA256.
 criterion = { workspace = true }
 sha2 = { workspace = true }

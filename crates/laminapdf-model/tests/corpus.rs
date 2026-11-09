@@ -28,9 +28,11 @@ fn exceptions() -> Vec<(String, String)> {
         .iter()
         .flat_map(|e| {
             let rule = e["rule"].as_str().unwrap();
+            // A tolerance rule for a broken file, or the spec section a correct file follows
+            // where the independent tool falls short.
             assert!(
-                rule.starts_with("ADR 0003"),
-                "every exception names its ADR 0003 rule: {e:?}"
+                rule.starts_with("ADR 0003") || rule.starts_with("ISO 32000-2"),
+                "every exception names its ADR 0003 rule or its ISO 32000-2 section: {e:?}"
             );
             let file = e["file"].as_str().unwrap().to_owned();
             e["facts"]
@@ -126,7 +128,7 @@ fn exceptions_name_corpus_files() {
     for (file, fact) in exceptions() {
         assert!(names.contains(&file), "{file}");
         assert!(
-            ["page_count", "outline_titles", "first_page_mediabox"].contains(&fact.as_str()),
+            ["page_count", "outline_titles", "outline_pages", "first_page_mediabox"].contains(&fact.as_str()),
             "{fact}"
         );
     }
