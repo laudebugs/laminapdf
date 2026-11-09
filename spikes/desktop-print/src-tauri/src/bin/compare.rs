@@ -46,8 +46,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     entries.sort();
     for out in entries.into_iter().filter(|p| p.extension().is_some_and(|e| e == "pdf")) {
         let stem = out.file_stem().and_then(|s| s.to_str()).unwrap_or_default().to_owned();
+        // A page-range output: <label>-<path>-<fixture>@<first>-<last>.
+        let (base, first, last) = match stem.split_once('@') {
+            Some((base, range)) => {
+                let (a, b) = range.split_once('-').unwrap_or((range, range));
+                (base.to_owned(), a.parse::<i32>().unwrap_or(1), Some(b.parse::<i32>().unwrap_or(1)))
+            }
+            None => (stem.clone(), 1, None),
+        };
         let Some((fixture, path, label)) = pdf::FIXTURES.iter().find_map(|fx| {
-            let rest = stem.strip_suffix(&format!("-{fx}"))?;
+            let rest = base.strip_suffix(&format!("-{fx}"))?;
             let (label, path) = rest.rsplit_once('-')?;
             Some((*fx, path.to_owned(), label.to_owned()))
         }) else {
@@ -61,7 +69,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                 continue;
             }
         };
-        let (rn, pn) = (reference.pages().len(), printed.pages().len());
+        let fixture_name = match last {
+            Some(l) => format!("{fixture}@{first}-{l}"),
+            None => fixture.to_owned(),
+        };
+        // The reference pages this output should hold.
+        let skip = first - 1;
+        let rn = match last {
+            Some(l) => l - first + 1,
+            None => reference.pages().len(),
+        };
+        let pn = printed.pages().len();
         // Every word of the original, so a page printed on the wrong sheet isn't blamed for text.
         let ref_words: Vec<String> = reference
             .pages()
@@ -69,10 +87,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             .flat_map(|p| words(&p.text().map(|t| t.all()).unwrap_or_default()))
             .collect();
         if rn != pn {
-            writeln!(f, "{label},{path},{fixture},,,,,,,,,{pn} pages printed for {rn}")?;
+            writeln!(f, "{label},{path},{fixture_name},,,,,,,,,{pn} pages printed for {rn}")?;
         }
         for i in 0..rn.min(pn) {
-            let (rp, pp) = (reference.pages().get(i)?, printed.pages().get(i)?);
+            let (rp, pp) = (reference.pages().get(i + skip)?, printed.pages().get(i)?);
             let (rw, rh, ow, oh) = (rp.width().value, rp.height().value, pp.width().value, pp.height().value);
             let size_ok = (rw - ow).abs() <= SIZE_TOLERANCE && (rh - oh).abs() <= SIZE_TOLERANCE;
             let (px_w, px_h) = ((rw * DPI / 72.0).round() as i32, (rh * DPI / 72.0).round() as i32);
@@ -95,7 +113,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let added: Vec<String> = words(&out_text).into_iter().filter(|w| !ref_words.contains(w)).collect();
             let added = added.join(" ").replace(',', ";");
             let (sx, sy) = (dx as f32 * 72.0 / DPI, dy as f32 * 72.0 / DPI);
-            writeln!(f, "{label},{path},{fixture},{},{rw:.1},{rh:.1},{ow:.1},{oh:.1},{size_ok},{sx:.1},{sy:.1},{score},{added},", i + 1)?;
+            writeln!(f, "{label},{path},{fixture_name},{},{rw:.1},{rh:.1},{ow:.1},{oh:.1},{size_ok},{sx:.1},{sy:.1},{score},{added},", i + skip + 1)?;
         }
         println!("compared {stem}");
     }

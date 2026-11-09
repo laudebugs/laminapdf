@@ -90,6 +90,13 @@ pub fn print_raster(handle: &AppHandle, fixture: &Fixture, out: Option<&Path>) -
                 let _ = cr.paint();
                 cr.restore().ok();
             });
+            if let Some((first, last)) = crate::page_range() {
+                let settings = gtk::PrintSettings::new();
+                settings.set_print_pages(gtk::PrintPages::Ranges);
+                // GTK's ranges are 0-based and inclusive.
+                settings.set_page_ranges(&[gtk::PageRange::new(first as i32 - 1, last as i32 - 1)]);
+                op.set_print_settings(Some(&settings));
+            }
             let action = match &out {
                 Some(path) => {
                     op.set_export_filename(path);

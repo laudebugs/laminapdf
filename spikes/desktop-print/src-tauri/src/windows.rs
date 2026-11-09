@@ -128,7 +128,11 @@ fn open_target(handle: &AppHandle, n: usize, out: Option<&Path>) -> Result<Optio
         if dc.is_invalid() {
             return Err("Microsoft Print to PDF is not installed".into());
         }
-        return Ok(Some(Target { dc, devmode: None, pages: (0..n).collect() }));
+        let pages = match crate::page_range() {
+            Some((first, last)) => (first - 1..last.min(n)).collect(),
+            None => (0..n).collect(),
+        };
+        return Ok(Some(Target { dc, devmode: None, pages }));
     }
     let hwnd = handle
         .get_webview_window("main")

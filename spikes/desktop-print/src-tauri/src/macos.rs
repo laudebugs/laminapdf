@@ -12,9 +12,9 @@ use objc2::runtime::AnyObject;
 use objc2::{AnyThread, DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send};
 use objc2_app_kit::{
     NSBitmapImageRep, NSCompositingOperation, NSDeviceRGBColorSpace, NSImage, NSPaperOrientation, NSPrintInfo,
-    NSPrintJobSavingURL, NSPrintOperation, NSPrintSaveJob, NSPrintingPaginationMode, NSView, NSWindow,
+    NSPrintAllPages, NSPrintFirstPage, NSPrintJobSavingURL, NSPrintLastPage, NSPrintOperation, NSPrintSaveJob, NSPrintingPaginationMode, NSView, NSWindow,
 };
-use objc2_foundation::{NSCopying, NSData, NSInteger, NSPoint, NSRange, NSRect, NSSize, NSString, NSURL};
+use objc2_foundation::{NSCopying, NSData, NSNumber, NSInteger, NSPoint, NSRange, NSRect, NSSize, NSString, NSURL};
 use objc2_pdf_kit::{PDFDocument, PDFPrintScalingMode};
 use objc2_web_kit::WKWebView;
 use pdfium_render::prelude::PdfDocument;
@@ -59,6 +59,15 @@ fn print_info(first: PageSize, out: Option<&Path>) -> Result<Retained<NSPrintInf
         unsafe {
             info.setJobDisposition(NSPrintSaveJob);
             info.dictionary().insert(NSPrintJobSavingURL, &url);
+        }
+    }
+    if let Some((first, last)) = crate::page_range() {
+        // SAFETY: NSPrintAllPages takes an NSNumber bool, the page keys NSNumber integers.
+        unsafe {
+            let dict = info.dictionary();
+            dict.insert(NSPrintAllPages, &NSNumber::new_bool(false));
+            dict.insert(NSPrintFirstPage, &NSNumber::new_isize(first as isize));
+            dict.insert(NSPrintLastPage, &NSNumber::new_isize(last as isize));
         }
     }
     Ok(info)

@@ -42,6 +42,14 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 pub use pdf::PageSize;
 
+/// The pages (1-based, inclusive) the next job prints; `None` is every page. The automatic run
+/// sets it for its page-range job, as a user would in the dialog.
+static PAGE_RANGE: Mutex<Option<(usize, usize)>> = Mutex::new(None);
+
+pub fn page_range() -> Option<(usize, usize)> {
+    *PAGE_RANGE.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
 /// The print-only DOM's resolution for path A (C6c's print dpi).
 const WEBVIEW_DPI: f32 = 300.0;
 
@@ -263,6 +271,33 @@ fn drive_auto(handle: &AppHandle) {
                 ("error", error),
             ]);
         }
+    }
+    // The page-range check: pages 3–7 of the 50-page fixture through path B, no dialog.
+    if only.as_deref().is_none_or(|o| o == "raster") {
+        let (first, last) = (3, 7);
+        let fixture = "mixed-50";
+        let out = out_dir.join(format!("{}-raster-{fixture}@{first}-{last}.pdf", app.label));
+        let _ = std::fs::remove_file(&out);
+        println!("[auto] raster {fixture} pages {first}-{last}");
+        *PAGE_RANGE.lock().unwrap_or_else(PoisonError::into_inner) = Some((first, last));
+        let result = job(handle, fixture, PrintPath::Raster, Some(&out));
+        *PAGE_RANGE.lock().unwrap_or_else(PoisonError::into_inner) = None;
+        let (ok, error, m) = match result {
+            Ok(m) => (true, String::new(), m),
+            Err(e) => (false, e, Metrics::default()),
+        };
+        append_row(&csv, &[
+            ("label", app.label.clone()),
+            ("path", "raster".into()),
+            ("fixture", format!("{fixture}@{first}-{last}")),
+            ("ok", ok.to_string()),
+            ("prep_ms", "0".into()),
+            ("spool_ms", m.spool_ms.to_string()),
+            ("main_rss_peak_mb", format!("{:.0}", m.main_rss_peak_mb)),
+            ("web_rss_peak_mb", format!("{:.0}", m.web_rss_peak_mb)),
+            ("out_bytes", m.out_bytes.to_string()),
+            ("error", error),
+        ]);
     }
     handle.exit(0);
 }
