@@ -36,7 +36,7 @@ Record the interaction model every shell and editor round builds into, so `@lami
 
 **Out of scope** (and which todo covers it)
 
-- Implementation → [U1b](../done/U1b-command-registry-and-palette.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md), [U2a](../done/U2a-selection-surfaces-and-copy-modes.md), [U2c](../ready/U2c-page-appearance-modes.md), [U3a](../done/U3a-responsive-mobile-and-touch.md).
+- Implementation → [U1b](../done/U1b-command-registry-and-palette.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md), [U2a](../done/U2a-selection-surfaces-and-copy-modes.md), [U2c](../ongoing/U2c-page-appearance-modes.md), [U3a](../done/U3a-responsive-mobile-and-touch.md).
 - Native mobile shell choice → ADR 0025 after [U3b](../ready/U3b-mobile-shell-spike.md).
 - Visual identity: decided (owner, 2026-10-29) as the **Paper** direction; the ADR's token layers take their values from the [Paper design language](../../design/paper/design-language.md), and [U6a](../done/U6a-paper-tokens.md) builds them ([Paper design plan](../../plans/paper-design.md)). The brand mark stays open.
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U2c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C2b](../done/C2b-lamina-render-crate.md), [C7a](../done/C7a-accessibility-and-theming.md) |
@@ -36,7 +36,7 @@ Let people read comfortably at night and in sepia without the broken photo negat
 **Out of scope** (and which todo covers it)
 
 - UI themes (light, dark, high contrast chrome) → [C7a](../done/C7a-accessibility-and-theming.md).
-- Recolouring in reader mode (it uses CSS text colours) → [U4b](./U4b-reader-mode-from-structure-tree.md).
+- Recolouring in reader mode (it uses CSS text colours) → [U4b](../ready/U4b-reader-mode-from-structure-tree.md).
 
 ## Tasks
 

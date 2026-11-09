@@ -24,7 +24,7 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 - [UI/UX plan §5.5](../../plans/ui-ux.md#55-page-appearance-and-themes-r8) — page modes vs UI themes, annotation colours never change, the gutter has its own token; [§4 principles](../../plans/ui-ux.md#4-principles) 7 and 9.
 - ADR 0024 (written in [U1a](../done/U1a-adr-0024-app-shell-ux.md)) — the token layers and naming this package implements; if it and the design language disagree on names, the ADR wins and the design language is corrected in this PR.
 - [C4a](./C4a-ui-chrome-and-platform.md) planned a `src/styles/tokens.css` in `@laminapdf/ui`; this package replaces it (C4a imports `@laminapdf/tokens`). [C7a](./C7a-accessibility-and-theming.md) planned a token contrast script and the dark and high-contrast themes; the values and the contrast test now live here, and C7a wires the theme switch, `forced-colors` styles and settings.
-- [U2c](../ready/U2c-page-appearance-modes.md) renders page appearances in both backends; it reads paper, ink and selection colours from this package.
+- [U2c](../ongoing/U2c-page-appearance-modes.md) renders page appearances in both backends; it reads paper, ink and selection colours from this package.
 - [TypeScript guidelines](../../guidelines/typescript.md#modules-and-packaging) (ESM-only, named exports, `exports` map); [code organization §9 generated code](../../guidelines/code-organization.md#9-generated-code) (header, no-diff check).
 - WCAG 2.2 SC 1.4.3 (contrast minimum, 4.5:1 text), 1.4.11 (non-text contrast, 3:1 for UI component boundaries and focus indicators) and the relative-luminance formula in the WCAG 2.2 definitions (W3C Recommendation).
 
@@ -49,7 +49,7 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 - Icons → [U6c](../done/U6c-icon-set.md). Z-order tokens → [U6e](../done/U6e-overlays-and-sheets.md) (added to this package there, with the overlays that use them).
 - Components using the tokens → [U6d](../done/U6d-core-components.md), [U6e](../done/U6e-overlays-and-sheets.md); screenshots of every theme → [U6f](../done/U6f-gallery-and-visual-tests.md).
 - The theme switch UI, `forced-colors` component styles, stored user preference and the settings dialog → [C7a](./C7a-accessibility-and-theming.md).
-- Recolouring page content in the renderers (Sepia, Dark, High contrast) → [U2c](../ready/U2c-page-appearance-modes.md); page-appearance chips in View settings → [C7a](./C7a-accessibility-and-theming.md) / [U2c](../ready/U2c-page-appearance-modes.md).
+- Recolouring page content in the renderers (Sepia, Dark, High contrast) → [U2c](../ongoing/U2c-page-appearance-modes.md); page-appearance chips in View settings → [C7a](./C7a-accessibility-and-theming.md) / [U2c](../ongoing/U2c-page-appearance-modes.md).
 - Mockup-only document colours ([§2.5](../../design/paper/design-language.md#25-mockup-only-colours-document-content)) and the drawn macOS `window` colours: not product tokens.
 
 ## Tasks
