@@ -21,14 +21,15 @@ serve({
         return render.run(params, context);
       },
     },
-    // Blocks the worker synchronously for `ms`, as a long render does.
+    // Blocks the worker synchronously for `ms`, as a long render does, and answers with the wall
+    // clock when the hold ends, so a test can tell whether what it sent meanwhile arrived in time.
     __busy: {
       run: ([ms]) => {
         const until = performance.now() + (ms as number);
         while (performance.now() < until) {
           // Busy.
         }
-        return undefined;
+        return Date.now();
       },
     },
     __renderLog: { run: () => [...renderLog] },
