@@ -5,7 +5,7 @@
 
 ## What happened
 
-`Builder::markdown` found raw HTML in the Markdown, such as a `<div>` block or an inline `<span>`, and left it out of the PDF. The rest of the document was laid out as usual. One warning is raised for each HTML block and each piece of inline HTML.
+`Builder::markdown` found raw HTML in the Markdown, such as a `<div>` block or an inline `<span>`, left it out of the PDF and laid out the rest as usual. The builder raises one warning for each HTML block and each inline HTML tag.
 
 ## Why
 

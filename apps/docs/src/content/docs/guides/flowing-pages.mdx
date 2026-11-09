@@ -70,15 +70,15 @@ Every heading also gets a bookmark. PDF readers list the bookmarks in their side
 
 ## Write it in Markdown
 
-You can also write the document in Markdown and let `Builder::markdown` turn it into blocks. Each Markdown construct becomes the block you would build by hand: a `#` heading becomes a heading, a list a list, a table a table that runs across pages, a footnote a footnote. A link to `#a-heading` goes to that heading, using the slugs GitHub uses. Front matter at the top, plain `key: value` lines between two `---` lines, sets the document's title, language, author and subject.
+You can also write the document in Markdown and let `Builder::markdown` turn it into blocks. Each Markdown construct becomes the block you would build by hand: a `#` heading becomes a heading, a list becomes a list, and a table becomes a table that runs across pages, its header row repeated on each. A link to `#a-heading` goes to the heading of that name, written the way GitHub writes it: lower case, with hyphens for spaces. Front matter at the top, plain `key: value` lines between two `---` lines, sets the document's title, language, author and subject.
 
-The example below builds a short report from a Markdown file. It gives the fonts, the page template and a contents page in `MarkdownBuildOptions`, and it passes the one image the Markdown names. The builder reads no files and fetches nothing, so an image you don't pass is left out with a `markdown-image-missing` warning. Raw HTML is left out too, with `markdown-html-ignored`. Both warnings give the position in the Markdown, never its text.
+The example below builds a short report from a Markdown file. It gives the fonts, the page template and a contents page in `MarkdownBuildOptions`, and it passes the one image the Markdown names. The builder reads no files and fetches nothing, so it leaves out an image you don't pass and adds a `markdown-image-missing` warning. It leaves out raw HTML too, with `markdown-html-ignored`. Both warnings give the position in the Markdown, never its text.
 
 <Snippet file="crates/laminapdf/examples/markdown_to_pdf.rs" />
 
 The result is four A5 pages: [open the reference PDF](/examples/pdf/markdown_to_pdf.pdf).
 
-Without fonts, the Markdown is set in Helvetica and Courier, which every PDF reader has. They set only Latin text, and since they aren't embedded, a PDF/UA-1 build refuses them with `font-not-embedded`. Pass your own fonts with `MarkdownFonts` for other scripts or an accessible document.
+If you pass no fonts, the builder sets the Markdown in Helvetica and Courier, two fonts every PDF reader has. They set only Latin text, and since they aren't embedded, a PDF/UA-1 build refuses them with `font-not-embedded`. Pass your own fonts with `MarkdownFonts` for other scripts or an accessible document.
 
 ## Fields in headers and footers
 
