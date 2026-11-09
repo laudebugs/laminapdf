@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C7a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C5b](../done/C5b-find-in-document.md), [C6a](../done/C6a-thumbnails-outline-page-labels.md), [C6b](../done/C6b-links-and-history.md), [C6c](../done/C6c-print-download-properties.md), [U1b](../done/U1b-command-registry-and-palette.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md) |

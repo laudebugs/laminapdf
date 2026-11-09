@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [C7a](./C7a-accessibility-and-theming.md) |
+| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [C7a](../ongoing/C7a-accessibility-and-theming.md) |
 | ADRs | Implements 0024 (page appearance); extends 0004 (`RenderBackend` options) |
 | Branch | `feat/u2c-page-appearance-modes` |
 | PR title | `feat(render): add page appearance modes recoloured in the renderer` |
