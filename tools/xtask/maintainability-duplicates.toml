@@ -38,7 +38,7 @@ reason = "a segment of a drawn path and a segment of an object path (LaminaPdfId
 
 [[type]]
 name = "Warning"
-crates = ["laminapdf", "laminapdf-cos", "laminapdf-text"]
+crates = ["laminapdf", "laminapdf-build", "laminapdf-cos", "laminapdf-text"]
 reason = "one warning type per crate that warns, flattened by the façade's (ADR 0026)"
 
 # A name the `laminapdf` façade re-exports more than once across its public modules. `paths`

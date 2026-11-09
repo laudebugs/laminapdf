@@ -44,6 +44,7 @@ export function sidebar(typeDoc) {
         { label: "Text and fonts", slug: "guides/fonts-and-text" },
         { label: "Shapes, colour and images", slug: "guides/images-and-vectors" },
         { label: "Links, outlines and metadata", slug: "guides/links-outlines-and-metadata" },
+        { label: "Pages that flow", slug: "guides/flowing-pages" },
         { label: "Accessible PDFs", slug: "guides/accessible-pdfs" },
         { label: "Archival PDFs", slug: "guides/archival-pdfs" },
       ],

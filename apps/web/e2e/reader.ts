@@ -56,14 +56,15 @@ export interface InitScript {
  * Opens the app at `path` on `origin` in a new page of `browser`, after `init`, until its home
  * screen shows (unless `options.home` is false). `options` are otherwise the page's: the e2e
  * suite's local server needs `ignoreHTTPSErrors` for its self-signed certificate, while a
- * deployed reader's certificate is checked.
+ * deployed reader's certificate is checked; a device profile (`devices["iPhone 15"]`) gives the
+ * page a phone's viewport, touch and user agent.
  */
 export async function load(
   browser: Browser,
   origin: string,
   path = "/",
   init?: InitScript,
-  options: { ignoreHTTPSErrors?: boolean; home?: boolean } = {},
+  options: Parameters<Browser["newPage"]>[0] & { home?: boolean } = {},
 ): Promise<Watched> {
   const { home = true, ...pageOptions } = options;
   const page = await browser.newPage(pageOptions);

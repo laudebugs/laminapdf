@@ -83,6 +83,7 @@
             "device-color-without-output-intent",
             "embedded-file-forbidden",
             "embedded-file-without-mime-type",
+            "flow-content-too-large",
             "render-too-large",
             "render-failed",
             "render-backend-unavailable",
@@ -261,6 +262,7 @@
             "extract-column-order-uncertain",
             "tounicode-conflict",
             "whole-font-rebuilt",
+            "flow-keep-broken",
             "covered-text",
             "redaction-not-applied",
             "text-in-earlier-revision"

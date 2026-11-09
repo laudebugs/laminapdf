@@ -54,6 +54,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 - [ ] Page-label support in the page indicator and in thumbnails; go-to-page parsing.
 - [ ] Facts: extend `expected.json` (via the independent tool, pypdf/pdf.js, never lamina) with outline destinations (page index) and page labels for corpus files that have them; add a fixture with roman/arabic labels and a nested outline (generated with `@laminapdf/sdk` builder per B5 — builder already supports outlines and page labels).
 - [ ] Playwright specs.
+- [ ] The outline jump and thumbnails from the Contents sheet on the phone and tablet profiles of `apps/web/e2e/devices.e2e.test.ts` (U3a left them to this todo).
 
 ## Acceptance criteria
 

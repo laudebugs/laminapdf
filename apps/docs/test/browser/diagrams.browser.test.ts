@@ -91,7 +91,7 @@ function behind(text: SVGTextElement): string {
 
 /** Every line drawn on a PageSheet has 3:1 against the sheet, not the page around it. */
 function expectSheetLines(svg: SVGSVGElement, where: string): void {
-  for (const shape of svg.querySelectorAll(".dg-page .dg-page-axis, .dg-page .dg-ink-line")) {
+  for (const shape of svg.querySelectorAll(".dg-page .dg-page-axis, .dg-page .dg-ink-line, .dg-page .dg-order")) {
     const sheet = shape.closest(".dg-page")?.querySelector(".dg-sheet");
     if (sheet === null || sheet === undefined) throw new Error("a page line with no sheet");
     const ratio = contrast(getComputedStyle(shape).stroke, getComputedStyle(sheet).fill);

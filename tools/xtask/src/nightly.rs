@@ -22,10 +22,11 @@ const REGRESSION_RATIO: f64 = 1.10;
 
 /// The criterion benchmark targets `cargo xtask bench` runs: `(package, bench)`. `laminapdf`'s
 /// `report` is the 100-page text report of pdf-library §4 (B5d).
-const BENCHES: [(&str, &str); 3] = [
+const BENCHES: [(&str, &str); 4] = [
     ("laminapdf-cos", "read"),
     ("laminapdf-save", "save"),
     ("laminapdf", "report"),
+    ("laminapdf", "flowing"),
 ];
 
 /// The pages per file the nightly render diff renders (`--pages`; nightly.yml passes the same).

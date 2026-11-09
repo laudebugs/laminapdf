@@ -17,8 +17,10 @@ import {
   Menu,
   MenuTrigger,
   ModeRegistry,
+  MoreSheet,
   OpenDropZone,
   PasswordDialog,
+  PhoneBottomBar,
   Popover,
   PopoverTrigger,
   ReaderController,
@@ -101,6 +103,9 @@ function PasswordPrompt(): ReactNode {
 /** A bottom sheet at each detent, and the non-modal one beside a page in use. */
 export function Sheets({ state }: { state: string }): ReactNode {
   const pages = <p>24 pages, three selected.</p>;
+  if (state === "more") {
+    return <MoreSheet isOpen onOpenChange={noop} more={MORE} keys="other" />;
+  }
   if (state === "non-modal") {
     return (
       <BottomSheet isOpen isModal={false} onOpenChange={noop} title="Pages" count="24 pages" closeLabel="Close pages">
@@ -123,6 +128,16 @@ export function Sheets({ state }: { state: string }): ReactNode {
     </BottomSheet>
   );
 }
+
+/** The phone's More items: the reader's More menu. */
+const MORE = {
+  items: [
+    { id: "open", label: "Open another file…" },
+    { id: "rotate", label: "Rotate clockwise", icon: "rotate-right" as const },
+    { id: "save", label: "Save a copy…", icon: "download" as const },
+  ],
+  onAction: noop,
+};
 
 /** A menu and a popover open from their buttons; a tooltip shows on keyboard focus (the test tabs to it). */
 export function Menus({ state }: { state: string }): ReactNode {
@@ -285,6 +300,7 @@ export function ShellRegions(): ReactNode {
         >
           <p>The page</p>
         </ReaderShell>
+        <PhoneBottomBar layout={shell.layout} rail more={MORE} keys="other" />
       </div>
     </CommandsProvider>
   );
