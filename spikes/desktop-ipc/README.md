@@ -9,9 +9,13 @@
 
 ADR 0008 needs two answers before the desktop reader can be built. First, **which transport moves rendered page tiles from Rust into the webview fastest and most smoothly**: a `tauri::ipc::Channel` carrying raw RGBA, a command returning `tauri::ipc::Response` (a raw body, no JSON), or a custom URI scheme that the webview fetches, carrying raw RGBA or a compressed image? Second, **does each webview become cross-origin isolated** when Tauri sends COOP and COEP through `app.security.headers`? Isolation decides whether the desktop app can use the threaded WASM build and `SharedArrayBuffer` in its UI.
 
-## Answer in one paragraph
+## Answer
 
-**Compressed tiles over the custom scheme win, and lossless WebP wins among them.** With every transport limited to the same 8 requests in flight, `lamina://…?fmt=webp` moved more 512 px tiles per second than any raw transport on every machine and Linux setup that finished the plan. It was 3.1× faster than the best raw transport on Windows, 2.3–2.4× faster on Linux with the DMABUF renderer off, 1.3× faster on the hosted macOS 15 runner and 1.1× faster on an M1 Pro. Raw RGBA is limited by bytes: about 160 MB/s on the Windows runner and 200 MB/s on Linux, against 600 MB/s on the M1 Pro. A rendered PDF page is mostly white, so its 1 MB tile compresses to 8–37 KB and the bytes stop mattering. Among the raw transports, `ipc::Response` and the raw scheme finished within 6 % of each other on every machine, while the channel trailed them, by up to 35 % on Windows. **Isolation differs per OS.** WebView2 honours the headers fully (`crossOriginIsolated` and `SharedArrayBuffer` both work). WKWebView on macOS 27 reports `crossOriginIsolated = true` but still has no `SharedArrayBuffer`, and on macOS 15 it ignores the headers. WebKitGTK 2.52 ignores them. **Linux needs `WEBKIT_DISABLE_DMABUF_RENDERER=1` without a GPU driver:** under Wayland with the DMABUF renderer on, painting froze for good within two minutes, in both attempts.
+**Compressed tiles over the custom scheme win, and lossless WebP wins among them.** With every transport limited to the same 8 requests in flight, `lamina://…?fmt=webp` moved more 512 px tiles per second than any raw transport on every machine and Linux setup that finished the plan. It was 3.1× faster than the best raw transport on Windows, 2.3–2.4× faster on Linux with the DMABUF renderer off, 1.3× faster on the hosted macOS 15 runner and 1.1× faster on an M1 Pro. Raw RGBA is limited by bytes: about 160 MB/s on the Windows runner and 200 MB/s on Linux, against 600 MB/s on the M1 Pro. A rendered PDF page is mostly white, so its 1 MB tile compresses to 8–37 KB and the bytes stop mattering. Among the raw transports, `ipc::Response` and the raw scheme finished within 6 % of each other on every machine, while the channel trailed them, by up to 35 % on Windows (256 px, DPR 1).
+
+**Isolation differs per OS.** WebView2 honours the headers fully (`crossOriginIsolated` and `SharedArrayBuffer` both work). WKWebView on macOS 27 reports `crossOriginIsolated = true` but still has no `SharedArrayBuffer`, and on macOS 15 it ignores the headers. WebKitGTK 2.52 ignores them. Only Windows could run the threaded WASM build, so the desktop app should stay single-threaded everywhere.
+
+**Linux needs `WEBKIT_DISABLE_DMABUF_RENDERER=1` without a GPU driver:** under Wayland with the DMABUF renderer on, painting froze for good within two minutes, in both attempts.
 
 ## Recommendation (inputs to ADR 0008)
 
@@ -24,7 +28,6 @@ ADR 0008 needs two answers before the desktop reader can be built. First, **whic
 | Compression | **Yes, lossless WebP**, encoded off the main thread in Rust | 0.8–1.7 ms per 512 px tile to encode, against 2.6–5.2 ms to render it; 8–11 KB per PDF tile instead of 1 MB |
 | COOP/COEP | Send no isolation headers; build the desktop app single-threaded on every OS | Isolation works only on Windows; WebKit never exposes `SharedArrayBuffer` (macOS 15, macOS 27, WebKitGTK) |
 | Linux renderer | Set `WEBKIT_DISABLE_DMABUF_RENDERER=1` when the GPU driver can't serve EGL, and measure on real GPUs in D2e | Wayland, DMABUF on, no GPU: froze after 6 runs, twice. X11, DMABUF on: 205 raw tiles/s and 80 dropped frames per run, against 324 and 8 with it off |
-
 | Licences | Ask the owner for an MPL-2.0 exception for Tauri's dependencies before `apps/desktop` joins the workspace | `cargo deny check licenses` with the root `deny.toml` rejects five MPL-2.0 crates that Tauri 2.12 itself pulls in (see [Licences](#licences)) |
 
 ADR 0008 should record six things: the scheme name and its Windows form, WebP as the default with raw RGBA behind a switch, 512 px tiles, the single-threaded build with no isolation headers, the Linux DMABUF rule, and the MPL-2.0 exception. It should also record what this spike didn't measure (see [Limits](#limits-of-this-spike)): real GPUs on Windows and Linux, NVIDIA, and photo-heavy documents on fast Macs, where raw RGBA can beat WebP.
@@ -62,7 +65,9 @@ The tables report six figures:
 - **Memory and CPU:** peak RSS of the app and its webview processes, and mean CPU, sampled every 100 ms by `sysinfo`.
 - **Encode time:** Rust's mean encode time per compressed tile.
 
-The plan per machine starts with an **in-flight sweep**: each transport runs once at 512 px, DPR 2 with *n* = 4, 8 and 16, and keeps the *n* with the highest burst throughput. Then each of five combinations runs 5 times, interleaved across transports so drift hits them alike: PDF tiles at 256 and 512 px with DPR 1 and 2, and synthetic tiles at 512 px with DPR 2. DPR is simulated: the canvas's backing store and the render scale use the plan's DPR, whatever the display's. A run that gets no animation frame for 3 s (a hidden window, a sleeping display, a stuck compositor) is void. It is retried twice, then the plan stops with exit code 4 and writes a failure row. The isolation check is a separate launch of each build: `src/coi.ts` reads `crossOriginIsolated`, tries `new SharedArrayBuffer(1)`, calls a command, and loads a scheme tile by `fetch` and by `<img>` with `Cross-Origin-Resource-Policy` set to `same-origin`, `cross-origin` and none.
+The plan per machine starts with an **in-flight sweep**: each transport runs once at 512 px, DPR 2 with *n* = 4, 8 and 16, and keeps the *n* with the highest burst throughput. Then each of five combinations runs 5 times, interleaved across transports so drift hits them alike: PDF tiles at 256 and 512 px with DPR 1 and 2, and synthetic tiles at 512 px with DPR 2. DPR is simulated: the canvas's backing store and the render scale use the plan's DPR, whatever the display's. A run that gets no animation frame for 3 s (a hidden window, a sleeping display, a stuck compositor) is void. It is retried twice, then the plan stops with exit code 4 and writes a failure row. 
+
+The isolation check is a separate launch of each build: `src/coi.ts` reads `crossOriginIsolated`, tries `new SharedArrayBuffer(1)`, calls a command, and loads a scheme tile by `fetch` and by `<img>` with `Cross-Origin-Resource-Policy` set to `same-origin`, `cross-origin` and none.
 
 ## Environment
 
@@ -169,11 +174,11 @@ The gradient with noise is the worst case for compression: WebP still shrinks a 
 | WKWebView (macOS 15.8.2) | on | false | unavailable | work | load |
 | WebKitGTK 2.52.6 (X11 and Wayland) | on | false | unavailable | work | load |
 
-The headers came from `src-tauri/tauri.coi.conf.json` (COOP `same-origin`, COEP `require-corp`, CORP `same-origin`). The scheme's origin differs from the page's (`lamina://localhost` against `tauri://localhost`; `http://lamina.localhost` against `http://tauri.localhost` on Windows), so `fetch` runs in CORS mode, and the handler answers `Access-Control-Allow-Origin: *`. Tiles loaded under COEP whatever CORP said, even `same-origin`, in every webview that applied the headers.
+The headers came from `src-tauri/tauri.coi.conf.json` (COOP `same-origin`, COEP `require-corp`, CORP `same-origin`). The scheme's origin differs from the page's: `lamina://localhost` against `tauri://localhost`, or `http://lamina.localhost` against `http://tauri.localhost` on Windows. So `fetch` runs in CORS mode, and the handler answers `Access-Control-Allow-Origin: *`. Tiles loaded under COEP whatever CORP said, even `same-origin`, in every webview that applied the headers.
 
 ### Linux renderer
 
-**Without a GPU, WebKitGTK's DMABUF renderer is a liability.** Mesa found no device (`ZINK: vkCreateInstance failed`, `egl: failed to create dri2 screen`) and fell back to llvmpipe.
+**Without a GPU, WebKitGTK's DMABUF renderer slowed painting on X11 and froze it on Wayland.** Mesa found no device (`ZINK: vkCreateInstance failed`, `egl: failed to create dri2 screen`) and fell back to llvmpipe.
 
 - **X11, DMABUF on:** every plan finished, but 512 px tiles at DPR 2 dropped 48–93 frames per run, against 3–11 with it off. Raw throughput fell from 324 to 205 tiles/s.
 - **Wayland, DMABUF on:** the window stopped receiving animation frames for good, once after the prime, verify and 5 sweep runs (about 1.5 minutes), and once in the shorter smoke plan. Both retries stalled too. Before it froze, each run dropped about 400 frames.
@@ -191,7 +196,7 @@ Any Tauri 2.12 app has them. MPL-2.0 is file-level copyleft, as with UniFFI, for
 
 ## Observations per OS
 
-- **macOS (M1 Pro):** every transport is fast. The three raw ones moved 920–970 tiles/s at 512 px, DPR 2, and WebP 990, with at most 4 dropped frames per run. WebP gave the lowest webview memory (186 MB peak against 252–275 MB for raw), because compressed bodies are smaller to hold. Two runs stalled once and passed on their retry; the first attempt of this plan ran into a sleeping display, and every run after it waited for frames that never came.
+- **macOS (M1 Pro):** every transport is fast. The three raw ones moved 920–970 tiles/s at 512 px, DPR 2, and WebP 990, with at most 4 dropped frames per run. WebP gave the lowest webview memory (186 MB peak against 252–275 MB for raw), because compressed bodies are smaller to hold. Two runs stalled once and passed on their retry. An earlier attempt at the plan stopped producing results when the display went to sleep, because WebKit sends no animation frames then; the stall check and `caffeinate` came from it.
 - **macOS 15 (hosted, virtual):** a third of the M1 Pro's raw throughput (316 tiles/s); PNG and WebP gained 1.3× over raw. QOI, decoded in script, was the slowest transport there and dropped the most frames.
 - **Windows:** the raw transports were limited to 160 MB/s, and their p95 ready latency reached 52–107 ms at 512 px, DPR 2. PNG and WebP gave 2.7–3.1× the tiles and halved the zoom fill time (47–63 ms against 141–172 ms at 400 %). WebView2 dropped no frames on any transport. Its frame timing on the runner's Hyper-V display may hide jank that a real display would show. The CPU column reads 0 on Windows: `sysinfo` reported no usage for these processes, so CPU wasn't measured there.
 - **Linux:** the raw transports reached about 200 MB/s. WebP gave 2.5–2.7× the tiles, and WebP and QOI dropped the fewest frames (0–3 per run at 512 px, DPR 2).
@@ -206,7 +211,7 @@ Five things differed from the docs or needed care:
 
 ## Limits of this spike
 
-- **One machine per row, no GPU on the hosted ones.** Windows and Linux ran on 4-core cloud VMs with software rendering. Real users' GPUs will raise the raw transports' ceilings, so the gap to WebP on Windows and Linux is an upper bound. No NVIDIA machine was available: that gap goes to D2e's CI matrix.
+- **One machine per row, no GPU on the hosted ones.** Windows and Linux ran on 4-core cloud VMs with software rendering. Real users' GPUs will raise the raw transports' ceilings, so the gap to WebP on Windows and Linux is an upper bound. No NVIDIA machine was available: measuring one is left to D2e's CI matrix.
 - **A small document set.** Three short fixtures make 40 pages by repetition. Scanned or photo-heavy documents compress less, as the synthetic runs show.
 - **Cached renders.** The transports were timed on tiles rendered earlier. A real reader renders on demand, which adds 2.6–5.2 ms per 512 px tile here and makes WebP's 0.8–1.7 ms encode a smaller share.
 - **The in-flight limit is part of each result.** The sweep chose *n* by burst throughput, and a low *n* (4) slows zoom fill: the M1 Pro's `scheme-raw` and `scheme-qoi` took 100 ms to fill at 400 % against 50 ms for the others. The comparison at equal *n* = 8 (one run each, `results/*-sweep.csv`) gives the same ranking.
