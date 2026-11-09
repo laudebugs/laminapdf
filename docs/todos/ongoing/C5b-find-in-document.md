@@ -12,7 +12,7 @@
 | Branch | `feat/c5b-find-in-document` |
 | PR title | `feat(viewer): add find in document with streaming results and highlights` |
 | Size | L (600–1,500 lines incl. tests and the facts script) |
-| PR | — |
+| PR | [#349](https://github.com/laudebugs/laminapdf/pull/349) |
 
 ## Goal
 
