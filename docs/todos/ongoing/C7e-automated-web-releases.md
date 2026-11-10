@@ -11,7 +11,7 @@
 | Branch | `ci/c7e-web-in-daily-release` |
 | PR title | `ci(web): release the web reader automatically, once a day when it changed` |
 | Size | M (300–600 lines incl. tests and the workflow files) |
-| PR | — |
+| PR | [#389](https://github.com/laudebugs/laminapdf/pull/389) |
 
 ## Goal
 
