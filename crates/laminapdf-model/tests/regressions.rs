@@ -33,11 +33,12 @@ fn every_regressions_folder_is_a_fuzz_target() {
     };
     for dir in dirs {
         let name = dir.unwrap().file_name().to_string_lossy().into_owned();
-        // `content` and the save targets (`ops_json`, `save_roundtrip`) are replayed by
-        // laminapdf-content's and laminapdf-save's own `tests/regressions.rs`.
+        // `content`, the save targets (`ops_json`, `save_roundtrip`), `extract_text` and
+        // `markdown` are replayed by laminapdf-content's, laminapdf-save's, laminapdf-text's and
+        // laminapdf-build's own `tests/regressions.rs`.
         let elsewhere = matches!(
             name.as_str(),
-            "content" | "ops_json" | "save_roundtrip" | "extract_text"
+            "content" | "ops_json" | "save_roundtrip" | "extract_text" | "markdown"
         );
         assert!(
             elsewhere || TARGETS.iter().any(|(t, _)| *t == name),
