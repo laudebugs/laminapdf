@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B5c](../done/B5c-lamina-facade-and-examples.md), [C7c](./C7c-performance-gates-and-launch.md), [D7c](./D7c-desktop-beta-release.md), [X2](../done/X2-capability-matrix.md) |
+| Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B5c](../done/B5c-lamina-facade-and-examples.md), [C7c](../ongoing/C7c-performance-gates-and-launch.md), [D7c](./D7c-desktop-beta-release.md), [X2](../done/X2-capability-matrix.md) |
 | Dependency notes | `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1), `D7` ([desktop-app §D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta): desktop beta), `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate), `X2` (capability-matrix generator: manifest, test tagging, `cargo xtask capabilities`, CI gate; [architecture §7](../../plans/architecture.md#cross-cutting), [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix)) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e1a-editing-foundation-feature-plan` |

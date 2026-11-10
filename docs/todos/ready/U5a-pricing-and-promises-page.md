@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [B7a](../done/B7a-docs-site.md), [C7c](./C7c-performance-gates-and-launch.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D7c](./D7c-desktop-beta-release.md) |
+| Depends on | [B7a](../done/B7a-docs-site.md), [C7c](../ongoing/C7c-performance-gates-and-launch.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D7c](./D7c-desktop-beta-release.md) |
 | ADRs | Follows 0011 (hosted service, privacy, telemetry) — the pricing page must agree with it |
 | Branch | `docs/u5a-pricing-and-promises` |
 | PR title | `docs(site): publish pricing, product promises and performance targets` |

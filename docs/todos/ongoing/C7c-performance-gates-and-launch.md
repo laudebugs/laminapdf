@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C7c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — **M2 Web reader v0.1** (milestone closes with this PR) |
 | Depends on | [C3c](../done/C3c-viewer-perf-harness.md), [C4d](../done/C4d-deploy-previews-and-production.md), [C6c](../done/C6c-print-download-properties.md), [C7a](../done/C7a-accessibility-and-theming.md), [C7b](../done/C7b-offline-pwa.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [U2a](../done/U2a-selection-surfaces-and-copy-modes.md), [U2c](../done/U2c-page-appearance-modes.md), [U3a](../done/U3a-responsive-mobile-and-touch.md), [U4a](../done/U4a-network-indicator-and-privacy-proof.md) |
