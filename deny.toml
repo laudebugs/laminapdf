@@ -11,7 +11,16 @@ all-features = true
 # too, and each accepted one goes in `ignore` with its ID, a reason and a review date:
 #   { id = "RUSTSEC-YYYY-NNNN", reason = "…; review 2027-01" }
 yanked = "deny"
-ignore = []
+ignore = [
+    # Tauri's tree (apps/desktop, ADR 0008), Linux builds only. Unmaintained, no vulnerability.
+    # zbus 5 through tauri-plugin-opener 2.7.2: zvariant, zvariant_derive and zbus_names were merged
+    # into zbus 6, which only opener 3.0's alphas use.
+    { id = "RUSTSEC-2026-0370", reason = "zvariant via zbus 5 via tauri-plugin-opener; gone with opener 3 (zbus 6); review 2027-02" },
+    { id = "RUSTSEC-2026-0371", reason = "zbus_names via zbus 5 via tauri-plugin-opener; gone with opener 3 (zbus 6); review 2027-02" },
+    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive via zbus 5 via tauri-plugin-opener; gone with opener 3 (zbus 6); review 2027-02" },
+    # The GTK 3 bindings (gtk-rs 0.18) that Tauri's Linux runtime uses, through glib-macros.
+    { id = "RUSTSEC-2024-0370", reason = "proc-macro-error via glib-macros 0.18 via Tauri's GTK 3 runtime (build time only); review 2027-02" },
+]
 
 [licenses]
 # Permissive licences only (ADR 0019). No GPL, LGPL or AGPL in any form; MPL-2.0 and other weak

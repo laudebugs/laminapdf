@@ -199,6 +199,19 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   LAMINA_PDF_SMOKE_URL, Chromium, after e2e/live.ts, run by Node first, waits for the host and names who refused it); deployed by
 │                        #   .github/workflows/web-deploy.yml (C4d: a preview per PR on the Worker lamina-pdf-web-preview, staging
 │                        #   from main, production from web-v* tags on main, rollback on a failed smoke test); README.md, DEPLOY.md
+├── apps/desktop/        # the desktop reader (D2a; ADR 0008): @laminapdf/ui's chrome in a Tauri 2 window (private, outside
+│                        #   Changesets: its version is the crate's). src/main.tsx (the only isTauri() call, checked by `check ts`),
+│                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
+│                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
+│                        #   screen, version from the `app_info` command); opening a document waits for D2b/D2d. src-tauri/: the
+│                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
+│                        #   Rust only, window `main` built in Rust), commands.rs (`app_info`), error.rs (DesktopError as
+│                        #   { kind, message }), build.rs (app manifest: each command needs an allow-* permission),
+│                        #   tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype, capabilities ["main"]),
+│                        #   capabilities/main.json (only allow-app-info), tests/capabilities.rs (the capability guard), test/app-info.json
+│                        #   (the app_info sample both languages' tests read), about/
+│                        #   (cargo-about, MPL-2.0 accepted for Tauri's dependencies); Linux builds need WebKitGTK 4.1 and D-Bus
+│                        #   (.github/actions/linux-webkit); README.md
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
@@ -463,6 +476,10 @@ cargo xtask cli-docs         # the CLI's man pages (clap_mangen, one per command
 cargo xtask cli-dist         # cli-docs plus THIRD_PARTY_NOTICES.md (cargo-about, about/ in laminapdf-cli, `mcp` on): what
                              #   dist-workspace.toml's `include` puts in every release archive; then `dist build --artifacts=local
                              #   --target <triple>` (dist pinned in doctor.rs) writes the archive into target/distrib/
+pnpm --filter @laminapdf/desktop tauri dev  # the desktop reader (after `pnpm --filter "@laminapdf/desktop^..." run build`;
+                             #   Linux: libwebkit2gtk-4.1-dev libdbus-1-dev); `tauri build --debug --no-bundle` is what the full
+                             #   lane's `desktop` job builds on Linux, macOS and Windows when `cargo xtask changes` says desktop=true
+cargo xtask desktop-notices  # the desktop app's THIRD_PARTY_NOTICES.md (cargo-about, MPL-2.0 text included) into target/desktop/
 cargo run -p laminapdf-cli --features mcp -- mcp --root <dir> [--allow-write [--allow-in-place]]  # the MCP server on stdio (L4c)
 cargo xtask models check     # tools/models/models.toml: code and weights licences in the allowed set, pins well formed, no
                              #   weights file in the repository (part of `check docs`)
@@ -488,7 +505,9 @@ cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane doe
 cargo xtask changes [--base <rev>]    # paths changed since the merge base with <rev> (default origin/main, else main);
                                       #   code=true unless all are on the docs allowlist; gallery=true when they touch
                                       #   apps/gallery, packages/{ui,tokens,icons,fonts} or pnpm-lock.yaml; web=true unless all
-                                      #   are docs or outside what the reader is built from (OUTSIDE_WEB: web-deploy.yml's filter)
+                                      #   are docs or outside what the reader is built from (OUTSIDE_WEB: web-deploy.yml's filter);
+                                      #   desktop=true when they touch apps/desktop, packages/, crates/, the manifests,
+                                      #   lockfiles, toolchain or the full lane (DESKTOP_INPUTS: the `desktop` job's filter)
 cargo xtask fuzz tmin <target>        # minimise every crash in fuzz/artifacts/<target>/
 cargo xtask corpus fetch     # external corpora (pinned commits, SHA-256 per file in fixtures/corpus-manifest.toml) → target/corpus/
 cargo xtask differential --live [--corpus external|mutants|all] [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample N]
@@ -564,7 +583,8 @@ node apps/docs/scripts/package-docs.mjs <out-dir> [--api]  # the docs/ folder th
                              #   `cargo package --list`, `publish npm-pack` checks the sdk tarball (tools/xtask/src/package_docs.rs)
 node tools/agent-eval/run.mjs [--tasks a,b] [--modes docs,no-docs] [--dry-run]  # the agent eval (after `publish npm-pack`;
                              #   ANTHROPIC_API_KEY from the environment); results in target/agent-eval/
-cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
+cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions? On Linux,
+                             #   are WebKitGTK 4.1 and D-Bus there (pkg-config), which building the workspace needs?
 cargo xtask doctor --install # install the pinned cargo tools
 ```
 
