@@ -161,7 +161,7 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 ### 5.8 Reader mode (reflow) and local intelligence (R15, R16)
 
 - **Tier 1, tagged files** ([U4b](../todos/done/U4b-reader-mode-from-structure-tree.md)): derive semantic blocks from the structure tree (ISO 32000-2 §14.8; PDF Association "Deriving HTML from PDF"); about half of web PDFs are tagged since mid-2025. Tables, figures and formulas show as cropped page images with their `/Alt` text; "back to page" returns to the matching position. Font size, line spacing, width and page mode are adjustable.
-- **Tier 2, untagged files** ([U4c](../todos/ongoing/U4c-approximate-reader-mode.md)): heuristic layout analysis in pure Rust from lamina's extraction, labelled **"Approximate"**.
+- **Tier 2, untagged files** ([U4c](../todos/done/U4c-approximate-reader-mode.md)): heuristic layout analysis in pure Rust from lamina's extraction, labelled **"Approximate"**.
 - The core emits blocks (bytes-in/bytes-out); `@laminapdf/ui` renders them. No cloud processing and no page cap (Liquid Mode needs Adobe's cloud and skips files over 200 pages).
 - **OCR and semantic search** come with E13 and later: OCR behind one trait (platform OCR on native, ocrs or PP-OCR in WASM), model weights licence-audited separately from code (DocLayout-YOLO is AGPL; Marker's weights are OpenRAIL-M with commercial limits).
 
@@ -199,7 +199,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** the network indicator and privacy proof; reader mode from the structure tree, then the approximate reader mode for untagged files.
 **Accepted when:** the indicator shows 0 requests for local files in a Playwright test that also counts requests independently; reader mode round-trips position and passes axe; the approximate mode is labelled and scored against U2b's corpus.
-**Todos:** [U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md), [U4b](../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../todos/ongoing/U4c-approximate-reader-mode.md)
+**Todos:** [U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md), [U4b](../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../todos/done/U4c-approximate-reader-mode.md)
 
 ### U5. Product promises
 
@@ -282,7 +282,7 @@ Ticked by the PR that completes them.
 ### U4. Trust and reflow
 - [x] Network indicator and CSP-backed privacy test ([U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md))
 - [x] Reader mode from the structure tree ([U4b](../todos/done/U4b-reader-mode-from-structure-tree.md))
-- [ ] Approximate reader mode for untagged files
+- [x] Approximate reader mode for untagged files ([U4c](../todos/done/U4c-approximate-reader-mode.md))
 
 ### U5. Product promises
 - [ ] Pricing, promises and targets pages (after the owner sets the pricing model)
