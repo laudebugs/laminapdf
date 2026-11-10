@@ -173,7 +173,7 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 
 ## 6. Rounds
 
-Round U runs alongside Rounds C, D and E; each todo's "Depends on" fixes where it lands. U1 and the v0.1 parts of U2–U4 gate the web reader launch ([C7c](../todos/ongoing/C7c-performance-gates-and-launch.md)); reflow, the mobile spike and the product-promise todos follow.
+Round U runs alongside Rounds C, D and E; each todo's "Depends on" fixes where it lands. U1 and the v0.1 parts of U2–U4 gate the web reader launch ([C7c](../todos/done/C7c-performance-gates-and-launch.md)); reflow, the mobile spike and the product-promise todos follow.
 
 Each round is split into todos (one pull request each) on the [todo board](../todos/README.md); they move `ready/` → `ongoing/` → `done/`. When a todo moves, the PR that moves it updates every link to it, including these.
 
@@ -226,7 +226,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [C6a](../todos/done/C6a-thumbnails-outline-page-labels.md) | Depends on U1c; thumbnails and outline fill the left rail's tabs instead of a sidebar of their own |
 | [C7a](../todos/done/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
 | [C2a](../todos/done/C2a-render-adrs.md) (ADR 0011) | Telemetry optional, opt-in and off by default (owner decision 2026-10-29) |
-| [C7c](../todos/ongoing/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
+| [C7c](../todos/done/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
 | [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decision 2026-10-29): cold start < 300 ms measured in D2d and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
 | [D7a](../todos/ready/D7a-crash-reporting.md), [H1](../todos/ready/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md) | Usage analytics via U5c only; pricing questions decided once, in U5a |
 | [D4b](../todos/ready/D4b-native-menus.md) | Depends on U1b; native menus are generated from the command registry |

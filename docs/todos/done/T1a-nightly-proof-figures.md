@@ -72,7 +72,7 @@ Hacker News users judge PDF tools by named failures, not feature lists: one test
 
 - The snapshot the website reads, the page and its copy → [T1b](../ready/T1b-how-we-test-page.md).
 - Extraction scores, generation timings and module sizes → [T1c](../done/T1c-publish-performance-numbers.md).
-- Turning any of these figures into a gate: they stay reported, as ADR 0018 tier 11 and C7c's split between nightly reporting and release gates keep them ([C7c](../ongoing/C7c-performance-gates-and-launch.md)).
+- Turning any of these figures into a gate: they stay reported, as ADR 0018 tier 11 and C7c's split between nightly reporting and release gates keep them ([C7c](../done/C7c-performance-gates-and-launch.md)).
 - A larger or more representative corpus (SafeDocs was left out in X3a): a later todo, if T1b's page shows the need.
 
 ## Tasks

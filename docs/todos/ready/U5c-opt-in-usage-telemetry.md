@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [C7c](../ongoing/C7c-performance-gates-and-launch.md), [D7a](./D7a-crash-reporting.md) |
+| Depends on | [C7c](../done/C7c-performance-gates-and-launch.md), [D7a](./D7a-crash-reporting.md) |
 | ADRs | Follows ADR 0011 (owner decision 2026-10-29: telemetry is optional, opt-in and off by default; none in v0.1) |
 | Branch | `feat/u5c-opt-in-telemetry` |
 | PR title | `feat(ui): add opt-in content-free usage counts on web and desktop` |

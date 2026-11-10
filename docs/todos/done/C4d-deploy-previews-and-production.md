@@ -36,7 +36,7 @@ Every PR that touches the reader gets a working preview URL commented on the PR,
 
 **Out of scope** (and which todo covers it)
 
-- The `web v0.1` tag and production launch checklist → [C7c](../ongoing/C7c-performance-gates-and-launch.md).
+- The `web v0.1` tag and production launch checklist → [C7c](../done/C7c-performance-gates-and-launch.md).
 - Docs-site deploys (library B7).
 - Migration to the `cf` CLI (later, after GA).
 
