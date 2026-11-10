@@ -34,12 +34,14 @@ if (root === null) throw new Error("index.html has no #app");
 // The one place that asks where it runs (ADR 0010): outside Tauri (`pnpm dev` in a browser) the
 // shell's commands don't exist.
 const desktop = isTauri();
+// Shortcut chips and `Mod` follow the OS, as in the web reader (apps/web/src/app.tsx).
+const keys = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 const platform = createDesktopPlatform();
 const app = createRoot(root);
 const render = (info: AppInfo | undefined) =>
   app.render(
     <PlatformProvider platform={platform}>
-      <App platform={platform} info={info} />
+      <App platform={platform} info={info} keys={keys} />
     </PlatformProvider>,
   );
 render(undefined);

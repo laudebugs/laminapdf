@@ -89,7 +89,7 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 
 - [x] ADR 0008 exists, is **Accepted**, cites D1a and D1b results, and records every item listed in Scope.
 - [ ] `pnpm --filter @laminapdf/desktop tauri dev` opens a window titled "Lamina" showing the `@laminapdf/ui` shell on macOS, Windows and Linux (screenshots in the PR).
-- [ ] The `desktop-build` CI job is green on all three OSes; `cargo xtask check` passes including clippy `-D warnings` on `laminapdf-desktop`.
+- [ ] The `desktop` CI job (full lane) is green on all three OSes; `cargo xtask check` passes including clippy `-D warnings` on `laminapdf-desktop`.
 - [x] Invoking any command not in the app manifest from the devtools console is rejected with a permission error (checked manually, noted in the PR); `invoke('plugin:dialog|open')` from the webview is rejected.
 - [x] The root `Cargo.toml` `members` includes `"apps/*/src-tauri"`; `cargo metadata --no-deps --format-version 1` lists `laminapdf-desktop`.
 - [x] The capability guard test passes and fails on purpose-built bad inputs (forbidden prefix, unlisted capability file, `e2e` in the base list, an e2e override that drops a base entry).
@@ -106,6 +106,9 @@ Where the PR differs from the tasks above, and why:
 - **Linux packages:** the tree links only WebKitGTK 4.1 and D-Bus, so CI installs `libwebkit2gtk-4.1-dev libdbus-1-dev` (`.github/actions/linux-webkit`, built and tested on Ubuntu 22.04 in Docker); `libayatana-appindicator3-dev` and `librsvg2-dev` are for tray icons and bundling, which later todos add with them.
 - **CI:** the `desktop` job is in the full lane (per the CI-cost risk), filtered by `cargo xtask changes`' new `desktop` output, on `ubuntu-22.04`, `macos-15` and `windows-2025` (the repository's current hosted images; `macos-14` and `windows-2022` are older than every other job's).
 - **Notices:** `cargo xtask desktop-notices` writes the app's third-party notices with the MPL-2.0 text; D6b ships them in the installers.
+- **No mmap in the main process:** Scope item 2 says the main process does "mmap and watching"; ADR 0008 §2 follows the plan and D2b instead: positioned reads, since a mapped file that another app truncates crashes every window.
+- **`licenseFile`:** `tauri.conf.json` points at `LICENSE-MIT`, because Tauri takes one file; D6b's installers carry both licences with the notices.
+- **Added:** `cargo xtask check ts` refuses `isTauri` outside the desktop entry, so "in the app entry only" stays true; the first window shrinks to fit a small screen (the Windows runner's 1024 × 768 hid the status bar); ADR 0008 amends ADR 0010's `hasNativePrint` and `crossOriginIsolated` rows.
 
 ## Post-merge checks
 

@@ -25,7 +25,7 @@
       }
     },
     {
-      "includes": ["test/**", "vite.config.ts", "vitest.config.ts"],
+      "includes": ["vite.config.ts", "vitest.config.ts"],
       "linter": {
         "rules": {
           "style": {

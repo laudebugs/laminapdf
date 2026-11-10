@@ -438,7 +438,7 @@ pub(crate) fn run(ws: &Workspace, install: bool) -> Result<()> {
 }
 
 /// The Debian/Ubuntu packages the desktop app (apps/desktop/src-tauri, a workspace member) links on
-/// Linux; `.github/actions/linux-webkit` installs the same list.
+/// Linux; `.github/actions/linux-webkit` installs the same list (a test below checks it).
 pub(crate) const LINUX_DESKTOP_PACKAGES: &str = "libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config";
 
 /// Whether `pkg-config` finds `WebKitGTK` 4.1 and D-Bus, which building the workspace needs on Linux.
@@ -519,6 +519,18 @@ fn major(version: &str) -> Option<u32> {
 #[cfg(test)]
 mod tests {
     use super::{Action, Pin, Probe, Tool, action, parse_channel, version_token};
+
+    #[test]
+    fn linux_desktop_packages_should_match_the_ci_action() {
+        let action = include_str!("../../../.github/actions/linux-webkit/action.yml");
+        let installed: Vec<&str> = action
+            .lines()
+            .skip_while(|line| !line.contains("apt-get install"))
+            .skip(1)
+            .flat_map(str::split_whitespace)
+            .collect();
+        assert_eq!(installed.join(" "), super::LINUX_DESKTOP_PACKAGES);
+    }
 
     fn tool(pin: Pin) -> Tool {
         Tool {

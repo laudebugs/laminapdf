@@ -2,12 +2,12 @@
 //!
 //! It reads `tauri.conf.json`, `tauri.e2e.conf.json` (when it exists) and `capabilities/*.json`,
 //! and fails when:
-//! - a capability grants a forbidden permission (`shell:`, `fs:`, `http:`, `dialog:`, `process:`):
-//!   the webview never gets those, only Rust uses the plugins;
+//! - a capability grants a forbidden permission (`shell:`, `fs:`, `http:`, `dialog:`, `process:`,
+//!   `opener:`, `log:`): the webview never gets those, only Rust uses the plugins (ADR 0008 §6);
 //! - a capability file other than `e2e.json` is missing from `app.security.capabilities` (with an
 //!   explicit list, a file nobody listed is silently off), or the list names an identifier with no
 //!   file;
-//! - `e2e` is in the base list (only `tauri.e2e.conf.json` may enable it, D2e);
+//! - `e2e` is in the base list (only `tauri.e2e.conf.json` may enable it, for the end-to-end tests);
 //! - `tauri.e2e.conf.json` doesn't list exactly the base capabilities plus `e2e`: `--config` merges
 //!   as a JSON merge patch, which replaces arrays rather than appending to them.
 
@@ -16,7 +16,7 @@ use std::path::Path;
 
 use serde_json::Value;
 
-const FORBIDDEN: [&str; 5] = ["shell:", "fs:", "http:", "dialog:", "process:"];
+const FORBIDDEN: [&str; 7] = ["shell:", "fs:", "http:", "dialog:", "process:", "opener:", "log:"];
 
 /// A capability file's identifier and the permission identifiers it grants.
 struct Capability {

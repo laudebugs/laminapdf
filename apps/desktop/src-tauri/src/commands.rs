@@ -5,7 +5,7 @@ use serde::Serialize;
 /// What `app_info` reports: enough for an About box and a bug report, nothing about documents.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AppInfo {
+pub(crate) struct AppInfo {
     /// The app's version (the workspace's lockstep version, ADR 0017).
     pub version: String,
     /// `macos`, `windows` or `linux`.
@@ -19,7 +19,7 @@ pub struct AppInfo {
 impl AppInfo {
     /// This build on this machine.
     #[must_use]
-    pub fn current(version: &str) -> Self {
+    pub(crate) fn current(version: &str) -> Self {
         Self {
             version: version.to_owned(),
             os: std::env::consts::OS,
@@ -44,19 +44,20 @@ mod tests {
     use super::AppInfo;
     use crate::DesktopError;
 
+    /// The sample the frontend's test answers `app_info` with (apps/desktop/test/app-info.json), so
+    /// the Rust struct and the TypeScript `AppInfo` agree on the JSON.
+    const SAMPLE: &str = include_str!("../../test/app-info.json");
+
     #[test]
-    fn app_info_should_serialise_with_camel_case_keys() {
+    fn app_info_should_serialise_as_the_frontend_expects() {
         let info = AppInfo {
             version: "1.2.3".into(),
             os: "macos",
             arch: "aarch64",
             webview_version: Some("1".into()),
         };
-        let json = serde_json::to_value(&info).unwrap_or_default();
-        assert_eq!(
-            json,
-            serde_json::json!({ "version": "1.2.3", "os": "macos", "arch": "aarch64", "webviewVersion": "1" })
-        );
+        let expected: serde_json::Value = serde_json::from_str(SAMPLE).unwrap_or_default();
+        assert_eq!(serde_json::to_value(&info).unwrap_or_default(), expected);
     }
 
     #[test]

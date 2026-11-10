@@ -43,19 +43,24 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
 }
 
 /// What the desktop app's three-OS build depends on (apps/desktop, ADR 0008): the app, the
-/// packages its frontend imports, the crates (the engine joins them in D2b), the manifests,
-/// lockfiles and toolchain, and the workflow and action that build it.
-const DESKTOP_INPUTS: [&str; 10] = [
+/// packages its frontend imports, the crates (the engine will be one), the manifests, lockfiles,
+/// toolchains and shared configs, and the workflow and actions that build it.
+const DESKTOP_INPUTS: [&str; 15] = [
     "apps/desktop/",
     "packages/",
     "crates/",
     "Cargo.toml",
     "Cargo.lock",
     "rust-toolchain.toml",
+    "package.json",
+    ".nvmrc",
     "pnpm-lock.yaml",
     "pnpm-workspace.yaml",
+    "tsconfig.base.json",
+    "biome.json",
     ".github/workflows/full.yml",
     ".github/actions/linux-webkit/",
+    ".github/actions/node-pnpm/",
 ];
 
 /// Whether any of `paths` can change how the desktop app builds, so the full lane builds it.
@@ -242,6 +247,7 @@ mod tests {
         assert!(touches_desktop(&["packages/ui/src/index.ts"]));
         assert!(touches_desktop(&["Cargo.lock"]));
         assert!(touches_desktop(&[".github/actions/linux-webkit/action.yml"]));
+        assert!(touches_desktop(&[".nvmrc"]));
         assert!(!touches_desktop(&[
             "apps/web/src/app.tsx",
             "docs/README.md",

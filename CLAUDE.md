@@ -195,13 +195,14 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── apps/desktop/        # the desktop reader (D2a; ADR 0008): @laminapdf/ui's chrome in a Tauri 2 window (private, outside
 │                        #   Changesets: its version is the crate's). src/main.tsx (the only isTauri() call, checked by `check ts`),
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
-│                        #   multiWindow; their calls reject with NotYetSupportedError naming the todo), src/app.tsx (top bar, home
+│                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
 │                        #   screen, version from the `app_info` command); opening a document waits for D2b/D2d. src-tauri/: the
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
 │                        #   Rust only, window `main` built in Rust), commands.rs (`app_info`), error.rs (DesktopError as
 │                        #   { kind, message }), build.rs (app manifest: each command needs an allow-* permission),
 │                        #   tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype, capabilities ["main"]),
-│                        #   capabilities/main.json (only allow-app-info), tests/capabilities.rs (the capability guard), about/
+│                        #   capabilities/main.json (only allow-app-info), tests/capabilities.rs (the capability guard), test/app-info.json
+│                        #   (the app_info sample both languages' tests read), about/
 │                        #   (cargo-about, MPL-2.0 accepted for Tauri's dependencies); Linux builds need WebKitGTK 4.1 and D-Bus
 │                        #   (.github/actions/linux-webkit); README.md
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and

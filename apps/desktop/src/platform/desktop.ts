@@ -1,23 +1,36 @@
 // The desktop reader's Platform (ADR 0010, ADR 0008). It starts from the web platform, which works
 // in any webview (pickers, the clipboard, IndexedDB storage), and reports what the desktop shell
-// adds: saving in place, watching files, native printing and several windows. Until the todos that
-// build those land, each one rejects with NotYetSupportedError, never a silent web fallback, and
-// shared UI never asks which platform it runs on: only these flags.
+// adds: saving in place, watching files, native printing and several windows. Until the shell
+// implements those, each one rejects with NotYetSupportedError rather than falling back to the web
+// behaviour silently, and shared UI never asks which platform it runs on: only these flags.
 import { type Capabilities, createWebPlatform, type Platform, type PlatformFile, type SaveResult } from "@laminapdf/ui";
 
-/** A desktop capability whose todo hasn't landed yet: the UI can show what is coming instead of failing. */
+/** What this build of the desktop app can't do yet: opening a document, and the Platform methods the desktop flags promise. */
+export type DesktopFeature = "open" | "saveInPlace" | "print" | "watch" | "openWindow";
+
+/** The codes of the desktop app's errors. */
+export type DesktopErrorCode = "not-yet-supported";
+
+/** A desktop capability this build doesn't have yet: the UI can say it is coming instead of failing. */
 export class NotYetSupportedError extends Error {
   override readonly name = "NotYetSupportedError";
-  /** The Platform method that was called. */
-  readonly feature: string;
-  /** The todo that builds it (docs/todos). */
-  readonly todo: string;
+  readonly code: DesktopErrorCode = "not-yet-supported";
+  /** What was asked for. */
+  readonly feature: DesktopFeature;
 
-  constructor(feature: string, todo: string) {
-    super(`${feature} isn't in this build of Lamina PDF yet (${todo})`);
+  constructor(feature: DesktopFeature) {
+    super(`${feature} isn't in this build of Lamina PDF yet`);
     this.feature = feature;
-    this.todo = todo;
   }
+}
+
+/**
+ * Whether `error` is a {@link NotYetSupportedError}.
+ * @param error - Anything caught.
+ * @returns True when it is one.
+ */
+export function isNotYetSupportedError(error: unknown): error is NotYetSupportedError {
+  return error instanceof NotYetSupportedError;
 }
 
 /** The flags the desktop shell sets on top of the webview's own (desktop plan §5). */
@@ -28,7 +41,12 @@ export const DESKTOP_FLAGS = {
   multiWindow: true,
 } as const satisfies Partial<Capabilities>;
 
-/** The desktop Platform over `web` (the web platform of this webview by default). */
+/**
+ * The desktop Platform over `web`.
+ * @param web - The webview's own platform; `createWebPlatform()` by default.
+ * @returns The web platform with the desktop flags set and their methods rejecting until built.
+ * @throws {@link NotYetSupportedError} from `watch`; the other unbuilt methods reject with it.
+ */
 export function createDesktopPlatform(web: Platform = createWebPlatform()): Platform {
   const capabilities: Capabilities = { ...web.capabilities, ...DESKTOP_FLAGS };
   return {
@@ -37,11 +55,11 @@ export function createDesktopPlatform(web: Platform = createWebPlatform()): Plat
     // The desktop flags are always on, so there is nothing for the user to enable.
     howToEnable: (flag) => (flag in DESKTOP_FLAGS ? undefined : web.howToEnable(flag)),
     saveInPlace: (_file: PlatformFile, _bytes: Uint8Array): Promise<SaveResult> =>
-      Promise.reject(new NotYetSupportedError("saveInPlace", "D3b")),
-    print: () => Promise.reject(new NotYetSupportedError("print", "D4c")),
+      Promise.reject(new NotYetSupportedError("saveInPlace")),
+    print: () => Promise.reject(new NotYetSupportedError("print")),
     watch: () => {
-      throw new NotYetSupportedError("watch", "D3b");
+      throw new NotYetSupportedError("watch");
     },
-    openWindow: () => Promise.reject(new NotYetSupportedError("openWindow", "D4a")),
+    openWindow: () => Promise.reject(new NotYetSupportedError("openWindow")),
   };
 }

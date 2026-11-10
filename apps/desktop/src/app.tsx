@@ -1,8 +1,8 @@
 // The desktop reader's window: the reader's chrome around the home screen. Opening a document
-// arrives with the engine process and the tile transport (todos D2b, D2d); until then the opener
+// needs the engine process and the tile transport, which this build doesn't have, so the opener
 // says so.
 
-import type { Platform } from "@laminapdf/ui";
+import type { KeyPlatform, Platform } from "@laminapdf/ui";
 import {
   type CommandContext,
   CommandRegistry,
@@ -21,18 +21,23 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 
-const KEYS = /Mac/.test(navigator.platform) ? "mac" : "other";
-
-const openLater: Opener = () => Promise.reject(new NotYetSupportedError("open", "D2d"));
+const openLater: Opener = () => Promise.reject(new NotYetSupportedError("open"));
 
 /** Props of `App`. */
 export interface AppProps {
   readonly platform: Platform;
   /** The shell's own report, or undefined while it loads. */
   readonly info: AppInfo | undefined;
+  /** How shortcuts are written and which key `Mod` means; the entry decides. */
+  readonly keys: KeyPlatform;
 }
 
-export function App({ platform, info }: AppProps): ReactNode {
+/**
+ * The reader's window: top bar, home screen, a notice once an open has failed, and the version.
+ * @param props - See {@link AppProps}.
+ * @returns The window's content.
+ */
+export function App({ platform, info, keys }: AppProps): ReactNode {
   const [reader] = useState(() => new ReaderController(platform, openLater));
   const phase = useStoreState(reader, (s) => s.phase);
   // Every open fails until the engine lands: keep the notice and go back to the home screen, whose
@@ -43,7 +48,7 @@ export function App({ platform, info }: AppProps): ReactNode {
     setTried(true);
     reader.close();
   }, [phase, reader]);
-  // The reader's commands (open, the shortcuts); the shell's own handlers arrive with later todos.
+  // The reader's commands (open, the shortcuts); the shell adds its own handlers as it grows.
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
     registerReaderCommands(commands);
@@ -51,12 +56,12 @@ export function App({ platform, info }: AppProps): ReactNode {
   });
   const context = useMemo<CommandContext>(() => ({ platform, reader }), [platform, reader]);
   return (
-    <CommandsProvider registry={registry} context={context} keys={KEYS}>
+    <CommandsProvider registry={registry} context={context} keys={keys}>
       <ReaderShell
         topBar={
           <ReaderTopBar
             reader={reader}
-            keys={KEYS}
+            keys={keys}
             home={<span className="desktop-wordmark">Lamina PDF</span>}
             more={{ items: [], onAction: () => undefined }}
           />
@@ -70,7 +75,7 @@ export function App({ platform, info }: AppProps): ReactNode {
         }
         status={info === undefined ? undefined : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
       >
-        <OpenDropZone reader={reader} keys={KEYS} />
+        <OpenDropZone reader={reader} keys={keys} />
       </ReaderShell>
     </CommandsProvider>
   );

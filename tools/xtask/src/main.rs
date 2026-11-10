@@ -28,6 +28,7 @@ mod machine;
 mod maintainability;
 mod models;
 mod nightly;
+mod notices;
 mod package_docs;
 mod pdf_runtimes;
 mod pdfium;
@@ -401,7 +402,7 @@ fn main() -> Result<()> {
         ("models", [cmd, name]) if cmd == "fetch" => models::fetch(&ws, name).map(|_| ()),
         ("cli-docs", []) => cli_docs::run(&ws),
         ("cli-dist", []) => cli_docs::dist_files(&ws),
-        ("desktop-notices", []) => cli_docs::desktop_notices(&ws),
+        ("desktop-notices", []) => notices::desktop(&ws),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("benchmarks", args) => benchmarks::run(&ws, &benchmarks::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),

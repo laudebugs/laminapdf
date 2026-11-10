@@ -7,7 +7,8 @@
 #
 # Adding a suite: give it `needs: changes`, the code-change condition below, and add it to
 # `gate.needs`. All code suites are required, including the hosted Linux Arm64 and Windows x64
-# checks.
+# checks. A suite with its own path filter (`desktop`) uses its own `changes` output instead,
+# and the gate's loop maps the job to that output.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Full lane
@@ -257,8 +258,6 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
-      - uses: ./.github/actions/linux-webkit
       - run: cargo xtask check
 
   # Four suites in one job, run one after another into one build directory: each takes under a

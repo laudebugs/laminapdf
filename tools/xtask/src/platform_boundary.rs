@@ -22,52 +22,57 @@ const EXTENSIONS: &[&str] = &["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cj
 
 pub(crate) fn check(ws: &Workspace) -> Result<()> {
     crate::step("platform boundary: packages branch on capabilities, never on the platform (ADR 0010)");
-    let mut found = Vec::new();
-    for source in sources(&ws.root.join("packages"))? {
-        let text = std::fs::read_to_string(&source).with_context(|| format!("reading {}", source.display()))?;
-        let name = source.strip_prefix(&ws.root).unwrap_or(&source).display().to_string();
-        found.extend(
-            violations(&text)
-                .into_iter()
-                .map(|(line, why)| format!("  {name}:{line}: {why}")),
-        );
-    }
-    found.extend(desktop_entry_only(ws)?);
+    let mut found = scan(ws, &sources(&ws.root.join("packages"))?, violations)?;
+    found.extend(scan(ws, &desktop_sources(ws)?, desktop_violations)?);
     if !found.is_empty() {
         bail!(
-            "packages must branch on Platform capabilities, not on the platform (ADR 0010 rule 1):\n{}",
+            "UI code must branch on Platform capabilities, not on the platform (ADR 0010 rule 1); only an \
+             app's entry may ask which shell it runs in:\n{}",
             found.join("\n")
         );
     }
     Ok(())
 }
 
-/// The desktop app asks whether it runs in Tauri once, in its entry: every other module takes the
-/// Platform it is given (ADR 0008, ADR 0010).
-fn desktop_entry_only(ws: &Workspace) -> Result<Vec<String>> {
-    let src = ws.root.join("apps/desktop/src");
+/// Each `file:line: reason` that `rule` finds in `files`.
+fn scan(ws: &Workspace, files: &[PathBuf], rule: fn(&str) -> Vec<(usize, &'static str)>) -> Result<Vec<String>> {
     let mut found = Vec::new();
-    if !src.is_dir() {
-        return Ok(found);
-    }
-    let mut files = Vec::new();
-    walk(&src, &mut files)?;
-    files.sort();
-    for source in files.iter().filter(|f| f.file_name().is_none_or(|n| n != "main.tsx")) {
+    for source in files {
         let text = std::fs::read_to_string(source).with_context(|| format!("reading {}", source.display()))?;
         let name = source.strip_prefix(&ws.root).unwrap_or(source).display().to_string();
         found.extend(
-            code_lines(&text)
-                .filter(|(_, line)| contains_word_start(line, "isTauri"))
-                .map(|(index, _)| {
-                    format!(
-                        "  {name}:{}: asks whether it runs in Tauri outside the desktop entry (main.tsx)",
-                        index + 1
-                    )
-                }),
+            rule(&text)
+                .into_iter()
+                .map(|(line, why)| format!("  {name}:{line}: {why}")),
         );
     }
     Ok(found)
+}
+
+/// The desktop app's modules other than its entry (`main.tsx`), which alone may call `isTauri`
+/// (ADR 0008): every other module takes the Platform it is given.
+fn desktop_sources(ws: &Workspace) -> Result<Vec<PathBuf>> {
+    let src = ws.root.join("apps/desktop/src");
+    let mut files = Vec::new();
+    if src.is_dir() {
+        walk(&src, &mut files)?;
+    }
+    files.retain(|f| f.file_name().is_none_or(|n| n != "main.tsx"));
+    files.sort();
+    Ok(files)
+}
+
+/// The 1-based lines of `source` that call `isTauri`, outside whole-line comments.
+fn desktop_violations(source: &str) -> Vec<(usize, &'static str)> {
+    code_lines(source)
+        .filter(|(_, line)| contains_word_start(line, "isTauri"))
+        .map(|(index, _)| {
+            (
+                index + 1,
+                "asks whether it runs in Tauri outside the desktop entry (main.tsx)",
+            )
+        })
+        .collect()
 }
 
 /// Every script file under each `packages/<name>/src`, generated code included.
@@ -147,6 +152,15 @@ fn code_lines(source: &str) -> impl Iterator<Item = (usize, &str)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn desktop_violations_should_find_is_tauri_but_not_in_comments() {
+        let source = "// isTauri() lives in main.tsx\nif (isTauri()) {}\nconst notIsTauri = 1;\n";
+        assert_eq!(
+            desktop_violations(source),
+            vec![(2, "asks whether it runs in Tauri outside the desktop entry (main.tsx)")]
+        );
+    }
 
     #[test]
     fn violations_should_find_each_way_of_asking_for_the_platform() {
