@@ -6,12 +6,15 @@
 
 import { fileURLToPath } from "node:url";
 import { firefoxProvider } from "@laminapdf/test-utils/firefox";
+import { retryOnceAndReport } from "@laminapdf/test-utils/flaky";
 import { playwright } from "@vitest/browser-playwright";
 import { getViteConfig } from "astro/config";
 
 export default getViteConfig(
   {
     test: {
+      // One retry, and a pass on it reported as flaky (ADR 0018 §4).
+      ...retryOnceAndReport(),
       include: ["test/browser/*.browser.test.ts"],
       globalSetup: ["test/browser/render.ts"],
       browser: {

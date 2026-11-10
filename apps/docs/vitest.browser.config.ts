@@ -8,6 +8,7 @@
 
 import { fileURLToPath } from "node:url";
 import { firefoxProvider } from "@laminapdf/test-utils/firefox";
+import { retryOnceAndReport } from "@laminapdf/test-utils/flaky";
 import { playwright } from "@vitest/browser-playwright";
 import { getViteConfig } from "astro/config";
 import type { BrowserCommand } from "vitest/node";
@@ -21,6 +22,8 @@ const forcedColors: BrowserCommand<["active" | "none"]> = async (ctx, value) => 
 export default getViteConfig(
   {
     test: {
+      // One retry, and a pass on it reported as flaky (ADR 0018 §4).
+      ...retryOnceAndReport(),
       include: ["test/browser/*.browser.test.ts"],
       globalSetup: ["test/browser/render.ts"],
       browser: {

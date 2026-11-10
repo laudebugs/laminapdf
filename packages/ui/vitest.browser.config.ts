@@ -1,4 +1,5 @@
 import { firefoxProvider } from "@laminapdf/test-utils/firefox";
+import { retryOnceAndReport } from "@laminapdf/test-utils/flaky";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import type { BrowserCommand } from "vitest/node";
@@ -16,6 +17,8 @@ const reducedMotion: BrowserCommand<["reduce" | null]> = async (ctx, value) => {
 
 export default defineConfig({
   test: {
+    // One retry, and a pass on it reported as flaky (ADR 0018 §4).
+    ...retryOnceAndReport(),
     include: ["test/browser/*.browser.test.tsx"],
     browser: {
       enabled: true,

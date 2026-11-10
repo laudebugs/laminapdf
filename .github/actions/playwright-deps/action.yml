@@ -10,10 +10,14 @@ inputs:
 runs:
   using: composite
   steps:
+    # apt can fail on a mirror hiccup: three tries, each retry a warning (ADR 0018 §4).
     - if: runner.os == 'Linux'
-      shell: bash
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
       env:
         BROWSERS: ${{ inputs.browsers }}
-      run: |
+      with:
+        timeout_minutes: 15
+        max_attempts: 3
+        shell: bash
         # shellcheck disable=SC2086 # one argument per browser
-        pnpm --filter @laminapdf/sdk exec playwright install-deps $BROWSERS
+        command: pnpm --filter @laminapdf/sdk exec playwright install-deps $BROWSERS

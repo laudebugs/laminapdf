@@ -14,12 +14,14 @@
     "./browser-harness": "./src/browser-harness.ts",
     "./browser-config": "./src/browser-config.ts",
     "./firefox": "./src/firefox.ts",
+    "./flaky": "./src/flaky.ts",
     "./root": "./src/root.ts",
     "./worker-hooks": "./src/worker-hooks.ts",
     "./wrangler-dev": "./src/wrangler-dev.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
