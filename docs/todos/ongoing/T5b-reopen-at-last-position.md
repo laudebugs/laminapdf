@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T5b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T5](../../plans/trust-and-proof.md#t5-long-reading) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [C6b](../done/C6b-links-and-history.md), [C7b](../done/C7b-offline-pwa.md) |
