@@ -456,7 +456,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: cargo xtask web check-tag "$TAG"
-      # Settings › About shows the release's version (apps/web/vite.config.ts).
+      # Settings › About shows the release's version (apps/web/plugins/app-version.ts).
       - name: Build the reader
         env:
           TAG: ${{ github.ref_name }}

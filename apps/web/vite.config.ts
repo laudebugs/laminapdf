@@ -50,8 +50,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@embedpdf/pdfium", "@laminapdf/viewer", "@laminapdf/render-hayro"],
   },
-  // The reader's version, shown in Settings › About: the release's (web-deploy.yml sets
-  // LAMINA_PDF_WEB_VERSION from its web-v tag), else package.json's base version.
+  // The reader's version, shown in Settings › About (plugins/app-version.ts).
   define: { __APP_VERSION__: JSON.stringify(appVersion(env)) },
   worker: { format: "es" },
   build: {

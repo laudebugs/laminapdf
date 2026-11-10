@@ -113,7 +113,9 @@ describe(`accessibility in ${BROWSER}`, () => {
     await page.getByRole("menuitem", { name: "Settings" }).click();
     const settings = page.getByRole("dialog", { name: "Settings" });
     await settings.getByRole("button", { name: "About" }).click();
-    await expect.poll(() => settings.textContent()).toContain(`version ${version}`);
+    // The whole number: 0.1.2 mustn't pass for 0.1.23.
+    const shown = new RegExp(`version ${version.replaceAll(".", "\\.")}(?!\\d)`);
+    await expect.poll(() => settings.textContent()).toMatch(shown);
     await page.close();
   });
 
