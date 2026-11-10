@@ -87,7 +87,7 @@ impl WasmBuilder {
     /// Loads face `index` (from 0) of a font collection (`.ttc`, `.otc`) and registers it.
     ///
     /// # Errors
-    /// `builder-finished`; `invalid-font` (not a collection, or no such face), `font-not-embeddable`.
+    /// `builder-finished`; `invalid-font`, `collection-index` (no such face), `font-not-embeddable`.
     #[wasm_bindgen(js_name = fontCollection)]
     pub fn font_collection(&self, bytes: Vec<u8>, index: u32) -> JsResult<WasmFont> {
         self.with(|b| {

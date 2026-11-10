@@ -18,7 +18,7 @@ laminapdf build report.md -o report.pdf \
 
 The command reads the images the Markdown names from the folder the Markdown is in. Add `--json` for a report of the pages, the size and anything the PDF left out.
 
-In code, the function takes the Markdown, the fonts and the photo, and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
+In code, the function passes the Markdown, the fonts and the photo to `builder.markdown` (`Builder::markdown` in Rust) and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
 <Example ts="packages/sdk/examples/markdown-to-pdf.ts" rust="crates/laminapdf/examples/markdown_to_pdf.rs" result="markdown_to_pdf" />
 
@@ -36,7 +36,7 @@ The result is four A5 pages that meet PDF/UA-1. The Result tab shows them, with 
 
 - **Latin text only:** leave out the fonts, and the text is set in Helvetica and Courier, which every PDF reader has. They aren't embedded, so PDF/UA-1 refuses them with `font-not-embedded`; drop the profile, or pass your own fonts.
 - **The page size:** `--page-size letter` on the command line, `page: { size: "Letter" }` in TypeScript, or a `PageTemplate` in Rust. The template also sets the margins, a header and the footer.
-- **No contents page:** remove `contents` (`with_contents` in Rust). The command line has none by default.
+- **No contents page:** remove `contents` (`with_contents` in Rust). The command line never adds one.
 - **An AI agent:** `laminapdf mcp --root DIR --allow-write` serves the `laminapdf_build` tool to agents that speak MCP. It takes the Markdown inline or as a file, reads fonts and images only inside `DIR`, and writes the PDF there as a new file.
 
 Next: [a PDF/UA report](/recipes/pdf-ua-report/), drawn block by block instead of written in Markdown.

@@ -70,13 +70,15 @@ pub struct BuildToolArgs {
     pub input: Option<String>,
     /// The PDF to write inside the roots: a new file.
     pub output: String,
-    /// Fonts by role, as `ROLE=FILE` (see `laminapdf build --help`), each file inside the roots.
+    /// Fonts by role, as `ROLE=FILE`, each file inside the roots. The roles are `regular`, `bold`,
+    /// `italic`, `bold-italic`, `mono` and `fallback` (repeatable, for scripts the others lack);
+    /// `FILE#N` takes face N of a collection.
     #[serde(default)]
     pub fonts: Vec<String>,
     /// The page size: a4 (the default), a0 to a6, letter, legal or tabloid.
     #[serde(default)]
     pub page_size: Option<String>,
-    /// Profiles to meet: pdf-ua-1, pdf-a-2b, pdf-a-2u, pdf-a-3b.
+    /// Profiles to meet: pdf-ua-1, pdf-a-2b, pdf-a-2u, pdf-a-3b (PDF/UA-1 and at most one PDF/A).
     #[serde(default)]
     pub profiles: Vec<String>,
     /// The language when the front matter gives none.
@@ -106,9 +108,9 @@ pub struct BuildReport {
     pub tagged: bool,
     /// The profiles the PDF meets, as their usual names (`PDF/UA-1`).
     pub profiles: Vec<String>,
-    /// What the PDF leaves out or worked around (ADR 0026 objects): raw HTML; images that are
-    /// remote, outside the Markdown's folder or not there (`markdown-image-missing`); keep rules
-    /// broken.
+    /// What the PDF leaves out or works around: raw HTML (`markdown-html-ignored`); images that
+    /// are remote, outside the Markdown's folder or missing (`markdown-image-missing`); and
+    /// keep-together rules it had to break.
     #[schemars(schema_with = "warnings_schema")]
     pub warnings: Vec<Diagnostic>,
 }
@@ -230,17 +232,27 @@ fn fonts(args: &BuildArgs, builder: &mut Builder, io: &mut dyn Io) -> Result<Opt
     Ok(Some(fonts))
 }
 
-/// Whether the image target is a file in the Markdown's folder or below it: not on another
-/// computer (never fetched), not an absolute path and not reached through `..`, so a Markdown file
-/// can't pull in a picture from elsewhere on the disk.
+/// Whether the image target names a file in the Markdown's folder or below it: not on another
+/// computer (never fetched), not an absolute path, not reached through `..`, and not empty or the
+/// folder itself, so a Markdown file can't pull in a picture from elsewhere on the disk by its
+/// path. The command line follows links as the shell does; under MCP, `RootedIo` refuses a link
+/// that leads out of the roots.
 fn is_local(target: &str) -> bool {
+    use std::path::Component;
     let remote = target.contains("://") || target.starts_with("//") || target.starts_with("data:");
     let path = Path::new(target);
     !remote
         && path.is_relative()
         && path
             .components()
-            .all(|c| matches!(c, std::path::Component::Normal(_) | std::path::Component::CurDir))
+            .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
+        && path.components().any(|c| matches!(c, Component::Normal(_)))
+}
+
+/// Whether reading an image failed because nothing is there: the file, or a folder on its path.
+fn is_missing(error: &CliError) -> bool {
+    let reason = error.data().get("reason").and_then(serde_json::Value::as_str);
+    matches!(reason, Some("NotFound" | "NotADirectory" | "IsADirectory"))
 }
 
 /// The images the Markdown shows, read from the input's folder (the working folder for standard
@@ -262,7 +274,7 @@ fn images(
         let shown = path.to_string_lossy();
         let bytes = match io.read(&shown) {
             Ok(bytes) => bytes,
-            Err(e) if e.data().get("reason").and_then(serde_json::Value::as_str) == Some("NotFound") => continue,
+            Err(e) if is_missing(&e) => continue,
             Err(e) => return Err(e),
         };
         let image = if bytes.starts_with(&[0xFF, 0xD8]) {

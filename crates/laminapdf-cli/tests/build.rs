@@ -149,7 +149,7 @@ fn an_image_should_be_read_from_the_input_s_folder() {
 fn an_image_that_isn_t_there_or_is_outside_the_folder_should_be_left_out_with_a_warning() {
     let input = markdown(
         "missing-image",
-        "![Gone](gone.png)\n\n![Up](../photo.jpg)\n\n![Abs](/etc/photo.jpg)\n",
+        "![Gone](gone.png)\n\n![Up](../photo.jpg)\n\n![Abs](/etc/photo.jpg)\n\n![Empty]()\n\n![Here](.)\n\n![Under](in.md/a.png)\n",
     );
     // A real photo one folder up, which the Markdown must not reach.
     std::fs::write(
@@ -167,7 +167,7 @@ fn an_image_that_isn_t_there_or_is_outside_the_folder_should_be_left_out_with_a_
         .iter()
         .filter_map(|w| w["code"].as_str())
         .collect();
-    assert_eq!(codes, ["markdown-image-missing"; 3]);
+    assert_eq!(codes, ["markdown-image-missing"; 6]);
 }
 
 #[test]

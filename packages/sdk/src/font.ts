@@ -68,7 +68,7 @@ export class Font {
 
   /**
    * Face `index` (from 0) of a font collection (`.ttc` or `.otc`). The bytes are checked when a
-   * builder first uses the font (`invalid-font` for a file that isn't a collection or has no such face).
+   * builder first uses the font (`invalid-font` for a file that isn't a font, `collection-index` for a face the collection doesn't have).
    *
    * @throws {@link LaminaPdfError} `invalid-argument` for an index that isn't a whole number from 0.
    */
