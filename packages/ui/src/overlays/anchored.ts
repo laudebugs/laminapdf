@@ -6,14 +6,7 @@ import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { type Box, intersect, type Placement } from "./place.js";
 
 /** Where a layer of `width` × `height` goes against `anchor` inside `bounds` (`placeAbove`, `placeBelow`). */
-type Place = (
-  anchor: Box,
-  width: number,
-  height: number,
-  bounds: Box,
-  gap: number,
-  margin: number,
-) => Placement | null;
+type Place = (anchor: Box, width: number, height: number, bounds: Box, gap: number, margin: number) => Placement | null;
 
 /** How a layer is kept against its anchor. */
 export interface Anchoring {
