@@ -2,6 +2,8 @@
 // combination testable without a browser matrix), files from bytes, and a stand-in window for
 // the web platform's feature detection.
 
+import { openDatabase } from "../src/platform/idb.ts";
+import { createPositions } from "../src/platform/positions.ts";
 import type { Capabilities, Platform, PlatformFile, RecentFile } from "../src/platform/types.ts";
 import type { WebScope } from "../src/platform/web.ts";
 import type { FindOptionsSlice, FindSlice } from "../src/reader/find-bar.tsx";
@@ -106,6 +108,8 @@ export function fakePlatform(
         recent = [];
       },
     },
+    // The web platform's own store, in memory: no database opens without a factory.
+    positions: createPositions(openDatabase(undefined)),
   };
 }
 
@@ -157,7 +161,12 @@ export function fakeIndexedDb(
     };
     return tx;
   };
-  const database = { transaction: (_name: string, mode: string) => transaction(mode), createObjectStore: () => ({}) };
+  // One store stands in for every store of the database; the upgrade sees none yet and creates them.
+  const database = {
+    transaction: (_name: string, mode: string) => transaction(mode),
+    objectStoreNames: { contains: () => false },
+    createObjectStore: () => ({ createIndex: () => ({}) }),
+  };
   return {
     open: () => {
       const opening: Handlers & { onupgradeneeded?: () => void; onblocked?: () => void } = {};

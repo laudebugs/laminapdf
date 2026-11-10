@@ -397,6 +397,30 @@ describe("storage and recent files on the web", () => {
     expect(requested).toEqual(["allowed.pdf", "denied.pdf"]);
   });
 
+  it("reopens without asking at start-up: a kept permission reads the file, a lapsed one gives nothing", async () => {
+    const platform = createWebPlatform(chromiumLike({ indexedDB: fakeIndexedDb() }));
+    const handles = [fakeHandle("kept.pdf", PDF, "granted", "granted").handle, fakeHandle("lapsed.pdf").handle];
+    for (const handle of handles) await platform.recent.add({ ...fakeFile(handle.name), handle });
+    const ids = Object.fromEntries((await platform.recent.list()).map((entry) => [entry.name, entry.id]));
+    requested.length = 0;
+    expect(await platform.recent.reopen?.(ids["kept.pdf"] ?? "", { ask: false })).toMatchObject({ name: "kept.pdf" });
+    expect(await platform.recent.reopen?.(ids["lapsed.pdf"] ?? "", { ask: false })).toBeUndefined();
+    expect(requested).toEqual([]);
+  });
+
+  it("keeps a recent document's fingerprint", async () => {
+    const { recent } = createWebPlatform(fakeScope());
+    await recent.add(fakeFile("a.pdf"), { pages: 40, fingerprint: "fp1:abc" });
+    expect((await recent.list())[0]).toMatchObject({ pages: 40, fingerprint: "fp1:abc" });
+  });
+
+  it("clears reading positions with the rest of its storage", async () => {
+    const platform = createWebPlatform(fakeScope());
+    await platform.positions.set("fp1:abc", { view: { page: 3 }, pageCount: 40, readAt: 1 });
+    await platform.storage.clear();
+    expect(await platform.positions.get("fp1:abc")).toBeUndefined();
+  });
+
   it("forgets a recent document's handle when it is removed or drops off the list", async () => {
     const platform = createWebPlatform(chromiumLike({ indexedDB: fakeIndexedDb() }));
     const { handle } = fakeHandle("first.pdf");

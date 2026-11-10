@@ -109,12 +109,16 @@ export interface RecentFile {
   readonly pages?: number | undefined;
   /** A handle to the file was kept, so `reopen` may read it again without a picker. */
   readonly hasHandle?: boolean | undefined;
+  /** The document's fingerprint, the key its reading position is kept under (`Platform.positions`). */
+  readonly fingerprint?: string | undefined;
 }
 
 /** What `RecentFiles.add` keeps besides the file's name and size. */
 export interface RecentDetails {
   /** The page count. */
   readonly pages?: number | undefined;
+  /** The document's fingerprint. */
+  readonly fingerprint?: string | undefined;
 }
 
 /** The recently opened documents. */
@@ -127,8 +131,32 @@ export interface RecentFiles {
   remove(id: string): Promise<void>;
   /** Forgets every document. */
   clear(): Promise<void>;
-  /** Reads a recent document again without a picker. Only when capabilities.canReopenRecent. */
-  reopen?(id: string): Promise<PlatformFile | undefined>;
+  /**
+   * Reads a recent document again without a picker. Only when capabilities.canReopenRecent. It asks
+   * for permission when the browser no longer holds it, which needs a click; with `ask: false`
+   * (at start-up, with no click) it resolves undefined instead of asking.
+   */
+  reopen?(id: string, options?: { readonly ask?: boolean }): Promise<PlatformFile | undefined>;
+}
+
+/**
+ * Where a reader stopped in one document: the view (the viewer's position, opaque to this package:
+ * the app checks it on read), the page count when it was kept, and when, in milliseconds since the
+ * epoch. Never a name, path, address, bytes or text (ADR 0011 §3 guarantee 9).
+ */
+export interface ReadingPosition {
+  readonly view: unknown;
+  readonly pageCount: number;
+  readonly readAt: number;
+}
+
+/** Reading positions by document fingerprint, kept on this device only; the oldest go past a cap. */
+export interface ReadingPositions {
+  get(fingerprint: string): Promise<ReadingPosition | undefined>;
+  set(fingerprint: string, entry: ReadingPosition): Promise<void>;
+  remove(fingerprint: string): Promise<void>;
+  /** Forgets every position ("Forget reading positions"). */
+  clear(): Promise<void>;
 }
 
 /** Everything the reader asks of the shell it runs in (ADR 0010 §1). */
@@ -163,6 +191,8 @@ export interface Platform {
 
   readonly storage: PlatformStorage;
   readonly recent: RecentFiles;
+  /** Where the reader stopped in each document, by its fingerprint. */
+  readonly positions: ReadingPositions;
 
   /** Watches a file for changes on disk. Only when capabilities.canWatchFiles. */
   watch?(file: PlatformFile, onChange: () => void): () => void;

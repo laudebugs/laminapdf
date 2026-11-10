@@ -175,6 +175,8 @@ export type {
   PlatformStorage,
   PrintJob,
   PrintPage,
+  ReadingPosition,
+  ReadingPositions,
   RecentDetails,
   RecentFile,
   RecentFiles,

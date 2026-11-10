@@ -216,3 +216,53 @@ describe("destinations", () => {
     close(view);
   });
 });
+
+describe("restoring a position", () => {
+  it("opens at a kept position without painting another page first, and Back goes to the start", async () => {
+    const doc = await rpc.open(thousand);
+    expect(doc.fingerprint).toMatch(/^fp1:[0-9a-f]{64}$/);
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(main);
+    const started: number[] = [];
+    const stop = rpc.on("render-start", ({ page }) => started.push(page));
+    try {
+      // Restored in the task that opens the document, as the app does.
+      viewer.open(doc);
+      viewer.restore({ point: { page: 500, x: 0, y: 0.25 }, zoom: 150, rotation: 90 });
+      await until(() => started.length > 0 && viewer.getState().visibleRange.first >= 499);
+      expect(started.filter((page) => page < 490)).toEqual([]);
+      const state = viewer.getState();
+      expect([state.zoom, state.rotation]).toEqual([150, 90]);
+      // The kept point sits a gap (16 px) below the viewport's top, as a history jump puts it;
+      // a pixel more for the scroll's rounding.
+      const top = viewer.positionOf({ page: 500, x: 0, y: 0.25 })?.y ?? Number.NaN;
+      expect(top).toBeGreaterThanOrEqual(0);
+      expect(top).toBeLessThanOrEqual(17);
+      // A position kept now comes back the same.
+      const kept = viewer.viewPosition();
+      expect(kept?.point.page).toBe(500);
+      expect(kept?.point.y).toBeCloseTo(0.25, 2);
+      expect(viewer.history.getState().back?.point.page).toBe(0);
+      expect(viewer.history.back()).toBe(true);
+      await until(() => viewer.getState().visibleRange.first === 0);
+    } finally {
+      stop();
+      viewer.destroy();
+    }
+  });
+
+  it("clamps a position past the document's end to its last page", async () => {
+    const doc = await rpc.open(await read("fixtures/golden/links-and-outlines.pdf"));
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(main);
+    try {
+      viewer.open(doc);
+      viewer.restore({ point: { page: 99, x: 2, y: -1 }, zoom: "fit-width", rotation: 0 });
+      // The last page is shown; it can't scroll to the viewport's top, so the view stops at the end.
+      await until(() => viewer.getState().visibleRange.last === doc.pageCount - 1);
+      expect(viewer.getState().scrollTop).toBeGreaterThan(0);
+    } finally {
+      viewer.destroy();
+    }
+  });
+});

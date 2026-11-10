@@ -15,7 +15,12 @@ import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { FindController } from "../find/controller.js";
-import { type HistoryPlace, NavigationHistory, type NavigationHistoryOptions } from "../history/history.js";
+import {
+  type HistoryPlace,
+  NavigationHistory,
+  type NavigationHistoryOptions,
+  type ViewPosition,
+} from "../history/history.js";
 import type { CopyMode } from "../layers/copy.js";
 import { HighlightLayer } from "../layers/highlight-layer.js";
 import { LinkLayer, type LinkLayerOptions } from "../layers/link-layer.js";
@@ -592,6 +597,39 @@ export class Viewer {
     }
     this.#setState({ appearance });
     this.#schedule();
+  }
+
+  /**
+   * Where the reader is: the document point a gap below the viewport's top-left, the zoom and the
+   * rotation; `undefined` without a document. {@link restore} puts the view back there.
+   */
+  viewPosition(): ViewPosition | undefined {
+    const place = this.#place();
+    return place === undefined ? undefined : { ...place, rotation: this.#rotation };
+  }
+
+  /**
+   * Puts the view at `position` (a {@link viewPosition} kept from an earlier visit), as a history
+   * jump from where the view is, so Back returns there. Its page is clamped to the document's and
+   * its point to the page. Called in the task that opened the document, before the next frame, it
+   * paints no other page first.
+   */
+  restore(position: ViewPosition): void {
+    if (this.#layout === undefined || this.#sizes.length === 0) return;
+    this.history.jump(() => {
+      if (isRotation(position.rotation) && position.rotation !== this.#rotation) {
+        this.#rotation = position.rotation;
+        this.#text?.refresh();
+        this.#highlights.refresh();
+        this.#links?.refresh();
+      }
+      const clamp = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0);
+      const page = Math.min(this.#sizes.length - 1, Math.max(0, Math.trunc(position.point.page) || 0));
+      // The zoom is set before the scroll: #show only rezooms when the zoom changes.
+      this.#zoom = position.zoom;
+      this.#rezoom(undefined);
+      this.#show({ point: { page, x: clamp(position.point.x), y: clamp(position.point.y) }, zoom: position.zoom });
+    });
   }
 
   /** The document point at viewport position (`x`, `y`) in CSS px. */

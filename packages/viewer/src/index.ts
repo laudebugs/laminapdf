@@ -15,6 +15,7 @@ export type {
   HistoryState,
   NavigationHistory,
   NavigationHistoryOptions,
+  ViewPosition,
 } from "./history/history.js";
 export type { CopyMode } from "./layers/copy.js";
 export type { LinkLayerOptions, LinkWords } from "./layers/link-layer.js";

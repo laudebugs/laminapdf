@@ -35,6 +35,7 @@ import type {
 import { HttpRangeByteSource } from "../source/http-range.js";
 import { COPY_ABOVE, OpfsByteSource } from "../source/opfs.js";
 import { blobSource, readAll } from "../source.js";
+import { documentFingerprint, HEAD_BYTES } from "./fingerprint.js";
 
 let backend: RenderBackend | undefined;
 /** Backends loaded or loading, by name; a failed load is forgotten, so the next call retries. */
@@ -291,6 +292,13 @@ export async function openDocument(
   }
 }
 
+/** The fingerprint of the file `from` holds, from its first {@link HEAD_BYTES}. */
+async function fingerprintOf(from: DocumentBytes, signal: AbortSignal): Promise<string> {
+  if (from.kind === "memory") return documentFingerprint(from.bytes.subarray(0, HEAD_BYTES));
+  const head = await from.source.read(0, Math.min(from.source.size, HEAD_BYTES), { signal });
+  return documentFingerprint(head);
+}
+
 /** Opens Lamina PDF's document and the backend's over `from`. */
 async function openFrom(
   engine: RenderBackend,
@@ -307,6 +315,7 @@ async function openFrom(
   let render: RenderDocument;
   let pages: OpenedDocument["pages"];
   let title: string | undefined;
+  let fingerprint: string;
   try {
     const source = from.kind === "memory" ? bytesSource(from.bytes) : from.source;
     const renderOptions = {
@@ -317,6 +326,7 @@ async function openFrom(
     try {
       pages = await model.ensure(() => model.pages, { signal });
       title = (await model.ensure(() => model.info, { signal })).title?.trim();
+      fingerprint = await fingerprintOf(from, signal);
     } catch (e) {
       render.close();
       throw e;
@@ -351,6 +361,7 @@ async function openFrom(
     pages,
     id: open.id,
     needsPassword,
+    fingerprint,
     backend: { name: engine.name, version: engine.version },
     ...(title === undefined || title === "" ? {} : { title }),
   };
