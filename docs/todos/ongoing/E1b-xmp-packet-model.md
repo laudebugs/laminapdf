@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1a](../done/E1a-editing-foundation-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
