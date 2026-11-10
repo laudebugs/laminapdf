@@ -15,7 +15,7 @@
 
 ## Goal
 
-Turn Markdown into flowing, tagged pages from Rust: `Builder::markdown(text, &MarkdownOptions)` maps CommonMark and four extensions onto the flow layer and lays it out. Writing in Markdown or another plain markup is the largest generation request on Hacker News, about 1,140 comments, and people say what they would do with it: "if you have a markdown->PDF function included, where I can send in markdown and get PDF, that would solve quite many needs" ([46325132](https://news.ycombinator.com/item?id=46325132)). Today they chain tools for it ("MD-->(Pandoc-->(typst))--> PDF", [43232394](https://news.ycombinator.com/item?id=43232394)). Talk of AI near generation rose from 6 to 263 comments, and Markdown is the format agents already write. The CLI command, the MCP tool and the TypeScript call come next, in [T4i](../ready/T4i-build-command-and-bindings.md).
+Turn Markdown into flowing, tagged pages from Rust: `Builder::markdown(text, &MarkdownOptions)` maps CommonMark and four extensions onto the flow layer and lays it out. Writing in Markdown or another plain markup is the largest generation request on Hacker News, about 1,140 comments, and people say what they would do with it: "if you have a markdown->PDF function included, where I can send in markdown and get PDF, that would solve quite many needs" ([46325132](https://news.ycombinator.com/item?id=46325132)). Today they chain tools for it ("MD-->(Pandoc-->(typst))--> PDF", [43232394](https://news.ycombinator.com/item?id=43232394)). Talk of AI near generation rose from 6 to 263 comments, and Markdown is the format agents already write. The CLI command, the MCP tool and the TypeScript call come next, in [T4i](../ongoing/T4i-build-command-and-bindings.md).
 
 ## Context
 
@@ -57,7 +57,7 @@ Turn Markdown into flowing, tagged pages from Rust: `Builder::markdown(text, &Ma
 
 **Out of scope** (and which todo covers it)
 
-- `laminapdf build` for Markdown, its `laminapdf.build/1` report, the MCP tool `laminapdf_build`, `WasmBuilder.markdown`, `builder.markdown` in `@laminapdf/sdk`, the TypeScript example and the WebAssembly size check: [T4i](../ready/T4i-build-command-and-bindings.md).
+- `laminapdf build` for Markdown, its `laminapdf.build/1` report, the MCP tool `laminapdf_build`, `WasmBuilder.markdown`, `builder.markdown` in `@laminapdf/sdk`, the TypeScript example and the WebAssembly size check: [T4i](../ongoing/T4i-build-command-and-bindings.md).
 - JSON documents and templates: [T4e](../ready/T4e-json-documents-and-templates.md).
 - Maths (`$…$` stays text), raw HTML, syntax highlighting, styling beyond `MarkdownOptions` (no CSS), remote images, and Markdown through Pandoc or Typst (ADR 0032 §2 and §6).
 - Fonts bundled with the library: [pdf-library §9](../../plans/pdf-library.md#9-open-questions) question 2, which ADR 0032 §8 leaves open.
