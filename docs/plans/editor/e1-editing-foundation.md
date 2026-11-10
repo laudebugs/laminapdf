@@ -99,7 +99,7 @@ This reload is the [two parsers path](../architecture.md#6-risks) the architectu
 
 **Edits keep the page count.** The viewer, the thumbnails and `EditResult` name pages by index, so the worker refuses an edit that adds, removes or moves pages, after undoing it. E2's page-structure ops (insert, delete, move) need the view to map indices across an edit.
 
-**The budget stays at 150 ms for 100 pages.** The measured 20 ms leaves room for a phone about four times slower than this laptop, and for the content edits of later rounds, whose pages draw more slowly than a turned one. Reloading on every edit is fast enough at 1,000 pages too, so E2 needn't reload only the touched pages for speed alone.
+**The budget stays at 150 ms for 100 pages.** The measured 20 ms leaves room for a phone about four times slower than this laptop. It also leaves room for the content edits of later rounds, whose pages draw more slowly than a turned one. Reloading on every edit is fast enough at 1,000 pages too, so E2 needn't reload only the touched pages for speed alone.
 
 ## 7. Saving and the save constraint
 
