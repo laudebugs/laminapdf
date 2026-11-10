@@ -197,7 +197,7 @@ pub(crate) fn cargo_about() -> Tool {
         version_command: &["cargo", "about", "--version"],
         pin: Pin::Exact(CARGO_ABOUT_VERSION.to_owned()),
         fix: format!("cargo install cargo-about --locked --version {CARGO_ABOUT_VERSION}"),
-        optional_for: Some("cargo xtask cli-dist (the CLI archives' third-party notices)"),
+        optional_for: Some("cargo xtask cli-dist and desktop-notices (third-party notices)"),
     }
 }
 
@@ -427,11 +427,36 @@ pub(crate) fn run(ws: &Workspace, install: bool) -> Result<()> {
         "- {:<17} {PDFJS_DIST_VERSION} (npm; not probed: install it in a scratch directory for the pdf.js facts scripts)",
         "pdfjs-dist"
     );
+    if cfg!(target_os = "linux") && !linux_desktop_libraries(ws) {
+        failures.push("webkit2gtk-4.1");
+    }
     if failures.is_empty() {
         Ok(())
     } else {
         bail!("doctor found problems with: {}", failures.join(", "))
     }
+}
+
+/// The Debian/Ubuntu packages the desktop app (apps/desktop/src-tauri, a workspace member) links on
+/// Linux; `.github/actions/linux-webkit` installs the same list.
+pub(crate) const LINUX_DESKTOP_PACKAGES: &str = "libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config";
+
+/// Whether `pkg-config` finds `WebKitGTK` 4.1 and D-Bus, which building the workspace needs on Linux.
+fn linux_desktop_libraries(ws: &Workspace) -> bool {
+    let found = Command::new("pkg-config")
+        .args(["--exists", "webkit2gtk-4.1", "dbus-1"])
+        .current_dir(&ws.root)
+        .status()
+        .is_ok_and(|status| status.success());
+    if found {
+        println!("✓ {:<17} found by pkg-config (with dbus-1)", "webkit2gtk-4.1");
+    } else {
+        println!(
+            "✗ webkit2gtk-4.1 and dbus-1 not found by pkg-config: the desktop app needs them to build\n  {:<17} sudo apt-get install {LINUX_DESKTOP_PACKAGES}",
+            ""
+        );
+    }
+    found
 }
 
 /// `[toolchain] channel` in `rust-toolchain.toml`.

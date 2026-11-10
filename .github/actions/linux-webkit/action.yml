@@ -1,0 +1,17 @@
+name: Linux WebKitGTK
+description: >-
+  The system libraries the desktop app (apps/desktop/src-tauri, ADR 0008) links on Linux, for any
+  job that builds the whole Cargo workspace. A no-op on macOS and Windows.
+runs:
+  using: composite
+  steps:
+    - name: Install WebKitGTK 4.1 and D-Bus development packages
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        set -euo pipefail
+        # webkit2gtk-4.1 brings GTK 3, libsoup 3 and JavaScriptCore (Tauri's webview); libdbus for
+        # tauri's `dbus` feature. The same list as `cargo xtask doctor`'s desktop line.
+        sudo apt-get update -q
+        sudo apt-get install -y -q --no-install-recommends \
+          libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config

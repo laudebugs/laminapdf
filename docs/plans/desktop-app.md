@@ -181,9 +181,9 @@ Ticked by the PR that completes them.
 
 ### D2. Shell and native core
 
-- [ ] Write ADR 0008 (Tauri 2, process model, tile transport, Linux fallback)
-- [ ] Create `apps/desktop` and `src-tauri` as a workspace member depending on `crates/*` by path
-- [ ] Implement the desktop `Platform` adapter and capability flags
+- [x] Write ADR 0008 (Tauri 2, process model, tile transport, Linux fallback)
+- [x] Create `apps/desktop` and `src-tauri` as a workspace member depending on `crates/*` by path
+- [x] Implement the desktop `Platform` adapter and capability flags
 - [ ] Implement the engine child process with restart on crash
 - [ ] Implement the chosen tile transport and a positioned-read `ByteSource` (no mmap in the main process; see [D2b](../todos/ready/D2b-engine-process.md))
 - [ ] Port the reader end-to-end scenarios to WebdriverIO (`@wdio/tauri-service`): `tauri-driver` on Windows and Linux, embedded WebDriver plugin (test builds only) on macOS; run in CI on three OSes

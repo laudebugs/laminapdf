@@ -176,6 +176,8 @@ jobs:
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2,wasm-bindgen@0.2.129,twiggy@0.8.0
       - uses: ./.github/actions/node-pnpm
+      # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
+      - uses: ./.github/actions/linux-webkit
       - run: cargo xtask check
       # Builds the modules and @laminapdf/sdk, tests them in Node and Vite, and runs publint
       # --strict and attw --pack on the package (the packaging checks).
@@ -275,6 +277,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
+      - uses: ./.github/actions/linux-webkit
       - run: cargo xtask check
 
   roundtrip:

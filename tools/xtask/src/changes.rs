@@ -31,12 +31,38 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
     }
     let gallery = touches_gallery(&paths);
     let web = touches_web(&paths);
+    let desktop = touches_desktop(&paths);
     println!("code={code}");
     println!("gallery={gallery}");
     println!("web={web}");
+    println!("desktop={desktop}");
     crate::util::github_output("code", &code.to_string())?;
     crate::util::github_output("gallery", &gallery.to_string())?;
-    crate::util::github_output("web", &web.to_string())
+    crate::util::github_output("web", &web.to_string())?;
+    crate::util::github_output("desktop", &desktop.to_string())
+}
+
+/// What the desktop app's three-OS build depends on (apps/desktop, ADR 0008): the app, the
+/// packages its frontend imports, the crates (the engine joins them in D2b), the manifests,
+/// lockfiles and toolchain, and the workflow and action that build it.
+const DESKTOP_INPUTS: [&str; 10] = [
+    "apps/desktop/",
+    "packages/",
+    "crates/",
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    ".github/workflows/full.yml",
+    ".github/actions/linux-webkit/",
+];
+
+/// Whether any of `paths` can change how the desktop app builds, so the full lane builds it.
+pub(crate) fn touches_desktop(paths: &[&str]) -> bool {
+    paths
+        .iter()
+        .any(|path| !is_docs(path) && DESKTOP_INPUTS.iter().any(|input| path.starts_with(input)))
 }
 
 /// What the Paper gallery's screenshots and axe checks depend on (apps/gallery, todo U6f): the
@@ -159,7 +185,7 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_docs, pick_base, touches_code, touches_gallery, touches_web};
+    use super::{is_docs, pick_base, touches_code, touches_desktop, touches_gallery, touches_web};
 
     #[test]
     fn touches_web_should_follow_the_app_its_sources_build_tasks_and_root_config() {
@@ -207,6 +233,19 @@ mod tests {
             "crates/laminapdf/src/lib.rs",
             "packages/uikit/x.ts",
             "docs/README.md"
+        ]));
+    }
+
+    #[test]
+    fn touches_desktop_should_follow_the_app_its_inputs_and_its_workflow() {
+        assert!(touches_desktop(&["apps/desktop/src/main.tsx"]));
+        assert!(touches_desktop(&["packages/ui/src/index.ts"]));
+        assert!(touches_desktop(&["Cargo.lock"]));
+        assert!(touches_desktop(&[".github/actions/linux-webkit/action.yml"]));
+        assert!(!touches_desktop(&[
+            "apps/web/src/app.tsx",
+            "docs/README.md",
+            "tools/xtask/src/web.rs"
         ]));
     }
 

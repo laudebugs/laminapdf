@@ -1,7 +1,7 @@
 # 0008 — Desktop shell: Tauri 2, a sandboxed engine process, WebP tiles over `lamina://`, printing with the engine's rasters
 
-- Status: Accepted (2026-11-10, when D2a's PR merges)
-- Date: 2026-11-10
+- Status: Accepted (2026-11-09, when D2a's PR merges)
+- Date: 2026-11-09
 
 ## Context
 
@@ -14,7 +14,7 @@ The research picked Tauri 2 and left four questions to measure ([report](../rese
 - **Printing.** Tauri can only print the webview. The [`desktop-print` spike](../../spikes/desktop-print/README.md) (D1b) scored webview, native raster and native vector printing against fixtures on the same machines.
 - **Isolation.** The plan asks for a sandboxed child process that parses and renders untrusted bytes, like Chrome's out-of-process PDF viewer, but leaves its granularity open ([open question 3](../plans/desktop-app.md#8-open-questions)).
 
-The owner decided the app's identity on 2026-11-10: product name "Lamina PDF", bundle identifier `com.laminapdf.desktop`. The identifier is permanent, because updates, file associations and macOS permissions are keyed to it.
+The owner decided the app's identity on 2026-11-09: product name "Lamina PDF", bundle identifier `com.laminapdf.desktop`. The identifier is permanent, because updates, file associations and macOS permissions are keyed to it.
 
 This ADR records the shell, the process model, the engine's packaging, the tile transport, the sandbox's intent, the security baseline, the Linux fallback, the test strategy and printing.
 
@@ -22,14 +22,14 @@ This ADR records the shell, the process model, the engine's packaging, the tile 
 
 ### 1. Tauri 2, pinned to the 2.12 minor, distributed directly
 
-- **Shell:** Tauri 2, pinned to the 2.12 minor: crate `tauri` 2.12.5, `tauri-build` 2.7.4, `@tauri-apps/api` and `@tauri-apps/cli` 2.12.4, the versions both spikes measured. A minor bump is its own PR that reruns the desktop CI jobs; Dependabot groups the `@tauri-apps/*` packages ([ADR 0019](0019-supply-chain-and-licence-hygiene.md)).
+- **Shell:** Tauri 2, pinned to the 2.12 minor: crate `tauri` 2.12.5, `tauri-build` 2.7.4, `@tauri-apps/api` and `@tauri-apps/cli` 2.12.4, the versions both spikes measured. A minor bump is its own PR that reruns the desktop CI jobs; Dependabot groups the `tauri` crates and the `@tauri-apps/*` packages ([ADR 0019](0019-supply-chain-and-licence-hygiene.md)).
 - **Plugins:** `tauri-plugin-dialog` 2.8.3, `tauri-plugin-log` 2.10.1 and `tauri-plugin-opener` 2.7.2, pinned exactly like Tauri.
 - **Identity:** product name and window title "Lamina PDF", identifier `com.laminapdf.desktop`, which never changes.
 - **Version:** the app's version is the crate's, which is the workspace's lockstep version ([ADR 0017](0017-versioning-and-release.md)). `apps/desktop/package.json` is a private package at 0.0.0 outside Changesets and plays no part.
-- **Layout** ([ADR 0015](0015-monorepo-layout-and-tooling.md)): `apps/desktop` is the private pnpm package `@laminapdf/desktop`. Its crate `apps/desktop/src-tauri` (`laminapdf-desktop`, layer `app`, `publish = false`) joins the Cargo workspace through the `"apps/*/src-tauri"` glob.
+- **Layout** ([ADR 0015](0015-monorepo-layout-and-tooling.md)): `apps/desktop` is the private pnpm package `@laminapdf/desktop`. Its crate `apps/desktop/src-tauri` (`laminapdf-desktop`, layer `app`, `publish = false`) joins the Cargo workspace through the `"apps/*/src-tauri"` glob. Building the workspace on Linux therefore needs WebKitGTK 4.1 and D-Bus (`libwebkit2gtk-4.1-dev libdbus-1-dev`); CI installs them on every Linux job that builds it, and the full lane builds the app on Ubuntu 22.04, the oldest Linux it supports, and on macOS and Windows.
 - **Desktop only:** the crate has no mobile entry point (`tauri::mobile_entry_point`). A mobile shell is ADR 0025's question.
 - **Distribution:** direct downloads with Lamina PDF's own updater (ADR 0014), Developer ID signing and notarisation on macOS. No Mac App Store: it requires App Sandbox on the whole app and disables the self-updater ([desktop notes Q4](../research/architecture/notes/desktop-shell.md#q4-file-system-file-associations-drag--drop-printing-sandboxing-multi-window)). Other stores stay an open question in the plan.
-- **Licences:** Tauri 2.12 itself pulls in five MPL-2.0 crates (`selectors`, `cssparser`, `cssparser-macros`, `dtoa-short`, `option-ext`; [D1a, Licences](../../spikes/desktop-ipc/README.md#licences)). The owner granted per-crate exceptions on 2026-11-09 (#371, recorded in ADR 0019 and `deny.toml`). The desktop app's third-party notices carry the MPL-2.0 text.
+- **Licences:** Tauri 2.12 itself pulls in five MPL-2.0 crates (`selectors`, `cssparser`, `cssparser-macros`, `dtoa-short`, `option-ext`; [D1a, Licences](../../spikes/desktop-ipc/README.md#licences)). The owner granted per-crate exceptions on 2026-11-09 (#371, recorded in ADR 0019 and `deny.toml`). The desktop app's third-party notices carry the MPL-2.0 text (`cargo xtask desktop-notices`).
 
 ### 2. Process model: a main process that owns files and a sandboxed engine per window
 
@@ -85,7 +85,8 @@ D2a's scaffold sets this baseline, and every later todo keeps it or tightens it:
   default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data: lamina: http://lamina.localhost;
   connect-src 'self' ipc: http://ipc.localhost lamina: http://lamina.localhost;
-  worker-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'
+  worker-src 'self' blob:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none';
+  form-action 'none'
   ```
 
 - **Webview hardening:** `freezePrototype: true`, `withGlobalTauri: false` (the UI imports `@tauri-apps/api` instead of reading a global), and no `app.security.headers` (§4).

@@ -12,6 +12,7 @@
     "dev": "vite",
     "build": "vite build",
     "tauri": "tauri",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run -c vitest.config.ts"
   },
   "dependencies": {

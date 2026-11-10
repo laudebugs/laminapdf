@@ -9,8 +9,8 @@ import { FONT_PRELOADS } from "@laminapdf/fonts";
 import { PlatformProvider } from "@laminapdf/ui";
 import { isTauri } from "@tauri-apps/api/core";
 import { createRoot } from "react-dom/client";
-import { type AppInfo, loadAppInfo } from "./app-info.ts";
 import { App } from "./app.tsx";
+import { type AppInfo, loadAppInfo } from "./app-info.ts";
 import { createDesktopPlatform } from "./platform/desktop.ts";
 
 for (const font of FONT_PRELOADS) {

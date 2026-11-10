@@ -1,7 +1,8 @@
 //! ADR 0010 rule 1, capabilities not platforms: no package may import `@tauri-apps/*`, call
 //! `isTauri()`, read Tauri's globals or read the user agent. UI code branches on the `Platform`'s
 //! capability flags; only an app's entry may ask which shell it runs in. Run by
-//! `cargo xtask check ts` over every source file in `packages/*/src`, whole-line comments left out.
+//! `cargo xtask check ts` over every source file in `packages/*/src`, whole-line comments left out,
+//! and over `apps/desktop/src`, where only the entry (`main.tsx`) may call `isTauri` (ADR 0008).
 
 use std::path::{Path, PathBuf};
 
@@ -31,6 +32,7 @@ pub(crate) fn check(ws: &Workspace) -> Result<()> {
                 .map(|(line, why)| format!("  {name}:{line}: {why}")),
         );
     }
+    found.extend(desktop_entry_only(ws)?);
     if !found.is_empty() {
         bail!(
             "packages must branch on Platform capabilities, not on the platform (ADR 0010 rule 1):\n{}",
@@ -38,6 +40,34 @@ pub(crate) fn check(ws: &Workspace) -> Result<()> {
         );
     }
     Ok(())
+}
+
+/// The desktop app asks whether it runs in Tauri once, in its entry: every other module takes the
+/// Platform it is given (ADR 0008, ADR 0010).
+fn desktop_entry_only(ws: &Workspace) -> Result<Vec<String>> {
+    let src = ws.root.join("apps/desktop/src");
+    let mut found = Vec::new();
+    if !src.is_dir() {
+        return Ok(found);
+    }
+    let mut files = Vec::new();
+    walk(&src, &mut files)?;
+    files.sort();
+    for source in files.iter().filter(|f| f.file_name().is_none_or(|n| n != "main.tsx")) {
+        let text = std::fs::read_to_string(source).with_context(|| format!("reading {}", source.display()))?;
+        let name = source.strip_prefix(&ws.root).unwrap_or(source).display().to_string();
+        found.extend(
+            code_lines(&text)
+                .filter(|(_, line)| contains_word_start(line, "isTauri"))
+                .map(|(index, _)| {
+                    format!(
+                        "  {name}:{}: asks whether it runs in Tauri outside the desktop entry (main.tsx)",
+                        index + 1
+                    )
+                }),
+        );
+    }
+    Ok(found)
 }
 
 /// Every script file under each `packages/<name>/src`, generated code included.

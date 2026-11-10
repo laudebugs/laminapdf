@@ -1,0 +1,19 @@
+# Third-party notices
+
+The `laminapdf` binary is built from the Rust crates below. Each licence lists the crates it
+covers, then its text. Lamina PDF's own crates (`laminapdf-*`) are listed too: they are licensed
+under MIT OR Apache-2.0, in LICENSE-MIT and LICENSE-APACHE next to this file.
+
+{{#each licenses}}
+## {{{name}}}
+
+Used by:
+{{#each used_by}}
+- [{{crate.name}} {{crate.version}}]({{#if crate.repository}}{{crate.repository}}{{else}}https://crates.io/crates/{{crate.name}}{{/if}})
+{{/each}}
+
+```text
+{{{text}}}
+```
+
+{{/each}}
