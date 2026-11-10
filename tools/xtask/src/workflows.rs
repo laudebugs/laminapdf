@@ -408,7 +408,17 @@ mod tests {
             );
         }
         assert_eq!(needs(WEB_DEPLOY, "production"), ["production-checks"]);
+        // A tag ships only a version apps/web/package.json allows, and shows it (todo C7e).
+        let checks = lines_of(WEB_DEPLOY, "jobs", "production-checks").join("\n");
+        assert!(checks.contains("run: cargo xtask web check-tag \"$TAG\""));
+        assert!(checks.contains("run: LAMINA_PDF_WEB_VERSION=\"${TAG#web-v}\" cargo xtask web build"));
         let production = lines_of(WEB_DEPLOY, "jobs", "production");
+        let release = production.join("\n");
+        assert!(
+            release.contains("if: steps.smoke.outcome == 'success'")
+                && release.contains("--verify-tag --title \"Web reader $TAG\" --notes-file \"$RUNNER_TEMP/notes.md\""),
+            "production makes the GitHub release only after its smoke test passes"
+        );
         assert!(has(&production, "environment: production"));
         assert!(
             has(
