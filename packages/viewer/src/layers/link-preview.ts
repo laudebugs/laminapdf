@@ -188,8 +188,10 @@ function pointPreview(
   const y = clamp(top - PREVIEW_PAD, 0, height - 1);
   const band = (line: PreviewLine) => line.top >= y && line.top <= y + PREVIEW_MAX.height / scale;
   const inBand = (lines ?? []).filter(band);
-  // No left (`FitH`, an `XYZ` without one): the column of the band's first line, top then left.
-  const first = [...inBand].sort((a, b) => a.top - b.top || a.left - b.left)[0];
+  // No left (`FitH`, an `XYZ` without one): the column of the first line at or below the
+  // destination, top then left (a line of the other column in the pad above it doesn't count).
+  const below = inBand.filter((line) => line.top >= top - 1);
+  const first = [...(below.length > 0 ? below : inBand)].sort((a, b) => a.top - b.top || a.left - b.left)[0];
   const at = left !== undefined && Number.isFinite(left) ? clamp(left, 0, width) : (first?.left ?? 0);
   const x = clamp(at - PREVIEW_PAD, 0, width - 1);
   const column = inBand.filter((line) => Math.abs(line.left - at) <= PREVIEW_ALIGN);

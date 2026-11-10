@@ -90,6 +90,13 @@ describe("previewRegion", () => {
     expect(clip.x + clip.width).toBe(290 + PREVIEW_PAD);
   });
 
+  it("ignores a line of the other column in the pad above a FitH destination", () => {
+    // A heading in the right column at 300; the left column has a body line at 295.
+    const lines = [line(72, 295, 290, "body"), line(316, 300, 534, "Heading"), line(316, 314, 534, "text")];
+    const { clip } = previewRegion({ page: 0, view: { kind: "fit-width", y: 300 } }, LETTER, lines, 100);
+    expect([clip.x, clip.x + clip.width]).toEqual([316 - PREVIEW_PAD, 534 + PREVIEW_PAD]);
+  });
+
   it.each([
     ["/Rotate 90", 90],
     ["/Rotate 270", 270],
