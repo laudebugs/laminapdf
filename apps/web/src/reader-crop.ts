@@ -23,3 +23,20 @@ export function cropClip(
     height: Math.max(1, Math.min(bottom, maxY) - top),
   };
 }
+
+/**
+ * The most pixels, and pixels per side, a crop may ask for: under the renderer's default limits
+ * (`@laminapdf/render`'s `DEFAULT_LIMITS`, 16,777,216 and 16,384), with room for the rounding
+ * outwards, so a crop of a large page is drawn smaller rather than refused.
+ */
+const MAX_CROP_PIXELS = 16_000_000;
+const MAX_CROP_SIDE = 16_000;
+
+/** `desired`, lowered as far as `bbox` (points) needs to stay inside the renderer's limits. */
+export function cropScale(bbox: readonly [number, number, number, number], desired: number): number {
+  const [, , width, height] = bbox;
+  if (!(width > 0 && height > 0)) return desired;
+  const byArea = Math.sqrt(MAX_CROP_PIXELS / (width * height));
+  const bySide = MAX_CROP_SIDE / Math.max(width, height);
+  return Math.min(desired, byArea, bySide);
+}

@@ -168,7 +168,25 @@ function CropBlock({ block, children }: { block: ReaderBlock; children: ReactNod
         {children}
       </div>
       <figcaption className="paper-reader-alt">{alt}</figcaption>
+      <CropText text={block.text} />
     </figure>
+  );
+}
+
+/**
+ * The text a crop takes in (a table's cells, a page image's text), for screen readers: the crop
+ * is a picture, so without this its words would reach only those who can see it.
+ */
+function CropText({ text }: { text: string }): ReactNode {
+  if (text.trim() === "") return null;
+  return (
+    <div className="paper-visually-hidden">
+      {text.split("\n\n").map((part, i) => (
+        // The parts never move, so their places are their keys.
+        // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list
+        <p key={i}>{part}</p>
+      ))}
+    </div>
   );
 }
 
@@ -197,6 +215,7 @@ function PageImageBlock({
           </Button>
         )}
       </figcaption>
+      <CropText text={block.text} />
     </figure>
   );
 }

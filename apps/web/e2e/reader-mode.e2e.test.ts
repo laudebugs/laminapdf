@@ -131,6 +131,13 @@ describe(`reader mode in ${BROWSER}`, () => {
     const view = column(page);
     await view.getByRole("img", { name: "Page 1" }).waitFor();
     await view.getByText("couldn't tell the order of this page's text").waitFor();
+    // The page is drawn once it is near the view, and its text is there for screen readers.
+    await expect
+      .poll(() => view.locator(".paper-reader-page-image canvas").evaluate((c: HTMLCanvasElement) => c.width))
+      .toBeGreaterThan(0);
+    expect(await view.locator(".paper-reader-page-image .paper-visually-hidden").textContent()).toContain(
+      "Ribbon pocket lemon zephyr",
+    );
     await view.getByRole("button", { name: "Open page 1" }).click();
     await page.locator(".web-viewer canvas").first().waitFor({ state: "visible" });
     await expect.poll(() => column(page).count()).toBe(0);

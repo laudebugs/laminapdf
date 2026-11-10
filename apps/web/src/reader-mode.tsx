@@ -19,9 +19,9 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { pageLabel } from "./outline.ts";
-import { cropClip } from "./reader-crop.ts";
+import { cropClip, cropScale } from "./reader-crop.ts";
 import { type OriginBox, outlineOrigin } from "./reader-origin.ts";
 import { blockAt } from "./reader-start.ts";
 import type { DocumentReflow, Engine } from "./session.ts";
@@ -81,19 +81,52 @@ function useReaderSettings(platform: Platform): [ReaderSettings, (next: ReaderSe
   return [settings, change];
 }
 
-/** A crop: the block's part of its page, drawn by the document worker at twice the device's pixels per point. */
+/** How far outside the column's visible part a crop is drawn ahead of being scrolled to. */
+const CROP_MARGIN = "100% 0px";
+
+/**
+ * Whether `target` is in, or within {@link CROP_MARGIN} of, the reading column's visible part: a
+ * crop is drawn only then and its pixels let go once it is far away, so a long scan, all page
+ * images, doesn't draw every page up front or keep every page in memory.
+ */
+function useNearView(target: RefObject<HTMLElement | null>): boolean {
+  const [near, setNear] = useState(typeof IntersectionObserver === "undefined");
+  useEffect(() => {
+    const element = target.current;
+    if (element === null || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => setNear(entries.some((e) => e.isIntersecting)), {
+      root: element.closest(".paper-reader-mode"),
+      rootMargin: CROP_MARGIN,
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [target]);
+  return near;
+}
+
+/**
+ * A crop: the block's part of its page, drawn by the document worker at twice the device's pixels
+ * per point (less for a crop too big for the renderer's limits), while it is near the view.
+ */
 function Crop({ engine, block }: { engine: Engine; block: Block }): ReactNode {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const near = useNearView(canvas);
   const bbox = block.bbox;
   useEffect(() => {
-    if (bbox === null) return;
+    const target = canvas.current;
+    if (bbox === null || target === null) return;
+    if (!near) {
+      // Far away: give the pixels back. The canvas keeps its size by its aspect ratio.
+      target.width = 0;
+      target.height = 0;
+      return;
+    }
     const controller = new AbortController();
-    const scale = 2 * Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    const scale = cropScale(bbox, 2 * Math.min(2, Math.max(1, window.devicePixelRatio || 1)));
     const clip = cropClip(bbox, scale, engine.getState().pages[block.page]);
     void engine.renderPart({ page: block.page, scale, clip }, controller.signal).then(
       ({ bitmap }) => {
-        const target = canvas.current;
-        if (target !== null && !controller.signal.aborted) {
+        if (!controller.signal.aborted) {
           target.width = bitmap.width;
           target.height = bitmap.height;
           target.getContext("2d")?.drawImage(bitmap, 0, 0);
@@ -103,10 +136,12 @@ function Crop({ engine, block }: { engine: Engine; block: Block }): ReactNode {
       () => undefined,
     );
     return () => controller.abort();
-  }, [engine, block.page, bbox]);
+  }, [engine, block.page, bbox, near]);
   if (bbox === null) return null;
   // Shown at the page's own size (96 CSS px per 72 pt), never wider than the column.
-  return <canvas ref={canvas} style={{ inlineSize: `${(bbox[2] * 4) / 3}px` }} />;
+  return (
+    <canvas ref={canvas} style={{ inlineSize: `${(bbox[2] * 4) / 3}px`, aspectRatio: `${bbox[2]} / ${bbox[3]}` }} />
+  );
 }
 
 /** What reader mode adds to the reader. */
