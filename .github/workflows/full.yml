@@ -100,7 +100,7 @@ jobs:
         with:
           persist-credentials: false
       # The pinned stable toolchain (rust-toolchain.toml) builds xtask; fuzz/ needs nightly.
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -166,7 +166,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       # Installs exactly what rust-toolchain.toml pins.
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           # ci.yml's Rust job's linux-arm64 leg builds the same and saves this cache on main; this
           # job only restores it (one cache, not two copies of about 600 MB).
@@ -210,7 +210,7 @@ jobs:
           persist-credentials: false
       # Installs exactly what rust-toolchain.toml pins. Its own cache: only this job builds the
       # app's debug binary with Tauri's tree, saved on pushes to main.
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -241,7 +241,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       # Installs exactly what rust-toolchain.toml pins.
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -252,7 +252,7 @@ jobs:
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # Versions come from package.json and .nvmrc.
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -288,10 +288,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/qpdf
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -350,10 +350,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}

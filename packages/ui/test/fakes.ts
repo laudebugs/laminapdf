@@ -2,6 +2,8 @@
 // combination testable without a browser matrix), files from bytes, and a stand-in window for
 // the web platform's feature detection.
 
+import { openDatabase } from "../src/platform/idb.ts";
+import { createPositions } from "../src/platform/positions.ts";
 import type { Capabilities, Platform, PlatformFile, RecentFile } from "../src/platform/types.ts";
 import type { WebScope } from "../src/platform/web.ts";
 import type { FindOptionsSlice, FindSlice } from "../src/reader/find-bar.tsx";
@@ -98,6 +100,7 @@ export function fakePlatform(
       list: async () => recent,
       async add(file) {
         recent = [{ id: file.name, name: file.name, size: file.size, lastOpened: 0 }, ...recent];
+        return file.name;
       },
       async remove(id) {
         recent = recent.filter((entry) => entry.id !== id);
@@ -106,6 +109,8 @@ export function fakePlatform(
         recent = [];
       },
     },
+    // The web platform's own store, in memory: no database opens without a factory.
+    positions: createPositions(openDatabase(undefined)),
   };
 }
 
@@ -126,12 +131,12 @@ export function fakeScope(parts: Partial<WebScope> = {}): WebScope & { readonly 
  * An IndexedDB with one database and one store, in memory: enough for the web platform's
  * key-value store. Values are kept as given, not cloned, so fake file handles survive. With
  * `failOpen` the database won't open, as in some private modes; with `blockOpen` another tab
- * holds it at an older version; with `abortWrites` every write's
+ * holds it at an older version, until `release` settles when one is given; with `abortWrites` every write's
  * request succeeds and its transaction then aborts, as when the origin is out of quota.
  */
 export function fakeIndexedDb(
-  options: { failOpen?: boolean; blockOpen?: boolean; abortWrites?: boolean } = {},
-): IDBFactory {
+  options: { failOpen?: boolean; blockOpen?: boolean; release?: Promise<void>; abortWrites?: boolean } = {},
+): IDBFactory & { readonly data: ReadonlyMap<unknown, unknown> } {
   const data = new Map<unknown, unknown>();
   type Handlers = Record<string, unknown> & { onsuccess?: () => void; onerror?: () => void };
   type Transaction = { oncomplete?: () => void; onabort?: () => void; error?: DOMException };
@@ -157,20 +162,33 @@ export function fakeIndexedDb(
     };
     return tx;
   };
-  const database = { transaction: (_name: string, mode: string) => transaction(mode), createObjectStore: () => ({}) };
+  // One store stands in for every store of the database; the upgrade sees none yet and creates them.
+  const database = {
+    transaction: (_name: string, mode: string) => transaction(mode),
+    objectStoreNames: { contains: () => false },
+    createObjectStore: () => ({ createIndex: () => ({}) }),
+  };
   return {
     open: () => {
       const opening: Handlers & { onupgradeneeded?: () => void; onblocked?: () => void } = {};
-      queueMicrotask(() => {
-        if (options.failOpen === true) return opening.onerror?.();
-        if (options.blockOpen === true) return opening.onblocked?.();
+      const succeed = () => {
         opening.result = database;
         opening.onupgradeneeded?.();
         opening.onsuccess?.();
+      };
+      queueMicrotask(() => {
+        if (options.failOpen === true) return opening.onerror?.();
+        if (options.blockOpen === true) {
+          opening.onblocked?.();
+          void options.release?.then(succeed);
+          return;
+        }
+        succeed();
       });
       return opening;
     },
-  } as unknown as IDBFactory;
+    data,
+  } as unknown as IDBFactory & { readonly data: ReadonlyMap<unknown, unknown> };
 }
 
 /** A viewer the chrome can drive: its state as a store, and every call it was asked to make. */

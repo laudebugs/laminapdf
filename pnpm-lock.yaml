@@ -401,6 +401,9 @@ importers:
       '@babel/core':
         specifier: 'catalog:'
         version: 7.29.7(supports-color@10.2.2)
+      '@laminapdf/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       '@laminapdf/test-utils':
         specifier: workspace:*
         version: link:../../packages/test-utils

@@ -26,9 +26,6 @@ import {
   PhoneBottomBar,
   Popover,
   PopoverTrigger,
-  PrintDialog,
-  PrintProgressDialog,
-  PropertiesDialog,
   ReaderController,
   ReaderShell,
   registerReaderCommands,
@@ -48,6 +45,7 @@ import {
   useSettingsSection,
   ViewSettingsButton,
 } from "@laminapdf/ui";
+import { PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
 
@@ -116,9 +114,13 @@ function SettingsDialogs({ state }: { state: string }): ReactNode {
     registerReaderCommands(registry);
     return { registry, context: { platform: fakePlatform(), actions: { "help.shortcuts": noop } } };
   });
-  useSettingsSection(settings, "appearance", "Appearance and accessibility", () => (
-    <AppearanceSettings appearance={appearance} onChange={setAppearance} />
-  ));
+  useSettingsSection(
+    settings,
+    "appearance",
+    "Appearance and accessibility",
+    () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
+    [appearance],
+  );
   if (state === "settings") return <SettingsDialog registry={settings} isOpen onOpenChange={noop} />;
   if (state === "view-settings") {
     return (
