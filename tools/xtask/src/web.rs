@@ -6,7 +6,9 @@
 //! `cargo xtask web size`: the app shell's JavaScript against its budget (todo C7c, web-app §4):
 //! every script the built `index.html` loads at startup (its scripts and module preloads),
 //! minified by Vite and gzipped here, at most `apps/web/size-budget.json`'s `startupJsGzip`.
-//! WebAssembly has its own budgets (`cargo xtask size`).
+//! WebAssembly has its own budgets (`cargo xtask size`). Workers and lazy chunks are listed with
+//! their sizes but not counted: web-app §4's budget is the app shell's, and the document worker
+//! is engine code that runs off the main thread, beside the WebAssembly it drives.
 
 use std::fs;
 
@@ -93,6 +95,11 @@ pub(crate) fn size(ws: &Workspace) -> Result<()> {
         println!("{path:<48} {gzip:>10}");
     }
     println!("{:<48} {total:>10} (budget {budget})", "total");
+    // The other scripts: workers (the document worker starts with the app, but runs off the main
+    // thread, as engine code beside the WebAssembly) and lazy chunks. Listed, never counted.
+    for (name, gzip) in other_scripts(&dist, &startup)? {
+        println!("{name:<48} {gzip:>10} (not in the app shell)");
+    }
     let target = budget_json.get("target").and_then(serde_json::Value::as_u64);
     let waiver = budget_json.get("waiver").and_then(serde_json::Value::as_str);
     if let (Some(target), Some(waiver)) = (target, waiver)
@@ -106,6 +113,23 @@ pub(crate) fn size(ws: &Workspace) -> Result<()> {
         );
     }
     Ok(())
+}
+
+/// Every `.js` file under `dist/assets/` that isn't one of `startup`, with its gzipped size, by name.
+fn other_scripts(dist: &std::path::Path, startup: &[String]) -> Result<Vec<(String, u64)>> {
+    let mut found = Vec::new();
+    for entry in fs::read_dir(dist.join("assets")).context("reading dist/assets")? {
+        let path = entry?.path();
+        let name = format!(
+            "/assets/{}",
+            path.file_name().map(|n| n.to_string_lossy()).unwrap_or_default()
+        );
+        if path.extension().is_some_and(|e| e == "js") && !startup.contains(&name) {
+            found.push((name, wasm::gzip_len(&fs::read(&path)?)));
+        }
+    }
+    found.sort();
+    Ok(found)
 }
 
 /// The scripts `html` loads at startup, in order: each `<script src>` and each
