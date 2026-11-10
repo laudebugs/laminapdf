@@ -38,12 +38,9 @@ fn fit_window(screen: (f64, f64)) -> (f64, f64) {
 ///
 /// # Errors
 /// [`DesktopError::Tauri`] when the app or its main window can't be created.
-#[cfg_attr(
-    not(target_os = "linux"),
-    expect(
-        clippy::disallowed_types,
-        reason = "tauri::generate_context! builds a HashMap (not on Linux)"
-    )
+#[expect(
+    clippy::disallowed_types,
+    reason = "tauri::generate_context! builds a HashMap of the bundled assets"
 )]
 pub fn run() -> Result<(), DesktopError> {
     tauri::Builder::default()
