@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting"
 description: "The problems people hit with Lamina PDF, from a missing init() to a signed file that won't save, with the cause and the fix of each."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/troubleshooting/"
 ---
 

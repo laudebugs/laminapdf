@@ -1,7 +1,7 @@
 ---
 title: "Hello, world"
 description: "One A4 page with a line of text in a standard 14 font, the smallest PDF Lamina PDF writes, in TypeScript and Rust."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/recipes/hello/"
 ---
 

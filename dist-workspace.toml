@@ -8,9 +8,8 @@ members = ["cargo:."]
 
 [dist]
 cargo-dist-version = "0.32.0"
-# All eight targets are configured. CI builds and runs three on GitHub-hosted runners:
-# aarch64-apple-darwin (macos-15), aarch64-unknown-linux-gnu and -musl (ubuntu-24.04-arm).
-# The others are not built yet (Windows: todo X6).
+# cli-release.yml builds and runs every target on a GitHub-hosted runner of its own system and CPU
+# (todo L4g; tools/xtask/src/workflows.rs checks the build matrix against this list).
 targets = [
   "aarch64-apple-darwin",
   "x86_64-apple-darwin",
@@ -27,8 +26,8 @@ formula = "laminapdf"
 # A tag `laminapdf-cli-v<version>` releases the CLI (dist's per-package tag format).
 hosting = "github"
 # Only so dist doesn't warn that the tap has no publish job: dist writes no CI here, so nothing
-# runs it. The `global` job writes the formula, the release carries it, and the owner pushes it
-# to the tap (cli-release.yml's header).
+# runs it. The `global` job writes the formula, the release carries it, and cli-release.yml's
+# publish-homebrew pushes it to the tap.
 publish-jobs = ["homebrew"]
 source-tarball = false
 # dist's own pull-request runs; cli-release.yml runs `dist plan` itself.
