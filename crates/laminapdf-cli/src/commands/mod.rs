@@ -13,7 +13,7 @@ mod pages;
 mod render;
 mod reveal;
 
-pub use build::{BuildArgs, BuildReport, build};
+pub use build::{BuildArgs, BuildReport, BuildToolArgs, build, build_tool};
 pub use check::{CheckArgs, CheckReport, check};
 pub use explain::{ExplainArgs, ExplainReport, explain};
 pub use extract::{ExtractArgs, ExtractedReport, Format, PageTextEntry, TextReport, extract, extract_document};

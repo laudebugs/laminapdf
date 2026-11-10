@@ -8,8 +8,9 @@ use schemars::JsonSchema;
 use serde_json::{Map, Value};
 
 use crate::commands::{
-    CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, InfoArgs,
-    InfoReport, PagesReport, RenderArgs, RenderReport, RevealReport, RevealToolArgs, RotateArgs, TextReport,
+    BuildReport, BuildToolArgs, CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs,
+    ExtractedReport, InfoArgs, InfoReport, PagesReport, RenderArgs, RenderReport, RevealReport, RevealToolArgs,
+    RotateArgs, TextReport,
 };
 
 /// What the copied `laminapdf.error/1` definitions are named after in a tool's `$defs`, so they
@@ -44,6 +45,21 @@ pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
         ),
     ];
     if allow_write {
+        let build = ToolAnnotations::new()
+            .read_only(false)
+            .destructive(false)
+            .open_world(false);
+        // First in name order: laminapdf_build sorts before laminapdf_check.
+        tools.insert(
+            0,
+            Tool::new(
+                "laminapdf_build",
+                "Build a tagged PDF from Markdown (CommonMark with tables, footnotes, strikethrough and task lists; front matter for the title and language), given inline as `markdown` or as an `input` file. Images are read from the input's folder and never fetched; fonts are given by role as ROLE=FILE. Writes `output`, which must be a new file.",
+                schema::<BuildToolArgs>(),
+            )
+            .with_raw_output_schema(schema::<BuildReport>())
+            .with_annotations(build),
+        );
         let what = "Rotate pages of a PDF: +90 or -90 turn them, 90 sets their rotation, :RANGE names the pages.";
         let (description, destructive) = if allow_in_place {
             (
@@ -228,6 +244,7 @@ mod tests {
             ]
         );
         let write = tools(true, false);
+        assert_eq!(names(&write).first().map(String::as_str), Some("laminapdf_build"));
         let mut sorted = names(&write);
         sorted.sort();
         assert_eq!(names(&write), sorted);
@@ -252,9 +269,10 @@ mod tests {
             (
                 destructive(&write, "laminapdf_pages_rotate"),
                 destructive(&in_place, "laminapdf_pages_rotate"),
-                destructive(&in_place, "laminapdf_render")
+                destructive(&in_place, "laminapdf_render"),
+                destructive(&in_place, "laminapdf_build")
             ),
-            (Some(false), Some(true), Some(false))
+            (Some(false), Some(true), Some(false), Some(false))
         );
     }
 

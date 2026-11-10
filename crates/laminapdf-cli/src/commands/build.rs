@@ -56,6 +56,37 @@ pub struct BuildArgs {
     pub creation_date: Option<String>,
 }
 
+/// The `laminapdf_build` MCP tool's arguments: [`BuildArgs`], with the Markdown inline
+/// (`markdown`) or read from a path inside the roots (`input`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BuildToolArgs {
+    /// The Markdown itself; give this or `input`.
+    #[serde(default)]
+    pub markdown: Option<String>,
+    /// A Markdown file inside the roots; give this or `markdown`. Its images are read from its
+    /// folder, inline Markdown's from the first root.
+    #[serde(default)]
+    pub input: Option<String>,
+    /// The PDF to write inside the roots: a new file.
+    pub output: String,
+    /// Fonts by role, as `ROLE=FILE` (see `laminapdf build --help`), each file inside the roots.
+    #[serde(default)]
+    pub fonts: Vec<String>,
+    /// The page size: a4 (the default), a3, a5, letter or legal.
+    #[serde(default)]
+    pub page_size: Option<String>,
+    /// Profiles to meet: pdf-ua-1, pdf-a-2b, pdf-a-2u, pdf-a-3b.
+    #[serde(default)]
+    pub profiles: Vec<String>,
+    /// The language when the front matter gives none.
+    #[serde(default)]
+    pub lang: Option<String>,
+    /// The title when the front matter gives none.
+    #[serde(default)]
+    pub title: Option<String>,
+}
+
 /// `laminapdf.build/1`.
 #[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -233,6 +264,50 @@ fn images(
 pub fn build(args: &BuildArgs, settings: &Settings, io: &mut dyn Io) -> Result<BuildReport, CliError> {
     // Checked before the work, so a refused output costs nothing.
     io.check(&args.output, settings.force)?;
+    let markdown = String::from_utf8(io.read(&args.input)?).map_err(|_| {
+        CliError::new(ErrorCode::InputUnreadable, "the Markdown isn't UTF-8 text")
+            .with("input", args.input.as_str())
+            .with("reason", "InvalidData")
+    })?;
+    build_markdown(args, &markdown, settings, io)
+}
+
+/// [`build`] for the MCP tool: the Markdown inline or from `input`.
+///
+/// # Errors
+///
+/// `invalid-command-line` unless exactly one of `markdown` and `input` is given; as [`build`].
+pub fn build_tool(args: BuildToolArgs, settings: &Settings, io: &mut dyn Io) -> Result<BuildReport, CliError> {
+    let command = BuildArgs {
+        input: args.input.clone().unwrap_or_else(|| STDIO.to_owned()),
+        output: args.output,
+        fonts: args.fonts,
+        page_size: args.page_size,
+        profiles: args.profiles,
+        lang: args.lang,
+        title: args.title,
+        creation_date: None,
+    };
+    match (args.markdown, args.input) {
+        (Some(markdown), None) => {
+            io.check(&command.output, settings.force)?;
+            build_markdown(&command, &markdown, settings, io)
+        }
+        (None, Some(_)) => build(&command, settings, io),
+        _ => Err(CliError::new(
+            ErrorCode::InvalidCommandLine,
+            "give the Markdown inline (markdown) or as a file (input), not both",
+        )),
+    }
+}
+
+/// Builds `markdown` with `args`' options; its images are read from `args.input`'s folder.
+fn build_markdown(
+    args: &BuildArgs,
+    markdown: &str,
+    settings: &Settings,
+    io: &mut dyn Io,
+) -> Result<BuildReport, CliError> {
     let mut build_options = BuildOptions::new();
     for name in &args.profiles {
         build_options = build_options.with_profile(profile(name)?);
@@ -245,18 +320,13 @@ pub fn build(args: &BuildArgs, settings: &Settings, io: &mut dyn Io) -> Result<B
     }
     let profiles: Vec<String> = build_options.profiles().map(|p| p.as_str().to_owned()).collect();
     let size = args.page_size.as_deref().map(page_size).transpose()?;
-    let markdown = String::from_utf8(io.read(&args.input)?).map_err(|_| {
-        CliError::new(ErrorCode::InputUnreadable, "the Markdown isn't UTF-8 text")
-            .with("input", args.input.as_str())
-            .with("reason", "InvalidData")
-    })?;
     settings.stop_if_cancelled()?;
     let mut builder = Builder::new(build_options);
     let mut options = MarkdownBuildOptions::new().with_page_size(size.unwrap_or(PageSize::A4));
     if let Some(fonts) = fonts(args, &mut builder, io)? {
         options = options.with_fonts(fonts);
     }
-    let options = images(args, &markdown, options, io)?;
+    let options = images(args, markdown, options, io)?;
     // Set first: the front matter's title and language win over them.
     if let Some(title) = &args.title {
         builder.metadata(laminapdf::Metadata::default().with_title(title.clone()));
@@ -264,7 +334,7 @@ pub fn build(args: &BuildArgs, settings: &Settings, io: &mut dyn Io) -> Result<B
     if let Some(lang) = &args.lang {
         builder.lang(lang);
     }
-    builder.markdown(&markdown, &options)?;
+    builder.markdown(markdown, &options)?;
     settings.stop_if_cancelled()?;
     let mut doc = builder.finish()?;
     let saved = doc.save_with(&SaveOptions::default(), &settings.cancel)?;

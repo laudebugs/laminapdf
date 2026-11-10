@@ -462,3 +462,66 @@ async fn reveal_should_withhold_every_string_the_document_wrote() {
         assert!(!everything.contains(text), "{text} reached the agent: {everything}");
     }
 }
+
+#[tokio::test]
+async fn build_should_write_inline_markdown_inside_a_root_and_only_with_allow_write() {
+    let base = tree("build");
+    let reader = connect(&base, &[]).await;
+    let names: Vec<String> = reader
+        .list_all_tools()
+        .await
+        .unwrap()
+        .iter()
+        .map(|t| t.name.to_string())
+        .collect();
+    assert!(!names.iter().any(|n| n == "laminapdf_build"), "{names:?}");
+    let writer = connect(&base, &["--allow-write"]).await;
+    let built = call(
+        &writer,
+        "laminapdf_build",
+        json!({ "markdown": "# Notes\n\nPlain *Latin* text.\n", "output": "notes.pdf" }),
+    )
+    .await;
+    let report = ok(&built);
+    assert_eq!(
+        (report["pageCount"].as_u64(), report["input"].as_str()),
+        (Some(1), Some("-"))
+    );
+    let tools = writer.list_all_tools().await.unwrap();
+    validate(tools.iter().find(|t| t.name == "laminapdf_build").unwrap(), report);
+    assert!(base.join("root/notes.pdf").exists());
+    // Never overwrites.
+    let again = call(
+        &writer,
+        "laminapdf_build",
+        json!({ "markdown": "# Again\n", "output": "notes.pdf" }),
+    )
+    .await;
+    assert_eq!(error(&again)["code"], "overwrite-refused");
+}
+
+#[tokio::test]
+async fn build_should_refuse_images_and_outputs_outside_the_roots() {
+    let base = tree("build-roots");
+    std::fs::write(
+        base.join("outside/photo.jpg"),
+        laminapdf_test_fixtures::fixture("images/photo-rgb.jpg"),
+    )
+    .unwrap();
+    let client = connect(&base, &["--allow-write"]).await;
+    let image = call(
+        &client,
+        "laminapdf_build",
+        json!({ "markdown": "![A photo](../outside/photo.jpg)\n", "output": "image.pdf" }),
+    )
+    .await;
+    assert_eq!(error(&image)["code"], "path-outside-roots");
+    let output = call(
+        &client,
+        "laminapdf_build",
+        json!({ "markdown": "# Hi\n", "output": "../outside/out.pdf" }),
+    )
+    .await;
+    assert_eq!(error(&output)["code"], "path-outside-roots");
+    assert!(!base.join("root/image.pdf").exists() && !base.join("outside/out.pdf").exists());
+}
