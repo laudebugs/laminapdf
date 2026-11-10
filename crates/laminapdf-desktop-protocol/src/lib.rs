@@ -16,11 +16,16 @@
 //!   against a limit before allocating and turns every malformed frame into a
 //!   [`ProtocolError`], never a panic.
 //!
+//! [`supervisor`] is the main process's side: it starts the engine, matches replies to requests,
+//! serves the engine's reads and restarts it after a crash. It uses only `std`, so the engine's
+//! tests drive it without Tauri.
+//!
 //! This crate depends only on `serde`, `postcard`, `thiserror` and `zeroize`, so the main
 //! process never links the parser or PDFium.
 
 mod frame;
 mod msg;
+pub mod supervisor;
 
 pub use frame::{MAX_FRAME, ProtocolError, read_frame, write_frame};
 pub use msg::{
