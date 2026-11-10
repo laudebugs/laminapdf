@@ -153,12 +153,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     } else {
         args.browsers.iter().map(String::as_str).collect()
     };
-    ws.require_node_modules()?;
-    for dist in ["packages/wasm/dist/lamina_pdf_text.wasm", "packages/sdk/dist/index.js"] {
-        if !ws.root.join(dist).is_file() {
-            bail!("{dist} is missing: run `cargo xtask wasm` first");
-        }
-    }
+    require_builds(ws)?;
     ws.pnpm(&["--filter", "@laminapdf/viewer", "build:wasm"])?;
     for browser in &browsers {
         ws.pnpm(&[
@@ -231,10 +226,21 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     summary(&table)
 }
 
+/// The installed packages and the builds the harness runs over, else a message saying what to run.
+fn require_builds(ws: &Workspace) -> Result<()> {
+    ws.require_node_modules()?;
+    for dist in ["packages/wasm/dist/lamina_pdf_text.wasm", "packages/sdk/dist/index.js"] {
+        if !ws.root.join(dist).is_file() {
+            bail!("{dist} is missing: run `cargo xtask wasm` (or `cargo xtask web build`) first");
+        }
+    }
+    Ok(())
+}
+
 /// `cargo xtask viewer-perf --gate`: [`GATE_RUNS`] full Chromium runs into
 /// `target/viewer-perf/gate-<n>/`, then `perf:gate` over them, its table in the job summary.
 fn gate(ws: &Workspace) -> Result<()> {
-    ws.require_node_modules()?;
+    require_builds(ws)?;
     ws.pnpm(&["--filter", "@laminapdf/viewer", "build:wasm"])?;
     ws.pnpm(&[
         "--filter",
