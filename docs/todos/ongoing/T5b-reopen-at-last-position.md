@@ -11,7 +11,7 @@
 | Branch | `feat/t5b-reopen-at-last-position` |
 | PR title | `feat(web): reopen each document where the reader left it` |
 | Size | L (≈ 450–650 lines incl. tests) |
-| PR | — |
+| PR | [#377](https://github.com/laudebugs/laminapdf/pull/377) |
 
 ## Goal
 
