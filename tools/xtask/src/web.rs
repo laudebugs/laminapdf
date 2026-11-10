@@ -152,6 +152,6 @@ mod tests {
 
     #[test]
     fn a_page_without_scripts_loads_none() {
-        assert!(startup_scripts("<!doctype html><p>no scripts</p>").is_empty());
+        assert_eq!(startup_scripts("<!doctype html><p>no scripts</p>"), Vec::<String>::new());
     }
 }

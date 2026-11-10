@@ -6,7 +6,9 @@
 //! `<dir>/history.jsonl`, the nightly benchmarks' file and regression rule (more than 10 % worse
 //! than the median of the last runs on that runner), and writes `regressions.md` with
 //! `regression=true` in `$GITHUB_OUTPUT`; `--record` appends this run; `--dry-run` also prints the
-//! issue a regression opens.
+//! issue a regression opens. `--gate` is the release lane's gate (todo C7c): the harness runs
+//! [`GATE_RUNS`] times in Chromium, and `packages/viewer/perf/gate.ts` checks each figure's median
+//! against its §4 target plus a margin, failing on a miss that `perf/waivers.json` doesn't waive.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -23,7 +25,10 @@ use crate::workspace::Workspace;
 const BROWSERS: [&str; 3] = ["chromium", "firefox", "webkit"];
 
 const USAGE: &str = "usage: cargo xtask viewer-perf [chromium|firefox|webkit]… [--quick] \
-                     [--history <dir> --runner <label> [--record] [--dry-run]]";
+                     [--history <dir> --runner <label> [--record] [--dry-run]] | --gate";
+
+/// How many full Chromium runs the release gate takes the median of.
+const GATE_RUNS: usize = 3;
 
 /// What `cargo xtask viewer-perf` was asked to do; the default runs every browser, recording nothing.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -34,6 +39,15 @@ pub(crate) struct Args {
     runner: Option<String>,
     record: bool,
     dry_run: bool,
+    mode: Mode,
+}
+
+/// Whether a run reports its figures (the nightly) or gates a release on them.
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+enum Mode {
+    #[default]
+    Report,
+    Gate,
 }
 
 impl Args {
@@ -54,6 +68,7 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
             "--quick" => parsed.quick = true,
             "--record" => parsed.record = true,
             "--dry-run" => parsed.dry_run = true,
+            "--gate" => parsed.mode = Mode::Gate,
             "--history" => parsed.history = Some(rest.next().context(USAGE)?.clone()),
             "--runner" => parsed.runner = Some(rest.next().context(USAGE)?.clone()),
             browser if BROWSERS.contains(&browser) => {
@@ -63,6 +78,10 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
             }
             other => bail!("unknown argument {other:?}; {USAGE}"),
         }
+    }
+    // The gate is its own run: full Chromium runs, never quick, never recorded.
+    if parsed.mode == Mode::Gate && (parsed.quick || parsed.history.is_some() || !parsed.browsers.is_empty()) {
+        bail!("--gate runs alone; {USAGE}");
     }
     if parsed.history.is_some() != parsed.runner.is_some() {
         bail!("--history and --runner go together; {USAGE}");
@@ -126,6 +145,9 @@ fn regression_report(found: &[(String, u64, u64)], runner: &str) -> String {
 /// needs `cargo xtask wasm` first; builds the viewer over it and installs the Playwright browsers
 /// it runs (`playwright install`, a no-op when they are present).
 pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
+    if args.mode == Mode::Gate {
+        return gate(ws);
+    }
     let browsers: Vec<&str> = if args.browsers.is_empty() {
         BROWSERS.to_vec()
     } else {
@@ -209,6 +231,46 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     summary(&table)
 }
 
+/// `cargo xtask viewer-perf --gate`: [`GATE_RUNS`] full Chromium runs into
+/// `target/viewer-perf/gate-<n>/`, then `perf:gate` over them, its table in the job summary.
+fn gate(ws: &Workspace) -> Result<()> {
+    ws.require_node_modules()?;
+    ws.pnpm(&["--filter", "@laminapdf/viewer", "build:wasm"])?;
+    ws.pnpm(&[
+        "--filter",
+        "@laminapdf/viewer",
+        "exec",
+        "playwright",
+        "install",
+        "chromium",
+    ])?;
+    let out = ws.root.join("target/viewer-perf");
+    let mut files = Vec::new();
+    for n in 1..=GATE_RUNS {
+        let dir = out.join(format!("gate-{n}"));
+        let dir_arg = dir.to_string_lossy().into_owned();
+        ws.pnpm(&[
+            "--filter",
+            "@laminapdf/viewer",
+            "perf",
+            "--out",
+            &dir_arg,
+            "--browsers",
+            "chromium",
+        ])?;
+        files.push(dir.join("chromium.json").to_string_lossy().into_owned());
+    }
+    let table = out.join("gate.md").to_string_lossy().into_owned();
+    let mut pnpm = vec!["--filter", "@laminapdf/viewer", "perf:gate", "--out", table.as_str()];
+    pnpm.extend(files.iter().map(String::as_str));
+    // The table goes in the job summary whether or not the gate passed.
+    let passed = ws.pnpm(&pnpm);
+    if let Ok(text) = fs::read_to_string(&table) {
+        summary(&text)?;
+    }
+    passed.context("the release gate failed: a figure missed its target with no waiver")
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -242,6 +304,14 @@ mod tests {
         assert!(parse_args(&args(&["--record"])).is_err());
         assert!(parse_args(&args(&["--dry-run"])).is_err());
         assert!(parse_args(&args(&["--history", "h", "--runner", "r", "--record", "--dry-run"])).is_ok());
+    }
+
+    #[test]
+    fn parse_args_should_run_the_gate_alone() {
+        assert!(parse_args(&args(&["--gate"])).is_ok_and(|a| a.mode == Mode::Gate));
+        assert!(parse_args(&args(&["--gate", "--quick"])).is_err());
+        assert!(parse_args(&args(&["--gate", "firefox"])).is_err());
+        assert!(parse_args(&args(&["--gate", "--history", "h", "--runner", "r"])).is_err());
     }
 
     #[test]
