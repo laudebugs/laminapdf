@@ -88,20 +88,43 @@ fn snapshot_should_count_passed_nights_over_the_last_thirty_full_ones() {
 }
 
 #[test]
-fn snapshot_should_sum_the_fuzzing_hours_over_every_full_record() {
-    // Each full night: `lex` fuzzed 3,000 s and `open` crashed, so its 600 s budget counts.
+fn snapshot_should_sum_libfuzzers_own_hours_over_every_full_record() {
+    // Each full run: `lex` fuzzed 3,600 s; `open` crashed and printed no time, so it adds nothing.
     let mut lines: Vec<Value> = (1..=3)
-        .map(|day| record(&format!("c{day}"), &format!("2026-11-0{day}"), true, PASSED, 3000))
+        .map(|day| record(&format!("c{day}"), &format!("2026-11-0{day}"), true, PASSED, 3600))
         .collect();
     lines.push(record("short", "2026-11-04", false, PASSED, 36_000));
     assert_eq!(take(&lines, "2026-11-04").fuzz_hours, 3);
 }
 
 #[test]
-fn snapshot_should_count_a_night_recorded_twice_once() {
+fn a_failure_a_rerun_fixed_should_still_fail_the_night() {
+    // The run fails, its failed jobs are re-run the same day and pass: the night didn't pass.
     let lines = [
-        record("a", "2026-11-01", true, FAILED, 600),
         record("a", "2026-11-01", true, PASSED, 600),
+        record("b", "2026-11-02", true, FAILED, 600),
+        record("b", "2026-11-02", true, PASSED, 600),
+    ];
+    let snapshot = take(&lines, "2026-11-02");
+    assert_eq!(
+        snapshot.nights,
+        Nights {
+            recorded: 2,
+            passed: 1,
+            since: "2026-11-01".to_owned()
+        }
+    );
+    assert!(!snapshot.night.passed);
+    assert_eq!(snapshot.night.jobs["render-diff"], "failure");
+    assert_eq!(snapshot.night.jobs["fuzz"], "success");
+}
+
+#[test]
+fn several_runs_on_one_day_should_count_as_one_night() {
+    let lines = [
+        record("a", "2026-11-01", true, PASSED, 600),
+        record("b", "2026-11-01", true, PASSED, 600),
+        record("c", "2026-11-01", true, PASSED, 600),
     ];
     let snapshot = take(&lines, "2026-11-01");
     assert_eq!(
@@ -112,6 +135,8 @@ fn snapshot_should_count_a_night_recorded_twice_once() {
             since: "2026-11-01".to_owned()
         }
     );
+    // The figures are the day's newest run's.
+    assert_eq!(snapshot.night.commit, "c");
 }
 
 #[test]
@@ -179,19 +204,11 @@ fn snapshot_should_read_back_as_written() {
 }
 
 #[test]
-fn offline_should_accept_only_the_flag() {
-    assert!(!offline(&[]).unwrap());
-    assert!(offline(&["--offline".to_owned()]).unwrap());
-    assert!(offline(&["--other".to_owned()]).is_err());
-}
-
-#[test]
 fn days_between_should_count_calendar_days() {
     assert_eq!(days_between("2026-10-30", "2026-11-02"), Some(3));
     assert_eq!(days_between("2024-02-28", "2024-03-01"), Some(2));
-    assert_eq!(days("1970-01-01"), Some(0));
     assert_eq!(days_between("2026-11-02", "2026-11-01"), None);
-    assert_eq!(days("not a date"), None);
+    assert_eq!(days_between("not a date", "2026-11-01"), None);
 }
 
 /// A folder with a committed snapshot, which is no git repository.

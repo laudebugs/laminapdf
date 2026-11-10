@@ -151,12 +151,13 @@ pub(crate) struct Inputs<'a> {
     pub(crate) date: &'a str,
 }
 
-/// Whether `args` (`cargo xtask progress`'s) ask for `--offline`; fails on anything else.
-pub(crate) fn offline(args: &[String]) -> Result<bool> {
+/// Whether `args` ask for `--offline`, for a command whose only flag it is (`cargo xtask progress`
+/// and `cargo xtask proof snapshot`, named by `command`); fails on anything else.
+pub(crate) fn offline(args: &[String], command: &str) -> Result<bool> {
     match args {
         [] => Ok(false),
         [flag] if flag == "--offline" => Ok(true),
-        _ => bail!("usage: cargo xtask progress [--offline]"),
+        _ => bail!("usage: cargo xtask {command} [--offline]"),
     }
 }
 
@@ -543,6 +544,23 @@ pub(crate) fn today() -> String {
     format!("{year:04}-{month:02}-{day:02}")
 }
 
+/// Days from 1970-01-01 to a `YYYY-MM-DD` date (Howard Hinnant's `days_from_civil`, the inverse of
+/// [`civil_date`]), or `None` when it isn't one or comes before 1970.
+pub(crate) fn days_since_epoch(date: &str) -> Option<u64> {
+    let mut parts = date.splitn(3, '-').map(str::parse::<u64>);
+    let (year, month, day) = (parts.next()?.ok()?, parts.next()?.ok()?, parts.next()?.ok()?);
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day) || year < 1970 {
+        return None;
+    }
+    let year = if month <= 2 { year - 1 } else { year };
+    let era = year / 400;
+    let year_of_era = year - era * 400;
+    let month_index = if month > 2 { month - 3 } else { month + 9 };
+    let day_of_year = (153 * month_index + 2) / 5 + day - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    (era * 146_097 + day_of_era).checked_sub(719_468)
+}
+
 /// The proleptic Gregorian date `days` after 1970-01-01 (Howard Hinnant's `civil_from_days`).
 fn civil_date(days: u64) -> (u64, u64, u64) {
     let z = days + 719_468;
@@ -564,8 +582,8 @@ fn civil_date(days: u64) -> (u64, u64, u64) {
 #[cfg(test)]
 mod tests {
     use super::{
-        ClaimSource, InProgress, Inputs, MilestoneState, Previous, Snapshot, TodoRef, civil_date, claimed_ids, merged,
-        snapshot, without_pr_number,
+        ClaimSource, InProgress, Inputs, MilestoneState, Previous, Snapshot, TodoRef, civil_date, claimed_ids,
+        days_since_epoch, merged, snapshot, without_pr_number,
     };
     use crate::todos::tests::todo;
     use crate::todos::{State, TodoFile, generate};
@@ -786,6 +804,17 @@ mod tests {
         let merged = merged(log);
         assert_eq!(merged.count, 3);
         assert_eq!(merged.recent, ["feat: x"]);
+    }
+
+    #[test]
+    fn days_since_epoch_should_invert_civil_date() {
+        for days in [0, 59, 60, 365, 11_016, 20_767, 20_768] {
+            let (y, m, d) = civil_date(days);
+            assert_eq!(days_since_epoch(&format!("{y:04}-{m:02}-{d:02}")), Some(days));
+        }
+        assert_eq!(days_since_epoch("1969-12-31"), None);
+        assert_eq!(days_since_epoch("2026-13-01"), None);
+        assert_eq!(days_since_epoch("not a date"), None);
     }
 
     #[test]

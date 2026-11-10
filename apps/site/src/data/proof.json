@@ -5,11 +5,11 @@
     "commit": "709961cdd92e487f9572823b5a26dcf636564aa9",
     "ran": "2026-11-10",
     "lamina": "0.2.0-alpha.4",
-    "passed": true,
+    "passed": false,
     "jobs": {
       "differential": "success",
-      "fuzz": "success",
-      "pdf-runtimes": "success",
+      "fuzz": "failure",
+      "pdf-runtimes": "failure",
       "render-diff": "success",
       "roundtrip": "success",
       "scaling": "success",
@@ -268,9 +268,9 @@
     }
   },
   "nights": {
-    "recorded": 5,
-    "passed": 4,
+    "recorded": 2,
+    "passed": 1,
     "since": "2026-11-09"
   },
-  "fuzzHours": 9
+  "fuzzHours": 10
 }

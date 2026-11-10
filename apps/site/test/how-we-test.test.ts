@@ -108,7 +108,7 @@ describe("the How we test page", () => {
       `qpdf 880 ${percent(777, 880)}`,
       // Fuzzing, saving, the runtimes, veraPDF and the render comparison.
       "13 targets ran for 10 minutes each and tried 98,765,432 inputs. None found a crash.",
-      "the fuzzers have run for 321 hours in all",
+      "the fuzzers have run for at least 321 hours in all",
       "Of 640 cases, 600 were saved and 40 refused",
       "PDFium read every saved file without an error.",
       "Matched byte for byte: Node.js, Cloudflare Workers.",
@@ -136,11 +136,27 @@ describe("the How we test page", () => {
     expect(standards).toContain("There is no figure for this night: the PDF/A and PDF/UA checks didn't run.");
   });
 
-  it("warns that a figure may be partial when its job failed but left a report", async () => {
+  it("warns that a figure is the last run's when its job failed on a run that night", async () => {
     const night: Night = { ...NIGHT, passed: false, jobs: { ...SUCCESS, "render-diff": "failure" } };
     const rendering = section(await render({ ...PROOF, night }), "rendering");
     expect(rendering).toContain("91.2%");
-    expect(rendering).toContain("The drawing comparison failed that night, so this figure may leave some files out.");
+    expect(rendering).toContain(
+      "The drawing comparison failed in a run that night; this figure is from the night's last run.",
+    );
+  });
+
+  it("words the warning by what happened to the job, in every section", async () => {
+    const night: Night = { ...NIGHT, passed: false, jobs: { ...SUCCESS, fuzz: "cancelled", verapdf: "failure" } };
+    const html = await render({ ...PROOF, night });
+    expect(section(html, "fuzzing")).toContain("Fuzzing was cancelled in a run that night");
+    expect(section(html, "standards")).toContain("The PDF/A and PDF/UA checks failed in a run that night");
+    expect(section(html, "rendering")).not.toContain("in a run that night");
+  });
+
+  it("says a night without job results doesn't count as passed, naming no check", async () => {
+    const page = text(await render({ ...PROOF, night: { ...NIGHT, passed: false, jobs: {} } }));
+    expect(page).toContain("That night's record doesn't say which checks passed");
+    expect(page).not.toContain("These checks failed that night");
   });
 
   it("counts the files that made Lamina PDF fail and says when the counts are partial", async () => {

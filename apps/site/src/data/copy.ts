@@ -87,6 +87,8 @@ export const HOW_WE_TEST = {
     ran: "The latest night ran on",
     passedAll: "Every check passed that night.",
     failed: "These checks failed that night:",
+    // A night recorded without its jobs' results.
+    noJobs: "That night's record doesn't say which checks passed, so it doesn't count as passed.",
     // "4 of the last 5 nights passed every check, counting from 9 November 2026."
     lastNights: (passed: number, recorded: number) =>
       `${passed} of the last ${recorded} ${recorded === 1 ? "night" : "nights"} passed every check, counting from`,
@@ -123,7 +125,7 @@ export const HOW_WE_TEST = {
     night: (targets: number, minutes: number) => `${targets} targets ran for ${minutes} minutes each`,
     noCrash: "None found a crash.",
     crashes: (n: number) => `${n} ${n === 1 ? "target" : "targets"} found a crash.`,
-    total: (hours: number) => `Over every recorded night, the fuzzers have run for ${hours} hours in all.`,
+    total: (hours: number) => `Over every recorded night, the fuzzers have run for at least ${hours} hours in all.`,
   },
   saving: {
     heading: "Saved files that other tools read back",
@@ -165,9 +167,9 @@ export const HOW_WE_TEST = {
       success: "wrote no report",
     } as Record<string, string>,
     notRun: "didn't run",
-    // "The drawing comparison failed that night, so this figure may leave some files out."
-    partial: (job: string) =>
-      `${job[0]?.toUpperCase()}${job.slice(1)} failed that night, so this figure may leave some files out.`,
+    // "The drawing comparison failed in a run that night; this figure is from the night's last run."
+    partial: (job: string, result: string) =>
+      `${job[0]?.toUpperCase()}${job.slice(1)} ${result} in a run that night; this figure is from the night's last run.`,
   },
   // The tables' names for screen readers (each table scrolls on a phone, so it is a named region).
   tables: {
@@ -183,13 +185,17 @@ export const HOW_WE_TEST = {
       "The files are chosen because they are difficult. They aren't a sample of the PDFs people use every day, so the share opened is not how often an everyday file opens.",
       "Agreeing with other tools is not the same as being right: when every tool is wrong in the same way, Lamina PDF agrees with them.",
       "Opening a file and reading its pages doesn't prove every page is drawn or extracted correctly.",
+      "Only nights that ran their full budgets are recorded. A night cut short, such as one whose fuzzing stopped early, records no figures, so it doesn't count among the nights above.",
       "Speed and size are measured elsewhere, on the docs site's Benchmarks page.",
     ],
   },
   licence: {
     heading: "The licence",
     // "Lamina PDF is open source, under `MIT OR Apache-2.0`: …"; the licence comes from Cargo.toml.
-    own: ["Lamina PDF is open source, under", ": you may use it in open or closed software, and choose either licence."],
+    own: [
+      "Lamina PDF is open source, under",
+      ": you may use it in open or closed software, and choose either licence.",
+    ],
     allowed: "Every dependency must be under one of these licences:",
     exceptions: "A few named dependencies may use another licence:",
     exception: (licence: string) => `${licence}, for`,

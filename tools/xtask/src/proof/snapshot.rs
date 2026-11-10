@@ -1,8 +1,9 @@
 //! `cargo xtask proof snapshot [--offline]`: writes `apps/site/src/data/proof.json`, the figures
 //! the website's How we test page shows (T1b). It reads `history.jsonl` from `origin/bench-data`,
 //! takes the newest full proof record ([`Record`], `full: true`) cut to the fields the page shows,
-//! counts how many of the last [`NIGHTS`] full records passed, and sums the fuzzing time over
-//! every full record. The production deploy runs it before the build, as it runs `progress`.
+//! counts how many of the last [`NIGHTS`] nights passed, and sums the fuzzing time over every full
+//! record. A night is a day: its runs (a re-run of failed jobs, a dispatched run) count once, and
+//! each job shows its worst result of the day. The production deploy runs it before the build, as it runs `progress`.
 //!
 //! With `--offline`, without the branch, or with no full record, it keeps the committed file and
 //! warns (`::warning::` under GitHub Actions); it also warns when the newest full record is more
@@ -12,13 +13,14 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::record::{KIND, VERSION};
 use super::{Record, record};
 use crate::changes::at_revision;
+use crate::progress::days_since_epoch;
 
 /// The snapshot, relative to the workspace root.
 pub(crate) const OUTPUT: &str = "apps/site/src/data/proof.json";
@@ -41,7 +43,7 @@ pub(crate) struct Snapshot {
     /// The newest full night.
     pub(crate) night: Night,
     pub(crate) nights: Nights,
-    /// Fuzzing time summed over every full night, in whole hours.
+    /// Fuzzing time summed over every full run, in whole hours, by libFuzzer's own count.
     pub(crate) fuzz_hours: u64,
 }
 
@@ -49,9 +51,9 @@ pub(crate) struct Snapshot {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Nights {
-    /// Full nights counted: at most [`NIGHTS`].
+    /// Nights (days with a full run) counted: at most [`NIGHTS`].
     pub(crate) recorded: u64,
-    /// Of those, the nights where every job succeeded.
+    /// Of those, the nights where every job of every run succeeded.
     pub(crate) passed: u64,
     /// The day the first of them ran, `YYYY-MM-DD`.
     pub(crate) since: String,
@@ -68,9 +70,9 @@ pub(crate) struct Night {
     pub(crate) ran: String,
     /// The fixed group's version.
     pub(crate) lamina: String,
-    /// Whether every job succeeded.
+    /// Whether every job of every run that day succeeded.
     pub(crate) passed: bool,
-    /// Each job's result (`success`, `failure`, `cancelled`, `skipped`).
+    /// Each job's worst result that day (`success`, `failure`, `cancelled`, `skipped`).
     pub(crate) jobs: BTreeMap<String, String>,
     pub(crate) corpus: Option<Corpus>,
     pub(crate) differential: Option<Differential>,
@@ -214,15 +216,6 @@ pub(crate) struct RenderSource {
     pub(crate) pass_minor_bp: u64,
 }
 
-/// Whether `args` (`cargo xtask proof snapshot`'s, after `snapshot`) ask for `--offline`.
-pub(crate) fn offline(args: &[String]) -> Result<bool> {
-    match args {
-        [] => Ok(false),
-        [flag] if flag == "--offline" => Ok(true),
-        _ => bail!("usage: cargo xtask proof snapshot [--offline]"),
-    }
-}
-
 /// Says why the committed snapshot stays, where the deploy's run shows it.
 fn keep(why: &str) {
     if std::env::var_os("GITHUB_ACTIONS").is_some() {
@@ -271,10 +264,9 @@ pub(crate) fn run(root: &Path, offline: bool) -> Result<()> {
 
 /// The full proof records of `history` (one JSON object per line), oldest first. Lines of other
 /// kinds, short nights and records of another version are left out; a proof line of this version
-/// that doesn't parse fails, since the page would otherwise miss a night without saying so. A
-/// night recorded twice (a re-run of the same job) counts once: the later line wins.
+/// that doesn't parse fails, since the page would otherwise miss a night without saying so.
 pub(crate) fn full_records(history: &str) -> Result<Vec<Record>> {
-    let mut records: Vec<Record> = Vec::new();
+    let mut records = Vec::new();
     for (i, line) in history.lines().enumerate().filter(|(_, line)| !line.trim().is_empty()) {
         let value: Value = serde_json::from_str(line).with_context(|| format!("history line {}", i + 1))?;
         if value.get("kind").and_then(Value::as_str) != Some(KIND) {
@@ -289,33 +281,74 @@ pub(crate) fn full_records(history: &str) -> Result<Vec<Record>> {
         }
         let record: Record =
             serde_json::from_value(value).with_context(|| format!("history line {}: a proof record", i + 1))?;
-        if !record.full {
-            continue;
+        if record.full {
+            records.push(record);
         }
-        records.retain(|r| !(r.commit == record.commit && r.ran == record.ran));
-        records.push(record);
     }
     Ok(records)
+}
+
+/// The full records grouped by the day they ran, in the order the days first appear. A day with
+/// several runs (a re-run of failed jobs, a dispatched run) is one night.
+fn days(records: &[Record]) -> Vec<Vec<&Record>> {
+    let mut days: Vec<Vec<&Record>> = Vec::new();
+    for record in records {
+        match days
+            .iter_mut()
+            .find(|day| day.first().is_some_and(|r| r.ran == record.ran))
+        {
+            Some(day) => day.push(record),
+            None => days.push(vec![record]),
+        }
+    }
+    days
+}
+
+/// How bad a job's result is: a night shows each job's worst run.
+fn severity(result: &str) -> u8 {
+    match result {
+        "success" => 0,
+        "skipped" => 1,
+        "cancelled" => 2,
+        _ => 3,
+    }
+}
+
+/// Each job's worst result over a day's runs: a failure a re-run later fixed still counts, so a
+/// night passes only when every run of it passed.
+fn day_jobs(day: &[&Record]) -> BTreeMap<String, String> {
+    let mut jobs: BTreeMap<String, String> = BTreeMap::new();
+    for (job, result) in day.iter().flat_map(|r| &r.jobs) {
+        let worse = jobs.get(job).is_none_or(|seen| severity(result) > severity(seen));
+        if worse {
+            jobs.insert(job.clone(), result.clone());
+        }
+    }
+    jobs
 }
 
 /// The snapshot of `history` written on `today`, or `None` when it holds no full proof record.
 pub(crate) fn snapshot(history: &str, today: &str) -> Result<Option<Snapshot>> {
     let records = full_records(history)?;
-    let Some(newest) = records.last() else {
+    let days = days(&records);
+    let Some((newest_day, newest)) = days.last().and_then(|day| Some((day, *day.last()?))) else {
         return Ok(None);
     };
-    // The newest NIGHTS, newest first.
-    let last: Vec<&Record> = records.iter().rev().take(NIGHTS).collect();
+    // The newest NIGHTS days, newest first.
+    let last: Vec<&Vec<&Record>> = days.iter().rev().take(NIGHTS).collect();
     let nights = Nights {
         recorded: count(last.len()),
-        passed: count(last.iter().filter(|r| passed(r)).count()),
-        since: last.last().map_or_else(String::new, |r| r.ran.clone()),
+        passed: count(last.iter().filter(|day| passed(&day_jobs(day))).count()),
+        since: last
+            .last()
+            .and_then(|day| day.first())
+            .map_or_else(String::new, |r| r.ran.clone()),
     };
     let fuzz_seconds: u64 = records.iter().map(fuzzed_seconds).sum();
     Ok(Some(Snapshot {
         version: SNAPSHOT_VERSION,
         date: today.to_owned(),
-        night: night(newest),
+        night: night(newest, day_jobs(newest_day)),
         nights,
         fuzz_hours: fuzz_seconds / 3600,
     }))
@@ -326,28 +359,30 @@ fn count(n: usize) -> u64 {
     u64::try_from(n).unwrap_or(u64::MAX)
 }
 
-/// Whether every job of the night succeeded. A night with no jobs (a local run) never passes.
-fn passed(record: &Record) -> bool {
-    !record.jobs.is_empty() && record.jobs.values().all(|result| result == "success")
+/// Whether every job succeeded. A night with no jobs (a local run) never passes.
+fn passed(jobs: &BTreeMap<String, String>) -> bool {
+    !jobs.is_empty() && jobs.values().all(|result| result == "success")
 }
 
-/// How long the night fuzzed, over every target: libFuzzer's own count, else the budget.
+/// How long the night fuzzed, over every target, by libFuzzer's own count. A run that printed none
+/// (a crash stops it early) adds nothing, so the total never claims time that wasn't fuzzed.
 fn fuzzed_seconds(record: &Record) -> u64 {
     record
         .fuzz
         .iter()
         .flat_map(BTreeMap::values)
-        .map(|run| run.fuzzed_seconds.unwrap_or(run.seconds))
+        .filter_map(|run| run.fuzzed_seconds)
         .sum()
 }
 
-fn night(record: &Record) -> Night {
+/// The night of `record`, the day's newest run, with `jobs` its day's worst results.
+fn night(record: &Record, jobs: BTreeMap<String, String>) -> Night {
     Night {
         commit: record.commit.clone(),
         ran: record.ran.clone(),
         lamina: record.lamina.clone(),
-        passed: passed(record),
-        jobs: record.jobs.clone(),
+        passed: passed(&jobs),
+        jobs,
         corpus: record.corpus.as_ref().map(corpus),
         differential: record.differential.as_ref().map(differential),
         text: record.text.as_ref().map(|t| Text {
@@ -487,23 +522,7 @@ fn differential(differential: &record::Differential) -> Differential {
 /// Days from `from` to `to` (both `YYYY-MM-DD`), or `None` when either doesn't parse or `to` is
 /// earlier.
 fn days_between(from: &str, to: &str) -> Option<u64> {
-    days(to)?.checked_sub(days(from)?)
-}
-
-/// Days since 1970-01-01 of a `YYYY-MM-DD` date (Howard Hinnant's `days_from_civil`).
-fn days(date: &str) -> Option<u64> {
-    let mut parts = date.splitn(3, '-').map(str::parse::<u64>);
-    let (year, month, day) = (parts.next()?.ok()?, parts.next()?.ok()?, parts.next()?.ok()?);
-    if !(1..=12).contains(&month) || !(1..=31).contains(&day) || year < 1970 {
-        return None;
-    }
-    let year = if month <= 2 { year - 1 } else { year };
-    let era = year / 400;
-    let year_of_era = year - era * 400;
-    let month_index = if month > 2 { month - 3 } else { month + 9 };
-    let day_of_year = (153 * month_index + 2) / 5 + day - 1;
-    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
-    (era * 146_097 + day_of_era).checked_sub(719_468)
+    days_since_epoch(to)?.checked_sub(days_since_epoch(from)?)
 }
 
 #[cfg(test)]

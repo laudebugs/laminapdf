@@ -57,6 +57,25 @@ describe("the licence policy", () => {
     });
   });
 
+  it("reads an entry whatever the order of its keys, and cargo-deny's `crate` spelling", () => {
+    const deny = DENY.replace(
+      '{ name = "selectors", allow = ["MPL-2.0"] }',
+      '{ allow = ["MPL-2.0"], version = "*", name = "selectors" }',
+    ).replace(
+      '{ name = "mupdf", reason = "AGPL-3.0 (ADR 0001, ADR 0019)" }',
+      '{ crate = "mupdf@1.0", reason = "AGPL-3.0" }',
+    );
+    const policy = licencePolicy(CARGO, deny);
+    expect(policy.exceptions[0]?.crates).toEqual(["uniffi", "selectors"]);
+    expect(policy.banned).toEqual([{ name: "mupdf", reason: "AGPL-3.0" }]);
+  });
+
+  it("fails on an entry it can't name", () => {
+    expect(() => licencePolicy(CARGO, DENY.replace('{ name = "uniffi", ', "{ "))).toThrow(
+      "an entry of [licenses] exceptions names no crate",
+    );
+  });
+
   it("fails when a table it needs is missing", () => {
     expect(() => licencePolicy("[workspace]\n", DENY)).toThrow("no [workspace.package] table");
     expect(() => licencePolicy(CARGO, DENY.replace("[bans]", "[other]"))).toThrow("no [bans] table");
@@ -71,8 +90,11 @@ describe("the licence policy", () => {
     const quoted = [...allowList.matchAll(/^\s+"([^"]+)",/gm)].map(([, name]) => name);
     expect(policy.allowed).toEqual(quoted);
     expect(policy.banned.map((ban) => ban.name)).toEqual(["mupdf", "mupdf-sys"]);
-    const exceptionLines = deny.match(/^\s+\{ name = "[^"]+", allow = /gm) ?? [];
-    expect(policy.exceptions.flatMap((e) => e.crates)).toHaveLength(exceptionLines.length);
+    // Every inline table in the exceptions and the bans, counted as `{` in the file's own lines.
+    const inline = (from: string, to: string) =>
+      (deny.slice(deny.indexOf(from), deny.indexOf(to, deny.indexOf(from))).match(/^\s+\{/gm) ?? []).length;
+    expect(policy.exceptions.flatMap((e) => e.crates)).toHaveLength(inline("exceptions = [", "\n]"));
+    expect(policy.banned).toHaveLength(inline("deny = [", "\n]"));
     expect(policy.exceptions.find((e) => e.licence === "MPL-2.0")?.crates).toContain("uniffi");
   });
 });

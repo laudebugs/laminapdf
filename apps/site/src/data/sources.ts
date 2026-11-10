@@ -157,6 +157,27 @@ function array(table: string, key: string): string {
     .join("\n");
 }
 
+/**
+ * The inline tables (`{ name = "…", allow = ["…"] }`) of an array's text, each as its keys and
+ * values, whatever their order: a string value as is, an array of strings as a list.
+ */
+function entries(array: string): Record<string, string | string[]>[] {
+  return [...array.matchAll(/\{([^}]*)\}/g)].map(([, body = ""]) => {
+    const fields: Record<string, string | string[]> = {};
+    for (const [, key = "", text, list] of body.matchAll(/([\w-]+)\s*=\s*(?:"([^"]*)"|\[([^\]]*)\])/g)) {
+      fields[key] = text ?? [...(list ?? "").matchAll(/"([^"]+)"/g)].map(([, item = ""]) => item);
+    }
+    return fields;
+  });
+}
+
+/** A deny.toml entry's crate: its `name`, or its `crate` (cargo-deny's newer spelling, `name@version` allowed). */
+function crateOf(entry: Record<string, string | string[]>, table: string): string {
+  const name = entry.name ?? entry.crate;
+  if (typeof name !== "string") throw new Error(`deny.toml: an entry of ${table} names no crate`);
+  return name.split("@")[0] ?? name;
+}
+
 /** The policy `cargo` and `deny` (the root manifest and `deny.toml`) state. */
 export function licencePolicy(cargo: string = cargoToml, deny: string = denyToml): LicencePolicy {
   const licence = section(cargo, "workspace.package").match(/^license = "([^"]+)"/m)?.[1];
@@ -164,15 +185,18 @@ export function licencePolicy(cargo: string = cargoToml, deny: string = denyToml
   const licences = section(deny, "licenses");
   const allowed = [...array(licences, "allow").matchAll(/"([^"]+)"/g)].map(([, name = ""]) => name);
   const byLicence = new Map<string, string[]>();
-  for (const [, name = "", allow = ""] of array(licences, "exceptions").matchAll(
-    /\{ name = "([^"]+)", allow = \[([^\]]*)\] \}/g,
-  )) {
-    for (const [, id = ""] of allow.matchAll(/"([^"]+)"/g)) byLicence.set(id, [...(byLicence.get(id) ?? []), name]);
+  for (const entry of entries(array(licences, "exceptions"))) {
+    const crate = crateOf(entry, "[licenses] exceptions");
+    const allow = entry.allow;
+    if (!Array.isArray(allow) || allow.length === 0)
+      throw new Error(`deny.toml: the exception for ${crate} allows nothing`);
+    for (const id of allow) byLicence.set(id, [...(byLicence.get(id) ?? []), crate]);
   }
   const exceptions = [...byLicence].map(([id, crates]) => ({ licence: id, crates }));
-  const banned = [...array(section(deny, "bans"), "deny").matchAll(/\{ name = "([^"]+)", reason = "([^"]+)" \}/g)].map(
-    ([, name = "", reason = ""]) => ({ name, reason }),
-  );
+  const banned = entries(array(section(deny, "bans"), "deny")).map((entry) => ({
+    name: crateOf(entry, "[bans] deny"),
+    reason: typeof entry.reason === "string" ? entry.reason : "",
+  }));
   if (allowed.length === 0 || banned.length === 0) throw new Error("deny.toml: no allowed licences or no bans");
   return { licence, allowed, exceptions, banned };
 }

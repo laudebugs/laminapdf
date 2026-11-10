@@ -123,11 +123,12 @@ export function missing(night: Night, section: keyof typeof SECTION_JOBS): strin
 }
 
 /**
- * The warning a present `section` carries when its job didn't succeed (the report it read may be
- * partial), or `undefined` when the job succeeded.
+ * The warning a present `section` carries when its job didn't succeed on some run that night (the
+ * figure is from the night's last run), or `undefined` when it succeeded.
  */
 export function partial(night: Night, section: keyof typeof SECTION_JOBS): string | undefined {
   const job = SECTION_JOBS[section];
   const result = night.jobs[job];
-  return result === undefined || result === "success" ? undefined : HOW_WE_TEST.missing.partial(jobName(job));
+  if (result === undefined || result === "success") return undefined;
+  return HOW_WE_TEST.missing.partial(jobName(job), HOW_WE_TEST.missing.results[result] ?? result);
 }

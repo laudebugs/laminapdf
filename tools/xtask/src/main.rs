@@ -405,7 +405,7 @@ fn main() -> Result<()> {
         }
         ("todos", []) => todos::run(&ws.root, false),
         ("todos", [flag]) if flag == "--check" => todos::run(&ws.root, true),
-        ("progress", args) => progress::run(&ws.root, progress::offline(args)?),
+        ("progress", args) => progress::run(&ws.root, progress::offline(args, "progress")?),
         ("capabilities", []) => capabilities::run(&ws.root, false),
         ("capabilities", [flag]) if flag == "--check" => capabilities::run(&ws.root, true),
         ("golden", []) => harness::golden(&ws, false),
@@ -437,7 +437,7 @@ fn main() -> Result<()> {
         ("viewer-perf", args) => viewer_perf::run(&ws, &viewer_perf::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("proof", [sub, rest @ ..]) if sub == "snapshot" => {
-            proof::snapshot::run(&ws.root, proof::snapshot::offline(rest)?)
+            proof::snapshot::run(&ws.root, progress::offline(rest, "proof snapshot")?)
         }
         ("proof", args) => proof::run(&ws, &proof::parse_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),

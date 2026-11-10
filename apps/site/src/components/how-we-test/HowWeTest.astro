@@ -41,6 +41,16 @@ const related = [
     .filter((page) => routes.has(`/${page}/`))
     .map((page) => ({ href: `/${page}/`, text: COPY.related[page] })),
 ];
+// Each section's warning when its job failed on a run that night but left a report.
+const notes = {
+  corpus: night.corpus && partial(night, "corpus"),
+  text: night.text && partial(night, "text"),
+  fuzz: night.fuzz && partial(night, "fuzz"),
+  roundtrip: night.roundtrip && partial(night, "roundtrip"),
+  runtimes: night.runtimes && partial(night, "runtimes"),
+  verapdf: night.verapdf && partial(night, "verapdf"),
+  render: night.render && partial(night, "render"),
+};
 const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n, s) => n + s.errors, 0) : 0;
 ---
 
@@ -52,7 +62,11 @@ const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n
     <p>
       {COPY.night.ran} <DateText date={night.ran} /> and tested version {night.lamina}, commit{" "}
       <code>{shortCommit(night.commit)}</code>.{" "}
-      {night.passed ? COPY.night.passedAll : `${COPY.night.failed} ${failed.join(", ")}.`}
+      {night.passed
+        ? COPY.night.passedAll
+        : failed.length === 0
+          ? COPY.night.noJobs
+          : `${COPY.night.failed} ${failed.join(", ")}.`}
     </p>
     <p>
       {COPY.night.lastNights(proof.nights.passed, proof.nights.recorded)} <DateText date={proof.nights.since} />.
@@ -93,6 +107,7 @@ const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n
           <p>{COPY.files.opened}</p>
           <p>{totalErrors === 0 ? COPY.files.noErrors : COPY.files.errors(totalErrors)}</p>
           {!night.corpus.complete && <p class="proof-missing">{COPY.files.incomplete}</p>}
+          {notes.corpus && <p class="proof-missing">{notes.corpus}</p>}
         </>
       )
     }
@@ -166,6 +181,7 @@ const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n
         </div>
       )
     }
+    {!notes.corpus && notes.text && <p class="proof-missing">{notes.text}</p>}
   </section>
 
   <section aria-labelledby="fuzzing">
@@ -182,6 +198,7 @@ const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n
         </p>
       )
     }
+    {notes.fuzz && <p class="proof-missing">{notes.fuzz}</p>}
     <p>{COPY.fuzzing.total(proof.fuzzHours)}</p>
   </section>
 
@@ -201,6 +218,7 @@ const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n
               </li>
             ))}
           </ul>
+          {notes.roundtrip && <p class="proof-missing">{notes.roundtrip}</p>}
         </>
       )
     }
@@ -219,6 +237,7 @@ const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n
               {[...night.runtimes.failed, ...night.runtimes.missing].map(runtimeName).join(", ")}.
             </p>
           )}
+          {notes.runtimes && <p class="proof-missing">{notes.runtimes}</p>}
         </>
       )
     }
@@ -256,6 +275,7 @@ const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n
         </div>
       )
     }
+    {notes.verapdf && <p class="proof-missing">{notes.verapdf}</p>}
   </section>
 
   <section aria-labelledby="rendering">
@@ -292,7 +312,7 @@ const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n
               </tbody>
             </table>
           </div>
-          {partial(night, "render") && <p class="proof-missing">{partial(night, "render")}</p>}
+          {notes.render && <p class="proof-missing">{notes.render}</p>}
         </>
       )
     }
