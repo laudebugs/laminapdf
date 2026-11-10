@@ -18,6 +18,7 @@ pub fn exercise(doc: &Document) -> usize {
         pages(doc),
         outline(doc),
         info(doc),
+        doc.xmp().map(drop),
         name_trees(doc),
         doc.page_labels().map(drop),
     ]

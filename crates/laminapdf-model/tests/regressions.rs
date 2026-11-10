@@ -11,7 +11,7 @@
 mod common;
 
 use common::fixtures_dir;
-use common::fuzz_entry::{FLATE_SEED_PARAMS, TARGETS, flate, page_tree, wrap_page_tree};
+use common::fuzz_entry::{FLATE_SEED_PARAMS, TARGETS, flate, page_tree, wrap_page_tree, xmp_parse};
 
 #[test]
 fn every_saved_crash_input_replays_without_a_panic() {
@@ -65,4 +65,11 @@ fn a_flate_seed_is_a_stream_followed_by_parameters() {
     let mut seed = laminapdf_syntax::filters::flate_encode(b"hello");
     seed.extend(FLATE_SEED_PARAMS);
     flate(&seed);
+}
+
+#[test]
+fn the_xmp_entry_accepts_every_golden_packet() {
+    for entry in std::fs::read_dir(fixtures_dir().join("golden/xmp")).unwrap() {
+        xmp_parse(&std::fs::read(entry.unwrap().path()).unwrap());
+    }
 }

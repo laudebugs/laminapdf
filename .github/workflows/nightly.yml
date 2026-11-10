@@ -215,6 +215,7 @@ jobs:
             extract_text,
             extract,
             markdown,
+            xmp_parse,
           ]
     env:
       TARGET: ${{ matrix.target }}
