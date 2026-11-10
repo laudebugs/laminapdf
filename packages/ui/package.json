@@ -20,6 +20,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./dialogs": {
+      "types": "./dist/dialogs.d.ts",
+      "default": "./dist/dialogs.js"
+    },
     "./testing": "./test/testing.ts",
     "./styles.css": "./src/styles/index.css",
     "./package.json": "./package.json"

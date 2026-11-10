@@ -140,7 +140,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Notice, Toast, ProgressBar, Skeleton, EmptyState, StatusBarItem, NetworkIndicator, RepairedNotice, PageLabel,
 │                        #   Thumbnail, OutlineRow, ShortcutChip), src/overlays/ (the layer stack behind Escape, Dialog, Popover and
 │                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue, BottomSheet, SelectionToolbar,
-│                        #   CommandPalette; z-order from --paper-z-*), src/platform/ (ADR 0010: the Platform interface and capability
+│                        #   CommandPalette; z-order from --paper-z-*), src/dialogs.ts (the ./dialogs entry: PrintDialog, PrintProgressDialog,
+│                        #   PropertiesDialog, which the web reader loads once a document opens, issue #380), src/platform/ (ADR 0010: the Platform interface and capability
 │                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files;
 │                        #   T5b: Platform.positions, positions.ts: the `positions` store of `lamina-pdf` v2, 500 by `readAt`; idb.ts opens
 │                        #   the database once; recent.reopen(id, { ask: false })),

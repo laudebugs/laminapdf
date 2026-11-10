@@ -26,9 +26,6 @@ import {
   PhoneBottomBar,
   Popover,
   PopoverTrigger,
-  PrintDialog,
-  PrintProgressDialog,
-  PropertiesDialog,
   ReaderController,
   ReaderShell,
   registerReaderCommands,
@@ -48,6 +45,7 @@ import {
   useSettingsSection,
   ViewSettingsButton,
 } from "@laminapdf/ui";
+import { PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
 

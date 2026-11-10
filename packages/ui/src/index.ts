@@ -250,14 +250,6 @@ export {
 } from "./reader/page-appearance.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
 export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
-export {
-  type PrintChoice,
-  PrintDialog,
-  type PrintDialogProps,
-  type PrintPermissions,
-  PrintProgressDialog,
-  type PrintProgressDialogProps,
-} from "./reader/print-dialog.js";
 export { type PrintPagesResult, parsePrintPages } from "./reader/print-pages.js";
 export {
   type DocumentPropertiesData,
@@ -271,11 +263,6 @@ export {
   readXmp,
   type XmpFields,
 } from "./reader/properties.js";
-export {
-  PropertiesDialog,
-  type PropertiesDialogProps,
-  type PropertiesState,
-} from "./reader/properties-dialog.js";
 export {
   DEFAULT_READER_SETTINGS,
   isCropBlock,
