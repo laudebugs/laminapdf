@@ -97,9 +97,10 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 - **Ships:** edit session, dirty state, undo/redo UI and history panel, Save / Save as / Download copy, `SaveConstraint` banner, capability matrix page in the app. First user-visible write ops from group J: title, author, subject, keywords (J.01), creation/modification dates (J.02), producer and creator (J.03), remove selected metadata (J.10). Every metadata op writes the Info dictionary and the XMP packet together ([04 §5](../research/pdf/04-interactive-security.md#5-metadata): `dc:`, `pdf:` and `xmp:` properties, plus `xmp:MetadataDate` and `xmpMM:InstanceID` on save); a file without XMP gets a new packet. Files that claim PDF/A (`pdfaid:` schema) keep their identification schema and the edit is checked against the claim, with a warning before saving if it would break it (§5 requirement 4). For PDF 2.0 files XMP is authoritative and Info keeps only what 2.0 still allows. The general XMP editor (custom and extension schemas, J.04) stays in E3.
 - **Crates:** `laminapdf-ops`, `laminapdf-save`, `laminapdf-model` (XMP packet parse and update for the Info-mapped properties, sharing the writer from library B5).
-- **Save:** `Free` → incremental by default. Signed files are `AppendOnly`; metadata edits are allowed only as incremental updates.
+- **Save:** `Free` → incremental by default. Files with approval signatures or locks are `AppendOnly`, and metadata edits on them are saved as incremental updates. On certified files (DocMDP P1–P3) a metadata edit is a conflict, since no certification level allows it, and saves only through the override that removes the signatures, after a confirmation ([E1 plan §7](editor/e1-editing-foundation.md#7-saving-and-the-save-constraint)).
 - **Web vs desktop:** desktop saves in place and watches for external changes; web saves in place only where the File System Access API exists, otherwise downloads a copy.
-- **Todos:** [E1a](../todos/ready/E1a-editing-foundation-feature-plan.md) feature plan · [E1b](../todos/ready/E1b-xmp-packet-model.md) XMP packet parse and update for Info-mapped properties · [E1c](../todos/ready/E1c-metadata-ops.md) Metadata ops: Info and XMP in sync (J.01–J.03, J.10) · [E1d](../todos/ready/E1d-edit-session-undo-ui.md) Edit session, interaction modes, undo/redo UI and history panel · [E1e](../todos/ready/E1e-save-and-constraint-banner.md) Save, Save as, Download copy and the SaveConstraint banner · [E1f](../todos/ready/E1f-metadata-ui-capability-page.md) Metadata editor UI and in-app capability-matrix page.
+- **Plan:** [E1 editing foundation](editor/e1-editing-foundation.md).
+- **Todos:** [E1a](../todos/done/E1a-editing-foundation-feature-plan.md) feature plan · [E1b](../todos/ready/E1b-xmp-packet-model.md) XMP packet parse and update for Info-mapped properties · [E1c](../todos/ready/E1c-metadata-ops.md) Metadata ops: Info and XMP in sync (J.01–J.03, J.10) · [E1d](../todos/ready/E1d-edit-session-undo-ui.md) Edit session, interaction modes, undo/redo UI and history panel · [E1e](../todos/ready/E1e-save-and-constraint-banner.md) Save, Save as, Download copy and the SaveConstraint banner · [E1f](../todos/ready/E1f-metadata-ui-capability-page.md) Metadata editor UI and in-app capability-matrix page · [E1g](../todos/ready/E1g-redraw-after-edit.md) Redraw after an edit · [E1h](../todos/ready/E1h-desktop-edit-session.md) Desktop edit session, Edit menu and close guard · [E1i](../todos/ready/E1i-desktop-save-in-place.md) Desktop save in place and outside changes.
 
 #### E2. Page organisation
 
@@ -297,7 +298,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Show the capability matrix in the app (E1) and docs site (the generated page is [`docs/capabilities/`](../capabilities/README.md))
 
 ### E1. Editing foundation
-- [ ] Feature-plan PR for E1
+- [x] Feature-plan PR for E1 ([E1a](../todos/done/E1a-editing-foundation-feature-plan.md), [plan](editor/e1-editing-foundation.md))
 - [ ] Interaction-mode state machine in `@laminapdf/ui`
 - [ ] Undo/redo commands, shortcuts and history panel
 - [ ] Save, Save as and Download copy through the `Platform` adapter
