@@ -4,9 +4,7 @@
 //! The packet is deterministic: one `rdf:Description` with the namespaces in a fixed order,
 //! properties in a fixed order, values escaped for XML, no padding.
 
-use std::fmt::Write as _;
-
-use laminapdf_model::PdfDate;
+use laminapdf_model::xmp::{MAPPINGS, MappedField, Value, property_element};
 
 use super::info::Metadata;
 use crate::profile::Conformance;
@@ -40,50 +38,6 @@ const PDFUA_EXTENSION: &str = "  <rdf:Description rdf:about=\"\" \
   </rdf:Description>
 ";
 
-/// `&`, `<`, `>` and `"` escaped; tab, line feed and carriage return as character references;
-/// other characters XML 1.0 can't hold (C0 controls, U+FFFE, U+FFFF) are left out.
-pub(crate) fn escape(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    for ch in text.chars() {
-        match ch {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
-            '\t' => out.push_str("&#x9;"),
-            '\n' => out.push_str("&#xA;"),
-            '\r' => out.push_str("&#xD;"),
-            c if super::info::not_xml(c) => {}
-            _ => out.push(ch),
-        }
-    }
-    out
-}
-
-/// A date as XMP writes it (ISO 8601): `2026-10-29T12:00:00Z`, `…+01:00`, or no zone when
-/// the PDF date gives none.
-pub(crate) fn date(d: &PdfDate) -> String {
-    let mut s = format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
-        d.year(),
-        d.month(),
-        d.day(),
-        d.hour(),
-        d.minute(),
-        d.second()
-    );
-    match d.utc_offset_minutes() {
-        None => {}
-        Some(0) => s.push('Z'),
-        Some(m) => {
-            let sign = if m < 0 { '-' } else { '+' };
-            let m = m.unsigned_abs();
-            let _ = write!(s, "{sign}{:02}:{:02}", m / 60, m % 60);
-        }
-    }
-    s
-}
-
 /// The packet: `<?xpacket … ?>` around `x:xmpmeta`, UTF-8, with the profiles'
 /// identification (`pdfaid:part` and `pdfaid:conformance`, ISO 19005-2 §6.6.4; `pdfuaid:part`,
 /// ISO 14289-1 §5) when there are any.
@@ -95,39 +49,22 @@ pub(crate) fn packet(meta: &Metadata, conformance: Conformance) -> String {
         body.push('\n');
     };
     line("<dc:format>application/pdf</dc:format>");
-    if let Some(title) = &meta.title {
-        line(&format!(
-            "<dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">{}</rdf:li></rdf:Alt></dc:title>",
-            escape(title)
-        ));
-    }
-    if let Some(author) = &meta.author {
-        line(&format!(
-            "<dc:creator><rdf:Seq><rdf:li>{}</rdf:li></rdf:Seq></dc:creator>",
-            escape(author)
-        ));
-    }
-    if let Some(subject) = &meta.subject {
-        line(&format!(
-            "<dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">{}</rdf:li></rdf:Alt></dc:description>",
-            escape(subject)
-        ));
-    }
-    for (tag, value) in [
-        ("pdf:Keywords", &meta.keywords),
-        ("pdf:Producer", &meta.producer),
-        ("xmp:CreatorTool", &meta.creator),
-    ] {
-        if let Some(v) = value {
-            line(&format!("<{tag}>{}</{tag}>", escape(v)));
-        }
-    }
-    for (tag, value) in [
-        ("xmp:CreateDate", &meta.creation_date),
-        ("xmp:ModifyDate", &meta.mod_date),
-    ] {
-        if let Some(d) = value {
-            line(&format!("<{tag}>{}</{tag}>", date(d)));
+    // The fields in the shared table's order, each written as the editor writes it.
+    for mapping in &MAPPINGS {
+        let value = match mapping.field {
+            MappedField::Title => meta.title.clone().map(Value::Text),
+            MappedField::Authors => meta.author.clone().map(|a| Value::List(vec![a])),
+            MappedField::Subject => meta.subject.clone().map(Value::Text),
+            MappedField::Keywords => meta.keywords.clone().map(Value::Text),
+            MappedField::Producer => meta.producer.clone().map(Value::Text),
+            MappedField::Creator => meta.creator.clone().map(Value::Text),
+            MappedField::Created => meta.creation_date.map(Value::Date),
+            MappedField::Modified => meta.mod_date.map(Value::Date),
+            // Not part of `Metadata`: the editor stamps them (E1 plan §2).
+            _ => None,
+        };
+        if let Some(value) = value {
+            line(&property_element(mapping, &value));
         }
     }
     let mut namespaces = String::new();
@@ -167,24 +104,6 @@ pub(crate) fn packet(meta: &Metadata, conformance: Conformance) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn values_are_escaped() {
-        assert_eq!(escape("a<b & \"c\">\u{1}\n"), "a&lt;b &amp; &quot;c&quot;&gt;&#xA;");
-    }
-
-    #[test]
-    fn dates_carry_their_zone() {
-        let d = |s: &str| date(&s.parse().unwrap());
-        assert_eq!(
-            [d("D:20261029120000Z"), d("D:20261029120000-05'30'"), d("D:2026")],
-            [
-                "2026-10-29T12:00:00Z",
-                "2026-10-29T12:00:00-05:30",
-                "2026-01-01T00:00:00"
-            ]
-        );
-    }
 
     #[test]
     fn the_packet_holds_every_value_once() {
