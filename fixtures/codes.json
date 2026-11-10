@@ -139,6 +139,13 @@
       "since": "0.1.0"
     },
     {
+      "code": "xmp-invalid",
+      "kind": "input",
+      "summary": "the XMP metadata packet is not readable XMP and reads as absent",
+      "hint": "nothing to do when reading; an edit that writes metadata replaces the packet only after asking",
+      "since": "0.2.0"
+    },
+    {
       "code": "invalid-page-label",
       "kind": "input",
       "summary": "a /PageLabels entry is malformed; the malformed part is dropped",

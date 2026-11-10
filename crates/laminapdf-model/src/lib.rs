@@ -43,6 +43,9 @@
 //!   to [`PageId`]s, action kinds.
 //! * [`Info`]: the information dictionary, with dates as [`PdfDate`].
 //! * [`Disclosure`]: what a document holds beyond its visible pages ([`Document::disclosure`]).
+//! * [`xmp`]: the XMP metadata packet ([`Document::xmp`]): a tolerant reader, typed access to
+//!   the properties Info mirrors, the Info ↔ XMP mapping table, and a writer that keeps every
+//!   property it doesn't change.
 //! * [`NameTree`] / [`NumberTree`] and [`PageLabels`].
 //! * [`StructTree`] / [`StructElem`]: a minimal read-only view of the logical structure
 //!   (types, attributes, MCIDs and `OBJR`s per element, the `RoleMap`).
@@ -81,6 +84,7 @@ mod page;
 mod structure;
 mod tree;
 mod values;
+pub mod xmp;
 
 pub use date::{InvalidDate, PdfDate};
 pub use disclosure::{

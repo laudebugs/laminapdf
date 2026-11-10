@@ -856,6 +856,8 @@ pub enum WarningCode {
     OutlineItemSkipped,
     /// `invalid-date`: an Info date is not a valid PDF date; the raw string is kept.
     InvalidDate,
+    /// `xmp-invalid`: the XMP metadata packet is not readable XMP and reads as absent.
+    XmpInvalid,
     /// `invalid-page-label`: a /PageLabels entry is malformed; the malformed part is dropped.
     InvalidPageLabel,
     /// `invalid-entry`: an entry a view reads is unreadable or of the wrong type and reads as absent.
@@ -942,6 +944,7 @@ impl WarningCode {
         Self::OutlineCycle,
         Self::OutlineItemSkipped,
         Self::InvalidDate,
+        Self::XmpInvalid,
         Self::InvalidPageLabel,
         Self::InvalidEntry,
         Self::ContentUnknownOperator,
@@ -1011,6 +1014,7 @@ impl WarningCode {
             Self::OutlineCycle => "outline-cycle",
             Self::OutlineItemSkipped => "outline-item-skipped",
             Self::InvalidDate => "invalid-date",
+            Self::XmpInvalid => "xmp-invalid",
             Self::InvalidPageLabel => "invalid-page-label",
             Self::InvalidEntry => "invalid-entry",
             Self::ContentUnknownOperator => "content-unknown-operator",
@@ -1068,6 +1072,7 @@ impl WarningCode {
             Self::OutlineCycle => ErrorKind::Input,
             Self::OutlineItemSkipped => ErrorKind::Input,
             Self::InvalidDate => ErrorKind::Input,
+            Self::XmpInvalid => ErrorKind::Input,
             Self::InvalidPageLabel => ErrorKind::Input,
             Self::InvalidEntry => ErrorKind::Input,
             Self::ContentUnknownOperator => ErrorKind::Input,
@@ -1125,6 +1130,7 @@ impl WarningCode {
             Self::OutlineCycle => "an outline item was reached twice; that branch of the walk stopped",
             Self::OutlineItemSkipped => "an outline item was missing, not a dictionary or too deep, and was skipped with its subtree",
             Self::InvalidDate => "an Info date is not a valid PDF date; the raw string is kept",
+            Self::XmpInvalid => "the XMP metadata packet is not readable XMP and reads as absent",
             Self::InvalidPageLabel => "a /PageLabels entry is malformed; the malformed part is dropped",
             Self::InvalidEntry => "an entry a view reads is unreadable or of the wrong type and reads as absent",
             Self::ContentUnknownOperator => "an operator the spec does not define was skipped outside a BX/EX section",
@@ -1182,6 +1188,7 @@ impl WarningCode {
             Self::OutlineCycle => "nothing to do; the outline is read without the loop",
             Self::OutlineItemSkipped => "check the outline: the skipped item and its children are missing",
             Self::InvalidDate => "read the raw value from the Info view if you need it",
+            Self::XmpInvalid => "nothing to do when reading; an edit that writes metadata replaces the packet only after asking",
             Self::InvalidPageLabel => "nothing to do; affected pages fall back to decimal labels",
             Self::InvalidEntry => "nothing to do; the view uses the entry's default",
             Self::ContentUnknownOperator => "nothing to do; check the page's rendering if the operator mattered",

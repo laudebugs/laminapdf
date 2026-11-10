@@ -21,6 +21,7 @@ layer = "core"
 [dependencies]
 laminapdf-cos = { workspace = true }
 laminapdf-syntax = { workspace = true }
+quick-xml = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

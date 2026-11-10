@@ -285,6 +285,7 @@ fn cos_warning(w: laminapdf_cos::Warning) -> Data {
             data([("key", json!(key))])
         }
         W::InvalidPageLabel { start } => data([("start", json!(start))]),
+        W::XmpInvalid { offset, reason, .. } => data([("offset", json!(offset)), ("reason", json!(reason))]),
         W::ContentResourceMissing { offset, category, .. } => {
             data([("offset", json!(offset)), ("category", json!(category))])
         }

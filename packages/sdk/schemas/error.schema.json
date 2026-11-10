@@ -238,6 +238,7 @@
             "outline-cycle",
             "outline-item-skipped",
             "invalid-date",
+            "xmp-invalid",
             "invalid-page-label",
             "invalid-entry",
             "content-unknown-operator",

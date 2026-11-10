@@ -1,0 +1,38 @@
+# `xmp-invalid`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The document's XMP metadata packet (the catalog's `/Metadata` stream, ISO 32000-2 §14.3.2) isn't readable XMP, so it is treated as absent. The packet may not be well-formed XML. It may declare a DTD, which XMP doesn't allow, or refer to an entity other than XML's five predefined ones. It may use a prefix it never declares, nest elements more than 64 deep, or have no `rdf:RDF` element. Lamina PDF never expands entities, so a packet built to make a reader fetch files or fill its memory is refused.
+
+## Why
+
+A producer bug, a damaged or truncated stream, or a packet written by hand. A DTD in a packet is also the shape of an attack on XML readers.
+
+## How to fix
+
+Nothing to do when reading: the title, authors and dates still come from the Info dictionary. An edit that writes metadata asks before it replaces the packet, since whatever the packet held is lost when it is replaced. Regenerating the file with a current producer writes a valid packet.
+
+## Example
+
+```text
+<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<!DOCTYPE x [ <!ENTITY e SYSTEM "file:///etc/passwd"> ]>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">…</x:xmpmeta>
+```
+
+The packet declares a DTD, so it is refused at the `<!DOCTYPE`; `data` is `{ "offset": 51, "reason": "dtd" }`.
+
+## Data fields
+
+`offset` (about where in the decoded packet reading stopped; 0 when no one place is at fault) and `reason` (`encoding`, `dtd`, `entity`, `prefix`, `depth`, `syntax` or `no-rdf`).
+
+The `location` is the metadata stream's `object` with the `offset` in its decoded data; none for a direct stream.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E1b](../todos/ongoing/E1b-xmp-packet-model.md): the XMP packet model

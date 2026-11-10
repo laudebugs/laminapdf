@@ -1,6 +1,6 @@
 //! PDF dates (ISO 32000-2 §7.9.4): `D:YYYYMMDDHHmmSSOHH'mm`.
 
-use std::fmt;
+use std::fmt::{self, Write as _};
 use std::str::FromStr;
 
 /// A date as written in a PDF (§7.9.4), e.g. `D:20261028143000+01'00`.
@@ -171,12 +171,21 @@ impl FromStr for PdfDate {
         }
         let [month, day, hour, minute, second] = fields;
         let offset = parse_offset(rest)?;
+        Self::checked([month, day, hour, minute, second], year, offset)
+    }
+}
+
+impl PdfDate {
+    /// The date from its fields (`[month, day, hour, minute, second]`), when they name one.
+    fn checked(fields: [u8; 5], year: u16, offset: Option<i16>) -> Result<Self, InvalidDate> {
+        let [month, day, hour, minute, second] = fields;
         let valid = (1..=12).contains(&month)
             && day >= 1
             && day <= days_in_month(year, month)
             && hour < 24
             && minute < 60
-            && second < 60;
+            && second < 60
+            && offset.is_none_or(|m| m.unsigned_abs() < 24 * 60);
         if !valid {
             return Err(InvalidDate);
         }
@@ -189,6 +198,116 @@ impl FromStr for PdfDate {
             second,
             offset,
         })
+    }
+
+    /// The date as XMP writes it (ISO 8601, ISO 16684-1 §8.2.1.1): `2026-10-28T14:30:00+01:00`,
+    /// `…Z` for UTC, and no zone when the PDF date gives none.
+    ///
+    /// ```
+    /// use laminapdf_model::PdfDate;
+    ///
+    /// let date: PdfDate = "D:20261028143000+01'00".parse()?;
+    /// assert_eq!(date.to_iso8601(), "2026-10-28T14:30:00+01:00");
+    /// # Ok::<(), laminapdf_model::InvalidDate>(())
+    /// ```
+    #[must_use]
+    pub fn to_iso8601(&self) -> String {
+        let mut s = format!(
+            "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
+            self.year, self.month, self.day, self.hour, self.minute, self.second
+        );
+        match self.offset {
+            None => {}
+            Some(0) => s.push('Z'),
+            Some(m) => {
+                let sign = if m < 0 { '-' } else { '+' };
+                let m = m.unsigned_abs();
+                // Writing to a String can't fail.
+                let _ = write!(s, "{sign}{:02}:{:02}", m / 60, m % 60);
+            }
+        }
+        s
+    }
+
+    /// Reads an XMP date (ISO 8601 as ISO 16684-1 §8.2.1.1 restricts it): `YYYY`, `YYYY-MM`,
+    /// `YYYY-MM-DD`, then optionally `Thh:mm`, `:ss` and a fraction (dropped: a PDF date counts
+    /// whole seconds), and a zone (`Z`, `+hh:mm`, `-hh:mm`) or none. Surrounding whitespace
+    /// is ignored.
+    ///
+    /// ```
+    /// use laminapdf_model::PdfDate;
+    ///
+    /// let date = PdfDate::from_iso8601("2026-10-28T14:30+01:00")?;
+    /// assert_eq!(date, "D:20261028143000+01'00".parse()?);
+    /// # Ok::<(), laminapdf_model::InvalidDate>(())
+    /// ```
+    ///
+    /// # Errors
+    /// [`InvalidDate`] when `s` is not such a date or names no real day or time.
+    pub fn from_iso8601(s: &str) -> Result<Self, InvalidDate> {
+        let mut rest = s.trim().as_bytes();
+        let year = digits(&mut rest, 4).ok_or(InvalidDate)?;
+        let mut fields = [1u8, 1, 0, 0, 0];
+        let mut parts = 0;
+        // Date parts after `-`, the time after `T`, its parts after `:`.
+        for (slot, separator) in fields.iter_mut().zip(*b"--T::") {
+            let Some(rest_after) = rest.strip_prefix(&[separator]) else {
+                break;
+            };
+            rest = rest_after;
+            *slot = digits(&mut rest, 2)
+                .and_then(|v| u8::try_from(v).ok())
+                .ok_or(InvalidDate)?;
+            parts += 1;
+        }
+        // A time gives at least hours and minutes.
+        if parts == 3 {
+            return Err(InvalidDate);
+        }
+        if let Some(fraction) = rest.strip_prefix(b".") {
+            let digits_len = fraction.iter().take_while(|b| b.is_ascii_digit()).count();
+            if digits_len == 0 {
+                return Err(InvalidDate);
+            }
+            rest = fraction.get(digits_len..).unwrap_or_default();
+        }
+        let offset = match rest {
+            b"" => None,
+            b"Z" => Some(0),
+            [sign @ (b'+' | b'-'), zone @ ..] => {
+                let mut zone = zone;
+                let hours = digits(&mut zone, 2).ok_or(InvalidDate)?;
+                zone = zone.strip_prefix(b":").ok_or(InvalidDate)?;
+                let minutes = digits(&mut zone, 2).ok_or(InvalidDate)?;
+                if !zone.is_empty() || hours > 23 || minutes > 59 {
+                    return Err(InvalidDate);
+                }
+                let total = i16::try_from(hours * 60 + minutes).map_err(|_| InvalidDate)?;
+                Some(if *sign == b'-' { -total } else { total })
+            }
+            _ => return Err(InvalidDate),
+        };
+        Self::checked(fields, year, offset)
+    }
+
+    /// The date as ISO 32000-1 §7.9.4's grammar writes it: `D:20261028143000+01'00`, with no
+    /// apostrophe after the minutes. [`Display`](fmt::Display) keeps the trailing apostrophe of
+    /// Adobe's PDF Reference, which the files Lamina PDF already builds carry.
+    ///
+    /// ```
+    /// use laminapdf_model::PdfDate;
+    ///
+    /// let date: PdfDate = "D:20261028143000+01'00'".parse()?;
+    /// assert_eq!(date.to_pdf_string(), "D:20261028143000+01'00");
+    /// # Ok::<(), laminapdf_model::InvalidDate>(())
+    /// ```
+    #[must_use]
+    pub fn to_pdf_string(&self) -> String {
+        let mut s = self.to_string();
+        if self.offset.is_some_and(|m| m != 0) {
+            s.pop();
+        }
+        s
     }
 }
 
@@ -348,6 +467,103 @@ mod tests {
         let a = parse("D:20240228Z").unwrap();
         let b = parse("D:20240301Z").unwrap();
         assert_eq!(b.instant() - a.instant(), 2 * 86_400);
+    }
+
+    #[test]
+    fn the_legacy_trailing_apostrophe_names_the_same_instant() {
+        let strict = parse("D:20261028143000+01'00").unwrap();
+        let legacy = parse("D:20261028143000+01'00'").unwrap();
+        assert_eq!(
+            (strict == legacy, strict.cmp(&legacy)),
+            (true, std::cmp::Ordering::Equal)
+        );
+    }
+
+    #[test]
+    fn the_strict_form_has_no_apostrophe_after_the_minutes() {
+        let written: Vec<_> = [
+            "D:20261028143000+01'00'",
+            "D:20261028143000Z",
+            "D:20261028143000-03'30",
+            "D:2026",
+        ]
+        .into_iter()
+        .map(|s| parse(s).unwrap().to_pdf_string())
+        .collect();
+        assert_eq!(
+            written,
+            [
+                "D:20261028143000+01'00",
+                "D:20261028143000Z",
+                "D:20261028143000-03'30",
+                "D:20260101000000"
+            ]
+        );
+    }
+
+    #[test]
+    fn iso_dates_carry_their_zone() {
+        let d = |s: &str| parse(s).unwrap().to_iso8601();
+        assert_eq!(
+            [d("D:20261029120000Z"), d("D:20261029120000-05'30'"), d("D:2026")],
+            [
+                "2026-10-29T12:00:00Z",
+                "2026-10-29T12:00:00-05:30",
+                "2026-01-01T00:00:00"
+            ]
+        );
+    }
+
+    #[test]
+    fn iso_dates_may_be_truncated_or_carry_a_fraction() {
+        let iso = |s: &str| PdfDate::from_iso8601(s).ok().map(|d| d.to_string());
+        assert_eq!(
+            [
+                iso("2026"),
+                iso("2026-10"),
+                iso("2026-10-28"),
+                iso("2026-10-28T14:30Z"),
+                iso("2026-10-28T14:30:15.250+01:00"),
+                iso(" 2026-10-28T14:30:15-08:00 "),
+            ],
+            [
+                Some("D:20260101000000".to_owned()),
+                Some("D:20261001000000".to_owned()),
+                Some("D:20261028000000".to_owned()),
+                Some("D:20261028143000Z".to_owned()),
+                Some("D:20261028143015+01'00'".to_owned()),
+                Some("D:20261028143015-08'00'".to_owned()),
+            ]
+        );
+    }
+
+    #[test]
+    fn iso_dates_round_trip_through_pdf_dates() {
+        for s in [
+            "2026-10-28T14:30:00+01:00",
+            "2000-02-29T00:00:00Z",
+            "1999-12-31T23:59:59",
+        ] {
+            assert_eq!(PdfDate::from_iso8601(s).unwrap().to_iso8601(), s);
+        }
+    }
+
+    #[test]
+    fn malformed_iso_dates_are_rejected() {
+        for s in [
+            "",
+            "26-10-28",
+            "2026-13-01",
+            "2026-02-30",
+            "2026-10-28T24:00Z",
+            "2026-10-28T14",
+            "2026-10-28T14:30+0100",
+            "2026-10-28T14:30:00.Z",
+            "2026-10-28T14:30:00+01:00x",
+            "2026/10/28",
+        ] {
+            assert!(PdfDate::from_iso8601(s).is_err(), "{s}");
+        }
     }
 
     #[test]
