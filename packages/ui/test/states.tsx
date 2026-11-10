@@ -707,6 +707,39 @@ const repairs: Example[] = [
     ),
   },
   {
+    component: "RecentList",
+    state: "continue reading",
+    element: () => {
+      const report = {
+        id: "a",
+        name: "Q3-board-report.pdf",
+        size: 1_262_480,
+        lastOpened: 1_793_000_000_000,
+        pages: 24,
+      };
+      return (
+        <RecentList
+          entries={[
+            report,
+            {
+              id: "b",
+              name: "Tenant-survey-2026.pdf",
+              size: 412_000,
+              lastOpened: 1_792_900_000_000,
+              pages: 6,
+              hasHandle: true,
+            },
+          ]}
+          stoppedAt={new Map([["b", 3]])}
+          continueReading={{ entry: report, page: 11, pageCount: 24 }}
+          onOpen={noop}
+          onClear={noop}
+          locale="en-GB"
+        />
+      );
+    },
+  },
+  {
     component: "NetworkActivityPanel",
     state: "file from a link",
     element: () => (

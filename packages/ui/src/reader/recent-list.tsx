@@ -6,7 +6,7 @@
 // first, under Continue reading, with its page. The list is hidden when empty: a first visit needs
 // no empty state.
 
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { Button as AriaButton } from "react-aria-components";
 import { Button } from "../components/button.js";
 import { countMessage, message } from "../messages.js";
@@ -80,15 +80,16 @@ function ContinueSection({
   onOpen: (entry: RecentFile) => void;
 }): ReactNode {
   const { entry, page, pageCount } = reading;
+  const heading = useId();
   const parts = [
     message("recent.thisDevice"),
     message("recent.continuePage", { page: page + 1, count: pageCount }),
     ...(entry.hasHandle === true ? [] : [message("recent.chooseAgain")]),
   ];
   return (
-    <section className="paper-recent" aria-labelledby="paper-continue-heading">
+    <section className="paper-recent" aria-labelledby={heading}>
       <div className="paper-recent-head">
-        <h2 id="paper-continue-heading" className="paper-recent-title">
+        <h2 id={heading} className="paper-recent-title">
           {message("recent.continue")}
         </h2>
       </div>
@@ -106,6 +107,7 @@ export function RecentList({
   continueReading,
   locale,
 }: RecentListProps): ReactNode {
+  const heading = useId();
   const rest = entries.filter((entry) => entry.id !== continueReading?.entry.id);
   if (rest.length === 0 && continueReading === undefined) return null;
   const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
@@ -113,9 +115,9 @@ export function RecentList({
     <>
       {continueReading === undefined ? null : <ContinueSection reading={continueReading} date={date} onOpen={onOpen} />}
       {rest.length === 0 ? null : (
-        <section className="paper-recent" aria-labelledby="paper-recent-heading">
+        <section className="paper-recent" aria-labelledby={heading}>
           <div className="paper-recent-head">
-            <h2 id="paper-recent-heading" className="paper-recent-title">
+            <h2 id={heading} className="paper-recent-title">
               {message("recent.title")}
             </h2>
             <Button variant="ghost" onPress={onClear}>

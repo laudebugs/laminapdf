@@ -492,7 +492,8 @@ const EN = {
   "storage.forgetPositions.help": "Removes the place kept for every document; nothing else changes.",
   "storage.positionsForgotten": "Reading positions forgotten",
   "storage.clear": "Clear recent files and cached documents",
-  "storage.clear.help": "Removes the recent list and every copy of a document this browser keeps for the reader.",
+  "storage.clear.help":
+    "Removes the recent list, every reading position and every copy of a document this browser keeps for the reader.",
   "storage.cleared": "Recent files and cached documents cleared",
   "install.title": "Install Lamina PDF on this computer",
   "install.openWith": "Open PDFs in Lamina PDF from your file manager.",
