@@ -4,12 +4,12 @@ The web reader at [app.laminapdf.com](https://app.laminapdf.com). Each release i
 
 ## 0.1.0
 
-The first release of the web reader. It opens PDFs inside your browser tab: nothing you open is uploaded, and nothing about you is collected. The reader is free, and it stays free; Lamina PDF will be a paid product, and its paid features will come later, on top of the free reader.
+The first release of the web reader. It opens PDFs inside your browser tab: nothing you open is uploaded, and nothing about you is collected. The reader is free and will stay free. Paid features will come later, on top of it.
 
 ### What it does
 
 - **Open** a PDF from your computer (choose, drop or paste it), from the recent list, or from a link (`app.laminapdf.com/#url=…`). Password-protected files ask for their password, and damaged files open with a note on what was repaired.
-- **Read** with smooth scrolling over thousands of pages, zoom (fit width, fit page or 10–800 %), rotation, thumbnails, the outline, page labels, links with back and forward, and reader mode for tagged PDFs.
+- **Read** with smooth scrolling over thousands of pages, zoom (fit width, fit page or 10–800 %) and rotation. **Move around** with thumbnails, the outline, page labels, and links with back and forward. Reader mode reflows tagged PDFs.
 - **Find** text across the whole document, with match case and whole words.
 - **Select and copy** text in reading order or exactly as laid out, select a column with Alt or Option, and act on a selection from its toolbar.
 - **Print** all or some pages, **download** the original file, and see the **document's properties**.
@@ -20,7 +20,7 @@ The first release of the web reader. It opens PDFs inside your browser tab: noth
 
 ### Privacy
 
-The reader keeps ADR 0011's guarantees, each checked by a test before every release: your files stay on your device; a linked file is fetched only from its own site; no cookies, no third parties, no tracking; passwords stay in the tab; and you can clear everything the reader keeps. [laminapdf.com/privacy](https://laminapdf.com/privacy/) explains each promise.
+The reader makes five promises, and a test checks each one before every release: your files stay on your device; a linked file is fetched only from its own site; no cookies, no third parties, no tracking; passwords stay in the tab; and you can clear everything the reader keeps. [laminapdf.com/privacy](https://laminapdf.com/privacy/) explains each promise.
 
 ### Browsers
 
@@ -28,6 +28,6 @@ The last two versions of Chrome, Edge, Firefox and Safari on the desktop, and Sa
 
 ### Known issues
 
-- The reader's startup JavaScript is 266 KB gzipped, over the 200 KB target; this release is waived up to 270 KB ([#380](https://github.com/laudebugs/laminapdf/issues/380)).
-- Only the pages near the view exist for a screen reader at any moment, so "read all" stops after them. Use the outline, Go to page or Page Down to move on.
+- The reader's startup code is 266 KB compressed, over our 200 KB target, so the first visit loads a little slower than planned; a later release brings it down ([#380](https://github.com/laudebugs/laminapdf/issues/380)).
+- A screen reader sees only the pages near the one on screen, so "read all" stops after them. Use the outline, Go to page or Page Down to move on.
 - Safari's Tab key skips buttons and links unless Option is held or "Press Tab to highlight each item" is on.

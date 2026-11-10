@@ -42,7 +42,7 @@ export const PROMISES: readonly Promise[] = [
     proofs: [{ file: PRIVACY_SUITE, test: "a local file stays in the browser" }],
   },
   {
-    heading: "A link goes only to the file's own site",
+    heading: "A linked file comes only from its own site",
     body: [
       "When you open a PDF from a link, the reader fetches it from that site and the sites it redirects to, with no cookies and no referrer.",
       "Our server never learns the file's address: the reader keeps it after the # in its own address, a part browsers never send.",
@@ -91,7 +91,7 @@ export const PROMISES: readonly Promise[] = [
   {
     heading: "What stays on your device, and how to clear it",
     body: [
-      "The reader keeps copies of the files you opened, so they open again without a connection, and a list of recent files: their names, sizes, page counts and when you opened them, never their contents or addresses. It also keeps your settings and its own files, so it works offline.",
+      "The reader keeps copies of the files you opened, so they open again without a connection. It also keeps a list of recent files: their names, sizes, page counts and when you opened them, never their contents or addresses. It also keeps your settings and its own files, so it works offline.",
       "Settings › Storage and privacy › Clear recent files and cached documents removes the copies and the list. Your browser's settings for this site remove everything.",
     ],
     rules: ["9"],
