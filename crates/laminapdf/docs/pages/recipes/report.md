@@ -1,7 +1,7 @@
 ---
 title: "A 100-page report"
 description: "A 100-page A4 report with two embedded fonts and a table on every page, the document Lamina PDF times in each JavaScript runtime."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/recipes/report/"
 ---
 

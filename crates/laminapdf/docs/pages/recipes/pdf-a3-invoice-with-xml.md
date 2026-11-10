@@ -1,7 +1,7 @@
 ---
 title: "A PDF/A-3 invoice with XML"
 description: "A PDF/A-3b invoice that carries the same invoice as an attached XML file, for people to read and for software to process."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/recipes/pdf-a3-invoice-with-xml/"
 ---
 

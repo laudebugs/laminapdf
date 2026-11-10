@@ -1,7 +1,7 @@
 ---
 title: "Test the PDFs you generate"
 description: "Compare the PDFs your code makes with reference PDFs you approved, byte for byte, and draw both files' pages to see what changed."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/guides/test-generated-pdfs/"
 ---
 
