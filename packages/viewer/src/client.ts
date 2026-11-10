@@ -25,6 +25,7 @@ import {
   type WorkerWasmSource,
 } from "@laminapdf/sdk/worker";
 import type { FindOptions } from "./find/fold.js";
+import { FirstDraw } from "./first-draw.js";
 import {
   type BackendInit,
   type LoadProgress,
@@ -119,6 +120,22 @@ function abortError(e: unknown): unknown {
   return isLaminaPdfError(e, "cancelled") ? new DOMException("the call was cancelled", "AbortError") : e;
 }
 
+/**
+ * PDFium's module compiled on the page from its address, while the worker starts (compiling
+ * streams on the browser's own threads); the backend as given when it names no address, or when
+ * fetching or compiling fails, so the worker loads it as before.
+ */
+function compileEarly(backend: BackendInit): Promise<BackendInit> {
+  const { wasm } = backend;
+  if (backend.backend !== "pdfium" || typeof wasm !== "string" || typeof WebAssembly.compileStreaming !== "function") {
+    return Promise.resolve(backend);
+  }
+  return WebAssembly.compileStreaming(fetch(wasm, { credentials: "same-origin" })).then(
+    (module): BackendInit => ({ ...backend, wasm: module }),
+    () => backend,
+  );
+}
+
 /** One document worker and the typed RPC to it. */
 export class ViewerClient {
   readonly #pdf: WorkerClient;
@@ -132,6 +149,8 @@ export class ViewerClient {
   #opens = 0;
   #recovering: Promise<void> | undefined;
   #nextRender = 1;
+  /** The open document's gate for text and link calls (first-draw.ts); none before a document opens. */
+  #firstDraw: FirstDraw | undefined;
   /** Each pending render's timers, by coalescing key: started on `render-start`, paused on `render-fetching`. */
   readonly #timers = new Map<string, Set<RenderTimers>>();
   /** The key the worker is drawing now: a render that joins it starts its timers at once. */
@@ -175,6 +194,9 @@ export class ViewerClient {
    * the user picks a file.
    */
   static async create(options: ViewerOptions): Promise<ViewerClient> {
+    // PDFium downloads and compiles here while the worker starts and loads Lamina PDF's own
+    // module, rather than after it: the two downloads overlap.
+    const early = compileEarly(options.backend);
     const pdf = await connect({
       worker: options.worker ?? workerFactory,
       // A late answer to an aborted render: its bitmap is closed, never painted.
@@ -187,7 +209,14 @@ export class ViewerClient {
     });
     const client = new ViewerClient(pdf, options);
     try {
-      await pdf.request("initBackend", [options.backend], { priority: PRIORITY.document });
+      const backend = await early;
+      try {
+        await pdf.request("initBackend", [backend], { priority: PRIORITY.document });
+      } catch (e) {
+        // A browser that can't post a compiled module to a worker: the worker loads its own.
+        if (backend === options.backend) throw e;
+        await pdf.request("initBackend", [options.backend], { priority: PRIORITY.document });
+      }
     } catch (e) {
       // Nobody will hold this client: end its worker.
       pdf.terminate();
@@ -247,6 +276,8 @@ export class ViewerClient {
     }
     this.#reopen = { source, options: rest };
     this.#document = opened;
+    // Only once it opened: a failed open leaves the shown document's gate as it was.
+    this.#firstDraw = new FirstDraw(opened.id);
     return opened;
   }
 
@@ -290,7 +321,8 @@ export class ViewerClient {
    * Page `index`'s text runs and glyph quads, read by Lamina PDF (needs the extract or text
    * module, loaded by default). At `background` priority unless `options` says otherwise.
    */
-  pageText(index: number, options: ViewerCallOptions = {}) {
+  async pageText(index: number, options: ViewerCallOptions = {}) {
+    await this.#firstDraw?.wait(options.signal);
     const key = `text:${this.#document?.id ?? 0}:${index}`;
     return this.call("pageText", [index], { priority: "background", key, ...options });
   }
@@ -299,7 +331,8 @@ export class ViewerClient {
    * Page `index`'s text blocks in reading order (Lamina PDF's extraction), for copy as paragraph.
    * At `background` priority unless `options` says otherwise.
    */
-  readingOrder(index: number, options: ViewerCallOptions = {}) {
+  async readingOrder(index: number, options: ViewerCallOptions = {}) {
+    await this.#firstDraw?.wait(options.signal);
     const key = `order:${this.#document?.id ?? 0}:${index}`;
     return this.call("readingOrder", [index], { priority: "background", key, ...options });
   }
@@ -313,7 +346,8 @@ export class ViewerClient {
   }
 
   /** Whether the open document says it is tagged, and its structure tree when it has one. */
-  structure(options?: ViewerCallOptions) {
+  async structure(options?: ViewerCallOptions) {
+    await this.#firstDraw?.wait(options?.signal);
     return this.call("structure", [], options);
   }
 
@@ -363,8 +397,11 @@ export class ViewerClient {
   }
 
   /** Page `index`'s links, in annotation order, each with what following it does (the link layer asks as pages mount). */
-  pageLinks(index: number, options?: ViewerCallOptions) {
-    return this.call("pageLinks", [index], options);
+  async pageLinks(index: number, options: ViewerCallOptions = {}) {
+    // Links read with the extract module: like the text layer, they wait for the first page drawn,
+    // and come after renders.
+    await this.#firstDraw?.wait(options.signal);
+    return this.call("pageLinks", [index], { priority: "background", ...options });
   }
 
   /**
@@ -406,7 +443,11 @@ export class ViewerClient {
     // Joining a render already being drawn: its render-start has passed.
     if (this.#drawing === key) start();
     try {
-      return await this.call("render", [request, documentId], { ...options, key });
+      const drawn = await this.call("render", [request, documentId], { ...options, key });
+      // A page has been drawn: text calls may queue now. (A cancelled render doesn't count: the
+      // render that replaces it would wait behind them.)
+      this.#firstDraw?.drawn(documentId);
+      return drawn;
     } finally {
       const own = this.#timers.get(key);
       own?.delete(timers);
@@ -454,6 +495,8 @@ export class ViewerClient {
           this.#document = (await this.#pdf.request("openDocument", [reopen.source, reopen.options], {
             priority: PRIORITY.document,
           })) as OpenedDocument;
+          // The restarted worker has no extract module yet: its first page goes first again.
+          this.#firstDraw = new FirstDraw(this.#document.id);
           reopened = true;
         }
       }

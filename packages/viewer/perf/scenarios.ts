@@ -2,6 +2,7 @@
 // `window.__laminaPerf` with Playwright's real input: wheel steps at fixed intervals, so two runs
 // scroll the same way.
 
+import { Buffer } from "node:buffer";
 import { type Browser, type BrowserContext, devices, type Page } from "playwright";
 // The built module: its own imports end in .js, which Node resolves only once compiled.
 import { budgetBytes, viewerBudgets } from "../dist/view/budgets.js";
@@ -73,24 +74,36 @@ async function firstPageWarm(context: BrowserContext, url: string): Promise<numb
   return ms;
 }
 
+/** How the cold scenario's file reaches the reader: from the device, or from its address. */
+type ColdFrom = "device" | "link";
+
 /**
  * Chromium only: a new context with the cache off and Fast 4G, opening the file during startup.
- * The throttling reaches the document Web Worker's downloads too: serving the WebAssembly
- * compressed (serve.ts) cut this figure from 7.6 s to 4.2 s, what 3.2 MB fewer bytes take at
- * Fast 4G's 1 MB/s.
+ * The throttling reaches the document Web Worker's downloads too. A file on the device (one the
+ * user chose or dropped) costs no download: its bytes come from memory, past the throttled
+ * network. A linked file is read from its address with Range requests, as the reader reads a
+ * `#url=` link. Before C7d the page fetched the whole file over the throttled network, a case the
+ * reader never has; the first paint then also waited for the extract module, which the link
+ * layer's first call needed (5.2 s; 3.3 s for the device file after).
  */
-async function firstPageCold(browser: Browser, url: string): Promise<number> {
+async function firstPageCold(browser: Browser, url: string, from: ColdFrom): Promise<number> {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 });
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
   await cdp.send("Network.enable");
   await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
   await cdp.send("Network.emulateNetworkConditions", FAST_4G);
-  await page.goto(`${url}?open=ten`);
+  if (from === "device") {
+    const body = await (await fetch(new URL("ten.pdf", url))).arrayBuffer();
+    await context.route("**/ten.pdf", (route) =>
+      route.fulfill({ body: Buffer.from(body), contentType: "application/pdf" }),
+    );
+  }
+  await page.goto(`${url}?open=ten${from === "link" ? "&remote" : ""}`);
   await page.waitForFunction(() => "__laminaPerf" in globalThis, undefined, { timeout: 180_000 });
   const ms = await page.evaluate(() => globalThis.__laminaPerf.firstPaintMs);
   await context.close();
-  if (ms === null) throw new Error("the cold page never painted its first page");
+  if (ms === null) throw new Error(`the cold page (${from}) never painted its first page`);
   return ms;
 }
 
@@ -224,9 +237,10 @@ export async function runScenarios(
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 });
   try {
     const warmMs = await firstPageWarm(context, url);
-    const coldMs = name === "chromium" ? await firstPageCold(browser, url) : null;
+    const coldMs = name === "chromium" ? await firstPageCold(browser, url, "device") : null;
+    const coldLinkMs = name === "chromium" ? await firstPageCold(browser, url, "link") : null;
     return {
-      firstPage: { warmMs, coldMs },
+      firstPage: { warmMs, coldMs, coldLinkMs },
       scroll: await scroll(context, url, quick),
       fling: await fling(context, url, quick),
       zoom: await zoom(context, url),

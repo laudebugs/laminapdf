@@ -32,8 +32,11 @@ export interface BrowserResult {
   readonly version: string;
   readonly quick: boolean;
   readonly machine: Machine;
-  /** The 10-page file: warm in every browser, cold on Fast 4G in Chromium only (null elsewhere). */
-  readonly firstPage: { readonly warmMs: number; readonly coldMs: number | null };
+  /**
+   * The 10-page file: warm in every browser; cold on Fast 4G in Chromium only (null elsewhere),
+   * from the device (`coldMs`, the release gate's) and from a link (`coldLinkMs`, reported).
+   */
+  readonly firstPage: { readonly warmMs: number; readonly coldMs: number | null; readonly coldLinkMs: number | null };
   /** The 1,000-page file scrolled end to end twice. */
   readonly scroll: {
     readonly passes: readonly [Recording, Recording];
@@ -111,10 +114,16 @@ export function checks(result: BrowserResult): Check[] {
       pass: firstPage.warmMs <= TARGETS.firstPageWarmMs,
     },
     {
-      name: "First page, 10-page file, cold on Fast 4G",
+      name: "First page, 10-page file on the device, cold on Fast 4G",
       target: `≤ ${ms(TARGETS.firstPageColdMs)}`,
       value: firstPage.coldMs === null ? "not measured (Chromium only)" : ms(firstPage.coldMs),
       pass: firstPage.coldMs === null ? null : firstPage.coldMs <= TARGETS.firstPageColdMs,
+    },
+    {
+      name: "First page, 10-page file from a link, cold on Fast 4G",
+      target: `≤ ${ms(TARGETS.firstPageColdMs)}`,
+      value: firstPage.coldLinkMs === null ? "not measured (Chromium only)" : ms(firstPage.coldLinkMs),
+      pass: firstPage.coldLinkMs === null ? null : firstPage.coldLinkMs <= TARGETS.firstPageColdMs,
     },
     longestTask(result),
     {
@@ -227,6 +236,7 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
     "memory-peak-bytes": Math.round(Math.max(...result.scroll.passes.map((p) => p.peakMemory.total))),
   };
   if (result.firstPage.coldMs !== null) entries["first-page-cold"] = ns(result.firstPage.coldMs);
+  if (result.firstPage.coldLinkMs !== null) entries["first-page-cold-link"] = ns(result.firstPage.coldLinkMs);
   if (result.find.common.firstResultMs !== null) entries["find-first-result"] = ns(result.find.common.firstResultMs);
   if (result.mobile !== null) {
     entries["mobile-memory-peak-bytes"] = Math.round(
