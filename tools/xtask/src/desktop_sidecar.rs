@@ -10,6 +10,9 @@
 //! Both folders are git-ignored. The profile is `--release` or `--debug`, else what the Tauri CLI
 //! asked for (`TAURI_ENV_DEBUG` in its `beforeDevCommand`/`beforeBuildCommand`), else debug.
 //! The host's target only: the universal macOS engine comes with signing (D6c).
+//!
+//! `cargo xtask fixtures large-pdf` lives here too: it runs the engine crate's `large_pdf`
+//! example, which writes the engine's 1 GB fixture.
 
 use std::env;
 use std::fs;
