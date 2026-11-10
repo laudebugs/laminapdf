@@ -32,7 +32,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 
  C7c ─► K1a ─► K1b ─► K1c ─► K2a ─► K2b ─► K2c ─► K3a, K4a (D6a)   (Round K: browser extension; nice to have)
 
- C7 + D7 ─► E1 ─► E2 ─► E3 ─► E4 ─► E5 ─► E6 ─► E7 ─► E8 ─► E9 ─► E10 ─► E11 … E18 (editor phases 2–6)
+ C7 ─► E1 ─► E2 ─► E3 ─► E4 ─► E5 ─► E6 ─► E7 ─► E8 ─► E9 ─► E10 ─► E11 … E18 (editor phases 2–6; desktop parts wait on their D todos)
 ```
 
 - **A before everything.** Workspace, CI fast lane and `laminapdf-syntax`/`laminapdf-cos` ([architecture §5](architecture.md#5-rounds)).
@@ -40,7 +40,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 - **Web reader after B6:** C1's PDFium spike loads `laminapdf-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `laminapdf-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
 - **Desktop after the web packages:** D1 can start after C3; D2 needs `@laminapdf/ui` from C4.
 - **UI/UX alongside the readers** ([UI/UX plan](ui-ux.md)): ADR 0024 (U1a) comes before `@laminapdf/ui` (C4a), the command registry and shell (U1b, U1c) right after it, and Round U adds selection, page modes, the phone layout and the network indicator before the web launch (C7a, C7c wait for them). Reader mode, the mobile spike and the product promises (pricing page, benchmark, opt-in telemetry) follow the launch; the pricing page and the benchmark also wait for the desktop beta (D7c).
-- **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
+- **Editor after the web reader** ships v0.1 (C7c), so phase 1 (core viewer) is done once. E-rounds add features to the packages and the web reader first; each round's desktop part is its own todo, which waits on the desktop todo it needs (D3b for file watching, D4b for native menus) rather than on the desktop beta, so the editor and the desktop rounds run side by side (decided 2026-11-10).
 - **Shareable libraries (L1–L6)** run alongside B and C: L1 (contracts) lands before the B5 builder so the first public API follows it; L2 follows B6; L3 (AI-ready extraction) follows B9; L4 (CLI and MCP) follows B5c and B9c; L6 (mobile spike, then a mobile plan) follows B5c and C2b ([shareable libraries §7](shareable-libraries.md#7-rounds)).
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
 - **Browser extension (Round K)** is a nice-to-have from the [extension research](../research/browser-extension/browser-extension.md): the reader packaged for Chrome, Edge, Firefox and Safari. It starts after the web reader's launch (C7c) and nothing waits on it, so it runs beside the desktop and editor rounds as people are free ([browser extension §6](browser-extension.md#6-sequence)).
