@@ -1,6 +1,6 @@
 {
   "name": "@laminapdf/web",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Lamina PDF's web reader: @laminapdf/ui's chrome around @laminapdf/viewer, a Vite single-page app served as Cloudflare Workers static assets with strict headers and no server routes (ADR 0011).",
   "license": "MIT OR Apache-2.0",
@@ -15,7 +15,9 @@
     "test": "vitest run -c vitest.config.ts",
     "typecheck:wasm": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p src/sw/tsconfig.json",
     "e2e": "vitest run -c vitest.e2e.config.ts",
-    "smoke": "node e2e/live.ts && vitest run -c vitest.smoke.config.ts"
+    "smoke": "node e2e/live.ts && vitest run -c vitest.smoke.config.ts",
+    "lighthouse": "lhci autorun --config=lighthouserc.json",
+    "lighthouse:local": "node scripts/lighthouse-local.ts"
   },
   "dependencies": {
     "@embedpdf/pdfium": "2.15.1",
@@ -29,6 +31,7 @@
   "devDependencies": {
     "@babel/core": "catalog:",
     "@laminapdf/test-utils": "workspace:*",
+    "@lhci/cli": "catalog:",
     "@rolldown/plugin-babel": "catalog:",
     "@types/babel__core": "catalog:",
     "@types/node": "catalog:",

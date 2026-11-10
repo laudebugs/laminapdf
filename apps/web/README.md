@@ -132,6 +132,14 @@ The reader shows the website's icon. `vite.config.ts` copies `favicon.svg`, `fav
 
 Each reader pull request gets a preview URL in a comment, each merge to `main` deploys https://staging-app.laminapdf.com, and a `web-v*` tag deploys https://app.laminapdf.com. For every one of these deploys, `.github/workflows/web-deploy.yml` builds the reader with `cargo xtask web build`, and a smoke test checks the deploy once it is live. [DEPLOY.md](DEPLOY.md) covers the setup, the rollbacks and deploying by hand.
 
+## Releases
+
+Each release is a `web-v<version>` tag on a commit of `main`, with its notes in [CHANGELOG.md](CHANGELOG.md) and its version in `package.json`, which Settings › About shows. Before production deploys, the release lane's `production-checks` job runs the release gates:
+
+- **Startup size:** `cargo xtask web size` checks the scripts the built `index.html` loads at startup, gzipped, against [`size-budget.json`](size-budget.json). The fast lane runs the same check on every pull request.
+- **Lighthouse:** `pnpm --filter @laminapdf/web lighthouse:local` serves the build with its deployed headers and checks [`lighthouserc.json`](lighthouserc.json)'s scores.
+- **Timings:** `cargo xtask viewer-perf --gate` takes the median of three runs of the viewer's harness and checks it against the web plan's targets plus 25 %. A miss blocks the release unless `packages/viewer/perf/waivers.json` names it with an issue.
+
 ## Tests
 
 `e2e/` runs the app in a real browser against `wrangler dev`, the way production serves it. It first checks the headers and that the build has no inline code. It then opens a local file four ways: the file input, a drop, a paste and `showOpenFilePicker` (Chromium only). It also opens a repaired file and refuses a file that isn't a PDF. Throughout, it fails on any CSP violation and on any request to another origin.

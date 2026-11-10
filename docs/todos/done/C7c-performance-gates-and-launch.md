@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `C7c` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — **M2 Web reader v0.1** (milestone closes with this PR) |
-| Depends on | [C3c](../done/C3c-viewer-perf-harness.md), [C4d](../done/C4d-deploy-previews-and-production.md), [C6c](../done/C6c-print-download-properties.md), [C7a](../done/C7a-accessibility-and-theming.md), [C7b](../done/C7b-offline-pwa.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [U2a](../done/U2a-selection-surfaces-and-copy-modes.md), [U2c](../done/U2c-page-appearance-modes.md), [U3a](../done/U3a-responsive-mobile-and-touch.md), [U4a](../done/U4a-network-indicator-and-privacy-proof.md) |
+| Depends on | [C3c](./C3c-viewer-perf-harness.md), [C4d](./C4d-deploy-previews-and-production.md), [C6c](./C6c-print-download-properties.md), [C7a](./C7a-accessibility-and-theming.md), [C7b](./C7b-offline-pwa.md), [C7d](./C7d-cold-first-page.md), [W1b](./W1b-site-scaffold-and-deploys.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U2c](./U2c-page-appearance-modes.md), [U3a](./U3a-responsive-mobile-and-touch.md), [U4a](./U4a-network-indicator-and-privacy-proof.md) |
 | ADRs | Follows 0011 (publishes its privacy rules as a user-facing page), [0018](../../decisions/0018-test-strategy.md) §2 (which gates run in which lane) |
 | Branch | `feat/c7c-web-v0-1-launch` |
 | PR title | `feat(web): enforce performance budgets and launch the web reader v0.1` |
 | Size | M (200–600 lines: CI gates, privacy page, release notes) |
-| PR | — |
+| PR | [#378](https://github.com/laudebugs/laminapdf/pull/378) |
 
 ## Goal
 
@@ -19,7 +19,7 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 
 ## Context
 
-- [UI/UX plan §6](../../plans/ui-ux.md#6-rounds) — the launch also waits for the v0.1 parts of Round U: selection surfaces ([U2a](../done/U2a-selection-surfaces-and-copy-modes.md)), page modes ([U2c](../done/U2c-page-appearance-modes.md)), the phone layout ([U3a](../done/U3a-responsive-mobile-and-touch.md)) and the network indicator ([U4a](../done/U4a-network-indicator-and-privacy-proof.md)). The plan's numbers stay the gates; the research's stretch goals are published separately ([U5a](./U5a-pricing-and-promises-page.md)).
+- [UI/UX plan §6](../../plans/ui-ux.md#6-rounds) — the launch also waits for the v0.1 parts of Round U: selection surfaces ([U2a](../done/U2a-selection-surfaces-and-copy-modes.md)), page modes ([U2c](../done/U2c-page-appearance-modes.md)), the phone layout ([U3a](../done/U3a-responsive-mobile-and-touch.md)) and the network indicator ([U4a](../done/U4a-network-indicator-and-privacy-proof.md)). The plan's numbers stay the gates; the research's stretch goals are published separately ([U5a](../ready/U5a-pricing-and-promises-page.md)).
 - [web-app.md §4 non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) and [privacy and security](../../plans/web-app.md#privacy-and-security).
 - [C3c](../done/C3c-viewer-perf-harness.md) — harness and history; open perf issues it filed. Its first full run (Chromium on a CI container, 2026-11-05; the viewer README's "First measurements") came in under the scrolling and memory targets. It missed the cold first page (4.2 s on Fast 4G, about 3.7 s of it the download: PDFium's WebAssembly 2.2 MB gzipped, the base module 0.4 MB, the 1 MB file) and found zooming in slow (about 1.2 s to sharp, with a 317 ms frame).
 - [ADR 0018 §1 tier 11 and §2](../../decisions/0018-test-strategy.md#2-ci-lanes) — no wall-clock assertions in PR lanes; perf in nightly; regressions open issues. The size budget (bytes) is deterministic and **can** gate PRs; time budgets gate only the nightly/release lanes on a controlled runner.
@@ -88,7 +88,7 @@ Size-budget script unit tests; release-lane perf gates (C3c harness); Lighthouse
 
 - **Reference machine for runtime gates**: GitHub-hosted runners are noisy; a self-hosted runner or a fixed large runner is needed for gating; until then, gates run manually on the maintainer's reference machine and results are attached (decide with the owner).
 - **Domain** is settled (the reader at `app.laminapdf.com`, the website at `laminapdf.com`; [§8](../../plans/web-app.md#8-open-questions) Q1); telemetry (Q3) is settled: none in v0.1.
-- **Pricing status at launch**: lamina will be priced (owner decision 2026-10-29), but the pricing page ([U5a](./U5a-pricing-and-promises-page.md)) follows the launch. So that later tiers aren't a changed deal ([UI/UX principle 10](../../plans/ui-ux.md#4-principles)), the owner states before launch what v0.1 is (for example a free preview, or the free tier) and the launch copy says that lamina will be a paid product.
+- **Pricing status at launch**: lamina will be priced (owner decision 2026-10-29), but the pricing page ([U5a](../ready/U5a-pricing-and-promises-page.md)) follows the launch. So that later tiers aren't a changed deal ([UI/UX principle 10](../../plans/ui-ux.md#4-principles)), the owner states before launch what v0.1 is (for example a free preview, or the free tier) and the launch copy says that lamina will be a paid product.
 - **Safari/iPadOS** issues found late may force waivers; budget a stabilisation week before tagging.
 
 ## Definition of done
@@ -98,3 +98,13 @@ Size-budget script unit tests; release-lane perf gates (C3c harness); Lighthouse
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## As built
+
+- **Startup size:** `cargo xtask web size` (`tools/xtask/src/web.rs`) gzips the scripts the built `index.html` loads at startup and checks them against `apps/web/size-budget.json`; it lists workers and lazy chunks without counting them. The fast lane runs it in `pdf-runtimes` after the reader's build. The shell is 266 KB against a 200 KB target, waived for v0.1 up to 270 KB ([#380](https://github.com/laudebugs/laminapdf/issues/380)).
+- **Timings:** `cargo xtask viewer-perf --gate` runs the harness three times in Chromium; `packages/viewer/perf/gate.ts` checks each figure's median against web-app §4 plus 25 % and fails unless `perf/waivers.json` (empty) names the miss with its issue. Last local run (after [C7d](./C7d-cold-first-page.md)): first page warm 51 ms, cold on Fast 4G from the device 3,281 ms (limit 3,750), sharp after scrolling 50 ms, find first result 30 ms, find every page 9.8 s, memory over 1,000 pages 332 MB, all passing.
+- **Lighthouse:** `apps/web/lighthouserc.json` (desktop, three runs, performance ≥ 0.9, accessibility and best practices ≥ 0.95) and `pnpm --filter @laminapdf/web lighthouse:local`, which serves the build with its production headers; 99–100 locally.
+- **Workflow:** the GitHub token can't push workflow changes, so the release lane's steps (size, Lighthouse and timing gates in `production-checks`, Lighthouse on previews) are a patch in the PR description for the owner to commit. The gates run on GitHub-hosted `ubuntu-24.04` runners (the repository is public).
+- **Privacy page** at `/privacy/` (`apps/site/src/data/privacy.ts`): every ADR 0011 §3 guarantee in plain words, each tied to the test that proves it (`apps/site/test/privacy.test.ts` checks both); linked from the reader's More menu, Settings › About, both sites' headers, the home page and the README.
+- **Launch:** `APP_LAUNCHED` turns on "Open the web app"; `apps/web` is 0.1.0 with `CHANGELOG.md`; Settings › About shows the version; pricing at launch: the reader is free and stays free (owner decision).
+- **Left for the owner:** the manual browser smoke test, the NVDA and VoiceOver pass, approval of the changed home-page copy, committing the workflow patch, and tagging `web-v0.1.0` right after merge.

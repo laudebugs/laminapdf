@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [C7c](./C7c-performance-gates-and-launch.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D7c](./D7c-desktop-beta-release.md) |
+| Depends on | [C7c](../done/C7c-performance-gates-and-launch.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D7c](./D7c-desktop-beta-release.md) |
 | ADRs | Follows 0018 (test strategy) for reproducibility |
 | Branch | `test/u5b-reader-benchmark` |
 | PR title | `test(bench): add a reproducible benchmark against other pdf readers` |
@@ -37,7 +37,7 @@ Users quote SumatraPDF-class speed as the bar and complain about Acrobat's cold 
 
 **Out of scope** (and which todo covers it)
 
-- CI gating on these numbers → lamina's own gates stay in [C7c](./C7c-performance-gates-and-launch.md) and D7c.
+- CI gating on these numbers → lamina's own gates stay in [C7c](../done/C7c-performance-gates-and-launch.md) and D7c.
 
 ## Tasks
 

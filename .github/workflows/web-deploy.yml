@@ -17,15 +17,19 @@
 #   version under the alias pr-<number>, which deploys nothing. Its URL, the commit and the build's
 #   gzip sizes go in one comment on the PR, updated on every push.
 # - `preview-smoke` runs the PR's smoke test (apps/web/e2e/smoke.test.ts) against that URL, with
-#   no secrets.
+#   no secrets, then Lighthouse against it (reported; the release lane's run is the gate).
 # Pushes to main (and manual runs on main): `staging` deploys main to
 # https://staging-app.laminapdf.com (wrangler.jsonc's env.staging, the Worker
 # lamina-pdf-web-staging) and runs the smoke test there; main is trusted. A push deploys when the
 # reader's inputs changed since the commit of the workflow's last successful run on main, so a
 # cancelled or failed deploy is made up by the next push. A manual run always deploys.
 # Tags web-v<version> on a commit of main: `production-checks` builds the tag and runs the reader's
-# typecheck and its e2e suite in Chromium against `wrangler dev`; C7c adds the release gates
-# here. `production` needs it: it deploys that same build to https://app.laminapdf.com
+# typecheck and its e2e suite in Chromium against `wrangler dev` (installability included), then
+# the release gates (todo C7c): the startup JavaScript's size (`cargo xtask web size`), Lighthouse
+# against the build served with its deployed headers (`lighthouse:local`, lighthouserc.json's
+# thresholds) and the viewer's §4 timings (`cargo xtask viewer-perf --gate`: the median of three
+# runs against each target plus 25 %, for this hosted runner's noise; waivers in
+# packages/viewer/perf/waivers.json). `production` needs it: it deploys that same build to https://app.laminapdf.com
 # (environment `production`) and runs the smoke test. If the smoke test doesn't pass, it rolls
 # back to the previous deployment and fails. Tags are never path-filtered, and nothing else
 # deploys production.
@@ -307,6 +311,17 @@ jobs:
         env:
           LAMINA_PDF_SMOKE_URL: ${{ needs.preview-deploy.outputs.url }}
         run: pnpm --filter @laminapdf/web run smoke
+      - name: Lighthouse on the preview
+        env:
+          URL: ${{ needs.preview-deploy.outputs.url }}
+        run: pnpm --filter @laminapdf/web run lighthouse --collect.url="$URL"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: web-preview-lighthouse
+          path: target/lighthouse/
+          if-no-files-found: ignore
+          retention-days: 7
 
   staging:
     name: Reader staging
@@ -396,8 +411,9 @@ jobs:
     name: Reader production (checks)
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}
     runs-on: ubuntu-24.04
-    # A tag's run saves no Rust cache (only main does), so it never feeds a later build.
-    timeout-minutes: 90
+    # A tag's run saves no Rust cache (only main does), so it never feeds a later build. The
+    # release gates' three perf runs take about half an hour.
+    timeout-minutes: 150
     permissions:
       contents: read
     steps:
@@ -442,6 +458,21 @@ jobs:
         env:
           LAMINA_PDF_E2E_BROWSER: chromium
         run: pnpm --filter @laminapdf/web run e2e
+      - name: Release gate - startup JavaScript size
+        run: cargo xtask web size
+      - name: Release gate - Lighthouse with the deployed headers
+        run: pnpm --filter @laminapdf/web run lighthouse:local
+      - name: Release gate - viewer performance (median of three runs)
+        run: cargo xtask viewer-perf --gate
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: web-release-gates
+          path: |
+            target/lighthouse/
+            target/viewer-perf/
+          if-no-files-found: ignore
+          retention-days: 30
       # The build these checks passed is the one production deploys.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

@@ -6,16 +6,18 @@
 export const META = {
   title: "Lamina PDF: create, read and edit PDFs from Rust and TypeScript",
   description:
-    "A PDF library with one Rust core, for Rust and TypeScript today; a web reader and a desktop app come next. See the roadmap and how far the work has come.",
+    "A PDF library with one Rust core, for Rust and TypeScript, and a web reader that opens PDFs in your browser; a desktop app comes next. See the roadmap and how far the work has come.",
 } as const;
 
 /** The opening section. */
 export const OPENING = {
   headline: "Create, read and edit PDFs with one Rust core, from Rust and TypeScript.",
-  lead: "Lamina PDF is a PDF library for Rust and TypeScript today, and a web reader and a desktop app next. This page shows the plan and how far the work has come.",
+  lead: "Lamina PDF is a PDF library for Rust and TypeScript, and a web reader that opens PDFs in your browser; a desktop app comes next. This page shows the plan and how far the work has come.",
   docs: "Read the docs",
   packages: "Install a package",
   app: "Open the web app",
+  // Shown beside "Open the web app" (pricing status at launch, owner decision 2026-11-10).
+  free: "The web reader is free, and your documents stay on your device.",
   caption:
     "TypeScript and Rust make the same first PDF: one A4 page with a line of text. The Command line tab shows examples from the tool's README.",
 } as const;
@@ -48,6 +50,14 @@ export const PACKAGES = {
   typescript: "TypeScript, in every JavaScript runtime",
   rust: "Rust",
   cli: "The `laminapdf` command-line tool inspects, checks and changes PDFs, and serves the same commands to AI agents over MCP. It isn't released yet.",
+} as const;
+
+/** The privacy promises, each linking to its part of /privacy/ (the words are src/data/privacy.ts's). */
+export const PRIVACY_PROMISES = {
+  heading: "Private by design",
+  intro:
+    "The web reader opens your PDFs inside your browser. A test checks each of these promises before every release.",
+  more: "Read the privacy page",
 } as const;
 
 /** Where each part lives. */

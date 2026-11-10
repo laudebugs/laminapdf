@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Browser extension §5 K1](../../plans/browser-extension.md#k1-prove-it-decide-it-draw-it) |
 | Round / milestone | Round K (browser extension) — M2b Browser extension |
-| Depends on | [C7c](./C7c-performance-gates-and-launch.md) |
+| Depends on | [C7c](../done/C7c-performance-gates-and-launch.md) |
 | Dependency notes | Round K is a nice-to-have: it waits for the web reader's v0.1 launch so it never takes time from Round C. The spike needs nothing from C7c technically. |
 | ADRs | Informs ADR 0033 (written in K1b). Follows [0009](../../decisions/0009-web-client-architecture.md) (single-threaded, no COOP/COEP), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (privacy guarantees), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (spikes live outside both workspaces) |
 | Branch | `spike/k1a-browser-extension` |
