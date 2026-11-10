@@ -1,6 +1,6 @@
 # @laminapdf/desktop
 
-The desktop reader: `@laminapdf/ui`'s reader chrome in a Tauri 2 window on macOS, Windows and Linux ([ADR 0008](../../docs/decisions/0008-desktop-shell.md)). This first build opens one window with the reader's top bar and home screen. Opening a document arrives with the engine process and the tile transport (todos [D2b](../../docs/todos/ready/D2b-engine-process.md) and [D2d](../../docs/todos/ready/D2d-tile-transport-and-first-document.md)); until then, choosing a file shows a notice that says so.
+The desktop reader: `@laminapdf/ui`'s reader chrome in a Tauri 2 window on macOS, Windows and Linux ([ADR 0008](../../docs/decisions/0008-desktop-shell.md)). This first build opens one window with the reader's top bar and home screen. Opening a document arrives with the engine process and the tile transport (todos [D2b](../../docs/todos/ongoing/D2b-engine-process.md) and [D2d](../../docs/todos/ready/D2d-tile-transport-and-first-document.md)); until then, choosing a file shows a notice that says so.
 
 ## Build, run and test
 

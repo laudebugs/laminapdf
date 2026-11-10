@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C2b](../done/C2b-lamina-render-crate.md), [C4c](../done/C4c-remote-files-encryption-privacy.md), [C4d](../done/C4d-deploy-previews-and-production.md), [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md) |
