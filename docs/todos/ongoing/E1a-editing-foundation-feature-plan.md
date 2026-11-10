@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B5c](../done/B5c-lamina-facade-and-examples.md), [C7c](../done/C7c-performance-gates-and-launch.md), [X2](../done/X2-capability-matrix.md) |
