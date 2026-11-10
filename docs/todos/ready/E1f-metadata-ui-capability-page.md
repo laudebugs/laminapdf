@@ -15,7 +15,7 @@
 
 ## Goal
 
-Close round E1: make the C6 document properties dialog editable (title, author, subject, keywords, dates, producer/creator, remove selected metadata) on web and desktop, show PDF/A/UA warnings inline, and add the capability-matrix page to the app so users see what each surface supports.
+Close round E1: make the C6 document properties dialog editable (title, author, subject, keywords, dates, producer/creator, remove selected metadata) on the web, show PDF/A/UA warnings inline, and add the capability-matrix page to the app so users see what each surface supports.
 
 ## Context
 
@@ -31,7 +31,7 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 - Editable properties dialog bound to `SetMetadata`/`RemoveMetadata` with validation (date pickers, keywords chips)
 - Inline `ConformanceWarning`s and an "edits are kept in earlier revisions" notice for `RemoveMetadata` on incremental saves
 - Capability page in `@laminapdf/ui` rendering `docs/capabilities/README.md` data (JSON emitted by `cargo xtask capabilities`) bundled at build time, filterable by group and surface
-- e2e round-trip tests for J.01–J.03, J.10 on web and desktop (flipping web/desktop columns)
+- e2e round-trip tests for J.01–J.03, J.10 on the web (flipping the web column; the desktop column flips with [E1i](./E1i-desktop-save-in-place.md))
 
 **Out of scope** (and which todo covers it)
 
@@ -40,12 +40,12 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.01` title, author, subject, keywords; `J.02` creation/modification dates; `J.03` producer and creator; `J.10` remove selected metadata
-- **Crates and packages:** `@laminapdf/ui`, `apps/web`, `apps/desktop`; `tools/xtask` (JSON output of the matrix if `X2` doesn't emit it)
+- **Crates and packages:** `@laminapdf/ui`, `apps/web`; `tools/xtask` (JSON output of the matrix if `X2` doesn't emit it)
 - **`Op` variants:** uses `SetMetadata`, `RemoveMetadata`
 - **`SaveConstraint`:** as E1c; the dialog shows the banner state from E1e
-- **Web vs desktop:** identical; desktop opens the dialog from the native File → Properties menu
+- **Web vs desktop:** web here; the desktop shows the same dialog, from the File menu D4b generates, once E1i saves in place
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `J.01` → `round-trip` (web, desktop); `J.02` → `round-trip` (web, desktop); `J.03` → `round-trip` (web, desktop); `J.10` → `round-trip` (web, desktop)
+- **Capability-matrix rows to flip:** `J.01` → `round-trip` (web); `J.02` → `round-trip` (web); `J.03` → `round-trip` (web); `J.10` → `round-trip` (web)
 
 ## Tasks
 
@@ -56,7 +56,7 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 
 ## Acceptance criteria
 
-- [ ] e2e on web and desktop: edit each field, save, reopen in the app and pdf.js; values match in Info and XMP
+- [ ] e2e on the web: edit each field, save, reopen in the app and pdf.js; values match in Info and XMP
 - [ ] The capability page lists every manifest row with four status columns and matches `docs/capabilities/README.md`
 - [ ] axe: zero serious violations on the dialog and the page
 

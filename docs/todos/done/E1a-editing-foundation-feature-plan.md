@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B5c](../done/B5c-lamina-facade-and-examples.md), [C7c](../done/C7c-performance-gates-and-launch.md), [X2](../done/X2-capability-matrix.md) |
+| Depends on | [B3c](./B3c-save-planner-and-roundtrip.md), [B5c](./B5c-lamina-facade-and-examples.md), [C7c](./C7c-performance-gates-and-launch.md), [X2](./X2-capability-matrix.md) |
 | Dependency notes | `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1). The editor no longer waits for the desktop beta (D7c, decided 2026-11-10): E1 starts on the web reader and the shared packages, and each desktop part waits only on the desktop todo it needs ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds)). `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate), `X2` (capability-matrix generator: manifest, test tagging, `cargo xtask capabilities`, CI gate; [architecture §7](../../plans/architecture.md#cross-cutting), [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix)) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e1a-editing-foundation-feature-plan` |
 | PR title | `docs(editor): E1 feature plan (editing foundation)` |
 | Size | S (< 200 lines) |
-| PR | — |
+| PR | [#397](https://github.com/laudebugs/laminapdf/pull/397) |
 
 ## Goal
 
@@ -51,25 +51,25 @@ The short feature-plan PR that opens round E1 ([full-editor §E1](../../plans/fu
 
 ## Tasks
 
-- [ ] Create `docs/plans/editor/e1-editing-foundation.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`J.01`, `J.02`, `J.03`, `J.10`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
-- [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
-- [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
-- [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
-- [ ] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E1"` and status `unsupported` until each implementation PR flips them
-- [ ] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E1b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
-- [ ] Split E1d's desktop part into its own todo: the engine-process session commands, the native Edit menu items and the window-close guard, depending on E1d and [D4b](./D4b-native-menus.md). E1d drops D4b
-- [ ] Split E1e's desktop part into its own todo: in-place save, watcher suppression and the external-change conflict dialog, depending on E1e and [D3b](./D3b-recent-files-and-file-watching.md). E1e drops D3b
-- [ ] Answer or assign an owner to each open question below; record decisions in the feature plan
-- [ ] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation)
+- [x] Create `docs/plans/editor/e1-editing-foundation.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`J.01`, `J.02`, `J.03`, `J.10`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
+- [x] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [x] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
+- [x] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
+- [x] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
+- [x] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E1"` and status `unsupported` until each implementation PR flips them
+- [x] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E1b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
+- [x] Split E1d's desktop part into its own todo: the engine-process session commands, the native Edit menu items and the window-close guard, depending on E1d and [D4b](../ready/D4b-native-menus.md). E1d drops D4b
+- [x] Split E1e's desktop part into its own todo: in-place save, watcher suppression and the external-change conflict dialog, depending on E1e and [D3b](../ready/D3b-recent-files-and-file-watching.md). E1e drops D3b
+- [x] Answer or assign an owner to each open question below; record decisions in the feature plan
+- [x] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation)
 
 ## Acceptance criteria
 
-- [ ] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
-- [ ] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
-- [ ] Every implementation todo of the round is linked from the plan and each has explicit dependencies
-- [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E1"`; `cargo xtask capabilities` regenerates without error
-- [ ] Each open question below is answered or has a named owner and a deadline round
+- [x] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
+- [x] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
+- [x] Every implementation todo of the round is linked from the plan and each has explicit dependencies
+- [x] `docs/capabilities/manifest.toml` has a row per op with `target round = "E1"`; `cargo xtask capabilities` regenerates without error
+- [x] Each open question below is answered or has a named owner and a deadline round
 
 ## Post-merge checks
 
@@ -93,8 +93,8 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
