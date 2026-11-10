@@ -1,0 +1,148 @@
+# Install as .github/workflows/web-release-train.yml (tools/release/README.md).
+# The web reader's own releases (todo C7e), apart from the packages': once a day, after the full
+# nightly passes on main, the release bot tags `web-v<next>` on the nightly's commit when what the
+# reader ships changed since its last release (`cargo xtask web next-release`). The tag starts
+# web-deploy.yml's production jobs: the release gates, then app.laminapdf.com, and a GitHub release
+# with the tag's notes. `WEB_RELEASE_TRAIN=off` (a repository variable) stops future trains.
+name: Web reader release
+
+on:
+  workflow_run:
+    workflows: [Nightly]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      nightly-run-id:
+        description: ID of the completed full nightly on main whose commit to release
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: web-release-train
+  cancel-in-progress: false
+
+env:
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  tag:
+    # workflow_run is privileged: never check out a PR's or another repository's code.
+    if: >-
+      ${{ vars.WEB_RELEASE_TRAIN != 'off'
+      && ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      || (github.event_name == 'workflow_run'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+      && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.conclusion == 'success'
+      && (github.event.workflow_run.event == 'schedule'
+      || (github.event.workflow_run.event == 'workflow_dispatch'
+      && github.event.workflow_run.display_title == 'Nightly (full budgets)')))) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # Validate manual input before checking out and executing the selected commit's code.
+      - name: Select the completed full nightly
+        id: nightly
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NIGHTLY_RUN: ${{ github.event.workflow_run.id || inputs.nightly-run-id }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$NIGHTLY_RUN" =~ ^[0-9]+$ ]]; then
+            echo "::error::nightly-run-id must be a numeric run ID."
+            exit 1
+          fi
+          nightly_json=$(gh run view "$NIGHTLY_RUN" --json workflowName,headBranch,status,conclusion,event,displayTitle,headSha)
+          if ! nightly_sha=$(jq -er '
+            select(.workflowName == "Nightly" and .headBranch == "main"
+              and .status == "completed" and .conclusion == "success"
+              and (.event == "schedule" or (.event == "workflow_dispatch"
+                and .displayTitle == "Nightly (full budgets)")))
+            | .headSha | select(type == "string" and test("^[0-9a-f]{40}$"))
+          ' <<< "$nightly_json"); then
+            echo "::error::Select a successful full Nightly run on main."
+            exit 1
+          fi
+          echo "id=$NIGHTLY_RUN" >> "$GITHUB_OUTPUT"
+          echo "sha=$nightly_sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.nightly.outputs.sha }}
+          persist-credentials: false
+          # Every web-v tag, to find the last release.
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: true
+      # The last release that deployed is the newest web-v tag with a GitHub release (the deploy
+      # makes it after its smoke test). A tag whose deploy failed has none, so its changes count
+      # again and the next release, under a new tag, makes it up. Without any, the newest tag.
+      - name: Find the last release that deployed
+        id: released
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Every page: the packages' daily v* releases would push a quiet reader's last release out
+          # of any fixed window. Newest first, so the first match is the newest web release.
+          tags=$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" \
+            --jq '.[] | select(.draft | not) | .tag_name | select(test("^web-v[0-9]+\\.[0-9]+\\.[0-9]+$"))')
+          echo "tag=${tags%%$'\n'*}" >> "$GITHUB_OUTPUT"
+      - name: Decide whether the reader changed since its last release
+        id: next
+        env:
+          SHA: ${{ steps.nightly.outputs.sha }}
+          SINCE: ${{ steps.released.outputs.tag }}
+        run: |
+          set -euo pipefail
+          args=(--commit "$SHA" --notes "$RUNNER_TEMP/notes.md")
+          if [ -n "$SINCE" ]; then args+=(--since "$SINCE"); fi
+          cargo xtask web next-release "${args[@]}"
+      - name: Create the release bot's token
+        if: steps.next.outputs.ready == 'true'
+        id: bot
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      # An annotated tag holding the notes: web-deploy.yml's production job makes the GitHub release
+      # from it once the deploy passes its smoke test. The App's push starts that workflow, which
+      # the default token's could not.
+      - name: Tag the release
+        if: steps.next.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          SHA: ${{ steps.nightly.outputs.sha }}
+          TAG: ${{ steps.next.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::$TAG already exists; nothing was tagged."
+            exit 1
+          fi
+          object=$(jq -n --arg tag "$TAG" --arg sha "$SHA" --rawfile notes "$RUNNER_TEMP/notes.md" \
+            '{tag: $tag, message: $notes, object: $sha, type: "commit"}' \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/git/tags" --input - \
+            | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            --raw-field ref="refs/tags/$TAG" --raw-field sha="$object" >/dev/null
+          {
+            echo "Tagged $TAG on $SHA; web-deploy.yml deploys it."
+            echo
+            cat "$RUNNER_TEMP/notes.md"
+          } >> "$GITHUB_STEP_SUMMARY"

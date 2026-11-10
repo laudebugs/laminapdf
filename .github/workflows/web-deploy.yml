@@ -23,7 +23,10 @@
 # lamina-pdf-web-staging) and runs the smoke test there; main is trusted. A push deploys when the
 # reader's inputs changed since the commit of the workflow's last successful run on main, so a
 # cancelled or failed deploy is made up by the next push. A manual run always deploys.
-# Tags web-v<version> on a commit of main: `production-checks` builds the tag and runs the reader's
+# Tags web-v<version> on a commit of main, which the web release train
+# (.github/workflows/web-release-train.yml, todo C7e) pushes once a day when the reader changed, or
+# the owner pushes by hand: `production-checks` checks the tag against apps/web/package.json
+# (`cargo xtask web check-tag`), builds the tag with its version and runs the reader's
 # typecheck and its e2e suite in Chromium against `wrangler dev` (installability included), then
 # the release gates (todo C7c): the startup JavaScript's size (`cargo xtask web size`), Lighthouse
 # against the build served with its deployed headers (`lighthouse:local`, lighthouserc.json's
@@ -449,8 +452,15 @@ jobs:
         with:
           tool: wasm-bindgen@0.2.129
       - uses: ./.github/actions/node-pnpm
+      - name: Check the tag against the reader's version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: cargo xtask web check-tag "$TAG"
+      # Settings › About shows the release's version (apps/web/vite.config.ts).
       - name: Build the reader
-        run: cargo xtask web build
+        env:
+          TAG: ${{ github.ref_name }}
+        run: LAMINA_PDF_WEB_VERSION="${TAG#web-v}" cargo xtask web build
       - name: Typecheck the reader
         run: pnpm --filter @laminapdf/web run typecheck:wasm
       - uses: ./.github/actions/playwright-chromium
@@ -491,7 +501,8 @@ jobs:
     timeout-minutes: 40
     environment: production
     permissions:
-      contents: read
+      # The GitHub release, once the deploy passes its smoke test.
+      contents: write
     env:
       URL: https://app.laminapdf.com
     steps:
@@ -534,6 +545,28 @@ jobs:
         env:
           LAMINA_PDF_SMOKE_URL: ${{ env.URL }}
         run: pnpm --filter @laminapdf/web run smoke
+      # The notes are the tag's: the web release train writes them into the annotated tag (the
+      # commits that changed what ships). They are read through the API, since the checkout above
+      # fetches the tag without its annotation; a tag pushed by hand has none, so its release gets
+      # GitHub's generated notes. A re-run keeps the release it already made.
+      - name: Publish the GitHub release
+        if: steps.smoke.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "$TAG already has a release."
+            exit 0
+          fi
+          ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG")
+          if [ "$(jq -r .object.type <<< "$ref")" = tag ]; then
+            gh api "repos/$GITHUB_REPOSITORY/git/tags/$(jq -r .object.sha <<< "$ref")" --jq .message > "$RUNNER_TEMP/notes.md"
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "Web reader $TAG" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "Web reader $TAG" --generate-notes
+          fi
       # Whenever the deploy went out and its smoke test didn't pass, whatever stopped it. The job
       # still fails. The first release has no deployment to go back to, so its rollback fails too.
       - name: Roll back a release that didn't pass its smoke test

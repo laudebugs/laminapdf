@@ -18,6 +18,19 @@ git push origin HEAD
 
 `cargo test -p xtask` compares the installed workflows with these files. It fails until both are installed. Keep these copies in sync when changing either workflow.
 
+### The web reader's train
+
+The web reader releases on its own, apart from the packages ([C7e](../../docs/todos/done/C7e-automated-web-releases.md)). `web-release-train.yml` runs after the same full nightly. When what the reader ships changed since its newest `web-v*` tag, it tags `web-v<next>` on the nightly's commit with the release bot, and that tag runs `web-deploy.yml`'s release gates and production deploy. `cargo xtask web next-release` decides. The patch number goes up by itself. For a new minor or major, raise `apps/web/package.json`'s version in a PR, and the next release takes it as written. Install it the same way:
+
+```sh
+cp tools/release/web-release-train.yml .github/workflows/web-release-train.yml
+git add .github/workflows/web-release-train.yml
+git commit -m "build: install the web reader's release train"
+git push origin HEAD
+```
+
+A release counts as made once its deploy passes the smoke test and creates its GitHub release. When a deploy fails, the next night's release, under a new tag, includes that tag's changes again. Create `web-v0.1.0`'s GitHub release by hand once, from [its notes](../../apps/web/CHANGELOG.md) (`gh release create web-v0.1.0 --verify-tag --notes-file apps/web/CHANGELOG.md`): it predates the train, and the train counts changes from the newest release. Set the repository variable `WEB_RELEASE_TRAIN=off` to stop it. To release by hand, run the workflow with a nightly's run ID, or push a `web-v<version>` tag on a commit of `main`. Each release gets a GitHub release with the tag's notes once its deploy passes the smoke test.
+
 The GitHub App needs contents and pull-request write access to this repository. Set its ID and private key as repository secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY`. Enable auto-merge, squash merging and automatic deletion of merged branches in the repository settings. These settings and the bot secrets were configured by the owner on 2026-11-05.
 
 The existing publishing setup must also be ready: crates.io and npm trusted publishers for `release.yml`, and the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets for production docs. A missing docs credential fails the release; it cannot silently skip deployment and merge the version PR.
