@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E1 editing foundation §5](../../plans/editor/e1-editing-foundation.md#5-the-edit-session-and-the-modes) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [C4e](../done/C4e-reader-chrome.md), [E1a](../done/E1a-editing-foundation-feature-plan.md), [E1g](./E1g-redraw-after-edit.md) |
+| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [C4e](../done/C4e-reader-chrome.md), [E1a](../done/E1a-editing-foundation-feature-plan.md), [E1g](../ongoing/E1g-redraw-after-edit.md) |
 | Dependency notes | [E1g](./E1g-redraw-after-edit.md) (the worker's redraw after an edit, which the session builds on), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk): `laminapdf-wasm` and `@laminapdf/sdk`). The desktop part is [E1h](./E1h-desktop-edit-session.md), after D4b ([E1 plan §8](../../plans/editor/e1-editing-foundation.md#8-differences-between-the-shells)) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1d-edit-session-undo-ui` |

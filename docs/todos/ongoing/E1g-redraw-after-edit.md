@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E1 editing foundation §6](../../plans/editor/e1-editing-foundation.md#6-redrawing-after-an-edit) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1a](../done/E1a-editing-foundation-feature-plan.md) |
