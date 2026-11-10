@@ -1,11 +1,10 @@
 // Reading positions in the app: a stored view is checked before the viewer gets it, the home
 // screen's page is clamped to the page count, and the recorder saves a second after the view
-// stops, at once when the page is hidden, and when it stops. Opening never waits long on the store.
+// stops, at once when the page is hidden, and when it stops.
 
 import type { Platform, ReadingPosition } from "@laminapdf/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  KEPT_WITHIN_MS,
   type KeptView,
   keptPosition,
   type PageVisibility,
@@ -60,18 +59,9 @@ function storeAnswering(answer: Promise<ReadingPosition | undefined>): Platform 
 }
 
 describe("reading a kept position when a document opens", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  it("gives the store's position when it answers in time", async () => {
+  it("gives the store's position", async () => {
     const kept = keptPosition(storeAnswering(Promise.resolve({ view: VIEW, pageCount: 40, readAt: 1 })), "fp1:a");
     await expect(kept).resolves.toEqual(VIEW);
-  });
-
-  it("opens at page 1 rather than wait for a store that doesn't answer", async () => {
-    const kept = keptPosition(storeAnswering(new Promise(() => undefined)), "fp1:a");
-    await vi.advanceTimersByTimeAsync(KEPT_WITHIN_MS);
-    await expect(kept).resolves.toBeUndefined();
   });
 
   it("doesn't count the top of page 1 as a place to come back to", async () => {

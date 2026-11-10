@@ -39,12 +39,6 @@ export function parseView(view: unknown): KeptView | undefined {
 }
 
 /**
- * How long opening a document waits for its kept position. Past it the document opens at page 1:
- * a slow or stuck store (a browser's IndexedDB still starting) never holds the document back.
- */
-export const KEPT_WITHIN_MS = 250;
-
-/**
  * Whether `view` is where every document opens, the top of page 1: coming back there is no
  * resume, so it is neither announced nor made a history jump. The zoom alone isn't restored.
  */
@@ -55,23 +49,10 @@ function atStart(view: KeptView): boolean {
 /** How far down page 1 (a share of its height) still counts as its top. */
 const START_SLACK = 0.02;
 
-/**
- * The position kept for `fingerprint`, when it is one this file can show, away from the top of
- * page 1, and the store answers within {@link KEPT_WITHIN_MS}.
- */
+/** The position kept for `fingerprint`, when it is one this file can show, away from the top of page 1. */
 export async function keptPosition(platform: Platform, fingerprint: string): Promise<KeptView | undefined> {
-  let stop = () => {};
-  const late = new Promise<undefined>((resolve) => {
-    const timer = setTimeout(resolve, KEPT_WITHIN_MS);
-    stop = () => clearTimeout(timer);
-  });
-  try {
-    const entry = await Promise.race([platform.positions.get(fingerprint).catch(() => undefined), late]);
-    const view = parseView(entry?.view);
-    return view === undefined || atStart(view) ? undefined : view;
-  } finally {
-    stop();
-  }
+  const view = parseView((await platform.positions.get(fingerprint).catch(() => undefined))?.view);
+  return view === undefined || atStart(view) ? undefined : view;
 }
 
 /** The page a kept entry stopped at (0-based) and its page count, for the home screen. */
