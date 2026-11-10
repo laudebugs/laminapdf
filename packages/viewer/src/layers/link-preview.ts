@@ -16,13 +16,13 @@ import type { TextRunData } from "../protocol.js";
 /** How far above and left of the destination point the crop starts, in points. */
 export const PREVIEW_PAD = 8;
 /** A text line belongs to the destination's column when it starts this close to its left, in points. */
-export const PREVIEW_ALIGN = 12;
+const PREVIEW_ALIGN = 12;
 /** The crop's width without text lines to measure (an image-only page, no text module), in points. */
 export const PREVIEW_NO_TEXT_WIDTH = 360;
 /** The largest crop a region preview draws, in CSS px. */
 export const PREVIEW_MAX = { width: 480, height: 180 } as const;
 /** A region preview's zoom: the reader's, clamped to `min`–`max` %; lowered to fit a wide region, never below `floor` %. */
-export const PREVIEW_ZOOM = { min: 100, max: 150, floor: 75 } as const;
+const PREVIEW_ZOOM = { min: 100, max: 150, floor: 75 } as const;
 /** R07's page preview: a crop this wide and this high (CSS px) of the page's top. */
 export const PAGE_PREVIEW = { width: 224, height: 92 } as const;
 

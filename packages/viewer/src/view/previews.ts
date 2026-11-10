@@ -19,7 +19,7 @@ import type { PageSize, Rotation } from "../layout/page-layout.js";
 import { appearanceKey } from "../protocol.js";
 
 /** How many pictures are kept. */
-export const PREVIEW_CACHE = 8;
+const PREVIEW_CACHE = 8;
 
 /** A link's destination as a picture, for a preview card. */
 export interface LinkPreviewPicture {

@@ -99,11 +99,11 @@ export interface LinkPreviewRequest {
 }
 
 /** How long a link is hovered or focused before its preview shows, and after it is left before it goes (ms). */
-export const PREVIEW_DWELL_MS = 300;
+const PREVIEW_DWELL_MS = 300;
 /** How long a finger rests on a link before its preview opens (ms). */
-export const PREVIEW_LONG_PRESS_MS = 500;
+const PREVIEW_LONG_PRESS_MS = 500;
 /** How far a finger may move (CSS px) and still long-press. */
-export const PREVIEW_SLOP = 10;
+const PREVIEW_SLOP = 10;
 
 /** What the link layer needs of its viewer. */
 export interface LinkHost {

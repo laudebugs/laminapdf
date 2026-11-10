@@ -6,7 +6,7 @@ import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { type Box, intersect, type Placement } from "./place.js";
 
 /** Where a layer of `width` × `height` goes against `anchor` inside `bounds` (`placeAbove`, `placeBelow`). */
-export type Place = (
+type Place = (
   anchor: Box,
   width: number,
   height: number,
