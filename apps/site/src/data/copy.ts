@@ -17,7 +17,7 @@ export const OPENING = {
   packages: "Install a package",
   app: "Open the web app",
   // Shown beside "Open the web app" (pricing status at launch, owner decision 2026-11-10).
-  free: "The web reader is free and will stay free. Paid features will come later, on top of it.",
+  free: "The web reader is free, and your documents stay on your device. We'll figure out paid features later.",
   caption:
     "TypeScript and Rust make the same first PDF: one A4 page with a line of text. The Command line tab shows examples from the tool's README.",
 } as const;
