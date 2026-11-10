@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `E1e` |
 | Status | `ready` |
-| Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
+| Plan | [E1 editing foundation §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1c](./E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | Dependency notes | [E1c](E1c-metadata-ops.md) (`SaveOptions { metadata_date, instance_id }`, `ConformanceWarning`, `SaveReport::metadata_not_updated`), [E1d](E1d-edit-session-undo-ui.md). The desktop's save in place is [E1i](./E1i-desktop-save-in-place.md), after D3b; the constraint table is [E1 plan §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Let users save edits safely on both shells: Save (incremental by default), Save as, Save as optimised (full rewrite) and Download copy through the `Platform` adapter, with a banner that shows the document's `SaveConstraint` (Free, AppendOnly, RequiresRewrite, Conflict), names every signature a save would invalidate, and asks before any override.
+Let users save edits safely on the web: Save (incremental by default), Save as, Save as optimised (full rewrite) and Download copy through the `Platform` adapter, with a banner that shows the document's `SaveConstraint` (Free, AppendOnly, RequiresRewrite, Conflict), names every signature a save would invalidate, and asks before any override.
 
 ## Context
 
@@ -71,7 +71,6 @@ None.
 ## Tests
 
 - Playwright: `apps/web/e2e/save.e2e.test.ts` (FSA mocked in Chromium, download path elsewhere)
-- Rust tests for append-in-place and atomic rewrite in `src-tauri`
 - Signed fixtures for banner states
 
 ## Docs to update

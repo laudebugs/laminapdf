@@ -11,7 +11,7 @@
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e1a-editing-foundation-feature-plan` |
 | PR title | `docs(editor): E1 feature plan (editing foundation)` |
-| Size | S (< 200 lines) |
+| Size | M (about 450 lines of plans and todos: the plan, three new todos, the split of E1d, E1e and E1f) |
 | PR | [#397](https://github.com/laudebugs/laminapdf/pull/397) |
 
 ## Goal
@@ -56,7 +56,7 @@ The short feature-plan PR that opens round E1 ([full-editor §E1](../../plans/fu
 - [x] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [x] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [x] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
-- [x] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E1"` and status `unsupported` until each implementation PR flips them
+- [x] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E1"` and status `unsupported` until each implementation PR flips them (already present on `main`: J.01–J.03 and J.10 with `round = "E1"`; `cargo xtask capabilities --check` passes)
 - [x] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E1b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
 - [x] Split E1d's desktop part into its own todo: the engine-process session commands, the native Edit menu items and the window-close guard, depending on E1d and [D4b](../ready/D4b-native-menus.md). E1d drops D4b
 - [x] Split E1e's desktop part into its own todo: in-place save, watcher suppression and the external-change conflict dialog, depending on E1e and [D3b](../ready/D3b-recent-files-and-file-watching.md). E1e drops D3b
@@ -93,7 +93,7 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (git workflow §2's current rule, which replaced the separate claim PR this item was written for)
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
