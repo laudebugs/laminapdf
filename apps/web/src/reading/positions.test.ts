@@ -1,9 +1,13 @@
 // Reading positions in the app: a stored view is checked before the viewer gets it, the home
 // screen's page is clamped to the page count, and the recorder saves a second after the view
-// stops, at once when the page is hidden, and when it stops.
+// stops, at once when the page is hidden, and when it stops. Opening never waits long on the store.
+
+import type { Platform, ReadingPosition } from "@laminapdf/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  KEPT_WITHIN_MS,
   type KeptView,
+  keptPosition,
   type PageVisibility,
   parseView,
   recordPosition,
@@ -47,6 +51,31 @@ describe("a kept view", () => {
     expect(stoppedAt({ view: VIEW, pageCount: 5, readAt: 1 })).toEqual({ page: 4, pageCount: 5 });
     expect(stoppedAt({ view: "damaged", pageCount: 5, readAt: 1 })).toBeUndefined();
     expect(stoppedAt(undefined)).toBeUndefined();
+  });
+});
+
+/** A platform whose positions store answers `get` with `answer`. */
+function storeAnswering(answer: Promise<ReadingPosition | undefined>): Platform {
+  return { positions: { get: () => answer } } as unknown as Platform;
+}
+
+describe("reading a kept position when a document opens", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("gives the store's position when it answers in time", async () => {
+    const kept = keptPosition(storeAnswering(Promise.resolve({ view: VIEW, pageCount: 40, readAt: 1 })), "fp1:a");
+    await expect(kept).resolves.toEqual(VIEW);
+  });
+
+  it("opens at page 1 rather than wait for a store that doesn't answer", async () => {
+    const kept = keptPosition(storeAnswering(new Promise(() => undefined)), "fp1:a");
+    await vi.advanceTimersByTimeAsync(KEPT_WITHIN_MS);
+    await expect(kept).resolves.toBeUndefined();
+  });
+
+  it("opens at page 1 when the store fails", async () => {
+    await expect(keptPosition(storeAnswering(Promise.reject(new Error("closed"))), "fp1:a")).resolves.toBeUndefined();
   });
 });
 

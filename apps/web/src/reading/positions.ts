@@ -38,10 +38,28 @@ export function parseView(view: unknown): KeptView | undefined {
   return { point: { page, x: clamp(x), y: clamp(y) }, zoom: zoom as KeptView["zoom"], rotation };
 }
 
-/** The position kept for `fingerprint`, when it is one this file can show. */
+/**
+ * How long opening a document waits for its kept position. Past it the document opens at page 1:
+ * a slow or stuck store (a browser's IndexedDB still starting) never holds the document back.
+ */
+export const KEPT_WITHIN_MS = 250;
+
+/**
+ * The position kept for `fingerprint`, when it is one this file can show and the store answers
+ * within {@link KEPT_WITHIN_MS}.
+ */
 export async function keptPosition(platform: Platform, fingerprint: string): Promise<KeptView | undefined> {
-  const entry = await platform.positions.get(fingerprint).catch(() => undefined);
-  return parseView(entry?.view);
+  let stop = () => {};
+  const late = new Promise<undefined>((resolve) => {
+    const timer = setTimeout(resolve, KEPT_WITHIN_MS);
+    stop = () => clearTimeout(timer);
+  });
+  try {
+    const entry = await Promise.race([platform.positions.get(fingerprint).catch(() => undefined), late]);
+    return parseView(entry?.view);
+  } finally {
+    stop();
+  }
 }
 
 /** The page a kept entry stopped at (0-based) and its page count, for the home screen. */
