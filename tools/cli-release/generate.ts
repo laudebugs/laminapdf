@@ -1,13 +1,15 @@
 // The npm packages of the `laminapdf` CLI (todo L4d), from dist's release archives:
 //
-//   node tools/cli-release/generate.ts --artifacts <dist's output dir> [--out target/cli-npm]
+//   node tools/cli-release/generate.ts --artifacts <dist's output dir> [--out target/cli-npm] [--pack]
 //
 // writes one folder per platform package whose archive is there (the binary in bin/, the
 // licences and third-party notices from the archive, a package.json with `os`, `cpu` and, on
 // Linux, `libc` from packages/cli/platforms.json), and cli/, the @laminapdf/cli wrapper, with
 // every platform package as an optional dependency at the same version. Build the wrapper first
-// (`pnpm --filter @laminapdf/cli build`); then `npm pack` each folder. The version is the CLI
-// crate's, the workspace's lockstep version (ADR 0017).
+// (`pnpm --filter @laminapdf/cli build`). With `--pack`, each folder is also packed into packs/,
+// with publish.json: the version, its npm dist-tag and the tarballs in publish order, the platform
+// packages before the wrapper that depends on them (cli-release.yml's publish-npm reads it). The
+// version is the CLI crate's, the workspace's lockstep version (ADR 0017).
 import { execFileSync } from "node:child_process";
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -115,9 +117,50 @@ function writeWrapper(out: string, all: Platform[], version: string): void {
   writeFileSync(join(dir, "package.json"), `${JSON.stringify(wrapperManifest(base, all, version), null, 2)}\n`);
 }
 
+/** The npm dist-tag for `version`: its pre-release identifier (`alpha` for `0.2.0-alpha.1`), else `latest`. */
+export function distTag(version: string): string {
+  return /^\d+\.\d+\.\d+-([a-z]+)/.exec(version)?.[1] ?? "latest";
+}
+
+/** One package in publish.json: its name and its tarball's file name. */
+export interface PackedPackage {
+  readonly name: string;
+  readonly tarball: string;
+}
+
+/** publish.json: the version, its dist-tag, and the packages in publish order (platform packages, then the wrapper). */
+export function publishManifest(
+  version: string,
+  packed: readonly PackedPackage[],
+): { version: string; tag: string; packages: PackedPackage[] } {
+  const wrapper = packed.filter((p) => p.name === "@laminapdf/cli");
+  const platformPackages = packed.filter((p) => p.name !== "@laminapdf/cli");
+  return { version, tag: distTag(version), packages: [...platformPackages, ...wrapper] };
+}
+
+/** `npm pack`s each folder of `out` into `out/packs` and writes publish.json there. */
+function pack(out: string, folders: readonly string[], version: string): void {
+  const packs = join(out, "packs");
+  mkdirSync(packs, { recursive: true });
+  const packed = folders.map((folder) => {
+    const json = execFileSync("npm", ["pack", "--json", "--pack-destination", packs], {
+      cwd: join(out, folder),
+      encoding: "utf8",
+      // npm is npm.cmd on Windows, which only a shell runs.
+      shell: process.platform === "win32",
+    });
+    const [result] = JSON.parse(json) as { name: string; filename: string }[];
+    if (result === undefined) throw new Error(`npm pack wrote nothing for ${folder}`);
+    return { name: result.name, tarball: result.filename };
+  });
+  writeFileSync(join(packs, "publish.json"), `${JSON.stringify(publishManifest(version, packed), null, 2)}\n`);
+}
+
 function run(): void {
-  const { values } = parseArgs({ options: { artifacts: { type: "string" }, out: { type: "string" } } });
-  if (values.artifacts === undefined) throw new Error("usage: generate.ts --artifacts <dir> [--out <dir>]");
+  const { values } = parseArgs({
+    options: { artifacts: { type: "string" }, out: { type: "string" }, pack: { type: "boolean" } },
+  });
+  if (values.artifacts === undefined) throw new Error("usage: generate.ts --artifacts <dir> [--out <dir>] [--pack]");
   const out = resolve(values.out ?? join(ROOT, "target/cli-npm"));
   const version = workspaceVersion();
   const all = platforms();
@@ -130,6 +173,10 @@ function run(): void {
   });
   if (written.length === 0) throw new Error(`no laminapdf-cli-<target> archive in ${values.artifacts}`);
   writeWrapper(out, all, version);
+  if (values.pack === true) {
+    const folders = all.filter((p) => written.includes(p.package)).map(folderName);
+    pack(out, [...folders, "cli"], version);
+  }
   process.stdout.write(`cli-npm: @laminapdf/cli ${version} and ${written.join(", ")} in ${out}\n`);
 }
 

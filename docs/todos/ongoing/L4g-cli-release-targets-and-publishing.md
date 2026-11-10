@@ -12,7 +12,7 @@
 | Branch | `ci/cli-release-targets-and-publishing` |
 | PR title | `ci(cli): build every release target and publish the npm packages and the Homebrew formula` |
 | Size | M (≈ 300–500 lines: the workflow's build matrix and two publish jobs, Windows in the test scripts, the workflow tests, the owner's setup) |
-| PR | — |
+| PR | [#395](https://github.com/laudebugs/laminapdf/pull/395) |
 
 ## Goal
 
@@ -44,11 +44,11 @@ Make a `laminapdf-cli-v*` tag release the CLI everywhere it says it runs. CI bui
 ## Tasks
 
 - [x] Claim in the work PR (its first commit adds this file in `ongoing/`).
-- [ ] Build matrix for the eight targets; Windows support in the test scripts.
-- [ ] `global` and `publish` wait for every build.
-- [ ] `publish-npm` and `publish-homebrew`, behind the same switches as `publish`.
-- [ ] Update `tools/xtask/src/workflows.rs`' tests of the workflow.
-- [ ] The owner's setup in the CLI's README and `tools/release/README.md`.
+- [x] Build matrix for the eight targets; Windows support in the test scripts.
+- [x] `global` and `publish` wait for every build.
+- [x] `publish-npm` and `publish-homebrew`, behind the same switches as `publish`.
+- [x] Update `tools/xtask/src/workflows.rs`' tests of the workflow.
+- [x] The owner's setup in the CLI's README and `tools/release/README.md`.
 - [ ] A `workflow_dispatch` dry run on the PR branch: every build passes.
 
 ## Acceptance criteria

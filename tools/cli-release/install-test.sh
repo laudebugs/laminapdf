@@ -9,20 +9,25 @@
 # 2. install the wrapper alone (`--omit=optional`): `laminapdf` must exit 1 naming the package;
 # 3. install a copy of the wrapper whose `os` leaves out this machine's: npm must refuse it with
 #    EBADPLATFORM, which lists the supported systems (what a user on another platform sees).
+#
+# On Windows it runs in Git Bash: paths handed to npm and the binary are converted with cygpath.
 set -euo pipefail
+
+# A path as the programs this script runs read it: Windows-style under Git Bash, as is elsewhere.
+native() { if command -v cygpath >/dev/null; then cygpath -m "$1"; else printf '%s\n' "$1"; fi; }
 
 out=$(cd "$1" && pwd)
 platform=$2
-fixture=$(cd "$(dirname "$3")" && pwd)/$(basename "$3")
+fixture=$(native "$(cd "$(dirname "$3")" && pwd)/$(basename "$3")")
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 mkdir "$work/tarballs"
 for dir in cli "$platform"; do
-  (cd "$out/$dir" && npm pack --silent --pack-destination "$work/tarballs" >/dev/null)
+  (cd "$out/$dir" && npm pack --silent --pack-destination "$(native "$work/tarballs")" >/dev/null)
 done
-wrapper=$(ls "$work"/tarballs/laminapdf-cli-[0-9]*.tgz)
-binary=$(ls "$work"/tarballs/laminapdf-"$platform"-[0-9]*.tgz)
+wrapper=$(native "$(ls "$work"/tarballs/laminapdf-cli-[0-9]*.tgz)")
+binary=$(native "$(ls "$work"/tarballs/laminapdf-"$platform"-[0-9]*.tgz)")
 
 project() {
   mkdir "$work/$1"
@@ -48,8 +53,8 @@ grep -q "@laminapdf/$platform" "$work/bare.err" || { echo "the message doesn't n
 echo "==> wrapper on an unsupported system"
 project other
 cp -R "$out/cli" "$work/other-wrapper"
-node -e 'const fs = require("node:fs"); const f = process.argv[1]; const p = JSON.parse(fs.readFileSync(f, "utf8")); p.os = ["aix"]; fs.writeFileSync(f, JSON.stringify(p));' "$work/other-wrapper/package.json"
-if npm install --no-audit --no-fund "$work/other-wrapper" 2> "$work/other.err"; then
+node -e 'const fs = require("node:fs"); const f = process.argv[1]; const p = JSON.parse(fs.readFileSync(f, "utf8")); p.os = ["aix"]; fs.writeFileSync(f, JSON.stringify(p));' "$(native "$work/other-wrapper/package.json")"
+if npm install --no-audit --no-fund "$(native "$work/other-wrapper")" 2> "$work/other.err"; then
   echo "npm installed a wrapper for another system"; exit 1
 fi
 grep -q EBADPLATFORM "$work/other.err" || { cat "$work/other.err"; exit 1; }

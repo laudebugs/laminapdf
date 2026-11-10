@@ -3,7 +3,14 @@
 // only, worked out here from the target triple itself.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { platformManifest, platforms, unpackCommand, wrapperManifest } from "../../../tools/cli-release/generate.ts";
+import {
+  distTag,
+  platformManifest,
+  platforms,
+  publishManifest,
+  unpackCommand,
+  wrapperManifest,
+} from "../../../tools/cli-release/generate.ts";
 
 const ROOT = new URL("../../../", import.meta.url);
 
@@ -75,5 +82,27 @@ describe("unpackCommand", () => {
 
   it("unpacks .tar.xz with tar everywhere", () => {
     expect(unpackCommand("a.tar.xz", "out", "linux")).toEqual(["tar", ["-xf", "a.tar.xz", "-C", "out"]]);
+  });
+});
+
+describe("publish.json", () => {
+  it("tags a pre-release by its identifier and a release latest", () => {
+    expect(distTag("0.2.0-alpha.4")).toBe("alpha");
+    expect(distTag("1.0.0-beta.1")).toBe("beta");
+    expect(distTag("1.0.0")).toBe("latest");
+  });
+
+  it("publishes the platform packages before the wrapper that depends on them", () => {
+    const manifest = publishManifest("0.2.0-alpha.4", [
+      { name: "@laminapdf/cli-darwin-arm64", tarball: "laminapdf-cli-darwin-arm64-0.2.0-alpha.4.tgz" },
+      { name: "@laminapdf/cli", tarball: "laminapdf-cli-0.2.0-alpha.4.tgz" },
+      { name: "@laminapdf/cli-win32-x64", tarball: "laminapdf-cli-win32-x64-0.2.0-alpha.4.tgz" },
+    ]);
+    expect(manifest.tag).toBe("alpha");
+    expect(manifest.packages.map((p) => p.name)).toEqual([
+      "@laminapdf/cli-darwin-arm64",
+      "@laminapdf/cli-win32-x64",
+      "@laminapdf/cli",
+    ]);
   });
 });
