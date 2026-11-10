@@ -4,7 +4,7 @@ The web reader at [app.laminapdf.com](https://app.laminapdf.com). Each release i
 
 ## 0.1.0
 
-The first release of the web reader. It opens PDFs inside your browser tab: nothing you open is uploaded, and nothing about you is collected. The reader is free. We'll figure out paid features later.
+The first release of the web reader. It opens PDFs inside your browser tab: nothing you open is uploaded, and nothing about you is collected. The reader is free.
 
 ### What it does
 
