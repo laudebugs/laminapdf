@@ -12,11 +12,17 @@ runs:
   using: composite
   steps:
     - shell: bash
+      run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
+    # The download can fail on a CDN hiccup: three tries, each retry a warning (ADR 0018 §4).
+    - uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
       env:
         PACKAGE: ${{ inputs.package }}
-      run: |
-        echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-        # On Linux, also the system libraries Chromium needs (hosted Ubuntu lacks some).
-        deps=()
-        if [ "$RUNNER_OS" = Linux ]; then deps=(--with-deps); fi
-        PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TOOL_CACHE/ms-playwright" pnpm --filter "$PACKAGE" exec playwright install "${deps[@]}" chromium
+      with:
+        timeout_minutes: 15
+        max_attempts: 3
+        shell: bash
+        command: |
+          # On Linux, also the system libraries Chromium needs (hosted Ubuntu lacks some).
+          deps=()
+          if [ "$RUNNER_OS" = Linux ]; then deps=(--with-deps); fi
+          pnpm --filter "$PACKAGE" exec playwright install "${deps[@]}" chromium

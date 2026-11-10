@@ -367,6 +367,8 @@ jobs:
     name: "@laminapdf/sdk in ${{ matrix.name }} (timings)"
     needs: bench
     if: ${{ !cancelled() }}
+    outputs:
+      flaky: ${{ steps.runtimes.outputs.flaky }}
     # WebKit on macOS (closest to Safari); every other runtime on Linux. Each records its timings
     # under its own runner label; bench-history retries a push the other one beat.
     runs-on: ${{ matrix.runner }}
@@ -419,6 +421,9 @@ jobs:
           mode: fetch
           token: ${{ github.token }}
       - name: The runtimes (recording on main)
+        # Its browser suites write flaky=true here when a test passed only on its retry
+        # (@laminapdf/test-utils/flaky). A leg that writes nothing leaves the other leg's value.
+        id: runtimes
         env:
           RUNTIMES: ${{ matrix.runtimes }}
           LABEL: ${{ matrix.label }}
@@ -767,6 +772,7 @@ jobs:
       ${{ !cancelled() && toJSON(inputs.record) != 'false' && (contains(needs.*.result, 'failure')
       || contains(needs.*.result, 'cancelled')
       || needs.scaling.outputs.flaky == 'true' || needs.links.outputs.flaky == 'true'
+      || needs.pdf-runtimes.outputs.flaky == 'true'
       || needs.links.outputs.missing == 'true'
       || needs.bench.outputs.regression == 'true' || needs.render-diff.outputs.regression == 'true') }}
     runs-on: ubuntu-24.04
@@ -803,6 +809,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           FLAKY: ${{ needs.scaling.outputs.flaky }}
           LINKS_FLAKY: ${{ needs.links.outputs.flaky }}
+          BROWSER_FLAKY: ${{ needs.pdf-runtimes.outputs.flaky }}
           LINKS_MISSING: ${{ needs.links.outputs.missing }}
           REGRESSION: ${{ needs.bench.outputs.regression }}
           RENDER_REGRESSION: ${{ needs.render-diff.outputs.regression }}
@@ -835,7 +842,7 @@ jobs:
               echo "… and $((rows - 30)) more (full report in the run's artefacts)."
             fi
           }
-          if [ -n "$failed$timed_out" ] || [ "$FLAKY" = "true" ] || [ "$LINKS_FLAKY" = "true" ]; then
+          if [ -n "$failed$timed_out" ] || [ "$FLAKY" = "true" ] || [ "$LINKS_FLAKY" = "true" ] || [ "$BROWSER_FLAKY" = "true" ]; then
             {
               # A flaky result passed on its retry: it doesn't fail the run, so it doesn't block
               # the release, but it is still reported (ADR 0018 §4).
@@ -850,6 +857,7 @@ jobs:
               [ -n "$timed_out" ] && echo "Timed out or cancelled: **$timed_out**. If the job's log shows no step, it landed on a hung runner: re-run it with \`gh run rerun $GITHUB_RUN_ID --failed\` and report the runner to its owner."
               [ "$FLAKY" = "true" ] && echo "The scaling tests failed once and passed on retry: **flaky** (ADR 0018 §4)."
               [ "$LINKS_FLAKY" = "true" ] && echo "Some external links failed once and passed on retry: **flaky** (ADR 0018 §4)."
+              [ "$BROWSER_FLAKY" = "true" ] && echo "Some browser tests failed once and passed on retry: **flaky** (ADR 0018 §4). The pdf-runtimes jobs' warning annotations and job summary name them."
               report=artefacts/differential-report/report.json
               if [ -f "$report" ]; then
                 failures=$(jq '[.disagreements[] | select(.kind == "failure")] | length' "$report")

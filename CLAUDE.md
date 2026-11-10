@@ -85,7 +85,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/test-utils/ # @laminapdf/test-utils (private, workspace-only, outside Changesets): the test helpers the
 │                        #   packages share, exported as TypeScript source: render-contract (the RenderBackend suite both
 │                        #   adapters run, Node + browsers), browser-harness, browser-config (renderBrowserConfig),
-│                        #   firefox (firefoxProvider, firefoxEnv), root (fromRoot), wrangler-dev (the sites' e2e server over HTTPS, getLocal)
+│                        #   firefox (firefoxProvider, firefoxEnv), flaky (retryOnceAndReport: one retry and the flaky report, ADR 0018 §4),
+│                        #   root (fromRoot), wrangler-dev (the sites' e2e server over HTTPS, getLocal)
 ├── packages/render-pdfium/  # @laminapdf/render-pdfium: @embedpdf/pdfium 2.15.1 (pdfium.wasm SHA-256 checked by
 │                        #   scripts/verify-pdfium.mjs) behind RenderBackend; THIRD_PARTY_NOTICES.md
 ├── packages/render-hayro/   # @laminapdf/render-hayro: lamina_pdf_render_hayro behind RenderBackend
