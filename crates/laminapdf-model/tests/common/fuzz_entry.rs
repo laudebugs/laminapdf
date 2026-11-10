@@ -164,10 +164,10 @@ pub fn xmp_parse(data: &[u8]) {
         let _ = packet.get(mapping.field);
     }
     let _ = (packet.pdfa_part(), packet.pdfa_conformance(), packet.pdfua_part());
-    let date = "D:20261028143000+01'00".parse().ok();
+    let modified = "D:20261028143000+01'00".parse().ok();
     packet.set_title(Some("A <title> & more"));
     packet.set_authors(&["Ada", "Grace"]);
-    packet.set_modify_date(date);
+    packet.set_modify_date(modified);
     packet.set_keywords(None);
     let written = packet.write();
     let edited = Packet::parse(&written.bytes).unwrap_or_else(|e| panic!("the edited packet doesn't parse: {e}"));
@@ -181,7 +181,7 @@ pub fn xmp_parse(data: &[u8]) {
         (
             Some("A <title> & more".to_owned()),
             vec!["Ada".to_owned(), "Grace".to_owned()],
-            date,
+            modified,
             None
         ),
         "the edited packet reads back what was set"

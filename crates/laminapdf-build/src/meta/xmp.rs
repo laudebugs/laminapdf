@@ -3,8 +3,14 @@
 //!
 //! The packet is deterministic: one `rdf:Description` with the namespaces in a fixed order,
 //! properties in a fixed order, values escaped for XML, no padding.
+//!
+//! Each property is the element `laminapdf_model::xmp::property_element` writes for its row of
+//! the shared Info ↔ XMP table (`MAPPINGS`), which a test below holds it to. It is spelled out
+//! here rather than built from the table at run time because this code is in every WebAssembly
+//! module, and the general writer cost the text module about 800 bytes of its gzip budget (E1
+//! plan §4).
 
-use laminapdf_model::xmp::{MAPPINGS, MappedField, Value, property_element};
+use laminapdf_model::xmp::escape;
 
 use super::info::Metadata;
 use crate::profile::Conformance;
@@ -49,22 +55,39 @@ pub(crate) fn packet(meta: &Metadata, conformance: Conformance) -> String {
         body.push('\n');
     };
     line("<dc:format>application/pdf</dc:format>");
-    // The fields in the shared table's order, each written as the editor writes it.
-    for mapping in &MAPPINGS {
-        let value = match mapping.field {
-            MappedField::Title => meta.title.clone().map(Value::Text),
-            MappedField::Authors => meta.author.clone().map(|a| Value::List(vec![a])),
-            MappedField::Subject => meta.subject.clone().map(Value::Text),
-            MappedField::Keywords => meta.keywords.clone().map(Value::Text),
-            MappedField::Producer => meta.producer.clone().map(Value::Text),
-            MappedField::Creator => meta.creator.clone().map(Value::Text),
-            MappedField::Created => meta.creation_date.map(Value::Date),
-            MappedField::Modified => meta.mod_date.map(Value::Date),
-            // Not part of `Metadata`: the editor stamps them (E1 plan §2).
-            _ => None,
-        };
-        if let Some(value) = value {
-            line(&property_element(mapping, &value));
+    if let Some(title) = &meta.title {
+        line(&format!(
+            "<dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">{}</rdf:li></rdf:Alt></dc:title>",
+            escape(title)
+        ));
+    }
+    if let Some(author) = &meta.author {
+        line(&format!(
+            "<dc:creator><rdf:Seq><rdf:li>{}</rdf:li></rdf:Seq></dc:creator>",
+            escape(author)
+        ));
+    }
+    if let Some(subject) = &meta.subject {
+        line(&format!(
+            "<dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">{}</rdf:li></rdf:Alt></dc:description>",
+            escape(subject)
+        ));
+    }
+    for (tag, value) in [
+        ("pdf:Keywords", &meta.keywords),
+        ("pdf:Producer", &meta.producer),
+        ("xmp:CreatorTool", &meta.creator),
+    ] {
+        if let Some(v) = value {
+            line(&format!("<{tag}>{}</{tag}>", escape(v)));
+        }
+    }
+    for (tag, value) in [
+        ("xmp:CreateDate", &meta.creation_date),
+        ("xmp:ModifyDate", &meta.mod_date),
+    ] {
+        if let Some(d) = value {
+            line(&format!("<{tag}>{}</{tag}>", d.to_iso8601()));
         }
     }
     let mut namespaces = String::new();
@@ -103,7 +126,45 @@ pub(crate) fn packet(meta: &Metadata, conformance: Conformance) -> String {
 
 #[cfg(test)]
 mod tests {
+    use laminapdf_model::xmp::{MAPPINGS, MappedField, Value, property_element};
+
     use super::*;
+
+    #[test]
+    fn every_property_is_what_the_shared_table_writes() {
+        let date: laminapdf_model::PdfDate = "D:20261029120000+01'00'".parse().unwrap();
+        let meta = Metadata::default()
+            .with_title("T <&>")
+            .with_author("A")
+            .with_subject("S")
+            .with_keywords("K")
+            .with_creator("C")
+            .with_producer("P")
+            .with_creation_date(date)
+            .with_mod_date(date);
+        let p = packet(&meta, Conformance::default());
+        let expected: Vec<String> = MAPPINGS
+            .iter()
+            .filter_map(|m| {
+                let value = match m.field {
+                    MappedField::Title => Value::Text("T <&>".into()),
+                    MappedField::Authors => Value::List(vec!["A".into()]),
+                    MappedField::Subject => Value::Text("S".into()),
+                    MappedField::Keywords => Value::Text("K".into()),
+                    MappedField::Creator => Value::Text("C".into()),
+                    MappedField::Producer => Value::Text("P".into()),
+                    MappedField::Created | MappedField::Modified => Value::Date(date),
+                    _ => return None,
+                };
+                Some(format!("   {}\n", property_element(m, &value)))
+            })
+            .collect();
+        let written: Vec<&str> = p
+            .split_inclusive('\n')
+            .filter(|l| expected.iter().any(|e| e == l))
+            .collect();
+        assert_eq!(written, expected);
+    }
 
     #[test]
     fn the_packet_holds_every_value_once() {
