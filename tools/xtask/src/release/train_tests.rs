@@ -104,7 +104,7 @@ fn only_a_prepared_release_should_create_a_verified_app_commit_and_tag() {
         "GH_TOKEN: ${{ steps.bot.outputs.token }}",
         "content: $content}",
         "git --literal-pathspecs ls-tree HEAD",
-        "git/trees\" --input -",
+        "git/trees\" --input \"$1\"",
         "git/commits\" --input -",
         ".verification.verified == true and .verification.reason == \"valid\"",
         "ref=\"refs/heads/$BRANCH\"",
@@ -112,17 +112,29 @@ fn only_a_prepared_release_should_create_a_verified_app_commit_and_tag() {
     ] {
         assert!(after.contains(part), "missing push safeguard {part}");
     }
-    // Inline content, one tree request: a blob request per file passes GitHub's limit on
-    // content-creating requests. Only binary files take a blob request.
+    // Inline content, tree requests of 50 entries: a blob request per file passes GitHub's
+    // limit on content-creating requests, and one request for the whole commit timed out
+    // (docs/bugs/release-tree-request-502). Only binary files take a blob request.
     assert_eq!(after.matches("git/blobs\" --input -").count(), 1);
     assert!(after.contains("Binary content can't go inline"));
-    let tree = after.find("git/trees\" --input -").unwrap();
+    assert!(
+        after.contains("\"${files[@]:i:50}\""),
+        "tree entries go 50 to a request"
+    );
+    assert!(
+        after.contains("--arg base_tree \"$signed_tree\""),
+        "each batch builds on the last"
+    );
+    // A 4xx answer won't change on a retry: only GitHub-side failures are sent again.
+    assert!(after.contains("grep -q 'HTTP 4[0-9][0-9]'"));
+    let tree = after.find("git/trees\" --input \"$1\"").unwrap();
+    let check = after.find("test \"$signed_tree\" = \"$tree\"").unwrap();
     let sign = after.find("git/commits\" --input -").unwrap();
     let verify = after.find(".verification.verified == true").unwrap();
     let move_branch = after.find("ref=\"refs/heads/$BRANCH\"").unwrap();
     let tag = after.find("ref=\"refs/tags/$TAG\"").unwrap();
     assert!(
-        tree < sign && sign < verify && verify < move_branch && move_branch < tag,
+        tree < check && check < sign && sign < verify && verify < move_branch && move_branch < tag,
         "the tag must be created last"
     );
     for custom_identity in ["author:", "committer:", "signature:"] {
