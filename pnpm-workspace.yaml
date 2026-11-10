@@ -34,7 +34,7 @@ catalog:
   # @laminapdf/ui's demo page, built with the React Compiler through Babel (C4f): the compiler and
   # its check of the chrome's components. Dev-only, MIT (@babel/* and their dependencies: MIT).
   # Each pinned to a release at least two weeks old when added.
-  "@babel/core": 7.29.7
+  "@babel/core": 8.1.0
   "@rolldown/plugin-babel": 0.2.4
   "@types/babel__core": 7.20.5
   "@vitejs/plugin-react": 6.1.2
