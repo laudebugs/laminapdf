@@ -1,7 +1,7 @@
 ---
 title: "Images and vectors"
 description: "Shapes, a dashed curve, gray, RGB, CMYK and hex colour, transparency, a blend mode, a clip, a rotation, a JPEG and an RGBA image on one page."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/recipes/images-and-vectors/"
 ---
 

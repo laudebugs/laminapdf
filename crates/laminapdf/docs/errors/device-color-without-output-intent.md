@@ -1,6 +1,6 @@
 ---
 title: "device-color-without-output-intent"
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/reference/codes/device-color-without-output-intent/"
 ---
 

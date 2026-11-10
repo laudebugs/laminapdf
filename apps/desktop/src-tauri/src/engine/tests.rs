@@ -280,7 +280,21 @@ fn pages_should_work_again_after_a_restart() {
     );
     f.engines.kill("main");
     let _ = f.told();
-    assert_eq!(f.engines.page_info("main", doc).unwrap().len(), 3);
+    // The event is sent from the restart handler, before its gate opens: ask again until it does.
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    let mut pages = f.engines.page_info("main", doc);
+    while matches!(
+        pages,
+        Err(DesktopError::Engine {
+            kind: "engine-restarted",
+            ..
+        })
+    ) && std::time::Instant::now() < deadline
+    {
+        std::thread::sleep(Duration::from_millis(10));
+        pages = f.engines.page_info("main", doc);
+    }
+    assert_eq!(pages.unwrap().len(), 3);
 }
 
 #[test]

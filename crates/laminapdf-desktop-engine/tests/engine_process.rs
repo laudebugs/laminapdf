@@ -13,9 +13,10 @@ use std::collections::BTreeMap;
 use std::io;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, mpsc};
+use std::thread;
 use std::time::{Duration, Instant};
 
-use laminapdf_desktop_protocol::supervisor::{CommandSpawner, Config, Event, RangeServer, Supervisor};
+use laminapdf_desktop_protocol::supervisor::{CommandSpawner, Config, Event, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
     DocId, FailureKind, FromEngine, Password, Priority, ReqId, TileFormat, TileRequest, ToEngine,
 };
@@ -92,8 +93,16 @@ impl Engine {
         })
     }
 
-    fn ask(&self, make: impl FnOnce(ReqId) -> ToEngine) -> FromEngine {
-        self.supervisor.request(make).unwrap().0
+    /// Sends a request and returns its reply. Right after a restart the supervisor answers `Lost`
+    /// until the restart handler has returned (its restoring gate): that answer is asked again.
+    fn ask(&self, make: impl Fn(ReqId) -> ToEngine) -> FromEngine {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            match self.supervisor.request(&make) {
+                Err(SupervisorError::Lost) if Instant::now() < deadline => thread::sleep(Duration::from_millis(10)),
+                reply => return reply.unwrap().0,
+            }
+        }
     }
 
     fn restarted(&self) -> Option<u32> {
