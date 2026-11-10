@@ -31,7 +31,7 @@ Give `laminapdf-model` a typed view over the catalog's `/Metadata` XMP packet th
 **In scope**
 
 - `laminapdf_model::xmp` module: tolerant RDF/XML packet reader (xpacket wrapper, `rdf:Description` attributes and elements, `rdf:Alt`/`Seq`/`Bag`, `xml:lang`)
-- `XmpPacket` typed accessors for the Info-mapped properties and the identification schemas (`pdfaid:part`/`conformance`, `pdfuaid:part`) read-only
+- `xmp::Packet` typed accessors for the Info-mapped properties and the identification schemas (`pdfaid:part`/`conformance`, `pdfuaid:part`) read-only
 - A writer that updates only changed properties and keeps unknown schemas, extension schemas (`pdfaSchema:`), comments and padding; regenerates the packet canonically only when the input cannot be edited in place
 - Creating a minimal packet for files without `/Metadata`
 - Info ↔ XMP mapping table shared with `laminapdf-build` (B5) in one module
@@ -59,7 +59,7 @@ Give `laminapdf-model` a typed view over the catalog's `/Metadata` XMP packet th
 - [x] Typed getters/setters for the Info-mapped properties, with language alternatives (`x-default`) and date conversion between PDF dates (`D:YYYYMMDDHHmmSSOHH'mm`, ISO 32000-1 §7.9.4: no apostrophe after the minutes) and ISO 8601; the reader tolerates the trailing `'` that older producers write, the writer never emits it
 - [x] Writer: update in place keeping padding when the new packet fits; otherwise rewrite with fresh padding (2 KB) and `begin="\uFEFF"`
 - [x] `xmp::Packet::new_minimal()` (`Packet`, since the disclosure scan's `XmpPacket` has the name) for files without metadata; namespace prefixes per ISO 16684-1
-- [x] Move the B5 builder's Info ↔ XMP mapping into one shared table used by both generation and editing
+- [x] Move the B5 builder's Info ↔ XMP mapping into one shared table used by both generation and editing. The table (`MAPPINGS`), `property_element`, `escape` and the date conversion live in `laminapdf_model::xmp`; the builder writes each property with literal tags, which a unit test holds to what `property_element` writes for that row, since building them from the table at run time went over the text module's WebAssembly budget
 - [x] Tolerance: malformed packets produce a warning code (ADR 0003) and are treated as absent for writing only after the UI confirms (exposed as a flag to E1c)
 
 ## Acceptance criteria
@@ -80,7 +80,7 @@ None.
 - Unit tests in `crates/laminapdf-model/src/xmp/` for every RDF form (attribute, element, `rdf:Alt` with languages, `rdf:Seq`)
 - Golden packets in `fixtures/golden/xmp/` (input → edited output) — never rewritten by a test
 - Corpus test: round-trip of every packet in `fixtures/corpus`
-- Differential: values read vs `exiftool -j` on the corpus (nightly lane)
+- Differential: values read vs `exiftool -j` on the corpus (nightly lane): not built here (`exiftool` couldn't be run); moved to [E1c](../ready/E1c-metadata-ops.md) as a task beside its pypdf metadata differential
 - Fuzz target `fuzz/fuzz_targets/xmp_parse.rs`
 
 ## Docs to update

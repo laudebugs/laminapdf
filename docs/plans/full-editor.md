@@ -304,7 +304,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Save, Save as and Download copy through the `Platform` adapter
 - [ ] `SaveConstraint` banner and explanations
 - [ ] Metadata editing ops (J.01–J.03, J.10) writing Info and XMP in sync, with round-trip tests in core, `@laminapdf/sdk`, web, desktop
-- [ ] XMP packet parse/update for Info-mapped properties; create a packet when missing
+- [x] XMP packet parse/update for Info-mapped properties; create a packet when missing ([E1b](../todos/done/E1b-xmp-packet-model.md))
 - [ ] PDF/A-aware metadata edits: keep `pdfaid:`, warn before a save that breaks the claim; tests that veraPDF still passes on edited PDF/A fixtures
 
 ### E2. Page organisation
