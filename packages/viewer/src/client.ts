@@ -25,6 +25,7 @@ import {
   type WorkerWasmSource,
 } from "@laminapdf/sdk/worker";
 import type { FindOptions } from "./find/fold.js";
+import { FirstDraw } from "./first-draw.js";
 import {
   type BackendInit,
   type LoadProgress,
@@ -135,9 +136,6 @@ function compileEarly(backend: BackendInit): Promise<BackendInit> {
   );
 }
 
-/** How long text calls wait for the open document's first render before going ahead anyway, in ms. */
-const FIRST_DRAW_WAIT = 2000;
-
 /** One document worker and the typed RPC to it. */
 export class ViewerClient {
   readonly #pdf: WorkerClient;
@@ -151,13 +149,8 @@ export class ViewerClient {
   #opens = 0;
   #recovering: Promise<void> | undefined;
   #nextRender = 1;
-  /**
-   * Settles once the open document's first render has answered. Until then the text layer's
-   * calls wait here: the worker runs one call at a time, and a text call that waits for its module
-   * to download would hold the first page's render behind it.
-   */
-  #drawn: Promise<void> = Promise.resolve();
-  #markDrawn: () => void = () => undefined;
+  /** The open document's gate for text and link calls (first-draw.ts); none before a document opens. */
+  #firstDraw: FirstDraw | undefined;
   /** Each pending render's timers, by coalescing key: started on `render-start`, paused on `render-fetching`. */
   readonly #timers = new Map<string, Set<RenderTimers>>();
   /** The key the worker is drawing now: a render that joins it starts its timers at once. */
@@ -271,9 +264,6 @@ export class ViewerClient {
   ): Promise<OpenedDocument> {
     const { password: _, ...rest } = options;
     const ticket = ++this.#opens;
-    this.#drawn = new Promise<void>((resolve) => {
-      this.#markDrawn = resolve;
-    });
     let opened: OpenedDocument;
     try {
       opened = await this.call("openDocument", [source, options, ticket], call);
@@ -286,6 +276,8 @@ export class ViewerClient {
     }
     this.#reopen = { source, options: rest };
     this.#document = opened;
+    // Only once it opened: a failed open leaves the shown document's gate as it was.
+    this.#firstDraw = new FirstDraw(opened.id);
     return opened;
   }
 
@@ -330,7 +322,7 @@ export class ViewerClient {
    * module, loaded by default). At `background` priority unless `options` says otherwise.
    */
   async pageText(index: number, options: ViewerCallOptions = {}) {
-    await this.#afterFirstDraw();
+    await this.#firstDraw?.wait(options.signal);
     const key = `text:${this.#document?.id ?? 0}:${index}`;
     return this.call("pageText", [index], { priority: "background", key, ...options });
   }
@@ -340,7 +332,7 @@ export class ViewerClient {
    * At `background` priority unless `options` says otherwise.
    */
   async readingOrder(index: number, options: ViewerCallOptions = {}) {
-    await this.#afterFirstDraw();
+    await this.#firstDraw?.wait(options.signal);
     const key = `order:${this.#document?.id ?? 0}:${index}`;
     return this.call("readingOrder", [index], { priority: "background", key, ...options });
   }
@@ -355,16 +347,8 @@ export class ViewerClient {
 
   /** Whether the open document says it is tagged, and its structure tree when it has one. */
   async structure(options?: ViewerCallOptions) {
-    await this.#afterFirstDraw();
+    await this.#firstDraw?.wait(options?.signal);
     return this.call("structure", [], options);
-  }
-
-  /**
-   * Resolves once the open document's first render has answered, or after {@link FIRST_DRAW_WAIT}
-   * ms for a caller that never renders: the text calls wait for it (`#drawn`).
-   */
-  #afterFirstDraw(): Promise<void> {
-    return Promise.race([this.#drawn, new Promise<void>((resolve) => setTimeout(resolve, FIRST_DRAW_WAIT))]);
   }
 
   /**
@@ -416,7 +400,7 @@ export class ViewerClient {
   async pageLinks(index: number, options: ViewerCallOptions = {}) {
     // Links read with the extract module: like the text layer, they wait for the first page drawn,
     // and come after renders.
-    await this.#afterFirstDraw();
+    await this.#firstDraw?.wait(options.signal);
     return this.call("pageLinks", [index], { priority: "background", ...options });
   }
 
@@ -462,7 +446,7 @@ export class ViewerClient {
       const drawn = await this.call("render", [request, documentId], { ...options, key });
       // A page has been drawn: text calls may queue now. (A cancelled render doesn't count: the
       // render that replaces it would wait behind them.)
-      this.#markDrawn();
+      this.#firstDraw?.drawn(documentId);
       return drawn;
     } finally {
       const own = this.#timers.get(key);
@@ -511,6 +495,8 @@ export class ViewerClient {
           this.#document = (await this.#pdf.request("openDocument", [reopen.source, reopen.options], {
             priority: PRIORITY.document,
           })) as OpenedDocument;
+          // The restarted worker has no extract module yet: its first page goes first again.
+          this.#firstDraw = new FirstDraw(this.#document.id);
           reopened = true;
         }
       }
