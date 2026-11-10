@@ -1,0 +1,19 @@
+/* The desktop window: the reader's shell fills it. Tokens only (packages/tokens). */
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--paper-ground);
+  color: var(--paper-text);
+  font-family: var(--paper-font-sans);
+}
+
+.desktop-wordmark {
+  font-family: var(--paper-font-serif);
+  font-size: 18px;
+  font-weight: 500;
+}

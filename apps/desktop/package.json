@@ -1,0 +1,39 @@
+{
+  "name": "@laminapdf/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lamina PDF's desktop reader: @laminapdf/ui's chrome in a Tauri 2 shell (ADR 0008). The app's version is the Rust crate's (the workspace's lockstep version).",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "tauri": "tauri",
+    "test": "vitest run -c vitest.config.ts"
+  },
+  "dependencies": {
+    "@laminapdf/fonts": "workspace:*",
+    "@laminapdf/tokens": "workspace:*",
+    "@laminapdf/ui": "workspace:*",
+    "@tauri-apps/api": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@babel/core": "catalog:",
+    "@rolldown/plugin-babel": "catalog:",
+    "@tauri-apps/cli": "catalog:",
+    "@types/babel__core": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "babel-plugin-react-compiler": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}
