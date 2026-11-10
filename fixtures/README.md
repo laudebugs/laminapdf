@@ -60,7 +60,7 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 
 `golden/render/` holds `laminapdf-render`'s render goldens (todo C2b, ADR 0004): every page of every `corpus/` file rendered at 96 dpi on white by each backend, as `<backend>/<stem>-p<N>.png` (N 1-based; `pdfium` is `pdfium-binaries` `chromium/7881`, `hayro` is hayro 0.8.0), and `skip.json`, the files a backend can't render with a reason (none today). Generated, ours (the inputs are the corpus files above); written on macOS arm64 by `cargo xtask render-golden --update` (`crates/laminapdf-render-pdfium/examples/goldens.rs`), checked by its ignored `tests/golden.rs` (SSIM ≥ 0.99 against the backend's own PNG).
 
-`golden/xmp/` holds XMP packets for `laminapdf_model::xmp` (todo E1b), each an input with the outputs of edits made to it. Every input was written by hand for Lamina PDF and is `MIT OR Apache-2.0`. None of them was produced by the tool it is named after. No committed PDF has a packet from these producers (only the builder's own), and none of these tools could make a file here: Ghostscript, pdfTeX and LibreOffice weren't installed, and Acrobat and Word can't be run from a script, so each packet is modelled on the layout that producer is documented or widely observed to write. Names, dates and IDs are made up.
+`golden/xmp/` holds XMP packets for `laminapdf_model::xmp` (todo E1b), each an input with the outputs of edits made to it. Every input was written by hand for Lamina PDF and is `MIT OR Apache-2.0`. None of them was produced by the tool it is named after. No committed PDF has a packet from these producers, only the builder's own. None of these tools could make a file here either: Ghostscript, pdfTeX and LibreOffice weren't installed, and Acrobat and Word can't be run from a script. Each packet is therefore modelled on the layout that producer is documented or widely observed to write. Names, dates and IDs are made up.
 
 | File | Modelled on | What it exercises |
 | --- | --- | --- |
@@ -72,7 +72,15 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 | `utf16.xmp` | A UTF-16BE packet with a byte-order mark | Reading UTF-16, the canonical rewrite |
 | `invalid-dtd.xmp` | A packet with a DTD defining a billion-laughs entity and an external one | Refusing a DTD (`xmp-invalid`) |
 
-The outputs are `<input>.title.xmp` (the title set to `Edited title`), `ghostscript.producer.xmp` (an attribute-form value changed and a list added), `libreoffice.fields.xmp` (authors, keywords and a date added, the subject removed), `utf16.title.xmp` (rewritten whole, since the input isn't UTF-8) and `minimal.xmp` (`Packet::new_minimal` with every mapped field set). `crates/laminapdf-model/tests/xmp.rs` compares them byte for byte and writes them only with `UPDATE_GOLDEN=1`. The same test checks that every committed PDF's packet that parses writes back unchanged. The `xmp_parse` fuzz target takes this folder as its seeds.
+The outputs are:
+
+- `<input>.title.xmp`: the title set to `Edited title`;
+- `ghostscript.producer.xmp`: an attribute-form value changed and a list added;
+- `libreoffice.fields.xmp`: authors, keywords and a date added, the subject removed;
+- `utf16.title.xmp`: rewritten whole, since the input isn't UTF-8;
+- `minimal.xmp`: `Packet::new_minimal` with every mapped field set.
+
+`crates/laminapdf-model/tests/xmp.rs` compares them byte for byte and writes them only with `UPDATE_GOLDEN=1`. The same test checks that every committed PDF's packet that parses writes back unchanged. The `xmp_parse` fuzz target takes this folder as its seeds.
 
 The `text-*.pdf` goldens are rebuilt by `cargo xtask golden --update` like the others; [`tools/fixtures/text_facts.py`](../tools/fixtures/text_facts.py) then rewrites `text/extracted.json` (below).
 
