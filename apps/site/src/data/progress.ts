@@ -2,6 +2,8 @@
 // `cargo xtask progress` writes (tools/xtask/src/progress.rs documents each field). Pages read it
 // at build time through readProgress, which fails the build on a file this type doesn't describe.
 
+import { count, date, list, nullable, oneOf, read, record, text } from "./check.js";
+
 /** Todo counts: in progress means in `ongoing/` or claimed by an open pull request. */
 interface Counts {
   readonly todos: number;
@@ -52,37 +54,6 @@ export interface Progress {
   readonly merged: { readonly count: number; readonly recent: readonly string[] };
 }
 
-type Check = (value: unknown, path: string) => void;
-
-function fail(path: string, expected: string): never {
-  throw new Error(`progress.json: ${path} is not ${expected}`);
-}
-
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const text: Check = (value, path) => typeof value === "string" || fail(path, "a string");
-const count: Check = (value, path) => (Number.isInteger(value) && Number(value) >= 0) || fail(path, "a count");
-const date: Check = (value, path) => (typeof value === "string" && DATE.test(value)) || fail(path, "a date");
-const oneOf =
-  (...allowed: readonly unknown[]): Check =>
-  (value, path) =>
-    allowed.includes(value) || fail(path, allowed.join(" or "));
-const nullable =
-  (check: Check): Check =>
-  (value, path) =>
-    value === null || check(value, path);
-const list =
-  (check: Check): Check =>
-  (value, path) => {
-    if (!Array.isArray(value)) fail(path, "a list");
-    for (const [i, item] of value.entries()) check(item, `${path}[${i}]`);
-  };
-const record =
-  (fields: Readonly<Record<string, Check>>): Check =>
-  (value, path) => {
-    if (typeof value !== "object" || value === null || Array.isArray(value)) fail(path, "an object");
-    for (const [key, check] of Object.entries(fields)) check((value as Record<string, unknown>)[key], `${path}.${key}`);
-  };
-
 const COUNTS = { todos: count, done: count, inProgress: count, ready: count };
 const TODO = record({ id: text, title: text });
 
@@ -105,6 +76,5 @@ const PROGRESS = record({
 
 /** `value` (progress.json, parsed) as a {@link Progress}; throws, naming the field, when it isn't one. */
 export function readProgress(value: unknown): Progress {
-  PROGRESS(value, "the file");
-  return value as Progress;
+  return read<Progress>("progress.json", PROGRESS, value);
 }

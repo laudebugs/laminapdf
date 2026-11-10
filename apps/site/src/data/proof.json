@@ -236,15 +236,7 @@
       }
     },
     "runtimes": {
-      "passed": [
-        "node",
-        "chromium",
-        "firefox",
-        "deno",
-        "bun",
-        "workerd",
-        "webkit"
-      ],
+      "passed": ["node", "chromium", "firefox", "deno", "bun", "workerd", "webkit"],
       "failed": [],
       "missing": []
     },
