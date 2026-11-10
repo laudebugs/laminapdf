@@ -41,6 +41,13 @@ pub struct WasmFont {
     font: laminapdf::FontHandle,
 }
 
+impl WasmFont {
+    /// The font as the builder registered it.
+    pub(super) const fn handle(&self) -> &laminapdf::FontHandle {
+        &self.font
+    }
+}
+
 #[wasm_bindgen]
 impl WasmFont {
     /// The family name.
@@ -73,6 +80,19 @@ impl WasmBuilder {
     pub fn font_bytes(&self, bytes: Vec<u8>) -> JsResult<WasmFont> {
         self.with(|b| {
             let font = b.font_bytes(bytes).map_err(|e| lamina_error(&e))?;
+            Ok(WasmFont { font })
+        })
+    }
+
+    /// Loads face `index` (from 0) of a font collection (`.ttc`, `.otc`) and registers it.
+    ///
+    /// # Errors
+    /// `builder-finished`; `invalid-font` (not a collection, or no such face), `font-not-embeddable`.
+    #[wasm_bindgen(js_name = fontCollection)]
+    pub fn font_collection(&self, bytes: Vec<u8>, index: u32) -> JsResult<WasmFont> {
+        self.with(|b| {
+            let font = laminapdf::Font::from_collection(bytes, index).map_err(|e| lamina_error(&e.into()))?;
+            let font = b.font(font).map_err(|e| lamina_error(&e))?;
             Ok(WasmFont { font })
         })
     }

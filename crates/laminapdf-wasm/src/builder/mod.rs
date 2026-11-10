@@ -10,12 +10,16 @@
 
 mod document;
 mod image;
+#[cfg(feature = "text")]
+mod markdown;
 mod page;
 #[cfg(feature = "text")]
 mod text;
 
 pub use document::WasmBuilder;
 pub use image::WasmImage;
+#[cfg(feature = "text")]
+pub use markdown::WasmMarkdownOptions;
 pub use page::WasmPageBuilder;
 #[cfg(feature = "text")]
 pub use text::WasmFont;
