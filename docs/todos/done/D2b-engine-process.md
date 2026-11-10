@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [C4c](../done/C4c-remote-files-encryption-privacy.md), [C4d](../done/C4d-deploy-previews-and-production.md), [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md) |
+| Depends on | [C2b](./C2b-lamina-render-crate.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md) |
 | Dependency notes | [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md); web plan **C2** (`crates/laminapdf-render` with the PDFium adapter, [web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs)) — satisfied transitively by C4 via D2a |
 | ADRs | Implements ADR 0008 §process model (D2a). Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` apply in the engine), [0001](../../decisions/0001-core-language-and-licence.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md), ADR 0004 (`RenderBackend`, web C2) |
 | Branch | `feat/d2b-engine-process` |
 | PR title | `feat(desktop): run parsing and rendering in a restartable engine process` |
 | Size | L (600–1,500 lines) |
-| PR | — |
+| PR | [#394](https://github.com/laudebugs/laminapdf/pull/394) |
 
 ## Goal
 
@@ -47,43 +47,67 @@ Move every byte of untrusted PDF processing out of the Tauri main process. This 
   - `documents.rs`: `DocumentRegistry` mapping `DocId` → (granted path, `FileSource`, owning window, last view state, `Option<SessionPassword>`). Paths enter the registry only from trusted sources (dialog opened from Rust, argv/Opened in D3a, recent list, session restore in D4a) — the webview never sends a path.
   - `secret.rs`: `SessionPassword` — the password of an unlocked encrypted document, held by the main process **for as long as that document is open** so an engine restart can unlock it again without asking the user. Stored in a `Zeroizing<Vec<u8>>` whose buffer is locked into RAM (`mlock` on Unix, `VirtualLock` on Windows, via a small audited crate such as `memsec` or `region` — licence check — or a 20-line `unsafe` wrapper with `// SAFETY:`); locking is best effort (failure logged once at `warn`, never fatal); zeroised and unlocked on `CloseDocument`, window close, app exit and a failed unlock; never serialised, logged, persisted, put in session files (D4a) or sent to the webview; `Debug` redacts it.
   - On engine restart: re-send `Hello`, then for every document of that window `OpenDocument` and, if it holds a `SessionPassword`, `UnlockDocument` with it; emit a Tauri event `engine://restarted` `{ window, docs }` to that window only (`emit_to`), so the UI shows "document process restarted" and re-requests visible tiles. The user is **not** re-prompted. If the stored password is rejected (should not happen; the file is unchanged), the password is discarded and the document is reported as locked, so the UI shows the normal password prompt.
-- Commands (each added to the app manifest and granted in `capabilities/main.json`): `open_dialog` (Rust-side `DialogExt::file().add_filter("PDF", &["pdf"]).blocking_pick_file()` on a background thread → registers the doc → returns `DocId` + metadata), `page_info`, `close_document`. (`unlock_document`, which the UI calls with the user's password and which stores the `SessionPassword` on success, is added with the password prompt in [D2d](D2d-tile-transport-and-first-document.md); this PR implements the protocol messages, `SessionPassword` and the restart re-unlock, exercised by tests.) Test-only command `debug_kill_engine` compiled only with the Cargo feature `e2e` (used by D2e).
+- Commands (each added to the app manifest and granted in `capabilities/main.json`): `open_dialog` (Rust-side `DialogExt::file().add_filter("PDF", &["pdf"]).blocking_pick_file()` on a background thread → registers the doc → returns `DocId` + metadata), `page_info`, `close_document`. (`unlock_document`, which the UI calls with the user's password and which stores the `SessionPassword` on success, is added with the password prompt in [D2d](../ready/D2d-tile-transport-and-first-document.md); this PR implements the protocol messages, `SessionPassword` and the restart re-unlock, exercised by tests.) Test-only command `debug_kill_engine` compiled only with the Cargo feature `e2e` (used by D2e).
 - An xtask step (`cargo xtask desktop-sidecar`) that builds the engine for the host/target triple, copies it to `src-tauri/binaries/laminapdf-desktop-engine-<target-triple>[.exe]` (Tauri's required naming) and fetches the PDFium shared library (per-OS prebuilt from a pinned, hash-checked release of bblanchon/pdfium-binaries — same pin as web C2's `@laminapdf/render-pdfium`) into `src-tauri/resources/pdfium/` (git-ignored).
 - **Keeping plain `cargo` builds working.** `tauri-build`'s `build.rs` copies `bundle.externalBin` and `bundle.resources` at compile time and fails if they are missing, and `laminapdf-desktop` is part of `cargo xtask check rust` (clippy + tests on a fresh clone, no sidecar built). So the base `tauri.conf.json` has **no** `externalBin`/`resources`; they live in `src-tauri/tauri.bundle.conf.json`, merged only by the Tauri CLI (`tauri dev --config src-tauri/tauri.bundle.conf.json`, `tauri build --config …`, wired into the `desktop:dev`/`desktop:build` scripts, whose `beforeDevCommand`/`beforeBuildCommand` run `cargo xtask desktop-sidecar` first). Verify in this PR that the CLI hands the merged config to `build.rs`; if it does not, the fallback is that `src-tauri/build.rs` writes zero-byte placeholders at the expected paths when the real files are absent and the `desktop-build` job asserts the bundled sidecar and PDFium are non-empty before bundling. Either way, `cargo xtask check rust` stays sidecar-free, and the CI `desktop-build` job (its own job, not the fast lane) runs `desktop-sidecar` then `tauri build`.
 - Measurements recorded in the PR: engine RSS idle and with a 1,000-page document; `ReadRange` throughput on the 1 GB fixture; time from `OpenDocument` to `Opened` and first `PageInfo` for the 1 GB fixture.
 
 **Out of scope** (and which todo covers it)
 
-- OS-level sandboxing of the engine: [D2c](D2c-engine-sandbox.md) (this PR runs it unsandboxed but already without any file paths).
-- Delivering tiles to the webview and the viewer integration: [D2d](D2d-tile-transport-and-first-document.md).
-- WebdriverIO e2e: [D2e](D2e-desktop-e2e-webdriverio.md).
-- File watching (the registry exposes a "reload" entry point used by [D3b](D3b-recent-files-and-file-watching.md)).
-- Crash reports for engine crashes: [D7a](D7a-crash-reporting.md) (this PR only logs exit status).
+- OS-level sandboxing of the engine: [D2c](../ready/D2c-engine-sandbox.md) (this PR runs it unsandboxed but already without any file paths).
+- Delivering tiles to the webview and the viewer integration: [D2d](../ready/D2d-tile-transport-and-first-document.md).
+- WebdriverIO e2e: [D2e](../ready/D2e-desktop-e2e-webdriverio.md).
+- File watching (the registry exposes a "reload" entry point used by [D3b](../ready/D3b-recent-files-and-file-watching.md)).
+- Crash reports for engine crashes: [D7a](../ready/D7a-crash-reporting.md) (this PR only logs exit status).
 - Pooling engines across windows (ADR 0008 open question 3): revisit after measurements.
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] Create `crates/laminapdf-desktop-protocol` (lib only) and `crates/laminapdf-desktop-engine` (bin, plus a small lib target for its testable internals) — both layer `app`, `publish = false`, licence `MIT OR Apache-2.0`; add both to `[workspace.dependencies]` (`crates/*` is already a workspace member glob). `src-tauri` depends on `laminapdf-desktop-protocol` only; it never depends on `laminapdf-desktop-engine`.
-- [ ] Protocol crate (`src/lib.rs`, `src/frame.rs`, `src/msg.rs`) with `Frame` encode/decode (`fn write_frame<W: Write>(w, msg: &Msg, payload: &[u8]) -> Result<(), ProtocolError>`; `fn read_frame<R: Read>(r, max: u32) -> Result<(Msg, Vec<u8>), ProtocolError>`), version check, `ProtocolError` via `thiserror`.
-- [ ] Engine main loop: single reader thread that only decodes and routes frames (`RangeData` → the waiting `RemoteByteSource`; everything else → workers), job queue with priorities (visible tiles > prefetch) served by worker threads that run open/unlock/page-info/render, cancel set, writer serialised through one `Mutex<StdoutLock>` or a channel to a writer thread. Test: open a document whose parse needs many `ReadRange` round trips while a render is queued — no deadlock.
-- [ ] `RemoteByteSource` in the engine implementing the façade's `ByteSource` trait (blocking request/response with a timeout; `Error::Io` on timeout so the parser fails cleanly).
-- [ ] `SessionPassword` (`secret.rs`) and the re-unlock step in the restart path.
-- [ ] Supervisor, `FileSource`, `DocumentRegistry`, commands, event emission as above; all state behind `Mutex`/`RwLock` with no lock held across IPC waits.
-- [ ] `debug_kill_engine` behind `#[cfg(feature = "e2e")]`, with the feature off in release builds (assert in CI that the release build doesn't contain the command name — `strings` check or a compile-time `cfg` test).
-- [ ] xtask `desktop-sidecar` subcommand (engine build + PDFium fetch); `tauri.bundle.conf.json` with `externalBin`/`resources`; wire into the `desktop:dev`/`desktop:build` scripts and CI's `desktop-build` job. Check on a fresh clone (no `src-tauri/binaries/`, no PDFium) that `cargo xtask check rust` passes.
-- [ ] Add a 1 GB fixture **generator** (not a committed file): `cargo xtask fixtures large-pdf --pages 20000 --out target/fixtures/1gb.pdf` producing a valid PDF of ≥ 1 GiB (image-heavy pages) using the `laminapdf` builder; documented in `fixtures/README.md`.
-- [ ] Record measurements in the PR description and in ADR 0008 (amend the "process model" section with numbers; status stays Accepted).
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
+- [x] Create `crates/laminapdf-desktop-protocol` (lib only) and `crates/laminapdf-desktop-engine` (bin, plus a small lib target for its testable internals) — both layer `app`, `publish = false`, licence `MIT OR Apache-2.0`; add both to `[workspace.dependencies]` (`crates/*` is already a workspace member glob). `src-tauri` depends on `laminapdf-desktop-protocol` only; it never depends on `laminapdf-desktop-engine`.
+- [x] Protocol crate (`src/lib.rs`, `src/frame.rs`, `src/msg.rs`) with `Frame` encode/decode (`fn write_frame<W: Write>(w, msg: &Msg, payload: &[u8]) -> Result<(), ProtocolError>`; `fn read_frame<R: Read>(r, max: u32) -> Result<(Msg, Vec<u8>), ProtocolError>`), version check, `ProtocolError` via `thiserror`.
+- [x] Engine main loop: single reader thread that only decodes and routes frames (`RangeData` → the waiting `RemoteByteSource`; everything else → workers), job queue with priorities (visible tiles > prefetch) served by worker threads that run open/unlock/page-info/render, cancel set, writer serialised through one `Mutex<StdoutLock>` or a channel to a writer thread. Test: open a document whose parse needs many `ReadRange` round trips while a render is queued — no deadlock.
+- [x] `RemoteByteSource` in the engine implementing the façade's `ByteSource` trait (blocking request/response with a timeout; `Error::Io` on timeout so the parser fails cleanly).
+- [x] `SessionPassword` (`secret.rs`) and the re-unlock step in the restart path.
+- [x] Supervisor, `FileSource`, `DocumentRegistry`, commands, event emission as above; all state behind `Mutex`/`RwLock` with no lock held across IPC waits.
+- [x] `debug_kill_engine` behind `#[cfg(feature = "e2e")]`, with the feature off in release builds (assert in CI that the release build doesn't contain the command name — `strings` check or a compile-time `cfg` test).
+- [x] xtask `desktop-sidecar` subcommand (engine build + PDFium fetch); `tauri.bundle.conf.json` with `externalBin`/`resources`; wire into the `desktop:dev`/`desktop:build` scripts and CI's `desktop-build` job. Check on a fresh clone (no `src-tauri/binaries/`, no PDFium) that `cargo xtask check rust` passes.
+- [x] Add a 1 GB fixture **generator** (not a committed file): `cargo xtask fixtures large-pdf --pages 20000 --out target/fixtures/1gb.pdf` producing a valid PDF of ≥ 1 GiB (image-heavy pages) using the `laminapdf` builder; documented in `fixtures/README.md`.
+- [x] Record measurements in the PR description and in ADR 0008 (amend the "process model" section with numbers; status stays Accepted).
 
 ## Acceptance criteria
 
-- [ ] Opening a PDF via `open_dialog` returns page count and page sizes computed **in the engine process** (verified: main process does not link `laminapdf-render`/PDFium — `cargo tree -p laminapdf-desktop -e normal` shows none of `laminapdf-desktop-engine`, `laminapdf-render`, `pdfium-render`, `laminapdf`; run as a CI step that matches **exact package names**, not substrings — `laminapdf-desktop` and `laminapdf-desktop-protocol` are expected — e.g. `cargo tree -p laminapdf-desktop -e normal --prefix none --format '{p}' | awk '{print $1}' | sort -u | grep -Fx -e lamina -e laminapdf-render -e laminapdf-desktop-engine -e pdfium-render` failing when it prints anything).
-- [ ] On a fresh clone without the sidecar or PDFium, `cargo xtask check rust` (clippy + tests including `laminapdf-desktop`) passes.
-- [ ] Killing the engine (`kill -9` / Task Manager / `debug_kill_engine`) while a document is open results in a new engine PID, the document re-opened, and an `engine://restarted` event within 2 s; a fourth crash within 60 s marks the engine failed and the UI receives an error event instead of a restart loop.
-- [ ] Killing the engine while an **encrypted** document is open (unlocked with its password) re-opens and re-unlocks it in the new engine without a prompt; after `CloseDocument` the registry holds no password (unit test on the registry; integration test with an encrypted fixture).
-- [ ] Malformed frames (oversized length, wrong version, truncated payload) are rejected with a `ProtocolError` and never panic (unit + fuzz tests below).
-- [ ] The 1 GB generated fixture opens: `Opened` + `PageInfo` within **1.0 s** on the reference machine (leaving headroom for D2d's 1.5 s first-page target); engine RSS stays below 300 MB during open.
-- [ ] No `unwrap`/`expect`/`panic!` outside tests; every `unsafe` block has `// SAFETY:`.
+- [x] Opening a PDF via `open_dialog` returns page count and page sizes computed **in the engine process** (verified: main process does not link `laminapdf-render`/PDFium — `cargo tree -p laminapdf-desktop -e normal` shows none of `laminapdf-desktop-engine`, `laminapdf-render`, `pdfium-render`, `laminapdf`; run as a CI step that matches **exact package names**, not substrings — `laminapdf-desktop` and `laminapdf-desktop-protocol` are expected — e.g. `cargo tree -p laminapdf-desktop -e normal --prefix none --format '{p}' | awk '{print $1}' | sort -u | grep -Fx -e lamina -e laminapdf-render -e laminapdf-desktop-engine -e pdfium-render` failing when it prints anything).
+- [x] On a fresh clone without the sidecar or PDFium, `cargo xtask check rust` (clippy + tests including `laminapdf-desktop`) passes.
+- [x] Killing the engine (`kill -9` / Task Manager / `debug_kill_engine`) while a document is open results in a new engine PID, the document re-opened, and an `engine://restarted` event within 2 s; a fourth crash within 60 s marks the engine failed and the UI receives an error event instead of a restart loop.
+- [x] Killing the engine while an **encrypted** document is open (unlocked with its password) re-opens and re-unlocks it in the new engine without a prompt; after `CloseDocument` the registry holds no password (unit test on the registry; integration test with an encrypted fixture).
+- [x] Malformed frames (oversized length, wrong version, truncated payload) are rejected with a `ProtocolError` and never panic (unit + fuzz tests below).
+- [x] The 1 GB generated fixture opens: `Opened` + `PageInfo` within **1.0 s** on the reference machine (leaving headroom for D2d's 1.5 s first-page target); engine RSS stays below 300 MB during open.
+- [x] No `unwrap`/`expect`/`panic!` outside tests; every `unsafe` block has `// SAFETY:`.
+
+## As built
+
+Where the PR differs from the tasks above, and why:
+
+- **Every request carries a `ReqId`**, and its reply repeats it, so one table matches every reply (the todo gave ids only to ranges and tiles). An encrypted document's `Opened` says `needs_password` itself; `NeedsPassword` answers any other request on a locked document. `RangeFailed` (main → engine) carries a failed read, and `RenderTile` a `priority`. `Hello`'s limits mirror the parser's and renderer's, each `None` for the engine's default, so the main process knows none of them.
+- **The supervisor's core lives in the protocol crate** (`supervisor`, `std` only), with an in-process fake engine behind its `test-support` feature, instead of `src-tauri/src/engine/supervisor.rs`. The engine's integration test drives the real binary through it without Tauri, and the restart-policy tests use the fake rather than a second test binary. `src-tauri/src/engine/mod.rs` (`Engines`) adds the Tauri side: one engine per window, reopening and events.
+- **One worker thread, not a pool:** PDFium serialises every call behind one lock and the façade's `Document` stays on one thread, so a pool would add nothing until a second renderer exists. Jobs still queue by priority (documents, visible tiles, prefetched tiles), and a cancel reaches both queued and running jobs.
+- **No "last view state" in the registry yet:** nothing records one until the viewer runs (D2d) and session restore (D4a) reads it; the registry keeps the path for D3b.
+- **`Engines::unlock` has no command yet:** D2d's `unlock_document` calls it with the user's password, as the todo says; the restart path and the tests use it now.
+- **No core-dump switch:** `prctl(PR_SET_DUMPABLE, 0)` also blocks the user's debugger and crash reporter; ADR 0008 §2 records the trade-off.
+- **Merged config:** `tauri build --config src-tauri/tauri.bundle.conf.json` hands the merged config to `build.rs` (Tauri copied `resources/pdfium/` into `target/debug/pdfium`), so no placeholder files are needed.
+- **The fixture generator** is the engine crate's `large_pdf` example, which `cargo xtask fixtures large-pdf` runs, so xtask doesn't link the core. 20,000 pages make 1,082 MiB.
+- **A hung worker restarts the engine:** the heartbeat stops once a single job has run longer than 45 s, so a document that loops forever in the parser or PDFium is caught by the 6 s watchdog, not only by the 60 s reply timeout.
+- **Restoring gate:** while a restarted engine reopens its documents, requests from other threads answer `engine-restarted` instead of reaching it early. A guard opens the gate again even if the restart handler panics.
+- **A document that can't reopen is closed:** `engine://restarted` reports each document `open`, `locked` or `closed`. One that fails to reopen, or whose reopening kills the new engine, is closed, so it can't spend the window's restarts and fail every other document with it; the documents after it reopen with the next restart.
+- **Each kept password has its own 16 KiB buffer**, aligned so no two passwords share a page on 4 KiB or 16 KiB pages (on 64 KiB-page kernels they can), and small enough to keep several inside Linux's default lock limit.
+- **Measurements** (M1 Pro, macOS 27, release build; ADR 0008 §2): engine idle 11 MiB; the 1 GB fixture's `Opened` and `PageInfo` in 478–494 ms with 115–126 MiB peak; 4,335 reads of 256 KiB (the whole file, since each page dictionary sits beside its image) at about 2.2 GiB/s; a 1,000-page document in 74 ms, 41 MiB after opening, 106 MiB peak over 1,000 tiles.
+- **The CI binary check runs on the debug build** the `desktop` job makes (`--debug --no-bundle`); the `e2e` feature decides the same way in a release build, so the check still proves no default build has the command. D6b's release job can repeat it on the installers.
+- **`debug_kill_engine` has no capability yet:** `capabilities/e2e.json` comes with D2e, which enables it only through `tauri.e2e.conf.json` (ADR 0008 §8); the command is compiled into e2e builds now.
+- **Re-unlock after a restart is tested in two halves:** the real engine binary refuses, then accepts, the kept password in a restarted engine (`engine_process.rs`), and `Engines::reopen` re-unlocks through the fake engine (`src-tauri/src/engine/tests.rs`). The app crate can't run the engine binary in its tests, since it may not depend on the engine crate.
+- **`LAMINA_PDF_PDFIUM_DIR`:** without `--pdfium`, the engine also reads PDFium's folder from the variable the rest of the workspace uses, so its tests and the `measure` example run without the app.
+- **Password copies outside `Zeroizing`:** the façade's `OpenOptions` and PDFium's open options take the password as their own `Vec`/`String`, which this PR can't wipe; the engine drops them with the open call.
+- **Added:** `build.rs` deletes the e2e command's permission file in a non-e2e build, since tauri-build never removes one and a stale file put `debug_kill_engine` in the next release build. A main-process read is capped at 16 MiB, so a compromised engine can't make the main process allocate gigabytes, and a window's engine reads only that window's documents. `cargo xtask render-golden` also runs the engine's PDFium test, a tile compared byte for byte with an in-process render.
 
 ## Post-merge checks
 
@@ -116,8 +140,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

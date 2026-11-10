@@ -16,13 +16,17 @@ export function spokenPage(pages: readonly PageInfo[], index: number): string {
 
 /**
  * Announces `viewer`'s page and zoom changes, and `file` with its page count each time a document
- * opens; returns the live regions to render once.
+ * opens (`opened.pages`), or, when it came back where its reader stopped (`opened.resumedAt`,
+ * 0-based), that page; returns the live regions to render once.
  */
 export function useAnnouncements(
   viewer: Viewer | undefined,
   file: { readonly name: string } | undefined,
-  pages: readonly PageInfo[],
+  opened: { readonly pages: readonly PageInfo[]; readonly resumedAt?: number | undefined },
 ): ReactNode {
+  const { pages } = opened;
+  // Only while a document is open: the engine clears it when one closes.
+  const resumedAt = file === undefined ? undefined : opened.resumedAt;
   const [announcer] = useState(() => new Announcer());
   const count = pages.length;
   // Read when a page is announced, so a new page list never restarts the listeners.
@@ -33,11 +37,16 @@ export function useAnnouncements(
   const fileName = file?.name;
   useEffect(() => {
     if (file === undefined || fileName === undefined || count === 0) return;
+    if (resumedAt !== undefined) {
+      const page = latest.current[resumedAt]?.label ?? String(resumedAt + 1);
+      announcer.polite(message("announce.resumed", { page }), "open");
+      return;
+    }
     announcer.polite(
       message(count === 1 ? "announce.opened.one" : "announce.opened", { name: fileName, count }),
       "open",
     );
-  }, [announcer, file, fileName, count]);
+  }, [announcer, file, fileName, count, resumedAt]);
   useEffect(() => {
     if (viewer === undefined) return;
     // A fit mode refitting after a resize or an open is not news: only a new mode or percentage is.

@@ -109,14 +109,19 @@ A new version installs in the background and waits: a toast offers Reload, and o
 
 **Installing.** `manifest.webmanifest` makes the reader installable as an app, with its own window and icon. Where the browser offers an install (Chromium), More › Install Lamina PDF… shows it; other browsers install sites from their own menus. An installed copy in Chromium opens PDFs from the operating system's Open with menu (the manifest's `file_handlers`).
 
-**What the browser keeps.** The reader keeps two things, both in this browser and never sent anywhere:
+**What the browser keeps.** The reader keeps three things, all in this browser and never sent anywhere:
 
 - The Recent list on the home screen, in IndexedDB: each local file's name, size, page count and when it was opened. Chromium also keeps the file's handle, so pressing its row reopens it; other browsers ask for the file again. A file opened from a link is never listed, and its address is never stored (ADR 0011).
+- Where you stopped reading in each document: its page, place on the page, zoom and rotation, in IndexedDB. Each position is kept under a fingerprint of the file, a hash of its first bytes, never under its name or address. So a renamed copy reopens where you left off, and so does the file after an app adds a note or a signature to its end. The 500 documents read most recently are kept. A link that names a page (`#page=3`) opens there instead.
 - A copy of each local file larger than 200 MiB, in the origin-private file system (OPFS). The document worker reads these large files from the copy rather than holding them in memory. The copies together stay within half the space the browser leaves free, at most 2 GiB; the copies opened longest ago are deleted first.
 
 Settings › Storage and privacy › Remember recent local files is on by default. Turning it off empties the list and deletes the copies, and a large file's copy is then deleted when its document closes.
 
-Settings › Storage and privacy › Clear recent files and cached documents removes the list and every copy.
+Settings › Storage and privacy › Clear recent files and cached documents removes the list, every copy and every reading position.
+
+Settings › Storage and privacy › Remember where I stopped reading is on by default. Turning it off forgets every position and keeps no new ones. Forget reading positions, beside it and in the command palette, forgets them and leaves the setting on.
+
+**Coming back to a document.** The local file open when the reader last closed comes back at the next start, at its page, where the browser kept the permission to read it (Chromium, after "Allow on every visit"). Elsewhere the home screen lists it first, under Continue reading, with the page you stopped at; pressing it asks for the file and opens it there. A file from a link comes back with the browser's own tab restore, which keeps the link in the address. Safari deletes a site's storage after seven days without a visit unless the reader is installed, so positions can be lost there.
 
 ## Headers and hosting
 
@@ -142,7 +147,7 @@ The reader releases on its own schedule, apart from the packages. Once a day, af
 
 ## Releases
 
-Each release is a `web-v<version>` tag on a commit of `main`, with its notes in [CHANGELOG.md](CHANGELOG.md) and its version in `package.json`, which Settings › About shows. Before production deploys, the release lane's `production-checks` job runs the release gates:
+Each release is a `web-v<version>` tag on a commit of `main`, with its notes in [CHANGELOG.md](CHANGELOG.md). Settings › About shows the tag's version, and `package.json` holds the base version a tag's must match in major and minor. Before production deploys, the release lane's `production-checks` job runs the release gates:
 
 - **Startup size:** `cargo xtask web size` checks the scripts the built `index.html` loads at startup, gzipped, against [`size-budget.json`](size-budget.json). The fast lane runs the same check on every pull request.
 - **Lighthouse:** `pnpm --filter @laminapdf/web lighthouse:local` serves the build with its deployed headers and checks [`lighthouserc.json`](lighthouserc.json)'s scores.
@@ -167,6 +172,8 @@ Three more suites use `e2e/remote-host.ts`, a local HTTPS server on another port
 `e2e/installability.e2e.test.ts` validates the manifest against SchemaStore's schemas (pinned in `e2e/fixtures/`), fetches every icon it names, and asks Chromium whether anything stops an install. It also logs whether the browser offered an install, without failing on it.
 
 `e2e/recent-files.e2e.test.ts` lists and reopens a file, checks that a linked file leaves nothing in IndexedDB, and checks that Clear empties both stores.
+
+`e2e/reading-position.e2e.test.ts` builds a 40-page file, reads it to page 12 at 150 % and opens it again: it must come back there, announced, with Back to page 1. A renamed copy and the file after an incremental save must come back there too, while a different file with the same name and size must not. A link must come back by its fingerprint, with its address never stored, and `&page=3` must win. The store may hold nothing but views, page counts and times under fingerprints, and Forget reading positions and the setting must empty it.
 
 Every suite's browser accepts the e2e server's self-signed certificate for service workers (`e2e/browser.ts`), so the other suites run with the worker active too.
 

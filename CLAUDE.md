@@ -65,6 +65,13 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     RenderLimits), straight-RGBA tiles, RenderError; the hayro adapter (feature `hayro`)
 │   ├── laminapdf-render-pdfium/  # edge: the PDFium adapter (pdfium-render, bound at runtime to pdfium-binaries chromium/7881;
 │   │                    #     tests and render goldens #[ignore]d: `cargo xtask render-golden` runs them)
+│   ├── laminapdf-desktop-protocol/  # app, unpublished: the frames between the desktop main process and its engine
+│   │                    #     (ToEngine/FromEngine, postcard header + raw payload, MAX_FRAME, PROTOCOL_VERSION) and
+│   │                    #     `supervisor` (std only: spawn, Hello/Ready, replies by ReqId, ReadRange served, heartbeat
+│   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b)
+│   ├── laminapdf-desktop-engine/  # app, unpublished: the desktop engine binary (ADR 0008 §2): stdin/stdout frames, a router
+│   │                    #     thread that never parses, one worker (lamina model + PDFium), RemoteSource (256 KiB blocks
+│   │                    #     read over the pipe); examples large_pdf (the 1 GB fixture) and measure (D2b)
 │   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
 │   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers that crates share (fixtures_dir, fixture, corpus,
@@ -78,7 +85,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/test-utils/ # @laminapdf/test-utils (private, workspace-only, outside Changesets): the test helpers the
 │                        #   packages share, exported as TypeScript source: render-contract (the RenderBackend suite both
 │                        #   adapters run, Node + browsers), browser-harness, browser-config (renderBrowserConfig),
-│                        #   firefox (firefoxProvider, firefoxEnv), root (fromRoot), wrangler-dev (the sites' e2e server over HTTPS, getLocal)
+│                        #   firefox (firefoxProvider, firefoxEnv), flaky (retryOnceAndReport: one retry and the flaky report, ADR 0018 §4),
+│                        #   root (fromRoot), wrangler-dev (the sites' e2e server over HTTPS, getLocal)
 ├── packages/render-pdfium/  # @laminapdf/render-pdfium: @embedpdf/pdfium 2.15.1 (pdfium.wasm SHA-256 checked by
 │                        #   scripts/verify-pdfium.mjs) behind RenderBackend; THIRD_PARTY_NOTICES.md
 ├── packages/render-hayro/   # @laminapdf/render-hayro: lamina_pdf_render_hayro behind RenderBackend
@@ -98,7 +106,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   history/history.ts (NavigationHistory; viewer.history, jumpToPage, jumpToDestination), worker pageLinks; C6c: worker/print.ts
 │                        #   (printPage: a page at print dpi with the print intent, ≤ 16 MP, as a PNG; fileBytes: a remote file's bytes as opened),
 │                        #   worker properties; C7b: source/opfs.ts (OpfsByteSource: a local file over 200 MiB (`copyAbove`) copied once into
-│                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); C3b: createViewer (src/layout/, view/, canvas/,
+│                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); T5b: worker/fingerprint.ts
+│                        #   (documentFingerprint: "fp1:" + SHA-256 of the head through its first %%EOF within 64 KiB; OpenedDocument.fingerprint),
+│                        #   Viewer.viewPosition()/restore(ViewPosition: a history place plus rotation, a history jump), a pending place
+│                        #   for a view opened or restored while hidden; C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)
@@ -137,8 +148,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Notice, Toast, ProgressBar, Skeleton, EmptyState, StatusBarItem, NetworkIndicator, RepairedNotice, PageLabel,
 │                        #   Thumbnail, OutlineRow, ShortcutChip), src/overlays/ (the layer stack behind Escape, Dialog, Popover and
 │                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue, BottomSheet, SelectionToolbar,
-│                        #   CommandPalette; z-order from --paper-z-*), src/platform/ (ADR 0010: the Platform interface and capability
-│                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files),
+│                        #   CommandPalette; z-order from --paper-z-*), src/dialogs.ts (the ./dialogs entry: PrintDialog, PrintProgressDialog,
+│                        #   PropertiesDialog, which the web reader loads once a document opens, issue #380), src/platform/ (ADR 0010: the Platform interface and capability
+│                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files;
+│                        #   T5b: Platform.positions, positions.ts: the `positions` store of `lamina-pdf` v2, 500 by `readAt`; idb.ts opens
+│                        #   the database once; recent.reopen(id, { ask: false })),
 │                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
 │                        #   useStoreState, useReaderState), src/reader/ (ReaderShell, ReaderTopBar (Back and Forward), PageInput, OutlineTree, FindBar, FindResults, ExternalLinkDialog, ZoomControl,
 │                        #   ReaderView and ReaderSettingsPanel (reader-view.tsx: R14's column, crops, settings; U4b),
@@ -184,6 +198,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   document traffic and unexpected sites; monitor.ts, the log and its summary; panel.tsx, R13's indicator and panel);
 │                        #   src/reader-mode.tsx (U4b: the Reader toggle, the column over the reflow, crops, the place kept both ways, settings;
 │                        #   U4c: reader-origin.ts outlines a block on its page for View original page, reader-crop.ts a crop's clip);
+│                        #   src/reading/ (T5b: positions.ts parses, records and restores reading positions by fingerprint; resume.ts
+│                        #   reopens the document open at the last close; recent.tsx's Continue reading and the session record);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
@@ -196,12 +212,18 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Changesets: its version is the crate's). src/main.tsx (the only isTauri() call, checked by `check ts`),
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
-│                        #   screen, version from the `app_info` command); opening a document waits for D2b/D2d. src-tauri/: the
+│                        #   screen, version from the `app_info` command); showing a document waits for D2d. src-tauri/: the
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
-│                        #   Rust only, window `main` built in Rust), commands.rs (`app_info`), error.rs (DesktopError as
-│                        #   { kind, message }), build.rs (app manifest: each command needs an allow-* permission),
-│                        #   tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype, capabilities ["main"]),
-│                        #   capabilities/main.json (only allow-app-info), tests/capabilities.rs (the capability guard), test/app-info.json
+│                        #   Rust only, window `main` built in Rust, Engines managed state, window close/app exit stop engines),
+│                        #   commands.rs (`app_info`, `open_dialog`, `page_info`, `close_document`; `debug_kill_engine` with
+│                        #   feature `e2e`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
+│                        #   engine://failed to that window; documents.rs DocumentRegistry, a window reads only its own docs;
+│                        #   bytesource.rs FileSource, positioned reads, no mmap; secret.rs SessionPassword, locked and wiped),
+│                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
+│                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
+│                        #   capabilities ["main"]; no externalBin), tauri.bundle.conf.json (the engine sidecar and PDFium, merged
+│                        #   by desktop:dev/desktop:build), capabilities/main.json (the four commands' allow-*),
+│                        #   tests/capabilities.rs (the capability guard), test/app-info.json
 │                        #   (the app_info sample both languages' tests read), about/
 │                        #   (cargo-about, MPL-2.0 accepted for Tauri's dependencies); Linux builds need WebKitGTK 4.1 and D-Bus
 │                        #   (.github/actions/linux-webkit); README.md
@@ -304,7 +326,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
     └── references/      # external specs, tools, corpora
 ```
 
-The CLI's release (`.github/workflows/cli-release.yml`, L4d) is apart from the library's: `dist plan` on PRs that touch `crates/laminapdf-cli`, `packages/cli`, `tools/cli-release` or the dist config; on `workflow_dispatch` (`dry-run` true; false is refused) and `laminapdf-cli-v*` tags, `cargo xtask cli-dist` and `dist build` for three targets on GitHub-hosted runners (aarch64-apple-darwin on `macos-15`; aarch64-unknown-linux-gnu and -musl on `ubuntu-24.04-arm`; the other five are not built yet, Windows waits for X6), each archive extracted and run, the npm tarballs installed and run (`tools/cli-release/install-test.sh`), the Homebrew formula installed from the local archive through a throwaway tap on macOS; then the formula, `sha256.sum` and a CycloneDX SBOM; `publish` (the GitHub release; attestations once public) only on a tag push while the variable `LAMINA_PDF_PUBLISH_CLI` is `true`, in the `release` environment, with no stored token (`tools/xtask/src/workflows.rs` tests the gate). Pushing the formula to the tap and publishing the npm packages are not wired yet.
+The CLI's release (`.github/workflows/cli-release.yml`, L4d) is apart from the library's: `dist plan` on PRs that touch `crates/laminapdf-cli`, `packages/cli`, `tools/cli-release` or the dist config; on `workflow_dispatch` (`dry-run` true; false is refused) and `laminapdf-cli-v*` tags, `cargo xtask cli-dist` and `dist build` for all eight targets, each on a GitHub-hosted runner of its own system and CPU (L4g: `macos-15`, `macos-15-intel`, `ubuntu-24.04-arm`, `ubuntu-24.04`, `windows-11-arm`, `windows-2025`; Windows in Git Bash), each archive extracted and run, the npm tarballs installed and run where npm installs them (`tools/cli-release/install-test.sh`; not the musl packages, whose static binaries are checked and run), the Homebrew formula installed from the local archive through a throwaway tap on macOS; then `global`: the formula, `sha256.sum`, the nine npm packages packed with `publish.json` (`tools/cli-release/generate.ts --pack`: the version, its dist-tag, platform packages before the wrapper) and a CycloneDX SBOM; then, only on a tag push while the variable `LAMINA_PDF_PUBLISH_CLI` is `true`, after every build passed, in the `release` environment: `publish` (the GitHub release with build-provenance attestations, which GitHub makes only for a public repository), `publish-npm` (npm trusted publishing from `ubuntu-latest`, versions already on npm skipped, a package not yet on npm refused with the owner's first-publish step) and `publish-homebrew` (the formula written to `laudebugs/homebrew-tap` through the contents API with a release-bot token for that repository alone); `tools/xtask/src/workflows.rs` tests the gates, the OIDC jobs, the only secrets (the release bot's, in `publish-homebrew`) and the build matrix against dist's targets. The owner's one-time setup is in `tools/release/README.md`.
 
 Daily releases: `release-train.yml` runs after a full successful nightly on `main`. It prepares and atomically pushes a version branch and tag with the release bot. The release lane deploys production docs after publishing and registry checks, then opens the version PR with auto-merge. `RELEASE_TRAIN=off` stops future trains. The web reader releases on its own: `web-release-train.yml`, after the same nightly, tags `web-v<next>` when what the reader ships changed since its last tag (`cargo xtask web next-release`; `WEB_RELEASE_TRAIN=off` stops it), and the tag deploys it. Workflow installation, bot setup and recovery: [`tools/release/README.md`](tools/release/README.md).
 
@@ -315,6 +337,7 @@ Daily releases: `release-train.yml` runs after a full successful nightly on `mai
 - **Pull requests only.** `main` was initialized directly; every change since goes through a branch + PR. Branch names: `<type>/<short-description>` (e.g. `docs/pdf-research`).
 - **Review every PR with `/code-review`, then merge.** After opening a PR, run `/code-review high <PR#>` (trivial PRs: `low`) without `--comment`: don't post review comments. Fix the findings in new commits whose messages list each finding and its fix. If there were more than 6 findings, run `/code-review low <PR#>` after the fixes and record those the same way. A non-trivial PR that adds or changes prose people read also gets `/writing-review`, whose findings are counted and fixed separately ([§7](docs/guidelines/git-workflow.md#7-review-and-merge-process)). Run `cargo xtask ci` locally, then squash-merge once CI is green. See [review and merge process](docs/guidelines/git-workflow.md#7-review-and-merge-process).
 - **Check visual changes in a browser, from the user's side.** Try every change to what a user sees or touches on screen (the reader, the viewer, the sites, the components) in the built app in a real browser, as a person uses it (mouse, keyboard, real files). Judge it by what they can see and do; tests that only call an API don't prove it. Other changes need their own tests, not a browser. See [bug triage §7](docs/guidelines/bug-triage.md#7-prove-the-fix).
+- **Never patch code just to make a test pass.** When a test fails, in CI or locally, find out why. Fix the product if it is wrong. If the test checks something that doesn't make sense, adjust it or remove it, and say why in the commit message. See [bug triage §6](docs/guidelines/bug-triage.md#6-fix-the-cause-not-the-symptom).
 - **Conventional Commits** for commit messages: `type(scope): summary`.
 - **Document as you go.** Plans go in `docs/plans/`, decisions in `docs/decisions/`, research in `docs/research/`. Update the folder's `README.md` index whenever you add a file.
 - **Cite sources.** PDF behavior claims should point to ISO 32000-2 (PDF 2.0) or another primary source. Clearly label recommendations and opinions.
@@ -480,10 +503,17 @@ cargo xtask cli-docs         # the CLI's man pages (clap_mangen, one per command
 cargo xtask cli-dist         # cli-docs plus THIRD_PARTY_NOTICES.md (cargo-about, about/ in laminapdf-cli, `mcp` on): what
                              #   dist-workspace.toml's `include` puts in every release archive; then `dist build --artifacts=local
                              #   --target <triple>` (dist pinned in doctor.rs) writes the archive into target/distrib/
-pnpm --filter @laminapdf/desktop tauri dev  # the desktop reader (after `pnpm --filter "@laminapdf/desktop^..." run build`;
-                             #   Linux: libwebkit2gtk-4.1-dev libdbus-1-dev); `tauri build --debug --no-bundle` is what the full
-                             #   lane's `desktop` job builds on Linux, macOS and Windows when `cargo xtask changes` says desktop=true
+pnpm --filter @laminapdf/desktop run desktop:dev  # the desktop reader with its engine and PDFium (after `pnpm --filter
+                             #   "@laminapdf/desktop^..." run build`; Linux: libwebkit2gtk-4.1-dev libdbus-1-dev); `desktop:build
+                             #   --debug --no-bundle` is what the full lane's `desktop` job builds on Linux, macOS and Windows when
+                             #   `cargo xtask changes` says desktop=true, then checks the engine and PDFium sit beside the app,
+                             #   the main process links no parser or PDFium, and the build has no e2e command
 cargo xtask desktop-notices  # the desktop app's THIRD_PARTY_NOTICES.md (cargo-about, MPL-2.0 text included) into target/desktop/
+cargo xtask desktop-sidecar [--release|--debug]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
+                             #   pinned PDFium into src-tauri/resources/pdfium/ (both git-ignored); the profile defaults to the
+                             #   Tauri CLI's (TAURI_ENV_DEBUG); desktop:dev/desktop:build run it first
+cargo xtask fixtures large-pdf [--pages N] [--out PATH]  # the engine's 1 GB fixture (20,000 image pages, ~1.1 GB, never
+                             #   committed) into target/fixtures/1gb.pdf; needs ~1.5 GB of RAM
 cargo run -p laminapdf-cli --features mcp -- mcp --root <dir> [--allow-write [--allow-in-place]]  # the MCP server on stdio (L4c)
 cargo xtask models check     # tools/models/models.toml: code and weights licences in the allowed set, pins well formed, no
                              #   weights file in the repository (part of `check docs`)
@@ -502,7 +532,8 @@ cargo xtask differential --full [--update]  # the full lane's set: 36 mutants pe
 cargo xtask roundtrip [--tools qpdf,pdfjs,pdfium]  # Lamina PDF saves fixtures x ops x modes, reopens each output; qpdf --check,
                              #   pdf.js and PDFium check them (needs qpdf, Node, Python with tools/roundtrip/requirements.txt)
 cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree, content,
-                                      #   ops_json, save_roundtrip, extract_text, extract, markdown
+                                      #   ops_json, save_roundtrip, extract_text, extract, markdown,
+                                      #   engine_protocol_decode
 cargo xtask fuzz --all [--time N] [--jobs N]  # every fuzz target, N at once (the full lane: --jobs 4,
                                       #   30 s per target on PRs, 120 s on pushes to main)
 cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane does this before caching it on main)

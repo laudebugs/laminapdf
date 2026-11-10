@@ -216,3 +216,119 @@ describe("destinations", () => {
     close(view);
   });
 });
+
+describe("restoring a position", () => {
+  it("opens at a kept position without painting another page first, and Back goes to the start", async () => {
+    const doc = await rpc.open(thousand);
+    expect(doc.fingerprint).toMatch(/^fp1:[0-9a-f]{64}$/);
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(main);
+    const started: number[] = [];
+    const stop = rpc.on("render-start", ({ page }) => started.push(page));
+    try {
+      // Restored in the task that opens the document, as the app does.
+      viewer.open(doc);
+      viewer.restore({ point: { page: 500, x: 0, y: 0.25 }, zoom: 150, rotation: 90 });
+      await until(() => started.length > 0 && viewer.getState().visibleRange.first >= 499);
+      expect(started.filter((page) => page < 490)).toEqual([]);
+      const state = viewer.getState();
+      expect([state.zoom, state.rotation]).toEqual([150, 90]);
+      // The kept point sits a gap (16 px) below the viewport's top, as a history jump puts it;
+      // a pixel more for the scroll's rounding.
+      const top = viewer.positionOf({ page: 500, x: 0, y: 0.25 })?.y ?? Number.NaN;
+      expect(top).toBeGreaterThanOrEqual(0);
+      expect(top).toBeLessThanOrEqual(17);
+      // A position kept now comes back the same.
+      const kept = viewer.viewPosition();
+      expect(kept?.point.page).toBe(500);
+      expect(kept?.point.y).toBeCloseTo(0.25, 2);
+      expect(viewer.history.getState().back?.point.page).toBe(0);
+      expect(viewer.history.back()).toBe(true);
+      await until(() => viewer.getState().visibleRange.first === 0);
+    } finally {
+      stop();
+      viewer.destroy();
+    }
+  });
+
+  it("clamps a position past the document's end to its last page", async () => {
+    const doc = await rpc.open(await read("fixtures/golden/links-and-outlines.pdf"));
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(main);
+    try {
+      viewer.open(doc);
+      viewer.restore({ point: { page: 99, x: 2, y: -1 }, zoom: "fit-width", rotation: 0 });
+      // The last page is shown; it can't scroll to the viewport's top, so the view stops at the end.
+      await until(() => viewer.getState().visibleRange.last === doc.pageCount - 1);
+      expect(viewer.getState().scrollTop).toBeGreaterThan(0);
+    } finally {
+      viewer.destroy();
+    }
+  });
+});
+
+describe("a view opened while hidden", () => {
+  it("starts a new document at its top, not where the last one was scrolled", async () => {
+    const host = box(800, 600, 170);
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(host);
+    try {
+      viewer.open(await rpc.open(thousand));
+      viewer.goToPage(300);
+      await until(() => viewer.getState().visibleRange.first >= 299);
+      host.style.display = "none";
+      viewer.open(await rpc.open(await read("fixtures/golden/links-and-outlines.pdf")));
+      host.style.display = "";
+      await until(() => viewer.getState().scrollTop === 0 && viewer.getState().visibleRange.first === 0);
+    } finally {
+      viewer.destroy();
+      host.remove();
+    }
+  });
+
+  it("restores a kept position once it shows, painting no other page first", async () => {
+    const host = box(800, 600, 170);
+    host.style.display = "none";
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(host);
+    const started: number[] = [];
+    const stop = rpc.on("render-start", ({ page }) => started.push(page));
+    try {
+      viewer.open(await rpc.open(thousand));
+      viewer.restore({ point: { page: 700, x: 0, y: 0 }, zoom: 100, rotation: 0 });
+      // While hidden it already reports where it will be.
+      expect(viewer.viewPosition()?.point.page).toBe(700);
+      await frame();
+      host.style.display = "";
+      await until(() => started.length > 0 && viewer.getState().visibleRange.first >= 699);
+      expect(started.filter((page) => page < 690)).toEqual([]);
+      expect(viewer.history.getState().back?.point.page).toBe(0);
+    } finally {
+      stop();
+      viewer.destroy();
+      host.remove();
+    }
+  });
+});
+
+describe("a restore while hidden after another document", () => {
+  it("leaves Back at page 1, not where the last document was scrolled", async () => {
+    const host = box(800, 600, 170);
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(host);
+    try {
+      viewer.open(await rpc.open(thousand));
+      viewer.goToPage(300);
+      await until(() => viewer.getState().visibleRange.first >= 299);
+      host.style.display = "none";
+      viewer.open(await rpc.open(thousand));
+      viewer.restore({ point: { page: 700, x: 0, y: 0 }, zoom: 100, rotation: 0 });
+      host.style.display = "";
+      await until(() => viewer.getState().visibleRange.first >= 699);
+      expect(viewer.history.getState().back?.point.page).toBe(0);
+    } finally {
+      viewer.destroy();
+      host.remove();
+    }
+  });
+});

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "beforeDevCommand": "cargo xtask desktop-sidecar && pnpm dev",
+    "beforeBuildCommand": "cargo xtask desktop-sidecar && pnpm build"
+  },
+  "bundle": {
+    "externalBin": ["binaries/laminapdf-desktop-engine"],
+    "resources": { "resources/pdfium/": "pdfium/" }
+  }
+}

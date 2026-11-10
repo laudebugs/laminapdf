@@ -35,6 +35,7 @@ import type { NetworkMonitor } from "./network/monitor.ts";
 import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
 import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
+import { type KeptView, keptPosition, type PositionRecorder, recordPosition } from "./reading/positions.ts";
 import { readChoices } from "./storage-choices.ts";
 
 /** A document's properties, as the document worker reads them. */
@@ -73,6 +74,10 @@ export interface EngineState {
   readonly linkProblem: Exclude<RemoteFailureReason, "cors"> | undefined;
   /** A web or email link in the document waiting for the reader to confirm it (R07). */
   readonly externalLink: OpenableLink | undefined;
+  /** The open document's fingerprint, the key of its reading position. */
+  readonly fingerprint: string | undefined;
+  /** The page (0-based) the open document came back at, where its reader stopped last time. */
+  readonly resumedAt: number | undefined;
 }
 
 /** #debug's log of a link the layer never follows (R07: actions are never run). */
@@ -178,6 +183,9 @@ function whenPainted(done: () => boolean, stale: () => boolean): Promise<boolean
   });
 }
 
+/** What the document worker answers an open with: pages, title, fingerprint. */
+type OpenedFile = Awaited<ReturnType<ViewerClient["open"]>>;
+
 /** The reader's engine, as an external store for React (`useStoreState`). */
 export class Engine implements ExternalStore<EngineState> {
   /** The reader's lifecycle: the chrome's controls call it, and it calls `open` below. */
@@ -205,6 +213,12 @@ export class Engine implements ExternalStore<EngineState> {
   /** Where the document worker's requests are counted (the page's are counted by page-feed.ts). */
   readonly #network: NetworkMonitor | undefined;
 
+  /** Where reading positions are kept. */
+  readonly #platform: Platform;
+
+  /** Records the open document's position. */
+  #recording: PositionRecorder | undefined;
+
   constructor(
     platform: Platform,
     backend: DebugBackend,
@@ -224,7 +238,10 @@ export class Engine implements ExternalStore<EngineState> {
       timing: undefined,
       linkProblem: undefined,
       externalLink: undefined,
+      fingerprint: undefined,
+      resumedAt: undefined,
     };
+    this.#platform = platform;
     this.#session = this.#start(backend);
   }
 
@@ -365,6 +382,9 @@ export class Engine implements ExternalStore<EngineState> {
     if (backend === this.#state.backend) return;
     const old = this.#session;
     const file = this.#file;
+    // The old view is about to go: its position is saved and recording stops with it (the close
+    // below is no longer the latest open, so it leaves the recorder alone).
+    this.#stopRecording();
     this.reader.close();
     this.#turn += 1;
     this.#set({ backend, viewer: undefined, strip: undefined });
@@ -432,9 +452,11 @@ export class Engine implements ExternalStore<EngineState> {
     this.#turn += 1;
     const turn = this.#turn;
     const latest = () => turn === this.#turn;
+    // The open document's place is saved now: the same file opened again reads it back.
+    this.#recording?.flush();
     const session = await this.#session;
     const started = performance.now();
-    let opened: Awaited<ReturnType<ViewerClient["open"]>>;
+    let opened: OpenedFile;
     let warnings: DocumentWarning[];
     try {
       // A large file's disk copy outlives the document only while the user lets recent files be kept.
@@ -446,13 +468,14 @@ export class Engine implements ExternalStore<EngineState> {
     } finally {
       warnings = this.#incoming.splice(0);
     }
+    // A link that names a page or destination wins over where the reader stopped.
+    const place = this.#place?.file === file ? this.#place.place : undefined;
+    const resume = place === undefined && latest() ? await this.#kept(opened) : undefined;
     // A later open or a backend switch came first: its own open replaces this one in the worker,
     // so nothing here is shown, and closing it must not close the document the worker holds now.
     if (!latest()) return { pageCount: opened.pageCount };
-    session.viewer.open(opened);
-    session.strip.open(opened);
+    const shownFirst = this.#show(session, opened, resume);
     this.#file = file;
-    const place = this.#place?.file === file ? this.#place.place : undefined;
     this.#place = undefined;
     this.#set({
       title: opened.title,
@@ -462,9 +485,11 @@ export class Engine implements ExternalStore<EngineState> {
       timing: undefined,
       linkProblem: undefined,
       externalLink: undefined,
+      fingerprint: opened.fingerprint,
+      resumedAt: resume === undefined ? undefined : shownFirst,
     });
     const firstPage = () => {
-      const state = session.viewer.stats().pages[0];
+      const state = session.viewer.stats().pages[shownFirst];
       return state === "low" || state === "sharp" || state === "error";
     };
     // The view shows once the reader is open, so the page asked for is scrolled to after the first paint.
@@ -474,16 +499,58 @@ export class Engine implements ExternalStore<EngineState> {
       const backend = `${opened.backend.name} ${opened.backend.version}`;
       this.#set({ timing: { backend, firstPageMs: Math.round(performance.now() - started) } });
     });
-    return {
-      pageCount: opened.pageCount,
-      close: () => {
-        if (!latest()) return;
-        this.#file = undefined;
-        this.#network?.documentClosed();
-        this.#set({ title: undefined, pages: [], outline: undefined, repairs: [], timing: undefined });
-        if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
-      },
-    };
+    return { pageCount: opened.pageCount, close: () => this.#close(session, opened, latest) };
+  }
+
+  /**
+   * Shows `opened` in the view and the strip, at `resume` when its reader stopped somewhere, and
+   * starts recording its position; returns the page shown at the top (0-based).
+   */
+  #show(session: Session, opened: OpenedFile, resume: KeptView | undefined): number {
+    this.#stopRecording();
+    session.viewer.open(opened);
+    // In the task that opened it: the first frame paints the kept page, never page 1 first.
+    if (resume !== undefined) session.viewer.restore(resume);
+    session.strip.open(opened);
+    this.#recording = recordPosition(session.viewer, (view) => this.#keep(opened, view));
+    // Read from the layout: the view's state only follows at the next frame.
+    return resume === undefined ? 0 : (session.viewer.viewPosition()?.point.page ?? 0);
+  }
+
+  /** Closes `opened`, when it is still the latest open: its position is saved a last time. */
+  #close(session: Session, opened: OpenedFile, latest: () => boolean): void {
+    if (!latest()) return;
+    this.#stopRecording();
+    this.#file = undefined;
+    this.#network?.documentClosed();
+    this.#set({
+      title: undefined,
+      pages: [],
+      outline: undefined,
+      repairs: [],
+      timing: undefined,
+      fingerprint: undefined,
+      resumedAt: undefined,
+    });
+    if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
+  }
+
+  /** The position kept for `opened`, while the reader keeps positions. */
+  async #kept(opened: OpenedFile): Promise<KeptView | undefined> {
+    if (!readChoices().rememberPositions || opened.fingerprint === undefined) return undefined;
+    return keptPosition(this.#platform, opened.fingerprint);
+  }
+
+  /** Keeps `view` as where the reader stopped in `opened`, while the reader keeps positions. */
+  #keep(opened: OpenedFile, view: KeptView): void {
+    if (!readChoices().rememberPositions || opened.fingerprint === undefined) return;
+    const entry = { view, pageCount: opened.pageCount, readAt: Date.now() };
+    void this.#platform.positions.set(opened.fingerprint, entry).catch(reportError);
+  }
+
+  #stopRecording(): void {
+    this.#recording?.stop();
+    this.#recording = undefined;
   }
 
   #set(next: Partial<EngineState>): void {

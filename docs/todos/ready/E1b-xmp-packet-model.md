@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1a](./E1a-editing-foundation-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
-| Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
+| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1a](../done/E1a-editing-foundation-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
+| Dependency notes | [E1a](../done/E1a-editing-foundation-feature-plan.md), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1b-xmp-packet-model` |
 | PR title | `feat(model): parse and update the XMP metadata packet` |

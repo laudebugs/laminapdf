@@ -700,11 +700,35 @@ const repairs: Example[] = [
           },
           { id: "c", name: "Asset-register-summary.pdf", size: 88_000, lastOpened: 1_792_800_000_000, pages: 3 },
         ]}
+        stoppedAt={new Map([["b", 3]])}
         onOpen={noop}
         onClear={noop}
         locale="en-GB"
       />
     ),
+  },
+  {
+    component: "RecentList",
+    // Only the document to continue, so the page shows one Recent list (the state above).
+    state: "continue reading",
+    element: () => {
+      const report = {
+        id: "a",
+        name: "Q3-board-report.pdf",
+        size: 1_262_480,
+        lastOpened: 1_793_000_000_000,
+        pages: 24,
+      };
+      return (
+        <RecentList
+          entries={[report]}
+          continueReading={{ entry: report, page: 11, pageCount: 24 }}
+          onOpen={noop}
+          onClear={noop}
+          locale="en-GB"
+        />
+      );
+    },
   },
   {
     component: "NetworkActivityPanel",

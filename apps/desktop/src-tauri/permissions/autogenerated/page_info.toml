@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-page-info"
+description = "Enables the page_info command without any pre-configured scope."
+commands.allow = ["page_info"]
+
+[[permission]]
+identifier = "deny-page-info"
+description = "Denies the page_info command without any pre-configured scope."
+commands.deny = ["page_info"]

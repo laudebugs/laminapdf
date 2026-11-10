@@ -106,7 +106,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D2. Shell and native core
 
-**Todos:** [D2a](../todos/done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/ready/D2b-engine-process.md), [D2c](../todos/ready/D2c-engine-sandbox.md), [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md)
+**Todos:** [D2a](../todos/done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/done/D2b-engine-process.md), [D2c](../todos/ready/D2c-engine-sandbox.md), [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md)
 
 **Deliverable:** ADR 0008; `apps/desktop` with Tauri 2, desktop `Platform` adapter, engine child process, tile transport, single window opening one file.
 **Accepted when:** the reader end-to-end scenarios run against the desktop build with WebdriverIO and `@wdio/tauri-service` on Windows and Linux (`tauri-driver`) and on macOS (the service's embedded WebDriver server via `tauri-plugin-wdio-webdriver`, compiled into test builds only behind a Cargo feature) ([Tauri WebDriver docs](https://v2.tauri.app/develop/tests/webdriver/)); the C-round Playwright suite keeps running against the web build on all three OSes (Playwright drives browsers, not Tauri webviews); killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target. If the macOS embedded driver proves unreliable, macOS falls back to the web-build Playwright run plus a recorded manual smoke checklist, and ADR 0008 records the gap.
@@ -161,7 +161,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 1. Mac App Store, Microsoft Store, Flathub: in scope, and when?
 2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)?
-3. One engine process per window, or a shared pool with per-document isolation?
+3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
 4. Default channel for new installs: stable only, or beta during 0.x?
 5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user?
 
@@ -184,8 +184,9 @@ Ticked by the PR that completes them.
 - [x] Write ADR 0008 (Tauri 2, process model, tile transport, Linux fallback)
 - [x] Create `apps/desktop` and `src-tauri` as a workspace member depending on `crates/*` by path
 - [x] Implement the desktop `Platform` adapter and capability flags
-- [ ] Implement the engine child process with restart on crash
-- [ ] Implement the chosen tile transport and a positioned-read `ByteSource` (no mmap in the main process; see [D2b](../todos/ready/D2b-engine-process.md))
+- [x] Implement the engine child process with restart on crash
+- [x] Implement a positioned-read `ByteSource` (no mmap in the main process; see [D2b](../todos/done/D2b-engine-process.md) and ADR 0008 §2)
+- [ ] Implement the chosen tile transport
 - [ ] Port the reader end-to-end scenarios to WebdriverIO (`@wdio/tauri-service`): `tauri-driver` on Windows and Linux, embedded WebDriver plugin (test builds only) on macOS; run in CI on three OSes
 - [ ] Record the per-OS test strategy and any macOS gap in ADR 0008
 

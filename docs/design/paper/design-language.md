@@ -1468,7 +1468,7 @@ On 2026-10-29 the “New components” and “Proposed design-language additions
 
 ## Appendix: Command ids
 
-Every command id used in the area documents on 2026-10-29 (regenerated after the second merge, decision 32), after the renames in the decisions table, sorted by id; `mode.read` and `mode.edit` come from §8.1. Shortcuts are macOS · Windows/Linux (one value means the same on both); “—” means palette and menus only. “Shared key, scoped” marks a key used by more than one command in different modes or focus regions (§8.8); no two commands share a key in the same scope. ⚠ marks a shortcut the web app must not use. Preference keys in Settings (`open.target`, `session.reopen`, `watch.reload`, `tabs.allow-duplicates`, `recent.enabled`, `print.mode`) are not commands and are left out.
+Every command id used in the area documents on 2026-10-29 (regenerated after the second merge, decision 32), after the renames in the decisions table, sorted by id; `mode.read` and `mode.edit` come from §8.1. Shortcuts are macOS · Windows/Linux (one value means the same on both); “—” means palette and menus only. “Shared key, scoped” marks a key used by more than one command in different modes or focus regions (§8.8); no two commands share a key in the same scope. ⚠ marks a shortcut the web app must not use. Preference keys in Settings (`open.target`, `session.reopen`, `watch.reload`, `tabs.allow-duplicates`, `recent.enabled`, `positions.enabled`, `print.mode`) are not commands and are left out.
 
 | Id | Title | Area and screen | Shortcut | Note |
 | --- | --- | --- | --- | --- |
@@ -1627,6 +1627,7 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `edit.undo` | Undo | Reader B R16; Edit session O01 | ⌘Z · Ctrl Z |  |
 | `file.change-reviewer-role` | Change reviewer role | Account and cloud H05 | — |  |
 | `file.clear-recent` | Clear recent | Reader A R01; Desktop shell S01, S03 | — |  |
+| `file.clear-reading-positions` | Forget reading positions | Settings › Storage and privacy (T5b) | — | Its visible home is the button in that section |
 | `file.compare-with-disk` | Compare with the version on disk | Desktop shell S04; Edit session O02; Convert and produce X04 | — | Opens `compare.open` with the on-disk preset (§8.12) |
 | `file.copy-repair-details` | Copy repair details | Reader A R04 | — |  |
 | `file.copy-review-link` | Copy review link | Account and cloud H05 | — |  |

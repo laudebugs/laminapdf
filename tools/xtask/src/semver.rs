@@ -349,22 +349,8 @@ fn install_published(work: &Path, version: &str) -> Result<PathBuf> {
         ],
     )?;
     let copy = dir.join("sdk");
-    copy_dir(&dir.join("node_modules").join(SDK), &copy)?;
+    crate::util::copy_dir(&dir.join("node_modules").join(SDK), &copy)?;
     Ok(copy)
-}
-
-fn copy_dir(from: &Path, to: &Path) -> Result<()> {
-    fs::create_dir_all(to)?;
-    for entry in fs::read_dir(from).with_context(|| format!("reading {}", from.display()))? {
-        let entry = entry?;
-        let target = to.join(entry.file_name());
-        if entry.file_type()?.is_dir() {
-            copy_dir(&entry.path(), &target)?;
-        } else {
-            fs::copy(entry.path(), &target).with_context(|| format!("copying to {}", target.display()))?;
-        }
-    }
-    Ok(())
 }
 
 /// The newest published `@laminapdf/sdk`: npm's last listed version but the `0.0.0` placeholders
