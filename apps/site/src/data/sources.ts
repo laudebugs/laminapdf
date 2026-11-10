@@ -121,7 +121,7 @@ export function packages(page: string = installPage): readonly Package[] {
 }
 
 /** A licence allowed for some named dependencies only, with those dependencies. */
-export interface LicenceException {
+interface LicenceException {
   readonly licence: string;
   readonly crates: readonly string[];
 }

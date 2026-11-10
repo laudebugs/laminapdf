@@ -549,3 +549,93 @@ main {
   max-inline-size: 60ch;
   color: var(--paper-muted);
 }
+
+/* How we test (todo T1b): the figures' tables, numbers right-aligned in tabular figures. */
+.proof h2 {
+  margin: var(--paper-space-32) 0 var(--paper-space-12);
+  padding-top: var(--paper-space-24);
+  border-top: var(--paper-border-width) solid var(--paper-hairline);
+  font: var(--paper-type-page-heading);
+}
+
+.proof :where(code) {
+  font-family: var(--paper-font-mono);
+  font-size: 0.9em;
+}
+
+.proof ul {
+  margin: 0 0 var(--paper-space-16);
+  padding-left: var(--paper-space-20);
+  max-width: 60ch;
+}
+
+.proof .table-scroll {
+  margin: 0 0 var(--paper-space-16);
+}
+
+.figures {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.figures caption {
+  padding: var(--paper-space-12) var(--paper-space-14);
+  border-bottom: var(--paper-border-width) solid var(--paper-hairline);
+  color: var(--paper-muted);
+  font-size: 13px;
+  text-align: left;
+}
+
+.figures th,
+.figures td {
+  padding: var(--paper-space-8) var(--paper-space-14);
+  text-align: right;
+  vertical-align: top;
+}
+
+.figures th:first-child,
+.figures-text td {
+  text-align: left;
+}
+
+.figures thead th {
+  color: var(--paper-muted);
+  font: var(--paper-type-label);
+  white-space: nowrap;
+}
+
+.figures-text thead th {
+  text-align: left;
+}
+
+.figures tbody th,
+.figures td {
+  border-top: var(--paper-border-width) solid var(--paper-hairline);
+}
+
+.figures tbody th {
+  font-weight: 600;
+}
+
+.figures td {
+  color: var(--paper-text-2);
+}
+
+.proof-version {
+  display: block;
+  color: var(--paper-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.proof-missing {
+  color: var(--paper-text-2);
+  font-style: italic;
+}
+
+.proof-licences {
+  columns: 2;
+}

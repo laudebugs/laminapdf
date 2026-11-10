@@ -6,7 +6,7 @@
 import { count, date, entries, flag, list, nullable, oneOf, read, record, text } from "./check.js";
 
 /** How Lamina PDF read one source's files. */
-export interface CorpusSource {
+interface CorpusSource {
   readonly files: number;
   /** Opened with no repair. */
   readonly opened: number;
@@ -21,7 +21,7 @@ export interface CorpusSource {
 }
 
 /** How often Lamina PDF and another reader agreed on a fact, over the files both read. */
-export interface Tally {
+interface Tally {
   readonly agree: number;
   readonly disagree: number;
   /** Disagreements an exceptions file explains. */
