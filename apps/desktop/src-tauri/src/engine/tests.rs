@@ -177,11 +177,11 @@ fn a_restart_should_reopen_and_unlock_without_asking() {
             docs: vec![
                 RestartedDoc {
                     doc: plain,
-                    locked: false
+                    state: Reopened::Open
                 },
                 RestartedDoc {
                     doc: secret.0,
-                    locked: false
+                    state: Reopened::Open
                 },
             ],
         }))
@@ -203,9 +203,67 @@ fn a_refused_kept_password_should_be_wiped_and_the_document_reported_locked() {
     f.engines.kill("main");
     let told = f.told();
     assert!(
-        matches!(&told, Some(Told::Restarted(r)) if r.docs == [RestartedDoc { doc: doc.0, locked: true }])
+        matches!(&told, Some(Told::Restarted(r)) if r.docs == [RestartedDoc { doc: doc.0, state: Reopened::Locked }])
             && !f.engines.registry.has_password(doc),
         "{told:?}"
+    );
+}
+
+#[test]
+fn a_document_that_fails_to_reopen_should_be_closed() {
+    let mut f = Fixture::new(Mode::RefuseReopen);
+    let doc = DocId(
+        {
+            let path = f.file(PLAIN);
+            f.engines.open("main", &path)
+        }
+        .unwrap()
+        .doc,
+    );
+    f.engines.kill("main");
+    let told = f.told();
+    assert!(
+        matches!(&told, Some(Told::Restarted(r)) if r.docs == [RestartedDoc { doc: doc.0, state: Reopened::Closed }])
+            && !f.engines.registry.owns("main", doc),
+        "{told:?}"
+    );
+}
+
+#[test]
+fn a_document_that_kills_the_engine_should_be_closed_and_the_others_kept() {
+    let mut f = Fixture::new(Mode::DieReopeningFirst);
+    let first = {
+        let path = f.file(PLAIN);
+        f.engines.open("main", &path)
+    }
+    .unwrap()
+    .doc;
+    let second = {
+        let path = f.file(PLAIN);
+        f.engines.open("main", &path)
+    }
+    .unwrap()
+    .doc;
+    f.engines.kill("main");
+    let (one, two) = (f.told(), f.told());
+    assert_eq!(
+        (one, two),
+        (
+            Some(Told::Restarted(Restarted {
+                window: "main".into(),
+                docs: vec![RestartedDoc {
+                    doc: first,
+                    state: Reopened::Closed
+                }],
+            })),
+            Some(Told::Restarted(Restarted {
+                window: "main".into(),
+                docs: vec![RestartedDoc {
+                    doc: second,
+                    state: Reopened::Open
+                }],
+            })),
+        )
     );
 }
 

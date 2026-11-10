@@ -27,6 +27,10 @@ pub enum Mode {
     Silent,
     /// Exits as it says `Ready`.
     DieAtOnce,
+    /// The first engine is healthy; later ones refuse every `OpenDocument` as invalid.
+    RefuseReopen,
+    /// The first engine is healthy; later ones exit when asked to open `DocId(1)`.
+    DieReopeningFirst,
 }
 
 /// The password of the fake's encrypted documents.
@@ -127,8 +131,10 @@ fn fake_engine(mode: Mode, pid: u32, mut stdin: PipeReader, out: &SharedOut) {
             while read_frame::<_, ToEngine>(&mut stdin, MAX_FRAME).is_ok() {}
             return;
         }
-        Mode::Healthy => {}
+        Mode::Healthy | Mode::RefuseReopen | Mode::DieReopeningFirst => {}
     }
+    // Later engines (pid past the first) misbehave in the reopen modes.
+    let restarted = pid > 1000;
     let beats = Arc::clone(out);
     thread::spawn(move || {
         while send(&beats, &FromEngine::Heartbeat) {
@@ -137,6 +143,26 @@ fn fake_engine(mode: Mode, pid: u32, mut stdin: PipeReader, out: &SharedOut) {
     });
     let mut locked: Vec<DocId> = Vec::new();
     while let Ok((msg, _)) = read_frame::<_, ToEngine>(&mut stdin, MAX_FRAME) {
+        if let (true, ToEngine::OpenDocument { req, doc, .. }) = (restarted, &msg) {
+            match mode {
+                Mode::DieReopeningFirst if *doc == DocId(1) => {
+                    lock(out).take();
+                    return;
+                }
+                Mode::RefuseReopen => {
+                    let refused = FromEngine::Error {
+                        req: Some(*req),
+                        kind: FailureKind::Invalid,
+                        message: "invalid".into(),
+                    };
+                    if !send(out, &refused) {
+                        return;
+                    }
+                    continue;
+                }
+                _ => {}
+            }
+        }
         let Some(reply) = answer(msg, &mut locked) else {
             continue;
         };

@@ -17,14 +17,16 @@ use zeroize::{Zeroize as _, Zeroizing};
 /// Set once a lock has failed, so the warning shows once per run.
 static LOCK_WARNED: AtomicBool = AtomicBool::new(false);
 
-/// The bytes one locked page holds: 64 KiB, the largest page size of the platforms the app
-/// supports (Linux on arm64 can use 64 KiB pages). A PDF password is at most 127 bytes after
-/// SASLprep; a longer one is kept on the ordinary heap, unlocked.
-const PAGE: usize = 64 * 1024;
+/// The bytes one locked buffer holds: 16 KiB, a whole page on Apple silicon and four on x86 and
+/// most arm64 Linux. On a kernel with 64 KiB pages two passwords can share a page, so closing one
+/// document can unlock another's password; a smaller buffer keeps more passwords inside Linux's
+/// default lock limit (64 KiB before 5.16). A PDF password is at most 127 bytes after SASLprep;
+/// a longer one is kept on the ordinary heap, unlocked.
+const PAGE: usize = 16 * 1024;
 
-/// A buffer aligned to, and as long as, the largest page, so no other allocation shares its
-/// pages: unlocking one password then never unlocks another's bytes.
-#[repr(C, align(65536))]
+/// A buffer aligned to, and as long as, a 16 KiB page, so no other allocation shares its pages
+/// (on 4 KiB and 16 KiB pages): unlocking one password then never unlocks another's bytes.
+#[repr(C, align(16384))]
 struct Page([u8; PAGE]);
 
 /// Where the bytes live.
@@ -44,10 +46,6 @@ pub(crate) struct SessionPassword {
 
 impl SessionPassword {
     /// Copies `password` into a buffer of its own, locked into RAM where the OS allows.
-    #[expect(
-        clippy::large_stack_arrays,
-        reason = "one 64 KiB page, built once per unlocked document, before it moves to the heap"
-    )]
     pub(crate) fn new(password: &str) -> Self {
         let bytes = password.as_bytes();
         let len = bytes.len();

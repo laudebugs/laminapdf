@@ -474,20 +474,12 @@ impl Supervisor {
             if this.state().stopping {
                 return;
             }
-            let me = thread::current().id();
-            this.state().restoring = Some(me);
+            let gate = Gate::close(&this);
             let launched = this.launch();
             if let Ok(pid) = launched {
                 this.emit(Event::Restarted { pid });
             }
-            {
-                // A crash during the reopening may have started the next restart, which owns
-                // the gate now.
-                let mut state = this.state();
-                if state.restoring == Some(me) {
-                    state.restoring = None;
-                }
-            }
+            drop(gate);
             match launched {
                 // Installed, then gone (`exited` has counted the crash), or restarted.
                 Ok(_) | Err(SupervisorError::Lost) => {}
@@ -536,6 +528,31 @@ const fn reply_req(msg: &FromEngine) -> Option<ReqId> {
         | FromEngine::Tile { req, .. } => Some(*req),
         FromEngine::Error { req, .. } => *req,
         FromEngine::Ready { .. } | FromEngine::ReadRange { .. } | FromEngine::Heartbeat => None,
+    }
+}
+
+/// Keeps other threads' requests away from a restarted engine while this thread reopens its
+/// documents. Dropping it, also while unwinding from a panic in the owner's handler, opens the
+/// gate again, unless a crash during the reopening has started the next restart, which owns it.
+struct Gate<'a> {
+    supervisor: &'a Supervisor,
+    owner: thread::ThreadId,
+}
+
+impl<'a> Gate<'a> {
+    fn close(supervisor: &'a Supervisor) -> Self {
+        let owner = thread::current().id();
+        supervisor.state().restoring = Some(owner);
+        Self { supervisor, owner }
+    }
+}
+
+impl Drop for Gate<'_> {
+    fn drop(&mut self) {
+        let mut state = self.supervisor.state();
+        if state.restoring == Some(self.owner) {
+            state.restoring = None;
+        }
     }
 }
 

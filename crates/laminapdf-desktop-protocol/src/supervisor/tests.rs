@@ -168,10 +168,22 @@ fn backoff_should_double_with_each_recent_crash() {
 }
 
 #[test]
-fn an_engine_that_dies_before_it_is_installed_should_fail_the_start() {
+fn an_engine_that_dies_as_it_starts_should_never_stay_installed() {
+    // It dies right after `Ready`: either the start fails, or the death counts as a crash and
+    // every restart dies too, until the engine is marked failed. Never a dead engine in place.
     let spawner = FakeSpawner::new(Mode::DieAtOnce);
-    let result = Supervisor::start(Box::new(spawner), Arc::new(NoFiles), fast_config(), |_, _| {});
-    assert!(result.is_err());
+    let started = Supervisor::start(Box::new(spawner), Arc::new(NoFiles), fast_config(), |_, _| {});
+    let settled = match started {
+        Err(_) => true,
+        Ok(supervisor) => {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            while !supervisor.has_failed() && Instant::now() < deadline {
+                thread::sleep(Duration::from_millis(10));
+            }
+            supervisor.has_failed()
+        }
+    };
+    assert!(settled);
 }
 
 #[test]
@@ -198,6 +210,25 @@ fn requests_from_other_threads_should_wait_out_the_reopening() {
     .unwrap();
     supervisor.kill();
     assert_eq!(rx.recv_timeout(Duration::from_secs(5)).ok(), Some((true, true)));
+}
+
+#[test]
+fn a_panicking_restart_handler_should_not_lock_out_requests() {
+    let spawner = FakeSpawner::new(Mode::Healthy);
+    let (tx, rx) = mpsc::channel();
+    let tx = Mutex::new(tx);
+    let supervisor = Supervisor::start(Box::new(spawner), Arc::new(NoFiles), fast_config(), move |_, event| {
+        if matches!(event, Event::Restarted { .. }) {
+            let _ = lock(&tx).send(());
+            panic!("the owner's handler failed");
+        }
+    })
+    .unwrap();
+    supervisor.kill();
+    rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    // The handler's thread unwinds just after it signalled.
+    thread::sleep(Duration::from_millis(100));
+    assert!(open(&supervisor).is_ok());
 }
 
 #[test]

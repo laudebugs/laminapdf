@@ -71,12 +71,24 @@ pub(crate) struct Restarted {
     pub docs: Vec<RestartedDoc>,
 }
 
-/// A document after a restart: reopened, and whether it waits for a password again (its kept
-/// password was refused, or it never had one).
+/// A document after a restart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub(crate) struct RestartedDoc {
     pub doc: u32,
-    pub locked: bool,
+    pub state: Reopened,
+}
+
+/// How a document came back after a restart.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum Reopened {
+    /// Open again, unlocked with its kept password if it had one.
+    Open,
+    /// Open, but waiting for its password (its kept one was refused, or it never had one).
+    Locked,
+    /// Closed: it failed to reopen, or the new engine died reopening it, so it can't take the
+    /// window's other documents down with it on every restart.
+    Closed,
 }
 
 /// [`FAILED_EVENT`]'s payload.
@@ -292,51 +304,61 @@ impl Engines {
     }
 
     /// Reopens `window`'s documents in its new engine, unlocking each with its kept password.
-    /// A refused password is wiped and its document reported locked, so the UI asks again.
+    /// A refused password is wiped and its document reported locked, so the UI asks again. A
+    /// document that fails to reopen is closed; if the engine died reopening it, the documents
+    /// after it wait for the next restart, which reopens them without it.
     fn reopen(&self, window: &str, engine: &Supervisor) -> Vec<RestartedDoc> {
         let mut docs = Vec::new();
         for reopen in self.registry.reopen_list(window) {
             let doc = reopen.doc;
-            let opened = ask(engine, |req| ToEngine::OpenDocument {
-                req,
-                doc,
-                len: reopen.len,
-            });
-            let locked = match (opened, reopen.password) {
-                (
-                    Ok(FromEngine::Opened {
-                        needs_password: false, ..
-                    }),
-                    _,
-                ) => false,
-                (
-                    Ok(FromEngine::Opened {
-                        needs_password: true, ..
-                    }),
-                    Some(password),
-                ) => {
-                    let unlocked = ask(engine, |req| ToEngine::UnlockDocument { req, doc, password });
-                    let refused = !matches!(unlocked, Ok(FromEngine::Unlocked { .. }));
-                    if refused {
-                        tracing::warn!(window, doc = doc.0, "the kept password was refused; asking again");
-                        self.registry.forget_password(doc);
+            let state = match self.reopen_one(engine, reopen) {
+                Ok(state) => state,
+                Err(error) => {
+                    tracing::warn!(window, doc = doc.0, "a document did not reopen; closing it: {error}");
+                    self.registry.remove(doc);
+                    docs.push(RestartedDoc {
+                        doc: doc.0,
+                        state: Reopened::Closed,
+                    });
+                    if matches!(error.kind(), "engine-restarted" | "engine-timeout" | "engine-failed") {
+                        break;
                     }
-                    refused
-                }
-                (
-                    Ok(FromEngine::Opened {
-                        needs_password: true, ..
-                    }),
-                    None,
-                ) => true,
-                (failed, _) => {
-                    tracing::warn!(window, doc = doc.0, "a document did not reopen: {failed:?}");
-                    true
+                    continue;
                 }
             };
-            docs.push(RestartedDoc { doc: doc.0, locked });
+            docs.push(RestartedDoc { doc: doc.0, state });
         }
         docs
+    }
+
+    /// Reopens one document and unlocks it with its kept password.
+    fn reopen_one(&self, engine: &Supervisor, reopen: documents::Reopen) -> Result<Reopened, DesktopError> {
+        let doc = reopen.doc;
+        let needs_password = match ask(engine, |req| ToEngine::OpenDocument {
+            req,
+            doc,
+            len: reopen.len,
+        })? {
+            FromEngine::Opened { needs_password, .. } => needs_password,
+            other => return Err(unexpected(&other)),
+        };
+        let password = match (needs_password, reopen.password) {
+            (false, _) => return Ok(Reopened::Open),
+            (true, None) => return Ok(Reopened::Locked),
+            (true, Some(password)) => password,
+        };
+        match ask(engine, |req| ToEngine::UnlockDocument { req, doc, password }) {
+            Ok(FromEngine::Unlocked { .. }) => Ok(Reopened::Open),
+            Err(DesktopError::Engine {
+                kind: "wrong-password", ..
+            }) => {
+                tracing::warn!(doc = doc.0, "the kept password was refused; asking again");
+                self.registry.forget_password(doc);
+                Ok(Reopened::Locked)
+            }
+            Ok(other) => Err(unexpected(&other)),
+            Err(error) => Err(error),
+        }
     }
 
     /// Fails unless `doc` is open in `window`.
