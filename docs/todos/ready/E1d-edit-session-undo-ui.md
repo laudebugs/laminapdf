@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [E1 editing foundation §5](../../plans/editor/e1-editing-foundation.md#5-the-edit-session-and-the-modes) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [C4e](../done/C4e-reader-chrome.md), [E1a](../done/E1a-editing-foundation-feature-plan.md), [E1g](../ongoing/E1g-redraw-after-edit.md) |
-| Dependency notes | [E1g](../ongoing/E1g-redraw-after-edit.md) (the worker's redraw after an edit, which the session builds on), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk): `laminapdf-wasm` and `@laminapdf/sdk`). The desktop part is [E1h](./E1h-desktop-edit-session.md), after D4b ([E1 plan §8](../../plans/editor/e1-editing-foundation.md#8-differences-between-the-shells)) |
+| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [C4e](../done/C4e-reader-chrome.md), [E1a](../done/E1a-editing-foundation-feature-plan.md), [E1g](../done/E1g-redraw-after-edit.md) |
+| Dependency notes | [E1g](../done/E1g-redraw-after-edit.md) (the worker's redraw after an edit, which the session builds on), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk): `laminapdf-wasm` and `@laminapdf/sdk`). The desktop part is [E1h](./E1h-desktop-edit-session.md), after D4b ([E1 plan §8](../../plans/editor/e1-editing-foundation.md#8-differences-between-the-shells)) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1d-edit-session-undo-ui` |
 | PR title | `feat(ui): edit session with undo/redo and history panel` |
@@ -23,7 +23,7 @@ Turn the web reader into an editor shell: an edit session per open document that
 - **Design (Paper):** [O01 Edit session and history](../../design/paper/edit-session-organise.md#o01-edit-session-and-history). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §6](../../plans/full-editor.md#6-design-summary): interaction modes as one state machine; tools as small modules over `@laminapdf/viewer` layers
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md) §4: undo per document, local origin only, `UndoOutcome::Partial`; §7 two dirty levels
-- [web C3](../../plans/web-app.md#c3-viewer-core): the worker RPC this extends; [E1g](../ongoing/E1g-redraw-after-edit.md): the redraw after an edit
+- [web C3](../../plans/web-app.md#c3-viewer-core): the worker RPC this extends; [E1g](../done/E1g-redraw-after-edit.md): the redraw after an edit
 - [editing notes §2](../../research/architecture/notes/editing-architecture.md#2-command-pattern--operation-log-undoredo-transactions-dirty-tracking): command pattern, transactions, coalescing
 
 ## Scope
@@ -88,6 +88,13 @@ None.
 
 - Keeping the op log in the worker while the UI shows history needs a projection; avoid sending full documents across the boundary
 - Shortcut conflicts with browser defaults (Ctrl+Y in some browsers) — test in Chromium, Firefox, WebKit
+- Found while building [E1g](../done/E1g-redraw-after-edit.md), for this todo to settle:
+  - Undo and redo should redraw through E1g's path, but the façade's `undo`/`redo` drop the touched pages that `laminapdf-ops` records; expose them through the WASM module and `@laminapdf/sdk`.
+  - E1g saves the model into memory after each edit, so `hasUnsavedChanges` reads false afterwards: the session needs its own dirty flag.
+  - A failed in-memory save undoes the transaction, which leaves a redo entry behind; clear it.
+  - A worker restart reopens the original file, so unsaved edits are lost; the session should replay its op log or warn.
+  - An encrypted document can't take an edit, since its in-memory save is refused (`encrypted-base`); disable editing with the reason until E11.
+  - After a page turns at a fixed zoom, a landscape page can be wider than the window; refit when the zoom mode is fit-width.
 
 ## Definition of done
 
