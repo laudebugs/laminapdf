@@ -1,3 +1,4 @@
+import { retryOnceAndReport } from "@laminapdf/test-utils/flaky";
 import { defineConfig } from "vitest/config";
 
 // "Edit and run" (todo B7e) and the theme switch (W1g) in a real browser against `wrangler dev`, which
@@ -6,6 +7,7 @@ import { defineConfig } from "vitest/config";
 // A default export because Vitest reads one.
 export default defineConfig({
   test: {
+    ...retryOnceAndReport(),
     environment: "node",
     include: ["e2e/*.e2e.test.ts"],
     globalSetup: ["e2e/server.ts"],

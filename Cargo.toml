@@ -43,6 +43,9 @@ laminapdf = { version = "0.2.0-alpha.4", path = "crates/laminapdf", default-feat
 laminapdf-render = { version = "0.2.0-alpha.4", path = "crates/laminapdf-render" }
 laminapdf-render-pdfium = { version = "0.2.0-alpha.4", path = "crates/laminapdf-render-pdfium" }
 laminapdf-render-wasm = { version = "0.2.0-alpha.4", path = "crates/laminapdf-render-wasm" }
+# The desktop reader's engine process and its protocol (ADR 0008 §3): app crates, never published.
+laminapdf-desktop-protocol = { version = "0.2.0-alpha.4", path = "crates/laminapdf-desktop-protocol" }
+laminapdf-desktop-engine = { version = "0.2.0-alpha.4", path = "crates/laminapdf-desktop-engine" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
@@ -115,6 +118,14 @@ thiserror = { version = "2.0.21", default-features = false }
 memmap2 = "0.9.12"
 # Binaries, xtask and tests only (never in library APIs). MIT OR Apache-2.0
 anyhow = "1.0.104"
+# The desktop engine protocol's encoding (ADR 0008 §3): serde's compact binary format.
+# MIT OR Apache-2.0 (dependency cobs: MIT OR Apache-2.0). `use-std` without the default
+# `heapless-cas` (the protocol allocates).
+postcard = { version = "1.1.3", default-features = false, features = ["use-std"] }
+# Wipes secrets (a document's password) from memory when they're dropped. Apache-2.0 OR MIT.
+zeroize = { version = "1.9.1", default-features = false, features = ["std"] }
+# Locks a password's buffer into RAM (mlock / VirtualLock) so it never reaches swap. MIT.
+region = "4.0.1"
 # Serialisable ops (ADR 0006 §1, §6): derive only. MIT OR Apache-2.0
 serde = { version = "1.0.229", default-features = false, features = ["std", "derive"] }
 # MIT OR Apache-2.0

@@ -23,10 +23,18 @@ crate-type = ["rlib"]
 name = "laminapdf-desktop"
 path = "src/main.rs"
 
+[features]
+# The end-to-end tests' commands (`debug_kill_engine`) and, from D2e, the WebDriver plugin. Off in
+# every release build; CI checks the release binary holds none of them (ADR 0008 §8).
+e2e = []
+
 [build-dependencies]
 tauri-build = { workspace = true }
 
 [dependencies]
+# The engine process's protocol and supervisor; never the parser or PDFium (ADR 0008 §3).
+laminapdf-desktop-protocol = { workspace = true }
+region = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tauri = { workspace = true }
@@ -35,6 +43,11 @@ tauri-plugin-log = { workspace = true }
 tauri-plugin-opener = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+zeroize = { workspace = true }
+
+[dev-dependencies]
+# The fake engine (`supervisor::fake`) for the engine registry's tests.
+laminapdf-desktop-protocol = { workspace = true, features = ["test-support"] }
 
 [lints]
 workspace = true
