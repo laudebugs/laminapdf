@@ -3,10 +3,11 @@
 // palette) in each UI theme, in this run's browser. With motion reduced in Settings, nothing in the
 // chrome animates.
 
-import { readFileSync } from "node:fs";
+import { env } from "node:process";
 import axe from "axe-core";
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { appVersion } from "../plugins/app-version.ts";
 import { BROWSER, launch } from "./browser.ts";
 import { chooseFile, load, type Watched } from "./reader.ts";
 
@@ -106,9 +107,8 @@ describe(`accessibility in ${BROWSER}`, () => {
 
   it("shows the reader's version in Settings › About", async () => {
     const { page } = await start("light");
-    const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
-      version: string;
-    };
+    // The version the build was given: a release tag's, else package.json's.
+    const version = appVersion(env);
     await page.getByRole("button", { name: "More" }).first().click();
     await page.getByRole("menuitem", { name: "Settings" }).click();
     const settings = page.getByRole("dialog", { name: "Settings" });
