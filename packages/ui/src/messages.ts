@@ -51,7 +51,7 @@ const EN = {
   "reader.privacy": "Privacy",
   "about.title": "About",
   "about.version": "Lamina PDF web reader, version {version}",
-  "about.free": "The web reader is free and will stay free. Paid features will come later, on top of it.",
+  "about.free": "The web reader is free, and your documents stay on your device.",
   "about.privacy": "How the reader keeps your files private",
   "reader.mode.title": "Reader mode",
   "reader.mode.back": "Back to page {page}",
