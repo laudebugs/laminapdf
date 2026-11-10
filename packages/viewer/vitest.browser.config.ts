@@ -36,7 +36,6 @@ export default defineConfig({
   optimizeDeps: { exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@embedpdf/pdfium", "@laminapdf/viewer"] },
   server: { fs: { allow: ["../.."] } },
   test: {
-    // One retry, and a pass on it reported as flaky (ADR 0018 §4).
     ...retryOnceAndReport(),
     testTimeout: 60_000,
     include: ["test/browser/*.browser.test.ts"],

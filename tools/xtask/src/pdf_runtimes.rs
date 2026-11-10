@@ -156,9 +156,10 @@ impl Measurement {
     }
 }
 
-/// Vitest over `config`, limited to `projects`, with every test's output.
+/// Vitest over `config`, limited to `projects`. No `--reporter`: it would replace the config's list,
+/// which prints every test and reports a pass on retry as flaky (`@laminapdf/test-utils/flaky`).
 fn vitest<'a>(config: &'a str, projects: &[&'a str]) -> Vec<&'a str> {
-    let mut args = vec!["vitest", "run", "-c", config, "--reporter", "verbose"];
+    let mut args = vec!["vitest", "run", "-c", config];
     for project in projects {
         args.extend(["--project", project]);
     }

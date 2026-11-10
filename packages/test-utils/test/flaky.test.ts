@@ -1,17 +1,11 @@
-// The flaky reporter (ADR 0018 §4): which tests it lists, and what it writes on GitHub Actions and
-// elsewhere. Test cases are stand-ins with the three members the reporter reads.
+// The flaky reporter (ADR 0018 §4): which tests it lists, what it writes on GitHub Actions and
+// elsewhere, and the reporters the shared setting picks. Test cases are stand-ins with the three
+// members the reporter reads.
 
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  describeFlaky,
-  flakyReporter,
-  RETRIES,
-  retryOnceAndReport,
-  summaryMarkdown,
-  warningLine,
-} from "@laminapdf/test-utils/flaky";
+import { describeFlaky, flakyReporter, retryOnceAndReport, warningLine } from "@laminapdf/test-utils/flaky";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { TestCase } from "vitest/node";
 
@@ -21,10 +15,10 @@ const PAGE = {
   name: "PageInput > goes to a typed page",
 };
 
-function testCase(flaky: boolean | undefined, project = "webkit"): TestCase {
+function testCase(flaky: boolean | undefined): TestCase {
   const diagnostic = flaky === undefined ? undefined : { flaky };
   return {
-    project: { name: project },
+    project: { name: PAGE.project },
     module: { relativeModuleId: PAGE.file },
     fullName: PAGE.name,
     diagnostic: () => diagnostic,
@@ -37,11 +31,17 @@ async function run(env: Record<string, string>, cases: TestCase[]): Promise<void
   await reporter.onTestRunEnd?.([], [], "passed");
 }
 
+function emptyFile(): string {
+  const path = join(mkdtempSync(join(tmpdir(), "flaky-")), "output");
+  writeFileSync(path, "");
+  return path;
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("the flaky report", () => {
+describe("a flaky test's line", () => {
   it("names the browser, the file and the test", () => {
     expect(describeFlaky(PAGE)).toBe(
       "[webkit] test/browser/reader.browser.test.tsx > PageInput > goes to a typed page",
@@ -54,28 +54,19 @@ describe("the flaky report", () => {
 
   it("escapes what a workflow command would read as its own syntax", () => {
     const line = warningLine({ ...PAGE, name: "100% done\nsecond line" });
-    expect(line).toContain("100%25 done%0Asecond line");
-    expect(line.startsWith("::warning title=Flaky test (ADR 0018 §4)::")).toBe(true);
-  });
-
-  it("lists each test once in the summary, as code", () => {
-    expect(summaryMarkdown([PAGE])).toContain(`- \`${describeFlaky(PAGE)}\``);
-  });
-
-  it("retries a failed test once, and no more", () => {
-    expect(RETRIES).toBe(1);
-    expect(retryOnceAndReport().retry).toBe(1);
+    expect(line).toBe(
+      "::warning title=Flaky test (ADR 0018 §4)::[webkit] test/browser/reader.browser.test.tsx > 100%25 done%0Asecond line failed, then passed on its retry",
+    );
   });
 });
 
 describe("the flaky reporter", () => {
-  it("writes a warning per flaky test and a summary section on GitHub Actions", async () => {
-    const summary = join(mkdtempSync(join(tmpdir(), "flaky-")), "summary.md");
-    writeFileSync(summary, "");
+  it("writes a warning per flaky test and flaky=true to the step's outputs on GitHub Actions", async () => {
+    const output = emptyFile();
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    await run({ GITHUB_ACTIONS: "true", GITHUB_STEP_SUMMARY: summary }, [testCase(true), testCase(false)]);
+    await run({ GITHUB_ACTIONS: "true", GITHUB_OUTPUT: output }, [testCase(true), testCase(false)]);
     expect(log.mock.calls.map(([line]) => line)).toEqual([warningLine(PAGE)]);
-    expect(readFileSync(summary, "utf8")).toBe(summaryMarkdown([PAGE]));
+    expect(readFileSync(output, "utf8")).toBe("flaky=true\n");
   });
 
   it("warns on the console elsewhere", async () => {
@@ -84,11 +75,26 @@ describe("the flaky reporter", () => {
     expect(warn).toHaveBeenCalledWith(`flaky: ${describeFlaky(PAGE)} failed, then passed on its retry`);
   });
 
-  it("says nothing when no test needed its retry", async () => {
+  it("writes nothing when no test needed its retry", async () => {
+    const output = emptyFile();
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    await run({ GITHUB_ACTIONS: "true" }, [testCase(false), testCase(undefined)]);
+    await run({ GITHUB_ACTIONS: "true", GITHUB_OUTPUT: output }, [testCase(false), testCase(undefined)]);
     expect(log).not.toHaveBeenCalled();
-    expect(warn).not.toHaveBeenCalled();
+    expect(readFileSync(output, "utf8")).toBe("");
+  });
+});
+
+describe("the shared setting", () => {
+  it("retries a failed test once", () => {
+    expect(retryOnceAndReport({}).retry).toBe(1);
+  });
+
+  it("keeps Vitest's GitHub reporter on Actions, beside the flaky one", () => {
+    const [first, second, third] = retryOnceAndReport({ GITHUB_ACTIONS: "true" }).reporters ?? [];
+    expect([first, second, typeof third]).toEqual(["verbose", "github-actions", "object"]);
+  });
+
+  it("leaves the GitHub reporter out elsewhere", () => {
+    expect(retryOnceAndReport({}).reporters).toHaveLength(2);
   });
 });

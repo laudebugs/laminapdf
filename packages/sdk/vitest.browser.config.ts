@@ -16,7 +16,6 @@ const firefox = firefoxProvider(new URL("./", import.meta.url));
 // A default export because Vitest reads one (the named-exports rule is for package code).
 export default defineConfig({
   test: {
-    // One retry, and a pass on it reported as flaky (ADR 0018 §4).
     ...retryOnceAndReport(),
     testTimeout: 60_000,
     projects: [

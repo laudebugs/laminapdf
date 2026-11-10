@@ -2,10 +2,16 @@
 // flaky, never hidden (ADR 0018 §4, amended 2026-11-10). Real browsers on shared runners crash and
 // stall for reasons a test can't control; the retry keeps those from failing a PR, and the report
 // keeps every flaky test in sight until its issue is fixed.
+//
+// Vitest's own `github-actions` reporter already lists flaky tests in the job summary. This
+// reporter adds what it lacks: a warning annotation per test, which shows on the run's page, and
+// `flaky=true` in the step's outputs, which the nightly lane reads to open its issue.
 
 import { appendFileSync } from "node:fs";
 import { env as processEnv } from "node:process";
 import type { InlineConfig, Reporter, TestCase } from "vitest/node";
+
+type Env = Readonly<Record<string, string | undefined>>;
 
 /** One flaky test: where it is, and the browser project it ran in. */
 export interface FlakyTest {
@@ -13,9 +19,6 @@ export interface FlakyTest {
   readonly file: string;
   readonly name: string;
 }
-
-/** A failed test runs once more; more retries would hide a real race. */
-export const RETRIES = 1;
 
 /** The test as one line: `[webkit] test/browser/reader.browser.test.tsx > PageInput > goes to a typed page`. */
 export function describeFlaky(test: FlakyTest): string {
@@ -29,17 +32,11 @@ export function warningLine(test: FlakyTest): string {
   return `::warning title=Flaky test (ADR 0018 §4)::${message} failed, then passed on its retry`;
 }
 
-/** The job summary's section: a heading and one bullet per test. */
-export function summaryMarkdown(tests: readonly FlakyTest[]): string {
-  const rows = tests.map((test) => `- \`${describeFlaky(test).replaceAll("`", "'")}\``);
-  return `### Flaky tests\n\nThese failed, then passed on their retry (ADR 0018 §4). Each one is a bug: open or update its issue.\n\n${rows.join("\n")}\n`;
-}
-
 /**
- * A Vitest reporter that lists every test that passed only on its retry: a warning annotation per
- * test and a section in the job summary on GitHub Actions, a console warning elsewhere.
+ * A Vitest reporter for the tests that passed only on their retry: on GitHub Actions a warning
+ * annotation each and `flaky=true` in the step's outputs, elsewhere a console warning.
  */
-export function flakyReporter(env: Readonly<Record<string, string | undefined>> = processEnv): Reporter {
+export function flakyReporter(env: Env = processEnv): Reporter {
   const flaky: FlakyTest[] = [];
   return {
     onTestCaseResult(test: TestCase) {
@@ -53,12 +50,18 @@ export function flakyReporter(env: Readonly<Record<string, string | undefined>> 
         return;
       }
       for (const test of flaky) console.log(warningLine(test));
-      if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, summaryMarkdown(flaky));
+      if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, "flaky=true\n");
     },
   };
 }
 
-/** The `test` options every browser suite spreads in: one retry, and the flaky report. */
-export function retryOnceAndReport(): Pick<InlineConfig, "retry" | "reporters"> {
-  return { retry: RETRIES, reporters: ["default", flakyReporter()] };
+/**
+ * The `test` options every browser and e2e suite spreads in: one retry (more would hide a real
+ * race), every test's line in the log, Vitest's GitHub reporter on Actions (failure annotations and
+ * the job summary, flaky tests included), and the flaky reporter. `cargo xtask pdf-runtimes` passes
+ * no `--reporter`, which would replace this list.
+ */
+export function retryOnceAndReport(env: Env = processEnv): Pick<InlineConfig, "retry" | "reporters"> {
+  const github = env.GITHUB_ACTIONS === "true" ? ["github-actions"] : [];
+  return { retry: 1, reporters: ["verbose", ...github, flakyReporter(env)] };
 }

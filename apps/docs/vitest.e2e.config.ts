@@ -7,7 +7,6 @@ import { defineConfig } from "vitest/config";
 // A default export because Vitest reads one.
 export default defineConfig({
   test: {
-    // One retry, and a pass on it reported as flaky (ADR 0018 §4).
     ...retryOnceAndReport(),
     environment: "node",
     include: ["e2e/*.e2e.test.ts"],

@@ -10,7 +10,6 @@ import { defineConfig } from "vitest/config";
 export function renderBrowserConfig(packageDir: URL) {
   return defineConfig({
     test: {
-      // One retry, and a pass on it reported as flaky (ADR 0018 §4).
       ...retryOnceAndReport(),
       testTimeout: 60_000,
       projects: [
