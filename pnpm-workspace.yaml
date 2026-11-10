@@ -24,26 +24,26 @@ catalog:
   # `cargo xtask semver` (todo P3). MIT; it bundles its own TypeScript 5.9 (Apache-2.0), apart
   # from the workspace's; its argparse 1.0 is Python-2.0, as the docs site's 2.0 is. Dev-only.
   # Pinned to a release at least two weeks old when added.
-  "@microsoft/api-extractor": 7.59.4
+  "@microsoft/api-extractor": 7.60.1
   "@arethetypeswrong/cli": 0.18.5
-  "@biomejs/biome": 2.6.3
+  "@biomejs/biome": 2.6.4
   # Versioning (ADR 0017): the npm half of the lockstep version; `cargo xtask version sync` does
   # the crates. Dev-only, MIT (its @changesets/*, @manypkg/*, cac, semver, tinyexec: MIT/ISC).
   "@changesets/cli": 3.0.3
-  "@types/node": 26.6.5
+  "@types/node": 26.6.6
   # @laminapdf/ui's demo page, built with the React Compiler through Babel (C4f): the compiler and
   # its check of the chrome's components. Dev-only, MIT (@babel/* and their dependencies: MIT).
   # Each pinned to a release at least two weeks old when added.
   "@babel/core": 7.29.7
-  "@rolldown/plugin-babel": 0.2.4
+  "@rolldown/plugin-babel": 0.3.0
   "@types/babel__core": 7.20.5
-  "@vitejs/plugin-react": 6.1.2
+  "@vitejs/plugin-react": 6.2.1
   babel-plugin-react-compiler: 1.0.0
   # @laminapdf/icons' React entry (an optional peer) and its browser tests; React 19 per ADR 0009.
   # MIT. Each pinned to a release at least two weeks old when added.
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
-  "@vitest/browser-playwright": 5.0.5
+  "@vitest/browser-playwright": 5.1.0
   # JSON Schema 2020-12 validation of LaminaPdfError.toJSON() against laminapdf.error/1 (tests only).
   # MIT (fast-deep-equal, json-schema-traverse, require-from-string: MIT; fast-uri: BSD-3-Clause)
   ajv: 8.20.0
@@ -63,10 +63,10 @@ catalog:
   # Maintainability checks in `cargo xtask check ts` (Q2u): import cycles and cross-package
   # imports, duplicated blocks, unused exports and files. Dev-only. dependency-cruiser and jscpd:
   # MIT; knip: ISC. Each pinned to a release at least two weeks old when added.
-  dependency-cruiser: 18.7.0
+  dependency-cruiser: 18.7.2
   esbuild: 0.28.2
   jscpd: 5.4.2
-  knip: 6.43.0
+  knip: 6.44.1
   playwright: 1.64.1
   publint: 0.3.25
   # @laminapdf/ui's accessible primitives (ADR 0009: React Aria Components). Apache-2.0, as are its
@@ -76,11 +76,11 @@ catalog:
   react-dom: 19.3.1
   # The website's code colouring at build time. MIT. The release Astro itself depends on, so one copy
   # installs.
-  shiki: 4.5.0
+  shiki: 4.6.0
   typescript: 7.0.2
   vite: 8.3.5
-  vitest: 5.0.5
-  wrangler: 4.152.0
+  vitest: 5.1.0
+  wrangler: 4.156.2
 
 # Named catalogs: versions one package needs apart from the default catalog's.
 catalogs:
