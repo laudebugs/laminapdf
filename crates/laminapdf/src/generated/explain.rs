@@ -627,7 +627,7 @@ The `location` is the metadata stream's `object` with the `offset` in its decode
 
 The decisions and todos behind this code:
 
-- [E1b](../todos/ongoing/E1b-xmp-packet-model.md): the XMP packet model
+- [E1b](../todos/done/E1b-xmp-packet-model.md): the XMP packet model
 "#,
         "invalid-page-label" => r#"# `invalid-page-label`
 
