@@ -112,7 +112,14 @@ fn a_request_after_a_restart_should_reach_the_new_engine() {
     let (supervisor, _, events) = start(Mode::Healthy);
     supervisor.kill();
     let _ = next_event(&events);
-    assert!(open(&supervisor).is_ok());
+    // Until the restart handler returns, the gate answers Lost: ask again until it opens.
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let mut reply = open(&supervisor);
+    while matches!(reply, Err(SupervisorError::Lost)) && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+        reply = open(&supervisor);
+    }
+    assert!(reply.is_ok());
 }
 
 #[test]
