@@ -672,8 +672,11 @@ export class Viewer {
   /**
    * Every page's displayed size in points, as the view lays it out: the sizes the document opened
    * with, and those edits gave since (`invalidate`). A thumbnail strip lays its pages out from it.
+   * With `documentId`, empty unless the view shows that document: a page count alone can't tell two
+   * documents apart.
    */
-  pageSizes(): readonly PageSize[] {
+  pageSizes(documentId?: number): readonly PageSize[] {
+    if (documentId !== undefined && documentId !== this.#documentId) return [];
     return this.#sizes;
   }
 

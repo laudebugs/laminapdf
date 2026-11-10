@@ -154,7 +154,7 @@ export class ThumbnailStrip {
    */
   #sizes(): readonly PageSize[] {
     const pages = this.#document?.pages ?? [];
-    const viewed = this.#viewer.pageSizes();
+    const viewed = this.#document === undefined ? [] : this.#viewer.pageSizes(this.#document.id);
     return viewed.length === pages.length ? viewed : pages;
   }
 

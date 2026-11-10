@@ -186,6 +186,7 @@ export async function textModel(signal: AbortSignal): Promise<Document> {
   })();
   opened.text.catch(() => {
     opened.text = undefined;
+    dropUnfollowable(opened);
   });
   return untilAborted(opened.text, signal);
 }
@@ -209,7 +210,13 @@ export function followEdit(opened: Open, ops: readonly Op[]): void {
     // A copy that can't follow the edits would show the old text: it goes, and text calls then
     // answer `extract-module-not-loaded` from the model.
     if (opened.text === synced) opened.text = undefined;
+    dropUnfollowable(opened);
   });
+}
+
+/** With no copy open and none that can open (`reopen` is gone), nothing will apply the pending edits. */
+function dropUnfollowable(opened: Open): void {
+  if (opened.text === undefined && opened.reopen === undefined) opened.edit.pending.length = 0;
 }
 
 /** Applies to `copy` the edits it hasn't applied yet, one transaction each, as the model did. */
