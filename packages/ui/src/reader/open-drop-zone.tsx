@@ -4,7 +4,7 @@
 // message, and the reader stays on the home screen. The recent list and the privacy line come from the shell, under it.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type ReactNode, useEffect, useEffectEvent, useId, useRef, useState } from "react";
+import { type ReactNode, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "../components/button.js";
 import { type KeyPlatform, ShortcutChip } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
@@ -47,7 +47,10 @@ export function OpenDropZone({ reader, keys, children }: OpenDropZoneProps): Rea
     void files.then(accept, () => setProblem(message("reader.open.unreadable")));
   // The platform reads the transfer before anything awaits, while its items are still there.
   const onFiles = useEffectEvent((data: DataTransfer) => take(platform.filesFromDataTransfer(data)));
-  useEffect(() => listenForFiles(window, { onDragging: setDragging, onFiles }), []);
+  // Before the home screen paints: once it says the window takes a drop or a paste, it does. A
+  // listener added after the paint (useEffect) left a moment, long on a slow start, when a drop
+  // went to the browser, which opened the file in place of the app.
+  useLayoutEffect(() => listenForFiles(window, { onDragging: setDragging, onFiles }), []);
   return (
     <section className="paper-open" aria-labelledby={heading}>
       <h1 id={heading} className="paper-open-heading">
