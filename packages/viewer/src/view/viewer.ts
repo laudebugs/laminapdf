@@ -90,7 +90,7 @@ export interface RenderStats {
   /** Renders cancelled because their page left the margin or the zoom changed (the client rejected them). */
   readonly aborted: number;
   readonly cacheBytes: number;
-  /** Link preview pictures kept (at most 8). */
+  /** Link preview pictures kept (at most `PREVIEW_CACHE`). */
   readonly previewBitmaps: number;
   /** Each mounted page's state. */
   readonly pages: Readonly<Record<number, PageRenderState>>;
@@ -364,6 +364,8 @@ export class Viewer {
 
   constructor(options: CreateViewerOptions) {
     this.#client = options.client;
+    // Before anything lays out: a zoom change clears the pictures.
+    this.#previews = this.#linkPreviews();
     this.#margin = options.margin ?? 2;
     this.#gap = options.gap ?? 16;
     this.#settleMs = options.settleMs ?? 150;
@@ -421,14 +423,6 @@ export class Viewer {
     });
     this.addLayer(this.#highlights);
     this.#links = this.#linkLayer(options.links);
-    this.#previews = new LinkPreviews({
-      client: this.#client,
-      size: (page) => this.#sizes[page],
-      rotation: () => this.#rotation,
-      percent: () => this.#state.percent,
-      appearance: () => this.#state.appearance,
-      dpr: this.#dpr,
-    });
   }
 
   /** The scroll container (append it, or use {@link mount}). */
@@ -627,8 +621,9 @@ export class Viewer {
   /**
    * Where `target` goes, as a picture for a link preview (R07): one render of the region around its
    * point (or the top of its page) through the document worker, and the text of the lines it shows.
-   * The viewer keeps the last 8 and closes them on a zoom change and when the document closes, so
-   * draw the bitmap at once and never close it. Rejects with `AbortError` when `signal` aborts.
+   * The viewer keeps the last few (`PREVIEW_CACHE`) and closes them on a zoom, rotation or
+   * appearance change and when the document closes, so draw the bitmap at once and never close it.
+   * Rejects with `AbortError` when `signal` aborts or the pictures are cleared while it draws.
    */
   preview(target: Target, options: { readonly signal?: AbortSignal } = {}): Promise<LinkPreviewPicture> {
     return this.#previews.picture(target, options.signal ?? new AbortController().signal);
@@ -642,6 +637,11 @@ export class Viewer {
   /** Escape or Close on the link preview: it goes, and stays hidden until its link is left. */
   dismissLinkPreview(): void {
     this.#links?.dismiss();
+  }
+
+  /** Whether a link is previewed or focused, so {@link followLinkPreview} has one (`nav.follow-link`). */
+  canFollowLink(): boolean {
+    return this.#links?.canFollow() ?? false;
   }
 
   /** Follows the previewed link, else the focused one (`nav.follow-link`); `false` when there is neither. */
@@ -748,6 +748,18 @@ export class Viewer {
   }
 
   // --- internals ---
+
+  /** The link previews' pictures, drawn at this viewer's zoom, rotation and appearance. */
+  #linkPreviews(): LinkPreviews {
+    return new LinkPreviews({
+      client: this.#client,
+      size: (page) => this.#sizes[page],
+      rotation: () => this.#rotation,
+      percent: () => this.#state.percent,
+      appearance: () => this.#state.appearance,
+      dpr: () => this.#dpr(),
+    });
+  }
 
   /** The link layer, added to every page, unless `links` is `false`. */
   #linkLayer(links: CreateViewerOptions["links"]): LinkLayer | undefined {
@@ -915,7 +927,7 @@ export class Viewer {
     this.#spacer.style.width = `${layout.contentWidth(viewport.width)}px`;
     if (zoomed) {
       // Pictures drawn at the old zoom or rotation would show the wrong size or turn.
-      this.#previews?.clear();
+      this.#previews.clear();
       const percent = percentOfScale(layout.scale);
       this.#setState({ pageCount: layout.pageCount, zoom: this.#zoom, percent, rotation: this.#rotation });
       this.#emit("zoomchange", { zoom: this.#zoom, percent });

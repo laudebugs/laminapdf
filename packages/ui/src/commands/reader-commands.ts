@@ -247,8 +247,7 @@ function historyAndZoomCommands(): AnyCommand[] {
       enabled: (ctx) => {
         const open = documentOpen(ctx);
         if (open !== true) return open;
-        const focused = typeof document === "undefined" ? null : document.activeElement;
-        return focused?.matches("a.lamina-link") === true ? true : message("command.reason.noLink");
+        return ctx.viewer?.canFollowLink?.() === true ? true : message("command.reason.noLink");
       },
     }),
     {

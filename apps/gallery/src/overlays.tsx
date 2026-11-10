@@ -18,7 +18,7 @@ import {
   Inspector,
   LeftRail,
   LinkPreview,
-  type LinkPreviewPicture,
+  type LinkPreviewImage,
   Menu,
   MenuTrigger,
   ModeRegistry,
@@ -315,7 +315,7 @@ export function Selection(): ReactNode {
 }
 
 /** A stand-in crop of a reference list, drawn at the device's pixels: what `Viewer.preview` returns. */
-async function standInCrop(): Promise<LinkPreviewPicture> {
+async function standInCrop(): Promise<LinkPreviewImage> {
   const [width, height] = [300, 64];
   const dpr = window.devicePixelRatio || 1;
   const canvas = document.createElement("canvas");
@@ -338,7 +338,7 @@ async function standInCrop(): Promise<LinkPreviewPicture> {
 /** The link preview over a stand-in citation: the popover (mouse and keyboard), and the touch sheet. */
 export function LinkPreviews({ state }: { state: string }): ReactNode {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const [picture, setPicture] = useState<LinkPreviewPicture | undefined>(undefined);
+  const [picture, setPicture] = useState<LinkPreviewImage | undefined>(undefined);
   useEffect(() => {
     void standInCrop().then(setPicture);
   }, []);

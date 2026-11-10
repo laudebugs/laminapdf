@@ -84,6 +84,27 @@ describe("previewRegion", () => {
     expect({ kind, x: clip.x }).toEqual({ kind: "region", x: 72 - PREVIEW_PAD });
   });
 
+  it("keeps a FitH destination to the column of its first line", () => {
+    const target: Target = { page: 0, view: { kind: "fit-width", y: 100 } };
+    const { clip } = previewRegion(target, LETTER, TWO_COLUMNS, 100);
+    expect(clip.x + clip.width).toBe(290 + PREVIEW_PAD);
+  });
+
+  it.each([
+    ["/Rotate 90", 90],
+    ["/Rotate 270", 270],
+  ])("works in the displayed page space of a %s page (landscape, 792 × 612)", (_, _rotate) => {
+    // Page space is the displayed page, /Rotate applied: a point near its far right stays on it.
+    const landscape = { width: 792, height: 612 };
+    const { clip } = previewRegion(at(0, 700, 300), landscape, undefined, 100);
+    expect([clip.x, clip.y, clip.x + clip.width <= 792, clip.y + clip.height <= 612]).toEqual([692, 292, true, true]);
+  });
+
+  it("measures from the CropBox's top-left: a point at its corner starts the crop there", () => {
+    const { clip } = previewRegion(at(0, 0, 0), { width: 400, height: 500 }, undefined, 100);
+    expect([clip.x, clip.y]).toEqual([0, 0]);
+  });
+
   it("previews a FitR destination as its rectangle, fitted to the card", () => {
     const target: Target = { page: 0, view: { kind: "fit-rect", x0: 100, y0: 200, x1: 300, y1: 260 } };
     const { clip, scale } = previewRegion(target, LETTER, undefined, 100);

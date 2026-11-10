@@ -21,7 +21,7 @@ export const PREVIEW_ALIGN = 12;
 export const PREVIEW_NO_TEXT_WIDTH = 360;
 /** The largest crop a region preview draws, in CSS px. */
 export const PREVIEW_MAX = { width: 480, height: 180 } as const;
-/** A region preview's zoom: the reader's, clamped to these percentages; lowered to fit, never below the third. */
+/** A region preview's zoom: the reader's, clamped to `min`–`max` %; lowered to fit a wide region, never below `floor` %. */
 export const PREVIEW_ZOOM = { min: 100, max: 150, floor: 75 } as const;
 /** R07's page preview: a crop this wide and this high (CSS px) of the page's top. */
 export const PAGE_PREVIEW = { width: 224, height: 92 } as const;
@@ -188,18 +188,12 @@ function pointPreview(
   const y = clamp(top - PREVIEW_PAD, 0, height - 1);
   const band = (line: PreviewLine) => line.top >= y && line.top <= y + PREVIEW_MAX.height / scale;
   const inBand = (lines ?? []).filter(band);
-  let x: number;
-  let right: number | undefined;
-  if (left === undefined || !Number.isFinite(left)) {
-    // No left (`FitH`, an `XYZ` without one): the band's text, from its leftmost line.
-    x = inBand.length === 0 ? 0 : clamp(Math.min(...inBand.map((l) => l.left)) - PREVIEW_PAD, 0, width - 1);
-    right = inBand.length === 0 ? undefined : Math.max(...inBand.map((l) => l.right));
-  } else {
-    const at = clamp(left, 0, width);
-    x = clamp(at - PREVIEW_PAD, 0, width - 1);
-    const column = inBand.filter((line) => Math.abs(line.left - at) <= PREVIEW_ALIGN);
-    right = column.length === 0 ? undefined : Math.max(...column.map((l) => l.right));
-  }
+  // No left (`FitH`, an `XYZ` without one): the column of the band's first line, top then left.
+  const first = [...inBand].sort((a, b) => a.top - b.top || a.left - b.left)[0];
+  const at = left !== undefined && Number.isFinite(left) ? clamp(left, 0, width) : (first?.left ?? 0);
+  const x = clamp(at - PREVIEW_PAD, 0, width - 1);
+  const column = inBand.filter((line) => Math.abs(line.left - at) <= PREVIEW_ALIGN);
+  const right = column.length === 0 ? undefined : Math.max(...column.map((l) => l.right));
   let w = clamp((right ?? x + PREVIEW_NO_TEXT_WIDTH) + PREVIEW_PAD - x, 1, width - x);
   if (w * scale > PREVIEW_MAX.width) {
     scale = Math.max((PREVIEW_ZOOM.floor / 100) * CSS_PX_PER_PT, PREVIEW_MAX.width / w);

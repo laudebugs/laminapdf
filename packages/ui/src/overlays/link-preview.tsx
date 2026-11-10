@@ -7,15 +7,16 @@
 // words) is the app's.
 
 import { SPACE } from "@laminapdf/tokens";
-import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../components/button.js";
+import { useAnchoredPlacement } from "./anchored.js";
 import { LayerScope } from "./layers.js";
-import { type Placement, placeBelow } from "./place.js";
+import { placeBelow } from "./place.js";
 import { BottomSheet } from "./sheet.js";
 
 /** A picture of the destination: a bitmap and its size on screen in CSS px. */
-export interface LinkPreviewPicture {
+export interface LinkPreviewImage {
   readonly bitmap: ImageBitmap;
   readonly width: number;
   readonly height: number;
@@ -32,8 +33,8 @@ export interface LinkPreviewProps {
   /** The line under the title: "Link to page 11 · Enter to go"; left out, there is none. */
   caption?: string;
   /** The destination's picture; `undefined` while it draws, `null` for a link that has none. */
-  picture: LinkPreviewPicture | null | undefined;
-  /** The picture's name: the text it shows, or "Top of page 11". */
+  picture: LinkPreviewImage | null | undefined;
+  /** The picture's name: the text it shows, or "Top of page 11"; the title when left out. */
   pictureLabel?: string;
   /** The sheet's text under the picture (the destination's text). */
   text?: string;
@@ -51,7 +52,13 @@ export interface LinkPreviewProps {
 
 /** The gap between the link and the popover, and between the popover and the viewport's edge. */
 const GAP = SPACE["6"];
-const MARGIN = SPACE["8"];
+
+/** `anchor`'s box in the viewport, or null once it has left the page. */
+function boxOf(anchor: HTMLElement): { top: number; left: number; width: number; height: number } | null {
+  if (!anchor.isConnected) return null;
+  const r = anchor.getBoundingClientRect();
+  return { top: r.top, left: r.left, width: r.width, height: r.height };
+}
 
 /** A preview of a link's destination. Render it while the preview shows. */
 export function LinkPreview(props: LinkPreviewProps): ReactNode {
@@ -69,7 +76,7 @@ function PreviewPopover({
 }: LinkPreviewProps): ReactNode {
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
-  const place = usePlacement(ref, anchor);
+  const place = useAnchoredPlacement(ref, { anchor: () => boxOf(anchor), place: placeBelow, gap: GAP });
   useDescribedBy(anchor, id);
   return createPortal(
     <LayerScope dismiss={onDismiss}>
@@ -83,7 +90,7 @@ function PreviewPopover({
         onPointerEnter={() => onHold(true)}
         onPointerLeave={() => onHold(false)}
       >
-        <Picture picture={picture} label={pictureLabel} />
+        <Picture picture={picture} label={pictureLabel ?? title} />
         <div className="paper-link-preview-title">{title}</div>
         {caption === undefined ? null : <div className="paper-link-preview-caption">{caption}</div>}
       </div>
@@ -122,7 +129,7 @@ function PreviewSheet({
       }
     >
       <div className="paper-link-preview-sheet">
-        <Picture picture={picture} label={pictureLabel} />
+        <Picture picture={picture} label={pictureLabel ?? title} />
         {text === undefined || text === "" ? null : <p className="paper-link-preview-text">{text}</p>}
       </div>
     </BottomSheet>
@@ -134,7 +141,7 @@ function Picture({
   picture,
   label,
 }: {
-  picture: LinkPreviewPicture | null | undefined;
+  picture: LinkPreviewImage | null | undefined;
   label?: string | undefined;
 }): ReactNode {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -143,7 +150,13 @@ function Picture({
     if (canvas === null || picture === null || picture === undefined) return;
     canvas.width = picture.bitmap.width;
     canvas.height = picture.bitmap.height;
-    canvas.getContext("2d")?.drawImage(picture.bitmap, 0, 0);
+    const context = canvas.getContext("2d");
+    if (context === null) return;
+    try {
+      context.drawImage(picture.bitmap, 0, 0);
+    } catch {
+      // The viewer closed the bitmap (a zoom change) before this drew it: the next picture replaces it.
+    }
   }, [picture]);
   if (picture === null) return null;
   return picture === undefined ? (
@@ -169,53 +182,4 @@ function useDescribedBy(anchor: HTMLElement, id: string): void {
       else anchor.setAttribute("aria-describedby", before);
     };
   }, [anchor, id]);
-}
-
-/** Keeps the popover under its link (above when it doesn't fit), on every scroll, resize and render. */
-function usePlacement(layer: React.RefObject<HTMLElement | null>, anchor: HTMLElement): Placement | null {
-  // The compiler can't follow the latest-value ref kept here for effects.
-  "use no memo";
-  const [place, setPlace] = useState<Placement | null>(null);
-  const measure = () => {
-    const element = layer.current;
-    if (element === null || !anchor.isConnected) return setPlace(null);
-    const r = anchor.getBoundingClientRect();
-    const viewport = { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight };
-    const next = placeBelow(
-      { top: r.top, left: r.left, width: r.width, height: r.height },
-      element.offsetWidth,
-      element.offsetHeight,
-      viewport,
-      GAP,
-      MARGIN,
-    );
-    setPlace((last) =>
-      last !== null && next !== null && last.top === next.top && last.left === next.left && last.side === next.side
-        ? last
-        : next,
-    );
-  };
-  const latest = useRef(measure);
-  latest.current = measure;
-  useLayoutEffect(() => {
-    latest.current();
-  });
-  useLayoutEffect(() => {
-    let frame = 0;
-    const later = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => latest.current());
-    };
-    const size = new ResizeObserver(later);
-    if (layer.current !== null) size.observe(layer.current);
-    document.addEventListener("scroll", later, true);
-    window.addEventListener("resize", later);
-    return () => {
-      cancelAnimationFrame(frame);
-      size.disconnect();
-      document.removeEventListener("scroll", later, true);
-      window.removeEventListener("resize", later);
-    };
-  }, [layer]);
-  return place;
 }

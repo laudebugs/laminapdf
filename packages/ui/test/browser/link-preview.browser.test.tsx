@@ -6,12 +6,12 @@ import axe from "axe-core";
 import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { LinkPreview, type LinkPreviewPicture, type LinkPreviewProps } from "../../src/index.ts";
+import { LinkPreview, type LinkPreviewImage, type LinkPreviewProps } from "../../src/index.ts";
 import { cleanup, focused, renderIn, type Setting } from "./render.tsx";
 
 afterEach(cleanup);
 
-let picture: LinkPreviewPicture;
+let picture: LinkPreviewImage;
 beforeAll(async () => {
   const pixels = new ImageData(80, 40);
   pixels.data.fill(200);
@@ -60,8 +60,8 @@ function Harness({ pointer, handlers }: { pointer: LinkPreviewProps["pointer"]; 
   );
 }
 
-function handlers(): Handlers & { [K in keyof Handlers]: ReturnType<typeof vi.fn> } {
-  return { onFollow: vi.fn(), onDismiss: vi.fn(), onHold: vi.fn() };
+function handlers() {
+  return { onFollow: vi.fn<() => void>(), onDismiss: vi.fn<() => void>(), onHold: vi.fn<(held: boolean) => void>() };
 }
 
 const tooltip = () => document.querySelector<HTMLElement>("[role=tooltip]");

@@ -98,12 +98,19 @@ Where the PR differs from the tasks above, and why:
 
 - **`Viewer.preview` returns no title.** The outline and its current-section rule live in `@laminapdf/ui` and the app, so the viewer returns the destination page and the crop's top, and the app picks the title (`outlineItemAt`, else "Page 11"). The viewer gains no copy of the outline logic.
 - **The preview card's title for a page action or another file** is its sentence ("Goes to the next page"), with no crop. The touch sheet has no "Enter to go" line, since its Go button follows the link.
-- **The link layer's timers are tested in the three browsers** (`packages/viewer/test/browser/link-preview.browser.test.ts`), not with fake timers in Node: the layer listens to real pointer and focus events, which only a browser dispatches faithfully.
+- **The link layer's timers are tested in the three browsers** (`packages/viewer/test/browser/link-preview.browser.test.ts`), not with fake timers in Node: the layer listens to real pointer and focus events, which only a browser dispatches faithfully. That file also checks that leaving within 300 ms starts no render (`render-start`).
+- **The placement hook is shared:** the selection toolbar's anchored-placement hook moved to `overlays/anchored.ts`, and the link preview uses it with `placeBelow`.
 - **Touch in the e2e test** dispatches pointer events, because Playwright has no long-press; Firefox has no touch emulation, so the touch tests run in Chromium and WebKit. The real-phone check stays a post-merge check.
 - **Tokens:** `link-preview-width`, `-crop-max-width`, `-crop-width` and `-crop-height` (component tokens), since the package's CSS takes every length from a token.
 - **Gallery:** a `link-preview` route with the popover and the sheet. Its screenshot baselines aren't recorded: the gallery's visual run times out in Docker here, and no workflow runs it.
 - **The corpus count** asked for under Risks: 8 internal links in the 34 files of `fixtures/corpus`, `golden`, `links` and `text`, 3 with a point (region preview) and 5 to a page's top. The corpus has no paper with citations; the e2e fixture stands in for one.
 - **Perf** (`link-previews`, Chromium, quick run on an M1 Pro): the slowest of 20 crops drew 13 ms after the dwell; no main-thread task over 50 ms.
+- **`Viewer` gains four methods** the app needs to drive a preview: `holdLinkPreview`, `dismissLinkPreview`, `followLinkPreview` and `canFollowLink` (which `nav.follow-link`'s enabled check asks, so `@laminapdf/ui` never reads the viewer's DOM). The preview pictures also clear on an appearance change, and `RenderStats` counts them (`previewBitmaps`).
+- **A destination with no left** (`FitH`, an `XYZ` without one) is anchored to the column of the first line in its band, so a two-column page shows one column.
+- **"No request"** is checked in `link-previews.e2e.test.ts` with the same request log the privacy suite reads (`Watched.foreign`): only the opened file's own address appears. The privacy suite itself is unchanged.
+- **"Never more than 8"** is checked with 12 previews drawn in a row and with two identical ones drawn at once (`link-preview.browser.test.ts`), not by hovering 30 citations; the e2e checks hovering.
+- **Not automated:** a long-press on plain text still selecting text (Playwright's synthetic touches start no native selection; the post-merge phone check covers it), and the crop's left edge in pixels (the unit tests pin the geometry; the e2e checks the right column's text).
+- **`/Rotate 90` and `270`:** page space is the displayed page, so a turned page is a landscape page to `previewRegion` (unit test), while the view's rotation is applied by `previewRender` (unit tests at 90 and 270) and checked once in the browser on the paper's turned page.
 - **Added:** `placeBelow` in `place.ts` (the preview goes under its link, flipping above), and a long-press that sent no click no longer swallows the next one (the sheet's Go button clicks the link).
 
 ## Post-merge checks

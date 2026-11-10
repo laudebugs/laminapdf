@@ -130,20 +130,27 @@ describe(`link previews in ${BROWSER}`, () => {
     const box = await link.boundingBox();
     if (box === null) throw new Error("no box");
     await page.evaluate(() => {
-      const w = window as unknown as { shownAt?: number };
+      const w = window as unknown as { shownAt?: number; drawnAt?: number };
       new MutationObserver(() => {
-        if (w.shownAt === undefined && document.querySelector("[role=tooltip].paper-link-preview") !== null)
-          w.shownAt = performance.now();
+        const tip = document.querySelector("[role=tooltip].paper-link-preview");
+        if (w.shownAt === undefined && tip !== null) w.shownAt = performance.now();
+        if (w.drawnAt === undefined && tip?.querySelector("canvas[role=img]") !== null && tip !== null)
+          w.drawnAt = performance.now();
       }).observe(document.body, { childList: true, subtree: true });
     });
     const hoveredAt = await page.evaluate(() => performance.now());
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await tooltip(page).waitFor();
-    const shownAt = await page.evaluate(() => (window as unknown as { shownAt?: number }).shownAt ?? 0);
-    expect(shownAt - hoveredAt).toBeGreaterThanOrEqual(250);
-    expect(shownAt - hoveredAt).toBeLessThan(600);
     const picture = tooltip(page).getByRole("img");
     await picture.waitFor({ timeout: 2000 });
+    const { shownAt, drawnAt } = await page.evaluate(() => {
+      const w = window as unknown as { shownAt?: number; drawnAt?: number };
+      return { shownAt: w.shownAt ?? 0, drawnAt: w.drawnAt ?? 0 };
+    });
+    // 300 ms (± 50), with room for a CI runner's frame; the crop within 500 ms more.
+    expect(shownAt - hoveredAt).toBeGreaterThanOrEqual(250);
+    expect(shownAt - hoveredAt).toBeLessThan(450);
+    expect(drawnAt - shownAt).toBeLessThan(500);
     expect(await picture.getAttribute("aria-label")).toContain(entry(12));
     // The file itself, read from its host; previews ask nothing of any origin.
     expect(foreign.filter((url) => url !== fileUrl("paper.pdf"))).toEqual([]);
@@ -271,11 +278,14 @@ describe(`link previews in ${BROWSER}`, () => {
       await longPress(page, link);
       const sheet = page.getByRole("dialog");
       await sheet.waitFor();
+      expect(await page.locator(".paper-sheet").getAttribute("data-detent")).toBe("medium");
       expect(await page.evaluate(() => document.getSelection()?.toString() ?? "")).toBe("");
       const before = addressPage(page);
       await sheet.getByRole("button", { name: "Go to page 7" }).click();
       await expect.poll(() => addressPage(page)).toBe("7");
-      expect(before).not.toBe("7");
+      // Back returns to the citing view.
+      await page.goBack();
+      await expect.poll(() => addressPage(page)).toBe(before);
       await page.close();
     });
 

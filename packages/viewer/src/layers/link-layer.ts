@@ -15,7 +15,7 @@
 // never runs, a refused scheme, a broken destination) has no `href` either, does nothing, and
 // says why on hover.
 //
-// Previews (R07, todo T5a): a link inside the document, a standard page action or a link to another
+// Previews (R07): a link inside the document, a standard page action or a link to another
 // file asks its viewer to preview it. With a mouse or pen, 300 ms after the pointer comes onto it,
 // and the preview ends 300 ms after the pointer leaves both the link and the preview (which holds it
 // while hovered, WCAG 1.4.13). With the keyboard, 300 ms after it takes visible focus, ending on blur.
@@ -160,9 +160,12 @@ function namedAction(
   }
 }
 
+/** The selector every link anchor matches. */
+const ANCHOR = "a.lamina-link";
+
 /** The link anchor `target` is in, if any. */
 function anchorOf(target: EventTarget | null): HTMLElement | undefined {
-  const anchor = target instanceof Element ? target.closest("a.lamina-link") : null;
+  const anchor = target instanceof Element ? target.closest(ANCHOR) : null;
   return anchor instanceof HTMLElement ? anchor : undefined;
 }
 
@@ -258,12 +261,21 @@ export class LinkLayer implements PageLayer {
     this.#end();
   }
 
+  /** The previewed link, else the focused one: what `follow` would follow. */
+  #followable(): HTMLElement | undefined {
+    const anchor = this.#shown?.anchor ?? anchorOf(document.activeElement);
+    return anchor?.isConnected === true ? anchor : undefined;
+  }
+
+  /** Whether a link is previewed or focused, so `follow` has one to follow. */
+  canFollow(): boolean {
+    return this.#followable() !== undefined;
+  }
+
   /** Follows the previewed link, else the focused one (`nav.follow-link`); `false` when there is neither. */
   follow(): boolean {
-    const focused = document.activeElement;
-    const anchor =
-      this.#shown?.anchor ?? (focused instanceof HTMLElement && focused.matches("a.lamina-link") ? focused : undefined);
-    if (anchor === undefined || !anchor.isConnected) return false;
+    const anchor = this.#followable();
+    if (anchor === undefined) return false;
     this.#cancel();
     this.#end();
     // A long-press's lift may have sent no click: this one is not that click.
@@ -580,8 +592,8 @@ export class LinkLayer implements PageLayer {
 
   /** What following the anchor `e` happened on does. */
   #followOf(e: Event): Follow | undefined {
-    const anchor = e.target instanceof Element ? e.target.closest("a.lamina-link") : null;
-    return anchor instanceof HTMLElement ? this.#follows.get(anchor) : undefined;
+    const anchor = anchorOf(e.target);
+    return anchor === undefined ? undefined : this.#follows.get(anchor);
   }
 
   #click(e: MouseEvent | KeyboardEvent): void {

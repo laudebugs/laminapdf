@@ -5,7 +5,7 @@
 // destination through the worker, keeps at most 8, and leaves nothing behind when aborted.
 import { createViewer, type LinkPreviewRequest, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { viewer as client, read } from "./helpers.js";
+import { viewer as client, ENCRYPTED, PASSWORD, read } from "./helpers.js";
 
 const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -148,6 +148,27 @@ describe("link previews from the link layer", () => {
     viewer.destroy();
   });
 
+  it("starts no render when the mouse leaves within 300 ms", async () => {
+    const { viewer } = await opened();
+    // Wait until the viewer has drawn what it wants: 500 ms with no render starting.
+    let renders = 0;
+    let last = performance.now();
+    const off = rpc.on("render-start", () => {
+      renders++;
+      last = performance.now();
+    });
+    await until(() => performance.now() - last > 500);
+    renders = 0;
+    const link = anchor(viewer, "Link to page 3");
+    pointer(link, "pointerover");
+    await sleep(100);
+    pointer(link, "pointerout", { relatedTarget: viewer.element } as PointerEventInit);
+    await sleep(500);
+    off();
+    expect(renders).toBe(0);
+    viewer.destroy();
+  });
+
   it("never asks for a web link", async () => {
     const { viewer, previews } = await opened();
     pointer(anchor(viewer, "The project site"), "pointerover");
@@ -198,6 +219,29 @@ describe("Viewer.preview", () => {
       viewer.stats().previewBitmaps,
       viewer.stats().drawsOnUnmounted,
     ]).toEqual(["AbortError", 0, 0]);
+    viewer.destroy();
+  });
+
+  it("keeps one picture for two identical previews drawn at once", async () => {
+    const { viewer } = await opened();
+    const target = { page: 2, view: { kind: "at", x: 72, y: 100 } } as const;
+    await Promise.all([viewer.preview(target), viewer.preview(target)]);
+    expect(viewer.stats().previewBitmaps).toBe(1);
+    viewer.destroy();
+  });
+
+  it("draws an encrypted document opened with its password, asking nothing more", async () => {
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(host);
+    let stuck = 0;
+    const off = rpc.on("render-stuck", () => {
+      stuck++;
+    });
+    viewer.open(await rpc.open(await read(ENCRYPTED), { password: PASSWORD }));
+    const picture = await viewer.preview({ page: 0, view: { kind: "at", x: 56, y: 60 } });
+    off();
+    // Its text was read too: the document is decrypted, not merely drawn.
+    expect([picture.bitmap.width > 0, picture.text.length > 0, stuck]).toEqual([true, true, 0]);
     viewer.destroy();
   });
 

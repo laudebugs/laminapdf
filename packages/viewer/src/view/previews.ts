@@ -59,6 +59,8 @@ export class LinkPreviews {
   readonly #host: PreviewHost;
   /** Insertion order is recency: the first key is the oldest. */
   readonly #kept = new Map<string, Kept>();
+  /** Bumped by `clear`: a render that started before it drew at an old zoom or appearance. */
+  #generation = 0;
 
   constructor(host: PreviewHost) {
     this.#host = host;
@@ -91,13 +93,20 @@ export class LinkPreviews {
       this.#kept.set(key, kept);
       return kept.picture;
     }
+    const generation = this.#generation;
     const drawn = await host.client.render(
       { page: target.page, scale: render.scale, clip: render.clip, rotation, appearance },
       { priority: "visible", signal },
     );
-    if (signal.aborted) {
+    if (signal.aborted || generation !== this.#generation) {
       drawn.bitmap.close();
       throw signal.reason instanceof Error ? signal.reason : new DOMException("aborted", "AbortError");
+    }
+    const raced = this.#kept.get(key);
+    if (raced !== undefined) {
+      // The same picture drawn by a call that started meanwhile: keep one.
+      drawn.bitmap.close();
+      return raced.picture;
     }
     const picture: LinkPreviewPicture = {
       bitmap: drawn.bitmap,
@@ -117,8 +126,9 @@ export class LinkPreviews {
     return picture;
   }
 
-  /** Closes every kept picture. */
+  /** Closes every kept picture; renders under way are dropped when they finish. */
   clear(): void {
+    this.#generation++;
     for (const { picture } of this.#kept.values()) picture.bitmap.close();
     this.#kept.clear();
   }
