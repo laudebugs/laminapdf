@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](../done/C4a-ui-chrome-and-platform.md), [D1a](../done/D1a-desktop-ipc-spike.md), [D1b](../done/D1b-desktop-print-spike.md), [U6b](../done/U6b-self-hosted-fonts.md) |
@@ -54,10 +54,10 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 
 **Out of scope** (and which todo covers it)
 
-- Engine process and its protocol: [D2b](D2b-engine-process.md); OS sandboxing: [D2c](D2c-engine-sandbox.md).
-- Tile transport and opening a document: [D2d](D2d-tile-transport-and-first-document.md).
-- WebdriverIO e2e suite: [D2e](D2e-desktop-e2e-webdriverio.md) (this PR adds only a build job).
-- File associations, single-instance: [D3a](D3a-open-from-os.md). Menus: [D4b](D4b-native-menus.md). Updater: [D5b](D5b-updater-in-app.md). Bundling/signing: [D6b](D6b-release-workflow-and-linux-packages.md)–[D6d](D6d-windows-signing.md).
+- Engine process and its protocol: [D2b](../ready/D2b-engine-process.md); OS sandboxing: [D2c](../ready/D2c-engine-sandbox.md).
+- Tile transport and opening a document: [D2d](../ready/D2d-tile-transport-and-first-document.md).
+- WebdriverIO e2e suite: [D2e](../ready/D2e-desktop-e2e-webdriverio.md) (this PR adds only a build job).
+- File associations, single-instance: [D3a](../ready/D3a-open-from-os.md). Menus: [D4b](../ready/D4b-native-menus.md). Updater: [D5b](../ready/D5b-updater-in-app.md). Bundling/signing: [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md).
 
 ## Tasks
 

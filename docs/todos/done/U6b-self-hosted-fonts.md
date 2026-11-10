@@ -37,7 +37,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - Subsets: **Latin** and **Latin Extended** as two `unicode-range` files per face (the browser downloads Latin Extended only when the text needs it), including the punctuation the writing style uses (’ “ ” · … – — €, tabular figures and the `tnum` feature, which must survive subsetting). Other scripts (Greek, Cyrillic, CJK, Arabic, Hebrew, Indic …) fall back to the system font stack per glyph, as the CSS fallbacks already say; document this in the README and keep the fallbacks in the family tokens.
 - Glyphs outside the fonts that the UI uses: shortcut-chip symbols (⌘ ⌥ ⇧ ⌫ ↵ ↑ ↓) and arrows. Decide per glyph: in the subset if the font has it, otherwise the system font (test that each one renders with a non-zero width in three engines).
 - `font-display`: `swap` for Source Sans 3 (text must show at once), `swap` for Newsreader too unless the layout shift on titles is visible in the gallery; `size-adjust` / `ascent-override` fallback faces (`"Source Sans 3 Fallback"` over local `Segoe UI`/`Arial`) to limit layout shift.
-- Preload: `<link rel="preload" as="font" type="font/woff2" crossorigin href="…">` for Source Sans 3 Latin 400 only (the face on first paint); exported as a constant; [C4b](./C4b-web-app-shell.md) (`apps/web`) and [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md) (desktop) depend on this todo and load the fonts.
+- Preload: `<link rel="preload" as="font" type="font/woff2" crossorigin href="…">` for Source Sans 3 Latin 400 only (the face on first paint); exported as a constant; [C4b](./C4b-web-app-shell.md) (`apps/web`) and [D2a](../ongoing/D2a-adr-0008-and-desktop-scaffold.md) (desktop) depend on this todo and load the fonts.
 - The subsetting script `tools/fonts/subset.sh` (or an xtask subcommand if it grows past ~50 lines) using fontTools `pyftsubset` with Brotli for WOFF2, pinned in `tools/fonts/requirements.txt` (fontTools is MIT, brotli is MIT); run by hand when fonts change, never by tests.
 - Caveat 500 (OFL) for the typed-signature style ([design language §3](../../design/paper/design-language.md#3-typography); G01): subset to Latin, shipped as a separate WOFF2 that loads only when the signature dialog opens, never preloaded.
 - A guard that no product file references a third-party font host.
@@ -49,7 +49,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - The CSP `font-src 'self'` header and the network indicator itself → [C4c](../done/C4c-remote-files-encryption-privacy.md), [U4a](../done/U4a-network-indicator-and-privacy-proof.md); this todo adds a test that the gallery makes no third-party request.
 - The generated third-party notices file shipped in apps → at first release ([ADR 0019 SBOM and notices](../../decisions/0019-supply-chain-and-licence-hygiene.md#sbom-and-notices-at-first-release)); this todo commits the licence texts and a README table it can be generated from.
 - Using the fonts in components → [U6d](../done/U6d-core-components.md); screenshot stability with them → [U6f](../done/U6f-gallery-and-visual-tests.md).
-- Desktop app wiring → [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md) imports `@laminapdf/fonts/fonts.css` like the web app.
+- Desktop app wiring → [D2a](../ongoing/D2a-adr-0008-and-desktop-scaffold.md) imports `@laminapdf/fonts/fonts.css` like the web app.
 
 ## Tasks
 
@@ -77,7 +77,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 
 ## Post-merge checks
 
-- [ ] When the desktop app exists ([D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md)), confirm its bundle contains the WOFF2 files and that a cold start offline renders Source Sans 3 (note it in D2a's done todo).
+- [ ] When the desktop app exists ([D2a](../ongoing/D2a-adr-0008-and-desktop-scaffold.md)), confirm its bundle contains the WOFF2 files and that a cold start offline renders Source Sans 3 (note it in D2a's done todo).
 
 ## Tests
 

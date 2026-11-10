@@ -82,7 +82,7 @@ None.
 ## Risks and open questions
 
 - **Order with C4a**: this todo should land before [C4a](./C4a-ui-chrome-and-platform.md) so its password dialog and menus use these overlays (see [U6d](./U6d-core-components.md)'s risks); C4a's **Depends on** gains U6e.
-- **`inert` and the desktop webview**: `inert` is supported in current WebKit, Blink and Gecko; confirm in the Tauri webviews (WKWebView, WebView2, WebKitGTK) when [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md) lands.
+- **`inert` and the desktop webview**: `inert` is supported in current WebKit, Blink and Gecko; confirm in the Tauri webviews (WKWebView, WebView2, WebKitGTK) when [D2a](../ongoing/D2a-adr-0008-and-desktop-scaffold.md) lands.
 - **Toast action reachability** without moving focus is awkward for keyboard users; if no clean pattern exists, actions in toasts are limited to ones that are also available elsewhere (e.g. Undo in the Edit menu and `Mod Z`).
 
 ## Outcome
