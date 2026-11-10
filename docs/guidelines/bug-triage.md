@@ -33,6 +33,8 @@ When one layer asks for something another refuses, check whether both compute th
 
 Change the design so the bug can't recur. Don't make the failing case pass with a guard, a retry, a wider tolerance or a special case. When two layers disagree, give the quantity one home ([maintainability.md](maintainability.md): one home per concept) and make both layers use it. The blurry-zoom fix exported the renderer's own rule, `pagePixels`, and the viewer sizes its canvases and tiles with it, so the viewer can no longer ask for a tile the renderer refuses.
 
+The same holds for a failing test, in CI or on your machine. Don't change product code only to make a test pass. First find out why it fails: if the product is wrong, fix the cause as above; if the test checks something that doesn't make sense (a timing the user never notices, a shortcut of the wrong platform, an implementation detail), change the test so it checks what the user needs, or remove it and say why in the commit message. A change you can't explain by what it does for the user is a patch, and it leaves the real fault in place.
+
 Note what you leave alone. A retry for a failed tile, or a canvas size that would stay sharp at very high zoom, could be worth doing, but they are separate changes with their own PRs.
 
 ## 7. Prove the fix
