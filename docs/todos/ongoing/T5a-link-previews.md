@@ -11,7 +11,7 @@
 | Branch | `feat/t5a-link-previews` |
 | PR title | `feat(viewer): preview internal links and citations before jumping` |
 | Size | L (≈ 500–700 lines incl. tests) |
-| PR | — |
+| PR | [#407](https://github.com/laudebugs/laminapdf/pull/407) |
 
 ## Goal
 
