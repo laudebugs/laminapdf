@@ -565,7 +565,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "outline-cycle": "nothing to do; the outline is read without the loop",
   "outline-item-skipped": "check the outline: the skipped item and its children are missing",
   "invalid-date": "read the raw value from the Info view if you need it",
-  "xmp-invalid": "nothing to do when reading; an edit that writes metadata replaces the packet only after asking",
+  "xmp-invalid": "nothing to do; a metadata edit asks before replacing it",
   "invalid-page-label": "nothing to do; affected pages fall back to decimal labels",
   "invalid-entry": "nothing to do; the view uses the entry's default",
   "content-unknown-operator": "nothing to do; check the page's rendering if the operator mattered",

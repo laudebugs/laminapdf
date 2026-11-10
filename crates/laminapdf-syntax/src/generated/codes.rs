@@ -1188,7 +1188,7 @@ impl WarningCode {
             Self::OutlineCycle => "nothing to do; the outline is read without the loop",
             Self::OutlineItemSkipped => "check the outline: the skipped item and its children are missing",
             Self::InvalidDate => "read the raw value from the Info view if you need it",
-            Self::XmpInvalid => "nothing to do when reading; an edit that writes metadata replaces the packet only after asking",
+            Self::XmpInvalid => "nothing to do; a metadata edit asks before replacing it",
             Self::InvalidPageLabel => "nothing to do; affected pages fall back to decimal labels",
             Self::InvalidEntry => "nothing to do; the view uses the entry's default",
             Self::ContentUnknownOperator => "nothing to do; check the page's rendering if the operator mattered",

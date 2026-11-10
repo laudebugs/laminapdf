@@ -177,6 +177,12 @@ impl FromStr for PdfDate {
 
 impl PdfDate {
     /// The date from its fields (`[month, day, hour, minute, second]`), when they name one.
+    /// Both parsers bound the offset's hours to 0–23 and its minutes to 0–59 themselves.
+    #[expect(
+        clippy::inline_always,
+        reason = "FromStr is its only caller in the WebAssembly modules: inlined, the text module stays in its gzip budget (E1 plan §4)"
+    )]
+    #[inline(always)]
     fn checked(fields: [u8; 5], year: u16, offset: Option<i16>) -> Result<Self, InvalidDate> {
         let [month, day, hour, minute, second] = fields;
         let valid = (1..=12).contains(&month)
@@ -184,8 +190,7 @@ impl PdfDate {
             && day <= days_in_month(year, month)
             && hour < 24
             && minute < 60
-            && second < 60
-            && offset.is_none_or(|m| m.unsigned_abs() < 24 * 60);
+            && second < 60;
         if !valid {
             return Err(InvalidDate);
         }

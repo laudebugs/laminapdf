@@ -142,7 +142,7 @@
       "code": "xmp-invalid",
       "kind": "input",
       "summary": "the XMP metadata packet is not readable XMP and reads as absent",
-      "hint": "nothing to do when reading; an edit that writes metadata replaces the packet only after asking",
+      "hint": "nothing to do; a metadata edit asks before replacing it",
       "since": "0.2.0"
     },
     {

@@ -285,14 +285,13 @@ fn cos_warning(w: laminapdf_cos::Warning) -> Data {
             data([("key", json!(key))])
         }
         W::InvalidPageLabel { start } => data([("start", json!(start))]),
-        W::XmpInvalid {
-            offset: Some(offset),
-            reason,
-            ..
-        } => data([("offset", json!(offset)), ("reason", json!(reason))]),
-        W::XmpInvalid {
-            offset: None, reason, ..
-        } => data([("reason", json!(reason))]),
+        W::XmpInvalid { offset, reason, .. } => {
+            let mut d = data([("reason", json!(reason))]);
+            if let Some(offset) = offset {
+                d.insert("offset".to_owned(), json!(offset));
+            }
+            d
+        }
         W::ContentResourceMissing { offset, category, .. } => {
             data([("offset", json!(offset)), ("category", json!(category))])
         }

@@ -131,7 +131,8 @@ pub enum Warning {
         /// The metadata stream's object number (`None` for a direct one).
         object: Option<u32>,
         /// About where in the stream's decoded bytes reading stopped; `None` when no one place
-        /// is at fault (an unknown encoding, no `rdf:RDF`).
+        /// is at fault (an unknown encoding, no `rdf:RDF`). Data only: the location names the
+        /// object, which keeps this rare warning's code small in the WebAssembly modules.
         offset: Option<u64>,
         /// What was wrong: `encoding`, `dtd`, `entity`, `prefix`, `depth`, `limit`, `syntax`
         /// or `no-rdf`.
@@ -546,12 +547,6 @@ impl Warning {
                 return object.map_or(Location::NONE, |object| {
                     Location::from(Position::InStream { object, offset })
                 });
-            }
-            Self::XmpInvalid { object, offset, .. } => {
-                return match (object, offset) {
-                    (Some(object), Some(offset)) => Location::from(Position::InStream { object, offset }),
-                    _ => Location::object(object),
-                };
             }
             Self::InvalidBox { page, .. }
             | Self::InvalidRotate { page, .. }

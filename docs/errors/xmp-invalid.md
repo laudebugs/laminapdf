@@ -32,7 +32,7 @@ The packet declares a DTD, so it is refused at the `<!DOCTYPE`; `data` is `{ "of
 - `offset`: about where reading stopped, in bytes of the stream's decoded data, so a UTF-16 packet counts two bytes a character. It is left out when no one place is at fault (`encoding` and `no-rdf`).
 - `reason`: one of `encoding`, `dtd`, `entity`, `prefix`, `depth`, `limit`, `syntax` or `no-rdf`.
 
-The `location` is the metadata stream's `object` with the `offset` in its decoded data (the object alone without an offset); none for a direct stream.
+The `location` is the metadata stream's `object`, none for a direct stream; where in its data is the `offset` above.
 
 ## For contributors
 
