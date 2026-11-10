@@ -700,6 +700,7 @@ const repairs: Example[] = [
           },
           { id: "c", name: "Asset-register-summary.pdf", size: 88_000, lastOpened: 1_792_800_000_000, pages: 3 },
         ]}
+        stoppedAt={new Map([["b", 3]])}
         onOpen={noop}
         onClear={noop}
         locale="en-GB"
@@ -708,6 +709,7 @@ const repairs: Example[] = [
   },
   {
     component: "RecentList",
+    // Only the document to continue, so the page shows one Recent list (the state above).
     state: "continue reading",
     element: () => {
       const report = {
@@ -719,18 +721,7 @@ const repairs: Example[] = [
       };
       return (
         <RecentList
-          entries={[
-            report,
-            {
-              id: "b",
-              name: "Tenant-survey-2026.pdf",
-              size: 412_000,
-              lastOpened: 1_792_900_000_000,
-              pages: 6,
-              hasHandle: true,
-            },
-          ]}
-          stoppedAt={new Map([["b", 3]])}
+          entries={[report]}
           continueReading={{ entry: report, page: 11, pageCount: 24 }}
           onOpen={noop}
           onClear={noop}
