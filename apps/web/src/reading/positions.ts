@@ -48,7 +48,7 @@ export const KEPT_WITHIN_MS = 250;
  * Whether `view` is where every document opens, the top of page 1: coming back there is no
  * resume, so it is neither announced nor made a history jump. The zoom alone isn't restored.
  */
-export function atStart(view: KeptView): boolean {
+function atStart(view: KeptView): boolean {
   return view.point.page === 0 && view.point.y <= START_SLACK;
 }
 
