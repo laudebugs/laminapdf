@@ -16,6 +16,23 @@ use anyhow::{Context, Result, bail};
 
 use crate::{wasm, workspace::Workspace};
 
+/// `cargo xtask web <command>`: the reader's build, size and release tasks.
+pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
+    match args {
+        [cmd] if cmd == "build" => build(ws),
+        [cmd] if cmd == "docs-runner" => docs_runner(ws),
+        [cmd] if cmd == "size" => size(ws),
+        [cmd, rest @ ..] if cmd == "next-release" => {
+            let (commit, notes) = crate::web_release::parse_next_release(rest)?;
+            crate::web_release::next_release(&ws.root, &commit, notes.as_deref())
+        }
+        [cmd, tag] if cmd == "check-tag" => crate::web_release::check_tag(&ws.root, tag),
+        _ => bail!(
+            "usage: cargo xtask web build|docs-runner|size|next-release [--commit <rev>] [--notes <file>]|check-tag <tag>"
+        ),
+    }
+}
+
 /// `cargo xtask web build`.
 pub(crate) fn build(ws: &Workspace) -> Result<()> {
     wasm::modules(ws)?;

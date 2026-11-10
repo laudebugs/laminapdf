@@ -130,11 +130,11 @@ The reader shows the website's icon. `vite.config.ts` copies `favicon.svg`, `fav
 
 ## Deploys
 
-Each reader pull request gets a preview URL in a comment, each merge to `main` deploys https://staging-app.laminapdf.com, and a `web-v*` tag deploys https://app.laminapdf.com. For every one of these deploys, `.github/workflows/web-deploy.yml` builds the reader with `cargo xtask web build`, and a smoke test checks the deploy once it is live. [DEPLOY.md](DEPLOY.md) covers the setup, the rollbacks and deploying by hand.
+Each reader pull request gets a preview URL in a comment, each merge to `main` deploys https://staging-app.laminapdf.com, and each release (a `web-v*` tag) deploys https://app.laminapdf.com. For every one of these deploys, `.github/workflows/web-deploy.yml` builds the reader with `cargo xtask web build`, and a smoke test checks the deploy once it is live. [DEPLOY.md](DEPLOY.md) covers the setup, the rollbacks and deploying by hand.
 
 ## Releases
 
-Each release is a `web-v<version>` tag on a commit of `main`, with its notes in [CHANGELOG.md](CHANGELOG.md) and its version in `package.json`, which Settings › About shows. Before production deploys, the release lane's `production-checks` job runs the release gates:
+The reader releases on its own schedule, apart from the packages. Once a day, after the full nightly passes on `main`, the web release train (`.github/workflows/web-release-train.yml`) checks whether what the reader ships changed since its last release. If it did, the train tags `web-v<next>` on that commit. The patch number goes up by itself; for a new minor or major, raise `version` in `package.json` and the next release takes it. Settings › About shows the released version, and each release's notes (the pull requests that changed it) are on its GitHub release. [CHANGELOG.md](CHANGELOG.md) has 0.1.0's. `cargo xtask web next-release` makes the decision; [tools/release/README.md](../../tools/release/README.md#the-web-readers-train) covers the switch and releasing by hand. Before production deploys, the tag's `production-checks` job checks the tag against `package.json` (`cargo xtask web check-tag`) and runs the release gates:
 
 - **Startup size:** `cargo xtask web size` checks the scripts the built `index.html` loads at startup, gzipped, against [`size-budget.json`](size-budget.json). The fast lane runs the same check on every pull request.
 - **Lighthouse:** `pnpm --filter @laminapdf/web lighthouse:local` serves the build with its deployed headers and checks [`lighthouserc.json`](lighthouserc.json)'s scores.

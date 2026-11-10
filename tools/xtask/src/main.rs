@@ -57,6 +57,7 @@ mod wasm;
 mod wasm_glue;
 mod wasm_module;
 mod web;
+mod web_release;
 #[cfg(test)]
 mod workflows;
 mod workspace;
@@ -136,6 +137,12 @@ tasks:
                     @laminapdf/render-hayro; then the docs build makes the runner
   web size          the reader's startup JavaScript (index.html's scripts and module preloads in
                     apps/web/dist/), gzipped, against apps/web/size-budget.json; after `web build`
+  web next-release [--commit <rev>] [--notes <file>]
+                    whether <rev> (default HEAD) is a new reader release: what ships changed since
+                    the newest web-v* tag; prints and sets ready, tag and previous in $GITHUB_OUTPUT,
+                    and writes the notes (the commits that changed it) to <file>
+  web check-tag <tag>
+                    fail unless <tag> is web-v<version> on apps/web/package.json's major and minor
   size [--update-baseline]
                     measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
                     target/size-report.json, fail above packages/wasm/size-budgets.json
@@ -375,9 +382,7 @@ fn main() -> Result<()> {
         ("publish", args) => publish::run(&ws, publish::parse_args(args)?),
         ("sbom", [dir]) => publish::sbom(&ws, Path::new(dir)),
         ("wasm", []) => wasm(&ws),
-        ("web", [cmd]) if cmd == "build" => web::build(&ws),
-        ("web", [cmd]) if cmd == "docs-runner" => web::docs_runner(&ws),
-        ("web", [cmd]) if cmd == "size" => web::size(&ws),
+        ("web", args) => web::run(&ws, args),
         ("size", []) => wasm::size(&ws, false),
         ("size", [flag]) if flag == "--update-baseline" => wasm::size(&ws, true),
         ("deny", []) => {

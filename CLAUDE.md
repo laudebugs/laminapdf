@@ -306,7 +306,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 
 The CLI's release (`.github/workflows/cli-release.yml`, L4d) is apart from the library's: `dist plan` on PRs that touch `crates/laminapdf-cli`, `packages/cli`, `tools/cli-release` or the dist config; on `workflow_dispatch` (`dry-run` true; false is refused) and `laminapdf-cli-v*` tags, `cargo xtask cli-dist` and `dist build` for three targets on GitHub-hosted runners (aarch64-apple-darwin on `macos-15`; aarch64-unknown-linux-gnu and -musl on `ubuntu-24.04-arm`; the other five are not built yet, Windows waits for X6), each archive extracted and run, the npm tarballs installed and run (`tools/cli-release/install-test.sh`), the Homebrew formula installed from the local archive through a throwaway tap on macOS; then the formula, `sha256.sum` and a CycloneDX SBOM; `publish` (the GitHub release; attestations once public) only on a tag push while the variable `LAMINA_PDF_PUBLISH_CLI` is `true`, in the `release` environment, with no stored token (`tools/xtask/src/workflows.rs` tests the gate). Pushing the formula to the tap and publishing the npm packages are not wired yet.
 
-Daily releases: `release-train.yml` runs after a full successful nightly on `main`. It prepares and atomically pushes a version branch and tag with the release bot. The release lane deploys production docs after publishing and registry checks, then opens the version PR with auto-merge. `RELEASE_TRAIN=off` stops future trains. Workflow installation, bot setup and recovery: [`tools/release/README.md`](tools/release/README.md).
+Daily releases: `release-train.yml` runs after a full successful nightly on `main`. It prepares and atomically pushes a version branch and tag with the release bot. The release lane deploys production docs after publishing and registry checks, then opens the version PR with auto-merge. `RELEASE_TRAIN=off` stops future trains. The web reader releases on its own: `web-release-train.yml`, after the same nightly, tags `web-v<next>` when what the reader ships changed since its last tag (`cargo xtask web next-release`; `WEB_RELEASE_TRAIN=off` stops it), and the tag deploys it. Workflow installation, bot setup and recovery: [`tools/release/README.md`](tools/release/README.md).
 
 ## Working agreements
 
@@ -402,6 +402,10 @@ cargo xtask viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> 
 cargo xtask viewer-perf --gate  # the reader's release gate (C7c): three full Chromium runs, each figure's median against
                              #   web-app §4 + 25 % (packages/viewer/perf/gate.ts), a miss fails unless perf/waivers.json waives it
 cargo xtask web size         # after `web build`: apps/web/dist/index.html's startup scripts, gzipped, against apps/web/size-budget.json
+cargo xtask web next-release [--commit <rev>] [--notes <file>]  # is <rev> a new web reader release? what ships changed since the
+                             #   newest web-v* tag (not docs, Markdown, tools/ or workflows); prints and sets ready, tag (web-v<next>:
+                             #   apps/web/package.json's version, else the last tag's patch + 1) and previous; notes = those commits
+cargo xtask web check-tag <tag>  # fail unless <tag> is web-v<version> on apps/web/package.json's major and minor (production-checks)
                              #   (`pdf-runtimes` runs it after its reader build, so it gates PRs); a per-script table
 cargo xtask gallery [--test|--update]  # the Paper gallery (apps/gallery/README.md): serve it (Vite); --test runs its Playwright
                              #   tests in the Playwright image pinned in apps/gallery/package.json (Docker: the gallery's files

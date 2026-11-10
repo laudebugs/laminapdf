@@ -1,6 +1,6 @@
 # Changelog: the Lamina PDF web reader
 
-The web reader at [app.laminapdf.com](https://app.laminapdf.com). Each release is tagged `web-v<version>`, and production deploys only from those tags.
+The web reader at [app.laminapdf.com](https://app.laminapdf.com). Each release is tagged `web-v<version>`, and production deploys only from those tags. Releases after 0.1.0 are cut by the web release train, and their notes are on their GitHub releases.
 
 ## 0.1.0
 
