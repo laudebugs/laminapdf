@@ -1,0 +1,83 @@
+# L4g — CLI release: every target built, npm packages and the Homebrew formula published
+
+| Field | Value |
+| --- | --- |
+| ID | `L4g` |
+| Status | `ongoing` |
+| Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
+| Round / milestone | Round L4 (shareable libraries) |
+| Depends on | [L4d](../done/L4d-cli-distribution.md), [X6](../done/X6-windows-ci.md) |
+| Dependency notes | L4d built three of dist's eight targets and left publishing to the owner; X6 gave CI Windows runners. [L4f](../ready/L4f-cli-downloads.md) later points the formula at `downloads.laminapdf.com`: until the repository is public, the formula this todo publishes points at GitHub release files only collaborators can download. |
+| ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) §7 (npm trusted publishing from a GitHub-hosted runner, no stored registry token), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (checksums, SBOM, notices), [0031](../../decisions/0031-cli-and-mcp-contract.md) (the binary and its packages) |
+| Branch | `ci/cli-release-targets-and-publishing` |
+| PR title | `ci(cli): build every release target and publish the npm packages and the Homebrew formula` |
+| Size | M (≈ 300–500 lines: the workflow's build matrix and two publish jobs, Windows in the test scripts, the workflow tests, the owner's setup) |
+| PR | — |
+
+## Goal
+
+Make a `laminapdf-cli-v*` tag release the CLI everywhere it says it runs. CI builds and installs all eight targets, not three. The same tag then publishes the nine npm packages through npm's trusted publishing and pushes the Homebrew formula to `laudebugs/homebrew-tap`, so no step is left to the owner after the first release.
+
+## Context
+
+- [L4d](../done/L4d-cli-distribution.md): `cli-release.yml`, dist's config, `tools/cli-release/` and `packages/cli`; its notes list what it left out.
+- `.github/workflows/release.yml`'s `publish-npm` job: npm trusted publishing from `ubuntu-latest` with npm pinned, no checkout, tarballs from an artifact.
+- `release.yml` and `release-train.yml`: a short-lived token from the release bot (`actions/create-github-app-token`) for writes to another repository.
+
+## Scope
+
+**In scope**
+
+- Builds on GitHub-hosted runners for the five missing targets: `x86_64-apple-darwin` (`macos-15-intel`), `x86_64-unknown-linux-gnu` and `-musl` (`ubuntu-24.04`), `x86_64-pc-windows-msvc` (`windows-2025`) and `aarch64-pc-windows-msvc` (`windows-11-arm`). Each archive is extracted and run, and its npm platform package installed and run where npm can install it on that runner.
+- Windows in `archive-test.sh` and `install-test.sh`: `.zip` archives and `laminapdf.exe`.
+- `global` and `publish` need every build: a release is all eight targets or nothing.
+- `publish-npm`: the wrapper and the eight platform packages, platform packages first, with npm's trusted publishing in the `release` environment; a version already on npm is skipped, so a re-run finishes a partial publish.
+- `publish-homebrew`: dist's formula pushed to `laudebugs/homebrew-tap` (`Formula/laminapdf.rb`) with a release-bot token scoped to that repository.
+- The owner's one-time setup, written down: the tap repository, the release bot installed on it, each npm package's first publish and its trusted publisher.
+
+**Out of scope**
+
+- `downloads.laminapdf.com` and pointing the formula there: [L4f](../ready/L4f-cli-downloads.md).
+- Code signing and notarisation: [D6c](../ready/D6c-macos-signing-and-notarisation.md), [D6d](../ready/D6d-windows-signing.md).
+- crates.io: `laminapdf-cli` stays `publish = false` (ADR 0031).
+
+## Tasks
+
+- [x] Claim in the work PR (its first commit adds this file in `ongoing/`).
+- [ ] Build matrix for the eight targets; Windows support in the test scripts.
+- [ ] `global` and `publish` wait for every build.
+- [ ] `publish-npm` and `publish-homebrew`, behind the same switches as `publish`.
+- [ ] Update `tools/xtask/src/workflows.rs`' tests of the workflow.
+- [ ] The owner's setup in the CLI's README and `tools/release/README.md`.
+- [ ] A `workflow_dispatch` dry run on the PR branch: every build passes.
+
+## Acceptance criteria
+
+- [ ] A dry run builds all eight targets, and each archive installs and runs `laminapdf --version` and `laminapdf info` on a fixture.
+- [ ] The npm wrapper with its platform package installs and runs on macOS (both CPUs), Linux glibc (both CPUs) and Windows (both CPUs).
+- [ ] The publish jobs run only on a `laminapdf-cli-v*` tag push with `LAMINA_PDF_PUBLISH_CLI` set to `true`, in the `release` environment, and only after every build passed; `tools/xtask/src/workflows.rs` tests the condition.
+- [ ] No long-lived token is stored: npm uses trusted publishing, and the tap push uses a token minted for that job.
+
+## Post-merge checks
+
+- [ ] After the owner's setup, the first `laminapdf-cli-v*` tag publishes the nine npm packages and the formula: `npm install -g @laminapdf/cli` works anywhere, and `brew install laudebugs/tap/laminapdf` works for collaborators until L4f.
+
+## Tests
+
+`tools/xtask/src/workflows.rs` (the publish gate, every build needed, no stored secret but the release bot's); the dry-run dispatch on the PR.
+
+## Docs to update
+
+`crates/laminapdf-cli/README.md` (install), `tools/release/README.md` (the owner's setup), `dist-workspace.toml` and `cli-release.yml`'s headers, CLAUDE.md's CLI release paragraph, [shareable libraries §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1).
+
+## Risks and open questions
+
+- **Runner labels:** `macos-15-intel` and `windows-11-arm` are GitHub's current labels for those machines; a renamed label fails the build, not the release.
+- **npm's first publish:** npm sets a trusted publisher only on a package that exists, so the owner publishes each package once from the dry run's tarballs. Until then, `publish-npm` fails and says which package is missing.
+
+## Definition of done
+
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
