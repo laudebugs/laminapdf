@@ -22,8 +22,12 @@ The step sent every changed file in one request to GitHub's trees API, with each
 | `v0.2.0-alpha.4` (2026-11-09) | 289 | 1.0 MiB | 2 min 11 s, passed |
 | `v0.2.0-alpha.5` (2026-11-10) | not measured | not measured | 3 min 7 s, then 502 |
 
-Most of each step's time went to the one tree request: building the entries is local work that takes seconds.
+The step's log has no timestamps between its requests, so the table can't split the time. Building the entries is local work that takes seconds, which leaves the trees request as the likely cost: it carries all the content.
+
+## How to reproduce
+
+The 502 isn't reproducible on demand: it depends on GitHub's load and on the release's size. The failing run's evidence is its log (above). The step's own logic can be run against any release commit with a stand-in `gh`, as [the resolution](resolution.md#how-it-was-checked) describes.
 
 ## Cause
 
-One trees request carried the whole release commit. GitHub took two minutes to build yesterday's tree, and today's larger one ran past GitHub's limit, so its gateway answered 502. Nothing retried the request, though building a tree is safe to repeat: the same entries on the same base always give the same SHA.
+One trees request carried the whole release commit. GitHub took up to two minutes over yesterday's tree, and today's larger one ran past GitHub's limit, so its gateway answered 502. Nothing retried the request, though building a tree is safe to repeat: the same entries on the same base always give the same SHA.
