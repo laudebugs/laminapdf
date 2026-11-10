@@ -29,6 +29,8 @@ laminapdf-render = { workspace = true }
 laminapdf-render-pdfium = { workspace = true }
 
 [dev-dependencies]
+# The builder, for the large-fixture example (`examples/large_pdf.rs`).
+laminapdf = { workspace = true, features = ["build", "saslprep"] }
 # The test helpers every crate shares, by path only (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 

@@ -171,7 +171,10 @@ impl Engines {
     /// open. D2d's password prompt calls this; the restart path reuses the kept password.
     #[cfg_attr(
         not(test),
-        expect(dead_code, reason = "D2d's `unlock_document` command calls it with the user's password")
+        expect(
+            dead_code,
+            reason = "D2d's `unlock_document` command calls it with the user's password"
+        )
     )]
     pub(crate) fn unlock(&self, window: &str, doc: DocId, password: &str) -> Result<DocumentMeta, DesktopError> {
         self.check(window, doc)?;

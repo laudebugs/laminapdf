@@ -21,7 +21,7 @@ mod fuzz_run;
 pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 11] = [
+pub(crate) const FUZZ_TARGETS: [&str; 12] = [
     "lex",
     "parse_object",
     "flate_decode",
@@ -33,6 +33,7 @@ pub(crate) const FUZZ_TARGETS: [&str; 11] = [
     "extract_text",
     "extract",
     "markdown",
+    "engine_protocol_decode",
 ];
 
 /// Default `cargo xtask fuzz` run time in seconds (the scheduled workflow uses 600).
@@ -758,8 +759,8 @@ const SAVE_SEED_CONTROL: [u8; 8] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04]
 /// saved crash inputs in `fixtures/regressions/<target>/` and everything under
 /// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`,
 /// follow [`SAVE_SEED_CONTROL`] for `save_roundtrip` (which also gets `fixtures/signed/`), and
-/// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead and `markdown` from
-/// `fixtures/markdown/`;
+/// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead, `markdown` from
+/// `fixtures/markdown/` and `engine_protocol_decode` from its seeds alone;
 /// crash inputs and hand-written seeds are copied verbatim (they already are what the target
 /// reads). Seed names carry their source path, so files from different folders never
 /// collide. Returns the corpus directory.
@@ -773,6 +774,8 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
     } else if target == "markdown" {
         // Markdown, not PDFs: the example's report (and fuzz/seeds/markdown/, copied below).
         fixtures.extend(files_in(&ws.root.join("fixtures/markdown"))?);
+    } else if target == "engine_protocol_decode" {
+        // Frames, not PDFs: only fuzz/seeds/engine_protocol_decode/, copied below.
     } else {
         for dir in ["fixtures/corpus", "fixtures/golden", "fixtures/content"] {
             fixtures.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));
