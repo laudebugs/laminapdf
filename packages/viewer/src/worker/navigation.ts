@@ -35,6 +35,5 @@ export async function pageLinks(index: number, signal: AbortSignal): Promise<rea
 
 /** Forgets `pages`' links (an edit changed them), or every page's (the document closed). */
 export function forgetLinks(pages?: Iterable<number>): void {
-  if (pages === undefined) links.clear();
-  else for (const page of pages) links.delete(page);
+  links.forget(pages);
 }

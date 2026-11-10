@@ -89,13 +89,7 @@ export async function readingOrder(index: number, signal: AbortSignal): Promise<
 
 /** Forgets `pages`' text (an edit changed them), or every page's (the document closed). */
 export function forgetText(pages?: Iterable<number>): void {
-  if (pages === undefined) {
-    cache.clear();
-    blocks.clear();
-    return;
-  }
-  for (const page of pages) {
-    cache.delete(page);
-    blocks.delete(page);
-  }
+  const list = pages === undefined ? undefined : [...pages];
+  cache.forget(list);
+  blocks.forget(list);
 }

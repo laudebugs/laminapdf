@@ -54,8 +54,8 @@ export interface FindTiming {
 export interface EditTiming {
   /** ms until the edit's call answered: the transaction, the save into memory and the reopen. */
   readonly applyMs: number;
-  /** ms until the turned page's first new pixels were drawn (its quick pass). */
-  readonly firstTileMs: number;
+  /** ms until the turned page's first new pixels were drawn: its quick pass, the whole page blurry. */
+  readonly firstPixelsMs: number;
   /** ms until it was sharp again. */
   readonly sharpMs: number;
 }

@@ -95,6 +95,8 @@ None.
   - A worker restart reopens the original file, so unsaved edits are lost; the session should replay its op log or warn.
   - An encrypted document can't take an edit, since its in-memory save is refused (`encrypted-base`); disable editing with the reason until E11.
   - After a page turns at a fixed zoom, a landscape page can be wider than the window; refit when the zoom mode is fit-width.
+  - Each edit appends a revision whose cross-reference section PDFium reads on every reopen. Twenty edits in a row cost nothing measurable on 100 pages; decide whether a long session compacts the chain (a full rewrite into memory after some number of edits).
+  - E1g's worker refuses an edit that changes the page count, since the view names pages by index; E2's page-structure ops need the view to map indices across an edit.
 
 ## Definition of done
 

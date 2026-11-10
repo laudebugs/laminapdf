@@ -173,14 +173,21 @@ describe("FindController", () => {
     expect(revealed.length).toBe(shown);
   });
 
-  it("leaves a running search and an idle find alone", () => {
-    const { fake, calls } = host([1, 1, 1, 1, 1, 1, 1, 1]);
+  it("leaves an idle find alone, and searches pages edited during a search again once it ends", async () => {
+    const counts = [1, 1, 1, 1, 1, 1, 1, 1];
+    const { fake, calls } = host(counts);
     const find = new FindController(fake);
     find.refresh([0]);
     expect(calls).toEqual([]);
     find.find("x");
-    calls.length = 0;
+    // The first call has read pages 0–3; then an edit takes page 0's match away.
+    calls.shift()?.resolve();
+    await new Promise((r) => setTimeout(r, 0));
+    counts[0] = 0;
     find.refresh([0]);
-    expect(calls).toEqual([]);
+    expect(calls.map((c) => c.pages)).toEqual([[4, 5, 6, 7]]);
+    await settle(calls);
+    expect(find.getState()).toMatchObject({ total: 7, done: true });
+    expect(find.matchesOn(0).matches).toEqual([]);
   });
 });

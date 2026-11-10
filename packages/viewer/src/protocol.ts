@@ -288,13 +288,24 @@ export function renderKeyFields(key: string): RenderKeyFields {
 /**
  * The coalescing key of a render on document `id`: the document and the whole normalised
  * RenderRequest (page, scale, clip, rotation, flags, background and appearance), so two requests
- * share a run only when their pixels are the same (ADR 0009 §3.3). The view adds the page's
- * `revision`, which each edit of the page bumps, to its cache keys: a bitmap of the page before
- * the edit never answers for it after.
+ * share a run only when their pixels are the same (ADR 0009 §3.3).
  */
-export function renderKey(request: RenderRequest, id: number, revision = 0): string {
+export function renderKey(request: RenderRequest, id: number): string {
+  return JSON.stringify(keyFields(request, id));
+}
+
+/**
+ * The view's cache key of a render: its {@link renderKey}'s fields and the page's `revision`,
+ * which each edit of the page bumps, so a bitmap of the page before an edit never answers for it
+ * after. {@link renderKeyFields} reads both kinds of key.
+ */
+export function viewKey(request: RenderRequest, id: number, revision: number): string {
+  return JSON.stringify([...keyFields(request, id), revision]);
+}
+
+function keyFields(request: RenderRequest, id: number): unknown[] {
   const { page, scale, clip, rotation = 0, flags, background, appearance } = request;
-  return JSON.stringify([
+  return [
     id,
     page,
     scale,
@@ -303,8 +314,7 @@ export function renderKey(request: RenderRequest, id: number, revision = 0): str
     flagsOf(flags),
     background === undefined ? "white" : background,
     appearanceKey(appearance),
-    ...(revision === 0 ? [] : [revision]),
-  ]);
+  ];
 }
 
 /** The request field for `appearance`: none for the pages' own colours, as requests were before page appearances. */

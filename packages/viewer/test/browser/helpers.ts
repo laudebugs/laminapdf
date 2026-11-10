@@ -35,6 +35,13 @@ export const CORPUS = Object.keys(urls)
 export const ENCRYPTED = "fixtures/text/encrypted/text-shaped-aes-256.pdf";
 export const PASSWORD = "user";
 
+/** Where the test server serves `path`, an address the document worker can fetch with Range requests. */
+export function addressOf(path: string): string {
+  const url = urls[`../../../../${path}`];
+  if (url === undefined) throw new Error(`${path} is not served`);
+  return new URL(url, location.href).href;
+}
+
 export async function read(path: string): Promise<Uint8Array> {
   const url = urls[`../../../../${path}`];
   if (url === undefined) throw new Error(`${path} is not served`);
@@ -67,11 +74,12 @@ export function testViewer(
 
 /**
  * Calls one of the test worker's hooks: `__busy` (ms; answers the wall clock when the hold ends),
- * `__renderLog`, `__renderDocument` (a number per render document the worker draws from) or `__crash`.
+ * `__renderLog`, `__renderDocument` (a number per render document the worker draws from),
+ * `__failNextReopen`, `__failNextUndo` or `__crash`.
  */
 export function hook(
   client: ViewerClient,
-  method: "__busy" | "__renderLog" | "__renderDocument" | "__crash",
+  method: "__busy" | "__renderLog" | "__renderDocument" | "__failNextReopen" | "__failNextUndo" | "__crash",
   params: unknown[] = [],
 ) {
   return (client.call as (m: string, p: unknown[]) => Promise<unknown>).call(client, method, params);

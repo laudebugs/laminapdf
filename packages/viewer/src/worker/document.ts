@@ -48,19 +48,8 @@ export interface Open {
   readonly model: Document;
   /** What draws the pages: replaced by one opened from the edited file after each edit (edit.ts). */
   render: RenderDocument;
-  /** The file as first opened, which the render document reads with every revision edits appended. */
-  readonly source: RenderSource;
-  /**
-   * The render limits, to open the render document again after an edit. Never the password: an
-   * encrypted file can't take an incremental save, so an edit never reopens one.
-   */
-  readonly renderLimits: RenderOpenOptions["limits"];
-  /** The revisions the edits appended to `source`, in order (empty before the first edit). */
-  appended: Uint8Array;
-  /** Every edit applied to the model, one transaction each: a text-capable copy applies them too. */
-  readonly edits: (readonly Op[])[];
-  /** How many of `edits` the text-capable copy has applied. */
-  textEdits: number;
+  /** What edits keep and change (edit.ts); a text-capable copy here applies its `pending` edits. */
+  readonly edit: EditState;
   /** Where a remote document's bytes come from; undefined when they are all in memory. */
   readonly remote: HttpRangeByteSource | undefined;
   /** A large local file's OPFS copy it is read from; undefined when it is in memory. */
@@ -74,6 +63,29 @@ export interface Open {
   text?: Promise<Document> | undefined;
   /** What its open answered, and the page's number for that open (`currentDocument`). */
   answer?: { readonly document: OpenedDocument; readonly ticket: number | undefined };
+}
+
+/**
+ * What edit.ts keeps of a document between edits. It reopens the render document over `source`
+ * with every appended revision after it.
+ */
+export interface EditState {
+  /** The file as first opened. */
+  readonly source: RenderSource;
+  /**
+   * The render limits, to open the render document again after an edit. Never the password: an
+   * encrypted file can't take an incremental save, so an edit never reopens one.
+   */
+  readonly renderLimits: RenderOpenOptions["limits"];
+  /** The revisions the edits appended to `source`, in order, each as its save wrote it. */
+  readonly appended: Uint8Array[];
+  /**
+   * The edits a text-capable copy has yet to apply, oldest first: kept only while there is a copy,
+   * or one may be opened, so a document that reads its own text keeps none.
+   */
+  readonly pending: (readonly Op[])[];
+  /** Set when an edit failed and couldn't be undone: the model and the pages drawn may differ. */
+  diverged: boolean;
 }
 
 /**
@@ -179,11 +191,13 @@ export async function textModel(signal: AbortSignal): Promise<Document> {
 }
 
 /**
- * Brings the text-capable copy, if there is one, up to the model's edits (edit.ts calls it after
- * each). The model reads its text itself when it can, and a copy still opening applies them once
- * open; each call waits for the one before, so no edit is applied twice.
+ * Passes an edit the model committed to the text-capable copy (edit.ts calls it after each). The
+ * model reads its text itself when it can, and then nothing is kept. A copy still opening applies
+ * the edits once open; each call waits for the one before, so no edit is applied twice.
  */
-export function syncTextCopy(opened: Open): void {
+export function followEdit(opened: Open, ops: readonly Op[]): void {
+  if (opened.text === undefined && opened.reopen === undefined) return;
+  opened.edit.pending.push(ops);
   const text = opened.text;
   if (text === undefined) return;
   const synced = text.then(async (copy) => {
@@ -200,9 +214,10 @@ export function syncTextCopy(opened: Open): void {
 
 /** Applies to `copy` the edits it hasn't applied yet, one transaction each, as the model did. */
 async function replayEdits(opened: Open, copy: Document): Promise<void> {
-  for (; opened.textEdits < opened.edits.length; opened.textEdits++) {
-    const ops = opened.edits[opened.textEdits] as readonly Op[];
+  const { pending } = opened.edit;
+  for (let ops = pending[0]; ops !== undefined; ops = pending[0]) {
     await copy.ensure(() => copy.apply(ops));
+    pending.shift();
   }
 }
 
@@ -398,11 +413,7 @@ async function openFrom(
     id: nextDocument++,
     model,
     render,
-    source,
-    renderLimits,
-    appended: new Uint8Array(0),
-    edits: [],
-    textEdits: 0,
+    edit: { source, renderLimits, appended: [], pending: [], diverged: false },
     remote,
     local: from.kind === "copy" ? from.source : undefined,
     reopen: reopenFor(model, from.kind === "memory" ? from.bytes : undefined, options),

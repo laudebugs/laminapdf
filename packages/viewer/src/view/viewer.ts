@@ -28,8 +28,8 @@ import {
   type EditResult,
   type OpenedDocument,
   type Priority,
-  renderKey,
   renderKeyFields,
+  viewKey,
 } from "../protocol.js";
 import { backdropRatio, bounds, contains, lowScale, sharpScale, tilesFor } from "../render/tiles.js";
 import { destinationView } from "../zoom/destination.js";
@@ -233,7 +233,7 @@ interface Detail {
   readonly scale: number;
   /** The geometry (`geometryOf`) it was placed for. */
   readonly geometry: string;
-  /** The sharp tiles drawn into it, by `renderKey`. */
+  /** The sharp tiles drawn into it, by `viewKey`. */
   readonly tiles: Set<string>;
 }
 
@@ -253,7 +253,7 @@ interface PageView {
    * canvas is the page at this scale exactly, as the renderer sizes it (`pagePixels`).
    */
   scale: number;
-  /** The sharp tiles drawn at `painted`, by `renderKey`. */
+  /** The sharp tiles drawn at `painted`, by `viewKey`. */
   readonly tiles: Set<string>;
   /** The detail canvas, while the page is in view and its canvas is below the full pixel ratio. */
   detail: Detail | undefined;
@@ -340,7 +340,10 @@ export class Viewer {
   readonly #listeners = new Set<() => void>();
   readonly #events = new Map<keyof ViewerEventMap, Set<(data: never) => void>>();
   readonly #cleanup: (() => void)[] = [];
-  #document: OpenedDocument | undefined;
+  /** The open document's ID (renders name it), or undefined before one opens. */
+  #documentId: number | undefined;
+  /** Counts `open`s: an edit answered for a document since replaced redraws nothing. */
+  #opens = 0;
   #sizes: PageSize[] = [];
   /** Each edited page's revision (`invalidate` bumps it), part of its bitmaps' cache keys. */
   #revisions = new Map<number, number>();
@@ -415,6 +418,7 @@ export class Viewer {
     });
     this.addLayer(this.#highlights);
     this.#links = this.#linkLayer(options.links);
+    this.#cleanup.push(this.#client.on("restarted", ({ reopened }) => reopened && this.#reopened()));
   }
 
   /** The scroll container (append it, or use {@link mount}). */
@@ -432,7 +436,8 @@ export class Viewer {
   open(document: OpenedDocument): void {
     this.#unmountAll();
     this.#cache.clear();
-    this.#document = document;
+    this.#documentId = document.id;
+    this.#opens++;
     this.#revisions = new Map();
     this.#pinned = new Set();
     this.#focusTarget = undefined;
@@ -652,16 +657,24 @@ export class Viewer {
    * changes nothing and redraws nothing.
    */
   async applyEdit(ops: readonly Op[], options?: ViewerCallOptions): Promise<EditResult> {
-    const document = this.#document;
+    const opens = this.#opens;
     const result = await this.#client.applyEdit(ops, options);
     // Another document opened meanwhile: these pages aren't its pages.
-    if (this.#document === document) {
+    if (this.#opens === opens) {
       this.invalidate(
         result.pages.map((page) => page.index),
         new Map(result.pages.map((page) => [page.index, page])),
       );
     }
     return result;
+  }
+
+  /**
+   * Every page's displayed size in points, as the view lays it out: the sizes the document opened
+   * with, and those edits gave since (`invalidate`). A thumbnail strip lays its pages out from it.
+   */
+  pageSizes(): readonly PageSize[] {
+    return this.#sizes;
   }
 
   /** The document point at viewport position (`x`, `y`) in CSS px. */
@@ -796,6 +809,19 @@ export class Viewer {
       this.#root.scrollLeft = Math.max(0, (left + right) / 2 - viewportWidth / 2);
     }
     this.#schedule();
+  }
+
+  /**
+   * The worker restarted and opened the file again as it was, without the edits: the edited pages
+   * take their sizes from it and draw again (at a new revision, so no bitmap of theirs is reused).
+   */
+  #reopened(): void {
+    const document = this.#client.document;
+    if (document === undefined || document.pages.length !== this.#sizes.length) return;
+    this.#documentId = document.id;
+    const edited = [...this.#revisions.keys()];
+    const sizes = new Map(edited.map((index) => [index, document.pages[index] as PageSize]));
+    this.invalidate(edited, sizes);
   }
 
   /**
@@ -1191,7 +1217,7 @@ export class Viewer {
 
   /** `request`'s cache key: the render key with its page's revision. */
   #key(request: Parameters<ViewerClient["render"]>[0]): string {
-    return renderKey(request, this.#document?.id ?? 0, this.#revisions.get(request.page) ?? 0);
+    return viewKey(request, this.#documentId ?? 0, this.#revisions.get(request.page) ?? 0);
   }
 
   /** The device px per pt of a sharp tile: the layout's scale × the device pixel ratio. */
@@ -1261,7 +1287,7 @@ export class Viewer {
     const view = this.#pages.get(index);
     // A page in the margin gives its detail canvas back for the pages in view.
     if (view !== undefined && priority === "prefetch") this.#releaseDetail(view);
-    if (view === undefined || this.#document === undefined || view.busy || view.waiting || view.state === "error") {
+    if (view === undefined || this.#documentId === undefined || view.busy || view.waiting || view.state === "error") {
       return;
     }
     if (!this.#readyForAppearance(view, priority) || this.#upToDate(view, priority, frame)) return;
@@ -1526,7 +1552,17 @@ export class Viewer {
   ): Promise<Held> {
     const cached = this.#cache.get(key);
     if (cached !== undefined && !isClosed(cached)) return { bitmap: cached, owned: false };
+    const revision = this.#revisions.get(request.page) ?? 0;
     const { bitmap } = await this.#client.render(request, { priority, signal });
+    // The page was edited while this render waited: its pixels may be the old file's, and its key
+    // names a revision nothing asks for again. The worker runs one call at a time and `invalidate`
+    // runs only once the edit has answered, so an answer that comes after it, at the same
+    // revision, drew the edited file; the worker's coalescing key needs no revision for the same
+    // reason (no render can run across an edit).
+    if ((this.#revisions.get(request.page) ?? 0) !== revision) {
+      bitmap.close();
+      throw new DOMException("the page changed while it rendered", "AbortError");
+    }
     const kept = this.#cache.set(key, request.page, bitmap, this.#state.currentPage);
     return { bitmap, owned: !kept };
   }

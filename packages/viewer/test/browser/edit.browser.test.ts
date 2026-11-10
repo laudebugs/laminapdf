@@ -1,23 +1,28 @@
 // Edits on screen in Chromium, Firefox and WebKit: an edit through the document worker reopens
 // the render document from the edited file, so a turned page draws turned and at its new size;
-// the viewer redraws that page alone, and the other pages keep what they drew. A metadata edit
-// reopens and redraws nothing, and a failed edit leaves the pages drawing as before.
+// the viewer and its thumbnails redraw that page alone, and the other pages keep what they drew.
+// A metadata edit reopens and redraws nothing. A failed edit, a failed reopen or a failed undo
+// leaves the pages drawing as before, and a restarted worker draws the file as it was. Files read
+// range by range (from a link, or from their OPFS copy) take edits too.
 
 import { Builder, Font, init, type Op } from "@laminapdf/sdk";
-import { createViewer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
+import { createViewer, ThumbnailStrip, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { hook, rejection, testViewer } from "./helpers.js";
+import { addressOf, hook, next, read, rejection, testViewer } from "./helpers.js";
 
 const LETTER = [612, 792] as const;
 /** The red box on every page, in page points from the top-left: x, y, width, height. */
 const BOX = [40, 40, 160, 80] as const;
 
-/** Three letter pages, each with a red box at its top-left and its number below it. */
+/**
+ * Three letter pages, each with a red box at its top-left and its number below it; the first lies
+ * on its side, so a page turned later is never wider than the widest page already there.
+ */
 function threePages(): Uint8Array {
   const b = new Builder({ id: new TextEncoder().encode("lamina-e1-redraw"), producer: "lamina tests" });
   const font = Font.standard("Helvetica");
   for (let i = 0; i < 3; i++) {
-    const page = b.page([...LETTER]);
+    const page = b.page(i === 0 ? [LETTER[1], LETTER[0]] : [...LETTER]);
     const s = page.surface();
     s.fillColor([1, 0, 0])
       .path((p) => p.rect([...BOX]))
@@ -62,6 +67,8 @@ let bytes: Uint8Array;
 let rpc: ViewerClient | undefined;
 let view: Viewer | undefined;
 let host: HTMLElement | undefined;
+let strip: ThumbnailStrip | undefined;
+let side: HTMLElement | undefined;
 
 beforeAll(async () => {
   await init({ text: true });
@@ -69,10 +76,12 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
+  strip?.destroy();
+  side?.remove();
   view?.destroy();
   host?.remove();
   rpc?.terminate();
-  [rpc, view, host] = [undefined, undefined, undefined];
+  [rpc, view, host, strip, side] = [undefined, undefined, undefined, undefined, undefined];
 });
 
 async function opened(): Promise<ViewerClient> {
@@ -81,18 +90,40 @@ async function opened(): Promise<ViewerClient> {
   return rpc;
 }
 
-/** A viewer 800 × 400 px with page 1 at the top, once that page is sharp. */
+/**
+ * A viewer 800 × 400 px with page 1 at the top, once that page is sharp, and a thumbnail strip
+ * beside it once its three thumbnails are drawn.
+ */
 async function showing(client: ViewerClient): Promise<Viewer> {
   host = document.createElement("div");
   Object.assign(host.style, { width: "800px", height: "400px", position: "fixed", top: "0", left: "0" });
-  document.body.append(host);
+  side = document.createElement("div");
+  Object.assign(side.style, { width: "160px", height: "600px", position: "fixed", top: "0", left: "820px" });
+  document.body.append(host, side);
+  const opened = client.document as NonNullable<ViewerClient["document"]>;
   view = createViewer({ client });
   view.mount(host);
-  view.open(client.document as NonNullable<ViewerClient["document"]>);
+  view.open(opened);
+  strip = new ThumbnailStrip(client, view);
+  strip.mount(side);
+  strip.open(opened);
   await expect.poll(() => view?.getState().pageCount).toBe(3);
   view.goToPage(1);
   await sharp(view, 1);
+  await expect.poll(() => thumbnails().filter((t) => t !== null).length, { timeout: 20_000 }).toBe(3);
   return view;
+}
+
+/** Each page's thumbnail canvas, or null while it has none. */
+function thumbnails(): (HTMLCanvasElement | null)[] {
+  return [0, 1, 2].map((i) => document.querySelector(`.lamina-thumbnail[data-page-index="${i}"] canvas`));
+}
+
+/** The `invalidate` events the viewer fires from now on. */
+function invalidated(v: Viewer): number[][] {
+  const events: number[][] = [];
+  v.on("invalidate", ({ pages }) => events.push(pages.map((p) => p.index)));
+  return events;
 }
 
 async function sharp(v: Viewer, page: number): Promise<void> {
@@ -134,7 +165,7 @@ describe("redraw after an edit", () => {
     expect(isWhite(pixel(after.bitmap, ...UPRIGHT))).toBe(true);
     after.bitmap.close();
     const other = await client.render({ page: 0, scale: 1 });
-    expect([other.width, other.height]).toEqual([612, 792]);
+    expect([other.width, other.height]).toEqual([792, 612]);
     other.bitmap.close();
     // The text comes from the edited model too: the number, once at the left, is now at the right.
     const text = await client.pageText(1);
@@ -152,6 +183,14 @@ describe("redraw after an edit", () => {
 
     expect(new Set(pages)).toEqual(new Set([1]));
     expect(canvasOf(0)).toBe(page0);
+    // Page 2 stays mounted below it. Nothing drew pages 0 and 2 again, in the view or the
+    // thumbnails: each kept its bitmaps.
+    expect(document.querySelector('.lamina-page[data-page-index="2"]')).not.toBeNull();
+    // Page 1's thumbnail is drawn again, turned.
+    await expect
+      .poll(() => (thumbnails()[1]?.width ?? 0) > (thumbnails()[1]?.height ?? 0), { timeout: 20_000 })
+      .toBe(true);
+    expect(isRed(pixel(thumbnails()[1] as HTMLCanvasElement, ...TURNED))).toBe(true);
     const shell = document.querySelector<HTMLElement>('.lamina-page[data-page-index="1"]') as HTMLElement;
     expect(shell.offsetWidth / shell.offsetHeight).toBeCloseTo(792 / 612, 2);
     // Page 1 stays at the top of the view.
@@ -170,10 +209,12 @@ describe("redraw after an edit", () => {
     const v = await showing(client);
     const first = await hook(client, "__renderDocument");
     const pages = rendered(client);
+    const events = invalidated(v);
 
     const result = await v.applyEdit([{ op: "setInfo", args: { patch: { title: "Edited" } } } as Op]);
 
     expect(result.pages).toEqual([]);
+    expect(events).toEqual([]);
     expect(await hook(client, "__renderDocument")).toBe(first);
     expect((await client.properties()).title).toBe("Edited");
     await new Promise((r) => setTimeout(r, 200));
@@ -196,5 +237,80 @@ describe("redraw after an edit", () => {
     expect(isRed(pixel(page.bitmap, ...UPRIGHT))).toBe(true);
     page.bitmap.close();
     expect(v.stats().pages[1]).toBe("sharp");
+  });
+
+  it("keeps drawing the page as it was when the reopen fails, and the next edit still shows", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const first = await hook(client, "__renderDocument");
+    const id = client.document?.pages[1]?.id as string;
+    await hook(client, "__failNextReopen");
+
+    const error = await rejection(v.applyEdit(turn(id)));
+
+    expect(String((error as Error).message)).toContain("reopen fail");
+    expect(await hook(client, "__renderDocument")).toBe(first);
+    expect(client.document?.pages[1]).toMatchObject({ width: 612, height: 792, rotation: 0 });
+    expect(v.stats().pages[1]).toBe("sharp");
+    // The model was turned back, so turning it again is a new edit, which shows.
+    const result = await v.applyEdit(turn(id));
+    expect(result.pages[0]).toMatchObject({ width: 792, height: 612 });
+    await sharp(v, 1);
+    expect(isRed(pixel(canvasOf(1), ...TURNED))).toBe(true);
+  });
+
+  it("says the document must be opened again when the edit can't be shown or undone", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const id = client.document?.pages[1]?.id as string;
+    await hook(client, "__failNextReopen");
+    await hook(client, "__failNextUndo");
+
+    const error = await rejection(v.applyEdit(turn(id)));
+
+    expect(String((error as Error).message)).toContain("open it again");
+    // Every edit after it is refused the same way, and the pages go on drawing as they were.
+    expect(String(((await rejection(v.applyEdit(turn(id)))) as Error).message)).toContain("open it again");
+    const page = await client.render({ page: 1, scale: 1 });
+    expect([page.width, page.height]).toEqual([612, 792]);
+    page.bitmap.close();
+  });
+
+  it("draws the file as it was after the worker restarts, the edit gone", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    await v.applyEdit(turn(client.document?.pages[1]?.id as string));
+    await sharp(v, 1);
+    const restarted = next(client, "restarted");
+
+    void hook(client, "__crash").catch(() => undefined);
+    expect(await restarted).toMatchObject({ reopened: true });
+
+    await sharp(v, 1);
+    const shell = document.querySelector<HTMLElement>('.lamina-page[data-page-index="1"]') as HTMLElement;
+    expect(shell.offsetWidth / shell.offsetHeight).toBeCloseTo(612 / 792, 2);
+    expect(isRed(pixel(canvasOf(1), ...UPRIGHT))).toBe(true);
+    await expect
+      .poll(() => (thumbnails()[1]?.width ?? 1) < (thumbnails()[1]?.height ?? 0), { timeout: 20_000 })
+      .toBe(true);
+  });
+
+  it("edits a file read range by range: from a link, and from its OPFS copy", async () => {
+    const path = "fixtures/corpus/outline.pdf";
+    const sources = [
+      { url: addressOf(path) },
+      new File([(await read(path)) as BlobPart], "outline.pdf", { lastModified: 1_700_000_000_001 }),
+    ];
+    for (const source of sources) {
+      rpc?.terminate();
+      rpc = await testViewer("pdfium");
+      const opened = await rpc.open(source, { copyAbove: 0, keepCopy: false });
+      const before = opened.pages[0] as NonNullable<(typeof opened.pages)[number]>;
+      const result = await rpc.applyEdit(turn(before.id));
+      expect(result.pages[0]).toMatchObject({ width: before.height, height: before.width });
+      const tile = await rpc.render({ page: 0, scale: 0.5 });
+      expect(tile.width > tile.height).toBe(before.height > before.width);
+      tile.bitmap.close();
+    }
   });
 });

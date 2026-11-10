@@ -236,6 +236,8 @@ const EDITED = [
 
 /** Edits per file: the median is reported. */
 const EDITS = 5;
+/** Edits in a row on the 100-page file, each appending a revision PDFium reads on its next open. */
+const CHAIN = 20;
 
 function median(values: readonly number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
@@ -245,8 +247,10 @@ function median(values: readonly number[]): number {
 /**
  * An edit on screen (the E1 plan's §6): the page in view turned a quarter, five times, in files
  * of 10, 100 and 1,000 pages, each turn timed from the edit's call to the page's first new pixels
- * and to sharp again, once the page before it is sharp. The worker saves the edit into memory and
- * reopens the render document each time, so the cost grows with what reopening reads.
+ * (its quick pass) and to sharp again, once the page before it is sharp. The worker saves the edit
+ * into memory and reopens the render document each time, so the cost grows with what reopening
+ * reads. On the 100-page file the turns go on to 20, and the last is reported too: each edit adds
+ * a cross-reference section PDFium reads on every later open.
  */
 async function edit(context: BrowserContext, url: string): Promise<BrowserResult["edit"]> {
   const out: BrowserResult["edit"][number][] = [];
@@ -254,13 +258,16 @@ async function edit(context: BrowserContext, url: string): Promise<BrowserResult
     const page = await harness(context, url);
     await opened(page, name, "fit-width");
     const runs = [];
-    for (let i = 0; i < EDITS; i++) runs.push(await page.evaluate(() => globalThis.__laminaPerf.edit()));
+    const count = pages === 100 ? CHAIN : EDITS;
+    for (let i = 0; i < count; i++) runs.push(await page.evaluate(() => globalThis.__laminaPerf.edit()));
     await page.close();
+    const first = runs.slice(0, EDITS);
     out.push({
       pages,
-      applyMs: median(runs.map((r) => r.applyMs)),
-      firstTileMs: median(runs.map((r) => r.firstTileMs)),
-      sharpMs: median(runs.map((r) => r.sharpMs)),
+      applyMs: median(first.map((r) => r.applyMs)),
+      firstPixelsMs: median(first.map((r) => r.firstPixelsMs)),
+      sharpMs: median(first.map((r) => r.sharpMs)),
+      ...(count > EDITS ? { lastOf: count, lastFirstPixelsMs: runs[count - 1]?.firstPixelsMs ?? Number.NaN } : {}),
     });
   }
   return out;

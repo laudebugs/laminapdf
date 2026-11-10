@@ -89,6 +89,8 @@ export class FindController {
   #current: Place | undefined;
   #abort: AbortController | undefined;
   #start = 0;
+  /** Pages an edit changed while a search ran: searched again once it ends. */
+  #stale = new Set<number>();
 
   constructor(host: FindHost) {
     this.#host = host;
@@ -106,6 +108,7 @@ export class FindController {
   /** Searches for `query` with `options`, replacing any search under way. An empty query clears. */
   find(query: string, options: FindOptions = {}): void {
     this.#stop();
+    this.#stale.clear();
     const search = this.#state.search + 1;
     const cleared = [...this.#byPage.keys()];
     this.#byPage = new Map();
@@ -163,12 +166,16 @@ export class FindController {
 
   /**
    * Searches `pages` again for the query (an edit changed their text, or turned them), replacing
-   * their matches without moving the view. A search still running reads them as it reaches them;
-   * those it had already read keep their matches until the next query.
+   * their matches without moving the view. While a search runs, they are searched again once it
+   * ends, since it may have read them before the edit.
    */
   refresh(pages: readonly number[]): void {
     const { query, options, search, done } = this.#state;
-    if (query.trim() === "" || !done || pages.length === 0) return;
+    if (query.trim() === "" || pages.length === 0) return;
+    if (!done) {
+      for (const page of pages) this.#stale.add(page);
+      return;
+    }
     this.#host
       .find(query, options, pages, new AbortController().signal)
       .then((results) => {
@@ -181,6 +188,7 @@ export class FindController {
   /** Stops the search and drops the results: a new document opened. */
   reset(): void {
     this.#stop();
+    this.#stale.clear();
     this.#byPage = new Map();
     this.#snippets = new Map();
     this.#current = undefined;
@@ -214,7 +222,11 @@ export class FindController {
       if (abort.signal.aborted || this.#state.search !== search) return;
       this.#take(results, search);
     }
-    if (this.#state.search === search) this.#set({ done: true });
+    if (this.#state.search !== search) return;
+    this.#set({ done: true });
+    const stale = [...this.#stale];
+    this.#stale.clear();
+    this.refresh(stale);
   }
 
   /** Adds one call's results: the count, the first match to show, the pages to paint. */

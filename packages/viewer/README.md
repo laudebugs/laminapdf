@@ -52,6 +52,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 | `addLayer({ name, onMount, onUnmount, onZoom })` | Mounts a layer into each page. |
 | `keepMounted(pages)` | Keeps these pages mounted wherever the view scrolls, replacing the previous set; `[]` releases them. The text layer pins the pages a selection touches. |
 | `pointAt(x, y)`, `positionOf(point)` | Converts between viewport positions and document points. |
+| `pageSizes()` | Every page's displayed size in points, as the view lays it out, edits included. A thumbnail strip lays its pages out from it. |
 | `applyEdit(ops)`, `invalidate(pages, sizes?)` | Edits the document and redraws the pages the edit touched (below). |
 | `MIN_ZOOM`, `MAX_ZOOM` | The bounds of a percentage zoom, 10 and 800, for a zoom control's range. |
 
@@ -106,10 +107,11 @@ Anchors follow page order, so Tab reaches a page's links in order. Each is named
 - **Names.** Each thumbnail is named by its page label and number ("Page iv (4 of 120)") and captioned with its label. For another language, pass `label` to replace both and `name` to replace the list's own name.
 
 **Edits.** `viewer.applyEdit(ops)` edits the open document and redraws the pages the edit touched, in one call. The ops are `@laminapdf/sdk`'s, such as `{ op: "rotatePage", args: { page, rotate: 90 } }`, and apply as one transaction. The call resolves with those pages as they are after the edit: index, ID, rotation and displayed size in points, so a quarter turn swaps width and height.
-- **How an edit reaches the screen.** PDFium draws from the bytes it opened, so the Web Worker writes the edit into memory as an incremental update and opens the render document again from the result. The old render document keeps drawing until the new one is open. The Web Worker runs one call at a time, so every render answered before the edit drew the old file, and every render after it draws the new one.
+- **How an edit reaches the screen.** PDFium draws from the bytes it opened, so the Web Worker writes the edit into memory as an incremental update and opens the render document again from the result. The old render document keeps drawing until the new one is open. The Web Worker runs one call at a time, so every render answered before the edit drew the old file, and every render after it draws the new one. A render the view asked for before an edit and that answers after it is dropped, never cached, and asked for again.
 - **What the viewer redraws.** Only the touched pages: their bitmaps go, here and in a thumbnail strip, and their layers read their text and links again. Every other page keeps what it drew. A page in view at its old size keeps its pixels until sharp tiles cover them, so it never flashes. A page whose size changed paints its quick pass first, and the page at the top of the viewport stays there.
-- **What changes nothing.** An edit of the document's metadata touches no page: the Web Worker opens nothing again, and the viewer redraws nothing. A failed edit, such as one naming a page that doesn't exist, rejects and leaves the document and the pages as they were.
-- **Driving it yourself.** `ViewerClient.applyEdit(ops)` makes the edit without the redraw; pass its pages to `viewer.invalidate(indices, sizes)`, which redraws any pages you name. The edits live in the Web Worker: one that restarts after a crash opens the file as it was.
+- **What changes nothing.** An edit of the document's metadata touches no page: the Web Worker opens nothing again, and the viewer redraws nothing. A failed edit, such as one naming a page that doesn't exist, rejects and leaves the document and the pages as they were. So does an edit whose new file the backend can't open: the Web Worker undoes it. An edit that adds, removes or moves pages is refused for now, since the view finds pages by index.
+- **When an edit can't be undone.** If the undo after a failed reopen fails too, the call rejects with `worker-failed` saying to open the document again, and every later edit does the same.
+- **Driving it yourself.** `ViewerClient.applyEdit(ops)` makes the edit without the redraw; pass its pages to `viewer.invalidate(indices, sizes)`, which redraws any pages you name. The edits live in the Web Worker: one that restarts after a crash opens the file as it was, and the viewer and its thumbnails draw the edited pages again at their old sizes.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
@@ -264,7 +266,7 @@ It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails 
 | Scroll the 1,000-page file end to end, twice, with wheel steps every 20 ms; stop at a quarter, a half and three quarters | the longest main-thread task, time to sharp after each stop, peak memory, memory after each pass, cancelled renders that painted | no task > 50 ms; sharp ≤ 300 ms; ≤ 600 MB; second pass ≤ first + 5 %; 0 |
 | Fling across the 300 image pages, then stop | time to sharp | ≤ 300 ms |
 | Three ctrl+wheel bursts in and out on the 10-page file | the longest frame, time to sharp after each burst | reported |
-| Turn the page in view a quarter (`viewer.applyEdit`), five times, in the 10-, 100- and 1,000-page files | the median time from the call to the page's first new pixels, and to sharp | ≤ 150 ms at 100 pages ([E1 plan §6](../../docs/plans/editor/e1-editing-foundation.md#6-redrawing-after-an-edit)) |
+| Turn the page in view a quarter (`viewer.applyEdit`), five times, in the 10-, 100- and 1,000-page files; on the 100-page file, go on to 20 turns in a row | the median time from the call to the page's first new pixels (its quick pass), and to sharp; the twentieth turn's first new pixels | ≤ 150 ms at 100 pages ([E1 plan §6](../../docs/plans/editor/e1-editing-foundation.md#6-redrawing-after-an-edit)) |
 
 "Time to sharp" runs from the last scroll or zoom event to the moment every visible page turned sharp. Memory is the page's JS heap (Chromium only), the document Web Worker's WebAssembly memories (`client.memory()`), the bitmap cache and the canvases' pixels. Firefox and WebKit have no Long Tasks API, so their longest task is the longest gap between frames, which is an upper bound.
 

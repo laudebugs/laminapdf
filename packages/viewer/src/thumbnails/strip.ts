@@ -11,7 +11,7 @@ import type { PageInfo } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
-import { PageLayout, type Rotation, rotated } from "../layout/page-layout.js";
+import { PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { appearanceField, appearanceKey, type OpenedDocument } from "../protocol.js";
 import type { InvalidatedPage, Viewer } from "../view/viewer.js";
 
@@ -70,8 +70,6 @@ export class ThumbnailStrip {
   readonly #items = new Map<number, Item>();
   readonly #cleanup: (() => void)[] = [];
   #document: OpenedDocument | undefined;
-  /** The document's pages, with the sizes edits gave them since it opened. */
-  #pages: PageInfo[] = [];
   #layout: PageLayout | undefined;
   #rotation: Rotation = 0;
   #appearance: PageAppearance = "original";
@@ -123,7 +121,6 @@ export class ThumbnailStrip {
     this.#unmountAll();
     this.#cache.clear();
     this.#document = document;
-    this.#pages = [...document.pages];
     this.#current = 0;
     this.#focus = 0;
     this.#rotation = this.#viewer.getState().rotation;
@@ -143,7 +140,7 @@ export class ThumbnailStrip {
   // --- internals ---
 
   #relayout(): void {
-    const pages = this.#pages;
+    const pages = this.#sizes();
     const widest = Math.max(1, ...pages.map((p) => rotated(p, this.#rotation).width));
     this.#layout = new PageLayout(pages, { scale: this.#width / widest, rotation: this.#rotation, gap: GAP + CAPTION });
     this.#spacer.style.height = `${this.#layout.height}px`;
@@ -151,18 +148,32 @@ export class ThumbnailStrip {
     this.#schedule();
   }
 
+  /**
+   * The pages' sizes: the viewer's, which follow its edits (one home for them). Before the viewer
+   * shows this document (the strip opened first), the document's own.
+   */
+  #sizes(): readonly PageSize[] {
+    const pages = this.#document?.pages ?? [];
+    const viewed = this.#viewer.pageSizes();
+    return viewed.length === pages.length ? viewed : pages;
+  }
+
+  /** Whether page `index` keeps its box in `layout` at `size` (the same arithmetic as the layout's). */
+  #fits(layout: PageLayout, index: number, size: PageSize): boolean {
+    const shown = rotated(size, layout.rotation);
+    return layout.widths[index] === shown.width * layout.scale && layout.heights[index] === shown.height * layout.scale;
+  }
+
   /** The viewer redrew `pages` after an edit: their thumbnails are drawn again, at their new sizes. */
   #invalidate(pages: readonly InvalidatedPage[]): void {
+    const layout = this.#layout;
     let resized = false;
     for (const { index, width, height } of pages) {
       // Draw it afresh: an unmounted thumbnail's render is aborted, and its late bitmap never kept.
       this.#cache.prune(index, () => false);
       const item = this.#items.get(index);
       if (item !== undefined) this.#unmount(item);
-      const page = this.#pages[index];
-      if (page === undefined || (page.width === width && page.height === height)) continue;
-      this.#pages[index] = { ...page, width, height };
-      resized = true;
+      if (layout !== undefined && !this.#fits(layout, index, { width, height })) resized = true;
     }
     if (resized) this.#relayout();
     else this.#schedule();
@@ -225,7 +236,7 @@ export class ThumbnailStrip {
   }
 
   #mount(index: number, layout: PageLayout): Item {
-    const page = this.#pages[index] as PageInfo;
+    const page = this.#document?.pages[index] as PageInfo;
     const { caption, name } = this.#label(page, layout.pageCount);
     const root = document.createElement("div");
     root.className = "lamina-thumbnail";

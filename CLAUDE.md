@@ -101,7 +101,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); E1g: worker/edit.ts (applyEdit: ops as one
 │                        #   transaction, an incremental save of the appended revision into memory, the render document reopened over the file with
 │                        #   every revision appended and swapped in once open; a failure undoes the transaction), viewer.invalidate(pages, sizes?)
-│                        #   (bitmaps dropped by a per-page revision in the cache key, keptTop's layout, layers remounted, find.refresh, the strip's
+│                        #   (bitmaps dropped by a per-page revision in the view key (viewKey), late answers of an older revision dropped,
+│                        #   keptTop's layout, layers remounted, find.refresh, a restarted worker's sizes taken back, the strip laid out from
+│                        #   viewer.pageSizes() on its
 │                        #   `invalidate` event), viewer.applyEdit and client.applyEdit; C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,

@@ -4,7 +4,7 @@
 import type { RenderDocument, RenderRequest } from "@laminapdf/render";
 import { serve } from "@laminapdf/sdk/worker/server";
 import { crashMethod } from "@laminapdf/test-utils/worker-hooks";
-import { current } from "../../src/worker/document.js";
+import { current, currentBackend } from "../../src/worker/document.js";
 import { viewerMethods } from "../../src/worker/methods.js";
 
 /** A number per render document the worker has drawn from, in the order the edit tests saw them. */
@@ -47,5 +47,29 @@ serve({
       },
     },
     __crash: crashMethod,
+    // The backend's next open fails, as a reopen after an edit might.
+    __failNextReopen: {
+      run: () => {
+        const backend = currentBackend();
+        const open = backend.open;
+        backend.open = () => {
+          backend.open = open;
+          throw new Error("the test made this reopen fail");
+        };
+        return undefined;
+      },
+    },
+    // The model's next undo fails, as the undo of an edit that couldn't be shown might.
+    __failNextUndo: {
+      run: () => {
+        const { model } = current();
+        const undo = model.undo;
+        model.undo = () => {
+          model.undo = undo;
+          throw new Error("the test made this undo fail");
+        };
+        return undefined;
+      },
+    },
   },
 });

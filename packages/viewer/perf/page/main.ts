@@ -112,9 +112,9 @@ async function edit(): Promise<EditTiming> {
   await viewer.applyEdit(ops as Parameters<typeof viewer.applyEdit>[0]);
   const applyMs = performance.now() - start;
   const state = () => viewer.stats().pages[index];
-  const firstTile = await at(() => state() === "low" || state() === "sharp", 20_000, "the page didn't redraw");
+  const firstPixels = await at(() => state() === "low" || state() === "sharp", 20_000, "the page didn't redraw");
   const sharp = await at(() => state() === "sharp", 20_000, "the page wasn't sharp again");
-  return { applyMs, firstTileMs: firstTile - start, sharpMs: sharp - start };
+  return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
 }
 
 async function memory(): Promise<MemorySample> {
