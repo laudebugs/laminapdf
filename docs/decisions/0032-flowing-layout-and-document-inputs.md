@@ -116,7 +116,7 @@ Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benc
 | [T4c](../todos/done/T4c-flow-tables-notes-contents.md) | Tables across pages |
 | [T4h](../todos/done/T4h-flow-notes-contents-outline.md) | Footnotes, a contents page and the outline |
 | [T4d](../todos/done/T4d-markdown-documents.md) | Markdown in Rust, with an example |
-| [T4i](../todos/ongoing/T4i-build-command-and-bindings.md) | `laminapdf build`, `laminapdf_build` and the TypeScript `markdown` call |
+| [T4i](../todos/done/T4i-build-command-and-bindings.md) | `laminapdf build`, `laminapdf_build` and the TypeScript `markdown` call |
 | [T4e](../todos/ready/T4e-json-documents-and-templates.md) | `laminapdf.document/1` and templates in Rust and the CLI |
 | [T4j](../todos/ready/T4j-documents-in-typescript.md) | Typed documents and `builder.flow` in TypeScript |
 

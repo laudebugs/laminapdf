@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4i` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4d](../done/T4d-markdown-documents.md) |
+| Depends on | [T4d](./T4d-markdown-documents.md) |
 | ADRs | Implements [ADR 0032 §7](../../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) (the CLI verb, the MCP tool and the TypeScript call) and [§9](../../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) (the text module's gzip budget: 1,280,000 B, amended with this todo to 1,360,000 B). Follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as ADR 0032 amends it: [§2](../../decisions/0031-cli-and-mcp-contract.md#2-grammar) (`build`), [§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output) (`laminapdf.build/1`) and [§9](../../decisions/0031-cli-and-mcp-contract.md#9-mcp-defaults-for-l4c) (a write tool under `--allow-write`); [0016 §6–§7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary) (module budgets; records as JSON with `unknown-option`) and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
 | Branch | `feat/t4i-build-command-and-bindings` |
 | PR title | `feat(cli): laminapdf build for Markdown, its MCP tool and the TypeScript markdown call` |
@@ -49,23 +49,23 @@ Bring [T4d](../done/T4d-markdown-documents.md)'s Markdown front end to the place
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
-- [ ] Read ADR 0032 §7–§9 and T4d's `MarkdownBuildOptions`
-- [ ] The CLI: `commands/build.rs` (new; `build(args, &Settings, &mut dyn Io)`, which never prints), `BuildArgs` and `BuildReport` with `JsonSchema`, the `Build` variant in `src/main.rs`, `schema::all()` and `COMMANDS`, the committed schema, CLI hints for the font errors, and the CLI README
-- [ ] MCP: `laminapdf_build` in `src/mcp/tools.rs` behind `allow_write`, with annotations that say it writes and isn't destructive; update `the_tools_should_be_in_name_order_and_read_only_by_default` for the new order
-- [ ] WebAssembly: `WasmBuilder.markdown` with its options record, the `markdown` feature turned on in the text module's build; TypeScript: `Builder.markdown` and its types; `cargo xtask wasm` and `cargo xtask size`
-- [ ] The TypeScript example, its pair entry and the runtime suite entry
-- [ ] The docs (Docs to update)
+- [x] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
+- [x] Read ADR 0032 §7–§9 and T4d's `MarkdownBuildOptions`
+- [x] The CLI: `commands/build.rs` (new; `build(args, &Settings, &mut dyn Io)`, which never prints), `BuildArgs` and `BuildReport` with `JsonSchema`, the `Build` variant in `src/main.rs`, `schema::all()` and `COMMANDS`, the committed schema, CLI hints for the font errors, and the CLI README
+- [x] MCP: `laminapdf_build` in `src/mcp/tools.rs` behind `allow_write`, with annotations that say it writes and isn't destructive; update `the_tools_should_be_in_name_order_and_read_only_by_default` for the new order
+- [x] WebAssembly: `WasmBuilder.markdown` with its options record, the `markdown` feature turned on in the text module's build; TypeScript: `Builder.markdown` and its types; `cargo xtask wasm` and `cargo xtask size`
+- [x] The TypeScript example, its pair entry and the runtime suite entry
+- [x] The docs (Docs to update)
 
 ## Acceptance criteria
 
-- [ ] `laminapdf build fixtures/markdown/report.md` with the fixture fonts writes the CLI's golden, `fixtures/golden/cli-build-report.pdf` (T4d's golden needs a fixed file ID, an 8-point footer and a contents page, which ADR 0032 gives the command no flags for; the TypeScript example writes T4d's golden); its `--json` report validates against `build.schema.json`; an existing output without `--force` exits 4; raw HTML exits 3 with `markdown-html-ignored` (0 with `--warnings-ok`)
-- [ ] Without `--font`, PDF/UA-1 fails with `font-not-embedded`, and its hint names `--font`
-- [ ] The CLI reads an image from a path relative to the input's folder; under MCP, an image or output path outside every root fails with `path-outside-roots`
-- [ ] `crates/laminapdf-cli/tests/mcp.rs`: `laminapdf_build` builds from inline Markdown inside a root, and is absent without `--allow-write`
-- [ ] `markdown-to-pdf.ts` writes the golden's bytes in every runtime (`cargo xtask pdf-runtimes`)
-- [ ] `cargo xtask size` passes within the text module's gzip budget (1,360,000 B, amended with this todo)
-- [ ] `cargo xtask check docs` passes with the example pair shown on a docs page
+- [x] `laminapdf build fixtures/markdown/report.md` with the fixture fonts writes the CLI's golden, `fixtures/golden/cli-build-report.pdf` (T4d's golden needs a fixed file ID, an 8-point footer and a contents page, which ADR 0032 gives the command no flags for; the TypeScript example writes T4d's golden); its `--json` report validates against `build.schema.json`; an existing output without `--force` exits 4; raw HTML exits 3 with `markdown-html-ignored` (0 with `--warnings-ok`)
+- [x] Without `--font`, PDF/UA-1 fails with `font-not-embedded`, and its hint names `--font`
+- [x] The CLI reads an image from a path relative to the input's folder; under MCP, an image or output path outside every root fails with `path-outside-roots`
+- [x] `crates/laminapdf-cli/tests/mcp.rs`: `laminapdf_build` builds from inline Markdown inside a root, and is absent without `--allow-write`
+- [x] `markdown-to-pdf.ts` writes the golden's bytes in every runtime (`cargo xtask pdf-runtimes`)
+- [x] `cargo xtask size` passes within the text module's gzip budget (1,360,000 B, amended with this todo)
+- [x] `cargo xtask check docs` passes with the example pair shown on a docs page
 
 ## Post-merge checks
 
@@ -79,11 +79,11 @@ Bring [T4d](../done/T4d-markdown-documents.md)'s Markdown front end to the place
 
 ## Docs to update
 
-- [ ] A recipe on the docs site, "Turn Markdown into a PDF" (`apps/docs/src/content/docs/recipes/markdown-to-pdf.mdx`, new), with both examples and the CLI command
-- [ ] The "Pages that flow" guide: the TypeScript tab and the CLI command in T4d's Markdown section
-- [ ] `crates/laminapdf-cli/README.md` (the `build` command); `packages/sdk/examples/AGENTS.md`, so coding agents know the format and the tool
-- [ ] `CLAUDE.md`: the CLI, WASM and TypeScript paragraphs and the commands list
-- [ ] The trust and proof plan's §10 to-do for T4
+- [x] A recipe on the docs site, "Turn Markdown into a PDF" (`apps/docs/src/content/docs/recipes/markdown-to-pdf.mdx`, new), with both examples and the CLI command
+- [x] The "Pages that flow" guide: the TypeScript tab and the CLI command in T4d's Markdown section
+- [x] `crates/laminapdf-cli/README.md` (the `build` command); `packages/sdk/examples/AGENTS.md`, so coding agents know the format and the tool
+- [x] `CLAUDE.md`: the CLI, WASM and TypeScript paragraphs and the commands list
+- [x] The trust and proof plan's §10 to-do for T4
 
 ## Risks and open questions
 
@@ -94,8 +94,15 @@ Bring [T4d](../done/T4d-markdown-documents.md)'s Markdown front end to the place
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes
+
+- **Goldens:** the CLI writes its own golden, `fixtures/golden/cli-build-report.pdf`. T4d's needs a fixed file ID, an 8-point footer and a contents page, which ADR 0032 gives `build` no flags for. The TypeScript example writes T4d's golden byte for byte, which needed `Font.fromCollection` for its bold face and a page template in `MarkdownOptions`.
+- **Images:** the CLI reads only targets in the Markdown's folder or below it. A missing one, or one outside the folder, is left out with `markdown-image-missing` (ADR 0032 §6), so a stale image link never stops the build. Under MCP, `RootedIo` also refuses links out of the roots.
+- **Size:** `WasmBuilder.markdown` is the first WebAssembly call into the flow layer, so the text module gained the flow layer (about 60 KB gzip) and the Markdown parser and converter (about 90 KB) at once: 1,316,930 B. The owner raised the budget to 1,360,000 B (ADR 0016 §6 and ADR 0032 §9 amended), which leaves about 43 KB for T4e and T4j.
+- **Exit codes:** a profile's rule (`font-not-embedded`) has kind `usage`, so it exits 2, as ADR 0031's table says.
