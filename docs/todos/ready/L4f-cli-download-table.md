@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4d](../done/L4d-cli-distribution.md), [L4g](../ongoing/L4g-cli-release-targets-and-publishing.md) |
+| Depends on | [L4d](../done/L4d-cli-distribution.md), [L4g](../done/L4g-cli-release-targets-and-publishing.md) |
 | Dependency notes | L4g builds and publishes all eight targets to the GitHub release, npm and the Homebrew tap. The links in this todo's table answer 200 only once the first `laminapdf-cli-v*` release exists. |
 | ADRs | Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (checksums), [0031](../../decisions/0031-cli-and-mcp-contract.md) (the binary and its packages) |
 | Branch | `docs/l4f-cli-download-table` |
@@ -22,7 +22,7 @@ The repository is public, so the GitHub release serves the archives to everyone.
 
 ## Context
 
-- [L4g](../ongoing/L4g-cli-release-targets-and-publishing.md): `cli-release.yml` attaches `laminapdf-cli-<target>.tar.xz` (`.zip` on Windows), each with a `.sha256`, plus `sha256.sum`, to the `laminapdf-cli-v<version>` GitHub release.
+- [L4g](../done/L4g-cli-release-targets-and-publishing.md): `cli-release.yml` attaches `laminapdf-cli-<target>.tar.xz` (`.zip` on Windows), each with a `.sha256`, plus `sha256.sum`, to the `laminapdf-cli-v<version>` GitHub release.
 - GitHub serves the newest release's files at `https://github.com/laudebugs/laminapdf/releases/latest/download/<file>`, but "latest" means the newest non-pre-release across every tag in the repository, and CLI releases are marked pre-release. Versioned links (`releases/download/laminapdf-cli-v<version>/<file>`) avoid both problems.
 - `apps/docs/src/content/docs/install.mdx` (the install page) and its `{{version}}` substitution.
 - [D7b](./D7b-settings-renderer-switch-and-download-page.md): the website's `/download` page, for the desktop app; it links this section.
