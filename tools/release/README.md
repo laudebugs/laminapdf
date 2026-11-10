@@ -85,4 +85,4 @@ Before the first release, the owner does this once:
 4. **Add the trusted publisher.** On npmjs.com, open each of the nine packages' settings and add a trusted publisher: GitHub Actions, repository `laudebugs/laminapdf`, workflow `cli-release.yml`, environment `release`.
 5. **Turn publishing on.** Set the repository variable `LAMINA_PDF_PUBLISH_CLI` to `true`.
 
-Then tag a release from `main`: `git tag laminapdf-cli-v<version>` (the workspace's version) and push the tag. A failed publish job can be re-run: npm skips versions it has, and the tap's formula is replaced. Until the repository is public, the formula's archives are on a GitHub release only collaborators can download, so `brew install` works only for them.
+Then tag a release from `main`: `git tag laminapdf-cli-v<version>` (the workspace's version) and push the tag. A failed publish job can be re-run: npm skips versions it has, and the tap's formula is replaced. The formula's archives are on the public GitHub release, with build-provenance attestations.

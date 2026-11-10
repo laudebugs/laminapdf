@@ -18,7 +18,8 @@
 #                     SBOM of the binary's crates (`mcp` feature on); on a tag push it fails unless
 #                     every build passed
 #   publish           the GitHub release with the archives, checksums, formula and SBOM, and
-#                     build-provenance attestations once the repository is public (ADR 0017 §7)
+#                     build-provenance attestations (ADR 0017 §7; skipped if the repository is
+#                     private again)
 #   publish-npm       the platform packages, then the wrapper, with npm's trusted publishing (no
 #                     stored token); a version already on npm is skipped, so a re-run finishes a
 #                     partial publish
@@ -308,7 +309,7 @@ jobs:
     permissions:
       # The GitHub release.
       contents: write
-      # Build-provenance attestations (OIDC), once the repository is public.
+      # Build-provenance attestations (OIDC); GitHub makes them only for a public repository.
       id-token: write
       attestations: write
     env:
