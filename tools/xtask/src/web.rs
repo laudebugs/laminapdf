@@ -93,8 +93,12 @@ pub(crate) fn size(ws: &Workspace) -> Result<()> {
         println!("{path:<48} {gzip:>10}");
     }
     println!("{:<48} {total:>10} (budget {budget})", "total");
-    if let Some(waiver) = budget_json.get("waiver").and_then(serde_json::Value::as_str) {
-        println!("the budget is waived above web-app §4's target, until {waiver} closes");
+    let target = budget_json.get("target").and_then(serde_json::Value::as_u64);
+    let waiver = budget_json.get("waiver").and_then(serde_json::Value::as_str);
+    if let (Some(target), Some(waiver)) = (target, waiver)
+        && budget > target
+    {
+        println!("the budget is waived above web-app §4's target of {target}, until {waiver} closes");
     }
     if total > budget {
         bail!(
@@ -152,6 +156,9 @@ mod tests {
 
     #[test]
     fn a_page_without_scripts_loads_none() {
-        assert_eq!(startup_scripts("<!doctype html><p>no scripts</p>"), Vec::<String>::new());
+        assert_eq!(
+            startup_scripts("<!doctype html><p>no scripts</p>"),
+            Vec::<String>::new()
+        );
     }
 }

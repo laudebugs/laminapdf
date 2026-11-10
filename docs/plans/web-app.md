@@ -215,6 +215,6 @@ Ticked by the PR that completes them.
 - [x] Focus management, landmarks, live-region announcements for search and page changes
 - [x] High contrast, dark mode, reduced motion
 - [x] Service worker caching shell + WASM; web app manifest with `file_handlers`
-- [ ] Performance budgets as CI gates
+- [x] Performance budgets as CI gates ([C7c](../todos/done/C7c-performance-gates-and-launch.md): the startup size on every PR, Lighthouse and the §4 timings before each release)
 - [ ] axe in Playwright; record a manual NVDA, VoiceOver and keyboard-only pass
 - [ ] Publish the privacy page; tag `web v0.1` and deploy to production
