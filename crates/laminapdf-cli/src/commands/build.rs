@@ -32,7 +32,7 @@ pub struct BuildArgs {
     #[arg(long = "font", value_name = "ROLE=FILE")]
     #[serde(default)]
     pub fonts: Vec<String>,
-    /// The page size: a4 (the default), a3, a5, letter or legal.
+    /// The page size: a4 (the default), a0 to a6, letter, legal or tabloid.
     #[arg(long, value_name = "SIZE")]
     #[serde(default)]
     pub page_size: Option<String>,
@@ -73,7 +73,7 @@ pub struct BuildToolArgs {
     /// Fonts by role, as `ROLE=FILE` (see `laminapdf build --help`), each file inside the roots.
     #[serde(default)]
     pub fonts: Vec<String>,
-    /// The page size: a4 (the default), a3, a5, letter or legal.
+    /// The page size: a4 (the default), a0 to a6, letter, legal or tabloid.
     #[serde(default)]
     pub page_size: Option<String>,
     /// Profiles to meet: pdf-ua-1, pdf-a-2b, pdf-a-2u, pdf-a-3b.
@@ -106,8 +106,9 @@ pub struct BuildReport {
     pub tagged: bool,
     /// The profiles the PDF meets, as their usual names (`PDF/UA-1`).
     pub profiles: Vec<String>,
-    /// What the PDF leaves out or worked around (ADR 0026 objects): raw HTML, images that
-    /// weren't found or are remote, keep rules broken.
+    /// What the PDF leaves out or worked around (ADR 0026 objects): raw HTML; images that are
+    /// remote, outside the Markdown's folder or not there (`markdown-image-missing`); keep rules
+    /// broken.
     #[schemars(schema_with = "warnings_schema")]
     pub warnings: Vec<Diagnostic>,
 }
@@ -126,14 +127,24 @@ fn usage(message: &str, argument: &str) -> CliError {
 }
 
 fn page_size(name: &str) -> Result<PageSize, CliError> {
-    Ok(match name.to_ascii_lowercase().as_str() {
-        "a3" => PageSize::A3,
-        "a4" => PageSize::A4,
-        "a5" => PageSize::A5,
-        "letter" => PageSize::LETTER,
-        "legal" => PageSize::LEGAL,
-        _ => return Err(usage("the page size must be a3, a4, a5, letter or legal", name)),
-    })
+    const SIZES: [(&str, PageSize); 10] = [
+        ("a0", PageSize::A0),
+        ("a1", PageSize::A1),
+        ("a2", PageSize::A2),
+        ("a3", PageSize::A3),
+        ("a4", PageSize::A4),
+        ("a5", PageSize::A5),
+        ("a6", PageSize::A6),
+        ("letter", PageSize::LETTER),
+        ("legal", PageSize::LEGAL),
+        ("tabloid", PageSize::TABLOID),
+    ];
+    let wanted = name.to_ascii_lowercase();
+    SIZES
+        .iter()
+        .find(|(n, _)| *n == wanted)
+        .map(|(_, size)| *size)
+        .ok_or_else(|| usage("the page size must be a0 to a6, letter, legal or tabloid", name))
 }
 
 fn profile(name: &str) -> Result<Profile, CliError> {
@@ -219,13 +230,23 @@ fn fonts(args: &BuildArgs, builder: &mut Builder, io: &mut dyn Io) -> Result<Opt
     Ok(Some(fonts))
 }
 
-/// Whether the image target is on another computer, which the command never fetches.
-fn is_remote(target: &str) -> bool {
-    target.contains("://") || target.starts_with("//") || target.starts_with("data:")
+/// Whether the image target is a file in the Markdown's folder or below it: not on another
+/// computer (never fetched), not an absolute path and not reached through `..`, so a Markdown file
+/// can't pull in a picture from elsewhere on the disk.
+fn is_local(target: &str) -> bool {
+    let remote = target.contains("://") || target.starts_with("//") || target.starts_with("data:");
+    let path = Path::new(target);
+    !remote
+        && path.is_relative()
+        && path
+            .components()
+            .all(|c| matches!(c, std::path::Component::Normal(_) | std::path::Component::CurDir))
 }
 
 /// The images the Markdown shows, read from the input's folder (the working folder for standard
-/// input); remote ones are left out, and the PDF warns `markdown-image-missing` for them.
+/// input). One that isn't there, or isn't a file in that folder or below it, is left out, and the
+/// PDF warns `markdown-image-missing` for it (ADR 0032 §6); one that is there but can't be read or
+/// decoded fails the build.
 fn images(
     args: &BuildArgs,
     markdown: &str,
@@ -236,20 +257,21 @@ fn images(
         STDIO => Path::new(""),
         input => Path::new(input).parent().unwrap_or_else(|| Path::new("")),
     };
-    for target in image_targets(markdown).into_iter().filter(|t| !is_remote(t)) {
+    for target in image_targets(markdown).into_iter().filter(|t| is_local(t)) {
         let path = folder.join(&target);
-        let bytes = io.read(&path.to_string_lossy())?;
+        let shown = path.to_string_lossy();
+        let bytes = match io.read(&shown) {
+            Ok(bytes) => bytes,
+            Err(e) if e.data().get("reason").and_then(serde_json::Value::as_str) == Some("NotFound") => continue,
+            Err(e) => return Err(e),
+        };
         let image = if bytes.starts_with(&[0xFF, 0xD8]) {
             Image::jpeg(bytes)
         } else {
             Image::png(&bytes)
         };
-        options = options.with_image(
-            target,
-            image.map_err(|e| {
-                CliError::from(laminapdf::Error::from(e)).with("input", path.to_string_lossy().as_ref())
-            })?,
-        );
+        let image = image.map_err(|e| CliError::from(laminapdf::Error::from(e)).with("input", shown.as_ref()))?;
+        options = options.with_image(target, image);
     }
     Ok(options)
 }
@@ -294,9 +316,13 @@ pub fn build_tool(args: BuildToolArgs, settings: &Settings, io: &mut dyn Io) -> 
             build_markdown(&command, &markdown, settings, io)
         }
         (None, Some(_)) => build(&command, settings, io),
-        _ => Err(CliError::new(
+        (Some(_), Some(_)) => Err(CliError::new(
             ErrorCode::InvalidCommandLine,
             "give the Markdown inline (markdown) or as a file (input), not both",
+        )),
+        (None, None) => Err(CliError::new(
+            ErrorCode::InvalidCommandLine,
+            "give the Markdown inline (markdown) or as a file (input)",
         )),
     }
 }
@@ -338,9 +364,8 @@ fn build_markdown(
     settings.stop_if_cancelled()?;
     let mut doc = builder.finish()?;
     let saved = doc.save_with(&SaveOptions::default(), &settings.cancel)?;
-    if settings.dry_run {
-        io.check(&args.output, settings.force)?;
-    } else {
+    // The output was checked before the work (build, build_tool).
+    if !settings.dry_run {
         io.write(&args.output, &saved.bytes, settings.force)?;
     }
     Ok(BuildReport {

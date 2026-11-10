@@ -40,7 +40,7 @@
       "type": "boolean"
     },
     "warnings": {
-      "description": "What the PDF leaves out or worked around (ADR 0026 objects): raw HTML, images that\nweren't found or are remote, keep rules broken.",
+      "description": "What the PDF leaves out or worked around (ADR 0026 objects): raw HTML; images that are\nremote, outside the Markdown's folder or not there (`markdown-image-missing`); keep rules\nbroken.",
       "items": {
         "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/warning"
       },

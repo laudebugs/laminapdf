@@ -69,8 +69,15 @@ export class Font {
   /**
    * Face `index` (from 0) of a font collection (`.ttc` or `.otc`). The bytes are checked when a
    * builder first uses the font (`invalid-font` for a file that isn't a collection or has no such face).
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for an index that isn't a whole number from 0.
    */
   static fromCollection(bytes: Uint8Array | ArrayBuffer, index: number): Font {
+    if (!Number.isInteger(index) || index < 0 || index > 0xffff_ffff) {
+      throw packageError("invalid-argument", "a collection's face number is a whole number from 0", {
+        data: { argument: "index", detail: String(index) },
+      });
+    }
     return new Font(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), undefined, index);
   }
 

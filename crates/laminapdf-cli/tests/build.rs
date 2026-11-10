@@ -29,6 +29,12 @@ fn build(out: &str, extra: &[&str]) -> common::Run {
     laminapdf(&args)
 }
 
+/// The PDF's creation date, as ISO 8601.
+fn created(pdf: &std::path::Path) -> Option<String> {
+    let doc = laminapdf::Document::open_bytes(std::fs::read(pdf).unwrap(), laminapdf::OpenOptions::default()).unwrap();
+    doc.properties().unwrap().created
+}
+
 /// A Markdown file `text` in a folder of its own.
 fn markdown(name: &str, text: &str) -> std::path::PathBuf {
     let path = folder(name).join("in.md");
@@ -108,7 +114,7 @@ fn pdf_ua_without_fonts_should_fail_and_name_the_font_flag() {
     // A profile's rules are usage errors (the caller asked for what the input can't give): exit 2.
     assert_eq!(run.code, 2, "{}", run.stderr);
     assert!(run.stderr.contains("error[font-not-embedded]"), "{}", run.stderr);
-    assert!(run.stderr.contains("--font regular=FILE"), "{}", run.stderr);
+    assert!(run.stderr.contains("regular=FILE"), "{}", run.stderr);
     assert!(!out.exists());
 }
 
@@ -140,17 +146,68 @@ fn an_image_should_be_read_from_the_input_s_folder() {
 }
 
 #[test]
-fn a_missing_image_should_fail_naming_its_file() {
-    let input = markdown("missing-image", "![Gone](gone.png)\n");
+fn an_image_that_isn_t_there_or_is_outside_the_folder_should_be_left_out_with_a_warning() {
+    let input = markdown(
+        "missing-image",
+        "![Gone](gone.png)\n\n![Up](../photo.jpg)\n\n![Abs](/etc/photo.jpg)\n",
+    );
+    // A real photo one folder up, which the Markdown must not reach.
+    std::fs::write(
+        input.parent().unwrap().parent().unwrap().join("photo.jpg"),
+        laminapdf_test_fixtures::fixture("images/photo-rgb.jpg"),
+    )
+    .unwrap();
     let out = input.with_file_name("out.pdf");
     let run = laminapdf(&["build", arg(&input), "-o", arg(&out), "--json"]);
+    assert_eq!(run.code, 3, "{}", run.stderr);
+    let report = run.json();
+    let codes: Vec<&str> = report["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|w| w["code"].as_str())
+        .collect();
+    assert_eq!(codes, ["markdown-image-missing"; 3]);
+}
+
+#[test]
+fn a_file_that_isn_t_an_image_should_fail_naming_it() {
+    let input = markdown("bad-image", "![Not a picture](notes.png)\n");
+    std::fs::write(input.with_file_name("notes.png"), b"just text").unwrap();
+    let run = laminapdf(&[
+        "build",
+        arg(&input),
+        "-o",
+        arg(&input.with_file_name("out.pdf")),
+        "--json",
+    ]);
     assert_eq!(run.code, 1, "{}", run.stderr);
     let error = &run.stderr_json()[0]["error"];
-    assert_eq!(error["code"].as_str(), Some("input-unreadable"));
     assert!(
-        error["data"]["input"].as_str().unwrap().ends_with("gone.png"),
+        error["data"]["input"].as_str().unwrap().ends_with("notes.png"),
         "{error}"
     );
+}
+
+#[test]
+fn the_creation_date_should_be_set_only_when_given() {
+    let input = markdown("date", "# Dated\n");
+    let out = input.with_file_name("out.pdf");
+    let run = laminapdf(&["build", arg(&input), "-o", arg(&out), "--creation-date", "20261110"]);
+    assert_eq!(run.code, 0, "{}", run.stderr);
+    assert_eq!(created(&out).as_deref().map(|d| &d[..10]), Some("2026-11-10"));
+    let undated = input.with_file_name("undated.pdf");
+    assert_eq!(laminapdf(&["build", arg(&input), "-o", arg(&undated)]).code, 0);
+    assert_eq!(created(&undated), None);
+    let bad = laminapdf(&[
+        "build",
+        arg(&input),
+        "-o",
+        arg(&input.with_file_name("bad.pdf")),
+        "--creation-date",
+        "yesterday",
+    ]);
+    assert_eq!(bad.code, 2, "{}", bad.stderr);
 }
 
 #[test]

@@ -509,13 +509,26 @@ async fn build_should_refuse_images_and_outputs_outside_the_roots() {
     )
     .unwrap();
     let client = connect(&base, &["--allow-write"]).await;
-    let image = call(
+    // A link inside the root that leads out: the server follows it and refuses.
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(base.join("outside/photo.jpg"), base.join("root/link.jpg")).unwrap();
+        let image = call(
+            &client,
+            "laminapdf_build",
+            json!({ "markdown": "![A photo](link.jpg)\n", "output": "image.pdf" }),
+        )
+        .await;
+        assert_eq!(error(&image)["code"], "path-outside-roots");
+    }
+    // A `..` target is never read at all: the image is left out with a warning.
+    let up = call(
         &client,
         "laminapdf_build",
-        json!({ "markdown": "![A photo](../outside/photo.jpg)\n", "output": "image.pdf" }),
+        json!({ "markdown": "![A photo](../outside/photo.jpg)\n", "output": "up.pdf" }),
     )
     .await;
-    assert_eq!(error(&image)["code"], "path-outside-roots");
+    assert_eq!(ok(&up)["warnings"][0]["code"], "markdown-image-missing");
     let output = call(
         &client,
         "laminapdf_build",
@@ -524,4 +537,28 @@ async fn build_should_refuse_images_and_outputs_outside_the_roots() {
     .await;
     assert_eq!(error(&output)["code"], "path-outside-roots");
     assert!(!base.join("root/image.pdf").exists() && !base.join("outside/out.pdf").exists());
+}
+
+#[tokio::test]
+async fn build_should_take_a_file_and_need_exactly_one_of_markdown_and_input() {
+    let base = tree("build-input");
+    std::fs::write(base.join("root/notes.md"), "# Notes\n\nFrom a file.\n").unwrap();
+    let client = connect(&base, &["--allow-write"]).await;
+    let built = call(
+        &client,
+        "laminapdf_build",
+        json!({ "input": "notes.md", "output": "notes.pdf" }),
+    )
+    .await;
+    assert_eq!(ok(&built)["input"].as_str(), Some("notes.md"));
+    assert!(base.join("root/notes.pdf").exists());
+    let both = call(
+        &client,
+        "laminapdf_build",
+        json!({ "input": "notes.md", "markdown": "# Hi\n", "output": "both.pdf" }),
+    )
+    .await;
+    assert_eq!(error(&both)["code"], "invalid-command-line");
+    let neither = call(&client, "laminapdf_build", json!({ "output": "neither.pdf" })).await;
+    assert_eq!(error(&neither)["code"], "invalid-command-line");
 }

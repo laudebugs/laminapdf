@@ -142,7 +142,7 @@ impl WasmBuilder {
     ///
     /// # Errors
     /// `builder-finished`; `unknown-option`, `invalid-argument`; `missing-glyph`,
-    /// `flow-content-too-large`.
+    /// `flow-content-too-large`; `unknown-font` at `finish` for a font another builder registered.
     #[wasm_bindgen(unchecked_return_type = "MarkdownReportJs")]
     pub fn markdown(
         &self,
