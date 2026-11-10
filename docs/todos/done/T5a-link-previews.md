@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `T5a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T5](../../plans/trust-and-proof.md#t5-long-reading) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [C6b](../done/C6b-links-and-history.md), [U3a](../done/U3a-responsive-mobile-and-touch.md) |
+| Depends on | [C6b](./C6b-links-and-history.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) §3 (commands), §4 (the surface follows the pointer), §6 (sheets on the phone) and §8 (accessibility); [0009](../../decisions/0009-web-client-architecture.md) (one document worker, its render RPC); [0004](../../decisions/0004-render-backend.md) (bounded tiles, link geometry from Lamina PDF's model, never from the renderer); [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space); [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (no request) |
 | Branch | `feat/t5a-link-previews` |
 | PR title | `feat(viewer): preview internal links and citations before jumping` |
@@ -71,26 +71,40 @@ Readers of papers and manuals want to see where a link or a citation goes withou
 
 ## Tasks
 
-- [ ] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Read C6b's and C6a's merged code first: the names below follow their todos and may have changed.
-- [ ] `packages/viewer/src/layers/link-preview.ts`: `previewRegion` and the scale rule, with unit tests for every fit type, both columns of a two-column page, `/Rotate 90` and `270`, pages with a CropBox offset, clamped bad values, and pages without text.
-- [ ] `Viewer.preview(target, { signal })`: the render call, the text and title, the 8-entry bitmap LRU and its closing rules; export the result type from `packages/viewer/src/index.ts`.
-- [ ] The link layer's `linkpreview`/`linkpreviewend` events: dwell and grace timers, focus, long-press with the movement threshold, cancelled clicks, `-webkit-touch-callout` and `contextmenu` on touch. Check against U3a's gesture code that a long-press off a link still selects text.
-- [ ] `LinkPreview` in `@laminapdf/ui`: popover and sheet by pointer, `LayerStack` registration, `aria-describedby` on the anchor, messages and tokens; its states beside the other overlays' in the package's browser tests (and in [U6f](../done/U6f-gallery-and-visual-tests.md)'s gallery once it exists).
-- [ ] Wire it in the reader app (`apps/web`): the viewer's events to `LinkPreview`, `nav.follow-link` in the registry.
-- [ ] The fixture: an 8-page two-column "paper" built at test time with `@laminapdf/sdk`'s `Builder`: 30 citations `[1]`–`[30]` as text runs with a `link` to named destinations `cite.1`–`cite.30`, made with `destination(name, index, fit)` at an `XYZ` position on each reference entry, split over both columns of pages 7–8; a "see page 3" link to a `Fit` destination; one page with `/Rotate 90`. Use C6b's every-link-kind fixture for named actions and `GoToR`.
-- [ ] The perf scenario; R07 and §7.27 updated (below).
+- [x] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Read C6b's and C6a's merged code first: the names below follow their todos and may have changed.
+- [x] `packages/viewer/src/layers/link-preview.ts`: `previewRegion` and the scale rule, with unit tests for every fit type, both columns of a two-column page, `/Rotate 90` and `270`, pages with a CropBox offset, clamped bad values, and pages without text.
+- [x] `Viewer.preview(target, { signal })`: the render call, the text and title, the 8-entry bitmap LRU and its closing rules; export the result type from `packages/viewer/src/index.ts`.
+- [x] The link layer's `linkpreview`/`linkpreviewend` events: dwell and grace timers, focus, long-press with the movement threshold, cancelled clicks, `-webkit-touch-callout` and `contextmenu` on touch. Check against U3a's gesture code that a long-press off a link still selects text.
+- [x] `LinkPreview` in `@laminapdf/ui`: popover and sheet by pointer, `LayerStack` registration, `aria-describedby` on the anchor, messages and tokens; its states beside the other overlays' in the package's browser tests (and in [U6f](../done/U6f-gallery-and-visual-tests.md)'s gallery once it exists).
+- [x] Wire it in the reader app (`apps/web`): the viewer's events to `LinkPreview`, `nav.follow-link` in the registry.
+- [x] The fixture: an 8-page two-column "paper" built at test time with `@laminapdf/sdk`'s `Builder`: 30 citations `[1]`–`[30]` as text runs with a `link` to named destinations `cite.1`–`cite.30`, made with `destination(name, index, fit)` at an `XYZ` position on each reference entry, split over both columns of pages 7–8; a "see page 3" link to a `Fit` destination; one page with `/Rotate 90`. Use C6b's every-link-kind fixture for named actions and `GoToR`.
+- [x] The perf scenario; R07 and §7.27 updated (below).
 
 ## Acceptance criteria
 
-- [ ] **Hover, three engines** (Playwright, Chromium, Firefox, WebKit, a mouse): over a citation, the popover appears 300 ms (± 50) after `pointerenter`, and its crop is drawn within 500 ms more in CI. Its accessible name contains the reference entry's first line exactly as the fixture wrote it. For entries in the right column, the crop's left edge is within 8 pt of the destination's `left`.
-- [ ] **Hoverable and dismissible** (WCAG 1.4.13): moving from the link onto the popover keeps it open; leaving both hides it after 300 ms; Escape hides it and focus stays on the link.
-- [ ] **Jump and back:** clicking a citation brings its destination point within 16 CSS px of the viewport's top; `nav.back` returns to the citing position within 16 CSS px, and Forward goes to the reference again.
-- [ ] **Keyboard:** Tab to a citation shows the preview after 300 ms, the link's `aria-describedby` names the tooltip, and Enter follows. axe reports no serious or critical violation with the popover open, in the Light, Dark and High contrast themes.
-- [ ] **Touch** (Playwright with `hasTouch`: WebKit's iPhone and Chromium's Pixel profiles): a long-press on a citation opens the sheet at the medium detent, selects no text and leaves the anchor's computed `-webkit-touch-callout` at `none`. **Go to page 7** follows and Back returns. A tap follows without a sheet, and a long-press on plain text still selects text.
-- [ ] **The other kinds:** a `Fit` link shows R07's page preview (the page's top); a named action shows its sentence and no crop; `GoToR` shows the other-file sentence; an external link shows no preview and still opens C6b's dialog.
-- [ ] **Nothing leaks:** leaving a link within 300 ms sends no render (the client's `render-start` events show none); leaving later aborts the render. `RenderStats.drawsOnUnmounted` stays 0, and the viewer never holds more than 8 preview bitmaps (a counter checked after hovering all 30 citations).
-- [ ] **No request:** with previews in use, the privacy suite's request log (C4c's `apps/web/e2e/privacy.spec.ts`) shows no new request to any origin.
-- [ ] A destination on the `/Rotate 90` page previews the right region (unit test and one browser check), and an encrypted fixture previews after its password with no second prompt.
+- [x] **Hover, three engines** (Playwright, Chromium, Firefox, WebKit, a mouse): over a citation, the popover appears 300 ms (± 50) after `pointerenter`, and its crop is drawn within 500 ms more in CI. Its accessible name contains the reference entry's first line exactly as the fixture wrote it. For entries in the right column, the crop's left edge is within 8 pt of the destination's `left`.
+- [x] **Hoverable and dismissible** (WCAG 1.4.13): moving from the link onto the popover keeps it open; leaving both hides it after 300 ms; Escape hides it and focus stays on the link.
+- [x] **Jump and back:** clicking a citation brings its destination point within 16 CSS px of the viewport's top; `nav.back` returns to the citing position within 16 CSS px, and Forward goes to the reference again.
+- [x] **Keyboard:** Tab to a citation shows the preview after 300 ms, the link's `aria-describedby` names the tooltip, and Enter follows. axe reports no serious or critical violation with the popover open, in the Light, Dark and High contrast themes.
+- [x] **Touch** (Playwright with `hasTouch`: WebKit's iPhone and Chromium's Pixel profiles): a long-press on a citation opens the sheet at the medium detent, selects no text and leaves the anchor's computed `-webkit-touch-callout` at `none`. **Go to page 7** follows and Back returns. A tap follows without a sheet, and a long-press on plain text still selects text.
+- [x] **The other kinds:** a `Fit` link shows R07's page preview (the page's top); a named action shows its sentence and no crop; `GoToR` shows the other-file sentence; an external link shows no preview and still opens C6b's dialog.
+- [x] **Nothing leaks:** leaving a link within 300 ms sends no render (the client's `render-start` events show none); leaving later aborts the render. `RenderStats.drawsOnUnmounted` stays 0, and the viewer never holds more than 8 preview bitmaps (a counter checked after hovering all 30 citations).
+- [x] **No request:** with previews in use, the privacy suite's request log (C4c's `apps/web/e2e/privacy.spec.ts`) shows no new request to any origin.
+- [x] A destination on the `/Rotate 90` page previews the right region (unit test and one browser check), and an encrypted fixture previews after its password with no second prompt.
+
+## As built
+
+Where the PR differs from the tasks above, and why:
+
+- **`Viewer.preview` returns no title.** The outline and its current-section rule live in `@laminapdf/ui` and the app, so the viewer returns the destination page and the crop's top, and the app picks the title (`outlineItemAt`, else "Page 11"). The viewer gains no copy of the outline logic.
+- **The preview card's title for a page action or another file** is its sentence ("Goes to the next page"), with no crop. The touch sheet has no "Enter to go" line, since its Go button follows the link.
+- **The link layer's timers are tested in the three browsers** (`packages/viewer/test/browser/link-preview.browser.test.ts`), not with fake timers in Node: the layer listens to real pointer and focus events, which only a browser dispatches faithfully.
+- **Touch in the e2e test** dispatches pointer events, because Playwright has no long-press; Firefox has no touch emulation, so the touch tests run in Chromium and WebKit. The real-phone check stays a post-merge check.
+- **Tokens:** `link-preview-width`, `-crop-max-width`, `-crop-width` and `-crop-height` (component tokens), since the package's CSS takes every length from a token.
+- **Gallery:** a `link-preview` route with the popover and the sheet. Its screenshot baselines aren't recorded: the gallery's visual run times out in Docker here, and no workflow runs it.
+- **The corpus count** asked for under Risks: 8 internal links in the 34 files of `fixtures/corpus`, `golden`, `links` and `text`, 3 with a point (region preview) and 5 to a page's top. The corpus has no paper with citations; the e2e fixture stands in for one.
+- **Perf** (`link-previews`, Chromium, quick run on an M1 Pro): the slowest of 20 crops drew 13 ms after the dwell; no main-thread task over 50 ms.
+- **Added:** `placeBelow` in `place.ts` (the preview goes under its link, flipping above), and a long-press that sent no click no longer swallows the next one (the sheet's Go button clicks the link).
 
 ## Post-merge checks
 
@@ -119,8 +133,8 @@ Readers of papers and manuals want to see where a link or a citation goes withou
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -55,6 +55,8 @@ export interface BrowserResult {
    * the view scrolls.
    */
   readonly find: { readonly common: FindTiming; readonly rare: FindTiming; readonly recording: Recording };
+  /** 20 citations hovered in a row on the paper (T5a): ms from dwell to crop for each, reported only. */
+  readonly linkPreviews: { readonly toCropMs: readonly number[]; readonly recording: Recording };
   /**
    * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
    * touch budgets), against those budgets; null in a browser without one (Firefox).
@@ -146,6 +148,7 @@ export function checks(result: BrowserResult): Check[] {
     },
     { name: "Cancelled renders that painted", target: "0", value: String(painted), pass: painted === 0 },
     ...findChecks(result),
+    ...linkPreviewChecks(result),
     mobileMemory(result),
     {
       name: "Zoom bursts: longest frame, slowest to sharp",
@@ -174,6 +177,25 @@ function findChecks({ find }: BrowserResult): Check[] {
       pass: full <= TARGETS.findFullMs,
     },
     { ...longestTaskOf(find.recording), name: "Longest main-thread task while finding and scrolling" },
+  ];
+}
+
+/** Link previews: the slowest dwell-to-crop and the longest task while hovering, reported (no target). */
+function linkPreviewChecks({ linkPreviews }: BrowserResult): Check[] {
+  const slowest = linkPreviews.toCropMs.length === 0 ? 0 : Math.max(...linkPreviews.toCropMs);
+  return [
+    {
+      name: "Link previews, 20 citations: dwell to crop (slowest)",
+      target: "—",
+      value: ms(slowest),
+      pass: null,
+    },
+    {
+      ...longestTaskOf(linkPreviews.recording),
+      name: "Longest main-thread task while previewing links",
+      target: "—",
+      pass: null,
+    },
   ];
 }
 

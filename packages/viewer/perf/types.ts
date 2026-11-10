@@ -57,6 +57,11 @@ export interface PerfHook {
   /** Opens fixture `<name>.pdf`, read before the clock starts; ms until the first page painted. */
   open(name: string): Promise<number>;
   setZoom(zoom: string): void;
+  /**
+   * Hovers the first `count` internal links in view one after another, as a mouse does: for each,
+   * ms from the preview being asked for (after the 300 ms dwell) until its crop is drawn.
+   */
+  hoverLinks(count: number): Promise<number[]>;
   /** Finds `query` in the open file from its current page; resolves once every page is searched. */
   find(query: string): Promise<FindTiming>;
   goToPage(index: number): void;

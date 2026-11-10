@@ -37,6 +37,7 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
       rare: { firstResultMs: 2600, fullMs: 3300, total: 1 },
       recording: recording(),
     },
+    linkPreviews: { toCropMs: [60, 80], recording: recording() },
     mobile: {
       device: "Pixel 8",
       peakMemory: { ...memory(150 * MB), canvases: 80 * MB, bitmaps: 60 * MB },

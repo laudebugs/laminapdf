@@ -227,6 +227,20 @@ async function find(context: BrowserContext, url: string): Promise<BrowserResult
   return { common, rare, recording };
 }
 
+/** 20 citations hovered in a row on the paper: the time from dwell to crop, and the longest task. */
+async function linkPreviews(context: BrowserContext, url: string): Promise<BrowserResult["linkPreviews"]> {
+  const page = await harness(context, url);
+  try {
+    await opened(page, "paper", "fit-width");
+    await page.evaluate(() => globalThis.__laminaPerf.record());
+    const toCropMs = await page.evaluate(() => globalThis.__laminaPerf.hoverLinks(20));
+    const recording = await page.evaluate(() => globalThis.__laminaPerf.stop());
+    return { toCropMs, recording };
+  } finally {
+    await page.close();
+  }
+}
+
 /** Every scenario in `browser`, against the harness served at `url`. */
 export async function runScenarios(
   browser: Browser,
@@ -245,6 +259,7 @@ export async function runScenarios(
       fling: await fling(context, url, quick),
       zoom: await zoom(context, url),
       find: await find(context, url),
+      linkPreviews: await linkPreviews(context, url),
       mobile: await mobile(browser, name, url, quick),
     };
   } finally {

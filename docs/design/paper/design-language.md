@@ -1092,10 +1092,10 @@ One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, 
 
 ### 7.27 Tooltip and link preview
 
-In `@laminapdf/ui`: `Tooltip`, in the popover layer. The link preview stays proposed.
+In `@laminapdf/ui`: `Tooltip` and `LinkPreview`, in the popover layer.
 
 - **Tooltip:** `surface`, `chip-border` edge, radius 6, floating shadow, 12 px text plus a shortcut chip, 6 px below the control; `role="tooltip"`; shown on hover after 500 ms and on keyboard focus; hoverable; Escape dismisses.
-- **Link preview (proposed):** popover (z 30) 248 px, `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a 92 px crop of the target page's top (thumbnail shadow) over the target title (Newsreader 15/500) and a 12 `muted` line (“Link to page 11 · Enter to go”). Shown after 300 ms on hover or focus; `role="tooltip"`, hoverable, Escape dismisses.
+- **Link preview:** popover (z 30) at least 248 px (`link-preview-width`), `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a crop of the destination (thumbnail shadow) over the destination's title (Newsreader 15/500) and a 12 `muted` line (“Link to page 11 · Enter to go”). A destination with no point gets a 224 × 92 px crop of the page's top (`link-preview-crop-width`, `-height`); one with a point (a citation) gets a crop from that point across its text column, at the reader's zoom clamped to 100–150 %, up to 480 × 180 px (`link-preview-crop-max-width`). Under the link, above it when there is no room. Shown after 300 ms on hover or focus; `role="tooltip"` named by the link's `aria-describedby`, hoverable, Escape dismisses. On touch, a long-press opens it as a medium sheet with **Go to page 11** instead.
 - **Address box:** a URL shown before acting on it: white, `hairline` edge, radius 4, padding `10px 12px`, wraps anywhere, host in 600 `text` (punycode for international hosts), the rest `text-3`.
 
 ### 7.28 Popover (proposed)

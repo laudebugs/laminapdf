@@ -4,7 +4,7 @@
 // app does when a file is chosen during startup (the cold scenario).
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import { createViewer, ViewerClient, type Zoom } from "@laminapdf/viewer";
+import { createViewer, type LinkPreviewRequest, ViewerClient, type Zoom } from "@laminapdf/viewer";
 import type { FindTiming, MemorySample, PerfHook, Recording } from "../types.ts";
 
 const host = document.querySelector<HTMLDivElement>("#viewer");
@@ -130,6 +130,29 @@ const hook: PerfHook = {
     return performance.now() - start;
   },
   setZoom: (zoom) => viewer.setZoom(zoom as Zoom),
+  async hoverLinks(count) {
+    const links = [...viewer.element.querySelectorAll<HTMLElement>("a.lamina-link")]
+      .filter((a) => a.getAttribute("aria-label")?.startsWith("Link to page") === true)
+      .slice(0, count);
+    const times: number[] = [];
+    for (const link of links) {
+      const asked = new Promise<LinkPreviewRequest>((resolve) => {
+        const off = viewer.on("linkpreview", (request) => {
+          off();
+          resolve(request);
+        });
+      });
+      const at = { bubbles: true, pointerType: "mouse", pointerId: 1 };
+      link.dispatchEvent(new PointerEvent("pointerover", at));
+      const request = await asked;
+      const start = performance.now();
+      if (request.shows.kind === "target") await viewer.preview(request.shows.target);
+      times.push(performance.now() - start);
+      link.dispatchEvent(new PointerEvent("pointerout", { ...at, relatedTarget: viewer.element }));
+      viewer.dismissLinkPreview();
+    }
+    return times;
+  },
   find(query) {
     return new Promise<FindTiming>((resolve) => {
       const start = performance.now();
