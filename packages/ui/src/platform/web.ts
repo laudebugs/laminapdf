@@ -305,6 +305,7 @@ function recentFiles(store: KeyValueStore, capabilities: Capabilities): RecentFi
         // A handle from an earlier open of a file with this name and size would reopen that file.
         if (hasHandle) await store.set(handleKey(id), file.handle);
         else await store.delete(handleKey(id));
+        return id;
       }),
     remove: (id) =>
       serial(async () => {

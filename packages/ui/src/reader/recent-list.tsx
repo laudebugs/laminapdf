@@ -2,8 +2,9 @@
 // over a line saying it is on this device, how many pages it has and the page the reader stopped
 // at, the date it was last opened at the end. Linked documents are never listed (ADR 0011). A local
 // document the reader can't read again without a picker says so; pressing it asks for the file.
-// Clear list empties the list in this browser. The document open when the app last closed comes
-// first, under Continue reading, with its page. The list is hidden when empty: a first visit needs
+// Clear list empties the list in this browser; it sits beside Continue reading when that is the
+// only document. The document open when the app last closed comes first, under Continue reading,
+// with its page. The list is hidden when empty: a first visit needs
 // no empty state.
 
 import { type ReactNode, useId } from "react";
@@ -69,15 +70,17 @@ function Row({
   );
 }
 
-/** The document to continue, with its page of its page count. */
+/** The document to continue, with its page of its page count; Clear list beside it when it is the only one. */
 function ContinueSection({
   reading,
   date,
   onOpen,
+  clear,
 }: {
   reading: ContinueReading;
   date: Intl.DateTimeFormat;
   onOpen: (entry: RecentFile) => void;
+  clear: ReactNode;
 }): ReactNode {
   const { entry, page, pageCount } = reading;
   const heading = useId();
@@ -92,6 +95,7 @@ function ContinueSection({
         <h2 id={heading} className="paper-recent-title">
           {message("recent.continue")}
         </h2>
+        {clear}
       </div>
       <Row entry={entry} meta={parts.join(" · ")} date={date} onOpen={onOpen} />
     </section>
@@ -111,18 +115,28 @@ export function RecentList({
   const rest = entries.filter((entry) => entry.id !== continueReading?.entry.id);
   if (rest.length === 0 && continueReading === undefined) return null;
   const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+  const clear = (
+    <Button variant="ghost" onPress={onClear}>
+      {message("recent.clear")}
+    </Button>
+  );
   return (
     <>
-      {continueReading === undefined ? null : <ContinueSection reading={continueReading} date={date} onOpen={onOpen} />}
+      {continueReading === undefined ? null : (
+        <ContinueSection
+          reading={continueReading}
+          date={date}
+          onOpen={onOpen}
+          clear={rest.length === 0 ? clear : null}
+        />
+      )}
       {rest.length === 0 ? null : (
         <section className="paper-recent" aria-labelledby={heading}>
           <div className="paper-recent-head">
             <h2 id={heading} className="paper-recent-title">
               {message("recent.title")}
             </h2>
-            <Button variant="ghost" onPress={onClear}>
-              {message("recent.clear")}
-            </Button>
+            {clear}
           </div>
           <ul className="paper-recent-list">
             {rest.map((entry) => (

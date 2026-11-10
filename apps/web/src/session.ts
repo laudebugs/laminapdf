@@ -537,13 +537,13 @@ export class Engine implements ExternalStore<EngineState> {
 
   /** The position kept for `opened`, while the reader keeps positions. */
   async #kept(opened: OpenedFile): Promise<KeptView | undefined> {
-    if (!readChoices().rememberPositions) return undefined;
+    if (!readChoices().rememberPositions || opened.fingerprint === undefined) return undefined;
     return keptPosition(this.#platform, opened.fingerprint);
   }
 
   /** Keeps `view` as where the reader stopped in `opened`, while the reader keeps positions. */
   #keep(opened: OpenedFile, view: KeptView): void {
-    if (!readChoices().rememberPositions) return;
+    if (!readChoices().rememberPositions || opened.fingerprint === undefined) return;
     const entry = { view, pageCount: opened.pageCount, readAt: Date.now() };
     void this.#platform.positions.set(opened.fingerprint, entry).catch(reportError);
   }

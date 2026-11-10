@@ -72,9 +72,13 @@ export function useSettings(openPalette: () => void, page: PageAppearanceControl
     applyAppearance(document.documentElement, appearance);
     saveAppearance(appearance);
   }, [appearance]);
-  useSettingsSection(registry, "appearance", message("settings.appearance"), () => (
-    <AppearanceSettings appearance={appearance} onChange={setAppearance} />
-  ));
+  useSettingsSection(
+    registry,
+    "appearance",
+    message("settings.appearance"),
+    () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
+    [appearance],
+  );
   const actions = useMemo(
     () => ({
       "view.settings": () => (phone.current ? setSettingsOpen(true) : setViewOpen(true)),

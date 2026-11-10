@@ -116,9 +116,13 @@ function SettingsDialogs({ state }: { state: string }): ReactNode {
     registerReaderCommands(registry);
     return { registry, context: { platform: fakePlatform(), actions: { "help.shortcuts": noop } } };
   });
-  useSettingsSection(settings, "appearance", "Appearance and accessibility", () => (
-    <AppearanceSettings appearance={appearance} onChange={setAppearance} />
-  ));
+  useSettingsSection(
+    settings,
+    "appearance",
+    "Appearance and accessibility",
+    () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
+    [appearance],
+  );
   if (state === "settings") return <SettingsDialog registry={settings} isOpen onOpenChange={noop} />;
   if (state === "view-settings") {
     return (

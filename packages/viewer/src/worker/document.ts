@@ -326,7 +326,7 @@ async function openFrom(
   let render: RenderDocument;
   let pages: OpenedDocument["pages"];
   let title: string | undefined;
-  let fingerprint: string;
+  let fingerprint: string | undefined;
   try {
     const source = from.kind === "memory" ? bytesSource(from.bytes) : from.source;
     const renderOptions = {
@@ -337,7 +337,9 @@ async function openFrom(
     try {
       pages = await model.ensure(() => model.pages, { signal });
       title = (await model.ensure(() => model.info, { signal })).title?.trim();
-      fingerprint = await fingerprintOf(from, signal);
+      // Only reading positions need it: without one (no Web Crypto in an insecure context, a failed
+      // read of the head) the document opens all the same, at page 1.
+      fingerprint = await fingerprintOf(from, signal).catch(() => undefined);
     } catch (e) {
       render.close();
       throw e;
@@ -372,7 +374,7 @@ async function openFrom(
     pages,
     id: open.id,
     needsPassword,
-    fingerprint,
+    ...(fingerprint === undefined ? {} : { fingerprint }),
     backend: { name: engine.name, version: engine.version },
     ...(title === undefined || title === "" ? {} : { title }),
   };

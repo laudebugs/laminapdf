@@ -111,13 +111,20 @@ function useRecording(
       void platform.storage.delete(SESSION_KEY).catch(reportError);
       return;
     }
+    // The document closed (or another opened) before its entry was written: no record for it.
+    let current = true;
     const details = { ...(pages > 0 ? { pages } : {}), ...(fingerprint === undefined ? {} : { fingerprint }) };
     const record = async () => {
-      await platform.recent.add(file, details);
-      const entry = (await platform.recent.list()).find((e) => e.name === file.name && e.size === file.size);
-      if (entry !== undefined) await platform.storage.set(SESSION_KEY, { recentId: entry.id });
+      const recentId = await platform.recent.add(file, details);
+      if (!current) return;
+      // Coming back to the last document is part of remembering where the reader stopped.
+      if (choices.rememberPositions) await platform.storage.set(SESSION_KEY, { recentId });
+      else await platform.storage.delete(SESSION_KEY);
     };
     record().then(refresh, reportError);
+    return () => {
+      current = false;
+    };
   }, [file, pages, fingerprint, choices, platform, refresh]);
 }
 
@@ -201,14 +208,20 @@ export function useRecent(
     // Turning positions off forgets every one, and none is written while it stays off.
     if (!next.rememberPositions) void forgetPositions().catch(reportError);
   };
-  useSettingsSection(registry, "storage", message("storage.title"), () => (
-    <StorageSettings
-      choices={choices}
-      onChange={change}
-      onClear={() => void clear(true).then(() => toasts.add({ message: message("storage.cleared") }), reportError)}
-      onForgetPositions={forgetWithToast}
-    />
-  ));
+  useSettingsSection(
+    registry,
+    "storage",
+    message("storage.title"),
+    () => (
+      <StorageSettings
+        choices={choices}
+        onChange={change}
+        onClear={() => void clear(true).then(() => toasts.add({ message: message("storage.cleared") }), reportError)}
+        onForgetPositions={forgetWithToast}
+      />
+    ),
+    [choices],
+  );
   const open = (entry: RecentFile) => void reopen(entry, platform, engine.reader).catch(reportError);
   return {
     home: (

@@ -74,6 +74,17 @@ describe("reading a kept position when a document opens", () => {
     await expect(kept).resolves.toBeUndefined();
   });
 
+  it("doesn't count the top of page 1 as a place to come back to", async () => {
+    const top = { ...VIEW, point: { page: 0, x: 0, y: 0 } };
+    await expect(
+      keptPosition(storeAnswering(Promise.resolve({ view: top, pageCount: 40, readAt: 1 })), "fp1:a"),
+    ).resolves.toBeUndefined();
+    const lower = { ...VIEW, point: { page: 0, x: 0, y: 0.4 } };
+    await expect(
+      keptPosition(storeAnswering(Promise.resolve({ view: lower, pageCount: 40, readAt: 1 })), "fp1:a"),
+    ).resolves.toEqual(lower);
+  });
+
   it("opens at page 1 when the store fails", async () => {
     await expect(keptPosition(storeAnswering(Promise.reject(new Error("closed"))), "fp1:a")).resolves.toBeUndefined();
   });

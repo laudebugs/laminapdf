@@ -308,6 +308,19 @@ describe("storage and recent files on the web", () => {
     expect(await storage.get("theme")).toBe("dark");
   });
 
+  it("uses the database once the older tab that blocked it lets go", async () => {
+    let release = () => {};
+    const indexedDB = fakeIndexedDb({ blockOpen: true, release: new Promise((resolve) => (release = resolve)) });
+    const { storage } = createWebPlatform(fakeScope({ indexedDB }));
+    await storage.set("theme", "dark");
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await storage.set("density", "compact");
+    // What was written after the release is in the database; what came before stayed in memory.
+    expect(indexedDB.data.get("density")).toBe("compact");
+    expect(indexedDB.data.has("theme")).toBe(false);
+  });
+
   it("fails a write whose transaction the browser aborts, as when out of quota", async () => {
     const { storage } = createWebPlatform(fakeScope({ indexedDB: fakeIndexedDb({ abortWrites: true }) }));
     await expect(storage.set("theme", "dark")).rejects.toThrow("Quota exceeded");
@@ -406,6 +419,13 @@ describe("storage and recent files on the web", () => {
     expect(await platform.recent.reopen?.(ids["kept.pdf"] ?? "", { ask: false })).toMatchObject({ name: "kept.pdf" });
     expect(await platform.recent.reopen?.(ids["lapsed.pdf"] ?? "", { ask: false })).toBeUndefined();
     expect(requested).toEqual([]);
+  });
+
+  it("gives the entry's id when it adds a document, the same one each time it opens again", async () => {
+    const { recent } = createWebPlatform(fakeScope());
+    const id = await recent.add(fakeFile("a.pdf"));
+    expect((await recent.list())[0]?.id).toBe(id);
+    expect(await recent.add(fakeFile("a.pdf"))).toBe(id);
   });
 
   it("keeps a recent document's fingerprint", async () => {

@@ -31,6 +31,7 @@ export function openDatabase(factory: IDBFactory | undefined): Database {
     database ??= new Promise((resolve) => {
       if (factory === undefined) return resolve(null);
       try {
+        let blocked = false;
         const request = factory.open(DATABASE, VERSION);
         request.onupgradeneeded = () => upgrade(request.result);
         request.onsuccess = () => {
@@ -42,11 +43,18 @@ export function openDatabase(factory: IDBFactory | undefined): Database {
             db.close();
             database = Promise.resolve(null);
           };
-          resolve(db);
+          // Opened once the older tab let go: later calls use the database (what was kept in memory
+          // meanwhile stays there).
+          if (blocked) database = Promise.resolve(db);
+          else resolve(db);
         };
         request.onerror = () => resolve(null);
-        // Another tab holds an older version open: the session keeps its values in memory.
-        request.onblocked = () => resolve(null);
+        // Another tab holds an older version open (one from before version 2 never closes for a
+        // newer one): the session keeps its values in memory until that tab lets go.
+        request.onblocked = () => {
+          blocked = true;
+          resolve(null);
+        };
       } catch {
         resolve(null);
       }

@@ -45,8 +45,19 @@ export function parseView(view: unknown): KeptView | undefined {
 export const KEPT_WITHIN_MS = 250;
 
 /**
- * The position kept for `fingerprint`, when it is one this file can show and the store answers
- * within {@link KEPT_WITHIN_MS}.
+ * Whether `view` is where every document opens, the top of page 1: coming back there is no
+ * resume, so it is neither announced nor made a history jump. The zoom alone isn't restored.
+ */
+export function atStart(view: KeptView): boolean {
+  return view.point.page === 0 && view.point.y <= START_SLACK;
+}
+
+/** How far down page 1 (a share of its height) still counts as its top. */
+const START_SLACK = 0.02;
+
+/**
+ * The position kept for `fingerprint`, when it is one this file can show, away from the top of
+ * page 1, and the store answers within {@link KEPT_WITHIN_MS}.
  */
 export async function keptPosition(platform: Platform, fingerprint: string): Promise<KeptView | undefined> {
   let stop = () => {};
@@ -56,7 +67,8 @@ export async function keptPosition(platform: Platform, fingerprint: string): Pro
   });
   try {
     const entry = await Promise.race([platform.positions.get(fingerprint).catch(() => undefined), late]);
-    return parseView(entry?.view);
+    const view = parseView(entry?.view);
+    return view === undefined || atStart(view) ? undefined : view;
   } finally {
     stop();
   }

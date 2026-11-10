@@ -1,7 +1,8 @@
 // What the user chose to keep in this browser (Settings › Storage and privacy): whether recent
 // local files are listed, which also decides whether a large file's disk copy outlives its
-// document, and whether each document's reading position is kept (`positions.enabled`). Kept in localStorage, read by the recent list and by the engine's opens. A linked
-// file is never listed: ADR 0011 keeps a document's address out of storage and the recent list.
+// document, and whether each document's reading position is kept, with the last document to come
+// back to. Kept in localStorage, read by the recent list and by the engine's opens. A linked file
+// is never listed: ADR 0011 keeps a document's address out of storage and the recent list.
 
 /** Where the choices are kept, in this browser only. */
 const STORAGE_KEY = "lamina.storage";

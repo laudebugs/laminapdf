@@ -73,22 +73,24 @@ export class SettingsRegistry {
 
 /**
  * Registers a section for as long as the calling component is mounted. `render` is read when the
- * dialog draws, so it may close over the caller's latest state; each time the caller renders, the
- * dialog draws the section again, so a switch it holds shows the state it was just set to.
+ * dialog draws, so it may close over the caller's latest state. `shows` lists the values its
+ * fields show: when one changes, the dialog draws the section again, so a switch shows the state
+ * it was just set to.
  */
 export function useSettingsSection(
   registry: SettingsRegistry,
   id: string,
   title: string,
   render: () => ReactNode,
+  shows: readonly unknown[] = [],
 ): void {
   const latest = useRef(render);
   useLayoutEffect(() => {
     latest.current = render;
   });
   useEffect(() => registry.register({ id, title, render: () => latest.current() }), [registry, id, title]);
-  // After every render of the caller: its state may have changed what the section shows.
-  useEffect(() => registry.refresh(id));
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `shows` is the caller's list of what the section shows.
+  useEffect(() => registry.refresh(id), [registry, id, ...shows]);
 }
 
 /** Props of `SettingsDialog`. */

@@ -125,8 +125,8 @@ export interface RecentDetails {
 export interface RecentFiles {
   /** Newest first. */
   list(): Promise<readonly RecentFile[]>;
-  /** Puts `file` first, replacing an older entry for the same document. */
-  add(file: PlatformFile, details?: RecentDetails): Promise<void>;
+  /** Puts `file` first, replacing an older entry for the same document; gives the entry's id. */
+  add(file: PlatformFile, details?: RecentDetails): Promise<string>;
   /** Forgets one document. */
   remove(id: string): Promise<void>;
   /** Forgets every document. */

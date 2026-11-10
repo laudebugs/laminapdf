@@ -6,17 +6,23 @@ import type { Platform, ReaderController } from "@laminapdf/ui";
 import { readChoices } from "../storage-choices.ts";
 import { SESSION_KEY } from "./positions.ts";
 
+/** Whether the choices let the reader come back to the last document: recent files and positions kept. */
+function remembers(): boolean {
+  const choices = readChoices();
+  return choices.rememberLocal && choices.rememberPositions;
+}
+
 /**
- * Reopens the document the session record names, when the user lets recent files be kept, its
- * entry kept a handle and the browser still allows reading it, and nothing else opened meanwhile.
- * Call it only when the address names no document.
+ * Reopens the document the session record names, when the user lets recent files and reading
+ * positions be kept, its entry kept a handle and the browser still allows reading it, and nothing
+ * else opened meanwhile. Call it only when the address names no document.
  */
 export async function resumeLastDocument(
   platform: Platform,
   reader: Pick<ReaderController, "getState" | "open">,
-  rememberLocal = readChoices().rememberLocal,
+  remember = remembers(),
 ): Promise<void> {
-  if (!rememberLocal || platform.recent.reopen === undefined) return;
+  if (!remember || platform.recent.reopen === undefined) return;
   const session = (await platform.storage.get(SESSION_KEY)) as { recentId?: unknown } | undefined;
   if (typeof session?.recentId !== "string") return;
   const entry = (await platform.recent.list()).find((e) => e.id === session.recentId);
