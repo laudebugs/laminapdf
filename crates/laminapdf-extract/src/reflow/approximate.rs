@@ -71,7 +71,6 @@ pub(super) fn reflow(
     let mut options = ExtractOptions::default().with_reading_order(ReadingOrder::Layout);
     options.drop.keep_spans = true;
     let (extraction, feed) = run(doc, &options, TreeSource::Given(None), cancel)?;
-    let images: BTreeMap<usize, &[RectPt]> = feed.iter().map(|f| (f.index, f.images.as_slice())).collect();
     let mut by_page: BTreeMap<usize, Vec<&Block>> = BTreeMap::new();
     for block in &extraction.blocks {
         by_page.entry(block.page).or_default().push(block);
@@ -79,7 +78,12 @@ pub(super) fn reflow(
     let mut blocks = Vec::new();
     for page in &extraction.pages {
         let text = by_page.get(&page.index).map_or(&[][..], Vec::as_slice);
-        let images = images.get(&page.index).copied().unwrap_or_default();
+        // A scan of the feed rather than a map: a sort's code for one lookup per page costs the
+        // WASM module more than the scan costs the reader.
+        let images = feed
+            .iter()
+            .find(|f| f.index == page.index)
+            .map_or(&[][..], |f| f.images.as_slice());
         let shown = page_blocks(page, text, images, &extraction.dropped);
         checks.page_images += shown
             .iter()
@@ -286,7 +290,7 @@ fn merged(mut boxes: Vec<RectPt>) -> Vec<RectPt> {
         }
         out.push(b);
     }
-    out.sort_by(|a, b| a.y0.get().total_cmp(&b.y0.get()));
+    // In no order: `place` puts each figure by its position, whatever order they come in.
     out
 }
 
@@ -353,11 +357,12 @@ mod tests {
 
     #[test]
     fn overlapping_image_boxes_make_one_figure() {
-        let got = merged(vec![
+        let mut got = merged(vec![
             RectPt::from_points(0.0, 0.0, 100.0, 100.0),
             RectPt::from_points(90.0, 0.0, 100.0, 100.0),
             RectPt::from_points(0.0, 300.0, 50.0, 50.0),
         ]);
+        got.sort_by(|a, b| a.y0.get().total_cmp(&b.y0.get()));
         assert_eq!(
             got,
             [
