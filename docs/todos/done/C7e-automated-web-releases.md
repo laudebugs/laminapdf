@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `C7e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — after M2 Web reader v0.1 |
-| Depends on | [C7c](../done/C7c-performance-gates-and-launch.md), [P6](../done/P6-daily-release.md) |
+| Depends on | [C7c](./C7c-performance-gates-and-launch.md), [P6](./P6-daily-release.md) |
 | ADRs | Amends 0011 (production from `web-v*` tags the release train cuts) |
 | Branch | `ci/c7e-web-in-daily-release` |
 | PR title | `ci(web): release the web reader automatically, once a day when it changed` |
@@ -44,3 +44,24 @@ The web reader releases itself. Once a day, after the full nightly passes on `ma
 
 - The owner installs `tools/release/web-release-train.yml` and applies the `web-deploy.yml` patch from the PR (after C7c's).
 - The first nightly after the next reader change releases it, as above.
+
+## As built
+
+- `tools/xtask/src/web_release.rs`: `web next-release [--commit] [--since] [--notes]` and `web check-tag`.
+  - **What ships:** the reader's inputs, the xtask WebAssembly build, `web.rs` and `web-deploy.yml`. Docs, Markdown and the other tools and workflows don't count.
+  - **Version:** `apps/web/package.json`'s when newer than the newest `web-v*` tag, else that tag's patch + 1. A `package.json` behind another minor is refused. `ready=false` is reported before any version is worked out, so an odd tag can't fail a quiet night.
+  - **Notes:** one `git log --first-parent -m --name-only`, a line per commit that changed what ships.
+  - **check-tag:** refuses a tag off `package.json`'s major and minor, or below another tag.
+- `.github/workflows/web-release-train.yml` (installed by the owner from `tools/release/`):
+  - It uses the package train's nightly checks.
+  - `--since` is the newest web-v tag with a GitHub release, so a tag whose deploy failed is made up by the next one. The lookup pages through every release, since the packages' daily releases are there too.
+  - The release bot pushes an annotated tag holding the notes. `WEB_RELEASE_TRAIN=off` stops it.
+- `web-deploy.yml` (owner's commit):
+  - `check-tag` before the build.
+  - `LAMINA_PDF_WEB_VERSION` from the tag, which `vite.config.ts` puts in Settings › About.
+  - After the smoke test, a GitHub release from the tag's annotation, read through the API, or generated notes for a hand-pushed tag.
+- Tests:
+  - the version rules, `ships`, the argument parser;
+  - the train's gating and bot tag, and that the installed copy matches the reviewed one;
+  - the deploy's `check-tag`, versioned build and GitHub release.
+- Reviews: high (10 findings) and low (1), all fixed; the fix commits list them.

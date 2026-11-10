@@ -20,7 +20,7 @@ git push origin HEAD
 
 ### The web reader's train
 
-The web reader releases on its own, apart from the packages ([C7e](../../docs/todos/ongoing/C7e-automated-web-releases.md)). `web-release-train.yml` runs after the same full nightly. When what the reader ships changed since its newest `web-v*` tag, it tags `web-v<next>` on the nightly's commit with the release bot, and that tag runs `web-deploy.yml`'s release gates and production deploy. `cargo xtask web next-release` decides. The patch number goes up by itself. For a new minor or major, raise `apps/web/package.json`'s version in a PR, and the next release takes it as written. Install it the same way:
+The web reader releases on its own, apart from the packages ([C7e](../../docs/todos/done/C7e-automated-web-releases.md)). `web-release-train.yml` runs after the same full nightly. When what the reader ships changed since its newest `web-v*` tag, it tags `web-v<next>` on the nightly's commit with the release bot, and that tag runs `web-deploy.yml`'s release gates and production deploy. `cargo xtask web next-release` decides. The patch number goes up by itself. For a new minor or major, raise `apps/web/package.json`'s version in a PR, and the next release takes it as written. Install it the same way:
 
 ```sh
 cp tools/release/web-release-train.yml .github/workflows/web-release-train.yml
