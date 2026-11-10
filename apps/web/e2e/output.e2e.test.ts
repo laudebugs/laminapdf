@@ -141,9 +141,11 @@ describe(`print, download and properties in ${BROWSER}`, () => {
     const watched = await load();
     const { page } = watched;
     await choose(watched, "fifty.pdf", pagesPdf(SIZES));
+    // The service worker's own downloads of the reader's files while it installs aren't printing
+    // (Firefox reports them as the page's), so they are left out, as the network suite does.
     const requests: string[] = [];
     page.on("request", (request) => {
-      if (!/^(blob|data):/.test(request.url())) requests.push(request.url());
+      if (request.serviceWorker() === null && !/^(blob|data):/.test(request.url())) requests.push(request.url());
     });
     await page.keyboard.press("ControlOrMeta+p");
     const dialog = page.getByRole("dialog", { name: "Print" });

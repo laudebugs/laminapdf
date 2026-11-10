@@ -537,7 +537,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const actions = { ...find.actions, ...history.actions, ...output.actions, ...selection.actions, ...reading.actions };
   const commands = useReaderCommands(platform, engine.reader, shown, shell, rail, actions, menu.appActions);
   useWindowTitle(fileName, engineState.title);
-  const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState.pages);
+  const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState);
   const { inspector, status, notice } = usePanels(layout, platform, network, fileName, engineState, debug, {
     updates,
     toasts,

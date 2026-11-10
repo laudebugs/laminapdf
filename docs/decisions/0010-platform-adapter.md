@@ -1,6 +1,6 @@
 # 0010 — Platform adapter: one `Platform` interface, capability flags, no platform checks in UI code
 
-- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), and 2026-11-09 by U2a (`canShare`, `shareText`) and by [ADR 0008](0008-desktop-shell.md) (`hasNativePrint` and `crossOriginIsolated` on desktop)
+- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), 2026-11-09 by U2a (`canShare`, `shareText`) and by [ADR 0008](0008-desktop-shell.md) (`hasNativePrint` and `crossOriginIsolated` on desktop), and 2026-11-10 by T5b (`positions`, `recent.reopen`'s `{ ask }`, `recent.add` giving the entry's id)
 - Date: 2026-10-31
 
 ## Context
@@ -52,6 +52,8 @@ export interface Platform {
   readonly storage: PlatformStorage;
   /** Recently opened documents (metadata only; reopening needs capabilities.canReopenRecent). */
   readonly recent: RecentFiles;
+  /** Where the reader stopped in each document, by its fingerprint (T5b). */
+  readonly positions: ReadingPositions;
 
   /** Watch a file for changes on disk. Only when capabilities.canWatchFiles. */
   watch?(file: PlatformFile, onChange: () => void): () => void;
@@ -80,7 +82,8 @@ export interface PlatformFile {
   - `get(key)`, `set(key, value)` and `delete(key)` for small metadata (IndexedDB on the web);
   - `persist()`, which requests persistent storage;
   - `clear()`, used by the settings page.
-- **`RecentFiles`:** `list()`, `add(file, { pages })`, `remove(id)` and `clear()`, plus `reopen(id)` when `canReopenRecent`. The entries hold the name, size, page count, last-opened time, an opaque reopen token and whether one was kept (`hasHandle`). Never the bytes or a URL (ADR 0011 §3). (Page count and `hasHandle` added by C7b, 2026-11-09.)
+- **`RecentFiles`:** `list()`, `add(file, { pages })`, `remove(id)` and `clear()`, plus `reopen(id)` when `canReopenRecent`. The entries hold the name, size, page count, last-opened time, an opaque reopen token and whether one was kept (`hasHandle`). Never the bytes or a URL (ADR 0011 §3). (Page count and `hasHandle` added by C7b, 2026-11-09.) `reopen(id, { ask: false })` reads a file only where the browser kept the permission and never asks for it, since asking needs a click: start-up uses it (T5b). Entries also keep the document's `fingerprint`, and `add` gives the entry's id, so the caller can name it without listing again (T5b).
+- **`ReadingPositions`** (T5b): `get(fingerprint)`, `set(fingerprint, entry)`, `remove(fingerprint)` and `clear()`. An entry is `{ view, pageCount, readAt }`, where `view` is opaque to the UI package (the app checks it on read). On the web it is the `positions` object store of the `lamina-pdf` IndexedDB database (version 2, indexed by `readAt`), trimmed to the newest 500 in each write's transaction, in memory where IndexedDB doesn't open. `storage.clear()` empties it too. The fingerprint is `"fp1:"` and a SHA-256 of the file's first revision (its head through the first `%%EOF` within 64 KiB), computed in the document worker, so a renamed copy and the file after an incremental update share it.
 
 ### 2. Capability flags and their web values
 

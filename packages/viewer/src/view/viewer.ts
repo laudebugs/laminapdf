@@ -15,7 +15,12 @@ import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { FindController } from "../find/controller.js";
-import { type HistoryPlace, NavigationHistory, type NavigationHistoryOptions } from "../history/history.js";
+import {
+  type HistoryPlace,
+  NavigationHistory,
+  type NavigationHistoryOptions,
+  type ViewPosition,
+} from "../history/history.js";
 import type { CopyMode } from "../layers/copy.js";
 import { HighlightLayer } from "../layers/highlight-layer.js";
 import { LinkLayer, type LinkLayerOptions } from "../layers/link-layer.js";
@@ -335,6 +340,11 @@ export class Viewer {
   #layout: PageLayout | undefined;
   #zoom: Zoom;
   #rotation: Rotation = 0;
+  /**
+   * Where the view goes once it has a size, when it was opened or restored without one (a hidden
+   * host ignores scrolling): the top of a new document, or a kept position.
+   */
+  #pending: ViewPosition | "top" | undefined;
   #state: ViewState;
   #frame: number | undefined;
   #settling: ReturnType<typeof setTimeout> | undefined;
@@ -430,6 +440,8 @@ export class Viewer {
     this.#layout = undefined;
     this.#root.scrollTop = 0;
     this.#root.scrollLeft = 0;
+    // A hidden view keeps its old scroll: the new document starts at its top once it shows.
+    this.#pending = this.#sized() ? undefined : "top";
     this.#relayout(this.#viewport());
     this.#schedule();
   }
@@ -594,6 +606,53 @@ export class Viewer {
     this.#schedule();
   }
 
+  /**
+   * Where the reader is: the document point a gap below the viewport's top-left, the zoom and the
+   * rotation; `undefined` without a document. {@link restore} puts the view back there.
+   */
+  viewPosition(): ViewPosition | undefined {
+    const pending = this.#pending;
+    if (pending === "top" && this.#sizes.length > 0) {
+      return { point: { page: 0, x: 0, y: 0 }, zoom: this.#zoom, rotation: this.#rotation };
+    }
+    if (pending !== undefined && pending !== "top") return pending;
+    const place = this.#place();
+    return place === undefined ? undefined : { ...place, rotation: this.#rotation };
+  }
+
+  /**
+   * Puts the view at `position` (a {@link viewPosition} kept from an earlier visit), as a history
+   * jump from where the view is, so Back returns there. Its page is clamped to the document's and
+   * its point to the page. Called in the task that opened the document, before the next frame, it
+   * paints no other page first.
+   */
+  restore(position: ViewPosition): void {
+    if (this.#layout === undefined || this.#sizes.length === 0) return;
+    // Hidden: it takes place once the view has a size (`#listenResize`).
+    if (!this.#sized()) {
+      const page = Math.min(this.#sizes.length - 1, Math.max(0, Math.trunc(position.point.page) || 0));
+      this.#pending = { ...position, point: { ...position.point, page } };
+      return;
+    }
+    this.#pending = undefined;
+    this.history.jump(() => {
+      const turned = isRotation(position.rotation) && position.rotation !== this.#rotation;
+      if (turned) this.#rotation = position.rotation;
+      const clamp = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0);
+      const page = Math.min(this.#sizes.length - 1, Math.max(0, Math.trunc(position.point.page) || 0));
+      // The zoom is set before the scroll: #show only rezooms when the zoom changes.
+      this.#zoom = position.zoom;
+      this.#rezoom(undefined);
+      this.#show({ point: { page, x: clamp(position.point.x), y: clamp(position.point.y) }, zoom: position.zoom });
+      // As rotate() does: the layers follow once the pages are laid out for the new rotation.
+      if (turned) {
+        this.#text?.refresh();
+        this.#highlights.refresh();
+        this.#links?.refresh();
+      }
+    });
+  }
+
   /** The document point at viewport position (`x`, `y`) in CSS px. */
   pointAt(x: number, y: number): DocumentPoint | undefined {
     const layout = this.#layout;
@@ -736,6 +795,23 @@ export class Viewer {
     return { width: this.#root.clientWidth || 800, height: this.#root.clientHeight || 600 };
   }
 
+  /** Whether the view has a size (it is in a shown container), so it can scroll. */
+  #sized(): boolean {
+    return this.#root.clientWidth > 0 && this.#root.clientHeight > 0;
+  }
+
+  /** Puts a view that just got its size where it was opened or restored to. */
+  #showPending(pending: ViewPosition | "top"): void {
+    this.#pending = undefined;
+    this.#relayout(this.#viewport());
+    // The scroll kept while hidden is the last document's: the top first, so a restore's history
+    // jump leaves from page 1.
+    this.#root.scrollTop = 0;
+    this.#root.scrollLeft = 0;
+    if (pending === "top") this.#schedule();
+    else this.restore(pending);
+  }
+
   /** The text layer `option` asks for, or none (`false`); it reports the selection as an event too. */
   #textLayer(option: boolean | TextLayerOptions | undefined): TextLayer | undefined {
     if (option === false) return undefined;
@@ -838,7 +914,8 @@ export class Viewer {
     if (this.#frame !== undefined || this.#destroyed) return;
     this.#frame = requestAnimationFrame(() => {
       this.#frame = undefined;
-      this.#update();
+      // A view waiting for its size has only an old scroll to go by: it draws once it is placed.
+      if (this.#pending === undefined) this.#update();
     });
   }
 
@@ -1581,6 +1658,10 @@ export class Viewer {
   #listenResize(): void {
     const resize = new ResizeObserver(() => {
       if (this.#layout === undefined) return;
+      if (this.#pending !== undefined && this.#sized()) {
+        this.#showPending(this.#pending);
+        return;
+      }
       if (typeof this.#zoom === "string") this.#rezoom(undefined);
       else this.#schedule();
     });

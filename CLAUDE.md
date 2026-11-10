@@ -100,7 +100,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   history/history.ts (NavigationHistory; viewer.history, jumpToPage, jumpToDestination), worker pageLinks; C6c: worker/print.ts
 │                        #   (printPage: a page at print dpi with the print intent, ≤ 16 MP, as a PNG; fileBytes: a remote file's bytes as opened),
 │                        #   worker properties; C7b: source/opfs.ts (OpfsByteSource: a local file over 200 MiB (`copyAbove`) copied once into
-│                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); C3b: createViewer (src/layout/, view/, canvas/,
+│                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); T5b: worker/fingerprint.ts
+│                        #   (documentFingerprint: "fp1:" + SHA-256 of the head through its first %%EOF within 64 KiB; OpenedDocument.fingerprint),
+│                        #   Viewer.viewPosition()/restore(ViewPosition: a history place plus rotation, a history jump), a pending place
+│                        #   for a view opened or restored while hidden; C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)
@@ -139,8 +142,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Notice, Toast, ProgressBar, Skeleton, EmptyState, StatusBarItem, NetworkIndicator, RepairedNotice, PageLabel,
 │                        #   Thumbnail, OutlineRow, ShortcutChip), src/overlays/ (the layer stack behind Escape, Dialog, Popover and
 │                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue, BottomSheet, SelectionToolbar,
-│                        #   CommandPalette; z-order from --paper-z-*), src/platform/ (ADR 0010: the Platform interface and capability
-│                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files),
+│                        #   CommandPalette; z-order from --paper-z-*), src/dialogs.ts (the ./dialogs entry: PrintDialog, PrintProgressDialog,
+│                        #   PropertiesDialog, which the web reader loads once a document opens, issue #380), src/platform/ (ADR 0010: the Platform interface and capability
+│                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files;
+│                        #   T5b: Platform.positions, positions.ts: the `positions` store of `lamina-pdf` v2, 500 by `readAt`; idb.ts opens
+│                        #   the database once; recent.reopen(id, { ask: false })),
 │                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
 │                        #   useStoreState, useReaderState), src/reader/ (ReaderShell, ReaderTopBar (Back and Forward), PageInput, OutlineTree, FindBar, FindResults, ExternalLinkDialog, ZoomControl,
 │                        #   ReaderView and ReaderSettingsPanel (reader-view.tsx: R14's column, crops, settings; U4b),
@@ -186,6 +192,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   document traffic and unexpected sites; monitor.ts, the log and its summary; panel.tsx, R13's indicator and panel);
 │                        #   src/reader-mode.tsx (U4b: the Reader toggle, the column over the reflow, crops, the place kept both ways, settings;
 │                        #   U4c: reader-origin.ts outlines a block on its page for View original page, reader-crop.ts a crop's clip);
+│                        #   src/reading/ (T5b: positions.ts parses, records and restores reading positions by fingerprint; resume.ts
+│                        #   reopens the document open at the last close; recent.tsx's Continue reading and the session record);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
@@ -317,6 +325,7 @@ Daily releases: `release-train.yml` runs after a full successful nightly on `mai
 - **Pull requests only.** `main` was initialized directly; every change since goes through a branch + PR. Branch names: `<type>/<short-description>` (e.g. `docs/pdf-research`).
 - **Review every PR with `/code-review`, then merge.** After opening a PR, run `/code-review high <PR#>` (trivial PRs: `low`) without `--comment`: don't post review comments. Fix the findings in new commits whose messages list each finding and its fix. If there were more than 6 findings, run `/code-review low <PR#>` after the fixes and record those the same way. A non-trivial PR that adds or changes prose people read also gets `/writing-review`, whose findings are counted and fixed separately ([§7](docs/guidelines/git-workflow.md#7-review-and-merge-process)). Run `cargo xtask ci` locally, then squash-merge once CI is green. See [review and merge process](docs/guidelines/git-workflow.md#7-review-and-merge-process).
 - **Check visual changes in a browser, from the user's side.** Try every change to what a user sees or touches on screen (the reader, the viewer, the sites, the components) in the built app in a real browser, as a person uses it (mouse, keyboard, real files). Judge it by what they can see and do; tests that only call an API don't prove it. Other changes need their own tests, not a browser. See [bug triage §7](docs/guidelines/bug-triage.md#7-prove-the-fix).
+- **Never patch code just to make a test pass.** When a test fails, in CI or locally, find out why. Fix the product if it is wrong. If the test checks something that doesn't make sense, adjust it or remove it, and say why in the commit message. See [bug triage §6](docs/guidelines/bug-triage.md#6-fix-the-cause-not-the-symptom).
 - **Conventional Commits** for commit messages: `type(scope): summary`.
 - **Document as you go.** Plans go in `docs/plans/`, decisions in `docs/decisions/`, research in `docs/research/`. Update the folder's `README.md` index whenever you add a file.
 - **Cite sources.** PDF behavior claims should point to ISO 32000-2 (PDF 2.0) or another primary source. Clearly label recommendations and opinions.

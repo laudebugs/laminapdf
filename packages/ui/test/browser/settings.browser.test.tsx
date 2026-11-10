@@ -27,9 +27,13 @@ afterEach(async () => {
 function Settings(): ReactNode {
   const [appearance, setAppearance] = useState(DEFAULT_APPEARANCE);
   const [registry] = useState(() => new SettingsRegistry());
-  useSettingsSection(registry, "appearance", "Appearance and accessibility", () => (
-    <AppearanceSettings appearance={appearance} onChange={setAppearance} />
-  ));
+  useSettingsSection(
+    registry,
+    "appearance",
+    "Appearance and accessibility",
+    () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
+    [appearance],
+  );
   useSettingsSection(registry, "storage", "Storage and privacy", () => (
     <p className="paper-field-help">Recent files stay on this device.</p>
   ));
