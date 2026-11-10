@@ -57,6 +57,7 @@ Release binaries include the MCP server (`laminapdf mcp`). Builds exist for eigh
   ```
 
   Most files have an Info dictionary, so `--fail-on metadata` stops most files. Leave it out unless you strip metadata before release.
+- **`build <input.md | -> -o OUT [--font ROLE=FILE]… [--page-size SIZE] [--profile PROFILE]… [--lang TAG] [--title TEXT]`**: Markdown (CommonMark with tables, footnotes, strikethrough and task lists) as a tagged PDF whose pages flow, with headings in the outline and tables whose header repeats on each page. Front matter (`title:`, `lang:`, `author:`, `subject:` lines between `---` lines) sets the metadata; `--title` and `--lang` apply when it doesn't. Fonts come by role, `regular`, `bold`, `italic`, `bold-italic`, `mono`, and `fallback` (repeatable) for scripts the others lack; `FILE#N` takes face N of a collection. Without fonts only Latin text sets, in Helvetica and Courier, which aren't embedded, so `--profile pdf-ua-1` refuses them. Images are read from the Markdown's folder; remote ones are never fetched and, like raw HTML, are left out with a warning (exit 3, 0 with `--warnings-ok`). The output has no creation date unless `--creation-date` gives one, so the same input gives the same bytes. With `--json`, `build` prints `laminapdf.build/1`.
 - **`pages rotate <input> <angle>[:<range>] (-o OUT | --in-place)`**: `+90` and `-90` turn pages from their current rotation, `90` sets it; the range names the pages. The result is an incremental update where the file allows one, so the input's bytes come first.
 - **`extract <inputs…> [--pages RANGE] [--format text|md|json|chunks]`**: by default each page's text, pages separated by a form feed, as `pdftotext` does (`--visible-only` leaves out invisible text). The other formats read the blocks in reading order: `md` is Markdown with headings, lists and tables, `json` the `laminapdf.extract/1` document (every block with its box, and what was dropped; with `--format md --json`, the document carries the Markdown too, as `markdown`), `chunks` the Markdown cut for retrieval, one JSON object per line. They never contain hidden text. `--max-chars N` keeps whole blocks up to N characters of Markdown and adds `"truncated": true` to the JSON. Each page in the JSON has a `textLayer` that says whether its text can be used or the page needs OCR; a scanned page gives no Markdown and raises the `extract-needs-ocr` warning, which sets exit code 3 (0 with `--warnings-ok`).
 - **`explain <code>`**: the page of an error or warning code, as in [`docs/errors/`](../../docs/errors/README.md).
@@ -125,7 +126,7 @@ For clients that speak only the Model Context Protocol, `laminapdf mcp` serves t
 
 ```console
 $ laminapdf mcp --root ./docs                  # read-only: laminapdf_check, laminapdf_explain, laminapdf_extract, laminapdf_info, laminapdf_reveal
-$ laminapdf mcp --root ./docs --allow-write    # adds laminapdf_pages_rotate and laminapdf_render, which write new files only
+$ laminapdf mcp --root ./docs --allow-write    # adds laminapdf_build, laminapdf_pages_rotate and laminapdf_render, which write new files only
 ```
 
 A client starts it as a command. In Claude Code, add it with `claude mcp add laminapdf -- laminapdf mcp --root /home/me/docs`; Claude Desktop and most other clients take the same command in their configuration file:
@@ -134,7 +135,7 @@ A client starts it as a command. In Claude Code, add it with `claude mcp add lam
 { "mcpServers": { "laminapdf": { "command": "laminapdf", "args": ["mcp", "--root", "/home/me/docs"] } } }
 ```
 
-Each tool takes the command's arguments as JSON (`{"input": "report.pdf", "pages": "1-3"}`) and answers with the command's report as `structuredContent`, so its `outputSchema` is the report's schema. `laminapdf_extract` takes every `format` the command does; its `outputSchema` covers both the text report and `laminapdf.extract/1`. A failure is a tool error whose text is the same `laminapdf.error/1` line the CLI writes under `--json`, so the model can read the code and correct its call. The line goes in the text rather than in `structuredContent`, which has to match the report's schema.
+Each tool takes the command's arguments as JSON (`{"input": "report.pdf", "pages": "1-3"}`) and answers with the command's report as `structuredContent`, so its `outputSchema` is the report's schema. `laminapdf_build` also takes the Markdown inline, as `markdown` instead of `input`; its images and fonts are read inside the roots, from the first root for inline Markdown. `laminapdf_extract` takes every `format` the command does; its `outputSchema` covers both the text report and `laminapdf.extract/1`. A failure is a tool error whose text is the same `laminapdf.error/1` line the CLI writes under `--json`, so the model can read the code and correct its call. The line goes in the text rather than in `structuredContent`, which has to match the report's schema.
 
 The server is safe without flags, because a model may follow instructions planted in a document:
 
@@ -156,6 +157,7 @@ Releases ([L4d](../../docs/todos/done/L4d-cli-distribution.md)): [`dist-workspac
 
 ```sh
 cargo run -p laminapdf-cli -- info fixtures/corpus/hello.pdf
+cargo run -p laminapdf-cli -- build fixtures/markdown/report.md -o report.pdf --font regular=fixtures/fonts/NotoSans-Regular.ttf --font fallback=fixtures/fonts/NotoSansArabic-Regular.ttf --font fallback=fixtures/fonts/NotoSansDevanagari-Regular.ttf
 cargo xtask cli-docs                                                # every completion script and a man page per command, into target/cli-docs/
 cargo xtask cli-dist                                                # those plus THIRD_PARTY_NOTICES.md (cargo-about): what each release archive holds
 dist build --artifacts=local --target "$(rustc -vV | sed -n 's/host: //p')"   # this host's archive into target/distrib/

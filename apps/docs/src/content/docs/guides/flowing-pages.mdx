@@ -3,6 +3,7 @@ title: Pages that flow
 description: Pour headings, paragraphs, tables and images, or a Markdown file, into as many pages as they need, with footnotes, a contents page and "Page X of Y" footers.
 ---
 
+import Example from "../../../components/Example.astro";
 import Snippet from "../../../components/Snippet.astro";
 
 This guide lays out a document whose length you don't know in advance, such as a report or a contract. You give Lamina PDF blocks and a page template, and it makes as many pages as they need, with a header and a footer on each.
@@ -74,9 +75,17 @@ You can also write the document in Markdown and let `Builder::markdown` turn it 
 
 The example below builds a short report from a Markdown file. It gives the fonts, the page template and a contents page in `MarkdownBuildOptions`, and it passes the one image the Markdown names. The builder reads no files and fetches nothing, so it leaves out an image you don't pass and adds a `markdown-image-missing` warning. It leaves out raw HTML too, with `markdown-html-ignored`. Both warnings give the position in the Markdown, never its text.
 
-<Snippet file="crates/laminapdf/examples/markdown_to_pdf.rs" />
+In TypeScript, `builder.markdown(text, options)` takes the same options, with the fonts as `Font`s and the images as `Image`s by the name the Markdown uses. It needs the text module, `init({ text: true })`. Both languages write the same bytes:
+
+<Example ts="packages/sdk/examples/markdown-to-pdf.ts" rust="crates/laminapdf/examples/markdown_to_pdf.rs" result="markdown_to_pdf" />
 
 The result is four A5 pages: [open the reference PDF](/examples/pdf/markdown_to_pdf.pdf).
+
+The `laminapdf` command line does the same without code. It reads the images from the Markdown's folder and the fonts from `--font`:
+
+```sh
+laminapdf build report.md -o report.pdf --font regular=NotoSans-Regular.ttf --profile pdf-ua-1
+```
 
 If you pass no fonts, the builder sets the Markdown in Helvetica and Courier, two fonts every PDF reader has. They set only Latin text, and since they aren't embedded, a PDF/UA-1 build refuses them with `font-not-embedded`. Pass your own fonts with `MarkdownFonts` for other scripts or an accessible document.
 

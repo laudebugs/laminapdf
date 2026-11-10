@@ -1,0 +1,42 @@
+---
+title: Turn Markdown into a PDF
+description: A report written in Markdown, as tagged pages that flow, from the command line, TypeScript or Rust, with tables, footnotes, images and a contents page.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll turn a report written in Markdown into an accessible PDF: headings, lists, a table that runs across pages, a photo, footnotes, a contents page, and paragraphs in Arabic and Hindi. Use it for anything you already write in Markdown, such as notes, documentation or a report an LLM drafted.
+
+From the command line, one command builds it:
+
+```sh
+laminapdf build report.md -o report.pdf \
+  --font regular=NotoSans-Regular.ttf --font bold=NotoSans-Bold.ttf \
+  --font fallback=NotoSansArabic-Regular.ttf --font fallback=NotoSansDevanagari-Regular.ttf \
+  --profile pdf-ua-1
+```
+
+The command reads the images the Markdown names from the folder the Markdown is in. Add `--json` for a report of the pages, the size and anything the PDF left out.
+
+In code, the function takes the Markdown, the fonts and the photo, and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
+
+<Example ts="packages/sdk/examples/markdown-to-pdf.ts" rust="crates/laminapdf/examples/markdown_to_pdf.rs" result="markdown_to_pdf" />
+
+The result is four A5 pages that meet PDF/UA-1. The Result tab shows them, with a link to the PDF.
+
+## How it works
+
+- Each Markdown construct becomes the block you would lay out by hand: a `#` heading becomes a heading, a list a list, and a table a table whose header row repeats on each page. The [pages that flow](/guides/flowing-pages/) guide shows those blocks.
+- The front matter, plain `key: value` lines between two `---` lines, sets the title, language, author and subject. A screen reader uses the language to choose its voice.
+- The fonts come by role: body text, bold (headings too), italic, code, and fallbacks for characters the others lack. Here the Arabic and Devanagari fonts are fallbacks, so each paragraph in those scripts finds its letters.
+- Nothing is fetched. An image you don't pass, or a remote one, is left out with the warning `markdown-image-missing`, and raw HTML with `markdown-html-ignored`. Both name a position in the Markdown, never its text.
+- The PDF is tagged: headings, lists, tables, figures with the image's text as their alternate text, and footnotes, in reading order.
+
+## What to change
+
+- **Latin text only:** leave out the fonts, and the text is set in Helvetica and Courier, which every PDF reader has. They aren't embedded, so PDF/UA-1 refuses them with `font-not-embedded`; drop the profile, or pass your own fonts.
+- **The page size:** `--page-size letter` on the command line, `page: { size: "Letter" }` in TypeScript, or a `PageTemplate` in Rust. The template also sets the margins, a header and the footer.
+- **No contents page:** remove `contents` (`with_contents` in Rust). The command line has none by default.
+- **An AI agent:** `laminapdf mcp --root DIR --allow-write` serves the `laminapdf_build` tool to agents that speak MCP. It takes the Markdown inline or as a file, reads fonts and images only inside `DIR`, and writes the PDF there as a new file.
+
+Next: [a PDF/UA report](/recipes/pdf-ua-report/), drawn block by block instead of written in Markdown.
