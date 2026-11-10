@@ -12,6 +12,7 @@
     "e2e/**/*.ts",
     "test/**/*.ts",
     "plugins/**/*.ts",
+    "scripts/**/*.ts",
     "vite.config.ts",
     "vitest.*.config.ts"
   ],

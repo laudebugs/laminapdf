@@ -41,7 +41,7 @@ After one visit, the reader works with no network: a service worker precaches th
 
 - Cloud storage/sync of recents (hosted-service rounds, after the `auth` spike).
 - Threaded WASM / COEP (ADR 0009: later).
-- Lighthouse/perf gates → [C7c](../ready/C7c-performance-gates-and-launch.md).
+- Lighthouse/perf gates → [C7c](../done/C7c-performance-gates-and-launch.md).
 - Each document's remembered position, and reopening the document that was open after a reload or restart (R15's "you'll come back to page 3") → [T5b](../done/T5b-reopen-at-last-position.md).
 
 ## Tasks

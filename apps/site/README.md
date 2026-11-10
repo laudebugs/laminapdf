@@ -57,7 +57,7 @@ Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt`
 
 The pages use the tokens of `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` (Lamina Sans and Newsreader), with the layout's style sheet in `src/styles/site.css`. The theme follows the visitor's system, so the site needs no script. `src/layouts/Base.astro` writes each page's head and preloads Lamina Sans' Latin file, the face of the first paint.
 
-The header is the one both sites share, from [`@laminapdf/site-kit`](../../packages/site-kit/README.md#the-site-header): design language §7.39's wordmark, links and "Open the web app". A link to a page of this site appears once the page exists, on both sites. `astro.config.mjs` lists the files in `src/pages/` once per build, so the todo that writes `/privacy/` adds its link by adding the page. "Open the web app" appears once `APP_LAUNCHED` in the package's `src/nav.mjs` is `true`, which [C7c](../../docs/todos/ready/C7c-performance-gates-and-launch.md) sets when the reader goes live.
+The header is the one both sites share, from [`@laminapdf/site-kit`](../../packages/site-kit/README.md#the-site-header): design language §7.39's wordmark, links and "Open the web app". A link to a page of this site appears once the page exists, on both sites. `astro.config.mjs` lists the files in `src/pages/` once per build, so the todo that writes `/privacy/` adds its link by adding the page. "Open the web app" appears once `APP_LAUNCHED` in the package's `src/nav.mjs` is `true`, which [C7c](../../docs/todos/done/C7c-performance-gates-and-launch.md) sets when the reader goes live.
 
 ## Deploying
 

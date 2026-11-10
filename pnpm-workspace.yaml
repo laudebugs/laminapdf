@@ -53,6 +53,9 @@ catalog:
   # The gallery's screenshot and axe tests (apps/gallery, todo U6f). Dev-only: @playwright/test is
   # Apache-2.0 and matches `playwright` below; @axe-core/playwright is MPL-2.0 and matches axe-core.
   "@axe-core/playwright": 4.14.0
+  # Lighthouse CI for the reader's release gate (apps/web/lighthouserc.json, todo C7c). Apache-2.0,
+  # as is lighthouse itself; dev-only. Pinned to a release at least two weeks old when added.
+  "@lhci/cli": 0.15.1
   "@playwright/test": 1.64.1
   bun: 1.4.4
   # The desktop reader's shell (ADR 0008): the same minor as the tauri crate (2.12). MIT OR

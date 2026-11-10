@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import pkg from "./package.json" with { type: "json" };
 import { pwa } from "./plugins/pwa.ts";
 
 /**
@@ -48,6 +49,8 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@embedpdf/pdfium", "@laminapdf/viewer", "@laminapdf/render-hayro"],
   },
+  // The reader's version, shown in Settings › About (apps/web/CHANGELOG.md lists each one).
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   worker: { format: "es" },
   build: {
     target: "es2022",

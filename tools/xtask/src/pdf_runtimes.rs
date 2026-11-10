@@ -230,6 +230,9 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     for script in ["typecheck:wasm", "build"] {
         crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/web", "run", script])?;
     }
+    // The app shell's startup JavaScript against its budget, on the build just made (the PR lane's
+    // size gate, todo C7c): bytes, not time, so it may fail a pull request (ADR 0018 §2).
+    crate::web::size(ws)?;
     crate::run_env(
         &ws.root,
         "pnpm",

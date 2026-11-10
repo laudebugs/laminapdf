@@ -35,7 +35,7 @@ On Hacker News, extraction users ask for benchmarks they can rerun: 163 comments
 - `cargo xtask size` (`tools/xtask/src/wasm.rs`): raw, gzip and brotli per module and the JS, in `target/size-report.json`, against `packages/wasm/size-budgets.json`.
 - The invoice: `packages/sdk/examples/invoice.ts` and `crates/laminapdf/examples/invoice.rs`, one tagged A4 page with an embedded Noto Sans subset and a table, and its reference PDF `fixtures/golden/examples/invoice.pdf`. `crates/laminapdf/tests/examples.rs` passes its fixed options.
 - The docs site: `apps/docs/plugins/sidebar.mjs` (every page listed, in story order), `src/lib/codes.ts` and `src/components/CodeTable.astro` (repository data read at build time), `plugins/markdown.mjs` (each data component needs its Markdown twin), the [docs-writing guideline](../../guidelines/docs-writing.md) (no "CI" or "golden" in reader text) and `tools/xtask/docs-prose.toml`.
-- Pages that link here rather than repeat: [U5a](../ready/U5a-pricing-and-promises-page.md) (the reader's speed targets), [U5b](../ready/U5b-reader-benchmark.md) (the reader against other readers, at `laminapdf.com/performance/`), [T1b](../ready/T1b-how-we-test-page.md) (the robustness figures). [C7c](../ready/C7c-performance-gates-and-launch.md) owns turning timings into gates.
+- Pages that link here rather than repeat: [U5a](../ready/U5a-pricing-and-promises-page.md) (the reader's speed targets), [U5b](../ready/U5b-reader-benchmark.md) (the reader against other readers, at `laminapdf.com/performance/`), [T1b](../ready/T1b-how-we-test-page.md) (the robustness figures). [C7c](../done/C7c-performance-gates-and-launch.md) owns turning timings into gates.
 
 ## Scope
 
@@ -54,7 +54,7 @@ On Hacker News, extraction users ask for benchmarks they can rerun: 163 comments
 
 **Out of scope** (and which todo covers it)
 
-- Timings as release gates → [C7c](../ready/C7c-performance-gates-and-launch.md); the reader's speed against other readers → [U5b](../ready/U5b-reader-benchmark.md).
+- Timings as release gates → [C7c](../done/C7c-performance-gates-and-launch.md); the reader's speed against other readers → [U5b](../ready/U5b-reader-benchmark.md).
 - The robustness figures (corpus, agreement, fuzzing) → [T1a](../done/T1a-nightly-proof-figures.md), [T1b](../ready/T1b-how-we-test-page.md).
 - Refreshing the numbers on a schedule. They change with releases, and `docs.laminapdf.com` builds from each release ([P4](../done/P4-docs-match-the-release.md)), so one refresh before a release is enough.
 - A new benchmark dataset, or tables scored with TEDS: L3f's manifest says why none was usable.

@@ -407,6 +407,10 @@ cargo xtask viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> 
                              #   in target/viewer-perf/ and the job summary (reported, never asserted); --history flags
                              #   figures >10% worse (bench's rule, `viewer/<browser>/<figure>` keys), --record appends,
                              #   --dry-run prints the issue; --quick: 100 pages, never recorded
+cargo xtask viewer-perf --gate  # the reader's release gate (C7c): three full Chromium runs, each figure's median against
+                             #   web-app §4 + 25 % (packages/viewer/perf/gate.ts), a miss fails unless perf/waivers.json waives it
+cargo xtask web size         # after `web build`: apps/web/dist/index.html's startup scripts, gzipped, against apps/web/size-budget.json
+                             #   (`pdf-runtimes` runs it after its reader build, so it gates PRs); a per-script table
 cargo xtask gallery [--test|--update]  # the Paper gallery (apps/gallery/README.md): serve it (Vite); --test runs its Playwright
                              #   tests in the Playwright image pinned in apps/gallery/package.json (Docker: the gallery's files
                              #   streamed in, the host's node_modules untouched; results in target/gallery/results/); --update

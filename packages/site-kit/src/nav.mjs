@@ -17,7 +17,7 @@ export const APP_URL = "https://app.laminapdf.com/";
  *
  * @type {boolean}
  */
-export const APP_LAUNCHED = false;
+export const APP_LAUNCHED = true;
 
 /**
  * One link of the header, resolved for the site it renders on. `current` is `"page"` on the page it

@@ -79,6 +79,7 @@ export function useSettings(openPalette: () => void, page: PageAppearanceControl
     () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
     [appearance],
   );
+  useSettingsSection(registry, "about", message("about.title"), About);
   const actions = useMemo(
     () => ({
       "view.settings": () => (phone.current ? setSettingsOpen(true) : setViewOpen(true)),
@@ -113,4 +114,19 @@ export function useSettings(openPalette: () => void, page: PageAppearanceControl
     </>
   );
   return { appearance, actions, viewButton, dialogs, registry };
+}
+
+/** Settings › About: the reader's version and where its privacy promises are written down. */
+function About(): ReactNode {
+  return (
+    <div className="paper-settings-fields">
+      <p>{message("about.version", { version: __APP_VERSION__ })}</p>
+      <p>{message("about.free")}</p>
+      <p>
+        <a href="https://laminapdf.com/privacy/" target="_blank" rel="noopener noreferrer">
+          {message("about.privacy")}
+        </a>
+      </p>
+    </div>
+  );
 }

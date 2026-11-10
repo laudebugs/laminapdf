@@ -121,3 +121,13 @@ Fixtures, `expected.json`, error and warning codes (`fixtures/codes.json`, [ADR 
 ### Release guard accepts a full dispatched nightly (2026-11-02)
 
 The release guard used to count only scheduled nightly runs, since a dispatched run can shorten the fuzz budget or sample the differential and render diff. GitHub, however, created the scheduled runs of 2026-10-31 and 2026-11-01 about 6.5 hours late and created none on 2026-11-02, which left the v0.2.0-alpha.1 release waiting on its queue. With the owner's approval, the guard now also accepts a `workflow_dispatch` run on `main` with every input at its default. nightly.yml's `run-name` titles such a run "Nightly (full budgets)" and every other dispatch "Nightly (short budgets)". The guard takes the newest completed run on `main` that is scheduled or carries that exact title, and applies the same rules as before: completed, successful, on `main`, and on the release commit or an ancestor. Dispatched runs from before nightly.yml had a `run-name` are titled "Nightly" and don't count. `tools/xtask/src/release.rs` tests the rule and the `run-name` expression.
+
+### The web reader's release gates (C7c, 2026-11-10)
+
+The reader's production deploy (`web-v*` tags, `.github/workflows/web-deploy.yml`) waits on three gates in its `production-checks` job, on the GitHub-hosted `ubuntu-24.04` runner the reader's workflow already uses (the repository is public, so hosted minutes cost nothing):
+
+- **Startup size.** `cargo xtask web size`: the scripts the built `index.html` loads at startup, gzipped, against `apps/web/size-budget.json`. Bytes are deterministic, so the same check also fails pull requests: `cargo xtask pdf-runtimes` runs it after it builds the reader in the fast lane.
+- **Lighthouse.** `lighthouse:local` serves the build with its deployed headers (`wrangler dev --local`) and asserts `lighthouserc.json`'s thresholds over three runs. PR previews run Lighthouse too, reported only.
+- **Timings.** `cargo xtask viewer-perf --gate` runs the viewer's harness three times in Chromium and compares each figure's median with its web-app §4 target plus 25 %. A shared runner is noisier than a dedicated one: the median and the margin keep a slow neighbour from failing a release, while a real regression still shows. A miss fails the release unless `packages/viewer/perf/waivers.json` names it with an issue and the version that fixes it, with the owner's approval. The nightly keeps reporting the raw figures against the targets with no margin.
+
+These are the only wall-clock checks that can fail a run, and they run only for a release tag, never on a pull request.

@@ -1,0 +1,15 @@
+---
+// The privacy promises on the home page: the first five headings of the privacy page, each a link
+// to its section there.
+import { PRIVACY_PROMISES } from "../../data/copy.js";
+import { PROMISES, sectionId } from "../../data/privacy.js";
+---
+
+<section id="privacy" class="home-section" aria-labelledby="privacy-title">
+  <h2 id="privacy-title">{PRIVACY_PROMISES.heading}</h2>
+  <p>{PRIVACY_PROMISES.intro}</p>
+  <ul class="parts">
+    {PROMISES.slice(0, 5).map((promise) => <li><a href={`/privacy/#${sectionId(promise.heading)}`}>{promise.heading}</a></li>)}
+  </ul>
+  <p><a href="/privacy/">{PRIVACY_PROMISES.more}</a></p>
+</section>
