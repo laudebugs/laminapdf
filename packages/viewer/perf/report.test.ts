@@ -23,7 +23,7 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
     version: "141.0",
     quick: false,
     machine: { cpu: "Test CPU", cores: 8, memoryBytes: 16 * 1024 * MB, os: "Darwin 25.0" },
-    firstPage: { warmMs: 400, coldMs: 2500 },
+    firstPage: { warmMs: 400, coldMs: 2500, coldLinkMs: 2900 },
     scroll: {
       passes: [recording(), recording()],
       settled: [memory(200 * MB), memory(205 * MB)],
@@ -68,18 +68,25 @@ describe("find checks", () => {
 
 describe("checks", () => {
   it("passes a run that meets every target, at the boundaries too", () => {
-    const r = result({ firstPage: { warmMs: TARGETS.firstPageWarmMs, coldMs: TARGETS.firstPageColdMs } });
+    const r = result({
+      firstPage: {
+        warmMs: TARGETS.firstPageWarmMs,
+        coldMs: TARGETS.firstPageColdMs,
+        coldLinkMs: TARGETS.firstPageColdMs,
+      },
+    });
     expect(checks(r).every((c) => c.pass !== false)).toBe(true);
   });
 
   it("marks each target a run misses", () => {
     const r = result({
-      firstPage: { warmMs: 701, coldMs: 3001 },
+      firstPage: { warmMs: 701, coldMs: 3001, coldLinkMs: 3001 },
       fling: { toSharpMs: 301, counters: { ...counters, drawsOnUnmounted: 1 } },
     });
     const c = byName(r);
     expect(c["First page, 10-page file, warm"]?.pass).toBe(false);
-    expect(c["First page, 10-page file, cold on Fast 4G"]?.pass).toBe(false);
+    expect(c["First page, 10-page file on the device, cold on Fast 4G"]?.pass).toBe(false);
+    expect(c["First page, 10-page file from a link, cold on Fast 4G"]?.pass).toBe(false);
     expect(c["Pages sharp after scrolling stops"]?.value).toBe("301 ms");
     expect(c["Pages sharp after scrolling stops"]?.pass).toBe(false);
     expect(c["Cancelled renders that painted"]?.pass).toBe(false);
@@ -115,8 +122,9 @@ describe("checks", () => {
   });
 
   it("leaves the cold first page unjudged where it wasn't measured", () => {
-    const c = byName(result({ browser: "firefox", firstPage: { warmMs: 400, coldMs: null } }));
-    expect(c["First page, 10-page file, cold on Fast 4G"]?.pass).toBeNull();
+    const c = byName(result({ browser: "firefox", firstPage: { warmMs: 400, coldMs: null, coldLinkMs: null } }));
+    expect(c["First page, 10-page file on the device, cold on Fast 4G"]?.pass).toBeNull();
+    expect(c["First page, 10-page file from a link, cold on Fast 4G"]?.pass).toBeNull();
   });
 });
 
@@ -124,7 +132,7 @@ describe("summary", () => {
   it("has a column per browser and marks each judged cell", () => {
     const text = summary([
       result(),
-      result({ browser: "webkit", version: "26.0", firstPage: { warmMs: 800, coldMs: null } }),
+      result({ browser: "webkit", version: "26.0", firstPage: { warmMs: 800, coldMs: null, coldLinkMs: null } }),
     ]);
     expect(text).toContain("| Check | Target | chromium 141.0 | webkit 26.0 |");
     expect(text).toContain("| First page, 10-page file, warm | ≤ 700 ms | 400 ms (pass) | 800 ms (miss) |");
@@ -158,6 +166,7 @@ describe("historyEntries", () => {
     expect(historyEntries(result())).toEqual({
       "first-page-warm": 400_000_000,
       "first-page-cold": 2_500_000_000,
+      "first-page-cold-link": 2_900_000_000,
       "scroll-longest-frame": 20_000_000,
       "to-sharp": 280_000_000,
       "zoom-to-sharp": 200_000_000,
@@ -166,6 +175,8 @@ describe("historyEntries", () => {
       "memory-peak-bytes": 300 * MB,
       "mobile-memory-peak-bytes": 140 * MB,
     });
-    expect(historyEntries(result({ firstPage: { warmMs: 1, coldMs: null } }))).not.toHaveProperty("first-page-cold");
+    expect(historyEntries(result({ firstPage: { warmMs: 1, coldMs: null, coldLinkMs: null } }))).not.toHaveProperty(
+      "first-page-cold",
+    );
   });
 });

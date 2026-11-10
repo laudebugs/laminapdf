@@ -251,7 +251,8 @@ It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails 
 | Scenario | Measures | Target |
 | --- | --- | --- |
 | Open the 10-page file, warm (after a reload) | time to the first page's first paint | ≤ 700 ms |
-| The same, cold, on Chrome DevTools' Fast 4G (Chromium only) | time from navigation to the first page | ≤ 3 s |
+| The same, cold, on Chrome DevTools' Fast 4G (Chromium only), the file on the device | time from navigation to the first page | ≤ 3 s |
+| The same, cold, the file from a link (Range requests, as a `#url=` link reads it) | time from navigation to the first page | ≤ 3 s (reported) |
 | Scroll the 1,000-page file end to end, twice, with wheel steps every 20 ms; stop at a quarter, a half and three quarters | the longest main-thread task, time to sharp after each stop, peak memory, memory after each pass, cancelled renders that painted | no task > 50 ms; sharp ≤ 300 ms; ≤ 600 MB; second pass ≤ first + 5 %; 0 |
 | Fling across the 300 image pages, then stop | time to sharp | ≤ 300 ms |
 | Three ctrl+wheel bursts in and out on the 10-page file | the longest frame, time to sharp after each burst | reported |
@@ -265,4 +266,6 @@ It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails 
 **First measurements and tuning.** The first full run (Chromium 153 on a 4-core Linux container, 2026-11-05) came in under every scrolling and memory target, a first reading until the reference machine's numbers arrive. It had no long task while scrolling, pages were sharp 0–17 ms after a scroll stopped and 33 ms after a fling, memory peaked at 302 MB, the second pass ended 0.5 % above the first, and no cancelled render painted. So the defaults above stay: a margin of 2 pages or one viewport, a pool of 12 canvases and 64 million pixels, a 256 MB bitmap cache, 512 CSS px tiles and a 150 ms settle. It missed one target and found one slow spot, both for [C7c](../../docs/todos/ongoing/C7c-performance-gates-and-launch.md):
 
 - **The cold first page took 4.2 s on Fast 4G (target 3 s).** The download alone takes about 3.7 s at Fast 4G's 1 MB/s: PDFium's WebAssembly (2.2 MB gzipped), Lamina PDF's base module (0.4 MB) and the 1 MB file.
+
+**Cold first page (C7d, 2026-11-10).** By then the cold page took 5.2 s, and a trace of the worker's requests showed why. Lamina PDF's base module and PDFium downloaded one after the other; the link layer's first call needed the extract module (710 KB), and the worker answers one call at a time, so the first page's render waited for that download; and the harness fetched the whole 1 MB file over the throttled network, which a file chosen on the device never costs. Now `ViewerClient.create` compiles PDFium on the page while the worker loads its base module, the text, structure, reading-order and link calls wait for the open document's first drawn page (2 s at most), and the extract module loads after it. A file on the device paints its first page in 3.3 s, a linked 1 MB file in 4.75 s (opening reads most of this file, whose page objects are spread through it). The release gate holds the device case to the target plus its margin; the linked case is reported.
 - **Zooming in took about 1.2 s to sharp, with a 317 ms frame.** Zooming out took about 300 ms. The plan sets no zoom target.

@@ -16,8 +16,16 @@ async function fixture(name: string): Promise<Blob> {
   return response.blob();
 }
 
-const auto = new URLSearchParams(location.search).get("open");
-const autoFile = auto === null ? undefined : fixture(auto);
+const params = new URLSearchParams(location.search);
+const auto = params.get("open");
+// `&remote` opens it by its address, with Range requests from the document worker, as the reader
+// opens a linked file; otherwise the page fetches it whole, as a file chosen on the device arrives.
+const autoFile =
+  auto === null
+    ? undefined
+    : params.has("remote")
+      ? Promise.resolve({ url: new URL(`./${auto}.pdf`, location.href).href })
+      : fixture(auto);
 
 const client = await ViewerClient.create({ backend: { backend: "pdfium", wasm: pdfiumWasm } });
 const viewer = createViewer({ client });

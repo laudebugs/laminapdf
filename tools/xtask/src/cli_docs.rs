@@ -63,25 +63,8 @@ pub(crate) fn run(ws: &Workspace) -> Result<()> {
 /// dependencies (the `mcp` feature on, as dist builds it) from cargo-about, offline.
 pub(crate) fn dist_files(ws: &Workspace) -> Result<()> {
     run(ws)?;
-    crate::doctor::require(ws, &crate::doctor::cargo_about())?;
-    let cli = ws.root.join("crates/laminapdf-cli");
     let notices = ws.root.join("target/cli-docs/THIRD_PARTY_NOTICES.md");
-    let notices_arg = notices.to_string_lossy().into_owned();
-    let args = [
-        "about",
-        "generate",
-        "--locked",
-        "--offline",
-        "--fail",
-        "--config",
-        "about/about.toml",
-        "--features",
-        "mcp",
-        "about/notices.hbs",
-        "--output-file",
-        notices_arg.as_str(),
-    ];
-    crate::run(&cli, "cargo", &args)?;
+    crate::notices::generate(ws, &ws.root.join("crates/laminapdf-cli"), &["mcp"], &notices)?;
     println!("cli-dist: third-party notices in {}", notices.display());
     Ok(())
 }
