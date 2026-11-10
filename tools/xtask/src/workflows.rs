@@ -412,6 +412,8 @@ mod tests {
         let checks = lines_of(WEB_DEPLOY, "jobs", "production-checks").join("\n");
         assert!(checks.contains("run: cargo xtask web check-tag \"$TAG\""));
         assert!(checks.contains("run: LAMINA_PDF_WEB_VERSION=\"${TAG#web-v}\" cargo xtask web build"));
+        // The e2e suite checks Settings › About against the same version the build was given.
+        assert!(checks.contains("run: LAMINA_PDF_WEB_VERSION=\"${TAG#web-v}\" pnpm --filter @laminapdf/web run e2e"));
         let production = lines_of(WEB_DEPLOY, "jobs", "production");
         let release = production.join("\n");
         assert!(

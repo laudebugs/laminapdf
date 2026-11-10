@@ -456,7 +456,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: cargo xtask web check-tag "$TAG"
-      # Settings › About shows the release's version (apps/web/vite.config.ts).
+      # Settings › About shows the release's version (apps/web/plugins/app-version.ts).
       - name: Build the reader
         env:
           TAG: ${{ github.ref_name }}
@@ -464,10 +464,12 @@ jobs:
       - name: Typecheck the reader
         run: pnpm --filter @laminapdf/web run typecheck:wasm
       - uses: ./.github/actions/playwright-chromium
+      # The same version the build was given, which Settings › About must show.
       - name: The reader's e2e suite in Chromium
         env:
           LAMINA_PDF_E2E_BROWSER: chromium
-        run: pnpm --filter @laminapdf/web run e2e
+          TAG: ${{ github.ref_name }}
+        run: LAMINA_PDF_WEB_VERSION="${TAG#web-v}" pnpm --filter @laminapdf/web run e2e
       - name: Release gate - startup JavaScript size
         run: cargo xtask web size
       - name: Release gate - Lighthouse with the deployed headers

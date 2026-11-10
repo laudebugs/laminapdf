@@ -147,7 +147,7 @@ The reader releases on its own schedule, apart from the packages. Once a day, af
 
 ## Releases
 
-Each release is a `web-v<version>` tag on a commit of `main`, with its notes in [CHANGELOG.md](CHANGELOG.md) and its version in `package.json`, which Settings › About shows. Before production deploys, the release lane's `production-checks` job runs the release gates:
+Each release is a `web-v<version>` tag on a commit of `main`, with its notes in [CHANGELOG.md](CHANGELOG.md). Settings › About shows the tag's version, and `package.json` holds the base version a tag's must match in major and minor. Before production deploys, the release lane's `production-checks` job runs the release gates:
 
 - **Startup size:** `cargo xtask web size` checks the scripts the built `index.html` loads at startup, gzipped, against [`size-budget.json`](size-budget.json). The fast lane runs the same check on every pull request.
 - **Lighthouse:** `pnpm --filter @laminapdf/web lighthouse:local` serves the build with its deployed headers and checks [`lighthouserc.json`](lighthouserc.json)'s scores.
