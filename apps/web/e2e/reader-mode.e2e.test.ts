@@ -1,9 +1,11 @@
 // Reader mode in the built reader (todo U4b), in this run's browser: a tagged file reads in its
 // structure tree's order, its figure, formula and table drawn as crops named by their alternate
 // text and never reflowed as text; leaving comes back to the page region the column was at
-// (within one block); an untagged file says why reader mode isn't available; the settings change
-// the column, which at its largest text and a narrow window never scrolls sideways; Escape leaves;
-// and the column passes axe. No CSP violation or other origin throughout.
+// (within one block); an untagged file reads approximately (todo U4c), labelled so, each block's
+// "View original page" leaving at its place, and a page whose column order is doubted shown as its
+// image; the settings change the column, which at its largest text and a narrow window never
+// scrolls sideways; Escape leaves; and the column passes axe. No CSP violation or other origin
+// throughout.
 
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -103,15 +105,42 @@ describe(`reader mode in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("says why an untagged file has no reader mode, and goes back to the page", async () => {
-    const watched = await open("hello.pdf");
+  it("reads an untagged file approximately, says so, and leaves at a block's place on its page", async () => {
+    const watched = await open("../reading-order/two-columns-reversed.pdf");
     const { page } = watched;
-    await page.getByRole("button", { name: "Reader mode" }).first().click();
-    await page.getByRole("heading", { name: "Reader mode isn't available for this document" }).waitFor();
-    await page.getByText("It has no tags").waitFor();
-    // Escape leaves the empty state too, as the column does.
-    await page.keyboard.press("Escape");
+    await enter(page);
+    const view = column(page);
+    await view.getByText("Approximate", { exact: true }).waitFor();
+    await expect.poll(() => view.getByRole("status").textContent()).toContain("This file has no tags");
+    // The second column's first paragraph: drawn first, read second.
+    const blocks = view.locator("[data-block]");
+    await expect.poll(() => blocks.count()).toBeGreaterThan(2);
+    const block = blocks.nth(2);
+    await block.hover();
+    await block.getByRole("button", { name: /View original page \(page 1\)/ }).click();
+    await expect.poll(() => column(page).count()).toBe(0);
+    // Back on the page, the block's box is outlined for a moment.
+    await page.locator(".web-reader-origin").waitFor({ state: "attached" });
+    await clean(watched);
+  });
+
+  it("shows a page whose column order extraction doubts as its image, with the way to open it", async () => {
+    const watched = await open("../reading-order/narrow-gutter-ordered.pdf");
+    const { page } = watched;
+    await enter(page);
+    const view = column(page);
+    await view.getByRole("img", { name: "Page 1" }).waitFor();
+    await view.getByText("couldn't tell the order of this page's text").waitFor();
+    // The page is drawn once it is near the view, and its text is there for screen readers.
+    await expect
+      .poll(() => view.locator(".paper-reader-page-image canvas").evaluate((c: HTMLCanvasElement) => c.width))
+      .toBeGreaterThan(0);
+    expect(await view.locator(".paper-reader-page-image .paper-visually-hidden").textContent()).toContain(
+      "Ribbon pocket lemon zephyr",
+    );
+    await view.getByRole("button", { name: "Open page 1" }).click();
     await page.locator(".web-viewer canvas").first().waitFor({ state: "visible" });
+    await expect.poll(() => column(page).count()).toBe(0);
     await clean(watched);
   });
 

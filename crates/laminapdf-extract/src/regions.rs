@@ -60,7 +60,8 @@ fn holds(region: &RectPt, (x, y): (f64, f64)) -> bool {
     region.x0.get() <= x && x <= region.x1.get() && region.y0.get() <= y && y <= region.y1.get()
 }
 
-fn area(bbox: &RectPt) -> f64 {
+/// A box's area, in square points.
+pub(crate) fn area(bbox: &RectPt) -> f64 {
     bbox.width().get() * bbox.height().get()
 }
 

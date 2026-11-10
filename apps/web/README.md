@@ -65,19 +65,21 @@ Browser extensions make requests no page can see, so the panel says so; your bro
 
 ## Reader mode
 
-Reader mode turns a tagged PDF into one column of text that the reader can size. It opens from the Reader button in the top bar, the `R` key, or "Reader mode" in the command palette. The column follows the file's structure tree, so headings, lists, quotes and notes come out as real HTML in the order the author tagged, whatever order the page draws them in. Figures, formulas and tables stay pictures: each is a crop of its page, drawn by the document worker, named by its alternate text or by "The file gives no description of it". Reader settings (in the inspector) set the text size from 14 to 32 px, the line spacing and the line length, for every document. The column takes the page's paper and ink.
+Reader mode turns a PDF into one column of text that the reader can size. It opens from the Reader button in the top bar, the `R` key, or "Reader mode" in the command palette. Reader settings (in the inspector) set the text size from 14 to 32 px, the line spacing and the line length, for every document. The column takes the page's paper and ink.
 
-Reader mode keeps the reader's place both ways. It starts the column at the block at the top of the page view, and "Back to page n", Escape or the toggle return the page view to the block at the column's top. The page view stays laid out under the column, unseen and inert, so it can move there at once.
+For a tagged PDF, the column follows the file's structure tree, so headings, lists, quotes and notes come out as real HTML in the order the author tagged, whatever order the page draws them in. Figures, formulas and tables stay pictures: each is a crop of its page, drawn by the document worker, named by its alternate text or by "The file gives no description of it". A crop is drawn only when it comes within a screen of the view, and its pixels are freed once it scrolls far away, so a long scan doesn't hold every page at once. The text a crop holds, such as a table's cells or a page image's text, follows it for screen readers.
 
-Reader mode checks a file's tree before it shows anything, since many tagged files are tagged badly. It refuses:
+Many files have no tags, or tags that don't match their pages, so reader mode checks the tree before it trusts it. It turns to the page layout when:
 
-- a file with no tags;
-- an empty tree;
-- a tree whose content sits mostly in bare spans;
-- a tree that covers too little of the visible text on more than a quarter of its pages;
-- a tree whose order the pages' layout contradicts.
+- the file has no tags;
+- the tree is empty;
+- the tree's content sits mostly in bare spans;
+- the tree covers too little of the visible text on more than a quarter of its pages;
+- the pages' layout contradicts the tree's order.
 
-The column then shows "Reader mode isn't available for this document" and Back to page. The checks run in `laminapdf-extract` (`reflow`), and the reflow comes from the extract module only, which the reader loads.
+The column then reads the page layout the way extraction does: columns in order, headings by size and weight, list items by their markers, running heads and feet left out. A badge says "Approximate", and a notice explains why and asks the reader to check figures and numbers against the page. Tables and pictures are crops, and a "Figure" or "Table" line next to one is its caption. Each block offers "View original page" on hover or focus, which leaves reader mode at the block and outlines it on the page for two seconds. A scanned page, or one whose column order extraction doubts, is shown as its picture with one sentence of reason and "Open page n", rather than as text in an order that may be wrong.
+
+Reader mode keeps the reader's place both ways. It starts the column at the block at the top of the page view, and "Back to page n", Escape or the toggle return the page view to the block at the column's top. The page view stays laid out under the column, unseen and inert, so it can move there at once. Only a file with no text and no picture on any page shows "Reader mode isn't available for this document". The checks and the layout reading run in `laminapdf-extract` (`reflow`), and the reflow comes from the extract module only, which the reader loads.
 
 ## Printing, downloads and properties
 

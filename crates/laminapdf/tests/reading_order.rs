@@ -18,6 +18,13 @@
 //!   characters, `got` being the block's tokens joined as the block is written (with spaces,
 //!   or none for text without spaces; two empty texts score 1);
 //! * **score** = (order + text) / 2. The corpus score is the mean over files.
+//!
+//! The approximate reader mode (todo U4c) is scored the same way, its blocks' text standing for
+//! the lines, against `approximate.mean` in the same file (its own ratchet), and per file against
+//! copy as paragraph's order (U2a: extraction's blocks, running heads and feet kept), which it
+//! must never trail. A page shown as its image keeps all its text in order, so it would score 1
+//! whatever the layout; `approximate.pageImages` caps how many pages may fall back to their image,
+//! a ratchet that only goes down.
 #![cfg(feature = "text")]
 #![allow(
     clippy::unwrap_used,
@@ -234,8 +241,8 @@ fn extra_text_is_counted_but_not_scored() {
     assert_eq!((s.order, s.text, s.unassigned), (1.0, 1.0, 2));
 }
 
-/// One corpus file: its name, the expected blocks in reading order, and its scores.
-fn run_corpus() -> Vec<(String, Score)> {
+/// Every corpus file's score, its text in order as `read` gives it.
+fn score_corpus(read: impl Fn(&Document) -> Vec<String>) -> Vec<(String, Score)> {
     let mut files: Vec<PathBuf> = std::fs::read_dir(corpus_dir())
         .unwrap()
         .map(|e| e.unwrap().path())
@@ -255,23 +262,28 @@ fn run_corpus() -> Vec<(String, Score)> {
                 .collect();
             let pdf = json.with_extension("pdf");
             let doc = Document::open_bytes(std::fs::read(&pdf).unwrap(), OpenOptions::default()).unwrap();
-            let lines: Vec<String> = doc
-                .page_texts(&TextOptions::new())
-                .unwrap()
-                .iter()
-                .flat_map(laminapdf::extract::PageText::lines)
-                .collect();
+            let lines = read(&doc);
             let name = json.file_stem().unwrap().to_string_lossy().into_owned();
             (name, score(&blocks, &lines))
         })
         .collect()
 }
 
-/// The score table, as Markdown.
-fn table(scores: &[(String, Score)], mean: f64, threshold: f64) -> String {
-    let mut out = String::from(
-        "## Reading order (todo U2b)\n\n| File | Order | Text | Score | Unassigned |\n| --- | ---: | ---: | ---: | ---: |\n",
-    );
+/// Content order: the lines `page_texts` returns (U2b).
+fn run_corpus() -> Vec<(String, Score)> {
+    score_corpus(|doc| {
+        doc.page_texts(&TextOptions::new())
+            .unwrap()
+            .iter()
+            .flat_map(laminapdf::extract::PageText::lines)
+            .collect()
+    })
+}
+
+/// The score table, as Markdown, headed `title`.
+fn table(title: &str, scores: &[(String, Score)], mean: f64, threshold: f64) -> String {
+    let mut out =
+        format!("## {title}\n\n| File | Order | Text | Score | Unassigned |\n| --- | ---: | ---: | ---: | ---: |\n");
     for (name, s) in scores {
         let _ = writeln!(
             out,
@@ -295,7 +307,7 @@ fn the_corpus_meets_the_ratchet_threshold() {
     let mean = scores.iter().map(|(_, s)| s.total()).sum::<f64>() / scores.len() as f64;
     let file: Value = serde_json::from_slice(&std::fs::read(corpus_dir().join("threshold.json")).unwrap()).unwrap();
     let threshold = file["mean"].as_f64().unwrap();
-    let report = table(&scores, mean, threshold);
+    let report = table("Reading order (todo U2b)", &scores, mean, threshold);
     println!("{report}");
     // Into the job summary once per run of the fast lane's `rust` job (not every job that
     // runs the tests).
@@ -319,5 +331,80 @@ fn the_corpus_meets_the_ratchet_threshold() {
         "reading-order score {mean:.4} rose past the threshold {threshold:.4}: raise `mean` in \
          fixtures/reading-order/threshold.json to {:.4} (the ratchet only goes up)\n{report}",
         (mean * 10_000.0).floor() / 10_000.0
+    );
+}
+
+/// The corpus mean of `scores`.
+fn mean(scores: &[(String, Score)]) -> f64 {
+    scores.iter().map(|(_, s)| s.total()).sum::<f64>() / scores.len() as f64
+}
+
+#[cfg(feature = "reflow")]
+#[test]
+fn the_approximate_reader_mode_meets_its_ratchet_and_never_trails_copy_as_paragraph() {
+    use laminapdf::CancelToken;
+    use laminapdf::extract::ExtractOptions;
+
+    let page_images = std::cell::Cell::new(0_usize);
+    let reader = score_corpus(|doc| {
+        let reflow = doc.reflow(&CancelToken::new()).unwrap();
+        page_images.set(page_images.get() + reflow.checks.page_images);
+        reflow
+            .blocks
+            .into_iter()
+            .map(|b| b.text)
+            .filter(|t| !t.is_empty())
+            .collect()
+    });
+    let paragraph = score_corpus(|doc| {
+        let mut options = ExtractOptions::new();
+        options.drop.furniture = false;
+        doc.extract(&options)
+            .unwrap()
+            .blocks
+            .into_iter()
+            .map(|b| b.text)
+            .collect()
+    });
+    let got = mean(&reader);
+    let file: Value = serde_json::from_slice(&std::fs::read(corpus_dir().join("threshold.json")).unwrap()).unwrap();
+    let threshold = file["approximate"]["mean"].as_f64().unwrap();
+    let most_images = usize::try_from(file["approximate"]["pageImages"].as_u64().unwrap()).unwrap();
+    let mut report = table("Approximate reader mode (todo U4c)", &reader, got, threshold);
+    let images = page_images.get();
+    let _ = writeln!(
+        report,
+        "\nPages shown as their image: **{images}** (at most {most_images})."
+    );
+    println!("{report}");
+    assert!(
+        images <= most_images,
+        "{images} pages fell back to their image, more than `approximate.pageImages` \
+         ({most_images}) in fixtures/reading-order/threshold.json\n{report}"
+    );
+    assert!(
+        images >= most_images,
+        "only {images} pages fell back to their image: lower `approximate.pageImages` in \
+         fixtures/reading-order/threshold.json to {images} (the ratchet only goes down)\n{report}"
+    );
+    let behind: Vec<String> = reader
+        .iter()
+        .zip(&paragraph)
+        .filter(|((_, r), (_, p))| r.total() < p.total() - 1e-9)
+        .map(|((name, r), (_, p))| format!("{name}: {:.3} < {:.3}", r.total(), p.total()))
+        .collect();
+    assert!(
+        behind.is_empty(),
+        "reader mode trails copy as paragraph on {behind:#?}\n{report}"
+    );
+    assert!(
+        got >= threshold - 1e-9,
+        "approximate reader mode score {got:.4} fell below the threshold {threshold:.4}\n{report}"
+    );
+    assert!(
+        got <= threshold + RATCHET_SLACK,
+        "approximate reader mode score {got:.4} rose past the threshold {threshold:.4}: raise \
+         `approximate.mean` in fixtures/reading-order/threshold.json to {:.4}\n{report}",
+        (got * 10_000.0).floor() / 10_000.0
     );
 }

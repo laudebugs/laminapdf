@@ -278,6 +278,7 @@ export {
   DEFAULT_READER_SETTINGS,
   isCropBlock,
   READER_TEXT_SIZES,
+  type ReaderApproximation,
   type ReaderBlock,
   type ReaderLineLength,
   type ReaderLineSpacing,

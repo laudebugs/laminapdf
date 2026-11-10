@@ -741,6 +741,12 @@ const READER_BLOCKS = [
   { kind: "quote", text: "The new crews cleared the oldest jobs first, as the board asked.", page: 3 },
 ] as const;
 
+/** The same report read from its layout: a page shown as its image after the reflowed text. */
+const APPROXIMATE_BLOCKS = [
+  ...READER_BLOCKS.slice(0, 4),
+  { kind: "page-image", why: "uncertain", text: "", page: 3 },
+] as const;
+
 /** A crop as the app draws it: a block of the page's paper. */
 const crop = () => <span className="paper-skeleton" aria-hidden="true" />;
 
@@ -760,10 +766,25 @@ const readerMode: Example[] = [
   },
   {
     component: "ReaderView",
+    state: "approximate",
+    element: () => (
+      <ReaderView
+        content={{ status: "ready", blocks: APPROXIMATE_BLOCKS, lang: "en", approximate: "untagged" }}
+        settings={DEFAULT_READER_SETTINGS}
+        pageName="3"
+        onBack={noop}
+        renderCrop={crop}
+        onViewOriginal={noop}
+        onOpenPage={noop}
+      />
+    ),
+  },
+  {
+    component: "ReaderView",
     state: "not available",
     element: () => (
       <ReaderView
-        content={{ status: "unavailable", untagged: false }}
+        content={{ status: "unavailable" }}
         settings={DEFAULT_READER_SETTINGS}
         pageName="3"
         onBack={noop}

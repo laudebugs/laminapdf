@@ -63,7 +63,7 @@ SumatraPDF is the most-loved reader of the decade on Hacker News, and its saved 
 
 - Positions that follow the reader across devices (want 8, 159 comments): it needs accounts and ADR 0011 §6's end-to-end encryption; the hosted-service rounds ([H4](./H4-document-sync.md)).
 - Desktop tabs and windows after a restart: [D4a](./D4a-windows-tabs-and-session-restore.md). The desktop's recent list: [D3b](./D3b-recent-files-and-file-watching.md).
-- A position inside reader mode's reflowed text ([U4b](../done/U4b-reader-mode-from-structure-tree.md), [U4c](./U4c-approximate-reader-mode.md)): later, once reader mode exists.
+- A position inside reader mode's reflowed text ([U4b](../done/U4b-reader-mode-from-structure-tree.md), [U4c](../done/U4c-approximate-reader-mode.md)): later, once reader mode exists.
 - Page appearance remembered per document (R10's "for this document only"): [U2c](../done/U2c-page-appearance-modes.md). It can key its records by the same fingerprint.
 
 ## Tasks

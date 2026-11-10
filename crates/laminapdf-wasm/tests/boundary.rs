@@ -312,15 +312,15 @@ fn page_text_crosses_as_a_struct_of_arrays() {
 /// `WasmDocument.reflow` (the extract module): reader mode's JSON in one string.
 #[cfg(feature = "reflow")]
 #[wasm_bindgen_test]
-fn reflow_crosses_as_json_and_refuses_an_untagged_file() {
+fn reflow_crosses_as_json_and_reads_an_untagged_file_approximately() {
     const MIXED: &[u8] = include_bytes!("../../../fixtures/reflow/mixed.pdf");
     let doc = WasmDocument::open_bytes(MIXED.to_vec(), &JsValue::UNDEFINED).unwrap();
     let json = doc.reflow().unwrap();
-    assert!(json.starts_with(r#"{"available":true,"#), "{json}");
+    assert!(json.starts_with(r#"{"available":true,"source":"tags","#), "{json}");
     assert!(json.contains(r#""kind":"figure""#) && json.contains(r#""alt":"Four coloured squares in a grid""#));
     let untagged = hello().reflow().unwrap();
     assert!(
-        untagged.starts_with(r#"{"available":false,"reason":"untagged""#),
+        untagged.starts_with(r#"{"available":true,"source":"approximate","reason":"untagged""#),
         "{untagged}"
     );
 }

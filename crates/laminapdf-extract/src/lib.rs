@@ -77,5 +77,5 @@ pub use plugins::{
     PageRaster, PageRenderer, RegionLabel,
 };
 #[cfg(feature = "reflow")]
-pub use reflow::{Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal, reflow};
+pub use reflow::{PageImageReason, Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal, ReflowSource, reflow};
 pub use tables::TableMode;

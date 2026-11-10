@@ -25,7 +25,7 @@ describe("reflow", () => {
   it("lists the blocks in the tree's order, the figure, formula and table as crops with their alt", () => {
     using doc = Document.open(read("fixtures/reflow/mixed.pdf"));
     const reflow = doc.reflow();
-    expect(reflow.available).toBe(true);
+    expect([reflow.available, reflow.source]).toEqual([true, "tags"]);
     expect(reflow.blocks.map((b) => b.kind)).toEqual([
       "heading",
       "paragraph",
@@ -42,14 +42,15 @@ describe("reflow", () => {
     expect(figure?.bbox).toEqual([56, 180, 160, 110]);
   });
 
-  it("refuses a reversed tree for its order", () => {
+  it("reads a reversed tree from the layout instead, saying why", () => {
     using doc = Document.open(read("fixtures/reflow/two-columns-tree-reversed.pdf"));
     const reflow = doc.reflow();
-    expect({ available: reflow.available, reason: reflow.reason, blocks: reflow.blocks }).toEqual({
-      available: false,
+    expect({ available: reflow.available, source: reflow.source, reason: reflow.reason }).toEqual({
+      available: true,
+      source: "approximate",
       reason: "order",
-      blocks: [],
     });
+    expect(reflow.blocks.length).toBeGreaterThan(0);
     expect(reflow.checks.agreement).toBe(-1);
   });
 });

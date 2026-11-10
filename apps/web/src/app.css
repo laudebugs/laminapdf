@@ -125,3 +125,29 @@ body {
   color: var(--paper-text-3);
   font: var(--paper-type-caption);
 }
+
+/* "View original page": the block's box on its page, outlined for a moment (reader-origin.ts). */
+.web-reader-origin {
+  position: absolute;
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset-tight);
+  border-radius: 2px;
+  pointer-events: none;
+  animation: web-reader-origin 2s ease-out forwards;
+}
+
+@keyframes web-reader-origin {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .web-reader-origin {
+    animation: none;
+  }
+}
