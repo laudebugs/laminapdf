@@ -126,6 +126,38 @@
     align-content: start;
   }
 
+  /* On a phone the dialog is a sheet (§7.18) as wide as the screen: one column, the sections a
+     row of equal buttons above the chosen one's fields (a long name wraps rather than pushing the
+     row past the edge), and no heading repeating the section the row already marks; the section
+     keeps its name for assistive technology (aria-label). Tighter gaps keep more options in view. */
+  .paper-sheet .paper-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--paper-space-12);
+  }
+
+  .paper-sheet .paper-settings-nav ul {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--paper-space-4);
+  }
+
+  .paper-sheet .paper-settings-nav .paper-button {
+    justify-content: center;
+    block-size: auto;
+    min-block-size: max(var(--paper-button-height), var(--ui-target));
+    white-space: normal;
+    text-align: center;
+  }
+
+  .paper-sheet .paper-settings-heading {
+    display: none;
+  }
+
+  .paper-sheet .paper-settings-section,
+  .paper-sheet .paper-settings-fields {
+    gap: var(--paper-space-16);
+  }
+
   @media (forced-colors: active) {
     .paper-accent-dot {
       forced-color-adjust: none;
