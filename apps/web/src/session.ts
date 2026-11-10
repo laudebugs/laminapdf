@@ -35,7 +35,7 @@ import type { NetworkMonitor } from "./network/monitor.ts";
 import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
 import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
-import { type KeptView, keptPosition, recordPosition } from "./reading/positions.ts";
+import { type KeptView, keptPosition, type PositionRecorder, recordPosition } from "./reading/positions.ts";
 import { readChoices } from "./storage-choices.ts";
 
 /** A document's properties, as the document worker reads them. */
@@ -216,8 +216,8 @@ export class Engine implements ExternalStore<EngineState> {
   /** Where reading positions are kept. */
   readonly #platform: Platform;
 
-  /** Stops recording the open document's position, saving it one last time. */
-  #recording: (() => void) | undefined;
+  /** Records the open document's position. */
+  #recording: PositionRecorder | undefined;
 
   constructor(
     platform: Platform,
@@ -449,6 +449,8 @@ export class Engine implements ExternalStore<EngineState> {
     this.#turn += 1;
     const turn = this.#turn;
     const latest = () => turn === this.#turn;
+    // The open document's place is saved now: the same file opened again reads it back.
+    this.#recording?.flush();
     const session = await this.#session;
     const started = performance.now();
     let opened: OpenedFile;
@@ -544,7 +546,7 @@ export class Engine implements ExternalStore<EngineState> {
   }
 
   #stopRecording(): void {
-    this.#recording?.();
+    this.#recording?.stop();
     this.#recording = undefined;
   }
 

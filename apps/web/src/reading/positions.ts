@@ -27,12 +27,15 @@ export function parseView(view: unknown): KeptView | undefined {
   const { point, zoom, rotation } = view as Partial<Record<keyof KeptView, unknown>>;
   if (typeof point !== "object" || point === null) return undefined;
   const { page, x, y } = point as Partial<Record<"page" | "x" | "y", unknown>>;
-  const fraction = (v: unknown): v is number => typeof v === "number" && v >= 0 && v <= 1;
-  if (typeof page !== "number" || !Number.isInteger(page) || page < 0 || !fraction(x) || !fraction(y)) return undefined;
+  // A point beside the page (the viewport's edge left of a page narrower than it) is a place on
+  // the page's edge: clamped, not refused.
+  const finite = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+  if (typeof page !== "number" || !Number.isInteger(page) || page < 0 || !finite(x) || !finite(y)) return undefined;
   const zoomOk =
     (typeof zoom === "number" && zoom >= 10 && zoom <= 800) || (typeof zoom === "string" && MODES.has(zoom));
   if (!zoomOk || (rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270)) return undefined;
-  return { point: { page, x, y }, zoom: zoom as KeptView["zoom"], rotation };
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  return { point: { page, x: clamp(x), y: clamp(y) }, zoom: zoom as KeptView["zoom"], rotation };
 }
 
 /** The position kept for `fingerprint`, when it is one this file can show. */
@@ -55,16 +58,22 @@ export interface PageVisibility {
   removeEventListener(type: "visibilitychange", listener: () => void): void;
 }
 
+/** A running recorder: `flush` saves now and goes on; `stop` saves a last time and stops. */
+export interface PositionRecorder {
+  flush(): void;
+  stop(): void;
+}
+
 /**
  * Saves `viewer`'s position with `save` {@link SAVE_AFTER_MS} after it stops changing, at once
- * when `page` is hidden (a write on close may not finish), and on the returned function, which
- * stops recording: call it before the viewer shows another document.
+ * when `page` is hidden (a write on close may not finish), on `flush`, and on `stop`, which ends
+ * recording: call it before the viewer shows another document.
  */
 export function recordPosition(
   viewer: Pick<Viewer, "subscribe" | "viewPosition">,
   save: (view: KeptView) => void,
   page: PageVisibility = document,
-): () => void {
+): PositionRecorder {
   let last = viewer.viewPosition();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const flush = () => {
@@ -81,9 +90,12 @@ export function recordPosition(
     if (page.visibilityState === "hidden") flush();
   };
   page.addEventListener("visibilitychange", hidden);
-  return () => {
-    unsubscribe();
-    page.removeEventListener("visibilitychange", hidden);
-    flush();
+  return {
+    flush,
+    stop() {
+      unsubscribe();
+      page.removeEventListener("visibilitychange", hidden);
+      flush();
+    },
   };
 }

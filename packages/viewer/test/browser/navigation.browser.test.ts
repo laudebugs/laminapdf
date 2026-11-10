@@ -266,3 +266,47 @@ describe("restoring a position", () => {
     }
   });
 });
+
+describe("a view opened while hidden", () => {
+  it("starts a new document at its top, not where the last one was scrolled", async () => {
+    const host = box(800, 600, 170);
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(host);
+    try {
+      viewer.open(await rpc.open(thousand));
+      viewer.goToPage(300);
+      await until(() => viewer.getState().visibleRange.first >= 299);
+      host.style.display = "none";
+      viewer.open(await rpc.open(await read("fixtures/golden/links-and-outlines.pdf")));
+      host.style.display = "";
+      await until(() => viewer.getState().scrollTop === 0 && viewer.getState().visibleRange.first === 0);
+    } finally {
+      viewer.destroy();
+      host.remove();
+    }
+  });
+
+  it("restores a kept position once it shows, painting no other page first", async () => {
+    const host = box(800, 600, 170);
+    host.style.display = "none";
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(host);
+    const started: number[] = [];
+    const stop = rpc.on("render-start", ({ page }) => started.push(page));
+    try {
+      viewer.open(await rpc.open(thousand));
+      viewer.restore({ point: { page: 700, x: 0, y: 0 }, zoom: 100, rotation: 0 });
+      // While hidden it already reports where it will be.
+      expect(viewer.viewPosition()?.point.page).toBe(700);
+      await frame();
+      host.style.display = "";
+      await until(() => started.length > 0 && viewer.getState().visibleRange.first >= 699);
+      expect(started.filter((page) => page < 690)).toEqual([]);
+      expect(viewer.history.getState().back?.point.page).toBe(0);
+    } finally {
+      stop();
+      viewer.destroy();
+      host.remove();
+    }
+  });
+});

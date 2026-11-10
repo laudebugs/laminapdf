@@ -29,13 +29,17 @@ describe("a kept view", () => {
       "page 12",
       { ...VIEW, point: { page: -1, x: 0, y: 0 } },
       { ...VIEW, point: { page: 1.5, x: 0, y: 0 } },
-      { ...VIEW, point: { page: 1, x: 2, y: 0 } },
+      { ...VIEW, point: { page: 1, x: Number.NaN, y: 0 } },
       { ...VIEW, zoom: 5000 },
       { ...VIEW, zoom: "huge" },
       { ...VIEW, rotation: 45 },
     ]) {
       expect(parseView(bad)).toBeUndefined();
     }
+  });
+
+  it("clamps a point beside the page onto its edge", () => {
+    expect(parseView({ ...VIEW, point: { page: 3, x: -0.2, y: 1.4 } })?.point).toEqual({ page: 3, x: 0, y: 1 });
   });
 
   it("gives the home screen its page, within the page count", () => {
@@ -104,12 +108,23 @@ describe("the position recorder", () => {
     expect(saved).toEqual([7]);
   });
 
+  it("saves at once on flush and goes on recording", () => {
+    const { viewer, page, moveTo } = fakes();
+    const saved: number[] = [];
+    const recorder = recordPosition(viewer, (view) => saved.push(view.point.page), page);
+    moveTo(5);
+    recorder.flush();
+    moveTo(6);
+    vi.advanceTimersByTime(SAVE_AFTER_MS);
+    expect(saved).toEqual([5, 6]);
+  });
+
   it("saves a last time when it stops, and listens to nothing after", () => {
     const { viewer, page, moveTo, listening } = fakes();
     const saved: number[] = [];
-    const stop = recordPosition(viewer, (view) => saved.push(view.point.page), page);
+    const recorder = recordPosition(viewer, (view) => saved.push(view.point.page), page);
     moveTo(9);
-    stop();
+    recorder.stop();
     expect(saved).toEqual([9]);
     expect(listening()).toBe(0);
     vi.advanceTimersByTime(SAVE_AFTER_MS * 2);

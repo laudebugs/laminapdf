@@ -58,10 +58,21 @@ describe("the Settings dialog's sections", () => {
       ["appearance", "Look"],
       ["storage", "Storage"],
     ]);
-    // The first registration was replaced, so removing it leaves the replacement.
+    // The first registration was replaced, so removing it leaves the replacement and tells no one.
     removeA();
     expect(registry.sections().map((s) => s.id)).toEqual(["appearance", "storage"]);
-    expect(listener).toHaveBeenCalledTimes(4);
+    expect(listener).toHaveBeenCalledTimes(3);
+  });
+
+  it("draw a section again on refresh, as a new object the dialog can't reuse, which its remover still removes", () => {
+    const registry = new SettingsRegistry();
+    const remove = registry.register({ id: "storage", title: "Storage", render: () => null });
+    const before = registry.sections()[0];
+    registry.refresh("storage");
+    expect(registry.sections()[0]).not.toBe(before);
+    expect(registry.sections()[0]?.title).toBe("Storage");
+    remove();
+    expect(registry.sections()).toEqual([]);
   });
 });
 

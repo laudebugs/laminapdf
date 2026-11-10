@@ -340,6 +340,11 @@ export class Viewer {
   #layout: PageLayout | undefined;
   #zoom: Zoom;
   #rotation: Rotation = 0;
+  /**
+   * Where the view goes once it has a size, when it was opened or restored without one (a hidden
+   * host ignores scrolling): the top of a new document, or a kept position.
+   */
+  #pending: ViewPosition | "top" | undefined;
   #state: ViewState;
   #frame: number | undefined;
   #settling: ReturnType<typeof setTimeout> | undefined;
@@ -435,6 +440,8 @@ export class Viewer {
     this.#layout = undefined;
     this.#root.scrollTop = 0;
     this.#root.scrollLeft = 0;
+    // A hidden view keeps its old scroll: the new document starts at its top once it shows.
+    this.#pending = this.#sized() ? undefined : "top";
     this.#relayout(this.#viewport());
     this.#schedule();
   }
@@ -604,6 +611,11 @@ export class Viewer {
    * rotation; `undefined` without a document. {@link restore} puts the view back there.
    */
   viewPosition(): ViewPosition | undefined {
+    const pending = this.#pending;
+    if (pending === "top" && this.#sizes.length > 0) {
+      return { point: { page: 0, x: 0, y: 0 }, zoom: this.#zoom, rotation: this.#rotation };
+    }
+    if (pending !== undefined && pending !== "top") return pending;
     const place = this.#place();
     return place === undefined ? undefined : { ...place, rotation: this.#rotation };
   }
@@ -616,6 +628,13 @@ export class Viewer {
    */
   restore(position: ViewPosition): void {
     if (this.#layout === undefined || this.#sizes.length === 0) return;
+    // Hidden: it takes place once the view has a size (`#listenResize`).
+    if (!this.#sized()) {
+      const page = Math.min(this.#sizes.length - 1, Math.max(0, Math.trunc(position.point.page) || 0));
+      this.#pending = { ...position, point: { ...position.point, page } };
+      return;
+    }
+    this.#pending = undefined;
     this.history.jump(() => {
       if (isRotation(position.rotation) && position.rotation !== this.#rotation) {
         this.#rotation = position.rotation;
@@ -774,6 +793,22 @@ export class Viewer {
     return { width: this.#root.clientWidth || 800, height: this.#root.clientHeight || 600 };
   }
 
+  /** Whether the view has a size (it is in a shown container), so it can scroll. */
+  #sized(): boolean {
+    return this.#root.clientWidth > 0 && this.#root.clientHeight > 0;
+  }
+
+  /** Puts a view that just got its size where it was opened or restored to. */
+  #showPending(pending: ViewPosition | "top"): void {
+    this.#pending = undefined;
+    this.#relayout(this.#viewport());
+    if (pending === "top") {
+      this.#root.scrollTop = 0;
+      this.#root.scrollLeft = 0;
+      this.#schedule();
+    } else this.restore(pending);
+  }
+
   /** The text layer `option` asks for, or none (`false`); it reports the selection as an event too. */
   #textLayer(option: boolean | TextLayerOptions | undefined): TextLayer | undefined {
     if (option === false) return undefined;
@@ -876,7 +911,8 @@ export class Viewer {
     if (this.#frame !== undefined || this.#destroyed) return;
     this.#frame = requestAnimationFrame(() => {
       this.#frame = undefined;
-      this.#update();
+      // A view waiting for its size has only an old scroll to go by: it draws once it is placed.
+      if (this.#pending === undefined) this.#update();
     });
   }
 
@@ -1619,6 +1655,10 @@ export class Viewer {
   #listenResize(): void {
     const resize = new ResizeObserver(() => {
       if (this.#layout === undefined) return;
+      if (this.#pending !== undefined && this.#sized()) {
+        this.#showPending(this.#pending);
+        return;
+      }
       if (typeof this.#zoom === "string") this.#rezoom(undefined);
       else this.#schedule();
     });

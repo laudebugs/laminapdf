@@ -24,15 +24,35 @@ export class SettingsRegistry {
   #sections: readonly SettingsSection[] = [];
   readonly #listeners = new Set<() => void>();
 
+  /** Who registered each section now: its remover removes it only while it is still theirs. */
+  readonly #owners = new Map<string, symbol>();
+
   /** Adds `section`, or replaces the one with its id; returns a function that removes it. */
   register(section: SettingsSection): () => void {
+    const owner = Symbol(section.id);
+    this.#owners.set(section.id, owner);
+    this.#put(section);
+    return () => {
+      if (this.#owners.get(section.id) !== owner) return;
+      this.#owners.delete(section.id);
+      this.#sections = this.#sections.filter((s) => s.id !== section.id);
+      this.#changed();
+    };
+  }
+
+  /**
+   * Has the dialog draw section `id` again (a new object, so nothing drawn before is reused): its
+   * fields close over state that changed.
+   */
+  refresh(id: string): void {
+    const section = this.#sections.find((s) => s.id === id);
+    if (section !== undefined) this.#put({ ...section });
+  }
+
+  #put(section: SettingsSection): void {
     const at = this.#sections.findIndex((s) => s.id === section.id);
     this.#sections = at < 0 ? [...this.#sections, section] : this.#sections.map((s, i) => (i === at ? section : s));
     this.#changed();
-    return () => {
-      this.#sections = this.#sections.filter((s) => s !== section);
-      this.#changed();
-    };
   }
 
   /** The sections now (a new array after each change). */
@@ -53,7 +73,8 @@ export class SettingsRegistry {
 
 /**
  * Registers a section for as long as the calling component is mounted. `render` is read when the
- * dialog draws, so it may close over the caller's latest state.
+ * dialog draws, so it may close over the caller's latest state; each time the caller renders, the
+ * dialog draws the section again, so a switch it holds shows the state it was just set to.
  */
 export function useSettingsSection(
   registry: SettingsRegistry,
@@ -66,6 +87,8 @@ export function useSettingsSection(
     latest.current = render;
   });
   useEffect(() => registry.register({ id, title, render: () => latest.current() }), [registry, id, title]);
+  // After every render of the caller: its state may have changed what the section shows.
+  useEffect(() => registry.refresh(id));
 }
 
 /** Props of `SettingsDialog`. */
