@@ -70,7 +70,7 @@ export const PARTS = {
   reader: "The web reader",
   desktop: "The desktop app",
   // [OWNER TO APPROVE] (T1b)
-  howWeTest: "How we test it: last night's results, the licence and where the code comes from",
+  howWeTest: "How we test it: the latest night's results, the licence and where the code comes from",
 } as const;
 
 // [OWNER TO APPROVE] The How we test page's words (todo T1b): drafted for the owner's approval in
@@ -96,13 +96,13 @@ export const HOW_WE_TEST = {
   files: {
     heading: "Files that break PDF readers",
     intro:
-      "The files come from the test suites of four other PDF projects: pdf.js, PDFBox, PDFium and qpdf. Each project keeps files that once broke it: damaged, unusual or built to attack a reader. Lamina PDF also reads deliberately damaged copies of its own test files.",
+      "The files come from the test suites of four other PDF projects: pdf.js, PDFBox, PDFium and qpdf. Many of their files once broke a reader: they are damaged, unusual or built to attack one. Lamina PDF also reads deliberately damaged copies of its own test files.",
     opened:
       "Opened means Lamina PDF read the file's structure and its list of pages. It doesn't mean every page was drawn correctly. Repaired means it fixed broken structure first, as other readers do. Refused means it stopped with an error; the last column counts the refused files that at least one other tool opened.",
     // Shown when no file made Lamina PDF panic, crash or hang.
     noErrors: "No file made Lamina PDF crash, hang or panic.",
     errors: (n: number) => `${n} ${n === 1 ? "file" : "files"} made Lamina PDF crash, hang or panic.`,
-    incomplete: "Lamina PDF's report didn't cover every file that night, so these counts are part of the run.",
+    incomplete: "Lamina PDF's report didn't cover every file that night, so these counts cover only part of the run.",
     columns: ["Files from", "Files", "Opened", "Repaired", "Refused", "Refused, another tool opened it"],
   },
   agreement: {
@@ -110,15 +110,15 @@ export const HOW_WE_TEST = {
     intro:
       "For every file, Lamina PDF and four other tools (pdf.js, PDFium, qpdf and pypdf) each report three facts: whether the file opens, how many pages it has, and the titles in its outline. Each percentage counts the files where both tools report the fact and give the same answer.",
     excused:
-      "A different answer isn't always Lamina PDF's mistake: tools disagree about damaged files. Each kind of difference is examined, and the explained ones are listed in the repository with the reason. A difference nobody has explained fails the night.",
+      "A different answer isn't always Lamina PDF's mistake: tools disagree about damaged files. We examine each kind of difference and list the explained ones in the repository, each with its reason. A difference nobody has explained fails the night.",
     noFailures: "No difference was left unexplained.",
     failures: (n: number) => `${n} ${n === 1 ? "difference was" : "differences were"} left unexplained.`,
     columns: ["Tool", "Opens or not", "Page count", "Outline titles"],
-    text: "Page text is compared with pdf.js and pdftotext, page by page, ignoring spaces. A page agrees when Lamina PDF's text matches either tool's.",
+    text: "Lamina PDF also compares each page's text with pdf.js's and pdftotext's, ignoring spaces. A page agrees when Lamina PDF's text matches either tool's.",
     textColumns: ["Files from", "Pages compared", "Pages that agree"],
   },
   fuzzing: {
-    heading: "Fuzzing",
+    heading: "Fuzzing: machine-made inputs that try to crash it",
     intro:
       "A fuzzer feeds the code machine-made inputs, millions a night, and keeps any that make it crash. Each target is one part of Lamina PDF, such as the parser or text extraction.",
     // "11 targets ran for 10 minutes each and tried 16,041,418 inputs."
@@ -131,13 +131,12 @@ export const HOW_WE_TEST = {
     heading: "Saved files that other tools read back",
     intro:
       "Lamina PDF edits and saves each of its test files in every way it can, then qpdf, pdf.js and PDFium open every saved file.",
-    // "Of 672 cases, 556 were saved and 116 refused, as planned."
+    // "Of 672 cases, 556 were saved. Lamina PDF refused the other 116, as the tests expect: …"
     counts: (cases: number, saved: number, refused: number) =>
-      `Of ${cases} cases, ${saved} were saved and ${refused} refused, as planned: Lamina PDF refuses a save that would break a signature or that the file can't take.`,
+      `Of ${cases} cases, ${saved} were saved. Lamina PDF refused the other ${refused}, as the tests expect: it refuses a save that would break a signature or that the file can't take.`,
     passed: "read every saved file without an error.",
     failed: "found an error in a saved file.",
-    runtimes:
-      "The same example programs, run in each JavaScript runtime and in Rust, must write the same bytes, down to the last one.",
+    runtimes: "The same example programs, run in each JavaScript runtime and in Rust, must write the same bytes.",
     runtimesPassed: "Matched byte for byte:",
     runtimesFailed: "Didn't match:",
   },
@@ -152,7 +151,7 @@ export const HOW_WE_TEST = {
   rendering: {
     heading: "Drawing pages: hayro and PDFium",
     intro:
-      "The web reader draws pages with PDFium, the renderer in Chrome. Lamina PDF also has hayro, a renderer written in Rust, which may replace PDFium once it draws the same pages as well. Each night both draw the first 20 pages of every file, and the comparison counts the pages that look the same or nearly the same.",
+      "The web reader draws pages with PDFium, the renderer in Chrome. Lamina PDF also has hayro, a renderer written in Rust, which may replace PDFium once it draws pages as well as PDFium does. Each night both draw the first 20 pages of every file, and the comparison counts the pages that look the same or nearly the same.",
     // "92.2% of 5,108 pages look the same or nearly the same."
     share: (pages: string) => `of ${pages} pages look the same or nearly the same.`,
     columns: ["Files from", "Pages", "Same or nearly the same"],
@@ -201,7 +200,7 @@ export const HOW_WE_TEST = {
     exception: (licence: string) => `${licence}, for`,
     banned: "These are refused whatever licence they claim:",
     checks:
-      "Every change runs cargo-deny and an npm licence check before it can merge. Those checks cover dependencies, not copied code: no tool can show that code wasn't copied, which is why the next section says how the code is written.",
+      "Every change runs cargo-deny and an npm licence check before it can merge. Those checks cover dependencies, not copied code. No tool can prove that code wasn't copied, so the next section says how the code is written.",
     verapdf:
       "veraPDF, which is under the GPL and MPL, runs only as a separate program in the tests. It is never part of what Lamina PDF ships.",
     docs: "What Lamina PDF writes and what it borrows",
@@ -215,7 +214,7 @@ export const HOW_WE_TEST = {
     ],
   },
   related: {
-    heading: "More",
+    heading: "Related pages",
     benchmarks: "Speed and size: the docs site's Benchmarks page",
     privacy: "What the web reader keeps private",
     performance: "How fast the reader is",

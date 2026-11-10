@@ -109,7 +109,7 @@ describe("the How we test page", () => {
       // Fuzzing, saving, the runtimes, veraPDF and the render comparison.
       "13 targets ran for 10 minutes each and tried 98,765,432 inputs. None found a crash.",
       "the fuzzers have run for at least 321 hours in all",
-      "Of 640 cases, 600 were saved and 40 refused",
+      "Of 640 cases, 600 were saved. Lamina PDF refused the other 40",
       "PDFium read every saved file without an error.",
       "Matched byte for byte: Node.js, Cloudflare Workers.",
       "fixture-report.pdf PDF/UA-1 Passes",
@@ -166,7 +166,7 @@ describe("the How we test page", () => {
     };
     const files = section(await render({ ...PROOF, night: { ...NIGHT, corpus } }), "files");
     expect(files).toContain("2 files made Lamina PDF crash, hang or panic.");
-    expect(files).toContain("so these counts are part of the run");
+    expect(files).toContain("so these counts cover only part of the run");
   });
 
   it("lists every allowed licence, exception and ban that deny.toml has", async () => {
