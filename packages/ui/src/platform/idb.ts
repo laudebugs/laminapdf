@@ -36,8 +36,12 @@ export function openDatabase(factory: IDBFactory | undefined): Database {
         request.onsuccess = () => {
           const db = request.result;
           // A newer tab upgrading the database waits on this one: close it, and this session's
-          // later calls fail and keep to memory instead of blocking that tab.
-          db.onversionchange = () => db.close();
+          // later calls keep to memory instead of blocking that tab (a closed database would
+          // refuse every transaction).
+          db.onversionchange = () => {
+            db.close();
+            database = Promise.resolve(null);
+          };
           resolve(db);
         };
         request.onerror = () => resolve(null);

@@ -636,18 +636,20 @@ export class Viewer {
     }
     this.#pending = undefined;
     this.history.jump(() => {
-      if (isRotation(position.rotation) && position.rotation !== this.#rotation) {
-        this.#rotation = position.rotation;
-        this.#text?.refresh();
-        this.#highlights.refresh();
-        this.#links?.refresh();
-      }
+      const turned = isRotation(position.rotation) && position.rotation !== this.#rotation;
+      if (turned) this.#rotation = position.rotation;
       const clamp = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0);
       const page = Math.min(this.#sizes.length - 1, Math.max(0, Math.trunc(position.point.page) || 0));
       // The zoom is set before the scroll: #show only rezooms when the zoom changes.
       this.#zoom = position.zoom;
       this.#rezoom(undefined);
       this.#show({ point: { page, x: clamp(position.point.x), y: clamp(position.point.y) }, zoom: position.zoom });
+      // As rotate() does: the layers follow once the pages are laid out for the new rotation.
+      if (turned) {
+        this.#text?.refresh();
+        this.#highlights.refresh();
+        this.#links?.refresh();
+      }
     });
   }
 
@@ -802,11 +804,12 @@ export class Viewer {
   #showPending(pending: ViewPosition | "top"): void {
     this.#pending = undefined;
     this.#relayout(this.#viewport());
-    if (pending === "top") {
-      this.#root.scrollTop = 0;
-      this.#root.scrollLeft = 0;
-      this.#schedule();
-    } else this.restore(pending);
+    // The scroll kept while hidden is the last document's: the top first, so a restore's history
+    // jump leaves from page 1.
+    this.#root.scrollTop = 0;
+    this.#root.scrollLeft = 0;
+    if (pending === "top") this.#schedule();
+    else this.restore(pending);
   }
 
   /** The text layer `option` asks for, or none (`false`); it reports the selection as an event too. */

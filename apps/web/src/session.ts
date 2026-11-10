@@ -382,6 +382,9 @@ export class Engine implements ExternalStore<EngineState> {
     if (backend === this.#state.backend) return;
     const old = this.#session;
     const file = this.#file;
+    // The old view is about to go: its position is saved and recording stops with it (the close
+    // below is no longer the latest open, so it leaves the recorder alone).
+    this.#stopRecording();
     this.reader.close();
     this.#turn += 1;
     this.#set({ backend, viewer: undefined, strip: undefined });

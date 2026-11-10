@@ -100,9 +100,10 @@ function useRecording(
   const wasOpen = useRef(false);
   const closed = state.phase === "empty";
   useEffect(() => {
-    if (closed && wasOpen.current) void platform.storage.delete(SESSION_KEY).catch(reportError);
+    // The home screen shows again: its pages are read afresh, after the closing document's last save.
+    if (closed && wasOpen.current) platform.storage.delete(SESSION_KEY).then(refresh, reportError);
     wasOpen.current = state.phase === "open";
-  }, [closed, state.phase, platform]);
+  }, [closed, state.phase, platform, refresh]);
   useEffect(() => {
     if (file === undefined) return;
     // A linked document's address is never kept (ADR 0011), and a local one only when allowed.

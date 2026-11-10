@@ -310,3 +310,25 @@ describe("a view opened while hidden", () => {
     }
   });
 });
+
+describe("a restore while hidden after another document", () => {
+  it("leaves Back at page 1, not where the last document was scrolled", async () => {
+    const host = box(800, 600, 170);
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(host);
+    try {
+      viewer.open(await rpc.open(thousand));
+      viewer.goToPage(300);
+      await until(() => viewer.getState().visibleRange.first >= 299);
+      host.style.display = "none";
+      viewer.open(await rpc.open(thousand));
+      viewer.restore({ point: { page: 700, x: 0, y: 0 }, zoom: 100, rotation: 0 });
+      host.style.display = "";
+      await until(() => viewer.getState().visibleRange.first >= 699);
+      expect(viewer.history.getState().back?.point.page).toBe(0);
+    } finally {
+      viewer.destroy();
+      host.remove();
+    }
+  });
+});
