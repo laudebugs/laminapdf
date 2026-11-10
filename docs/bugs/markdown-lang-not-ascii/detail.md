@@ -23,12 +23,10 @@ lang:cm\x86
 ---
 ```
 
-The byte `0x86` isn't valid UTF-8, so the Markdown reader turns it into U+FFFD (`�`), three bytes in UTF-8. The language tag becomes `cm�`, and laying out any text with it panics. Any program can reach the same panic without Markdown, by passing such a tag to `ShapeOptions::with_language` or `LayoutOptions::with_language`.
+The byte `0x86` isn't valid UTF-8, so the Markdown reader turns it into U+FFFD (`�`), three bytes in UTF-8. The language tag becomes `cm�`, and laying out any text with it panics. Any program can reach the same panic without Markdown, by passing a tag such as `cm�` to `ShapeOptions::with_language` or `LayoutOptions::with_language`.
 
 ## The cause
 
 HarfRust 0.8's `strncmp` (`src/hb/tag.rs`) compares the first `n` bytes of two tags by slicing each `&str` at byte `n`. When byte `n` falls inside a multi-byte character, the slice panics. For `cm�` and the three-byte prefix `cmn` in HarfRust's language table, the cut at byte 3 lands inside `�`.
 
-Lamina PDF passed every non-empty tag through to HarfRust, although a BCP 47 tag can only contain ASCII letters, digits and hyphens (RFC 5646 §2.1). A tag with any other character can't name a language. The same mistake reaches HarfRust from every caller of the shaper: Markdown front matter, the builder's text options and the WASM and TypeScript bindings.
-
-A sweep of 159 such tags (2-, 3- and 4-byte characters at every position of ten tags HarfRust's tables match on) panicked on 28.
+Lamina PDF passed every non-empty tag through to HarfRust, although a BCP 47 tag can only contain ASCII letters, digits and hyphens (RFC 5646 §2.1). A tag with any other character can't name a language. Every caller of the shaper passed tags the same way: Markdown front matter, the builder's text options and the WASM and TypeScript bindings.
