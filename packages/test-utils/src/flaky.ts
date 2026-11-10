@@ -61,7 +61,10 @@ export function flakyReporter(env: Env = processEnv): Reporter {
  * the job summary, flaky tests included), and the flaky reporter. `cargo xtask pdf-runtimes` passes
  * no `--reporter`, which would replace this list.
  */
-export function retryOnceAndReport(env: Env = processEnv): Pick<InlineConfig, "retry" | "reporters"> {
+export function retryOnceAndReport(env: Env = processEnv): {
+  retry: number;
+  reporters: Extract<InlineConfig["reporters"], unknown[]>;
+} {
   const github = env.GITHUB_ACTIONS === "true" ? ["github-actions"] : [];
   return { retry: 1, reporters: ["verbose", ...github, flakyReporter(env)] };
 }
