@@ -58,7 +58,10 @@ async function touches(page: Page, steps: readonly (readonly Finger[])[]): Promi
     const root = document.querySelector(".lamina-viewer") as HTMLElement;
     for (const frame of frames) {
       for (const f of frame) {
-        const init = { pointerId: f.id, pointerType: "touch", clientX: f.x, clientY: f.y, bubbles: true };
+        // A finger's id never matches the mouse's (1 in WebKit): pointer ids are unique among active
+        // pointers, and WebKit sends the resting mouse a pointermove when the page moves under it,
+        // which the viewer would take for this finger moving.
+        const init = { pointerId: 10 + f.id, pointerType: "touch", clientX: f.x, clientY: f.y, bubbles: true };
         root.dispatchEvent(new PointerEvent(f.type, init));
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));

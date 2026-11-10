@@ -175,7 +175,7 @@ describe(`the selection toolbar in ${BROWSER}`, () => {
     const watched = await start();
     const { page } = watched;
     await page.locator(".lamina-viewer").focus();
-    await page.keyboard.press(BROWSER === "webkit" ? "Meta+K" : "Control+K");
+    await page.keyboard.press("ControlOrMeta+K");
     const palette = page.getByRole("dialog");
     for (const name of ["Copy exact", "Select by column", "Show or hide the selection toolbar"]) {
       await palette.getByRole("combobox").fill(name);
