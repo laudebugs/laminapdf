@@ -111,7 +111,7 @@ Where the PR differs from the tasks above, and why:
 - **"Never more than 8"** is checked with 12 previews drawn in a row and with two identical ones drawn at once (`link-preview.browser.test.ts`), not by hovering 30 citations; the e2e checks hovering.
 - **Not automated:** a long-press on plain text still selecting text (Playwright's synthetic touches start no native selection; the post-merge phone check covers it), and the crop's left edge in pixels (the unit tests pin the geometry; the e2e checks the right column's text).
 - **`/Rotate 90` and `270`:** page space is the displayed page, so a turned page is a landscape page to `previewRegion` (unit test), while the view's rotation is applied by `previewRender` (unit tests at 90 and 270) and checked once in the browser on the paper's turned page.
-- **Added:** `placeBelow` in `place.ts` (the preview goes under its link, flipping above), and a long-press that sent no click no longer swallows the next one (the sheet's Go button clicks the link).
+- **Added:** `placeBelow` in `place.ts` (the preview goes under its link, flipping above), and a long-press cancels its own click but no longer swallows the next click as well, so the sheet's Go button can click the link.
 
 ## Post-merge checks
 
