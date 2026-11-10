@@ -543,3 +543,9 @@ main {
   margin: 0;
   padding-left: var(--paper-space-18);
 }
+
+/* The pricing line under the opening's buttons: muted, at the lead's measure. */
+.opening-free {
+  max-inline-size: 60ch;
+  color: var(--paper-muted);
+}

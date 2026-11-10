@@ -1,0 +1,32 @@
+---
+// The privacy page: ADR 0011's guarantees in plain language (src/data/privacy.ts, which
+// test/privacy.test.ts holds to the ADR and to the tests that prove each promise). The reader's
+// menu, both sites' headers and the README link here.
+import { APP_URL } from "@laminapdf/site-kit/nav";
+import { CHECK, sectionId as id, LATER, PRIVACY, PROMISES } from "../data/privacy.js";
+import Base from "../layouts/Base.astro";
+---
+
+<Base title={PRIVACY.title} description={PRIVACY.description}>
+  <article class="sheet privacy">
+    <h1>{PRIVACY.heading}</h1>
+    <p class="lead">{PRIVACY.lead}</p>
+    <p><a href={APP_URL}>The web reader</a> is at app.laminapdf.com. This website follows the same rules: no cookies, nothing from other sites and no analytics.</p>
+    {
+      PROMISES.map((promise) => (
+        <section aria-labelledby={id(promise.heading)}>
+          <h2 id={id(promise.heading)}>{promise.heading}</h2>
+          {promise.body.map((paragraph) => <p>{paragraph}</p>)}
+        </section>
+      ))
+    }
+    <section aria-labelledby={id(CHECK.heading)}>
+      <h2 id={id(CHECK.heading)}>{CHECK.heading}</h2>
+      {CHECK.body.map((paragraph) => <p>{paragraph}</p>)}
+    </section>
+    <section aria-labelledby={id(LATER.heading)}>
+      <h2 id={id(LATER.heading)}>{LATER.heading}</h2>
+      {LATER.body.map((paragraph) => <p>{paragraph}</p>)}
+    </section>
+  </article>
+</Base>

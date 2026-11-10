@@ -70,14 +70,29 @@ import { type Settings, useSettings } from "./settings.tsx";
 /** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
 const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 
-type MoreId = "save-copy" | "print" | "properties" | "install" | "open" | "rotate" | "settings" | "shortcuts";
+/** The website's privacy page, which states the reader's privacy promises. */
+const PRIVACY_URL = "https://laminapdf.com/privacy/";
+
+type MoreId =
+  | "save-copy"
+  | "print"
+  | "properties"
+  | "install"
+  | "open"
+  | "rotate"
+  | "settings"
+  | "shortcuts"
+  | "privacy";
 
 /** The More menu's commands, by item. */
 const MORE_COMMANDS = {
   "save-copy": "file.save-copy",
   print: "file.print",
   properties: "file.properties",
-} as const satisfies Record<Exclude<MoreId, "install" | "open" | "rotate" | "settings" | "shortcuts">, OutputCommand>;
+} as const satisfies Record<
+  Exclude<MoreId, "install" | "open" | "rotate" | "settings" | "shortcuts" | "privacy">,
+  OutputCommand
+>;
 
 /**
  * The More menu (R09): Download a copy, Print… and Document properties, which need an open
@@ -103,6 +118,7 @@ function moreEntries(open: boolean, installable: boolean): GatedEntry<MoreId>[] 
     { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
     { id: "settings", label: message("command.app.settings"), icon: "settings" },
     { id: "shortcuts", label: message("command.help.shortcuts"), icon: "keyboard" },
+    { id: "privacy", label: message("reader.privacy"), icon: "network-shield" },
   ];
 }
 
@@ -404,6 +420,7 @@ function useDocumentMenu(
     else if (id === "settings") appActions["app.settings"]?.(undefined);
     else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
     else if (id === "install") install.actions["app.install"]?.();
+    else if (id === "privacy") void platform.openExternal(PRIVACY_URL).catch(() => undefined);
     else output.actions[MORE_COMMANDS[id]]();
   };
   return {

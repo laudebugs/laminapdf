@@ -48,6 +48,7 @@ const EN = {
   "reader.zoom.actualSize": "Actual size",
   "reader.commands": "Commands",
   "reader.more": "More",
+  "reader.privacy": "Privacy",
   "reader.mode.title": "Reader mode",
   "reader.mode.back": "Back to page {page}",
   "reader.mode.backToPage": "Back to page",

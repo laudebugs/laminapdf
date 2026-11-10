@@ -411,7 +411,7 @@ impl Sizes {
 
 /// The size of `bytes` as a gzip file at level 9: the deflate stream plus gzip's 18-byte
 /// header and trailer (RFC 1952).
-fn gzip_len(bytes: &[u8]) -> u64 {
+pub(crate) fn gzip_len(bytes: &[u8]) -> u64 {
     len(miniz_oxide::deflate::compress_to_vec(bytes, 9).len() + 18)
 }
 

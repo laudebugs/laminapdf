@@ -133,6 +133,8 @@ tasks:
   web docs-runner   what the docs' example runner needs, from a fresh checkout: the WebAssembly
                     modules (without their tests), @laminapdf/sdk, @laminapdf/render and
                     @laminapdf/render-hayro; then the docs build makes the runner
+  web size          the reader's startup JavaScript (index.html's scripts and module preloads in
+                    apps/web/dist/), gzipped, against apps/web/size-budget.json; after `web build`
   size [--update-baseline]
                     measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
                     target/size-report.json, fail above packages/wasm/size-budgets.json
@@ -372,6 +374,7 @@ fn main() -> Result<()> {
         ("wasm", []) => wasm(&ws),
         ("web", [cmd]) if cmd == "build" => web::build(&ws),
         ("web", [cmd]) if cmd == "docs-runner" => web::docs_runner(&ws),
+        ("web", [cmd]) if cmd == "size" => web::size(&ws),
         ("size", []) => wasm::size(&ws, false),
         ("size", [flag]) if flag == "--update-baseline" => wasm::size(&ws, true),
         ("deny", []) => {
