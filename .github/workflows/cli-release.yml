@@ -162,7 +162,7 @@ jobs:
       # pnpm/action-setup's self-installer can't verify its darwin-x64 binary on macos-15-intel
       # (ERR_PNPM_PNPM_ENGINE_IDENTITY_UNVERIFIABLE), so npm installs package.json's pinned pnpm.
       - name: Install pnpm
-        run: npm install --global "$(jq -r .packageManager package.json)"
+        run: npm install --global "$(node -p "require('./package.json').packageManager")"
       # Only what the npm steps below use: @laminapdf/cli's TypeScript and Vitest.
       - run: pnpm install --frozen-lockfile --filter @laminapdf/cli
       - name: Man pages, completions and third-party notices for the archive
