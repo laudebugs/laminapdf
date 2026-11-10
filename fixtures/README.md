@@ -296,3 +296,11 @@ The names an `invalid-argument` or `unknown-option` error suggests in `didYouMea
 | File | Source | What it tests |
 | --- | --- | --- |
 | `did-you-mean.json` | hand-written; its `rule` states what the cases pin | Each case gives a `given` name, the `known` names and the `expected` suggestions. The rule: names within two edits, closest first, ties in code-point order of the names as given. An edit is one code point, counted after lowercasing ASCII letters only, so a typed name outside ASCII gets the same answer from both languages. `crates/laminapdf-syntax/src/suggest.rs` (which `laminapdf-wasm` and the CLI use) and `packages/sdk/test/did-you-mean.test.ts` must both suggest exactly `expected` |
+
+### Generated large files (not committed)
+
+Files too large for the repository are written on demand into `target/fixtures/`, which Git ignores. The same command always writes the same bytes.
+
+| File | Source | What it tests |
+| --- | --- | --- |
+| `target/fixtures/1gb.pdf` | `cargo xtask fixtures large-pdf [--pages N] [--out PATH]`, which runs `crates/laminapdf-desktop-engine/examples/large_pdf.rs` (the `laminapdf` builder; 20,000 US Letter pages, each with its own 168 × 112 image of seeded noise that Flate can't shrink; 1,082 MiB; 41 s and 1.5 GB of RAM on an M1 Pro) | The desktop engine's large-file target (todo D2b, ADR 0008 §2): opened over the engine pipe, every page's size reported within 1.0 s and the engine under 300 MB. Measured with the engine crate's `measure` example |

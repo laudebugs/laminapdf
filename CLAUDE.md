@@ -65,6 +65,13 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     RenderLimits), straight-RGBA tiles, RenderError; the hayro adapter (feature `hayro`)
 │   ├── laminapdf-render-pdfium/  # edge: the PDFium adapter (pdfium-render, bound at runtime to pdfium-binaries chromium/7881;
 │   │                    #     tests and render goldens #[ignore]d: `cargo xtask render-golden` runs them)
+│   ├── laminapdf-desktop-protocol/  # app, unpublished: the frames between the desktop main process and its engine
+│   │                    #     (ToEngine/FromEngine, postcard header + raw payload, MAX_FRAME, PROTOCOL_VERSION) and
+│   │                    #     `supervisor` (std only: spawn, Hello/Ready, replies by ReqId, ReadRange served, heartbeat
+│   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b)
+│   ├── laminapdf-desktop-engine/  # app, unpublished: the desktop engine binary (ADR 0008 §2): stdin/stdout frames, a router
+│   │                    #     thread that never parses, one worker (lamina model + PDFium), RemoteSource (256 KiB blocks
+│   │                    #     read over the pipe); examples large_pdf (the 1 GB fixture) and measure (D2b)
 │   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
 │   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers that crates share (fixtures_dir, fixture, corpus,
@@ -204,12 +211,18 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Changesets: its version is the crate's). src/main.tsx (the only isTauri() call, checked by `check ts`),
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
-│                        #   screen, version from the `app_info` command); opening a document waits for D2b/D2d. src-tauri/: the
+│                        #   screen, version from the `app_info` command); showing a document waits for D2d. src-tauri/: the
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
-│                        #   Rust only, window `main` built in Rust), commands.rs (`app_info`), error.rs (DesktopError as
-│                        #   { kind, message }), build.rs (app manifest: each command needs an allow-* permission),
-│                        #   tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype, capabilities ["main"]),
-│                        #   capabilities/main.json (only allow-app-info), tests/capabilities.rs (the capability guard), test/app-info.json
+│                        #   Rust only, window `main` built in Rust, Engines managed state, window close/app exit stop engines),
+│                        #   commands.rs (`app_info`, `open_dialog`, `page_info`, `close_document`; `debug_kill_engine` with
+│                        #   feature `e2e`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
+│                        #   engine://failed to that window; documents.rs DocumentRegistry, a window reads only its own docs;
+│                        #   bytesource.rs FileSource, positioned reads, no mmap; secret.rs SessionPassword, locked and wiped),
+│                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
+│                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
+│                        #   capabilities ["main"]; no externalBin), tauri.bundle.conf.json (the engine sidecar and PDFium, merged
+│                        #   by desktop:dev/desktop:build), capabilities/main.json (the four commands' allow-*),
+│                        #   tests/capabilities.rs (the capability guard), test/app-info.json
 │                        #   (the app_info sample both languages' tests read), about/
 │                        #   (cargo-about, MPL-2.0 accepted for Tauri's dependencies); Linux builds need WebKitGTK 4.1 and D-Bus
 │                        #   (.github/actions/linux-webkit); README.md
@@ -489,10 +502,17 @@ cargo xtask cli-docs         # the CLI's man pages (clap_mangen, one per command
 cargo xtask cli-dist         # cli-docs plus THIRD_PARTY_NOTICES.md (cargo-about, about/ in laminapdf-cli, `mcp` on): what
                              #   dist-workspace.toml's `include` puts in every release archive; then `dist build --artifacts=local
                              #   --target <triple>` (dist pinned in doctor.rs) writes the archive into target/distrib/
-pnpm --filter @laminapdf/desktop tauri dev  # the desktop reader (after `pnpm --filter "@laminapdf/desktop^..." run build`;
-                             #   Linux: libwebkit2gtk-4.1-dev libdbus-1-dev); `tauri build --debug --no-bundle` is what the full
-                             #   lane's `desktop` job builds on Linux, macOS and Windows when `cargo xtask changes` says desktop=true
+pnpm --filter @laminapdf/desktop run desktop:dev  # the desktop reader with its engine and PDFium (after `pnpm --filter
+                             #   "@laminapdf/desktop^..." run build`; Linux: libwebkit2gtk-4.1-dev libdbus-1-dev); `desktop:build
+                             #   --debug --no-bundle` is what the full lane's `desktop` job builds on Linux, macOS and Windows when
+                             #   `cargo xtask changes` says desktop=true, then checks the engine and PDFium sit beside the app,
+                             #   the main process links no parser or PDFium, and the build has no e2e command
 cargo xtask desktop-notices  # the desktop app's THIRD_PARTY_NOTICES.md (cargo-about, MPL-2.0 text included) into target/desktop/
+cargo xtask desktop-sidecar [--release|--debug]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
+                             #   pinned PDFium into src-tauri/resources/pdfium/ (both git-ignored); the profile defaults to the
+                             #   Tauri CLI's (TAURI_ENV_DEBUG); desktop:dev/desktop:build run it first
+cargo xtask fixtures large-pdf [--pages N] [--out PATH]  # the engine's 1 GB fixture (20,000 image pages, ~1.1 GB, never
+                             #   committed) into target/fixtures/1gb.pdf; needs ~1.5 GB of RAM
 cargo run -p laminapdf-cli --features mcp -- mcp --root <dir> [--allow-write [--allow-in-place]]  # the MCP server on stdio (L4c)
 cargo xtask models check     # tools/models/models.toml: code and weights licences in the allowed set, pins well formed, no
                              #   weights file in the repository (part of `check docs`)
@@ -511,7 +531,8 @@ cargo xtask differential --full [--update]  # the full lane's set: 36 mutants pe
 cargo xtask roundtrip [--tools qpdf,pdfjs,pdfium]  # Lamina PDF saves fixtures x ops x modes, reopens each output; qpdf --check,
                              #   pdf.js and PDFium check them (needs qpdf, Node, Python with tools/roundtrip/requirements.txt)
 cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree, content,
-                                      #   ops_json, save_roundtrip, extract_text, extract, markdown
+                                      #   ops_json, save_roundtrip, extract_text, extract, markdown,
+                                      #   engine_protocol_decode
 cargo xtask fuzz --all [--time N] [--jobs N]  # every fuzz target, N at once (the full lane: --jobs 4,
                                       #   30 s per target on PRs, 120 s on pushes to main)
 cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane does this before caching it on main)

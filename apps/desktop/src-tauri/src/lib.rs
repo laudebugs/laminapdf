@@ -7,10 +7,18 @@
 //! mobile entry point.
 
 mod commands;
+mod engine;
 mod error;
 
+use std::ffi::OsString;
+use std::path::PathBuf;
+use std::sync::Arc;
+
 pub use error::DesktopError;
-use tauri::{WebviewUrl, WebviewWindowBuilder};
+use laminapdf_desktop_protocol::supervisor::{CommandSpawner, Config, Spawner};
+use tauri::{Emitter as _, EventTarget, Manager as _, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+
+use crate::engine::{Engines, FAILED_EVENT, Failed, Launcher, Notify, RESTARTED_EVENT, Restarted};
 
 /// The main window's label; a document's own windows will be `doc-*` (`capabilities/main.json`).
 const MAIN_WINDOW: &str = "main";
@@ -34,6 +42,59 @@ fn fit_window(screen: (f64, f64)) -> (f64, f64) {
     )
 }
 
+/// The engine binary: a Tauri sidecar, which Tauri places next to the app's own executable (in
+/// `tauri dev` too). Missing in a plain `cargo build`: documents then fail to open with
+/// `engine-start` until `cargo xtask desktop-sidecar` has run.
+fn engine_program() -> PathBuf {
+    let name = format!("laminapdf-desktop-engine{}", std::env::consts::EXE_SUFFIX);
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join(&name)))
+        .unwrap_or_else(|| PathBuf::from(name))
+}
+
+/// The engine's arguments: the PDFium folder among the app's resources, when it is there.
+fn engine_args(app: &tauri::AppHandle) -> Vec<OsString> {
+    match app.path().resource_dir().map(|dir| dir.join("pdfium")) {
+        Ok(dir) if dir.is_dir() => vec!["--pdfium".into(), dir.into_os_string()],
+        _ => {
+            tracing::warn!("PDFium is not among the app's resources; pages won't render");
+            Vec::new()
+        }
+    }
+}
+
+/// Sends engine events to the one window they concern.
+struct WindowEvents(tauri::AppHandle);
+
+impl Notify for WindowEvents {
+    fn restarted(&self, payload: Restarted) {
+        let target = EventTarget::webview_window(payload.window.clone());
+        if let Err(error) = self.0.emit_to(target, RESTARTED_EVENT, payload) {
+            tracing::warn!("could not tell a window its engine restarted: {error}");
+        }
+    }
+
+    fn failed(&self, payload: Failed) {
+        let target = EventTarget::webview_window(payload.window.clone());
+        if let Err(error) = self.0.emit_to(target, FAILED_EVENT, payload) {
+            tracing::warn!("could not tell a window its engine failed: {error}");
+        }
+    }
+}
+
+/// Every window's engine, started on first use.
+fn engines(app: &tauri::AppHandle) -> Arc<Engines> {
+    let (program, args) = (engine_program(), engine_args(app));
+    let launcher: Launcher = Arc::new(move || {
+        let spawner = CommandSpawner::new(program.clone(), args.clone(), |line| {
+            tracing::info!(target: "laminapdf_desktop::engine", "{line}");
+        });
+        Box::new(spawner) as Box<dyn Spawner>
+    });
+    Engines::new(launcher, Config::default(), Arc::new(WindowEvents(app.clone())))
+}
+
 /// Builds and runs the app until its last window closes.
 ///
 /// # Errors
@@ -43,7 +104,23 @@ fn fit_window(screen: (f64, f64)) -> (f64, f64) {
     reason = "tauri::generate_context! builds a HashMap of the bundled assets"
 )]
 pub fn run() -> Result<(), DesktopError> {
-    tauri::Builder::default()
+    // `debug_kill_engine` exists only in e2e builds; generate_handler! takes no cfg per command.
+    #[cfg(not(feature = "e2e"))]
+    let builder = tauri::Builder::default().invoke_handler(tauri::generate_handler![
+        commands::app_info,
+        commands::open_dialog,
+        commands::page_info,
+        commands::close_document,
+    ]);
+    #[cfg(feature = "e2e")]
+    let builder = tauri::Builder::default().invoke_handler(tauri::generate_handler![
+        commands::app_info,
+        commands::open_dialog,
+        commands::page_info,
+        commands::close_document,
+        commands::debug_kill_engine,
+    ]);
+    let app = builder
         .plugin(
             tauri_plugin_log::Builder::new()
                 // Stdout and the OS log folder. Document paths are logged at `debug`, never `info`.
@@ -52,8 +129,8 @@ pub fn run() -> Result<(), DesktopError> {
         )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![commands::app_info])
         .setup(|app| {
+            app.manage(engines(app.handle()));
             // Windows are made here, not in tauri.conf.json, so the app chooses every label.
             let (width, height) = first_window_size(app.primary_monitor().ok().flatten());
             WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::default())
@@ -65,7 +142,18 @@ pub fn run() -> Result<(), DesktopError> {
             tracing::info!(version = %app.package_info().version, "Lamina PDF started");
             Ok(())
         })
-        .run(tauri::generate_context!())?;
+        .on_window_event(|window, event| {
+            // A closed window's documents close, their passwords are wiped, its engine stops.
+            if matches!(event, WindowEvent::Destroyed) {
+                window.state::<Arc<Engines>>().close_window(window.label());
+            }
+        })
+        .build(tauri::generate_context!())?;
+    app.run(|app, event| {
+        if matches!(event, RunEvent::Exit) {
+            app.state::<Arc<Engines>>().shutdown();
+        }
+    });
     Ok(())
 }
 

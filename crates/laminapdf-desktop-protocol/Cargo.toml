@@ -1,0 +1,29 @@
+[package]
+name = "laminapdf-desktop-protocol"
+description = "The messages between Lamina PDF's desktop main process and its engine process, and their framing (ADR 0008 §3)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Part of the desktop app, never on crates.io.
+publish = false
+homepage.workspace = true
+
+# Read by `cargo xtask`: an app crate. The main process links it, so it depends on nothing that
+# reaches the parser or the render stack (ADR 0008 §3; CI checks the main process's tree).
+[package.metadata.laminapdf]
+layer = "app"
+
+[features]
+# `supervisor::fake`: an in-process fake engine for the main process's tests.
+test-support = []
+
+[dependencies]
+postcard = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+zeroize = { workspace = true }
+
+[lints]
+workspace = true

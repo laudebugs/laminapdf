@@ -23,3 +23,7 @@ pub mod extract_entry;
 /// The `markdown` target's entry point, shared with laminapdf-build's `tests/regressions.rs`.
 #[path = "../../crates/laminapdf-build/tests/common/fuzz_entry.rs"]
 pub mod markdown_entry;
+/// The `engine_protocol_decode` target's entry point, shared with laminapdf-desktop-protocol's
+/// `tests/regressions.rs`.
+#[path = "../../crates/laminapdf-desktop-protocol/tests/common/fuzz_entry.rs"]
+pub mod protocol_entry;
