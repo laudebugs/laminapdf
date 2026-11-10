@@ -37,7 +37,7 @@ Users quote SumatraPDF-class speed as the bar and complain about Acrobat's cold 
 
 **Out of scope** (and which todo covers it)
 
-- CI gating on these numbers → lamina's own gates stay in [C7c](./C7c-performance-gates-and-launch.md) and D7c.
+- CI gating on these numbers → lamina's own gates stay in [C7c](../ongoing/C7c-performance-gates-and-launch.md) and D7c.
 
 ## Tasks
 

@@ -73,7 +73,7 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 - **Deviations from R08 and R09** are recorded in [reader-a.md](../../design/paper/reader-a.md#r09-print-and-download-a-copy): a separate range field, no Sepia notice yet, no notice when a page is drawn at a lower resolution, no `Content-Disposition` name, failures in an alertdialog.
 - **The manual print-to-PDF check** in each browser is in the PR description.
 - **Tests:** print, download and properties share one file, `apps/web/e2e/output.e2e.test.ts`, which one browser and server run in turn, rather than three `*.spec.ts` files.
-- **Peak memory while printing is not measured.** The worker draws, encodes and releases one page at a time, and a High-quality print past a billion pixels in all prints at Standard, so the frame's images stay bounded. Measuring it in the C3c harness is left to [C7c](../ready/C7c-performance-gates-and-launch.md)'s performance gates.
+- **Peak memory while printing is not measured.** The worker draws, encodes and releases one page at a time, and a High-quality print past a billion pixels in all prints at Standard, so the frame's images stay bounded. Measuring it in the C3c harness is left to [C7c](../ongoing/C7c-performance-gates-and-launch.md)'s performance gates.
 
 ## Post-merge checks
 
