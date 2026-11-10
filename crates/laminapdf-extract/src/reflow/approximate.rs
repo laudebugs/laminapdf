@@ -76,16 +76,11 @@ pub(super) fn reflow(
     for block in &extraction.blocks {
         by_page.entry(block.page).or_default().push(block);
     }
-    let mut hidden: BTreeMap<usize, Vec<&Dropped>> = BTreeMap::new();
-    for dropped in extraction.dropped.iter().filter(|d| d.reason == DropReason::Invisible) {
-        hidden.entry(dropped.page).or_default().push(dropped);
-    }
     let mut blocks = Vec::new();
     for page in &extraction.pages {
         let text = by_page.get(&page.index).map_or(&[][..], Vec::as_slice);
         let images = images.get(&page.index).copied().unwrap_or_default();
-        let ocr = hidden.get(&page.index).map_or(&[][..], Vec::as_slice);
-        let shown = page_blocks(page, text, images, ocr);
+        let shown = page_blocks(page, text, images, &extraction.dropped);
         checks.page_images += shown
             .iter()
             .filter(|b| matches!(b.kind, ReflowKind::PageImage { .. }))
@@ -103,9 +98,9 @@ pub(super) fn reflow(
     })
 }
 
-/// One page's blocks in reading order: its image, or its text with its figures and tables. `ocr`
-/// is the page's invisible text, an OCR layer's on a scan.
-fn page_blocks(page: &ExtractedPage, text: &[&Block], images: &[RectPt], ocr: &[&Dropped]) -> Vec<ReflowBlock> {
+/// One page's blocks in reading order: its image, or its text with its figures and tables.
+/// `dropped` is the document's dropped text, whose invisible runs on a scan are its OCR layer.
+fn page_blocks(page: &ExtractedPage, text: &[&Block], images: &[RectPt], dropped: &[Dropped]) -> Vec<ReflowBlock> {
     let whole = RectPt::from_points(0.0, 0.0, page.width.get(), page.height.get());
     let covers_page = |b: &RectPt| area(b) >= PAGE_COVER * area(&whole);
     let scanned = matches!(
@@ -120,8 +115,10 @@ fn page_blocks(page: &ExtractedPage, text: &[&Block], images: &[RectPt], ocr: &[
         };
         let mut words: Vec<&str> = text.iter().map(|b| b.text.as_str()).filter(|t| !t.is_empty()).collect();
         let separator = if words.is_empty() {
-            words = ocr
+            // Only a scan with no visible text gets here, so the filter runs on few pages.
+            words = dropped
                 .iter()
+                .filter(|d| d.page == page.index && d.reason == DropReason::Invisible)
                 .flat_map(|d| d.spans.iter().map(|s| s.text.as_str()))
                 .collect();
             " "
