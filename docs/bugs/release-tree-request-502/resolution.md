@@ -17,11 +17,12 @@ The step still checks that GitHub's final tree equals the commit's tree, byte fo
 ## How it was checked
 
 - **Against a real release**: the step, cut off before the commit request, ran on `v0.2.0-alpha.4` (289 files, one binary) with a stand-in `gh` that builds each tree with `git read-tree` and `git update-index`. Its first tree request answered 502. The step warned, retried, sent six batches and ended on `3daafd49`, the commit's own tree. With the first answer a 422 instead, the step failed after that one request.
+- **Guard test**: xtask's `only_a_prepared_release_should_create_a_verified_app_commit_and_tag` now pins the batches of 50, each on the tree before; the 4xx stop; and the final tree check before signing. The reviewed copy `tools/release/release-train.yml` matches the installed workflow.
 - **Lint**: `actionlint` passes on the workflow, and `shellcheck` passes on the step's script.
 
 ## Left for later
 
-- **No committed regression test.** The step lives inline in the workflow, so a test needs it moved into a script first. Until then, the stand-in check above is the evidence.
+- **No test that runs the step.** The guard test checks the workflow's text; running the step needs it moved into a script first. Until then, the stand-in check above is the evidence that it builds the right tree.
 - **The rerun is of the release before.** `v0.2.0-alpha.5`'s prepared commit was never published, so the check used `v0.2.0-alpha.4`. The next Daily release run is the real rerun.
 - **Emptied folders in between.** With `--no-renames`, a rename inside a folder can delete all of its files in one batch and add new ones in a later batch, leaving the folder empty in between. The stand-in `gh` drops such folders the way `git` does, so it can't show what GitHub does. If GitHub refuses that tree, the step fails before it creates any ref, and the final tree check means it can never publish a wrong tree.
 - **Other requests run once.** The other requests in the step (the binary blob upload, the commit and the two refs) still run once. They are small, and repeating a commit or ref request isn't idempotent, so they need their own handling if GitHub fails them too.
