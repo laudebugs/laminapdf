@@ -72,9 +72,13 @@ export function useSettings(openPalette: () => void, page: PageAppearanceControl
     applyAppearance(document.documentElement, appearance);
     saveAppearance(appearance);
   }, [appearance]);
-  useSettingsSection(registry, "appearance", message("settings.appearance"), () => (
-    <AppearanceSettings appearance={appearance} onChange={setAppearance} />
-  ));
+  useSettingsSection(
+    registry,
+    "appearance",
+    message("settings.appearance"),
+    () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
+    [appearance],
+  );
   useSettingsSection(registry, "about", message("about.title"), About);
   const actions = useMemo(
     () => ({

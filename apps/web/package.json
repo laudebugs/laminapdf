@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@babel/core": "catalog:",
+    "@laminapdf/sdk": "workspace:*",
     "@laminapdf/test-utils": "workspace:*",
     "@lhci/cli": "catalog:",
     "@rolldown/plugin-babel": "catalog:",

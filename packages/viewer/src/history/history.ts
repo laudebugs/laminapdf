@@ -6,12 +6,22 @@
 // that outlives the oldest entries' removal, so an app can tie its own history (the browser's,
 // through the address fragment) to these entries and come back to one by id.
 
+import type { Rotation } from "../layout/page-layout.js";
 import type { DocumentPoint, Zoom } from "../zoom/zoom.js";
 
 /** A place in the document: the point at the viewport's top-left, and the zoom. */
 export interface HistoryPlace {
   readonly point: DocumentPoint;
   readonly zoom: Zoom;
+}
+
+/**
+ * Where a reader stopped: a history place and the view's rotation, kept by an app so the document
+ * reopens there (`Viewer.viewPosition`, `Viewer.restore`). Rotation is the view's, not a jump's,
+ * so history entries leave it out.
+ */
+export interface ViewPosition extends HistoryPlace {
+  readonly rotation: Rotation;
 }
 
 /** One entry: a place and the id it keeps while it is in the history. */

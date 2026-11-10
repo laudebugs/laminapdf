@@ -47,6 +47,7 @@ export type CommandHome =
   | "help-menu"
   | "view-settings"
   | "home"
+  | "settings"
   | "password-prompt"
   | "status-bar"
   | "find-bar"

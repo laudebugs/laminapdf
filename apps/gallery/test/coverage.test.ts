@@ -33,12 +33,17 @@ const NOT_DRAWN: Readonly<Record<string, string>> = {
   SettingsRegistry: "the Settings dialog's store of sections, which the dialogs route fills",
 };
 
+/** The package's entries that export components: the root and `./dialogs`. */
+const ENTRIES = ["index.ts", "dialogs.ts"];
+
 /** The value exports of @laminapdf/ui whose names start with a capital (components and classes). */
 function exportedComponents(): string[] {
-  const index = readFileSync(new URL("../../../packages/ui/src/index.ts", import.meta.url), "utf8");
-  const names = [...index.matchAll(/export\s*\{([^}]*)\}/g)].flatMap((m) =>
-    (m[1] ?? "").split(",").map((part) => part.trim()),
-  );
+  const names = ENTRIES.flatMap((entry) => {
+    const source = readFileSync(new URL(`../../../packages/ui/src/${entry}`, import.meta.url), "utf8");
+    return [...source.matchAll(/export\s*\{([^}]*)\}/g)].flatMap((m) =>
+      (m[1] ?? "").split(",").map((part) => part.trim()),
+    );
+  });
   return names.filter((name) => /^[A-Z][a-z]/.test(name) && !name.startsWith("type "));
 }
 
