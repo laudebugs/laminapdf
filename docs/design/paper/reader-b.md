@@ -221,7 +221,7 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 **As built ([C7b](../../todos/done/C7b-offline-pwa.md)).** The web reader ships the install dialog, the offline notice with Offline in the status bar, and the update toast with Reload and Later. Five parts differ from the boards:
 
 - Install appears only where the browser offers one (`beforeinstallprompt`, Chromium). Safari’s Add to Dock how-to waits for a later todo, so Safari shows no item, like Firefox.
-- With a document open, the toast says “you’ll need to open this file again” (reopening at the same page is [T5b](../../todos/ongoing/T5b-reopen-at-last-position.md)).
+- With a document open, the toast says “you’ll need to open this file again” (reopening at the same page is [T5b](../../todos/done/T5b-reopen-at-last-position.md)).
 - The status bar’s Update ready reloads at once rather than opening a popover with Reload.
 - Reload is never disabled, since the reader can’t change a file yet.
 - Open from URL keeps its own error while offline; the field’s offline message comes with the URL form’s next change.

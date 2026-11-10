@@ -98,7 +98,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   history/history.ts (NavigationHistory; viewer.history, jumpToPage, jumpToDestination), worker pageLinks; C6c: worker/print.ts
 │                        #   (printPage: a page at print dpi with the print intent, ≤ 16 MP, as a PNG; fileBytes: a remote file's bytes as opened),
 │                        #   worker properties; C7b: source/opfs.ts (OpfsByteSource: a local file over 200 MiB (`copyAbove`) copied once into
-│                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); C3b: createViewer (src/layout/, view/, canvas/,
+│                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); T5b: worker/fingerprint.ts
+│                        #   (documentFingerprint: "fp1:" + SHA-256 of the head through its first %%EOF within 64 KiB; OpenedDocument.fingerprint),
+│                        #   Viewer.viewPosition()/restore(ViewPosition: a history place plus rotation, a history jump), a pending place
+│                        #   for a view opened or restored while hidden; C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)
@@ -138,7 +141,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Thumbnail, OutlineRow, ShortcutChip), src/overlays/ (the layer stack behind Escape, Dialog, Popover and
 │                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue, BottomSheet, SelectionToolbar,
 │                        #   CommandPalette; z-order from --paper-z-*), src/platform/ (ADR 0010: the Platform interface and capability
-│                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files),
+│                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files;
+│                        #   T5b: Platform.positions, positions.ts: the `positions` store of `lamina-pdf` v2, 500 by `readAt`; idb.ts opens
+│                        #   the database once; recent.reopen(id, { ask: false })),
 │                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
 │                        #   useStoreState, useReaderState), src/reader/ (ReaderShell, ReaderTopBar (Back and Forward), PageInput, OutlineTree, FindBar, FindResults, ExternalLinkDialog, ZoomControl,
 │                        #   ReaderView and ReaderSettingsPanel (reader-view.tsx: R14's column, crops, settings; U4b),
@@ -184,6 +189,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   document traffic and unexpected sites; monitor.ts, the log and its summary; panel.tsx, R13's indicator and panel);
 │                        #   src/reader-mode.tsx (U4b: the Reader toggle, the column over the reflow, crops, the place kept both ways, settings;
 │                        #   U4c: reader-origin.ts outlines a block on its page for View original page, reader-crop.ts a crop's clip);
+│                        #   src/reading/ (T5b: positions.ts parses, records and restores reading positions by fingerprint; resume.ts
+│                        #   reopens the document open at the last close; recent.tsx's Continue reading and the session record);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other

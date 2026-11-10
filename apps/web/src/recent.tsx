@@ -126,22 +126,6 @@ async function reopen(entry: RecentFile, platform: Platform, reader: ReaderContr
   return file === undefined ? reader.openFromPicker() : reader.open(file);
 }
 
-/**
- * At start, with no link in the address: reopens the document open when the app last closed,
- * where the browser kept the permission to read it (no prompt: nothing was clicked yet). Else the
- * home screen offers it as Continue reading.
- */
-export async function resumeLastDocument(platform: Platform, reader: ReaderController): Promise<void> {
-  if (!readChoices().rememberLocal || platform.recent.reopen === undefined) return;
-  const session = (await platform.storage.get(SESSION_KEY)) as { recentId?: unknown } | undefined;
-  if (typeof session?.recentId !== "string") return;
-  const entry = (await platform.recent.list()).find((e) => e.id === session.recentId);
-  if (entry?.hasHandle !== true) return;
-  const file = await platform.recent.reopen(entry.id, { ask: false });
-  // Something else opened meanwhile (a file the OS handed over, a drop): it stays.
-  if (file !== undefined && reader.getState().phase === "empty") await reader.open(file);
-}
-
 /** The Storage and privacy section of the Settings dialog. */
 function StorageSettings({
   choices,

@@ -24,6 +24,7 @@ Let power users work with many documents: each window holds tabs, a tab can be d
 - Tauri: `WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))`, `app.webview_windows()`, `Emitter::emit_to(EventTarget::webview_window(label), …)`, `WindowEvent::CloseRequested { api }` (`api.prevent_close()`), capabilities targeting windows by glob (`"windows": ["main", "doc-*"]`), [`tauri-plugin-window-state`](https://v2.tauri.app/plugin/window-state/) for geometry (`StateFlags`).
 - D2b: `EngineSupervisor` per window label, `DocumentRegistry` (trusted path sources); D3a: open routing; D3b: the "Remember recent files" privacy setting (session restore does **not** read `RecentFiles` entries — see Scope).
 - `@laminapdf/ui` (web C4): tab strip doesn't exist on web (`multiWindow: false`); add a shared `Tabs` component rendered only when the `Platform` reports `multiWindow` — no `isTauri` checks.
+- [T5b](../done/T5b-reopen-at-last-position.md) keeps each document's reading position in `Platform.positions` by fingerprint. Restored tabs keep their own view; a document opened outside a restored tab comes back at its position from `Platform.positions` (`Viewer.restore`).
 
 ## Scope
 

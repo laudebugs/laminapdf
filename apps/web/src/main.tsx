@@ -18,7 +18,7 @@ import { openLaunchedFiles } from "./offline/launch.ts";
 import { AppUpdates } from "./offline/updates.ts";
 import { parseFragment, remoteUrl } from "./open/url-fragment.ts";
 import { watchFragment } from "./open/watch.ts";
-import { resumeLastDocument } from "./recent.tsx";
+import { resumeLastDocument } from "./reading/resume.ts";
 import { Engine } from "./session.ts";
 
 for (const font of FONT_PRELOADS) {

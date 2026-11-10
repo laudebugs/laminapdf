@@ -154,8 +154,29 @@ describe(`reading positions in ${BROWSER}`, () => {
     await expect.poll(() => shownPage(page)).toBe("12");
     await page.getByRole("button", { name: "Zoom, 150%" }).waitFor();
     await page.getByText("Opened at page 12, where you stopped reading").waitFor({ state: "attached" });
+    // Coming back asked the network for nothing, so the fingerprint went nowhere.
+    expect(await page.getByRole("button", { name: /network requests? for this document/ }).textContent()).toContain(
+      "0 network requests for this document",
+    );
     await page.getByRole("button", { name: "Back to page 1" }).click();
     await expect.poll(() => shownPage(page)).toBe("1");
+    await clean(watched);
+  });
+
+  it("offers the file open when the reader closed as Continue reading, with its page", async () => {
+    const { watched, path } = await readLongFile();
+    const { page } = watched;
+    // No kept handle here (no File System Access), so the home screen offers it.
+    await page.reload();
+    await page.getByRole("heading", { name: "Continue reading" }).waitFor();
+    const row = page.getByRole("button", { name: /long-read\.pdf/ });
+    expect(await row.count()).toBe(1);
+    expect(await row.textContent()).toContain("page 12 of 40");
+    const chooser = page.waitForEvent("filechooser");
+    await row.click();
+    await (await chooser).setFiles(path);
+    await opened(watched, "long-read.pdf");
+    await expect.poll(() => shownPage(page)).toBe("12");
     await clean(watched);
   });
 

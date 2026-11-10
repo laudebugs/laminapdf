@@ -25,6 +25,7 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 - D2b: `FileSource` (positioned reads on an open handle, no mmap in the main process); `DocumentRegistry` reload entry point.
 - `notify` 8 / `notify-debouncer-full` (CC0/MIT/Apache — verify), OS APIs: macOS `NSDocumentController.noteNewRecentDocumentURL` (objc2-app-kit), Windows `SHAddToRecentDocs(SHARD_PATHW)` (windows crate; feeds the Jump List's Recent category when the app is a registered handler) and [`IApplicationDestinations`](https://learn.microsoft.com/windows/win32/api/shobjidl_core/nn-shobjidl_core-iapplicationdestinations) (`SetAppID`, `RemoveDestination`, `RemoveAllDestinations` — scoped to one AppUserModelID), Linux GTK `RecentManager::default().add_item(uri)` (gtk crate already in Tauri's Linux tree).
 - Privacy: the in-app list stores paths locally only (never sent anywhere; ADR 0011 rules); "clear" also clears the OS entries lamina added where the API allows.
+- [T5b](../done/T5b-reopen-at-last-position.md) keeps each document's reading position in `Platform.positions`, under a fingerprint of its first revision (`OpenedDocument.fingerprint`). The desktop's recent entries store that fingerprint and read their page and zoom from `Platform.positions`, instead of fields of their own; `createDesktopPlatform()` may reuse the web store (the webview's IndexedDB lives in the app's data folder).
 
 ## Scope
 
