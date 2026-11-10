@@ -69,7 +69,10 @@ export function LinkPreviews({ engine, viewer }: { engine: Engine; viewer: Viewe
   }, [engine, shown, outline]);
   if (viewer === undefined || shown === undefined) return null;
   const items = typeof outline === "object" ? outline.items : [];
-  const props = cardProps(shown, pages, items);
+  const card = cardProps(shown, pages, items);
+  // On touch the sheet's Go button follows: "Enter to go" would be wrong there.
+  const { caption, ...rest } = card;
+  const props = shown.request.pointer === "touch" || caption === undefined ? rest : card;
   return (
     <LinkPreview
       {...props}
