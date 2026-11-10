@@ -232,7 +232,8 @@ jobs:
   global:
     name: Formula, checksums, npm packages and SBOM
     needs: [plan, build]
-    if: ${{ !cancelled() }}
+    # Not on a pull request, which builds nothing; a dispatch may go on after some builds failed.
+    if: ${{ !cancelled() && needs.build.result != 'skipped' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
