@@ -1,5 +1,5 @@
 //! Writes a large, image-heavy PDF with the `laminapdf` builder: the desktop engine's 1 GB
-//! fixture (todo D2b), never committed. `cargo xtask fixtures large-pdf` runs it.
+//! fixture, never committed. `cargo xtask fixtures large-pdf` runs it.
 //!
 //! ```sh
 //! cargo run --release -p laminapdf-desktop-engine --example large_pdf -- --pages 20000 --out target/fixtures/1gb.pdf

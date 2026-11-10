@@ -8,8 +8,8 @@ use std::thread;
 use std::time::Duration;
 
 use laminapdf_desktop_protocol::{
-    DocId, ErrorKind, FromEngine, Limits, MAX_FRAME, PROTOCOL_VERSION, Priority, ReqId, TileFormat, TileRequest,
-    ToEngine, read_frame, write_frame,
+    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, Priority, ReqId, TileFormat,
+    TileRequest, ToEngine, read_frame, write_frame,
 };
 use laminapdf_test_fixtures::{fixture, read_at};
 
@@ -36,7 +36,7 @@ fn an_open_waiting_on_slow_reads_and_a_queued_tile_should_both_complete() {
         &mut to,
         &ToEngine::Hello {
             version: PROTOCOL_VERSION,
-            limits: Box::new(Limits::default()),
+            limits: Box::new(EngineLimits::default()),
         },
         &[],
     );
@@ -82,7 +82,7 @@ fn an_open_waiting_on_slow_reads_and_a_queued_tile_should_both_complete() {
             FromEngine::Opened { req: ReqId(1), .. } => opened = true,
             FromEngine::Error {
                 req: Some(ReqId(2)),
-                kind: ErrorKind::RenderUnavailable,
+                kind: FailureKind::RenderUnavailable,
                 ..
             } => tiled = true,
             FromEngine::Heartbeat | FromEngine::Ready { .. } => {}
@@ -101,7 +101,7 @@ fn a_cancelled_queued_tile_should_be_answered_cancelled() {
         &mut to,
         &ToEngine::Hello {
             version: PROTOCOL_VERSION,
-            limits: Box::new(Limits::default()),
+            limits: Box::new(EngineLimits::default()),
         },
         &[],
     );
@@ -149,7 +149,7 @@ fn a_cancelled_queued_tile_should_be_answered_cancelled() {
     };
     drop(to);
     engine.join().unwrap();
-    assert_eq!(cancelled, ErrorKind::Cancelled);
+    assert_eq!(cancelled, FailureKind::Cancelled);
 }
 
 #[test]

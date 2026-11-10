@@ -156,7 +156,8 @@ fn read_exact<R: Read>(r: &mut R, buf: &mut [u8]) -> Result<(), ProtocolError> {
 mod tests {
     use super::*;
     use crate::{
-        DocId, ErrorKind, FromEngine, Limits, PageSize, Password, Priority, ReqId, TileFormat, TileRequest, ToEngine,
+        DocId, EngineLimits, FailureKind, FromEngine, PageDimensions, Password, Priority, ReqId, TileFormat,
+        TileRequest, ToEngine,
     };
 
     fn encode<M: Serialize>(msg: &M, payload: &[u8]) -> Vec<u8> {
@@ -182,9 +183,9 @@ mod tests {
         vec![
             ToEngine::Hello {
                 version: PROTOCOL_VERSION,
-                limits: Box::new(Limits {
+                limits: Box::new(EngineLimits {
                     max_render_side: Some(16_384),
-                    ..Limits::default()
+                    ..EngineLimits::default()
                 }),
             },
             ToEngine::OpenDocument { req, doc, len: 1 << 40 },
@@ -196,7 +197,7 @@ mod tests {
             ToEngine::RangeData { req, offset: 99 },
             ToEngine::RangeFailed {
                 req,
-                kind: ErrorKind::Io,
+                kind: FailureKind::Io,
                 message: "truncated".into(),
             },
             ToEngine::GetPageInfo { req, doc },
@@ -250,7 +251,7 @@ mod tests {
             FromEngine::PageInfo {
                 req,
                 doc,
-                sizes: vec![PageSize {
+                sizes: vec![PageDimensions {
                     width: 612.0,
                     height: 792.0,
                     rotate: 90,
@@ -264,12 +265,12 @@ mod tests {
             },
             FromEngine::Error {
                 req: Some(req),
-                kind: ErrorKind::WrongPassword,
+                kind: FailureKind::WrongPassword,
                 message: "wrong password".into(),
             },
             FromEngine::Error {
                 req: None,
-                kind: ErrorKind::Protocol,
+                kind: FailureKind::Protocol,
                 message: "bad frame".into(),
             },
             FromEngine::Heartbeat,

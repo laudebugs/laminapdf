@@ -1,13 +1,13 @@
 //! The `laminapdf-desktop-engine` binary: the main process starts it with piped stdio.
 //!
 //! `--pdfium <dir>` names the folder holding the PDFium library (the app's resources); without
-//! it, `LAMINA_PDF_PDFIUM_DIR` is tried. Without PDFium, the engine still opens documents and
+//! it, `LAMINA_PDF_PDFIUM_DIR` is tried (for tests and the `measure` example). Without PDFium, the engine still opens documents and
 //! reports their pages, and answers every tile with `RenderUnavailable`.
 
-use std::io::Write as _;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+use laminapdf_desktop_engine::log;
 use laminapdf_render::RenderBackend;
 use laminapdf_render_pdfium::PdfiumBackend;
 
@@ -48,9 +48,4 @@ fn pdfium_dir() -> Result<Option<PathBuf>, String> {
         }
     }
     Ok(dir)
-}
-
-fn log(message: &str) {
-    // Nothing to do if stderr is gone.
-    let _ = writeln!(std::io::stderr().lock(), "{message}");
 }

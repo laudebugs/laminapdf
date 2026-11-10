@@ -97,6 +97,21 @@ pub(crate) fn md_cell(text: &str) -> String {
     text.replace('|', "\\|").replace('\n', " ")
 }
 
+/// Copies the folder `from` into `to`, recursively.
+pub(crate) fn copy_dir(from: &Path, to: &Path) -> Result<()> {
+    fs::create_dir_all(to)?;
+    for entry in fs::read_dir(from).with_context(|| format!("reading {}", from.display()))? {
+        let entry = entry?;
+        let target = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir(&entry.path(), &target)?;
+        } else {
+            fs::copy(entry.path(), &target).with_context(|| format!("copying to {}", target.display()))?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;

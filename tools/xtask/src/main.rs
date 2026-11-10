@@ -20,6 +20,7 @@ mod doctor;
 mod examples;
 mod examples_lints;
 mod extract_bench;
+mod fixtures;
 mod gallery;
 mod harness;
 mod licenses;
@@ -423,7 +424,7 @@ fn main() -> Result<()> {
         ("cli-dist", []) => cli_docs::dist_files(&ws),
         ("desktop-notices", []) => notices::desktop(&ws),
         ("desktop-sidecar", args) => desktop_sidecar::run(&ws, args),
-        ("fixtures", [what, rest @ ..]) if what == "large-pdf" => desktop_sidecar::large_pdf(&ws, rest),
+        ("fixtures", [what, rest @ ..]) if what == "large-pdf" => fixtures::large_pdf(&ws, rest),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("benchmarks", args) => benchmarks::run(&ws, &benchmarks::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),

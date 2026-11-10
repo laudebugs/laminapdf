@@ -53,9 +53,9 @@ impl<'de> Deserialize<'de> for Password {
 
 /// The resource limits the engine opens and renders with. `None` keeps the engine's default
 /// (ADR 0003's for parsing, ADR 0004's for rendering), so the main process needs to know none of
-/// them. Names as in `laminapdf`'s `Limits` and `laminapdf-render`'s `RenderLimits`.
+/// them. Names as in `laminapdf`'s `EngineLimits` and `laminapdf-render`'s `RenderLimits`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct Limits {
+pub struct EngineLimits {
     /// Nested arrays and dictionaries.
     pub max_nesting_depth: Option<u64>,
     /// Bytes one stream may decode to.
@@ -139,7 +139,7 @@ pub struct TileRequest {
 
 /// A page's displayed size in points and its `/Rotate`.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct PageSize {
+pub struct PageDimensions {
     /// Displayed width in points.
     pub width: f32,
     /// Displayed height in points.
@@ -150,7 +150,7 @@ pub struct PageSize {
 
 /// Why a request failed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ErrorKind {
+pub enum FailureKind {
     /// The main process couldn't read the file (gone, truncated, unreadable).
     Io,
     /// A read the engine asked for wasn't answered in time.
@@ -187,7 +187,7 @@ pub enum ToEngine {
         version: u16,
         /// The limits every document of this engine opens with (boxed: the other messages
         /// are small).
-        limits: Box<Limits>,
+        limits: Box<EngineLimits>,
     },
     /// Open the document `doc`, `len` bytes long; the engine reads it with
     /// [`FromEngine::ReadRange`]. Answered by [`FromEngine::Opened`] or [`FromEngine::Error`].
@@ -200,7 +200,7 @@ pub enum ToEngine {
         len: u64,
     },
     /// Unlock an encrypted document. Answered by [`FromEngine::Unlocked`] or a
-    /// [`FromEngine::Error`] of kind [`ErrorKind::WrongPassword`].
+    /// [`FromEngine::Error`] of kind [`FailureKind::WrongPassword`].
     UnlockDocument {
         /// The request.
         req: ReqId,
@@ -221,8 +221,8 @@ pub enum ToEngine {
     RangeFailed {
         /// The engine's request.
         req: ReqId,
-        /// [`ErrorKind::Io`].
-        kind: ErrorKind,
+        /// [`FailureKind::Io`].
+        kind: FailureKind,
         /// What went wrong, without the file's path.
         message: String,
     },
@@ -236,7 +236,7 @@ pub enum ToEngine {
     /// Render a tile. Answered by [`FromEngine::Tile`].
     RenderTile(TileRequest),
     /// Drop a queued request, or skip sending a running one's result. The engine still
-    /// answers it, with [`ErrorKind::Cancelled`].
+    /// answers it, with [`FailureKind::Cancelled`].
     Cancel {
         /// The request.
         req: ReqId,
@@ -314,7 +314,7 @@ pub enum FromEngine {
         /// The document.
         doc: DocId,
         /// One entry per page.
-        sizes: Vec<PageSize>,
+        sizes: Vec<PageDimensions>,
     },
     /// A rendered tile; its pixels follow the header as the frame's payload.
     Tile {
@@ -332,7 +332,7 @@ pub enum FromEngine {
         /// The request, when the error answers one.
         req: Option<ReqId>,
         /// Why.
-        kind: ErrorKind,
+        kind: FailureKind,
         /// What happened, for the log. Never document content or a password.
         message: String,
     },

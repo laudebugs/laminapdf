@@ -12,7 +12,8 @@ use std::time::Duration;
 
 use super::{Process, Spawned, Spawner, lock};
 use crate::{
-    DocId, ErrorKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, PageSize, TileFormat, ToEngine, read_frame, write_frame,
+    DocId, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, PageDimensions, TileFormat, ToEngine, read_frame,
+    write_frame,
 };
 
 /// How a fake engine behaves.
@@ -178,7 +179,7 @@ fn answer(msg: ToEngine, locked: &mut Vec<DocId>) -> Option<FromEngine> {
         }
         ToEngine::UnlockDocument { req, .. } => FromEngine::Error {
             req: Some(req),
-            kind: ErrorKind::WrongPassword,
+            kind: FailureKind::WrongPassword,
             message: "wrong-password".into(),
         },
         ToEngine::GetPageInfo { req, doc } if locked.contains(&doc) => FromEngine::NeedsPassword { req, doc },
@@ -186,7 +187,7 @@ fn answer(msg: ToEngine, locked: &mut Vec<DocId>) -> Option<FromEngine> {
             req,
             doc,
             sizes: vec![
-                PageSize {
+                PageDimensions {
                     width: 612.0,
                     height: 792.0,
                     rotate: 0,

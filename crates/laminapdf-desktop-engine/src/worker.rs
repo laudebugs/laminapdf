@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use laminapdf::OpenOptions;
 use laminapdf_desktop_protocol::{
-    DocId, ErrorKind, FromEngine, Limits, MAX_FRAME, PageSize, Password, ReqId, TileFormat, TileRequest,
+    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, ReqId, TileFormat, TileRequest,
 };
 use laminapdf_render::{
     ByteSource, CancelToken, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions, RenderRequest,
@@ -45,14 +45,14 @@ struct Opened {
 /// Why a document didn't open.
 enum OpenFailed {
     NeedsPassword,
-    Error(ErrorKind, String),
+    Error(FailureKind, String),
 }
 
 pub(crate) struct Worker {
     out: Outbox,
     ranges: Arc<Ranges>,
     backend: Option<Box<dyn RenderBackend>>,
-    limits: Box<Limits>,
+    limits: Box<EngineLimits>,
     docs: BTreeMap<DocId, Doc>,
 }
 
@@ -61,7 +61,7 @@ impl Worker {
         out: Outbox,
         ranges: Arc<Ranges>,
         backend: Option<Box<dyn RenderBackend>>,
-        limits: Box<Limits>,
+        limits: Box<EngineLimits>,
     ) -> Self {
         Self {
             out,
@@ -75,20 +75,18 @@ impl Worker {
     /// Runs jobs until the queue closes.
     pub(crate) fn run(mut self, queue: &Queue) {
         while let Some(job) = queue.pop() {
+            let token = CancelToken::new();
+            queue.start(job.req(), token.clone());
             match job {
                 Job::Open { req, doc, len } => self.open(req, doc, len),
                 Job::Unlock { req, doc, password } => self.unlock(req, doc, &password),
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
-                Job::Render(tile) => {
-                    let token = CancelToken::new();
-                    queue.start(tile.req, token.clone());
-                    self.render(&tile, &token);
-                    queue.finish();
-                }
+                Job::Render(tile) => self.render(&tile, &token),
                 Job::Close { doc } => {
                     self.docs.remove(&doc);
                 }
             }
+            queue.finish();
         }
     }
 
@@ -126,7 +124,7 @@ impl Worker {
 
     fn unlock(&mut self, req: ReqId, doc: DocId, password: &Password) {
         let source = match self.docs.get(&doc) {
-            None => return self.error(req, ErrorKind::UnknownDocument, "no such document".into()),
+            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
             Some(Doc::Open(opened)) => {
                 // Already open (its password was empty, or a repeated unlock): nothing to do.
                 let (page_count, repaired) = (opened.page_count, opened.repaired);
@@ -149,14 +147,14 @@ impl Worker {
                 });
                 self.docs.insert(doc, Doc::Open(Box::new(opened)));
             }
-            Err(OpenFailed::NeedsPassword) => self.error(req, ErrorKind::WrongPassword, "wrong-password".into()),
+            Err(OpenFailed::NeedsPassword) => self.error(req, FailureKind::WrongPassword, "wrong-password".into()),
             Err(OpenFailed::Error(kind, message)) => self.error(req, kind, message),
         }
     }
 
     fn page_info(&self, req: ReqId, doc: DocId) {
         let opened = match self.docs.get(&doc) {
-            None => return self.error(req, ErrorKind::UnknownDocument, "no such document".into()),
+            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
             Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
             Some(Doc::Open(opened)) => opened,
         };
@@ -164,7 +162,7 @@ impl Worker {
             Ok(pages) => {
                 let sizes = pages
                     .iter()
-                    .map(|page| PageSize {
+                    .map(|page| PageDimensions {
                         #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
                         width: page.width as f32,
                         #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
@@ -181,15 +179,15 @@ impl Worker {
     fn render(&self, tile: &TileRequest, cancel: &CancelToken) {
         let req = tile.req;
         let opened = match self.docs.get(&tile.doc) {
-            None => return self.error(req, ErrorKind::UnknownDocument, "no such document".into()),
+            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
             Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc: tile.doc }),
             Some(Doc::Open(opened)) => opened,
         };
         let Some(render) = opened.render.as_deref() else {
             let kind = if self.backend.is_some() {
-                ErrorKind::RenderFailed
+                FailureKind::RenderFailed
             } else {
-                ErrorKind::RenderUnavailable
+                FailureKind::RenderUnavailable
             };
             return self.error(req, kind, "no renderer for this document".into());
         };
@@ -210,7 +208,7 @@ impl Worker {
         };
         let len = plan.byte_len();
         if len.saturating_add(TILE_FRAME_SLACK) > MAX_FRAME as usize {
-            return self.error(req, ErrorKind::TooLarge, "the tile is larger than one frame".into());
+            return self.error(req, FailureKind::TooLarge, "the tile is larger than one frame".into());
         }
         let mut pixels = vec![0_u8; len];
         match render.render(&request, &mut pixels, cancel) {
@@ -272,7 +270,7 @@ impl Worker {
         self.out.send_or_log(msg, payload);
     }
 
-    fn error(&self, req: ReqId, kind: ErrorKind, message: String) {
+    fn error(&self, req: ReqId, kind: FailureKind, message: String) {
         self.send(&FromEngine::Error {
             req: Some(req),
             kind,
@@ -283,17 +281,17 @@ impl Worker {
 
 /// The protocol's kind for a parser or renderer error code. Only codes cross the pipe, never an
 /// error's text, which can quote the document.
-fn kind_of(code: &str) -> ErrorKind {
+fn kind_of(code: &str) -> FailureKind {
     match code {
-        "wrong-password" | "password-required" => ErrorKind::WrongPassword,
-        "limit-exceeded" => ErrorKind::Limit,
-        "render-too-large" => ErrorKind::TooLarge,
-        "page-index-out-of-range" => ErrorKind::PageOutOfRange,
-        "source" | "data-pending" => ErrorKind::Io,
-        "cancelled" => ErrorKind::Cancelled,
-        "render-backend-unavailable" => ErrorKind::RenderUnavailable,
-        "render-failed" => ErrorKind::RenderFailed,
-        "invalid-argument" => ErrorKind::Protocol,
-        _ => ErrorKind::Invalid,
+        "wrong-password" | "password-required" => FailureKind::WrongPassword,
+        "limit-exceeded" => FailureKind::Limit,
+        "render-too-large" => FailureKind::TooLarge,
+        "page-index-out-of-range" => FailureKind::PageOutOfRange,
+        "source" | "data-pending" => FailureKind::Io,
+        "cancelled" => FailureKind::Cancelled,
+        "render-backend-unavailable" => FailureKind::RenderUnavailable,
+        "render-failed" => FailureKind::RenderFailed,
+        "invalid-argument" => FailureKind::Protocol,
+        _ => FailureKind::Invalid,
     }
 }

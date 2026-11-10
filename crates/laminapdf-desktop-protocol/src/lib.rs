@@ -29,7 +29,8 @@ pub mod supervisor;
 
 pub use frame::{MAX_FRAME, ProtocolError, read_frame, write_frame};
 pub use msg::{
-    DocId, ErrorKind, FromEngine, Limits, PageSize, Password, Priority, ReqId, TileFormat, TileRequest, ToEngine,
+    DocId, EngineLimits, FailureKind, FromEngine, PageDimensions, Password, Priority, ReqId, TileFormat, TileRequest,
+    ToEngine,
 };
 
 /// The protocol's version: in every frame and in the `Hello`/`Ready` handshake. Both sides come

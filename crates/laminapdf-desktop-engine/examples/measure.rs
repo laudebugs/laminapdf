@@ -1,4 +1,4 @@
-//! Measures the engine process the way the desktop app drives it (todo D2b's numbers): the built
+//! Measures the engine process the way the desktop app drives it (ADR 0008 §2's numbers): the built
 //! engine under the main process's supervisor, the document read by position from its file.
 //!
 //! ```sh

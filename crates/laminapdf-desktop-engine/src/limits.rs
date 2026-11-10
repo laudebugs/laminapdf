@@ -1,7 +1,7 @@
-//! The protocol's [`Limits`] as the parser's [`laminapdf::Limits`] and the renderer's
+//! The protocol's [`EngineLimits`] as the parser's [`laminapdf::Limits`] and the renderer's
 //! [`RenderLimits`]: each field the main process left `None` keeps its default.
 
-use laminapdf_desktop_protocol::Limits;
+use laminapdf_desktop_protocol::EngineLimits;
 use laminapdf_render::RenderLimits;
 
 /// Applies each set field with the parser's `with_*` setter, converting it to the setter's type
@@ -19,7 +19,7 @@ macro_rules! parse_limits {
 }
 
 /// The parser's limits: ADR 0003's defaults with the main process's overrides.
-pub(crate) fn parse(limits: &Limits) -> laminapdf::Limits {
+pub(crate) fn parse(limits: &EngineLimits) -> laminapdf::Limits {
     parse_limits! { limits,
         max_nesting_depth: usize => with_max_nesting_depth;
         max_stream_decoded: usize => with_max_stream_decoded;
@@ -40,7 +40,7 @@ pub(crate) fn parse(limits: &Limits) -> laminapdf::Limits {
 }
 
 /// The renderer's limits: ADR 0004's defaults with the main process's overrides.
-pub(crate) fn render(limits: &Limits) -> RenderLimits {
+pub(crate) fn render(limits: &EngineLimits) -> RenderLimits {
     let mut out = RenderLimits::default();
     if let Some(value) = limits.max_render_pixels {
         out.max_render_pixels = value;
@@ -60,23 +60,23 @@ mod tests {
 
     #[test]
     fn unset_limits_should_keep_the_defaults() {
-        assert_eq!(parse(&Limits::default()), laminapdf::Limits::new());
+        assert_eq!(parse(&EngineLimits::default()), laminapdf::Limits::new());
     }
 
     #[test]
     fn a_set_parse_limit_should_reach_the_parser() {
-        let limits = Limits {
+        let limits = EngineLimits {
             max_nesting_depth: Some(7),
-            ..Limits::default()
+            ..EngineLimits::default()
         };
         assert_eq!(parse(&limits).max_nesting_depth(), 7);
     }
 
     #[test]
     fn a_set_render_limit_should_reach_the_renderer() {
-        let limits = Limits {
+        let limits = EngineLimits {
             max_render_side: Some(1024),
-            ..Limits::default()
+            ..EngineLimits::default()
         };
         assert_eq!(render(&limits).max_render_side, 1024);
     }

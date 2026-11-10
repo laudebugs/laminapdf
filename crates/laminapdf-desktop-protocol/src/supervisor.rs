@@ -9,7 +9,9 @@
 //! for each recent crash. More than [`Config::max_restarts`] crashes within [`Config::window`]
 //! mark the engine failed: requests then answer [`SupervisorError::Failed`] and the owner gets
 //! [`Event::Failed`] instead of a restart loop. After each restart the owner gets
-//! [`Event::Restarted`] and reopens its documents.
+//! [`Event::Restarted`] and reopens its documents. Until its handler returns, only the handler's
+//! own thread may send requests; any other request answers [`SupervisorError::Lost`], so nothing
+//! reaches the new engine before its documents are back.
 //!
 //! Locks are never held while waiting for the engine: a request takes the state lock to register
 //! its reply slot and releases it before writing.
@@ -25,14 +27,16 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::{DocId, ErrorKind, FromEngine, Limits, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ReqId, ToEngine};
+use crate::{
+    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ReqId, ToEngine,
+};
 use crate::{read_frame, write_frame};
 
 /// The timings and limits of one supervised engine.
 #[derive(Debug, Clone)]
 pub struct Config {
     /// What every document of the engine opens with.
-    pub limits: Limits,
+    pub limits: EngineLimits,
     /// Silence after which a running engine is taken as hung: 6 s, three missed 2 s periods
     /// (the engine beats every second).
     pub heartbeat_timeout: Duration,
@@ -51,7 +55,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            limits: Limits::default(),
+            limits: EngineLimits::default(),
             heartbeat_timeout: Duration::from_secs(6),
             reply_timeout: Duration::from_secs(60),
             start_timeout: Duration::from_secs(10),
@@ -160,6 +164,8 @@ struct State {
     crashes: VecDeque<Instant>,
     failed: bool,
     stopping: bool,
+    /// The thread reopening documents in a restarted engine; the only one allowed to send.
+    restoring: Option<thread::ThreadId>,
 }
 
 /// The running engine.
@@ -211,6 +217,9 @@ impl Supervisor {
             let mut state = self.state();
             if state.failed {
                 return Err(SupervisorError::Failed);
+            }
+            if state.restoring.is_some_and(|id| id != thread::current().id()) {
+                return Err(SupervisorError::Lost);
             }
             let Some(engine) = &state.engine else {
                 return Err(SupervisorError::Lost);
@@ -275,10 +284,7 @@ impl Supervisor {
         }
         if let Some(engine) = engine {
             let _ = write_frame(&mut *lock(&engine.stdin), &ToEngine::Shutdown, &[]);
-            let mut process = lock(&engine.process);
-            process.kill();
-            let status = process.wait();
-            self.log(format!("engine {} stopped: {status}", engine.pid));
+            self.log(format!("engine {} stopped: {}", engine.pid, reap(&engine.process)));
         }
     }
 
@@ -324,12 +330,7 @@ impl Supervisor {
         });
         let pid = match pid {
             Ok(pid) => pid,
-            Err(why) => {
-                let mut process = lock(&process);
-                process.kill();
-                let status = process.wait();
-                return Err(SupervisorError::Start(format!("{why} ({status})")));
-            }
+            Err(why) => return Err(SupervisorError::Start(format!("{why} ({})", reap(&process)))),
         };
         let stopping = {
             let mut state = self.state();
@@ -404,7 +405,7 @@ impl Supervisor {
             Err(error) => {
                 let msg = ToEngine::RangeFailed {
                     req,
-                    kind: ErrorKind::Io,
+                    kind: FailureKind::Io,
                     message: error.to_string(),
                 };
                 write_frame(&mut *lock(stdin), &msg, &[])
@@ -441,12 +442,7 @@ impl Supervisor {
         for (_, tx) in waiting {
             let _ = tx.send(Err(SupervisorError::Lost));
         }
-        let status = {
-            let mut process = lock(&engine.process);
-            process.kill();
-            process.wait()
-        };
-        self.log(format!("engine {} exited: {status}", engine.pid));
+        self.log(format!("engine {} exited: {}", engine.pid, reap(&engine.process)));
         if !stopping {
             self.crashed();
         }
@@ -473,21 +469,40 @@ impl Supervisor {
             return;
         };
         let this = self.clone();
-        let _ = thread::Builder::new().name("engine-restart".into()).spawn(move || {
+        let restart = thread::Builder::new().name("engine-restart".into()).spawn(move || {
             thread::sleep(delay);
             if this.state().stopping {
                 return;
             }
-            match this.launch() {
-                Ok(pid) => this.emit(Event::Restarted { pid }),
-                // Installed, then gone: `exited` has already counted the crash.
-                Err(SupervisorError::Lost) => {}
+            let me = thread::current().id();
+            this.state().restoring = Some(me);
+            let launched = this.launch();
+            if let Ok(pid) = launched {
+                this.emit(Event::Restarted { pid });
+            }
+            {
+                // A crash during the reopening may have started the next restart, which owns
+                // the gate now.
+                let mut state = this.state();
+                if state.restoring == Some(me) {
+                    state.restoring = None;
+                }
+            }
+            match launched {
+                // Installed, then gone (`exited` has counted the crash), or restarted.
+                Ok(_) | Err(SupervisorError::Lost) => {}
                 Err(error) => {
                     this.log(error.to_string());
                     this.crashed();
                 }
             }
         });
+        if let Err(error) = restart {
+            // No thread, no restart: stay down rather than answer `Lost` for ever.
+            self.log(format!("could not start the restart thread: {error}"));
+            self.state().failed = true;
+            self.emit(Event::Failed);
+        }
     }
 
     fn deliver(&self, req: ReqId, reply: Reply) {
@@ -522,6 +537,13 @@ const fn reply_req(msg: &FromEngine) -> Option<ReqId> {
         FromEngine::Error { req, .. } => *req,
         FromEngine::Ready { .. } | FromEngine::ReadRange { .. } | FromEngine::Heartbeat => None,
     }
+}
+
+/// Kills an engine process (it may have exited already), waits for it and says how it ended.
+fn reap(process: &Mutex<Box<dyn Process>>) -> String {
+    let mut process = lock(process);
+    process.kill();
+    process.wait()
 }
 
 fn lock<T: ?Sized>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {

@@ -10,8 +10,9 @@
 //!   only the router can deliver.
 //! - **The worker** runs one job at a time: documents first, then visible tiles, then prefetched
 //!   ones. It reads each document through a source whose reads become `ReadRange` requests.
-//! - **The heartbeat** sends `Heartbeat` every second, so the main process can tell a hung engine
-//!   from a busy one.
+//! - **The heartbeat** sends `Heartbeat` every second while the worker is idle or its job is
+//!   younger than [`STALLED`]. A job that runs longer (a hostile file looping in the parser or
+//!   PDFium) stops the beats, and the main process kills and restarts the engine.
 
 mod limits;
 mod outbox;
@@ -26,7 +27,7 @@ use std::thread;
 use std::time::Duration;
 
 use laminapdf_desktop_protocol::{
-    ErrorKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ToEngine, read_frame,
+    FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ToEngine, read_frame,
 };
 use laminapdf_render::RenderBackend;
 
@@ -37,6 +38,10 @@ use crate::worker::Worker;
 
 /// How often the engine says it is alive.
 pub const HEARTBEAT: Duration = Duration::from_secs(1);
+
+/// How long one job may run before the engine stops beating: longer than a read may wait for the
+/// main process (30 s), far longer than a page or a tile takes.
+pub const STALLED: Duration = Duration::from_secs(45);
 
 /// Serves the main process on `input` and `output` until it sends `Shutdown` or closes the pipe.
 /// `backend` renders tiles; without one, documents open and report their pages but every tile
@@ -80,10 +85,14 @@ pub fn run<R: Read, W: Write + Send + 'static>(
     };
     let alive = Arc::new(AtomicBool::new(true));
     {
-        let (out, alive) = (out.clone(), Arc::clone(&alive));
+        let (out, alive, queue) = (out.clone(), Arc::clone(&alive), Arc::clone(&queue));
         thread::Builder::new().name("engine-heartbeat".into()).spawn(move || {
             while alive.load(Ordering::SeqCst) {
                 thread::sleep(HEARTBEAT);
+                if queue.running_since().is_some_and(|started| started.elapsed() > STALLED) {
+                    // Silence: the main process restarts an engine whose worker is stuck.
+                    continue;
+                }
                 if out.send(&FromEngine::Heartbeat, &[]).is_err() {
                     break;
                 }
@@ -120,7 +129,7 @@ fn route<R: Read>(input: &mut R, out: &Outbox, ranges: &Ranges, queue: &Queue) -
                     out.send_or_log(
                         &FromEngine::Error {
                             req: Some(req),
-                            kind: ErrorKind::Cancelled,
+                            kind: FailureKind::Cancelled,
                             message: "cancelled".into(),
                         },
                         &[],
@@ -144,7 +153,7 @@ fn report(out: &Outbox, message: &str) {
     out.send_or_log(
         &FromEngine::Error {
             req: None,
-            kind: ErrorKind::Protocol,
+            kind: FailureKind::Protocol,
             message: message.into(),
         },
         &[],
@@ -152,7 +161,7 @@ fn report(out: &Outbox, message: &str) {
 }
 
 /// One line on stderr, which the main process copies into its log. Never document content.
-pub(crate) fn log(message: &str) {
+pub fn log(message: &str) {
     let mut err = std::io::stderr().lock();
     // Nothing to do if stderr is gone.
     let _ = writeln!(err, "{message}");

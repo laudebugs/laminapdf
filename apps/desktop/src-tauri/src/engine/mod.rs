@@ -13,7 +13,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, Spawner, Supervisor, SupervisorError};
-use laminapdf_desktop_protocol::{DocId, ErrorKind, FromEngine, PageSize, ToEngine};
+use laminapdf_desktop_protocol::{DocId, FailureKind, FromEngine, PageDimensions, ToEngine};
 use serde::Serialize;
 
 pub(crate) use documents::DocumentRegistry;
@@ -54,8 +54,8 @@ pub(crate) struct PageMeta {
     pub rotate: u16,
 }
 
-impl From<&PageSize> for PageMeta {
-    fn from(size: &PageSize) -> Self {
+impl From<&PageDimensions> for PageMeta {
+    fn from(size: &PageDimensions) -> Self {
         Self {
             width: size.width,
             height: size.height,
@@ -168,12 +168,12 @@ impl Engines {
     }
 
     /// Unlocks `doc` with the password the user typed, and keeps the password while it stays
-    /// open. D2d's password prompt calls this; the restart path reuses the kept password.
+    /// open. The password prompt's command calls it; the restart path reuses the kept password.
     #[cfg_attr(
         not(test),
         expect(
             dead_code,
-            reason = "D2d's `unlock_document` command calls it with the user's password"
+            reason = "the password prompt's `unlock_document` command, which comes with the viewer, calls it"
         )
     )]
     pub(crate) fn unlock(&self, window: &str, doc: DocId, password: &str) -> Result<DocumentMeta, DesktopError> {
@@ -365,20 +365,20 @@ fn ask(
     }
 }
 
-fn engine_error(kind: ErrorKind) -> DesktopError {
+fn engine_error(kind: FailureKind) -> DesktopError {
     let (kind, message) = match kind {
-        ErrorKind::Io => ("io", "the file could not be read"),
-        ErrorKind::Timeout => ("timeout", "reading the file took too long"),
-        ErrorKind::WrongPassword => ("wrong-password", "the password doesn't open this document"),
-        ErrorKind::Invalid => ("invalid", "this file isn't a PDF Lamina PDF can read"),
-        ErrorKind::Limit => ("limit", "this document is too large or complex to open"),
-        ErrorKind::UnknownDocument => ("unknown-document", "no such document"),
-        ErrorKind::PageOutOfRange => ("page-out-of-range", "no such page"),
-        ErrorKind::TooLarge => ("too-large", "the tile is too large"),
-        ErrorKind::Cancelled => ("cancelled", "cancelled"),
-        ErrorKind::RenderUnavailable => ("render-unavailable", "rendering isn't available"),
-        ErrorKind::RenderFailed => ("render-failed", "the page could not be drawn"),
-        ErrorKind::Protocol => ("protocol", "the document process misbehaved"),
+        FailureKind::Io => ("io", "the file could not be read"),
+        FailureKind::Timeout => ("timeout", "reading the file took too long"),
+        FailureKind::WrongPassword => ("wrong-password", "the password doesn't open this document"),
+        FailureKind::Invalid => ("invalid", "this file isn't a PDF Lamina PDF can read"),
+        FailureKind::Limit => ("limit", "this document is too large or complex to open"),
+        FailureKind::UnknownDocument => ("unknown-document", "no such document"),
+        FailureKind::PageOutOfRange => ("page-out-of-range", "no such page"),
+        FailureKind::TooLarge => ("too-large", "the tile is too large"),
+        FailureKind::Cancelled => ("cancelled", "cancelled"),
+        FailureKind::RenderUnavailable => ("render-unavailable", "rendering isn't available"),
+        FailureKind::RenderFailed => ("render-failed", "the page could not be drawn"),
+        FailureKind::Protocol => ("protocol", "the document process misbehaved"),
     };
     DesktopError::Engine {
         kind,
@@ -401,7 +401,7 @@ fn supervisor_error(error: &SupervisorError) -> DesktopError {
 
 fn unexpected(reply: &FromEngine) -> DesktopError {
     tracing::warn!("unexpected reply from the engine: {reply:?}");
-    engine_error(ErrorKind::Protocol)
+    engine_error(FailureKind::Protocol)
 }
 
 #[cfg(test)]

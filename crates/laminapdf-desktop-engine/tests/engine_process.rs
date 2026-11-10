@@ -17,7 +17,7 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{CommandSpawner, Config, Event, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{
-    DocId, ErrorKind, FromEngine, Password, Priority, ReqId, TileFormat, TileRequest, ToEngine,
+    DocId, FailureKind, FromEngine, Password, Priority, ReqId, TileFormat, TileRequest, ToEngine,
 };
 use laminapdf_test_fixtures::{fixture, read_at};
 
@@ -150,7 +150,7 @@ fn bytes_that_are_not_a_pdf_should_fail_to_open_without_killing_the_engine() {
     assert!(matches!(
         engine.open(doc, len),
         FromEngine::Error {
-            kind: ErrorKind::Invalid,
+            kind: FailureKind::Invalid,
             ..
         }
     ));
@@ -210,7 +210,7 @@ fn a_wrong_password_should_be_refused() {
     assert!(matches!(
         engine.unlock(doc, "not-it"),
         FromEngine::Error {
-            kind: ErrorKind::WrongPassword,
+            kind: FailureKind::WrongPassword,
             ..
         }
     ));
@@ -249,7 +249,7 @@ fn a_closed_document_should_be_forgotten() {
     assert!(matches!(
         engine.ask(|req| ToEngine::GetPageInfo { req, doc }),
         FromEngine::Error {
-            kind: ErrorKind::UnknownDocument,
+            kind: FailureKind::UnknownDocument,
             ..
         }
     ));

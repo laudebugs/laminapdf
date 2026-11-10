@@ -20,7 +20,10 @@ use super::secret::SessionPassword;
 /// One open document.
 struct Entry {
     /// The granted path, never sent anywhere.
-    #[expect(dead_code, reason = "read by D3b's file watching and reload; held from the start")]
+    #[expect(
+        dead_code,
+        reason = "file watching and reload read it; the registry holds it from the start"
+    )]
     path: PathBuf,
     source: Arc<FileSource>,
     window: String,

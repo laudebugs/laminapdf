@@ -1,4 +1,4 @@
-//! `cargo xtask desktop-sidecar [--release | --debug]` (todo D2b): builds the desktop app's engine
+//! `cargo xtask desktop-sidecar [--release | --debug]`: builds the desktop app's engine
 //! binary and fetches PDFium, where `tauri.bundle.conf.json` bundles them from:
 //!
 //! - `apps/desktop/src-tauri/binaries/laminapdf-desktop-engine-<target triple>[.exe]`: Tauri's
@@ -9,10 +9,7 @@
 //!
 //! Both folders are git-ignored. The profile is `--release` or `--debug`, else what the Tauri CLI
 //! asked for (`TAURI_ENV_DEBUG` in its `beforeDevCommand`/`beforeBuildCommand`), else debug.
-//! The host's target only: the universal macOS engine comes with signing (D6c).
-//!
-//! `cargo xtask fixtures large-pdf` lives here too: it runs the engine crate's `large_pdf`
-//! example, which writes the engine's 1 GB fixture.
+//! The host's target only: the universal macOS engine comes with code signing.
 
 use std::env;
 use std::fs;
@@ -24,7 +21,7 @@ use crate::workspace::Workspace;
 use crate::{pdfium, step};
 
 /// The engine's package and binary name.
-const ENGINE: &str = "laminapdf-desktop-engine";
+pub(crate) const ENGINE: &str = "laminapdf-desktop-engine";
 
 pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     let release = match args {
@@ -63,7 +60,7 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     fs::create_dir_all(&resources).with_context(|| format!("creating {}", resources.display()))?;
     copy_libraries(&lib, &resources)?;
     if let Some(unpacked) = lib.parent() {
-        copy_tree(&unpacked.join("licenses"), &resources.join("licenses"))?;
+        crate::util::copy_dir(&unpacked.join("licenses"), &resources.join("licenses"))?;
         let licence = unpacked.join("LICENSE");
         fs::copy(&licence, resources.join("LICENSE")).with_context(|| format!("copying {}", licence.display()))?;
     }
@@ -71,31 +68,10 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     Ok(())
 }
 
-/// `cargo xtask fixtures large-pdf [--pages N] [--out PATH]`: the engine's 1 GB fixture, written by
-/// its `large_pdf` example with the `laminapdf` builder (xtask itself doesn't link the core).
-pub(crate) fn large_pdf(ws: &Workspace, args: &[String]) -> Result<()> {
-    let mut cargo = vec![
-        "run",
-        "--locked",
-        "--release",
-        "-q",
-        "-p",
-        ENGINE,
-        "--example",
-        "large_pdf",
-        "--",
-    ];
-    cargo.extend(args.iter().map(String::as_str));
-    ws.cargo(&cargo)
-}
-
 /// The host's target triple, from `rustc -vV`.
 fn host_triple() -> Result<String> {
     let info = crate::util::stdout("rustc", &["-vV"]).context("running rustc -vV")?;
-    info.lines()
-        .find_map(|line| line.strip_prefix("host: "))
-        .map(str::to_owned)
-        .context("rustc -vV printed no host line")
+    crate::harness::host_triple(&info).context("rustc -vV printed no host line")
 }
 
 /// Copies the shared libraries in `from` (PDFium's `.dylib`, `.so` or `.dll`) into `to`.
@@ -113,21 +89,6 @@ fn copy_libraries(from: &Path, to: &Path) -> Result<()> {
     }
     if copied == 0 {
         bail!("no PDFium library in {}", from.display());
-    }
-    Ok(())
-}
-
-/// Copies the folder `from` into `to`, recursively.
-fn copy_tree(from: &Path, to: &Path) -> Result<()> {
-    fs::create_dir_all(to).with_context(|| format!("creating {}", to.display()))?;
-    for entry in fs::read_dir(from).with_context(|| format!("reading {}", from.display()))? {
-        let entry = entry?;
-        let target = to.join(entry.file_name());
-        if entry.file_type()?.is_dir() {
-            copy_tree(&entry.path(), &target)?;
-        } else {
-            fs::copy(entry.path(), &target).with_context(|| format!("copying {}", entry.path().display()))?;
-        }
     }
     Ok(())
 }

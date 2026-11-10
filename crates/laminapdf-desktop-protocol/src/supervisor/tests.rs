@@ -175,6 +175,32 @@ fn an_engine_that_dies_before_it_is_installed_should_fail_the_start() {
 }
 
 #[test]
+fn requests_from_other_threads_should_wait_out_the_reopening() {
+    let spawner = FakeSpawner::new(Mode::Healthy);
+    let (tx, rx) = mpsc::channel();
+    let tx = Mutex::new(tx);
+    let supervisor = Supervisor::start(
+        Box::new(spawner),
+        Arc::new(NoFiles),
+        fast_config(),
+        move |engine, event| {
+            if matches!(event, Event::Restarted { .. }) {
+                // The handler's own request goes through; another thread's, made now, does not.
+                let own = open(engine).is_ok();
+                let other = {
+                    let engine = engine.clone();
+                    thread::spawn(move || open(&engine)).join()
+                };
+                let _ = lock(&tx).send((own, matches!(other, Ok(Err(SupervisorError::Lost)))));
+            }
+        },
+    )
+    .unwrap();
+    supervisor.kill();
+    assert_eq!(rx.recv_timeout(Duration::from_secs(5)).ok(), Some((true, true)));
+}
+
+#[test]
 fn shutdown_should_not_restart_the_engine() {
     let (supervisor, spawns, events) = start(Mode::Healthy);
     supervisor.shutdown();

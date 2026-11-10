@@ -738,7 +738,8 @@ pub(crate) fn nightly_host() -> Result<String> {
     host_triple(&String::from_utf8_lossy(&output.stdout)).context("no `host:` line in `rustc +nightly -vV`")
 }
 
-fn host_triple(version: &str) -> Option<String> {
+/// The `host:` line of `rustc -vV`'s output.
+pub(crate) fn host_triple(version: &str) -> Option<String> {
     version
         .lines()
         .find_map(|line| line.strip_prefix("host: "))

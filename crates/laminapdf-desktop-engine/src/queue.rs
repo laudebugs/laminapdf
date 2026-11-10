@@ -4,6 +4,7 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
+use std::time::Instant;
 
 use laminapdf_desktop_protocol::{DocId, Password, Priority, ReqId, TileRequest};
 use laminapdf_render::CancelToken;
@@ -73,8 +74,9 @@ struct State {
     jobs: BinaryHeap<Queued>,
     seq: u64,
     closed: bool,
-    /// The request the worker is running, and the token that cancels it.
-    running: Option<(ReqId, CancelToken)>,
+    /// The job the worker is running: its request (`Close` has none), the token that cancels
+    /// it, and when it started.
+    running: Option<(Option<ReqId>, CancelToken, Instant)>,
 }
 
 /// What [`Queue::cancel`] did.
@@ -121,9 +123,15 @@ impl Queue {
         }
     }
 
-    /// Marks `req` as running: [`Queue::cancel`] then reaches it through `token`.
-    pub(crate) fn start(&self, req: ReqId, token: CancelToken) {
-        self.lock().running = Some((req, token));
+    /// Marks a job as running: [`Queue::cancel`] reaches it through `token`, and
+    /// [`Queue::running_since`] reports when it started.
+    pub(crate) fn start(&self, req: Option<ReqId>, token: CancelToken) {
+        self.lock().running = Some((req, token, Instant::now()));
+    }
+
+    /// When the running job started; `None` while the worker waits for one.
+    pub(crate) fn running_since(&self) -> Option<Instant> {
+        self.lock().running.as_ref().map(|(_, _, started)| *started)
     }
 
     /// Clears the running request.
@@ -139,7 +147,7 @@ impl Queue {
             return Cancelled::Dequeued;
         }
         match &state.running {
-            Some((running, token)) if *running == req => {
+            Some((Some(running), token, _)) if *running == req => {
                 token.cancel();
                 Cancelled::Running
             }
@@ -151,7 +159,7 @@ impl Queue {
     pub(crate) fn close(&self) {
         let mut state = self.lock();
         state.closed = true;
-        if let Some((_, token)) = &state.running {
+        if let Some((_, token, _)) = &state.running {
             token.cancel();
         }
         drop(state);
@@ -217,8 +225,16 @@ mod tests {
     fn cancelling_the_running_job_should_cancel_its_token() {
         let queue = Queue::default();
         let token = CancelToken::new();
-        queue.start(ReqId(5), token.clone());
+        queue.start(Some(ReqId(5)), token.clone());
         assert!(matches!(queue.cancel(ReqId(5)), Cancelled::Running) && token.is_cancelled());
+    }
+
+    #[test]
+    fn a_running_job_should_report_when_it_started() {
+        let queue = Queue::default();
+        let idle = queue.running_since();
+        queue.start(None, CancelToken::new());
+        assert!(idle.is_none() && queue.running_since().is_some());
     }
 
     #[test]
