@@ -136,6 +136,7 @@ export {
   type DialogProps,
   type DialogSize,
 } from "./overlays/dialog.js";
+export { LinkPreview, type LinkPreviewPicture, type LinkPreviewProps } from "./overlays/link-preview.js";
 export {
   CommandPalette,
   type CommandPaletteProps,

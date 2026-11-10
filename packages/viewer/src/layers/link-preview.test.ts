@@ -62,7 +62,10 @@ describe("previewRegion", () => {
   it("lowers the scale to fit a wide region, never below 75 %", () => {
     const wide = [line(20, 100, 600)];
     const { scale, clip } = previewRegion(at(0, 20, 100), LETTER, wide, 150);
-    expect([Math.round((scale / CSS_PX_PER_PT) * 100), Math.round(clip.width * scale)]).toEqual([75, PREVIEW_MAX.width]);
+    expect([Math.round((scale / CSS_PX_PER_PT) * 100), Math.round(clip.width * scale)]).toEqual([
+      75,
+      PREVIEW_MAX.width,
+    ]);
   });
 
   it("is never more than 180 CSS px high", () => {
@@ -97,12 +100,14 @@ describe("previewRegion", () => {
     ["XYZ without a top", { kind: "at", x: 50 } as const],
   ])("previews the page's top for %s", (_, view) => {
     const { kind, clip, scale } = previewRegion({ page: 3, view }, LETTER, TWO_COLUMNS, 100);
-    expect({ kind, y: clip.y, width: Math.round(clip.width * scale), height: Math.round(clip.height * scale) }).toEqual({
-      kind: "page",
-      y: 0,
-      width: PAGE_PREVIEW.width,
-      height: PAGE_PREVIEW.height,
-    });
+    expect({ kind, y: clip.y, width: Math.round(clip.width * scale), height: Math.round(clip.height * scale) }).toEqual(
+      {
+        kind: "page",
+        y: 0,
+        width: PAGE_PREVIEW.width,
+        height: PAGE_PREVIEW.height,
+      },
+    );
   });
 
   it("clamps a top above the page and a left past it", () => {
@@ -153,7 +158,14 @@ describe("previewLines", () => {
     for (const s of spec) {
       const start = quads.length / 8;
       quads.push(s.x, s.top + 10, s.x + s.w, s.top + 10, s.x + s.w, s.top, s.x, s.top);
-      out.push({ text: s.text, size: 10, vertical: false, actualText: false, invisible: false, glyphRange: [start, start + 1] });
+      out.push({
+        text: s.text,
+        size: 10,
+        vertical: false,
+        actualText: false,
+        invisible: false,
+        glyphRange: [start, start + 1],
+      });
     }
     return previewLines(out, new Float32Array(quads));
   }

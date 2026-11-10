@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Box, intersect, placeAbove, selectionBox } from "../src/overlays/place.ts";
+import { type Box, intersect, placeAbove, placeBelow, selectionBox } from "../src/overlays/place.ts";
 
 const viewport = { top: 0, left: 0, width: 800, height: 600 };
 const line = (top: number, left = 300) => ({ top, left, width: 200, height: 20 });
@@ -80,5 +80,18 @@ describe("selectionBox", () => {
     expect(place).not.toBeNull();
     const toolbar = { top: place?.top ?? 0, left: place?.left ?? 0, width: 220, height: 38 };
     for (const r of rects) expect(overlaps(toolbar, r), JSON.stringify({ toolbar, r })).toBe(false);
+  });
+});
+
+describe("placeBelow", () => {
+  const view = { top: 0, left: 0, width: 800, height: 600 };
+  const link = (top: number) => ({ top, left: 300, width: 200, height: 16 });
+
+  it("goes below the anchor when there is room", () => {
+    expect(placeBelow(link(100), 248, 150, view, 6, 8)).toEqual({ top: 122, left: 276, side: "below" });
+  });
+
+  it("flips above when there is no room below", () => {
+    expect(placeBelow(link(500), 248, 150, view, 6, 8)?.side).toBe("above");
   });
 });

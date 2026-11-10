@@ -1,0 +1,63 @@
+/* The link preview (§7.27, R07): `surface` with a chip border, radius 6, the float shadow, padding 12
+   and gap 10, in the popover layer; the destination's crop (thumbnail shadow) over its title
+   (Newsreader 15/500) and a 12 px muted line. 248 px wide, or as wide as a region crop (up to
+   480 px) plus its padding. Nothing animates. */
+@layer paper.components {
+  .paper-link-preview {
+    position: fixed;
+    z-index: var(--paper-z-popover);
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-10);
+    box-sizing: border-box;
+    min-inline-size: 248px;
+    max-inline-size: calc(480px + 2 * var(--paper-space-12));
+    padding: var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-chip-border);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-surface);
+    box-shadow: var(--paper-shadow-float);
+    color: var(--paper-text);
+  }
+
+  .paper-link-preview-picture {
+    display: block;
+    max-inline-size: 100%;
+    background: var(--paper-page);
+    box-shadow: var(--paper-shadow-thumbnail);
+  }
+
+  .paper-link-preview-picture[data-loading] {
+    inline-size: 224px;
+    block-size: 92px;
+    background: var(--paper-surface-sunken);
+  }
+
+  .paper-link-preview-title {
+    font: var(--paper-type-outline);
+    font-weight: 500;
+  }
+
+  .paper-link-preview-caption {
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-link-preview-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-10);
+  }
+
+  .paper-link-preview-text {
+    margin: 0;
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+  }
+
+  @media (forced-colors: active) {
+    .paper-link-preview {
+      border-color: CanvasText;
+    }
+  }
+}

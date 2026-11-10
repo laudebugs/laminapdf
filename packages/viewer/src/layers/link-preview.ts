@@ -66,37 +66,45 @@ export function previewLines(runs: readonly TextRunData[], quads: Float32Array):
   const lines: { left: number; top: number; right: number; bottom: number; parts: string[] }[] = [];
   for (const run of runs) {
     if (run.vertical || run.text.trim() === "") continue;
-    const [start, end] = run.glyphRange;
-    let left = Number.POSITIVE_INFINITY;
-    let top = Number.POSITIVE_INFINITY;
-    let right = Number.NEGATIVE_INFINITY;
-    let bottom = Number.NEGATIVE_INFINITY;
-    for (let g = start; g < end; g++) {
-      for (let k = 0; k < 4; k++) {
-        const x = quads[g * 8 + k * 2];
-        const y = quads[g * 8 + k * 2 + 1];
-        if (x === undefined || y === undefined || !Number.isFinite(x) || !Number.isFinite(y)) continue;
-        left = Math.min(left, x);
-        right = Math.max(right, x);
-        top = Math.min(top, y);
-        bottom = Math.max(bottom, y);
-      }
-    }
-    if (!(left <= right && top <= bottom)) continue;
+    const box = runBox(run, quads);
+    if (box === undefined) continue;
     const last = lines.at(-1);
-    const middle = (top + bottom) / 2;
-    const reach = Math.max(2 * run.size, PREVIEW_ALIGN);
-    if (last !== undefined && middle >= last.top && middle <= last.bottom && left - last.right <= reach && left >= last.left - reach) {
-      last.left = Math.min(last.left, left);
-      last.right = Math.max(last.right, right);
-      last.top = Math.min(last.top, top);
-      last.bottom = Math.max(last.bottom, bottom);
+    if (last !== undefined && joins(last, box, run.size)) {
+      last.left = Math.min(last.left, box.left);
+      last.right = Math.max(last.right, box.right);
+      last.top = Math.min(last.top, box.top);
+      last.bottom = Math.max(last.bottom, box.bottom);
       last.parts.push(run.text);
     } else {
-      lines.push({ left, top, right, bottom, parts: [run.text] });
+      lines.push({ ...box, parts: [run.text] });
     }
   }
   return lines.map(({ parts, ...box }) => ({ ...box, text: parts.join(" ").replace(/\s+/g, " ").trim() }));
+}
+
+type Edges = { left: number; top: number; right: number; bottom: number };
+
+/** The box around a run's glyph quads; `undefined` without a finite corner. */
+function runBox(run: TextRunData, quads: Float32Array): Edges | undefined {
+  const [start, end] = run.glyphRange;
+  const box = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+  for (let k = start * 8; k < end * 8; k += 2) {
+    const x = quads[k];
+    const y = quads[k + 1];
+    if (x === undefined || y === undefined || !Number.isFinite(x) || !Number.isFinite(y)) continue;
+    box.left = Math.min(box.left, x);
+    box.right = Math.max(box.right, x);
+    box.top = Math.min(box.top, y);
+    box.bottom = Math.max(box.bottom, y);
+  }
+  return box.left <= box.right && box.top <= box.bottom ? box : undefined;
+}
+
+/** Whether a run at `box` continues `line`: on its band, and no further than twice its size away. */
+function joins(line: Edges, box: Edges, size: number): boolean {
+  const middle = (box.top + box.bottom) / 2;
+  const reach = Math.max(2 * size, PREVIEW_ALIGN);
+  return middle >= line.top && middle <= line.bottom && box.left - line.right <= reach && box.left >= line.left - reach;
 }
 
 /** CSS px per point at the reader's `percent`, clamped as a region preview draws. */
@@ -109,7 +117,12 @@ function pagePreview(page: number, size: PageSize): PreviewRegion {
   const width = Math.max(1, finite(size.width, 1));
   const height = Math.max(1, finite(size.height, 1));
   const scale = PAGE_PREVIEW.width / width;
-  return { kind: "page", page, clip: { x: 0, y: 0, width, height: Math.min(height, PAGE_PREVIEW.height / scale) }, scale };
+  return {
+    kind: "page",
+    page,
+    clip: { x: 0, y: 0, width, height: Math.min(height, PAGE_PREVIEW.height / scale) },
+    scale,
+  };
 }
 
 /**
@@ -225,7 +238,12 @@ export interface PreviewRender {
  * view is, at `dpr` device pixels per CSS px. The clip is in the rotated page's device pixels, as
  * the renderer takes it, rounded out to whole pixels and kept on the page.
  */
-export function previewRender(region: PreviewRegion, size: PageSize, rotation: 0 | 90 | 180 | 270, dpr: number): PreviewRender {
+export function previewRender(
+  region: PreviewRegion,
+  size: PageSize,
+  rotation: 0 | 90 | 180 | 270,
+  dpr: number,
+): PreviewRender {
   const scale = region.scale * Math.max(0.5, finite(dpr, 1));
   const { x, y, width, height } = region.clip;
   // The clip's corners as fractions of the page, turned as the view turns the page.
