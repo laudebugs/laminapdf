@@ -22,7 +22,9 @@
 //! The approximate reader mode (todo U4c) is scored the same way, its blocks' text standing for
 //! the lines, against `approximate.mean` in the same file (its own ratchet), and per file against
 //! copy as paragraph's order (U2a: extraction's blocks, running heads and feet kept), which it
-//! must never trail.
+//! must never trail. A page shown as its image keeps all its text in order, so it would score 1
+//! whatever the layout; `approximate.pageImages` caps how many pages may fall back to their image,
+//! a ratchet that only goes down.
 #![cfg(feature = "text")]
 #![allow(
     clippy::unwrap_used,
@@ -239,7 +241,6 @@ fn extra_text_is_counted_but_not_scored() {
     assert_eq!((s.order, s.text, s.unassigned), (1.0, 1.0, 2));
 }
 
-/// One corpus file: its name, the expected blocks in reading order, and its scores.
 /// Every corpus file's score, its text in order as `read` gives it.
 fn score_corpus(read: impl Fn(&Document) -> Vec<String>) -> Vec<(String, Score)> {
     let mut files: Vec<PathBuf> = std::fs::read_dir(corpus_dir())
@@ -344,8 +345,10 @@ fn the_approximate_reader_mode_meets_its_ratchet_and_never_trails_copy_as_paragr
     use laminapdf::CancelToken;
     use laminapdf::extract::ExtractOptions;
 
+    let page_images = std::cell::Cell::new(0_usize);
     let reader = score_corpus(|doc| {
         let reflow = doc.reflow(&CancelToken::new()).unwrap();
+        page_images.set(page_images.get() + reflow.checks.page_images);
         reflow
             .blocks
             .into_iter()
@@ -366,8 +369,24 @@ fn the_approximate_reader_mode_meets_its_ratchet_and_never_trails_copy_as_paragr
     let got = mean(&reader);
     let file: Value = serde_json::from_slice(&std::fs::read(corpus_dir().join("threshold.json")).unwrap()).unwrap();
     let threshold = file["approximate"]["mean"].as_f64().unwrap();
-    let report = table("Approximate reader mode (todo U4c)", &reader, got, threshold);
+    let most_images = usize::try_from(file["approximate"]["pageImages"].as_u64().unwrap()).unwrap();
+    let mut report = table("Approximate reader mode (todo U4c)", &reader, got, threshold);
+    let images = page_images.get();
+    let _ = writeln!(
+        report,
+        "\nPages shown as their image: **{images}** (at most {most_images})."
+    );
     println!("{report}");
+    assert!(
+        images <= most_images,
+        "{images} pages fell back to their image, more than `approximate.pageImages` \
+         ({most_images}) in fixtures/reading-order/threshold.json\n{report}"
+    );
+    assert!(
+        images >= most_images,
+        "only {images} pages fell back to their image: lower `approximate.pageImages` in \
+         fixtures/reading-order/threshold.json to {images} (the ratchet only goes down)\n{report}"
+    );
     let behind: Vec<String> = reader
         .iter()
         .zip(&paragraph)

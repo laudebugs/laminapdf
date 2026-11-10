@@ -6,14 +6,16 @@
 //! repetition (ADR 0030 §2–§4). On top of them, per page:
 //!
 //! - a page that is a picture of text (no visible text but images, or text only in an OCR layer:
-//!   [`TextLayerStatus`]) is shown as its image, since there is no text to reflow until OCR;
+//!   [`TextLayerStatus`]) is shown as its image, since there is no text to reflow until OCR; an
+//!   OCR layer's text, invisible and so dropped from the blocks, is kept for searching;
 //! - a page whose text extraction read with low confidence (columns too close to call, or a grid
 //!   read row by row: the column-order checks' blocks at 0.5) is shown as its image too, with its
 //!   text kept for searching, rather than reflowed in an order that may be wrong;
 //! - tables are crops of their box, like the tagged view's;
-//! - images big enough to be figures are crops, each placed before the first text below it in its
-//!   column, and a short paragraph that starts "Figure", "Fig." or "Table" next to a crop is its
-//!   caption.
+//! - images big enough to be figures are crops (images that overlap or touch joined first, so a
+//!   picture drawn in tiles is one figure), each placed before the first text below it in its
+//!   column; text wholly inside a figure (a chart's labels) goes into it, kept for searching; and a
+//!   short paragraph that starts "Figure", "Fig." or "Table" next to a crop is its caption.
 //!
 //! No layout model runs here (ADR 0030 §6): these are rules over extraction's output, so the view
 //! is labelled approximate.
@@ -28,8 +30,9 @@ use super::{
 };
 use crate::error::ExtractError;
 use crate::job::TreeSource;
-use crate::model::{Block, BlockKind, ExtractedPage, TextLayerStatus};
-use crate::options::ReadingOrder;
+use crate::model::{Block, BlockKind, DropReason, Dropped, ExtractedPage, TextLayerStatus};
+use crate::options::{ExtractOptions, ReadingOrder};
+use crate::regions::{area, inside};
 
 /// The least confidence a page's text may have, by characters, before the page is shown as its
 /// image. Layout blocks score 0.75 and doubted ones 0.5, so this keeps a page with up to about
@@ -50,6 +53,9 @@ const CAPTION_GAP: f64 = 24.0;
 /// The longest caption, in characters.
 const CAPTION_CHARS: usize = 300;
 
+/// How far, in points, text may stick out of a figure and still be the figure's.
+const LABEL_SLACK: f64 = 2.0;
+
 /// `doc` from its layout, the tree unused for `reason`, with the tier-1 `checks` measured so far.
 ///
 /// # Errors
@@ -61,17 +67,25 @@ pub(super) fn reflow(
     mut checks: ReflowChecks,
     cancel: &CancelToken,
 ) -> Result<Reflow, ExtractError> {
-    let (extraction, feed) = run(doc, ReadingOrder::Layout, TreeSource::Given(None), cancel)?;
+    // An OCR layer's text is invisible, so extraction drops it; its spans keep it for searching.
+    let mut options = ExtractOptions::default().with_reading_order(ReadingOrder::Layout);
+    options.drop.keep_spans = true;
+    let (extraction, feed) = run(doc, &options, TreeSource::Given(None), cancel)?;
     let images: BTreeMap<usize, &[RectPt]> = feed.iter().map(|f| (f.index, f.images.as_slice())).collect();
     let mut by_page: BTreeMap<usize, Vec<&Block>> = BTreeMap::new();
     for block in &extraction.blocks {
         by_page.entry(block.page).or_default().push(block);
     }
+    let mut hidden: BTreeMap<usize, Vec<&Dropped>> = BTreeMap::new();
+    for dropped in extraction.dropped.iter().filter(|d| d.reason == DropReason::Invisible) {
+        hidden.entry(dropped.page).or_default().push(dropped);
+    }
     let mut blocks = Vec::new();
     for page in &extraction.pages {
         let text = by_page.get(&page.index).map_or(&[][..], Vec::as_slice);
         let images = images.get(&page.index).copied().unwrap_or_default();
-        let shown = page_blocks(page, text, images);
+        let ocr = hidden.get(&page.index).map_or(&[][..], Vec::as_slice);
+        let shown = page_blocks(page, text, images, ocr);
         checks.page_images += shown
             .iter()
             .filter(|b| matches!(b.kind, ReflowKind::PageImage { .. }))
@@ -89,8 +103,9 @@ pub(super) fn reflow(
     })
 }
 
-/// One page's blocks in reading order: its image, or its text with its figures and tables.
-fn page_blocks(page: &ExtractedPage, text: &[&Block], images: &[RectPt]) -> Vec<ReflowBlock> {
+/// One page's blocks in reading order: its image, or its text with its figures and tables. `ocr`
+/// is the page's invisible text, an OCR layer's on a scan.
+fn page_blocks(page: &ExtractedPage, text: &[&Block], images: &[RectPt], ocr: &[&Dropped]) -> Vec<ReflowBlock> {
     let whole = RectPt::from_points(0.0, 0.0, page.width.get(), page.height.get());
     let covers_page = |b: &RectPt| area(b) >= PAGE_COVER * area(&whole);
     let scanned = matches!(
@@ -103,35 +118,43 @@ fn page_blocks(page: &ExtractedPage, text: &[&Block], images: &[RectPt]) -> Vec<
         } else {
             PageImageReason::Uncertain
         };
-        let words: Vec<&str> = text.iter().map(|b| b.text.as_str()).filter(|t| !t.is_empty()).collect();
+        let mut words: Vec<&str> = text.iter().map(|b| b.text.as_str()).filter(|t| !t.is_empty()).collect();
+        let separator = if words.is_empty() {
+            words = ocr
+                .iter()
+                .flat_map(|d| d.spans.iter().map(|s| s.text.as_str()))
+                .collect();
+            " "
+        } else {
+            "\n\n"
+        };
         return vec![ReflowBlock {
             kind: ReflowKind::PageImage { why },
-            text: words.join("\n\n"),
+            text: words.join(separator),
             page: page.index,
             bbox: Some(whole),
             alt: None,
         }];
     }
     let mut out: Vec<ReflowBlock> = text.iter().map(|b| text_block(b)).collect();
-    let mut figures: Vec<RectPt> = merged(
-        images
-            .iter()
-            .filter(|b| !covers_page(b) && b.width().get() >= MIN_FIGURE_SIDE && b.height().get() >= MIN_FIGURE_SIDE)
-            .copied()
-            .collect(),
-    );
+    // Tiles of one picture make one image first; only then are small and page-sized ones left out.
+    let mut figures: Vec<RectPt> = merged(images.to_vec())
+        .into_iter()
+        .filter(|b| !covers_page(b) && b.width().get() >= MIN_FIGURE_SIDE && b.height().get() >= MIN_FIGURE_SIDE)
+        .collect();
     // Images under a table's box are the table's.
     figures.retain(|f| {
         !out.iter()
-            .any(|b| b.kind == ReflowKind::Table && b.bbox.is_some_and(|t| inside(f, &t)))
+            .any(|b| b.kind == ReflowKind::Table && b.bbox.is_some_and(|t| inside(&t, f)))
     });
     for figure in figures {
+        let labels = take_labels(&mut out, &figure);
         let at = place(&out, &figure);
         out.insert(
             at,
             ReflowBlock {
                 kind: ReflowKind::Figure,
-                text: String::new(),
+                text: labels,
                 page: page.index,
                 bbox: Some(figure),
                 alt: None,
@@ -140,6 +163,26 @@ fn page_blocks(page: &ExtractedPage, text: &[&Block], images: &[RectPt]) -> Vec<
     }
     mark_captions(&mut out);
     out
+}
+
+/// Takes the paragraphs wholly inside `figure` (within [`LABEL_SLACK`]) out of `blocks`, and
+/// returns their text: a chart's labels belong to the figure, not to the column.
+fn take_labels(blocks: &mut Vec<ReflowBlock>, figure: &RectPt) -> String {
+    let within = |b: &RectPt| {
+        b.x0.get() >= figure.x0.get() - LABEL_SLACK
+            && b.y0.get() >= figure.y0.get() - LABEL_SLACK
+            && b.x1.get() <= figure.x1.get() + LABEL_SLACK
+            && b.y1.get() <= figure.y1.get() + LABEL_SLACK
+    };
+    let mut labels = Vec::new();
+    blocks.retain(|b| {
+        let take = matches!(b.kind, ReflowKind::Paragraph | ReflowKind::Other) && b.bbox.is_some_and(|r| within(&r));
+        if take {
+            labels.push(b.text.clone());
+        }
+        !take
+    });
+    labels.join(" ")
 }
 
 /// A layout block for the reading view: tables become crops that keep their text.
@@ -232,11 +275,16 @@ fn beside(crop: &RectPt, caption: &RectPt) -> bool {
     shares && (below || above)
 }
 
-/// `boxes` with every overlapping pair joined, so tiles of one picture make one figure.
+/// Whether `a` and `b` overlap or share an edge.
+fn touches(a: &RectPt, b: &RectPt) -> bool {
+    a.x0 <= b.x1 && b.x0 <= a.x1 && a.y0 <= b.y1 && b.y0 <= a.y1
+}
+
+/// `boxes` with every pair that overlaps or touches joined, so tiles of one picture make one figure.
 fn merged(mut boxes: Vec<RectPt>) -> Vec<RectPt> {
     let mut out: Vec<RectPt> = Vec::new();
     while let Some(mut b) = boxes.pop() {
-        while let Some(i) = out.iter().position(|o| overlaps(o, &b)) {
+        while let Some(i) = out.iter().position(|o| touches(o, &b)) {
             b = b.union(&out.swap_remove(i));
         }
         out.push(b);
@@ -245,28 +293,11 @@ fn merged(mut boxes: Vec<RectPt>) -> Vec<RectPt> {
     out
 }
 
-fn overlaps(a: &RectPt, b: &RectPt) -> bool {
-    a.x0.get() < b.x1.get() && b.x0.get() < a.x1.get() && a.y0.get() < b.y1.get() && b.y0.get() < a.y1.get()
-}
-
-/// Whether `inner`'s centre is inside `outer`.
-fn inside(inner: &RectPt, outer: &RectPt) -> bool {
-    let (cx, cy) = (
-        f64::midpoint(inner.x0.get(), inner.x1.get()),
-        f64::midpoint(inner.y0.get(), inner.y1.get()),
-    );
-    outer.x0.get() <= cx && cx <= outer.x1.get() && outer.y0.get() <= cy && cy <= outer.y1.get()
-}
-
-fn area(b: &RectPt) -> f64 {
-    b.width().get() * b.height().get()
-}
-
 #[cfg(test)]
 mod tests {
     use laminapdf_model::RectPt;
 
-    use super::{ReflowBlock, ReflowKind, mark_captions, merged, names_a_crop, place};
+    use super::{ReflowBlock, ReflowKind, mark_captions, merged, names_a_crop, place, take_labels};
 
     fn block(kind: ReflowKind, text: &str, x: f64, y: f64, w: f64, h: f64) -> ReflowBlock {
         ReflowBlock {
@@ -337,5 +368,26 @@ mod tests {
                 RectPt::from_points(0.0, 300.0, 50.0, 50.0)
             ]
         );
+    }
+
+    #[test]
+    fn image_boxes_that_only_share_an_edge_make_one_figure() {
+        let got = merged(vec![
+            RectPt::from_points(0.0, 0.0, 100.0, 100.0),
+            RectPt::from_points(100.0, 0.0, 100.0, 100.0),
+        ]);
+        assert_eq!(got, [RectPt::from_points(0.0, 0.0, 200.0, 100.0)]);
+    }
+
+    #[test]
+    fn text_inside_a_figure_moves_into_it_and_text_outside_stays() {
+        let mut blocks = vec![
+            block(ReflowKind::Paragraph, "2019", 60.0, 120.0, 30.0, 10.0),
+            block(ReflowKind::Paragraph, "Yield", 60.0, 200.0, 30.0, 10.0),
+            block(ReflowKind::Paragraph, "Body text.", 50.0, 300.0, 200.0, 40.0),
+        ];
+        let labels = take_labels(&mut blocks, &RectPt::from_points(50.0, 100.0, 200.0, 150.0));
+        let left: Vec<&str> = blocks.iter().map(|b| b.text.as_str()).collect();
+        assert_eq!((labels.as_str(), left), ("2019 Yield", vec!["Body text."]));
     }
 }

@@ -273,7 +273,8 @@ pub fn reflow(doc: &Document, cancel: &CancelToken) -> Result<Reflow, ExtractErr
         return approximate::reflow(doc, ReflowRefusal::Generic, lang, checks, cancel);
     }
     let index = TaggedIndex::from_tree(doc, &tree)?;
-    let (extraction, feed) = run(doc, ReadingOrder::Auto, TreeSource::Given(index), cancel)?;
+    let options = ExtractOptions::default().with_reading_order(ReadingOrder::Auto);
+    let (extraction, feed) = run(doc, &options, TreeSource::Given(index), cancel)?;
     for page in &feed {
         match page.tree {
             TreeUse::Used => checks.pages_used += 1,
@@ -344,16 +345,15 @@ fn catalog_lang(doc: &Document) -> Result<Option<String>, ExtractError> {
     })
 }
 
-/// The extraction reader mode reads, in `order` with the tree from `tree`, with what each page
+/// The extraction reader mode reads, with `options` and the tree from `tree`, with what each page
 /// gave besides its blocks.
 fn run(
     doc: &Document,
-    order: ReadingOrder,
+    options: &ExtractOptions,
     tree: TreeSource,
     cancel: &CancelToken,
 ) -> Result<(crate::Extraction, Vec<PageFeed>), ExtractError> {
-    let options = ExtractOptions::default().with_reading_order(order);
-    let mut job = extract_job_with(doc, &options, tree)?;
+    let mut job = extract_job_with(doc, options, tree)?;
     job.feed = Some(Vec::new());
     job.set_cancel(cancel);
     loop {

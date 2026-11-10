@@ -4,7 +4,7 @@
 //! an icon stays out.
 #![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, reason = "test code")]
 
-use laminapdf_build::{BuildOptions, Builder, Image, PageSize, Standard14, Surface};
+use laminapdf_build::{BuildOptions, Builder, Image, PageSize, Standard14, Surface, TextRenderMode};
 use laminapdf_extract::{PageImageReason, Reflow, ReflowKind, ReflowSource, reflow};
 use laminapdf_model::{Document, OpenOptions, PointPt, Pt, RectPt};
 use laminapdf_save::{Save as _, SaveOptions};
@@ -52,6 +52,30 @@ fn a_scanned_page_is_shown_as_its_image() {
         }]
     );
     assert_eq!(got.checks.page_images, 1);
+}
+
+#[test]
+fn a_scan_with_an_ocr_layer_keeps_the_layers_text_for_searching() {
+    let got = page(|s, font| {
+        s.image(&gray(), RectPt::from_points(0.0, 0.0, 595.0, 842.0));
+        for i in 0..4 {
+            let at = PointPt::from_points(72.0, 100.0 + 14.0 * f64::from(i));
+            s.text(LINE, font, Pt::new(10.0), at)
+                .unwrap()
+                .render_mode(TextRenderMode::Invisible);
+        }
+    });
+    assert_eq!(got.blocks.len(), 1, "{:#?}", got.blocks);
+    assert!(
+        matches!(
+            got.blocks[0].kind,
+            ReflowKind::PageImage {
+                why: PageImageReason::Scanned
+            }
+        ) && got.blocks[0].text.contains("Orchards along the river"),
+        "{:#?}",
+        got.blocks
+    );
 }
 
 #[test]

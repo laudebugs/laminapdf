@@ -19,11 +19,12 @@
   ],
   "approximate": {
     "mean": 0.9256,
+    "pageImages": 6,
     "history": [
       {
         "date": "2026-11-09",
         "mean": 0.9256,
-        "by": "U4c: first run of the approximate reader mode (layout order, figures and tables as crops, low-confidence pages as images with their text kept): every file but the three hard layouts scores 1.000; narrow-gutter (0.545), pull-quote (0.714) and wrapped-grid (0.700) lose order as extraction's layout order does, and no file trails copy as paragraph"
+        "by": "U4c: first run of the approximate reader mode (layout order, figures and tables as crops, low-confidence pages as images with their text kept): every file but the three hard layouts scores 1.000; narrow-gutter (0.545), pull-quote (0.714) and wrapped-grid (0.700) lose order as extraction's layout order does, and no file trails copy as paragraph; 6 pages (the hard layouts' doubted ones) are shown as their image, the cap `pageImages` starts there"
       }
     ]
   }
