@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B5c](../done/B5c-lamina-facade-and-examples.md), [C7c](../done/C7c-performance-gates-and-launch.md), [D7c](./D7c-desktop-beta-release.md), [X2](../done/X2-capability-matrix.md) |
-| Dependency notes | `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1), `D7` ([desktop-app §D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta): desktop beta), `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate), `X2` (capability-matrix generator: manifest, test tagging, `cargo xtask capabilities`, CI gate; [architecture §7](../../plans/architecture.md#cross-cutting), [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix)) |
+| Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B5c](../done/B5c-lamina-facade-and-examples.md), [C7c](../done/C7c-performance-gates-and-launch.md), [X2](../done/X2-capability-matrix.md) |
+| Dependency notes | `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1). The editor no longer waits for the desktop beta (D7c, decided 2026-11-10): E1 starts on the web reader and the shared packages, and each desktop part waits only on the desktop todo it needs ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds)). `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate), `X2` (capability-matrix generator: manifest, test tagging, `cargo xtask capabilities`, CI gate; [architecture §7](../../plans/architecture.md#cross-cutting), [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix)) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e1a-editing-foundation-feature-plan` |
 | PR title | `docs(editor): E1 feature plan (editing foundation)` |
@@ -26,7 +26,7 @@ The short feature-plan PR that opens round E1 ([full-editor §E1](../../plans/fu
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md) §1 and [ADR 0007](../../decisions/0007-save-planner.md) §2: how each op is classified and how the planner gates it
 - [ADR 0018](../../decisions/0018-test-strategy.md): test tiers the plan must assign (golden, corpus, differential, fuzz)
 - [04 §5 Metadata](../../research/pdf/04-interactive-security.md#5-metadata): Info ↔ XMP mapping, `xmp:MetadataDate`, `xmpMM:InstanceID`
-- [roadmap: sequence](../../plans/roadmap.md#sequence-and-dependencies): the editor starts after both readers ship v0.1
+- [roadmap: sequence](../../plans/roadmap.md#sequence-and-dependencies): the editor starts after the web reader ships v0.1, and its desktop parts wait on the desktop todos they need
 
 ## Scope
 
@@ -58,6 +58,8 @@ The short feature-plan PR that opens round E1 ([full-editor §E1](../../plans/fu
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
 - [ ] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E1"` and status `unsupported` until each implementation PR flips them
 - [ ] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E1b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
+- [ ] Split E1d's desktop part into its own todo: the engine-process session commands, the native Edit menu items and the window-close guard, depending on E1d and [D4b](./D4b-native-menus.md). E1d drops D4b
+- [ ] Split E1e's desktop part into its own todo: in-place save, watcher suppression and the external-change conflict dialog, depending on E1e and [D3b](./D3b-recent-files-and-file-watching.md). E1e drops D3b
 - [ ] Answer or assign an owner to each open question below; record decisions in the feature plan
 - [ ] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation)
 
