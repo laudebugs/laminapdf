@@ -154,7 +154,12 @@ jobs:
       # Same versions as tools/xtask/src/doctor.rs.
       - uses: ./.github/actions/install-tools
         with:
-          tool: cargo-dist@0.32.0,cargo-about@0.9.2
+          tool: cargo-dist@0.32.0${{ matrix.target != 'x86_64-apple-darwin' && ',cargo-about@0.9.2' || '' }}
+      # cargo-about ships no x86_64-apple-darwin binary, and install-action's source fallback builds
+      # it without the `cli` feature that its binary needs.
+      - name: Build cargo-about 0.9.2
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: cargo install cargo-about --locked --version 0.9.2 --features cli
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
