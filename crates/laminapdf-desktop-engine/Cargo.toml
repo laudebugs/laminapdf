@@ -1,0 +1,36 @@
+[package]
+name = "laminapdf-desktop-engine"
+description = "Lamina PDF's desktop engine process: parses and renders untrusted PDFs for the main process, reading the file over its pipes (ADR 0008 §2, §3)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Shipped inside the desktop app as a Tauri sidecar, never on crates.io.
+publish = false
+homepage.workspace = true
+
+# Read by `cargo xtask`: an app binary, so threads and processes are fine. It links the parser
+# and PDFium, which the main process never does (ADR 0008 §3).
+[package.metadata.laminapdf]
+layer = "app"
+
+[lib]
+name = "laminapdf_desktop_engine"
+
+[[bin]]
+name = "laminapdf-desktop-engine"
+path = "src/main.rs"
+
+[dependencies]
+laminapdf = { workspace = true, features = ["saslprep"] }
+laminapdf-desktop-protocol = { workspace = true }
+laminapdf-render = { workspace = true }
+laminapdf-render-pdfium = { workspace = true }
+
+[dev-dependencies]
+# The test helpers every crate shares, by path only (code-organization.md §6).
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
+
+[lints]
+workspace = true
