@@ -88,12 +88,23 @@ export async function initBackend(init: BackendInit): Promise<{ name: string; ve
   }
   const loaded = await pending;
   backend = loaded;
-  // The text layer's module, loaded once the page can render: documents opened after it can give
-  // their text, and the first page never waits for it.
-  void extractModule().catch(() => {
-    // Tried again when text is first asked for.
-  });
   return { name: loaded.name, version: loaded.version };
+}
+
+/** Whether a render has started the extract module's load (once per worker). */
+let warmed = false;
+
+/**
+ * Starts the text layer's module once a page has been drawn (render.ts calls it after each
+ * render; only the first call starts anything). Before that its download would compete with the
+ * document's bytes and the backend for the first page; text asked for earlier loads it at once.
+ */
+export function warmExtract(): void {
+  if (warmed) return;
+  warmed = true;
+  void extractModule().catch(() => {
+    // Tried once here; text asked for later tries again, never another render.
+  });
 }
 
 /** The extract module's load, started after the backend's. */

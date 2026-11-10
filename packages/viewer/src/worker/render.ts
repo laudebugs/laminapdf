@@ -5,7 +5,7 @@
 import type { RenderedTile, RenderRequest } from "@laminapdf/render";
 import { emit } from "@laminapdf/sdk/worker/server";
 import { type RenderedBitmap, renderKey } from "../protocol.js";
-import { current, filling } from "./document.js";
+import { current, filling, warmExtract } from "./document.js";
 
 /**
  * Renders `request` on document `id` (a render queued for a document since replaced is
@@ -20,7 +20,10 @@ export function render(request: RenderRequest, id: number, signal: AbortSignal):
     emit("render-start", { page: request.page, scale: request.scale, key });
     return doc.render.render(request, { signal });
   };
-  return filling(doc.remote, draw, signal, () => emit("render-fetching", { key }));
+  const tile = filling(doc.remote, draw, signal, () => emit("render-fetching", { key }));
+  // A page is on screen: the text layer's module may load now without delaying it.
+  void tile.then(warmExtract, () => undefined);
+  return tile;
 }
 
 /** One caller's bitmap of `tile`. */
