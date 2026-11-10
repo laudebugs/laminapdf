@@ -1,0 +1,284 @@
+{
+  "version": 1,
+  "date": "2026-11-10",
+  "night": {
+    "commit": "709961cdd92e487f9572823b5a26dcf636564aa9",
+    "ran": "2026-11-10",
+    "lamina": "0.2.0-alpha.4",
+    "passed": true,
+    "jobs": {
+      "differential": "success",
+      "fuzz": "success",
+      "pdf-runtimes": "success",
+      "render-diff": "success",
+      "roundtrip": "success",
+      "scaling": "success",
+      "verapdf": "success"
+    },
+    "corpus": {
+      "complete": true,
+      "sources": {
+        "mutants": {
+          "files": 4018,
+          "opened": 737,
+          "repaired": 2869,
+          "refused": 412,
+          "refusedAlone": 121,
+          "errors": 0
+        },
+        "pdfbox": {
+          "files": 175,
+          "opened": 161,
+          "repaired": 5,
+          "refused": 9,
+          "refusedAlone": 0,
+          "errors": 0
+        },
+        "pdfium": {
+          "files": 345,
+          "opened": 269,
+          "repaired": 46,
+          "refused": 30,
+          "refusedAlone": 9,
+          "errors": 0
+        },
+        "pdfjs": {
+          "files": 1013,
+          "opened": 847,
+          "repaired": 149,
+          "refused": 17,
+          "refusedAlone": 6,
+          "errors": 0
+        },
+        "qpdf": {
+          "files": 639,
+          "opened": 541,
+          "repaired": 51,
+          "refused": 47,
+          "refusedAlone": 14,
+          "errors": 0
+        }
+      }
+    },
+    "differential": {
+      "inputs": 6190,
+      "failures": 0,
+      "tools": {
+        "pdfium": {
+          "version": "pypdfium2 5.14.0, PDFium 156.0.8076.0",
+          "facts": {
+            "outcome": {
+              "agree": 5135,
+              "disagree": 1055,
+              "excused": 1030
+            },
+            "outlineTitles": {
+              "agree": 4668,
+              "disagree": 42,
+              "excused": 41
+            },
+            "pageCount": {
+              "agree": 4360,
+              "disagree": 350,
+              "excused": 350
+            }
+          }
+        },
+        "pdfjs": {
+          "version": "pdfjs-dist 6.4.299",
+          "facts": {
+            "outcome": {
+              "agree": 5106,
+              "disagree": 1084,
+              "excused": 1033
+            },
+            "outlineTitles": {
+              "agree": 4655,
+              "disagree": 42,
+              "excused": 42
+            },
+            "pageCount": {
+              "agree": 4399,
+              "disagree": 298,
+              "excused": 296
+            }
+          }
+        },
+        "pypdf": {
+          "version": "6.21.3",
+          "facts": {
+            "outcome": {
+              "agree": 4534,
+              "disagree": 1656,
+              "excused": 1566
+            },
+            "outlineTitles": {
+              "agree": 4403,
+              "disagree": 44,
+              "excused": 41
+            },
+            "pageCount": {
+              "agree": 4184,
+              "disagree": 263,
+              "excused": 243
+            }
+          }
+        },
+        "qpdf": {
+          "version": "qpdf version 12.4.2",
+          "facts": {
+            "outcome": {
+              "agree": 5263,
+              "disagree": 927,
+              "excused": 431
+            },
+            "outlineTitles": {
+              "agree": 5245,
+              "disagree": 33,
+              "excused": 32
+            },
+            "pageCount": {
+              "agree": 5101,
+              "disagree": 177,
+              "excused": 177
+            }
+          }
+        }
+      }
+    },
+    "text": {
+      "tools": {
+        "pdfjs": "pdfjs-dist 6.4.299",
+        "pdftotext": "pdftotext version 26.10.0"
+      },
+      "sources": {
+        "pdfbox": {
+          "pages": 308,
+          "compared": 308,
+          "agree": 265
+        },
+        "pdfium": {
+          "pages": 381,
+          "compared": 378,
+          "agree": 342
+        },
+        "pdfjs": {
+          "pages": 1889,
+          "compared": 1889,
+          "agree": 1149
+        },
+        "qpdf": {
+          "pages": 3605,
+          "compared": 3603,
+          "agree": 3481
+        }
+      }
+    },
+    "fuzz": {
+      "targets": 11,
+      "seconds": 600,
+      "executions": 16041418,
+      "crashed": 0
+    },
+    "verapdf": {
+      "version": "1.30.3",
+      "validations": [
+        {
+          "file": "pdf_a_archive-2b.pdf",
+          "profile": "2b",
+          "compliant": true
+        },
+        {
+          "file": "pdf_a_archive-2u.pdf",
+          "profile": "2u",
+          "compliant": true
+        },
+        {
+          "file": "pdf_a3_invoice_with_xml.pdf",
+          "profile": "3b",
+          "compliant": true
+        },
+        {
+          "file": "flowing_invoice.pdf",
+          "profile": "ua1",
+          "compliant": true
+        },
+        {
+          "file": "flowing_report.pdf",
+          "profile": "ua1",
+          "compliant": true
+        },
+        {
+          "file": "markdown_to_pdf.pdf",
+          "profile": "ua1",
+          "compliant": true
+        },
+        {
+          "file": "pdf_a_archive-2u.pdf",
+          "profile": "ua1",
+          "compliant": true
+        },
+        {
+          "file": "pdf_ua_report.pdf",
+          "profile": "ua1",
+          "compliant": true
+        }
+      ]
+    },
+    "roundtrip": {
+      "cases": 672,
+      "saved": 556,
+      "refused": 116,
+      "tools": {
+        "pdfium": true,
+        "pdfjs": true,
+        "qpdf": true
+      }
+    },
+    "runtimes": {
+      "passed": [
+        "node",
+        "chromium",
+        "firefox",
+        "deno",
+        "bun",
+        "workerd",
+        "webkit"
+      ],
+      "failed": [],
+      "missing": []
+    },
+    "render": {
+      "dpi": 96,
+      "pagesPerFile": 20,
+      "sources": {
+        "all": {
+          "pages": 5108,
+          "passMinorBp": 9219
+        },
+        "pdfbox": {
+          "pages": 309,
+          "passMinorBp": 9385
+        },
+        "pdfium": {
+          "pages": 422,
+          "passMinorBp": 7796
+        },
+        "pdfjs": {
+          "pages": 1472,
+          "passMinorBp": 9056
+        },
+        "qpdf": {
+          "pages": 2905,
+          "passMinorBp": 9491
+        }
+      }
+    }
+  },
+  "nights": {
+    "recorded": 5,
+    "passed": 4,
+    "since": "2026-11-09"
+  },
+  "fuzzHours": 9
+}

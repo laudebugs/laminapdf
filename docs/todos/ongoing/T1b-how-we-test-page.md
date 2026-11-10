@@ -11,7 +11,7 @@
 | Branch | `feat/t1b-how-we-test-page` |
 | PR title | `feat(site): a How we test page with the nightly's figures, the licence and where the code comes from` |
 | Size | M (≈ 300–450 lines: the snapshot command, the page and its components, the reader and tests, one workflow step; copy and design not counted) |
-| PR | — |
+| PR | [#401](https://github.com/laudebugs/laminapdf/pull/401) |
 
 ## Goal
 
