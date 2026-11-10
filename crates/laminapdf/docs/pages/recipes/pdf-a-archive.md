@@ -1,7 +1,7 @@
 ---
 title: "A PDF/A archive"
 description: "An order confirmation for long-term archiving, written as PDF/A-2b and as PDF/A-2u that is also PDF/UA-1, with an embedded font and a photo."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/recipes/pdf-a-archive/"
 ---
 

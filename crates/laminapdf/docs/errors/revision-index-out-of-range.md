@@ -1,6 +1,6 @@
 ---
 title: "revision-index-out-of-range"
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/reference/codes/revision-index-out-of-range/"
 ---
 

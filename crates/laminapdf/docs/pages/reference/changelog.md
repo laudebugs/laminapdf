@@ -1,7 +1,7 @@
 ---
 title: "Changelog"
 description: "What changed in each Lamina PDF release, newest first."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/reference/changelog/"
 ---
 
@@ -10,6 +10,34 @@ url: "https://docs.laminapdf.com/reference/changelog/"
 What changed in each Lamina PDF release, newest first.
 
 Every Lamina PDF package shares one version, so each entry covers all of them, from the Rust crates to `@laminapdf/sdk` and the viewer. Breaking changes come first, under **Minor Changes**, as the [stability policy](../../pages/reference/stability.md) explains. Versions from `0.2.0-alpha.2` on are on npm and crates.io; earlier ones were never published.
+
+## 0.2.0-alpha.5
+
+### Minor Changes
+
+- Reader mode for every PDF. When a file has no tags, or its tags fail reader mode's checks, `doc.reflow()` reads the page layout instead of refusing: `source` is `"approximate"` and `reason` says why the tags weren't used. A scanned page, or one whose column order extraction doubts, comes back as a `page-image` block with `why` (`"scanned"` or `"uncertain"`) and the page's text for searching. Tables and pictures are crops, and their captions are kept with them. Only a file with nothing to show has `available: false`, with the reason `"nothing"`.
+- `doc.properties()` reads what a properties view shows about a document in one call. It returns the Info entries, with the creation and modification dates as ISO 8601, and the XMP packet as text. It also gives the PDF version, page count, file size, whether the file is linearized and tagged, and the fonts the pages use (name, type, embedded, subset, encoding). Encryption comes with the author's permissions, and signatures are counted, never verified. `contains` says whether the file holds JavaScript, attachments or a form. It needs the extract or text module. For Rust callers, `Document::properties()` returns the same as `DocumentProperties`, and `laminapdf-model` gains `Pages::fonts()` and `Document::xmp_packet()`.
+  
+The viewer's client gains `properties()`, `printPage(index, { dpi, annotations })` and `fileBytes()`. `printPage` draws a page in the document worker for printing, with annotations as their print flags say, and returns it as a PNG. `fileBytes` returns a linked file's bytes as opened.
+- Reader mode for tagged PDFs. `doc.reflow()` returns the document's blocks in its structure tree's order: headings, paragraphs, list items, quotes, captions and notes as text, and each figure, formula and table as a crop of its page with its alternate text, never as reflowed text. It checks the tree first: a file whose tree it can't trust comes back with `available: false` and the reason. It needs the extract module. The viewer's worker serves it as `client.reflow()`.
+- Links in PDFs now work in the viewer. `doc.pageLinks(index)` lists a page's links in page space, each with what following it does: a place in the document, a web address, another file, a named action, or an action such as JavaScript, which Lamina PDF never runs. The viewer draws an anchor over each link. Links inside the document go there, web links ask the app to confirm first, and anything else does nothing. `viewer.history` records each jump, so Back returns to where the reader was, and the web reader keeps those jumps in the browser's history.
+- Pages can be drawn in Sepia, Dark or High contrast instead of their own colours. Images and annotations keep theirs, and so does text under a highlight.
+  
+- **Render request:** `RenderRequest.appearance` is `"original"` (the default), `"sepia"`, `"dark"` or `{ kind: "high-contrast", ink, paper }`, for both backends.
+- **Colour maps:** `recolourRgb` and `recolourTile` in `@laminapdf/render` give the same bytes as the Rust crate's.
+- **Viewer:** `setAppearance()` redraws the pages in view in the new colours, keeping the scroll position. The thumbnails follow.
+- Each page is now a region that screen readers name and can land on. `createViewer({ pages: { name, roleDescription, focusOnJump } })` sets each page's name, "Page 4 of 120" unless the app gives its own, such as "Page iv, 4 of 120". With `focusOnJump`, a jump moves focus to the page it lands on: a link, the outline, a thumbnail or go to page. A find match leaves focus in the find field.
+- Copying from the viewer now follows the page's reading order. A selection across two columns copies the left column, then the right. A paragraph's lines join into one line, hyphenated words join again, and a blank line separates paragraphs. HTML with a paragraph per block goes to the clipboard alongside the plain text.
+  
+`viewer.copySelection("exact")` keeps the layout's line breaks instead. An Alt/Option-drag, or a plain drag while `viewer.columnSelect` is on, selects the text inside a rectangle, such as one column. Selections also come as the viewer's `selectionchange` event, whose `settled` flag says when the pointer is up and a toolbar may show.
+- A local file larger than 200 MiB now opens from a copy in the browser's origin-private file system (OPFS). The document worker makes the copy once, reuses it on later opens and reads it as needed, so it no longer holds the whole file in memory. The worker reports copying through the client's `progress` event, and a cancel stops it. `ViewerOpenOptions.copyAbove` sets the threshold.
+  
+The file opens from memory, as before, when the browser lacks OPFS, the copy won't fit or fails partway, or another tab is reading the file. When the copies would pass their budget, those opened longest ago are deleted first. `ViewerOpenOptions.keepCopy: false` removes the copy when its document closes. `CACHE_FOLDER` names the OPFS folder of copies, so an app can empty it.
+
+### Patch Changes
+
+- In Firefox, selecting a page's text with the mouse works again after the user has focused a text field on the page, such as the reader's page box. A drag that leaves the viewer can now highlight your app's own text in Firefox too, as it already could in Chromium and WebKit; set `user-select: none` on text you want to keep out. Copy still writes only the page text.
+- A cancelled `open()` no longer leaves the page and the document Web Worker on different documents. The cancel can arrive after the Web Worker already opened the new file. `open()` then resolves with that document instead of rejecting, so renders keep working.
 
 ## 0.2.0-alpha.4
 

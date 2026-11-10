@@ -1,7 +1,7 @@
 ---
 title: "Extract text for an LLM"
 description: "Turn a PDF into Markdown in reading order, JSON with a box for every block, and chunks sized for retrieval, in TypeScript and Rust."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/recipes/extract-markdown/"
 ---
 

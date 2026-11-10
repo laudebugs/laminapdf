@@ -1,6 +1,6 @@
 ---
 title: "unsupported-layout-option"
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/reference/codes/unsupported-layout-option/"
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Links, outlines and metadata"
 description: "Add links, named destinations, an outline, page labels, viewer preferences and metadata to a document."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/guides/links-outlines-and-metadata/"
 ---
 
