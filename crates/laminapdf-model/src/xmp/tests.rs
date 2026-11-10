@@ -703,3 +703,18 @@ fn a_canonical_about_always_has_a_real_prefix() {
 fn a_minimal_packet_is_the_minimal_text() {
     assert_eq!(Packet::new_minimal().write().bytes, write::minimal().into_bytes());
 }
+
+#[test]
+fn characters_xml_cannot_hold_are_refused() {
+    // The xmp_parse fuzz crash (fixtures/regressions/xmp_parse/a5b5f5…): NULs in the URI of a
+    // `dc` prefix made it another namespace; the rewrite dropped them, and the old title became
+    // the title. Such a packet isn't XML.
+    let source = wrapped(
+        "  <rdf:Description rdf:about=\"\" xmlns:dc=\"ht\u{0}tp://purl.org/dc/elements/1.1/\"><dc:title>Old</dc:title></rdf:Description>",
+    );
+    let offset = u64::try_from(source.find('\u{0}').unwrap()).unwrap();
+    assert_eq!(
+        Packet::parse(source.as_bytes()).unwrap_err(),
+        ParseError::Syntax { offset }
+    );
+}

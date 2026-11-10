@@ -13,6 +13,7 @@ use quick_xml::reader::Reader;
 
 use super::ParseError;
 use super::mapping::XML;
+use super::write::is_xml_char;
 
 /// Elements nest no deeper than this. Real packets stay under ten levels; the bound keeps the
 /// recursive walks over the tree (and its drop) within a small stack.
@@ -194,6 +195,12 @@ impl Scope {
 
 /// The top-level nodes of `text`.
 pub(super) fn parse(text: &str) -> Result<Vec<Node>, ParseError> {
+    // XML 1.0 §2.2: a document holds only `Char`s. quick-xml lets a NUL or other C0 control
+    // through, and the writer, which never writes one, would then change what a value or a
+    // namespace URI says on a rewrite.
+    if let Some((at, _)) = text.char_indices().find(|&(_, c)| !is_xml_char(c)) {
+        return Err(ParseError::Syntax { offset: at as u64 });
+    }
     // quick-xml skips a leading byte-order mark and counts positions after it, so the mark is
     // left out here and its three bytes added back to every position.
     let (body, base) = match text.strip_prefix('\u{FEFF}') {
