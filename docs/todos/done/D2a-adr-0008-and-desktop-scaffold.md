@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](../done/C4a-ui-chrome-and-platform.md), [D1a](../done/D1a-desktop-ipc-spike.md), [D1b](../done/D1b-desktop-print-spike.md), [U6b](../done/U6b-self-hosted-fonts.md) |
+| Depends on | [C2a](./C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [D1a](./D1a-desktop-ipc-spike.md), [D1b](./D1b-desktop-print-spike.md), [U6b](./U6b-self-hosted-fonts.md) |
 | Dependency notes | [D1a](../done/D1a-desktop-ipc-spike.md), [D1b](../done/D1b-desktop-print-spike.md); web plan **C4** (`@laminapdf/ui` with the `Platform` interface, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and therefore ADR 0010 from web **C2** ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs)) |
 | ADRs | **Writes ADR 0008** (desktop shell). Implements ADR 0010 (Platform adapter) for desktop. Follows [0001](../../decisions/0001-core-language-and-licence.md), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/d2a-desktop-scaffold` |
 | PR title | `feat(desktop): add ADR 0008 and the Tauri 2 app scaffold` |
 | Size | L (600–1,500 lines incl. ADR, config, generated-schema exclusions) |
-| PR | — |
+| PR | [#379](https://github.com/laudebugs/laminapdf/pull/379) |
 
 ## Goal
 
@@ -88,8 +88,8 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 ## Acceptance criteria
 
 - [x] ADR 0008 exists, is **Accepted**, cites D1a and D1b results, and records every item listed in Scope.
-- [ ] `pnpm --filter @laminapdf/desktop tauri dev` opens a window titled "Lamina" showing the `@laminapdf/ui` shell on macOS, Windows and Linux (screenshots in the PR).
-- [ ] The `desktop` CI job (full lane) is green on all three OSes; `cargo xtask check` passes including clippy `-D warnings` on `laminapdf-desktop`.
+- [x] `pnpm --filter @laminapdf/desktop tauri dev` opens a window titled "Lamina PDF" showing the `@laminapdf/ui` shell on macOS, Windows and Linux (screenshots in the PR).
+- [x] The `desktop` CI job (full lane) is green on all three OSes; `cargo xtask check` passes including clippy `-D warnings` on `laminapdf-desktop`.
 - [x] Invoking any command not in the app manifest from the devtools console is rejected with a permission error (checked manually, noted in the PR); `invoke('plugin:dialog|open')` from the webview is rejected.
 - [x] The root `Cargo.toml` `members` includes `"apps/*/src-tauri"`; `cargo metadata --no-deps --format-version 1` lists `laminapdf-desktop`.
 - [x] The capability guard test passes and fails on purpose-built bad inputs (forbidden prefix, unlisted capability file, `e2e` in the base list, an e2e override that drops a base entry).
@@ -140,8 +140,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

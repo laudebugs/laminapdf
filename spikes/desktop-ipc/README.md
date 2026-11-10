@@ -1,7 +1,7 @@
 # Spike: `desktop-ipc` (Round D1, todo D1a)
 
 - **Date:** 2026-11-09
-- **Status:** done. The recommendation below is an input to ADR 0008, which todo [D2a](../../docs/todos/ongoing/D2a-adr-0008-and-desktop-scaffold.md) writes.
+- **Status:** done. The recommendation below is an input to ADR 0008, which todo [D2a](../../docs/todos/done/D2a-adr-0008-and-desktop-scaffold.md) writes.
 - **Plan:** [desktop app §6 D1](../../docs/plans/desktop-app.md#d1-ipc-and-print-spikes), [architecture §4](../../docs/plans/architecture.md#4-spikes-to-close-open-questions) (`desktop-ipc`)
 - **Code:** throwaway quality, outside both workspaces, never imported by product code ([code organisation §1](../../docs/guidelines/code-organization.md#1-top-level-layout)). Tauri 2.12 (crate `tauri` 2.12.5, `tauri-build` 2.7.4, `@tauri-apps/api` and `@tauri-apps/cli` 2.12.4), Rust 1.99.1.
 

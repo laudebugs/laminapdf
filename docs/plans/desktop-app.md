@@ -106,7 +106,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D2. Shell and native core
 
-**Todos:** [D2a](../todos/ongoing/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/ready/D2b-engine-process.md), [D2c](../todos/ready/D2c-engine-sandbox.md), [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md)
+**Todos:** [D2a](../todos/done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/ready/D2b-engine-process.md), [D2c](../todos/ready/D2c-engine-sandbox.md), [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md)
 
 **Deliverable:** ADR 0008; `apps/desktop` with Tauri 2, desktop `Platform` adapter, engine child process, tile transport, single window opening one file.
 **Accepted when:** the reader end-to-end scenarios run against the desktop build with WebdriverIO and `@wdio/tauri-service` on Windows and Linux (`tauri-driver`) and on macOS (the service's embedded WebDriver server via `tauri-plugin-wdio-webdriver`, compiled into test builds only behind a Cargo feature) ([Tauri WebDriver docs](https://v2.tauri.app/develop/tests/webdriver/)); the C-round Playwright suite keeps running against the web build on all three OSes (Playwright drives browsers, not Tauri webviews); killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target. If the macOS embedded driver proves unreliable, macOS falls back to the web-build Playwright run plus a recorded manual smoke checklist, and ADR 0008 records the gap.

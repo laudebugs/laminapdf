@@ -520,16 +520,28 @@ fn major(version: &str) -> Option<u32> {
 mod tests {
     use super::{Action, Pin, Probe, Tool, action, parse_channel, version_token};
 
+    /// The packages on the line after each `apt-get install` of `workflow` that names `WebKitGTK`.
+    fn webkit_installs(workflow: &str) -> Vec<String> {
+        let lines: Vec<&str> = workflow.lines().collect();
+        lines
+            .windows(2)
+            .filter(|pair| pair.first().is_some_and(|l| l.contains("apt-get install")))
+            .filter_map(|pair| pair.get(1))
+            .filter(|next| next.contains("webkit2gtk"))
+            .map(|next| next.split_whitespace().collect::<Vec<_>>().join(" "))
+            .collect()
+    }
+
     #[test]
     fn linux_desktop_packages_should_match_the_ci_action() {
         let action = include_str!("../../../.github/actions/linux-webkit/action.yml");
-        let installed: Vec<&str> = action
-            .lines()
-            .skip_while(|line| !line.contains("apt-get install"))
-            .skip(1)
-            .flat_map(str::split_whitespace)
-            .collect();
-        assert_eq!(installed.join(" "), super::LINUX_DESKTOP_PACKAGES);
+        assert_eq!(webkit_installs(action), [super::LINUX_DESKTOP_PACKAGES]);
+    }
+
+    #[test]
+    fn linux_desktop_packages_should_match_the_release_lane() {
+        let release = include_str!("../../../.github/workflows/release.yml");
+        assert_eq!(webkit_installs(release), [super::LINUX_DESKTOP_PACKAGES; 2]);
     }
 
     fn tool(pin: Pin) -> Tool {

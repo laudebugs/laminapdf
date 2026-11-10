@@ -765,18 +765,30 @@ mod tests {
         CHANGELOG_HEADER, Command, compare_versions, fixed_group, is_version, manifest_problems, parse_args, plan,
         root_changelog, split_glob, sync_lockfile, sync_manifest, sync_version_ts, with_version,
     };
+    use crate::tracked::TempTree;
 
     #[test]
-    fn split_glob_should_read_both_supported_forms() {
+    fn split_glob_should_read_a_trailing_wildcard() {
         assert_eq!(split_glob("crates/*").ok().flatten(), Some(("crates", "")));
+    }
+
+    #[test]
+    fn split_glob_should_read_a_wildcard_folder_with_a_sub_path() {
         assert_eq!(
             split_glob("apps/*/src-tauri").ok().flatten(),
             Some(("apps", "src-tauri"))
         );
+    }
+
+    #[test]
+    fn split_glob_should_leave_a_plain_path_alone() {
         assert_eq!(split_glob("tools/xtask").ok().flatten(), None);
+    }
+
+    #[test]
+    fn split_glob_should_refuse_two_wildcards() {
         assert!(split_glob("apps/*/x/*").is_err());
     }
-    use crate::tracked::TempTree;
 
     const MANIFEST: &str = "\
 [workspace]

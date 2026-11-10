@@ -1,7 +1,7 @@
 # Spike: `desktop-print` (Round D1, todo D1b)
 
 - **Date:** 2026-11-09
-- **Status:** done. The recommendation below is an input to ADR 0008 (todo [D2a](../../docs/todos/ongoing/D2a-adr-0008-and-desktop-scaffold.md)) and to native printing (todo [D4c](../../docs/todos/ready/D4c-native-printing.md)).
+- **Status:** done. The recommendation below is an input to ADR 0008 (todo [D2a](../../docs/todos/done/D2a-adr-0008-and-desktop-scaffold.md)) and to native printing (todo [D4c](../../docs/todos/ready/D4c-native-printing.md)).
 - **Plan:** [desktop app §6 D1](../../docs/plans/desktop-app.md#d1-ipc-and-print-spikes), [architecture §4](../../docs/plans/architecture.md#4-spikes-to-close-open-questions) (`desktop-print`)
 - **Code:** throwaway quality, outside both workspaces, never imported by product code ([code organisation §12](../../docs/guidelines/code-organization.md#12-spikes-vs-product-code)). Tauri 2.12 (crate `tauri` 2.12.5, `@tauri-apps/cli` 2.12.4), `pdfium-render` 0.9.4 over PDFium `chromium/7881`, Rust 1.99.1.
 

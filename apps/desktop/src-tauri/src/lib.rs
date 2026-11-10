@@ -83,7 +83,11 @@ mod tests {
 
     #[test]
     fn fit_window_should_shrink_to_a_small_screen() {
-        assert_eq!(fit_window((1366.0, 728.0)), (1200.0, 655.2));
+        let (width, height) = fit_window((1366.0, 728.0));
+        assert!(
+            (width - 1200.0).abs() < 1e-9 && (height - 655.2).abs() < 1e-9,
+            "{width} × {height}"
+        );
     }
 
     #[test]
