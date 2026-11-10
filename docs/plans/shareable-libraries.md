@@ -128,7 +128,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L4. CLI and MCP
 
-**Todos:** [L4a](../todos/done/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/done/L4b-cli-batch-render-schema.md) (batch, extract, schema, completions), [L4e](../todos/done/L4e-cli-render.md) (render, output templates, MCP tools for both), [L4c](../todos/done/L4c-mcp-mode.md) (`laminapdf mcp`), [L4d](../todos/done/L4d-cli-distribution.md) (distribution), [L4f](../todos/ready/L4f-cli-download-table.md) (a download table on the docs site), [L4g](../todos/done/L4g-cli-release-targets-and-publishing.md) (every target built; the npm packages and the Homebrew formula published by the tag).
+**Todos:** [L4a](../todos/done/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/done/L4b-cli-batch-render-schema.md) (batch, extract, schema, completions), [L4e](../todos/done/L4e-cli-render.md) (render, output templates, MCP tools for both), [L4c](../todos/done/L4c-mcp-mode.md) (`laminapdf mcp`), [L4d](../todos/done/L4d-cli-distribution.md) (distribution), [L4f](../todos/ready/L4f-cli-download-table.md) (a download table on the docs site), [L4g](../todos/done/L4g-cli-release-targets-and-publishing.md) (every target built; the npm packages and the Homebrew formula published by the tag), [L4h](../todos/ready/L4h-cli-release-train.md) (a CLI release tagged after each daily release that changed it).
 
 **Deliverable:** the `laminapdf` binary (`crates/laminapdf-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root`, read-only by default (`--allow-write` to opt in); release binaries, Homebrew and an npm wrapper.
 **Accepted when:** every command has `--json` output validated against its schema in tests; exit codes are tested per case; the MCP mode passes the MCP inspector's conformance checks and refuses paths outside `--root`.
@@ -194,6 +194,7 @@ This plan adjusts these todos (edited in the same PR):
 - [x] `laminapdf mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations ([L4c](../todos/done/L4c-mcp-mode.md))
 - [x] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages ([L4d](../todos/done/L4d-cli-distribution.md); publishing waits for the owner)
 - [x] Every release target built, and the npm packages and the Homebrew formula published by the release tag ([L4g](../todos/done/L4g-cli-release-targets-and-publishing.md))
+- [ ] The CLI released after each daily release that changed it, with no tag pushed by hand ([L4h](../todos/ready/L4h-cli-release-train.md))
 - [ ] A download table for the CLI on the docs site's install page, linking the GitHub release ([L4f](../todos/ready/L4f-cli-download-table.md))
 
 ### L5. Docs for agents
