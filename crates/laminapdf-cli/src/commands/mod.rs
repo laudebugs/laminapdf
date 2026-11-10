@@ -4,6 +4,7 @@
 //!
 //! [ADR 0031]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0031-cli-and-mcp-contract.md
 
+mod build;
 mod check;
 mod explain;
 mod extract;
@@ -12,6 +13,7 @@ mod pages;
 mod render;
 mod reveal;
 
+pub use build::{BuildArgs, BuildReport, build};
 pub use check::{CheckArgs, CheckReport, check};
 pub use explain::{ExplainArgs, ExplainReport, explain};
 pub use extract::{ExtractArgs, ExtractedReport, Format, PageTextEntry, TextReport, extract, extract_document};

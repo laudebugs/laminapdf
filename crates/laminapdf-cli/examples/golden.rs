@@ -1,7 +1,9 @@
-//! Writes `laminapdf-cli`'s golden into a directory and prints its path:
+//! Writes `laminapdf-cli`'s goldens into a directory and prints their paths:
 //! `cli-rotate-hello.pdf`, `laminapdf pages rotate fixtures/corpus/hello.pdf +90` (an
-//! incremental update of the input). `cargo xtask golden --update` runs it on `fixtures/golden/`;
-//! `tests/pages.rs` compares the binary's output with it.
+//! incremental update of the input), and `cli-build-report.pdf`, `laminapdf build
+//! fixtures/markdown/report.md` with the Noto fonts under PDF/UA-1. `cargo xtask golden --update`
+//! runs it on `fixtures/golden/`; `tests/pages.rs` and `tests/build.rs` compare the binary's
+//! output with them.
 //!
 //! ```sh
 //! cargo run -p laminapdf-cli --example golden -- <out-dir>
@@ -10,7 +12,7 @@
 use std::error::Error;
 use std::path::Path;
 
-use laminapdf_cli::commands::{RotateArgs, Settings, rotate};
+use laminapdf_cli::commands::{BuildArgs, RotateArgs, Settings, build, rotate};
 use laminapdf_cli::io::ProcessIo;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -29,5 +31,31 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     rotate(&args, &settings, &mut ProcessIo::default())?;
     println!("{}", output.display());
+    let built = Path::new(&out).join("cli-build-report.pdf");
+    build(
+        &report_args(&built.to_string_lossy()),
+        &settings,
+        &mut ProcessIo::default(),
+    )?;
+    println!("{}", built.display());
     Ok(())
+}
+
+/// `laminapdf build fixtures/markdown/report.md -o <output>` with the fixture fonts, as
+/// `tests/build.rs` runs it.
+fn report_args(output: &str) -> BuildArgs {
+    let fixtures = laminapdf_test_fixtures::fixtures_dir();
+    let path = |p: &str| fixtures.join(p).to_string_lossy().into_owned();
+    BuildArgs {
+        input: path("markdown/report.md"),
+        output: output.to_owned(),
+        fonts: vec![
+            format!("regular={}", path("fonts/NotoSans-Regular.ttf")),
+            format!("bold={}#1", path("fonts/NotoSans-RegularBold.ttc")),
+            format!("fallback={}", path("fonts/NotoSansArabic-Regular.ttf")),
+            format!("fallback={}", path("fonts/NotoSansDevanagari-Regular.ttf")),
+        ],
+        profiles: vec!["pdf-ua-1".to_owned()],
+        ..BuildArgs::default()
+    }
 }

@@ -193,6 +193,13 @@ impl From<laminapdf::Error> for CliError {
                     limit.replace('_', "-")
                 )
             }),
+            // `laminapdf build` without fonts sets the standard 14, Latin text only and never embedded.
+            ErrorCode::MissingGlyph => Some(
+                "a font lacks a character the text uses: give fonts that have it with --font regular=FILE (and bold, italic, mono, fallback)".to_owned(),
+            ),
+            ErrorCode::FontNotEmbedded => Some(
+                "the profile needs embedded fonts: give them with --font regular=FILE (and bold, italic, mono)".to_owned(),
+            ),
             _ => None,
         };
         let diagnostic = match hint {
