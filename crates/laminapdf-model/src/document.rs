@@ -130,7 +130,7 @@ impl Document {
                 let object = self.catalog()?.get("Metadata").and_then(Object::as_ref).map(|r| r.num);
                 self.warn(Warning::XmpInvalid {
                     object,
-                    offset: error.offset().unwrap_or(0),
+                    offset: error.offset(),
                     reason: error.reason(),
                 })?;
                 Ok(xmp::PacketState::Malformed { bytes, error })

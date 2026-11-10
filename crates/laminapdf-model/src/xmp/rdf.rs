@@ -6,7 +6,7 @@ use std::ops::Range;
 
 use super::ParseError;
 use super::mapping::{ADOBE_META, RDF, XML};
-use super::tree::{Element, Node, Scope};
+use super::tree::{Binding, Element, Node, Scope};
 
 /// A property's value as the packet writes it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,6 +80,9 @@ pub(super) struct Located {
     pub(super) removal_start: usize,
     /// Its `rdf:Description`, an index into [`Rdf::descriptions`].
     pub(super) description: usize,
+    /// The namespaces an element-form property declares on itself, which a replacement must
+    /// declare again.
+    pub(super) declarations: Vec<Binding>,
 }
 
 /// An `rdf:Description`: what an edit needs to add properties to it.
@@ -98,7 +101,7 @@ pub(super) struct Description {
     /// The namespace bindings in scope inside it.
     pub(super) scope: Scope,
     /// The bindings it declares itself.
-    pub(super) declarations: Vec<(String, String)>,
+    pub(super) declarations: Vec<Binding>,
     /// Its attributes as written (`rdf:about="…"` and attribute-form properties).
     pub(super) attributes: Vec<Range<usize>>,
     /// Its child elements as written.
@@ -112,8 +115,6 @@ pub(super) struct Rdf {
     pub(super) properties: Vec<Located>,
     /// The bindings in scope inside `rdf:RDF`.
     pub(super) scope: Scope,
-    /// The prefix `rdf:RDF` is written with.
-    pub(super) prefix: String,
     /// `rdf:RDF`'s children other than descriptions (typed nodes, comments), as written.
     pub(super) others: Vec<Range<usize>>,
 }
@@ -122,10 +123,9 @@ pub(super) struct Rdf {
 pub(super) fn read(text: &str, top: &[Node]) -> Result<Rdf, ParseError> {
     let mut scope = Scope::default();
     let rdf = find_rdf(top, &mut scope).ok_or(ParseError::NoRdf)?;
-    scope.push(&rdf.declarations);
+    let scope = scope.with(&rdf.declarations);
     let mut out = Rdf {
         scope: scope.clone(),
-        prefix: rdf.name.prefix.clone(),
         ..Rdf::default()
     };
     for node in &rdf.children {
@@ -147,13 +147,11 @@ fn find_rdf<'a>(nodes: &'a [Node], scope: &mut Scope) -> Option<&'a Element> {
         if e.name.is(RDF, "RDF") {
             return Some(e);
         }
-        if e.name.namespace == ADOBE_META {
-            let outside = scope.clone();
-            scope.push(&e.declarations);
-            if let Some(found) = e.child_elements().find(|c| c.name.is(RDF, "RDF")) {
-                return Some(found);
-            }
-            *scope = outside;
+        if e.name.namespace == ADOBE_META
+            && let Some(found) = e.child_elements().find(|c| c.name.is(RDF, "RDF"))
+        {
+            *scope = scope.with(&e.declarations);
+            return Some(found);
         }
     }
     None
@@ -161,8 +159,7 @@ fn find_rdf<'a>(nodes: &'a [Node], scope: &mut Scope) -> Option<&'a Element> {
 
 fn description(text: &str, e: &Element, outer: &Scope, out: &mut Rdf) {
     let index = out.descriptions.len();
-    let mut scope = outer.clone();
-    scope.push(&e.declarations);
+    let scope = outer.with(&e.declarations);
     let mut attributes = Vec::new();
     for a in &e.attrs {
         attributes.push(a.span.clone());
@@ -179,6 +176,7 @@ fn description(text: &str, e: &Element, outer: &Scope, out: &mut Rdf) {
             place: Place::Attribute(a.span.clone()),
             removal_start: whitespace_before(text, a.span.start),
             description: index,
+            declarations: Vec::new(),
         });
     }
     let mut children = Vec::new();
@@ -204,6 +202,7 @@ fn description(text: &str, e: &Element, outer: &Scope, out: &mut Rdf) {
                 place: Place::Element(child.span.clone()),
                 removal_start,
                 description: index,
+                declarations: child.declarations.clone(),
             });
             children.push(child.span.clone());
             insert_at = child.span.end;

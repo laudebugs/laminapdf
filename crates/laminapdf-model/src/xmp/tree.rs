@@ -3,9 +3,10 @@
 //!
 //! `quick-xml` tokenizes; this module checks what XMP needs on top: no DTD (so no entity can
 //! expand: XXE, billion laughs), only XML's predefined and numeric character references,
-//! declared prefixes, and a bounded depth.
+//! declared prefixes, and bounded depth, attributes and declarations.
 
 use std::ops::Range;
+use std::sync::Arc;
 
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
@@ -16,6 +17,15 @@ use super::mapping::XML;
 /// Elements nest no deeper than this. Real packets stay under ten levels; the bound keeps the
 /// recursive walks over the tree (and its drop) within a small stack.
 pub(super) const MAX_DEPTH: usize = 64;
+
+/// A start tag holds no more attributes (declarations included) than this. Real ones hold a
+/// dozen; the bound keeps a tag's scan and its names' resolution small.
+pub(super) const MAX_ATTRIBUTES: usize = 256;
+
+/// A packet declares no more namespaces than this in all. Real packets declare a few dozen;
+/// each name's resolution walks the declarations in scope, so the bound keeps a packet of many
+/// elements under many declarations linear in its size.
+pub(super) const MAX_DECLARATIONS: usize = 256;
 
 /// A node of the tree.
 #[derive(Debug, Clone)]
@@ -69,8 +79,8 @@ pub(super) struct Attr {
 pub(super) struct Element {
     pub(super) name: Name,
     pub(super) attrs: Vec<Attr>,
-    /// The `xmlns` declarations on this element, `("", uri)` for a default namespace.
-    pub(super) declarations: Vec<(String, String)>,
+    /// The `xmlns` declarations on this element.
+    pub(super) declarations: Vec<Binding>,
     pub(super) children: Vec<Node>,
     /// From `<` of the start tag to `>` of the end tag (or of `/>`).
     pub(super) span: Range<usize>,
@@ -103,21 +113,49 @@ impl Element {
     }
 }
 
-/// The namespace bindings in scope: a stack of `(prefix, uri)`, innermost last.
+/// One namespace declaration: `xmlns:prefix="uri"`, or `xmlns="uri"` with an empty prefix.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct Binding {
+    pub(super) prefix: String,
+    pub(super) uri: String,
+}
+
+impl Binding {
+    pub(super) fn new(prefix: &str, uri: &str) -> Self {
+        Self {
+            prefix: prefix.to_owned(),
+            uri: uri.to_owned(),
+        }
+    }
+}
+
+/// The namespace bindings in scope. Each element's declarations are one frame that points at
+/// its parent's, so a scope is shared, not copied: holding the scope of every description
+/// costs one pointer each, however many declarations surround them.
 #[derive(Debug, Clone, Default)]
-pub(super) struct Scope(Vec<(String, String)>);
+pub(super) struct Scope(Option<Arc<Frame>>);
+
+#[derive(Debug)]
+struct Frame {
+    bindings: Vec<Binding>,
+    parent: Scope,
+}
 
 impl Scope {
-    pub(super) fn push(&mut self, declarations: &[(String, String)]) {
-        self.0.extend(declarations.iter().cloned());
+    /// This scope with `bindings` declared inside it.
+    pub(super) fn with(&self, bindings: &[Binding]) -> Self {
+        if bindings.is_empty() {
+            return self.clone();
+        }
+        Self(Some(Arc::new(Frame {
+            bindings: bindings.to_vec(),
+            parent: self.clone(),
+        })))
     }
 
-    fn truncate(&mut self, len: usize) {
-        self.0.truncate(len);
-    }
-
-    fn len(&self) -> usize {
-        self.0.len()
+    /// The bindings, innermost first.
+    fn iter(&self) -> impl Iterator<Item = &Binding> {
+        std::iter::successors(self.0.as_deref(), |f| f.parent.0.as_deref()).flat_map(|f| f.bindings.iter().rev())
     }
 
     /// The URI `prefix` names here (`""` for no default namespace).
@@ -125,34 +163,28 @@ impl Scope {
         if prefix == "xml" {
             return Some(XML);
         }
-        let found = self
-            .0
-            .iter()
-            .rev()
-            .find(|(p, _)| p == prefix)
-            .map(|(_, uri)| uri.as_str());
+        let found = self.iter().find(|b| b.prefix == prefix).map(|b| b.uri.as_str());
         match (found, prefix) {
             (None, "") => Some(""),
             (found, _) => found,
         }
     }
 
-    /// A prefix that names `namespace` here, innermost first.
+    /// A non-empty prefix that names `namespace` here, innermost first.
     pub(super) fn prefix_for(&self, namespace: &str) -> Option<&str> {
-        self.0
-            .iter()
-            .rev()
-            .map(|(p, _)| p.as_str())
+        self.iter()
+            .map(|b| b.prefix.as_str())
             .find(|p| !p.is_empty() && self.resolve(p) == Some(namespace))
     }
 
     /// Each prefix's binding in effect, in the order first declared.
-    pub(super) fn effective(&self) -> Vec<(String, String)> {
-        let mut out: Vec<(String, String)> = Vec::new();
-        for (prefix, uri) in &self.0 {
-            match out.iter_mut().find(|(p, _)| p == prefix) {
-                Some(slot) => slot.1.clone_from(uri),
-                None => out.push((prefix.clone(), uri.clone())),
+    pub(super) fn effective(&self) -> Vec<Binding> {
+        let mut out: Vec<Binding> = Vec::new();
+        let outermost_first: Vec<&Binding> = self.iter().collect();
+        for b in outermost_first.into_iter().rev() {
+            match out.iter_mut().find(|o| o.prefix == b.prefix) {
+                Some(slot) => slot.uri.clone_from(&b.uri),
+                None => out.push(b.clone()),
             }
         }
         out
@@ -161,18 +193,24 @@ impl Scope {
 
 /// The top-level nodes of `text`.
 pub(super) fn parse(text: &str) -> Result<Vec<Node>, ParseError> {
-    let mut reader = Reader::from_str(text);
+    // quick-xml skips a leading byte-order mark and counts positions after it, so the mark is
+    // left out here and its three bytes added back to every position.
+    let (body, base) = match text.strip_prefix('\u{FEFF}') {
+        Some(body) => (body, '\u{FEFF}'.len_utf8()),
+        None => (text, 0),
+    };
+    let mut reader = Reader::from_str(body);
     let config = reader.config_mut();
     config.check_end_names = true;
     config.expand_empty_elements = false;
     config.trim_text(false);
     let mut builder = Builder::default();
     loop {
-        let start = position(reader.buffer_position());
+        let start = base + position(reader.buffer_position());
         let event = reader.read_event().map_err(|_| ParseError::Syntax {
-            offset: reader.error_position(),
+            offset: base as u64 + reader.error_position(),
         })?;
-        let end = position(reader.buffer_position());
+        let end = base + position(reader.buffer_position());
         match event {
             Event::Start(_) | Event::Empty(_) => {
                 let empty = matches!(event, Event::Empty(_));
@@ -202,7 +240,8 @@ pub(super) fn parse(text: &str) -> Result<Vec<Node>, ParseError> {
 }
 
 fn position(p: u64) -> usize {
-    usize::try_from(p).unwrap_or(usize::MAX)
+    // Positions are within a &str, so they fit; a huge one only fails the slice that uses it.
+    usize::try_from(p).unwrap_or(usize::MAX / 2)
 }
 
 /// The five entities XML predefines (XML 1.0 §4.6).
@@ -221,8 +260,10 @@ fn predefined(name: &str) -> Option<char> {
 #[derive(Default)]
 struct Builder {
     top: Vec<Node>,
-    open: Vec<(Element, usize)>,
+    /// The open elements, each with the scope outside it.
+    open: Vec<(Element, Scope)>,
     scope: Scope,
+    declarations: usize,
 }
 
 impl Builder {
@@ -258,26 +299,35 @@ impl Builder {
             return Err(ParseError::TooDeep { offset });
         }
         let raw = scan_tag(tag, span.start).ok_or(ParseError::Syntax { offset })?;
-        let declarations: Vec<(String, String)> = raw
-            .attrs
-            .iter()
-            .filter_map(|a| match a.name.split_once(':') {
-                Some(("xmlns", prefix)) => Some((prefix.to_owned(), a.value.clone())),
-                None if a.name == "xmlns" => Some((String::new(), a.value.clone())),
-                _ => None,
-            })
-            .collect();
-        let scope_len = self.scope.len();
-        self.scope.push(&declarations);
-        let name = self
-            .resolve(raw.name, false)
-            .ok_or(ParseError::UnboundPrefix { offset })?;
+        if raw.attrs.len() > MAX_ATTRIBUTES {
+            return Err(ParseError::TooLarge { offset });
+        }
+        let mut declarations = Vec::new();
+        for a in &raw.attrs {
+            let prefix = match a.name.split_once(':') {
+                Some(("xmlns", prefix)) => prefix,
+                None if a.name == "xmlns" => "",
+                _ => continue,
+            };
+            // `xmlns:="…"` declares nothing, and Namespaces in XML 1.0 can't undeclare a prefix.
+            if a.name.ends_with(':') || (!prefix.is_empty() && a.value.is_empty()) || prefix.contains(':') {
+                return Err(ParseError::Syntax { offset });
+            }
+            declarations.push(Binding::new(prefix, &a.value));
+        }
+        self.declarations += declarations.len();
+        if self.declarations > MAX_DECLARATIONS {
+            return Err(ParseError::TooLarge { offset });
+        }
+        let outside = self.scope.clone();
+        self.scope = outside.with(&declarations);
+        let name = self.resolve(raw.name, false, offset)?;
         let mut attrs = Vec::new();
         for a in raw.attrs {
             if a.name == "xmlns" || a.name.starts_with("xmlns:") {
                 continue;
             }
-            let name = self.resolve(a.name, true).ok_or(ParseError::UnboundPrefix { offset })?;
+            let name = self.resolve(a.name, true, offset)?;
             attrs.push(Attr {
                 name,
                 value: a.value,
@@ -294,31 +344,36 @@ impl Builder {
             empty,
         };
         if empty {
-            self.scope.truncate(scope_len);
+            self.scope = outside;
             self.siblings().push(Node::Element(element));
         } else {
-            self.open.push((element, scope_len));
+            self.open.push((element, outside));
         }
         Ok(())
     }
 
     fn close(&mut self, end: usize) -> Result<(), ParseError> {
-        let (mut element, scope_len) = self.open.pop().ok_or(ParseError::Syntax { offset: end as u64 })?;
+        let (mut element, outside) = self.open.pop().ok_or(ParseError::Syntax { offset: end as u64 })?;
         element.span.end = end;
-        self.scope.truncate(scope_len);
+        self.scope = outside;
         self.siblings().push(Node::Element(element));
         Ok(())
     }
 
-    fn resolve(&self, qualified: &str, attribute: bool) -> Option<Name> {
+    /// `qualified` with its prefix resolved. A colon must separate a non-empty prefix from a
+    /// non-empty local name (Namespaces in XML 1.0 §4), so `:x` and `a:b:c` are refused.
+    fn resolve(&self, qualified: &str, attribute: bool, offset: u64) -> Result<Name, ParseError> {
         let (prefix, local) = qualified.split_once(':').unwrap_or(("", qualified));
+        if local.is_empty() || local.contains(':') || (prefix.is_empty() && qualified.contains(':')) {
+            return Err(ParseError::Syntax { offset });
+        }
         // An unprefixed attribute is in no namespace (Namespaces in XML §6.2).
         let namespace = if attribute && prefix.is_empty() {
             ""
         } else {
-            self.scope.resolve(prefix)?
+            self.scope.resolve(prefix).ok_or(ParseError::UnboundPrefix { offset })?
         };
-        Some(Name {
+        Ok(Name {
             prefix: prefix.to_owned(),
             local: local.to_owned(),
             namespace: namespace.to_owned(),

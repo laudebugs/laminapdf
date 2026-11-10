@@ -230,9 +230,11 @@ impl PdfDate {
     }
 
     /// Reads an XMP date (ISO 8601 as ISO 16684-1 §8.2.1.1 restricts it): `YYYY`, `YYYY-MM`,
-    /// `YYYY-MM-DD`, then optionally `Thh:mm`, `:ss` and a fraction (dropped: a PDF date counts
-    /// whole seconds), and a zone (`Z`, `+hh:mm`, `-hh:mm`) or none. Surrounding whitespace
-    /// is ignored.
+    /// `YYYY-MM-DD`, or a full date with a time, `Thh:mm`, then optionally `:ss` and after the
+    /// seconds a fraction (dropped: a PDF date counts whole seconds), and after the time a zone
+    /// (`Z`, `+hh:mm`, `-hh:mm`) or none. A zone or fraction without a time is refused.
+    /// `-00:00` reads as UTC: RFC 3339 §4.3 gives it the UTC instant with the local offset
+    /// unknown, and a PDF date can only say the first. Surrounding whitespace is ignored.
     ///
     /// ```
     /// use laminapdf_model::PdfDate;
@@ -260,11 +262,14 @@ impl PdfDate {
                 .ok_or(InvalidDate)?;
             parts += 1;
         }
-        // A time gives at least hours and minutes.
-        if parts == 3 {
+        // A time gives at least hours and minutes; a zone needs a time and a fraction seconds.
+        if parts == 3 || (parts < 3 && !rest.is_empty()) {
             return Err(InvalidDate);
         }
         if let Some(fraction) = rest.strip_prefix(b".") {
+            if parts < 5 {
+                return Err(InvalidDate);
+            }
             let digits_len = fraction.iter().take_while(|b| b.is_ascii_digit()).count();
             if digits_len == 0 {
                 return Err(InvalidDate);
@@ -549,6 +554,12 @@ mod tests {
     }
 
     #[test]
+    fn minus_zero_reads_as_utc() {
+        let d = PdfDate::from_iso8601("2026-10-28T14:30-00:00").unwrap();
+        assert_eq!(d.utc_offset_minutes(), Some(0));
+    }
+
+    #[test]
     fn malformed_iso_dates_are_rejected() {
         for s in [
             "",
@@ -561,6 +572,11 @@ mod tests {
             "2026-10-28T14:30:00.Z",
             "2026-10-28T14:30:00+01:00x",
             "2026/10/28",
+            "2026-10-28Z",
+            "2026-10Z",
+            "2026-10.5",
+            "2026-10-28+01:00",
+            "2026-10-28T14:30.5Z",
         ] {
             assert!(PdfDate::from_iso8601(s).is_err(), "{s}");
         }

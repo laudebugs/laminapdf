@@ -8,7 +8,7 @@ use std::ops::Range;
 use super::Value;
 use super::mapping::{ADOBE_META, DC, Mapping, PDF, RDF, STANDARD_PREFIXES, ValueKind, XMP, XMP_MM, standard_prefix};
 use super::rdf::{Description, Located, Place, Rdf, RdfValue};
-use super::tree::Node;
+use super::tree::{Binding, Node, Scope};
 
 /// The header of a packet Lamina PDF writes: the byte-order mark in `begin` and the fixed
 /// `id` (ISO 16684-1 §7.3.2), and no `bytes` or `encoding` attribute, which PDF/A forbids
@@ -74,47 +74,91 @@ pub fn escape(text: &str) -> String {
 /// ```
 #[must_use]
 pub fn property_element(mapping: &Mapping, value: &Value) -> String {
-    element(mapping, mapping.prefix, "rdf", value, &[])
+    element(mapping, mapping.prefix, "rdf", value, &[], &[])
 }
 
-/// [`property_element`] with the prefixes the packet binds and, for a language alternative,
-/// the other languages' entries (`(lang, text)`) after the `x-default` one.
+/// [`property_element`] with the prefixes the packet binds (an empty prefix writes the bare
+/// name, in the default namespace), `declarations` on its start tag and, for a language
+/// alternative, the other languages' entries (`(lang, text)`) after the `x-default` one.
 pub(super) fn element(
     mapping: &Mapping,
     prefix: &str,
     rdf: &str,
     value: &Value,
     others: &[(String, String)],
+    declarations: &[Binding],
 ) -> String {
-    let tag = format!("{prefix}:{}", mapping.name);
+    let tag = qname(prefix, mapping.name);
+    let [alt, seq, li] = ["Alt", "Seq", "li"].map(|local| qname(rdf, local));
     let inner = match (mapping.kind, value) {
         (ValueKind::LangAlt, _) => {
             let mut s = format!(
-                "<{rdf}:Alt><{rdf}:li xml:lang=\"x-default\">{}</{rdf}:li>",
+                "<{alt}><{li} xml:lang=\"x-default\">{}</{li}>",
                 escape(&value_text(value))
             );
             for (lang, text) in others {
-                let _ = write!(s, "<{rdf}:li xml:lang=\"{}\">{}</{rdf}:li>", escape(lang), escape(text));
+                let _ = write!(s, "<{li} xml:lang=\"{}\">{}</{li}>", escape(lang), escape(text));
             }
-            let _ = write!(s, "</{rdf}:Alt>");
+            let _ = write!(s, "</{alt}>");
             s
         }
         (ValueKind::Seq, Value::List(items)) => {
-            let mut s = format!("<{rdf}:Seq>");
+            let mut s = format!("<{seq}>");
             for item in items {
                 // Writing to a String can't fail.
-                let _ = write!(s, "<{rdf}:li>{}</{rdf}:li>", escape(item));
+                let _ = write!(s, "<{li}>{}</{li}>", escape(item));
             }
-            let _ = write!(s, "</{rdf}:Seq>");
+            let _ = write!(s, "</{seq}>");
             s
         }
-        (ValueKind::Seq, other) => format!(
-            "<{rdf}:Seq><{rdf}:li>{}</{rdf}:li></{rdf}:Seq>",
-            escape(&value_text(other))
-        ),
+        (ValueKind::Seq, other) => format!("<{seq}><{li}>{}</{li}></{seq}>", escape(&value_text(other))),
         (ValueKind::Text | ValueKind::Date, _) => escape(&value_text(value)),
     };
-    format!("<{tag}>{inner}</{tag}>")
+    let mut open = tag.clone();
+    write_declarations(&mut open, declarations.iter());
+    format!("<{open}>{inner}</{tag}>")
+}
+
+/// `prefix:local`, or `local` alone for an empty prefix.
+fn qname(prefix: &str, local: &str) -> String {
+    if prefix.is_empty() {
+        local.to_owned()
+    } else {
+        format!("{prefix}:{local}")
+    }
+}
+
+/// The prefix that names the RDF namespace in `scope`: a prefix bound to it, the empty one when
+/// it is the default namespace, else a fresh one, added to `declarations` for the element
+/// that uses it.
+fn rdf_prefix(scope: &Scope, declarations: &mut Vec<Binding>) -> String {
+    if let Some(p) = scope.prefix_for(RDF) {
+        return p.to_owned();
+    }
+    if scope.resolve("") == Some(RDF) {
+        return String::new();
+    }
+    let prefix = free_prefix(scope, declarations, "rdf");
+    declarations.push(Binding::new(&prefix, RDF));
+    prefix
+}
+
+/// `preferred`, or `preferred1`, `preferred2`, …: the first that neither `scope` nor
+/// `declarations` binds.
+fn free_prefix(scope: &Scope, declarations: &[Binding], preferred: &str) -> String {
+    let taken =
+        |p: &str| scope.resolve(p).is_some_and(|uri| !uri.is_empty()) || declarations.iter().any(|b| b.prefix == p);
+    // A packet binds at most MAX_DECLARATIONS prefixes, so one of these is free.
+    (0..=u16::MAX)
+        .map(|n| {
+            if n == 0 {
+                preferred.to_owned()
+            } else {
+                format!("{preferred}{n}")
+            }
+        })
+        .find(|p| !taken(p))
+        .unwrap_or_default()
 }
 
 /// The entries of the language alternative `mapping` names, other than `x-default`, to keep
@@ -205,7 +249,7 @@ struct Edit {
 /// What a description gains: namespace declarations and property elements.
 #[derive(Debug, Default, Clone)]
 struct Additions {
-    declarations: Vec<(String, String)>,
+    declarations: Vec<Binding>,
     children: String,
 }
 
@@ -213,6 +257,9 @@ struct Additions {
 /// removed, new properties added to a description, the rest of `text` as it was, padded back
 /// to its length when it fits. `None` when it can't be done in place.
 pub(super) fn in_place(text: &str, top: &[Node], rdf: &Rdf, changes: &[Change<'_>]) -> Option<String> {
+    if read_only(text, top) {
+        return None;
+    }
     let mut edits = Vec::new();
     let mut additions = vec![Additions::default(); rdf.descriptions.len()];
     for &(mapping, value) in changes {
@@ -230,36 +277,35 @@ pub(super) fn in_place(text: &str, top: &[Node], rdf: &Rdf, changes: &[Change<'_
         };
         let Some(p) = first else {
             let index = target(rdf, mapping.namespace)?;
-            add(rdf.descriptions.get(index)?, additions.get_mut(index)?, mapping, value)?;
+            add(rdf.descriptions.get(index)?, additions.get_mut(index)?, mapping, value);
             continue;
         };
         let description = rdf.descriptions.get(p.description)?;
         match &p.place {
             Place::Element(span) => {
-                let rdf_prefix = description.scope.prefix_for(RDF)?;
+                // The element's own declarations go on its replacement: its prefix may need them.
+                let mut declarations = p.declarations.clone();
+                let scope = description.scope.with(&declarations);
+                let rdf_name = rdf_prefix(&scope, &mut declarations);
+                let others = alternatives(rdf, mapping, value);
                 edits.push(Edit {
                     range: span.clone(),
-                    text: element(
-                        mapping,
-                        &p.prefix,
-                        rdf_prefix,
-                        value,
-                        &alternatives(rdf, mapping, value),
-                    ),
+                    text: element(mapping, &p.prefix, &rdf_name, value, &others, &declarations),
                 });
             }
             Place::Attribute(span) if matches!(mapping.kind, ValueKind::Text | ValueKind::Date) => {
                 let quote = text.get(..span.end).and_then(|s| s.chars().last()).unwrap_or('"');
                 let escaped = attribute(&value_text(value), quote);
+                let name = qname(&p.prefix, mapping.name);
                 edits.push(Edit {
                     range: span.clone(),
-                    text: format!("{}:{}={quote}{escaped}{quote}", p.prefix, mapping.name),
+                    text: format!("{name}={quote}{escaped}{quote}"),
                 });
             }
             Place::Attribute(_) => {
                 // An array can't be an attribute: the property becomes an element.
                 edits.push(removal(p));
-                add(description, additions.get_mut(p.description)?, mapping, value)?;
+                add(description, additions.get_mut(p.description)?, mapping, value);
             }
         }
     }
@@ -275,51 +321,34 @@ pub(super) fn in_place(text: &str, top: &[Node], rdf: &Rdf, changes: &[Change<'_
 fn target(rdf: &Rdf, namespace: &str) -> Option<usize> {
     rdf.descriptions
         .iter()
-        .position(|d| d.declarations.iter().any(|(_, uri)| uri == namespace))
+        .position(|d| d.declarations.iter().any(|b| b.uri == namespace))
         .or_else(|| (!rdf.descriptions.is_empty()).then_some(0))
 }
 
 /// Adds the property to what `description` gains, declaring its namespace when needed.
-fn add(description: &Description, added: &mut Additions, mapping: &Mapping, value: &Value) -> Option<()> {
-    let prefix = prefix_in(description, &mut added.declarations, mapping.namespace, mapping.prefix);
-    let rdf_prefix = description.scope.prefix_for(RDF)?;
+fn add(description: &Description, added: &mut Additions, mapping: &Mapping, value: &Value) {
+    let prefix = prefix_in(
+        &description.scope,
+        &mut added.declarations,
+        mapping.namespace,
+        mapping.prefix,
+    );
+    let mut own = Vec::new();
+    let rdf_name = rdf_prefix(&description.scope.with(&added.declarations), &mut own);
     added.children.push_str(&description.indent);
     added
         .children
-        .push_str(&element(mapping, &prefix, rdf_prefix, value, &[]));
-    Some(())
+        .push_str(&element(mapping, &prefix, &rdf_name, value, &[], &own));
 }
 
-/// The prefix for `namespace` inside `description`: one it binds already, one declared by an
-/// earlier addition, else `preferred` (or `preferred1`, `preferred2`, … when that is taken),
-/// added to `declarations`.
-fn prefix_in(
-    description: &Description,
-    declarations: &mut Vec<(String, String)>,
-    namespace: &str,
-    preferred: &str,
-) -> String {
-    if let Some(p) = description.scope.prefix_for(namespace) {
+/// The prefix for `namespace` inside `scope`: one it binds already, one declared by an earlier
+/// addition, else a free one from `preferred` ([`free_prefix`]), added to `declarations`.
+fn prefix_in(scope: &Scope, declarations: &mut Vec<Binding>, namespace: &str, preferred: &str) -> String {
+    if let Some(p) = scope.with(declarations).prefix_for(namespace) {
         return p.to_owned();
     }
-    if let Some((p, _)) = declarations.iter().find(|(_, uri)| uri == namespace) {
-        return p.clone();
-    }
-    let taken = |p: &str| {
-        description.scope.resolve(p).is_some_and(|uri| !uri.is_empty()) || declarations.iter().any(|(q, _)| q == p)
-    };
-    // A packet binds far fewer prefixes than this, so one of them is free.
-    let prefix = (0..=u16::MAX)
-        .map(|n| {
-            if n == 0 {
-                preferred.to_owned()
-            } else {
-                format!("{preferred}{n}")
-            }
-        })
-        .find(|p| !taken(p))
-        .unwrap_or_default();
-    declarations.push((prefix.clone(), namespace.to_owned()));
+    let prefix = free_prefix(scope, declarations, preferred);
+    declarations.push(Binding::new(&prefix, namespace));
     prefix
 }
 
@@ -330,9 +359,7 @@ fn addition_edits(text: &str, description: &Description, added: &Additions) -> O
         return Some(Vec::new());
     }
     let mut declarations = String::new();
-    for (prefix, uri) in &added.declarations {
-        let _ = write!(declarations, " xmlns:{prefix}=\"{}\"", escape(uri));
-    }
+    write_declarations(&mut declarations, added.declarations.iter());
     let tag_end = description.start_tag.end;
     if description.empty {
         let slash = tag_end.checked_sub(2)?;
@@ -393,6 +420,14 @@ fn trailer(text: &str, top: &[Node]) -> Option<Range<usize>> {
         Node::Other { span } if text.get(span.clone())?.starts_with("<?xpacket end") => Some(span.clone()),
         _ => None,
     })
+}
+
+/// Whether the trailer says `end="r"`: a read-only packet, which ISO 16684-1 §7.3.3 says not
+/// to edit in place, so an edit writes a new packet.
+fn read_only(text: &str, top: &[Node]) -> bool {
+    trailer(text, top)
+        .and_then(|span| text.get(span))
+        .is_some_and(|t| t.contains("end=\"r\"") || t.contains("end='r'"))
 }
 
 /// Replacing a header with `bytes` or `encoding` attributes: an edit makes `bytes` wrong, and
@@ -468,26 +503,33 @@ pub(super) fn canonical(text: &str, rdf: &Rdf, changes: &[Change<'_>]) -> String
             Place::Attribute(span) | Place::Element(span) => span,
         })
         .collect();
-    let rdf_prefix = if rdf.scope.resolve(&rdf.prefix) == Some(RDF) {
-        rdf.prefix.as_str()
+    // Every binding in scope at `rdf:RDF`, so the descriptions copied as written keep their
+    // meaning, and a real prefix for the RDF namespace, which `about` needs.
+    let mut root: Vec<Binding> = rdf
+        .scope
+        .effective()
+        .into_iter()
+        .filter(|b| b.prefix != "xml")
+        .collect();
+    let rdf_name = if let Some(p) = rdf.scope.prefix_for(RDF) {
+        p.to_owned()
     } else {
-        "rdf"
+        let p = free_prefix(&rdf.scope, &root, "rdf");
+        root.push(Binding::new(&p, RDF));
+        p
     };
-    let mut out = format!("{HEADER}\n<x:xmpmeta xmlns:x=\"{ADOBE_META}\">\n <{rdf_prefix}:RDF");
-    let mut scope = rdf.scope.effective();
-    if !scope.iter().any(|(p, uri)| p == rdf_prefix && uri == RDF) {
-        scope.push((rdf_prefix.to_owned(), RDF.to_owned()));
-    }
-    write_declarations(&mut out, scope.iter().filter(|(p, _)| p != "xml"));
+    let scope = Scope::default().with(&root);
+    let mut out = format!("{HEADER}\n<x:xmpmeta xmlns:x=\"{ADOBE_META}\">\n <{rdf_name}:RDF");
+    write_declarations(&mut out, root.iter());
     out.push_str(">\n");
     let fresh = Description {
-        qualified: format!("{rdf_prefix}:Description"),
+        qualified: format!("{rdf_name}:Description"),
         start_tag: 0..0,
         empty: false,
         insert_at: 0,
         indent: String::new(),
         own_indent: String::new(),
-        scope: rdf.scope.clone(),
+        scope: scope.clone(),
         declarations: Vec::new(),
         attributes: Vec::new(),
         children: Vec::new(),
@@ -498,25 +540,32 @@ pub(super) fn canonical(text: &str, rdf: &Rdf, changes: &[Change<'_>]) -> String
         rdf.descriptions.iter().collect()
     };
     for (i, d) in descriptions.into_iter().enumerate() {
+        let inside = scope.with(&d.declarations);
         let mut declarations = Vec::new();
         let mut properties = String::new();
         if i == 0 {
             for &(mapping, value) in changes {
                 let Some(value) = value else { continue };
                 let preferred = standard_prefix(mapping.namespace).unwrap_or(mapping.prefix);
-                let prefix = prefix_in(d, &mut declarations, mapping.namespace, preferred);
+                let prefix = prefix_in(&inside, &mut declarations, mapping.namespace, preferred);
+                let mut own = Vec::new();
+                let rdf_here = rdf_prefix(&inside.with(&declarations), &mut own);
                 let others = alternatives(rdf, mapping, value);
                 let _ = writeln!(
                     properties,
                     "   {}",
-                    element(mapping, &prefix, rdf_prefix, value, &others)
+                    element(mapping, &prefix, &rdf_here, value, &others, &own)
                 );
             }
         }
+        let about = d.attributes.is_empty().then(|| {
+            let name = rdf_prefix(&inside.with(&declarations), &mut declarations);
+            qname(&name, "about")
+        });
         let _ = write!(out, "  <{}", d.qualified);
         write_declarations(&mut out, d.declarations.iter().chain(&declarations));
-        if d.attributes.is_empty() {
-            let _ = write!(out, " {rdf_prefix}:about=\"\"");
+        if let Some(about) = about {
+            let _ = write!(out, " {about}=\"\"");
         }
         for span in d.attributes.iter().filter(|s| !dropped.contains(s)) {
             out.push(' ');
@@ -532,16 +581,17 @@ pub(super) fn canonical(text: &str, rdf: &Rdf, changes: &[Change<'_>]) -> String
     for span in &rdf.others {
         let _ = writeln!(out, "  {}", text.get(span.clone()).unwrap_or_default());
     }
-    let _ = write!(out, " </{rdf_prefix}:RDF>\n</x:xmpmeta>\n{}{TRAILER}", padding(PADDING));
+    let _ = write!(out, " </{rdf_name}:RDF>\n</x:xmpmeta>\n{}{TRAILER}", padding(PADDING));
     out
 }
 
-fn write_declarations<'a>(out: &mut String, declarations: impl Iterator<Item = &'a (String, String)>) {
-    for (prefix, uri) in declarations {
-        if prefix.is_empty() {
-            let _ = write!(out, " xmlns=\"{}\"", escape(uri));
+/// ` xmlns:prefix="uri"` (or ` xmlns="uri"`) for each binding.
+fn write_declarations<'a>(out: &mut String, declarations: impl Iterator<Item = &'a Binding>) {
+    for b in declarations {
+        if b.prefix.is_empty() {
+            let _ = write!(out, " xmlns=\"{}\"", escape(&b.uri));
         } else {
-            let _ = write!(out, " xmlns:{prefix}=\"{}\"", escape(uri));
+            let _ = write!(out, " xmlns:{}=\"{}\"", b.prefix, escape(&b.uri));
         }
     }
 }

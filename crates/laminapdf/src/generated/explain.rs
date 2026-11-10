@@ -597,7 +597,9 @@ The Info view's `creation_date` is `None` and its raw string is kept; `data` is 
 
 ## What happened
 
-The document's XMP metadata packet (the catalog's `/Metadata` stream, ISO 32000-2 §14.3.2) isn't readable XMP, so it is treated as absent. The packet may not be well-formed XML. It may declare a DTD, which XMP doesn't allow, or refer to an entity other than XML's five predefined ones. It may use a prefix it never declares, nest elements more than 64 deep, or have no `rdf:RDF` element. Lamina PDF never expands entities, so a packet built to make a reader fetch files or fill its memory is refused.
+The document's XMP metadata packet (the catalog's `/Metadata` stream, ISO 32000-2 §14.3.2) isn't readable XMP, so it is treated as absent. The packet may not be well-formed XML. It may declare a DTD, which XMP doesn't allow, or refer to an entity other than XML's five predefined ones. It may use a prefix it never declares, nest elements more than 64 deep, declare more than 256 namespaces or give a tag more than 256 attributes, or have no `rdf:RDF` element.
+
+Lamina PDF never expands entities, so a packet built to make a reader fetch files or fill its memory is refused.
 
 ## Why
 
@@ -619,9 +621,10 @@ The packet declares a DTD, so it is refused at the `<!DOCTYPE`; `data` is `{ "of
 
 ## Data fields
 
-`offset` (about where in the decoded packet reading stopped; 0 when no one place is at fault) and `reason` (`encoding`, `dtd`, `entity`, `prefix`, `depth`, `syntax` or `no-rdf`).
+- `offset`: about where reading stopped, in bytes of the stream's decoded data, so a UTF-16 packet counts two bytes a character. It is left out when no one place is at fault (`encoding` and `no-rdf`).
+- `reason`: one of `encoding`, `dtd`, `entity`, `prefix`, `depth`, `limit`, `syntax` or `no-rdf`.
 
-The `location` is the metadata stream's `object` with the `offset` in its decoded data; none for a direct stream.
+The `location` is the metadata stream's `object` with the `offset` in its decoded data (the object alone without an offset); none for a direct stream.
 
 ## For contributors
 

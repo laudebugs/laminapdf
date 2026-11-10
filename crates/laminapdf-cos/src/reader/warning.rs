@@ -125,14 +125,16 @@ pub enum Warning {
         key: &'static str,
     },
     /// `xmp-invalid`: the catalog's XMP metadata packet isn't readable XMP (not well-formed
-    /// XML, a DTD, an undefined entity, an undeclared prefix, too deep, or no `rdf:RDF`); the
-    /// model reads it as absent.
+    /// XML, a DTD, an undefined entity, an undeclared prefix, too deep or too many
+    /// declarations, or no `rdf:RDF`); the model reads it as absent.
     XmpInvalid {
         /// The metadata stream's object number (`None` for a direct one).
         object: Option<u32>,
-        /// About where in the decoded packet reading stopped (0 when there is no one place).
-        offset: u64,
-        /// What was wrong: `encoding`, `dtd`, `entity`, `prefix`, `depth`, `syntax` or `no-rdf`.
+        /// About where in the stream's decoded bytes reading stopped; `None` when no one place
+        /// is at fault (an unknown encoding, no `rdf:RDF`).
+        offset: Option<u64>,
+        /// What was wrong: `encoding`, `dtd`, `entity`, `prefix`, `depth`, `limit`, `syntax`
+        /// or `no-rdf`.
         reason: &'static str,
     },
     /// `invalid-page-label`: a `/PageLabels` entry is malformed: not a dictionary, a negative
@@ -540,11 +542,16 @@ impl Warning {
             | Self::ContentSyntax { object, offset }
             | Self::ContentResourceMissing { object, offset, .. }
             | Self::InlineImageUnterminated { object, offset }
-            | Self::ContentPathUnpainted { object, offset }
-            | Self::XmpInvalid { object, offset, .. } => {
+            | Self::ContentPathUnpainted { object, offset } => {
                 return object.map_or(Location::NONE, |object| {
                     Location::from(Position::InStream { object, offset })
                 });
+            }
+            Self::XmpInvalid { object, offset, .. } => {
+                return match (object, offset) {
+                    (Some(object), Some(offset)) => Location::from(Position::InStream { object, offset }),
+                    _ => Location::object(object),
+                };
             }
             Self::InvalidBox { page, .. }
             | Self::InvalidRotate { page, .. }
@@ -590,7 +597,9 @@ impl Warning {
             | Self::ContentResourceMissing { offset, .. }
             | Self::InlineImageUnterminated { offset, .. }
             | Self::ContentPathUnpainted { offset, .. }
-            | Self::XmpInvalid { offset, .. } => Some(offset as i128),
+            | Self::XmpInvalid {
+                offset: Some(offset), ..
+            } => Some(offset as i128),
             _ => None,
         };
         let detail = match *self {
@@ -682,7 +691,7 @@ mod tests {
             },
             Warning::XmpInvalid {
                 object: None,
-                offset: 0,
+                offset: Some(0),
                 reason: "dtd",
             },
             Warning::InvalidPageLabel { start: 0 },

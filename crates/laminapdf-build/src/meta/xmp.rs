@@ -132,7 +132,9 @@ mod tests {
 
     #[test]
     fn every_property_is_what_the_shared_table_writes() {
-        let date: laminapdf_model::PdfDate = "D:20261029120000+01'00'".parse().unwrap();
+        // Every field a different value, so a swapped pair of lines fails.
+        let created: laminapdf_model::PdfDate = "D:20261029120000+01'00'".parse().unwrap();
+        let modified: laminapdf_model::PdfDate = "D:20261030090000Z".parse().unwrap();
         let meta = Metadata::default()
             .with_title("T <&>")
             .with_author("A")
@@ -140,8 +142,8 @@ mod tests {
             .with_keywords("K")
             .with_creator("C")
             .with_producer("P")
-            .with_creation_date(date)
-            .with_mod_date(date);
+            .with_creation_date(created)
+            .with_mod_date(modified);
         let p = packet(&meta, Conformance::default());
         let expected: Vec<String> = MAPPINGS
             .iter()
@@ -153,7 +155,8 @@ mod tests {
                     MappedField::Keywords => Value::Text("K".into()),
                     MappedField::Creator => Value::Text("C".into()),
                     MappedField::Producer => Value::Text("P".into()),
-                    MappedField::Created | MappedField::Modified => Value::Date(date),
+                    MappedField::Created => Value::Date(created),
+                    MappedField::Modified => Value::Date(modified),
                     _ => return None,
                 };
                 Some(format!("   {}\n", property_element(m, &value)))

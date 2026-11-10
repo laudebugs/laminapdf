@@ -467,3 +467,179 @@ fn every_mapped_field_round_trips_through_a_minimal_packet() {
         (read(&p), Packet::new_minimal().original().len(), false)
     );
 }
+
+/// `n` declarations ` xmlns:<prefix><i>="u"`.
+fn declarations(prefix: &str, n: usize) -> String {
+    use std::fmt::Write as _;
+    let mut s = String::new();
+    for i in 0..n {
+        let _ = write!(s, " xmlns:{prefix}{i}=\"u\"");
+    }
+    s
+}
+
+/// Sets the title on `source` and parses what that writes, which must parse.
+fn retitled(source: &[u8]) -> (Written, Packet) {
+    let mut p = Packet::parse(source).unwrap();
+    p.set_title(Some("New"));
+    let written = p.write();
+    let reread =
+        Packet::parse(&written.bytes).unwrap_or_else(|e| panic!("{e:?}: {}", String::from_utf8_lossy(&written.bytes)));
+    (written, reread)
+}
+
+#[test]
+fn a_namespace_a_property_declares_on_itself_is_declared_again() {
+    let source = wrapped(
+        r#"  <rdf:Description rdf:about=""><dc:title xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Alt><rdf:li xml:lang="x-default">Old</rdf:li></rdf:Alt></dc:title></rdf:Description>"#,
+    );
+    let (written, reread) = retitled(source.as_bytes());
+    assert_eq!((written.canonical, reread.title().as_deref()), (false, Some("New")));
+}
+
+#[test]
+fn rdf_as_the_default_namespace_writes_bare_names() {
+    let source = r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><Description xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title><Alt><li xml:lang="x-default">Old</li></Alt></dc:title></Description></RDF></x:xmpmeta>"#;
+    let (written, reread) = retitled(source.as_bytes());
+    let out = text(&written);
+    assert!(
+        !out.contains("<:") && out.contains("<dc:title><Alt><li") && reread.title().as_deref() == Some("New"),
+        "{out}"
+    );
+}
+
+#[test]
+fn a_property_in_the_default_namespace_is_written_bare() {
+    let source = wrapped(
+        r#"  <rdf:Description rdf:about="" xmlns="http://purl.org/dc/elements/1.1/"><title><rdf:Alt><rdf:li xml:lang="x-default">Old</rdf:li></rdf:Alt></title></rdf:Description>"#,
+    );
+    let (written, reread) = retitled(source.as_bytes());
+    assert!(text(&written).contains("<title><rdf:Alt>") && reread.title().as_deref() == Some("New"));
+}
+
+#[test]
+fn a_canonical_rewrite_of_a_default_rdf_namespace_binds_a_real_prefix() {
+    let source = r#"<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><Description xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:format>application/pdf</dc:format></Description></RDF>"#;
+    let utf16: Vec<u8> = source.encode_utf16().flat_map(u16::to_le_bytes).collect();
+    let (written, reread) = retitled(&utf16);
+    let out = text(&written);
+    assert!(
+        written.canonical && !out.contains("<:") && !out.contains(" :") && reread.property(DC, "format").is_some(),
+        "{out}"
+    );
+}
+
+#[test]
+fn names_with_an_empty_prefix_or_local_part_are_refused() {
+    for bad in [
+        format!("{RDF_OPEN}<:Description/></rdf:RDF>"),
+        format!("{RDF_OPEN}<rdf:Description rdf:about='' :a='1'/></rdf:RDF>"),
+        format!("{RDF_OPEN}<rdf:a:b/></rdf:RDF>"),
+        format!("{RDF_OPEN}<rdf:Description xmlns:p=''/></rdf:RDF>"),
+    ] {
+        assert!(
+            matches!(Packet::parse(bad.as_bytes()), Err(ParseError::Syntax { .. })),
+            "{bad}"
+        );
+    }
+}
+
+#[test]
+fn many_declarations_over_many_descriptions_stay_cheap() {
+    // Each description shares its scope instead of copying it: 200 declarations around 20,000
+    // descriptions parse into one scope frame, not 4 million copied bindings.
+    let mut big = String::from(r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#""#);
+    big.push_str(&declarations("p", 200));
+    big.push('>');
+    big.push_str(&"<rdf:Description/>".repeat(20_000));
+    big.push_str("</rdf:RDF>");
+    assert_eq!(Packet::parse(big.as_bytes()).map(|p| p.properties().count()), Ok(0));
+}
+
+#[test]
+fn too_many_declarations_or_attributes_are_refused() {
+    let many = format!("{RDF_OPEN}<rdf:Description{}/></rdf:RDF>", declarations("p", 300));
+    let spread: Vec<String> = (0..20)
+        .map(|i| format!("<rdf:Description{}/>", declarations(&format!("q{i}x"), 20)))
+        .collect();
+    let spread = format!("{RDF_OPEN}{}</rdf:RDF>", spread.concat());
+    let reasons = [many, spread].map(|p| Packet::parse(p.as_bytes()).unwrap_err().reason());
+    assert_eq!(reasons, ["limit", "limit"]);
+}
+
+#[test]
+fn utf16_without_a_byte_order_mark_is_read_as_utf16() {
+    let source =
+        wrapped(r#"  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="P"/>"#)
+            .replace('\u{FEFF}', "");
+    let le: Vec<u8> = source.encode_utf16().flat_map(u16::to_le_bytes).collect();
+    let be: Vec<u8> = source.encode_utf16().flat_map(u16::to_be_bytes).collect();
+    let read = [le, be].map(|b| Packet::parse(&b).map(|p| p.producer()));
+    assert_eq!(read, [Ok(Some("P".to_owned())), Ok(Some("P".to_owned()))]);
+}
+
+#[test]
+fn utf16_with_an_odd_trailing_byte_is_refused() {
+    let mut bytes: Vec<u8> = format!("{RDF_OPEN}</rdf:RDF>")
+        .encode_utf16()
+        .flat_map(u16::to_le_bytes)
+        .collect();
+    bytes.push(b' ');
+    assert_eq!(Packet::parse(&bytes).unwrap_err(), ParseError::Encoding);
+}
+
+#[test]
+fn a_utf16_error_offset_counts_the_streams_bytes() {
+    // "<!DOCTYPE" starts after the byte-order mark and 21 characters of 2 bytes each.
+    let source = "<?xml version='1.0'?><!DOCTYPE x [ ]><x/>";
+    let bytes: Vec<u8> = [0xFF, 0xFE]
+        .into_iter()
+        .chain(source.encode_utf16().flat_map(u16::to_le_bytes))
+        .collect();
+    assert_eq!(Packet::parse(&bytes).unwrap_err().offset(), Some(2 + 2 * 21));
+}
+
+#[test]
+fn a_read_only_packet_is_written_as_a_new_one() {
+    let source =
+        wrapped(r#"  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="P"/>"#)
+            .replace("end=\"w\"", "end=\"r\"");
+    let (written, reread) = retitled(source.as_bytes());
+    let out = text(&written);
+    assert!(
+        written.canonical
+            && out.ends_with(write::TRAILER)
+            && reread.producer().as_deref() == Some("P")
+            && reread.title().as_deref() == Some("New")
+    );
+}
+
+#[test]
+fn a_utf8_byte_order_mark_before_the_packet_is_kept() {
+    let source = format!(
+        "\u{FEFF}{}",
+        wrapped(r#"  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/"/>"#)
+    );
+    let (written, reread) = retitled(source.as_bytes());
+    assert!(text(&written).starts_with('\u{FEFF}') && reread.title().as_deref() == Some("New"));
+}
+
+#[test]
+fn other_languages_follow_the_default_only_when_they_repeated_it() {
+    let mut p = packet(
+        r#"  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+   <dc:title><rdf:Alt><rdf:li xml:lang="x-default">Old</rdf:li><rdf:li xml:lang="en">Old</rdf:li><rdf:li xml:lang="de">Alt</rdf:li></rdf:Alt></dc:title>
+  </rdf:Description>"#,
+    );
+    p.set_title(Some("New"));
+    let reread = Packet::parse(&p.write().bytes).unwrap();
+    let items = match reread.property(DC, "title") {
+        Some(RdfValue::Array { items, .. }) => items
+            .iter()
+            .map(|i| (i.lang.clone(), i.value.clone()))
+            .collect::<Vec<_>>(),
+        other => panic!("{other:?}"),
+    };
+    let t = |l: &str, v: &str| (Some(l.to_owned()), RdfValue::Text(v.to_owned()));
+    assert_eq!(items, [t("x-default", "New"), t("en", "New"), t("de", "Alt")]);
+}

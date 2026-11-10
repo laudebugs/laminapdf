@@ -297,7 +297,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         W::InvalidPageLabel { start: 0 }.into(),
         W::XmpInvalid {
             object: None,
-            offset: 0,
+            offset: Some(0),
             reason: "dtd",
         }
         .into(),

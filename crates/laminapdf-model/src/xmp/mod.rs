@@ -18,8 +18,9 @@
 //!   added to a description (declaring a namespace when the packet hasn't bound it), and the
 //!   padding before `<?xpacket end … ?>` shortened or lengthened so the packet keeps its
 //!   length when it fits (else 2 KB of fresh padding);
-//! * when that can't be done in place (a packet not in UTF-8), rewritten canonically with every
-//!   property kept, which [`Written::canonical`] reports.
+//! * when that can't be done in place (a packet in UTF-16, or one whose trailer says
+//!   `end="r"`, which ISO 16684-1 says not to edit in place), rewritten canonically with every
+//!   property kept, which [`Written::canonical`] reports so the caller can say so.
 //!
 //! ```
 //! use laminapdf_model::xmp::Packet;
@@ -85,8 +86,8 @@ impl Value {
     }
 }
 
-/// Why a packet couldn't be read. Positions are byte offsets into the packet as UTF-8 (as
-/// decoded from UTF-16 for such a packet).
+/// Why a packet couldn't be read. Offsets count bytes of the packet as given (of its UTF-16
+/// bytes for a UTF-16 packet).
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ParseError {
@@ -117,6 +118,13 @@ pub enum ParseError {
         /// Where the element that is too deep starts.
         offset: u64,
     },
+    /// A start tag with more than 256 attributes, or more than 256 namespace declarations in
+    /// the packet: far beyond any real packet, and a way to make reading it slow.
+    #[error("the packet declares too many attributes or namespaces at byte {offset}")]
+    TooLarge {
+        /// Where the element that goes over starts.
+        offset: u64,
+    },
     /// The packet is not well-formed XML.
     #[error("the packet is not well-formed XML near byte {offset}")]
     Syntax {
@@ -137,13 +145,27 @@ impl ParseError {
             | Self::UndefinedEntity { offset }
             | Self::UnboundPrefix { offset }
             | Self::TooDeep { offset }
+            | Self::TooLarge { offset }
             | Self::Syntax { offset } => Some(offset),
             Self::Encoding | Self::NoRdf => None,
         }
     }
 
+    /// The error with its offset passed through `f`.
+    fn map_offset(self, f: impl Fn(u64) -> u64) -> Self {
+        match self {
+            Self::Dtd { offset } => Self::Dtd { offset: f(offset) },
+            Self::UndefinedEntity { offset } => Self::UndefinedEntity { offset: f(offset) },
+            Self::UnboundPrefix { offset } => Self::UnboundPrefix { offset: f(offset) },
+            Self::TooDeep { offset } => Self::TooDeep { offset: f(offset) },
+            Self::TooLarge { offset } => Self::TooLarge { offset: f(offset) },
+            Self::Syntax { offset } => Self::Syntax { offset: f(offset) },
+            other @ (Self::Encoding | Self::NoRdf) => other,
+        }
+    }
+
     /// A short stable name for the problem, the `reason` of the `xmp-invalid` warning:
-    /// `encoding`, `dtd`, `entity`, `prefix`, `depth`, `syntax` or `no-rdf`.
+    /// `encoding`, `dtd`, `entity`, `prefix`, `depth`, `limit`, `syntax` or `no-rdf`.
     #[must_use]
     pub const fn reason(&self) -> &'static str {
         match self {
@@ -152,6 +174,7 @@ impl ParseError {
             Self::UndefinedEntity { .. } => "entity",
             Self::UnboundPrefix { .. } => "prefix",
             Self::TooDeep { .. } => "depth",
+            Self::TooLarge { .. } => "limit",
             Self::Syntax { .. } => "syntax",
             Self::NoRdf => "no-rdf",
         }
@@ -208,39 +231,47 @@ impl PacketState {
 pub struct Written {
     /// The packet, UTF-8.
     pub bytes: Vec<u8>,
-    /// Whether the packet was rewritten whole because it couldn't be edited in place; its
-    /// comments and layout are gone, its properties kept.
+    /// Whether the packet was rewritten whole because it couldn't be edited in place (UTF-16,
+    /// or read-only by its `end="r"` trailer); its comments and layout are gone, its properties
+    /// kept. The metadata ops pass this on, so a save can say the packet was rewritten.
     pub canonical: bool,
 }
 
 /// A parsed XMP packet and the changes made to it.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Packet {
     original: Vec<u8>,
     /// The packet as UTF-8: `original` itself, or decoded from UTF-16.
     text: String,
-    utf8: bool,
+    /// Whether `original` is UTF-16, which only a canonical rewrite can edit.
+    utf16: bool,
     top: Vec<Node>,
     rdf: Rdf,
     changes: BTreeMap<MappedField, Option<Value>>,
 }
 
 impl Packet {
-    /// Reads a packet: UTF-8 or UTF-16 (by its byte-order mark or its first `<`).
+    /// Reads a packet: UTF-16 when it starts with a UTF-16 byte-order mark or with `<` beside a
+    /// zero byte (XML 1.0 Appendix F), else UTF-8.
     ///
     /// # Errors
     /// A [`ParseError`] when the bytes aren't such a packet.
     pub fn parse(bytes: &[u8]) -> Result<Self, ParseError> {
-        let (text, utf8) = match std::str::from_utf8(bytes) {
-            Ok(s) => (s.to_owned(), true),
-            Err(_) => (utf16(bytes).ok_or(ParseError::Encoding)?, false),
+        let utf16 = utf16(bytes)?;
+        let text = match &utf16 {
+            Some(decoded) => decoded.clone(),
+            None => std::str::from_utf8(bytes).map_err(|_| ParseError::Encoding)?.to_owned(),
         };
-        let top = tree::parse(&text)?;
-        let rdf = rdf::read(&text, &top)?;
+        let back = |offset: u64| match utf16 {
+            Some(_) => utf16_offset(bytes, &text, offset),
+            None => offset,
+        };
+        let top = tree::parse(&text).map_err(|e| e.map_offset(back))?;
+        let rdf = rdf::read(&text, &top).map_err(|e| e.map_offset(back))?;
         Ok(Self {
             original: bytes.to_vec(),
             text,
-            utf8,
+            utf16: utf16.is_some(),
             top,
             rdf,
             changes: BTreeMap::new(),
@@ -261,16 +292,8 @@ impl Packet {
     /// ```
     #[must_use]
     pub fn new_minimal() -> Self {
-        let text = write::minimal();
-        // Our own text always parses; were it not to, an empty packet still writes one.
-        Self::parse(text.as_bytes()).unwrap_or_else(|_| Self {
-            original: text.clone().into_bytes(),
-            text,
-            utf8: true,
-            top: Vec::new(),
-            rdf: Rdf::default(),
-            changes: BTreeMap::new(),
-        })
+        // Our own text, which a unit test parses; an empty packet stands in were it not to.
+        Self::parse(write::minimal().as_bytes()).unwrap_or_default()
     }
 
     /// The bytes the packet was parsed from.
@@ -340,19 +363,25 @@ impl Packet {
     /// # Errors
     /// [`KindMismatch`] when `value`'s shape isn't the field's [`ValueKind`].
     pub fn set(&mut self, field: MappedField, value: Option<Value>) -> Result<(), KindMismatch> {
+        if value.as_ref().is_some_and(|v| !v.fits(field.mapping().kind)) {
+            return Err(KindMismatch { field });
+        }
+        self.store(field, value);
+        Ok(())
+    }
+
+    /// Records `value` (of the field's shape) as the field's new value, or forgets the change
+    /// when it is the value the packet was parsed with.
+    fn store(&mut self, field: MappedField, value: Option<Value>) {
         let value = match value {
             Some(Value::List(items)) if items.is_empty() => None,
             other => other,
         };
-        if value.as_ref().is_some_and(|v| !v.fits(field.mapping().kind)) {
-            return Err(KindMismatch { field });
-        }
         if value == self.parsed(field) {
             self.changes.remove(&field);
         } else {
             self.changes.insert(field, value);
         }
-        Ok(())
     }
 
     /// The packet with its changes: the parsed bytes when nothing changed, otherwise edited
@@ -370,7 +399,7 @@ impl Packet {
             .iter()
             .map(|(field, value)| (field.mapping(), value.as_ref()))
             .collect();
-        if self.utf8
+        if !self.utf16
             && let Some(text) = write::in_place(&self.text, &self.top, &self.rdf, &changes)
         {
             return Written {
@@ -398,11 +427,6 @@ impl Packet {
         }
     }
 
-    fn set_known(&mut self, field: MappedField, value: Option<Value>) {
-        // The typed setters pass the field's own shape, which `set` accepts.
-        let _ = self.set(field, value);
-    }
-
     /// `dc:title`.
     #[must_use]
     pub fn title(&self) -> Option<String> {
@@ -410,8 +434,12 @@ impl Packet {
     }
 
     /// Sets `dc:title` (its `x-default` entry); `None` removes it.
+    ///
+    /// The other languages' entries are kept. One that read the same as the old `x-default`
+    /// entry is the document's own language written twice, as XMP toolkits do, and takes the
+    /// new value too.
     pub fn set_title(&mut self, title: Option<&str>) {
-        self.set_known(MappedField::Title, title.map(|s| Value::Text(s.to_owned())));
+        self.store(MappedField::Title, title.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `dc:creator`: the authors, in order (empty without any).
@@ -426,7 +454,7 @@ impl Packet {
     /// Sets `dc:creator`; an empty list removes it.
     pub fn set_authors<S: AsRef<str>>(&mut self, authors: &[S]) {
         let items = authors.iter().map(|a| a.as_ref().to_owned()).collect();
-        self.set_known(MappedField::Authors, Some(Value::List(items)));
+        self.store(MappedField::Authors, Some(Value::List(items)));
     }
 
     /// `dc:description`.
@@ -436,8 +464,12 @@ impl Packet {
     }
 
     /// Sets `dc:description` (its `x-default` entry); `None` removes it.
+    ///
+    /// The other languages' entries are kept. One that read the same as the old `x-default`
+    /// entry is the document's own language written twice, as XMP toolkits do, and takes the
+    /// new value too.
     pub fn set_subject(&mut self, subject: Option<&str>) {
-        self.set_known(MappedField::Subject, subject.map(|s| Value::Text(s.to_owned())));
+        self.store(MappedField::Subject, subject.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `pdf:Keywords`.
@@ -448,7 +480,7 @@ impl Packet {
 
     /// Sets `pdf:Keywords`; `None` removes it.
     pub fn set_keywords(&mut self, keywords: Option<&str>) {
-        self.set_known(MappedField::Keywords, keywords.map(|s| Value::Text(s.to_owned())));
+        self.store(MappedField::Keywords, keywords.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `xmp:CreatorTool`: the application the content came from (Info's `/Creator`).
@@ -459,7 +491,7 @@ impl Packet {
 
     /// Sets `xmp:CreatorTool`; `None` removes it.
     pub fn set_creator_tool(&mut self, tool: Option<&str>) {
-        self.set_known(MappedField::Creator, tool.map(|s| Value::Text(s.to_owned())));
+        self.store(MappedField::Creator, tool.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `pdf:Producer`: the application that wrote the PDF.
@@ -470,7 +502,7 @@ impl Packet {
 
     /// Sets `pdf:Producer`; `None` removes it.
     pub fn set_producer(&mut self, producer: Option<&str>) {
-        self.set_known(MappedField::Producer, producer.map(|s| Value::Text(s.to_owned())));
+        self.store(MappedField::Producer, producer.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `xmp:CreateDate`.
@@ -481,7 +513,7 @@ impl Packet {
 
     /// Sets `xmp:CreateDate`; `None` removes it.
     pub fn set_create_date(&mut self, date: Option<PdfDate>) {
-        self.set_known(MappedField::Created, date.map(Value::Date));
+        self.store(MappedField::Created, date.map(Value::Date));
     }
 
     /// `xmp:ModifyDate`.
@@ -492,7 +524,7 @@ impl Packet {
 
     /// Sets `xmp:ModifyDate`; `None` removes it.
     pub fn set_modify_date(&mut self, date: Option<PdfDate>) {
-        self.set_known(MappedField::Modified, date.map(Value::Date));
+        self.store(MappedField::Modified, date.map(Value::Date));
     }
 
     /// `xmp:MetadataDate`.
@@ -503,7 +535,7 @@ impl Packet {
 
     /// Sets `xmp:MetadataDate`; `None` removes it.
     pub fn set_metadata_date(&mut self, date: Option<PdfDate>) {
-        self.set_known(MappedField::MetadataDate, date.map(Value::Date));
+        self.store(MappedField::MetadataDate, date.map(Value::Date));
     }
 
     /// `xmpMM:DocumentID`.
@@ -558,23 +590,47 @@ fn text_of(value: &RdfValue) -> Option<String> {
     }
 }
 
-/// UTF-16 text by its byte-order mark, or by a first `<` with a zero byte beside it.
-fn utf16(bytes: &[u8]) -> Option<String> {
+/// The packet decoded, when it is UTF-16: by its byte-order mark, or by a first `<` with a
+/// zero byte beside it; `None` for any other packet.
+fn utf16(bytes: &[u8]) -> Result<Option<String>, ParseError> {
     let (big_endian, body) = match bytes {
         [0xFE, 0xFF, rest @ ..] => (true, rest),
         [0xFF, 0xFE, rest @ ..] => (false, rest),
         [0, b'<', ..] => (true, bytes),
         [b'<', 0, ..] => (false, bytes),
-        _ => return None,
+        _ => return Ok(None),
     };
-    let units = body.as_chunks::<2>().0.iter().map(|&pair| {
+    let (pairs, rest) = body.as_chunks::<2>();
+    if !rest.is_empty() {
+        return Err(ParseError::Encoding);
+    }
+    let units = pairs.iter().map(|&pair| {
         if big_endian {
             u16::from_be_bytes(pair)
         } else {
             u16::from_le_bytes(pair)
         }
     });
-    char::decode_utf16(units).collect::<Result<String, _>>().ok()
+    char::decode_utf16(units)
+        .collect::<Result<String, _>>()
+        .map(Some)
+        .map_err(|_| ParseError::Encoding)
+}
+
+/// The byte offset in a UTF-16 packet's `bytes` of `offset` in its decoded `text`.
+fn utf16_offset(bytes: &[u8], text: &str, offset: u64) -> u64 {
+    let bom = if matches!(bytes, [0xFE, 0xFF, ..] | [0xFF, 0xFE, ..]) {
+        2
+    } else {
+        0
+    };
+    let end = usize::try_from(offset).unwrap_or(usize::MAX).min(text.len());
+    let units: usize = text
+        .char_indices()
+        .take_while(|(i, _)| *i < end)
+        .map(|(_, c)| c.len_utf16())
+        .sum();
+    bom + 2 * units as u64
 }
 
 #[cfg(test)]
