@@ -119,6 +119,25 @@ function abortError(e: unknown): unknown {
   return isLaminaPdfError(e, "cancelled") ? new DOMException("the call was cancelled", "AbortError") : e;
 }
 
+/**
+ * PDFium's module compiled on the page from its address, while the worker starts (compiling
+ * streams on the browser's own threads); the backend as given when it names no address, or when
+ * fetching or compiling fails, so the worker loads it as before.
+ */
+function compileEarly(backend: BackendInit): Promise<BackendInit> {
+  const { wasm } = backend;
+  if (backend.backend !== "pdfium" || typeof wasm !== "string" || typeof WebAssembly.compileStreaming !== "function") {
+    return Promise.resolve(backend);
+  }
+  return WebAssembly.compileStreaming(fetch(wasm, { credentials: "same-origin" })).then(
+    (module): BackendInit => ({ ...backend, wasm: module }),
+    () => backend,
+  );
+}
+
+/** How long text calls wait for the open document's first render before going ahead anyway, in ms. */
+const FIRST_DRAW_WAIT = 2000;
+
 /** One document worker and the typed RPC to it. */
 export class ViewerClient {
   readonly #pdf: WorkerClient;
@@ -132,6 +151,13 @@ export class ViewerClient {
   #opens = 0;
   #recovering: Promise<void> | undefined;
   #nextRender = 1;
+  /**
+   * Settles once the open document's first render has answered. Until then the text layer's
+   * calls wait here: the worker runs one call at a time, and a text call that waits for its module
+   * to download would hold the first page's render behind it.
+   */
+  #drawn: Promise<void> = Promise.resolve();
+  #markDrawn: () => void = () => undefined;
   /** Each pending render's timers, by coalescing key: started on `render-start`, paused on `render-fetching`. */
   readonly #timers = new Map<string, Set<RenderTimers>>();
   /** The key the worker is drawing now: a render that joins it starts its timers at once. */
@@ -175,6 +201,9 @@ export class ViewerClient {
    * the user picks a file.
    */
   static async create(options: ViewerOptions): Promise<ViewerClient> {
+    // PDFium downloads and compiles here while the worker starts and loads Lamina PDF's own
+    // module, rather than after it: the two downloads overlap.
+    const early = compileEarly(options.backend);
     const pdf = await connect({
       worker: options.worker ?? workerFactory,
       // A late answer to an aborted render: its bitmap is closed, never painted.
@@ -187,7 +216,14 @@ export class ViewerClient {
     });
     const client = new ViewerClient(pdf, options);
     try {
-      await pdf.request("initBackend", [options.backend], { priority: PRIORITY.document });
+      const backend = await early;
+      try {
+        await pdf.request("initBackend", [backend], { priority: PRIORITY.document });
+      } catch (e) {
+        // A browser that can't post a compiled module to a worker: the worker loads its own.
+        if (backend === options.backend) throw e;
+        await pdf.request("initBackend", [options.backend], { priority: PRIORITY.document });
+      }
     } catch (e) {
       // Nobody will hold this client: end its worker.
       pdf.terminate();
@@ -235,6 +271,9 @@ export class ViewerClient {
   ): Promise<OpenedDocument> {
     const { password: _, ...rest } = options;
     const ticket = ++this.#opens;
+    this.#drawn = new Promise<void>((resolve) => {
+      this.#markDrawn = resolve;
+    });
     let opened: OpenedDocument;
     try {
       opened = await this.call("openDocument", [source, options, ticket], call);
@@ -290,7 +329,8 @@ export class ViewerClient {
    * Page `index`'s text runs and glyph quads, read by Lamina PDF (needs the extract or text
    * module, loaded by default). At `background` priority unless `options` says otherwise.
    */
-  pageText(index: number, options: ViewerCallOptions = {}) {
+  async pageText(index: number, options: ViewerCallOptions = {}) {
+    await this.#afterFirstDraw();
     const key = `text:${this.#document?.id ?? 0}:${index}`;
     return this.call("pageText", [index], { priority: "background", key, ...options });
   }
@@ -299,7 +339,8 @@ export class ViewerClient {
    * Page `index`'s text blocks in reading order (Lamina PDF's extraction), for copy as paragraph.
    * At `background` priority unless `options` says otherwise.
    */
-  readingOrder(index: number, options: ViewerCallOptions = {}) {
+  async readingOrder(index: number, options: ViewerCallOptions = {}) {
+    await this.#afterFirstDraw();
     const key = `order:${this.#document?.id ?? 0}:${index}`;
     return this.call("readingOrder", [index], { priority: "background", key, ...options });
   }
@@ -313,8 +354,17 @@ export class ViewerClient {
   }
 
   /** Whether the open document says it is tagged, and its structure tree when it has one. */
-  structure(options?: ViewerCallOptions) {
+  async structure(options?: ViewerCallOptions) {
+    await this.#afterFirstDraw();
     return this.call("structure", [], options);
+  }
+
+  /**
+   * Resolves once the open document's first render has answered, or after {@link FIRST_DRAW_WAIT}
+   * ms for a caller that never renders: the text calls wait for it (`#drawn`).
+   */
+  #afterFirstDraw(): Promise<void> {
+    return Promise.race([this.#drawn, new Promise<void>((resolve) => setTimeout(resolve, FIRST_DRAW_WAIT))]);
   }
 
   /**
@@ -363,8 +413,11 @@ export class ViewerClient {
   }
 
   /** Page `index`'s links, in annotation order, each with what following it does (the link layer asks as pages mount). */
-  pageLinks(index: number, options?: ViewerCallOptions) {
-    return this.call("pageLinks", [index], options);
+  async pageLinks(index: number, options: ViewerCallOptions = {}) {
+    // Links read with the extract module: like the text layer, they wait for the first page drawn,
+    // and come after renders.
+    await this.#afterFirstDraw();
+    return this.call("pageLinks", [index], { priority: "background", ...options });
   }
 
   /**
@@ -406,7 +459,11 @@ export class ViewerClient {
     // Joining a render already being drawn: its render-start has passed.
     if (this.#drawing === key) start();
     try {
-      return await this.call("render", [request, documentId], { ...options, key });
+      const drawn = await this.call("render", [request, documentId], { ...options, key });
+      // A page has been drawn: text calls may queue now. (A cancelled render doesn't count: the
+      // render that replaces it would wait behind them.)
+      this.#markDrawn();
+      return drawn;
     } finally {
       const own = this.#timers.get(key);
       own?.delete(timers);
