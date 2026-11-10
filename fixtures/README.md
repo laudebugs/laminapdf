@@ -60,6 +60,20 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 
 `golden/render/` holds `laminapdf-render`'s render goldens (todo C2b, ADR 0004): every page of every `corpus/` file rendered at 96 dpi on white by each backend, as `<backend>/<stem>-p<N>.png` (N 1-based; `pdfium` is `pdfium-binaries` `chromium/7881`, `hayro` is hayro 0.8.0), and `skip.json`, the files a backend can't render with a reason (none today). Generated, ours (the inputs are the corpus files above); written on macOS arm64 by `cargo xtask render-golden --update` (`crates/laminapdf-render-pdfium/examples/goldens.rs`), checked by its ignored `tests/golden.rs` (SSIM ≥ 0.99 against the backend's own PNG).
 
+`golden/xmp/` holds XMP packets for `laminapdf_model::xmp` (todo E1b), each an input with the outputs of edits made to it. Every input was written by hand for Lamina PDF and is `MIT OR Apache-2.0`. None of them was produced by the tool it is named after. No committed PDF has a packet from these producers (only the builder's own), and none of the tools could be run from a script when the packets were written, so each packet is modelled on the layout that producer is documented or widely observed to write. Names, dates and IDs are made up.
+
+| File | Modelled on | What it exercises |
+| --- | --- | --- |
+| `acrobat.xmp` | Adobe Acrobat and the Adobe PDF Library as InDesign exports through them: one `rdf:Description` declaring every namespace, three-space indentation, `xmpMM:History` of `rdf:parseType="Resource"` events, a `dc:title` with a second language, 2 KB of padding in lines of 100 spaces | Element form, a structure, language alternatives, padding |
+| `word.xmp` | Microsoft Word's Save as PDF: one `rdf:Description` per namespace, properties on one line, padding inside `rdf:RDF`, no white space before `<?xpacket end="w"?>` | Several descriptions, no padding where the writer pads |
+| `libreoffice.xmp` | LibreOffice's PDF/A export: one description per schema, `pdfaid` first, no padding | PDF/A identification, a packet with no padding |
+| `pdftex.xmp` | pdfTeX with the `pdfx` package (PDF/A-1b): a `pdfaExtension` schema declaring a `pdfx:` property, a comment, single-quoted `xpacket` attributes | An extension schema, a comment, quotes |
+| `ghostscript.xmp` | Ghostscript's `pdfwrite`: single quotes, `rdf:about` set to a UUID, the `xapMM` prefix for the media-management namespace, properties in attribute form on empty descriptions, the `adobe-xap-filters` processing instruction | Attribute form, prefixes that differ from the standard ones |
+| `utf16.xmp` | A UTF-16BE packet with a byte-order mark | Reading UTF-16, the canonical rewrite |
+| `invalid-dtd.xmp` | A packet with a DTD defining a billion-laughs entity and an external one | Refusing a DTD (`xmp-invalid`) |
+
+The outputs are `<input>.title.xmp` (the title set to `Edited title`), `ghostscript.producer.xmp` (an attribute-form value changed and a list added), `libreoffice.fields.xmp` (authors, keywords and a date added, the subject removed), `utf16.title.xmp` (rewritten whole, since the input isn't UTF-8) and `minimal.xmp` (`Packet::new_minimal` with every mapped field set). `crates/laminapdf-model/tests/xmp.rs` compares them byte for byte and writes them only with `UPDATE_GOLDEN=1`. The same test checks that every committed PDF's packet that parses writes back unchanged. The `xmp_parse` fuzz target takes this folder as its seeds.
+
 The `text-*.pdf` goldens are rebuilt by `cargo xtask golden --update` like the others; [`tools/fixtures/text_facts.py`](../tools/fixtures/text_facts.py) then rewrites `text/extracted.json` (below).
 
 ### `images/`

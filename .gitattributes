@@ -26,3 +26,5 @@ packages/icons/src/generated/** linguist-generated=true
 packages/fonts/fonts.css linguist-generated=true
 # Written by `cargo xtask progress` (W1e): the website's roadmap and dashboard.
 apps/site/src/data/progress.json linguist-generated=true
+# Byte goldens: XMP packets compared byte for byte, padding and all (E1b).
+fixtures/golden/xmp/** -text
