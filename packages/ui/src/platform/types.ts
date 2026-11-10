@@ -152,8 +152,11 @@ export interface ReadingPosition {
 
 /** Reading positions by document fingerprint, kept on this device only; the oldest go past a cap. */
 export interface ReadingPositions {
+  /** The position kept for the document with `fingerprint`, or undefined when there is none. */
   get(fingerprint: string): Promise<ReadingPosition | undefined>;
+  /** Keeps `entry` for the document with `fingerprint`, replacing its last; the oldest go past the cap. */
   set(fingerprint: string, entry: ReadingPosition): Promise<void>;
+  /** Forgets the position of the document with `fingerprint`. */
   remove(fingerprint: string): Promise<void>;
   /** Forgets every position ("Forget reading positions"). */
   clear(): Promise<void>;
