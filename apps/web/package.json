@@ -16,7 +16,8 @@
     "typecheck:wasm": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p src/sw/tsconfig.json",
     "e2e": "vitest run -c vitest.e2e.config.ts",
     "smoke": "node e2e/live.ts && vitest run -c vitest.smoke.config.ts",
-    "lighthouse": "lhci autorun --config=lighthouserc.json"
+    "lighthouse": "lhci autorun --config=lighthouserc.json",
+    "lighthouse:local": "node scripts/lighthouse-local.ts"
   },
   "dependencies": {
     "@embedpdf/pdfium": "2.15.1",
