@@ -91,6 +91,13 @@ function fileOpenCommands(): AnyCommand[] {
       home: ["home", "file-menu"],
     }),
     delegated({ id: "file.clear-recent", title: title("file.clear-recent"), group: "file", home: ["home"] }),
+    delegated({
+      id: "file.clear-reading-positions",
+      title: title("file.clear-reading-positions"),
+      keywords: ["forget", "position", "page", "privacy"],
+      group: "file",
+      home: ["settings"],
+    }),
     {
       id: "file.unlock",
       title: title("file.unlock"),

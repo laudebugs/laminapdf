@@ -1,0 +1,89 @@
+// Where the reader stopped in each document (T5b): kept on this device under the document's
+// fingerprint (`Platform.positions`), never under its name or address, and put back when the same
+// file opens again, however it came in. The view is saved a second after it stops changing, when
+// the page is hidden and when the document closes; a link that names a page or destination wins
+// over it. "Remember where I stopped reading" (Settings › Storage and privacy) turns it off.
+
+import type { Platform, ReadingPosition } from "@laminapdf/ui";
+import type { Viewer, ViewPosition } from "@laminapdf/viewer";
+
+/** How long the view must stay still before its position is saved. */
+export const SAVE_AFTER_MS = 1000;
+
+/** The storage key of the document open when the app last closed: `{ recentId }`. */
+export const SESSION_KEY = "session";
+
+/** What a position records the view with: the viewer's own position type. */
+export type KeptView = ViewPosition;
+
+const MODES = new Set(["fit-width", "fit-page", "actual-size"]);
+
+/**
+ * `view` as a position the viewer can restore, or undefined when it isn't one: a stored value is
+ * checked on read, since the store keeps it opaque and an older version may have written it.
+ */
+export function parseView(view: unknown): KeptView | undefined {
+  if (typeof view !== "object" || view === null) return undefined;
+  const { point, zoom, rotation } = view as Partial<Record<keyof KeptView, unknown>>;
+  if (typeof point !== "object" || point === null) return undefined;
+  const { page, x, y } = point as Partial<Record<"page" | "x" | "y", unknown>>;
+  const fraction = (v: unknown): v is number => typeof v === "number" && v >= 0 && v <= 1;
+  if (typeof page !== "number" || !Number.isInteger(page) || page < 0 || !fraction(x) || !fraction(y)) return undefined;
+  const zoomOk =
+    (typeof zoom === "number" && zoom >= 10 && zoom <= 800) || (typeof zoom === "string" && MODES.has(zoom));
+  if (!zoomOk || (rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270)) return undefined;
+  return { point: { page, x, y }, zoom: zoom as KeptView["zoom"], rotation };
+}
+
+/** The position kept for `fingerprint`, when it is one this file can show. */
+export async function keptPosition(platform: Platform, fingerprint: string): Promise<KeptView | undefined> {
+  const entry = await platform.positions.get(fingerprint).catch(() => undefined);
+  return parseView(entry?.view);
+}
+
+/** The page a kept entry stopped at (0-based) and its page count, for the home screen. */
+export function stoppedAt(entry: ReadingPosition | undefined): { page: number; pageCount: number } | undefined {
+  const view = parseView(entry?.view);
+  if (entry === undefined || view === undefined) return undefined;
+  return { page: Math.min(view.point.page, Math.max(0, entry.pageCount - 1)), pageCount: entry.pageCount };
+}
+
+/** What the recorder needs of the page: its visibility, and its events. */
+export interface PageVisibility {
+  readonly visibilityState: DocumentVisibilityState;
+  addEventListener(type: "visibilitychange", listener: () => void): void;
+  removeEventListener(type: "visibilitychange", listener: () => void): void;
+}
+
+/**
+ * Saves `viewer`'s position with `save` {@link SAVE_AFTER_MS} after it stops changing, at once
+ * when `page` is hidden (a write on close may not finish), and on the returned function, which
+ * stops recording: call it before the viewer shows another document.
+ */
+export function recordPosition(
+  viewer: Pick<Viewer, "subscribe" | "viewPosition">,
+  save: (view: KeptView) => void,
+  page: PageVisibility = document,
+): () => void {
+  let last = viewer.viewPosition();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const flush = () => {
+    clearTimeout(timer);
+    timer = undefined;
+    if (last !== undefined) save(last);
+  };
+  const unsubscribe = viewer.subscribe(() => {
+    last = viewer.viewPosition() ?? last;
+    clearTimeout(timer);
+    timer = setTimeout(flush, SAVE_AFTER_MS);
+  });
+  const hidden = () => {
+    if (page.visibilityState === "hidden") flush();
+  };
+  page.addEventListener("visibilitychange", hidden);
+  return () => {
+    unsubscribe();
+    page.removeEventListener("visibilitychange", hidden);
+    flush();
+  };
+}

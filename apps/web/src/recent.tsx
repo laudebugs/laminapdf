@@ -1,13 +1,16 @@
 // Recent files (R01, plan §5): each local document the reader opens is listed on the home screen,
 // in this browser only, unless the user turns that off. A linked document is never listed: ADR
 // 0011 keeps its address out of storage and the recent list. Pressing an entry reopens it from the
-// handle kept where the browser allows (Chromium), else from the picker. The "Storage and
-// privacy" section of the Settings dialog holds the choice and the button that clears the list
-// and every cached copy.
+// handle kept where the browser allows (Chromium), else from the picker. The document open when
+// the app last closed comes first, as Continue reading, with the page its reader stopped at
+// (reading/positions.ts); every row says that page where one is kept. The "Storage and privacy"
+// section of the Settings dialog holds the choices, the button that clears the list and every
+// cached copy, and Forget reading positions.
 
 import {
   Button,
   type CommandId,
+  type ContinueReading,
   message,
   type Platform,
   type ReaderController,
@@ -19,7 +22,8 @@ import {
   type ToastQueue,
   useSettingsSection,
 } from "@laminapdf/ui";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { SESSION_KEY, stoppedAt } from "./reading/positions.ts";
 import { type Engine, remoteUrlOf } from "./session.ts";
 import { readChoices, type StorageChoices, saveChoices } from "./storage-choices.ts";
 
@@ -27,21 +31,61 @@ import { readChoices, type StorageChoices, saveChoices } from "./storage-choices
 export interface Recent {
   /** The home screen's list. */
   readonly home: ReactNode;
-  /** `file.open-recent` and `file.clear-recent`. */
+  /** `file.open-recent`, `file.clear-recent` and `file.clear-reading-positions`. */
   readonly actions: Readonly<Partial<Record<CommandId, (args: unknown) => void>>>;
 }
 
-/** The entries in the platform's store, kept fresh after each change here. */
-function useEntries(platform: Platform): [readonly RecentFile[], () => void] {
-  const [entries, setEntries] = useState<readonly RecentFile[]>([]);
-  const refresh = useCallback(() => {
-    platform.recent.list().then(setEntries, reportError);
-  }, [platform]);
-  useEffect(refresh, [refresh]);
-  return [entries, refresh];
+/** What the home screen lists: the entries, the page each stopped at, and the one to continue. */
+interface Listing {
+  readonly entries: readonly RecentFile[];
+  readonly stoppedAt: ReadonlyMap<string, number>;
+  readonly continueReading: ContinueReading | undefined;
 }
 
-/** Lists each document as it opens, when the choices allow. */
+const NOTHING_LISTED: Listing = { entries: [], stoppedAt: new Map(), continueReading: undefined };
+
+/** The listing from the platform's stores: each entry's kept position, and the session record's entry. */
+async function readListing(platform: Platform): Promise<Listing> {
+  const entries = await platform.recent.list();
+  const kept = await Promise.all(
+    entries.map(async (entry) => {
+      if (entry.fingerprint === undefined) return undefined;
+      return stoppedAt(await platform.positions.get(entry.fingerprint).catch(() => undefined));
+    }),
+  );
+  const pages = new Map<string, number>();
+  entries.forEach((entry, i) => {
+    const at = kept[i];
+    if (at !== undefined) pages.set(entry.id, at.page);
+  });
+  const session = (await platform.storage.get(SESSION_KEY).catch(() => undefined)) as
+    | { recentId?: unknown }
+    | undefined;
+  const index = entries.findIndex((entry) => entry.id === session?.recentId);
+  const entry = entries[index];
+  const at = kept[index];
+  return {
+    entries,
+    stoppedAt: pages,
+    continueReading: entry === undefined || at === undefined ? undefined : { entry, ...at },
+  };
+}
+
+/** The listing, kept fresh after each change here. */
+function useListing(platform: Platform): [Listing, () => void] {
+  const [listing, setListing] = useState<Listing>(NOTHING_LISTED);
+  const refresh = useCallback(() => {
+    readListing(platform).then(setListing, reportError);
+  }, [platform]);
+  useEffect(refresh, [refresh]);
+  return [listing, refresh];
+}
+
+/**
+ * Lists each document as it opens, when the choices allow, and keeps the session record: the
+ * listed document open now, which comes back first at the next start. A document that isn't
+ * listed, or closing one, removes the record.
+ */
 function useRecording(
   platform: Platform,
   engine: Engine,
@@ -51,12 +95,29 @@ function useRecording(
 ): void {
   const file = state.phase === "open" ? state.file : undefined;
   const pages = state.phase === "open" ? engine.getState().pages.length : 0;
+  const fingerprint = state.phase === "open" ? engine.getState().fingerprint : undefined;
+  // Only a document closing removes the record: the home screen at start shows it as Continue reading.
+  const wasOpen = useRef(false);
+  const closed = state.phase === "empty";
+  useEffect(() => {
+    if (closed && wasOpen.current) void platform.storage.delete(SESSION_KEY).catch(reportError);
+    wasOpen.current = state.phase === "open";
+  }, [closed, state.phase, platform]);
   useEffect(() => {
     if (file === undefined) return;
     // A linked document's address is never kept (ADR 0011), and a local one only when allowed.
-    if (remoteUrlOf(file) !== undefined || !choices.rememberLocal) return;
-    platform.recent.add(file, pages > 0 ? { pages } : {}).then(refresh, reportError);
-  }, [file, pages, choices, platform, refresh]);
+    if (remoteUrlOf(file) !== undefined || !choices.rememberLocal) {
+      void platform.storage.delete(SESSION_KEY).catch(reportError);
+      return;
+    }
+    const details = { ...(pages > 0 ? { pages } : {}), ...(fingerprint === undefined ? {} : { fingerprint }) };
+    const record = async () => {
+      await platform.recent.add(file, details);
+      const entry = (await platform.recent.list()).find((e) => e.name === file.name && e.size === file.size);
+      if (entry !== undefined) await platform.storage.set(SESSION_KEY, { recentId: entry.id });
+    };
+    record().then(refresh, reportError);
+  }, [file, pages, fingerprint, choices, platform, refresh]);
 }
 
 /** Reopens `entry`: from its kept handle, or the picker. */
@@ -65,15 +126,33 @@ async function reopen(entry: RecentFile, platform: Platform, reader: ReaderContr
   return file === undefined ? reader.openFromPicker() : reader.open(file);
 }
 
+/**
+ * At start, with no link in the address: reopens the document open when the app last closed,
+ * where the browser kept the permission to read it (no prompt: nothing was clicked yet). Else the
+ * home screen offers it as Continue reading.
+ */
+export async function resumeLastDocument(platform: Platform, reader: ReaderController): Promise<void> {
+  if (!readChoices().rememberLocal || platform.recent.reopen === undefined) return;
+  const session = (await platform.storage.get(SESSION_KEY)) as { recentId?: unknown } | undefined;
+  if (typeof session?.recentId !== "string") return;
+  const entry = (await platform.recent.list()).find((e) => e.id === session.recentId);
+  if (entry?.hasHandle !== true) return;
+  const file = await platform.recent.reopen(entry.id, { ask: false });
+  // Something else opened meanwhile (a file the OS handed over, a drop): it stays.
+  if (file !== undefined && reader.getState().phase === "empty") await reader.open(file);
+}
+
 /** The Storage and privacy section of the Settings dialog. */
 function StorageSettings({
   choices,
   onChange,
   onClear,
+  onForgetPositions,
 }: {
   choices: StorageChoices;
   onChange: (choices: StorageChoices) => void;
   onClear: () => void;
+  onForgetPositions: () => void;
 }): ReactNode {
   return (
     <div className="web-storage-settings">
@@ -81,6 +160,12 @@ function StorageSettings({
         {message("storage.rememberLocal")}
       </Switch>
       <p className="web-settings-help">{message("storage.rememberLocal.help")}</p>
+      <Switch isSelected={choices.rememberPositions} onChange={(on) => onChange({ ...choices, rememberPositions: on })}>
+        {message("storage.rememberPositions")}
+      </Switch>
+      <p className="web-settings-help">{message("storage.rememberPositions.help")}</p>
+      <Button onPress={onForgetPositions}>{message("storage.forgetPositions")}</Button>
+      <p className="web-settings-help">{message("storage.forgetPositions.help")}</p>
       <Button onPress={onClear}>{message("storage.clear")}</Button>
       <p className="web-settings-help">{message("storage.clear.help")}</p>
     </div>
@@ -100,35 +185,59 @@ export function useRecent(
   clearCache: () => Promise<void>,
 ): Recent {
   const [choices, setChoices] = useState(readChoices);
-  const [entries, refresh] = useEntries(platform);
+  const [listing, refresh] = useListing(platform);
+  const { entries } = listing;
   useRecording(platform, engine, state, choices, refresh);
   const clear = useCallback(
     async (all: boolean) => {
       await platform.recent.clear();
-      if (all) await clearCache();
+      await platform.storage.delete(SESSION_KEY);
+      if (all) {
+        await clearCache();
+        await platform.positions.clear();
+      }
       refresh();
     },
     [platform, clearCache, refresh],
   );
+  const forgetPositions = useCallback(async () => {
+    await platform.positions.clear();
+    await platform.storage.delete(SESSION_KEY);
+    refresh();
+  }, [platform, refresh]);
+  const forgetWithToast = () =>
+    void forgetPositions().then(() => toasts.add({ message: message("storage.positionsForgotten") }), reportError);
   const change = (next: StorageChoices) => {
     setChoices(next);
     saveChoices(next);
     // Turning it off forgets the list and the kept copies, so nothing it allowed outlives it (a
     // copy open now goes when its document closes, or at the next Clear).
     if (!next.rememberLocal) void clear(true).catch(reportError);
+    // Turning positions off forgets every one, and none is written while it stays off.
+    if (!next.rememberPositions) void forgetPositions().catch(reportError);
   };
   useSettingsSection(registry, "storage", message("storage.title"), () => (
     <StorageSettings
       choices={choices}
       onChange={change}
       onClear={() => void clear(true).then(() => toasts.add({ message: message("storage.cleared") }), reportError)}
+      onForgetPositions={forgetWithToast}
     />
   ));
   const open = (entry: RecentFile) => void reopen(entry, platform, engine.reader).catch(reportError);
   return {
-    home: <RecentList entries={entries} onOpen={open} onClear={() => void clear(false).catch(reportError)} />,
+    home: (
+      <RecentList
+        entries={entries}
+        stoppedAt={listing.stoppedAt}
+        continueReading={choices.rememberPositions ? listing.continueReading : undefined}
+        onOpen={open}
+        onClear={() => void clear(false).catch(reportError)}
+      />
+    ),
     actions: {
       "file.clear-recent": () => void clear(false).catch(reportError),
+      "file.clear-reading-positions": forgetWithToast,
       "file.open-recent": (id) => {
         // From the palette, with no entry named: the newest. An id the list lacks opens nothing.
         const entry = id === undefined ? entries[0] : entries.find((e) => e.id === id);

@@ -292,7 +292,7 @@ export {
   type ReaderViewProps,
   readerTextSize,
 } from "./reader/reader-view.js";
-export { RecentList, type RecentListProps, recentMeta } from "./reader/recent-list.js";
+export { type ContinueReading, RecentList, type RecentListProps, recentMeta } from "./reader/recent-list.js";
 export {
   OpenFailure,
   type OpenFailureProps,
