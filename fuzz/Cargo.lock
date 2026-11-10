@@ -101,6 +101,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cobs"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fa961b519f0b462e3a3b4a34b64d119eeaca1d59af726fe450bbba07a9fc0a1"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
 name = "cpubits"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -144,6 +153,18 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "embedded-io"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef1a6892d9eef45c8fa6b9e0086428a2cca8491aca8f787c534a3d6d0bcb3ced"
+
+[[package]]
+name = "embedded-io"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edd0f118536f44f5ccd48bcb8b111bdc3de888b58c74639dfb034a357d0f206d"
 
 [[package]]
 name = "equivalent"
@@ -372,7 +393,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-build"
-version = "0.2.0-alpha.4"
+version = "0.2.0-alpha.5"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -388,7 +409,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-content"
-version = "0.2.0-alpha.4"
+version = "0.2.0-alpha.5"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -397,15 +418,25 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.2.0-alpha.4"
+version = "0.2.0-alpha.5"
 dependencies = [
  "laminapdf-syntax",
  "thiserror",
 ]
 
 [[package]]
+name = "laminapdf-desktop-protocol"
+version = "0.2.0-alpha.5"
+dependencies = [
+ "postcard",
+ "serde",
+ "thiserror",
+ "zeroize",
+]
+
+[[package]]
 name = "laminapdf-extract"
-version = "0.2.0-alpha.4"
+version = "0.2.0-alpha.5"
 dependencies = [
  "laminapdf-content",
  "laminapdf-cos",
@@ -422,6 +453,7 @@ dependencies = [
  "laminapdf-build",
  "laminapdf-content",
  "laminapdf-cos",
+ "laminapdf-desktop-protocol",
  "laminapdf-extract",
  "laminapdf-model",
  "laminapdf-ops",
@@ -429,12 +461,13 @@ dependencies = [
  "laminapdf-syntax",
  "laminapdf-text",
  "libfuzzer-sys",
+ "serde",
  "serde_json",
 ]
 
 [[package]]
 name = "laminapdf-model"
-version = "0.2.0-alpha.4"
+version = "0.2.0-alpha.5"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-syntax",
@@ -443,7 +476,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-ops"
-version = "0.2.0-alpha.4"
+version = "0.2.0-alpha.5"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -455,7 +488,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-save"
-version = "0.2.0-alpha.4"
+version = "0.2.0-alpha.5"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -467,7 +500,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.2.0-alpha.4"
+version = "0.2.0-alpha.5"
 dependencies = [
  "aes",
  "md-5",
@@ -479,7 +512,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-text"
-version = "0.2.0-alpha.4"
+version = "0.2.0-alpha.5"
 dependencies = [
  "harfrust",
  "icu_properties",
@@ -576,6 +609,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50596ddc09eb5ad5f75cacd40209568e66df71baf86e1499a0e99c4cff12a5a6"
 dependencies = [
  "arrayvec",
+]
+
+[[package]]
+name = "postcard"
+version = "1.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6764c3b5dd454e283a30e6dfe78e9b31096d9e32036b5d1eaac7a6119ccb9a24"
+dependencies = [
+ "cobs",
+ "embedded-io 0.4.0",
+ "embedded-io 0.6.1",
+ "serde",
 ]
 
 [[package]]
@@ -926,6 +971,12 @@ dependencies = [
  "syn",
  "synstructure",
 ]
+
+[[package]]
+name = "zeroize"
+version = "1.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879"
 
 [[package]]
 name = "zerotrie"

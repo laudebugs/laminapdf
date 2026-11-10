@@ -2,6 +2,7 @@
 // one project per browser: `--project chromium` …).
 
 import { firefoxProvider } from "@laminapdf/test-utils/firefox";
+import { retryOnceAndReport } from "@laminapdf/test-utils/flaky";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
@@ -9,6 +10,7 @@ import { defineConfig } from "vitest/config";
 export function renderBrowserConfig(packageDir: URL) {
   return defineConfig({
     test: {
+      ...retryOnceAndReport(),
       testTimeout: 60_000,
       projects: [
         {

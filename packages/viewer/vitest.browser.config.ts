@@ -1,4 +1,5 @@
 import { firefoxProvider } from "@laminapdf/test-utils/firefox";
+import { retryOnceAndReport } from "@laminapdf/test-utils/flaky";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import type { BrowserCommand } from "vitest/node";
@@ -35,6 +36,7 @@ export default defineConfig({
   optimizeDeps: { exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@embedpdf/pdfium", "@laminapdf/viewer"] },
   server: { fs: { allow: ["../.."] } },
   test: {
+    ...retryOnceAndReport(),
     testTimeout: 60_000,
     include: ["test/browser/*.browser.test.ts"],
     browser: {

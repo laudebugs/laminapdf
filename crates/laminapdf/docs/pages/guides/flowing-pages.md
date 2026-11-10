@@ -1,7 +1,7 @@
 ---
 title: "Pages that flow"
 description: "Pour headings, paragraphs, tables and images, or a Markdown file, into as many pages as they need, with footnotes, a contents page and \"Page X of Y\" footers."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/guides/flowing-pages/"
 ---
 

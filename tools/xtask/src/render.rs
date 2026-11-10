@@ -118,7 +118,17 @@ fn corpus(ws: &Workspace, update: bool) -> Result<()> {
         crate::run_env(
             &ws.root,
             "cargo",
-            &["test", "-p", "laminapdf-render-pdfium", "--locked", "--", "--ignored"],
+            // The desktop engine's render test (D2b) needs PDFium too.
+            &[
+                "test",
+                "-p",
+                "laminapdf-render-pdfium",
+                "-p",
+                "laminapdf-desktop-engine",
+                "--locked",
+                "--",
+                "--ignored",
+            ],
             &env,
         )
     }

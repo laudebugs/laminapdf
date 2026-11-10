@@ -11,6 +11,7 @@ mod cli_docs;
 mod codegen;
 mod corpus;
 mod design_screens;
+mod desktop_sidecar;
 mod docs_links;
 mod docs_previews;
 mod docs_prose;
@@ -19,6 +20,7 @@ mod doctor;
 mod examples;
 mod examples_lints;
 mod extract_bench;
+mod fixtures;
 mod gallery;
 mod harness;
 mod licenses;
@@ -220,6 +222,15 @@ tasks:
                     the files dist-workspace.toml puts in every release archive
   desktop-notices   the desktop app's third-party notices, MPL-2.0 text included (cargo-about),
                     into target/desktop/
+  fixtures large-pdf [--pages N] [--out PATH]
+                    write an image-heavy PDF with the laminapdf builder (default 20,000 pages, about
+                    1.1 GB, into target/fixtures/1gb.pdf; never committed): the desktop engine's
+                    large-file fixture. Needs about 1.5 GB of RAM
+  desktop-sidecar [--release | --debug]
+                    build the desktop engine binary into apps/desktop/src-tauri/binaries/ (Tauri's
+                    sidecar naming) and the pinned PDFium into src-tauri/resources/pdfium/, which
+                    tauri.bundle.conf.json bundles; the profile defaults to the Tauri CLI's
+                    (TAURI_ENV_DEBUG), else debug
   extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
                     score lamina's extraction on the pinned public benchmark of
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
@@ -412,6 +423,8 @@ fn main() -> Result<()> {
         ("cli-docs", []) => cli_docs::run(&ws),
         ("cli-dist", []) => cli_docs::dist_files(&ws),
         ("desktop-notices", []) => notices::desktop(&ws),
+        ("desktop-sidecar", args) => desktop_sidecar::run(&ws, args),
+        ("fixtures", [what, rest @ ..]) if what == "large-pdf" => fixtures::large_pdf(&ws, rest),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("benchmarks", args) => benchmarks::run(&ws, &benchmarks::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
