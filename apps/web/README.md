@@ -67,7 +67,7 @@ Browser extensions make requests no page can see, so the panel says so; your bro
 
 Reader mode turns a PDF into one column of text that the reader can size. It opens from the Reader button in the top bar, the `R` key, or "Reader mode" in the command palette. Reader settings (in the inspector) set the text size from 14 to 32 px, the line spacing and the line length, for every document. The column takes the page's paper and ink.
 
-For a tagged PDF, the column follows the file's structure tree, so headings, lists, quotes and notes come out as real HTML in the order the author tagged, whatever order the page draws them in. Figures, formulas and tables stay pictures: each is a crop of its page, drawn by the document worker, named by its alternate text or by "The file gives no description of it".
+For a tagged PDF, the column follows the file's structure tree, so headings, lists, quotes and notes come out as real HTML in the order the author tagged, whatever order the page draws them in. Figures, formulas and tables stay pictures: each is a crop of its page, drawn by the document worker, named by its alternate text or by "The file gives no description of it". A crop is drawn only when it comes within a screen of the view, and its pixels are freed once it scrolls far away, so a long scan doesn't hold every page at once. The text a crop holds, such as a table's cells or a page image's text, follows it for screen readers.
 
 Many files have no tags, or tags that don't match their pages, so reader mode checks the tree before it trusts it. It turns to the page layout when:
 
