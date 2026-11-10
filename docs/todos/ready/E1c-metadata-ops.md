@@ -7,7 +7,7 @@
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B6b](../done/B6b-lamina-pdf-package.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1b](../ongoing/E1b-xmp-packet-model.md), [X3a](../done/X3a-nightly-lane.md) |
-| Dependency notes | [E1b](E1b-xmp-packet-model.md), `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk): `laminapdf-wasm` and `@laminapdf/sdk`) |
+| Dependency notes | [E1b](../ongoing/E1b-xmp-packet-model.md), `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk): `laminapdf-wasm` and `@laminapdf/sdk`) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1c-metadata-ops` |
 | PR title | `feat(ops): metadata ops writing Info and XMP together` |

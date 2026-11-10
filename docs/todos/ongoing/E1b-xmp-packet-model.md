@@ -38,8 +38,8 @@ Give `laminapdf-model` a typed view over the catalog's `/Metadata` XMP packet th
 
 **Out of scope** (and which todo covers it)
 
-- Metadata ops, save-time `MetadataDate`/`InstanceID` and PDF/A checks → [E1c](E1c-metadata-ops.md)
-- Editing arbitrary/custom/extension schemas in the UI (J.04 write) → [E3e](E3e-xmp-editor.md)
+- Metadata ops, save-time `MetadataDate`/`InstanceID` and PDF/A checks → [E1c](../ready/E1c-metadata-ops.md)
+- Editing arbitrary/custom/extension schemas in the UI (J.04 write) → [E3e](../ready/E3e-xmp-editor.md)
 
 **Editor facts**
 
@@ -49,27 +49,27 @@ Give `laminapdf-model` a typed view over the catalog's `/Metadata` XMP packet th
 - **`SaveConstraint`:** read-only here; the writer's output becomes a modified stream object in the overlay when an op uses it
 - **Web vs desktop:** identical (core only)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `J.04` → `read` (core, pdf) (parse and typed read of the packet; `write`/`round-trip` comes with [E3e](E3e-xmp-editor.md))
+- **Capability-matrix rows to flip:** `J.04` → `read` (core, pdf) (parse and typed read of the packet; `write`/`round-trip` comes with [E3e](../ready/E3e-xmp-editor.md))
 
 ## Tasks
 
-- [ ] Choose the XML approach (a small tolerant reader over `quick-xml` or similar; check licence with `cargo deny` and measure wasm size delta) and record the choice in the E1 feature plan
-- [ ] Implement packet discovery: catalog `/Metadata` stream, decode filters, strip/keep the `<?xpacket … ?>` wrapper and trailing padding
-- [ ] Parse into an ordered tree that keeps unknown elements, attributes, namespaces and comments for lossless re-serialisation
-- [ ] Typed getters/setters for the Info-mapped properties, with language alternatives (`x-default`) and date conversion between PDF dates (`D:YYYYMMDDHHmmSSOHH'mm`, ISO 32000-1 §7.9.4: no apostrophe after the minutes) and ISO 8601; the reader tolerates the trailing `'` that older producers write, the writer never emits it
-- [ ] Writer: update in place keeping padding when the new packet fits; otherwise rewrite with fresh padding (2 KB) and `begin="\uFEFF"`
-- [ ] `XmpPacket::new_minimal()` for files without metadata; namespace prefixes per ISO 16684-1
-- [ ] Move the B5 builder's Info ↔ XMP mapping into one shared table used by both generation and editing
-- [ ] Tolerance: malformed packets produce a warning code (ADR 0003) and are treated as absent for writing only after the UI confirms (exposed as a flag to E1c)
+- [x] Choose the XML approach (a small tolerant reader over `quick-xml` or similar; check licence with `cargo deny` and measure wasm size delta) and record the choice in the E1 feature plan
+- [x] Implement packet discovery: catalog `/Metadata` stream, decode filters, strip/keep the `<?xpacket … ?>` wrapper and trailing padding
+- [x] Parse into an ordered tree that keeps unknown elements, attributes, namespaces and comments for lossless re-serialisation
+- [x] Typed getters/setters for the Info-mapped properties, with language alternatives (`x-default`) and date conversion between PDF dates (`D:YYYYMMDDHHmmSSOHH'mm`, ISO 32000-1 §7.9.4: no apostrophe after the minutes) and ISO 8601; the reader tolerates the trailing `'` that older producers write, the writer never emits it
+- [x] Writer: update in place keeping padding when the new packet fits; otherwise rewrite with fresh padding (2 KB) and `begin="\uFEFF"`
+- [x] `xmp::Packet::new_minimal()` (`Packet`, since the disclosure scan's `XmpPacket` has the name) for files without metadata; namespace prefixes per ISO 16684-1
+- [x] Move the B5 builder's Info ↔ XMP mapping into one shared table used by both generation and editing
+- [x] Tolerance: malformed packets produce a warning code (ADR 0003) and are treated as absent for writing only after the UI confirms (exposed as a flag to E1c)
 
 ## Acceptance criteria
 
-- [ ] Parsing then writing an unchanged packet is byte-identical for every packet in `fixtures/corpus` that parses
-- [ ] Changing `dc:title` on fixtures from Acrobat, Word, LibreOffice, pdfTeX and Ghostscript keeps all other properties and schemas (XML-level comparison test)
-- [ ] A file with no `/Metadata` gets a packet that `exiftool` and veraPDF's XMP parser accept
-- [ ] Malformed packets (fuzz corpus) never panic; a fuzz target runs 10 min in CI
-- [ ] wasm size delta recorded in the PR description and within the B6 budget
-- [ ] Date round-trip tests: `D:20261028143000+01'00` and the legacy `D:20261028143000+01'00'` both parse to the same instant; the writer emits only the form without the trailing apostrophe
+- [x] Parsing then writing an unchanged packet is byte-identical for every packet in `fixtures/corpus` that parses
+- [x] Changing `dc:title` on fixtures from Acrobat, Word, LibreOffice, pdfTeX and Ghostscript keeps all other properties and schemas (XML-level comparison test); the packets are hand-written models of each producer's output, since no committed file has a real one (`fixtures/README.md`)
+- [ ] A file with no `/Metadata` gets a packet that `exiftool` and veraPDF's XMP parser accept: veraPDF 1.30.3 accepts it (only 6.6.4-1, the missing PDF/A claim, fails when it replaces a PDF/A-2b example's packet) and passes every PDF/A and PDF/UA example whose packet the writer edited; `exiftool` wasn't installed, so it is unchecked
+- [x] Malformed packets (fuzz corpus) never panic; a fuzz target runs 10 min in CI (`xmp_parse`, in the nightly's matrix)
+- [ ] wasm size delta recorded in the PR description and within the B6 budget: recorded in the E1 plan §4 (base +420 B gzip, text +37 B, extract −152 B, measured locally against the same build without E1b); the text module is within budget only by CI's margin (main is 79 B over its budget in a local macOS build)
+- [x] Date round-trip tests: `D:20261028143000+01'00` and the legacy `D:20261028143000+01'00'` both parse to the same instant; the writer emits only the form without the trailing apostrophe
 
 ## Post-merge checks
 
