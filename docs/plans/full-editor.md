@@ -85,7 +85,7 @@ The editing architecture (lazy COS overlay, typed model, op log, save planner, o
 
 ## 7. Phases and rounds
 
-Phase 1 (core viewer: open, render, zoom, search, text selection, thumbnails, download) is delivered by the reader rounds [C1–C7](web-app.md#6-rounds) and [D1–D7](desktop-app.md#6-rounds). Editor rounds start at E1 once the web reader has launched (C7c); they don't wait for the desktop beta (D7c). The desktop rounds go on alongside, and an editor round's desktop part is its own todo that depends on the desktop todo it needs, such as D3b for file watching or D4b for native menus, so the web and shared work never waits on the desktop track (decided 2026-11-10).
+Phase 1 (core viewer: open, render, zoom, search, text selection, thumbnails, download) is delivered by the reader rounds [C1–C7](web-app.md#6-rounds) and [D1–D7](desktop-app.md#6-rounds). Editor rounds start at E1 once the web reader has launched (C7c); they don't wait for the desktop beta (D7c). The desktop rounds go on alongside. An editor round's desktop part is its own todo that depends on the desktop todo it needs, such as D3b for file watching or D4b for native menus. The web and shared work therefore never waits on the desktop track ([roadmap: decisions made](roadmap.md#decisions-made), 2026-11-10).
 
 Editor rounds are larger than reader rounds. Each starts with a short **feature-plan PR** (scope, op list, tests, any ADR) and then lands as a stack of implementation PRs, each mergeable on its own ([git workflow §5](../guidelines/git-workflow.md#5-pull-requests); [architecture §5](architecture.md#5-rounds): "each feature group gets its own plan and pull requests").
 
