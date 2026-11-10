@@ -1,0 +1,7 @@
+# Its own pnpm project, outside the root workspace (the root pnpm-workspace.yaml doesn't match
+# spikes/). Direct dependencies are exact versions in package.json; pnpm-lock.yaml is committed.
+packages: []
+
+# The CLI's per-platform binary comes from an optional dependency; no install scripts run.
+allowBuilds:
+  esbuild: false

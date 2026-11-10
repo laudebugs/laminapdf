@@ -108,6 +108,7 @@ Tauri supports file associations (`bundle.fileAssociations`), `RunEvent::Opened`
 
 ### Gaps
 - Not verified: the macOS second-launch path (Opened vs single-instance), the print API status, and Linux portal/Flatpak file access.
+  - *Update (2026-11-09, [`desktop-print` spike](../../../../spikes/desktop-print/README.md)):* printing measured on all three OSes. Tauri's only print API prints the webview, and that path is the least faithful: WebView2's `PrintToPdf` with default settings put every page on US Letter, WebKitGTK split each page across two sheets, and `window.print()` does nothing in WKWebView. PDFium rasters through AppKit, GDI or GTK printed every page at its own size on Windows and Linux; AppKit snapped mixed paper sizes to A4.
 
 ## Q5. Auto-update and hosting on Cloudflare R2 + Workers; delta updates
 

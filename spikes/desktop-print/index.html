@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>desktop-print spike</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 24px; }
+      button, select { font: inherit; margin: 4px 4px 4px 0; padding: 6px 10px; }
+      #status { margin-top: 12px; color: #444; white-space: pre-wrap; }
+      @media screen { #print { display: none; } }
+      @media print { #controls, #status { display: none; } body { margin: 0; } }
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <h1>desktop-print spike</h1>
+      <label>Fixture <select id="fixture"></select></label>
+      <div>
+        <button data-path="windowprint">A: window.print()</button>
+        <button data-path="webview">A: webview print API</button>
+        <button data-path="raster">B: native raster</button>
+        <button data-path="vector">C: native vector</button>
+      </div>
+    </div>
+    <div id="status"></div>
+    <div id="print"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

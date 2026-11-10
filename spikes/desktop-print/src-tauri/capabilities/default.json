@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The spike window: core defaults and its six commands.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "allow-plan",
+    "allow-print-webview",
+    "allow-print-native-raster",
+    "allow-print-native-vector",
+    "allow-webview-ready",
+    "allow-report"
+  ]
+}
