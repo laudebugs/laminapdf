@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "The reader's windows: only the app commands the UI calls. core:default is not granted; a later todo adds the core permission it needs (ADR 0008 §6).",
+  "description": "The reader's windows: only the app commands the UI calls (open a document through the dialog, its pages, closing it). core:default is not granted; a later todo adds the core permission it needs (ADR 0008 §6).",
   "windows": ["main", "doc-*"],
   "platforms": ["macOS", "windows", "linux"],
-  "permissions": ["allow-app-info"]
+  "permissions": ["allow-app-info", "allow-open-dialog", "allow-page-info", "allow-close-document"]
 }

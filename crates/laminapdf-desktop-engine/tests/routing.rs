@@ -138,7 +138,12 @@ fn a_cancelled_queued_tile_should_be_answered_cancelled() {
     send(&mut to, &ToEngine::Cancel { req: ReqId(2) }, &[]);
     let cancelled = loop {
         let (msg, _) = read_frame::<_, FromEngine>(&mut from, MAX_FRAME).unwrap();
-        if let FromEngine::Error { req: Some(ReqId(2)), kind, .. } = msg {
+        if let FromEngine::Error {
+            req: Some(ReqId(2)),
+            kind,
+            ..
+        } = msg
+        {
             break kind;
         }
     };

@@ -3,8 +3,25 @@
 
 use std::process::ExitCode;
 
+/// Every command a release build has.
+const COMMANDS: &[&str] = &["app_info", "open_dialog", "page_info", "close_document"];
+
+/// With the `e2e` feature: the end-to-end tests' commands too.
+const E2E_COMMANDS: &[&str] = &[
+    "app_info",
+    "open_dialog",
+    "page_info",
+    "close_document",
+    "debug_kill_engine",
+];
+
 fn main() -> ExitCode {
-    let manifest = tauri_build::AppManifest::new().commands(&["app_info"]);
+    let commands = if std::env::var_os("CARGO_FEATURE_E2E").is_some() {
+        E2E_COMMANDS
+    } else {
+        COMMANDS
+    };
+    let manifest = tauri_build::AppManifest::new().commands(commands);
     match tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {

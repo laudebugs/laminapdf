@@ -11,8 +11,8 @@ use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
-use laminapdf_render::{ByteSource, SourceError};
 use laminapdf_desktop_protocol::{DocId, FromEngine, ReqId};
+use laminapdf_render::{ByteSource, SourceError};
 
 use crate::outbox::Outbox;
 
@@ -133,11 +133,17 @@ impl RemoteSource {
                     self.doc.0,
                     bytes.len()
                 ));
-                return Err(SourceError::Failed { offset: start, len: want });
+                return Err(SourceError::Failed {
+                    offset: start,
+                    len: want,
+                });
             }
             Err(why) => {
                 crate::log(&format!("document {}: bytes at {start} failed: {why}", self.doc.0));
-                return Err(SourceError::Failed { offset: start, len: want });
+                return Err(SourceError::Failed {
+                    offset: start,
+                    len: want,
+                });
             }
         };
         let mut cache = self.cache.lock().unwrap_or_else(PoisonError::into_inner);

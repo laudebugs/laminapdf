@@ -316,12 +316,12 @@ impl Supervisor {
                 this.exited(generation);
             })
         };
-        let pid = started
-            .and_then(|()| reader.map_err(|e| e.to_string()))
-            .and_then(|_| match ready_rx.recv_timeout(self.inner.config.start_timeout) {
+        let pid = started.and_then(|()| reader.map_err(|e| e.to_string())).and_then(|_| {
+            match ready_rx.recv_timeout(self.inner.config.start_timeout) {
                 Ok(pid) => Ok(pid),
                 Err(_) => Err("no Ready".to_owned()),
-            });
+            }
+        });
         let pid = match pid {
             Ok(pid) => pid,
             Err(why) => {
@@ -601,5 +601,7 @@ impl Process for ChildProcess {
     }
 }
 
+#[cfg(any(test, feature = "test-support"))]
+pub mod fake;
 #[cfg(test)]
 mod tests;

@@ -26,7 +26,9 @@ const TILE_FRAME_SLACK: usize = 4096;
 /// A document the engine holds.
 enum Doc {
     /// Encrypted, waiting for its password.
-    Locked { source: Arc<RemoteSource> },
+    Locked {
+        source: Arc<RemoteSource>,
+    },
     Open(Box<Opened>),
 }
 
@@ -55,7 +57,12 @@ pub(crate) struct Worker {
 }
 
 impl Worker {
-    pub(crate) fn new(out: Outbox, ranges: Arc<Ranges>, backend: Option<Box<dyn RenderBackend>>, limits: Box<Limits>) -> Self {
+    pub(crate) fn new(
+        out: Outbox,
+        ranges: Arc<Ranges>,
+        backend: Option<Box<dyn RenderBackend>>,
+        limits: Box<Limits>,
+    ) -> Self {
         Self {
             out,
             ranges,
@@ -186,7 +193,10 @@ impl Worker {
             };
             return self.error(req, kind, "no renderer for this document".into());
         };
-        #[expect(clippy::cast_precision_loss, reason = "a scale in thousandths is far below f32's exact range")]
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "a scale in thousandths is far below f32's exact range"
+        )]
         let scale = tile.scale_milli as f32 / 1000.0;
         let request = RenderRequest::page(tile.page, scale).with_clip(PixelRect {
             x: tile.x,

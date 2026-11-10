@@ -187,11 +187,7 @@ mod tests {
                     ..Limits::default()
                 }),
             },
-            ToEngine::OpenDocument {
-                req,
-                doc,
-                len: 1 << 40,
-            },
+            ToEngine::OpenDocument { req, doc, len: 1 << 40 },
             ToEngine::UnlockDocument {
                 req,
                 doc,
@@ -359,7 +355,13 @@ mod tests {
 
     #[test]
     fn a_truncated_payload_should_be_rejected() {
-        let bytes = encode(&ToEngine::RangeData { req: ReqId(1), offset: 0 }, &[7; 100]);
+        let bytes = encode(
+            &ToEngine::RangeData {
+                req: ReqId(1),
+                offset: 0,
+            },
+            &[7; 100],
+        );
         let cut = bytes.get(..bytes.len() - 1).unwrap_or_default();
         let result: Result<(ToEngine, Vec<u8>), _> = read_frame(&mut &cut[..], MAX_FRAME);
         assert!(matches!(result, Err(ProtocolError::Truncated)));
@@ -416,6 +418,8 @@ mod tests {
             b"",
         );
         let result: Result<(ToEngine, Vec<u8>), _> = read_frame(&mut bytes.as_slice(), MAX_FRAME);
-        assert!(matches!(result, Ok((ToEngine::UnlockDocument { password, .. }, _)) if password.expose() == "pässwörd"));
+        assert!(
+            matches!(result, Ok((ToEngine::UnlockDocument { password, .. }, _)) if password.expose() == "pässwörd")
+        );
     }
 }

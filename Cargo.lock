@@ -2799,6 +2799,8 @@ dependencies = [
 name = "laminapdf-desktop"
 version = "0.2.0-alpha.4"
 dependencies = [
+ "laminapdf-desktop-protocol",
+ "region",
  "serde",
  "serde_json",
  "tauri",
@@ -2808,6 +2810,7 @@ dependencies = [
  "tauri-plugin-opener",
  "thiserror 2.0.21",
  "tracing",
+ "zeroize",
 ]
 
 [[package]]
@@ -3125,6 +3128,12 @@ name = "log"
 version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+
+[[package]]
+name = "mach2"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0d28e293f2b8c9d2b2d1c0193bd3c1cbdc0d2cf396888dc01162f7cf9d6c3f3"
 
 [[package]]
 name = "markup5ever"
@@ -4255,6 +4264,18 @@ name = "regex-syntax"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
+
+[[package]]
+name = "region"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bc10200af9f8297cb52df7e0e1db8d9ad3e8782981d69b25eedf858f5455ca2"
+dependencies = [
+ "bitflags 2.13.2",
+ "libc",
+ "mach2",
+ "windows-sys 0.61.2",
+]
 
 [[package]]
 name = "reqwest"

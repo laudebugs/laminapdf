@@ -15,6 +15,10 @@ homepage.workspace = true
 [package.metadata.laminapdf]
 layer = "app"
 
+[features]
+# `supervisor::fake`: an in-process fake engine for the main process's tests.
+test-support = []
+
 [dependencies]
 postcard = { workspace = true }
 serde = { workspace = true }

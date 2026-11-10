@@ -136,7 +136,9 @@ fn a_document_should_report_the_pages_lamina_reads() {
     let bytes = fixture("corpus/fpdf2.pdf");
     let expected = lamina_pages(bytes.clone(), None);
     let (doc, len) = engine.add(1, bytes);
-    assert!(matches!(engine.open(doc, len), FromEngine::Opened { page_count, needs_password: false, .. } if page_count as usize == expected.len()));
+    assert!(
+        matches!(engine.open(doc, len), FromEngine::Opened { page_count, needs_password: false, .. } if page_count as usize == expected.len())
+    );
     assert_eq!(sizes(&engine.ask(|req| ToEngine::GetPageInfo { req, doc })), expected);
 }
 
@@ -174,7 +176,10 @@ fn a_killed_engine_should_restart_within_two_seconds_and_open_again() {
     engine.supervisor.kill();
     let after = engine.restarted();
     let took = killed.elapsed();
-    assert!(after.is_some() && after != before && took < Duration::from_secs(2), "{before:?} → {after:?} in {took:?}");
+    assert!(
+        after.is_some() && after != before && took < Duration::from_secs(2),
+        "{before:?} → {after:?} in {took:?}"
+    );
     assert!(matches!(engine.open(doc, len), FromEngine::Opened { .. }));
 }
 
@@ -191,7 +196,10 @@ fn an_encrypted_document_should_wait_for_its_password() {
             ..
         }
     ));
-    assert!(matches!(engine.ask(|req| ToEngine::GetPageInfo { req, doc }), FromEngine::NeedsPassword { .. }));
+    assert!(matches!(
+        engine.ask(|req| ToEngine::GetPageInfo { req, doc }),
+        FromEngine::NeedsPassword { .. }
+    ));
 }
 
 #[test]
@@ -219,8 +227,16 @@ fn the_password_should_unlock_the_document_again_in_a_restarted_engine() {
     engine.supervisor.kill();
     assert!(engine.restarted().is_some());
     // What the main process does after a restart: reopen, then unlock with the kept password.
-    assert!(matches!(engine.open(doc, len), FromEngine::Opened { needs_password: true, .. }));
-    assert!(matches!(engine.unlock(doc, "user-pw"), FromEngine::Unlocked { page_count, .. } if page_count as usize == expected.len()));
+    assert!(matches!(
+        engine.open(doc, len),
+        FromEngine::Opened {
+            needs_password: true,
+            ..
+        }
+    ));
+    assert!(
+        matches!(engine.unlock(doc, "user-pw"), FromEngine::Unlocked { page_count, .. } if page_count as usize == expected.len())
+    );
     assert_eq!(sizes(&engine.ask(|req| ToEngine::GetPageInfo { req, doc })), expected);
 }
 
@@ -277,5 +293,8 @@ fn a_tile_should_match_an_in_process_pdfium_render() {
     });
     let mut expected = vec![0; local.plan(&request).unwrap().byte_len()];
     local.render(&request, &mut expected, &CancelToken::new()).unwrap();
-    assert!(pixels == expected, "the engine's tile differs from the in-process render");
+    assert!(
+        pixels == expected,
+        "the engine's tile differs from the in-process render"
+    );
 }
