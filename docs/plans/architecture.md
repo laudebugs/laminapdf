@@ -63,7 +63,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | [0009](../decisions/0009-web-client-architecture.md) | Web client: React chrome + framework-free viewer core; typed worker RPC | Round C | Accepted |
 | [0010](../decisions/0010-platform-adapter.md) | Platform adapter and capability flags | Round C | Accepted |
 | [0011](../decisions/0011-cloudflare-topology-and-privacy.md) | Cloudflare topology, privacy/retention rules and the hosted service (accounts, cloud storage, sync) | Round C | Accepted (login stack by amendment after H1) |
-| 0008 | Desktop shell: Tauri 2, process model, tile transport, Linux fallback | Round D (after IPC spike) | Propose |
+| [0008](../decisions/0008-desktop-shell.md) | Desktop shell: Tauri 2, process model, tile transport, Linux fallback | Round D (after IPC spike) | Accepted |
 | 0014 | Desktop distribution: update Worker + R2, channels, signing (the owner as publisher), key custody | Round D | Propose |
 | [0024](../decisions/0024-app-shell-ux.md) | App shell UX: inverted-L layout, modes, one command registry, selection surfaces, page appearance modes, phone layout, token layers ([UI/UX plan](ui-ux.md)) | Round U (U1a) | Accepted |
 | 0025 | Mobile shell: Tauri 2 mobile vs UniFFI with native UI (after the `mobile-shell` spike) | Round U (U3b) | Defer |

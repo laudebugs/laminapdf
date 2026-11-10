@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# Tauri regenerates its schemas on every build (ADR 0008): not committed.
+src-tauri/gen/

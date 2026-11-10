@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](../done/C4a-ui-chrome-and-platform.md), [D1a](../done/D1a-desktop-ipc-spike.md), [D1b](../done/D1b-desktop-print-spike.md), [U6b](../done/U6b-self-hosted-fonts.md) |
+| Depends on | [C2a](./C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [D1a](./D1a-desktop-ipc-spike.md), [D1b](./D1b-desktop-print-spike.md), [U6b](./U6b-self-hosted-fonts.md) |
 | Dependency notes | [D1a](../done/D1a-desktop-ipc-spike.md), [D1b](../done/D1b-desktop-print-spike.md); web plan **C4** (`@laminapdf/ui` with the `Platform` interface, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and therefore ADR 0010 from web **C2** ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs)) |
 | ADRs | **Writes ADR 0008** (desktop shell). Implements ADR 0010 (Platform adapter) for desktop. Follows [0001](../../decisions/0001-core-language-and-licence.md), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/d2a-desktop-scaffold` |
 | PR title | `feat(desktop): add ADR 0008 and the Tauri 2 app scaffold` |
 | Size | L (600–1,500 lines incl. ADR, config, generated-schema exclusions) |
-| PR | — |
+| PR | [#379](https://github.com/laudebugs/laminapdf/pull/379) |
 
 ## Goal
 
@@ -54,23 +54,23 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 
 **Out of scope** (and which todo covers it)
 
-- Engine process and its protocol: [D2b](D2b-engine-process.md); OS sandboxing: [D2c](D2c-engine-sandbox.md).
-- Tile transport and opening a document: [D2d](D2d-tile-transport-and-first-document.md).
-- WebdriverIO e2e suite: [D2e](D2e-desktop-e2e-webdriverio.md) (this PR adds only a build job).
-- File associations, single-instance: [D3a](D3a-open-from-os.md). Menus: [D4b](D4b-native-menus.md). Updater: [D5b](D5b-updater-in-app.md). Bundling/signing: [D6b](D6b-release-workflow-and-linux-packages.md)–[D6d](D6d-windows-signing.md).
+- Engine process and its protocol: [D2b](../ready/D2b-engine-process.md); OS sandboxing: [D2c](../ready/D2c-engine-sandbox.md).
+- Tile transport and opening a document: [D2d](../ready/D2d-tile-transport-and-first-document.md).
+- WebdriverIO e2e suite: [D2e](../ready/D2e-desktop-e2e-webdriverio.md) (this PR adds only a build job).
+- File associations, single-instance: [D3a](../ready/D3a-open-from-os.md). Menus: [D4b](../ready/D4b-native-menus.md). Updater: [D5b](../ready/D5b-updater-in-app.md). Bundling/signing: [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md).
 
 ## Tasks
 
-- [ ] Bundle the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](../done/U6b-self-hosted-fonts.md)) in the desktop frontend (import `fonts.css`, preload `FONT_PRELOADS`: Lamina Sans, which is Source Sans 3 renamed, Latin 400); nothing is fetched at runtime.
-- [ ] Fresh worktree `feat-d2a-desktop-scaffold`; this todo is already claimed via the claim PR (see DoD), so do not move it here. Load `tauri-v2` and `rust-best-practices`.
-- [ ] Write `docs/decisions/0008-desktop-shell.md` using the ADR template in `docs/decisions/README.md`; cite D1a/D1b numbers and research sources; add it to the decisions index and the architecture §3 table.
-- [ ] `apps/desktop/package.json`: deps `@laminapdf/ui`, `@laminapdf/viewer` (workspace), `@tauri-apps/api@^2` (pinned via pnpm `catalog:`), devDeps `@tauri-apps/cli@^2`, `vite`, `@vitejs/plugin-react`; scripts `dev` (`vite`), `build` (`vite build`), `tauri` (`tauri`), `typecheck`, `test` (Vitest). Add `@tauri-apps/*` to the Dependabot group (ADR 0019).
-- [ ] `apps/desktop/vite.config.ts`: fixed port (`strictPort: true`, e.g. 1420), `clearScreen: false`, `envPrefix: ['VITE_', 'TAURI_ENV_*']`, `build.target` per `TAURI_ENV_PLATFORM` (`safari15`/`chrome105`), no sourcemaps in release.
-- [ ] `apps/desktop/src/platform/desktop.ts`: implement the ADR 0010 `Platform` interface; `isDesktop()` detection uses `isTauri()` from `@tauri-apps/api/core` once at startup, in the app entry only.
-- [ ] Root `Cargo.toml`: add `"apps/*/src-tauri"` to `[workspace] members` (keep `exclude = ["spikes", "fuzz"]`); confirm `cargo metadata --no-deps` lists `laminapdf-desktop` and that `cargo xtask check rust` (fmt, clippy, test) now covers it.
-- [ ] `apps/desktop/src-tauri/Cargo.toml`: `tauri = { workspace = true, features = [] }` (add `tauri`, `tauri-build`, plugins to `[workspace.dependencies]` with licence comments), `serde`, `serde_json`, `thiserror`, `tracing`; `[build-dependencies] tauri-build`.
-- [ ] `apps/desktop/src-tauri/build.rs`: `tauri_build::try_build(tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(&["app_info"])))` returning an error instead of panicking where possible.
-- [ ] `apps/desktop/src-tauri/tauri.conf.json`:
+- [x] Bundle the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](../done/U6b-self-hosted-fonts.md)) in the desktop frontend (import `fonts.css`, preload `FONT_PRELOADS`: Lamina Sans, which is Source Sans 3 renamed, Latin 400); nothing is fetched at runtime.
+- [x] Fresh worktree `feat-d2a-desktop-scaffold`; this todo is already claimed via the claim PR (see DoD), so do not move it here. Load `tauri-v2` and `rust-best-practices`.
+- [x] Write `docs/decisions/0008-desktop-shell.md` using the ADR template in `docs/decisions/README.md`; cite D1a/D1b numbers and research sources; add it to the decisions index and the architecture §3 table.
+- [x] `apps/desktop/package.json`: deps `@laminapdf/ui`, `@laminapdf/viewer` (workspace), `@tauri-apps/api@^2` (pinned via pnpm `catalog:`), devDeps `@tauri-apps/cli@^2`, `vite`, `@vitejs/plugin-react`; scripts `dev` (`vite`), `build` (`vite build`), `tauri` (`tauri`), `typecheck`, `test` (Vitest). Add `@tauri-apps/*` to the Dependabot group (ADR 0019).
+- [x] `apps/desktop/vite.config.ts`: fixed port (`strictPort: true`, e.g. 1420), `clearScreen: false`, `envPrefix: ['VITE_', 'TAURI_ENV_*']`, `build.target` per `TAURI_ENV_PLATFORM` (`safari15`/`chrome105`), no sourcemaps in release.
+- [x] `apps/desktop/src/platform/desktop.ts`: implement the ADR 0010 `Platform` interface; `isDesktop()` detection uses `isTauri()` from `@tauri-apps/api/core` once at startup, in the app entry only.
+- [x] Root `Cargo.toml`: add `"apps/*/src-tauri"` to `[workspace] members` (keep `exclude = ["spikes", "fuzz"]`); confirm `cargo metadata --no-deps` lists `laminapdf-desktop` and that `cargo xtask check rust` (fmt, clippy, test) now covers it.
+- [x] `apps/desktop/src-tauri/Cargo.toml`: `tauri = { workspace = true, features = [] }` (add `tauri`, `tauri-build`, plugins to `[workspace.dependencies]` with licence comments), `serde`, `serde_json`, `thiserror`, `tracing`; `[build-dependencies] tauri-build`.
+- [x] `apps/desktop/src-tauri/build.rs`: `tauri_build::try_build(tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(&["app_info"])))` returning an error instead of panicking where possible.
+- [x] `apps/desktop/src-tauri/tauri.conf.json`:
   - `productName: "Lamina"`, `version` read from `../package.json`, `identifier` (reverse-DNS of the owner's domain, e.g. `app.lamina.desktop` — **owner confirms**; it can never change without breaking updates, file associations and macOS permissions).
   - `build`: `devUrl: "http://localhost:1420"`, `frontendDist: "../dist"`, `beforeDevCommand: "pnpm dev"`, `beforeBuildCommand: "pnpm build"`.
   - `app.windows`: `[]` with windows created in Rust (`WebviewWindowBuilder`, label `main`) so labels are under our control for multi-window (D4a); `app.withGlobalTauri: false`.
@@ -78,23 +78,37 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
   - `app.security.headers` with COOP/COEP only if D1a found them working and needed; otherwise omit and note in ADR 0008.
   - `app.security.capabilities: ["main"]` — an **explicit list**. Tauri v2 enables every file in `./capabilities/` only when this list is unset or empty; once it is set, only the listed identifiers are used ([capabilities](https://v2.tauri.app/security/capabilities/), [config reference](https://v2.tauri.app/reference/config/)). We keep it explicit so a test-only capability file (D2e's `e2e.json`) can live in `capabilities/` without being enabled in release builds. Rule for every later todo: **adding a capability file means adding its identifier to this list in the same PR** (e.g. `settings` in D4b) — enforced by the guard test below.
   - `bundle.active: true`, `targets: []` for now (D6b sets them), `icon` set (placeholder icons generated with `pnpm tauri icon`), `category: "Productivity"`, `copyright`, `licenseFile` pointing to the repo licence.
-- [ ] `apps/desktop/src-tauri/capabilities/main.json`: `{"identifier":"main","windows":["main","doc-*"],"platforms":["macOS","windows","linux"],"permissions":["core:default","allow-app-info"]}` — `core:default` reviewed and trimmed if it grants anything the UI does not need (record in ADR 0008).
-- [ ] `apps/desktop/src-tauri/src/lib.rs`: `DesktopError` (`thiserror`, `impl serde::Serialize` as a tagged `{ kind, message }` so the UI can map errors), builder with plugins and `invoke_handler(tauri::generate_handler![commands::app_info])`, `setup` creating the `main` window, `run()` returns `Result`; `main.rs` logs and exits non-zero on error.
-- [ ] Generated `gen/schemas` committed or ignored consistently (Tauri regenerates them; ignore and document).
-- [ ] CI job `desktop-build` (matrix) in `.github/workflows/ci.yml` gated by path filter `apps/desktop/**`, `packages/**`, `crates/**`; actions pinned by SHA (ADR 0019); cache Cargo with the existing setup.
-- [ ] `apps/desktop/README.md`: how to run (`pnpm --filter @laminapdf/desktop tauri dev`), Linux prerequisites, layout.
-- [ ] Update `CLAUDE.md` layout tree (`apps/desktop`) and commands; `docs/decisions/README.md` index.
+- [x] `apps/desktop/src-tauri/capabilities/main.json`: `{"identifier":"main","windows":["main","doc-*"],"platforms":["macOS","windows","linux"],"permissions":["core:default","allow-app-info"]}` — `core:default` reviewed and trimmed if it grants anything the UI does not need (record in ADR 0008).
+- [x] `apps/desktop/src-tauri/src/lib.rs`: `DesktopError` (`thiserror`, `impl serde::Serialize` as a tagged `{ kind, message }` so the UI can map errors), builder with plugins and `invoke_handler(tauri::generate_handler![commands::app_info])`, `setup` creating the `main` window, `run()` returns `Result`; `main.rs` logs and exits non-zero on error.
+- [x] Generated `gen/schemas` committed or ignored consistently (Tauri regenerates them; ignore and document).
+- [x] CI job `desktop-build` (matrix) in `.github/workflows/ci.yml` gated by path filter `apps/desktop/**`, `packages/**`, `crates/**`; actions pinned by SHA (ADR 0019); cache Cargo with the existing setup.
+- [x] `apps/desktop/README.md`: how to run (`pnpm --filter @laminapdf/desktop tauri dev`), Linux prerequisites, layout.
+- [x] Update `CLAUDE.md` layout tree (`apps/desktop`) and commands; `docs/decisions/README.md` index.
 
 ## Acceptance criteria
 
-- [ ] ADR 0008 exists, is **Accepted**, cites D1a and D1b results, and records every item listed in Scope.
-- [ ] `pnpm --filter @laminapdf/desktop tauri dev` opens a window titled "Lamina" showing the `@laminapdf/ui` shell on macOS, Windows and Linux (screenshots in the PR).
-- [ ] The `desktop-build` CI job is green on all three OSes; `cargo xtask check` passes including clippy `-D warnings` on `laminapdf-desktop`.
-- [ ] Invoking any command not in the app manifest from the devtools console is rejected with a permission error (checked manually, noted in the PR); `invoke('plugin:dialog|open')` from the webview is rejected.
-- [ ] The root `Cargo.toml` `members` includes `"apps/*/src-tauri"`; `cargo metadata --no-deps --format-version 1` lists `laminapdf-desktop`.
-- [ ] The capability guard test passes and fails on purpose-built bad inputs (forbidden prefix, unlisted capability file, `e2e` in the base list, an e2e override that drops a base entry).
-- [ ] No `unwrap`/`expect`/`panic!` in `src-tauri/src` (clippy lints from the workspace enforce it).
-- [ ] `cargo deny check` passes; any new licence exception is justified in `deny.toml`.
+- [x] ADR 0008 exists, is **Accepted**, cites D1a and D1b results, and records every item listed in Scope.
+- [x] `pnpm --filter @laminapdf/desktop tauri dev` opens a window titled "Lamina PDF" showing the `@laminapdf/ui` shell on macOS, Windows and Linux (screenshots in the PR).
+- [x] The `desktop` CI job (full lane) is green on all three OSes; `cargo xtask check` passes including clippy `-D warnings` on `laminapdf-desktop`.
+- [x] Invoking any command not in the app manifest from the devtools console is rejected with a permission error (checked manually, noted in the PR); `invoke('plugin:dialog|open')` from the webview is rejected.
+- [x] The root `Cargo.toml` `members` includes `"apps/*/src-tauri"`; `cargo metadata --no-deps --format-version 1` lists `laminapdf-desktop`.
+- [x] The capability guard test passes and fails on purpose-built bad inputs (forbidden prefix, unlisted capability file, `e2e` in the base list, an e2e override that drops a base entry).
+- [x] No `unwrap`/`expect`/`panic!` in `src-tauri/src` (clippy lints from the workspace enforce it).
+- [x] `cargo deny check` passes; any new licence exception is justified in `deny.toml`.
+
+## As built
+
+Where the PR differs from the tasks above, and why:
+
+- **Name and identity:** "Lamina PDF" and `com.laminapdf.desktop` (owner, 2026-11-09), not "Lamina". The app's version is the crate's (the workspace's lockstep version), not `package.json`'s, which is a private 0.0.0 outside Changesets.
+- **`core:default` dropped:** the UI calls no core API yet, so `main.json` grants only `allow-app-info` (ADR 0008 §6).
+- **No `@laminapdf/viewer` dependency yet:** nothing renders a page until D2d.
+- **Linux packages:** the tree links only WebKitGTK 4.1 and D-Bus, so CI installs `libwebkit2gtk-4.1-dev libdbus-1-dev` (`.github/actions/linux-webkit`, built and tested on Ubuntu 22.04 in Docker); `libayatana-appindicator3-dev` and `librsvg2-dev` are for tray icons and bundling, which later todos add with them.
+- **CI:** the `desktop` job is in the full lane (per the CI-cost risk), filtered by `cargo xtask changes`' new `desktop` output, on `ubuntu-22.04`, `macos-15` and `windows-2025` (the repository's current hosted images; `macos-14` and `windows-2022` are older than every other job's).
+- **Notices:** `cargo xtask desktop-notices` writes the app's third-party notices with the MPL-2.0 text; D6b ships them in the installers.
+- **No mmap in the main process:** Scope item 2 says the main process does "mmap and watching"; ADR 0008 §2 follows the plan and D2b instead: positioned reads, since a mapped file that another app truncates crashes every window.
+- **`licenseFile`:** `tauri.conf.json` points at `LICENSE-MIT`, because Tauri takes one file; D6b's installers carry both licences with the notices.
+- **Added:** `cargo xtask check ts` refuses `isTauri` outside the desktop entry, so "in the app entry only" stays true; the first window shrinks to fit a small screen (the Windows runner's 1024 × 768 hid the status bar); ADR 0008 amends ADR 0010's `hasNativePrint` and `crossOriginIsolated` rows.
 
 ## Post-merge checks
 
@@ -126,8 +140,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

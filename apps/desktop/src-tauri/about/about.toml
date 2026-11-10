@@ -1,0 +1,23 @@
+# cargo-about (pinned in tools/xtask/src/doctor.rs): the desktop app's third-party notices,
+# written by `cargo xtask desktop-notices` and shipped in its installers (todos D6b–D6d). The
+# CLI's licences (crates/laminapdf-cli/about/about.toml) plus MPL-2.0, which Tauri's own
+# dependencies bring (selectors, cssparser, cssparser-macros, dtoa-short, option-ext: per-crate
+# exceptions in deny.toml, ADR 0019); MPL-2.0 asks that its text ship with the binary.
+# cargo-deny is the check; this only lists what the app contains.
+accepted = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "0BSD",
+    "Unicode-3.0",
+    "BSL-1.0",
+    "CC0-1.0",
+    "MPL-2.0",
+]
+# Only what ships in the binary: no dev- or build-only dependencies.
+ignore-dev-dependencies = true
+ignore-build-dependencies = true
