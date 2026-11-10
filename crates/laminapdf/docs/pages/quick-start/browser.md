@@ -1,7 +1,7 @@
 ---
 title: "Browser and bundlers"
 description: "Load @laminapdf/sdk in a web page through Vite or another bundler."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/quick-start/browser/"
 ---
 

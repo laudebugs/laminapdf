@@ -1,7 +1,7 @@
 ---
 title: "Open large files by ranges"
 description: "Open a PDF on a web server without downloading all of it, fetching only the byte ranges each read needs."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/guides/open-large-files/"
 ---
 

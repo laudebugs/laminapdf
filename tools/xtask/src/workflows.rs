@@ -448,35 +448,83 @@ mod tests {
         );
     }
 
-    /// Publishing the CLI takes all three of the owner's switches: the repository variable, a
-    /// `laminapdf-cli-v*` tag push (never a dispatch or a pull request) and the `release`
-    /// environment. It is the only job with an OIDC token, and the workflow reads no secret.
+    /// Publishing the CLI (the GitHub release, npm and the Homebrew tap) takes every one of the
+    /// owner's switches in each publish job: the repository variable, a `laminapdf-cli-v*` tag
+    /// push (never a dispatch or a pull request), every build passed, and the `release`
+    /// environment. Only the GitHub release and npm ask for an OIDC token, and the only secrets
+    /// read are the release bot's, in the job that pushes the formula to the tap.
     #[test]
     fn cli_release_should_publish_only_on_a_tag_push_with_the_owners_variable() {
-        let publish = lines_of(CLI_RELEASE, "jobs", "publish");
         let has = |lines: &[&str], want: &str| lines.iter().any(|l| l.trim() == want);
-        assert!(
-            has(
-                &publish,
-                "if: ${{ needs.global.result == 'success' && needs.build-linux.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}"
+        let gate = "needs.global.result == 'success' && needs.build.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}";
+        for (job, condition) in [
+            ("publish", format!("if: ${{{{ {gate}")),
+            ("publish-npm", format!("if: ${{{{ {gate}")),
+            (
+                "publish-homebrew",
+                format!("if: ${{{{ needs.publish.result == 'success' && {gate}"),
             ),
-            "publish must need the Linux builds, the tag push and LAMINA_PDF_PUBLISH_CLI"
-        );
-        assert!(
-            has(&publish, "environment: release"),
-            "publish must run in the release environment"
-        );
+        ] {
+            let lines = lines_of(CLI_RELEASE, "jobs", job);
+            assert!(
+                has(&lines, &condition),
+                "{job} must need every build, the tag push and LAMINA_PDF_PUBLISH_CLI"
+            );
+            assert!(
+                has(&lines, "environment: release"),
+                "{job} must run in the release environment"
+            );
+        }
         let with_oidc: Vec<&str> = jobs(CLI_RELEASE)
             .into_iter()
             .filter(|(_, lines)| has(lines, "id-token: write"))
             .map(|(id, _)| id)
             .collect();
-        assert_eq!(with_oidc, ["publish"], "only publish may ask for an OIDC token");
-        assert!(!CLI_RELEASE.contains("secrets."), "cli-release.yml must store no token");
+        assert_eq!(
+            with_oidc,
+            ["publish", "publish-npm"],
+            "only the GitHub release and npm may ask for an OIDC token"
+        );
+        for (id, lines) in jobs(CLI_RELEASE) {
+            for line in lines.iter().filter(|l| l.contains("secrets.")) {
+                assert!(
+                    id == "publish-homebrew"
+                        && (line.contains("secrets.RELEASE_APP_ID")
+                            || line.contains("secrets.RELEASE_APP_PRIVATE_KEY")),
+                    "{id} reads a secret: {line}; only publish-homebrew may, and only the release bot's"
+                );
+            }
+        }
         assert!(
             has(&lines_of(CLI_RELEASE, "on", "push"), "tags: [\"laminapdf-cli-v*\"]"),
             "only CLI tags may trigger a push run"
         );
+    }
+
+    /// Every target dist-workspace.toml lists is built: a release is all eight or nothing.
+    #[test]
+    fn cli_release_should_build_every_target_dist_lists() {
+        let dist = include_str!("../../../dist-workspace.toml");
+        let list = dist
+            .split("targets = [")
+            .nth(1)
+            .and_then(|rest| rest.split(']').next())
+            .unwrap_or_default();
+        let targets: Vec<&str> = list
+            .lines()
+            .filter_map(|l| {
+                let entry = l.trim().trim_end_matches(',');
+                entry.strip_prefix('"').and_then(|t| t.strip_suffix('"'))
+            })
+            .collect();
+        assert_eq!(targets.len(), 8, "dist-workspace.toml lists {targets:?}");
+        let build = lines_of(CLI_RELEASE, "jobs", "build");
+        for target in targets {
+            assert!(
+                build.iter().any(|l| l.contains(&format!("target: {target},"))),
+                "the build matrix has no {target}"
+            );
+        }
     }
 
     /// A dispatch builds everything as a dry run, pull requests only plan, and every job runs on

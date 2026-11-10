@@ -1,7 +1,7 @@
 ---
 title: "Glossary"
 description: "The PDF and Lamina PDF terms the docs use, each in a sentence or two."
-version: "0.2.0-alpha.4"
+version: "0.2.0-alpha.5"
 url: "https://docs.laminapdf.com/reference/glossary/"
 ---
 
