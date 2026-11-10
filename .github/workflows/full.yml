@@ -221,8 +221,43 @@ jobs:
       # The frontend imports the built @laminapdf/ui, tokens, fonts and icons.
       - name: Build the packages the frontend imports
         run: pnpm --filter "@laminapdf/desktop^..." run build
-      - name: Build the app (tauri build --debug --no-bundle)
-        run: pnpm --filter @laminapdf/desktop tauri build --debug --no-bundle
+      # desktop:build merges tauri.bundle.conf.json, whose beforeBuildCommand runs
+      # `cargo xtask desktop-sidecar` (the engine, and PDFium from its pinned, hash-checked release).
+      - name: Build the app with its engine and PDFium (tauri build --debug --no-bundle)
+        run: pnpm --filter @laminapdf/desktop run desktop:build --debug --no-bundle
+      # Tauri copied the sidecar and the resources next to the app: neither may be missing or empty.
+      - name: Check the engine and PDFium are next to the app
+        shell: bash
+        run: |
+          set -euo pipefail
+          exe=""
+          if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
+          test -s "target/debug/laminapdf-desktop-engine$exe"
+          find target/debug/pdfium -maxdepth 1 -type f \( -name '*.dylib' -o -name '*.so' -o -name '*.dll' \) -size +1M | grep -q .
+      # ADR 0008 §3: the main process never links the parser or PDFium. Exact names: the app and
+      # the protocol crate are expected.
+      - name: Check the main process links no parser or renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=$(cargo tree --locked -p laminapdf-desktop -e normal --prefix none --format '{p}' \
+            | awk '{print $1}' | sort -u \
+            | grep -Fx -e laminapdf -e laminapdf-render -e laminapdf-render-pdfium -e laminapdf-desktop-engine -e pdfium-render || true)
+          if [ -n "$found" ]; then
+            echo "::error::laminapdf-desktop depends on $found"
+            exit 1
+          fi
+      # ADR 0008 §8: only builds with the `e2e` feature have the end-to-end tests' commands.
+      - name: Check the build has no end-to-end command
+        shell: bash
+        run: |
+          set -euo pipefail
+          exe=""
+          if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
+          if grep -aq debug_kill_engine "target/debug/laminapdf-desktop$exe"; then
+            echo "::error::the app holds debug_kill_engine without the e2e feature"
+            exit 1
+          fi
 
   # The whole `cargo xtask check` on Windows x64 (todo X6): the docs, Rust and TypeScript checks,
   # where the fast lane's Windows legs run only `check rust`. It catches what only Windows breaks:

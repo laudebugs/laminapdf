@@ -1,6 +1,16 @@
 //! The app commands the webview may call, each allowed by name in `capabilities/main.json`.
+//!
+//! The webview names documents by id and never sends a path; the calling window comes from
+//! Tauri, not from the webview's arguments, so a window reaches only its own documents.
 
+use std::sync::Arc;
+
+use laminapdf_desktop_protocol::DocId;
 use serde::Serialize;
+use tauri_plugin_dialog::DialogExt as _;
+
+use crate::DesktopError;
+use crate::engine::{DocumentMeta, Engines, PageMeta};
 
 /// What `app_info` reports: enough for an About box and a bug report, nothing about documents.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -37,6 +47,73 @@ impl AppInfo {
 )]
 pub(crate) fn app_info(app: tauri::AppHandle) -> AppInfo {
     AppInfo::current(&app.package_info().version.to_string())
+}
+
+/// Lets the user pick a PDF, opens it in this window's engine and returns its pages; `None` when
+/// the user cancels. The dialog runs from Rust, so the path never reaches the webview.
+#[tauri::command]
+pub(crate) async fn open_dialog(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+) -> Result<Option<DocumentMeta>, DesktopError> {
+    let engines = Arc::clone(&engines);
+    // The dialog and the engine's replies block: off the async runtime's threads.
+    tauri::async_runtime::spawn_blocking(move || {
+        let picked = window
+            .dialog()
+            .file()
+            .set_parent(&window)
+            .add_filter("PDF", &["pdf"])
+            .blocking_pick_file();
+        let Some(picked) = picked else {
+            return Ok(None);
+        };
+        let path = picked
+            .into_path()
+            .map_err(|error| DesktopError::Internal(error.to_string()))?;
+        engines.open(window.label(), &path).map(Some)
+    })
+    .await
+    .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// Every page's size of one of this window's documents.
+#[tauri::command]
+pub(crate) async fn page_info(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<Vec<PageMeta>, DesktopError> {
+    let engines = Arc::clone(&engines);
+    tauri::async_runtime::spawn_blocking(move || engines.page_info(window.label(), DocId(doc)))
+        .await
+        .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// Closes one of this window's documents: the engine forgets it, its file closes and its kept
+/// password is wiped.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its window and state by value"
+)]
+pub(crate) fn close_document(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<(), DesktopError> {
+    engines.close(window.label(), DocId(doc))
+}
+
+/// Kills this window's engine as a crash would (end-to-end tests only, feature `e2e`).
+#[cfg(feature = "e2e")]
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its window and state by value"
+)]
+pub(crate) fn debug_kill_engine(window: tauri::WebviewWindow, engines: tauri::State<'_, Arc<Engines>>) {
+    engines.kill(window.label());
 }
 
 #[cfg(test)]

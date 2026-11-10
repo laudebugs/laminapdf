@@ -1,4 +1,5 @@
 import { firefoxProvider } from "@laminapdf/test-utils/firefox";
+import { retryOnceAndReport } from "@laminapdf/test-utils/flaky";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
@@ -9,6 +10,7 @@ const firefox = firefoxProvider(new URL("./", import.meta.url));
 
 export default defineConfig({
   test: {
+    ...retryOnceAndReport(),
     include: ["test/browser/*.browser.test.ts"],
     browser: {
       enabled: true,
