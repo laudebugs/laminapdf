@@ -11,7 +11,7 @@
 | Branch | `feat/t4i-build-command-and-bindings` |
 | PR title | `feat(cli): laminapdf build for Markdown, its MCP tool and the TypeScript markdown call` |
 | Size | L (≈ 550–700 lines: the command and its report, the MCP tool, the WebAssembly and TypeScript calls, the TypeScript example; schemas and goldens don't count) |
-| PR | — |
+| PR | [#409](https://github.com/laudebugs/laminapdf/pull/409) |
 
 ## Goal
 
