@@ -13,7 +13,7 @@
 import { execFileSync } from "node:child_process";
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve, win32 } from "node:path";
 import process from "node:process";
 import { parseArgs } from "node:util";
 import { binaryName, type Platform } from "../../packages/cli/src/platform.ts";
@@ -78,18 +78,29 @@ function archiveFor(dir: string, platform: Platform): string | undefined {
  * Linux runner's, reads no zip, so a Windows `.zip` goes to unzip there; bsdtar (macOS,
  * Windows) reads both.
  */
-export function unpackCommand(archive: string, dir: string, host: string): [string, string[]] {
-  if (archive.endsWith(".zip") && host !== "darwin" && host !== "win32") {
-    return ["unzip", ["-q", archive, "-d", dir]];
-  }
+export function unpackCommand(
+  archive: string,
+  dir: string,
+  host: string,
+  systemRoot = process.env.SystemRoot ?? "C:\\Windows",
+): [string, string[]] {
+  // Windows' own bsdtar by full path: under Git Bash, PATH finds Git's GNU tar first.
+  if (host === "win32") return [win32.join(systemRoot, "System32", "tar.exe"), ["-xf", archive, "-C", dir]];
+  if (archive.endsWith(".zip") && host !== "darwin") return ["unzip", ["-q", archive, "-d", dir]];
   return ["tar", ["-xf", archive, "-C", dir]];
+}
+
+/** The folder of an unpacked archive that holds its files: dist's top folder, or the root of a flat zip. */
+function archiveRoot(unpacked: string, platform: Platform): string {
+  const folder = join(unpacked, `laminapdf-cli-${platform.target}`);
+  return existsSync(join(folder, binaryName(platform))) ? folder : unpacked;
 }
 
 function writePlatform(platform: Platform, archive: string, out: string, version: string): void {
   const unpacked = mkdtempSync(join(tmpdir(), "laminapdf-cli-"));
   try {
     execFileSync(...unpackCommand(archive, unpacked, process.platform));
-    const from = join(unpacked, `laminapdf-cli-${platform.target}`);
+    const from = archiveRoot(unpacked, platform);
     const dir = join(out, folderName(platform));
     mkdirSync(join(dir, "bin"), { recursive: true });
     cpSync(join(from, binaryName(platform)), join(dir, "bin", binaryName(platform)));
@@ -117,9 +128,18 @@ function writeWrapper(out: string, all: Platform[], version: string): void {
   writeFileSync(join(dir, "package.json"), `${JSON.stringify(wrapperManifest(base, all, version), null, 2)}\n`);
 }
 
-/** The npm dist-tag for `version`: its pre-release identifier (`alpha` for `0.2.0-alpha.1`), else `latest`. */
+/**
+ * The npm dist-tag for `version`: its pre-release identifier (`alpha` for `0.2.0-alpha.1`), or
+ * `latest` for a release. A pre-release with no word to tag it by (`1.0.0-0.3`) is refused, since
+ * tagging it `latest` would hand it to every `npm install`.
+ */
 export function distTag(version: string): string {
-  return /^\d+\.\d+\.\d+-([a-z]+)/.exec(version)?.[1] ?? "latest";
+  const match = /^\d+\.\d+\.\d+(?:-([0-9A-Za-z.-]+))?$/.exec(version);
+  if (match === null) throw new Error(`not a version: ${version}`);
+  if (match[1] === undefined) return "latest";
+  const word = /^([a-z]+)/.exec(match[1])?.[1];
+  if (word === undefined) throw new Error(`pre-release ${version} names no dist-tag (want e.g. -alpha.1)`);
+  return word;
 }
 
 /** One package in publish.json: its name and its tarball's file name. */
@@ -143,11 +163,10 @@ function pack(out: string, folders: readonly string[], version: string): void {
   const packs = join(out, "packs");
   mkdirSync(packs, { recursive: true });
   const packed = folders.map((folder) => {
+    // Only `global`, on Linux, packs.
     const json = execFileSync("npm", ["pack", "--json", "--pack-destination", packs], {
       cwd: join(out, folder),
       encoding: "utf8",
-      // npm is npm.cmd on Windows, which only a shell runs.
-      shell: process.platform === "win32",
     });
     const [result] = JSON.parse(json) as { name: string; filename: string }[];
     if (result === undefined) throw new Error(`npm pack wrote nothing for ${folder}`);

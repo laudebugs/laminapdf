@@ -171,6 +171,8 @@ jobs:
           dist build --tag "$TAG" --artifacts=local --target "$TARGET" --output-format=json > "$RUNNER_TEMP/manifest.json"
           # `global` reads each build's checksums from these manifests (dist's own CI does the same).
           cp "$RUNNER_TEMP/manifest.json" "$distrib/$TARGET-dist-manifest.json"
+          # Later actions run in Node, which reads C:/... but not Git Bash's /d/... paths.
+          if command -v cygpath >/dev/null; then distrib=$(cygpath -m "$distrib"); fi
           echo "DISTRIB=$distrib" >> "$GITHUB_ENV"
       - name: The archive installs and runs
         run: tools/cli-release/archive-test.sh "$DISTRIB/laminapdf-cli-$TARGET.$ARCHIVE_EXT" fixtures/golden/examples/hello.pdf
@@ -277,6 +279,13 @@ jobs:
         run: |
           pnpm --filter @laminapdf/cli build
           node tools/cli-release/generate.ts --artifacts "$DISTRIB" --out target/cli-npm --pack
+      # A release publishes every platform package (platforms.json) and the wrapper.
+      - name: A tag push packs every npm package
+        if: github.event_name == 'push'
+        run: |
+          want=$(( $(jq length packages/cli/platforms.json) + 1 ))
+          got=$(jq '.packages | length' target/cli-npm/packs/publish.json)
+          [ "$got" -eq "$want" ] || { echo "::error::publish.json lists $got packages, not $want"; exit 1; }
       # cargo-cyclonedx writes one SBOM per workspace member; keep the CLI's.
       - name: CycloneDX SBOM
         run: |
@@ -327,17 +336,24 @@ jobs:
           subject-path: |
             ${{ runner.temp }}/cli-release/laminapdf-cli-*.tar.xz
             ${{ runner.temp }}/cli-release/laminapdf-cli-*.zip
+      # A re-run finds the release it made and uploads the files again, so publish-homebrew can follow.
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          gh release create "$TAG" --repo "$REPO" --verify-tag --prerelease --title "$TAG" \
-            --notes "The laminapdf command-line tool, ${TAG#laminapdf-cli-v}." \
-            "$RUNNER_TEMP"/cli-release/*
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$REPO" --clobber "$RUNNER_TEMP"/cli-release/*
+          else
+            gh release create "$TAG" --repo "$REPO" --verify-tag --prerelease --title "$TAG" \
+              --notes "The laminapdf command-line tool, ${TAG#laminapdf-cli-v}." \
+              "$RUNNER_TEMP"/cli-release/*
+          fi
 
   # npm's trusted publishing accepts only cloud-hosted runners (ADR 0017 §7): no checkout, the
-  # packed tarballs only, each value in publish.json checked before it reaches a command.
+  # packed tarballs only, each value in publish.json checked before it reaches a command. Unlike
+  # release.yml's publish-npm, it runs in the `release` environment, so each package's trusted
+  # publisher names that environment (tools/release/README.md); the environment has no reviewers.
   publish-npm:
     name: Publish the npm packages
     needs: [plan, build, global]
@@ -373,7 +389,7 @@ jobs:
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || fail "publish.json's version: $version"
           [ "$TAG" = "laminapdf-cli-v$version" ] || fail "publish.json is $version, the tag $TAG"
           [[ "$dist_tag" =~ ^[a-z]+$ ]] || fail "publish.json's dist-tag: $dist_tag"
-          [ "$(grep -c . <<<"$entries")" -eq 9 ] || fail "publish.json lists $(grep -c . <<<"$entries") packages, not nine"
+          [ -n "$entries" ] || fail "publish.json lists no packages"
           while read -r name tarball; do
             [[ "$name" =~ ^@laminapdf/cli(-[a-z0-9-]+)?$ ]] || fail "publish.json's package name: $name"
             [[ "$tarball" =~ ^[a-z0-9.-]+\.tgz$ && -f "$tarball" ]] || fail "publish.json's tarball for $name: $tarball"
@@ -421,8 +437,12 @@ jobs:
           path=Formula/laminapdf.rb
           formula="$RUNNER_TEMP/cli-release/laminapdf.rb"
           grep -q "laminapdf-cli-v" "$formula" || { echo "::error::laminapdf.rb names no release"; exit 1; }
-          # The file's current blob, if any: the contents API replaces a file only when given it.
-          sha=$(gh api "repos/laudebugs/homebrew-tap/contents/$path" --jq .sha 2>/dev/null || true)
+          # The file's current blob: the contents API replaces a file only when given it. Only a 404
+          # means the file is new; any other error (the bot not installed on the tap) stops here.
+          if ! sha=$(gh api "repos/laudebugs/homebrew-tap/contents/$path" --jq .sha 2> "$RUNNER_TEMP/sha.err"); then
+            grep -q "HTTP 404" "$RUNNER_TEMP/sha.err" || { cat "$RUNNER_TEMP/sha.err"; exit 1; }
+            sha=
+          fi
           args=(-X PUT "repos/laudebugs/homebrew-tap/contents/$path"
             -f message="laminapdf ${TAG#laminapdf-cli-v}"
             -f content="$(base64 -w0 "$formula")")

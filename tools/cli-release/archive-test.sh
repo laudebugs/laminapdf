@@ -25,9 +25,10 @@ case $archive in
   *.zip) unzip -q "$archive" -d "$work"; binary=laminapdf.exe ;;
   *) tar -xf "$archive" -C "$work"; binary=laminapdf ;;
 esac
-# dist puts the files in one folder named after the archive.
-dir=$(find "$work" -mindepth 1 -maxdepth 1 -type d)
-[ -n "$dir" ] || dir=$work
+# dist puts the files in one folder named after the archive, or at the top of a flat zip.
+found=$(find "$work" -maxdepth 2 -type f -name "$binary" | head -n 1)
+[ -n "$found" ] || { echo "$(basename "$archive") lacks $binary"; exit 1; }
+dir=$(dirname "$found")
 for file in "$binary" LICENSE-MIT LICENSE-APACHE THIRD_PARTY_NOTICES.md man/laminapdf.1 completions/laminapdf.bash; do
   [ -s "$dir/$file" ] || { echo "$(basename "$archive") lacks $file"; exit 1; }
 done

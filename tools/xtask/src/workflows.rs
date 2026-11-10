@@ -510,7 +510,10 @@ mod tests {
             .unwrap_or_default();
         let targets: Vec<&str> = list
             .lines()
-            .filter_map(|l| l.trim().strip_prefix('"').and_then(|t| t.strip_suffix("\",")))
+            .filter_map(|l| {
+                let entry = l.trim().trim_end_matches(',');
+                entry.strip_prefix('"').and_then(|t| t.strip_suffix('"'))
+            })
             .collect();
         assert_eq!(targets.len(), 8, "dist-workspace.toml lists {targets:?}");
         let build = lines_of(CLI_RELEASE, "jobs", "build");

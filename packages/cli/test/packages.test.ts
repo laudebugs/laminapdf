@@ -76,8 +76,15 @@ describe("unpackCommand", () => {
     expect(unpackCommand("a.zip", "out", "linux")).toEqual(["unzip", ["-q", "a.zip", "-d", "out"]]);
   });
 
-  it.each(["darwin", "win32"])("leaves a zip to bsdtar on %s", (host) => {
-    expect(unpackCommand("a.zip", "out", host)).toEqual(["tar", ["-xf", "a.zip", "-C", "out"]]);
+  it("leaves a zip to bsdtar on macOS", () => {
+    expect(unpackCommand("a.zip", "out", "darwin")).toEqual(["tar", ["-xf", "a.zip", "-C", "out"]]);
+  });
+
+  it("calls Windows' own tar by its full path, ahead of Git Bash's GNU tar on PATH", () => {
+    expect(unpackCommand("a.zip", "out", "win32", "C:\\Windows")).toEqual([
+      "C:\\Windows\\System32\\tar.exe",
+      ["-xf", "a.zip", "-C", "out"],
+    ]);
   });
 
   it("unpacks .tar.xz with tar everywhere", () => {
@@ -90,6 +97,10 @@ describe("publish.json", () => {
     expect(distTag("0.2.0-alpha.4")).toBe("alpha");
     expect(distTag("1.0.0-beta.1")).toBe("beta");
     expect(distTag("1.0.0")).toBe("latest");
+  });
+
+  it("refuses a pre-release with no word to tag it by, which would otherwise go out as latest", () => {
+    expect(() => distTag("1.0.0-0.3")).toThrow(/names no dist-tag/);
   });
 
   it("publishes the platform packages before the wrapper that depends on them", () => {
