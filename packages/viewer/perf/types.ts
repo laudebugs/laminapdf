@@ -50,6 +50,16 @@ export interface FindTiming {
   readonly total: number;
 }
 
+/** One edit on screen: the page in view turned a quarter, from the call to its pixels. */
+export interface EditTiming {
+  /** ms until the edit's call answered: the transaction, the save into memory and the reopen. */
+  readonly applyMs: number;
+  /** ms until the turned page's first new pixels were drawn (its quick pass). */
+  readonly firstTileMs: number;
+  /** ms until it was sharp again. */
+  readonly sharpMs: number;
+}
+
 /** `globalThis.__laminaPerf`. */
 export interface PerfHook {
   /** With `?open=<name>`: ms from navigation start until the first page painted (null until then). */
@@ -60,6 +70,8 @@ export interface PerfHook {
   /** Finds `query` in the open file from its current page; resolves once every page is searched. */
   find(query: string): Promise<FindTiming>;
   goToPage(index: number): void;
+  /** Turns the page in view a quarter through the viewer (`viewer.applyEdit`) and times its redraw. */
+  edit(): Promise<EditTiming>;
   /** The scroll position and its largest value, in CSS px. */
   scroll(): { readonly top: number; readonly max: number };
   record(): void;

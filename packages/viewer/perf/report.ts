@@ -2,7 +2,7 @@
 // (docs/plans/web-app.md, "Non-functional"), the Markdown summary, and the figures the nightly
 // history keeps (`cargo xtask viewer-perf --record`). The checks inform; nothing here fails a run.
 
-import type { Counters, FindTiming, MemorySample, Recording } from "./types.ts";
+import type { Counters, EditTiming, FindTiming, MemorySample, Recording } from "./types.ts";
 
 /** The §4 targets. */
 export const TARGETS = {
@@ -16,6 +16,8 @@ export const TARGETS = {
   memoryBytes: 600 * 1024 * 1024,
   /** The second pass may end at most this much above the first (the plan's "stable"). */
   memoryGrowth: 0.05,
+  /** An edit on the 100-page file, to the page's first new pixels (the E1 plan's §6 budget). */
+  editFirstTileMs: 150,
 } as const;
 
 /** The machine a run took its numbers on (official numbers come from the reference machine). */
@@ -55,6 +57,8 @@ export interface BrowserResult {
    * the view scrolls.
    */
   readonly find: { readonly common: FindTiming; readonly rare: FindTiming; readonly recording: Recording };
+  /** The page in view turned a quarter in files of 10, 100 and 1,000 pages: each one's median turn. */
+  readonly edit: readonly (EditTiming & { readonly pages: number })[];
   /**
    * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
    * touch budgets), against those budgets; null in a browser without one (Firefox).
@@ -146,6 +150,7 @@ export function checks(result: BrowserResult): Check[] {
     },
     { name: "Cancelled renders that painted", target: "0", value: String(painted), pass: painted === 0 },
     ...findChecks(result),
+    editCheck(result),
     mobileMemory(result),
     {
       name: "Zoom bursts: longest frame, slowest to sharp",
@@ -175,6 +180,17 @@ function findChecks({ find }: BrowserResult): Check[] {
     },
     { ...longestTaskOf(find.recording), name: "Longest main-thread task while finding and scrolling" },
   ];
+}
+
+/** An edit to the page's first new pixels per file size, against the plan's budget at 100 pages. */
+function editCheck({ edit }: BrowserResult): Check {
+  const hundred = edit.find((e) => e.pages === 100);
+  return {
+    name: `Edit to the page redrawn, ${edit.map((e) => e.pages.toLocaleString("en")).join(" / ")} pages`,
+    target: `≤ ${ms(TARGETS.editFirstTileMs)} at 100 pages`,
+    value: edit.map((e) => ms(e.firstTileMs)).join(" / "),
+    pass: hundred === undefined ? null : hundred.firstTileMs <= TARGETS.editFirstTileMs,
+  };
 }
 
 /** The phone's canvases and bitmaps at their peak, against the budgets the viewer gives that device. */
@@ -238,6 +254,7 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
   if (result.firstPage.coldMs !== null) entries["first-page-cold"] = ns(result.firstPage.coldMs);
   if (result.firstPage.coldLinkMs !== null) entries["first-page-cold-link"] = ns(result.firstPage.coldLinkMs);
   if (result.find.common.firstResultMs !== null) entries["find-first-result"] = ns(result.find.common.firstResultMs);
+  for (const { pages, firstTileMs } of result.edit) entries[`edit-first-tile-${pages}`] = ns(firstTileMs);
   if (result.mobile !== null) {
     entries["mobile-memory-peak-bytes"] = Math.round(
       result.mobile.peakMemory.canvases + result.mobile.peakMemory.bitmaps,

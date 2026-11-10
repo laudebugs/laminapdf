@@ -37,6 +37,11 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
       rare: { firstResultMs: 2600, fullMs: 3300, total: 1 },
       recording: recording(),
     },
+    edit: [
+      { pages: 10, applyMs: 20, firstTileMs: 40, sharpMs: 90 },
+      { pages: 100, applyMs: 30, firstTileMs: 60, sharpMs: 110 },
+      { pages: 1000, applyMs: 80, firstTileMs: 120, sharpMs: 170 },
+    ],
     mobile: {
       device: "Pixel 8",
       peakMemory: { ...memory(150 * MB), canvases: 80 * MB, bitmaps: 60 * MB },
@@ -47,6 +52,24 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
 }
 
 const byName = (r: BrowserResult) => Object.fromEntries(checks(r).map((c) => [c.name, c]));
+
+describe("edit check", () => {
+  const name = "Edit to the page redrawn, 10 / 100 / 1,000 pages";
+
+  it("lists each file's figure and checks the 100-page one against the plan's budget", () => {
+    expect(byName(result())[name]).toMatchObject({ value: "40 ms / 60 ms / 120 ms", pass: true });
+    const slow = result({ edit: [{ pages: 100, applyMs: 100, firstTileMs: 151, sharpMs: 200 }] });
+    expect(checks(slow).find((c) => c.name.startsWith("Edit"))?.pass).toBe(false);
+  });
+
+  it("keeps each file's figure in the history", () => {
+    expect(historyEntries(result())).toMatchObject({
+      "edit-first-tile-10": 40e6,
+      "edit-first-tile-100": 60e6,
+      "edit-first-tile-1000": 120e6,
+    });
+  });
+});
 
 describe("find checks", () => {
   it("checks the first result and the full pass against §4", () => {
@@ -174,6 +197,9 @@ describe("historyEntries", () => {
       "find-first-result": 40_000_000,
       "memory-peak-bytes": 300 * MB,
       "mobile-memory-peak-bytes": 140 * MB,
+      "edit-first-tile-10": 40_000_000,
+      "edit-first-tile-100": 60_000_000,
+      "edit-first-tile-1000": 120_000_000,
     });
     expect(historyEntries(result({ firstPage: { warmMs: 1, coldMs: null, coldLinkMs: null } }))).not.toHaveProperty(
       "first-page-cold",
