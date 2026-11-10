@@ -134,7 +134,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** keyboard map and help dialog, focus management, ARIA landmarks, high contrast and dark mode; service worker and web app manifest (with `file_handlers`); performance budgets enforced in CI; ADR 0011 privacy page published; public release `web v0.1`.
 **Accepted when:** axe shows zero serious violations; a manual NVDA, VoiceOver and keyboard-only pass is recorded; the app works offline after first load; Lighthouse PWA installability passes; performance targets in §4 are met on the reference machine.
-**Todos:** [C7a](../todos/done/C7a-accessibility-and-theming.md), [C7b](../todos/done/C7b-offline-pwa.md), [C7c](../todos/done/C7c-performance-gates-and-launch.md), [C7d](../todos/done/C7d-cold-first-page.md)
+**Todos:** [C7a](../todos/done/C7a-accessibility-and-theming.md), [C7b](../todos/done/C7b-offline-pwa.md), [C7c](../todos/done/C7c-performance-gates-and-launch.md), [C7d](../todos/done/C7d-cold-first-page.md), [C7e](../todos/done/C7e-automated-web-releases.md)
 
 ## 7. Risks
 
