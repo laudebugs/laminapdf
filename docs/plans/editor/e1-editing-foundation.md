@@ -2,7 +2,7 @@
 
 **Status:** Draft
 
-The first editor round turns the web reader into an editor that can change a document, undo the change and save it safely. It does this with the smallest set of edits that touch every layer: the document's metadata (title, authors, subject, keywords, dates, producer and creator) and the page rotation that already exists. Each later round adds its tools to what this one builds: the edit session, the undo history, the save path, the banner that says what saving will do to a signed or repaired file, and the in-app page that shows what Lamina PDF can edit.
+The first editor round turns the web reader into an editor that can change a document, undo the change and save it safely. It does this with the smallest set of edits that touch every layer: the document's metadata (title, authors, subject, keywords, dates, producer and creator) and the page rotation that already exists. Each later round adds its tools to what this one builds: the edit session, the undo history and the save path. It also builds the strip that says what saving will do to a signed or repaired file, and the in-app page that shows what Lamina PDF can edit.
 
 - **Round:** [full-editor §E1](../full-editor.md#e1-editing-foundation), phase 2, milestone M5 Organiser
 - **Feature-plan todo:** [E1a](../../todos/done/E1a-editing-foundation-feature-plan.md)
@@ -90,7 +90,7 @@ The document worker owns one edit session per open document: the Lamina PDF mode
 
 PDFium draws the pages from the bytes it opened, so the model's edits must reach it as bytes. After each committed transaction that touches pages, the worker writes an incremental update of the model to memory, reopens PDFium's document from the new bytes and tells the viewer which pages to redraw. The viewer gains a way to drop one page's bitmaps and to change a page's size, since a rotation swaps its width and height. Metadata edits touch no page, so they redraw nothing. Undo and redo redraw the pages the undone transaction touched.
 
-This is the [two parsers path](../architecture.md#6-risks) the architecture plan names as a risk. E1 measures it: the time from `apply` to the first redrawn tile, per document size, in the viewer's performance harness, against a proposed budget of 150 ms for a 100-page file, which E1g confirms or adjusts from what it measures. A miss on large files is acceptable in E1 if it is measured and reported, and E2 then decides whether to reload only touched pages or to render from Lamina PDF's own model. The work is its own todo ([E1g](../../todos/ready/E1g-redraw-after-edit.md)), so E1d can build on it.
+This reload is the [two parsers path](../architecture.md#6-risks) the architecture plan names as a risk. E1 measures the time from `apply` to the first redrawn tile, per document size, in the viewer's performance harness. The proposed budget is 150 ms for a 100-page file, which E1g confirms or adjusts from what it measures. A miss on large files is acceptable in E1 if it is measured and reported, and E2 then decides whether to reload only touched pages or to render from Lamina PDF's own model. The work is its own todo ([E1g](../../todos/ready/E1g-redraw-after-edit.md)), so E1d can build on it.
 
 ## 7. Saving and the save constraint
 
@@ -105,7 +105,7 @@ Every save plans first ([full-editor §5](../full-editor.md#5-requirements-that-
 | `RequiresRewrite`: encrypted base | Password-protected | Save is refused (`encrypted-base`) until E11 can encrypt on write; Download a copy of the original still works | A warning strip that names the reason and offers saving without the password, after a confirmation |
 | `Conflict` | Ops in the session that the constraint forbids | Save is refused; Save as invalidating the signatures, after a confirmation | A danger strip with the conflicting changes and a way to undo them |
 
-This corrects [full-editor §E1](../full-editor.md#e1-editing-foundation), which said metadata edits are allowed on signed files as incremental updates. That holds for approval signatures and locks, not for certified files. The certification-attack research (Rohlmann, Mladenov, Mainka and Schwenk, IEEE S&P 2021) shows how far viewers' readings of the allowed changes differ, so the planner follows the specification's list strictly.
+This table corrects [full-editor §E1](../full-editor.md#e1-editing-foundation), which said metadata edits are allowed on signed files as incremental updates. That holds for approval signatures and locks, not for certified files. The certification-attack research (Rohlmann, Mladenov, Mainka and Schwenk, IEEE S&P 2021) shows how far viewers' readings of the allowed changes differ, so the planner follows the specification's list strictly.
 
 **Where the bytes go.** The `Platform` decides, never the interface ([ADR 0010](../../decisions/0010-platform-adapter.md)):
 
@@ -159,7 +159,7 @@ E1b and E1g can start as soon as this plan merges, in parallel. The round's web 
 - **Signatures:** the planner's verdict for each signed fixture; an approval-signed file edited and saved keeps a valid signature in pyHanko's validator.
 - **Fuzz:** a target over the XMP reader, 10 minutes in the nightly lane.
 - **Undo:** each edit undone saves byte-identical to the original.
-- **e2e (Playwright, three browsers):** rotate a page, undo, redo, checking what the page shows and the dirty indicator at each step; edit the title, save, reopen; the strip on each signed fixture; Chromium saves in place, Firefox and WebKit download.
+- **e2e (Playwright, three browsers):** rotate a page, undo and redo, checking what the page shows and the dirty indicator at each step. Edit the title, save and reopen. Check the strip on each signed fixture, and that Chromium saves in place while Firefox and WebKit download.
 
 ## 11. Decisions on the open questions
 

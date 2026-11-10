@@ -15,7 +15,7 @@
 
 ## Goal
 
-The desktop part of E1e: Save writes the open file in place, appending an incremental update or rewriting through a temporary file and a rename, without the file watcher mistaking the app's own write for an outside change; and an outside change to a file with unsaved edits asks what to do.
+The desktop part of E1e. Save writes the open file in place: it appends an incremental update, or rewrites through a temporary file and a rename. The file watcher must not mistake the app's own write for an outside change. An outside change to a file with unsaved edits asks the user what to do.
 
 ## Context
 

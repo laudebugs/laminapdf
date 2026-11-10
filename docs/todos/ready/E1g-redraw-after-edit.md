@@ -15,7 +15,7 @@
 
 ## Goal
 
-PDFium draws the reader's pages from the bytes it opened, so an edit to Lamina PDF's model changes nothing on screen. This todo carries edits to the screen: after a transaction that touches pages, the document worker writes an incremental update of the model to memory, reopens PDFium's document from the new bytes, and the viewer redraws only the touched pages, with their new sizes. It measures what that costs, which the architecture plan names as a risk.
+PDFium draws the reader's pages from the bytes it opened, so an edit to Lamina PDF's model changes nothing on screen. This todo carries edits to the screen. After a transaction that touches pages, the document worker writes an incremental update of the model to memory and reopens PDFium's document from the new bytes. The viewer then redraws only the touched pages, with their new sizes. The todo measures what that costs, which the architecture plan names as a risk.
 
 ## Context
 
