@@ -34,20 +34,20 @@ PDFium draws the reader's pages from the bytes it opened, so an edit to Lamina P
 
 **Out of scope**
 
-- The edit session, its history and the interface: [E1d](./E1d-edit-session-undo-ui.md).
+- The edit session, its history and the interface: [E1d](../ready/E1d-edit-session-undo-ui.md).
 - Rendering from Lamina PDF's own model: decided after these measurements (E2).
 
 ## Tasks
 
-- [ ] Worker: `applyAndRedraw(ops)` over the model's `apply`, an in-memory incremental save, and a reopened `RenderDocument`; errors leave the old render document in place.
-- [ ] Viewer: `invalidate(pages, sizes?)`, which drops the pages' bitmaps, updates `PageLayout` for changed sizes and refreshes the layers on those pages.
-- [ ] The perf scenario and its report line.
+- [x] Worker: `applyEdit(ops)` (named after the other worker methods) over the model's `apply`, an in-memory incremental save, and a reopened `RenderDocument`; errors leave the old render document in place.
+- [x] Viewer: `invalidate(pages, sizes?)`, which drops the pages' bitmaps, updates `PageLayout` for changed sizes and refreshes the layers on those pages.
+- [x] The perf scenario and its report line.
 
 ## Acceptance criteria
 
-- [ ] Rotating a page through the worker redraws that page turned, with its new size, in Chromium, Firefox and WebKit; other pages' bitmaps are kept.
-- [ ] A metadata-only edit reopens nothing and redraws nothing.
-- [ ] The time to the first redrawn tile is measured and reported for 10, 100 and 1,000 pages, and the plan's budget is confirmed or changed from it.
+- [x] Rotating a page through the worker redraws that page turned, with its new size, in Chromium, Firefox and WebKit; other pages' bitmaps are kept.
+- [x] A metadata-only edit reopens nothing and redraws nothing.
+- [x] The time to the first redrawn tile is measured and reported for 10, 100 and 1,000 pages, and the plan's budget is confirmed or changed from it.
 
 ## Post-merge checks
 

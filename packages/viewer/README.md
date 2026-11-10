@@ -48,10 +48,11 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 | `jumpToPage(index)`, `jumpToDestination(target)` | Like `goToPage` and `goToDestination`, but recorded as history jumps, so Back returns to where the view was. |
 | `history` | Back and forward through the jumps (below). |
 | `getState()`, `subscribe(listener)` | The view state (`currentPage`, `pageCount`, `zoom`, `percent`, `rotation`, `scrollTop`, `visibleRange`), for `useSyncExternalStore`. |
-| `on("pagechange" \| "zoomchange" \| "renderstats", …)`, `stats()` | Events and counters. `renderstats` counts renders, for measuring performance. |
+| `on("pagechange" \| "zoomchange" \| "renderstats" \| "invalidate", …)`, `stats()` | Events and counters. `renderstats` counts renders, for measuring performance. `invalidate` lists the pages `invalidate` redrew, each with its size in points now. |
 | `addLayer({ name, onMount, onUnmount, onZoom })` | Mounts a layer into each page. |
 | `keepMounted(pages)` | Keeps these pages mounted wherever the view scrolls, replacing the previous set; `[]` releases them. The text layer pins the pages a selection touches. |
 | `pointAt(x, y)`, `positionOf(point)` | Converts between viewport positions and document points. |
+| `applyEdit(ops)`, `invalidate(pages, sizes?)` | Edits the document and redraws the pages the edit touched (below). |
 | `MIN_ZOOM`, `MAX_ZOOM` | The bounds of a percentage zoom, 10 and 800, for a zoom control's range. |
 
 **Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The text layer fills the first, links the second and find highlights the third, through `addLayer`. A layer with another name gets its own slot on top. Every slot above the text lets the pointer through (`pointer-events: none`), so text stays selectable under it; an element a layer wants clicked, such as a link's anchor, sets `pointer-events: auto` on itself.
@@ -103,6 +104,12 @@ Anchors follow page order, so Tab reaches a page's links in order. Each is named
 - **It follows the viewer.** The current page is marked `aria-selected` and scrolled into the strip; a rotation turns every thumbnail.
 - **Keyboard and pointer.** A click, or Enter or Space, goes to that page. The arrow keys, Home and End move the focus, and only one thumbnail is in the Tab order.
 - **Names.** Each thumbnail is named by its page label and number ("Page iv (4 of 120)") and captioned with its label. For another language, pass `label` to replace both and `name` to replace the list's own name.
+
+**Edits.** `viewer.applyEdit(ops)` edits the open document and redraws the pages the edit touched, in one call. The ops are `@laminapdf/sdk`'s, such as `{ op: "rotatePage", args: { page, rotate: 90 } }`, and apply as one transaction. The call resolves with those pages as they are after the edit: index, ID, rotation and displayed size in points, so a quarter turn swaps width and height.
+- **How an edit reaches the screen.** PDFium draws from the bytes it opened, so the Web Worker writes the edit into memory as an incremental update and opens the render document again from the result. The old render document keeps drawing until the new one is open. The Web Worker runs one call at a time, so every render answered before the edit drew the old file, and every render after it draws the new one.
+- **What the viewer redraws.** Only the touched pages: their bitmaps go, here and in a thumbnail strip, and their layers read their text and links again. Every other page keeps what it drew. A page in view at its old size keeps its pixels until sharp tiles cover them, so it never flashes. A page whose size changed paints its quick pass first, and the page at the top of the viewport stays there.
+- **What changes nothing.** An edit of the document's metadata touches no page: the Web Worker opens nothing again, and the viewer redraws nothing. A failed edit, such as one naming a page that doesn't exist, rejects and leaves the document and the pages as they were.
+- **Driving it yourself.** `ViewerClient.applyEdit(ops)` makes the edit without the redraw; pass its pages to `viewer.invalidate(indices, sizes)`, which redraws any pages you name. The edits live in the Web Worker: one that restarts after a crash opens the file as it was.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
@@ -191,6 +198,7 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `currentDocument` | — | `{ document, ticket }` of the open document, or `undefined`: `open()` asks after a cancelled open | document |
 | `closeDocument` | — | — | document |
 | `pageInfo` | `index` | `PageInfo` (displayed size in points, rotation, ID, label) | document |
+| `applyEdit` | `ops`, the document's `id` | `EditResult`: the touched pages' `PageInfo`, after the edit; empty for a metadata edit | document. `client.applyEdit(ops)`. Saves into memory and opens the render document again when the edit touched pages |
 | `find` | `query`, `FindOptions`, `pages` | `FindPageResult[]`: each page's matches as quads, and whether it has no text | `background` |
 | `render` | ADR 0004 `RenderRequest` | `{ bitmap: ImageBitmap, width, height }` (transferred) | `visible` > `prefetch` > `background` |
 | `memory` | — | `WorkerMemory`: the bytes of the backend's and Lamina PDF's WebAssembly memories | document. `client.memory()`; the perf harness samples it. |
@@ -246,7 +254,7 @@ cargo xtask viewer-perf [chromium|firefox|webkit]  # the same, plus the job summ
 
 It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails on a missed target: no pull request lane asserts a duration ([ADR 0018](../../docs/decisions/0018-test-strategy.md#2-ci-lanes)).
 
-**What it does.** It opens three seeded files, built with `@laminapdf/sdk` and cached in `perf/.fixtures/`: 10 pages of text with an image each (about 1 MB), 1,000 pages of text, and 300 pages of full-page images. A Vite build of `perf/page/` shows them, and `perf/serve.ts` serves that page gzipped, as Cloudflare serves the app. Playwright drives real input, so every run scrolls the same way:
+**What it does.** It opens four seeded files, built with `@laminapdf/sdk` and cached in `perf/.fixtures/`: 10 pages of text with an image each (about 1 MB), 100 and 1,000 pages of text, and 300 pages of full-page images. A Vite build of `perf/page/` shows them, and `perf/serve.ts` serves that page gzipped, as Cloudflare serves the app. Playwright drives real input, so every run scrolls the same way:
 
 | Scenario | Measures | Target |
 | --- | --- | --- |
@@ -256,6 +264,7 @@ It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails 
 | Scroll the 1,000-page file end to end, twice, with wheel steps every 20 ms; stop at a quarter, a half and three quarters | the longest main-thread task, time to sharp after each stop, peak memory, memory after each pass, cancelled renders that painted | no task > 50 ms; sharp ≤ 300 ms; ≤ 600 MB; second pass ≤ first + 5 %; 0 |
 | Fling across the 300 image pages, then stop | time to sharp | ≤ 300 ms |
 | Three ctrl+wheel bursts in and out on the 10-page file | the longest frame, time to sharp after each burst | reported |
+| Turn the page in view a quarter (`viewer.applyEdit`), five times, in the 10-, 100- and 1,000-page files | the median time from the call to the page's first new pixels, and to sharp | ≤ 150 ms at 100 pages ([E1 plan §6](../../docs/plans/editor/e1-editing-foundation.md#6-redrawing-after-an-edit)) |
 
 "Time to sharp" runs from the last scroll or zoom event to the moment every visible page turned sharp. Memory is the page's JS heap (Chromium only), the document Web Worker's WebAssembly memories (`client.memory()`), the bitmap cache and the canvases' pixels. Firefox and WebKit have no Long Tasks API, so their longest task is the longest gap between frames, which is an upper bound.
 
