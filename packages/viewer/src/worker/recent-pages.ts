@@ -46,6 +46,15 @@ export class RecentPages<T> {
     }
   }
 
+  /** Forgets page `index` of the open document: an edit changed it. */
+  delete(index: number): void {
+    const key = this.#key(index);
+    const old = this.#entries.get(key);
+    if (old === undefined) return;
+    this.#entries.delete(key);
+    this.#weight -= this.#weigh(old);
+  }
+
   /** Forgets every page: the document closed. */
   clear(): void {
     this.#entries.clear();

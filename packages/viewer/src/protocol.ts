@@ -14,6 +14,7 @@ import {
 import type {
   DocumentProperties,
   Limits,
+  Op,
   OutlineNode,
   PageInfo,
   PageLink,
@@ -75,6 +76,15 @@ export interface OpenedDocument {
   readonly title?: string;
 }
 
+/**
+ * What an edit did, for the view to redraw (`applyEdit`): the pages it touched, as they are after
+ * it. Each page's size is its displayed size in points, so a quarter turn swaps its width and
+ * height. An edit that touched no page (the document's metadata) leaves `pages` empty.
+ */
+export interface EditResult {
+  readonly pages: readonly PageInfo[];
+}
+
 /** A rendered tile on the page: an ImageBitmap transferred from the worker. Close it when done. */
 export interface RenderedBitmap {
   readonly bitmap: ImageBitmap;
@@ -102,6 +112,11 @@ export interface Methods {
     result: { readonly document: OpenedDocument; readonly ticket: number | undefined } | undefined;
   };
   closeDocument: { params: []; result: undefined };
+  /**
+   * Applies `ops` to document `document` as one transaction, then redraws from the result: the
+   * pages it touched are drawn from the edited file from then on.
+   */
+  applyEdit: { params: [ops: readonly Op[], document: number]; result: EditResult };
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
   memory: { params: []; result: WorkerMemory };
@@ -273,9 +288,11 @@ export function renderKeyFields(key: string): RenderKeyFields {
 /**
  * The coalescing key of a render on document `id`: the document and the whole normalised
  * RenderRequest (page, scale, clip, rotation, flags, background and appearance), so two requests
- * share a run only when their pixels are the same (ADR 0009 §3.3).
+ * share a run only when their pixels are the same (ADR 0009 §3.3). The view adds the page's
+ * `revision`, which each edit of the page bumps, to its cache keys: a bitmap of the page before
+ * the edit never answers for it after.
  */
-export function renderKey(request: RenderRequest, id: number): string {
+export function renderKey(request: RenderRequest, id: number, revision = 0): string {
   const { page, scale, clip, rotation = 0, flags, background, appearance } = request;
   return JSON.stringify([
     id,
@@ -286,6 +303,7 @@ export function renderKey(request: RenderRequest, id: number): string {
     flagsOf(flags),
     background === undefined ? "white" : background,
     appearanceKey(appearance),
+    ...(revision === 0 ? [] : [revision]),
   ]);
 }
 

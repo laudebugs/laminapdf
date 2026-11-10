@@ -53,7 +53,8 @@ export async function find(
   return out;
 }
 
-/** Forgets every page's searchable text: the document closed. */
-export function forgetSearch(): void {
-  cache.clear();
+/** Forgets `pages`' searchable text (an edit changed them), or every page's (the document closed). */
+export function forgetSearch(pages?: Iterable<number>): void {
+  if (pages === undefined) cache.clear();
+  else for (const page of pages) cache.delete(page);
 }

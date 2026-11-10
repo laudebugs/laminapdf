@@ -161,6 +161,23 @@ export class FindController {
     };
   }
 
+  /**
+   * Searches `pages` again for the query (an edit changed their text, or turned them), replacing
+   * their matches without moving the view. A search still running reads them as it reaches them;
+   * those it had already read keep their matches until the next query.
+   */
+  refresh(pages: readonly number[]): void {
+    const { query, options, search, done } = this.#state;
+    if (query.trim() === "" || !done || pages.length === 0) return;
+    this.#host
+      .find(query, options, pages, new AbortController().signal)
+      .then((results) => {
+        // A new query or close() since: these results are for a search that's gone.
+        if (this.#state.search === search) this.#replace(results);
+      })
+      .catch((error) => reportError(error));
+  }
+
   /** Stops the search and drops the results: a new document opened. */
   reset(): void {
     this.#stop();
@@ -231,6 +248,38 @@ export class FindController {
     });
     this.#host.redraw(painted);
     if (first) this.#reveal();
+  }
+
+  /** Replaces the matches of the pages in `results`, keeping the current match where it can. */
+  #replace(results: readonly FindPageResult[]): void {
+    for (const { page, matches, snippets } of results) {
+      if (matches.length === 0) {
+        this.#byPage.delete(page);
+        this.#snippets.delete(page);
+      } else {
+        this.#byPage.set(page, matches);
+        this.#snippets.set(page, snippets);
+      }
+    }
+    let total = 0;
+    for (const matches of this.#byPage.values()) total += matches.length;
+    this.#current = this.#kept(this.#current);
+    this.#set({ total, current: this.#current === undefined ? undefined : this.#ordinal(this.#current) });
+    // The pages searched again, and the page the current match moved to.
+    const painted = new Set(results.map((r) => r.page));
+    if (this.#current !== undefined) painted.add(this.#current.page);
+    this.#host.redraw(painted);
+  }
+
+  /** `place`, or where it moves when its match is gone: the last left on its page, else the next page's first. */
+  #kept(place: Place | undefined): Place | undefined {
+    if (place === undefined) return undefined;
+    const left = this.#byPage.get(place.page)?.length ?? 0;
+    if (place.index < left) return place;
+    if (left > 0) return { page: place.page, index: left - 1 };
+    const pages = [...this.#byPage.keys()].sort((a, b) => a - b);
+    const next = pages.find((p) => p > place.page) ?? pages[0];
+    return next === undefined ? undefined : { page: next, index: 0 };
   }
 
   /** `place`'s position among every match found so far, in document order. */

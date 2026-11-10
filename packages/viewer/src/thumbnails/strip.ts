@@ -13,7 +13,7 @@ import { CanvasPool } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { PageLayout, type Rotation, rotated } from "../layout/page-layout.js";
 import { appearanceField, appearanceKey, type OpenedDocument } from "../protocol.js";
-import type { Viewer } from "../view/viewer.js";
+import type { InvalidatedPage, Viewer } from "../view/viewer.js";
 
 /** How a strip looks and how much it keeps. */
 export interface ThumbnailStripOptions {
@@ -70,6 +70,8 @@ export class ThumbnailStrip {
   readonly #items = new Map<number, Item>();
   readonly #cleanup: (() => void)[] = [];
   #document: OpenedDocument | undefined;
+  /** The document's pages, with the sizes edits gave them since it opened. */
+  #pages: PageInfo[] = [];
   #layout: PageLayout | undefined;
   #rotation: Rotation = 0;
   #appearance: PageAppearance = "original";
@@ -103,6 +105,7 @@ export class ThumbnailStrip {
     on("click", (e) => this.#clicked(e));
     on("keydown", (e) => this.#key(e));
     this.#cleanup.push(viewer.subscribe(() => this.#viewChanged()));
+    this.#cleanup.push(viewer.on("invalidate", ({ pages }) => this.#invalidate(pages)));
     // A strip shown later (its tab opened, its sheet raised) mounts what it now shows.
     const resized = new ResizeObserver(() => this.#schedule());
     resized.observe(root);
@@ -120,6 +123,7 @@ export class ThumbnailStrip {
     this.#unmountAll();
     this.#cache.clear();
     this.#document = document;
+    this.#pages = [...document.pages];
     this.#current = 0;
     this.#focus = 0;
     this.#rotation = this.#viewer.getState().rotation;
@@ -139,12 +143,29 @@ export class ThumbnailStrip {
   // --- internals ---
 
   #relayout(): void {
-    const pages = this.#document?.pages ?? [];
+    const pages = this.#pages;
     const widest = Math.max(1, ...pages.map((p) => rotated(p, this.#rotation).width));
     this.#layout = new PageLayout(pages, { scale: this.#width / widest, rotation: this.#rotation, gap: GAP + CAPTION });
     this.#spacer.style.height = `${this.#layout.height}px`;
     this.#unmountAll();
     this.#schedule();
+  }
+
+  /** The viewer redrew `pages` after an edit: their thumbnails are drawn again, at their new sizes. */
+  #invalidate(pages: readonly InvalidatedPage[]): void {
+    let resized = false;
+    for (const { index, width, height } of pages) {
+      // Draw it afresh: an unmounted thumbnail's render is aborted, and its late bitmap never kept.
+      this.#cache.prune(index, () => false);
+      const item = this.#items.get(index);
+      if (item !== undefined) this.#unmount(item);
+      const page = this.#pages[index];
+      if (page === undefined || (page.width === width && page.height === height)) continue;
+      this.#pages[index] = { ...page, width, height };
+      resized = true;
+    }
+    if (resized) this.#relayout();
+    else this.#schedule();
   }
 
   #viewChanged(): void {
@@ -204,7 +225,7 @@ export class ThumbnailStrip {
   }
 
   #mount(index: number, layout: PageLayout): Item {
-    const page = this.#document?.pages[index] as PageInfo;
+    const page = this.#pages[index] as PageInfo;
     const { caption, name } = this.#label(page, layout.pageCount);
     const root = document.createElement("div");
     root.className = "lamina-thumbnail";

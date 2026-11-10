@@ -153,4 +153,34 @@ describe("FindController", () => {
     find.close();
     expect(find.results()).toEqual([]);
   });
+
+  it("searches edited pages again without moving the view, keeping the current match where it can", async () => {
+    const counts = [2, 3, 1];
+    const { fake, calls, revealed } = host(counts);
+    const find = new FindController(fake);
+    find.find("x");
+    await settle(calls);
+    find.goTo(4); // page 1's last match
+    const shown = revealed.length;
+    // An edit leaves page 1 with one match and page 2 with none.
+    counts[1] = 1;
+    counts[2] = 0;
+    find.refresh([1, 2]);
+    expect(calls.map((c) => c.pages)).toEqual([[1, 2]]);
+    await settle(calls);
+    expect(find.getState()).toMatchObject({ total: 3, current: 2, done: true });
+    expect(find.matchesOn(2).matches).toEqual([]);
+    expect(revealed.length).toBe(shown);
+  });
+
+  it("leaves a running search and an idle find alone", () => {
+    const { fake, calls } = host([1, 1, 1, 1, 1, 1, 1, 1]);
+    const find = new FindController(fake);
+    find.refresh([0]);
+    expect(calls).toEqual([]);
+    find.find("x");
+    calls.length = 0;
+    find.refresh([0]);
+    expect(calls).toEqual([]);
+  });
 });

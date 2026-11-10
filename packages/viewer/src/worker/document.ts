@@ -12,6 +12,8 @@ import {
   type RenderBackend,
   type RenderDocument,
   RenderError,
+  type RenderOpenOptions,
+  type RenderSource,
 } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
@@ -19,6 +21,7 @@ import {
   Document,
   isLaminaPdfError,
   loadExtract,
+  type Op,
   type OpenOptions,
   type RangeSource,
   wasmMemory,
@@ -40,10 +43,24 @@ let backend: RenderBackend | undefined;
 /** Backends loaded or loading, by name; a failed load is forgotten, so the next call retries. */
 const loading = new Map<string, Promise<RenderBackend>>();
 
-interface Open {
+export interface Open {
   readonly id: number;
   readonly model: Document;
-  readonly render: RenderDocument;
+  /** What draws the pages: replaced by one opened from the edited file after each edit (edit.ts). */
+  render: RenderDocument;
+  /** The file as first opened, which the render document reads with every revision edits appended. */
+  readonly source: RenderSource;
+  /**
+   * The render limits, to open the render document again after an edit. Never the password: an
+   * encrypted file can't take an incremental save, so an edit never reopens one.
+   */
+  readonly renderLimits: RenderOpenOptions["limits"];
+  /** The revisions the edits appended to `source`, in order (empty before the first edit). */
+  appended: Uint8Array;
+  /** Every edit applied to the model, one transaction each: a text-capable copy applies them too. */
+  readonly edits: (readonly Op[])[];
+  /** How many of `edits` the text-capable copy has applied. */
+  textEdits: number;
   /** Where a remote document's bytes come from; undefined when they are all in memory. */
   readonly remote: HttpRangeByteSource | undefined;
   /** A large local file's OPFS copy it is read from; undefined when it is in memory. */
@@ -151,12 +168,42 @@ export async function textModel(signal: AbortSignal): Promise<Document> {
     }
     // The copy is open: the password and bytes it needed are no longer kept.
     opened.reopen = undefined;
+    // It opened from the file as it was: the edits made since then come next.
+    await replayEdits(opened, model);
     return model;
   })();
   opened.text.catch(() => {
     opened.text = undefined;
   });
   return untilAborted(opened.text, signal);
+}
+
+/**
+ * Brings the text-capable copy, if there is one, up to the model's edits (edit.ts calls it after
+ * each). The model reads its text itself when it can, and a copy still opening applies them once
+ * open; each call waits for the one before, so no edit is applied twice.
+ */
+export function syncTextCopy(opened: Open): void {
+  const text = opened.text;
+  if (text === undefined) return;
+  const synced = text.then(async (copy) => {
+    await replayEdits(opened, copy);
+    return copy;
+  });
+  opened.text = synced;
+  synced.catch(() => {
+    // A copy that can't follow the edits would show the old text: it goes, and text calls then
+    // answer `extract-module-not-loaded` from the model.
+    if (opened.text === synced) opened.text = undefined;
+  });
+}
+
+/** Applies to `copy` the edits it hasn't applied yet, one transaction each, as the model did. */
+async function replayEdits(opened: Open, copy: Document): Promise<void> {
+  for (; opened.textEdits < opened.edits.length; opened.textEdits++) {
+    const ops = opened.edits[opened.textEdits] as readonly Op[];
+    await copy.ensure(() => copy.apply(ops));
+  }
 }
 
 /**
@@ -177,7 +224,7 @@ function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   });
 }
 
-function currentBackend(): RenderBackend {
+export function currentBackend(): RenderBackend {
   // Only a viewer bug gets here (the client loads the backend before anything else), so it stays
   // an Error: the worker reports it as worker-failed, kind internal.
   if (backend === undefined) throw new Error("initBackend was not called");
@@ -318,8 +365,8 @@ async function openFrom(
   let render: RenderDocument;
   let pages: OpenedDocument["pages"];
   let title: string | undefined;
+  const source = from.kind === "memory" ? bytesSource(from.bytes) : from.source;
   try {
-    const source = from.kind === "memory" ? bytesSource(from.bytes) : from.source;
     const renderOptions = {
       ...(password === undefined ? {} : { password }),
       ...(renderLimits === undefined ? {} : { limits: renderLimits }),
@@ -351,6 +398,11 @@ async function openFrom(
     id: nextDocument++,
     model,
     render,
+    source,
+    renderLimits,
+    appended: new Uint8Array(0),
+    edits: [],
+    textEdits: 0,
     remote,
     local: from.kind === "copy" ? from.source : undefined,
     reopen: reopenFor(model, from.kind === "memory" ? from.bytes : undefined, options),
