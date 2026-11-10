@@ -64,7 +64,7 @@ Bring [T4d](../done/T4d-markdown-documents.md)'s Markdown front end to the place
 - [ ] The CLI reads an image from a path relative to the input's folder; under MCP, an image or output path outside every root fails with `path-outside-roots`
 - [ ] `crates/laminapdf-cli/tests/mcp.rs`: `laminapdf_build` builds from inline Markdown inside a root, and is absent without `--allow-write`
 - [ ] `markdown-to-pdf.ts` writes the golden's bytes in every runtime (`cargo xtask pdf-runtimes`)
-- [ ] `cargo xtask size` passes within the text module's 1,280,000 B gzip budget
+- [ ] `cargo xtask size` passes within the text module's gzip budget (1,360,000 B, amended with this todo)
 - [ ] `cargo xtask check docs` passes with the example pair shown on a docs page
 
 ## Post-merge checks

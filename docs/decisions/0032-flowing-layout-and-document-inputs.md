@@ -2,6 +2,7 @@
 
 - Status: Accepted (2026-11-08, owner sign-off on T4a's PR)
 - Date: 2026-11-08
+- Amended 2026-11-10 (owner, T4i): §9's text-module budget rises to 1,360,000 B gzip, as [ADR 0016](0016-package-design.md#6-budgets-per-module)'s amendment records.
 
 ## Context
 
@@ -101,7 +102,7 @@ The front ends use the fonts the caller gives, by role (body, bold, italic, bold
 | Two-page invoice, Node 24, best of 30 | ≤ 25 ms | 10.7 ms (two passes) |
 | 100-page report, native | ≤ 250 ms | about 190 ms per pass |
 | 100-page report, Node 24, best of 10 | ≤ 500 ms ([pdf-library §4](../plans/pdf-library.md#4-requirements)) | about 310 ms per pass |
-| Text module, gzip | 1,280,000 B (from 1,200,000) | baseline 819 KB in the probe; paginator +19 KB, Markdown +60 KB |
+| Text module, gzip | 1,360,000 B (amended 2026-11-10; first 1,280,000, from 1,200,000) | baseline 819 KB in the probe; paginator +19 KB, Markdown +60 KB; measured with T4i: 1,316,930 B, the flow layer about +60 KB and Markdown about +90 KB |
 
 Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benchmark joins the nightly, and the invoice joins `cargo xtask pdf-runtimes`. The text module's budget covers the flow layer, tables, notes, Markdown and templates together. `cargo xtask size` enforces it.
 
