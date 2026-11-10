@@ -3,7 +3,8 @@
 // has them, an <input type=file> and downloads where it doesn't; storage in IndexedDB and OPFS.
 
 import { message } from "../messages.js";
-import { createStore, type KeyValueStore } from "./idb.js";
+import { createStore, type KeyValueStore, openDatabase } from "./idb.js";
+import { createPositions } from "./positions.js";
 import { printPages } from "./print.js";
 import type {
   Capabilities,
@@ -11,6 +12,7 @@ import type {
   Platform,
   PlatformFile,
   PlatformStorage,
+  ReadingPositions,
   RecentFile,
   RecentFiles,
   SaveResult,
@@ -80,7 +82,9 @@ export function detectCapabilities(scope: WebScope): Capabilities {
 /** The web Platform over `scope` (the window by default). */
 export function createWebPlatform(scope: WebScope = globalThis as unknown as WebScope): Platform {
   const capabilities = detectCapabilities(scope);
-  const store = createStore(scope.indexedDB);
+  const database = openDatabase(scope.indexedDB);
+  const store = createStore(database);
+  const positions = createPositions(database);
   const launches = launchQueue(scope, capabilities);
   return {
     capabilities,
@@ -115,8 +119,9 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
       if (!["http:", "https:", "mailto:"].includes(protocol)) throw new Error(message("platform.error.externalScheme"));
       scope.open(url, "_blank", "noopener,noreferrer");
     },
-    storage: webStorage(scope, store),
+    storage: webStorage(scope, store, positions),
     recent: recentFiles(store, capabilities),
+    positions,
   };
 }
 
@@ -247,7 +252,8 @@ async function write(handle: FileSystemFileHandle, bytes: Uint8Array): Promise<v
   await writable.close();
 }
 
-function webStorage(scope: WebScope, store: KeyValueStore): PlatformStorage {
+/** Storage over the key-value store; its `clear` empties the reading positions too (the whole database). */
+function webStorage(scope: WebScope, store: KeyValueStore, positions: ReadingPositions): PlatformStorage {
   const storage = scope.navigator.storage as Partial<StorageManager> | undefined;
   return {
     opfs: async () => (typeof storage?.getDirectory === "function" ? storage.getDirectory() : undefined),
@@ -255,7 +261,10 @@ function webStorage(scope: WebScope, store: KeyValueStore): PlatformStorage {
     set: (key, value) => store.set(key, value),
     delete: (key) => store.delete(key),
     persist: async () => (typeof storage?.persist === "function" ? storage.persist() : false),
-    clear: () => store.clear(),
+    clear: async () => {
+      await store.clear();
+      await positions.clear();
+    },
   };
 }
 
@@ -287,6 +296,7 @@ function recentFiles(store: KeyValueStore, capabilities: Capabilities): RecentFi
           size: file.size,
           lastOpened: Date.now(),
           ...(details.pages === undefined ? {} : { pages: details.pages }),
+          ...(details.fingerprint === undefined ? {} : { fingerprint: details.fingerprint }),
           hasHandle,
         };
         const kept = [entry, ...entries.filter((e) => e.id !== id)];
@@ -295,6 +305,7 @@ function recentFiles(store: KeyValueStore, capabilities: Capabilities): RecentFi
         // A handle from an earlier open of a file with this name and size would reopen that file.
         if (hasHandle) await store.set(handleKey(id), file.handle);
         else await store.delete(handleKey(id));
+        return id;
       }),
     remove: (id) =>
       serial(async () => {
@@ -311,9 +322,9 @@ function recentFiles(store: KeyValueStore, capabilities: Capabilities): RecentFi
       }),
   };
   if (capabilities.canReopenRecent) {
-    recent.reopen = async (id) => {
+    recent.reopen = async (id, options = {}) => {
       const handle = await store.get(handleKey(id));
-      if (!isFileHandle(handle) || !(await canRead(handle))) return undefined;
+      if (!isFileHandle(handle) || !(await canRead(handle, options.ask ?? true))) return undefined;
       return fromHandle(handle, capabilities);
     };
   }
@@ -322,15 +333,16 @@ function recentFiles(store: KeyValueStore, capabilities: Capabilities): RecentFi
 
 /**
  * Whether `handle` may be read: asked first, so a browser that kept the permission shows no
- * prompt; requested otherwise, which needs the click that called `reopen`.
+ * prompt; requested otherwise (`ask`), which needs the click that called `reopen`.
  */
-async function canRead(handle: FileSystemFileHandle): Promise<boolean> {
+async function canRead(handle: FileSystemFileHandle, ask: boolean): Promise<boolean> {
   const permitted = handle as FileSystemFileHandle & {
     queryPermission?(options: object): Promise<PermissionState>;
     requestPermission(options: object): Promise<PermissionState>;
   };
   const read = { mode: "read" };
   if ((await permitted.queryPermission?.(read)) === "granted") return true;
+  if (!ask) return false;
   return (await permitted.requestPermission(read)) === "granted";
 }
 

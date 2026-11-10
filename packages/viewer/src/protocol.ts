@@ -71,6 +71,12 @@ export interface OpenedDocument {
   readonly pages: readonly PageInfo[];
   /** Whether the file can't be opened without its password, so a restarted worker must ask again. */
   readonly needsPassword: boolean;
+  /**
+   * A hash of the file's first revision (`"fp1:"` and a SHA-256 in hex): the same for a renamed
+   * copy and after an incremental update, so a reading position kept under it follows the file.
+   * Absent when it couldn't be computed (no Web Crypto, a failed read): the document still opens.
+   */
+  readonly fingerprint?: string;
   readonly backend: { readonly name: BackendName; readonly version: string };
   /** The title in the file's metadata, for the window's title; absent when the file has none. */
   readonly title?: string;

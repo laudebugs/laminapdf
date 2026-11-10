@@ -32,7 +32,7 @@ runs:
         fi
         echo "channel=$channel" >> "$GITHUB_OUTPUT"
         echo "RUSTUP_TOOLCHAIN=$channel" >> "$GITHUB_ENV"
-    - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+    - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
       with:
         cache: ${{ inputs.cache }}
         cache-save-if: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && github.ref == 'refs/heads/main' && inputs.save == 'true' }}

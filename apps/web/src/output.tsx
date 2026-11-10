@@ -4,20 +4,11 @@
 // which prints them from a hidden frame; Cancel stops it between pages. Download saves the bytes as
 // opened. Nothing is sent anywhere: both are local (ADR 0011).
 
-import {
-  Button,
-  Dialog,
-  message,
-  type Platform,
-  type PrintChoice,
-  PrintDialog,
-  PrintProgressDialog,
-  PropertiesDialog,
-  type PropertiesState,
-  type ToastQueue,
-} from "@laminapdf/ui";
+import { Button, Dialog, message, type Platform, type ToastQueue } from "@laminapdf/ui";
+import type * as Dialogs from "@laminapdf/ui/dialogs";
+import type { PrintChoice, PropertiesState } from "@laminapdf/ui/dialogs";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useRef, useState } from "react";
+import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
 import { downloadName } from "./download-name.ts";
 import type { PageInfo } from "./outline.ts";
 import type { DocumentProperties, Engine } from "./session.ts";
@@ -56,6 +47,23 @@ export function printDpi(choice: PrintChoice, pages: readonly PageInfo[]): { dpi
   const pixels = choice.pages.reduce((sum, i) => sum + (pages[i]?.width ?? 0) * (pages[i]?.height ?? 0) * perPoint, 0);
   return pixels > MAX_HIGH_QUALITY_PIXELS ? { dpi: 150, lowered: true } : { dpi: 300, lowered: false };
 }
+
+// The dialogs load once a document is open, not at start (#380). One that can't load (a lost
+// connection) is reported and shows nothing; the reader carries on without it.
+const loadDialogs = () => import("@laminapdf/ui/dialogs");
+const nothing = (error: unknown) => {
+  reportError(error);
+  return { default: () => null };
+};
+const PrintDialog = lazy<typeof Dialogs.PrintDialog>(() =>
+  loadDialogs().then((m) => ({ default: m.PrintDialog }), nothing),
+);
+const PrintProgressDialog = lazy<typeof Dialogs.PrintProgressDialog>(() =>
+  loadDialogs().then((m) => ({ default: m.PrintProgressDialog }), nothing),
+);
+const PropertiesDialog = lazy<typeof Dialogs.PropertiesDialog>(() =>
+  loadDialogs().then((m) => ({ default: m.PropertiesDialog }), nothing),
+);
 
 /** Whether `error` is a stopped print, which needs no message. */
 const aborted = (error: unknown) => error instanceof DOMException && error.name === "AbortError";
@@ -115,7 +123,7 @@ function usePrint(engine: Engine, platform: Platform, onProblem: (problem: Probl
     start,
     render: (document: OutputDocument | undefined) =>
       document === undefined ? null : (
-        <>
+        <Suspense fallback={null}>
           <PrintDialog
             isOpen={open}
             pageCount={document.pages.length}
@@ -130,7 +138,7 @@ function usePrint(engine: Engine, platform: Platform, onProblem: (problem: Probl
             notice={lowered ? message("print.quality.lowered") : undefined}
             onCancel={() => running.current?.abort()}
           />
-        </>
+        </Suspense>
       ),
   };
 }
@@ -156,14 +164,16 @@ function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
     start,
     render: (document: OutputDocument | undefined) =>
       document === undefined ? null : (
-        <PropertiesDialog
-          isOpen={open}
-          fileName={document.fileName}
-          state={state}
-          context={{ pages: document.pages, labels: document.labels }}
-          onCopy={copy}
-          onClose={() => setOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <PropertiesDialog
+            isOpen={open}
+            fileName={document.fileName}
+            state={state}
+            context={{ pages: document.pages, labels: document.labels }}
+            onCopy={copy}
+            onClose={() => setOpen(false)}
+          />
+        </Suspense>
       ),
   };
 }

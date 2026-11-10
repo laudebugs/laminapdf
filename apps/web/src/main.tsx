@@ -16,7 +16,9 @@ import { wantsDebug } from "./document.ts";
 import { installPrompt } from "./offline/install.tsx";
 import { openLaunchedFiles } from "./offline/launch.ts";
 import { AppUpdates } from "./offline/updates.ts";
+import { parseFragment, remoteUrl } from "./open/url-fragment.ts";
 import { watchFragment } from "./open/watch.ts";
+import { resumeLastDocument } from "./reading/resume.ts";
 import { Engine } from "./session.ts";
 
 for (const font of FONT_PRELOADS) {
@@ -47,6 +49,11 @@ watchFragment(window, engine);
 // file_handlers; Chromium) opens through the same path as one chosen here. The reader shows one
 // document, so of several files the first opens.
 openLaunchedFiles(platform, engine.reader);
+// The document open when the reader last closed comes back where the browser kept the permission
+// to read it, unless the address names a document; else the home screen offers it.
+if (remoteUrl(parseFragment(location.hash), import.meta.env.DEV).kind === "none") {
+  void resumeLastDocument(platform, engine.reader).catch(reportError);
+}
 // Listening for the browser's install offer from the start, so one made before the first render counts.
 installPrompt();
 // The service worker (R15), in production builds only: the dev server's modules change under it.
