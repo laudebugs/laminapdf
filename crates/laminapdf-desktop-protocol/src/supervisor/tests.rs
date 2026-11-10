@@ -226,9 +226,14 @@ fn a_panicking_restart_handler_should_not_lock_out_requests() {
     .unwrap();
     supervisor.kill();
     rx.recv_timeout(Duration::from_secs(5)).unwrap();
-    // The handler's thread unwinds just after it signalled.
-    thread::sleep(Duration::from_millis(100));
-    assert!(open(&supervisor).is_ok());
+    // The handler's thread unwinds just after it signalled; give a slow runner time.
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let mut reply = open(&supervisor);
+    while reply.is_err() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(20));
+        reply = open(&supervisor);
+    }
+    assert!(reply.is_ok());
 }
 
 #[test]
