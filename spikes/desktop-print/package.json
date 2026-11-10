@@ -1,0 +1,23 @@
+{
+  "name": "lamina-spike-desktop-print",
+  "private": true,
+  "description": "Spike D1b: webview and native print paths per OS; measurements only, never shipped.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.4"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4",
+    "vite": "8.3.5"
+  }
+}
