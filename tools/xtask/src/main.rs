@@ -137,12 +137,13 @@ tasks:
                     @laminapdf/render-hayro; then the docs build makes the runner
   web size          the reader's startup JavaScript (index.html's scripts and module preloads in
                     apps/web/dist/), gzipped, against apps/web/size-budget.json; after `web build`
-  web next-release [--commit <rev>] [--notes <file>]
+  web next-release [--commit <rev>] [--since <tag>] [--notes <file>]
                     whether <rev> (default HEAD) is a new reader release: what ships changed since
-                    the newest web-v* tag; prints and sets ready, tag and previous in $GITHUB_OUTPUT,
-                    and writes the notes (the commits that changed it) to <file>
+                    <tag> (default the newest web-v* tag); prints and sets ready, tag and previous
+                    in $GITHUB_OUTPUT, and writes the notes (the commits that changed it) to <file>
   web check-tag <tag>
-                    fail unless <tag> is web-v<version> on apps/web/package.json's major and minor
+                    fail unless <tag> is web-v<version> on apps/web/package.json's major and minor,
+                    below no other web-v* tag
   size [--update-baseline]
                     measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
                     target/size-report.json, fail above packages/wasm/size-budgets.json

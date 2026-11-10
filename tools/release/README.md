@@ -29,7 +29,7 @@ git commit -m "build: install the web reader's release train"
 git push origin HEAD
 ```
 
-Set the repository variable `WEB_RELEASE_TRAIN=off` to stop it. To release by hand, run the workflow with a nightly's run ID, or push a `web-v<version>` tag on a commit of `main`. Each release gets a GitHub release with the tag's notes once its deploy passes the smoke test.
+A release counts as made once its deploy passes the smoke test and creates its GitHub release. When a deploy fails, the next night's release, under a new tag, includes that tag's changes again. Create `web-v0.1.0`'s GitHub release by hand once, from [its notes](../../apps/web/CHANGELOG.md) (`gh release create web-v0.1.0 --verify-tag --notes-file apps/web/CHANGELOG.md`): it predates the train, and the train counts changes from the newest release. Set the repository variable `WEB_RELEASE_TRAIN=off` to stop it. To release by hand, run the workflow with a nightly's run ID, or push a `web-v<version>` tag on a commit of `main`. Each release gets a GitHub release with the tag's notes once its deploy passes the smoke test.
 
 The GitHub App needs contents and pull-request write access to this repository. Set its ID and private key as repository secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY`. Enable auto-merge, squash merging and automatic deletion of merged branches in the repository settings. These settings and the bot secrets were configured by the owner on 2026-11-05.
 

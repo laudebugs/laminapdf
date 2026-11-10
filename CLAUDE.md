@@ -402,11 +402,14 @@ cargo xtask viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> 
 cargo xtask viewer-perf --gate  # the reader's release gate (C7c): three full Chromium runs, each figure's median against
                              #   web-app §4 + 25 % (packages/viewer/perf/gate.ts), a miss fails unless perf/waivers.json waives it
 cargo xtask web size         # after `web build`: apps/web/dist/index.html's startup scripts, gzipped, against apps/web/size-budget.json
-cargo xtask web next-release [--commit <rev>] [--notes <file>]  # is <rev> a new web reader release? what ships changed since the
-                             #   newest web-v* tag (not docs, Markdown, tools/ or workflows); prints and sets ready, tag (web-v<next>:
-                             #   apps/web/package.json's version, else the last tag's patch + 1) and previous; notes = those commits
-cargo xtask web check-tag <tag>  # fail unless <tag> is web-v<version> on apps/web/package.json's major and minor (production-checks)
                              #   (`pdf-runtimes` runs it after its reader build, so it gates PRs); a per-script table
+cargo xtask web next-release [--commit <rev>] [--since <tag>] [--notes <file>]  # is <rev> a new web reader release? what ships
+                             #   changed since <tag> (the last that deployed; default the newest web-v* tag): not docs, Markdown,
+                             #   or tools/ and workflows other than the wasm build, web.rs and web-deploy.yml; prints and sets ready,
+                             #   tag (web-v<next>: apps/web/package.json's version when newer, else the newest tag's patch + 1) and
+                             #   previous; the notes are those commits' subjects
+cargo xtask web check-tag <tag>  # fail unless <tag> is web-v<version> on apps/web/package.json's major and minor, below no other
+                             #   web-v* tag (production-checks runs it)
 cargo xtask gallery [--test|--update]  # the Paper gallery (apps/gallery/README.md): serve it (Vite); --test runs its Playwright
                              #   tests in the Playwright image pinned in apps/gallery/package.json (Docker: the gallery's files
                              #   streamed in, the host's node_modules untouched; results in target/gallery/results/); --update

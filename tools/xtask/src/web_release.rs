@@ -2,14 +2,15 @@
 //! release train (`.github/workflows/web-release-train.yml`) once a day after the full nightly
 //! passes, but only when the reader changed since its last release.
 //!
-//! - `cargo xtask web next-release [--commit <rev>] [--notes <file>]` decides whether `<rev>`
-//!   (default `HEAD`) is a new release: what shipped changed since the newest `web-v*` tag, and
-//!   the version it gets. It prints `ready`, `tag` and `previous`, appends them to
-//!   `$GITHUB_OUTPUT`, and writes the release notes (one line per commit that changed what
-//!   shipped) to `<file>`.
+//! - `cargo xtask web next-release [--commit <rev>] [--since <tag>] [--notes <file>]` decides
+//!   whether `<rev>` (default `HEAD`) is a new release: what ships changed since `<tag>` (the last
+//!   release that deployed; default the newest `web-v*` tag), and the version it gets, after the
+//!   newest tag. It prints `ready`, `tag` and `previous`, appends them to `$GITHUB_OUTPUT`, and
+//!   writes the release notes (one line per commit that changed what ships) to `<file>`.
 //! - `cargo xtask web check-tag <tag>` fails unless `<tag>` is `web-v<version>` with the major
-//!   and minor of `apps/web/package.json`'s version and a patch at least its patch: the deploy
-//!   runs it before building, so a tag can't ship a version `package.json` didn't allow.
+//!   and minor of `apps/web/package.json`'s version, a patch at least its patch, and no other
+//!   `web-v*` tag above it: the deploy runs it before building, so a tag can't ship a version
+//!   `package.json` didn't allow, or one older than a release already made.
 //!
 //! The patch number goes up by itself. A new minor or major is the owner's: raise
 //! `apps/web/package.json`'s version, and the next release takes it as written.
@@ -64,14 +65,26 @@ fn next_version(base: Version, latest: Option<Version>) -> Result<Version> {
     Ok(Version(latest.0, latest.1, latest.2 + 1))
 }
 
+/// The parts of the build machinery that shape the shipped bytes: xtask's WebAssembly build
+/// (wasm-opt flags, the glue it rewrites, memory limits) and the reader's build task, and the
+/// deploy workflow, which pins the wasm-bindgen it builds with.
+const SHIPPING_MACHINERY: [&str; 3] = [
+    "tools/xtask/src/wasm",
+    "tools/xtask/src/web.rs",
+    ".github/workflows/web-deploy.yml",
+];
+
 /// Whether `path` can change what visitors to the reader get: the reader's inputs
-/// ([`crate::changes::touches_web`]) except the deploy machinery (`tools/xtask/` and the
-/// workflows), which the preview and staging deploys count but a release needn't, and Markdown
-/// (READMEs, changelogs), which the reader doesn't bundle.
+/// ([`crate::changes::touches_web`]) less the rest of the tools and workflows, which the preview
+/// and staging deploys count but a release needn't, and less Markdown (READMEs, changelogs),
+/// which the reader doesn't bundle.
 fn ships(path: &str) -> bool {
+    if path.is_empty() {
+        return false;
+    }
+    let machinery = path.starts_with("tools/") || path.starts_with(".github/");
     crate::changes::touches_web(&[path])
-        && !path.starts_with("tools/")
-        && !path.starts_with(".github/")
+        && (!machinery || SHIPPING_MACHINERY.iter().any(|prefix| path.starts_with(prefix)))
         && !Path::new(path)
             .extension()
             .is_some_and(|x| x.eq_ignore_ascii_case("md"))
@@ -89,92 +102,105 @@ fn base_version(root: &Path) -> Result<Version> {
     parse(version).with_context(|| format!("{PACKAGE}'s version {version:?} is not MAJOR.MINOR.PATCH"))
 }
 
-/// The newest `web-v*` tag and its version; tags that aren't a release version are left out.
-fn latest_tag(root: &Path) -> Result<Option<(String, Version)>> {
+/// Every `web-v*` tag with its version; tags that aren't a release version are left out.
+fn tags(root: &Path) -> Result<Vec<(String, Version)>> {
     let tags = git(root, &["tag", "--list", &format!("{TAG_PREFIX}*")])?;
     Ok(tags
         .lines()
         .filter_map(|tag| Some((tag.to_owned(), parse(tag.strip_prefix(TAG_PREFIX)?)?)))
-        .max_by_key(|(_, version)| *version))
+        .collect())
 }
 
-/// The subject of each first-parent commit in `range` whose changes include a path that ships.
+/// The subject of each first-parent commit in `range` whose changes include a path that ships,
+/// from one `git log` (each commit's files against its first parent).
 fn notes(root: &Path, range: &str) -> Result<Vec<String>> {
-    let log = git(root, &["log", "--first-parent", "--format=%H%x00%s", range])?;
-    let mut lines = Vec::new();
-    for entry in log.lines() {
-        let Some((sha, subject)) = entry.split_once('\0') else {
-            continue;
-        };
-        let files = git(
-            root,
-            &[
-                "diff-tree",
-                "--no-commit-id",
-                "--name-only",
-                "-r",
-                "-m",
-                "--first-parent",
-                sha,
-            ],
-        )?;
-        if files.lines().any(ships) {
-            lines.push(format!("- {subject}"));
-        }
-    }
-    Ok(lines)
+    let log = git(
+        root,
+        &["log", "--first-parent", "-m", "--name-only", "--format=%x00%s", range],
+    )?;
+    Ok(log
+        .split('\0')
+        .filter_map(|entry| {
+            let mut lines = entry.lines();
+            let subject = lines.next()?.trim();
+            // A blank line separates the subject from the files.
+            lines
+                .map(str::trim)
+                .any(|file| !file.is_empty() && ships(file))
+                .then(|| format!("- {subject}"))
+        })
+        .collect())
 }
 
-/// `web next-release`'s arguments: the commit (default `HEAD`) and the notes file.
-pub(crate) fn parse_next_release(args: &[String]) -> Result<(String, Option<std::path::PathBuf>)> {
-    let mut commit = "HEAD".to_owned();
-    let mut notes = None;
+/// `web next-release`'s arguments.
+pub(crate) struct NextRelease {
+    pub(crate) commit: String,
+    pub(crate) since: Option<String>,
+    pub(crate) notes: Option<std::path::PathBuf>,
+}
+
+/// Parses `[--commit <rev>] [--since <tag>] [--notes <file>]`.
+pub(crate) fn parse_next_release(args: &[String]) -> Result<NextRelease> {
+    let mut parsed = NextRelease {
+        commit: "HEAD".to_owned(),
+        since: None,
+        notes: None,
+    };
     let mut args = args.iter();
     while let Some(arg) = args.next() {
-        let value = || {
-            args.clone()
-                .next()
-                .cloned()
-                .with_context(|| format!("{arg} needs a value"))
-        };
+        let value = args
+            .next()
+            .filter(|value| !value.starts_with("--"))
+            .cloned()
+            .with_context(|| format!("{arg} needs a value"))?;
         match arg.as_str() {
-            "--commit" => commit = value()?,
-            "--notes" => notes = Some(value()?.into()),
-            other => bail!("unknown argument {other:?} (web next-release [--commit <rev>] [--notes <file>])"),
+            "--commit" => parsed.commit = value,
+            "--since" => parsed.since = Some(value),
+            "--notes" => parsed.notes = Some(value.into()),
+            other => {
+                bail!("unknown argument {other:?} (web next-release [--commit <rev>] [--since <tag>] [--notes <file>])")
+            }
         }
-        args.next();
     }
-    Ok((commit, notes))
+    Ok(parsed)
 }
 
-/// `cargo xtask web next-release`.
-pub(crate) fn next_release(root: &Path, commit: &str, notes_file: Option<&Path>) -> Result<()> {
-    let commit = git(root, &["rev-parse", "--verify", &format!("{commit}^{{commit}}")])?;
+/// `cargo xtask web next-release`. Changes count from `since` (the last release that deployed:
+/// one whose deploy failed is made up by the next, with its changes in the notes); the version
+/// comes after the newest tag, failed or not, since a tag name is never reused.
+pub(crate) fn next_release(root: &Path, args: &NextRelease) -> Result<()> {
+    let commit = git(root, &["rev-parse", "--verify", &format!("{}^{{commit}}", args.commit)])?;
     let commit = commit.trim();
-    let base = base_version(root)?;
-    let latest = latest_tag(root)?;
-    let (ready, lines) = match &latest {
-        None => (true, vec!["- The web reader's first release.".to_owned()]),
-        Some((tag, _)) => {
-            let range = format!("{tag}..{commit}");
-            let lines = notes(root, &range)?;
-            (!lines.is_empty(), lines)
-        }
+    let tags = tags(root)?;
+    let latest = tags.iter().max_by_key(|(_, version)| *version).cloned();
+    let previous = args
+        .since
+        .clone()
+        .or_else(|| latest.as_ref().map(|(tag, _)| tag.clone()))
+        .unwrap_or_default();
+    let lines = if previous.is_empty() {
+        vec!["- The web reader's first release.".to_owned()]
+    } else {
+        notes(root, &format!("{previous}..{commit}"))?
     };
-    let version = next_version(base, latest.as_ref().map(|(_, v)| *v))?;
-    let tag = format!("{TAG_PREFIX}{version}");
-    let previous = latest.map(|(tag, _)| tag).unwrap_or_default();
-    match (ready, previous.is_empty()) {
-        (false, _) => println!("No change to what the reader ships since {previous}: nothing to release."),
-        (true, true) => println!("{commit} is the reader's first release, {tag}."),
-        (true, false) => println!("{commit} is {tag}: {} change(s) since {previous}.", lines.len()),
+    crate::util::github_output("previous", &previous)?;
+    if lines.is_empty() {
+        // Nothing to release: no version is needed, so an odd tag can't fail a quiet night.
+        println!("No change to what the reader ships since {previous}: nothing to release.");
+        return crate::util::github_output("ready", "false");
     }
-    if ready && let Some(path) = notes_file {
+    let version = next_version(base_version(root)?, latest.map(|(_, version)| version))?;
+    let tag = format!("{TAG_PREFIX}{version}");
+    if previous.is_empty() {
+        println!("{commit} is the reader's first release, {tag}.");
+    } else {
+        println!("{commit} is {tag}: {} change(s) since {previous}.", lines.len());
+    }
+    if let Some(path) = &args.notes {
         fs::write(path, format!("{}\n", lines.join("\n"))).with_context(|| format!("writing {}", path.display()))?;
     }
-    crate::util::github_output("ready", &ready.to_string())?;
     crate::util::github_output("tag", &tag)?;
-    crate::util::github_output("previous", &previous)
+    crate::util::github_output("ready", "true")
 }
 
 /// `cargo xtask web check-tag <tag>`.
@@ -189,13 +215,16 @@ pub(crate) fn check_tag(root: &Path, tag: &str) -> Result<()> {
             base.2
         );
     }
+    if let Some((newer, _)) = tags(root)?.into_iter().find(|(_, other)| *other > version) {
+        bail!("{tag} is older than {newer}: a release never goes back to an older version");
+    }
     println!("{tag} matches {PACKAGE}'s version {base}");
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Version, next_version, parse, ships};
+    use super::{Version, next_version, parse, parse_next_release, ships};
 
     #[test]
     fn parse_should_accept_release_versions_only() {
@@ -221,6 +250,7 @@ mod tests {
 
     #[test]
     fn ships_should_count_the_reader_and_what_it_bundles_but_not_the_deploy_machinery() {
+        assert!(!ships(""), "a blank line of `git log` output");
         for path in [
             "apps/web/src/app.tsx",
             "packages/viewer/src/client.ts",
@@ -230,14 +260,35 @@ mod tests {
             assert!(ships(path), "{path}");
         }
         for path in [
+            "tools/xtask/src/wasm.rs",
+            "tools/xtask/src/wasm_glue.rs",
             "tools/xtask/src/web.rs",
             ".github/workflows/web-deploy.yml",
+        ] {
+            assert!(ships(path), "{path} shapes the shipped build");
+        }
+        for path in [
+            "tools/xtask/src/nightly.rs",
+            ".github/workflows/ci.yml",
             "apps/site/src/pages/index.astro",
             "docs/plans/web-app.md",
             "apps/web/README.md",
         ] {
             assert!(!ships(path), "{path}");
         }
+    }
+
+    #[test]
+    fn parse_next_release_should_refuse_a_flag_in_place_of_a_value() {
+        let args = |list: &[&str]| list.iter().map(|a| (*a).to_owned()).collect::<Vec<_>>();
+        let parsed =
+            parse_next_release(&args(&["--commit", "abc", "--since", "web-v0.1.0", "--notes", "n.md"])).unwrap();
+        assert_eq!(
+            (parsed.commit.as_str(), parsed.since.as_deref()),
+            ("abc", Some("web-v0.1.0"))
+        );
+        assert!(parse_next_release(&args(&["--commit", "--notes", "n.md"])).is_err());
+        assert!(parse_next_release(&args(&["--since"])).is_err());
     }
 
     const TRAIN: &str = include_str!("../../release/web-release-train.yml");
@@ -269,7 +320,9 @@ mod tests {
             "github.event.workflow_run.head_branch == 'main'",
             "github.event.workflow_run.head_repository.full_name == github.repository",
             "ref: ${{ steps.nightly.outputs.sha }}",
-            "cargo xtask web next-release --commit \"$SHA\" --notes \"$RUNNER_TEMP/notes.md\"",
+            "args=(--commit \"$SHA\" --notes \"$RUNNER_TEMP/notes.md\")",
+            "if [ -n \"$SINCE\" ]; then args+=(--since \"$SINCE\"); fi",
+            "cargo xtask web next-release \"${args[@]}\"",
             "GH_TOKEN: ${{ steps.bot.outputs.token }}",
             "repos/$GITHUB_REPOSITORY/git/tags",
             "--raw-field ref=\"refs/tags/$TAG\"",

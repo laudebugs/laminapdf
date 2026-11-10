@@ -87,11 +87,29 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+      # The last release that deployed is the newest web-v tag with a GitHub release (the deploy
+      # makes it after its smoke test). A tag whose deploy failed has none, so its changes count
+      # again and the next release, under a new tag, makes it up. Without any, the newest tag.
+      - name: Find the last release that deployed
+        id: released
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag=$(gh release list --limit 100 --json tagName,isDraft \
+            --jq '[.[] | select(.isDraft | not) | .tagName | select(test("^web-v[0-9]+\\.[0-9]+\\.[0-9]+$"))][0] // ""')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - name: Decide whether the reader changed since its last release
         id: next
         env:
           SHA: ${{ steps.nightly.outputs.sha }}
-        run: cargo xtask web next-release --commit "$SHA" --notes "$RUNNER_TEMP/notes.md"
+          SINCE: ${{ steps.released.outputs.tag }}
+        run: |
+          set -euo pipefail
+          args=(--commit "$SHA" --notes "$RUNNER_TEMP/notes.md")
+          if [ -n "$SINCE" ]; then args+=(--since "$SINCE"); fi
+          cargo xtask web next-release "${args[@]}"
       - name: Create the release bot's token
         if: steps.next.outputs.ready == 'true'
         id: bot
@@ -116,7 +134,7 @@ jobs:
             exit 1
           fi
           object=$(jq -n --arg tag "$TAG" --arg sha "$SHA" --rawfile notes "$RUNNER_TEMP/notes.md" \
-            '{tag: $tag, message: ("Web reader " + $tag + "\n\n" + $notes), object: $sha, type: "commit"}' \
+            '{tag: $tag, message: $notes, object: $sha, type: "commit"}' \
             | gh api --method POST "repos/$GITHUB_REPOSITORY/git/tags" --input - \
             | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
           gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \

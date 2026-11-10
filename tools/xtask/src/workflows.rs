@@ -416,7 +416,7 @@ mod tests {
         let release = production.join("\n");
         assert!(
             release.contains("if: steps.smoke.outcome == 'success'")
-                && release.contains("--verify-tag --notes-from-tag"),
+                && release.contains("--verify-tag --title \"Web reader $TAG\" --notes-file \"$RUNNER_TEMP/notes.md\""),
             "production makes the GitHub release only after its smoke test passes"
         );
         assert!(has(&production, "environment: production"));

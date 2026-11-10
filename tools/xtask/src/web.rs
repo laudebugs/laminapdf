@@ -23,12 +23,12 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
         [cmd] if cmd == "docs-runner" => docs_runner(ws),
         [cmd] if cmd == "size" => size(ws),
         [cmd, rest @ ..] if cmd == "next-release" => {
-            let (commit, notes) = crate::web_release::parse_next_release(rest)?;
-            crate::web_release::next_release(&ws.root, &commit, notes.as_deref())
+            let args = crate::web_release::parse_next_release(rest)?;
+            crate::web_release::next_release(&ws.root, &args)
         }
         [cmd, tag] if cmd == "check-tag" => crate::web_release::check_tag(&ws.root, tag),
         _ => bail!(
-            "usage: cargo xtask web build|docs-runner|size|next-release [--commit <rev>] [--notes <file>]|check-tag <tag>"
+            "usage: cargo xtask web build|docs-runner|size|next-release [--commit <rev>] [--since <tag>] [--notes <file>]|check-tag <tag>"
         ),
     }
 }
