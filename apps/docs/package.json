@@ -20,7 +20,7 @@
     "e2e": "vitest run -c vitest.e2e.config.ts"
   },
   "devDependencies": {
-    "@astrojs/starlight": "0.42.7",
+    "@astrojs/starlight": "0.42.8",
     "@codemirror/lang-javascript": "6.2.5",
     "@codemirror/language": "6.13.1",
     "@laminapdf/fonts": "workspace:*",
@@ -34,11 +34,11 @@
     "@lezer/highlight": "1.2.5",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
-    "astro": "7.4.2",
+    "astro": "7.4.5",
     "codemirror": "6.0.2",
     "playwright": "catalog:",
     "starlight-links-validator": "0.27.0",
-    "starlight-typedoc": "0.23.1",
+    "starlight-typedoc": "0.23.2",
     "sucrase": "3.35.1",
     "typedoc": "0.28.20",
     "typedoc-plugin-markdown": "4.14.1",
