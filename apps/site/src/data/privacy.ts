@@ -4,7 +4,7 @@
 // A change to a promise goes back to the owner, as the home page's words do.
 
 /** Where a promise is checked: a test file of the repository and the test's own name. */
-export interface Proof {
+interface Proof {
   readonly file: string;
   readonly test: string;
 }
