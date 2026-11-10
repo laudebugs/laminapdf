@@ -31,6 +31,14 @@ use crate::font::{Font, GlyphId};
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct HarfRust;
 
+/// Whether `language` uses only the characters a BCP 47 tag can contain: ASCII letters, digits
+/// and `-` (RFC 5646 §2.1). Any other tag can't name a language, so it shapes like an unknown one:
+/// with the font's default language system. HarfRust 0.8 slices the tag by bytes and panics when
+/// a cut falls inside a multi-byte character (`cm\u{FFFD}` from a Markdown file's front matter).
+fn is_tag_text(language: &str) -> bool {
+    language.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+}
+
 impl Shaper for HarfRust {
     fn shape_range(&self, font: &Font, text: &str, range: Range<usize>, options: &ShapeOptions) -> Result<ShapedRun> {
         let run_text = sub(text, range.clone())?;
@@ -52,10 +60,11 @@ impl Shaper for HarfRust {
             Direction::LeftToRight => harfrust::Direction::LeftToRight,
             Direction::RightToLeft => harfrust::Direction::RightToLeft,
         };
-        // Any non-empty tag is accepted (unknown ones select the default language system).
+        // Any well-formed tag is accepted (unknown ones select the default language system).
         let language = options
             .language
             .as_deref()
+            .filter(|language| is_tag_text(language))
             .and_then(|language| harfrust::Language::from_str(language).ok());
 
         let mut buffer = UnicodeBuffer::new();
