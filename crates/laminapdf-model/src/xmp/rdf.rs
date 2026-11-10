@@ -104,6 +104,9 @@ pub(super) struct Description {
     pub(super) declarations: Vec<Binding>,
     /// Its attributes as written (`rdf:about="…"` and attribute-form properties).
     pub(super) attributes: Vec<Range<usize>>,
+    /// Whether one of them is `rdf:about`, which ISO 16684-1 §7.4 requires on every
+    /// description.
+    pub(super) has_about: bool,
     /// Its child elements as written.
     pub(super) children: Vec<Range<usize>>,
 }
@@ -218,6 +221,7 @@ fn description(text: &str, e: &Element, outer: &Scope, out: &mut Rdf) {
         insert_at,
         indent,
         own_indent,
+        has_about: e.attr(RDF, "about").is_some(),
         scope,
         declarations: e.declarations.clone(),
         attributes,

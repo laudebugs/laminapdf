@@ -22,9 +22,10 @@ pub(super) const MAX_DEPTH: usize = 64;
 /// dozen; the bound keeps a tag's scan and its names' resolution small.
 pub(super) const MAX_ATTRIBUTES: usize = 256;
 
-/// A packet declares no more namespaces than this in all. Real packets declare a few dozen;
-/// each name's resolution walks the declarations in scope, so the bound keeps a packet of many
-/// elements under many declarations linear in its size.
+/// No more namespace declarations than this are in scope at once. Real packets have a few
+/// dozen; each name's resolution walks the declarations in scope, so the bound keeps a packet
+/// of many elements linear in its size. It counts only the declarations of the open elements:
+/// some serialisers declare a namespace again on every element, which costs nothing here.
 pub(super) const MAX_DECLARATIONS: usize = 256;
 
 /// A node of the tree.
@@ -263,7 +264,8 @@ struct Builder {
     /// The open elements, each with the scope outside it.
     open: Vec<(Element, Scope)>,
     scope: Scope,
-    declarations: usize,
+    /// The declarations of the open elements, which are the ones in scope.
+    in_scope: usize,
 }
 
 impl Builder {
@@ -315,8 +317,7 @@ impl Builder {
             }
             declarations.push(Binding::new(prefix, &a.value));
         }
-        self.declarations += declarations.len();
-        if self.declarations > MAX_DECLARATIONS {
+        if self.in_scope + declarations.len() > MAX_DECLARATIONS {
             return Err(ParseError::TooLarge { offset });
         }
         let outside = self.scope.clone();
@@ -347,6 +348,7 @@ impl Builder {
             self.scope = outside;
             self.siblings().push(Node::Element(element));
         } else {
+            self.in_scope += element.declarations.len();
             self.open.push((element, outside));
         }
         Ok(())
@@ -355,6 +357,7 @@ impl Builder {
     fn close(&mut self, end: usize) -> Result<(), ParseError> {
         let (mut element, outside) = self.open.pop().ok_or(ParseError::Syntax { offset: end as u64 })?;
         element.span.end = end;
+        self.in_scope -= element.declarations.len();
         self.scope = outside;
         self.siblings().push(Node::Element(element));
         Ok(())

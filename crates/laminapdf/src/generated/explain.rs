@@ -597,7 +597,7 @@ The Info view's `creation_date` is `None` and its raw string is kept; `data` is 
 
 ## What happened
 
-The document's XMP metadata packet (the catalog's `/Metadata` stream, ISO 32000-2 §14.3.2) isn't readable XMP, so it is treated as absent. The packet may not be well-formed XML. It may declare a DTD, which XMP doesn't allow, or refer to an entity other than XML's five predefined ones. It may use a prefix it never declares, nest elements more than 64 deep, declare more than 256 namespaces or give a tag more than 256 attributes, or have no `rdf:RDF` element.
+The document's XMP metadata packet (the catalog's `/Metadata` stream, ISO 32000-2 §14.3.2) isn't readable XMP, so it is treated as absent. The packet may not be well-formed XML. It may declare a DTD, which XMP doesn't allow, or refer to an entity other than XML's five predefined ones. It may use a prefix it never declares, nest elements more than 64 deep, have more than 256 namespace declarations in scope at once or give a tag more than 256 attributes, or have no `rdf:RDF` element.
 
 Lamina PDF never expands entities, so a packet built to make a reader fetch files or fill its memory is refused.
 

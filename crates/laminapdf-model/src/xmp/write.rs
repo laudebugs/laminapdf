@@ -143,6 +143,18 @@ fn rdf_prefix(scope: &Scope, declarations: &mut Vec<Binding>) -> String {
     prefix
 }
 
+/// A non-empty prefix for the RDF namespace in `scope`, for an attribute: an unprefixed
+/// attribute is in no namespace, so the default namespace won't do. A fresh one is added to
+/// `declarations` when none is bound.
+fn rdf_attribute_prefix(scope: &Scope, declarations: &mut Vec<Binding>) -> String {
+    if let Some(p) = scope.prefix_for(RDF) {
+        return p.to_owned();
+    }
+    let prefix = free_prefix(scope, declarations, "rdf");
+    declarations.push(Binding::new(&prefix, RDF));
+    prefix
+}
+
 /// `preferred`, or `preferred1`, `preferred2`, …: the first that neither `scope` nor
 /// `declarations` binds.
 fn free_prefix(scope: &Scope, declarations: &[Binding], preferred: &str) -> String {
@@ -532,6 +544,7 @@ pub(super) fn canonical(text: &str, rdf: &Rdf, changes: &[Change<'_>]) -> String
         scope: scope.clone(),
         declarations: Vec::new(),
         attributes: Vec::new(),
+        has_about: false,
         children: Vec::new(),
     };
     let descriptions: Vec<&Description> = if rdf.descriptions.is_empty() {
@@ -558,8 +571,10 @@ pub(super) fn canonical(text: &str, rdf: &Rdf, changes: &[Change<'_>]) -> String
                 );
             }
         }
-        let about = d.attributes.is_empty().then(|| {
-            let name = rdf_prefix(&inside.with(&declarations), &mut declarations);
+        // The kept attributes never include `rdf:about` when the description had none: only
+        // mapped properties are dropped.
+        let about = (!d.has_about).then(|| {
+            let name = rdf_attribute_prefix(&inside.with(&declarations), &mut declarations);
             qname(&name, "about")
         });
         let _ = write!(out, "  <{}", d.qualified);

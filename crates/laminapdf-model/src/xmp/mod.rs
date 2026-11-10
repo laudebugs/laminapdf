@@ -119,7 +119,7 @@ pub enum ParseError {
         offset: u64,
     },
     /// A start tag with more than 256 attributes, or more than 256 namespace declarations in
-    /// the packet: far beyond any real packet, and a way to make reading it slow.
+    /// scope at once: far beyond any real packet, and a way to make reading it slow.
     #[error("the packet declares too many attributes or namespaces at byte {offset}")]
     TooLarge {
         /// Where the element that goes over starts.
@@ -238,7 +238,7 @@ pub struct Written {
 }
 
 /// A parsed XMP packet and the changes made to it.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Packet {
     original: Vec<u8>,
     /// The packet as UTF-8: `original` itself, or decoded from UTF-16.
@@ -292,8 +292,17 @@ impl Packet {
     /// ```
     #[must_use]
     pub fn new_minimal() -> Self {
-        // Our own text, which a unit test parses; an empty packet stands in were it not to.
-        Self::parse(write::minimal().as_bytes()).unwrap_or_default()
+        let text = write::minimal();
+        // Our own text, which a unit test parses. Were it not to, the packet would still write
+        // that text back, since it has no changes; edits would be rewritten canonically.
+        Self::parse(text.as_bytes()).unwrap_or_else(|_| Self {
+            original: text.clone().into_bytes(),
+            text,
+            utf16: false,
+            top: Vec::new(),
+            rdf: Rdf::default(),
+            changes: BTreeMap::new(),
+        })
     }
 
     /// The bytes the packet was parsed from.

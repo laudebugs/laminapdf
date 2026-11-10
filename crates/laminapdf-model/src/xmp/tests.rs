@@ -557,14 +557,35 @@ fn many_declarations_over_many_descriptions_stay_cheap() {
 }
 
 #[test]
-fn too_many_declarations_or_attributes_are_refused() {
+fn too_many_declarations_in_scope_or_attributes_are_refused() {
     let many = format!("{RDF_OPEN}<rdf:Description{}/></rdf:RDF>", declarations("p", 300));
-    let spread: Vec<String> = (0..20)
-        .map(|i| format!("<rdf:Description{}/>", declarations(&format!("q{i}x"), 20)))
+    // 20 nested elements of 20 declarations each: 400 in scope at the innermost.
+    let open: Vec<String> = (0..20)
+        .map(|i| format!("<rdf:a{}>", declarations(&format!("x{i}n"), 20)))
         .collect();
-    let spread = format!("{RDF_OPEN}{}</rdf:RDF>", spread.concat());
-    let reasons = [many, spread].map(|p| Packet::parse(p.as_bytes()).unwrap_err().reason());
+    let close = vec!["</rdf:a>"; 20];
+    let nested = format!("{RDF_OPEN}{}{}</rdf:RDF>", open.concat(), close.concat());
+    let reasons = [many, nested].map(|p| Packet::parse(p.as_bytes()).unwrap_err().reason());
     assert_eq!(reasons, ["limit", "limit"]);
+}
+
+#[test]
+fn declarations_repeated_on_every_element_are_counted_only_in_scope() {
+    // As serialisers that declare a namespace on every element write: 1,000 declarations in
+    // the packet, a handful in scope at once.
+    let items: Vec<String> = (0..250)
+        .map(|i| {
+            format!(
+                r#"<rdf:li xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:a="urn:a" xmlns:b="urn:b" xmlns:c="urn:c">item {i}</rdf:li>"#
+            )
+        })
+        .collect();
+    let source = wrapped(&format!(
+        r#"  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:subject><rdf:Bag>{}</rdf:Bag></dc:subject></rdf:Description>"#,
+        items.concat()
+    ));
+    let p = Packet::parse(source.as_bytes()).unwrap();
+    assert!(matches!(p.property(DC, "subject"), Some(RdfValue::Array { items, .. }) if items.len() == 250));
 }
 
 #[test]
@@ -642,4 +663,43 @@ fn other_languages_follow_the_default_only_when_they_repeated_it() {
     };
     let t = |l: &str, v: &str| (Some(l.to_owned()), RdfValue::Text(v.to_owned()));
     assert_eq!(items, [t("x-default", "New"), t("en", "New"), t("de", "Alt")]);
+}
+
+#[test]
+fn a_canonical_rewrite_keeps_rdf_about_when_its_only_attribute_changes() {
+    let source = wrapped(r#"  <rdf:Description xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="x"/>"#)
+        .replace("end=\"w\"", "end=\"r\"");
+    let mut p = Packet::parse(source.as_bytes()).unwrap();
+    p.set_producer(Some("y"));
+    let written = p.write();
+    let out = text(&written);
+    assert!(
+        written.canonical
+            && out.contains(r#"rdf:about="""#)
+            && Packet::parse(&written.bytes).unwrap().producer().as_deref() == Some("y"),
+        "{out}"
+    );
+}
+
+#[test]
+fn a_canonical_about_always_has_a_real_prefix() {
+    // The description reaches RDF only through the default namespace, `rdf` being re-bound.
+    let source = wrapped(
+        r#"  <Description xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdf="urn:other" xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="x"/>"#,
+    )
+    .replace("end=\"w\"", "end=\"r\"");
+    let mut p = Packet::parse(source.as_bytes()).unwrap();
+    p.set_producer(Some("y"));
+    let out = text(&p.write());
+    assert!(
+        out.contains(r#"xmlns:rdf1="http://www.w3.org/1999/02/22-rdf-syntax-ns#""#)
+            && out.contains(r#" rdf1:about="""#)
+            && !out.contains(r#" about="""#),
+        "{out}"
+    );
+}
+
+#[test]
+fn a_minimal_packet_is_the_minimal_text() {
+    assert_eq!(Packet::new_minimal().write().bytes, write::minimal().into_bytes());
 }
