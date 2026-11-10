@@ -18,7 +18,7 @@
 
 Let a reader install the `laminapdf` command-line tool from the docs site's install page. The page gains a "Command-line tool" section with Homebrew, npm and a table of direct downloads, one row per target, each linking the archive and its checksum on the GitHub release.
 
-The repository is public, so the GitHub release serves the archives to everyone. This todo first planned an R2 bucket at `downloads.laminapdf.com` because release links answered 404 while the repository was private. That reason is gone, so the bucket, the formula rewrite and the ADR 0011 amendment are dropped.
+The repository is public, so the GitHub release serves the archives to everyone.
 
 ## Context
 
@@ -35,7 +35,7 @@ The repository is public, so the GitHub release serves the archives to everyone.
 - The version: the CLI shares the workspace's lockstep version, so the links use `{{version}}`.
 - A docs-build check: the table's targets match `dist-workspace.toml`'s, so a target added there fails the build until the page lists it.
 - `crates/laminapdf-cli/README.md`: the "Not yet published" note and the `cargo install --git` line point at the docs page once the first release exists.
-- Unsigned binaries: the section says macOS quarantines a browser download, shows the `xattr -d com.apple.quarantine` command, and says Homebrew and npm avoid the warning.
+- Unsigned binaries: the section says macOS quarantines a browser download, shows the `xattr -d com.apple.quarantine` command, and says Homebrew and npm avoid most of these warnings.
 
 **Out of scope** (and which todo covers it)
 
@@ -43,6 +43,7 @@ The repository is public, so the GitHub release serves the archives to everyone.
 - The website's `/download` page: [D7b](./D7b-settings-renderer-switch-and-download-page.md).
 - Signing and notarisation: [D6c](./D6c-macos-signing-and-notarisation.md), [D6d](./D6d-windows-signing.md).
 - A shell installer (`curl … | sh`): later, on demand.
+- An R2 download bucket: not needed while the repository is public.
 
 ## Tasks
 
