@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { env } from "node:process";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
@@ -39,6 +40,14 @@ function websiteIcons(): Plugin {
   };
 }
 
+/** The release's version when the deploy names one (a web-v tag's), else package.json's. */
+function appVersion(): string {
+  const release = env.LAMINA_PDF_WEB_VERSION;
+  if (release === undefined || release === "") return pkg.version;
+  if (!/^\d+\.\d+\.\d+$/.test(release)) throw new Error(`LAMINA_PDF_WEB_VERSION ${release} is not MAJOR.MINOR.PATCH`);
+  return release;
+}
+
 // The reader, built with the React Compiler through Babel. The document worker is a module worker
 // and every WebAssembly file a hashed asset of the same origin (ADR 0009 §2, ADR 0011 §1), so the
 // built index.html loads only files from dist/: no inline script or style (the CSP allows none).
@@ -49,8 +58,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@embedpdf/pdfium", "@laminapdf/viewer", "@laminapdf/render-hayro"],
   },
-  // The reader's version, shown in Settings › About (apps/web/CHANGELOG.md lists each one).
-  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  // The reader's version, shown in Settings › About: the release's (web-deploy.yml sets
+  // LAMINA_PDF_WEB_VERSION from its web-v tag), else package.json's base version.
+  define: { __APP_VERSION__: JSON.stringify(appVersion()) },
   worker: { format: "es" },
   build: {
     target: "es2022",
