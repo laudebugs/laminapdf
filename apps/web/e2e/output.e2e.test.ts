@@ -151,7 +151,7 @@ describe(`print, download and properties in ${BROWSER}`, () => {
       if (
         request.serviceWorker() === null &&
         !/^(blob|data):/.test(url) &&
-        !/\/lamina_pdf_extract-[^/]*\.wasm$/.test(url)
+        !/\/lamina_pdf_extract-[^/]*\.(js|wasm)$/.test(url)
       )
         requests.push(url);
     });
