@@ -12,7 +12,7 @@
 | Branch | `feat/t4k-json-documents-in-the-cli-and-mcp` |
 | PR title | `feat(cli): JSON documents and templates from laminapdf build and its MCP tool` |
 | Size | M (≈ 300–450 lines: the CLI inputs, the MCP arguments and their inlined schema, tests, docs) |
-| PR | — |
+| PR | [#422](https://github.com/laudebugs/laminapdf/pull/422) |
 
 ## Goal
 
