@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4j` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4e](../done/T4e-json-documents-and-templates.md), [T4i](../done/T4i-build-command-and-bindings.md) |
+| Depends on | [T4e](./T4e-json-documents-and-templates.md), [T4i](./T4i-build-command-and-bindings.md) |
 | ADRs | Implements [ADR 0032 §7](../../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) (`builder.flow(document, { data })` with the document as typed objects generated from the committed schema) and [§9](../../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) (the text module's 1,280,000 B gzip budget; the invoice joins `cargo xtask pdf-runtimes`). Follows [0016 §6–§7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary) (module budgets; records as JSON with `unknown-option`) and [0018](../../decisions/0018-test-strategy.md) (timings recorded, not asserted) |
 | Branch | `feat/t4j-documents-in-typescript` |
 | PR title | `feat(sdk): typed flow documents and builder.flow` |
@@ -44,21 +44,21 @@ Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(d
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
-- [ ] Read ADR 0032 §7 and §9, T4e's schema and T4i's WebAssembly call
-- [ ] Check what schemars writes for the flow model, then extend `schema_ts.rs` for the keywords it lacks; `cargo xtask gen boundary` writes `document.ts`
-- [ ] WebAssembly: `WasmBuilder.flow`; TypeScript: `Builder.flow`, the generated types, and a `@ts-expect-error` test for a misspelt key; `cargo xtask wasm` and `cargo xtask size`
-- [ ] The TypeScript example, its pair entry, the runtime suite entry and the `invoice-from-json` case in `measure()`
-- [ ] The docs (Docs to update)
+- [x] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
+- [x] Read ADR 0032 §7 and §9, T4e's schema and T4i's WebAssembly call
+- [x] Check what schemars writes for the flow model, then extend `schema_ts.rs` for the keywords it lacks; `cargo xtask gen boundary` writes `document.ts`
+- [x] WebAssembly: `WasmBuilder.flow`; TypeScript: `Builder.flow`, the generated types, and a `@ts-expect-error` test for a misspelt key; `cargo xtask wasm` and `cargo xtask size`
+- [x] The TypeScript example, its pair entry, the runtime suite entry and the `invoice-from-json` case in `measure()`
+- [x] The docs (Docs to update)
 
 ## Acceptance criteria
 
-- [ ] `invoice-from-json.ts` writes T4e's golden bytes in every runtime (`cargo xtask pdf-runtimes`)
-- [ ] A misspelt key fails with `unknown-option` and a `didYouMean` in the binding, and fails to type-check in TypeScript
-- [ ] `template-data-missing` reaches TypeScript as a `LaminaPdfError` with the pointer in its `data`
-- [ ] The runtime suite's measurements include the `invoice-from-json` case in each runtime
-- [ ] `cargo xtask gen boundary --check` and `cargo xtask size` pass, within the text module's 1,360,000 B gzip budget
-- [ ] `cargo xtask check docs` passes with the example pair shown on a docs page
+- [x] `invoice-from-json.ts` writes T4e's golden bytes in every runtime (`cargo xtask pdf-runtimes`)
+- [x] A misspelt key fails with `unknown-option` and a `didYouMean` in the binding, and fails to type-check in TypeScript
+- [x] `template-data-missing` reaches TypeScript as a `LaminaPdfError` with the pointer in its `data`
+- [x] The runtime suite's measurements include the `invoice-from-json` case in each runtime
+- [x] `cargo xtask gen boundary --check` and `cargo xtask size` pass, within the text module's gzip budget (1,400,000 B, amended with this todo from 1,360,000)
+- [x] `cargo xtask check docs` passes with the example pair shown on a docs page
 
 ## Post-merge checks
 
@@ -73,11 +73,11 @@ Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(d
 
 ## Docs to update
 
-- [ ] The "Fill an invoice from JSON" recipe (T4e's): the TypeScript tab
-- [ ] The "Pages that flow" guide: the TypeScript tab for every section that lacks one
-- [ ] `packages/sdk/examples/AGENTS.md`: `builder.flow` and the generated types
-- [ ] `CLAUDE.md`'s WASM and TypeScript paragraphs
-- [ ] The trust and proof plan's §10 to-do for T4
+- [x] The "Fill an invoice from JSON" recipe (T4e's): the TypeScript tab
+- [x] The "Pages that flow" guide: the TypeScript tab for every section that lacks one
+- [x] `packages/sdk/examples/AGENTS.md`: `builder.flow` and the generated types
+- [x] `CLAUDE.md`'s WASM and TypeScript paragraphs
+- [x] The trust and proof plan's §10 to-do for T4
 
 ## Risks and open questions
 
@@ -85,10 +85,20 @@ Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(d
 - **WASM size.** The text module's budget covers the flow layer, tables, notes, Markdown and templates together. If T4i left too little room, measure what `serde` adds and report it to the owner before raising anything.
 - **Speed in WebAssembly.** The spike's 100-page report took about 280 ms per pass in Node 24. If the recorded figures pass ADR 0032 §9's budgets, open the `FlowJob` todo rather than slowing this one.
 
+## As built
+
+- **Generated types.** `schema_ts.rs` gained `additionalProperties`: a map with a value schema is a `Record<string, …>`, `false` beside properties needs nothing (TypeScript already refuses an unknown key in an object literal), and properties beside a value schema fail. `cargo xtask gen boundary` writes `packages/sdk/src/generated/document.ts` with the root type `FlowDocument`.
+- **Templates in TypeScript.** The generated types describe a plain document, so a template needs its own type: `Templated<T>` allows `$data`/`$item` where a value goes and `$each`/`$if` among a list's items, and `FlowTemplate` is `Templated<FlowDocument>`. `builder.flow` takes a `FlowTemplate`; a `FlowDocument` is one too.
+- **WebAssembly.** `WasmBuilder.flow(document, resources, options)` in the text module (`src/builder/flow.rs`), with `WasmFlowResources` holding the fonts and images by name (a record can't hold WebAssembly objects). The document and data cross as JSON, so integers stay integers. The text module's `text` feature turns on `laminapdf/document`.
+- **Profiles.** As in Rust, the document's `profiles` don't reach the builder by themselves: the builder's options take them. A template's `profiles` may be a placeholder, so the TypeScript example names `PDF/UA-1` itself rather than reading it from the template.
+- **Size.** `WasmBuilder.flow` links the document format into the text module: reading, checking, filling and converting it, about 75 KB gzip in all (1,391,637 B), spread over many small functions (the largest, `convert_block`, is 7 KB). That passed the 1,360,000 B budget by 31.6 KB, and the owner raised it to 1,400,000 B (ADR 0016 §6 and ADR 0032 §9 amended).
+- **Timing.** `measure()` records `invoice-from-json` as the best of 30 runs (ADR 0032 §9's figure), beside the medians of the other cases.
+- **The guide.** "Pages that flow" gains a TypeScript paragraph in its JSON section and drops "the TypeScript package will follow". Its other sections show the Rust flow API, whose elements TypeScript reaches through the JSON document, so they keep their Rust examples.
+
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

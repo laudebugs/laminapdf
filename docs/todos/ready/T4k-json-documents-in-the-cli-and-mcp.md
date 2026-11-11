@@ -34,7 +34,7 @@ Build a `laminapdf.document/1` document, or fill a template, without writing cod
 **Out of scope**
 
 - The format, templates and Rust API: [T4e](../done/T4e-json-documents-and-templates.md).
-- TypeScript: [T4j](../ongoing/T4j-documents-in-typescript.md).
+- TypeScript: [T4j](../done/T4j-documents-in-typescript.md).
 
 ## Tasks
 

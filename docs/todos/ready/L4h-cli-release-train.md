@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4g](../done/L4g-cli-release-targets-and-publishing.md), [C7e](../done/C7e-automated-web-releases.md), [T4j](../ongoing/T4j-documents-in-typescript.md) |
+| Depends on | [L4g](../done/L4g-cli-release-targets-and-publishing.md), [C7e](../done/C7e-automated-web-releases.md), [T4j](../done/T4j-documents-in-typescript.md) |
 | Dependency notes | L4g's tag push builds and publishes the CLI; C7e's web train is the pattern to follow. T4j is a queue position, not a code dependency: the owner asked for this after the CLI's T4 todos. The train's first tag needs the owner's L4g setup, done 2026-11-10 except the npm packages' first publish and trusted publishers. |
 | ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) (release gating, the release bot), [0031](../../decisions/0031-cli-and-mcp-contract.md) |
 | Branch | `ci/cli-release-train` |

@@ -43,7 +43,7 @@ Bring [T4d](../done/T4d-markdown-documents.md)'s Markdown front end to the place
 **Out of scope** (and which todo covers it)
 
 - `doc.json` inputs, `--data`, `--image NAME=FILE`, and the tool's `document` and `data` arguments: [T4e](../done/T4e-json-documents-and-templates.md).
-- `builder.flow` and typed documents in TypeScript: [T4j](../ongoing/T4j-documents-in-typescript.md).
+- `builder.flow` and typed documents in TypeScript: [T4j](../done/T4j-documents-in-typescript.md).
 - Several inputs in one run (ADR 0031's batch mode): later, if users ask.
 - Fonts bundled with the CLI or the SDK: [pdf-library §9](../../plans/pdf-library.md#9-open-questions) question 2, which ADR 0032 §8 leaves open.
 
