@@ -1,7 +1,9 @@
 //! Writes `laminapdf-cli`'s goldens into a directory and prints their paths:
 //! `cli-rotate-hello.pdf`, `laminapdf pages rotate fixtures/corpus/hello.pdf +90` (an
 //! incremental update of the input), and `cli-build-report.pdf`, `laminapdf build
-//! fixtures/markdown/report.md` with the Noto fonts under PDF/UA-1. `cargo xtask golden --update`
+//! fixtures/markdown/report.md` with the Noto fonts under PDF/UA-1, and `cli-build-invoice.pdf`,
+//! `laminapdf build fixtures/documents/invoice.json --data fixtures/documents/invoice-data.json`
+//! with the template's two fonts. `cargo xtask golden --update`
 //! runs it on `fixtures/golden/`; `tests/pages.rs` and `tests/build.rs` compare the binary's
 //! output with them.
 //!
@@ -38,7 +40,31 @@ fn main() -> Result<(), Box<dyn Error>> {
         &mut ProcessIo::default(),
     )?;
     println!("{}", built.display());
+    let invoice = Path::new(&out).join("cli-build-invoice.pdf");
+    build(
+        &invoice_args(&invoice.to_string_lossy()),
+        &settings,
+        &mut ProcessIo::default(),
+    )?;
+    println!("{}", invoice.display());
     Ok(())
+}
+
+/// `laminapdf build fixtures/documents/invoice.json --data …/invoice-data.json -o <output>` with
+/// the fonts the template names, as `tests/build_document.rs` runs it.
+fn invoice_args(output: &str) -> BuildArgs {
+    let fixtures = laminapdf_test_fixtures::fixtures_dir();
+    let path = |p: &str| fixtures.join(p).to_string_lossy().into_owned();
+    BuildArgs {
+        input: path("documents/invoice.json"),
+        output: output.to_owned(),
+        data: Some(path("documents/invoice-data.json")),
+        fonts: vec![
+            format!("regular={}", path("fonts/NotoSans-Regular.ttf")),
+            format!("bold={}#1", path("fonts/NotoSans-RegularBold.ttc")),
+        ],
+        ..BuildArgs::default()
+    }
 }
 
 /// `laminapdf build fixtures/markdown/report.md -o <output>` with the fixture fonts, as
