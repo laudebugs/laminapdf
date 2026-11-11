@@ -4,6 +4,7 @@ One folder per bug we diagnosed, named after its symptom. Each holds `detail.md`
 
 | Bug | Symptom | Cause | Fixed in |
 | --- | --- | --- | --- |
+| [`theme-select-shorter-than-search`](theme-select-shorter-than-search/detail.md) | In the docs site's header, the theme switch was 32 px high beside the 40 px search box. | Each control kept its own height: Starlight's search 2.5rem, the Paper select 32 px. | `apps/docs` ([resolution](theme-select-shorter-than-search/resolution.md)) |
 | [`drop-ignored-on-a-slow-start`](drop-ignored-on-a-slow-start/detail.md) | A file dropped or pasted on the home screen just after it showed opened nothing; in WebKit's e2e tests drop and paste opens failed at random. | The window started listening for drops after the screen painted, so for a moment the screen invited a drop that nothing took. | `@laminapdf/ui` ([resolution](drop-ignored-on-a-slow-start/resolution.md)) |
 | [`webkit-e2e-test-assumptions`](webkit-e2e-test-assumptions/detail.md) | WebKit's pinch e2e test ended at 800 % about one run in two, and its palette test never opened the palette on Linux. | The pinch test's finger shared the mouse's pointer id; the palette test pressed the Mac shortcut on every WebKit. | The reader's e2e tests ([resolution](webkit-e2e-test-assumptions/resolution.md)) |
 | [`webkit-page-crash-opening-during-thumbnails`](webkit-page-crash-opening-during-thumbnails/detail.md) | WebKit's page crashes when a document opens while the thumbnail strip still has renders pending. | Not found yet. | Open |

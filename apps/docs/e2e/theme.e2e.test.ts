@@ -1,7 +1,8 @@
 // The theme switch (src/components/ThemeSelect.astro, on @laminapdf/site-kit's select) against
 // `wrangler dev` (e2e/server.ts), in one browser per run (LAMINA_PDF_E2E_BROWSER), as a reader uses
-// it: a choice shows at once and survives a reload, Auto follows the system and clears the stored
-// choice, the header's and the phone menu's switches stay in step, and no CSP violation is reported.
+// it: it stands as tall as the search box beside it, a choice shows at once and survives a reload,
+// Auto follows the system and clears the stored choice, the header's and the phone menu's switches
+// stay in step, and no CSP violation is reported.
 
 import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
@@ -55,6 +56,23 @@ describe(`the theme switch in ${BROWSER}`, () => {
     expect(await select.inputValue()).toBe("auto");
     expect(await shownTheme(page)).toBe("dark");
     expect(errors).toEqual([]);
+    await context.close();
+  });
+
+  it("stands as tall as the search box beside it, on one centre line", async () => {
+    const { context, page } = await open("light");
+    const box = (selector: string) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((e) => {
+          const r = e.getBoundingClientRect();
+          return { height: r.height, middle: r.top + r.height / 2 };
+        });
+    const search = await box("button[data-open-modal]");
+    const theme = await box("starlight-theme-select select");
+    expect(theme.height).toBe(search.height);
+    expect(theme.middle).toBeCloseTo(search.middle, 0);
     await context.close();
   });
 
