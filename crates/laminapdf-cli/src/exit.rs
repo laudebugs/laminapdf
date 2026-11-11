@@ -87,6 +87,14 @@ impl ExitCode {
         }
     }
 
+    /// Every code, the one that wins first.
+    #[must_use]
+    pub fn by_priority() -> [Self; Self::ALL.len()] {
+        let mut all = Self::ALL;
+        all.sort_by_key(|code| std::cmp::Reverse(code.priority()));
+        all
+    }
+
     /// The code of the two that wins.
     #[must_use]
     pub const fn max(self, other: Self) -> Self {

@@ -1,0 +1,72 @@
+---
+title: Extract text and render pages
+description: Read a PDF's text, or its blocks in reading order as Markdown, JSON or chunks for an LLM, and draw its pages as PNG images from the command line.
+---
+
+Get a PDF's contents out in the form you need: text for a search index, Markdown or chunks for a language model, or JSON with each block's position, or draw its pages as PNG images for thumbnails and previews.
+
+## Text: `extract`
+
+By default, `extract` prints each page's text, pages separated by a form feed, as `pdftotext` does. `--pages` picks the pages, and `--visible-only` leaves out text drawn invisibly, such as the hidden text layer of a scan:
+
+```sh
+laminapdf extract report.pdf --pages 1-3 --visible-only > report.txt
+```
+
+## Markdown, JSON and chunks
+
+`--format` reads the page as blocks in reading order: headings, paragraphs, lists and tables, in the order a person reads them, columns included. `md` prints them as Markdown:
+
+```console
+$ laminapdf extract invoice.pdf --format md
+# Invoice 42
+
+Acme Widgets Ltd · 1 Example Street · London
+
+| Widgets, blue (W-100) | 3 | € 36.00 |
+| --- | --- | --- |
+| Gadget with fine-tuned dials | 1 | € 79.90 |
+| Café-grade sprockets | 12 | € 15.00 |
+| Delivery | 1 | € 4.50 |
+
+Total € 135.40
+```
+
+The other formats carry the same blocks for programs:
+
+- **`json`** prints a `laminapdf.extract/1` document: every block with its kind, its text, its box on the page and how sure Lamina PDF is of it, and the text it dropped and why. `--format md --json` adds the Markdown as `markdown`.
+- **`chunks`** cuts the Markdown into pieces for retrieval, one JSON object per line. Each chunk keeps whole blocks and names its heading, its pages and its blocks' boxes, so an answer can point back to the page it came from.
+
+None of them contain hidden text: text under a box, white on white, off the page or too small to read stays out, and the JSON counts what it dropped. `--max-chars N` keeps whole blocks up to N characters of Markdown and marks the report `"truncated": true`.
+
+### Scanned pages
+
+A scanned page is a picture of text, with no text to read. Each page in the JSON has a `textLayer` that says whether its text can be used or the page needs OCR, optical character recognition. A scanned page gives no Markdown and raises the `extract-needs-ocr` warning, so the command exits 3.
+
+## Images: `render`
+
+`render` draws pages as PNG images, at 150 dots per inch unless `--dpi` or `--scale` (pixels per point) says otherwise. `-o` takes one file-name pattern for every file `render` writes, and `render` fills in its fields for each page:
+
+```console
+$ laminapdf render report.pdf --pages 1-3 --dpi 72 -o 'thumbs/{stem}-{n:03}.png'
+page 1: 419 × 595 px → thumbs/report-001.png
+page 2: 419 × 595 px → thumbs/report-002.png
+page 3: 419 × 595 px → thumbs/report-003.png
+```
+
+| Field | Value |
+| --- | --- |
+| `{stem}` | the input's file name without its extension: `report` for `docs/report.pdf`, `stdin` for `-` |
+| `{name}` | the input's file name: `report.pdf` |
+| `{index}` | the input's position on the command line, from 0 |
+| `{n}` | the page number, from 1 |
+
+A width after a colon pads a number with zeros: `{n:03}` is `007`. `{{` and `}}` write braces.
+
+`render` works out every file name before it writes anything. It refuses a name that two pages or two files would share, such as one without `{n}` for a document of several pages, and exits 2. An existing file stops it with exit 4 unless you pass `--force`. It doesn't create folders, so make them first. `-o -` writes one page to standard output.
+
+### Choose the renderer
+
+The built-in renderer is hayro, written in Rust. `--backend pdfium` uses PDFium, the renderer in Chrome, loaded from the folder that the `LAMINA_PDF_PDFIUM_DIR` environment variable names. Use it when a file draws differently in hayro than in a browser.
+
+Next: [make and change PDFs](/cli/build-and-edit/).
