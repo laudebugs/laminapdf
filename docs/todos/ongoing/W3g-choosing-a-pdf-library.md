@@ -34,7 +34,7 @@
 
 **Out of scope**
 
-- Benchmarks of other libraries: [U5b](./U5b-reader-benchmark.md) for readers; this page cites published figures only.
+- Benchmarks of other libraries: [U5b](../ready/U5b-reader-benchmark.md) for readers; this page cites published figures only.
 
 ## Tasks
 
