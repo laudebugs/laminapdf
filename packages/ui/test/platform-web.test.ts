@@ -224,7 +224,11 @@ describe("saving on the web", () => {
   it("writes to the file the save dialog chose, under the name the user gave", async () => {
     const { handle, written } = fakeHandle("chosen.pdf");
     const platform = createWebPlatform(chromiumLike({ showSaveFilePicker: async () => handle }));
-    expect(await platform.saveAs(PDF, "copy.pdf")).toEqual({ saved: true, name: "chosen.pdf" });
+    expect(await platform.saveAs(PDF, "copy.pdf")).toMatchObject({
+      saved: true,
+      name: "chosen.pdf",
+      file: { name: "chosen.pdf", writable: true },
+    });
     expect(written).toEqual([PDF]);
   });
 
@@ -253,7 +257,11 @@ describe("saving on the web", () => {
     const platform = createWebPlatform(chromiumLike({ showOpenFilePicker: async () => [handle] }));
     const [file] = await platform.openFiles({ multiple: false });
     if (file === undefined) throw new Error("no file");
-    expect(await platform.saveInPlace(file, PDF)).toEqual({ saved: true, name: "picked.pdf" });
+    expect(await platform.saveInPlace(file, PDF)).toMatchObject({
+      saved: true,
+      name: "picked.pdf",
+      file: { name: "picked.pdf", writable: true },
+    });
     expect(written).toEqual([PDF]);
   });
 

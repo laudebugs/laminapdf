@@ -151,3 +151,17 @@ body {
     animation: none;
   }
 }
+
+/* A save that failed, under the top bar (O02): the notice, Try again and Dismiss. */
+.web-save-failure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--paper-space-8);
+  padding-block: var(--paper-space-8);
+  padding-inline: var(--paper-space-16);
+}
+
+.web-save-failure > .paper-notice {
+  flex: 1;
+}

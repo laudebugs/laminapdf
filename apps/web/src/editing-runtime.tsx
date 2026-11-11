@@ -1,8 +1,8 @@
 // The parts of the edit session that wait until a document is open (loaded with import(), as the
 // print and properties dialogs are, #380): the edit commands registered, the toasts (edit-toasts.ts);
-// the confirmation
-// before the reader closes or replaces a document with unsaved changes; and the interaction mode
-// that reads pointer input on the page (select, unless a later tool is chosen).
+// the confirmation before the reader closes or replaces a document with unsaved changes (O03, with
+// Save); saving's questions and its strip (save-flow.ts, O02); and the interaction mode that reads
+// pointer input on the page (select, unless a later tool is chosen).
 
 import {
   Button,
@@ -11,18 +11,28 @@ import {
   Dialog,
   type EditControls,
   message,
+  Notice,
   type RailTab,
   type ReaderController,
   type ShellLayout,
   type ToastQueue,
   useStoreState,
 } from "@laminapdf/ui";
-import { attachTools, HistoryPanel, registerEditCommands, ToolRegistry } from "@laminapdf/ui/editing";
+import {
+  attachTools,
+  ConformanceDialog,
+  HistoryPanel,
+  RemoveSignaturesDialog,
+  registerEditCommands,
+  SaveStrip,
+  ToolRegistry,
+} from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { showEditToasts } from "./edit-toasts.ts";
 import { type EditActions, HISTORY_TAB } from "./editing.tsx";
 import { type PageInfo, pageLabel } from "./outline.ts";
+import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
 
 /** Toasts after undos and redos, and when a restarted worker lost the edits. */
@@ -57,17 +67,22 @@ function useCloseGuard(reader: ReaderController, edits: EditControls) {
   return { asking: asking !== undefined, answer };
 }
 
-/** The confirmation (O03 without Save, which comes with saving): close and lose the changes, or keep them. */
+/**
+ * The confirmation (O03): Save, then close; Don't save, which loses the changes; or Cancel. A save
+ * that fails or is cancelled keeps the document open, the failure shown under the top bar.
+ */
 function CloseDialog({
   isOpen,
   fileName,
   unsaved,
   onAnswer,
+  onSave,
 }: {
   isOpen: boolean;
   fileName: string;
   unsaved: number;
   onAnswer: (leave: boolean) => void;
+  onSave: () => Promise<boolean>;
 }): ReactNode {
   return (
     <Dialog
@@ -82,11 +97,12 @@ function CloseDialog({
       description={countMessage(unsaved, { one: "edit.close.one", many: "edit.close.many" })}
       actions={
         <>
-          <Button autoFocus onPress={() => onAnswer(false)}>
-            {message("edit.close.cancel")}
-          </Button>
-          <Button variant="danger-filled" onPress={() => onAnswer(true)}>
+          <Button variant="danger" onPress={() => onAnswer(true)}>
             {message("edit.close.discard")}
+          </Button>
+          <Button onPress={() => onAnswer(false)}>{message("edit.close.cancel")}</Button>
+          <Button variant="primary" autoFocus onPress={() => void onSave().then(onAnswer)}>
+            {message("edit.close.save")}
           </Button>
         </>
       }
@@ -124,6 +140,7 @@ export interface EditingRuntimeProps {
   readonly registry: CommandRegistry;
   readonly toasts: ToastQueue;
   readonly fileName: string;
+  readonly flow: SaveFlow;
 }
 
 /** Asks the browser to confirm closing the tab while `unsaved`; its own prompt, whose words can't be set. */
@@ -140,15 +157,60 @@ function useBeforeUnload(unsaved: boolean): void {
   }, [unsaved]);
 }
 
-/** The edit session's runtime for the document `viewer` shows; draws the close confirmation. */
-export function EditingRuntime({ engine, viewer, registry, toasts, fileName }: EditingRuntimeProps): ReactNode {
+/** The edit session's runtime for the document `viewer` shows; draws the close confirmation and saving's questions. */
+export function EditingRuntime({ engine, viewer, registry, toasts, fileName, flow }: EditingRuntimeProps): ReactNode {
   useEffect(() => registerEditCommands(registry), [registry]);
+  useEffect(() => flow.start(), [flow]);
   useEditToasts(viewer, engine, toasts);
   useTools(viewer, engine.reader);
   const guard = useCloseGuard(engine.reader, viewer.edits);
   const unsaved = useStoreState(viewer.edits, (s) => s.history.unsaved);
+  const asking = useStoreState(flow, (s) => s.asking);
   useBeforeUnload(unsaved > 0);
-  return <CloseDialog isOpen={guard.asking} fileName={fileName} unsaved={unsaved} onAnswer={guard.answer} />;
+  return (
+    <>
+      <CloseDialog
+        isOpen={guard.asking}
+        fileName={fileName}
+        unsaved={unsaved}
+        onAnswer={guard.answer}
+        onSave={() => flow.save("save")}
+      />
+      <RemoveSignaturesDialog
+        signatures={asking?.kind === "signatures" ? asking.signatures : undefined}
+        onAnswer={(yes) => flow.answer(yes)}
+      />
+      <ConformanceDialog
+        warnings={asking?.kind === "conformance" ? asking.warnings : undefined}
+        onAnswer={(yes) => flow.answer(yes)}
+      />
+    </>
+  );
+}
+
+/**
+ * Under the top bar: how the file saves when that isn't plain (signed, rewritten, or a save that
+ * breaks a signature), and the last save that failed, with Try again (O02).
+ */
+export function SaveNotices({ flow }: { flow: SaveFlow }): ReactNode {
+  const plan = useStoreState(flow, (s) => s.plan);
+  const failure = useStoreState(flow, (s) => s.failure);
+  return (
+    <>
+      {failure === undefined ? null : (
+        <div className="web-save-failure">
+          <Notice tone="danger" title={message("save.failed", failure)} />
+          <Button size={26} onPress={() => flow.retry()}>
+            {message("save.failed.retry")}
+          </Button>
+          <Button variant="ghost" size={26} onPress={() => flow.dismissFailure()}>
+            {message("save.failed.dismiss")}
+          </Button>
+        </div>
+      )}
+      <SaveStrip plan={plan} />
+    </>
+  );
 }
 
 /** The History tab (O01), once the document has an edit session: the rail lists it last. */
@@ -167,8 +229,17 @@ export function historyTab(edits: EditControls, pages: readonly PageInfo[], open
   };
 }
 
-/** The delegated edit commands' handlers for the document `viewer` shows. */
-export function editActions(engine: Engine, layout: ShellLayout, viewer: Viewer): EditActions {
+/**
+ * The delegated edit commands' handlers for the document `viewer` shows: Show history, the page
+ * turns, the saves, and Download a copy with the edits while there are any (`unsaved`).
+ */
+export function editActions(
+  engine: Engine,
+  layout: ShellLayout,
+  viewer: Viewer,
+  flow: SaveFlow,
+  unsaved: boolean,
+): EditActions {
   // A failed turn is said by the session's failure toast (edit-toasts.ts).
   const rotate = (delta: 90 | -90) => () =>
     void engine.rotatePage(viewer.getState().currentPage, delta).catch(() => undefined);
@@ -179,5 +250,9 @@ export function editActions(engine: Engine, layout: ShellLayout, viewer: Viewer)
     },
     "pages.rotate-right": rotate(90),
     "pages.rotate-left": rotate(-90),
+    "file.save": () => void flow.save("save"),
+    "file.save-as": () => void flow.save("save-as"),
+    "file.save-optimised": () => void flow.save("optimised"),
+    ...(unsaved ? { "file.save-copy": () => void flow.copy() } : {}),
   };
 }
