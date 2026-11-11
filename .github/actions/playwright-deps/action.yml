@@ -10,7 +10,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: ./.github/actions/apt-fail-fast
     # apt can fail on a mirror hiccup: three tries a minute apart, each retry a warning (ADR 0018
     # §4). Playwright runs apt through sudo, which the retry can't stop at its timeout ("kill
     # EPERM": the step fails with no retry), so Playwright runs as root under `sudo timeout` (KILL

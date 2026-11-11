@@ -5,6 +5,7 @@
 # packages and others) still only warn: failing on them would fail every Linux job while one is
 # down. Run inside the setup action's retry, so a failed try is tried again a minute later.
 set -euo pipefail
+bash "$(dirname "$0")/config.sh"
 log=$(mktemp)
 trap 'rm -f "$log"' EXIT
 sudo timeout -k 30 240 apt-get update -q 2>&1 | tee "$log"

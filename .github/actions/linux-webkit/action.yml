@@ -5,7 +5,6 @@ description: >-
 runs:
   using: composite
   steps:
-    - uses: ./.github/actions/apt-fail-fast
     - name: Install WebKitGTK 4.1 and D-Bus development packages
       if: runner.os == 'Linux'
       # apt can fail on a mirror hiccup: three tries a minute apart, each retry a warning (ADR 0018
