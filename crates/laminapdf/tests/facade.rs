@@ -291,7 +291,7 @@ mod diagnostics {
                 "hint": "the input exceeds a safety limit; raise max_nesting_depth in Limits only if you trust the input",
                 "location": { "object": 12 },
                 "data": { "limit": "max_nesting_depth" },
-                "docsUrl": "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/limit-exceeded.md"
+                "docsUrl": "https://docs.laminapdf.com/reference/codes/limit-exceeded/"
             })
         );
     }
@@ -327,7 +327,7 @@ mod diagnostics {
             (
                 d.kind.as_str(),
                 d.hint.is_some(),
-                d.docs_url.ends_with("/document-changed.md")
+                d.docs_url.ends_with("/document-changed/")
             ),
             ("state", true, true)
         );

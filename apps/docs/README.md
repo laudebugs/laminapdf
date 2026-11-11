@@ -13,12 +13,11 @@ pnpm --filter @laminapdf/docs typecheck
 
 ## Build settings
 
-Three environment variables change what the build writes (`astro.config.mjs`):
+Two environment variables change what the build writes (`astro.config.mjs`):
 
 | Variable | Default | Effect |
 | --- | --- | --- |
 | `LAMINA_PDF_ENV` | unset | `production` builds the released docs for `docs.laminapdf.com`: the header names the version, and search engines may index the pages. Every other build (`next.docs.laminapdf.com`, the previews, a local build) says on every page that it describes unreleased changes, links to the released docs, and sends `X-Robots-Tag: noindex` with every response. |
-| `LAMINA_PDF_DOCS_GITHUB` | off | `1` adds every link to GitHub: the repository in the header, "Edit page", TypeDoc's "Defined in" source links, and links to the repository inside the code pages. Off while the repository is private, since those links would 404 for readers. Turn it on (in `.github/workflows/docs.yml`'s build steps) when the repository is public. |
 | `LAMINA_PDF_DOCS_TYPEDOC` | on | `0` leaves the TypeDoc reference out. `typecheck` uses it, so each lane runs TypeDoc once, in the build. |
 
 ## Look
@@ -109,7 +108,6 @@ The workflow runs for changes to the site or anything it's built from (`apps/doc
    Scope it to the one account (Account Resources → Include → that account). Optionally, set a TTL and restrict client IPs.
 2. Add two repository secrets (Settings → Secrets and variables → Actions): `CLOUDFLARE_API_TOKEN` (the token) and `CLOUDFLARE_ACCOUNT_ID` (the account ID, shown on the account's Workers overview page).
 3. After this site is on `main`, run the **Docs site** workflow there once (Actions → Docs site → Run workflow). The first `wrangler deploy` creates the Worker, and previews need it to exist. The account also needs a workers.dev subdomain, which the dashboard asks for on first use of Workers.
-4. When the repository becomes public, set `LAMINA_PDF_DOCS_GITHUB: "1"` in the workflow's `env` so the site links to GitHub.
-5. The custom domain: `laminapdf.com` is a zone on the same Cloudflare account, and `wrangler.toml` routes `docs.laminapdf.com` to the Worker (`custom_domain = true`). The next production deploy creates the DNS record and certificate; it fails if the token lacks the zone permission above or if a DNS record for `docs` already exists (delete it first, or attach the domain once in the dashboard: Worker → Settings → Domains & Routes).
-6. `next.docs.laminapdf.com`: the first push to `main` after this setup creates the Worker `lamina-pdf-docs-next`, its DNS record and its certificate, with the same token. A Workers custom domain gets its own certificate, so the two-level name needs no advanced certificate ([Cloudflare's custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)).
-7. From then on, a push to `main` no longer changes `docs.laminapdf.com`. Until the release lane deploys it after each release, put the latest release's docs there by hand: run the **Docs site** workflow with `tag` set to that release's tag (for example `v0.2.0-alpha.2`).
+4. The custom domain: `laminapdf.com` is a zone on the same Cloudflare account, and `wrangler.toml` routes `docs.laminapdf.com` to the Worker (`custom_domain = true`). The next production deploy creates the DNS record and certificate; it fails if the token lacks the zone permission above or if a DNS record for `docs` already exists (delete it first, or attach the domain once in the dashboard: Worker → Settings → Domains & Routes).
+5. `next.docs.laminapdf.com`: the first push to `main` after this setup creates the Worker `lamina-pdf-docs-next`, its DNS record and its certificate, with the same token. A Workers custom domain gets its own certificate, so the two-level name needs no advanced certificate ([Cloudflare's custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)).
+6. From then on, a push to `main` no longer changes `docs.laminapdf.com`. Until the release lane deploys it after each release, put the latest release's docs there by hand: run the **Docs site** workflow with `tag` set to that release's tag (for example `v0.2.0-alpha.2`).

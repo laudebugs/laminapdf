@@ -1,9 +1,8 @@
-// The repository's URL, in one place: the site's GitHub links (built with LAMINA_PDF_DOCS_GITHUB=1)
-// and the error pages, which drop links into it otherwise (the repository is private).
-import process from "node:process";
+// The repository's URL, in one place: the site's GitHub link, "Edit page", TypeDoc's source links
+// and the error pages' links into the repository.
 
 /** The repository on GitHub. */
 export const REPOSITORY = "https://github.com/laudebugs/laminapdf";
 
-/** Whether this build links to the repository (`LAMINA_PDF_DOCS_GITHUB=1`); off while it is private. */
-export const GITHUB = process.env.LAMINA_PDF_DOCS_GITHUB === "1";
+/** Where "Edit page" opens a file of the repository: `main`, in GitHub's editor. */
+export const EDIT_BASE = `${REPOSITORY}/edit/main/`;

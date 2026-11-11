@@ -21,7 +21,7 @@ fn the_report_should_carry_the_code_and_its_page() {
     assert!(
         report["docsUrl"]
             .as_str()
-            .is_some_and(|u| u.ends_with("/docs/errors/overwrite-refused.md"))
+            .is_some_and(|u| u.ends_with("/reference/codes/overwrite-refused/"))
     );
 }
 

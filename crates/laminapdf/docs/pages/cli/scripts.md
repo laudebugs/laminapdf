@@ -67,7 +67,7 @@ When a single file fails, standard output stays empty and standard error gets on
 
 ```console
 $ laminapdf info notes.pdf --json
-{"error":{"code":"not-pdf","docsUrl":"https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md","exitCode":1,"hint":"check that the bytes passed to open are a PDF file","input":"notes.pdf","kind":"input","message":"not a PDF: no objects found"},"schema":"laminapdf.error/1"}
+{"error":{"code":"not-pdf","docsUrl":"https://docs.laminapdf.com/reference/codes/not-pdf/","exitCode":1,"hint":"check that the bytes passed to open are a PDF file","input":"notes.pdf","kind":"input","message":"not a PDF: no objects found"},"schema":"laminapdf.error/1"}
 ```
 
 The message and hint never quote the document, so a title or a line of text can't masquerade as an instruction in a log. `laminapdf schema info` prints the JSON Schema of the command's arguments, its report and its error line; `laminapdf schema` lists every schema.

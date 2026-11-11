@@ -21,7 +21,7 @@ describe("Document.open", () => {
 
   it("throws a LaminaPdfError with every ADR 0026 field for a file that isn't a PDF", () => {
     const e = thrown(() => Document.open(new TextEncoder().encode("not a pdf")));
-    expect(e instanceof LaminaPdfError && [e.name, e.code, e.kind, e.docsUrl.endsWith("/not-pdf.md")]).toEqual([
+    expect(e instanceof LaminaPdfError && [e.name, e.code, e.kind, e.docsUrl.endsWith("/not-pdf/")]).toEqual([
       "LaminaPdfError",
       "not-pdf",
       "input",

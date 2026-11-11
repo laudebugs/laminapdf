@@ -89,7 +89,7 @@ describe("lamina_pdf_base", () => {
     expect([e.code, e.kind, e.docsUrl]).toEqual([
       "not-pdf",
       "input",
-      "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md",
+      "https://docs.laminapdf.com/reference/codes/not-pdf/",
     ]);
   });
 

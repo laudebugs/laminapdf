@@ -41,4 +41,4 @@ export const KINDS: { readonly [C in RenderErrorCode]: RenderErrorKind } = {
 };
 
 /** Where each code's page is (ADR 0026 §6): `${base}${code}${suffix}`. */
-export const DOCS_URL = { base: "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/", suffix: ".md" } as const;
+export const DOCS_URL = { base: "https://docs.laminapdf.com/reference/codes/", suffix: "/" } as const;
