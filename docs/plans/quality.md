@@ -258,6 +258,10 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 
 Round Q3 adds diagrams that show how the library works, drawn in the docs' own style and following the reader's theme. Its plan, with the diagrams, the way they are drawn and the seven todos (Q3a–Q3g), is [Docs diagrams](docs-diagrams.md).
 
+### Q4: the docs redesign
+
+Round Q4 acts on the [developer docs research](../research/docs-site/developer-docs.md): command-line output from real runs, a reading and extraction path, results beside the code, first runs in Rust and on the command line, troubleshooting by area and a sidebar grouped by task once readers have been watched. Its plan, with the fifteen todos (Q4a–Q4o), is [Docs redesign](docs-redesign.md).
+
 ### Q2: code quality and reuse
 
 | Todo | What | Size | Depends on |
