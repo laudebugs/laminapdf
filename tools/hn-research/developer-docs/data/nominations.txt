@@ -1,0 +1,45 @@
+top-level comments: 215
+ 18  Old printed manuals (C64, VIC-20, DEC VMS, Coherent, Tandem, Win 3.1 SDK, RISC OS, 3DO, OS/2, QBASIC, mIRC, VB help, Inside Macintosh, TeXbook, K&R)
+ 16  Stripe
+  9  Django
+  8  PostgreSQL
+  8  Emacs / Elisp / Org manuals
+  6  Scientific Python (scikit-learn, NumPy, SciPy, pandas)
+  6  MATLAB / MathWorks
+  5  MDN
+  5  Rust (book, std, compiler errors)
+  5  BSD docs and man pages (FreeBSD, OpenBSD, NetBSD)
+  5  Qt
+  4  Python standard library docs
+  4  Python Requests
+  4  SQLite
+  3  Vue
+  3  Redis
+  3  cppreference
+  3  Arch wiki
+  3  Vim
+  3  Wolfram / Mathematica
+  3  Diátaxis / Divio (as a framework)
+  2  Twilio
+  2  Tailwind
+  2  Laravel
+  2  Elasticsearch
+  2  Lua manual (one page)
+  2  ZeroMQ guide
+  2  FastAPI
+  2  Microsoft (Win32, learn.microsoft.com)
+  2  Perl man pages
+  2  Kubernetes
+  2  AWS
+  2  Slack API
+  2  PHP manual
+  2  Racket
+  2  Common Lisp HyperSpec
+reason examples: 39
+reason concepts/why/overview: 21
+reason search/find/navigation: 11
+reason interactive/try it: 8
+reason offline/built-in: 8
+reason links to source: 8
+reason versions: 7
+reason single page: 6
