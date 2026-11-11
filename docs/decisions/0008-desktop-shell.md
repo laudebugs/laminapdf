@@ -78,7 +78,7 @@ The engine renders a tile and streams it to the main process; the scheme handler
 | First page of the 1 GB fixture, from the open to the first tile answered | ≤ 1.5 s | 0.49–0.71 s (opening and sizing 20,000 pages takes 0.46–0.67 s of it; a tile takes 1–28 ms) |
 | Idle memory, 13-page document (`flowing_report.pdf`), main + engine | ≤ 150 MB | 50 MB (main 39 MB, engine 11 MB; `footprint`) |
 | The webview's content process, same document | recorded | 170 MB |
-| Launch to the window's first command (the empty state accepts input) | < 300 ms | 0.49–0.68 s: **missed**, see [D2f](../todos/ready/D2f-desktop-cold-start.md) |
+| Launch to the window's first command (the empty state accepts input) | < 300 ms | 0.49–0.68 s: **missed**, see [D2g](../todos/ready/D2g-desktop-cold-start.md) |
 
 The app's open takes about twice the engine-only number in §2, because the engine opens each document twice: once in the parser for the page list and once in PDFium for rendering. The hosted runners had no GPU, so the gap between WebP and raw RGBA on Windows and Linux is an upper bound ([D1a, Limits](../../spikes/desktop-ipc/README.md#limits-of-this-spike)); D2e measures real GPUs.
 
