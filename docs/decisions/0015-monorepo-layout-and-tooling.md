@@ -18,7 +18,7 @@ The [code-organization guide](../guidelines/code-organization.md) has since turn
    ```toml
    [workspace]
    resolver = "3"
-   members = ["crates/*", "apps/desktop/src-tauri", "tools/xtask"]
+   members = ["crates/*", "apps/desktop/src-tauri", "tools/xtask", "tools/std14-gen"]
    exclude = ["spikes", "fuzz"]
    ```
 
