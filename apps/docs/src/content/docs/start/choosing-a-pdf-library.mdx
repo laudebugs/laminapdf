@@ -20,7 +20,7 @@ Each table has one row per library and one column per job:
 - **Sign:** add a digital signature, or verify one.
 - **PDF/A, PDF/UA:** write PDF/A, the archival standard whose files look the same in years to come, or PDF/UA, the standard for files screen readers can follow.
 
-A cell says **Yes**, **Partly** (the note says what's missing), or **No** when the library's docs say it doesn't do the job or is built for something else. A dash means its docs don't say either way.
+A cell says **Yes**; **Partly**, with a note on what's missing; or **No**, when the library's docs say it doesn't do the job or is built for something else. A dash means its docs don't say either way.
 
 ## TypeScript and JavaScript
 
@@ -50,8 +50,8 @@ A few details the tables leave out:
 
 - **pdf-lib** has had no release since November 2021, and it can't open encrypted files. It reads the values of form fields, but no other text.
 - **LibPDF** describes itself as beta software whose APIs "may change between minor versions". Its saves can append changes, which keeps existing signatures valid.
-- **PDFKit, jsPDF and pdfmake** make new documents only; pdfmake is built on PDFKit. For PDF/A and PDF/UA, PDFKit needs embedded fonts, since its built-in fonts break both standards.
-- **PDF.js** is the reader in Firefox. It fills in forms and adds some annotations, but it doesn't make new PDFs.
+- **PDFKit, jsPDF and pdfmake** make new documents only; pdfmake is built on PDFKit. For PDF/A, PDFKit needs fonts you embed, since its built-in fonts don't meet the standard.
+- **PDF.js** reads and draws PDFs, mainly in the browser. It fills in forms and adds some annotations, but it doesn't make new PDFs.
 
 ## Rust
 
@@ -81,17 +81,17 @@ A few details the tables leave out:
 
 - **lopdf and pdf-writer** work at the level of PDF objects. You write the page dictionaries and drawing operators yourself, so you need to know the PDF format.
 - **krilla** checks PDF/A and PDF/UA rules it can test, and leaves the rest to you: its docs say some requirements "are semantic in nature".
-- **hayro** is a renderer only: its README calls document changes "out-of-scope". It also says untrusted files can still cause timeouts and running out of memory.
-- **pdfium-render** gives you most of PDFium, Chrome's PDF engine, from Rust. In return you ship a PDFium binary for each platform, and calls run one at a time, since PDFium "makes no guarantees about thread safety".
+- **hayro** is a renderer only: its README calls document changes "out-of-scope". It also says untrusted files can still cause timeouts and out-of-memory errors.
+- **pdfium-render** gives you most of Google's PDFium library from Rust. In return you ship a PDFium binary for each platform, and calls run one at a time, since PDFium "makes no guarantees about thread safety".
 
 ## Where Lamina PDF fits
 
-Lamina PDF is one Rust core that makes, reads, extracts, renders and saves PDFs. It runs natively and as WebAssembly in every runtime the table lists. It reads damaged files and reports what it repaired, saves your changes after the original bytes as an [incremental save](/reference/glossary/#incremental-save), and writes PDF/A and PDF/UA files that its tests check with veraPDF. Every runtime writes the same bytes for the same input, which its tests compare.
+Lamina PDF is one Rust core that makes, reads, extracts, renders and saves PDFs. It runs natively and as WebAssembly in every runtime the TypeScript table lists. It reads damaged files and reports what it repaired, saves your changes after the original bytes as an [incremental save](/reference/glossary/#incremental-save), and writes PDF/A and PDF/UA files that its tests check with veraPDF, the reference checker for PDF/A and PDF/UA. Its tests check that every runtime writes the same bytes for the same input.
 
 It isn't the right choice for every job today:
 
 - **It's an alpha.** Its API can still change between releases; the [stability policy](/reference/stability/) says what stays fixed.
-- **It doesn't fill forms or sign.** For those, LibPDF or pdfium-render cover more today.
+- **It doesn't fill forms or sign.** LibPDF and pdfium-render fill form fields today, and LibPDF signs.
 - **Its editing is narrow.** It changes document info, such as the title and author, and page rotation. It can't yet edit the text or images already on a page.
 
 To see how Lamina PDF is checked, read [How we test](https://laminapdf.com/how-we-test/). [Benchmarks](/reference/benchmarks/) has its timings and download sizes in each runtime.
