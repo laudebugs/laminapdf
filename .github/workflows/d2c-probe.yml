@@ -32,10 +32,10 @@ jobs:
       - name: Probe
         shell: bash
         run: |
-          set -uo pipefail
+          set +e
           mkdir -p probe-logs
           log=probe-logs/probe.log
-          { uname -a; cat /etc/os-release 2>/dev/null | head -2; } | tee -a $log
+          { uname -a; cat /etc/os-release 2>/dev/null | head -2; cmd.exe /c ver 2>/dev/null; } | tee -a $log
           dir=$(cargo xtask fetch-pdfium | sed -n 's/^LAMINA_PDF_PDFIUM_DIR=//p')
           echo "LAMINA_PDF_PDFIUM_DIR=$dir" >> "$GITHUB_ENV"
           export LAMINA_PDF_PDFIUM_DIR=$dir

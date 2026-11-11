@@ -1,7 +1,7 @@
 //! macOS: a Seatbelt profile, applied at run time once PDFium is loaded (Chromium's renderer
 //! sandbox works the same way, through the same kernel policy engine).
 //!
-//! App Sandbox, the entitlement-based alternative, was tried first (D2c, ADR 0008 §5). It works
+//! App Sandbox, the entitlement-based alternative, was tried first (ADR 0008 §5). It works
 //! for an ad-hoc signed helper inside the bundle, but it still lets the engine read system files
 //! such as `/etc/hosts` and start processes (which inherit it), and a process under it can't
 //! apply a stricter Seatbelt profile on top. This profile denies all of that.

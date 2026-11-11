@@ -47,7 +47,8 @@ pub struct SandboxConfig {
 }
 
 impl SandboxConfig {
-    /// 2 GiB: ten times what the 1 GB fixture peaks at (D2b), far below a laptop's memory.
+    /// 2 GiB: over ten times what the engine peaks at opening the 1 GB fixture (ADR 0008 §2),
+    /// far below a laptop's memory.
     pub const DEFAULT_MEMORY_LIMIT: u64 = 2 << 30;
 }
 
