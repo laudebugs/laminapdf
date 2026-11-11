@@ -52,7 +52,7 @@ The home page ([screen H12](../../docs/design/paper/account-cloud-product.md#h12
 
 The panel's code is coloured when the site is built, so the page ships no script for it. `src/data/highlight.ts` reads the code with Shiki and sorts each piece, by its grammar scope, into one of five kinds: keyword, string, comment, function or constant. Operators, variables and a command's arguments stay plain; the command-line tab is coloured as bash after each `$ ` prompt. The panel wraps each piece in a span whose class `src/styles/site.css` colours with a `--paper-code-*` token. Classes stand in for the inline styles Shiki would write, which the CSP's `style-src 'self'` blocks. `test/highlight.test.ts` checks the kinds on the page's own code and that no character of it changes.
 
-Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt` lets crawlers in on every build and names the sitemap on production's (previews keep out of the index through `noindex`), and `sitemap.xml` lists every page but the 404 page.
+Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt` lets crawlers in on every build, and production's names the sitemap. `sitemap.xml` lists every page but the 404 page.
 
 ## How we test
 

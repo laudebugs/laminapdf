@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
 | Depends on | None |
@@ -55,26 +55,25 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 
 ## Acceptance criteria
 
-- [ ] A production build of each of the three sites serves a robots.txt that allows search crawlers and names its sitemap (the reader has none: no `Sitemap` line), and sends no `X-Robots-Tag`.
-- [ ] A staging or preview build of each sends `X-Robots-Tag: noindex` on every response, and its robots.txt lets crawlers fetch the pages so they read it.
-- [ ] `curl -sI https://staging-app.laminapdf.com/` would show `X-Robots-Tag: noindex` (checked against `wrangler dev` with the staging build in the reader's e2e suite).
-- [ ] `/robots.txt` on the reader answers `text/plain`, not the app's HTML.
-- [ ] The docs' production pages carry `noindex` on any host but `docs.laminapdf.com`, or are served nowhere else.
-- [ ] The robots file is written by one function, used by all three sites.
+- [x] A production build of each of the three sites serves a robots.txt that allows search crawlers and names its sitemap (the reader has none: no `Sitemap` line), and sends no `X-Robots-Tag`.
+- [x] A staging or preview build of each sends `X-Robots-Tag: noindex` on every response, and its robots.txt lets crawlers fetch the pages so they read it.
+- [x] `curl -sI https://staging-app.laminapdf.com/` would show `X-Robots-Tag: noindex` (checked against `wrangler dev` with the staging build in the reader's e2e suite).
+- [x] `/robots.txt` on the reader answers `text/plain`, not the app's HTML.
+- [x] The docs' production pages carry `noindex` on any host but `docs.laminapdf.com`, or are served nowhere else.
+- [x] The robots file is written by one function, used by all three sites.
 
 ## As built
 
 - **The owner's decisions** (2026-11-11): training crawlers allowed, so `robotsTxt` has no training option; the reader's `/` may be indexed. Plan §4 records both.
-- **One build step, not endpoints.** `@laminapdf/site-kit/robots` writes `dist/robots.txt`: the `robots` integration after each Astro build (the website's `robots.txt.ts` endpoint is gone), and the reader's Vite plugin (`apps/web/plugins/search.ts`) emits it with the bundle. Both decide by `isProduction`, which `markNoindex` uses too; `robotsProblems` feeds the docs site's release checks.
-- **Staging takes no `staging` value.** Any build without `LAMINA_PDF_ENV=production` is noindex, as on the two Astro sites, so only `production-checks` sets the variable, on its build and on its e2e step; `tools/xtask/src/workflows.rs` checks it.
+- **One build step, not endpoints.** Every build writes `dist/robots.txt` from the site kit's `robotsTxt`: the Astro sites through its `robots` integration after the build (so the website's `robots.txt.ts` endpoint is gone and the docs site never got one), and the reader through its Vite plugin (`apps/web/plugins/search.ts`), which emits it with the bundle. All of them, and `markNoindex`, decide by `isProduction`; `robotsProblems` feeds the docs site's release checks.
+- **Staging takes no `staging` value.** Any build without `LAMINA_PDF_ENV=production` is noindex, as on the two Astro sites, so only `production-checks` sets the variable, on its build and on its e2e step; `tools/xtask/src/workflows.rs` checks it. The agent's GitHub access can't change workflow files, so the PR carries that `web-deploy.yml` change in its description and the owner commits it before merge.
 - **C4d's comparison** is the reader's e2e suite: it checks `X-Robots-Tag` against the run's `LAMINA_PDF_ENV` beside the §4 headers it already checked, and `test/search.test.ts` checks that production's `_headers` is `public/_headers` unchanged and every other build's adds only the `noindex` line.
 - **The reader's other paths.** The single-page fallback answers every path with the app, and production lets crawlers in, so a stray link could make `/anything` a copy of `/`. A canonical link to `/` on the one page fixes that; it belongs with the reader's other head tags in [W3d](../ready/W3d-structured-data-and-share-tags.md), which now says so.
-- **The docs' `workers.dev` copy** is gone: `workers_dev = false` with `preview_urls = true`, the pair the website's and the reader's preview Workers already run. Whether PR previews still deploy is a post-merge check.
+- **The docs' `workers.dev` copy** is gone: `workers_dev = false` with `preview_urls = true`, the pair the website's Worker and the reader's preview Worker already run. Whether PR previews still deploy is a post-merge check.
 
 ## Post-merge checks
 
 - [ ] The next docs PR still gets its preview comment and URL with `workers_dev = false`.
-
 - [ ] `https://staging-app.laminapdf.com/` sends `X-Robots-Tag: noindex` after the next push to `main`.
 - [ ] `https://docs.laminapdf.com/robots.txt` and `https://next.docs.laminapdf.com/robots.txt` answer as planned after the next release and the next push to `main`.
 - [ ] The reader's robots.txt after the next `web-v*` release.
@@ -102,8 +101,8 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [ ] CI green (after the owner commits the web-deploy.yml change)
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -16,7 +16,7 @@ Three Workers hold the reader, each at one kind of address:
 | A push to `main`, or a manual run on `main` | `staging` | `staging-app.laminapdf.com` |
 | A tag `web-v<version>` on a commit of `main`: the web release train's, once a day when the reader changed, or one pushed by hand | `production-checks`, `production` | `app.laminapdf.com` |
 
-Only `production-checks` builds with `LAMINA_PDF_ENV=production`, and production deploys the build it checked. Staging and the previews send `X-Robots-Tag: noindex` on every response, so search engines never index them (`plugins/search.ts`; `tools/xtask/src/workflows.rs` checks which job sets the variable).
+Only `production-checks` builds with `LAMINA_PDF_ENV=production`, and production deploys the build it checked. Staging and the previews send `X-Robots-Tag: noindex` on every response, so search engines never index them (`plugins/search.ts`; `tools/xtask/src/workflows.rs` checks which job sets the variable). W3a's pull request carries the workflow change in its description for the owner to commit, because the GitHub access that opened it can't change workflow files.
 
 A pull request or a push deploys only when it changes something the reader may be built from. `cargo xtask changes` decides and prints `web=true` or `web=false`. It counts every path except the docs and `OUTSIDE_WEB` in `tools/xtask/src/changes.rs`, the parts of the repository the reader can't depend on. Those are the other apps and workflows, the tools other than xtask, the spikes and the fuzz workspace. A root config file or a shared action nobody thought to list still counts. When nothing it counts changed, the job reports success and its summary says why nothing deployed.
 

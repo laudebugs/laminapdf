@@ -77,13 +77,15 @@ Every page names the version it documents: the fixed group's version (`packages/
   - an install command that names another version, the `alpha` tag aside, on any page but the changelog (a page of history);
   - a released page without the version in its header, or an unreleased page without the notice;
   - a `_headers` file that sends `X-Robots-Tag: noindex` on the released docs, or doesn't on any other build;
-  - a `robots.txt` that blocks crawlers, or that names no sitemap on the released docs or one on any other build. Every build lets crawlers in (`@laminapdf/site-kit/robots`), so they read the `noindex` on unreleased docs; only the released docs name `sitemap-index.xml`.
+  - a `robots.txt` that blocks crawlers, that names no sitemap on the released docs, or that names one on any other build.
+
+Every build lets crawlers in (`@laminapdf/site-kit/robots`), so they can read the `noindex` on unreleased docs; only the released docs name `sitemap-index.xml`.
 
 ## Deploying
 
 `wrangler.toml` describes two Workers, both static assets with no script, and `.github/workflows/docs.yml` deploys them:
 
-- **`lamina-pdf-docs`**, at **https://docs.laminapdf.com** (a Workers custom domain): the latest release's docs, with `preview_urls` on for the per-PR previews on workers.dev. It has no workers.dev address of its own, which would serve the released docs a second time without `noindex`; the website's and the reader's Workers run with the same pair of settings.
+- **`lamina-pdf-docs`**, at **https://docs.laminapdf.com** (a Workers custom domain): the latest release's docs, with `preview_urls` on for the per-PR previews on workers.dev. It has no workers.dev address of its own, which would serve the released docs a second time without `noindex`; the website's Worker and the reader's preview Worker run with the same pair of settings.
 - **`lamina-pdf-docs-next`** (`[env.next]`), at **https://next.docs.laminapdf.com**: `main`'s docs, unreleased and noindex.
 
 The workflow runs for changes to the site or anything it's built from (`apps/docs/`, `packages/sdk/`, the Rust examples and their goldens, `codes.json` and its schema, `docs/errors/`, the workspace's `package.json`, lockfile, `pnpm-workspace.yaml`, `tsconfig.base.json` and `.nvmrc`):

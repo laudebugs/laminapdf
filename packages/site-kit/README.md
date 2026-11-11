@@ -30,6 +30,7 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 - **`siteChecks({ origin })`** fails the website's build when a page breaks [the website's privacy rules](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable). A page breaks them when it loads a file from another origin or one the build didn't write, links to a missing page, has an inline style, sets a cookie or sends a beacon. It also fails when a page lacks a title, a description or a canonical URL. The [website's README](../../apps/site/README.md#what-every-build-checks) lists each rule.
 - **`inlineScriptHashes`** puts the SHA-256 of each inline script into the CSP in `dist/_headers`, for both sites.
 - **`previewNoindex(env)`** adds `X-Robots-Tag: noindex` to every build except production's (`LAMINA_PDF_ENV=production`).
+- **`pageFiles(dir)`** lists a pages folder for the header, and **`pageExists(dir, path)`** says whether a build serves a path. The docs site's link check uses `pageExists` too.
 
 `src/robots.mjs` (`@laminapdf/site-kit/robots`) holds the one robots.txt policy of the website, the docs site and the web reader:
 
@@ -37,7 +38,6 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 - **`robots({ env, sitemap })`** writes it into an Astro build's `dist/` for the build's `LAMINA_PDF_ENV`; the reader's Vite build emits the same file (`apps/web/plugins/search.ts`).
 - **`isProduction(env)`** is the one test of `LAMINA_PDF_ENV` that robots.txt and `markNoindex` share, so the two rules can't disagree.
 - **`robotsProblems(text, build)`** names what is wrong with a built file; the docs site's release checks call it.
-- **`pageFiles(dir)`** lists a pages folder for the header, and **`pageExists(dir, path)`** says whether a build serves a path. The docs site's link check uses `pageExists` too.
 
 ## Tests
 
