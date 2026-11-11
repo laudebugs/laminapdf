@@ -19,7 +19,7 @@ The desktop part of E1d: the edit session runs in the engine process as it runs 
 
 ## Context
 
-- [E1d](./E1d-edit-session-undo-ui.md): the session's methods and events, the commands and the history panel this mirrors
+- [E1d](../ongoing/E1d-edit-session-undo-ui.md): the session's methods and events, the commands and the history panel this mirrors
 - [D4b](./D4b-native-menus.md): menus generated from the command registry, so registering `edit.undo` and `edit.redo` puts them in the Edit menu
 - Load the `/tauri-v2` skill before any work
 

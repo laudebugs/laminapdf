@@ -59,7 +59,7 @@ describe("the interaction modes", () => {
   it("scroll the page under a hand's drag", () => {
     const hand = handTool();
     const moved: number[][] = [];
-    const host = { element: {} as HTMLElement, scrollBy: (dx: number, dy: number) => moved.push([dx, dy]) } as ToolHost;
+    const host = { scrollBy: (dx: number, dy: number) => moved.push([dx, dy]) } as unknown as ToolHost;
     const at = (x: number, y: number, button = 0) => ({ clientX: x, clientY: y, button }) as PointerEvent;
     const took = hand.pointerDown?.(at(100, 100), host);
     hand.pointerMove?.(at(90, 70), host);

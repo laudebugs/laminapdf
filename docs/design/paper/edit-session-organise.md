@@ -14,7 +14,7 @@ Where this area lives in the shell:
 - **Organise** is a mode in the mode switcher. Its rail stays open with Outline · History and no Pages tab (the canvas *is* the page grid, design language §8.10); the sidebar toggle still hides it. It swaps in the Organise toolbar of design language §8.1 and opens the inspector for selected pages. History is reached in Organise through the rail's History tab, like in every other mode.
 - **Document properties** (`file.properties`) is one dialog: read-only in Read mode (R08), editable in the editor modes (O04, design language decision 19). File › Document properties… on desktop, More › Document properties… on the web. The R08 facts are its **File** tab.
 
-**Desktop menu additions for the editor** ([D4b](../../todos/ready/D4b-native-menus.md), [E1d](../../todos/ready/E1d-edit-session-undo-ui.md)), using the design language's labels: File › Save `⌘S`, Save as… `⇧⌘S`, Save a copy… (`file.save-copy`), Save as optimised…, Document properties… (`file.properties`, also in [Desktop shell S03](desktop-shell.md#s03-native-menus)'s File menu), Merge documents…, Split document…; Edit › Undo `⌘Z` and Redo `⇧⌘Z` / `Ctrl Y` with the step in the label (“Undo rotate page 16”), Show history; Help › What lamina can do (`help.capabilities`).
+**Desktop menu additions for the editor** ([D4b](../../todos/ready/D4b-native-menus.md), [E1d](../../todos/ongoing/E1d-edit-session-undo-ui.md)), using the design language's labels: File › Save `⌘S`, Save as… `⇧⌘S`, Save a copy… (`file.save-copy`), Save as optimised…, Document properties… (`file.properties`, also in [Desktop shell S03](desktop-shell.md#s03-native-menus)'s File menu), Merge documents…, Split document…; Edit › Undo `⌘Z` and Redo `⇧⌘Z` / `Ctrl Y` with the step in the label (“Undo rotate page 16”), Show history; Help › What lamina can do (`help.capabilities`).
 
 Command ids use the registry’s `namespace.verb-object` form ([U1b](../../todos/done/U1b-command-registry-and-palette.md), design language §8.8) and match the [command-id appendix](design-language.md#appendix-command-ids): `pages.*` for every page operation in every mode, `document.*` for merge, split and metadata, `file.*` for saving. Every command is in the palette; only those listed with a shortcut have one. Shortcuts are shown as macOS / Windows and Linux.
 
@@ -59,9 +59,11 @@ Command ids use the registry’s `namespace.verb-object` form ([U1b](../../todos
 
 **Platform differences.** Web: no window title; the browser tab title gets a leading “•”; Redo is `Ctrl Y` on Windows/Linux and `⇧⌘Z` on macOS (tested in Chromium, Firefox and WebKit). Desktop Windows/Linux: Edit menu in the window menu bar, “Edited” shown as “•” in the title. Phone/tablet: Undo and Redo move into the More sheet; history is a sheet.
 
+**As built (web, E1d).** Until saving arrives (E1e), the save state counts the steps since the file opened and closing asks with Cancel and Close without saving only (O03 without Save). On the web, Undo, Redo and Show history sit at the top of the More menu, with Rotate page right and left, the reader's one edit until Organise. Choosing a History row that moves one step shows the same toast as Undo or Redo.
+
 **Artboards:** `O01-edit-session.dc.html`.
 
-**Todos:** [E1d](../../todos/ready/E1d-edit-session-undo-ui.md).
+**Todos:** [E1d](../../todos/ongoing/E1d-edit-session-undo-ui.md).
 
 ## O02 Save, Save as and Download a copy
 
@@ -136,7 +138,7 @@ Command ids use the registry’s `namespace.verb-object` form ([U1b](../../todos
 
 **Artboards:** `O03-close-unsaved.dc.html`.
 
-**Todos:** [E2i](../../todos/ready/E2i-signed-gating-and-close.md) (close guards themselves come from [E1d](../../todos/ready/E1d-edit-session-undo-ui.md)).
+**Todos:** [E2i](../../todos/ready/E2i-signed-gating-and-close.md) (close guards themselves come from [E1d](../../todos/ongoing/E1d-edit-session-undo-ui.md)).
 
 ## O04 Document info and XMP editor
 
