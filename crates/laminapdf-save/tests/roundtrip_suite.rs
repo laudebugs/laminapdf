@@ -109,8 +109,9 @@ fn built_features(doc: &laminapdf_model::Document) -> Vec<String> {
 /// writes, byte for byte) are in the suite's fixtures, so the full lane checks them and their
 /// saves with qpdf, pdf.js and `PDFium`; here, an edit and a save in each mode keep their text
 /// (content and fonts), each link's resolved target, the outline, the named destinations'
-/// pages, the page labels and the XMP packet byte for byte. The edit is `SetInfo`, which
-/// changes Info but not XMP: keeping the two in sync on an existing document is E1's.
+/// pages, the page labels and the XMP packet byte for byte. The edit turns the first page, which
+/// touches none of these; the metadata edits' own round trip is
+/// [`metadata_edits_round_trip_with_info_and_xmp_in_step`].
 /// capability: A.01 core write
 /// capability: A.09 core write
 /// capability: I.02 core write
@@ -121,7 +122,8 @@ fn built_features(doc: &laminapdf_model::Document) -> Vec<String> {
 #[test]
 fn built_text_links_outlines_labels_and_xmp_survive_a_save() {
     use laminapdf_cos::OpenOptions;
-    use laminapdf_ops::{Document, InfoPatch, Origin, SetInfo};
+    use laminapdf_model::Rotation;
+    use laminapdf_ops::{Document, Origin, RotatePage};
     use laminapdf_save::{Save as _, SaveMode, SaveOptions};
 
     for name in common::roundtrip::B5B_BUILT {
@@ -135,16 +137,93 @@ fn built_text_links_outlines_labels_and_xmp_survive_a_save() {
         );
         for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
             let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
-            doc.apply_all(
-                Origin::Local,
-                [SetInfo::patch(InfoPatch::new().title(Some("edited"))).into()],
-            )
-            .unwrap();
+            let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+            doc.apply_all(Origin::Local, [RotatePage::new(page, Rotation::Clockwise90).into()])
+                .unwrap();
             let mut out = Vec::new();
             doc.save(&mut out, &SaveOptions::new().with_mode(mode)).unwrap();
             let after = laminapdf_model::Document::open(out, OpenOptions::default()).unwrap();
             assert_eq!(built_features(&after), before, "{name} {mode:?}");
             assert_eq!(after.warnings(), [], "{name} {mode:?}");
+        }
+    }
+}
+
+/// Each metadata edit, saved in each mode with the save-time stamp and reopened: Info and XMP
+/// hold the new values and agree, the pages and every other mapped field are kept, and a
+/// removal leaves neither side holding the value.
+/// capability: J.01 core round-trip
+/// capability: J.02 core round-trip
+/// capability: J.03 core round-trip
+/// capability: J.10 core round-trip
+#[test]
+fn metadata_edits_round_trip_with_info_and_xmp_in_step() {
+    use laminapdf_cos::OpenOptions;
+    use laminapdf_model::PdfDate;
+    use laminapdf_ops::{Document, MetadataKey, MetadataPatch, Origin, RemoveMetadata, SetMetadata, read_metadata};
+    use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+    let date = |s: &str| s.parse::<PdfDate>().unwrap();
+    let stamp = date("D:20261110093000Z");
+    let created = date("D:20260101120000+01'00'");
+    for name in [
+        "golden/metadata.pdf",
+        "corpus/outline.pdf",
+        "corpus/hello.pdf",
+        "metadata/pdf20-xmp-only.pdf",
+        "golden/examples/pdf_a_archive-2b.pdf",
+    ] {
+        let bytes = std::fs::read(common::fixtures_dir().join(name)).unwrap();
+        let pages = laminapdf_model::Document::open(bytes.clone(), OpenOptions::default())
+            .unwrap()
+            .pages()
+            .unwrap()
+            .len();
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+            let set = SetMetadata::new(
+                MetadataPatch::new()
+                    .title(Some("Round trip"))
+                    .authors(&["Ada Lovelace", "Charles Babbage"])
+                    .creator(Some("lamina round trip"))
+                    .producer(Some("Lamina PDF"))
+                    .created(Some(created)),
+                None,
+            );
+            doc.apply_all(Origin::Local, [set.into()]).unwrap();
+            doc.apply_all(Origin::Local, [RemoveMetadata::new(vec![MetadataKey::Keywords]).into()])
+                .unwrap();
+            let mut out = Vec::new();
+            let options = SaveOptions::new().with_mode(mode).with_metadata_date(stamp);
+            doc.save(&mut out, &options).unwrap();
+            let reopened = laminapdf_model::Document::open(out, OpenOptions::default()).unwrap();
+            let meta = read_metadata(&reopened).unwrap();
+            assert_eq!(
+                (
+                    reopened.pages().unwrap().len(),
+                    meta.title.as_deref(),
+                    meta.authors.len(),
+                    meta.creator.as_deref(),
+                    meta.producer.as_deref(),
+                    meta.keywords.as_deref(),
+                    meta.created,
+                    meta.modified,
+                    meta.disagreements.as_slice(),
+                ),
+                (
+                    pages,
+                    Some("Round trip"),
+                    2,
+                    Some("lamina round trip"),
+                    Some("Lamina PDF"),
+                    None,
+                    Some(created),
+                    Some(stamp),
+                    &[][..],
+                ),
+                "{name} {mode:?}"
+            );
+            assert_eq!(reopened.warnings(), [], "{name} {mode:?}");
         }
     }
 }

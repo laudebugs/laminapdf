@@ -11,6 +11,7 @@ import { registerQuickStart, runSuite } from "../suite/examples.js";
 const urls = import.meta.glob<string>(
   [
     "../../../../fixtures/golden/examples/*.pdf",
+    "../../../../fixtures/golden/metadata.pdf",
     "../../../../fixtures/fonts/*.{ttf,otf,ttc}",
     "../../../../fixtures/images/photo-rgb.jpg",
     "../../../../fixtures/markdown/report.md",

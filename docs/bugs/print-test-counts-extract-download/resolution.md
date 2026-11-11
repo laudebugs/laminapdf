@@ -1,10 +1,16 @@
 # Resolution
 
-The test leaves the extract module's download out of the requests it records (`apps/web/e2e/output.e2e.test.ts`), as it already leaves out the service worker's downloads. The test still fails on any other request made while it prints. The product didn't change: the reader should start the download after the first page, and the print makes no request.
+The print test (`apps/web/e2e/output.e2e.test.ts`) now waits for the extract module's download to finish before it starts recording requests. The worker always starts that download once the first page draws (`warmExtract`), so the test starts waiting before it opens the file, then waits for `lamina_pdf_extract-….wasm` to finish. The download can no longer land inside the print. The test leaves out no request but the service worker's own and `blob:`/`data:` URLs, so any request made while printing still fails it. The product didn't change: the print makes no request.
+
+Leaving the extract module's files out of the recorded requests also stopped the failure, but it would have hidden a print that started loading the module itself. It would also have needed a new exclusion each time the module's bundling changed.
 
 ## Proof
 
-- **The cause, from the log.** The failing run's only extra request is `lamina_pdf_extract-….wasm`, the file `warmExtract` loads. The print frame loads its pages as `blob:` URLs, which the test already leaves out.
-- **CI.** The test passes in Chromium, Firefox and WebKit on this PR's run.
+- **The race, forced.** A temporary `page.route` held the extract module's JavaScript chunk for 4 s, which pushes the `.wasm` request past the first page.
+  - Without the wait, the test failed in Chromium and Firefox. In Firefox it failed with CI's error: `expected [ Array(1) ] to deeply equal []`, naming `lamina_pdf_extract-….wasm`.
+  - With the wait, the same delayed test passed in Chromium, Firefox and WebKit.
+- **Without the delay.** The test passes in Chromium, Firefox and WebKit. Each engine reports the worker's download to the page, so the wait ends in each.
 
-The race depends on the runner's speed, so no local test fails without the fix.
+## Left for later
+
+Nothing.

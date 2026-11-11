@@ -1,5 +1,9 @@
 //! The edited goldens: [`legacy::hello`](super::legacy::hello) opened, changed with an op and
 //! saved by the overlay writers.
+#![allow(
+    deprecated,
+    reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
+)]
 
 use laminapdf_cos::Result;
 

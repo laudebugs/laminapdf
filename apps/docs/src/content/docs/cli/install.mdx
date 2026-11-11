@@ -3,6 +3,8 @@ title: Install the command-line tool
 description: Install the laminapdf command with Homebrew or npm, or download it for macOS, Linux or Windows and check it against its checksum.
 ---
 
+import Transcript from "../../../components/Transcript.astro";
+
 Install the `laminapdf` tool on macOS, Linux or Windows. Homebrew and npm install and update it with one command; a direct download suits a machine with neither, such as a build server.
 
 ## Homebrew
@@ -78,10 +80,7 @@ It also writes `bash`, `fish`, `powershell` and `elvish` scripts.
 
 `laminapdf --version` prints the version, and `laminapdf help` lists the commands:
 
-```console
-$ laminapdf --version
-laminapdf {{version}}
-```
+<Transcript name="version" />
 
 ## Try a change before it's released
 

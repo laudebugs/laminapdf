@@ -11,7 +11,7 @@ use laminapdf_cos::{Dict, Document, Limit, ObjRef, Object, OverlayEntry, Stream}
 use crate::detect::Patches;
 use crate::error::{Result, SaveError};
 use crate::id::{ContentHash, id_array, permanent_id};
-use crate::options::{Renumber, SaveMode, SaveOptions, SaveReport, XrefKind};
+use crate::options::{MetadataFlags, Renumber, SaveMode, SaveOptions, SaveReport, XrefKind};
 use crate::sink::{CountingSink, WriteSink, require_empty};
 use crate::xref::{
     Row, Rows, classic_table, document_keys, link_free_list, object_stream, stream_object, stream_table,
@@ -206,6 +206,7 @@ impl<'d> FullWriter<'d> {
             append_offset: None,
             invalidated: Vec::new(),
             encryption_removed: decrypt,
+            metadata: MetadataFlags::default(),
         })
     }
 

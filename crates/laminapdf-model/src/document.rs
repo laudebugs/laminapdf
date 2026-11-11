@@ -138,6 +138,40 @@ impl Document {
         }
     }
 
+    /// The PDF version the file declares (ISO 32000-2 §7.2.2): the catalog's `/Version` when
+    /// it is later than the `%PDF-x.y` header's, else the header's (`"1.7"`); `None` with
+    /// neither. A `/Version` that isn't `<digits>.<digits>` is ignored.
+    ///
+    /// # Errors
+    /// Reading errors (the catalog).
+    pub fn version(&self) -> Result<Option<String>> {
+        let header = self.header_version().filter(|v| version_number(v).is_some());
+        let catalog = self.catalog()?;
+        let declared = catalog
+            .get_name("Version")
+            .and_then(|name| std::str::from_utf8(name).ok())
+            .filter(|v| version_number(v).is_some());
+        let later = match (header, declared) {
+            (Some(header), Some(declared)) if version_number(declared) > version_number(header) => Some(declared),
+            (Some(header), _) => Some(header),
+            (None, declared) => declared,
+        };
+        Ok(later.map(str::to_owned))
+    }
+
+    /// Whether the file declares PDF 2.0 or later ([`Document::version`]), where ISO 32000-2
+    /// §14.3.3 deprecates every Info entry but `/CreationDate` and `/ModDate`.
+    ///
+    /// # Errors
+    /// As [`Document::version`].
+    pub fn is_pdf2(&self) -> Result<bool> {
+        Ok(self
+            .version()?
+            .as_deref()
+            .and_then(version_number)
+            .is_some_and(|(major, _)| major >= 2))
+    }
+
     /// The pages, in page-tree order.
     ///
     /// # Errors
@@ -254,4 +288,15 @@ pub(crate) use laminapdf_cos::tolerant;
 /// The object number of a reference, for warnings.
 pub(crate) fn object_number(obj: &Object) -> Option<u32> {
     obj.as_ref().map(|r: ObjRef| r.num)
+}
+
+/// A version string's numbers, `"1.7"` → `(1, 7)`; `None` unless it is `<digits>.<digits>`.
+fn version_number(version: &str) -> Option<(u32, u32)> {
+    let (major, minor) = version.split_once('.')?;
+    // `u32::from_str` takes a leading `+`, which a version never has.
+    let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+    if !(digits(major) && digits(minor)) {
+        return None;
+    }
+    Some((major.parse().ok()?, minor.parse().ok()?))
 }
