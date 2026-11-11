@@ -197,6 +197,33 @@ The shell gives `CommandsProvider` the registry and a `CommandContext`: the plat
 
 A Node test checks every shortcut against the keys the browser, the OS and assistive tech keep (`NEVER_BIND`), and against the browser keys a command may take only with a reason (`OVERRIDES`). It also fails when two commands share keys where their scopes meet. A new browser or OS key a command needs goes in `OVERRIDES`, with the reason.
 
+## Editing
+
+An open document's edit session comes in as any object with its store and three calls (`undo`, `redo`, `goTo`), so `@laminapdf/viewer`'s `viewer.edits` fits. Put it in the commands' context as `edits`, and give it to `ReaderTopBar` as `edits`. Once the first edit is made, the bar shows how many changes are unsaved after the file name ("4 unsaved changes", announced politely), then Undo and Redo after a divider. Their names say which step they take back or make again ("Undo rotate page 5").
+
+`registerEditCommands` adds the edit commands. `edit.undo` is ⌘Z or Ctrl+Z; `edit.redo` is ⇧⌘Z, or Ctrl+Y and Ctrl+Shift+Z on Windows and Linux. Both leave a text field its own undo. `edit.go-to-step` takes a step number. `edit.history`, `pages.rotate-right` and `pages.rotate-left` are the shell's: it knows the rail and the pages, so it gives their handlers in `actions`. Each command is disabled with the reason while the document can't be edited, such as an encrypted file.
+
+`HistoryPanel` is the rail's History tab. It lists the file as opened, then one row per step with its pages and time; the current row is tinted and carries `aria-current="step"`, and undone steps are struck through. Choosing a row goes to that step in one call.
+
+The list is a single Tab stop: Up and Down move between rows, Home and End go to the ends, and Enter goes to the step. It draws only the rows in view, so the 500 steps a session keeps cost nothing. When an undo restores only part of a step, a notice at the top says so until the next edit.
+
+`ReaderController.setCloseGuard(guard)` asks before the user's open or close lets the document go: `guard` resolves true to let it go. The reader's own opens pass `{ discard: true }` to skip it, and `requestClose()` is the user's close.
+
+**Interaction modes** say how pointer input on the page is read: `select`, `hand` (drag to scroll) and `textSelect`. Each is a tool module in a `ToolRegistry`: a name, a cursor, the viewer layer it draws into, whether it selects text, and its pointer handlers. `attachTools(registry, host)` passes pointer input on the viewer's element to the tool that is on. A later tool adds its name to `InteractionModes` by declaration merging, then registers:
+
+```ts
+declare module "@laminapdf/ui" {
+  interface InteractionModes {
+    measure: true;
+  }
+}
+
+tools.register({ name: "measure", cursor: "crosshair", layer: "annot", selectsText: false, pointerDown: start });
+tools.use("measure");
+```
+
+Shell modes (`ModeRegistry`, above) are different: a shell mode owns a toolbar, and the tools on that toolbar are interaction modes.
+
 ## Settings, appearance and announcements
 
 The app's look is an `Appearance`: a theme (`light`, `dark`, `high-contrast`, or `system` to follow the OS), an accent (`teal`, `blue`, `plum`, `green`), motion (`system` or `reduce`) and whether single-key shortcuts are on. `applyAppearance(document.documentElement, appearance)` sets it as `data-theme`, `data-accent` and `data-motion`, which the tokens and styles read, so a switch re-renders nothing. `parseAppearance` reads a stored one, with a default for anything missing. Storing it is the app's job, and so is setting it before the first paint, before React runs.

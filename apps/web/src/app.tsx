@@ -25,6 +25,7 @@ import {
   PhoneBottomBar,
   type Platform,
   type PlatformFile,
+  type RailTab,
   type ReaderController,
   type ReaderError,
   ReaderShell,
@@ -34,6 +35,7 @@ import {
   RemoteFailure,
   RepairDetails,
   RepairedNotice,
+  registerEditCommands,
   registerReaderCommands,
   type ShellLayout,
   StatusBarItem,
@@ -49,6 +51,7 @@ import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAnnouncements } from "./announce.tsx";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
+import { type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
@@ -74,6 +77,7 @@ const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 const PRIVACY_URL = "https://laminapdf.com/privacy/";
 
 type MoreId =
+  | EditMenuId
   | "save-copy"
   | "print"
   | "properties"
@@ -90,17 +94,23 @@ const MORE_COMMANDS = {
   print: "file.print",
   properties: "file.properties",
 } as const satisfies Record<
-  Exclude<MoreId, "install" | "open" | "rotate" | "settings" | "shortcuts" | "privacy">,
+  Exclude<MoreId, EditMenuId | "install" | "open" | "rotate" | "settings" | "shortcuts" | "privacy">,
   OutputCommand
 >;
 
 /**
- * The More menu (R09): Download a copy, Print… and Document properties, which need an open
- * document, then the reader's own items.
+ * The More menu (R09): the edit items (the web's Edit menu, O01) while a document is open;
+ * Download a copy, Print… and Document properties, which need an open document; then the
+ * reader's own items.
  */
-function moreEntries(open: boolean, installable: boolean): GatedEntry<MoreId>[] {
+function moreEntries(
+  open: boolean,
+  installable: boolean,
+  edit: readonly GatedEntry<EditMenuId>[],
+): GatedEntry<MoreId>[] {
   const needsDocument = open ? {} : { isDisabled: true, disabledReason: message("command.reason.noDocument") };
   return [
+    ...(open ? edit : []),
     { id: "save-copy", label: message("command.file.save-copy"), icon: "download", ...needsDocument },
     {
       id: "print",
@@ -178,13 +188,16 @@ function useHistory(
   return { history: { back: label(state.back), forward: label(state.forward) }, actions };
 }
 
-/** Names the window after the open document (its title, else its file name); nothing leaves the page. */
-function useWindowTitle(fileName: string | undefined, title: string | undefined): void {
+/**
+ * Names the window after the open document (its title, else its file name), with a "•" while it
+ * has unsaved changes; nothing leaves the page.
+ */
+function useWindowTitle(fileName: string | undefined, title: string | undefined, unsaved: boolean): void {
   useEffect(() => {
     document.title = windowTitle(
-      fileName === undefined ? undefined : { fileName, ...(title === undefined ? {} : { title }) },
+      fileName === undefined ? undefined : { fileName, unsaved, ...(title === undefined ? {} : { title }) },
     );
-  }, [fileName, title]);
+  }, [fileName, title, unsaved]);
 }
 
 /** The registry with the reader's commands, and the context they run in: focus mode, the modes and the palette are the shell's. */
@@ -194,18 +207,21 @@ function useReaderCommands(
   viewer: Viewer | undefined,
   shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
   rail: boolean,
-  /** The handlers that need an open document: find, Back and Forward, print, download, properties and the selection's. */
+  /** The handlers that need an open document: find, Back and Forward, print, download, properties, the selection's and the edits'. */
   documentActions: FindActions &
+    Editing["actions"] &
     ReturnType<typeof useHistory>["actions"] &
     Output["actions"] &
     SelectionSurfaces["actions"] &
     ReaderMode["actions"],
   /** The handlers that work with or without a document: the settings'. */
   appActions: Settings["actions"],
+  edits: Editing["edits"],
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
     registerReaderCommands(commands);
+    registerEditCommands(commands);
     return commands;
   });
   // A mode registered later gets its `mode.<id>` handler: the context follows the modes.
@@ -215,6 +231,7 @@ function useReaderCommands(
       platform,
       reader,
       ...(viewer === undefined ? {} : { viewer }),
+      ...(viewer === undefined || edits === undefined ? {} : { edits }),
       // Without rail tabs (no document open) the sidebar command has no handler and stays out of view.
       actions: {
         ...shellActions(shell.layout, shell.modes, { rail }),
@@ -224,7 +241,7 @@ function useReaderCommands(
         "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
       },
     }),
-    [platform, reader, viewer, shell, modes, rail, documentActions, appActions],
+    [platform, reader, viewer, shell, modes, rail, documentActions, appActions, edits],
   );
   return { registry, context };
 }
@@ -388,8 +405,7 @@ function useDocumentMenu(
   state: ReaderState,
   shown: Viewer | undefined,
   settings: Settings,
-  updates: AppUpdates,
-  toasts: ToastQueue,
+  shared: { readonly updates: AppUpdates; readonly toasts: ToastQueue; readonly edit: Editing["menu"] },
 ): {
   labels: readonly string[] | undefined;
   output: Output;
@@ -398,6 +414,7 @@ function useDocumentMenu(
   /** The handlers that work with or without a document: the settings', recent files', install and update. */
   appActions: Settings["actions"];
 } {
+  const { updates, toasts, edit } = shared;
   const appActions = settings.actions;
   const pages = useStoreState(engine, (s) => s.pages);
   const labels = useMemo(
@@ -413,9 +430,10 @@ function useDocumentMenu(
     clearDocumentCache(platform.storage),
   );
   const install = useInstall();
-  const items = useGatedEntries<MoreId>(moreEntries(document !== undefined, install.available));
+  const items = useGatedEntries<MoreId>(moreEntries(document !== undefined, install.available, edit.items));
   const onAction = (id: MoreId) => {
-    if (id === "open") engine.reader.close();
+    if (isEditItem(id)) edit.run(id);
+    else if (id === "open") void engine.reader.requestClose();
     else if (id === "rotate") engine.getState().viewer?.rotate(90);
     else if (id === "settings") appActions["app.settings"]?.(undefined);
     else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
@@ -436,6 +454,11 @@ function useDocumentMenu(
     },
   };
 }
+
+const EDIT_ITEMS: readonly string[] = ["undo", "redo", "history", "rotate-right", "rotate-left"] satisfies EditMenuId[];
+
+/** Whether the More menu's `id` is one of the edit items. */
+const isEditItem = (id: MoreId): id is EditMenuId => EDIT_ITEMS.includes(id);
 
 /** The debug menu (#debug): which backend draws the pages. */
 function EngineDebugMenu({ engine, backend }: { engine: Engine; backend: EngineState["backend"] }): ReactNode {
@@ -495,13 +518,22 @@ export interface AppProps {
   readonly debug: boolean;
 }
 
-/** The rail's tabs for the open document, made again only when the view, the strip or find changes. */
-function useRailTabs(engine: Engine, layout: ShellLayout, open: boolean, finding: boolean) {
+/**
+ * The rail's tabs for the open document, made again only when the view, the strip, find or the
+ * History tab changes; History comes last, once an edit was made.
+ */
+function useRailTabs(
+  engine: Engine,
+  layout: ShellLayout,
+  open: boolean,
+  finding: boolean,
+  history: RailTab | undefined,
+) {
   const { strip, viewer } = useStoreState(engine, (s) => s);
-  return useMemo(
-    () => railTabs(engine, layout, open ? { strip, viewer, finding } : undefined),
-    [engine, layout, open, strip, viewer, finding],
-  );
+  return useMemo(() => {
+    const tabs = railTabs(engine, layout, open ? { strip, viewer, finding } : undefined);
+    return tabs.length > 0 && history !== undefined ? [...tabs, history] : tabs;
+  }, [engine, layout, open, strip, viewer, finding, history]);
 }
 
 /** The settings, with the page appearance of the document `viewer` shows, and the toasts they share. */
@@ -512,6 +544,41 @@ function useAppSettings(
 ): { settings: Settings; toasts: ToastQueue } {
   const [toasts] = useState(() => new ToastQueue());
   return { settings: useSettings(openPalette, usePageAppearance(viewer, file, toasts)), toasts };
+}
+
+/**
+ * What the chrome around the open document needs: find, the rail's tabs, Back and Forward, the
+ * selection's surfaces, reader mode, and the commands with every handler they run.
+ */
+function useDocumentChrome(options: {
+  readonly engine: Engine;
+  readonly platform: Platform;
+  readonly shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void };
+  readonly state: ReaderState;
+  readonly shown: Viewer | undefined;
+  readonly editing: Editing;
+  readonly menu: { readonly output: Output; readonly appActions: Settings["actions"] };
+}) {
+  const { engine, platform, shell, state, shown, editing } = options;
+  const { output, appActions } = options.menu;
+  const open = state.phase === "open";
+  const pages = useStoreState(engine, (s) => s.pages);
+  const find = useFind(shown, open ? state.file : undefined);
+  const tabs = useRailTabs(engine, shell.layout, open, find.open, editing.tab);
+  const rail = tabs.length > 0;
+  const history = useHistory(shown, pages);
+  const selection = useSelection(shown, find, platform, KEYS);
+  const reading = useReaderMode(engine, shell.layout, platform, shown, open ? state.file : undefined);
+  const actions = {
+    ...find.actions,
+    ...history.actions,
+    ...output.actions,
+    ...selection.actions,
+    ...reading.actions,
+    ...editing.actions,
+  };
+  const commands = useReaderCommands(platform, engine.reader, shown, shell, rail, actions, appActions, editing.edits);
+  return { find, tabs, rail, history, selection, reading, commands };
 }
 
 /** The reader over `engine`, on `platform`. */
@@ -525,18 +592,13 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const open = state.phase === "open";
   const shown = open ? engineState.viewer : undefined;
   const { settings, toasts } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined);
-  const menu = useDocumentMenu(engine, platform, state, shown, settings, updates, toasts);
-  const { labels, output, moreItems, recent } = menu;
-  const find = useFind(shown, open ? state.file : undefined);
-  const tabs = useRailTabs(engine, layout, open, find.open);
   const fileName = open ? state.file.name : undefined;
-  const rail = tabs.length > 0;
-  const history = useHistory(shown, engineState.pages);
-  const selection = useSelection(shown, find, platform, KEYS);
-  const reading = useReaderMode(engine, layout, platform, shown, open ? state.file : undefined);
-  const actions = { ...find.actions, ...history.actions, ...output.actions, ...selection.actions, ...reading.actions };
-  const commands = useReaderCommands(platform, engine.reader, shown, shell, rail, actions, menu.appActions);
-  useWindowTitle(fileName, engineState.title);
+  const editing = useEditing({ engine, layout, viewer: shown, toasts, fileName, pages: engineState.pages });
+  const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts, edit: editing.menu });
+  const { labels, output, moreItems, recent } = menu;
+  const chrome = useDocumentChrome({ engine, platform, shell, state, shown, editing, menu });
+  const { find, tabs, rail, history, selection, reading, commands } = chrome;
+  useWindowTitle(fileName, engineState.title, editing.unsaved);
   const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState);
   const { inspector, status, notice } = usePanels(layout, platform, network, fileName, engineState, debug, {
     updates,
@@ -560,6 +622,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           <ReaderTopBar
             reader={engine.reader}
             {...(shown === undefined ? {} : { viewer: shown })}
+            {...(editing.edits === undefined ? {} : { edits: editing.edits })}
             keys={KEYS}
             sidebarOpen={sidebar}
             findOpen={find.open}
@@ -587,6 +650,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
         />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
         {output.dialogs}
+        {editing.dialog}
       </ReaderShell>
       <ToastRegion queue={toasts} aria-label={message("shell.toasts")} />
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />

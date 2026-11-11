@@ -15,13 +15,16 @@ export interface DocumentWarning {
 }
 
 /**
- * The window's title: the document's metadata title, else its file name, then the app's name.
- * Only the app's name while no document is open.
+ * The window's title: the document's metadata title, else its file name, then the app's name; a
+ * leading "• " while it has unsaved changes (Paper O01: the browser tab shows them). Only the
+ * app's name while no document is open.
  */
-export function windowTitle(document: { readonly title?: string; readonly fileName: string } | undefined): string {
+export function windowTitle(
+  document: { readonly title?: string; readonly fileName: string; readonly unsaved?: boolean } | undefined,
+): string {
   if (document === undefined) return APP_NAME;
   const name = document.title?.trim() || document.fileName;
-  return `${name} · ${APP_NAME}`;
+  return `${document.unsaved === true ? "• " : ""}${name} · ${APP_NAME}`;
 }
 
 /**

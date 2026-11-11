@@ -111,7 +111,26 @@ Anchors follow page order, so Tab reaches a page's links in order. Each is named
 - **What the viewer redraws.** Only the touched pages: their bitmaps go, here and in a thumbnail strip, and their layers read their text and links again. Every other page keeps what it drew. A page in view at its old size keeps its pixels until sharp tiles cover them, so it never flashes. A page whose size changed paints its quick pass first, and the page at the top of the viewport stays there.
 - **What changes nothing.** An edit of the document's metadata touches no page: the Web Worker opens nothing again, and the viewer redraws nothing. A failed edit, such as one naming a page that doesn't exist, rejects and leaves the document and the pages as they were. So does an edit whose new file the backend can't open: the Web Worker undoes it. An edit that adds, removes or moves pages is refused for now, since the view finds pages by index.
 - **When an edit can't be undone.** If the undo after a failed reopen fails too, the call rejects with `worker-failed` saying to open the document again, and every later edit does the same.
-- **Driving it yourself.** `ViewerClient.applyEdit(ops)` makes the edit without the redraw; pass its pages to `viewer.invalidate(indices, sizes)`, which redraws any pages you name. The edits live in the Web Worker: one that restarts after a crash opens the file as it was, and the viewer and its thumbnails draw the edited pages again at their old sizes.
+- **Driving it yourself.** `ViewerClient.applyEdit(ops)` makes the edit without the redraw; pass its pages to `viewer.invalidate(indices, sizes)`, which redraws any pages you name.
+- **The zoom follows.** While the zoom fits the width or the page, a page that turned is fitted again, so a page lying on its side never runs past the window.
+
+**The edit session.** `viewer.edits` keeps the open document's history and is the store an editor reads (`getState()`, `subscribe()`):
+
+```ts
+await viewer.edits.apply([{ op: "rotatePage", args: { page, rotate: 90 } }], "Rotate page 5");
+await viewer.edits.undo(); // the page stands again
+await viewer.edits.redo();
+await viewer.edits.goTo(0); // back to the file as opened, in one call
+const { history, busy, blocked, notice } = viewer.edits.getState();
+```
+
+- **One step per edit.** Each edit is a step with its label, its pages and its time. `history.steps` lists them oldest first; the first `history.position` are done and the rest are undone, ready to redo. A new edit drops the undone ones. An edit that changed nothing (setting a value the document already had) makes no step.
+- **Undo and redo redraw too.** They draw only the pages the step touched, as an edit does, and `goTo` draws once however many steps it moves. Calls run one after another in the order they were made, so three quick presses of Undo undo three steps.
+- **When an undo can't restore everything.** A later change can replace part of what a step changed. Then the undo restores the rest and the step is marked `partial`; `notice` holds it until the next edit, and `onReverted(listener)` hears each undo and redo with how it went. An undo that could restore nothing takes the step out of the history.
+- **Unsaved changes.** `history.unsaved` counts the steps between the document now and the file as opened, so undoing every step leaves it clean again. The history keeps 500 steps and then drops the oldest (`history.dropped`); the steps it drops still count.
+- **What blocks editing.** `blocked` says why the document can't be edited: none is open, or it is encrypted, or an edit failed and couldn't be undone, so it must be opened again. An encrypted file's edits can't be written yet, and `OpenedDocument.encrypted` says so when it opens.
+- **A restart keeps the edits.** If the Web Worker crashes, the client opens the file again and applies the session's steps again, undoing the undone ones, so the history and the pages are as they were (`restarted`'s `edits` is `restored`). If that fails, the file opens as it was and `edits` is `lost`.
+- **Without the viewer.** `ViewerClient` has the same calls (`applyEdit(ops, { label })`, `undoEdit()`, `redoEdit()`, `goToStep(n)`, `editHistory()`), each resolving with the pages to redraw and the history, and fires `edit` after each.
 
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
@@ -200,7 +219,11 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `currentDocument` | — | `{ document, ticket }` of the open document, or `undefined`: `open()` asks after a cancelled open | document |
 | `closeDocument` | — | — | document |
 | `pageInfo` | `index` | `PageInfo` (displayed size in points, rotation, ID, label) | document |
-| `applyEdit` | `ops`, the document's `id` | `EditResult`: the touched pages' `PageInfo`, after the edit; empty for a metadata edit | document. `client.applyEdit(ops)`. Saves into memory and opens the render document again when the edit touched pages |
+| `applyEdit` | `ops`, the document's `id`, `label?` | `EditResult`: the touched pages' `PageInfo`, after the edit (empty for a metadata edit), and the edit session's `history` | document. `client.applyEdit(ops)`. Saves into memory and opens the render document again when the edit touched pages; records a step unless nothing changed |
+| `undoEdit`, `redoEdit` | the document's `id` | `EditResult` with `reverted`: the step and how it went | document. Redraws as an edit does |
+| `goToStep` | `position`, the document's `id` | `EditResult` with every step undone or redone | document. One redraw; a failure half way takes every move back |
+| `editHistory` | the document's `id` | `EditHistory` | document |
+| `restoreEdits` | `steps` (ops, label, time), `undone`, the document's `id` | `EditResult` | document. A restarted worker's replay |
 | `find` | `query`, `FindOptions`, `pages` | `FindPageResult[]`: each page's matches as quads, and whether it has no text | `background` |
 | `render` | ADR 0004 `RenderRequest` | `{ bitmap: ImageBitmap, width, height }` (transferred) | `visible` > `prefetch` > `background` |
 | `memory` | — | `WorkerMemory`: the bytes of the backend's and Lamina PDF's WebAssembly memories | document. `client.memory()`; the perf harness samples it. |

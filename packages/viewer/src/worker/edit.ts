@@ -184,8 +184,8 @@ export async function restoreEdits(
     edit.diverged = true;
     throw new Error(DIVERGED, { cause: e });
   }
-  // The file reopened as it was: the saved document is the one opened, unless the depth dropped it.
-  edit.session.saved = edit.session.dropped === 0 ? 0 : undefined;
+  // The file reopened as it was: the saved document is the one opened.
+  edit.session.saved = 0;
   return { pages: await touched(opened, [...ids]), history: historyOf(edit.session, false) };
 }
 

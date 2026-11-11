@@ -6,8 +6,9 @@
 //
 // Positions are counted from the document as opened: position p (absolute) is the state after the
 // p-th step ever made. `saved` is the absolute position the last save wrote, so the semantic dirty
-// state is the distance from it; it is lost when no position matches the saved document any more
-// (its steps were dropped, cleared by a new edit, or skipped).
+// state is the distance from it, even once the depth limit has dropped the steps back to it (undo
+// can't reach it then, but every step since still counts). It is lost when the saved document is
+// on no path from here any more: a new edit cleared the steps that led to it, or one was skipped.
 
 import { type EditHistory, type EditStep, HISTORY_DEPTH, type RevertedStep } from "../protocol.js";
 
@@ -19,7 +20,7 @@ export interface Session {
   position: number;
   /** How many of the oldest steps the depth limit dropped. */
   dropped: number;
-  /** The absolute position of the last save (0: the file as opened); undefined once none matches. */
+  /** The absolute position of the last save (0: the file as opened); undefined once it is on no path from here. */
   saved: number | undefined;
   /** The next step's ID. */
   nextId: number;
@@ -48,7 +49,7 @@ export function historyOf(session: Session, diverged: boolean): EditHistory {
 
 /**
  * Transactions between the document now and the saved one: the distance between their positions,
- * or, with no position matching the saved document, every step done (at least one: it differs).
+ * or, with the saved document on no path from here, every step done (at least one: it differs).
  */
 function unsaved(session: Session): number {
   if (session.saved === undefined) return Math.max(1, session.position);
@@ -75,8 +76,6 @@ export function record(session: Session, label: string, pages: readonly number[]
     session.position -= 1;
     session.dropped += 1;
   }
-  // The saved document was before the oldest step kept: undo can't go back to it.
-  if (session.saved !== undefined && session.saved < session.dropped) session.saved = undefined;
   return step;
 }
 

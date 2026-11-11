@@ -54,10 +54,11 @@ describe("the edit session's history", () => {
     expect([session.steps.length, session.steps[0]?.label, session.dropped]).toEqual([500, "2", 1]);
   });
 
-  it("counts a document whose saved state was dropped as unsaved even with every kept step undone", () => {
+  it("counts every step since the save, even those the depth dropped", () => {
     const session = withSteps(4, 3);
+    const all = historyOf(session, false).unsaved;
     for (let i = 0; i < 3; i++) stepBack(session, "applied");
-    expect(historyOf(session, false).unsaved).toBe(1);
+    expect([all, historyOf(session, false).unsaved]).toEqual([4, 1]);
   });
 
   it("measures the distance from the last save", () => {
