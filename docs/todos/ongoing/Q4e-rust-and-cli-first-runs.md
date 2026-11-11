@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | [Q4a](../done/Q4a-cli-output-from-real-runs.md) |
