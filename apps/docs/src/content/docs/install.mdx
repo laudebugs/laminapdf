@@ -29,6 +29,10 @@ cargo add laminapdf@={{version}}
 
 The command writes `laminapdf = "={{version}}"` to `Cargo.toml`, which keeps your project on this release until you change it: alphas promise nothing to each other (see the [stability policy](/reference/stability/)). The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
 
+## The command-line tool
+
+The `laminapdf` command does the common jobs from a terminal or a script, without a Node or Rust project: describe, check, extract, render and build PDFs. Homebrew installs it with `brew install laudebugs/tap/laminapdf`; [install the command-line tool](/cli/install/) has npm and downloads for macOS, Linux and Windows.
+
 ## Every published package
 
 Most projects need only the two above. The table links every published package to its registry page:

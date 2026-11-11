@@ -61,6 +61,18 @@ export function sidebar(typeDoc) {
       ],
     },
     {
+      label: "Command line",
+      items: [
+        { label: "The command line", slug: "cli" },
+        { label: "Install the tool", slug: "cli/install" },
+        { label: "Inspect and check PDFs", slug: "cli/inspect" },
+        { label: "Extract text and render pages", slug: "cli/extract-and-render" },
+        { label: "Make and change PDFs", slug: "cli/build-and-edit" },
+        { label: "Scripts and batch jobs", slug: "cli/scripts" },
+        { label: "Connect an AI agent (MCP)", slug: "cli/mcp" },
+      ],
+    },
+    {
       label: "Production",
       items: [
         { label: "Keep the page responsive", slug: "guides/keep-the-page-responsive" },

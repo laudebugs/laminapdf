@@ -21,6 +21,7 @@ import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 import { agentDocs, packageVersion } from "./plugins/agent-docs.mjs";
+import { cliDownloadChecks } from "./plugins/cli-downloads.mjs";
 import { checkedLinks, examplePdfs, WEBSITE_ICONS, websiteIcons } from "./plugins/integrations.mjs";
 import { releaseChecks, versionInPages } from "./plugins/release.mjs";
 import { GITHUB, REPOSITORY } from "./plugins/repository.mjs";
@@ -115,6 +116,7 @@ export default defineConfig({
       sidebar: sidebar(TYPEDOC ? typeDocSidebarGroup : undefined),
     }),
     examplePdfs(new URL("fixtures/golden/examples/", ROOT)),
+    cliDownloadChecks(ROOT),
     websiteIcons(new URL("apps/site/public/", ROOT)),
     checkedLinks,
     inlineScriptHashes,

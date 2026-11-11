@@ -277,7 +277,14 @@ pub(crate) fn explain_text(report: &ExplainReport) -> String {
 
 /// `laminapdf help exit-codes`.
 pub(crate) fn exit_codes_text() -> String {
-    let mut out = String::from("Exit codes (when several apply, the first in 2, 5, 4, 1, 3, 0 wins):\n");
+    let order: Vec<String> = ExitCode::by_priority()
+        .iter()
+        .map(|code| code.number().to_string())
+        .collect();
+    let mut out = format!(
+        "Exit codes (when several apply, the first in {} wins):\n",
+        order.join(", ")
+    );
     for code in ExitCode::ALL {
         let _ = writeln!(out, "  {}  {}", code.number(), code.meaning());
     }
@@ -288,6 +295,13 @@ pub(crate) fn exit_codes_text() -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn exit_codes_should_list_every_code_in_the_order_they_win() {
+        assert!(
+            exit_codes_text().starts_with("Exit codes (when several apply, the first in 2, 5, 4, 1, 6, 3, 0 wins):")
+        );
+    }
 
     #[test]
     fn sizes_should_read_like_a_file_manager() {
