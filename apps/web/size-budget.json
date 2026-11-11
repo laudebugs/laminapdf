@@ -1,6 +1,6 @@
 {
-  "$comment": "The reader's startup JavaScript, gzipped (cargo xtask web size). Web-app §4's target is 200000; 270000 is web v0.1's waiver, issue #380, which brings it back to 200000.",
-  "startupJsGzip": 270000,
+  "$comment": "The reader's startup JavaScript, gzipped (cargo xtask web size). Web-app §4's target is 200000; 272000 is the waiver (web v0.1 set 270000; T5a's link previews raised it), issue #380, which brings it back to 200000.",
+  "startupJsGzip": 272000,
   "target": 200000,
   "waiver": "https://github.com/laudebugs/laminapdf/issues/380"
 }
