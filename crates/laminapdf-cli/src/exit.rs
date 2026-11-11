@@ -137,6 +137,17 @@ impl CliError {
         }
     }
 
+    /// The error with `hint` in place of its code's.
+    #[must_use]
+    pub(crate) fn with_hint(mut self, hint: &str) -> Self {
+        let diagnostic = std::mem::replace(
+            &mut *self.diagnostic,
+            Diagnostic::error(ErrorCode::InvalidCommandLine, ""),
+        );
+        *self.diagnostic = diagnostic.with_hint(Some(hint.to_owned()));
+        self
+    }
+
     /// The same error with `key` set to `value` in its `data`.
     #[must_use]
     pub fn with(mut self, key: &str, value: impl Into<Value>) -> Self {
@@ -211,10 +222,10 @@ impl From<laminapdf::Error> for CliError {
             // A document's fonts and images come from `laminapdf build`'s flags, not from code.
             ErrorCode::InvalidDocument => match diagnostic.data.get("reason").and_then(Value::as_str) {
                 Some("unknown-font") => Some(
-                    "give the font's file by the name the document uses, NAME=FILE, with --font or the tool's fonts, or put a file with exactly that name beside the document".to_owned(),
+                    "give the font's file by the name the document uses, NAME=FILE, with --font or the tool's fonts, or, for a document file, put a file with exactly that name beside it".to_owned(),
                 ),
                 Some("unknown-image") => Some(
-                    "give the image's file by the name the document uses, NAME=FILE, with --image or the tool's images, or put a file with exactly that name beside the document".to_owned(),
+                    "give the image's file by the name the document uses, NAME=FILE, with --image or the tool's images, or, for a document file, put a file with exactly that name beside it".to_owned(),
                 ),
                 _ => None,
             },

@@ -54,6 +54,7 @@ pub(super) fn parse_json(bytes: &[u8], input: &str, what: &str) -> Result<Value,
         CliError::new(ErrorCode::InputUnreadable, format!("the {what} isn't JSON"))
             .with("input", input)
             .with("reason", "InvalidData")
+            .with_hint("the file was read, but it isn't valid JSON: check its syntax")
     })
 }
 
