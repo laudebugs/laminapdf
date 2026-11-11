@@ -141,7 +141,7 @@
         },
         "docsUrl": {
           "description": "The code's explain page: base + code + suffix (ADR 0026 §6).",
-          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/laminapdf\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
+          "pattern": "^https:\\/\\/docs\\.laminapdf\\.com\\/reference\\/codes\\/[a-z0-9-]+\\/$",
           "type": "string"
         },
         "hint": {
@@ -287,7 +287,7 @@
         "didYouMean": false,
         "docsUrl": {
           "description": "The code's explain page: base + code + suffix (ADR 0026 §6).",
-          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/laminapdf\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
+          "pattern": "^https:\\/\\/docs\\.laminapdf\\.com\\/reference\\/codes\\/[a-z0-9-]+\\/$",
           "type": "string"
         },
         "hint": {

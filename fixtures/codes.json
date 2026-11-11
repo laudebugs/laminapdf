@@ -1,8 +1,8 @@
 {
   "version": 2,
   "docsUrl": {
-    "base": "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/",
-    "suffix": ".md"
+    "base": "https://docs.laminapdf.com/reference/codes/",
+    "suffix": "/"
   },
   "warnings": [
     {

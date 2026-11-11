@@ -15,7 +15,7 @@ $ cat scan.pdf | laminapdf pages rotate - +90:1-3,x2 -o - > rotated.pdf
 $ laminapdf pages rotate scan.pdf 90:z --in-place
 error[overwrite-refused]: refusing to replace a file without --force
   = hint: pass --force, or write to a new file with -o
-  = see: https://github.com/laudebugs/laminapdf/blob/main/docs/errors/overwrite-refused.md
+  = see: https://docs.laminapdf.com/reference/codes/overwrite-refused/
 $ echo $?
 4
 $ curl -sL https://example.org/a.pdf | laminapdf extract - --pages 1-3 | rg -i invoice
