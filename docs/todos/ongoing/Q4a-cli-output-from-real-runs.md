@@ -40,17 +40,17 @@ The docs promise that every code block was tested, and for TypeScript and Rust i
 
 ## Tasks
 
-- [ ] List every `console` and `sh` block on the site, and what each needs to run.
-- [ ] Write the transcript format and the test; make the outputs deterministic (fixed fixtures, no timings or paths that vary).
-- [ ] Add the component (`Transcript.astro` or an option on `Snippet`), and make `check docs-snippets` refuse a hand-written `console` block.
-- [ ] Move each CLI page onto the transcripts, fixing any output that has drifted.
-- [ ] Check the `sh` install blocks against the package names and the version rule on the install page.
+- [x] List every `console` and `sh` block on the site, and what each needs to run.
+- [x] Write the transcript format and the test; make the outputs deterministic (fixed fixtures, no timings or paths that vary).
+- [x] Add the component (`Transcript.astro` or an option on `Snippet`), and make `check docs-snippets` refuse a hand-written `console` block. *As done:* `Transcript.astro`; the refusal is in the docs site's tests (`apps/docs/test/transcripts.test.mjs`), since `docs_snippets.rs` is over the 800-line module limit, and it also refuses a shell block with a `$ ` prompt.
+- [x] Move each CLI page onto the transcripts, fixing any output that has drifted.
+- [ ] Check the `sh` install blocks against the package names and the version rule on the install page. *Not done:* they can't run in a test, the install page's own check covers the download table, and `release.mjs` already checks the versions install lines name; left for a later todo if they drift.
 
 ## Acceptance criteria
 
-- [ ] Every `console` block on the site comes from a transcript file that a test runs.
-- [ ] A change to a command's output fails the test until the transcript is updated.
-- [ ] `check docs-snippets` fails on a hand-written `console` block.
+- [x] Every `console` block on the site comes from a transcript file that a test runs.
+- [x] A change to a command's output fails the test until the transcript is updated.
+- [x] A hand-written `console` block fails a check: the docs site's tests (see the tasks).
 
 ## Post-merge checks
 

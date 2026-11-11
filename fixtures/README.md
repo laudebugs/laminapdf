@@ -334,7 +334,7 @@ Inputs for the desktop engine's tests (ADR 0008 §5).
 
 ### `cli/`
 
-`transcripts/*.console` are the command-line sessions the docs site shows: the commands, written by hand, and their output, written by `crates/laminapdf-cli/tests/transcripts.rs` with `UPDATE_GOLDEN=1` (the version as `{{version}}`). `transcripts/transcripts.json` stages each one's inputs from other fixtures, under the names the pages use: `invoice.pdf` is `golden/examples/invoice.pdf`, `scan.pdf` is `corpus/hello-broken.pdf`, `letter.pdf` is `corpus/hello-incremental.pdf`, `brochure.pdf` is `corpus/text-example.pdf`, `report.pdf` is `golden/examples/flowing_report.pdf`, and `notes.pdf` in the scripts examples is a Markdown file, to show a failure. `notes.md` is the Markdown file the build page shows, written for it.
+`transcripts/*.console` are the command-line sessions the docs site shows: the commands and their output, written by `crates/laminapdf-cli/tests/transcripts.rs` with `UPDATE_GOLDEN=1` (the version as `{{version}}`). `transcripts/transcripts.json` gives each one's commands, written by hand, and stages its inputs from other fixtures, under the names the pages use: `invoice.pdf` is `golden/examples/invoice.pdf`, `scan.pdf` is `corpus/hello-broken.pdf`, `letter.pdf` is `corpus/hello-incremental.pdf`, `brochure.pdf` is `corpus/text-example.pdf`, `report.pdf` is `golden/examples/flowing_report.pdf`, and `notes.pdf` in the scripts examples is a Markdown file, to show a failure. `notes.md` is the Markdown file the build page shows, written for it.
 
 ### Generated large files (not committed)
 

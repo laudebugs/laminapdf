@@ -1,9 +1,10 @@
 //! The command-line transcripts the docs site shows (todo Q4a): each `fixtures/cli/transcripts/
-//! <name>.console` is a terminal session, `$ ` lines and what they print, that this test runs and
-//! compares, so no command or output on the docs' pages is typed by hand.
+//! <name>.console` is a terminal session, the commands and what they print, that this test writes
+//! and compares, so no command or output on the docs' pages is typed by hand.
 //!
-//! Each transcript runs in a folder of its own, holding the files `transcripts.json` names for it
-//! under the names the page uses, with the built `laminapdf` first on `PATH`. Its commands run in
+//! `transcripts.json` gives each transcript's commands and the files it needs, under the names the
+//! page uses. Each runs in a folder of its own with those files and the built `laminapdf` first on
+//! `PATH`, and with no `LAMINA_PDF_*` variable from the caller's environment. Its commands run in
 //! one `sh`, so `echo $?` and pipes work as they do in a terminal, with standard error merged into
 //! standard output. The version is written `{{version}}` (the docs fill it in), and timings
 //! (`"elapsedMs":…`) are masked in the comparison. `UPDATE_GOLDEN=1` rewrites the transcripts
@@ -34,8 +35,15 @@ fn transcripts_dir() -> PathBuf {
     laminapdf_test_fixtures::fixtures_dir().join("cli/transcripts")
 }
 
-/// Each transcript's files: the name in its folder → the path from the repository root.
-fn manifest() -> BTreeMap<String, BTreeMap<String, String>> {
+/// What `transcripts.json` gives one transcript.
+struct Entry {
+    /// The commands, as the reader types them.
+    commands: Vec<String>,
+    /// The name in its folder → the path from the repository root.
+    files: BTreeMap<String, String>,
+}
+
+fn manifest() -> BTreeMap<String, Entry> {
     let text = fs::read_to_string(transcripts_dir().join("transcripts.json")).unwrap();
     let json: Value = serde_json::from_str(&text).unwrap();
     json.as_object()
@@ -48,18 +56,19 @@ fn manifest() -> BTreeMap<String, BTreeMap<String, String>> {
                 .iter()
                 .map(|(to, from)| (to.clone(), from.as_str().unwrap().to_owned()))
                 .collect();
-            (name.clone(), files)
+            let commands = entry["commands"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|command| command.as_str().unwrap().to_owned())
+                .collect();
+            (name.clone(), Entry { commands, files })
         })
         .collect()
 }
 
-/// A transcript's commands: its `$ ` lines, without the prompt.
-fn commands(transcript: &str) -> Vec<&str> {
-    transcript.lines().filter_map(|line| line.strip_prefix("$ ")).collect()
-}
-
 /// Runs `commands` in `dir` and writes the session as a terminal shows it.
-fn run(dir: &Path, commands: &[&str]) -> String {
+fn run(dir: &Path, commands: &[String]) -> String {
     let binary = PathBuf::from(env!("CARGO_BIN_EXE_laminapdf"));
     let path = format!(
         "{}:{}",
@@ -75,24 +84,34 @@ fn run(dir: &Path, commands: &[&str]) -> String {
         script.push_str(command);
         script.push('\n');
     }
-    let output = Command::new("sh")
+    let mut shell = Command::new("sh");
+    shell
         .arg("-c")
         .arg(&script)
         .current_dir(dir)
         .env("PATH", path)
-        .env("LC_ALL", "C")
-        .env_remove("LAMINA_PDF_PASSWORD")
-        .output()
-        .unwrap();
+        .env("LC_ALL", "C");
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("LAMINA_PDF_") {
+            shell.env_remove(key);
+        }
+    }
+    let output = shell.output().unwrap();
     let text = String::from_utf8(output.stdout).unwrap();
     let separator = format!("{MARK}\n");
-    let mut outputs = text.split(&separator).skip(1);
+    let outputs: Vec<&str> = text.split(&separator).skip(1).collect();
+    assert_eq!(
+        outputs.len(),
+        commands.len(),
+        "the shell stopped before every command ran ({}):\n{text}",
+        output.status
+    );
     let mut session = String::new();
-    for command in commands {
+    for (command, printed) in commands.iter().zip(outputs) {
         session.push_str("$ ");
         session.push_str(command);
         session.push('\n');
-        session.push_str(outputs.next().unwrap_or_default());
+        session.push_str(printed);
     }
     session.replace(env!("CARGO_PKG_VERSION"), "{{version}}")
 }
@@ -116,16 +135,16 @@ fn every_transcript_is_what_the_commands_print() {
     let update = std::env::var_os("UPDATE_GOLDEN").is_some();
     let scratch = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("transcripts");
     let mut stale = Vec::new();
-    for (name, files) in manifest() {
+    for (name, entry) in manifest() {
         let file = transcripts_dir().join(format!("{name}.console"));
-        let expected = fs::read_to_string(&file).unwrap_or_else(|_| panic!("{name}.console is missing"));
+        let expected = fs::read_to_string(&file).unwrap_or_default();
         let dir = scratch.join(&name);
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
-        for (to, from) in &files {
+        for (to, from) in &entry.files {
             fs::copy(root().join(from), dir.join(to)).unwrap_or_else(|e| panic!("{name}: {from}: {e}"));
         }
-        let actual = run(&dir, &commands(&expected));
+        let actual = run(&dir, &entry.commands);
         if update {
             fs::write(&file, &actual).unwrap();
         } else if masked(&actual) != masked(&expected) {

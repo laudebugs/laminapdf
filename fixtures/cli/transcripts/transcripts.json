@@ -1,5 +1,8 @@
 {
   "build-json": {
+    "commands": [
+      "laminapdf build invoice.json --data invoice-data.json --font regular=NotoSans-Regular.ttf --font bold=NotoSans-RegularBold.ttc#1 -o invoice.pdf"
+    ],
     "files": {
       "invoice.json": "fixtures/documents/invoice.json",
       "invoice-data.json": "fixtures/documents/invoice-data.json",
@@ -8,11 +11,18 @@
     }
   },
   "build-markdown": {
+    "commands": [
+      "cat notes.md",
+      "laminapdf build notes.md -o notes.pdf"
+    ],
     "files": {
       "notes.md": "fixtures/cli/notes.md"
     }
   },
   "build-markdown-ua": {
+    "commands": [
+      "laminapdf build notes.md -o notes.pdf --profile pdf-ua-1 --font regular=NotoSans-Regular.ttf --font bold=NotoSans-RegularBold.ttc#1"
+    ],
     "files": {
       "notes.md": "fixtures/cli/notes.md",
       "NotoSans-Regular.ttf": "fixtures/fonts/NotoSans-Regular.ttf",
@@ -20,50 +30,83 @@
     }
   },
   "check": {
+    "commands": [
+      "laminapdf check scan.pdf",
+      "echo $?"
+    ],
     "files": {
       "scan.pdf": "fixtures/corpus/hello-broken.pdf"
     }
   },
   "explain": {
+    "commands": [
+      "laminapdf explain xref-repaired | head -n 9"
+    ],
     "files": {}
   },
   "extract-markdown": {
+    "commands": [
+      "laminapdf extract invoice.pdf --format md"
+    ],
     "files": {
       "invoice.pdf": "fixtures/golden/examples/invoice.pdf"
     }
   },
   "info": {
+    "commands": [
+      "laminapdf info invoice.pdf"
+    ],
     "files": {
       "invoice.pdf": "fixtures/golden/examples/invoice.pdf"
     }
   },
   "info-json": {
+    "commands": [
+      "laminapdf info scan.pdf --json --fields pages,encrypted,warnings"
+    ],
     "files": {
       "scan.pdf": "fixtures/corpus/hello-broken.pdf"
     }
   },
   "overview": {
+    "commands": [
+      "laminapdf info invoice.pdf",
+      "laminapdf extract invoice.pdf --format md"
+    ],
     "files": {
       "invoice.pdf": "fixtures/golden/examples/invoice.pdf"
     }
   },
   "render": {
+    "commands": [
+      "mkdir -p thumbs",
+      "laminapdf render report.pdf --pages 1-3 --dpi 72 -o 'thumbs/{stem}-{n:03}.png'"
+    ],
     "files": {
       "report.pdf": "fixtures/golden/examples/flowing_report.pdf"
     }
   },
   "reveal": {
+    "commands": [
+      "laminapdf reveal letter.pdf brochure.pdf"
+    ],
     "files": {
       "letter.pdf": "fixtures/corpus/hello-incremental.pdf",
       "brochure.pdf": "fixtures/corpus/text-example.pdf"
     }
   },
   "rotate": {
+    "commands": [
+      "laminapdf pages rotate report.pdf +90:1-3 -o turned.pdf"
+    ],
     "files": {
       "report.pdf": "fixtures/golden/examples/flowing_report.pdf"
     }
   },
   "scripts-batch": {
+    "commands": [
+      "find . -name '*.pdf' -print0 | sort -z | laminapdf check --files-from - -0 --json"
+    ],
     "files": {
       "enc.pdf": "fixtures/corpus/enc.pdf",
       "invoice.pdf": "fixtures/golden/examples/invoice.pdf",
@@ -72,16 +115,25 @@
     }
   },
   "scripts-error": {
+    "commands": [
+      "laminapdf info notes.pdf --json"
+    ],
     "files": {
       "notes.pdf": "fixtures/markdown/report.md"
     }
   },
   "scripts-pipe": {
+    "commands": [
+      "cat invoice.pdf | laminapdf pages rotate - 90 -o - | laminapdf info -"
+    ],
     "files": {
       "invoice.pdf": "fixtures/golden/examples/invoice.pdf"
     }
   },
   "version": {
+    "commands": [
+      "laminapdf --version"
+    ],
     "files": {}
   }
 }

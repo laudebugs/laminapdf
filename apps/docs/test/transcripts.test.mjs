@@ -20,9 +20,40 @@ const transcripts = new Set(
     .map((file) => file.replace(/\.console$/, "")),
 );
 
+/**
+ * Whether `text` has a terminal session typed by hand: a `console` fence, or a shell fence with a
+ * `$ ` prompt in it (a fence of commands alone, with no prompt, is fine).
+ *
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function typesASession(text) {
+  for (const [, lang = "", body = ""] of text.matchAll(/^\s*(?:```|~~~)(\w*)[^\n]*\n([\s\S]*?)^\s*(?:```|~~~)/gm)) {
+    if (lang === "console") return true;
+    if (["sh", "bash", "shell", "zsh"].includes(lang) && /^\s*\$ /m.test(body)) return true;
+  }
+  return false;
+}
+
 test("no page types a command-line session by hand", () => {
-  const typed = pages.filter((page) => /^\s*```console\b/m.test(page.text)).map((page) => page.file);
+  const typed = pages.filter((page) => typesASession(page.text)).map((page) => page.file);
   assert.deepEqual(typed, []);
+});
+
+test("a console fence, or a shell fence with a prompt, counts as a typed session", () => {
+  assert.equal(typesASession("```console\n$ laminapdf --version\n```\n"), true);
+  assert.equal(typesASession("~~~console\nlaminapdf 1\n~~~\n"), true);
+  assert.equal(typesASession("```sh\n$ laminapdf info a.pdf\na.pdf  PDF 1.7\n```\n"), true);
+  assert.equal(typesASession("```sh\nlaminapdf info a.pdf\n```\n"), false);
+});
+
+test("every Transcript tag is one the Markdown twins replace", () => {
+  const odd = pages.flatMap((page) =>
+    (page.text.match(/<Transcript\b[^>]*>/g) ?? [])
+      .filter((tag) => !/^<Transcript\s+name="[a-z0-9-]+"\s*\/>$/.test(tag))
+      .map((tag) => `${page.file}: ${tag}`),
+  );
+  assert.deepEqual(odd, []);
 });
 
 test("every transcript a page shows exists", () => {
