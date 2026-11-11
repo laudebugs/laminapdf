@@ -15,11 +15,26 @@ class FakeSession implements ToastedSession {
   readonly #failed = new Set<(f: EditFailure) => void>();
   readonly calls: string[] = [];
   getState = () => this.#state;
-  subscribe = (l: () => void) => (this.#listeners.add(l), () => this.#listeners.delete(l));
-  onReverted = (l: (r: readonly RevertedStep[]) => void) => (this.#reverted.add(l), () => this.#reverted.delete(l));
-  onFailed = (l: (f: EditFailure) => void) => (this.#failed.add(l), () => this.#failed.delete(l));
-  undo = async () => (this.calls.push("undo"), undefined);
-  redo = async () => (this.calls.push("redo"), undefined);
+  subscribe = (l: () => void) => {
+    this.#listeners.add(l);
+    return () => this.#listeners.delete(l);
+  };
+  onReverted = (l: (r: readonly RevertedStep[]) => void) => {
+    this.#reverted.add(l);
+    return () => this.#reverted.delete(l);
+  };
+  onFailed = (l: (f: EditFailure) => void) => {
+    this.#failed.add(l);
+    return () => this.#failed.delete(l);
+  };
+  undo = async () => {
+    this.calls.push("undo");
+    return undefined;
+  };
+  redo = async () => {
+    this.calls.push("redo");
+    return undefined;
+  };
   /** The history moves to `position`, then the session reports the step it moved over. */
   move(position: number, way: "undo" | "redo", outcome: RevertedStep["outcome"] = "applied"): void {
     this.#state = { ...this.#state, history: { ...this.#state.history, position } };

@@ -52,7 +52,6 @@ import { useAnnouncements } from "./announce.tsx";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
-import { LinkPreviews } from "./link-preview.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { clearDocumentCache } from "./offline/document-cache.ts";
@@ -472,6 +471,8 @@ function useDocumentMenu(
   );
   const install = useInstall();
   const items = useGatedEntries<MoreId>(moreEntries(document !== undefined, install.available, edit.items));
+  // The edit items come with the edit commands, once a document is open.
+  const isEditItem = (id: MoreId): id is EditMenuId => edit.items.some((item) => item.id === id);
   const onAction = (id: MoreId) => {
     if (isEditItem(id)) edit.run(id);
     else if (id === "open") void engine.reader.requestClose();
@@ -495,11 +496,6 @@ function useDocumentMenu(
     },
   };
 }
-
-const EDIT_ITEMS: readonly string[] = ["undo", "redo", "history", "rotate-right", "rotate-left"] satisfies EditMenuId[];
-
-/** Whether the More menu's `id` is one of the edit items. */
-const isEditItem = (id: MoreId): id is EditMenuId => EDIT_ITEMS.includes(id);
 
 /** The debug menu (#debug): which backend draws the pages. */
 function EngineDebugMenu({ engine, backend }: { engine: Engine; backend: EngineState["backend"] }): ReactNode {
@@ -690,7 +686,10 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           readerMode={reading}
         />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
-        <LinkPreviews engine={engine} viewer={shown} />
+        {/* The link previews (R07) load once a document is open (later.ts, #380). */}
+        {shown === undefined || editing.later === undefined ? null : (
+          <editing.later.LinkPreviews engine={engine} viewer={shown} />
+        )}
         {output.dialogs}
         {editing.runtime(commands.registry)}
       </ReaderShell>

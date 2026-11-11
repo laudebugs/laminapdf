@@ -20,7 +20,9 @@ export function revertedText(reverted: RevertedSlice): string {
     return message(reverted.way === "undo" ? "edit.toast.undidPart" : "edit.toast.redidPart", { step });
   }
   if (reverted.outcome === "skipped") {
-    return message(reverted.way === "undo" ? "edit.toast.undoSkipped" : "edit.toast.redoSkipped", { step });
+    // The verb is the failure words' ("undo", "redo"), so the sentence is written once.
+    const action = message(reverted.way === "undo" ? "edit.failed.undo" : "edit.failed.redo");
+    return message("edit.toast.skipped", { action, step });
   }
   return message(reverted.way === "undo" ? "edit.toast.undid" : "edit.toast.redid", { step });
 }

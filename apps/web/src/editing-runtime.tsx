@@ -11,14 +11,18 @@ import {
   Dialog,
   type EditControls,
   message,
+  type RailTab,
   type ReaderController,
+  type ShellLayout,
   type ToastQueue,
   useStoreState,
 } from "@laminapdf/ui";
-import { attachTools, registerEditCommands, ToolRegistry } from "@laminapdf/ui/editing";
+import { attachTools, HistoryPanel, registerEditCommands, ToolRegistry } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { showEditToasts } from "./edit-toasts.ts";
+import { type EditActions, HISTORY_TAB } from "./editing.tsx";
+import { type PageInfo, pageLabel } from "./outline.ts";
 import type { Engine } from "./session.ts";
 
 /** Toasts after undos and redos, and when a restarted worker lost the edits. */
@@ -122,6 +126,20 @@ export interface EditingRuntimeProps {
   readonly fileName: string;
 }
 
+/** Asks the browser to confirm closing the tab while `unsaved`; its own prompt, whose words can't be set. */
+function useBeforeUnload(unsaved: boolean): void {
+  useEffect(() => {
+    if (!unsaved) return;
+    const ask = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      // Older browsers ask only when `returnValue` is set.
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", ask);
+    return () => window.removeEventListener("beforeunload", ask);
+  }, [unsaved]);
+}
+
 /** The edit session's runtime for the document `viewer` shows; draws the close confirmation. */
 export function EditingRuntime({ engine, viewer, registry, toasts, fileName }: EditingRuntimeProps): ReactNode {
   useEffect(() => registerEditCommands(registry), [registry]);
@@ -129,5 +147,37 @@ export function EditingRuntime({ engine, viewer, registry, toasts, fileName }: E
   useTools(viewer, engine.reader);
   const guard = useCloseGuard(engine.reader, viewer.edits);
   const unsaved = useStoreState(viewer.edits, (s) => s.history.unsaved);
+  useBeforeUnload(unsaved > 0);
   return <CloseDialog isOpen={guard.asking} fileName={fileName} unsaved={unsaved} onAnswer={guard.answer} />;
+}
+
+/** The History tab (O01), once the document has an edit session: the rail lists it last. */
+export function historyTab(edits: EditControls, pages: readonly PageInfo[], openedAt: number | undefined): RailTab {
+  return {
+    id: HISTORY_TAB,
+    label: message("edit.history"),
+    panel: (
+      <HistoryPanel
+        edits={edits}
+        headingLevel={3}
+        pageName={(index) => pageLabel(pages, index)}
+        {...(openedAt === undefined ? {} : { openedAt })}
+      />
+    ),
+  };
+}
+
+/** The delegated edit commands' handlers for the document `viewer` shows. */
+export function editActions(engine: Engine, layout: ShellLayout, viewer: Viewer): EditActions {
+  // A failed turn is said by the session's failure toast (edit-toasts.ts).
+  const rotate = (delta: 90 | -90) => () =>
+    void engine.rotatePage(viewer.getState().currentPage, delta).catch(() => undefined);
+  return {
+    "edit.history": () => {
+      layout.setRailTab(HISTORY_TAB);
+      layout.setRailOpen(true);
+    },
+    "pages.rotate-right": rotate(90),
+    "pages.rotate-left": rotate(-90),
+  };
 }
