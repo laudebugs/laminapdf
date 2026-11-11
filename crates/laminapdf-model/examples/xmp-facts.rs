@@ -1,5 +1,5 @@
 //! Lamina PDF's reading of each file's XMP packet, as JSON: Lamina PDF's side of the nightly
-//! lane's XMP differential against exiftool (`cargo xtask differential --live --xmp`, todo E1c).
+//! lane's XMP differential against exiftool (`cargo xtask differential --live --xmp`).
 //!
 //! The list has one `<name>\t<path>` line per file; the output maps each name to
 //! `{outcome, error?, packet, fields}`: `outcome` is `opened` or `failed` (with Lamina PDF's

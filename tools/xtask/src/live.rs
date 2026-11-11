@@ -12,7 +12,7 @@
 //!
 //! `--text` runs the text differential instead ([`text`], todo B9f): lamina's page text
 //! against pdf.js and pdftotext over the external corpus. `--xmp` runs the XMP differential
-//! ([`xmp`], todo E1c): the XMP values lamina reads against exiftool's.
+//! ([`xmp`]): the XMP values lamina reads against exiftool's.
 
 mod compare;
 mod exceptions;

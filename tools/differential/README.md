@@ -33,4 +33,4 @@ cargo xtask differential --live --text [--sample 50] [--source pdfjs]   # page t
 cargo xtask differential --live --xmp [--sample 50] [--source pdfjs]    # XMP values: ExifTool (no Python)
 ```
 
-qpdf and ExifTool must be on `PATH` at the versions `cargo xtask doctor` expects. All six are tools only: nothing here ships or links into lamina (pdfjs-dist and pypdfium2 are Apache-2.0, PDFium BSD-3-Clause, qpdf Apache-2.0, pypdf BSD-3-Clause; poppler's pdftotext, GPL-2.0, and ExifTool, Perl's licence (GPL-1.0-or-later or Artistic-1.0), run as separate programs and are never linked).
+qpdf and ExifTool must be on `PATH` at the versions `cargo xtask doctor` expects. All six are tools only: nothing here ships or links into lamina (pdfjs-dist and pypdfium2 are Apache-2.0, PDFium BSD-3-Clause, qpdf Apache-2.0, pypdf BSD-3-Clause; pdftotext (GPL-2.0) and ExifTool (GPL-1.0-or-later or Artistic-1.0) run as separate programs and are never linked).

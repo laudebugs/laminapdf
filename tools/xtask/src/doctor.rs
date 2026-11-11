@@ -37,8 +37,8 @@ pub(crate) const QPDF_VERSION: &str = "12.4.2";
 /// todo B4d; tests read the facts, so only regenerating them needs it).
 /// `crates/laminapdf-text/tests/extraction.rs` checks the facts were written with it.
 pub(crate) const POPPLER_VERSION: &str = "26.10.0";
-/// exiftool release for the nightly XMP differential (`cargo xtask differential --live --xmp`,
-/// todo E1c): the one Ubuntu 24.04 (noble) ships, which the nightly workflow installs with apt
+/// exiftool release for the nightly XMP differential (`cargo xtask differential --live --xmp`):
+/// the one Ubuntu 24.04 (noble) ships, which the nightly workflow installs with apt
 /// as [`EXIFTOOL_APT_VERSION`]. Perl, GPL-1.0-or-later OR Artistic-1.0: run as a process, never
 /// linked (ADR 0019). `exiftool -ver` prints it.
 pub(crate) const EXIFTOOL_VERSION: &str = "12.76";

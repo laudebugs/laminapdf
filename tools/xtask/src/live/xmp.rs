@@ -1,4 +1,4 @@
-//! `cargo xtask differential --live --xmp` (todo E1c; ADR 0018 tier 6): the XMP values
+//! `cargo xtask differential --live --xmp` (ADR 0018 tier 6): the XMP values
 //! `laminapdf_model::xmp::Packet` reads against exiftool's, every night.
 //!
 //! The inputs are the external corpus and the committed PDFs in [`LOCAL_DIRS`] (which hold the
