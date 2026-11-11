@@ -3,4 +3,4 @@
 // test/version.test.ts checks the two agree.
 
 /** `@laminapdf/sdk`'s version. */
-export const VERSION = "0.2.0-alpha.5";
+export const VERSION = "0.2.0-alpha.6";

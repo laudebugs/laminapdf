@@ -1,7 +1,7 @@
 ---
 title: "Changelog"
 description: "What changed in each Lamina PDF release, newest first."
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/reference/changelog/"
 ---
 
@@ -10,6 +10,21 @@ url: "https://docs.laminapdf.com/reference/changelog/"
 What changed in each Lamina PDF release, newest first.
 
 Every Lamina PDF package shares one version, so each entry covers all of them, from the Rust crates to `@laminapdf/sdk` and the viewer. Breaking changes come first, under **Minor Changes**, as the [stability policy](../../pages/reference/stability.md) explains. Versions from `0.2.0-alpha.2` on are on npm and crates.io; earlier ones were never published.
+
+## 0.2.0-alpha.6
+
+### Minor Changes
+
+- Rust callers can now describe flowing pages as JSON (TypeScript support follows), in the format `laminapdf.document/1`, and lay them out with `Builder::document`. A document names its page, its text styles and its blocks (paragraphs, headings, lists, tables, figures, a contents page and more), and its fonts and images by name, with their bytes given beside it. Its JSON Schema ships in `docs/schemas/document.schema.json`.
+  
+A template is a document with placeholders that `flow::document::fill` replaces from data: `$data` for a value, `$each` to repeat a block or table row per item, `$item` for a value of the current item, and `$if` to keep a block only when a value is there. Templates have no expressions, so the data arrives formatted.
+  
+A document with an unknown key, a missing one or a value of the wrong kind fails with `invalid-document`, which names the value's place in `data.pointer` and suggests the closest key in `didYouMean`. A template whose data lacks a value fails with `template-data-missing`, and data of the wrong kind with `template-data-type`.
+- Turn Markdown into a PDF from TypeScript: `builder.markdown(text, options)` turns CommonMark (with tables, footnotes, strikethrough and task lists) into tagged pages that flow, and takes the title and language from the front matter. Fonts come by role (`regular`, `bold`, `italic`, `boldItalic`, `mono`, `fallbacks`) and images by the name the Markdown uses; nothing is fetched. `options.page` sets the page size, margins, header and footer, and `contents` adds a contents page. `Font.fromCollection(bytes, index)` loads one face of a font collection (`.ttc`).
+- Undo and redo say which pages to draw again. `doc.undo()` and `doc.redo()` now return `{ outcome, touchedPages }` instead of the outcome alone, so a viewer can redraw only the pages the undone or redone edit changed. `doc.apply(ops)` also says whether the edit `changed` anything: an edit that only sets values the document already had leaves nothing to undo. `doc.isEncrypted` tells you whether the file is encrypted. The Rust `Document::undo` and `redo` return the same `Reverted` record, and `Edited` has `changed`.
+- An edit session for the open document. `viewer.edits` holds its history: each step with its label, pages and time, how many steps are done, and how many changes are unsaved. It runs `apply(ops, label)`, `undo()`, `redo()` and `goTo(step)` one after another, and each redraws only the pages it touched. An undo that could restore only part of a step says so, and `onFailed` reports a call that failed. The history keeps 500 steps. If the document worker restarts, it opens the file again and replays the session's steps, so nothing is lost; when the replay couldn't reproduce the document, it says the edits were lost. An encrypted document can't be edited yet, and says so when it opens (`encrypted`). When the zoom fits the width or the page, a page you turn is fitted again.
+- The viewer can put a reader back where they stopped. `client.open()` now answers with `fingerprint`, a hash of the file's first revision (`"fp1:"` and a SHA-256). It stays the same for a renamed copy and after an incremental update, so it can key a saved position. `viewer.viewPosition()` gives the place in view as a page and point, the zoom and the rotation, and `viewer.restore(position)` goes back there as a history jump, so Back returns to page 1. When the position is restored in the task that opened the document, the first frame paints that page and no other. A view opened or restored while its container is hidden now waits until it is shown, then starts at the top or at the restored place. Before, it kept the previous document's scroll.
+- Edits show on screen. `viewer.applyEdit(ops)` applies `@laminapdf/sdk`'s ops to the open document as one transaction and redraws only the pages they touched: a turned page draws turned, at its new size, while every other page keeps what it drew. `ViewerClient.applyEdit(ops)` makes the edit alone, and `viewer.invalidate(pages, sizes?)` redraws any pages you name. A metadata edit redraws nothing, and a failed edit leaves the pages as they were.
 
 ## 0.2.0-alpha.5
 

@@ -107,6 +107,8 @@ The page shows titles and counts only. It names no person and links nothing in t
 | [W1g](../todos/done/W1g-site-select.md) | A Paper select for both sites, and the docs site's theme switch on it | W1d |
 | [W2a](../todos/ongoing/W2a-story-skill-and-coverage-map.md) | Stories: the `lamina-story` skill, its images in the Paper look, and the stories folder outside the repository ([§9](#9-stories-off-the-site)) | W1b |
 
+Round W3, how search engines, answer engines, coding agents and registries find the sites and packages, has its own plan: [discoverability](discoverability.md).
+
 C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a and U5b depend on W1b, because their pages move to the website. W1b depends on U6b for the fonts.
 
 ## 7. Open questions

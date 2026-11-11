@@ -1,0 +1,52 @@
+---
+title: "The command line"
+description: "Inspect, check, extract, render and build PDFs from a terminal, a build script or an AI agent with the laminapdf command."
+version: "0.2.0-alpha.6"
+url: "https://docs.laminapdf.com/cli/"
+---
+
+# The command line
+
+Inspect, check, extract, render and build PDFs from a terminal, a build script or an AI agent with the laminapdf command.
+
+The `laminapdf` command-line tool reads, checks and changes PDFs from a terminal, a build script or an AI agent. It runs Lamina PDF's Rust core natively, so you need no Node or Rust project to use it.
+
+Here it describes an invoice, then reads it back as Markdown:
+
+```console
+$ laminapdf info invoice.pdf
+invoice.pdf  PDF 1.7 · 1 page · 12 KB · not encrypted · tagged
+Title: Invoice 42
+Author: Acme Widgets Ltd
+Producer: lamina examples
+Pages: 595.28 × 841.89 pt
+$ laminapdf extract invoice.pdf --format md
+# Invoice 42
+
+Acme Widgets Ltd · 1 Example Street · London
+
+| Widgets, blue (W-100) | 3 | € 36.00 |
+| --- | --- | --- |
+| Gadget with fine-tuned dials | 1 | € 79.90 |
+| Café-grade sprockets | 12 | € 15.00 |
+| Delivery | 1 | € 4.50 |
+
+Total € 135.40
+```
+
+## What it does
+
+- **[Install](../pages/cli/install.md)** it with Homebrew or npm, or download it for your system.
+- **[Inspect and check PDFs](../pages/cli/inspect.md):** what a file is, what Lamina PDF had to repair to read it, and what it holds beyond its visible pages, such as earlier revisions, scripts and hidden text.
+- **[Extract and render](../pages/cli/extract-and-render.md):** a file's text, its blocks in reading order as Markdown or JSON, and its pages as PNG images.
+- **[Make and change PDFs](../pages/cli/build-and-edit.md):** a tagged PDF from a Markdown file, and pages turned.
+- **[Scripts and batch jobs](../pages/cli/scripts.md):** pipes, page ranges, many files at once, JSON output and exit codes.
+- **[Connect an AI agent (MCP)](../pages/cli/mcp.md):** the same commands as tools for an agent that speaks the Model Context Protocol (MCP).
+
+## How every command behaves
+
+Each command prints a report a person can read, or with `--json` a versioned JSON report a program can parse. Its exit code says what happened: 0 for success, 3 for success with warnings, and other codes for each kind of failure.
+
+The tool never asks a question, so a script never hangs waiting for an answer. It writes each output to a temporary file and renames it into place, so a failed run leaves no half-written PDF. It never replaces a file unless you pass `--force`.
+
+Next: [install the tool](../pages/cli/install.md).
