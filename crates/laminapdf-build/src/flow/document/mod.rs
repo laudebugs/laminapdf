@@ -27,7 +27,7 @@ mod check;
 mod convert;
 mod fill;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -164,6 +164,36 @@ impl FlowDocument {
     #[must_use]
     pub fn profiles(&self) -> Vec<crate::Profile> {
         self.profiles.iter().map(|p| p.profile()).collect()
+    }
+
+    /// The fonts its styles name, each once, sorted: what a caller gives in [`Resources`],
+    /// apart from standard 14 names, which need nothing.
+    #[must_use]
+    pub fn font_names(&self) -> BTreeSet<&str> {
+        self.styles
+            .values()
+            .flat_map(|style| std::iter::once(&style.font).chain(&style.fallbacks))
+            .map(String::as_str)
+            .collect()
+    }
+
+    /// The images its figures name, each once, sorted: what a caller gives in [`Resources`].
+    #[must_use]
+    pub fn image_names(&self) -> BTreeSet<&str> {
+        fn walk<'a>(blocks: &'a [BlockSpec], out: &mut BTreeSet<&'a str>) {
+            for block in blocks {
+                match block {
+                    BlockSpec::Figure(figure) => {
+                        out.insert(figure.image.as_str());
+                    }
+                    BlockSpec::Keep(group) | BlockSpec::Quote(group) => walk(&group.blocks, out),
+                    _ => {}
+                }
+            }
+        }
+        let mut out = BTreeSet::new();
+        walk(&self.blocks, &mut out);
+        out
     }
 }
 

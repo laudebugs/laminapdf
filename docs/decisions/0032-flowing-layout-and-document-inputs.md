@@ -118,7 +118,7 @@ Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benc
 | [T4d](../todos/done/T4d-markdown-documents.md) | Markdown in Rust, with an example |
 | [T4i](../todos/done/T4i-build-command-and-bindings.md) | `laminapdf build`, `laminapdf_build` and the TypeScript `markdown` call |
 | [T4e](../todos/done/T4e-json-documents-and-templates.md) | `laminapdf.document/1` and templates in Rust |
-| [T4k](../todos/ready/T4k-json-documents-in-the-cli-and-mcp.md) | the same from `laminapdf build` and its MCP tool |
+| [T4k](../todos/done/T4k-json-documents-in-the-cli-and-mcp.md) | the same from `laminapdf build` and its MCP tool |
 | [T4j](../todos/ready/T4j-documents-in-typescript.md) | Typed documents and `builder.flow` in TypeScript |
 
 ## Consequences
