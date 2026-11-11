@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3a](./W3a-crawl-and-index-rules.md) |
+| Depends on | [W3d](./W3d-structured-data-and-share-tags.md) |
 | ADRs | Follows [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (no page change for verification; no ping from a browser) |
 | Branch | `feat/w3e-indexnow` |
 | PR title | `feat(sites): IndexNow pings from the production deploys` |
@@ -27,7 +27,7 @@ Google and Bing learn about the sites from their sitemaps and, for Bing and the 
 **In scope**
 
 - `apps/site/README.md` and `apps/docs/README.md`: the owner's steps for Search Console (a Domain property for `laminapdf.com`, verified by DNS TXT, which covers every subdomain) and Bing Webmaster Tools (import from Search Console), and submitting each sitemap.
-- An IndexNow key: a key file in each site's `public/` (the key is public by design) and a script that compares the deployed sitemap with the new one and posts the new or changed URLs; run after each production deploy, never on previews.
+- An IndexNow key: a key file in each site's `public/` (the key is public by design) and a script that compares the deployed sitemap with the new one and posts the URLs that are new or whose `lastmod` moved; run after each production deploy, never on previews.
 - A dry-run mode for the script and a test of the URL comparison.
 
 **Out of scope**
@@ -49,7 +49,7 @@ Google and Bing learn about the sites from their sitemaps and, for Bing and the 
 
 ## Post-merge checks
 
-- [ ] The owner has verified `laminapdf.com` in Search Console and Bing Webmaster Tools and submitted the three sitemaps; note the date in the plan.
+- [ ] The owner has verified `laminapdf.com` in Search Console and Bing Webmaster Tools and submitted the two sitemaps (`laminapdf.com/sitemap.xml` and the docs' `sitemap-index.xml`; the reader has none); note the date in the plan.
 - [ ] The first production deploy after merge logs an accepted IndexNow submission (HTTP 200 or 202).
 
 ## Tests

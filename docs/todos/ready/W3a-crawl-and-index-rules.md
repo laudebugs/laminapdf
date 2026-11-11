@@ -31,7 +31,7 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 **In scope**
 
 - One robots policy, written once in `@laminapdf/site-kit` (a function that takes the environment and the sitemap URL and returns the file), used by the website, the docs site and the reader's build.
-- robots.txt for the docs site (production: allow, with the sitemap index; every other build: disallow) and the reader (production: allow `/` with the training-crawler choice; staging and previews: disallow).
+- robots.txt for the docs site (production: allow, with the sitemap index) and the reader (production: allow `/` with the training-crawler choice). Non-production builds of all three sites serve a robots.txt that doesn't block crawling, and rely on `noindex`: Google reads `noindex` only on pages robots.txt lets it fetch ([Google: block indexing with noindex](https://developers.google.com/search/docs/crawling-indexing/block-indexing)), and the reader's staging host may already be indexed. The website's non-production `Disallow: /` changes to match.
 - `X-Robots-Tag: noindex` on the reader's staging and preview builds, from a build input (`LAMINA_PDF_ENV`), as the two Astro sites do.
 - `noindex` on the docs' production Worker when it is reached on a `workers.dev` host, or that host turned off if the previews can move.
 
@@ -44,10 +44,10 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 ## Tasks
 
 - [ ] Get the owner's answer to plan §4 decisions 1 and 2 (training crawlers; the reader's start page) and record it in the plan.
-- [ ] `packages/site-kit/src/robots.mjs`: `robotsTxt({ production, sitemap, training })` returns the file. Production: `User-agent: *` / `Allow: /`, then, if training is blocked, one group per training crawler (`GPTBot`, `ClaudeBot`, `Google-Extended`, `CCBot`) with `Disallow: /`, then `Sitemap:`. Otherwise `User-agent: *` / `Disallow: /`. Export it from the package; unit tests for both cases.
+- [ ] `packages/site-kit/src/robots.mjs`: `robotsTxt({ production, sitemap, training })` returns the file. Production: `User-agent: *` / `Allow: /`, then, if training is blocked, one group per training crawler (`GPTBot`, `ClaudeBot`, `Google-Extended`, `CCBot`) with `Disallow: /`, then `Sitemap:`. Otherwise `User-agent: *` / `Allow: /` with no sitemap, so crawlers can read the `noindex` header. Export it from the package; unit tests for both cases.
 - [ ] `apps/site/src/pages/robots.txt.ts`: use it.
-- [ ] `apps/docs`: a `src/pages/robots.txt.ts` endpoint with the same call, the sitemap being Starlight's `sitemap-index.xml` on `docs.laminapdf.com`; the released-docs check in `plugins/release.mjs` also fails a release whose robots.txt disallows everything, and an unreleased build whose robots.txt allows it.
-- [ ] `apps/docs`: keep the production pages off `workers.dev`. Either a `_headers` rule that matches the `workers.dev` host (check that Workers static assets honour absolute-URL rules first, and test it with `wrangler dev`), or move the previews to their own Worker as the reader does (`lamina-pdf-web-preview`) and set `workers_dev = false`. Record which in `apps/docs/README.md`.
+- [ ] `apps/docs`: a `src/pages/robots.txt.ts` endpoint with the same call, the sitemap being Starlight's `sitemap-index.xml` on `docs.laminapdf.com`; the released-docs check in `plugins/release.mjs` also fails a release whose robots.txt disallows everything or names no sitemap.
+- [ ] `apps/docs`: keep the production pages off `workers.dev`. First try `workers_dev = false` with `preview_urls = true` on the production Worker, the combination the reader's `lamina-pdf-web-preview` Worker already uses, and check a PR preview still deploys. Failing that, a `_headers` rule that matches the `workers.dev` host (check that Workers static assets honour absolute-URL rules first, and test it with `wrangler dev`), or move the previews to their own Worker as the reader does (`lamina-pdf-web-preview`) and set `workers_dev = false`. Record which in `apps/docs/README.md`.
 - [ ] `apps/web`: read `LAMINA_PDF_ENV` in the build (`vite.config.ts` or `cargo xtask web build`), write `dist/robots.txt` from the site kit's function and add `X-Robots-Tag: noindex` to `dist/_headers`' `/*` block unless it is `production`. Reuse `markNoindex` if it fits a Vite build; otherwise move the shared part into the site kit, so there is one implementation.
 - [ ] `.github/workflows/web-deploy.yml`: set `LAMINA_PDF_ENV=production` on the production build only, `staging` on staging; previews get neither. `tools/xtask/src/workflows.rs`: a test that only the production job sets `production`.
 - [ ] C4d's header comparison (ADR 0011 §1: "C4d compares the two files"): check that staging's `_headers` equals production's plus the `X-Robots-Tag` line, and that test exists or is added.
@@ -56,7 +56,7 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 ## Acceptance criteria
 
 - [ ] A production build of each of the three sites serves a robots.txt that allows search crawlers and names its sitemap (the reader has none: no `Sitemap` line), and sends no `X-Robots-Tag`.
-- [ ] A staging or preview build of each serves a robots.txt that disallows everything and sends `X-Robots-Tag: noindex` on every response.
+- [ ] A staging or preview build of each sends `X-Robots-Tag: noindex` on every response, and its robots.txt lets crawlers fetch the pages so they read it.
 - [ ] `curl -sI https://staging-app.laminapdf.com/` would show `X-Robots-Tag: noindex` (checked against `wrangler dev` with the staging build in the reader's e2e suite).
 - [ ] `/robots.txt` on the reader answers `text/plain`, not the app's HTML.
 - [ ] The docs' production pages carry `noindex` on any host but `docs.laminapdf.com`, or are served nowhere else.

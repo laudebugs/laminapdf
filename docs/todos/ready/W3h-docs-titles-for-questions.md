@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3d](./W3d-structured-data-and-share-tags.md) |
+| Depends on | [W3e](./W3e-search-engine-registration.md), [W3g](./W3g-choosing-a-pdf-library.md) |
 | ADRs | None |
 | Branch | `docs/w3h-docs-titles` |
 | PR title | `docs: page titles and descriptions for the questions people ask` |

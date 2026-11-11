@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3a](./W3a-crawl-and-index-rules.md) |
-| ADRs | Follows [0011 §4](../../decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-) (JSON-LD is an inline script; its hash goes into the CSP) |
+| Depends on | [W3a](./W3a-crawl-and-index-rules.md), [W3i](./W3i-answer-engine-check.md) |
+| ADRs | Follows [0011 §4](../../decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-) (JSON-LD is a data block the browser never runs, so the CSP doesn't apply to it) |
 | Branch | `feat/w3d-structured-data` |
 | PR title | `feat(sites): structured data, share tags and links to the Markdown twins` |
 | Size | M |
@@ -21,17 +21,18 @@ Search and answer engines read structured data to learn what a site is, who publ
 
 - [Discoverability research §6](../../research/discoverability/search-and-answer-engines.md#6-structured-data-and-versioned-docs): which schema.org types fit (no `SoftwareApplication` rich result without ratings, and no invented ratings) and §3 on Markdown twins.
 - `apps/site/src/layouts/Base.astro` (the website's head), `apps/docs/astro.config.mjs` (Starlight's `head`), `apps/web/index.html`.
-- `packages/site-kit/src/integrations.mjs`: inline-script hashes into `_headers`; the docs site's 1,900-character limit on the CSP line.
+- `packages/site-kit/src/integrations.mjs`: `inlineScripts` hashes every inline `<script>` into `_headers` whatever its `type`, and the docs site's CSP line has a 1,900-character limit. A JSON-LD data block needs no hash.
 
 ## Scope
 
 **In scope**
 
 - One module in `@laminapdf/site-kit` that writes the JSON-LD: `Organization` (name, URL, logo, `sameAs` the GitHub repository and the registries), `WebSite`, and `SoftwareSourceCode` (repository, licence, languages, runtime platforms). Website home page and docs home page.
+- `inlineScripts` skips data blocks (a `type` that isn't JavaScript or a module), so JSON-LD adds nothing to the CSP.
 - The docs site: `og:image` (the website's share image or one of its own) and `twitter:card` image.
 - The reader: canonical URL, description, Open Graph and X card tags on `/` in production (per plan §4 decision 2).
 - `<link rel="alternate" type="text/markdown" href="….md">` on every docs page that has a twin.
-- `lastmod` in the website's sitemap from each page's last commit; the docs' Starlight sitemap if it can take one.
+- `lastmod` in both sitemaps from each page's last commit (the docs' through `@astrojs/sitemap`'s `serialize` option, or a sitemap of the docs' own if Starlight's can't take it). W3e's IndexNow pings read these dates to tell which pages changed.
 
 **Out of scope** (and which todo covers it)
 
@@ -40,10 +41,10 @@ Search and answer engines read structured data to learn what a site is, who publ
 ## Tasks
 
 - [ ] `packages/site-kit/src/structured-data.mjs`: the objects above from one set of facts (name, URLs, licence from `Cargo.toml`), with tests that they validate against schema.org's types (shape checks; no network).
-- [ ] Add it to both sites' heads; check the CSP hash is written and the docs CSP stays under its limit.
+- [ ] Teach `inlineScripts` to skip data blocks, with a test; add the JSON-LD to both sites' heads; check that the CSP lines don't change.
 - [ ] Docs share image and tags; reader tags (the reader's CSP and ADR 0011's reader rules allow meta tags; check the e2e header test).
 - [ ] The alternate links: `plugins/agent-docs.mjs` knows each twin's path; add the link in the same pass, and fail the build when a page's link and twin disagree.
-- [ ] Sitemap `lastmod` (website): from `git log -1 --format=%cI -- <source>`; skip when the history is shallow rather than write today's date.
+- [ ] Sitemap `lastmod` (both sites): from `git log -1 --format=%cI -- <source>`; fail the production build when the history is shallow rather than write today's date.
 - [ ] Check every page in Google's Rich Results Test and the Schema Markup Validator by hand on the PR preview; note results in the PR.
 
 ## Acceptance criteria
@@ -67,7 +68,7 @@ Site-kit unit tests; the docs plugin tests for alternate links; the reader's e2e
 
 ## Risks and open questions
 
-- The docs CSP line is near its length limit; JSON-LD on every docs page adds a hash only where the script differs, so keep it to the home page.
+- Other pages may want their own JSON-LD later (`TechArticle` on guides); with data blocks out of the CSP, that costs nothing but the markup.
 
 ## Definition of done
 

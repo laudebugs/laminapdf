@@ -41,7 +41,7 @@ The GitHub repository went public, but the project still describes and builds it
 
 ## Tasks
 
-- [ ] Ask the owner to set the repository's description, homepage and topics (plan §4 decision 3); record the result in the plan.
+- [ ] Ask the owner to set the repository's description and topics (the homepage is already `https://laminapdf.com`) (plan §4 decision 3); record the result in the plan.
 - [ ] `apps/docs/plugins/repository.mjs`: links on unconditionally; remove `LAMINA_PDF_DOCS_GITHUB` from the config, workflows, README and CLAUDE.md. Check the edit links point at `main` and the right path for generated pages (error pages, TypeDoc), or leave those without one.
 - [ ] `fixtures/codes.json`: the docs site's base and suffix; `cargo xtask gen codes`; update ADR 0026 §6's sentence about the move to past tense with the date; update `crates/laminapdf/tests/error_contract.rs` fixtures and `fixtures/errors/contract.json` as generation requires.
 - [ ] A docs-site build check: every code in `codes.json` has a built page at the `docsUrl` path.
@@ -52,7 +52,7 @@ The GitHub repository went public, but the project still describes and builds it
 
 - [ ] A docs page shows "Edit page" and a GitHub link in its header in a default build.
 - [ ] `laminapdf explain wrong-password` and an SDK `LaminaPdfError` give a `docsUrl` on `docs.laminapdf.com` that the built site serves.
-- [ ] No file in the repository says the repository is private.
+- [ ] No current statement says the repository is private (done todos, ADRs and research that record the past stay as they are).
 - [ ] `cargo xtask check docs` and the docs build pass.
 
 ## Post-merge checks
