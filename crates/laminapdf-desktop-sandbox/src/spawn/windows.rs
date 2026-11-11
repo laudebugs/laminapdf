@@ -62,7 +62,7 @@ const STARTF_USESTDHANDLES: u32 = 0x100;
 const CREATE_SUSPENDED: u32 = 0x4;
 const CREATE_UNICODE_ENVIRONMENT: u32 = 0x400;
 const EXTENDED_STARTUPINFO_PRESENT: u32 = 0x0008_0000;
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+const DETACHED_PROCESS: u32 = 0x8;
 const PROC_THREAD_ATTRIBUTE_HANDLE_LIST: usize = 0x0002_0002;
 const PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY: usize = 0x0002_0007;
 const PROC_THREAD_ATTRIBUTE_JOB_LIST: usize = 0x0002_000D;
@@ -481,7 +481,10 @@ fn create(
         startup.lpAttributeList = list_ptr;
         // SAFETY: as above.
         let mut info: PROCESS_INFORMATION = unsafe { zeroed() };
-        let flags = CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT;
+        // No console at all (not even a hidden one): attaching to a console means opening the console
+        // driver, which the locked-down token can't, and the process would fail to start
+        // (STATUS_DLL_INIT_FAILED). Its stdio is the three pipes.
+        let flags = CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT | DETACHED_PROCESS | CREATE_UNICODE_ENVIRONMENT;
         // SAFETY: the token is a primary token restricted from this process's own (so no
         // SeAssignPrimaryTokenPrivilege is needed); `program` and `line` are NUL-terminated wide
         // strings, `line` writable; null attributes, environment and directory inherit this
