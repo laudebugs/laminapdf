@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4i](../done/T4i-build-command-and-bindings.md) |
+| Depends on | [T4i](./T4i-build-command-and-bindings.md) |
 | ADRs | Implements [ADR 0032 §6](../../decisions/0032-flowing-layout-and-document-inputs.md#6-inputs) (the `laminapdf.document/1` format and placeholder templates), [§5](../../decisions/0032-flowing-layout-and-document-inputs.md#5-placement) (`serde` and `schema` features on `laminapdf-build`) and [§7](../../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) (`--data` and the MCP tool's document input). Follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as ADR 0032 amends it (`laminapdf build`, its MCP tool) and its [§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output) versioning rule, and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
 | Branch | `feat/t4e-json-documents-and-templates` |
 | PR title | `feat(build): JSON documents and templates in Rust` |
@@ -55,27 +55,27 @@ Let a program or an LLM write a flowing document as JSON, check it against a com
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
-- [ ] Read ADR 0032 §6, the flow model and T4i's `build` command
-- [ ] `laminapdf-build`: the `serde` and `schema` features (optional `serde`, `serde_json` and `schemars` from `[workspace.dependencies]`, as `laminapdf-extract` has them), the derives, the `schema` key, and fonts and images by name
-- [ ] The schema test in `crates/laminapdf-build/tests/document_schema.rs` (new): writes the schema with `UPDATE_GOLDEN=1`, fails when it is stale, and validates every fixture document against it with `boon`, as the façade's tests do
-- [ ] `flow/template.rs`: `fill` with `$data`, `$each`, `$item` and `$if`; the three new codes with their `codes.json` entries and `docs/errors/` pages, then `cargo xtask gen codes`
-- [ ] The façade: `laminapdf::flow::document::fill`, behind the façade feature that turns on `laminapdf-build`'s `serde` (decided: a separate `document` feature, on by default like `markdown`, which `text` doesn't imply, so the WebAssembly modules leave it out until T4j; decide in review whether `text` implies it)
+- [x] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`, and `/writing` for the docs pages
+- [x] Read ADR 0032 §6, the flow model and T4i's `build` command
+- [x] `laminapdf-build`: the `serde` and `schema` features (optional `serde`, `serde_json` and `schemars` from `[workspace.dependencies]`, as `laminapdf-extract` has them), the derives, the `schema` key, and fonts and images by name
+- [x] The schema test in `crates/laminapdf-build/tests/document_schema.rs` (new): writes the schema with `UPDATE_GOLDEN=1`, fails when it is stale, and validates every fixture document against it with `boon`, as the façade's tests do
+- [x] `flow/template.rs`: `fill` with `$data`, `$each`, `$item` and `$if`; the three new codes with their `codes.json` entries and `docs/errors/` pages, then `cargo xtask gen codes`
+- [x] The façade: `laminapdf::flow::document::fill`, behind the façade feature that turns on `laminapdf-build`'s `serde` (decided: a separate `document` feature, on by default like `markdown`, which `text` doesn't imply, so the WebAssembly modules leave it out until T4j; decide in review whether `text` implies it)
 - [ ] ~~The CLI: `.json` inputs in `commands/build.rs`, `--data` (standard input once, as ADR 0031 §4 allows), `--font NAME=FILE` and `--image NAME=FILE`; the schema in `schemas/build.schema.json` regenerated~~ moved to [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)
 - [ ] ~~MCP: `document` and `data` on `laminapdf_build`; the inlined schema under `$defs`, checked by `every_reference_should_resolve_inside_its_schema`~~ moved to [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)
-- [ ] The fixtures with their provenance rows in `fixtures/README.md`, the Rust example and its goldens
-- [ ] The fuzz target: `fuzz/fuzz_targets/document.rs`, its `[[bin]]` in `fuzz/Cargo.toml`, `FUZZ_TARGETS` in `tools/xtask/src/harness.rs`, seeds from the fixtures
-- [ ] The docs (Docs to update)
+- [x] The fixtures with their provenance rows in `fixtures/README.md`, the Rust example and its goldens
+- [x] The fuzz target: `fuzz/fuzz_targets/document.rs`, its `[[bin]]` in `fuzz/Cargo.toml`, `FUZZ_TARGETS` in `tools/xtask/src/harness.rs`, seeds from the fixtures
+- [x] The docs (Docs to update)
 
 ## Acceptance criteria
 
-- [ ] `document.schema.json` is committed and current, and every fixture document validates against it
-- [ ] `invoice_from_json` writes the golden's bytes: two pages, the table header on both, the totals on the same page as the last body row; it passes `cargo xtask verapdf` under PDF/UA-1 and `qpdf --check`
+- [x] `document.schema.json` is committed and current, and every fixture document validates against it
+- [x] `invoice_from_json` writes the golden's bytes: two pages, the table header on both, the totals on the same page as the last body row; it passes `cargo xtask verapdf` under PDF/UA-1 and `qpdf --check`
 - [ ] ~~`laminapdf build fixtures/documents/invoice.json --data fixtures/documents/invoice-data.json` writes the same bytes, and so does `--data -` with the data on standard input~~ moved to [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)
 - [ ] A misspelt key fails with `invalid-document` and a `didYouMean` in Rust (the CLI's half moved to T4k)
-- [ ] A pointer with no value fails with `template-data-missing` and the pointer in its `data`; with a marker string in the data and the template, no message or hint contains it
+- [x] A pointer with no value fails with `template-data-missing` and the pointer in its `data`; with a marker string in the data and the template, no message or hint contains it
 - [ ] ~~`crates/laminapdf-cli/tests/mcp.rs`: `laminapdf_build` builds the invoice from inline `document` and `data` inside a root~~ moved to [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)
-- [ ] The `document` fuzz target runs in the full lane without a crash
+- [x] The `document` fuzz target runs in the full lane without a crash
 
 ## Post-merge checks
 
@@ -91,11 +91,11 @@ Let a program or an LLM write a flowing document as JSON, check it against a com
 
 ## Docs to update
 
-- [ ] A recipe on the docs site, "Fill an invoice from JSON" (`apps/docs/src/content/docs/recipes/invoice-from-json.mdx`, new), with the Rust example and the CLI command (T4j adds the TypeScript tab)
-- [ ] The "Pages that flow" guide: the JSON form
-- [ ] `packages/sdk/examples/AGENTS.md` and the agent docs: the schema's URL, so coding agents can check what they write
+- [x] A recipe on the docs site, "Fill an invoice from JSON" (`apps/docs/src/content/docs/recipes/invoice-from-json.mdx`, new), with the Rust example and the CLI command (T4j adds the TypeScript tab)
+- [x] The "Pages that flow" guide: the JSON form
+- [x] `packages/sdk/examples/AGENTS.md` and the agent docs: the schema's URL, so coding agents can check what they write
 - [ ] `CLAUDE.md`'s Building API paragraph and the fuzz target list (the CLI README and CLI paragraph moved to T4k)
-- [ ] The trust and proof plan's §10 to-do for T4
+- [x] The trust and proof plan's §10 to-do for T4
 
 ## Risks and open questions
 
@@ -106,8 +106,16 @@ Let a program or an LLM write a flowing document as JSON, check it against a com
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes
+
+- **The format is its own types.** The flow model holds font handles and images, which JSON can't carry, so `flow::document` has serde types that name fonts and images, resolved against `Resources` (or the standard 14 by name). `fill` returns a `FlowDocument`; `Builder::document` lays it out.
+- **Pointers.** serde buffers a `type`-tagged block before reading it, so its path stops at the block; when reading fails inside `blocks`, each block is read again kind by kind for the exact pointer. `didYouMean` suggests only the format's own keys, read after serde's last `, expected `, never the document's names (ADR 0026 §4).
+- **Templates.** `$each` and `$if` also take `{ "$item": … }` for lists inside each item; a placeholder object holds nothing else; a malformed pointer is an error, not a silent false; `template-too-large` (a fourth new code) stops a template past 100,000 values or 64 levels.
+- **The façade feature** is `document`, on by default, not implied by `text`, so the WebAssembly modules leave it out until T4j.
+- **Split:** the CLI and MCP inputs are [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md).

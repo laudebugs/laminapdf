@@ -58,7 +58,7 @@ Turn Markdown into flowing, tagged pages from Rust: `Builder::markdown(text, &Ma
 **Out of scope** (and which todo covers it)
 
 - `laminapdf build` for Markdown, its `laminapdf.build/1` report, the MCP tool `laminapdf_build`, `WasmBuilder.markdown`, `builder.markdown` in `@laminapdf/sdk`, the TypeScript example and the WebAssembly size check: [T4i](../done/T4i-build-command-and-bindings.md).
-- JSON documents and templates: [T4e](../ongoing/T4e-json-documents-and-templates.md).
+- JSON documents and templates: [T4e](../done/T4e-json-documents-and-templates.md).
 - Maths (`$…$` stays text), raw HTML, syntax highlighting, styling beyond `MarkdownOptions` (no CSS), remote images, and Markdown through Pandoc or Typst (ADR 0032 §2 and §6).
 - Fonts bundled with the library: [pdf-library §9](../../plans/pdf-library.md#9-open-questions) question 2, which ADR 0032 §8 leaves open.
 

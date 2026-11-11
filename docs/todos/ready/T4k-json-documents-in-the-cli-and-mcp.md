@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4e](../ongoing/T4e-json-documents-and-templates.md) |
+| Depends on | [T4e](../done/T4e-json-documents-and-templates.md) |
 | Dependency notes | T4e split its CLI and MCP inputs off into this todo, as its risk note allowed: the Rust format, templates, example and fuzz target came to about 1,600 lines on their own. |
 | ADRs | Implements [ADR 0032 §7](../../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) (`--data` and the MCP tool's document input); follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as ADR 0032 amends it, and its [§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output) versioning rule |
 | Branch | `feat/t4k-json-documents-cli-mcp` |
@@ -20,7 +20,7 @@ Build a `laminapdf.document/1` document, or fill a template, without writing cod
 
 ## Context
 
-- [T4e](../ongoing/T4e-json-documents-and-templates.md): `laminapdf::flow::document::{FlowDocument, Resources, fill}`, `Builder::document`, `FlowDocument::profiles`, the schema `crates/laminapdf-build/schemas/document.schema.json` and `flow::document::json_schema()`, and the fixtures `fixtures/documents/invoice.json` and `invoice-data.json` with the golden `fixtures/golden/examples/invoice_from_json.pdf`.
+- [T4e](../done/T4e-json-documents-and-templates.md): `laminapdf::flow::document::{FlowDocument, Resources, fill}`, `Builder::document`, `FlowDocument::profiles`, the schema `crates/laminapdf-build/schemas/document.schema.json` and `flow::document::json_schema()`, and the fixtures `fixtures/documents/invoice.json` and `invoice-data.json` with the golden `fixtures/golden/examples/invoice_from_json.pdf`.
 - [T4i](../done/T4i-build-command-and-bindings.md): `crates/laminapdf-cli/src/commands/build.rs` (`BuildArgs`, `BuildToolArgs`, `build`, `build_tool`, images read through `Io` only from the input's folder or below it, inline Markdown reading no image file), `laminapdf.build/1` and the `laminapdf_build` tool.
 
 ## Scope
@@ -33,7 +33,7 @@ Build a `laminapdf.document/1` document, or fill a template, without writing cod
 
 **Out of scope**
 
-- The format, templates and Rust API: [T4e](../ongoing/T4e-json-documents-and-templates.md).
+- The format, templates and Rust API: [T4e](../done/T4e-json-documents-and-templates.md).
 - TypeScript: [T4j](./T4j-documents-in-typescript.md).
 
 ## Tasks

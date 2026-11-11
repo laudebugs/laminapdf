@@ -44,7 +44,7 @@ Split tables across pages with their header rows repeated, rows kept whole, and 
 
 - Rows split across pages: a row taller than the page's body fails with `flow-content-too-large` (T4b's code). Row spans and nested tables: later.
 - Footnotes, a contents page and the outline: [T4h](../done/T4h-flow-notes-contents-outline.md).
-- Markdown tables: [T4d](../done/T4d-markdown-documents.md). The JSON form: [T4e](../ongoing/T4e-json-documents-and-templates.md); TypeScript: [T4j](../ready/T4j-documents-in-typescript.md).
+- Markdown tables: [T4d](../done/T4d-markdown-documents.md). The JSON form: [T4e](../done/T4e-json-documents-and-templates.md); TypeScript: [T4j](../ready/T4j-documents-in-typescript.md).
 - Joining tables across pages in extraction: [T3c](../done/T3c-tables-across-pages.md).
 
 ## Tasks
