@@ -9,6 +9,8 @@
 //! `text`, ADR 0016 §4).
 
 mod document;
+#[cfg(feature = "text")]
+mod flow;
 mod image;
 #[cfg(feature = "text")]
 mod markdown;
@@ -17,6 +19,8 @@ mod page;
 mod text;
 
 pub use document::WasmBuilder;
+#[cfg(feature = "text")]
+pub use flow::WasmFlowResources;
 pub use image::WasmImage;
 #[cfg(feature = "text")]
 pub use markdown::WasmMarkdownOptions;

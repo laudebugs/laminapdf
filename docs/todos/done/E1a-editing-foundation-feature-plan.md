@@ -95,6 +95,6 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 - [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (git workflow §2's current rule, which replaced the separate claim PR this item was written for)
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

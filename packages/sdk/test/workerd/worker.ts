@@ -4,6 +4,8 @@
 // isolate: hello-first is then cold and the WebAssembly memory is the hello and report runs'
 // alone (memory never shrinks).
 import { init } from "@laminapdf/sdk";
+import invoiceTemplate from "../../../../fixtures/documents/invoice.json" with { type: "json" };
+import invoiceData from "../../../../fixtures/documents/invoice-data.json" with { type: "json" };
 import notoSans from "../../../../fixtures/fonts/NotoSans-Regular.ttf";
 import notoSansCollection from "../../../../fixtures/fonts/NotoSans-RegularBold.ttc";
 import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.ttf";
@@ -33,6 +35,8 @@ const inputs: Inputs = {
   ),
   // The element-flow report comes in as a JSON module; the suite reads every input as bytes.
   "fixtures/text/element-flow-report.json": new TextEncoder().encode(JSON.stringify(flowReport)),
+  "fixtures/documents/invoice.json": new TextEncoder().encode(JSON.stringify(invoiceTemplate)),
+  "fixtures/documents/invoice-data.json": new TextEncoder().encode(JSON.stringify(invoiceData)),
 };
 const missing = missingInputs(inputs, INPUT_PATHS);
 if (missing.length > 0) throw new Error(`test/workerd/worker.ts doesn't bundle ${missing.join(", ")}`);

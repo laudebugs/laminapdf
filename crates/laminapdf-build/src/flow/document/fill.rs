@@ -55,6 +55,19 @@ pub fn fill(template: &Value, data: &Value) -> Result<FlowDocument> {
     FlowDocument::from_json(&document)
 }
 
+/// `template` filled from `data` when there is data, else read as the document it is: what a
+/// caller that takes either a document or a template and its data does (`laminapdf build
+/// --data`, `builder.flow(document, { data })`).
+///
+/// # Errors
+/// As [`fill`] with data; as [`FlowDocument::from_json`] without.
+pub fn fill_or_read(template: &Value, data: Option<&Value>) -> Result<FlowDocument> {
+    match data {
+        Some(data) => fill(template, data),
+        None => FlowDocument::from_json(template),
+    }
+}
+
 struct Filler<'a> {
     data: &'a Value,
     /// The current item of each `$each` the walk is inside, innermost last.
