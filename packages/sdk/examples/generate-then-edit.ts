@@ -27,6 +27,11 @@ export function generate(options: BuilderOptions = {}): Uint8Array<ArrayBuffer> 
 /** Opens `bytes`, edits the metadata in one transaction (which `undo` could revert) and saves incrementally. */
 function edit(bytes: Uint8Array, editedAt?: string): Uint8Array<ArrayBuffer> {
   using doc = Document.open(bytes);
-  doc.transact((tx) => tx.setMetadata({ title: "Final report", authors: ["Ada Lovelace"] }, editedAt));
+  doc.transact((tx) =>
+    tx.setMetadata(
+      { title: "Final report", authors: ["Ada Lovelace"] },
+      editedAt === undefined ? {} : { at: editedAt },
+    ),
+  );
   return doc.save({ mode: "incremental" });
 }

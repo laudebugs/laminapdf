@@ -13,7 +13,13 @@ import type { Instance } from "./internal/instance.js";
 import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
-import { Transaction } from "./transaction.js";
+import {
+  type MetadataEditOptions,
+  type MetadataRemoveOptions,
+  removeMetadataOp,
+  setMetadataOp,
+  Transaction,
+} from "./transaction.js";
 import type {
   DocumentInfo,
   DocumentMetadata,
@@ -656,11 +662,8 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `malformed-xmp` when the XMP metadata can't be read and
    *   `replaceMalformed` isn't set; as {@link Document.apply}.
    */
-  setMetadata(
-    patch: MetadataPatch,
-    options: { readonly at?: string; readonly replaceMalformed?: boolean } = {},
-  ): Edited {
-    return this.apply([{ op: "setMetadata", args: { patch, ...options } } as Op]);
+  setMetadata(patch: MetadataPatch, options: MetadataEditOptions = {}): Edited {
+    return this.apply([setMetadataOp(patch, options)]);
   }
 
   /**
@@ -670,13 +673,13 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.setMetadata}.
    */
-  removeMetadata(keys: readonly MetadataKey[], options: { readonly replaceMalformed?: boolean } = {}): Edited {
-    return this.apply([{ op: "removeMetadata", args: { keys: [...keys], ...options } } as Op]);
+  removeMetadata(keys: readonly MetadataKey[], options: MetadataRemoveOptions = {}): Edited {
+    return this.apply([removeMetadataOp(keys, options)]);
   }
 
   /**
    * How a save with `options` would go, without saving: the save strip's constraint, the
-   * signatures and what the edits break of them, the mode or the refusal code, and the
+   * signatures and the edits they forbid, the mode or the refusal code, and the
    * conformance warnings. A save that would be refused is a plan with a `refusal`, not an error.
    *
    * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for bad options; reading errors.

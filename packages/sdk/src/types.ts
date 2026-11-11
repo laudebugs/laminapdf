@@ -64,7 +64,7 @@ export type MetadataKey = MetadataKeyJs;
 export type DocumentMetadata = DocumentMetadataJs;
 /**
  * How a save would go, before it happens: what restricts it (`constraint`, the signatures and
- * what the edits break of them), the mode it resolves to or the code it would be refused with,
+ * the edits they forbid), the mode it resolves to or the code it would be refused with,
  * what it does with the save-time metadata, and the PDF/A and PDF/UA claims the edits break.
  */
 export type PlannedSave = PlannedSaveJs;

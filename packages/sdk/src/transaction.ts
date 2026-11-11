@@ -9,6 +9,28 @@ export type Rotation = 0 | 90 | 180 | 270;
 /** An Info patch: a string sets the entry, `null` removes it, a missing key leaves it alone. */
 export type InfoPatch = { readonly [K in keyof DocumentInfo]?: string | null };
 
+/** Options for `setMetadata`. */
+export interface MetadataEditOptions {
+  /** The modification date to record, a PDF date from your clock (`D:20261110093000Z`). */
+  readonly at?: string;
+  /** Replace XMP metadata that can't be read, losing what it held (otherwise `malformed-xmp`). */
+  readonly replaceMalformed?: boolean;
+}
+
+/** Options for `removeMetadata`. */
+export interface MetadataRemoveOptions {
+  /** As {@link MetadataEditOptions.replaceMalformed}. */
+  readonly replaceMalformed?: boolean;
+}
+
+/** @internal The `setMetadata` op. */
+export const setMetadataOp = (patch: MetadataPatch, options: MetadataEditOptions): Op =>
+  ({ op: "setMetadata", args: { patch, ...options } }) as Op;
+
+/** @internal The `removeMetadata` op. */
+export const removeMetadataOp = (keys: readonly MetadataKey[], options: MetadataRemoveOptions): Op =>
+  ({ op: "removeMetadata", args: { keys: [...keys], ...options } }) as Op;
+
 /** Collects the ops of one {@link Document.transact} call. */
 export class Transaction {
   readonly #ops: Op[] = [];
@@ -41,15 +63,20 @@ export class Transaction {
    * Edits the metadata in the Info dictionary and the XMP metadata together (`setMetadata`).
    *
    * @param patch - the fields to set (a value) or remove (`null`); authors are a list.
-   * @param at - the modification date to write (`D:20261110093000Z`); omitted, none is written.
+   * @param options - as {@link Document.setMetadata}: `at`, the modification date to write
+   *   (`D:20261110093000Z`; omitted, none is written), and `replaceMalformed`.
    */
-  setMetadata(patch: MetadataPatch, at?: string): this {
-    return this.apply({ op: "setMetadata", args: at === undefined ? { patch } : { patch, at } } as Op);
+  setMetadata(patch: MetadataPatch, options: MetadataEditOptions = {}): this {
+    return this.apply(setMetadataOp(patch, options));
   }
 
-  /** Removes metadata fields from the Info dictionary and the XMP metadata (`removeMetadata`). */
-  removeMetadata(keys: readonly MetadataKey[]): this {
-    return this.apply({ op: "removeMetadata", args: { keys: [...keys] } } as Op);
+  /**
+   * Removes metadata fields from the Info dictionary and the XMP metadata (`removeMetadata`).
+   *
+   * @param options - as {@link Document.removeMetadata}: `replaceMalformed`.
+   */
+  removeMetadata(keys: readonly MetadataKey[], options: MetadataRemoveOptions = {}): this {
+    return this.apply(removeMetadataOp(keys, options));
   }
 
   /**
