@@ -191,9 +191,13 @@ function HistoryList(props: HistoryPanelProps): ReactNode {
   for (let index = first; index < last; index++) rows.push({ index, step: history.steps[index - 1] });
   const choose = (index: number) => {
     setFocus(index);
+    // A failure leaves the history as it was; the session tells its listeners, who say so.
     void edits.goTo(index).catch(() => undefined);
     props.onNavigate?.();
   };
+  // The roving Tab stop, kept on a drawn row: when scrolling takes the focused row out of the
+  // DOM, the first drawn row takes Tab, so the list is never left without one.
+  const tabbable = focus >= first && focus < last ? focus : first;
   return (
     <div ref={scroller} className="paper-history-scroll">
       <ol
@@ -203,6 +207,9 @@ function HistoryList(props: HistoryPanelProps): ReactNode {
         onKeyDown={onKeyDown}
         onFocus={onFocus}
         onBlur={onBlur}
+        // The rows out of view take their room as padding, sized from the measured row height at run
+        // time. React sets it through the CSSOM (element.style), as ThumbnailStrip sizes its
+        // spacer, which the CSP's style-src allows; a stylesheet can't know the numbers.
         style={{ paddingBlockStart: first * rowHeight, paddingBlockEnd: (total - last) * rowHeight }}
       >
         {rows.map((row) => (
@@ -210,11 +217,11 @@ function HistoryList(props: HistoryPanelProps): ReactNode {
             key={row.step?.id ?? "opened"}
             row={row}
             total={total}
-            position={history.position}
             dropped={history.dropped > 0}
-            focused={row.index === focus}
-            meta={metaOf(row, history.position, name, time, props.openedAt)}
+            tabbable={row.index === tabbable}
+            meta={metaOf(row, history.position, history.dropped > 0, { name, time, openedAt: props.openedAt })}
             onChoose={choose}
+            onFocusRow={setFocus}
           />
         ))}
       </ol>
@@ -231,44 +238,66 @@ function reveal(scroller: HTMLDivElement | null, index: number, rowHeight: numbe
   else if (bottom > scroller.scrollTop + scroller.clientHeight) scroller.scrollTop = bottom - scroller.clientHeight;
 }
 
-/** A row's meta line: the opened file's "No changes", else its pages; "Undone" or "Partly undone"; the time. */
+/** What a row shows of where it stands: done or undone, the current one, and its meta line. */
+interface RowMeta {
+  readonly text: string;
+  readonly current: boolean;
+  readonly undone: boolean;
+  /** Its caption warns: the step was restored only in part. */
+  readonly partial: boolean;
+}
+
+/**
+ * A row's state and meta line: the opened file's "No changes" (only its time once the oldest
+ * steps were dropped, as the row then stands for them); else its pages, then "Undone", "Partly
+ * undone" (an undo that left part of it alone) or "Partly redone", then the time.
+ */
 function metaOf(
   row: Row,
   position: number,
-  name: (index: number) => string,
-  time: (at: number) => string,
-  openedAt: number | undefined,
-): { text: string; partial: boolean } {
+  dropped: boolean,
+  format: {
+    readonly name: (index: number) => string;
+    readonly time: (at: number) => string;
+    readonly openedAt: number | undefined;
+  },
+): RowMeta {
+  const current = row.index === position;
+  const undone = row.index > position;
+  const join = (parts: readonly (string | undefined)[]) => parts.filter((p) => p !== undefined).join(" · ");
   const { step } = row;
   if (step === undefined) {
-    const parts = [message("edit.history.noChanges"), openedAt === undefined ? undefined : time(openedAt)];
-    return { text: parts.filter((p) => p !== undefined).join(" · "), partial: false };
+    const time = format.openedAt === undefined ? undefined : format.time(format.openedAt);
+    const text = dropped ? "" : join([message("edit.history.noChanges"), time]);
+    return { text, current, undone, partial: false };
   }
-  const undone = row.index > position;
-  const state = undone ? message("edit.history.undone") : step.partial ? message("edit.history.partial") : undefined;
-  const parts = [pagesText(step.pages, name), state, time(step.at)];
-  return { text: parts.filter((p) => p !== undefined).join(" · "), partial: !undone && step.partial === true };
+  const partial = (undone && step.partial === "undo") || (!undone && step.partial === "redo");
+  const state = partial
+    ? message(undone ? "edit.history.partial" : "edit.history.partialRedo")
+    : undone
+      ? message("edit.history.undone")
+      : undefined;
+  return { text: join([pagesText(step.pages, format.name), state, format.time(step.at)]), current, undone, partial };
 }
 
 function HistoryRow({
   row,
   total,
-  position,
   dropped,
-  focused,
+  tabbable,
   meta,
   onChoose,
+  onFocusRow,
 }: {
   row: Row;
   total: number;
-  position: number;
   dropped: boolean;
-  focused: boolean;
-  meta: { text: string; partial: boolean };
+  tabbable: boolean;
+  meta: RowMeta;
   onChoose: (index: number) => void;
+  onFocusRow: (index: number) => void;
 }): ReactNode {
-  const current = row.index === position;
-  const undone = row.index > position;
+  const { current, undone } = meta;
   const label = row.step?.label ?? (dropped ? message("edit.history.dropped") : message("edit.history.opened"));
   return (
     <li className="paper-history-item" aria-setsize={total} aria-posinset={row.index + 1}>
@@ -279,13 +308,16 @@ function HistoryRow({
         data-current={current || undefined}
         data-undone={undone || undefined}
         aria-current={current ? "step" : undefined}
-        tabIndex={focused ? 0 : -1}
+        tabIndex={tabbable ? 0 : -1}
         onClick={() => onChoose(row.index)}
+        onFocus={() => onFocusRow(row.index)}
       >
         <span className="paper-history-label">{label}</span>
-        <span className="paper-history-meta" data-partial={meta.partial || undefined}>
-          {meta.text}
-        </span>
+        {meta.text === "" ? null : (
+          <span className="paper-history-meta" data-partial={meta.partial || undefined}>
+            {meta.text}
+          </span>
+        )}
       </button>
     </li>
   );

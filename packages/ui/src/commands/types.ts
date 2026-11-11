@@ -3,6 +3,7 @@
 // shortcut help all read it from the registry, so labels, shortcuts and enabled state can't drift.
 
 import type { IconName } from "@laminapdf/icons";
+import type { KeyPlatform } from "../components/shortcut-chip.js";
 import type { EditControls } from "../edit/edit-controls.js";
 import type { Capability, Platform } from "../platform/types.js";
 import type { ViewerControls } from "../reader/viewer-controls.js";
@@ -41,6 +42,8 @@ export interface Shortcut {
    * ⌘Z undoes the typing in a field, not the document's last change.
    */
   readonly fields?: false;
+  /** The one platform the binding exists on, when it isn't both: Redo's extra Ctrl+Shift+Z. */
+  readonly on?: KeyPlatform;
 }
 
 /** Where a command has a visible home besides the palette (ADR 0024: every command has one). */

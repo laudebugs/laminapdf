@@ -4,7 +4,9 @@
 // \`edit.undo\` and \`edit.redo\`, so it sits inside a \`CommandsProvider\`.
 
 import type { ReactNode } from "react";
-import { useCommand } from "../commands/react.js";
+import { useCommand, useCommands } from "../commands/react.js";
+import { isBound, onPlatform } from "../commands/shortcuts.js";
+import type { CommandContext, CommandId, Shortcut } from "../commands/types.js";
 import { IconButton } from "../components/button.js";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
@@ -39,11 +41,9 @@ function SaveState({ edits }: { edits: EditControls }): ReactNode {
 function UndoRedo({ keys }: { keys: KeyPlatform }): ReactNode {
   const undo = useCommand("edit.undo");
   const redo = useCommand("edit.redo");
+  const { registry, context } = useCommands();
   if (undo.availability.state === "hidden" && redo.availability.state === "hidden") return null;
-  const shortcut = (view: typeof undo) =>
-    view.shortcut === undefined
-      ? undefined
-      : (keys === "mac" ? view.shortcut.mac : view.shortcut.other).replace("Mod", keys === "mac" ? "Meta" : "Control");
+  const shortcut = (id: CommandId) => keyShortcuts(registry.get(id)?.shortcuts ?? [], context, keys);
   return (
     // biome-ignore lint/a11y/useSemanticElements: a toolbar group of buttons, as History's is; <fieldset> holds form controls.
     <div className="paper-top-bar-edit" role="group" aria-label={message("commandGroup.edit")}>
@@ -54,11 +54,26 @@ function UndoRedo({ keys }: { keys: KeyPlatform }): ReactNode {
           key={view.id}
           icon={view.id === "edit.undo" ? "undo" : "redo"}
           label={view.title}
-          aria-keyshortcuts={shortcut(view)}
+          aria-keyshortcuts={shortcut(view.id)}
           isDisabled={view.availability.state !== "available"}
           onPress={() => view.run()}
         />
       ))}
     </div>
   );
+}
+
+/**
+ * `aria-keyshortcuts` for `bindings` on `platform`: each bound one's keys in ARIA's names, space
+ * apart ("Control+Y Control+Shift+Z"); undefined with none.
+ */
+export function keyShortcuts(
+  bindings: readonly Shortcut[],
+  ctx: CommandContext,
+  platform: KeyPlatform,
+): string | undefined {
+  const keys = bindings
+    .filter((b) => isBound(b, ctx) && onPlatform(b, platform))
+    .map((b) => b[platform].replace("Mod", platform === "mac" ? "Meta" : "Control"));
+  return keys.length === 0 ? undefined : [...new Set(keys)].join(" ");
 }

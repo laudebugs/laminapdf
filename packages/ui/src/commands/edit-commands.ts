@@ -33,7 +33,7 @@ function withSession(check: (state: EditSlice) => true | string) {
 const UNDO_KEYS: readonly Shortcut[] = [{ mac: "Mod+Z", other: "Mod+Z", scope: "global", fields: false }];
 const REDO_KEYS: readonly Shortcut[] = [
   { mac: "Mod+Shift+Z", other: "Mod+Y", scope: "global", fields: false },
-  { mac: "Mod+Shift+Z", other: "Mod+Shift+Z", scope: "global", fields: false },
+  { mac: "Mod+Shift+Z", other: "Mod+Shift+Z", scope: "global", fields: false, on: "other" },
 ];
 
 /** A step number, for `edit.go-to-step`: 0 is the file as opened, n the state after the n-th step kept. */
@@ -85,7 +85,10 @@ export function editCommands(): readonly AnyCommand[] {
       icon: "undo",
       shortcuts: UNDO_KEYS,
       home: ["top-bar", "edit-menu"],
-      enabled: withSession((s) => (stepToUndo(s) === undefined ? message("command.reason.nothingToUndo") : true)),
+      // While a call runs the step isn't known yet: the session checks again when the undo's turn comes.
+      enabled: withSession((s) =>
+        s.busy || stepToUndo(s) !== undefined ? true : message("command.reason.nothingToUndo"),
+      ),
       run: async (ctx) => {
         await ctx.edits?.undo();
       },
@@ -103,7 +106,9 @@ export function editCommands(): readonly AnyCommand[] {
       icon: "redo",
       shortcuts: REDO_KEYS,
       home: ["top-bar", "edit-menu"],
-      enabled: withSession((s) => (stepToRedo(s) === undefined ? message("command.reason.nothingToRedo") : true)),
+      enabled: withSession((s) =>
+        s.busy || stepToRedo(s) !== undefined ? true : message("command.reason.nothingToRedo"),
+      ),
       run: async (ctx) => {
         await ctx.edits?.redo();
       },

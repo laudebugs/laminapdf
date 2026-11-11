@@ -4,6 +4,7 @@ import { readerCommands } from "../src/commands/reader-commands.ts";
 import { CommandRegistry } from "../src/commands/registry.ts";
 import { shortcutProblems } from "../src/commands/shortcuts.ts";
 import type { CommandContext } from "../src/commands/types.ts";
+import { keyShortcuts } from "../src/edit/edit-area.tsx";
 import { inSentence, saveStateText, sessionStarted } from "../src/edit/edit-controls.ts";
 import { revertedText } from "../src/edit/outcome.ts";
 import { FakeEdits, fakePlatform } from "./fakes.ts";
@@ -41,7 +42,7 @@ describe("the edit session's words", () => {
       "Undid “Rotate page 5”",
       "Redid “Rotate page 5”",
       "Undid part of “Rotate page 5”: a later change replaced the rest, so it stays",
-      "Couldn't undo “Rotate page 5”: later changes replaced all of it",
+      "Couldn't undo “Rotate page 5”: later changes replaced all of it, so it's gone from the history",
     ]);
   });
 
@@ -60,13 +61,13 @@ describe("the edit commands", () => {
 
   it("bind Undo to Mod+Z and Redo to Shift+Mod+Z and Ctrl+Y, without colliding with the reader's", () => {
     const keys = Object.fromEntries(
-      editCommands().map((c) => [c.id, (c.shortcuts ?? []).map((b) => [b.mac, b.other])]),
+      editCommands().map((c) => [c.id, (c.shortcuts ?? []).map((b) => [b.mac, b.other, b.on ?? "both"])]),
     );
     expect([keys["edit.undo"], keys["edit.redo"]]).toEqual([
-      [["Mod+Z", "Mod+Z"]],
+      [["Mod+Z", "Mod+Z", "both"]],
       [
-        ["Mod+Shift+Z", "Mod+Y"],
-        ["Mod+Shift+Z", "Mod+Shift+Z"],
+        ["Mod+Shift+Z", "Mod+Y", "both"],
+        ["Mod+Shift+Z", "Mod+Shift+Z", "other"],
       ],
     ]);
     const all = [...readerCommands(), ...editCommands()];
@@ -89,12 +90,18 @@ describe("the edit commands", () => {
     ]);
   });
 
+  it("keep Undo and Redo on while a call runs, since the step it leaves isn't known yet", () => {
+    const commands = registry();
+    const ctx = context(new FakeEdits(["a"], 1, { busy: true }));
+    expect(commands.availability("edit.redo", ctx).state).toBe("available");
+  });
+
   it("disable every edit for an encrypted document, saying why", () => {
     const commands = registry();
     const ctx = context(new FakeEdits(["a"], 1, { blocked: "encrypted" }), { "pages.rotate-right": () => undefined });
     expect(commands.availability("pages.rotate-right", ctx)).toEqual({
       state: "disabled",
-      reason: "This file is password-protected. Editing protected files comes in a later version.",
+      reason: "This file is encrypted, so it can't be edited yet.",
     });
   });
 
@@ -113,7 +120,7 @@ describe("the edit commands", () => {
     const ctx = context(new FakeEdits(["a", "b"], 2));
     expect([args?.parse("1", ctx), args?.parse("3", ctx)]).toEqual([
       { ok: true, value: 1, summary: "Step 1" },
-      { ok: false, error: "There is no step 3. Enter a step from 0 to 2." },
+      { ok: false, error: "There is no step 3. Enter a step from 0 (the file as opened) to 2." },
     ]);
   });
 
@@ -121,5 +128,14 @@ describe("the edit commands", () => {
     const commands = registry();
     const ctx = context(new FakeEdits());
     expect(commands.availability("edit.history", ctx).state).toBe("hidden");
+  });
+
+  it("list every binding of Redo in its aria-keyshortcuts, once each", () => {
+    const redo = editCommands().find((c) => c.id === "edit.redo")?.shortcuts ?? [];
+    const ctx = context(new FakeEdits());
+    expect([keyShortcuts(redo, ctx, "mac"), keyShortcuts(redo, ctx, "other")]).toEqual([
+      "Meta+Shift+Z",
+      "Control+Y Control+Shift+Z",
+    ]);
   });
 });

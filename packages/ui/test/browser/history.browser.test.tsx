@@ -81,23 +81,39 @@ describe("HistoryPanel", () => {
     const edits = new FakeEdits(LABELS, 3);
     edits.set({ history: { ...edits.getState().history, dropped: 1 } });
     const { host } = panel(edits);
-    expect(rows(host)[0]?.textContent).toContain("Earlier steps no longer kept");
+    expect(rows(host)[0]?.textContent).toBe("Earlier steps no longer kept");
   });
 
-  it("keeps a partial undo's notice at the top, and marks the row", () => {
+  it("keeps a Tab stop on a drawn row when the wheel scrolls the focused one away", async () => {
+    const labels = Array.from({ length: 500 }, (_, i) => `Change ${i + 1}`);
+    const { host } = panel(new FakeEdits(labels, 0));
+    const scroller = host.querySelector(".paper-history-scroll") as HTMLElement;
+    scroller.scrollTop = scroller.scrollHeight;
+    await expect.poll(() => rows(host).some((r) => r.dataset.row === "500")).toBe(true);
+    expect(rows(host).filter((r) => r.tabIndex === 0).length).toBe(1);
+  });
+
+  it("keeps a partial undo's notice at the top, and the undone row's warning caption", () => {
     const edits = new FakeEdits(LABELS, 2);
-    const step = { id: 3, label: "Rotate page 5", pages: [2], at: 0, partial: true as const };
+    const step = { id: 3, label: "Rotate page 5", pages: [2], at: 0, partial: "undo" as const };
     edits.set({
-      history: {
-        ...edits.getState().history,
-        steps: [...edits.getState().history.steps.slice(0, 2), step],
-        position: 3,
-      },
+      history: { ...edits.getState().history, steps: [...edits.getState().history.steps.slice(0, 2), step] },
       notice: { step, way: "undo", outcome: "partial" },
     });
     const { host } = panel(edits);
     expect(host.querySelector('[role="status"]')?.textContent).toContain("Undid part of “Rotate page 5”");
-    expect(rows(host)[3]?.textContent).toContain("Partly undone");
+    const meta = rows(host)[3]?.querySelector(".paper-history-meta");
+    expect([meta?.textContent, meta?.hasAttribute("data-partial")]).toEqual(["Page 3 · Partly undone · 16:02", true]);
+  });
+
+  it("says a step was partly redone", () => {
+    const edits = new FakeEdits(LABELS, 3);
+    const step = { id: 3, label: "Rotate page 5", pages: [2], at: 0, partial: "redo" as const };
+    edits.set({
+      history: { ...edits.getState().history, steps: [...edits.getState().history.steps.slice(0, 2), step] },
+    });
+    const { host } = panel(edits);
+    expect(rows(host)[3]?.textContent).toContain("Partly redone");
   });
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {

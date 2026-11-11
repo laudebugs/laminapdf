@@ -203,13 +203,13 @@ An open document's edit session comes in as any object with its store and three 
 
 Give `ReaderTopBar` an `EditArea` as `editArea` while a document is open. Once the first edit is made, it shows how many changes are unsaved after the file name ("4 unsaved changes", announced politely), then Undo and Redo after a divider. Their names say which step they take back or make again ("Undo rotate page 5").
 
-`registerEditCommands` adds the edit commands. `edit.undo` is ⌘Z or Ctrl+Z; `edit.redo` is ⇧⌘Z, or Ctrl+Y and Ctrl+Shift+Z on Windows and Linux. Both leave a text field its own undo. `edit.go-to-step` takes a step number. `edit.history`, `pages.rotate-right` and `pages.rotate-left` are the shell's: it knows the rail and the pages, so it gives their handlers in `actions`. Each command is disabled with the reason while the document can't be edited, such as an encrypted file.
+`registerEditCommands` adds the edit commands. `edit.undo` is ⌘Z or Ctrl+Z; `edit.redo` is ⇧⌘Z, or Ctrl+Y and Ctrl+Shift+Z on Windows and Linux. Both leave a text field its own undo. `edit.go-to-step` takes a step number. `edit.history`, `pages.rotate-right` and `pages.rotate-left` are the shell's: it knows the rail and the pages, so it gives their handlers in `actions`. Every command but `edit.history` is disabled, with the reason, while the document can't be edited, such as an encrypted file; the history can still be read.
 
 `HistoryPanel` is the rail's History tab. It lists the file as opened, then one row per step with its pages and time; the current row is tinted and carries `aria-current="step"`, and undone steps are struck through. Choosing a row goes to that step in one call.
 
-The list is a single Tab stop: Up and Down move between rows, Home and End go to the ends, and Enter goes to the step. It draws only the rows in view, so the 500 steps a session keeps cost nothing. When an undo restores only part of a step, a notice at the top says so until the next edit.
+The list is a single Tab stop: Up and Down move between rows, Home and End go to the ends, and Enter goes to the step. It draws only the rows in view, so a full history of 500 steps stays fast. A row the wheel scrolls away from leaves the Tab stop on a row in view. When an undo restores only part of a step, a notice at the top says so until the next edit.
 
-`ReaderController.setCloseGuard(guard)` asks before the user's open or close lets the document go: `guard` resolves true to let it go. The reader's own opens pass `{ discard: true }` to skip it, and `requestClose()` is the user's close.
+`ReaderController.setCloseGuard(guard)` runs `guard` before the user opens another file or closes this one; it resolves true to go ahead. The reader's own opens pass `{ discard: true }` to skip it, and `requestClose()` is the user's close.
 
 **Interaction modes** say how pointer input on the page is read: `select`, `hand` (drag to scroll) and `textSelect`. Each is a tool module in a `ToolRegistry`: a name, a cursor, the viewer layer it draws into, whether it selects text, and its pointer handlers. `attachTools(registry, host)` passes pointer input on the viewer's element to the tool that is on. A later tool adds its name to `InteractionModes` by declaration merging, then registers:
 

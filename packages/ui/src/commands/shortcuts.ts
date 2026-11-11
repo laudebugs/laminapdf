@@ -230,6 +230,10 @@ function boundIn(binding: Shortcut, shell: Shell): boolean {
   return binding.requires !== "ownsKeyboard" || shell === "desktop";
 }
 
+/** Whether `binding` exists on `platform`: everywhere, or that platform is its `on`. */
+export const onPlatform = (binding: Shortcut, platform: KeyPlatform): boolean =>
+  binding.on === undefined || binding.on === platform;
+
 /** Whether `binding` is bound in `ctx`: it needs no capability, or the platform has it. */
 export function isBound(binding: Shortcut, ctx: CommandContext): boolean {
   return binding.requires === undefined || ctx.platform.capabilities[binding.requires];
@@ -282,7 +286,7 @@ function platformProblems(commands: readonly AnyCommand[], shell: Shell, platfor
   const taken = new Map<string, Taken[]>();
   const problems: string[] = [];
   for (const command of commands) {
-    for (const binding of (command.shortcuts ?? []).filter((b) => boundIn(b, shell))) {
+    for (const binding of (command.shortcuts ?? []).filter((b) => boundIn(b, shell) && onPlatform(b, platform))) {
       const keys = bindingKey(binding[platform], platform);
       const where = `${command.id} (${binding[platform]}, ${platform}, ${shell})`;
       const others = taken.get(keys) ?? [];
@@ -371,6 +375,7 @@ function boundCommand(
   const matches = (b: Shortcut) =>
     b.dispatch !== false &&
     isBound(b, ctx) &&
+    onPlatform(b, options.platform) &&
     bindingKey(b[options.platform], options.platform) === pressed &&
     (b.scope === "global" || scopes.has(b.scope));
   for (const command of options.registry.list()) {

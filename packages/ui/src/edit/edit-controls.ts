@@ -15,8 +15,8 @@ export interface EditStepSlice {
   readonly pages: readonly number[];
   /** When it was made, in ms since the epoch. */
   readonly at: number;
-  /** Its last undo or redo restored only part of it. */
-  readonly partial?: true;
+  /** Its last undo (`"undo"`) or redo (`"redo"`) restored only part of it. */
+  readonly partial?: "undo" | "redo";
 }
 
 /** An undo or redo of one step, and how it went. */

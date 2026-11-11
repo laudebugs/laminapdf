@@ -523,7 +523,7 @@ const history: Example[] = [
     state: "an undo restored only part of a step",
     element: () => {
       const edits = new FakeEdits(STEPS, 2);
-      const step = { id: 3, label: "Rotate page 5", pages: [4], at: 0, partial: true as const };
+      const step = { id: 3, label: "Rotate page 5", pages: [4], at: 0, partial: "undo" as const };
       edits.set({ notice: { step, way: "undo", outcome: "partial" } });
       return <HistoryPanel edits={edits} {...AT} />;
     },
