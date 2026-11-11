@@ -61,7 +61,7 @@ describe("generated codes", () => {
   it("builds docsUrl from codes.json's constant", () => {
     expect([DOCS_URL, docsUrl("wrong-password")]).toEqual([
       codes.docsUrl,
-      `${(codes.docsUrl as { base: string }).base}wrong-password.md`,
+      `${(codes.docsUrl as { base: string; suffix: string }).base}wrong-password${(codes.docsUrl as { suffix: string }).suffix}`,
     ]);
   });
 });

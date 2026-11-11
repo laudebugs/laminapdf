@@ -1,7 +1,9 @@
 // The changelog page (src/content/docs/reference/changelog.mdx): CHANGELOG.md's releases, from
 // its first `## ` heading on. Its title, its generator comment and its paragraph on the lockstep
 // version stay in the repository (the page says the same in its own words), and each entry's
-// leading commit hash goes, since readers can't follow it while the repository is private.
+// leading commit hash becomes a link to that commit on GitHub.
+
+import { REPOSITORY } from "./repository.mjs";
 
 /**
  * CHANGELOG.md's releases as the site and the Markdown twins show them.
@@ -12,7 +14,12 @@
 export function releaseNotes(markdown) {
   const start = markdown.search(/^## /m);
   if (start < 0) throw new Error("CHANGELOG.md has no release: no `## ` heading");
-  return markdown.slice(start).replace(/^([ \t]*- )[0-9a-f]{7,40}: /gm, "$1");
+  return markdown
+    .slice(start)
+    .replace(
+      /^([ \t]*- )([0-9a-f]{7,40}): /gm,
+      (_, item, hash) => `${item}[\`${hash}\`](${REPOSITORY}/commit/${hash}): `,
+    );
 }
 
 /**

@@ -12,10 +12,10 @@
 use crate::ErrorKind;
 
 /// The base of every `docsUrl` (ADR 0026 §6): `DOCS_URL_BASE` + code + `DOCS_URL_SUFFIX`.
-pub const DOCS_URL_BASE: &str = "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/";
+pub const DOCS_URL_BASE: &str = "https://docs.laminapdf.com/reference/codes/";
 
 /// The suffix of every `docsUrl` (ADR 0026 §6).
-pub const DOCS_URL_SUFFIX: &str = ".md";
+pub const DOCS_URL_SUFFIX: &str = "/";
 
 /// Whether two byte strings are equal, in a `const fn`.
 const fn bytes_eq(a: &[u8], b: &[u8]) -> bool {
