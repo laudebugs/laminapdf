@@ -2,9 +2,9 @@
 
 [![npm](https://img.shields.io/npm/v/@laminapdf/sdk/alpha)](https://www.npmjs.com/package/@laminapdf/sdk) [![crates.io](https://img.shields.io/crates/v/laminapdf)](https://crates.io/crates/laminapdf)
 
-Lamina PDF creates, reads, edits and saves PDFs from code, in Rust and in TypeScript on every JavaScript runtime. The library, the command line and the web reader share one Rust core:
+Lamina PDF creates, reads, edits and saves PDFs from code, in Rust and in TypeScript on every JavaScript runtime. It has six parts, and the first three share one Rust core:
 
-- **The library:** [`@laminapdf/sdk`](packages/sdk/README.md) on npm for TypeScript (browsers, Node, Deno, Bun and Cloudflare Workers) and [`laminapdf`](crates/laminapdf/README.md) on crates.io for Rust. It generates PDFs with shaped text and tagged structure, opens broken files, extracts text in reading order for search and LLMs, and saves edits incrementally.
+- **The library:** [`@laminapdf/sdk`](packages/sdk/README.md) on npm for TypeScript (browsers, Node, Deno, Bun and Cloudflare Workers) and [`laminapdf`](crates/laminapdf/README.md) on crates.io for Rust. It generates PDFs with shaped text in any script, tagged for screen readers, opens broken files, extracts text in reading order for search and LLMs, and saves edits incrementally.
 - **The command line and MCP server:** the `laminapdf` command describes, checks, extracts, renders and builds PDFs from a terminal or a script, and `laminapdf mcp` offers the same commands to AI agents. [Install it](https://docs.laminapdf.com/cli/install/) with Homebrew, npm or a download.
 - **The web reader:** [app.laminapdf.com](https://app.laminapdf.com) opens PDFs inside your browser, and nothing you open is uploaded. It is free, and [laminapdf.com/privacy](https://laminapdf.com/privacy/) explains how it keeps your files private.
 - **The documentation:** [docs.laminapdf.com](https://docs.laminapdf.com) has quick starts for each runtime, guides, recipes and the API reference.

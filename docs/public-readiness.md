@@ -84,8 +84,8 @@ whether it is configured. Those settings remain owner checks.
 
 ## Change visibility in this order
 
-These steps are done: the repository is public (it was on 2026-11-11, when the discoverability
-audit checked). The docs site now links to it, every error's `docsUrl` opens the docs site's page
+These steps are done: the discoverability audit found the repository public on 2026-11-11. The docs
+site now links to it, every error's `docsUrl` opens the docs site's page
 for its code, and the READMEs and plans no longer call it private
 ([W3b](todos/ongoing/W3b-public-repository-links.md)). The steps stay as the record of the order.
 
