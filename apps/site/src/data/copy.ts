@@ -64,12 +64,22 @@ export const PRIVACY_PROMISES = {
 export const PARTS = {
   heading: "Where each part lives",
   docs: "The docs: guides, recipes and the API reference",
+  // Then a link to llms.txt, named by AGENTS_LLMS below.
+  agents: "Docs for coding agents: how to point one at the docs for your version",
+  agentsIndex: "every page as Markdown in llms.txt",
   packages: "The packages on npm and crates.io",
   crate: "The Rust crate on crates.io",
   // The milestone and its state follow, from progress.json: "The web reader: milestone M2, under way".
   reader: "The web reader",
   desktop: "The desktop app",
   howWeTest: "How we test it: the latest night's results, the licence and how the code is written",
+} as const;
+
+/** The footer's words: the licence line, then where coding agents read the docs. */
+export const FOOTER = {
+  licence: "Lamina PDF is open source, under",
+  licenceLink: "the MIT or Apache-2.0 licence",
+  agents: "Coding agents can read every page of the docs as Markdown, listed in",
 } as const;
 
 // The How we test page's words. The owner approved them on 2026-11-11, and a change to a sentence
