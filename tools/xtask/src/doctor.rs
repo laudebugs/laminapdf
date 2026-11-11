@@ -37,6 +37,14 @@ pub(crate) const QPDF_VERSION: &str = "12.4.2";
 /// todo B4d; tests read the facts, so only regenerating them needs it).
 /// `crates/laminapdf-text/tests/extraction.rs` checks the facts were written with it.
 pub(crate) const POPPLER_VERSION: &str = "26.10.0";
+/// exiftool release for the nightly XMP differential (`cargo xtask differential --live --xmp`,
+/// todo E1c): the one Ubuntu 24.04 (noble) ships, which the nightly workflow installs with apt
+/// as [`EXIFTOOL_APT_VERSION`]. Perl, GPL-1.0-or-later OR Artistic-1.0: run as a process, never
+/// linked (ADR 0019). `exiftool -ver` prints it.
+pub(crate) const EXIFTOOL_VERSION: &str = "12.76";
+/// noble's `libimage-exiftool-perl` package at [`EXIFTOOL_VERSION`] (its only version there,
+/// in the release pocket; checked 2026-11-10 on Launchpad).
+pub(crate) const EXIFTOOL_APT_VERSION: &str = "12.76+dfsg-1";
 /// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
 /// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
 pub(crate) const BINARYEN_VERSION: &str = "133";
@@ -270,6 +278,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_fuzz(),
         qpdf(),
         pdftotext(),
+        exiftool(),
         hb_shape(),
         wasm_bindgen_tool(wasm_bindgen),
         wasm_opt(),
@@ -334,6 +343,20 @@ pub(crate) fn pdftotext() -> Tool {
             "regenerating the text extraction facts (tools/fixtures/text_facts.py, cargo xtask differential --text \
              --update) and cargo xtask differential --live --text (the nightly lane)",
         ),
+    }
+}
+
+/// exiftool at [`EXIFTOOL_VERSION`] (optional: only the nightly XMP differential uses it).
+pub(crate) fn exiftool() -> Tool {
+    Tool {
+        name: "exiftool",
+        version_command: &["exiftool", "-ver"],
+        pin: Pin::Exact(EXIFTOOL_VERSION.to_owned()),
+        fix: format!(
+            "sudo apt-get install libimage-exiftool-perl={EXIFTOOL_APT_VERSION}  # Ubuntu 24.04; elsewhere an ExifTool \
+             {EXIFTOOL_VERSION} release from https://exiftool.org/history.html"
+        ),
+        optional_for: Some("cargo xtask differential --live --xmp (the nightly lane)"),
     }
 }
 

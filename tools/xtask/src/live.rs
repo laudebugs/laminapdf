@@ -11,11 +11,13 @@
 //! (they are differences between the tools as much as bugs) but don't fail the run.
 //!
 //! `--text` runs the text differential instead ([`text`], todo B9f): lamina's page text
-//! against pdf.js and pdftotext over the external corpus.
+//! against pdf.js and pdftotext over the external corpus. `--xmp` runs the XMP differential
+//! ([`xmp`], todo E1c): the XMP values lamina reads against exiftool's.
 
 mod compare;
 mod exceptions;
 mod text;
+mod xmp;
 use compare::{Kind, RunContext, Tally, compare, rate};
 use exceptions::{Class, Entry, Exceptions, Excuse, PENDING_ISSUE};
 
@@ -96,6 +98,8 @@ pub(crate) struct LiveArgs {
     pub(crate) sample: Option<usize>,
     /// `--text`: the text differential (external corpus; pdf.js and pdftotext).
     pub(crate) text: bool,
+    /// `--xmp`: the XMP differential (external corpus and committed PDFs; exiftool).
+    pub(crate) xmp: bool,
 }
 
 impl Default for LiveArgs {
@@ -106,13 +110,15 @@ impl Default for LiveArgs {
             tools: Tool::ALL.to_vec(),
             sample: None,
             text: false,
+            xmp: false,
         }
     }
 }
 
 const USAGE: &str = "usage: cargo xtask differential --live [--corpus external|mutants|all] \
                      [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample <N>]\n       \
-                     cargo xtask differential --live --text [--source <name>]… [--sample <N>]";
+                     cargo xtask differential --live --text [--source <name>]… [--sample <N>]\n       \
+                     cargo xtask differential --live --xmp [--source <name>]… [--sample <N>]";
 
 pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
     let mut parsed = LiveArgs::default();
@@ -122,6 +128,7 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
         let mut value = || rest.next().with_context(|| format!("{arg} needs a value; {USAGE}"));
         match arg.as_str() {
             "--text" => parsed.text = true,
+            "--xmp" => parsed.xmp = true,
             "--corpus" => {
                 corpus = true;
                 parsed.inputs = match value()?.as_str() {
@@ -151,6 +158,11 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
     }
     if parsed.text && (tools || (corpus && parsed.inputs != Inputs::External)) {
         bail!("--text reads the external corpus with pdf.js and pdftotext: no --tools or mutants; {USAGE}");
+    }
+    if parsed.xmp && (parsed.text || tools || corpus) {
+        bail!(
+            "--xmp reads the external corpus and committed PDFs with ExifTool: no --text, --tools or --corpus; {USAGE}"
+        );
     }
     Ok(parsed)
 }
@@ -236,6 +248,9 @@ pub(crate) fn example_binary(ws: &Workspace, name: &str) -> PathBuf {
 pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     if args.text {
         return text::run(ws, args);
+    }
+    if args.xmp {
+        return xmp::run(ws, args);
     }
     // Everything that can fail fast does so before hours of work.
     let mut exceptions = Exceptions::default();
@@ -740,6 +755,7 @@ mod tests {
                 tools: vec![Tool::Pdfjs, Tool::Qpdf],
                 sample: Some(50),
                 text: false,
+                xmp: false,
             }
         );
     }

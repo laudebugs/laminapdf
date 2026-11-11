@@ -1,0 +1,7 @@
+# Known differences between the XMP values Lamina PDF reads (laminapdf_model::xmp::Packet) and
+# ExifTool's, for the nightly XMP differential (`cargo xtask differential --live --xmp`).
+#
+# [[known]]: `file` (a glob over the input's name, `<source>/<path>` for the external corpus or
+# the fixture path), `fields` (default every field), `issue` (a link, or "PENDING", which the
+# report warns about) and `reason`. Unknown keys or field names are errors, and entries that
+# excused nothing in a run are listed as stale. None yet: the first nightly run fills this in.

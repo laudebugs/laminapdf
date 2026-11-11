@@ -16,6 +16,12 @@ The external readers of the nightly lane's live differential ([ADR 0018](../../d
 | pdf.js | `text.mjs --facts pdfjs` | `package.json` + `pnpm-lock.yaml` |
 | pdftotext | `text.mjs --facts pdftotext` (poppler) | `tools/xtask/src/doctor.rs` (`POPPLER_VERSION`; the runner's Homebrew poppler, installed by the nightly when the runner has none, left out with a warning when its version differs, which fails the pages only pdftotext agrees with) |
 
+The XMP differential (todo E1c) compares the XMP values lamina's `crates/laminapdf-model/examples/xmp-facts.rs` reads (`laminapdf_model::xmp::Packet`'s getters: title, authors, subject, keywords, creator tool, producer, the three dates, document and instance IDs, the PDF/A and PDF/UA claims) with ExifTool's, over the external corpus and the PDFs in `fixtures/corpus/`, `fixtures/golden/` and `fixtures/golden/examples/`. xtask (`tools/xtask/src/live/xmp.rs`) runs ExifTool itself, once over every file (`exiftool -j -G1 -n -XMP:all`), and compares field by field: text trimmed, `dc:creator` as a list, dates as one spelling of the same instant (ExifTool prints `2026:10:28 14:30:00+01:00`). A field where they differ fails the run unless a `[[known]]` entry in `fixtures/differential/xmp-exceptions.toml` (`file` glob, `fields`, `issue`, `reason`) excuses it; the report goes to `target/nightly/differential-xmp/`.
+
+| XMP tool | Runner | Version pinned in |
+| --- | --- | --- |
+| ExifTool | `exiftool`, run by xtask | `tools/xtask/src/doctor.rs` (`EXIFTOOL_VERSION`; the nightly installs Ubuntu 24.04's `libimage-exiftool-perl` at `EXIFTOOL_APT_VERSION`) |
+
 xtask runs lamina and the tools at once, each over chunks of 200 inputs, one process per chunk with a 20-minute limit (`tools/xtask/src/runner.rs`). A chunk that crashes, hangs or reports different files is rerun one file per process with a 2-minute limit, so a bad file becomes a `timeout` or `crash` entry (skipped for a tool, a failure for lamina) instead of stopping the run; a reader whose every file in a chunk crashes is reported broken and fails the run after the report is written. Inside a process, the runners also give up on a file after 60 s where they can (Python's `SIGALRM`, a timer in pdf.js), which native code and synchronous parsing can ignore. Each reader's output goes to `target/nightly/differential/<reader>.log`. Inputs are data: they are only read, never executed.
 
 ```sh
@@ -24,6 +30,7 @@ pnpm --dir tools/differential install --frozen-lockfile   # pdf.js: its own pnpm
 python3 -m venv .venv && .venv/bin/pip install -r tools/differential/requirements.txt
 LAMINA_PDF_PYTHON=.venv/bin/python cargo xtask differential --live [--sample 300] [--tools pdfjs,qpdf] [--corpus external|mutants|all] [--source pdfjs]
 cargo xtask differential --live --text [--sample 50] [--source pdfjs]   # page text: pdf.js and pdftotext (no Python)
+cargo xtask differential --live --xmp [--sample 50] [--source pdfjs]    # XMP values: ExifTool (no Python)
 ```
 
-qpdf must be on `PATH` at the version `cargo xtask doctor` expects. All five are tools only: nothing here ships or links into lamina (pdfjs-dist and pypdfium2 are Apache-2.0, PDFium BSD-3-Clause, qpdf Apache-2.0, pypdf BSD-3-Clause, poppler's pdftotext GPL-2.0, run as a separate program and never linked).
+qpdf and ExifTool must be on `PATH` at the versions `cargo xtask doctor` expects. All six are tools only: nothing here ships or links into lamina (pdfjs-dist and pypdfium2 are Apache-2.0, PDFium BSD-3-Clause, qpdf Apache-2.0, pypdf BSD-3-Clause; poppler's pdftotext, GPL-2.0, and ExifTool, Perl's licence (GPL-1.0-or-later or Artistic-1.0), run as separate programs and are never linked).

@@ -5,7 +5,8 @@
 #   differential  lamina vs live pdf.js, PDFium, qpdf and pypdf over the external corpus and the
 #                 nightly mutant set (`cargo xtask corpus fetch`, `cargo xtask differential --live`),
 #                 then lamina's page text vs pdf.js and pdftotext over the external corpus
-#                 (`cargo xtask differential --live --text`; todo B9f)
+#                 (`cargo xtask differential --live --text`; todo B9f), then the XMP values lamina
+#                 reads vs ExifTool's (`cargo xtask differential --live --xmp`; todo E1c)
 #   fuzz          every target of harness::FUZZ_TARGETS for 10 minutes, corpus kept in the Actions
 #                 cache, crashes minimised and uploaded, each run's summary (executions, corpus size)
 #                 uploaded for `proof` (`cargo xtask fuzz <target> --time 600`, `cargo xtask fuzz tmin`)
@@ -173,6 +174,19 @@ jobs:
       - name: Text differential
         if: ${{ !cancelled() }}
         run: cargo xtask differential --live --text ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
+      # ExifTool at the version doctor.rs pins: noble's package (its only version there), run as a
+      # process, never linked (ADR 0019). xtask fails if it drifts.
+      - name: Install ExifTool
+        if: ${{ !cancelled() }}
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends libimage-exiftool-perl=12.76+dfsg-1
+          exiftool -ver
+      # The XMP values lamina reads vs ExifTool's (todo E1c), over the external corpus and the
+      # committed PDFs; runs even when the differentials above failed.
+      - name: XMP differential
+        if: ${{ !cancelled() }}
+        run: cargo xtask differential --live --xmp ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
       - name: Upload the report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -183,6 +197,8 @@ jobs:
             target/nightly/differential/*.log
             target/nightly/differential-text/*.json
             target/nightly/differential-text/*.log
+            target/nightly/differential-xmp/*.json
+            target/nightly/differential-xmp/*.log
           if-no-files-found: ignore
       - name: Upload the report (Markdown)
         if: ${{ !cancelled() }}
@@ -192,6 +208,7 @@ jobs:
           path: |
             target/nightly/differential/report.md
             target/nightly/differential-text/report.md
+            target/nightly/differential-xmp/report.md
           if-no-files-found: ignore
 
   fuzz:
