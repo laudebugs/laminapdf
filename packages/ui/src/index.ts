@@ -146,7 +146,7 @@ export {
   stepToUndo,
 } from "./edit/edit-controls.js";
 export { HistoryPanel, type HistoryPanelProps } from "./edit/history-panel.js";
-export { type Catalogue, ENGLISH, type MessageId, message } from "./messages.js";
+export { type Catalogue, countMessage, ENGLISH, type MessageId, message } from "./messages.js";
 export {
   Dialog,
   type DialogProps,
