@@ -102,6 +102,8 @@ const EN = {
   "appearance.motion.reduce": "Reduce motion",
   "appearance.motion.help": "Reduce motion turns off smooth scrolling and animations.",
   "appearance.singleKeys": "Single-key shortcuts",
+  "appearance.summary.shortcutsOn": "Shortcuts on",
+  "appearance.summary.shortcutsOff": "Shortcuts off",
   "settings.title": "Settings",
   "settings.close": "Close",
   "settings.sections": "Settings sections",

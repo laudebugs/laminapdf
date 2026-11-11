@@ -247,8 +247,7 @@ function useStorageSection(
     "storage",
     message("storage.title"),
     () => <StorageSettings choices={choices} {...actions} />,
-    [choices],
-    () => storageSummary(choices),
+    { shows: [choices], summary: () => storageSummary(choices) },
   );
 }
 

@@ -78,12 +78,11 @@ export function useSettings(openPalette: () => void, page: PageAppearanceControl
     "appearance",
     message("settings.appearance"),
     () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
-    [appearance],
-    () => appearanceSummary(appearance),
+    { shows: [appearance], summary: () => appearanceSummary(appearance) },
   );
-  useSettingsSection(registry, "about", message("about.title"), About, [], () =>
-    message("about.summary", { version: __APP_VERSION__ }),
-  );
+  useSettingsSection(registry, "about", message("about.title"), About, {
+    summary: () => message("about.summary", { version: __APP_VERSION__ }),
+  });
   const actions = useMemo(
     () => ({
       "view.settings": () => (phone.current ? setSettingsOpen(true) : setViewOpen(true)),

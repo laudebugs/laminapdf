@@ -134,7 +134,7 @@
   }
 
   /* On a phone the dialog is a sheet (§7.18) as wide as the screen, showing one screen at a time
-     (U6k, account-cloud-product.md: "the settings nav becomes a list screen; each block is its own
+     (account-cloud-product.md: "the settings nav becomes a list screen; each block is its own
      screen"). The list: full-width rows, each name over what it is set to, a chevron at the end.
      A section: "All settings" back, its heading, then its fields. */
   .paper-sheet .paper-settings {

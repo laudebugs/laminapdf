@@ -60,14 +60,15 @@ export function parseAppearance(stored: string | null): Appearance {
 }
 
 /**
- * What `appearance` is set to, in one line for a phone's list of Settings sections: the theme,
- * then the accent ("Match system · Green"); High contrast has no accent of its own.
+ * What `appearance` is set to, in one line for a phone's list of Settings sections: the theme, the
+ * accent and single-key shortcuts ("Match system · Green · Shortcuts on"). High contrast has no
+ * accent of its own.
  */
 export function appearanceSummary(appearance: Appearance): string {
-  const theme = message(`appearance.theme.${appearance.theme}`);
-  return appearance.theme === "high-contrast"
-    ? theme
-    : `${theme} · ${message(`appearance.accent.${appearance.accent}`)}`;
+  const parts = [message(`appearance.theme.${appearance.theme}`)];
+  if (appearance.theme !== "high-contrast") parts.push(message(`appearance.accent.${appearance.accent}`));
+  parts.push(message(appearance.singleKeys ? "appearance.summary.shortcutsOn" : "appearance.summary.shortcutsOff"));
+  return parts.join(" · ");
 }
 
 /** Sets `appearance` on `root` (the document element): what the tokens and styles read. */

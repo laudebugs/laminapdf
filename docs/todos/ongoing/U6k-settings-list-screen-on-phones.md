@@ -10,7 +10,7 @@
 | ADRs | Follows 0024 (sheets on a phone; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) |
 | Branch | `feat/u6k-settings-list-screen-on-phones` |
 | PR title | `feat(ui): settings on a phone open on a list of sections` |
-| Size | S (< 200 changed lines of code) |
+| Size | M (200–400 changed lines of code) |
 | PR | — |
 
 ## Goal

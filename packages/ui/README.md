@@ -236,10 +236,10 @@ The app's look is an `Appearance`: a theme (`light`, `dark`, `high-contrast`, or
 const [settings] = useState(() => new SettingsRegistry());
 useSettingsSection(settings, "appearance", message("settings.appearance"), () => (
   <AppearanceSettings appearance={appearance} onChange={setAppearance} />
-), [appearance], () => appearanceSummary(appearance));
+), { shows: [appearance], summary: () => appearanceSummary(appearance) });
 ```
 
-Wider than a phone, the sections are a list beside the chosen one's fields. On a phone the dialog is a sheet that shows one screen at a time: the list, each section's name over its summary ("Match system · Teal", the optional last argument), then the chosen section with All settings to go back.
+Wider than a phone, the sections are a list beside the chosen one's fields. On a phone the dialog is a sheet that shows one screen at a time: the list, each section's name over its summary ("Match system · Teal · Shortcuts on", the `summary` option), then the chosen section with All settings to go back.
 
 `Announcer` speaks what changes without focus moving. `polite(text, kind)` waits until nothing newer of the same kind, such as a page or a zoom, has come for a moment. So scrolling past twenty pages says only the last, and two kinds due together are said together. `assertive(text)` speaks at once, for errors. Render its `LiveRegions` once, for the app's life.
 
