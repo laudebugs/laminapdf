@@ -7,17 +7,21 @@
 mod bytesource;
 mod documents;
 mod secret;
+mod tiles;
 
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, Spawner, Supervisor, SupervisorError};
-use laminapdf_desktop_protocol::{DocId, FailureKind, FromEngine, PageDimensions, ToEngine};
+use laminapdf_desktop_protocol::{
+    DocId, FailureKind, FromEngine, PageDimensions, ReqId, TileFormat, TileRequest, ToEngine,
+};
 use serde::Serialize;
 
 pub(crate) use documents::DocumentRegistry;
 use secret::SessionPassword;
+pub(crate) use tiles::{Tile, TileQuery, UrlError as TileUrlError, parse as parse_tile, respond as tile_response};
 
 use crate::DesktopError;
 
@@ -34,6 +38,10 @@ pub(crate) const FAILED_EVENT: &str = "engine://failed";
 pub(crate) struct DocumentMeta {
     /// The id the webview names it by.
     pub doc: u32,
+    /// The file's name, for the window's title: never its folder (paths stay in the main process).
+    pub name: String,
+    /// The file's size in bytes.
+    pub size: u64,
     /// The number of pages (0 while it waits for a password).
     pub page_count: u32,
     /// Whether the file is encrypted.
@@ -110,6 +118,8 @@ pub(crate) type Launcher = Arc<dyn Fn() -> Box<dyn Spawner> + Send + Sync>;
 pub(crate) struct Engines {
     registry: Arc<DocumentRegistry>,
     windows: Mutex<BTreeMap<String, Supervisor>>,
+    /// Each window's tiles in flight: the viewer's ticket to the engine's request, for `cancel_tiles`.
+    tickets: Mutex<BTreeMap<(String, u64), ReqId>>,
     launcher: Launcher,
     config: Config,
     notify: Arc<dyn Notify>,
@@ -121,6 +131,7 @@ impl Engines {
         Arc::new_cyclic(|this| Self {
             registry: Arc::new(DocumentRegistry::default()),
             windows: Mutex::new(BTreeMap::new()),
+            tickets: Mutex::new(BTreeMap::new()),
             launcher,
             config,
             notify,
@@ -131,7 +142,10 @@ impl Engines {
     /// Opens `path` in `window`'s engine: its page count and page sizes, computed there.
     pub(crate) fn open(&self, window: &str, path: &Path) -> Result<DocumentMeta, DesktopError> {
         let (doc, len) = self.registry.register(path, window)?;
-        let opened = self.open_in(window, doc, len);
+        let name = path
+            .file_name()
+            .map_or_else(String::new, |name| name.to_string_lossy().into_owned());
+        let opened = self.open_in(window, doc, len).map(|meta| DocumentMeta { name, ..meta });
         if opened.is_err() {
             self.registry.remove(doc);
         }
@@ -158,6 +172,8 @@ impl Engines {
         };
         Ok(DocumentMeta {
             doc: doc.0,
+            name: String::new(),
+            size: len,
             page_count,
             encrypted,
             needs_password,
@@ -166,28 +182,79 @@ impl Engines {
         })
     }
 
+    /// Draws one tile of `window`'s document: the engine's straight RGBA, checked against the
+    /// size asked for (the engine reads untrusted files, so its answers are untrusted too).
+    pub(crate) fn render_tile(&self, window: &str, query: &TileQuery) -> Result<Tile, DesktopError> {
+        self.check(window, query.doc)?;
+        let engine = self.engine(window)?;
+        let key = (window.to_owned(), query.ticket);
+        let reply = engine.request(|req| {
+            self.tickets().insert(key.clone(), req);
+            ToEngine::RenderTile(TileRequest {
+                req,
+                doc: query.doc,
+                page: query.page,
+                scale: query.scale,
+                rotation: query.rotation,
+                appearance: query.appearance,
+                x: query.x,
+                y: query.y,
+                w: query.w,
+                h: query.h,
+                format: TileFormat::Rgba8,
+                priority: query.priority,
+            })
+        });
+        self.tickets().remove(&key);
+        match reply {
+            Ok((
+                FromEngine::Tile {
+                    w,
+                    h,
+                    format: TileFormat::Rgba8,
+                    ..
+                },
+                pixels,
+            )) if w <= query.w && h <= query.h && pixels.len() as u64 == u64::from(w) * u64::from(h) * 4 => {
+                Ok(Tile { w, h, pixels })
+            }
+            Ok((FromEngine::NeedsPassword { .. }, _)) => Err(needs_password()),
+            Ok((FromEngine::Error { kind, .. }, _)) => Err(engine_error(kind)),
+            Ok((other, _)) => Err(unexpected(&other)),
+            Err(error) => Err(supervisor_error(&error)),
+        }
+    }
+
+    /// Drops the tiles `tickets` names that `window` still waits for: the engine skips them, or
+    /// answers them cancelled. A ticket already answered, or never seen, is ignored.
+    pub(crate) fn cancel_tiles(&self, window: &str, tickets: &[u64]) {
+        let Some(engine) = self.windows().get(window).cloned() else {
+            return;
+        };
+        let reqs: Vec<ReqId> = {
+            let waiting = self.tickets();
+            tickets
+                .iter()
+                .filter_map(|ticket| waiting.get(&(window.to_owned(), *ticket)).copied())
+                .collect()
+        };
+        for req in reqs {
+            engine.send(&ToEngine::Cancel { req });
+        }
+    }
+
     /// Every page's size of `window`'s document `doc`.
     pub(crate) fn page_info(&self, window: &str, doc: DocId) -> Result<Vec<PageMeta>, DesktopError> {
         self.check(window, doc)?;
         match ask(&self.engine(window)?, |req| ToEngine::GetPageInfo { req, doc })? {
             FromEngine::PageInfo { sizes, .. } => Ok(sizes.iter().map(PageMeta::from).collect()),
-            FromEngine::NeedsPassword { .. } => Err(DesktopError::Engine {
-                kind: "needs-password",
-                message: "this document needs its password".into(),
-            }),
+            FromEngine::NeedsPassword { .. } => Err(needs_password()),
             other => Err(unexpected(&other)),
         }
     }
 
     /// Unlocks `doc` with the password the user typed, and keeps the password while it stays
     /// open. The password prompt's command calls it; the restart path reuses the kept password.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "the password prompt's `unlock_document` command, which comes with the viewer, calls it"
-        )
-    )]
     pub(crate) fn unlock(&self, window: &str, doc: DocId, password: &str) -> Result<DocumentMeta, DesktopError> {
         self.check(window, doc)?;
         let kept = SessionPassword::new(password);
@@ -206,6 +273,8 @@ impl Engines {
         self.registry.keep_password(doc, kept);
         Ok(DocumentMeta {
             doc: doc.0,
+            name: String::new(),
+            size: self.registry.len_of(doc).unwrap_or(0),
             page_count,
             encrypted: true,
             needs_password: false,
@@ -373,17 +442,25 @@ impl Engines {
     fn windows(&self) -> MutexGuard<'_, BTreeMap<String, Supervisor>> {
         self.windows.lock().unwrap_or_else(PoisonError::into_inner)
     }
+
+    fn tickets(&self) -> MutexGuard<'_, BTreeMap<(String, u64), ReqId>> {
+        self.tickets.lock().unwrap_or_else(PoisonError::into_inner)
+    }
 }
 
 /// Sends a request and turns the engine's `Error` reply into a [`DesktopError`].
-fn ask(
-    engine: &Supervisor,
-    make: impl FnOnce(laminapdf_desktop_protocol::ReqId) -> ToEngine,
-) -> Result<FromEngine, DesktopError> {
+fn ask(engine: &Supervisor, make: impl FnOnce(ReqId) -> ToEngine) -> Result<FromEngine, DesktopError> {
     match engine.request(make) {
         Ok((FromEngine::Error { kind, .. }, _)) => Err(engine_error(kind)),
         Ok((reply, _)) => Ok(reply),
         Err(error) => Err(supervisor_error(&error)),
+    }
+}
+
+fn needs_password() -> DesktopError {
+    DesktopError::Engine {
+        kind: "needs-password",
+        message: "this document needs its password".into(),
     }
 }
 

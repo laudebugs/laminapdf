@@ -111,9 +111,44 @@ pub enum Priority {
     Visible,
 }
 
-/// One tile of one page: the rectangle `x, y, w, h` (device pixels) of the page drawn at
-/// `scale_milli / 1000` pixels per point.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// The view rotation a tile is drawn at, clockwise (the viewer's rotate command), on top of the
+/// page's own `/Rotate`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum ViewRotation {
+    /// Upright.
+    #[default]
+    None,
+    /// A quarter turn clockwise.
+    Quarter,
+    /// Upside down.
+    Half,
+    /// Three quarter turns clockwise.
+    ThreeQuarters,
+}
+
+/// How a tile's colours are drawn: the reader's page appearance (`@laminapdf/render`'s
+/// `PageAppearance`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum TileAppearance {
+    /// The page's own colours.
+    #[default]
+    Original,
+    /// Warm paper and brown ink.
+    Sepia,
+    /// Light ink on dark paper.
+    Dark,
+    /// Two colours, straight RGBA: what black becomes (`ink`) and what white becomes (`paper`).
+    HighContrast {
+        /// What black becomes.
+        ink: [u8; 4],
+        /// What white becomes.
+        paper: [u8; 4],
+    },
+}
+
+/// One tile of one page: the rectangle `x, y, w, h` (device pixels) of the page drawn at `scale`
+/// pixels per point, turned by `rotation` and coloured by `appearance`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TileRequest {
     /// The request; the reply is [`FromEngine::Tile`] or [`FromEngine::Error`].
     pub req: ReqId,
@@ -121,8 +156,13 @@ pub struct TileRequest {
     pub doc: DocId,
     /// The page, 0-based.
     pub page: u32,
-    /// Pixels per point, in thousandths (1000 is 72 dpi).
-    pub scale_milli: u32,
+    /// Pixels per point, device pixel ratio applied (1.0 is 72 dpi): the viewer's own scale, so
+    /// the engine's page size in pixels matches the viewer's to the pixel.
+    pub scale: f32,
+    /// The view rotation.
+    pub rotation: ViewRotation,
+    /// How the page's colours are drawn.
+    pub appearance: TileAppearance,
     /// The tile's left edge in the page's pixels.
     pub x: u32,
     /// The tile's top edge in the page's pixels.

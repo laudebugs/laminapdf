@@ -8,8 +8,8 @@ use std::thread;
 use std::time::Duration;
 
 use laminapdf_desktop_protocol::{
-    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, Priority, ReqId, TileFormat,
-    TileRequest, ToEngine, read_frame, write_frame,
+    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, Priority, ReqId, TileAppearance,
+    TileFormat, TileRequest, ToEngine, ViewRotation, read_frame, write_frame,
 };
 use laminapdf_test_fixtures::{fixture, read_at};
 
@@ -56,7 +56,9 @@ fn an_open_waiting_on_slow_reads_and_a_queued_tile_should_both_complete() {
             req: ReqId(2),
             doc,
             page: 0,
-            scale_milli: 1000,
+            scale: 1.0,
+            rotation: ViewRotation::None,
+            appearance: TileAppearance::Original,
             x: 0,
             y: 0,
             w: 64,
@@ -119,7 +121,9 @@ fn a_cancelled_queued_tile_should_be_answered_cancelled() {
         req: ReqId(2),
         doc: DocId(1),
         page: 0,
-        scale_milli: 1000,
+        scale: 1.0,
+        rotation: ViewRotation::None,
+        appearance: TileAppearance::Original,
         x: 0,
         y: 0,
         w: 8,

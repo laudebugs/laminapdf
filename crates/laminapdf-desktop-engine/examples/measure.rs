@@ -30,7 +30,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{CommandSpawner, Config, RangeServer, Supervisor};
-use laminapdf_desktop_protocol::{DocId, FromEngine, Priority, TileFormat, TileRequest, ToEngine};
+use laminapdf_desktop_protocol::{
+    DocId, FromEngine, Priority, TileAppearance, TileFormat, TileRequest, ToEngine, ViewRotation,
+};
 
 /// The file, read by position, counting what the engine asked for.
 struct Counted {
@@ -195,7 +197,9 @@ fn tiles(engine: &Supervisor, files: &Counted, pid: u32, page_count: u32, count:
                     req,
                     doc: DocId(1),
                     page,
-                    scale_milli: 2000,
+                    scale: 2.0,
+                    rotation: ViewRotation::None,
+                    appearance: TileAppearance::Original,
                     x: 0,
                     y: 0,
                     w: 512,

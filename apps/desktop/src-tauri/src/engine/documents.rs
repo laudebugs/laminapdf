@@ -67,6 +67,11 @@ impl DocumentRegistry {
         self.lock().get(&doc).is_some_and(|e| e.window == window)
     }
 
+    /// `doc`'s file length, while it is open.
+    pub(crate) fn len_of(&self, doc: DocId) -> Option<u64> {
+        self.lock().get(&doc).map(|entry| entry.source.len())
+    }
+
     /// Keeps `password` for `doc` until it closes.
     pub(crate) fn keep_password(&self, doc: DocId, password: SessionPassword) {
         if let Some(entry) = self.lock().get_mut(&doc) {

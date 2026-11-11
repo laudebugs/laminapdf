@@ -18,7 +18,8 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{CommandSpawner, Config, Event, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
-    DocId, FailureKind, FromEngine, Password, Priority, ReqId, TileFormat, TileRequest, ToEngine,
+    DocId, FailureKind, FromEngine, Password, Priority, ReqId, TileAppearance, TileFormat, TileRequest, ToEngine,
+    ViewRotation,
 };
 use laminapdf_test_fixtures::{fixture, read_at};
 
@@ -277,7 +278,9 @@ fn a_tile_should_match_an_in_process_pdfium_render() {
         req: ReqId(0),
         doc,
         page: 0,
-        scale_milli: 1500,
+        scale: 1.5,
+        rotation: ViewRotation::None,
+        appearance: TileAppearance::Original,
         x: 64,
         y: 128,
         w: 256,

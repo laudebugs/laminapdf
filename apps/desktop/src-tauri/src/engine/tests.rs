@@ -354,3 +354,97 @@ fn a_missing_file_should_fail_to_open() {
     let missing = std::env::temp_dir().join("laminapdf-engines-missing.pdf");
     assert!(matches!(f.engines.open("main", &missing), Err(DesktopError::Io(_))));
 }
+
+/// A 512 × 300 tile of `page` with `ticket`.
+fn tile_of(doc: u32, page: u32, ticket: u64) -> TileQuery {
+    TileQuery {
+        doc: DocId(doc),
+        page,
+        scale: 1.5,
+        rotation: laminapdf_desktop_protocol::ViewRotation::None,
+        appearance: laminapdf_desktop_protocol::TileAppearance::Original,
+        x: 0,
+        y: 0,
+        w: 512,
+        h: 300,
+        priority: laminapdf_desktop_protocol::Priority::Visible,
+        ticket,
+        encoding: tiles::Encoding::Webp,
+    }
+}
+
+fn open_plain(f: &mut Fixture, window: &str) -> u32 {
+    let path = f.file(PLAIN);
+    f.engines.open(window, &path).unwrap().doc
+}
+
+#[test]
+fn a_tile_should_come_back_at_the_size_asked_for() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = open_plain(&mut f, "main");
+    let tile = f.engines.render_tile("main", &tile_of(doc, 0, 1)).unwrap();
+    assert_eq!((tile.w, tile.h, tile.pixels.len()), (512, 300, 512 * 300 * 4));
+}
+
+#[test]
+fn a_window_should_not_get_tiles_of_another_windows_document() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = open_plain(&mut f, "main");
+    let refused = f.engines.render_tile("doc-2", &tile_of(doc, 0, 1));
+    assert!(matches!(refused, Err(DesktopError::UnknownDocument)));
+}
+
+#[test]
+fn a_locked_documents_tile_should_ask_for_its_password() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = {
+        let path = f.file(ENCRYPTED);
+        f.engines.open("main", &path).unwrap().doc
+    };
+    let locked = f.engines.render_tile("main", &tile_of(doc, 0, 1));
+    assert!(matches!(
+        locked,
+        Err(DesktopError::Engine {
+            kind: "needs-password",
+            ..
+        })
+    ));
+}
+
+#[test]
+fn cancelling_a_tile_should_end_its_wait_as_cancelled() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = open_plain(&mut f, "main");
+    let engines = Arc::clone(&f.engines);
+    // The fake holds page 2's tiles until they are cancelled.
+    let waiting = std::thread::spawn(move || engines.render_tile("main", &tile_of(doc, 2, 7)));
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while f.engines.tickets().is_empty() && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    f.engines.cancel_tiles("main", &[7]);
+    let result = waiting.join().unwrap();
+    assert!(
+        matches!(result, Err(DesktopError::Engine { kind: "cancelled", .. })) && f.engines.tickets().is_empty(),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn another_windows_cancel_should_not_touch_a_tile() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = open_plain(&mut f, "main");
+    let _other = open_plain(&mut f, "doc-2");
+    let engines = Arc::clone(&f.engines);
+    let waiting = std::thread::spawn(move || engines.render_tile("main", &tile_of(doc, 2, 7)));
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while f.engines.tickets().is_empty() && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    // The same ticket from another window names nothing of main's.
+    f.engines.cancel_tiles("doc-2", &[7]);
+    std::thread::sleep(Duration::from_millis(100));
+    assert!(!waiting.is_finished());
+    f.engines.cancel_tiles("main", &[7]);
+    assert!(waiting.join().unwrap().is_err());
+}

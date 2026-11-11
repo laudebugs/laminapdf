@@ -29,10 +29,10 @@ pub mod supervisor;
 
 pub use frame::{MAX_FRAME, ProtocolError, read_frame, write_frame};
 pub use msg::{
-    DocId, EngineLimits, FailureKind, FromEngine, PageDimensions, Password, Priority, ReqId, TileFormat, TileRequest,
-    ToEngine,
+    DocId, EngineLimits, FailureKind, FromEngine, PageDimensions, Password, Priority, ReqId, TileAppearance,
+    TileFormat, TileRequest, ToEngine, ViewRotation,
 };
 
 /// The protocol's version: in every frame and in the `Hello`/`Ready` handshake. Both sides come
 /// from the same build, so a mismatch means a stale engine binary next to a newer app.
-pub const PROTOCOL_VERSION: u16 = 1;
+pub const PROTOCOL_VERSION: u16 = 2;

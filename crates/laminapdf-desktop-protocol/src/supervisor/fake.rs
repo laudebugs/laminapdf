@@ -2,7 +2,8 @@
 //! speaks the protocol, and that can crash, hang or stay silent on cue.
 //!
 //! A document whose length is even is encrypted, with the password `secret`; every document has
-//! 3 pages of 612 × 792 pt. Tiles answer with the size asked for and no pixels.
+//! 3 pages of 612 × 792 pt. Tiles answer with the size asked for, every pixel opaque grey; a tile of
+//! page 2 waits until it is cancelled, as a slow render would.
 
 use std::io::{self, PipeReader, PipeWriter};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -12,8 +13,8 @@ use std::time::Duration;
 
 use super::{Process, Spawned, Spawner, lock};
 use crate::{
-    DocId, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, PageDimensions, TileFormat, ToEngine, read_frame,
-    write_frame,
+    DocId, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, PageDimensions, ReqId, TileFormat, ToEngine,
+    read_frame, write_frame,
 };
 
 /// How a fake engine behaves.
@@ -97,8 +98,15 @@ impl Spawner for FakeSpawner {
     }
 }
 
+/// The page whose tiles wait for their `Cancel`.
+pub const SLOW_PAGE: u32 = 2;
+
 fn send(out: &SharedOut, msg: &FromEngine) -> bool {
-    lock(out).as_mut().is_some_and(|w| write_frame(w, msg, &[]).is_ok())
+    send_with(out, msg, &[])
+}
+
+fn send_with(out: &SharedOut, msg: &FromEngine, payload: &[u8]) -> bool {
+    lock(out).as_mut().is_some_and(|w| write_frame(w, msg, payload).is_ok())
 }
 
 /// Speaks the protocol: `Ready`, then one answer per request.
@@ -142,7 +150,40 @@ fn fake_engine(mode: Mode, pid: u32, mut stdin: PipeReader, out: &SharedOut) {
         }
     });
     let mut locked: Vec<DocId> = Vec::new();
+    let mut slow: Vec<ReqId> = Vec::new();
     while let Ok((msg, _)) = read_frame::<_, ToEngine>(&mut stdin, MAX_FRAME) {
+        match &msg {
+            ToEngine::RenderTile(tile) if !locked.contains(&tile.doc) => {
+                if tile.page == SLOW_PAGE {
+                    slow.push(tile.req);
+                    continue;
+                }
+                let reply = FromEngine::Tile {
+                    req: tile.req,
+                    w: tile.w,
+                    h: tile.h,
+                    format: TileFormat::Rgba8,
+                };
+                let pixels = vec![128; tile.w as usize * tile.h as usize * 4];
+                if !send_with(out, &reply, &pixels) {
+                    return;
+                }
+                continue;
+            }
+            ToEngine::Cancel { req } if slow.contains(req) => {
+                slow.retain(|r| r != req);
+                let cancelled = FromEngine::Error {
+                    req: Some(*req),
+                    kind: FailureKind::Cancelled,
+                    message: "cancelled".into(),
+                };
+                if !send(out, &cancelled) {
+                    return;
+                }
+                continue;
+            }
+            _ => {}
+        }
         if let (true, ToEngine::OpenDocument { req, doc, .. }) = (restarted, &msg) {
             match mode {
                 Mode::DieReopeningFirst if *doc == DocId(1) => {
@@ -221,11 +262,9 @@ fn answer(msg: ToEngine, locked: &mut Vec<DocId>) -> Option<FromEngine> {
                 3
             ],
         },
-        ToEngine::RenderTile(tile) => FromEngine::Tile {
+        ToEngine::RenderTile(tile) => FromEngine::NeedsPassword {
             req: tile.req,
-            w: tile.w,
-            h: tile.h,
-            format: TileFormat::Rgba8,
+            doc: tile.doc,
         },
         ToEngine::CloseDocument { doc } => {
             locked.retain(|d| *d != doc);

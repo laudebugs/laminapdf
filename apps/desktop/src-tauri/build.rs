@@ -4,7 +4,14 @@
 use std::process::ExitCode;
 
 /// Every command a release build has.
-const COMMANDS: &[&str] = &["app_info", "open_dialog", "page_info", "close_document"];
+const COMMANDS: &[&str] = &[
+    "app_info",
+    "open_dialog",
+    "page_info",
+    "close_document",
+    "unlock_document",
+    "cancel_tiles",
+];
 
 /// With the `e2e` feature: the end-to-end tests' commands too.
 const E2E_COMMANDS: &[&str] = &[
@@ -12,6 +19,8 @@ const E2E_COMMANDS: &[&str] = &[
     "open_dialog",
     "page_info",
     "close_document",
+    "unlock_document",
+    "cancel_tiles",
     "debug_kill_engine",
 ];
 
