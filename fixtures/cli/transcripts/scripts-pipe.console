@@ -1,0 +1,7 @@
+$ cat invoice.pdf | laminapdf pages rotate - 90 -o - | laminapdf info -
+rotated 1 page → - (incremental update)
+-  PDF 1.7 · 1 page · 12 KB · not encrypted · tagged
+Title: Invoice 42
+Author: Acme Widgets Ltd
+Producer: lamina examples
+Pages: 841.89 × 595.28 pt, rotated 90°

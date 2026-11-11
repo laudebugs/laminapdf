@@ -3,39 +3,25 @@ title: Inspect and check PDFs
 description: Describe a PDF with laminapdf info, find what Lamina PDF had to repair with check, and list what a file holds beyond its pages with reveal.
 ---
 
+import Transcript from "../../../components/Transcript.astro";
+
 This page answers three questions about a PDF before you trust it or send it: what it is, whether it's damaged, and what it holds that its pages don't show. Run these three commands on files people upload to you, and on files you're about to publish.
 
 ## What a file is: `info`
 
 `info` prints the PDF version, the page count and size, whether the file is encrypted or tagged for screen readers, and its title and author:
 
-```console
-$ laminapdf info invoice.pdf
-invoice.pdf  PDF 1.7 · 1 page · 12 KB · not encrypted · tagged
-Title: Invoice 42
-Author: Acme Widgets Ltd
-Producer: lamina examples
-Pages: 595.28 × 841.89 pt
-```
+<Transcript name="info" />
 
 With `--json`, it prints the same facts as JSON, and `--fields` keeps only the keys you name. A file that needed repair lists its warnings there too:
 
-```console
-$ laminapdf info scan.pdf --json --fields pages,encrypted,warnings
-{"encrypted":false,"input":"scan.pdf","pages":1,"schema":"laminapdf.info/1","warnings":[{"code":"xref-repaired",…}]}
-```
+<Transcript name="info-json" />
 
 ## Whether it's damaged: `check`
 
 Lamina PDF reads damaged files where it can, repairing what it must and warning about each repair. `check` reads the whole file, every page and every drawing instruction, and reports those warnings. It exits 3 when there were any, so a script can tell a clean file from a repaired one:
 
-```console
-$ laminapdf check scan.pdf
-warning[xref-repaired]: the stored cross-reference data was unusable and was rebuilt by scanning
-scan.pdf: 1 warning · 1 page · 5 objects
-$ echo $?
-3
-```
+<Transcript name="check" />
 
 `--strict` makes the first repair an error instead (exit 1). `--warnings-ok` turns exit 3 into 0, for a job that only fails on files it can't read.
 
@@ -51,19 +37,9 @@ These stay warnings under `--strict`, because they aren't damage. `--warnings-ok
 
 ## What it holds beyond its pages: `reveal`
 
-A PDF can carry far more than its pages show: earlier versions of itself, metadata, attachments, scripts, comments, form values and text no one can see. `reveal` lists what a file holds in each of those categories, one line per category it found:
+A PDF can carry far more than its pages show: earlier versions of itself, metadata, attachments, scripts, comments, form values and text no one can see. `reveal` lists what a file holds in each of those categories, one line per category it found, and given several files it ends with a count of them:
 
-```console
-$ laminapdf reveal letter.pdf brochure.pdf
-==> letter.pdf <==
-letter.pdf: history
-  history         2 revisions; revision 0 holds 1 word the latest doesn't
-
-==> brochure.pdf <==
-brochure.pdf: metadata, hidden-content
-  metadata        Info: Title; XMP (389 B, 3 namespaces)
-  hidden-content  24 invisible characters on page 1
-```
+<Transcript name="reveal" />
 
 The letter was edited, and its first version still holds a word the final one removed. The brochure carries 24 characters of invisible text. The categories are:
 
@@ -91,19 +67,9 @@ laminapdf reveal dist/*.pdf --fail-on history,hidden-content,active-content,atta
 
 ## What a warning means: `explain`
 
-Every warning and error has a code, such as `xref-repaired`. `explain` prints that code's page: what happened, why, and how to fix it.
+Every warning and error has a code, such as `xref-repaired`. `explain` prints that code's page: what happened, why, and how to fix it. Here is the start of one:
 
-```console
-$ laminapdf explain xref-repaired
-# `xref-repaired`
-
-- Type: warning
-- Kind: `input` (the input is malformed beyond what tolerance repairs)
-
-## What happened
-
-The stored cross-reference data was unusable and was rebuilt by scanning the file.
-```
+<Transcript name="explain" />
 
 The same pages are on this site under [error and warning codes](/reference/codes/).
 
