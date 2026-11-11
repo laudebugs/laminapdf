@@ -53,11 +53,11 @@ impl Fixture {
 
     /// A file of `len` bytes: odd opens plainly, even is encrypted.
     fn file(&mut self, len: usize) -> PathBuf {
-        let path = std::env::temp_dir().join(format!(
-            "laminapdf-engines-{}-{}-{len}.pdf",
-            std::process::id(),
-            self.files.len()
-        ));
+        // One counter for the whole test binary: tests run in parallel, and a name built from one
+        // fixture's own count let two tests write, then delete, the same file.
+        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!("laminapdf-engines-{}-{n}-{len}.pdf", std::process::id()));
         std::fs::File::create(&path)
             .unwrap()
             .write_all(&vec![b'x'; len])

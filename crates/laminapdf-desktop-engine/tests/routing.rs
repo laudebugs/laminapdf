@@ -8,8 +8,8 @@ use std::thread;
 use std::time::Duration;
 
 use laminapdf_desktop_protocol::{
-    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, Priority, ReqId, TileFormat,
-    TileRequest, ToEngine, read_frame, write_frame,
+    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, Priority, ReqId, SandboxLevel,
+    TileFormat, TileRequest, ToEngine, read_frame, write_frame,
 };
 use laminapdf_test_fixtures::{fixture, read_at};
 
@@ -19,7 +19,7 @@ fn start_engine() -> (PipeWriter, PipeReader, thread::JoinHandle<()>) {
     let (from_engine_r, from_engine_w) = io::pipe().unwrap();
     let engine = thread::spawn(move || {
         // No renderer: tiles answer RenderUnavailable, which is enough to see them answered.
-        laminapdf_desktop_engine::run(to_engine_r, from_engine_w, None).unwrap();
+        laminapdf_desktop_engine::run(to_engine_r, from_engine_w, setup()).unwrap();
     });
     (to_engine_w, from_engine_r, engine)
 }
@@ -157,6 +157,15 @@ fn a_first_message_other_than_hello_should_stop_the_engine() {
     let (to_engine_r, mut to_engine_w) = io::pipe().unwrap();
     let (_from_engine_r, from_engine_w) = io::pipe().unwrap();
     send(&mut to_engine_w, &ToEngine::Shutdown, &[]);
-    let result = laminapdf_desktop_engine::run(to_engine_r, from_engine_w, None);
+    let result = laminapdf_desktop_engine::run(to_engine_r, from_engine_w, setup());
     assert!(result.is_err());
+}
+
+/// No renderer, no sandbox, no system fonts: routing alone.
+fn setup() -> laminapdf_desktop_engine::Setup {
+    laminapdf_desktop_engine::Setup {
+        backend: None,
+        sandboxed: SandboxLevel::default(),
+        fonts: std::sync::Arc::default(),
+    }
 }

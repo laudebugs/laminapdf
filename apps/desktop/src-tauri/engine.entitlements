@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The engine sidecar's entitlements (ADR 0008 §5): none. The engine sandboxes itself with a
+  Seatbelt profile once PDFium is loaded. App Sandbox (com.apple.security.app-sandbox) is left out
+  on purpose: under it the engine could still read system files and start processes, and a
+  process in App Sandbox can't apply the stricter Seatbelt profile. No hardened-runtime
+  exceptions either (JIT, unsigned executable memory, disabled library validation): PDFium needs
+  none. `cargo xtask desktop-sidecar` signs the engine ad hoc with this file; D6c signs it with
+  the Developer ID and the hardened runtime.
+-->
+<plist version="1.0">
+<dict/>
+</plist>

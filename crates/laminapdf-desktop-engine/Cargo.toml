@@ -22,11 +22,25 @@ name = "laminapdf_desktop_engine"
 name = "laminapdf-desktop-engine"
 path = "src/main.rs"
 
+[features]
+# `--sandbox-selftest`: the sandbox's probes (ADR 0008 §5). Test code, so not in the shipped engine:
+# the tests and CI (`--all-features`) turn it on.
+selftest = ["laminapdf-desktop-sandbox/probe"]
+# Linux: the seccomp filter traps instead of killing and names the refused system call on stderr
+# (for finding a call a new libc or PDFium makes).
+seccomp-trap = ["laminapdf-desktop-sandbox/seccomp-trap"]
+
 [dependencies]
 laminapdf = { workspace = true, features = ["saslprep"] }
 laminapdf-desktop-protocol = { workspace = true }
+# Its own half of the sandbox: the lock-down and the selftest's probes.
+laminapdf-desktop-sandbox = { workspace = true, features = ["engine"] }
 laminapdf-render = { workspace = true }
 laminapdf-render-pdfium = { workspace = true }
+
+[[test]]
+name = "sandbox_selftest"
+required-features = ["selftest"]
 
 [dev-dependencies]
 # The builder, for the large-fixture example (`examples/large_pdf.rs`).

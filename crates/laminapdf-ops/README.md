@@ -1,5 +1,7 @@
 # laminapdf-ops
 
+Edit PDFs in Rust with typed operations you can serialise as JSON, group into transactions, and undo or redo. Most programs use it through [`laminapdf`](../laminapdf/README.md), which wraps the core crates in one API.
+
 Editing PDFs through typed, serialisable ops ([ADR 0006](../../docs/decisions/0006-op-log-and-undo.md)), over the overlay of [`laminapdf-cos`](../laminapdf-cos/README.md) and the views of [`laminapdf-model`](../laminapdf-model/README.md). Part of Lamina PDF's pure core: bytes in, bytes out.
 
 - `Op` (adjacently tagged JSON, `{ "op": "rotatePage", "args": { "page": "p12.0", "rotate": 90 } }`, unknown ops and fields rejected): `SetInfo { patch: InfoPatch, at: Option<PdfDate> }` and `RotatePage { page: PageId, rotate: Rotation }`, each with a `ModificationClass` and `requires_rewrite()`. `OpLog` is the versioned envelope `{ "v": 1, "ops": [ … ] }`; `OpLog::from_json` rejects an unknown `v` before reading any op. `BlobId` (a SHA-256 content hash) is declared for later large payloads.

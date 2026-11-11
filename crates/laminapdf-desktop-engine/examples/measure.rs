@@ -7,7 +7,8 @@
 //!     --engine target/release/laminapdf-desktop-engine --file target/fixtures/1gb.pdf [--tiles 200]
 //! ```
 //!
-//! Prints the engine's resident memory when idle, the time from `OpenDocument` to `Opened` and
+//! Prints the time from spawning the engine to its `Ready` (PDFium loaded and the sandbox on), the
+//! engine's resident memory when idle, the time from `OpenDocument` to `Opened` and
 //! to `PageInfo`, the peak memory while opening, the reads it made, then (with `--tiles N` and
 //! PDFium in `LAMINA_PDF_PDFIUM_DIR`) N 512 px tiles on pages spread through the document: tiles
 //! a second, the bytes read for them, and the peak memory. Memory comes from `ps`, so macOS
@@ -29,8 +30,9 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use laminapdf_desktop_protocol::supervisor::{CommandSpawner, Config, RangeServer, Supervisor};
+use laminapdf_desktop_protocol::supervisor::{Config, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{DocId, FromEngine, Priority, TileFormat, TileRequest, ToEngine};
+use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 
 /// The file, read by position, counting what the engine asked for.
 struct Counted {
@@ -128,17 +130,37 @@ fn run() -> Result<(), String> {
         reads: AtomicU64::new(0),
         bytes: AtomicU64::new(0),
     });
-    let spawner = CommandSpawner::new(args.engine.clone(), Vec::new(), |line| eprintln!("engine: {line}"));
+    let spawner = SandboxSpawner::new(args.engine.clone(), Vec::new(), SandboxConfig::default(), |line| {
+        eprintln!("engine: {line}");
+    });
+    // The app lists the system's fonts once, in the background; here before the clock starts.
+    let fonts = SystemFonts::scan();
+    println!(
+        "system fonts: {} faces listed in {:.1} ms",
+        fonts.len(),
+        fonts.took.as_secs_f64() * 1000.0
+    );
+    let config = Config {
+        fonts: Some(Arc::new(fonts)),
+        ..Config::default()
+    };
+    let starting = Instant::now();
     let engine = Supervisor::start(
         Box::new(spawner),
         Arc::clone(&files) as Arc<dyn RangeServer>,
-        Config::default(),
+        config,
         |_, _| {},
     )
     .map_err(|e| e.to_string())?;
+    let start_time = starting.elapsed();
     let pid = engine.pid().ok_or("no engine")?;
     thread::sleep(Duration::from_millis(500));
     println!("file: {} ({} MiB)", args.file.display(), len >> 20);
+    let sandbox = engine.sandbox().map(|level| level.describe()).unwrap_or_default();
+    println!(
+        "spawn → Ready: {:.1} ms (sandbox: {sandbox})",
+        start_time.as_secs_f64() * 1000.0
+    );
     println!("engine idle: {:.1} MiB", rss_mib(pid));
 
     let doc = DocId(1);

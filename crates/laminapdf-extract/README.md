@@ -1,6 +1,8 @@
 # laminapdf-extract
 
-`laminapdf-extract` turns a PDF's text into blocks a retrieval pipeline or an LLM can use: headings, list items and paragraphs in reading order, each with a box in top-left points it can cite, and no text a reader can't see. It is part of Lamina PDF's pure core (bytes in, bytes out, no models inside it), and it implements the `laminapdf.extract/1` output that [ADR 0030](../../docs/decisions/0030-extraction-output-and-model-plugins.md) defines.
+`laminapdf-extract` turns a PDF's text into blocks a retrieval pipeline or an LLM can use: headings, list items and paragraphs in reading order, each with a box in top-left points it can cite, and no text a reader can't see. It writes Markdown, plain text, chunks sized for retrieval, and the `laminapdf.extract/1` JSON. It runs anywhere Rust or WebAssembly does, with no models inside it.
+
+It is part of Lamina PDF's pure core (bytes in, bytes out), and it implements the `laminapdf.extract/1` output that [ADR 0030](../../docs/decisions/0030-extraction-output-and-model-plugins.md) defines.
 
 ```rust
 use laminapdf_extract::{ExtractOptions, extract};
