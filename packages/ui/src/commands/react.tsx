@@ -85,6 +85,7 @@ function subscribeTo(value: CommandsValue, listener: () => void): () => void {
     value.registry.subscribe(listener),
     value.context.reader?.subscribe(listener),
     value.context.viewer?.subscribe(listener),
+    value.context.edits?.subscribe(listener),
   ];
   return () => {
     for (const stop of stops) stop?.();
@@ -148,7 +149,8 @@ export interface ShortcutGroup {
   readonly commands: readonly {
     readonly id: CommandId;
     readonly title: string;
-    readonly keys: readonly ShortcutKeys[];
+    /** Each binding's keys; `on` names the one platform a binding exists on, when it isn't both. */
+    readonly keys: readonly (ShortcutKeys & { readonly on?: KeyPlatform })[];
   }[];
 }
 
@@ -174,7 +176,7 @@ export function useShortcutMap(): readonly ShortcutGroup[] {
       if (registry.availability(command.id, context).state === "hidden") continue;
       const keys = (command.shortcuts ?? [])
         .filter((b) => isBound(b, context))
-        .map((b) => ({ mac: b.mac, other: b.other }));
+        .map((b) => ({ mac: b.mac, other: b.other, ...(b.on === undefined ? {} : { on: b.on }) }));
       if (keys.length === 0) continue;
       groups.set(command.group, [
         ...(groups.get(command.group) ?? []),

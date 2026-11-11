@@ -291,7 +291,7 @@ describe("shortcut keys", () => {
     const close = shortcutProblems([bound("a.close", "Mod+W")], "web");
     expect(close.filter((p) => p.includes("may never be bound"))).toHaveLength(2);
     expect(shortcutProblems([bound("a.close", "Mod+W")], "desktop")).toEqual([]);
-    expect(shortcutProblems([bound("a.undo", "Mod+Z")], "web")[0]).toContain("without a reason");
+    expect(shortcutProblems([bound("a.reload", "Mod+R")], "web")[0]).toContain("without a reason");
     expect(shortcutProblems([bound("a.euro", "Alt+Mod+E", "Ctrl+Alt+E")], "web")[0]).toContain("Ctrl+Alt+letter");
     expect(shortcutProblems([bound("a.one", "J", "J", "page"), bound("a.two", "J", "J", "page")], "web")).toHaveLength(
       2,

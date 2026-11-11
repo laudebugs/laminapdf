@@ -168,7 +168,7 @@ pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
-pub use laminapdf_ops::{InfoPatch, Op, OpLog, RotatePage, SetInfo, UndoOutcome};
+pub use laminapdf_ops::{InfoPatch, Op, OpLog, Reverted, RotatePage, SetInfo, UndoOutcome};
 pub use laminapdf_save::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefEol, XrefKind};
 
 #[cfg(feature = "build")]

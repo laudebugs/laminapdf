@@ -123,6 +123,7 @@ export type {
   Progress,
   Rect,
   RenderMode,
+  Reverted,
   SaveOptions,
   SaveReport,
   StructureKid,

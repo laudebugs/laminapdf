@@ -24,10 +24,12 @@ import {
   type WorkerInitOptions,
   type WorkerWasmSource,
 } from "@laminapdf/sdk/worker";
+import { EditLog } from "./edit-log.js";
 import type { FindOptions } from "./find/fold.js";
 import { FirstDraw } from "./first-draw.js";
 import {
   type BackendInit,
+  type EditHistory,
   type EditResult,
   type LoadProgress,
   type MethodName,
@@ -89,8 +91,17 @@ export interface ViewerEvents {
   "render-stuck": { readonly id: number; readonly page: number; readonly needsPassword: true };
   /** The worker crashed (not on `stop()`). */
   crashed: { readonly reason: string };
-  /** A new worker serves again (and has reopened the document, unless it needed a password). */
-  restarted: { readonly reason: RestartReason; readonly reopened: boolean };
+  /**
+   * A new worker serves again (and has reopened the document, unless it needed a password).
+   * `edits` says what became of the edit session's steps: `restored` (applied again, the same
+   * history), `lost` (the file is as it was opened), or absent when there were none.
+   */
+  restarted: { readonly reason: RestartReason; readonly reopened: boolean; readonly edits?: "restored" | "lost" };
+  /**
+   * An edit, undo or redo was made (the document's semantic dirty state is `history.unsaved`):
+   * the pages it touched, as they are now, and the edit session's history.
+   */
+  edit: EditResult;
   /** The restarted worker can't reopen the document without its password: open it again. */
   "password-required": Record<string, never>;
   /** A restart failed (the backend couldn't load again, …): the client serves nothing until `stop()` works. */
@@ -146,6 +157,8 @@ export class ViewerClient {
   /** What to reopen after a restart: the source and the options without the password. */
   #reopen: { readonly source: SourceInit; readonly options: Omit<ViewerOpenOptions, "password"> } | undefined;
   #document: OpenedDocument | undefined;
+  /** The open document's edit session, kept so a restarted worker takes it back. */
+  readonly #edits = new EditLog();
   /** Opens asked for so far: each open's ticket. */
   #opens = 0;
   #recovering: Promise<void> | undefined;
@@ -277,6 +290,7 @@ export class ViewerClient {
     }
     this.#reopen = { source, options: rest };
     this.#document = opened;
+    this.#edits.reset();
     // Only once it opened: a failed open leaves the shown document's gate as it was.
     this.#firstDraw = new FirstDraw(opened.id);
     return opened;
@@ -297,28 +311,78 @@ export class ViewerClient {
   async close(): Promise<void> {
     this.#reopen = undefined;
     this.#document = undefined;
+    this.#edits.reset();
     await this.call("closeDocument", []);
   }
 
   /**
    * Applies `ops` to the open document as one transaction (`@laminapdf/sdk`'s ops, such as
-   * `rotatePage`), and draws the pages it touched from the edited file from then on. Resolves
-   * with those pages as they now are; `document` gives their new sizes too. Pass them to
-   * `viewer.invalidate`, or call `viewer.applyEdit`, which does both. A failed edit changes nothing.
-   * The edits live in the worker: a restarted worker opens the file as it was.
+   * `rotatePage`), and draws the pages it touched from the edited file from then on. The edit
+   * session records it as one step named `label` ("Rotate page 5"), which undo takes back; an
+   * edit that changed nothing records none. Resolves with those pages as they now are and the
+   * history; `document` gives their new sizes too. Pass the pages to `viewer.invalidate`, or call
+   * `viewer.applyEdit`, which does both. A failed edit changes nothing. A restarted worker opens
+   * the file and applies the session's steps again (`restarted`'s `edits`).
    */
-  async applyEdit(ops: readonly Op[], options?: ViewerCallOptions): Promise<EditResult> {
+  applyEdit(ops: readonly Op[], options?: ViewerCallOptions & { readonly label?: string }): Promise<EditResult> {
+    const label = options?.label;
+    return this.#edit((id) => this.call("applyEdit", label === undefined ? [ops, id] : [ops, id, label], options), {
+      ops,
+      label: label ?? "",
+    });
+  }
+
+  /** Undoes the newest step of the edit session; the pages it touched are drawn as they were. */
+  undoEdit(options?: ViewerCallOptions): Promise<EditResult> {
+    return this.#edit((id) => this.call("undoEdit", [id], options));
+  }
+
+  /** Redoes the oldest undone step. */
+  redoEdit(options?: ViewerCallOptions): Promise<EditResult> {
+    return this.#edit((id) => this.call("redoEdit", [id], options));
+  }
+
+  /** Undoes or redoes steps until `position` of the history's steps are done, drawing once. */
+  goToStep(position: number, options?: ViewerCallOptions): Promise<EditResult> {
+    return this.#edit((id) => this.call("goToStep", [position, id], options));
+  }
+
+  /** The edit session's history, read from the worker (after a failed call, which answers none). */
+  async editHistory(options?: ViewerCallOptions): Promise<EditHistory> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const opened = this.#document;
+    const history = await this.call("editHistory", [opened?.id ?? 0], options);
+    // A failed edit clears the steps undone: what a restart would replay follows.
+    if (opened !== undefined && this.#document === opened) this.#edits.take({ pages: [], history });
+    return history;
+  }
+
+  /**
+   * Runs one edit session call on the open document, then keeps what it changed: the pages'
+   * sizes in `document`, the steps for a restart, and an `edit` event.
+   */
+  async #edit(
+    call: (document: number) => Promise<EditResult>,
+    edit?: { readonly ops: readonly Op[]; readonly label: string },
+  ): Promise<EditResult> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     const opened = this.#document;
     // 0 names no document: the worker answers `disposed`.
-    const result = await this.call("applyEdit", [ops, opened?.id ?? 0], options);
-    // The pages keep their sizes in `document`, for whoever lays them out.
-    if (opened !== undefined && this.#document === opened && result.pages.length > 0) {
-      const pages = [...opened.pages];
-      for (const page of result.pages) pages[page.index] = page;
-      this.#document = { ...opened, pages };
-    }
+    const result = await call(opened?.id ?? 0);
+    // Another document opened meanwhile: this answer is the old one's.
+    if (opened === undefined || this.#document !== opened) return result;
+    this.#takePages(opened, result);
+    this.#edits.take(result, edit);
+    this.#events.emit("edit", result);
     return result;
+  }
+
+  /** The pages keep their sizes in `document`, for whoever lays them out. */
+  #takePages(opened: OpenedDocument, result: EditResult): void {
+    if (result.pages.length === 0) return;
+    const pages = [...opened.pages];
+    for (const page of result.pages) pages[page.index] = page;
+    this.#document = { ...opened, pages };
   }
 
   /**
@@ -497,7 +561,70 @@ export class ViewerClient {
   terminate(): void {
     this.#reopen = undefined;
     this.#document = undefined;
+    this.#edits.reset();
     this.#pdf.terminate();
+  }
+
+  /**
+   * Applies the edit session's steps to the document a new worker reopened, which is the file as
+   * first opened. When they can't all be applied again, the session starts over.
+   */
+  /**
+   * `restored`; `lost` when the steps couldn't be replayed, and nothing was sent; `failed` when the
+   * replay failed half way, leaving edits in the model that aren't drawn.
+   */
+  async #restoreEdits(opened: OpenedDocument): Promise<"restored" | "lost" | "failed" | undefined> {
+    if (this.#edits.empty) return undefined;
+    const replay = this.#edits.replay();
+    // A replay that can't reproduce the document would show something else as restored.
+    if (replay === undefined) {
+      this.#edits.reset();
+      return "lost";
+    }
+    const { steps, undone } = replay;
+    try {
+      const result = (await this.#pdf.request("restoreEdits", [steps, undone, opened.id], {
+        priority: PRIORITY.document,
+      })) as EditResult;
+      this.#takePages(opened, result);
+      this.#edits.replayed(result);
+      this.#events.emit("edit", result);
+      return "restored";
+    } catch {
+      this.#edits.reset();
+      return "failed";
+    }
+  }
+
+  /**
+   * Opens the document again in a restarted worker, with its edits: `reopened` when it did,
+   * `edits` what became of the session's steps. An encrypted document waits for its password.
+   */
+  async #reopenAfterRestart(): Promise<{ reopened: boolean; edits: "restored" | "lost" | undefined }> {
+    const reopen = this.#reopen;
+    if (reopen === undefined) return { reopened: false, edits: undefined };
+    if (this.#document?.needsPassword === true) {
+      // The password died with the worker; it is never kept on the page.
+      this.#reopen = undefined;
+      this.#document = undefined;
+      const edits = this.#edits.empty ? undefined : "lost";
+      this.#edits.reset();
+      this.#events.emit("password-required", {});
+      return { reopened: false, edits };
+    }
+    const open = async () => {
+      this.#document = (await this.#pdf.request("openDocument", [reopen.source, reopen.options], {
+        priority: PRIORITY.document,
+      })) as OpenedDocument;
+      // The restarted worker has no extract module yet: its first page goes first again.
+      this.#firstDraw = new FirstDraw(this.#document.id);
+      return this.#document;
+    };
+    const restored = await this.#restoreEdits(await open());
+    // A replay that failed half way left edits in the model that aren't drawn: open the file once
+    // more, as it was. One that never started left the file as opened, so it isn't opened again.
+    if (restored === "failed") await open();
+    return { reopened: true, edits: restored === "failed" ? "lost" : restored };
   }
 
   #recover(reason: RestartReason): Promise<void> {
@@ -505,24 +632,8 @@ export class ViewerClient {
     const recovering = (async () => {
       await this.#pdf.restart();
       await this.#pdf.request("initBackend", [this.#backend], { priority: PRIORITY.document });
-      let reopened = false;
-      const reopen = this.#reopen;
-      if (reopen !== undefined) {
-        if (this.#document?.needsPassword === true) {
-          // The password died with the worker; it is never kept on the page.
-          this.#reopen = undefined;
-          this.#document = undefined;
-          this.#events.emit("password-required", {});
-        } else {
-          this.#document = (await this.#pdf.request("openDocument", [reopen.source, reopen.options], {
-            priority: PRIORITY.document,
-          })) as OpenedDocument;
-          // The restarted worker has no extract module yet: its first page goes first again.
-          this.#firstDraw = new FirstDraw(this.#document.id);
-          reopened = true;
-        }
-      }
-      this.#events.emit("restarted", { reason, reopened });
+      const { reopened, edits } = await this.#reopenAfterRestart();
+      this.#events.emit("restarted", { reason, reopened, ...(edits === undefined ? {} : { edits }) });
     })();
     const tracked = recovering.finally(() => {
       if (this.#recovering === tracked) this.#recovering = undefined;

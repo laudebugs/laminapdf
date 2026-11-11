@@ -17,6 +17,7 @@ import {
   type GatedEntry,
   Inspector,
   LeftRail,
+  type MenuEntry,
   type ModeRegistry,
   message,
   OpenDropZone,
@@ -25,6 +26,7 @@ import {
   PhoneBottomBar,
   type Platform,
   type PlatformFile,
+  type RailTab,
   type ReaderController,
   type ReaderError,
   ReaderShell,
@@ -49,8 +51,8 @@ import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAnnouncements } from "./announce.tsx";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
+import { type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
-import { LinkPreviews } from "./link-preview.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { clearDocumentCache } from "./offline/document-cache.ts";
@@ -74,7 +76,8 @@ const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 /** The website's privacy page, which states the reader's privacy promises. */
 const PRIVACY_URL = "https://laminapdf.com/privacy/";
 
-type MoreId =
+/** The More menu's own items; the edit items join them (`withEditItems`). */
+type ReaderMoreId =
   | "save-copy"
   | "print"
   | "properties"
@@ -91,15 +94,19 @@ const MORE_COMMANDS = {
   print: "file.print",
   properties: "file.properties",
 } as const satisfies Record<
-  Exclude<MoreId, "install" | "open" | "rotate" | "settings" | "shortcuts" | "privacy">,
+  Exclude<ReaderMoreId, "install" | "open" | "rotate" | "settings" | "shortcuts" | "privacy">,
   OutputCommand
 >;
 
+/** Every item of the More menu: the edit items and its own. */
+type MoreId = EditMenuId | ReaderMoreId;
+
 /**
  * The More menu (R09): Download a copy, Print… and Document properties, which need an open
- * document, then the reader's own items.
+ * document; then the reader's own items. The edit items (the web's Edit menu, O01) go first once
+ * a document is open (`withEditItems`).
  */
-function moreEntries(open: boolean, installable: boolean): GatedEntry<MoreId>[] {
+function moreEntries(open: boolean, installable: boolean): GatedEntry<ReaderMoreId>[] {
   const needsDocument = open ? {} : { isDisabled: true, disabledReason: message("command.reason.noDocument") };
   return [
     { id: "save-copy", label: message("command.file.save-copy"), icon: "download", ...needsDocument },
@@ -183,13 +190,16 @@ function useHistory(
   return { history: { back: label(state.back), forward: label(state.forward) }, actions };
 }
 
-/** Names the window after the open document (its title, else its file name); nothing leaves the page. */
-function useWindowTitle(fileName: string | undefined, title: string | undefined): void {
+/**
+ * Names the window after the open document (its title, else its file name), with a "•" while it
+ * has unsaved changes; nothing leaves the page.
+ */
+function useWindowTitle(fileName: string | undefined, title: string | undefined, unsaved: boolean): void {
   useEffect(() => {
     document.title = windowTitle(
-      fileName === undefined ? undefined : { fileName, ...(title === undefined ? {} : { title }) },
+      fileName === undefined ? undefined : { fileName, unsaved, ...(title === undefined ? {} : { title }) },
     );
-  }, [fileName, title]);
+  }, [fileName, title, unsaved]);
 }
 
 /** The registry with the reader's commands, and the context they run in: focus mode, the modes and the palette are the shell's. */
@@ -197,22 +207,20 @@ function useReaderCommands(
   platform: Platform,
   reader: ReaderController,
   viewer: Viewer | undefined,
-  shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
+  shell: Shell,
   rail: boolean,
-  /** The handlers that need an open document: find, Back and Forward, print, download, properties and the selection's. */
+  /** The handlers that need an open document: find, Back and Forward, print, download, properties, the selection's and the edits'. */
   documentActions: FindActions &
+    Editing["actions"] &
     ReturnType<typeof useHistory>["actions"] &
     Output["actions"] &
     SelectionSurfaces["actions"] &
     ReaderMode["actions"],
   /** The handlers that work with or without a document: the settings'. */
   appActions: Settings["actions"],
+  edits: Editing["edits"],
 ): { registry: CommandRegistry; context: CommandContext } {
-  const [registry] = useState(() => {
-    const commands = new CommandRegistry();
-    registerReaderCommands(commands);
-    return commands;
-  });
+  const { registry } = shell;
   // A mode registered later gets its `mode.<id>` handler: the context follows the modes.
   const modes = useStoreState(shell.modes, (s) => s.modes);
   const context = useMemo<CommandContext>(
@@ -220,6 +228,7 @@ function useReaderCommands(
       platform,
       reader,
       ...(viewer === undefined ? {} : { viewer }),
+      ...(viewer === undefined || edits === undefined ? {} : { edits }),
       // Without rail tabs (no document open) the sidebar command has no handler and stays out of view.
       actions: {
         ...shellActions(shell.layout, shell.modes, { rail }),
@@ -229,13 +238,50 @@ function useReaderCommands(
         "privacy.network-activity": () => shell.layout.openInspector({ id: NETWORK_PANEL, selection: false }),
       },
     }),
-    [platform, reader, viewer, shell, modes, rail, documentActions, appActions],
+    [platform, reader, viewer, shell, modes, rail, documentActions, appActions, edits],
   );
   return { registry, context };
 }
 
-/** The status bar's items: the repaired notice, and under #debug the first page's timing. */
-function statusItems(engine: EngineState, debug: boolean, onRepairs: (() => void) | undefined): ReactNode[] {
+/** The shell's parts every hook shares: the layout, the modes, the palette and the commands. */
+interface Shell {
+  readonly layout: ShellLayout;
+  readonly modes: ModeRegistry;
+  readonly openPalette: () => void;
+  /** The commands, with the reader's registered; the edit commands join once a document is open. */
+  readonly registry: CommandRegistry;
+}
+
+/** The shell's parts, made once, and whether the palette is open. */
+function useAppShell(platform: Platform) {
+  const [palette, setPalette] = useState(false);
+  const { layout, modes } = useShell(platform.storage);
+  const [shell] = useState<Shell>(() => ({
+    layout,
+    modes,
+    openPalette: () => setPalette(true),
+    registry: readerRegistry(),
+  }));
+  return { shell, palette, setPalette };
+}
+
+/** The commands' registry with the reader's commands. */
+function readerRegistry(): CommandRegistry {
+  const commands = new CommandRegistry();
+  registerReaderCommands(commands);
+  return commands;
+}
+
+/**
+ * The status bar's items: the repaired notice, and under #debug the first page's timing and the
+ * last edit's, from the call to its pages redrawn.
+ */
+function statusItems(
+  engine: EngineState,
+  debug: boolean,
+  onRepairs: (() => void) | undefined,
+  editMs: number | undefined,
+): ReactNode[] {
   const items: ReactNode[] = [];
   if (onRepairs !== undefined) {
     items.push(
@@ -250,6 +296,9 @@ function statusItems(engine: EngineState, debug: boolean, onRepairs: (() => void
   const { timing } = engine;
   if (debug && timing !== undefined) {
     items.push(<StatusBarItem key="timing">{`${timing.backend} · page 1 in ${timing.firstPageMs} ms`}</StatusBarItem>);
+  }
+  if (debug && editMs !== undefined) {
+    items.push(<StatusBarItem key="edit-timing">{`last edit drawn in ${Math.round(editMs)} ms`}</StatusBarItem>);
   }
   return items;
 }
@@ -363,6 +412,8 @@ function usePanels(
     readonly toasts: ToastQueue;
     readonly documentOpen: boolean;
     readonly readerMode: ReaderMode;
+    /** The last edit's time from the call to its pages redrawn, for #debug. */
+    readonly editMs: number | undefined;
   },
 ): { inspector: ReactNode; status: ReactNode[]; notice: ReactNode } {
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, platform, fileName, engine.repairs);
@@ -375,7 +426,7 @@ function usePanels(
     status: [
       ...(shared.readerMode.status === undefined ? [] : [shared.readerMode.status]),
       ...(indicator === undefined ? [] : [indicator]),
-      ...statusItems(engine, debug, showRepairs),
+      ...statusItems(engine, debug, showRepairs, shared.editMs),
       ...connection.status,
       <FocusModeItem key="focus-mode" layout={layout} />,
     ],
@@ -393,16 +444,16 @@ function useDocumentMenu(
   state: ReaderState,
   shown: Viewer | undefined,
   settings: Settings,
-  updates: AppUpdates,
-  toasts: ToastQueue,
+  shared: { readonly updates: AppUpdates; readonly toasts: ToastQueue },
 ): {
   labels: readonly string[] | undefined;
   output: Output;
-  moreItems: { items: ReturnType<typeof useGatedEntries<MoreId>>; onAction: (id: MoreId) => void };
+  moreItems: { items: ReturnType<typeof useGatedEntries<ReaderMoreId>>; onAction: (id: ReaderMoreId) => void };
   recent: Recent;
   /** The handlers that work with or without a document: the settings', recent files', install and update. */
   appActions: Settings["actions"];
 } {
+  const { updates, toasts } = shared;
   const appActions = settings.actions;
   const pages = useStoreState(engine, (s) => s.pages);
   const labels = useMemo(
@@ -418,9 +469,9 @@ function useDocumentMenu(
     clearDocumentCache(platform.storage),
   );
   const install = useInstall();
-  const items = useGatedEntries<MoreId>(moreEntries(document !== undefined, install.available));
-  const onAction = (id: MoreId) => {
-    if (id === "open") engine.reader.close();
+  const items = useGatedEntries<ReaderMoreId>(moreEntries(document !== undefined, install.available));
+  const onAction = (id: ReaderMoreId) => {
+    if (id === "open") void engine.reader.requestClose();
     else if (id === "rotate") engine.getState().viewer?.rotate(90);
     else if (id === "settings") appActions["app.settings"]?.(undefined);
     else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
@@ -439,6 +490,21 @@ function useDocumentMenu(
       ...install.actions,
       ...(updates.getState().ready ? { "app.reload-update": () => updates.reload() } : {}),
     },
+  };
+}
+
+/**
+ * The More menu with the edit items first: they come with the edit commands, once a document is
+ * open, and are made in the commands' own context.
+ */
+function withEditItems(
+  edit: ReturnType<Editing["menu"]>,
+  more: { readonly items: readonly MenuEntry<ReaderMoreId>[]; readonly onAction: (id: ReaderMoreId) => void },
+): { items: MenuEntry<MoreId>[]; onAction: (id: MoreId) => void } {
+  const isEditItem = (id: MoreId): id is EditMenuId => edit.items.some((item) => item.id === id);
+  return {
+    items: [...edit.items, ...more.items],
+    onAction: (id) => (isEditItem(id) ? edit.run(id) : more.onAction(id)),
   };
 }
 
@@ -500,13 +566,22 @@ export interface AppProps {
   readonly debug: boolean;
 }
 
-/** The rail's tabs for the open document, made again only when the view, the strip or find changes. */
-function useRailTabs(engine: Engine, layout: ShellLayout, open: boolean, finding: boolean) {
+/**
+ * The rail's tabs for the open document, made again only when the view, the strip, find or the
+ * History tab changes; History comes last, once an edit was made.
+ */
+function useRailTabs(
+  engine: Engine,
+  layout: ShellLayout,
+  open: boolean,
+  finding: boolean,
+  history: RailTab | undefined,
+) {
   const { strip, viewer } = useStoreState(engine, (s) => s);
-  return useMemo(
-    () => railTabs(engine, layout, open ? { strip, viewer, finding } : undefined),
-    [engine, layout, open, strip, viewer, finding],
-  );
+  return useMemo(() => {
+    const tabs = railTabs(engine, layout, open ? { strip, viewer, finding } : undefined);
+    return tabs.length > 0 && history !== undefined ? [...tabs, history] : tabs;
+  }, [engine, layout, open, strip, viewer, finding, history]);
 }
 
 /** The settings, with the page appearance of the document `viewer` shows, and the toasts they share. */
@@ -519,35 +594,66 @@ function useAppSettings(
   return { settings: useSettings(openPalette, usePageAppearance(viewer, file, toasts)), toasts };
 }
 
+/**
+ * What the chrome around the open document needs: find, the rail's tabs, Back and Forward, the
+ * selection's surfaces, reader mode, and the commands with every handler they run.
+ */
+function useDocumentChrome(options: {
+  readonly engine: Engine;
+  readonly platform: Platform;
+  readonly shell: Shell;
+  readonly state: ReaderState;
+  readonly shown: Viewer | undefined;
+  readonly editing: Editing;
+  readonly menu: { readonly output: Output; readonly appActions: Settings["actions"] };
+}) {
+  const { engine, platform, shell, state, shown, editing } = options;
+  const { output, appActions } = options.menu;
+  const open = state.phase === "open";
+  const pages = useStoreState(engine, (s) => s.pages);
+  const find = useFind(shown, open ? state.file : undefined);
+  const tabs = useRailTabs(engine, shell.layout, open, find.open, editing.tab);
+  const rail = tabs.length > 0;
+  const history = useHistory(shown, pages);
+  const selection = useSelection(shown, find, platform, KEYS);
+  const reading = useReaderMode(engine, shell.layout, platform, shown, open ? state.file : undefined);
+  const actions = {
+    ...find.actions,
+    ...history.actions,
+    ...output.actions,
+    ...selection.actions,
+    ...reading.actions,
+    ...editing.actions,
+  };
+  const commands = useReaderCommands(platform, engine.reader, shown, shell, rail, actions, appActions, editing.edits);
+  return { find, tabs, rail, history, selection, reading, commands };
+}
+
 /** The reader over `engine`, on `platform`. */
 export function App({ engine, platform, network, updates, debug }: AppProps): ReactNode {
   const state = useReaderState(engine.reader);
   const engineState = useStoreState(engine, (s) => s);
-  const [palette, setPalette] = useState(false);
-  const { layout, modes } = useShell(platform.storage);
-  const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
+  const { shell, palette, setPalette } = useAppShell(platform);
+  const { layout, modes } = shell;
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const open = state.phase === "open";
   const shown = open ? engineState.viewer : undefined;
   const { settings, toasts } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined);
-  const menu = useDocumentMenu(engine, platform, state, shown, settings, updates, toasts);
-  const { labels, output, moreItems, recent } = menu;
-  const find = useFind(shown, open ? state.file : undefined);
-  const tabs = useRailTabs(engine, layout, open, find.open);
   const fileName = open ? state.file.name : undefined;
-  const rail = tabs.length > 0;
-  const history = useHistory(shown, engineState.pages);
-  const selection = useSelection(shown, find, platform, KEYS);
-  const reading = useReaderMode(engine, layout, platform, shown, open ? state.file : undefined);
-  const actions = { ...find.actions, ...history.actions, ...output.actions, ...selection.actions, ...reading.actions };
-  const commands = useReaderCommands(platform, engine.reader, shown, shell, rail, actions, menu.appActions);
-  useWindowTitle(fileName, engineState.title);
+  const editing = useEditing({ engine, shell, viewer: shown, toasts, fileName, keys: KEYS });
+  const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts });
+  const { labels, output, recent } = menu;
+  const chrome = useDocumentChrome({ engine, platform, shell, state, shown, editing, menu });
+  const { find, tabs, rail, history, selection, reading, commands } = chrome;
+  const moreItems = withEditItems(editing.menu(commands.context), menu.moreItems);
+  useWindowTitle(fileName, engineState.title, editing.unsaved);
   const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState);
   const { inspector, status, notice } = usePanels(layout, platform, network, fileName, engineState, debug, {
     updates,
     toasts,
     documentOpen: open,
     readerMode: reading,
+    editMs: editing.lastMs,
   });
   return (
     <CommandsProvider
@@ -565,6 +671,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           <ReaderTopBar
             reader={engine.reader}
             {...(shown === undefined ? {} : { viewer: shown })}
+            editArea={editing.topBar}
             keys={KEYS}
             sidebarOpen={sidebar}
             findOpen={find.open}
@@ -591,8 +698,12 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           readerMode={reading}
         />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
-        <LinkPreviews engine={engine} viewer={shown} />
+        {/* The link previews (R07) load once a document is open (later.ts, #380). */}
+        {shown === undefined || editing.later === undefined ? null : (
+          <editing.later.LinkPreviews engine={engine} viewer={shown} />
+        )}
         {output.dialogs}
+        {editing.runtime(commands.registry)}
       </ReaderShell>
       <ToastRegion queue={toasts} aria-label={message("shell.toasts")} />
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />

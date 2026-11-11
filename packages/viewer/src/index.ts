@@ -6,6 +6,15 @@
 export type { CanvasPoolOptions } from "./canvas/pool.js";
 export type { RestartReason, ViewerCallOptions, ViewerEvent, ViewerEvents, ViewerOptions } from "./client.js";
 export { ViewerClient } from "./client.js";
+export {
+  CLOSED_SESSION,
+  type EditBlock,
+  type EditFailure,
+  type EditSession,
+  type EditSessionState,
+  type FailureListener,
+  type RevertListener,
+} from "./edit/session.js";
 export type { FindController, FindResult, FindState } from "./find/controller.js";
 export type { FindOptions } from "./find/fold.js";
 export type { FindSnippet } from "./find/page.js";
@@ -26,7 +35,9 @@ export { type NetworkSink, watchNetwork } from "./network/watch.js";
 export type {
   BackendInit,
   BackendName,
+  EditHistory,
   EditResult,
+  EditStep,
   FindPageResult,
   LoadProgress,
   MethodName,
@@ -43,7 +54,9 @@ export type {
   ReadingBlock,
   RemoteSource,
   RenderedBitmap,
+  ReplayedStep,
   Result,
+  RevertedStep,
   SourceInit,
   StructureData,
   TextRunData,
@@ -51,6 +64,7 @@ export type {
   WorkerMemory,
   WorkerNetworkLog,
 } from "./protocol.js";
+export { EMPTY_HISTORY, HISTORY_DEPTH } from "./protocol.js";
 export { CACHE_FOLDER } from "./source/opfs.js";
 export { ThumbnailStrip, type ThumbnailStripOptions } from "./thumbnails/strip.js";
 export type { LinkPreviewPicture } from "./view/previews.js";

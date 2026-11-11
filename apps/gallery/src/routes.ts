@@ -50,8 +50,8 @@ export const ROUTES: readonly Route[] = [
   },
   {
     id: "rail",
-    title: "Thumbnails and outline rows",
-    components: ["Thumbnail", "OutlineRow", "OutlineTree"],
+    title: "Thumbnails, outline and history",
+    components: ["Thumbnail", "OutlineRow", "OutlineTree", "HistoryPanel"],
     pageRelated: true,
   },
   {
@@ -59,6 +59,7 @@ export const ROUTES: readonly Route[] = [
     title: "Reader chrome",
     components: [
       "ReaderTopBar",
+      "EditArea",
       "FindBar",
       "FindResults",
       "PageInput",

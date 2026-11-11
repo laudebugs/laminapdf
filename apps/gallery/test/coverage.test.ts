@@ -23,6 +23,7 @@ const NOT_DRAWN: Readonly<Record<string, string>> = {
   DensityProvider: "a context provider: the gallery's density control sets it on every route",
   PlatformProvider: "a context provider",
   ModeRegistry: "the shell's store of modes, which the shell-regions route drives",
+  ToolRegistry: "the store of interaction modes (tools), which draws nothing",
   ReaderController: "a state controller, which the reader routes drive",
   RecentCommands: "the palette's list of recent commands, kept in storage",
   RegistryPalette: "CommandPalette (on the overlays route) filled from a command registry",
@@ -33,8 +34,8 @@ const NOT_DRAWN: Readonly<Record<string, string>> = {
   SettingsRegistry: "the Settings dialog's store of sections, which the dialogs route fills",
 };
 
-/** The package's entries that export components: the root and `./dialogs`. */
-const ENTRIES = ["index.ts", "dialogs.ts"];
+/** The package's entries that export components: the root, `./dialogs`, `./editing` and `./reader-mode`. */
+const ENTRIES = ["index.ts", "dialogs.ts", "editing.ts", "reader-mode.ts"];
 
 /** The value exports of @laminapdf/ui whose names start with a capital (components and classes). */
 function exportedComponents(): string[] {

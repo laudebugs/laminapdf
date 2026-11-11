@@ -14,6 +14,10 @@ describe("windowTitle", () => {
     expect(windowTitle({ fileName: "scan.pdf" })).toBe("scan.pdf · Lamina PDF");
     expect(windowTitle({ title: "  ", fileName: "scan.pdf" })).toBe("scan.pdf · Lamina PDF");
   });
+
+  it("starts with a dot while the document has unsaved changes", () => {
+    expect(windowTitle({ fileName: "scan.pdf", unsaved: true })).toBe("• scan.pdf · Lamina PDF");
+  });
 });
 
 describe("repairsFrom", () => {

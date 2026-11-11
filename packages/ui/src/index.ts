@@ -130,7 +130,19 @@ export {
 export { Thumbnail, type ThumbnailProps, type ThumbnailSize } from "./components/thumbnail.js";
 export { ToggleButton, type ToggleButtonProps, ToolToggle, type ToolToggleProps } from "./components/toggle.js";
 export { type Density, DensityProvider, type DensityProviderProps, useDensity } from "./density.js";
-export { type Catalogue, ENGLISH, type MessageId, message } from "./messages.js";
+export {
+  type EditBlockReason,
+  type EditControls,
+  type EditSlice,
+  type EditStepSlice,
+  inSentence,
+  type RevertedSlice,
+  saveStateText,
+  sessionStarted,
+  stepToRedo,
+  stepToUndo,
+} from "./edit/edit-controls.js";
+export { type Catalogue, countMessage, ENGLISH, type MessageId, message } from "./messages.js";
 export {
   Dialog,
   type DialogProps,
@@ -266,19 +278,18 @@ export {
 } from "./reader/properties.js";
 export {
   DEFAULT_READER_SETTINGS,
-  isCropBlock,
   READER_TEXT_SIZES,
-  type ReaderApproximation,
-  type ReaderBlock,
   type ReaderLineLength,
   type ReaderLineSpacing,
   type ReaderSettings,
-  ReaderSettingsPanel,
-  type ReaderSettingsPanelProps,
-  ReaderView,
-  type ReaderViewContent,
-  type ReaderViewProps,
   readerTextSize,
+} from "./reader/reader-settings.js";
+export type {
+  ReaderApproximation,
+  ReaderBlock,
+  ReaderSettingsPanelProps,
+  ReaderViewContent,
+  ReaderViewProps,
 } from "./reader/reader-view.js";
 export { type ContinueReading, RecentList, type RecentListProps, recentMeta } from "./reader/recent-list.js";
 export {
@@ -340,12 +351,12 @@ export {
 } from "./shell/phone.js";
 export { useShell } from "./shell/use-shell.js";
 export { type ExternalStore, useMediaQuery, useReaderState, useStoreState } from "./state/hooks.js";
-export { type OpenedDocument, type Opener, ReaderController } from "./state/reader-controller.js";
+export { type CloseGuard, type OpenedDocument, type Opener, ReaderController } from "./state/reader-controller.js";
 export {
   EMPTY,
-  type InteractionMode,
   type ReaderError,
   type ReaderEvent,
   type ReaderState,
   transition,
 } from "./state/reader-machine.js";
+export type { InteractionMode, InteractionModes, ToolHost, ToolModule, ToolsState } from "./tools/tools.js";
