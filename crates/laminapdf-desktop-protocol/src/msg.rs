@@ -177,6 +177,65 @@ pub enum FailureKind {
     Protocol,
 }
 
+/// What the engine's sandbox enforces (ADR 0008 §5): one flag per layer, so the main process
+/// logs exactly which ones an engine runs under. Each OS sets only its own layers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "one independent flag per sandbox layer; a set of them is what the log reports"
+)]
+pub struct SandboxLevel {
+    /// Turned off for diagnosis (`LAMINA_PDF_ENGINE_SANDBOX=off`, debug builds only).
+    pub off: bool,
+    /// Linux: `PR_SET_NO_NEW_PRIVS`.
+    pub no_new_privs: bool,
+    /// Linux: the seccomp-bpf allow-list.
+    pub seccomp: bool,
+    /// Linux: the Landlock ABI the ruleset was built for (0: no Landlock).
+    pub landlock_abi: u8,
+    /// Linux: whether the kernel enforced every access right the ruleset handles.
+    pub landlock_full: bool,
+    /// Linux: `RLIMIT_AS`; Windows: the job's memory limit.
+    pub memory_limit: bool,
+    /// macOS: the Seatbelt profile.
+    pub seatbelt: bool,
+    /// Windows: the job object (one process, kill on close, UI limits).
+    pub job: bool,
+    /// Windows: Low integrity.
+    pub low_integrity: bool,
+    /// Windows: the locked-down restricted token, after `RevertToSelf`.
+    pub restricted_token: bool,
+    /// Windows: the process mitigation policies (no child processes, image loads).
+    pub mitigations: bool,
+}
+
+impl SandboxLevel {
+    /// The layers that are on, for the log: `seccomp landlock-v5 …`, or `off`, or `none`.
+    #[must_use]
+    pub fn describe(&self) -> String {
+        if self.off {
+            return "off".into();
+        }
+        let mut on: Vec<String> = Vec::new();
+        let flags = [
+            (self.no_new_privs, "no-new-privs"),
+            (self.seccomp, "seccomp"),
+            (self.memory_limit, "memory-limit"),
+            (self.seatbelt, "seatbelt"),
+            (self.job, "job"),
+            (self.low_integrity, "low-integrity"),
+            (self.restricted_token, "restricted-token"),
+            (self.mitigations, "mitigations"),
+        ];
+        on.extend(flags.iter().filter(|(set, _)| *set).map(|(_, name)| (*name).to_owned()));
+        if self.landlock_abi > 0 {
+            let partial = if self.landlock_full { "" } else { " (partial)" };
+            on.push(format!("landlock-v{}{partial}", self.landlock_abi));
+        }
+        if on.is_empty() { "none".into() } else { on.join(" ") }
+    }
+}
+
 /// A message from the main process to the engine.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ToEngine {
@@ -259,6 +318,8 @@ pub enum FromEngine {
         version: u16,
         /// The engine's process id.
         pid: u32,
+        /// What the sandbox enforces; sent last, once every layer is on (ADR 0008 §5).
+        sandboxed: SandboxLevel,
     },
     /// The engine needs bytes of a document; answered by [`ToEngine::RangeData`] or
     /// [`ToEngine::RangeFailed`].

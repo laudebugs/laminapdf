@@ -156,8 +156,8 @@ fn read_exact<R: Read>(r: &mut R, buf: &mut [u8]) -> Result<(), ProtocolError> {
 mod tests {
     use super::*;
     use crate::{
-        DocId, EngineLimits, FailureKind, FromEngine, PageDimensions, Password, Priority, ReqId, TileFormat,
-        TileRequest, ToEngine,
+        DocId, EngineLimits, FailureKind, FromEngine, PageDimensions, Password, Priority, ReqId, SandboxLevel,
+        TileFormat, TileRequest, ToEngine,
     };
 
     fn encode<M: Serialize>(msg: &M, payload: &[u8]) -> Vec<u8> {
@@ -226,6 +226,7 @@ mod tests {
             FromEngine::Ready {
                 version: PROTOCOL_VERSION,
                 pid: 4242,
+                sandboxed: SandboxLevel::default(),
             },
             FromEngine::ReadRange {
                 req,

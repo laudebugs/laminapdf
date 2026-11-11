@@ -2,7 +2,8 @@
 //! to requests, serves the engine's reads, watches its heartbeat and restarts it after a crash.
 //!
 //! It knows nothing of Tauri, so the engine's tests drive it with the real binary and this
-//! module's tests with an in-process fake ([`Spawner`]).
+//! module's tests with an in-process fake ([`Spawner`]). The real engine starts through
+//! `laminapdf-desktop-sandbox`'s spawner, inside its sandbox.
 //!
 //! **Restart policy** (ADR 0008 §2): an engine that exits or misses its heartbeats for
 //! [`Config::heartbeat_timeout`] is killed and started again after [`Config::backoff`], doubled
@@ -17,10 +18,7 @@
 //! its reply slot and releases it before writing.
 
 use std::collections::{BTreeMap, VecDeque};
-use std::ffi::OsString;
-use std::io::{self, BufRead, BufReader, Read, Write};
-use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
+use std::io::{self, Read, Write};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -28,7 +26,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::{
-    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ReqId, ToEngine,
+    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ReqId, SandboxLevel,
+    ToEngine,
 };
 use crate::{read_frame, write_frame};
 
@@ -172,6 +171,7 @@ struct State {
 struct Engine {
     generation: u64,
     pid: u32,
+    sandboxed: SandboxLevel,
     stdin: Arc<Mutex<Box<dyn Write + Send>>>,
     process: Arc<Mutex<Box<dyn Process>>>,
 }
@@ -258,6 +258,11 @@ impl Supervisor {
         self.state().engine.as_ref().map(|engine| engine.pid)
     }
 
+    /// What the running engine's sandbox enforces, from its `Ready`.
+    pub fn sandbox(&self) -> Option<SandboxLevel> {
+        self.state().engine.as_ref().map(|engine| engine.sandboxed)
+    }
+
     /// Whether the engine crashed too often and stays down.
     pub fn has_failed(&self) -> bool {
         self.state().failed
@@ -324,12 +329,12 @@ impl Supervisor {
         };
         let pid = started.and_then(|()| reader.map_err(|e| e.to_string())).and_then(|_| {
             match ready_rx.recv_timeout(self.inner.config.start_timeout) {
-                Ok(pid) => Ok(pid),
+                Ok(ready) => Ok(ready),
                 Err(_) => Err("no Ready".to_owned()),
             }
         });
-        let pid = match pid {
-            Ok(pid) => pid,
+        let (pid, sandboxed) = match pid {
+            Ok(ready) => ready,
             Err(why) => return Err(SupervisorError::Start(format!("{why} ({})", reap(&process)))),
         };
         let stopping = {
@@ -337,6 +342,7 @@ impl Supervisor {
             state.engine = Some(Engine {
                 generation,
                 pid,
+                sandboxed,
                 stdin,
                 process: Arc::clone(&process),
             });
@@ -364,7 +370,7 @@ impl Supervisor {
         mut stdout: Box<dyn Read + Send>,
         stdin: &Mutex<Box<dyn Write + Send>>,
         beat: &Mutex<Instant>,
-        ready: &mpsc::Sender<u32>,
+        ready: &mpsc::Sender<(u32, SandboxLevel)>,
     ) {
         loop {
             let (msg, payload) = match read_frame::<_, FromEngine>(&mut stdout, MAX_FRAME) {
@@ -376,8 +382,13 @@ impl Supervisor {
                 }
             };
             match msg {
-                FromEngine::Ready { version, pid } if version == PROTOCOL_VERSION => {
-                    let _ = ready.send(pid);
+                FromEngine::Ready {
+                    version,
+                    pid,
+                    sandboxed,
+                } if version == PROTOCOL_VERSION => {
+                    self.log(format!("engine {pid} is ready; sandbox: {}", sandboxed.describe()));
+                    let _ = ready.send((pid, sandboxed));
                 }
                 FromEngine::Ready { version, .. } => {
                     self.log(format!("the engine speaks protocol {version}"));
@@ -565,79 +576,6 @@ fn reap(process: &Mutex<Box<dyn Process>>) -> String {
 
 fn lock<T: ?Sized>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(PoisonError::into_inner)
-}
-
-/// Starts the engine binary with piped stdio, copying its stderr lines to `log`.
-pub struct CommandSpawner {
-    program: PathBuf,
-    args: Vec<OsString>,
-    log: Arc<dyn Fn(String) + Send + Sync>,
-}
-
-impl CommandSpawner {
-    /// `program` with `args`; each line the engine writes to stderr goes to `log`.
-    pub fn new(program: PathBuf, args: Vec<OsString>, log: impl Fn(String) + Send + Sync + 'static) -> Self {
-        Self {
-            program,
-            args,
-            log: Arc::new(log),
-        }
-    }
-}
-
-impl Spawner for CommandSpawner {
-    fn spawn(&self) -> io::Result<Spawned> {
-        let mut command = Command::new(&self.program);
-        command
-            .args(&self.args)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt as _;
-            // CREATE_NO_WINDOW: the engine is a console program; the app shows no console.
-            command.creation_flags(0x0800_0000);
-        }
-        let mut child = command.spawn()?;
-        let missing = || io::Error::other("a pipe was not set up");
-        let stdin = child.stdin.take().ok_or_else(missing)?;
-        let stdout = child.stdout.take().ok_or_else(missing)?;
-        if let Some(stderr) = child.stderr.take() {
-            let log = Arc::clone(&self.log);
-            let _ = thread::Builder::new().name("engine-stderr".into()).spawn(move || {
-                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                    log(line);
-                }
-            });
-        }
-        Ok(Spawned {
-            stdin: Box::new(stdin),
-            stdout: Box::new(BufReader::new(stdout)),
-            process: Box::new(ChildProcess(child)),
-        })
-    }
-}
-
-/// A real engine process.
-struct ChildProcess(Child);
-
-impl Process for ChildProcess {
-    fn id(&self) -> u32 {
-        self.0.id()
-    }
-
-    fn kill(&mut self) {
-        // Fails only when it has already exited.
-        let _ = self.0.kill();
-    }
-
-    fn wait(&mut self) -> String {
-        match self.0.wait() {
-            Ok(status) => status.to_string(),
-            Err(error) => format!("unknown ({error})"),
-        }
-    }
 }
 
 #[cfg(any(test, feature = "test-support"))]
