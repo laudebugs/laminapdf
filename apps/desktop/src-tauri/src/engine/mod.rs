@@ -321,10 +321,19 @@ impl Engines {
         }
     }
 
-    /// `window`'s engine, started on first use.
+    /// `window`'s engine, started on first use, and again after one that failed for good, so the
+    /// window's Reopen gets a fresh engine instead of the dead one.
     fn engine(&self, window: &str) -> Result<Supervisor, DesktopError> {
-        if let Some(engine) = self.windows().get(window) {
-            return Ok(engine.clone());
+        let failed = {
+            let mut windows = self.windows();
+            match windows.get(window) {
+                Some(engine) if !engine.has_failed() => return Ok(engine.clone()),
+                Some(_) => windows.remove(window),
+                None => None,
+            }
+        };
+        if let Some(failed) = failed {
+            failed.shutdown();
         }
         // Started without the map's lock: starting waits for the engine's `Ready`.
         let this = Weak::clone(&self.this);

@@ -53,10 +53,13 @@ impl Fixture {
 
     /// A file of `len` bytes: odd opens plainly, even is encrypted.
     fn file(&mut self, len: usize) -> PathBuf {
+        // Unique across the tests running in parallel in this process: one test's cleanup must
+        // never delete another's file.
+        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let path = std::env::temp_dir().join(format!(
             "laminapdf-engines-{}-{}-{len}.pdf",
             std::process::id(),
-            self.files.len()
+            NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
         std::fs::File::create(&path)
             .unwrap()
@@ -313,6 +316,28 @@ fn an_engine_that_keeps_crashing_should_be_reported_failed() {
         }
     }
     assert_eq!(last, Some(Told::Failed(Failed { window: "main".into() })));
+}
+
+#[test]
+fn a_window_whose_engine_failed_should_get_a_fresh_one_on_its_next_open() {
+    let mut f = Fixture::new(Mode::CrashAfterReady);
+    let _ = {
+        let path = f.file(PLAIN);
+        f.engines.open("main", &path)
+    };
+    while let Some(told) = f.told() {
+        if matches!(told, Told::Failed(_)) {
+            break;
+        }
+    }
+    let failed = f.engines.windows().get("main").map(Supervisor::has_failed);
+    // The Reopen button opens again: a new engine starts instead of the failed one answering.
+    let _ = {
+        let path = f.file(PLAIN);
+        f.engines.open("main", &path)
+    };
+    let replaced = f.engines.windows().get("main").map(Supervisor::has_failed);
+    assert_eq!((failed, replaced), (Some(true), Some(false)));
 }
 
 #[test]
