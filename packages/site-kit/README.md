@@ -32,6 +32,13 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 - **`previewNoindex(env)`** adds `X-Robots-Tag: noindex` to every build except production's (`LAMINA_PDF_ENV=production`).
 - **`pageFiles(dir)`** lists a pages folder for the header, and **`pageExists(dir, path)`** says whether a build serves a path. The docs site's link check uses `pageExists` too.
 
+`src/robots.mjs` (`@laminapdf/site-kit/robots`) holds the one robots.txt policy of the website, the docs site and the web reader:
+
+- **`robotsTxt({ production, sitemap })`** lets every crawler in, training crawlers included (the owner's choice, 2026-11-11), and names the sitemap in production. Other builds don't block crawlers either: they rely on `noindex`, which a crawler reads only on a page it may fetch.
+- **`robots({ env, sitemap })`** writes it into an Astro build's `dist/` for the build's `LAMINA_PDF_ENV`; the reader's Vite build emits the same file (`apps/web/plugins/search.ts`).
+- **`isProduction(env)`** is the one test of `LAMINA_PDF_ENV` that robots.txt and `markNoindex` share, so the two rules can't disagree.
+- **`robotsProblems(text, build)`** names what is wrong with a built file; the docs site's release checks call it.
+
 ## Tests
 
 ```sh

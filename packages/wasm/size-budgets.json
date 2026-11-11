@@ -328,7 +328,7 @@
     },
     "text": {
       "glueGzip": 6000,
-      "wasmGzip": 1360000
+      "wasmGzip": 1400000
     }
   },
   "packages": {

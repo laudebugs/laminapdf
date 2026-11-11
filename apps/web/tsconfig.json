@@ -4,6 +4,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
+    "allowJs": true,
     "types": ["node", "vite/client"]
   },
   "include": [
