@@ -287,6 +287,23 @@ mod tests {
         assert!(lines_of(SITE, "on", "schedule").iter().any(|l| l.contains("cron:")));
     }
 
+    /// Only the reader's release build is indexable: the job that builds a web-v tag sets
+    /// `LAMINA_PDF_ENV=production`; staging and the previews build without it, so they send
+    /// `X-Robots-Tag: noindex` (apps/web/plugins/search.ts, ADR 0011 §1).
+    #[test]
+    fn web_deploy_should_build_only_the_release_as_production() {
+        let production_builds: Vec<&str> = jobs(WEB_DEPLOY)
+            .into_iter()
+            .filter(|(_, lines)| lines.iter().any(|l| l.trim() == "LAMINA_PDF_ENV: production"))
+            .map(|(id, _)| id)
+            .collect();
+        assert_eq!(
+            production_builds,
+            ["production-checks"],
+            "only the release build may be indexed"
+        );
+    }
+
     /// main's docs go to next.docs.laminapdf.com as unreleased (no `LAMINA_PDF_ENV=production`, so
     /// noindex and the notice); docs.laminapdf.com gets only a release tag's, built as production,
     /// when the release lane calls with the tag (or by hand with one). Only that build is indexed.
