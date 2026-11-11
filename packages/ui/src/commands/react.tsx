@@ -85,6 +85,7 @@ function subscribeTo(value: CommandsValue, listener: () => void): () => void {
     value.registry.subscribe(listener),
     value.context.reader?.subscribe(listener),
     value.context.viewer?.subscribe(listener),
+    value.context.edits?.subscribe(listener),
   ];
   return () => {
     for (const stop of stops) stop?.();

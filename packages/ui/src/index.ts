@@ -14,6 +14,7 @@ export {
   urlArgs,
   zoomArgs,
 } from "./commands/args.js";
+export { editCommands, registerEditCommands } from "./commands/edit-commands.js";
 export {
   matchText,
   type Rankable,
@@ -130,6 +131,21 @@ export {
 export { Thumbnail, type ThumbnailProps, type ThumbnailSize } from "./components/thumbnail.js";
 export { ToggleButton, type ToggleButtonProps, ToolToggle, type ToolToggleProps } from "./components/toggle.js";
 export { type Density, DensityProvider, type DensityProviderProps, useDensity } from "./density.js";
+export {
+  blockedReason,
+  type EditBlockReason,
+  type EditControls,
+  type EditSlice,
+  type EditStepSlice,
+  inSentence,
+  type RevertedSlice,
+  revertedText,
+  saveStateText,
+  sessionStarted,
+  stepToRedo,
+  stepToUndo,
+} from "./edit/edit-controls.js";
+export { HistoryPanel, type HistoryPanelProps } from "./edit/history-panel.js";
 export { type Catalogue, ENGLISH, type MessageId, message } from "./messages.js";
 export {
   Dialog,
@@ -339,12 +355,23 @@ export {
 } from "./shell/phone.js";
 export { useShell } from "./shell/use-shell.js";
 export { type ExternalStore, useMediaQuery, useReaderState, useStoreState } from "./state/hooks.js";
-export { type OpenedDocument, type Opener, ReaderController } from "./state/reader-controller.js";
+export { type CloseGuard, type OpenedDocument, type Opener, ReaderController } from "./state/reader-controller.js";
 export {
   EMPTY,
-  type InteractionMode,
   type ReaderError,
   type ReaderEvent,
   type ReaderState,
   transition,
 } from "./state/reader-machine.js";
+export {
+  attachTools,
+  handTool,
+  type InteractionMode,
+  type InteractionModes,
+  SELECT_TOOL,
+  TEXT_SELECT_TOOL,
+  type ToolHost,
+  type ToolModule,
+  ToolRegistry,
+  type ToolsState,
+} from "./tools/tools.js";

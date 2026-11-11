@@ -11,6 +11,7 @@ import {
   EmptyState,
   FindBar,
   FindResults,
+  HistoryPanel,
   IconButton,
   ModeSwitcher,
   NetworkActivityPanel,
@@ -54,7 +55,7 @@ import {
   ZoomControl,
 } from "../src/index.ts";
 import { WithCommands } from "./commands.tsx";
-import { FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
+import { FakeEdits, FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
 
 /** One rendering of one component in one state. */
 export interface Example {
@@ -505,6 +506,36 @@ const RESULTS = [
   { ordinal: 2, page: 6, snippet: { before: "…when ", match: "repairs", after: " ran over budget." } },
 ];
 
+/** The History tab's steps, as O01 draws them. */
+const STEPS = ["Rotate page 5", "Rotate page 2", "Rotate page 5", "Change the title"];
+const AT = {
+  formatTime: (at: number) => new Date(at).toISOString().slice(11, 16),
+  openedAt: Date.UTC(2026, 10, 2, 16, 0),
+};
+
+const history: Example[] = [
+  {
+    component: "HistoryPanel",
+    state: "three of four steps done",
+    element: () => <HistoryPanel edits={new FakeEdits(STEPS, 3)} {...AT} />,
+  },
+  {
+    component: "HistoryPanel",
+    state: "an undo restored only part of a step",
+    element: () => {
+      const edits = new FakeEdits(STEPS, 2);
+      const step = { id: 3, label: "Rotate page 5", pages: [4], at: 0, partial: true as const };
+      edits.set({ notice: { step, way: "undo", outcome: "partial" } });
+      return <HistoryPanel edits={edits} {...AT} />;
+    },
+  },
+  {
+    component: "HistoryPanel",
+    state: "no changes yet",
+    element: () => <HistoryPanel edits={new FakeEdits()} {...AT} />,
+  },
+];
+
 const findResults: Example[] = [
   {
     component: "FindResults",
@@ -850,6 +881,7 @@ export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
   ...findResults,
+  ...history,
   ...buttons,
   ...toggles,
   ...rail,

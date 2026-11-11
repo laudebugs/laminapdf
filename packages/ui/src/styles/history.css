@@ -1,0 +1,131 @@
+/* The History rail tab (Paper O01, design language §8.10): a heading with the step count, then rows
+   of a 14 px label over a 12 px muted meta line (padding 6 × 8, radius 4). The current row is the
+   accent tint with an inset accent ring; undone rows are struck through; a partly undone step's
+   meta is in the warning colour. The list scrolls inside the rail; the footer stays under it. */
+@layer paper.components {
+  .paper-history {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    block-size: 100%;
+    min-block-size: 0;
+    padding: var(--paper-space-8);
+  }
+
+  .paper-history-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+    padding-inline: var(--paper-space-8);
+  }
+
+  .paper-history-heading {
+    margin: 0;
+    color: var(--paper-text);
+    font: var(--paper-type-heading);
+    letter-spacing: var(--paper-type-heading-letter-spacing);
+  }
+
+  .paper-history-count {
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-history-scroll {
+    flex: 1;
+    min-block-size: 0;
+    overflow: auto;
+  }
+
+  .paper-history-list {
+    margin: 0;
+    padding-inline: 0;
+    list-style: none;
+  }
+
+  .paper-history-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--paper-space-2);
+    inline-size: 100%;
+    min-block-size: var(--ui-target);
+    padding-block: var(--paper-space-6);
+    padding-inline: var(--paper-space-8);
+    border: 0;
+    border-radius: var(--paper-radius-4);
+    background: transparent;
+    color: var(--paper-text);
+    text-align: start;
+    cursor: default;
+  }
+
+  .paper-history-row:hover {
+    background: var(--paper-hover);
+  }
+
+  .paper-history-row[data-current] {
+    background: var(--paper-accent-tint);
+    box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
+  }
+
+  .paper-history-label {
+    font: var(--paper-type-body);
+  }
+
+  .paper-history-meta {
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-history-row[data-current] .paper-history-meta {
+    color: var(--paper-text-2);
+  }
+
+  .paper-history-meta[data-partial] {
+    color: var(--paper-warning);
+  }
+
+  .paper-history-row[data-undone] .paper-history-label {
+    color: var(--paper-text-3);
+    text-decoration: line-through;
+  }
+
+  .paper-history-footer {
+    margin: 0;
+    padding-inline: var(--paper-space-8);
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+  }
+
+  /* The editor's top bar: the save state after the file name, then a divider and Undo · Redo. */
+  .paper-top-bar-save-state {
+    flex: none;
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    white-space: nowrap;
+  }
+
+  .paper-top-bar-edit {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-2);
+    padding-inline-start: var(--paper-space-10);
+    border-inline-start: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  @media (forced-colors: active) {
+    .paper-history-row[data-current] {
+      forced-color-adjust: none;
+      background: Highlight;
+      color: HighlightText;
+    }
+
+    .paper-history-row[data-current] .paper-history-meta {
+      color: HighlightText;
+    }
+  }
+}

@@ -12,8 +12,10 @@ import { useCommand } from "../commands/react.js";
 import { IconButton } from "../components/button.js";
 import { type KeyPlatform, ShortcutChip } from "../components/shortcut-chip.js";
 import { ToggleButton } from "../components/toggle.js";
+import { type EditControls, saveStateText, sessionStarted } from "../edit/edit-controls.js";
 import { message } from "../messages.js";
 import { Menu, type MenuEntry, MenuTrigger } from "../overlays/popover.js";
+import { Tooltip } from "../overlays/tooltip.js";
 import { MoreSheet, usePhone } from "../shell/phone.js";
 import { type ExternalStore, useStoreState } from "../state/hooks.js";
 import type { ReaderState } from "../state/reader-machine.js";
@@ -50,6 +52,12 @@ export interface ReaderTopBarProps<Id extends string> {
    * left out, there are no history buttons. They run `nav.back` and `nav.forward`.
    */
   history?: { readonly back: string | undefined; readonly forward: string | undefined };
+  /**
+   * The open document's edit session (the editor's top bar, §7.1): the save state follows the
+   * file name once an edit was made, and Undo and Redo, which run `edit.undo` and `edit.redo`,
+   * sit after a divider. Left out, the bar is the reader's.
+   */
+  edits?: EditControls;
   /** The file area without a document: the wordmark, or Back. "No document open" when left out. */
   home?: ReactNode;
   /** A `DebugMenu`, which the shell shows only for `#debug`. */
@@ -195,6 +203,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
           />
         )}
         <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
+        <EditArea edits={props.edits} open={state.phase === "open"} keys={keys} />
       </div>
       <div className="paper-top-bar-tools">
         {state.phase === "needs-password" ? <LockedPageInput /> : null}
@@ -237,6 +246,70 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
         </MenuTrigger>
       </div>
     </header>
+  );
+}
+
+/** The editor's part of the file area: the save state, then Undo and Redo; nothing in the reader. */
+function EditArea({
+  edits,
+  open,
+  keys,
+}: {
+  edits: EditControls | undefined;
+  open: boolean;
+  keys: KeyPlatform;
+}): ReactNode {
+  if (edits === undefined || !open) return null;
+  return (
+    <>
+      <SaveState edits={edits} />
+      <UndoRedo keys={keys} />
+    </>
+  );
+}
+
+/**
+ * The save state (O01): "No unsaved changes", "4 unsaved changes", announced politely as it
+ * changes; shown once the document has an edit session.
+ */
+function SaveState({ edits }: { edits: EditControls }): ReactNode {
+  const started = useStoreState(edits, sessionStarted);
+  const text = useStoreState(edits, saveStateText);
+  return (
+    <span className="paper-top-bar-save-state" aria-live="polite">
+      {started ? text : ""}
+    </span>
+  );
+}
+
+/** Undo and Redo (O01): named by the step they take back or make again, disabled with none. */
+function UndoRedo({ keys }: { keys: KeyPlatform }): ReactNode {
+  const undo = useCommand("edit.undo");
+  const redo = useCommand("edit.redo");
+  if (undo.availability.state === "hidden" && redo.availability.state === "hidden") return null;
+  const shortcut = (view: typeof undo) =>
+    view.shortcut === undefined
+      ? undefined
+      : (keys === "mac" ? view.shortcut.mac : view.shortcut.other).replace("Mod", keys === "mac" ? "Meta" : "Control");
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: a toolbar group of buttons, as History's is; <fieldset> holds form controls.
+    <div className="paper-top-bar-edit" role="group" aria-label={message("commandGroup.edit")}>
+      {[undo, redo].map((view) => (
+        <Tooltip
+          key={view.id}
+          text={view.title}
+          {...(view.shortcut === undefined ? {} : { shortcut: view.shortcut, platform: keys })}
+        >
+          <IconButton
+            icon={view.id === "edit.undo" ? "undo" : "redo"}
+            label={view.title}
+            aria-keyshortcuts={shortcut(view)}
+            isDisabled={view.availability.state !== "available"}
+            onPress={() => view.run()}
+          />
+        </Tooltip>
+      ))}
+    </div>
   );
 }
 

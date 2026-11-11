@@ -3,6 +3,7 @@
 // shortcut help all read it from the registry, so labels, shortcuts and enabled state can't drift.
 
 import type { IconName } from "@laminapdf/icons";
+import type { EditControls } from "../edit/edit-controls.js";
 import type { Capability, Platform } from "../platform/types.js";
 import type { ViewerControls } from "../reader/viewer-controls.js";
 import type { ExternalStore } from "../state/hooks.js";
@@ -35,6 +36,11 @@ export interface Shortcut {
    * shown on chips and in the help, and still checked for collisions, but never dispatched.
    */
   readonly dispatch?: false;
+  /**
+   * False when a text field keeps the keys for itself even though they hold a modifier: Undo's
+   * ⌘Z undoes the typing in a field, not the document's last change.
+   */
+  readonly fields?: false;
 }
 
 /** Where a command has a visible home besides the palette (ADR 0024: every command has one). */
@@ -43,6 +49,7 @@ export type CommandHome =
   | "zoom-control"
   | "page-indicator"
   | "file-menu"
+  | "edit-menu"
   | "view-menu"
   | "help-menu"
   | "view-settings"
@@ -54,6 +61,7 @@ export type CommandHome =
   | "context-menu"
   | "mini-toolbar"
   | "mode-switcher"
+  | "history-panel"
   | "layer";
 
 /** What a parser made of typed arguments. */
@@ -87,6 +95,8 @@ export interface CommandContext {
   };
   /** The viewer showing the open document. */
   readonly viewer?: ViewerControls;
+  /** The open document's edit session: what Undo, Redo and the History tab drive. */
+  readonly edits?: EditControls;
   /** The document's page labels, one per page, when it has any. */
   readonly labels?: readonly string[];
   /**

@@ -2,6 +2,7 @@
 // combination testable without a browser matrix), files from bytes, and a stand-in window for
 // the web platform's feature detection.
 
+import type { EditSlice } from "../src/edit/edit-controls.ts";
 import { openDatabase } from "../src/platform/idb.ts";
 import { createPositions } from "../src/platform/positions.ts";
 import type { Capabilities, Platform, PlatformFile, RecentFile } from "../src/platform/types.ts";
@@ -283,5 +284,53 @@ export class FakeFind {
   goTo(ordinal: number): void {
     this.went.push(ordinal);
     this.set({ current: ordinal });
+  }
+}
+
+/** An edit session in memory: steps by label, undo, redo and going to a step move the position. */
+export class FakeEdits {
+  readonly went: number[] = [];
+  #state: EditSlice;
+  readonly #listeners = new Set<() => void>();
+
+  constructor(labels: readonly string[] = [], position = labels.length, more: Partial<EditSlice> = {}) {
+    const steps = labels.map((label, i) => ({ id: i + 1, label, pages: [i], at: Date.UTC(2026, 10, 2, 16, 2 + i) }));
+    this.#state = {
+      history: { steps, position, dropped: 0, unsaved: position },
+      busy: false,
+      blocked: undefined,
+      notice: undefined,
+      ...more,
+    };
+  }
+
+  getState(): EditSlice {
+    return this.#state;
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+
+  /** Changes the state, and tells subscribers. */
+  set(next: Partial<EditSlice>): void {
+    this.#state = { ...this.#state, ...next };
+    for (const listener of this.#listeners) listener();
+  }
+
+  async undo(): Promise<void> {
+    await this.goTo(this.#state.history.position - 1);
+  }
+
+  async redo(): Promise<void> {
+    await this.goTo(this.#state.history.position + 1);
+  }
+
+  async goTo(position: number): Promise<void> {
+    this.went.push(position);
+    const { history } = this.#state;
+    const at = Math.max(0, Math.min(history.steps.length, position));
+    this.set({ history: { ...history, position: at, unsaved: at } });
   }
 }

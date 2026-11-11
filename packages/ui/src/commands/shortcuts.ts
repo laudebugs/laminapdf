@@ -152,6 +152,8 @@ export const BROWSER_KEYS: readonly string[] = [
   "Mod+X",
   "Mod+A",
   "Mod+Z",
+  "Mod+Shift+Z",
+  "Mod+Y",
   "Mod+R",
   "Mod+E",
   "Mod+U",
@@ -179,6 +181,9 @@ export const OVERRIDES: Readonly<Record<Shell, readonly KeyRule[]>> = {
     { keys: "Mod+S", why: "saves an edit session" },
     { keys: "Mod+O", why: "opens a PDF in the reader rather than in a new tab" },
     { keys: "Mod+C", why: "copies the page's text from the text layer, in reading order" },
+    { keys: "Mod+Z", why: "undoes the document's last change; a text field keeps its own undo" },
+    { keys: "Mod+Shift+Z", why: "redoes the document's next change, as in the browser's own fields" },
+    { keys: "Mod+Y", why: "redo on Windows and Linux; Chrome on macOS would open its history" },
     { keys: "F3", why: "next match in the reader's find field" },
     { keys: "Shift+F3", why: "previous match in the reader's find field" },
     { keys: "Shift+F10", why: "the selection's own actions in place of the browser's context menu" },
@@ -190,6 +195,9 @@ export const OVERRIDES: Readonly<Record<Shell, readonly KeyRule[]>> = {
     { keys: "Mod+S", why: "save" },
     { keys: "Mod+O", why: "open a file" },
     { keys: "Mod+C", why: "copy the selection" },
+    { keys: "Mod+Z", why: "undo" },
+    { keys: "Mod+Shift+Z", why: "redo" },
+    { keys: "Mod+Y", why: "redo on Windows and Linux" },
     { keys: "Mod+W", why: "closes the tab, as in other tabbed apps" },
     { keys: "Mod+[", why: "back, as in other apps with history" },
     { keys: "Mod+]", why: "forward" },
@@ -324,8 +332,8 @@ export interface DispatcherOptions {
 /**
  * A keydown handler that runs the command bound to the keys pressed, if it can run now, and
  * prevents the browser's own handling. It leaves alone events already handled, typing in a field
- * (unless the keys hold Ctrl, Alt or ⌘, or the field is the binding's own scope) and keys outside
- * a binding's scope.
+ * (unless the keys hold Ctrl, Alt or ⌘, or the field is the binding's own scope; never for a
+ * binding that leaves fields their keys, as Undo does) and keys outside a binding's scope.
  */
 export function shortcutDispatcher(options: DispatcherOptions): (event: KeyboardEvent) => void {
   return (event) => {
@@ -377,6 +385,7 @@ function boundCommand(
  * field (but the find field's own Enter and F3 do), nor when single-key shortcuts are off.
  */
 function allowed(options: DispatcherOptions, event: KeyboardEvent, binding: Shortcut): boolean {
+  if (binding.fields === false && isEditable(event.target)) return false;
   if (hasCommandModifier(pressKey(event)) || binding.scope === "find-field") return true;
   return !isEditable(event.target) && options.singleKeys?.() !== false;
 }
