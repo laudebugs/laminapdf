@@ -129,8 +129,12 @@ describe("the edit session's history", () => {
   it("walks to a step, undoing then redoing", async () => {
     const session = withSteps(3);
     const ways: string[] = [];
-    await walkTo(session, 1, async (way) => (ways.push(way), "applied"), []);
-    await walkTo(session, 3, async (way) => (ways.push(way), "applied"), []);
+    const step = async (way: string) => {
+      ways.push(way);
+      return "applied" as const;
+    };
+    await walkTo(session, 1, step, []);
+    await walkTo(session, 3, step, []);
     expect([ways, session.position]).toEqual([["undo", "undo", "redo", "redo"], 3]);
   });
 
