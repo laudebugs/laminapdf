@@ -1,6 +1,6 @@
 // PageLayout: prefix sums, pageAt and rotation, with its cost counted in steps.
 import { describe, expect, it } from "vitest";
-import { PageLayout } from "./page-layout.js";
+import { keptTop, PageLayout } from "./page-layout.js";
 
 const LETTER = { width: 612, height: 792 };
 const LANDSCAPE = { width: 792, height: 612 };
@@ -39,5 +39,38 @@ describe("PageLayout", () => {
   it("swaps width and height for a 90° view rotation", () => {
     const layout = new PageLayout([LETTER], { scale: 1, rotation: 90 });
     expect([layout.widths[0], layout.heights[0]]).toEqual([792, 612]);
+  });
+});
+
+describe("keptTop", () => {
+  const four = [LETTER, LETTER, LETTER, LETTER];
+  // Page 1 turned a quarter: 612 pt tall instead of 792.
+  const turned = [LETTER, LANDSCAPE, LETTER, LETTER];
+
+  it("keeps a page below a turned one under the viewport's top: its offset moves up by the height lost", () => {
+    const before = new PageLayout(four, { scale: 1, gap: 10 });
+    const after = new PageLayout(turned, { scale: 1, gap: 10 });
+    const top = before.offsetOf(2) + 100;
+    expect(keptTop(before, after, top)).toBe(after.offsetOf(2) + 100);
+    expect(after.offsetOf(2)).toBe(before.offsetOf(2) - (792 - 612));
+  });
+
+  it("keeps a page above a turned one exactly where it was", () => {
+    const before = new PageLayout(four, { scale: 1, gap: 10 });
+    const after = new PageLayout(turned, { scale: 1, gap: 10 });
+    expect(keptTop(before, after, 300)).toBe(300);
+  });
+
+  it("scales the distance into the turned page itself by its new height", () => {
+    const before = new PageLayout(four, { scale: 2, gap: 10 });
+    const after = new PageLayout(turned, { scale: 2, gap: 10 });
+    const top = before.offsetOf(1) + (before.heights[1] as number) / 2;
+    expect(keptTop(before, after, top)).toBeCloseTo(after.offsetOf(1) + (after.heights[1] as number) / 2, 9);
+  });
+
+  it("leaves the offset alone when the layouts hold different pages", () => {
+    const before = new PageLayout(four, { scale: 1 });
+    const after = new PageLayout([LETTER], { scale: 1 });
+    expect(keptTop(before, after, 1234)).toBe(1234);
   });
 });

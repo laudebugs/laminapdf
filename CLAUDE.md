@@ -113,7 +113,12 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   crop in page space, its text column, zoom clamped 100–150 %, ≤ 480 × 180 CSS px; previewRender: the turned
 │                        #   device-pixel clip), view/previews.ts (LinkPreviews: one visible-priority render, 8-picture LRU;
 │                        #   Viewer.preview), the link layer's linkpreview/linkpreviewend events (300 ms hover or focus, 500 ms
-│                        #   long-press), holdLinkPreview/dismissLinkPreview/followLinkPreview; C3b: createViewer (src/layout/, view/, canvas/,
+│                        #   long-press), holdLinkPreview/dismissLinkPreview/followLinkPreview; E1g: worker/edit.ts (applyEdit: ops as one transaction, an incremental save
+│                        #   of the appended revision into memory, the render document reopened over the file with every revision appended and
+│                        #   swapped in once open; a failure undoes the transaction), viewer.invalidate(pages, sizes?) (bitmaps dropped by a per-page
+│                        #   revision in the view key (viewKey), late answers of an older revision dropped, keptTop's layout, layers remounted,
+│                        #   find.refresh, a restarted worker's sizes taken back, the strip laid out from viewer.pageSizes(id) on its `invalidate`
+│                        #   event), viewer.applyEdit and client.applyEdit; C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios (T5a's link-previews: 20 citations hovered, reported), report.ts against

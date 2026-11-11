@@ -14,6 +14,7 @@ import {
 import type {
   DocumentProperties,
   Limits,
+  Op,
   OutlineNode,
   PageInfo,
   PageLink,
@@ -81,6 +82,15 @@ export interface OpenedDocument {
   readonly title?: string;
 }
 
+/**
+ * What an edit did, for the view to redraw (`applyEdit`): the pages it touched, as they are after
+ * it. Each page's size is its displayed size in points, so a quarter turn swaps its width and
+ * height. An edit that touched no page (the document's metadata) leaves `pages` empty.
+ */
+export interface EditResult {
+  readonly pages: readonly PageInfo[];
+}
+
 /** A rendered tile on the page: an ImageBitmap transferred from the worker. Close it when done. */
 export interface RenderedBitmap {
   readonly bitmap: ImageBitmap;
@@ -108,6 +118,11 @@ export interface Methods {
     result: { readonly document: OpenedDocument; readonly ticket: number | undefined } | undefined;
   };
   closeDocument: { params: []; result: undefined };
+  /**
+   * Applies `ops` to document `document` as one transaction, then redraws from the result: the
+   * pages it touched are drawn from the edited file from then on.
+   */
+  applyEdit: { params: [ops: readonly Op[], document: number]; result: EditResult };
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
   memory: { params: []; result: WorkerMemory };
@@ -282,8 +297,21 @@ export function renderKeyFields(key: string): RenderKeyFields {
  * share a run only when their pixels are the same (ADR 0009 §3.3).
  */
 export function renderKey(request: RenderRequest, id: number): string {
+  return JSON.stringify(keyFields(request, id));
+}
+
+/**
+ * The view's cache key of a render: its {@link renderKey}'s fields and the page's `revision`,
+ * which each edit of the page bumps, so a bitmap of the page before an edit never answers for it
+ * after. {@link renderKeyFields} reads both kinds of key.
+ */
+export function viewKey(request: RenderRequest, id: number, revision: number): string {
+  return JSON.stringify([...keyFields(request, id), revision]);
+}
+
+function keyFields(request: RenderRequest, id: number): unknown[] {
   const { page, scale, clip, rotation = 0, flags, background, appearance } = request;
-  return JSON.stringify([
+  return [
     id,
     page,
     scale,
@@ -292,7 +320,7 @@ export function renderKey(request: RenderRequest, id: number): string {
     flagsOf(flags),
     background === undefined ? "white" : background,
     appearanceKey(appearance),
-  ]);
+  ];
 }
 
 /** The request field for `appearance`: none for the pages' own colours, as requests were before page appearances. */

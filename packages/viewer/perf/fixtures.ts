@@ -1,6 +1,7 @@
 // The harness's PDFs, built with @laminapdf/sdk from fixed seeds and cached under perf/.fixtures/
 // by a hash of this file, so each is built once until its recipe changes:
 // - `ten`: 10 pages of text with one image each, about 1 MB (first page, zoom);
+// - `hundred`: 100 pages of text (an edit on screen, with `ten` and `thousand`);
 // - `thousand`: 1,000 pages of text (the scroll);
 // - `images`: 300 pages, each one full-page image (the fling);
 // - `paper`: 2 pages citing [1]–[24], linked to their references on 2 pages of two columns (link previews).
@@ -15,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { Builder, Font, Image, init } from "@laminapdf/sdk";
 
 /** The fixtures by name, in the order the harness builds them. */
-export const FIXTURES = ["ten", "thousand", "images", "paper"] as const;
+export const FIXTURES = ["ten", "hundred", "thousand", "images", "paper"] as const;
 export type FixtureName = (typeof FIXTURES)[number];
 
 const A4: [number, number] = [595, 842];
@@ -104,14 +105,18 @@ function paper(b: Builder): void {
   }
 }
 
+/** The fixtures of text pages alone, by their page counts. */
+const TEXT_PAGES: Partial<Record<FixtureName, number>> = { hundred: 100, thousand: 1000 };
+
 /** Builds fixture `name`'s bytes. */
 function build(name: FixtureName): Uint8Array {
   const b = builder(name);
   const next = random(name.length * 7919);
+  const text = TEXT_PAGES[name];
   if (name === "ten") {
     for (let i = 0; i < 10; i++) textPage(b, next, i, noise(next, 184));
-  } else if (name === "thousand") {
-    for (let i = 0; i < 1000; i++) textPage(b, next, i);
+  } else if (text !== undefined) {
+    for (let i = 0; i < text; i++) textPage(b, next, i);
   } else if (name === "paper") {
     paper(b);
   } else {

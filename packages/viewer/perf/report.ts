@@ -2,7 +2,7 @@
 // (docs/plans/web-app.md, "Non-functional"), the Markdown summary, and the figures the nightly
 // history keeps (`cargo xtask viewer-perf --record`). The checks inform; nothing here fails a run.
 
-import type { Counters, FindTiming, MemorySample, Recording } from "./types.ts";
+import type { Counters, EditTiming, FindTiming, MemorySample, Recording } from "./types.ts";
 
 /** The §4 targets. */
 export const TARGETS = {
@@ -16,6 +16,8 @@ export const TARGETS = {
   memoryBytes: 600 * 1024 * 1024,
   /** The second pass may end at most this much above the first (the plan's "stable"). */
   memoryGrowth: 0.05,
+  /** An edit on the 100-page file, to the page's first new pixels (the E1 plan's §6 budget). */
+  editFirstPixelsMs: 150,
 } as const;
 
 /** The machine a run took its numbers on (official numbers come from the reference machine). */
@@ -57,6 +59,15 @@ export interface BrowserResult {
   readonly find: { readonly common: FindTiming; readonly rare: FindTiming; readonly recording: Recording };
   /** 20 citations hovered in a row on the paper (T5a): ms from dwell to crop for each, reported only. */
   readonly linkPreviews: { readonly toCropMs: readonly number[]; readonly recording: Recording };
+  /**
+   * The page in view turned a quarter in files of 10, 100 and 1,000 pages: each one's median turn
+   * of the first five, and on a file turned more often, the last turn's first pixels.
+   */
+  readonly edit: readonly (EditTiming & {
+    readonly pages: number;
+    readonly lastOf?: number;
+    readonly lastFirstPixelsMs?: number;
+  })[];
   /**
    * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
    * touch budgets), against those budgets; null in a browser without one (Firefox).
@@ -149,6 +160,7 @@ export function checks(result: BrowserResult): Check[] {
     { name: "Cancelled renders that painted", target: "0", value: String(painted), pass: painted === 0 },
     ...findChecks(result),
     ...linkPreviewChecks(result),
+    ...editChecks(result),
     mobileMemory(result),
     {
       name: "Zoom bursts: longest frame, slowest to sharp",
@@ -197,6 +209,29 @@ function linkPreviewChecks({ linkPreviews }: BrowserResult): Check[] {
       pass: null,
     },
   ];
+}
+
+/** An edit to the page's first new pixels (its quick pass) per file size, against the plan's budget at 100 pages. */
+function editChecks({ edit }: BrowserResult): Check[] {
+  const hundred = edit.find((e) => e.pages === 100);
+  const rows: Check[] = [
+    {
+      name: `Edit to the page's first new pixels (quick pass), ${edit.map((e) => e.pages.toLocaleString("en")).join(" / ")} pages`,
+      target: `≤ ${ms(TARGETS.editFirstPixelsMs)} at 100 pages`,
+      value: edit.map((e) => ms(e.firstPixelsMs)).join(" / "),
+      pass: hundred === undefined ? null : hundred.firstPixelsMs <= TARGETS.editFirstPixelsMs,
+    },
+  ];
+  for (const e of edit) {
+    if (e.lastOf === undefined || e.lastFirstPixelsMs === undefined) continue;
+    rows.push({
+      name: `Edit ${e.lastOf} in a row, ${e.pages.toLocaleString("en")} pages: first new pixels`,
+      target: "—",
+      value: ms(e.lastFirstPixelsMs),
+      pass: null,
+    });
+  }
+  return rows;
 }
 
 /** The phone's canvases and bitmaps at their peak, against the budgets the viewer gives that device. */
@@ -260,6 +295,7 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
   if (result.firstPage.coldMs !== null) entries["first-page-cold"] = ns(result.firstPage.coldMs);
   if (result.firstPage.coldLinkMs !== null) entries["first-page-cold-link"] = ns(result.firstPage.coldLinkMs);
   if (result.find.common.firstResultMs !== null) entries["find-first-result"] = ns(result.find.common.firstResultMs);
+  for (const { pages, firstPixelsMs } of result.edit) entries[`edit-first-pixels-${pages}`] = ns(firstPixelsMs);
   if (result.mobile !== null) {
     entries["mobile-memory-peak-bytes"] = Math.round(
       result.mobile.peakMemory.canvases + result.mobile.peakMemory.bitmaps,

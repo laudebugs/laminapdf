@@ -2,6 +2,7 @@
 // workers too, which add their own hooks on top so none ships.
 
 import type { RenderRequest } from "@laminapdf/render";
+import type { Op } from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
 import type { BackendInit, PrintOptions, SourceInit, ViewerOpenOptions } from "../protocol.js";
@@ -14,6 +15,7 @@ import {
   textModel,
   workerMemory,
 } from "./document.js";
+import { applyEdit } from "./edit.js";
 import { find, forgetSearch } from "./find.js";
 import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
 import { networkLog } from "./network.js";
@@ -36,6 +38,9 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
       forgetLinks();
       return closeDocument();
     },
+  },
+  applyEdit: {
+    run: ([ops, id], { signal }) => applyEdit(ops as readonly Op[], id as number, signal),
   },
   pageInfo: {
     run: ([index], { signal }) => {

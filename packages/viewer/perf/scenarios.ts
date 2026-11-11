@@ -241,6 +241,52 @@ async function linkPreviews(context: BrowserContext, url: string): Promise<Brows
   }
 }
 
+/** The files an edit is measured on, by their page counts. */
+const EDITED = [
+  ["ten", 10],
+  ["hundred", 100],
+  ["thousand", 1000],
+] as const;
+
+/** Edits per file: the median is reported. */
+const EDITS = 5;
+/** Edits in a row on the 100-page file, each appending a revision PDFium reads on its next open. */
+const CHAIN = 20;
+
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)] ?? Number.NaN;
+}
+
+/**
+ * An edit on screen (the E1 plan's §6): the page in view turned a quarter, five times, in files
+ * of 10, 100 and 1,000 pages, each turn timed from the edit's call to the page's first new pixels
+ * (its quick pass) and to sharp again, once the page before it is sharp. The worker saves the edit
+ * into memory and reopens the render document each time, so the cost grows with what reopening
+ * reads. On the 100-page file the turns go on to 20, and the last is reported too: each edit adds
+ * a cross-reference section PDFium reads on every later open.
+ */
+async function edit(context: BrowserContext, url: string): Promise<BrowserResult["edit"]> {
+  const out: BrowserResult["edit"][number][] = [];
+  for (const [name, pages] of EDITED) {
+    const page = await harness(context, url);
+    await opened(page, name, "fit-width");
+    const runs = [];
+    const count = pages === 100 ? CHAIN : EDITS;
+    for (let i = 0; i < count; i++) runs.push(await page.evaluate(() => globalThis.__laminaPerf.edit()));
+    await page.close();
+    const first = runs.slice(0, EDITS);
+    out.push({
+      pages,
+      applyMs: median(first.map((r) => r.applyMs)),
+      firstPixelsMs: median(first.map((r) => r.firstPixelsMs)),
+      sharpMs: median(first.map((r) => r.sharpMs)),
+      ...(count > EDITS ? { lastOf: count, lastFirstPixelsMs: runs[count - 1]?.firstPixelsMs ?? Number.NaN } : {}),
+    });
+  }
+  return out;
+}
+
 /** Every scenario in `browser`, against the harness served at `url`. */
 export async function runScenarios(
   browser: Browser,
@@ -260,6 +306,7 @@ export async function runScenarios(
       zoom: await zoom(context, url),
       find: await find(context, url),
       linkPreviews: await linkPreviews(context, url),
+      edit: await edit(context, url),
       mobile: await mobile(browser, name, url, quick),
     };
   } finally {
