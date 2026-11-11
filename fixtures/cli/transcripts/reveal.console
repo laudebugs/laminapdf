@@ -1,0 +1,10 @@
+$ laminapdf reveal letter.pdf brochure.pdf
+==> letter.pdf <==
+letter.pdf: history
+  history         2 revisions; revision 0 holds 1 word the latest doesn't
+
+==> brochure.pdf <==
+brochure.pdf: metadata, hidden-content
+  metadata        Info: Title; XMP (389 B, 3 namespaces)
+  hidden-content  24 invisible characters on page 1
+2 ok, 0 with warnings, 0 failed, 0 skipped

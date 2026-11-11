@@ -1,0 +1,29 @@
+---
+// A command-line session as a terminal shows it: `$ ` lines and what they print, read at build time
+// from fixtures/cli/transcripts/<name>.console. crates/laminapdf-cli/tests/transcripts.rs runs every
+// transcript and fails when the output changes (todo Q4a), so no command or output on a page is
+// typed by hand. A name that isn't a transcript fails the build.
+import { Code } from "@astrojs/starlight/components";
+import { withVersion } from "@laminapdf/site-kit/version";
+
+interface Props {
+  /** The transcript's name: `info` for `fixtures/cli/transcripts/info.console`. */
+  readonly name: string;
+}
+
+const FILES: Record<string, string> = import.meta.glob(["../../../../fixtures/cli/transcripts/*.console"], {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
+const { name } = Astro.props;
+const text = FILES[`../../../../fixtures/cli/transcripts/${name}.console`];
+if (text === undefined) {
+  throw new Error(`Transcript: ${name} is not one of fixtures/cli/transcripts/*.console`);
+}
+// Transcripts write the version as `{{version}}`, so they stay the same from release to release.
+const code = withVersion(text, __DOCS_RELEASE__.version).replace(/\n$/, "");
+---
+
+<Code code={code} lang="console" />

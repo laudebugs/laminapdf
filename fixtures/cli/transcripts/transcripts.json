@@ -1,0 +1,87 @@
+{
+  "build-json": {
+    "files": {
+      "invoice.json": "fixtures/documents/invoice.json",
+      "invoice-data.json": "fixtures/documents/invoice-data.json",
+      "NotoSans-Regular.ttf": "fixtures/fonts/NotoSans-Regular.ttf",
+      "NotoSans-RegularBold.ttc": "fixtures/fonts/NotoSans-RegularBold.ttc"
+    }
+  },
+  "build-markdown": {
+    "files": {
+      "notes.md": "fixtures/cli/notes.md"
+    }
+  },
+  "build-markdown-ua": {
+    "files": {
+      "notes.md": "fixtures/cli/notes.md",
+      "NotoSans-Regular.ttf": "fixtures/fonts/NotoSans-Regular.ttf",
+      "NotoSans-RegularBold.ttc": "fixtures/fonts/NotoSans-RegularBold.ttc"
+    }
+  },
+  "check": {
+    "files": {
+      "scan.pdf": "fixtures/corpus/hello-broken.pdf"
+    }
+  },
+  "explain": {
+    "files": {}
+  },
+  "extract-markdown": {
+    "files": {
+      "invoice.pdf": "fixtures/golden/examples/invoice.pdf"
+    }
+  },
+  "info": {
+    "files": {
+      "invoice.pdf": "fixtures/golden/examples/invoice.pdf"
+    }
+  },
+  "info-json": {
+    "files": {
+      "scan.pdf": "fixtures/corpus/hello-broken.pdf"
+    }
+  },
+  "overview": {
+    "files": {
+      "invoice.pdf": "fixtures/golden/examples/invoice.pdf"
+    }
+  },
+  "render": {
+    "files": {
+      "report.pdf": "fixtures/golden/examples/flowing_report.pdf"
+    }
+  },
+  "reveal": {
+    "files": {
+      "letter.pdf": "fixtures/corpus/hello-incremental.pdf",
+      "brochure.pdf": "fixtures/corpus/text-example.pdf"
+    }
+  },
+  "rotate": {
+    "files": {
+      "report.pdf": "fixtures/golden/examples/flowing_report.pdf"
+    }
+  },
+  "scripts-batch": {
+    "files": {
+      "enc.pdf": "fixtures/corpus/enc.pdf",
+      "invoice.pdf": "fixtures/golden/examples/invoice.pdf",
+      "notes.pdf": "fixtures/markdown/report.md",
+      "scan.pdf": "fixtures/corpus/hello-broken.pdf"
+    }
+  },
+  "scripts-error": {
+    "files": {
+      "notes.pdf": "fixtures/markdown/report.md"
+    }
+  },
+  "scripts-pipe": {
+    "files": {
+      "invoice.pdf": "fixtures/golden/examples/invoice.pdf"
+    }
+  },
+  "version": {
+    "files": {}
+  }
+}

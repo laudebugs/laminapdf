@@ -1,0 +1,10 @@
+$ laminapdf explain xref-repaired | head -n 9
+# `xref-repaired`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The stored cross-reference data was unusable and was rebuilt by scanning the file.
+

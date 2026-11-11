@@ -1,0 +1,6 @@
+$ find . -name '*.pdf' -print0 | sort -z | laminapdf check --files-from - -0 --json
+{"index":0,"input":"./enc.pdf","objects":5,"pages":1,"schema":"laminapdf.check/1","status":"ok","type":"result","warnings":[]}
+{"index":1,"input":"./invoice.pdf","objects":39,"pages":1,"schema":"laminapdf.check/1","status":"ok","type":"result","warnings":[]}
+{"error":{"code":"not-pdf","docsUrl":"https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md","exitCode":1,"hint":"check that the bytes passed to open are a PDF file","input":"./notes.pdf","kind":"input","message":"not a PDF: no objects found"},"index":2,"input":"./notes.pdf","schema":"laminapdf.check/1","status":"error","type":"result"}
+{"index":3,"input":"./scan.pdf","objects":5,"pages":1,"schema":"laminapdf.check/1","status":"warnings","type":"result","warnings":[{"code":"xref-repaired","docsUrl":"https://github.com/laudebugs/laminapdf/blob/main/docs/errors/xref-repaired.md","hint":"check the result; save with a full rewrite, since an incremental update refuses a repaired base","kind":"input","message":"the stored cross-reference data was unusable and was rebuilt by scanning"}]}
+{"elapsedMs":77,"failed":1,"found":0,"ok":2,"skipped":0,"type":"summary","warnings":1}
