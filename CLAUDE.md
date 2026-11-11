@@ -275,9 +275,12 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   plugins/markdown.mjs), and scripts/package-docs.mjs, which writes the docs/ folder the packages ship
 ├── apps/site/           # the website at laminapdf.com (Astro, static, W1b; website plan §4) in the Paper look: src/layouts/Base.astro (head,
 │                        #   font preload, the shared header from @laminapdf/site-kit), src/pages/ (the home page, for now the roadmap (W1c):
-│                        #   src/components/home/, 404, robots.txt and sitemap.xml endpoints), src/data/ (progress.json from `cargo xtask
-│                        #   progress` and its reader progress.ts; sources.ts: the code panel and packages from the tested examples, the CLI
-│                        #   README and the docs install page; copy.ts: the words, approved by the owner; rounds.ts: the areas' plain
+│                        #   src/components/home/, how-we-test.astro (T1b: src/components/how-we-test/, the latest full night's figures,
+│                        #   the licence policy, where the code comes from), 404, robots.txt and sitemap.xml endpoints), src/data/ (check.ts:
+│                        #   the readers' shared checks; progress.json from `cargo xtask progress` and its reader progress.ts; proof.json
+│                        #   from `cargo xtask proof snapshot` and its reader proof.ts, how-we-test.ts its names and percentages;
+│                        #   sources.ts: the code panel and packages from the tested examples, the CLI README and the docs install page,
+│                        #   licencePolicy from Cargo.toml and deny.toml; copy.ts: the words, approved by the owner; rounds.ts: the areas' plain
 │                        #   names; highlight.ts: the code panel's colours at build time, Shiki's tokens as classes coloured by the
 │                        #   --paper-code-* tokens, since the CSP blocks inline styles), src/scripts/ (tabs.ts), scripts/share-image.mjs (public/og.png and the PNG favicons, run by hand) and story-image.mjs
 │                        #   (~/git/lamina-stories/<story>/visuals/*.html → PNG at each file's lamina-size, styled by story-card.css), both over paper-render.mjs; public/_headers (ADR 0011 §4's website headers,
@@ -604,6 +607,11 @@ cargo xtask proof [--from <dir>] [--jobs <json>] [--history <dir> --runner <labe
                              #   --from); a missing input is a null section and --jobs (toJSON(needs)) says why; `full` from the
                              #   reports' budgets; writes target/nightly/proof/proof.json and a summary table; --record (with --history
                              #   and --runner) appends to <dir>/history.jsonl only a full record; `nightly` runs it last, never recording
+cargo xtask proof snapshot [--offline]  # write apps/site/src/data/proof.json, How we test's figures (T1b): the newest full proof
+                             #   record on origin/bench-data cut to what the page shows, how many of the last 30 full nights passed
+                             #   (every job success), the fuzzing hours over every full night; --offline, no branch or no full
+                             #   record keeps the committed file with a warning, and a newest night over 3 days old warns; the
+                             #   website's production deploy runs it before every build; refreshing it is an exempt PR
 cargo xtask ci               # the whole fast lane locally: check + wasm + size
 pnpm changeset               # add a changeset to a user-visible change (contributing guide: changesets; ADR 0017)
 pnpm changeset version       # release prep: consume the changesets, bump the fixed group's packages, write their CHANGELOG.md

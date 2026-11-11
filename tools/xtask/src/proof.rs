@@ -10,9 +10,13 @@
 //! appended to `<history>/history.jsonl` beside the benchmark figures, but only when the night
 //! ran its full budgets ([`is_full`], read from the reports themselves); otherwise it appends
 //! nothing. `--record` needs `--history` and `--runner`.
+//!
+//! `cargo xtask proof snapshot [--offline]` ([`snapshot`]) writes the website's copy of the newest full
+//! record.
 
 mod inputs;
 mod record;
+pub(crate) mod snapshot;
 mod summary;
 
 use std::collections::BTreeMap;

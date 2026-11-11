@@ -307,6 +307,11 @@ tasks:
                     --from (default: the workspace root) into one record (kind proof) in
                     target/nightly/proof/proof.json and the job summary; a missing input is a null
                     section; --record appends it to <dir>/history.jsonl, only for a full-budget night
+  proof snapshot [--offline]
+                    apps/site/src/data/proof.json, the website's How we test figures: the newest
+                    full proof record on origin/bench-data, how many of the last 30 full nights
+                    passed, the fuzzing hours; keeps the committed file (with a warning) offline,
+                    without the branch or with no full record, and warns when it is over 3 days old
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs), the gallery's inputs or the
@@ -415,7 +420,7 @@ fn main() -> Result<()> {
         }
         ("todos", []) => todos::run(&ws.root, false),
         ("todos", [flag]) if flag == "--check" => todos::run(&ws.root, true),
-        ("progress", args) => progress::run(&ws.root, progress::offline(args)?),
+        ("progress", args) => progress::run(&ws.root, progress::offline(args, "progress")?),
         ("capabilities", []) => capabilities::run(&ws.root, false),
         ("capabilities", [flag]) if flag == "--check" => capabilities::run(&ws.root, true),
         ("golden", []) => harness::golden(&ws, false),
@@ -448,6 +453,9 @@ fn main() -> Result<()> {
         ("pdf-runtimes", args) => pdf_runtimes::run(&ws, &pdf_runtimes::parse_args(args)?),
         ("viewer-perf", args) => viewer_perf::run(&ws, &viewer_perf::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
+        ("proof", [sub, rest @ ..]) if sub == "snapshot" => {
+            proof::snapshot::run(&ws.root, progress::offline(rest, "proof snapshot")?)
+        }
         ("proof", args) => proof::run(&ws, &proof::parse_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
         ("semver", args) => semver::run(&ws, args),

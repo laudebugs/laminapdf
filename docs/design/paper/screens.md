@@ -163,6 +163,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | H10 | Telemetry opt-in and what we collect | W, D | [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md) |
 | H11 | Upgrade prompt before work starts (never after) | W | [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) |
 | H12 | Website home, for now the roadmap: what Lamina PDF is, a first PDF in code, the milestones, the dashboard, the packages | W, M | [W1c](../../todos/done/W1c-home-page.md) |
+| H13 | How we test: the latest full night's figures with what each counts, the licence policy, where the code comes from | W, M | [T1b](../../todos/done/T1b-how-we-test-page.md) |
 
 ## Canvases
 
@@ -183,3 +184,4 @@ Each canvas is private to the owner until shared. Its source files are committed
 | X | Convert, compare and produce | [convert-compare-produce.md](convert-compare-produce.md) | [canvas](https://claude.ai/artifact/GwyjtEGo2D2wMo4VUubKKZ) | [`convert-compare-produce/`](convert-compare-produce/project/canvas.json) |
 | H | Account, cloud and product | [account-cloud-product.md](account-cloud-product.md) | [canvas](https://claude.ai/artifact/Ronx2eZUMeMbgZGbx8CYhX) | [`account-cloud-product/`](account-cloud-product/project/canvas.json) |
 | H12 | Website home | [account-cloud-product.md](account-cloud-product.md#h12-website-home) | [canvas](https://claude.ai/artifact/2doFGoyD8t9KJZZnLAwGAQ) | [`website-home/`](website-home/project/canvas.json) |
+| H13 | How we test | [account-cloud-product.md](account-cloud-product.md#h13-how-we-test) | not published yet: the files are drawn from the built page | [`website-home/`](website-home/project/canvas.json) |

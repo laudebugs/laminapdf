@@ -1,0 +1,377 @@
+---
+// The How we test page (todo T1b): the latest full night's figures from proof.json, each with what
+// it counts; the licence policy from Cargo.toml and deny.toml; and how the code is written.
+// test/how-we-test.test.ts renders it from fixture snapshots. A section whose job left no report
+// says so in place of its figure, and never shows a zero.
+import { DOCS, routeOf } from "@laminapdf/site-kit/nav";
+import { HOW_WE_TEST as COPY } from "../../data/copy.js";
+import {
+  basisPoints,
+  failedJobs,
+  figure,
+  missing,
+  ordered,
+  partial,
+  percent,
+  profileName,
+  runtimeName,
+  shortCommit,
+  sourceName,
+  toolName,
+} from "../../data/how-we-test.js";
+import type { Proof } from "../../data/proof.js";
+import type { LicencePolicy } from "../../data/sources.js";
+import DateText from "../home/DateText.astro";
+
+interface Props {
+  proof: Proof;
+  policy: LicencePolicy;
+  /** The website's page files, so the page links only to pages that exist. */
+  pages: readonly string[];
+}
+
+const { proof, policy, pages } = Astro.props;
+const { night } = proof;
+const failed = failedJobs(night);
+const FACTS = ["outcome", "pageCount", "outlineTitles"] as const;
+const routes = new Set(pages.map(routeOf));
+const related = [
+  { href: `${DOCS}/reference/benchmarks/`, text: COPY.related.benchmarks },
+  ...(["privacy", "performance", "pricing"] as const)
+    .filter((page) => routes.has(`/${page}/`))
+    .map((page) => ({ href: `/${page}/`, text: COPY.related[page] })),
+];
+// Each section's warning when its job failed on a run that night but left a report.
+const notes = {
+  corpus: night.corpus && partial(night, "corpus"),
+  text: night.text && partial(night, "text"),
+  fuzz: night.fuzz && partial(night, "fuzz"),
+  roundtrip: night.roundtrip && partial(night, "roundtrip"),
+  runtimes: night.runtimes && partial(night, "runtimes"),
+  verapdf: night.verapdf && partial(night, "verapdf"),
+  render: night.render && partial(night, "render"),
+};
+const totalErrors = night.corpus ? Object.values(night.corpus.sources).reduce((n, s) => n + s.errors, 0) : 0;
+---
+
+<article class="sheet proof">
+  <h1>{COPY.heading}</h1>
+  <p class="lead">{COPY.lead}</p>
+
+  <section class="proof-night" aria-label="The latest night">
+    <p>
+      {COPY.night.ran} <DateText date={night.ran} /> and tested version {night.lamina}, commit{" "}
+      <code>{shortCommit(night.commit)}</code>.{" "}
+      {night.passed
+        ? COPY.night.passedAll
+        : failed.length === 0
+          ? COPY.night.noJobs
+          : `${COPY.night.failed} ${failed.join(", ")}.`}
+    </p>
+    <p>
+      {COPY.night.lastNights(proof.nights.passed, proof.nights.recorded)} <DateText date={proof.nights.since} />.
+    </p>
+  </section>
+
+  <section aria-labelledby="files">
+    <h2 id="files">{COPY.files.heading}</h2>
+    <p>{COPY.files.intro}</p>
+    {
+      night.corpus === null ? (
+        <p class="proof-missing">{missing(night, "corpus")}</p>
+      ) : (
+        <>
+          <div class="table-scroll" role="region" aria-label={COPY.tables.files} tabindex="0">
+            <table class="figures">
+              <thead>
+                <tr>
+                  {COPY.files.columns.map((column) => (
+                    <th scope="col">{column}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {ordered(night.corpus.sources, "sources").map(([key, s]) => (
+                  <tr>
+                    <th scope="row">{sourceName(key)}</th>
+                    <td>{figure(s.files)}</td>
+                    <td>{percent(s.opened, s.files)}</td>
+                    <td>{percent(s.repaired, s.files)}</td>
+                    <td>{percent(s.refused, s.files)}</td>
+                    <td>{figure(s.refusedAlone)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>{COPY.files.opened}</p>
+          <p>{totalErrors === 0 ? COPY.files.noErrors : COPY.files.errors(totalErrors)}</p>
+          {!night.corpus.complete && <p class="proof-missing">{COPY.files.incomplete}</p>}
+          {notes.corpus && <p class="proof-missing">{notes.corpus}</p>}
+        </>
+      )
+    }
+  </section>
+
+  <section aria-labelledby="agreement">
+    <h2 id="agreement">{COPY.agreement.heading}</h2>
+    <p>{COPY.agreement.intro}</p>
+    {
+      night.differential === null ? (
+        <p class="proof-missing">{missing(night, "differential")}</p>
+      ) : (
+        <>
+          <div class="table-scroll" role="region" aria-label={COPY.tables.agreement} tabindex="0">
+            <table class="figures">
+              <thead>
+                <tr>
+                  {COPY.agreement.columns.map((column) => (
+                    <th scope="col">{column}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {ordered(night.differential.tools, "tools").map(([key, tool]) => (
+                  <tr>
+                    <th scope="row">
+                      {toolName(key)} <span class="proof-version">{tool.version}</span>
+                    </th>
+                    {FACTS.map((fact) => {
+                      const tally = tool.facts[fact];
+                      return <td>{tally ? percent(tally.agree, tally.agree + tally.disagree) : "–"}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>{COPY.agreement.excused}</p>
+          <p>
+            {night.differential.failures === 0
+              ? COPY.agreement.noFailures
+              : COPY.agreement.failures(night.differential.failures)}
+          </p>
+        </>
+      )
+    }
+    <p>{COPY.agreement.text}</p>
+    {
+      night.text === null ? (
+        <p class="proof-missing">{missing(night, "text")}</p>
+      ) : (
+        <div class="table-scroll" role="region" aria-label={COPY.tables.text} tabindex="0">
+          <table class="figures">
+            <thead>
+              <tr>
+                {COPY.agreement.textColumns.map((column) => (
+                  <th scope="col">{column}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ordered(night.text.sources, "sources").map(([key, s]) => (
+                <tr>
+                  <th scope="row">{sourceName(key)}</th>
+                  <td>{figure(s.compared)}</td>
+                  <td>{percent(s.agree, s.compared)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+    {!notes.corpus && notes.text && <p class="proof-missing">{notes.text}</p>}
+  </section>
+
+  <section aria-labelledby="fuzzing">
+    <h2 id="fuzzing">{COPY.fuzzing.heading}</h2>
+    <p>{COPY.fuzzing.intro}</p>
+    {
+      night.fuzz === null ? (
+        <p class="proof-missing">{missing(night, "fuzz")}</p>
+      ) : (
+        <p>
+          {COPY.fuzzing.night(night.fuzz.targets, Math.round(night.fuzz.seconds / 60))}
+          {night.fuzz.executions === null ? "." : ` and tried ${figure(night.fuzz.executions)} inputs.`}{" "}
+          {night.fuzz.crashed === 0 ? COPY.fuzzing.noCrash : COPY.fuzzing.crashes(night.fuzz.crashed)}
+        </p>
+      )
+    }
+    {notes.fuzz && <p class="proof-missing">{notes.fuzz}</p>}
+    <p>{COPY.fuzzing.total(proof.fuzzHours)}</p>
+  </section>
+
+  <section aria-labelledby="saving">
+    <h2 id="saving">{COPY.saving.heading}</h2>
+    <p>{COPY.saving.intro}</p>
+    {
+      night.roundtrip === null ? (
+        <p class="proof-missing">{missing(night, "roundtrip")}</p>
+      ) : (
+        <>
+          <p>{COPY.saving.counts(night.roundtrip.cases, night.roundtrip.saved, night.roundtrip.refused)}</p>
+          <ul>
+            {ordered(night.roundtrip.tools, "tools").map(([key, passed]) => (
+              <li>
+                {toolName(key)} {passed ? COPY.saving.passed : COPY.saving.failed}
+              </li>
+            ))}
+          </ul>
+          {notes.roundtrip && <p class="proof-missing">{notes.roundtrip}</p>}
+        </>
+      )
+    }
+    <p>{COPY.saving.runtimes}</p>
+    {
+      night.runtimes === null ? (
+        <p class="proof-missing">{missing(night, "runtimes")}</p>
+      ) : (
+        <>
+          <p>
+            {COPY.saving.runtimesPassed} {night.runtimes.passed.map(runtimeName).join(", ")}.
+          </p>
+          {night.runtimes.failed.length + night.runtimes.missing.length > 0 && (
+            <p class="proof-missing">
+              {COPY.saving.runtimesFailed}{" "}
+              {[...night.runtimes.failed, ...night.runtimes.missing].map(runtimeName).join(", ")}.
+            </p>
+          )}
+          {notes.runtimes && <p class="proof-missing">{notes.runtimes}</p>}
+        </>
+      )
+    }
+  </section>
+
+  <section aria-labelledby="standards">
+    <h2 id="standards">{COPY.standards.heading}</h2>
+    <p>{COPY.standards.intro}</p>
+    {
+      night.verapdf === null ? (
+        <p class="proof-missing">{missing(night, "verapdf")}</p>
+      ) : (
+        <div class="table-scroll" role="region" aria-label={COPY.tables.standards} tabindex="0">
+          <table class="figures figures-text">
+            <caption>veraPDF {night.verapdf.version}</caption>
+            <thead>
+              <tr>
+                {COPY.standards.columns.map((column) => (
+                  <th scope="col">{column}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {night.verapdf.validations.map((v) => (
+                <tr>
+                  <th scope="row">
+                    <code>{v.file}</code>
+                  </th>
+                  <td>{profileName(v.profile)}</td>
+                  <td>{v.compliant ? COPY.standards.compliant : COPY.standards.notCompliant}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+    {notes.verapdf && <p class="proof-missing">{notes.verapdf}</p>}
+  </section>
+
+  <section aria-labelledby="rendering">
+    <h2 id="rendering">{COPY.rendering.heading}</h2>
+    <p>{COPY.rendering.intro}</p>
+    {
+      night.render === null ? (
+        <p class="proof-missing">{missing(night, "render")}</p>
+      ) : (
+        <>
+          {night.render.sources.all && (
+            <p>
+              <strong>{basisPoints(night.render.sources.all.passMinorBp)}</strong>{" "}
+              {COPY.rendering.share(figure(night.render.sources.all.pages))}
+            </p>
+          )}
+          <div class="table-scroll" role="region" aria-label={COPY.tables.rendering} tabindex="0">
+            <table class="figures">
+              <thead>
+                <tr>
+                  {COPY.rendering.columns.map((column) => (
+                    <th scope="col">{column}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {ordered(night.render.sources, "sources").map(([key, s]) => (
+                  <tr>
+                    <th scope="row">{sourceName(key)}</th>
+                    <td>{figure(s.pages)}</td>
+                    <td>{basisPoints(s.passMinorBp)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {notes.render && <p class="proof-missing">{notes.render}</p>}
+        </>
+      )
+    }
+  </section>
+
+  <section aria-labelledby="limits">
+    <h2 id="limits">{COPY.limits.heading}</h2>
+    <ul>
+      {COPY.limits.items.map((item) => <li>{item}</li>)}
+    </ul>
+  </section>
+
+  <section aria-labelledby="licence">
+    <h2 id="licence">{COPY.licence.heading}</h2>
+    <p>{COPY.licence.own[0]} <code>{policy.licence}</code>{COPY.licence.own[1]}</p>
+    <p>{COPY.licence.allowed}</p>
+    <ul class="proof-licences">
+      {policy.allowed.map((licence) => <li><code>{licence}</code></li>)}
+    </ul>
+    <p>{COPY.licence.exceptions}</p>
+    <ul>
+      {
+        policy.exceptions.map((e) => (
+          <li>
+            <code>{e.licence}</code>, for{" "}
+            {e.crates.map((crate, i) => (
+              <>
+                {i > 0 && ", "}
+                <code>{crate}</code>
+              </>
+            ))}
+          </li>
+        ))
+      }
+    </ul>
+    <p>{COPY.licence.banned}</p>
+    <ul>
+      {
+        policy.banned.map((ban) => (
+          <li>
+            <code>{ban.name}</code>: {ban.reason}
+          </li>
+        ))
+      }
+    </ul>
+    <p>{COPY.licence.checks}</p>
+    <p>{COPY.licence.verapdf}</p>
+    <p><a href={`${DOCS}/concepts/dependencies/`}>{COPY.licence.docs}</a></p>
+  </section>
+
+  <section aria-labelledby="provenance">
+    <h2 id="provenance">{COPY.provenance.heading}</h2>
+    {COPY.provenance.body.map((paragraph) => <p>{paragraph}</p>)}
+  </section>
+
+  <section aria-labelledby="related">
+    <h2 id="related">{COPY.related.heading}</h2>
+    <ul>
+      {related.map((link) => <li><a href={link.href}>{link.text}</a></li>)}
+    </ul>
+  </section>
+</article>

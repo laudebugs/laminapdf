@@ -1,11 +1,13 @@
-// What the home page shows from the repository's own files, read at build time, so nothing on the
+// What the site's pages show from the repository's own files, read at build time, so nothing on a
 // page is typed by hand: the first PDF in TypeScript and Rust (examples CI runs and checks against
-// their goldens), the command-line tool's example commands (its README), and the docs site's
-// install lines and package table (the install page).
+// their goldens), the command-line tool's example commands (its README), the docs site's install
+// lines and package table (the install page), and the licence policy (Cargo.toml and deny.toml).
 
 import { withVersion } from "@laminapdf/site-kit/version";
+import cargoToml from "../../../../Cargo.toml?raw";
 import helloRs from "../../../../crates/laminapdf/examples/hello.rs?raw";
 import cliReadme from "../../../../crates/laminapdf-cli/README.md?raw";
+import denyToml from "../../../../deny.toml?raw";
 import helloTs from "../../../../packages/sdk/examples/hello.ts?raw";
 import sdk from "../../../../packages/sdk/package.json";
 import installPage from "../../../docs/src/content/docs/install.mdx?raw";
@@ -116,4 +118,85 @@ export function packages(page: string = installPage): readonly Package[] {
     .filter((match) => match !== null);
   if (rows.length === 0) throw new Error("install.mdx: no package table");
   return rows.map(([, name = "", registry = "", url = "", holds = ""]) => ({ name, registry, url, holds }));
+}
+
+/** A licence allowed for some named dependencies only, with those dependencies. */
+interface LicenceException {
+  readonly licence: string;
+  readonly crates: readonly string[];
+}
+
+/** The licence policy, as `Cargo.toml` and `deny.toml` state it. */
+export interface LicencePolicy {
+  /** Lamina PDF's own licence (`[workspace.package] license`). */
+  readonly licence: string;
+  /** The licences every dependency may have (`[licenses] allow`). */
+  readonly allowed: readonly string[];
+  /** Licences allowed for named crates only (`[licenses] exceptions`), grouped by licence. */
+  readonly exceptions: readonly LicenceException[];
+  /** Crates refused whatever their metadata says (`[bans] deny`), with the reason given. */
+  readonly banned: readonly { readonly name: string; readonly reason: string }[];
+}
+
+/** The text of `[section]` in a TOML file, up to the next table header. */
+function section(toml: string, name: string): string {
+  const start = toml.indexOf(`\n[${name}]\n`);
+  if (start < 0) throw new Error(`no [${name}] table`);
+  const body = toml.slice(start + name.length + 4);
+  const next = body.search(/^\[/m);
+  return next < 0 ? body : body.slice(0, next);
+}
+
+/** The value of `key = [ … ]` in `table`, with its comment lines removed. */
+function array(table: string, key: string): string {
+  const match = table.match(new RegExp(`^${key} = \\[([\\s\\S]*?)^\\]`, "m"));
+  if (match === null) throw new Error(`no \`${key} = [\` array`);
+  return (match[1] ?? "")
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("#"))
+    .join("\n");
+}
+
+/**
+ * The inline tables (`{ name = "…", allow = ["…"] }`) of an array's text, each as its keys and
+ * values, whatever their order: a string value as is, an array of strings as a list.
+ */
+function entries(array: string): Record<string, string | string[]>[] {
+  return [...array.matchAll(/\{([^}]*)\}/g)].map(([, body = ""]) => {
+    const fields: Record<string, string | string[]> = {};
+    for (const [, key = "", text, list] of body.matchAll(/([\w-]+)\s*=\s*(?:"([^"]*)"|\[([^\]]*)\])/g)) {
+      fields[key] = text ?? [...(list ?? "").matchAll(/"([^"]+)"/g)].map(([, item = ""]) => item);
+    }
+    return fields;
+  });
+}
+
+/** A deny.toml entry's crate: its `name`, or its `crate` (cargo-deny's newer spelling, `name@version` allowed). */
+function crateOf(entry: Record<string, string | string[]>, table: string): string {
+  const name = entry.name ?? entry.crate;
+  if (typeof name !== "string") throw new Error(`deny.toml: an entry of ${table} names no crate`);
+  return name.split("@")[0] ?? name;
+}
+
+/** The policy `cargo` and `deny` (the root manifest and `deny.toml`) state. */
+export function licencePolicy(cargo: string = cargoToml, deny: string = denyToml): LicencePolicy {
+  const licence = section(cargo, "workspace.package").match(/^license = "([^"]+)"/m)?.[1];
+  if (licence === undefined) throw new Error("Cargo.toml: no [workspace.package] license");
+  const licences = section(deny, "licenses");
+  const allowed = [...array(licences, "allow").matchAll(/"([^"]+)"/g)].map(([, name = ""]) => name);
+  const byLicence = new Map<string, string[]>();
+  for (const entry of entries(array(licences, "exceptions"))) {
+    const crate = crateOf(entry, "[licenses] exceptions");
+    const allow = entry.allow;
+    if (!Array.isArray(allow) || allow.length === 0)
+      throw new Error(`deny.toml: the exception for ${crate} allows nothing`);
+    for (const id of allow) byLicence.set(id, [...(byLicence.get(id) ?? []), crate]);
+  }
+  const exceptions = [...byLicence].map(([id, crates]) => ({ licence: id, crates }));
+  const banned = entries(array(section(deny, "bans"), "deny")).map((entry) => ({
+    name: crateOf(entry, "[bans] deny"),
+    reason: typeof entry.reason === "string" ? entry.reason : "",
+  }));
+  if (allowed.length === 0 || banned.length === 0) throw new Error("deny.toml: no allowed licences or no bans");
+  return { licence, allowed, exceptions, banned };
 }
