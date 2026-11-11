@@ -198,7 +198,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   keyboard, ARIA values, reduced motion (a Playwright command), axe in 3 themes × 2 directions, target sizes)
 ├── packages/site-kit/   # @laminapdf/site-kit (private, outside Changesets; build time only): what both Astro sites share.
 │                        #   src/integrations.mjs: the CSP's inline-script hashes into dist/_headers, X-Robots-Tag noindex unless
-│                        #   LAMINA_PDF_ENV=production, the website's checks of every built page (ADR 0011 §3: same-origin loads, no
+│                        #   LAMINA_PDF_ENV=production, src/robots.mjs (W3a: the one robots.txt of the three sites, every crawler
+│                        #   let in, the sitemap named in production; robots, writeRobotsTxt, robotsProblems), the website's checks of every built page (ADR 0011 §3: same-origin loads, no
 │                        #   inline styles, cookies or beacons, title, description, canonical URL, internal links), pageFiles, pageExists;
 │                        #   src/version.mjs (withVersion: the pages' `{{version}}`, P4);
 │                        #   the site header (W1d): src/nav.mjs (the one list of links, siteNav per site and page, APP_LAUNCHED),
@@ -229,6 +230,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   reopens the document open at the last close; recent.tsx's Continue reading and the session record);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
+│                        #   plugins/search.ts (W3a: robots.txt, and X-Robots-Tag noindex unless LAMINA_PDF_ENV=production, which only
+│                        #   web-deploy.yml's production-checks sets);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
 │                        #   origin; remote-host.ts, an HTTPS fixture host with CORS and ranges per path, for remote, encrypted and
 │                        #   privacy suites), run by `cargo xtask pdf-runtimes <browser>`; e2e/smoke.test.ts (the deployed reader at
@@ -268,13 +271,14 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   (src/components/Header.astro, Starlight's Header override, with its search and theme switch; the theme switch is
 │                        #   src/components/ThemeSelect.astro, Starlight's ThemeSelect override on site-kit's select); public/_headers
 │                        #   (ADR 0011 §4, inline-script hashes filled in after the build by @laminapdf/site-kit); wrangler.toml (Workers static
-│                        #   assets: docs.laminapdf.com, and next.docs.laminapdf.com as [env.next]); deployed by .github/workflows/docs.yml; README.md has the owner's setup;
+│                        #   assets: docs.laminapdf.com, no workers.dev address, and next.docs.laminapdf.com as [env.next]); robots.txt from the site kit
+│                        #   (the sitemap only on the released docs, checked by plugins/release.mjs); deployed by .github/workflows/docs.yml; README.md has the owner's setup;
 │                        #   for agents (L5a): a Markdown twin of every page, llms.txt and llms-full.txt (plugins/agent-docs.mjs,
 │                        #   plugins/markdown.mjs), and scripts/package-docs.mjs, which writes the docs/ folder the packages ship
 ├── apps/site/           # the website at laminapdf.com (Astro, static, W1b; website plan §4) in the Paper look: src/layouts/Base.astro (head,
 │                        #   font preload, the shared header from @laminapdf/site-kit), src/pages/ (the home page, for now the roadmap (W1c):
 │                        #   src/components/home/, how-we-test.astro (T1b: src/components/how-we-test/, the latest full night's figures,
-│                        #   the licence policy, where the code comes from), 404, robots.txt and sitemap.xml endpoints), src/data/ (check.ts:
+│                        #   the licence policy, where the code comes from), 404 and the sitemap.xml endpoint; robots.txt from the site kit), src/data/ (check.ts:
 │                        #   the readers' shared checks; progress.json from `cargo xtask progress` and its reader progress.ts; proof.json
 │                        #   from `cargo xtask proof snapshot` and its reader proof.ts, how-we-test.ts its names and percentages;
 │                        #   sources.ts: the code panel and packages from the tested examples, the CLI README and the docs install page,

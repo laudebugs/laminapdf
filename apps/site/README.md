@@ -27,6 +27,7 @@ After each build, `astro.config.mjs` runs three steps from `@laminapdf/site-kit`
    It checks the scripts and style sheets the build wrote in the same way, and fails if `_headers` sets a cookie. Astro bundles a `<script src="https://…">` into a module that imports the address, so the check of the build's scripts catches that one.
 2. **The CSP's inline-script hashes** (`inlineScriptHashes`). The step replaces `'inline-script-hashes'` in `_headers` with the SHA-256 of each inline script the build wrote. When the build wrote none, as now, `script-src` is just `'self'`.
 3. **`noindex` outside production** (`previewNoindex`). Every build adds `X-Robots-Tag: noindex` to `_headers` unless `LAMINA_PDF_ENV` is `production`. Only the production deploy sets the variable, so local builds and PR previews are never indexed.
+4. **`robots.txt`** (`robots` from `@laminapdf/site-kit/robots`). Every build lets every crawler in, training crawlers included; production also names `sitemap.xml`. A preview doesn't block crawlers: a crawler reads `noindex` only on a page it may fetch.
 
 ## Headers
 
@@ -51,7 +52,7 @@ The home page ([screen H12](../../docs/design/paper/account-cloud-product.md#h12
 
 The panel's code is coloured when the site is built, so the page ships no script for it. `src/data/highlight.ts` reads the code with Shiki and sorts each piece, by its grammar scope, into one of five kinds: keyword, string, comment, function or constant. Operators, variables and a command's arguments stay plain; the command-line tab is coloured as bash after each `$ ` prompt. The panel wraps each piece in a span whose class `src/styles/site.css` colours with a `--paper-code-*` token. Classes stand in for the inline styles Shiki would write, which the CSP's `style-src 'self'` blocks. `test/highlight.test.ts` checks the kinds on the page's own code and that no character of it changes.
 
-Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt` lets search engines in only on the production build, and `sitemap.xml` lists every page but the 404 page.
+Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt` lets crawlers in on every build and names the sitemap on production's (previews keep out of the index through `noindex`), and `sitemap.xml` lists every page but the 404 page.
 
 ## How we test
 

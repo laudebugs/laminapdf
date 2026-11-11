@@ -1,11 +1,13 @@
 // The Lamina PDF website at https://laminapdf.com (todo W1b; website plan §4): static pages in the
 // Paper look with the website's strict headers (ADR 0011 §4, public/_headers). After the build,
 // @laminapdf/site-kit checks every page against the website's rules (ADR 0011 §3), fills the
-// CSP's inline-script hashes into dist/_headers, and marks every build but production's noindex.
+// CSP's inline-script hashes into dist/_headers, marks every build but production's noindex, and
+// writes robots.txt (production names the sitemap).
 //
 // Build setting (environment variable): LAMINA_PDF_ENV=production for the production deploy. Any
 // other value, or none (a local build, a PR preview), adds `X-Robots-Tag: noindex`.
 import { inlineScriptHashes, pageFiles, previewNoindex, siteChecks } from "@laminapdf/site-kit/integrations";
+import { robots } from "@laminapdf/site-kit/robots";
 import { defineConfig } from "astro/config";
 
 /** Production's address: canonical links use it, previews too (they're noindex). */
@@ -16,6 +18,9 @@ const ORIGIN = "https://laminapdf.com";
  * exists (@laminapdf/site-kit's nav.mjs). Read here, once per build, so no component imports every
  * page to list them; the docs site reads the same folder.
  */
+/** Whether this is the production build, the one search engines may index. */
+const PRODUCTION = process.env.LAMINA_PDF_ENV === "production";
+
 const PAGES = pageFiles(new URL("./src/pages/", import.meta.url));
 
 // A default export because that is how Astro reads its configuration.
@@ -30,8 +35,13 @@ export default defineConfig({
     build: { assetsInlineLimit: 0 },
     define: {
       __SITE_PAGES__: JSON.stringify(PAGES),
-      __PRODUCTION__: JSON.stringify(process.env.LAMINA_PDF_ENV === "production"),
+      __PRODUCTION__: JSON.stringify(PRODUCTION),
     },
   },
-  integrations: [siteChecks({ origin: ORIGIN }), inlineScriptHashes, previewNoindex(process.env.LAMINA_PDF_ENV)],
+  integrations: [
+    siteChecks({ origin: ORIGIN }),
+    inlineScriptHashes,
+    previewNoindex(process.env.LAMINA_PDF_ENV),
+    robots({ production: PRODUCTION, sitemap: new URL("/sitemap.xml", ORIGIN) }),
+  ],
 });

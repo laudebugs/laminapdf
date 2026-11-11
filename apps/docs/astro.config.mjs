@@ -13,10 +13,12 @@
 //   so the TypeScript checks generate the reference only once, in the build).
 // - LAMINA_PDF_ENV=production builds the released docs, docs.laminapdf.com: the header names the
 //   version. Every other build (next.docs.laminapdf.com, the previews, a local build) says on every
-//   page that it describes unreleased changes, and is noindex (plugins/release.mjs).
+//   page that it describes unreleased changes, and is noindex (plugins/release.mjs). Every build
+//   lets crawlers in (robots.txt), so they read that noindex; only the released docs name a sitemap.
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
 import { inlineScriptHashes, pageFiles, previewNoindex } from "@laminapdf/site-kit/integrations";
+import { robots } from "@laminapdf/site-kit/robots";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
@@ -121,6 +123,8 @@ export default defineConfig({
     checkedLinks,
     inlineScriptHashes,
     previewNoindex(process.env.LAMINA_PDF_ENV),
+    // Starlight writes sitemap-index.xml from `site`; only the released docs name it.
+    robots({ production: DOCS_RELEASE.release, sitemap: "https://docs.laminapdf.com/sitemap-index.xml" }),
     agentDocs(sidebarRoutes),
     // Last, so it also reads the Markdown twins agentDocs writes.
     releaseChecks(DOCS_RELEASE),

@@ -30,6 +30,12 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 - **`siteChecks({ origin })`** fails the website's build when a page breaks [the website's privacy rules](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable). A page breaks them when it loads a file from another origin or one the build didn't write, links to a missing page, has an inline style, sets a cookie or sends a beacon. It also fails when a page lacks a title, a description or a canonical URL. The [website's README](../../apps/site/README.md#what-every-build-checks) lists each rule.
 - **`inlineScriptHashes`** puts the SHA-256 of each inline script into the CSP in `dist/_headers`, for both sites.
 - **`previewNoindex(env)`** adds `X-Robots-Tag: noindex` to every build except production's (`LAMINA_PDF_ENV=production`).
+
+`src/robots.mjs` (`@laminapdf/site-kit/robots`) holds the one robots.txt policy of the website, the docs site and the web reader:
+
+- **`robotsTxt({ production, sitemap })`** lets every crawler in, training crawlers included (the owner's choice, 2026-11-11), and names the sitemap in production. Other builds don't block crawlers either: they rely on `noindex`, which a crawler reads only on a page it may fetch.
+- **`robots(build)`** writes it into an Astro build's `dist/`; **`writeRobotsTxt(dir, build)`** does the same for the reader's Vite build.
+- **`robotsProblems(text, build)`** names what is wrong with a built file; the docs site's release checks call it.
 - **`pageFiles(dir)`** lists a pages folder for the header, and **`pageExists(dir, path)`** says whether a build serves a path. The docs site's link check uses `pageExists` too.
 
 ## Tests
