@@ -2,9 +2,15 @@
 // The site header (design language §7.39) of both sites: the wordmark, the one list of links from
 // nav.mjs (the current page's in 600 with the accent underline), any tools a site adds in the
 // `tools` slot (the docs site's search and theme switch), and "Open the web app" once the reader
-// is live. Its look is header.css; each site sizes it with header.css's variables.
+// is live (on a phone it shows "App" and the external-link icon; its name stays the whole phrase).
+// On a phone the bar keeps the wordmark, Docs and App, and the other links move into a menu
+// (`menu`, on by default; the docs site has Starlight's own).
+// Its look is header.css; each site sizes it with header.css's variables.
 import "./header.css";
-import { APP_LAUNCHED, APP_URL, type NavLink } from "./nav.mjs";
+import externalLink from "@laminapdf/icons/svg/external-link.svg?raw";
+import menuIcon from "@laminapdf/icons/svg/menu.svg?raw";
+import { decorativeIcon } from "./icon.mjs";
+import { APP_LAUNCHED, APP_URL, inPhoneMenu, type NavLink } from "./nav.mjs";
 import SiteNav from "./SiteNav.astro";
 
 interface Props {
@@ -12,9 +18,12 @@ interface Props {
   links: readonly NavLink[];
   /** Where the wordmark goes: the website's home. */
   home: string;
+  /** Whether a phone gets the menu of the links its bar has no room for. */
+  menu?: boolean;
 }
 
-const { links, home } = Astro.props;
+const { links, home, menu = true } = Astro.props;
+const menuLinks = menu ? links.filter(inPhoneMenu) : [];
 ---
 
 <div class="site-header-row">
@@ -27,5 +36,39 @@ const { links, home } = Astro.props;
       </div>
     )
   }
-  {APP_LAUNCHED && <a class="site-header-app" href={APP_URL}>Open the web app</a>}
+  {
+    APP_LAUNCHED && (
+      <a class="site-header-app" href={APP_URL}>
+        <span><span class="site-header-app-lead">Open the web </span><span class="site-header-app-word">app</span></span>
+        <Fragment set:html={decorativeIcon(externalLink, "site-header-app-icon")} />
+      </a>
+    )
+  }
+  {
+    menuLinks.length > 0 && (
+      <details class="site-menu">
+        <summary aria-label="More pages">
+          <Fragment set:html={decorativeIcon(menuIcon, "site-menu-icon")} />
+        </summary>
+        <nav class="site-menu-panel" aria-label="More pages">
+          <ul>
+            {menuLinks.map((link) => (
+              <li>
+                <a href={link.href} aria-current={link.current}>
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </details>
+    )
+  }
 </div>
+
+<script>
+  import { wireMenus } from "./menu.mjs";
+
+  // The browser tests render this header in Node, which evaluates the script without a document.
+  if (typeof document !== "undefined") wireMenus(document);
+</script>

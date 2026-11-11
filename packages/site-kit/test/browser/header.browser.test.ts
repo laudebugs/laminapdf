@@ -8,6 +8,7 @@ import "../../src/header.css";
 import axe from "axe-core";
 import { afterEach, describe, expect, inject, it } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
+import { wireMenus } from "../../src/menu.mjs";
 
 const HEADERS = inject("headers");
 
@@ -85,6 +86,63 @@ for (const theme of ["light", "dark"] as const) {
       await page.viewport(375, 800);
       mount(HEADERS.website, theme);
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(375);
+    });
+
+    it("shortens the app link to App and the open-in-new icon on a phone, keeping its name", async () => {
+      const app = () => {
+        const link = document.querySelector<HTMLAnchorElement>(".site-header-app");
+        if (link === null) throw new Error("no app link");
+        return link;
+      };
+      const icon = () => app().querySelector("svg");
+      mount(HEADERS.website, theme);
+      expect(app().textContent?.trim()).toBe("Open the web app");
+      expect(icon() === null ? "none" : getComputedStyle(icon() as SVGElement).display).toBe("none");
+      await page.viewport(375, 800);
+      // innerText keeps visually hidden text, so check what is drawn: the lead clipped to 1 px,
+      // the word capitalised.
+      const lead = app().querySelector(".site-header-app-lead")?.getBoundingClientRect();
+      expect(lead?.width).toBeLessThanOrEqual(1);
+      const word = app().querySelector(".site-header-app-word");
+      expect(word === null ? "" : getComputedStyle(word).textTransform).toBe("capitalize");
+      expect(getComputedStyle(icon() as SVGElement).display).not.toBe("none");
+      await expect.element(page.getByRole("link", { name: "Open the web app" })).toBeVisible();
+      const box = app().getBoundingClientRect();
+      const iconBox = (icon() as SVGElement).getBoundingClientRect();
+      expect(box.right).toBeLessThanOrEqual(375);
+      expect(Math.abs(iconBox.top + iconBox.height / 2 - (box.top + box.height / 2))).toBeLessThan(2);
+    });
+
+    it("keeps the wordmark, Docs, App and a menu of the other links on one line on a phone", async () => {
+      const header = mount(HEADERS.website, theme);
+      wireMenus(document);
+      const shown = () =>
+        [...header.querySelectorAll<HTMLElement>(".site-wordmark, .site-nav a, .site-header-app, .site-menu > summary")]
+          .filter((element) => element.getClientRects().length > 0)
+          .map((element) => element.getAttribute("aria-label") ?? element.textContent?.trim());
+      const menu = header.querySelector<HTMLDetailsElement>("details.site-menu");
+      if (menu === null) throw new Error("no menu");
+      expect(menu.getClientRects().length).toBe(0);
+      for (const width of [320, 375]) {
+        await page.viewport(width, 800);
+        expect(shown()).toEqual(["Lamina PDF", "Docs", "Open the web app", "More pages"]);
+        const tops = [...header.querySelectorAll(".site-wordmark, .site-header-app, .site-menu")].map((element) =>
+          element.getBoundingClientRect(),
+        );
+        expect(Math.max(...tops.map((box) => box.bottom)) - Math.min(...tops.map((box) => box.top))).toBeLessThan(64);
+        expect(Math.max(...tops.map((box) => box.right))).toBeLessThanOrEqual(width);
+        expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+      }
+      const summary = menu.querySelector("summary");
+      if (summary === null) throw new Error("no menu button");
+      await userEvent.click(summary);
+      expect(menu.open).toBe(true);
+      const panel = page.getByRole("navigation", { name: "More pages" });
+      await expect.element(panel.getByRole("link", { name: "How we test" })).toBeVisible();
+      await expect.element(panel.getByRole("link", { name: "Privacy" })).toHaveAttribute("aria-current", "page");
+      await userEvent.keyboard("{Escape}");
+      expect(menu.open).toBe(false);
+      expect(document.activeElement).toBe(summary);
     });
 
     it("has no axe violation on either site", async () => {

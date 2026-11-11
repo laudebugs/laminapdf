@@ -1,5 +1,7 @@
 # OS
 .DS_Store
+# macOS AppleDouble metadata (._<name>), written beside files by some copies and archives
+._*
 Thumbs.db
 desktop.ini
 
