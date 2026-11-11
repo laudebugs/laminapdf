@@ -75,7 +75,7 @@ After installation and merge, check the first full nightly's daily-release run. 
 
 ## The CLI's release
 
-The `laminapdf` command-line tool releases apart from the libraries, from a `laminapdf-cli-v<version>` tag. [`.github/workflows/cli-release.yml`](../../.github/workflows/cli-release.yml) builds and installs all eight targets, then publishes three things: the GitHub release with build-provenance attestations, the nine npm packages (`@laminapdf/cli` and one per target) and the Homebrew formula. It publishes only on that tag's push, while the repository variable `LAMINA_PDF_PUBLISH_CLI` is `true`.
+The `laminapdf` command-line tool releases from a `laminapdf-cli-v<version>` tag, which the CLI release train pushes after each daily release. [`.github/workflows/cli-release.yml`](../../.github/workflows/cli-release.yml) builds and installs all eight targets, then publishes three things: the GitHub release with build-provenance attestations, the nine npm packages (`@laminapdf/cli` and one per target) and the Homebrew formula. It publishes only on that tag's push, while the repository variable `LAMINA_PDF_PUBLISH_CLI` is `true`.
 
 Before the first release, the owner does this once:
 
@@ -85,4 +85,11 @@ Before the first release, the owner does this once:
 4. **Add the trusted publisher.** On npmjs.com, open each of the nine packages' settings and add a trusted publisher: GitHub Actions, repository `laudebugs/laminapdf`, workflow `cli-release.yml`, environment `release`.
 5. **Turn publishing on.** Set the repository variable `LAMINA_PDF_PUBLISH_CLI` to `true`.
 
-Until [L4h](../../docs/todos/ready/L4h-cli-release-train.md) tags releases after each daily release, tag one by hand from `main`: `git tag laminapdf-cli-v<version>` (the workspace's version) and push the tag. A failed publish job can be re-run with **Re-run failed jobs**: the GitHub release job uploads its files again to the release it made, npm skips versions it has, and the tap's formula is replaced.
+After that, every daily release brings a CLI release at the same version ([L4h](../../docs/todos/done/L4h-cli-release-train.md)). When the release lane finishes a `v<version>` tag push successfully, `cli-release-train.yml` has the release bot tag `laminapdf-cli-v<version>` on the same commit, and that tag runs `cli-release.yml`. The train checks that the run succeeded and that `v<version>` still names its commit, leaves an existing CLI tag alone, and checks out nothing. Every version gets a CLI release, changed or not, because the docs site's download links name the docs' version. Install it the same way as the other trains (its first PR installed it already):
+
+```sh
+cp tools/release/cli-release-train.yml .github/workflows/cli-release-train.yml
+git add .github/workflows/cli-release-train.yml
+```
+
+Set the repository variable `CLI_RELEASE_TRAIN=off` to stop it; that also stops the hand-run recovery below, so tag by hand while it's off. To tag a release the train missed, run the workflow by hand with the release lane's run ID (`gh workflow run cli-release-train.yml -f release-run-id=<id>`): it prints what it would tag, and pushes the tag only with `-f tag=true`. Or tag by hand: `git tag laminapdf-cli-v<version> v<version>` and push the tag. A failed publish job can be re-run with **Re-run failed jobs**: the GitHub release job uploads its files again to the release it made, npm skips versions it has, and the tap's formula is replaced.
