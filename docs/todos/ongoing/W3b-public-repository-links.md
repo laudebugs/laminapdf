@@ -11,7 +11,7 @@
 | Branch | `docs/w3b-public-repository-links` |
 | PR title | `docs: the repository is public: GitHub links on the docs, error links on the docs site` |
 | Size | M (a constant, regenerated tables, docs site config, many small prose edits) |
-| PR | — |
+| PR | [#436](https://github.com/laudebugs/laminapdf/pull/436) |
 
 ## Goal
 
