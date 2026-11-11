@@ -31,6 +31,33 @@ export function placeAbove(
   gap: number,
   margin: number,
 ): Placement | null {
+  return placeBeside(anchor, width, height, bounds, gap, margin, "above");
+}
+
+/**
+ * {@link placeAbove}, but below `anchor` first, flipping above when there is no room below: a link
+ * preview goes under its link (§7.27), never over it.
+ */
+export function placeBelow(
+  anchor: Box,
+  width: number,
+  height: number,
+  bounds: Box,
+  gap: number,
+  margin: number,
+): Placement | null {
+  return placeBeside(anchor, width, height, bounds, gap, margin, "below");
+}
+
+function placeBeside(
+  anchor: Box,
+  width: number,
+  height: number,
+  bounds: Box,
+  gap: number,
+  margin: number,
+  prefer: "above" | "below",
+): Placement | null {
   const outside =
     anchor.top + anchor.height < bounds.top ||
     anchor.top > bounds.top + bounds.height ||
@@ -41,7 +68,14 @@ export function placeAbove(
   const bottom = bounds.top + bounds.height - margin;
   const above = anchor.top - gap - height;
   const below = anchor.top + anchor.height + gap;
-  const side = above >= top || below + height > bottom ? "above" : "below";
+  const side =
+    prefer === "above"
+      ? above >= top || below + height > bottom
+        ? "above"
+        : "below"
+      : below + height <= bottom || above < top
+        ? "below"
+        : "above";
   const wanted = side === "above" ? above : below;
   const left = anchor.left + anchor.width / 2 - width / 2;
   return {

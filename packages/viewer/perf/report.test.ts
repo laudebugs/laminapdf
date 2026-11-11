@@ -37,6 +37,7 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
       rare: { firstResultMs: 2600, fullMs: 3300, total: 1 },
       recording: recording(),
     },
+    linkPreviews: { toCropMs: [60, 80], recording: recording() },
     edit: [
       { pages: 10, applyMs: 20, firstPixelsMs: 40, sharpMs: 90 },
       { pages: 100, applyMs: 30, firstPixelsMs: 60, sharpMs: 110, lastOf: 20, lastFirstPixelsMs: 75 },
