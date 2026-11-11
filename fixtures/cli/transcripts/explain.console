@@ -1,4 +1,4 @@
-$ laminapdf explain xref-repaired | head -n 9
+$ laminapdf explain xref-repaired | head -n 8
 # `xref-repaired`
 
 - Type: warning
@@ -7,4 +7,3 @@ $ laminapdf explain xref-repaired | head -n 9
 ## What happened
 
 The stored cross-reference data was unusable and was rebuilt by scanning the file.
-

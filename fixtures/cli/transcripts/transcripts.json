@@ -12,7 +12,6 @@
   },
   "build-markdown": {
     "commands": [
-      "cat notes.md",
       "laminapdf build notes.md -o notes.pdf"
     ],
     "files": {
@@ -40,7 +39,7 @@
   },
   "explain": {
     "commands": [
-      "laminapdf explain xref-repaired | head -n 9"
+      "laminapdf explain xref-repaired | head -n 8"
     ],
     "files": {}
   },

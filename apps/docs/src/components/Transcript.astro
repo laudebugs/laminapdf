@@ -5,6 +5,7 @@
 // typed by hand. A name that isn't a transcript fails the build.
 import { Code } from "@astrojs/starlight/components";
 import { withVersion } from "@laminapdf/site-kit/version";
+import { transcriptFile } from "../../plugins/markdown.mjs";
 
 interface Props {
   /** The transcript's name: `info` for `fixtures/cli/transcripts/info.console`. */
@@ -18,7 +19,7 @@ const FILES: Record<string, string> = import.meta.glob(["../../../../fixtures/cl
 });
 
 const { name } = Astro.props;
-const text = FILES[`../../../../fixtures/cli/transcripts/${name}.console`];
+const text = FILES[`../../../../${transcriptFile(name)}`];
 if (text === undefined) {
   throw new Error(`Transcript: ${name} is not one of fixtures/cli/transcripts/*.console`);
 }

@@ -53,17 +53,27 @@ fn manifest() -> BTreeMap<String, Entry> {
         .unwrap()
         .iter()
         .map(|(name, entry)| {
-            let files = entry["files"]
-                .as_object()
-                .unwrap()
-                .iter()
-                .map(|(to, from)| (to.clone(), from.as_str().unwrap().to_owned()))
-                .collect();
+            let files = entry["files"].as_object().map_or_else(BTreeMap::new, |files| {
+                files
+                    .iter()
+                    .map(|(to, from)| {
+                        let from = from
+                            .as_str()
+                            .unwrap_or_else(|| panic!("{name}: files.{to} isn't a path"));
+                        (to.clone(), from.to_owned())
+                    })
+                    .collect()
+            });
             let list = |key: &str| -> Vec<String> {
                 entry[key].as_array().map_or_else(Vec::new, |commands| {
                     commands
                         .iter()
-                        .map(|command| command.as_str().unwrap().to_owned())
+                        .map(|command| {
+                            let command = command.as_str();
+                            command
+                                .unwrap_or_else(|| panic!("{name}: a {key} command isn't a string"))
+                                .to_owned()
+                        })
                         .collect()
                 })
             };
@@ -72,6 +82,7 @@ fn manifest() -> BTreeMap<String, Entry> {
                 commands: list("commands"),
                 files,
             };
+            assert!(!entry.commands.is_empty(), "{name}: no commands");
             (name.clone(), entry)
         })
         .collect()
@@ -161,9 +172,12 @@ fn every_transcript_is_what_the_commands_print() {
             fs::copy(root().join(from), dir.join(to)).unwrap_or_else(|e| panic!("{name}: {from}: {e}"));
         }
         let actual = run(&dir, &entry.setup, &entry.commands);
+        if masked(&actual) == masked(&expected) {
+            continue;
+        }
         if update {
             fs::write(&file, &actual).unwrap();
-        } else if masked(&actual) != masked(&expected) {
+        } else {
             stale.push(format!("{name}.console:\n--- expected\n{expected}--- actual\n{actual}"));
         }
     }
