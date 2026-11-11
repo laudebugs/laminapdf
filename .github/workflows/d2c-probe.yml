@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [windows-2025]
+        runner: [windows-2025, ubuntu-24.04, ubuntu-24.04-arm, ubuntu-22.04]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,7 +57,7 @@ jobs:
           for p in threads read memory; do target/debug/laminapdf-desktop-engine --sandbox-selftest=$p 2>&1 | tee -a probe-logs/trap.log; done
           cargo test --locked -p laminapdf-desktop-engine --features seccomp-trap -- --include-ignored --nocapture 2>&1 | grep -E "seccomp refused|FAILED|panicked" | tee -a probe-logs/trap.log
       - name: Measure with and without the sandbox (release, debug assertions on for the switch)
-        if: always() && (matrix.runner == 'ubuntu-24.04' || matrix.runner == 'windows-2025')
+        if: always() && matrix.runner == 'ubuntu-24.04-arm'
         shell: bash
         env:
           CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: "true"

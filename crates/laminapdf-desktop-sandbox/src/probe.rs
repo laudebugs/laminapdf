@@ -55,7 +55,12 @@ pub fn write(path: &Path) -> Outcome {
 /// created and the network reached, so only a failure before that counts as blocked.
 #[must_use]
 pub fn connect(addr: SocketAddr) -> Outcome {
-    match TcpStream::connect_timeout(&addr, Duration::from_secs(2)) {
+    // On Windows the locked-down token can't start Winsock, and std panics on that failure.
+    let connected = std::panic::catch_unwind(|| TcpStream::connect_timeout(&addr, Duration::from_secs(2)));
+    let Ok(connected) = connected else {
+        return Outcome::Blocked("the socket layer failed to start".into());
+    };
+    match connected {
         Ok(_) => Outcome::Allowed(format!("connected to {addr}")),
         Err(error) if matches!(error.kind(), io::ErrorKind::ConnectionRefused | io::ErrorKind::TimedOut) => {
             Outcome::Allowed(format!("a socket reached {addr}, which didn't answer: {error}"))
