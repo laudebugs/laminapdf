@@ -1,0 +1,1 @@
+{ "op": "removeMetadata", "args": { "keys": ["authors", "creator", "producer"] } }

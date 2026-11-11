@@ -123,7 +123,12 @@ describe("properties", () => {
         producer: p.producer ?? null,
         encryption_revision: p.encryption?.revision ?? null,
         fonts,
-      }).toEqual({ ...facts[name]?.properties, signatures: undefined });
+      }).toEqual({
+        title: facts[name]?.properties.title,
+        producer: facts[name]?.properties.producer,
+        encryption_revision: facts[name]?.properties.encryption_revision,
+        fonts: facts[name]?.properties.fonts,
+      });
     }
   });
 });

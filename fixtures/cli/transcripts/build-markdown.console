@@ -1,0 +1,2 @@
+$ laminapdf build notes.md -o notes.pdf
+built 1 page → notes.pdf (3 KB)

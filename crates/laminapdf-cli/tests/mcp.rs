@@ -1,6 +1,10 @@
 //! `laminapdf mcp` over stdio, through rmcp's own client: discovery, a fixed tool list, every
 //! tool's output against its `outputSchema`, the root policy on the real file system, argument
 //! errors as tool errors, and document text kept in data fields.
+#![expect(
+    deprecated,
+    reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
+)]
 #![cfg(feature = "mcp")]
 #![expect(
     clippy::unwrap_used,

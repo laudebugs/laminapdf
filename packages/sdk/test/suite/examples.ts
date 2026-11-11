@@ -4,6 +4,7 @@
 // Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
+import { editMetadata } from "../../examples/edit-metadata.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
@@ -53,8 +54,10 @@ const MARKDOWN_FONTS = [
 /** The invoice template, its data, and its bold face (the collection's second). */
 const JSON_INVOICE = ["fixtures/documents/invoice.json", "fixtures/documents/invoice-data.json"] as const;
 const BOLD = "fixtures/fonts/NotoSans-RegularBold.ttc";
-/** The modification date generate-then-edit records, fixed like the options. */
+/** The modification date generate-then-edit and edit-metadata record, fixed like the options. */
 const EDITED_AT = "D:20261030130000Z";
+/** The document edit-metadata edits. */
+const METADATA_PDF = "fixtures/golden/metadata.pdf";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
@@ -138,6 +141,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "generate_then_edit",
     inputs: [],
     build: () => generateThenEdit(exampleOptions("lamina-ex-edit!!"), EDITED_AT),
+  },
+  {
+    name: "edit-metadata",
+    golden: "edit_metadata",
+    inputs: [METADATA_PDF],
+    build: (i) => editMetadata(input(i, METADATA_PDF), EDITED_AT),
   },
   { name: "pdf-ua-report", golden: "pdf_ua_report", inputs: [NOTO], build: (i) => pdfUaReport(input(i, NOTO)) },
   {
