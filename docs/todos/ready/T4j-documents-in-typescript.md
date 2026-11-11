@@ -57,7 +57,7 @@ Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(d
 - [ ] A misspelt key fails with `unknown-option` and a `didYouMean` in the binding, and fails to type-check in TypeScript
 - [ ] `template-data-missing` reaches TypeScript as a `LaminaPdfError` with the pointer in its `data`
 - [ ] The runtime suite's measurements include the `invoice-from-json` case in each runtime
-- [ ] `cargo xtask gen boundary --check` and `cargo xtask size` pass, within the text module's 1,360,000 B gzip budget
+- [ ] `cargo xtask gen boundary --check` and `cargo xtask size` pass, within the text module's 1,375,000 B gzip budget
 - [ ] `cargo xtask check docs` passes with the example pair shown on a docs page
 
 ## Post-merge checks
