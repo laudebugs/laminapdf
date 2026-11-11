@@ -25,7 +25,10 @@ use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::Rotation;
-use laminapdf_ops::{Document, InfoPatch, Op, Origin, RotatePage, SetInfo};
+use laminapdf_ops::{
+    Document, InfoPatch, MetadataKey, MetadataPatch, Op, Origin, RemoveMetadata, RotatePage, SetInfo, SetMetadata,
+    read_metadata,
+};
 use laminapdf_save::{Save, SaveError, SaveMode, SaveOptions, SaveReport};
 use serde_json::{Value, json};
 
@@ -196,18 +199,46 @@ fn facts(doc: &laminapdf_model::Document) -> (usize, Vec<u16>, Vec<Option<String
     (pages.len(), rotations, values)
 }
 
+/// The ops each fixture is saved with: the B3 proving ops and the metadata ops (E1c: J.01–J.03,
+/// J.10).
+const OPS: [&str; 4] = ["setInfo", "rotatePage", "setMetadata", "removeMetadata"];
+
+/// The save-time date the metadata cases stamp (J.02).
+const STAMP: &str = "D:20261110093000Z";
+
 fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
-    if name == "setInfo" {
-        let [title, author, subject, keywords] = INFO.map(|(_, value)| Some(value));
-        let patch = InfoPatch::new()
-            .title(title)
-            .author(author)
-            .subject(subject)
-            .keywords(keywords);
-        SetInfo::patch(patch).into()
-    } else {
-        let page = doc.pages().unwrap().get(0).unwrap().id().clone();
-        RotatePage::new(page, rotation).into()
+    let [title, author, subject, keywords] = INFO.map(|(_, value)| Some(value));
+    match name {
+        "setInfo" => SetInfo::patch(
+            InfoPatch::new()
+                .title(title)
+                .author(author)
+                .subject(subject)
+                .keywords(keywords),
+        )
+        .into(),
+        "setMetadata" => SetMetadata::new(
+            MetadataPatch::new()
+                .title(title)
+                .authors(&[INFO[1].1])
+                .subject(subject)
+                .keywords(keywords)
+                .creator(Some("lamina round trip"))
+                .created(Some("D:20260101120000+01'00'".parse().unwrap())),
+            None,
+        )
+        .into(),
+        "removeMetadata" => RemoveMetadata::new(vec![
+            MetadataKey::Title,
+            MetadataKey::Authors,
+            MetadataKey::Subject,
+            MetadataKey::Keywords,
+        ])
+        .into(),
+        _ => {
+            let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+            RotatePage::new(page, rotation).into()
+        }
     }
 }
 
@@ -231,7 +262,7 @@ pub fn run(root: &Path) -> Suite {
     let mut suite = Suite::default();
     for (index, (name, bytes, category)) in fixtures(root).into_iter().enumerate() {
         let rotation = ROTATIONS[index % ROTATIONS.len()];
-        for op_name in ["setInfo", "rotatePage"] {
+        for op_name in OPS {
             for mode in [SaveMode::Auto, SaveMode::Incremental, SaveMode::FullRewrite] {
                 for (invalidate, remove) in [(false, false), (true, false), (false, true), (true, true)] {
                     let id = format!(
@@ -244,15 +275,29 @@ pub fn run(root: &Path) -> Suite {
                     let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
                     let (pages, mut rotations, mut info) = facts(&doc);
                     let op = op(&doc, op_name, rotation);
+                    let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_));
                     match op {
-                        Op::SetInfo(_) => info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect(),
+                        Op::SetInfo(_) | Op::SetMetadata(_) => {
+                            info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect();
+                        }
+                        Op::RemoveMetadata(_) => info = vec![None; INFO.len()],
                         _ => rotations[0] = rotation.degrees(),
                     }
-                    doc.apply_all(Origin::Local, [op]).unwrap();
-                    let options = SaveOptions::new()
+                    // A removal from a file with nothing to remove would change nothing: it
+                    // follows the metadata edit, in the same transaction.
+                    let ops = if op_name == "removeMetadata" {
+                        vec![self::op(&doc, "setMetadata", rotation), op]
+                    } else {
+                        vec![op]
+                    };
+                    doc.apply_all(Origin::Local, ops).unwrap();
+                    let mut options = SaveOptions::new()
                         .with_mode(mode)
                         .with_invalidate_signatures(invalidate)
                         .with_remove_encryption(remove);
+                    if metadata_op {
+                        options = options.with_metadata_date(STAMP.parse().unwrap());
+                    }
                     let mut output = Vec::new();
                     let result = doc.save(&mut output, &options);
                     let got = result.as_ref().map(SaveReport::mode).map_err(SaveError::code);
@@ -282,6 +327,14 @@ pub fn run(root: &Path) -> Suite {
                             (pages, &rotations, &info)
                         ));
                     }
+                    if metadata_op {
+                        let meta = read_metadata(&reopened).unwrap();
+                        if !meta.disagreements.is_empty() {
+                            suite
+                                .failures
+                                .push(format!("{id}: Info and XMP disagree on {:?}", meta.disagreements));
+                        }
+                    }
                     let file = format!("{id}.pdf");
 
                     suite.manifest.push(json!({
@@ -293,7 +346,7 @@ pub fn run(root: &Path) -> Suite {
                         "title": info[0],
                         // The other three keys the setInfo cases write (J.01), compared by the
                         // tools only there: elsewhere they are the fixture's own values.
-                        "info": (op_name == "setInfo").then(|| json!({
+                        "info": (op_name != "rotatePage").then(|| json!({
                             "Author": info[1],
                             "Subject": info[2],
                             "Keywords": info[3],
