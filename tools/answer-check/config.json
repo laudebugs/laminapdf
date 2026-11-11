@@ -1,0 +1,20 @@
+{
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "maxTokens": 16000,
+  "maxSearches": 5,
+  "repeats": 3,
+  "maxContinuations": 3,
+  "target": {
+    "names": ["Lamina PDF", "LaminaPDF", "laminapdf", "@laminapdf/"],
+    "domains": ["laminapdf.com"],
+    "urlPrefixes": [
+      "https://github.com/laudebugs/laminapdf",
+      "https://github.com/laudebugs/lamina",
+      "https://www.npmjs.com/package/@laminapdf/",
+      "https://crates.io/crates/laminapdf",
+      "https://lib.rs/crates/laminapdf",
+      "https://docs.rs/laminapdf"
+    ]
+  }
+}
