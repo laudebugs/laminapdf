@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { mdxToMarkdown, shownFiles, transcriptFile } from "../plugins/markdown.mjs";
+import { mdxToMarkdown, shownFiles, TRANSCRIPT, transcriptFile } from "../plugins/markdown.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
 const PAGES = new URL("src/content/docs/", new URL("../", import.meta.url));
@@ -32,7 +32,7 @@ export function typesASession(text) {
     if (lang === "console") return true;
     if (["sh", "bash", "shell", "zsh"].includes(lang) && /^\s*\$ /m.test(body)) return true;
   }
-  return false;
+  return /<Code\b[^>]*\blang=["']console["']/.test(text);
 }
 
 test("no page types a command-line session by hand", () => {
@@ -45,12 +45,13 @@ test("a console fence, or a shell fence with a prompt, counts as a typed session
   assert.equal(typesASession("~~~console\nlaminapdf 1\n~~~\n"), true);
   assert.equal(typesASession("```sh\n$ laminapdf info a.pdf\na.pdf  PDF 1.7\n```\n"), true);
   assert.equal(typesASession("```sh\nlaminapdf info a.pdf\n```\n"), false);
+  assert.equal(typesASession('<Code code="$ laminapdf info a.pdf" lang="console" />'), true);
 });
 
 test("every Transcript tag is one the Markdown twins replace", () => {
   const odd = pages.flatMap((page) =>
     (page.text.match(/<Transcript\b[^>]*>/g) ?? [])
-      .filter((tag) => !/^<Transcript\s+name="[a-z0-9-]+"\s*\/>$/.test(tag))
+      .filter((tag) => [...tag.matchAll(TRANSCRIPT)].length !== 1)
       .map((tag) => `${page.file}: ${tag}`),
   );
   assert.deepEqual(odd, []);
@@ -58,7 +59,7 @@ test("every Transcript tag is one the Markdown twins replace", () => {
 
 test("every transcript a page shows exists", () => {
   const missing = pages.flatMap((page) =>
-    [...page.text.matchAll(/<Transcript\s+name="([^"]+)"/g)]
+    [...page.text.matchAll(TRANSCRIPT)]
       .map((m) => m[1] ?? "")
       .filter((name) => !transcripts.has(name))
       .map((name) => `${page.file}: ${name}`),
@@ -75,4 +76,13 @@ test("a twin shows a transcript as a console block", () => {
     changelog: () => "",
   });
   assert.equal(markdown, "Run it:\n\n```console\n$ laminapdf --version\nlaminapdf {{version}}\n```\n");
+});
+
+test("a Markdown file a page shows by name is the file the transcripts read", async () => {
+  const notes = await readFile(new URL("fixtures/cli/notes.md", ROOT), "utf8");
+  const shown = pages.flatMap((page) =>
+    [...page.text.matchAll(/^```md title="notes\.md"\n([\s\S]*?)^```/gm)].map((m) => ({ file: page.file, text: m[1] })),
+  );
+  assert.ok(shown.length > 0);
+  for (const block of shown) assert.equal(block.text, notes, block.file);
 });

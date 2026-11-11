@@ -46,6 +46,8 @@ The docs promise that every code block was tested, and for TypeScript and Rust i
 - [x] Move each CLI page onto the transcripts, fixing any output that has drifted.
 - [ ] Check the `sh` install blocks against the package names and the version rule on the install page. *Not done:* they can't run in a test, the install page's own check covers the download table, and `release.mjs` already checks the versions install lines name; left for a later todo if they drift.
 
+*Left out, found in review:* the error-code pages (`docs/errors/*.md`, plain Markdown the docs site renders at `/reference/codes/`) still show a few hand-typed `console` sessions, and a transcript merges standard error into standard output and shows an exit code only through `echo $?`, so a claim that a message goes to standard error isn't checked. Both are for a later todo.
+
 ## Acceptance criteria
 
 - [x] Every `console` block on the site comes from a transcript file that a test runs.

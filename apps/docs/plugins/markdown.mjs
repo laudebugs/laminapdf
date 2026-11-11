@@ -15,7 +15,7 @@ const LANGUAGES = { ts: "ts", rs: "rust", toml: "toml", json: "json", md: "md" }
 const SNIPPET = /<Snippet\b[^>]*?\bfile="([^"]+)"[^>]*\/>/g;
 
 /** A `<Transcript name="…" />` (todo Q4a); group 1 is the transcript's name. */
-const TRANSCRIPT = /<Transcript\s+name="([a-z0-9-]+)"\s*\/>/g;
+export const TRANSCRIPT = /<Transcript\s+name="([a-z0-9-]+)"\s*\/>/g;
 
 /**
  * The file a `<Transcript>` shows, from the repository root.
