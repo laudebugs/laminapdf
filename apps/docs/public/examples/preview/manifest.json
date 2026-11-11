@@ -10,6 +10,16 @@
         }
       ]
     },
+    "edit_metadata-pdfa": {
+      "sha256": "0194815e561520b5e1df07ee228f7d05310e4ef3add2d9f6863fe960ec96b614",
+      "bytes": 19506,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "element_flow": {
       "sha256": "858d8fd31717699c099e91b9ef67296ff6cdcf5eca3433e89a7484ccc77a924f",
       "bytes": 6297,

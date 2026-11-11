@@ -105,7 +105,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 15] = [
+const EXAMPLES: [(&str, Build); 16] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -120,6 +120,11 @@ const EXAMPLES: [(&str, Build); 15] = [
     }),
     ("edit_metadata", || {
         edit_metadata::edit(fixture("golden/metadata.pdf"), EDITED.parse()?)
+    }),
+    // The same edit on a file that claims PDF/A-2u and PDF/UA-1, so `cargo xtask verapdf` (which
+    // validates every example's output) checks that an edit keeps both claims.
+    ("edit_metadata-pdfa", || {
+        edit_metadata::edit(fixture("golden/examples/pdf_a_archive-2u.pdf"), EDITED.parse()?)
     }),
     ("pdf_ua_report", || pdf_ua_report::build(fixture(NOTO))),
     ("pdf_a_archive-2b", || {
