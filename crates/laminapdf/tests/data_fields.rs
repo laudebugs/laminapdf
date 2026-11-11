@@ -469,6 +469,7 @@ fn the_generated_tables_agree_with_the_wrapped_crates() {
             Warning::Document(i) => (i.code(), i.kind()),
             Warning::Font(i) => (i.code(), i.kind()),
             Warning::Build(i) => (i.code(), i.kind()),
+            Warning::Conformance(i) => (i.code(), i.kind()),
             _ => continue,
         };
         if (w.code(), w.kind()) != (code, kind) {

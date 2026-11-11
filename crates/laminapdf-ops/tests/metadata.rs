@@ -1,4 +1,4 @@
-//! The metadata ops (E1c): the frozen v1 samples, Info and XMP agreeing after every op, undo
+//! The metadata ops: the frozen v1 samples, Info and XMP agreeing after every op, undo
 //! and redo, coalescing, and the codes the ops add.
 #![expect(clippy::unwrap_used, clippy::panic, reason = "tests: a panic is a test failure")]
 

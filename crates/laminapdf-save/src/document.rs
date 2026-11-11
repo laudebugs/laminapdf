@@ -46,7 +46,7 @@ use crate::sink::{ReadableSink, WriteSink};
 /// objects, clears it ([`PendingRebase::ClearHistory`]).
 ///
 /// ```
-/// use laminapdf_ops::{Document, InfoPatch, Origin, SaveState, SetInfo};
+/// use laminapdf_ops::{Document, MetadataPatch, Origin, SaveState, SetMetadata};
 /// use laminapdf_save::{Save, SaveMode, SaveOptions};
 /// # use laminapdf_cos::{Dict, Object};
 /// # use laminapdf_save::test_support::Writer;
@@ -56,7 +56,7 @@ use crate::sink::{ReadableSink, WriteSink};
 /// # let bytes = w.finish(&[("Root", root)].into_iter().collect())?;
 ///
 /// let mut doc = Document::open(bytes.clone(), Default::default())?;
-/// doc.apply_all(Origin::Local, [SetInfo::patch(InfoPatch::new().title(Some("Report"))).into()])?;
+/// doc.apply_all(Origin::Local, [SetMetadata::new(MetadataPatch::new().title(Some("Report")), None).into()])?;
 ///
 /// let mut out = Vec::new();
 /// let report = doc.save(&mut out, &SaveOptions::new())?; // Auto: incremental here
@@ -133,10 +133,9 @@ fn write<S: WriteSink + ?Sized>(doc: &mut Document, sink: &mut S, options: SaveO
     ready(doc)?;
     let planner = SavePlanner::new(doc)?;
     let plan = planner.plan(&options)?;
-    let stamped = *plan.metadata_update() == MetadataUpdate::Stamp;
-    if stamped {
-        stamp(doc, &options)?;
-    }
+    // Whether the stamp changed anything: a file without a packet and a save without a date
+    // has nothing to stamp, and the report must say so.
+    let stamped = *plan.metadata_update() == MetadataUpdate::Stamp && stamp(doc, &options)?;
     let result = write_planned(doc, sink, options, &planner, &plan, stamped);
     if result.is_err() && doc.in_transaction() {
         // The writer failed before the stamp was committed; a failed rollback leaves the
@@ -152,19 +151,26 @@ fn write<S: WriteSink + ?Sized>(doc: &mut Document, sink: &mut S, options: SaveO
     Ok(report)
 }
 
-/// Opens the stamp's transaction and applies [`UpdateSaveMetadata`] in it.
-fn stamp(doc: &mut Document, options: &SaveOptions) -> Result<()> {
+/// Opens the stamp's transaction and applies [`UpdateSaveMetadata`] in it; returns whether it
+/// changed anything (the transaction is left open only then).
+fn stamp(doc: &mut Document, options: &SaveOptions) -> Result<bool> {
     let id = match options.instance_id() {
         Some(id) => id,
         None => derived_instance_id(doc.cos())?,
     };
     let op = UpdateSaveMetadata::new(options.metadata_date(), uuid(id));
     doc.begin(Origin::System)?;
-    if let Err(e) = doc.apply(op) {
-        doc.rollback()?;
-        return Err(e.into());
+    match doc.apply(op) {
+        Ok(applied) if !applied.undo.is_empty() => Ok(true),
+        Ok(_) => {
+            doc.rollback()?;
+            Ok(false)
+        }
+        Err(e) => {
+            doc.rollback()?;
+            Err(e.into())
+        }
     }
-    Ok(())
 }
 
 /// Writes the planned save; commits the stamp's transaction once the bytes are written.

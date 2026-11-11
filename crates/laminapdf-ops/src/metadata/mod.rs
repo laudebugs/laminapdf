@@ -103,21 +103,13 @@ impl MetadataKey {
         }
     }
 
-    /// The coalescing key for edits of this field: consecutive
+    /// The coalescing key for edits of this field: its XMP property's local name (`title`,
+    /// `creator`, `CreatorTool`, …), one per field. Consecutive
     /// [`transact_coalescing`](crate::Document::transact_coalescing) edits with it merge into
     /// one undo step (typing into one field of a properties dialog, ADR 0006 §4).
     #[must_use]
     pub const fn coalescing_key(self) -> &'static str {
-        match self {
-            Self::Title => "metadata.title",
-            Self::Authors => "metadata.authors",
-            Self::Subject => "metadata.subject",
-            Self::Keywords => "metadata.keywords",
-            Self::Creator => "metadata.creator",
-            Self::Producer => "metadata.producer",
-            Self::Created => "metadata.created",
-            Self::Modified => "metadata.modified",
-        }
+        self.field().mapping().name
     }
 }
 

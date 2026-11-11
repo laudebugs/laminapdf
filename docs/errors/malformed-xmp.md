@@ -5,7 +5,7 @@
 
 ## What happened
 
-A metadata edit (`setMetadata` or `removeMetadata`) would have to write the document's XMP metadata packet, but the packet in the file can't be read (it raised `xmp-invalid` when the document was opened). Writing a new packet would throw away everything the old one held, so the edit was refused and nothing changed.
+A metadata edit (`setMetadata` or `removeMetadata`) would have to write the document's XMP metadata packet, but the packet in the file can't be read (it raised `xmp-invalid` when it was read). Writing a new packet would throw away everything the old one held, so the edit was refused and nothing changed.
 
 ## Why
 

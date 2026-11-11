@@ -538,7 +538,7 @@
     },
     {
       "code": "pdfa-info-mismatch",
-      "kind": "usage",
+      "kind": "input",
       "summary": "the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ",
       "hint": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
       "since": "0.2.0"

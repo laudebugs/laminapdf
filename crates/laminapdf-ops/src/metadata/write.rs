@@ -29,6 +29,9 @@ pub(crate) enum Malformed {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Policy {
     create_packet: bool,
+    /// Make a packet when there is none in a PDF 2.0 file, where the fields other than the
+    /// dates have nowhere else to go.
+    create_in_pdf2: bool,
     malformed: Malformed,
     /// In a PDF 2.0 file, set only `/CreationDate` and `/ModDate` in Info.
     pdf2_info: bool,
@@ -39,6 +42,7 @@ impl Policy {
     pub(crate) const fn edit(replace_malformed: bool) -> Self {
         Self {
             create_packet: true,
+            create_in_pdf2: true,
             malformed: if replace_malformed {
                 Malformed::Replace
             } else {
@@ -52,6 +56,7 @@ impl Policy {
     pub(crate) const fn remove(replace_malformed: bool) -> Self {
         Self {
             create_packet: false,
+            create_in_pdf2: false,
             ..Self::edit(replace_malformed)
         }
     }
@@ -60,18 +65,21 @@ impl Policy {
     pub(crate) const fn stamp() -> Self {
         Self {
             create_packet: false,
+            create_in_pdf2: false,
             malformed: Malformed::Skip,
             pdf2_info: true,
         }
     }
 
-    /// `SetInfo` (v1): the Info entries it names, whatever the version, and an existing packet
-    /// kept in step; its output on a file without a packet is what it always was.
+    /// `SetInfo` (v1): an existing packet kept in step, and none added, so its output on a
+    /// file without one is what it always was; except in PDF 2.0, where Info takes only the
+    /// dates and the other fields go to a packet, made if need be, as `SetMetadata` does.
     pub(crate) const fn info() -> Self {
         Self {
             create_packet: false,
+            create_in_pdf2: true,
             malformed: Malformed::Skip,
-            pdf2_info: false,
+            pdf2_info: true,
         }
     }
 }
@@ -85,24 +93,30 @@ pub(crate) fn write(
     if changes.is_empty() {
         return Ok(Effect::default());
     }
+    // Both sides get the value without the characters XML can't hold, so they agree.
+    let changes: Vec<(MappedField, Option<Value>)> = changes
+        .iter()
+        .map(|(field, value)| (*field, value.as_ref().map(xml_value)))
+        .collect();
     let pdf2 = policy.pdf2_info && doc.is_pdf2()?;
-    let packet = packet_to_edit(doc, changes, policy)?;
+    let create = policy.create_packet || (pdf2 && policy.create_in_pdf2);
+    let packet = packet_to_edit(doc, &changes, create, policy.malformed)?;
     // A new packet starts from what Info holds, so the two agree on the fields the edit leaves.
     let seed = match &packet {
         Some((_, true)) => super::read::info_values(doc)?,
         _ => Vec::new(),
     };
     let mut cos = doc.cos_mut().edit();
-    let mut removed = write_info(&mut cos, changes, pdf2)?;
+    let mut removed = write_info(&mut cos, &changes, pdf2)?;
     let mut packet_rewritten = false;
     if let Some((mut packet, fresh)) = packet {
         for (field, value) in &seed {
             let _ = packet.set(*field, Some(xml_value(value)));
         }
         for (field, value) in changes {
-            removed |= value.is_none() && packet.get(*field).is_some();
+            removed |= value.is_none() && packet.get(field).is_some();
             // The values are built for their field's kind, so this can't fail.
-            let _ = packet.set(*field, value.as_ref().map(xml_value));
+            let _ = packet.set(field, value);
         }
         if packet.is_changed() {
             let written = packet.write();
@@ -121,13 +135,14 @@ pub(crate) fn write(
 fn packet_to_edit(
     doc: &laminapdf_model::Document,
     changes: &[(MappedField, Option<Value>)],
-    policy: Policy,
+    create: bool,
+    malformed: Malformed,
 ) -> Result<Option<(Packet, bool)>> {
     let sets_a_value = changes.iter().any(|(_, v)| v.is_some());
     Ok(match doc.xmp()? {
         PacketState::Parsed(packet) => Some((packet, false)),
-        PacketState::Absent if policy.create_packet && sets_a_value => Some((Packet::new_minimal(), true)),
-        PacketState::Malformed { .. } => match policy.malformed {
+        PacketState::Absent if create && sets_a_value => Some((Packet::new_minimal(), true)),
+        PacketState::Malformed { .. } => match malformed {
             Malformed::Replace => Some((Packet::new_minimal(), true)),
             Malformed::Fail => return Err(Error::MalformedXmp),
             Malformed::Skip => None,
@@ -176,7 +191,9 @@ fn write_info(cos: &mut CosMut<'_>, changes: &[(MappedField, Option<Value>)], pd
             // as it was for older readers.
             Some(_) if pdf2 && !matches!(field, MappedField::Created | MappedField::Modified) => {}
             Some(value) => {
-                dict.insert(key, info_string(value));
+                if let Some(string) = info_string(value) {
+                    dict.insert(key, string);
+                }
             }
         }
     }
@@ -195,15 +212,16 @@ fn write_info(cos: &mut CosMut<'_>, changes: &[(MappedField, Option<Value>)], pd
 }
 
 /// A value as Info stores it: a text string (PDFDocEncoding when it can be, else UTF-16BE),
-/// authors joined with `; `, a date in the form the builder writes.
-fn info_string(value: &Value) -> PdfString {
-    match value {
-        Value::Text(text) => PdfString::literal(encode_text_string(text)),
-        Value::List(items) => PdfString::literal(encode_text_string(&items.join(AUTHOR_SEPARATOR))),
-        Value::Date(date) => PdfString::literal(date.to_string()),
-        // `Value` is non-exhaustive; a new shape is written as nothing rather than guessed.
-        _ => PdfString::literal(Vec::new()),
-    }
+/// authors joined with `; `, a date in the form the builder writes. `None` for a shape a later
+/// `Value` adds, which Info has no form for: the entry is then left as it was.
+fn info_string(value: &Value) -> Option<PdfString> {
+    let bytes = match value {
+        Value::Text(text) => encode_text_string(text),
+        Value::List(items) => encode_text_string(&items.join(AUTHOR_SEPARATOR)),
+        Value::Date(date) => date.to_string().into_bytes(),
+        _ => return None,
+    };
+    Some(PdfString::literal(bytes))
 }
 
 /// Writes `bytes` as the catalog's `/Metadata` stream: over the existing stream object, or a

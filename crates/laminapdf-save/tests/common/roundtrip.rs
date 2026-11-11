@@ -11,6 +11,10 @@
 //! repaired base only with the override, as a full rewrite; an encrypted base only with
 //! `remove_encryption`, as a plaintext full rewrite.
 #![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
+#![allow(
     unreachable_pub,
     reason = "shared by the tests and the `roundtrip` example, as `tests/common` helpers are"
 )]
@@ -199,8 +203,8 @@ fn facts(doc: &laminapdf_model::Document) -> (usize, Vec<u16>, Vec<Option<String
     (pages.len(), rotations, values)
 }
 
-/// The ops each fixture is saved with: the B3 proving ops and the metadata ops (E1c: J.01–J.03,
-/// J.10).
+/// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
+/// and the metadata ops (J.01–J.03, J.10).
 const OPS: [&str; 4] = ["setInfo", "rotatePage", "setMetadata", "removeMetadata"];
 
 /// The save-time date the metadata cases stamp (J.02).

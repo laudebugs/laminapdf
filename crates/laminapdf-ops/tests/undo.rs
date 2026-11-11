@@ -1,4 +1,8 @@
 //! Undo and redo (ADR 0006 §4) and the two dirty levels (§7).
+#![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;

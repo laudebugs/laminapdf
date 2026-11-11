@@ -1,12 +1,11 @@
 //! [`DocumentMetadata`]: what a document says about itself, read from Info and XMP, with the
 //! side that wins when they disagree (E1 plan §2, §11).
 
-use laminapdf_model::xmp::{MappedField, Packet, PacketState, Value};
+use laminapdf_model::xmp::{MappedField, Packet, PacketState, Value, ValueKind};
 use laminapdf_model::{Info, PdfDate};
 use serde::Serialize;
 
 use super::MetadataKey;
-use super::write::AUTHOR_SEPARATOR;
 use crate::error::Result;
 use crate::wire;
 
@@ -101,70 +100,69 @@ pub struct DocumentMetadata {
     pub kept_info_keys: Vec<MetadataKey>,
 }
 
-/// One side's values, keyed like [`MetadataKey::ALL`].
+/// One side's values, one slot per [`MetadataKey`] (in [`MetadataKey::ALL`]'s order), each
+/// in the shape its row of [`MAPPINGS`](laminapdf_model::xmp::MAPPINGS) gives it.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-struct Side {
-    text: [Option<String>; 6],
-    authors: Vec<String>,
-    created: Option<PdfDate>,
-    modified: Option<PdfDate>,
-}
+struct Side([Option<Value>; MetadataKey::ALL.len()]);
 
 impl Side {
+    /// Info's entries: text as decoded, `/Author` split at `;`, dates that parse.
     fn of_info(info: Option<&Info<'_>>) -> Result<Self> {
+        let mut side = Self::default();
         let Some(info) = info else {
-            return Ok(Self::default());
+            return Ok(side);
         };
-        let date = |d: Option<laminapdf_model::InfoDate>| d.and_then(|d| d.parsed);
-        Ok(Self {
-            text: [
-                info.title()?,
-                None,
-                info.subject()?,
-                info.keywords()?,
-                info.creator()?,
-                info.producer()?,
-            ],
-            authors: info.author()?.map(|a| split_authors(&a)).unwrap_or_default(),
-            created: date(info.creation_date()?),
-            modified: date(info.mod_date()?),
-        })
+        for (slot, key) in side.0.iter_mut().zip(MetadataKey::ALL) {
+            let mapping = key.field().mapping();
+            let Some(info_key) = mapping.info_key else {
+                continue;
+            };
+            *slot = match mapping.kind {
+                ValueKind::Date => info.date(info_key)?.and_then(|d| d.parsed).map(Value::Date),
+                ValueKind::Seq => info
+                    .text(info_key)?
+                    .map(|a| split_authors(&a))
+                    .filter(|a| !a.is_empty())
+                    .map(Value::List),
+                _ => info.text(info_key)?.map(Value::Text),
+            };
+        }
+        Ok(side)
     }
 
+    /// The packet's mapped properties.
     fn of_packet(packet: &Packet) -> Self {
-        Self {
-            text: [
-                packet.title(),
-                None,
-                packet.subject(),
-                packet.keywords(),
-                packet.creator_tool(),
-                packet.producer(),
-            ],
-            authors: packet.authors(),
-            created: packet.create_date(),
-            modified: packet.modify_date(),
+        let mut side = Self::default();
+        for (slot, key) in side.0.iter_mut().zip(MetadataKey::ALL) {
+            *slot = packet.get(key.field());
         }
+        side
     }
 
-    /// The field's value in a comparable form; `None` when absent.
-    fn value(&self, key: MetadataKey) -> Option<String> {
-        match key {
-            MetadataKey::Authors => (!self.authors.is_empty()).then(|| self.authors.join(AUTHOR_SEPARATOR)),
-            MetadataKey::Created => self.created.map(|d| d.to_iso8601()),
-            MetadataKey::Modified => self.modified.map(|d| d.to_iso8601()),
-            other => text_slot(other).and_then(|i| self.text.get(i)).cloned().flatten(),
-        }
+    fn get(&self, key: MetadataKey) -> Option<&Value> {
+        self.0.get(key as usize)?.as_ref()
     }
 }
 
-const fn text_slot(key: MetadataKey) -> Option<usize> {
-    match key {
-        MetadataKey::Title => Some(0),
-        MetadataKey::Subject => Some(2),
-        MetadataKey::Keywords => Some(3),
-        MetadataKey::Creator => Some(4),
-        MetadataKey::Producer => Some(5),
+/// Whether two values say the same: dates naming the same instant in any zone, anything else
+/// equal.
+fn same(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Date(a), Value::Date(b)) => a.cmp_instant(b).is_eq(),
+        _ => a == b,
+    }
+}
+
+fn text(value: Option<&Value>) -> Option<String> {
+    match value? {
+        Value::Text(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
+fn date(value: Option<&Value>) -> Option<PdfDate> {
+    match value? {
+        Value::Date(d) => Some(*d),
         _ => None,
     }
 }
@@ -185,28 +183,18 @@ pub(crate) fn info_values(doc: &laminapdf_model::Document) -> Result<Vec<(Mapped
     let info = Side::of_info(doc.info()?.as_ref())?;
     Ok(MetadataKey::ALL
         .into_iter()
-        .filter_map(|key| {
-            let value = match key {
-                MetadataKey::Authors => (!info.authors.is_empty()).then(|| Value::List(info.authors.clone())),
-                MetadataKey::Created => info.created.map(Value::Date),
-                MetadataKey::Modified => info.modified.map(Value::Date),
-                other => text_slot(other)
-                    .and_then(|i| info.text.get(i).cloned().flatten())
-                    .map(Value::Text),
-            };
-            value.map(|v| (key.field(), v))
-        })
+        .filter_map(|key| info.get(key).map(|v| (key.field(), v.clone())))
         .collect())
 }
 
 /// The fields whose Info entry has no equal XMP property: what PDF/A forbids (ISO 19005-2
-/// §6.6.2.3.1). Empty without a readable packet.
+/// §6.6.2.3.1).
 pub(crate) fn info_without_equal_xmp(doc: &laminapdf_model::Document, packet: &Packet) -> Result<Vec<MetadataKey>> {
     let info = Side::of_info(doc.info()?.as_ref())?;
     let xmp = Side::of_packet(packet);
     Ok(MetadataKey::ALL
         .into_iter()
-        .filter(|&key| info.value(key).is_some_and(|i| xmp.value(key).as_ref() != Some(&i)))
+        .filter(|&key| info.get(key).is_some_and(|i| !xmp.get(key).is_some_and(|x| same(i, x))))
         .collect())
 }
 
@@ -230,8 +218,13 @@ pub fn read_metadata(doc: &laminapdf_model::Document) -> Result<DocumentMetadata
     let source = match packet {
         None => MetadataSource::Info,
         Some(_) if pdf2 || claims_pdfa => MetadataSource::Xmp,
-        Some(_) => match (info_side.modified, xmp_side.modified) {
-            (Some(i), Some(x)) if x > i => MetadataSource::Xmp,
+        // The newer modification date wins; the same instant, in whatever zone, is a tie,
+        // which Info wins.
+        Some(_) => match (
+            date(info_side.get(MetadataKey::Modified)),
+            date(xmp_side.get(MetadataKey::Modified)),
+        ) {
+            (Some(i), Some(x)) if x.cmp_instant(&i).is_gt() => MetadataSource::Xmp,
             (None, Some(_)) => MetadataSource::Xmp,
             _ => MetadataSource::Info,
         },
@@ -240,16 +233,11 @@ pub fn read_metadata(doc: &laminapdf_model::Document) -> Result<DocumentMetadata
         MetadataSource::Xmp => (&xmp_side, &info_side),
         MetadataSource::Info => (&info_side, &xmp_side),
     };
-    let pick_text = |key: MetadataKey| {
-        text_slot(key).and_then(|i| {
-            let a = first.text.get(i).cloned().flatten();
-            a.or_else(|| second.text.get(i).cloned().flatten())
-        })
-    };
+    let pick = |key: MetadataKey| first.get(key).or_else(|| second.get(key));
     let mut disagreements = Vec::new();
     let mut kept_info_keys = Vec::new();
     for key in MetadataKey::ALL {
-        let in_info = info_side.value(key);
+        let in_info = info_side.get(key);
         let deprecated = pdf2 && !matches!(key, MetadataKey::Created | MetadataKey::Modified);
         if deprecated && in_info.is_some() {
             kept_info_keys.push(key);
@@ -257,9 +245,8 @@ pub fn read_metadata(doc: &laminapdf_model::Document) -> Result<DocumentMetadata
         if packet.is_none() {
             continue;
         }
-        let in_xmp = xmp_side.value(key);
-        let differ = match (&in_info, &in_xmp) {
-            (Some(i), Some(x)) => i != x,
+        let differ = match (in_info, xmp_side.get(key)) {
+            (Some(i), Some(x)) => !same(i, x),
             // In PDF 2.0 Info needn't repeat what XMP holds.
             (None, Some(_)) => !deprecated,
             (Some(_), None) => true,
@@ -278,18 +265,17 @@ pub fn read_metadata(doc: &laminapdf_model::Document) -> Result<DocumentMetadata
         })
     });
     Ok(DocumentMetadata {
-        title: pick_text(MetadataKey::Title),
-        authors: if first.authors.is_empty() {
-            second.authors.clone()
-        } else {
-            first.authors.clone()
+        title: text(pick(MetadataKey::Title)),
+        authors: match pick(MetadataKey::Authors) {
+            Some(Value::List(items)) => items.clone(),
+            _ => Vec::new(),
         },
-        subject: pick_text(MetadataKey::Subject),
-        keywords: pick_text(MetadataKey::Keywords),
-        creator: pick_text(MetadataKey::Creator),
-        producer: pick_text(MetadataKey::Producer),
-        created: first.created.or(second.created),
-        modified: first.modified.or(second.modified),
+        subject: text(pick(MetadataKey::Subject)),
+        keywords: text(pick(MetadataKey::Keywords)),
+        creator: text(pick(MetadataKey::Creator)),
+        producer: text(pick(MetadataKey::Producer)),
+        created: date(pick(MetadataKey::Created)),
+        modified: date(pick(MetadataKey::Modified)),
         source,
         disagreements,
         packet: packet_status,

@@ -2,7 +2,7 @@
 //! PDF/UA level its packet claims (E1 plan §3). Warnings never block a save: the user may mean
 //! to drop the claim.
 
-use laminapdf_cos::Location;
+use laminapdf_cos::{ErrorKind, Location};
 use laminapdf_model::xmp::PacketState;
 use serde::Serialize;
 
@@ -44,6 +44,20 @@ impl ConformanceWarning {
             Self::PdfaOneAuthor { .. } => "pdfa-one-author",
             Self::PdfuaTitleMissing => "pdfua-title-missing",
             Self::PdfaInfoMismatch { .. } => "pdfa-info-mismatch",
+        }
+    }
+
+    /// The kind ([ADR 0026] §2), as `fixtures/codes.json` lists it for [`code`](Self::code) (a
+    /// unit test checks every variant): `usage` for what an edit did to the claim, `input` for
+    /// Info and XMP disagreeing, which comes from the file (or another tool), since Lamina PDF's
+    /// edits write both.
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::PdfaOneAuthor { .. } | Self::PdfuaTitleMissing => ErrorKind::Usage,
+            Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
         }
     }
 

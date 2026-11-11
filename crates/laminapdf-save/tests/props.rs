@@ -2,6 +2,10 @@
 //! every writer, reopen to the same model facts as the in-memory view, and saving the same
 //! state twice gives the same bytes. Seed fixed (`SEED`) so failures reproduce.
 #![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
+#![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
     reason = "tests: a panic is a test failure"

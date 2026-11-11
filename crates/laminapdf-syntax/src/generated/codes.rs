@@ -1117,7 +1117,7 @@ impl WarningCode {
             Self::ExtractColumnOrderUncertain => ErrorKind::Unsupported,
             Self::PdfaOneAuthor => ErrorKind::Usage,
             Self::PdfuaTitleMissing => ErrorKind::Usage,
-            Self::PdfaInfoMismatch => ErrorKind::Usage,
+            Self::PdfaInfoMismatch => ErrorKind::Input,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,

@@ -232,6 +232,32 @@ mod stamp {
     }
 
     #[test]
+    fn an_instance_id_alone_on_a_file_without_a_packet_stamps_nothing_and_says_so() {
+        let mut doc = editable(&fixture("corpus/hello.pdf"));
+        let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+        doc.apply_all(Origin::Local, [RotatePage::new(page, Rotation::Half).into()])
+            .unwrap();
+        let report = doc
+            .save(&mut Vec::new(), &SaveOptions::new().with_instance_id([1; 16]))
+            .unwrap();
+        assert!(!report.metadata_updated());
+    }
+
+    #[test]
+    fn the_stamp_on_a_pdfa_file_raises_no_conformance_warning() {
+        // The stamp writes /ModDate and xmp:ModifyDate from one date, so it can't make Info and
+        // XMP disagree: the planner's warnings, read before it, stay complete.
+        let mut doc = editable(&fixture("golden/examples/pdf_a_archive-2b.pdf"));
+        edit_title(&mut doc);
+        let mut out = Vec::new();
+        doc.save(&mut out, &SaveOptions::new().with_metadata_date(date(AT)))
+            .unwrap();
+        let mut reopened = editable(&out);
+        edit_title(&mut reopened);
+        assert_eq!(SavePlanner::new(&reopened).unwrap().conformance_warnings(), []);
+    }
+
+    #[test]
     fn the_stamp_is_not_on_the_undo_history() {
         let mut doc = editable(&fixture("golden/metadata.pdf"));
         edit_title(&mut doc);

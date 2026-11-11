@@ -1,5 +1,9 @@
 //! Helpers for the tests of the overlay writers and rebase: editable documents, ops, sources
 //! and sinks that misbehave, and the facts a reopened file is compared on.
+#![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};

@@ -105,7 +105,7 @@ A PR that adds a code adds:
 | --- | --- | --- |
 | [`pdfa-one-author`](pdfa-one-author.md) | `usage` | the file claims PDF/A-1, which allows one author, and its metadata lists more |
 | [`pdfua-title-missing`](pdfua-title-missing.md) | `usage` | the file claims PDF/UA-1, which requires a title in its metadata, and it has none |
-| [`pdfa-info-mismatch`](pdfa-info-mismatch.md) | `usage` | the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ |
+| [`pdfa-info-mismatch`](pdfa-info-mismatch.md) | `input` | the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ |
 
 ## Save errors
 

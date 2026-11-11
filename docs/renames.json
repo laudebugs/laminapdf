@@ -89,6 +89,14 @@
       "kind": "method",
       "since": "0.2.0",
       "note": "setMetadata writes the Info dictionary and the XMP metadata together, takes authors as a list, and edits PDF 2.0 files; setInfo still applies, as the setInfo op."
+    },
+    {
+      "from": "laminapdf::SetInfo",
+      "to": "laminapdf::SetMetadata",
+      "surface": "rust",
+      "kind": "type",
+      "since": "0.2.0",
+      "note": "SetMetadata writes the Info dictionary and the XMP metadata together, takes authors as a list, and edits PDF 2.0 files; SetInfo still applies, as the setInfo op."
     }
   ]
 }

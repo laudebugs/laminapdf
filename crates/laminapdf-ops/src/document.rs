@@ -244,7 +244,7 @@ impl Document {
     /// Local transactions go on the undo stack.
     ///
     /// ```
-    /// use laminapdf_ops::{Document, InfoPatch, Origin, SetInfo};
+    /// use laminapdf_ops::{Document, MetadataPatch, Origin, SetMetadata};
     /// # use laminapdf_cos::{Dict, Object};
     /// # use laminapdf_save::test_support::Writer;
     /// # let mut w = Writer::new(1, 7);
@@ -254,7 +254,7 @@ impl Document {
     ///
     /// let mut doc = Document::open(bytes, Default::default())?;
     /// doc.transact(Origin::Local, |tx| {
-    ///     tx.apply(SetInfo::patch(InfoPatch::new().title(Some("Report"))))?;
+    ///     tx.apply(SetMetadata::new(MetadataPatch::new().title(Some("Report")), None))?;
     ///     Ok(())
     /// })?;
     /// assert_eq!(doc.info()?.map(|i| i.title()).transpose()?.flatten().as_deref(), Some("Report"));

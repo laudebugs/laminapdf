@@ -1,5 +1,9 @@
 //! `PendingChanges` (ADR 0007 §2): the op classes the save planner checks against signatures.
 //! They err on the side of reporting, and only an empty overlay or a rebase clears them.
+#![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
 
 mod common;
 

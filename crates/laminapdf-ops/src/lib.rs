@@ -96,6 +96,7 @@ pub use class::ModificationClass;
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
+#[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,

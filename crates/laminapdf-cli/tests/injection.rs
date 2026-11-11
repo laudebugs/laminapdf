@@ -1,6 +1,10 @@
 //! Document text stays in data fields (ADR 0026 §4): a title written to steer an agent shows up
 //! in the report's `metadata`, never in an error's message or hint or anywhere on standard
 //! error, and on one line in the text summary. Colour codes appear only when asked for.
+#![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
 #![expect(clippy::unwrap_used, reason = "test helpers: a panic is a test failure")]
 
 mod common;

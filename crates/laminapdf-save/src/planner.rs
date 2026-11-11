@@ -18,7 +18,7 @@ use crate::resolve::resolve;
 /// [`Save::save`](crate::Save::save) plans again itself.
 ///
 /// ```
-/// use laminapdf_ops::{Document, InfoPatch, Origin, SetInfo};
+/// use laminapdf_ops::{Document, MetadataPatch, Origin, SetMetadata};
 /// use laminapdf_save::{ConstraintKind, SaveMode, SaveOptions, SavePlanner};
 /// # use laminapdf_cos::{Dict, Object};
 /// # use laminapdf_save::test_support::Writer;
@@ -28,7 +28,7 @@ use crate::resolve::resolve;
 /// # let bytes = w.finish(&[("Root", root)].into_iter().collect())?;
 ///
 /// let mut doc = Document::open(bytes, Default::default())?;
-/// doc.apply_all(Origin::Local, [SetInfo::patch(InfoPatch::new().title(Some("Report"))).into()])?;
+/// doc.apply_all(Origin::Local, [SetMetadata::new(MetadataPatch::new().title(Some("Report")), None).into()])?;
 ///
 /// let planner = SavePlanner::new(&doc)?;
 /// assert_eq!(planner.constraint().kind(), ConstraintKind::Free);

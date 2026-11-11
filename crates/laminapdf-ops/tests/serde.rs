@@ -1,5 +1,9 @@
 //! The JSON form of ops and logs (ADR 0006 §1, §6) and the frozen samples in
 //! `fixtures/ops/v1/` (never rewritten by a test).
+#![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
 
 mod common;
 
@@ -219,6 +223,16 @@ mod wire_form {
             panic!("not setInfo");
         };
         assert_eq!((set.patch.author, set.patch.title), (Some(None), None));
+    }
+
+    #[test]
+    fn the_save_time_stamp_refuses_to_serialise() {
+        let stamp: Op = laminapdf_ops::UpdateSaveMetadata::new(None, "uuid:x".to_owned()).into();
+        assert!(serde_json::to_string(&stamp).is_err());
+        assert_eq!(
+            OpLog::new(vec![stamp]).to_json().map_err(|e| e.code()),
+            Err("invalid-op-log")
+        );
     }
 
     #[test]

@@ -1,5 +1,9 @@
 //! Unit tests of the metadata writer and reader: the mapping both ways, the patch semantics,
 //! the read precedence, the PDF 2.0 rule and each conformance warning.
+#![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::xmp::PacketState;
@@ -159,6 +163,12 @@ mod mapping {
     }
 
     #[test]
+    fn every_key_has_its_own_coalescing_key() {
+        let keys: std::collections::BTreeSet<&str> = MetadataKey::ALL.iter().map(|k| k.coalescing_key()).collect();
+        assert_eq!(keys.len(), MetadataKey::ALL.len());
+    }
+
+    #[test]
     fn every_key_names_its_own_row() {
         assert!(MetadataKey::ALL.iter().all(|k| k.field().mapping().info_key.is_some()));
     }
@@ -271,6 +281,12 @@ mod precedence {
     fn info_wins_a_tie() {
         let meta = titled("D:20260101000000Z", "2026-01-01T00:00:00Z", "", "");
         assert_eq!(meta.title.as_deref(), Some("From Info"));
+    }
+
+    #[test]
+    fn the_same_instant_in_two_zones_is_a_tie_info_wins() {
+        let meta = titled("D:20260101120000Z", "2026-01-01T13:00:00+01:00", "", "");
+        assert_eq!(meta.source, MetadataSource::Info);
     }
 
     #[test]
@@ -404,5 +420,54 @@ mod conformance {
             ConformanceWarning::PdfaInfoMismatch { keys: Vec::new() },
         ];
         assert_eq!(samples.map(|w| w.code()), ConformanceWarning::CODES);
+    }
+
+    #[test]
+    fn every_warning_has_the_kind_codes_json_lists() {
+        let samples = [
+            ConformanceWarning::PdfaOneAuthor { authors: 2 },
+            ConformanceWarning::PdfuaTitleMissing,
+            ConformanceWarning::PdfaInfoMismatch { keys: Vec::new() },
+        ];
+        crate::test_codes::assert_kinds_match(samples.iter().map(|w| (w.code(), w.kind().as_str())));
+    }
+}
+
+mod set_info {
+    use super::*;
+    use crate::{InfoPatch, SetInfo};
+
+    #[test]
+    fn characters_xml_cannot_hold_leave_both_sides_alike() {
+        let mut d = doc("", None, Some(packet("").as_bytes()));
+        SetInfo::patch(InfoPatch::new().title(Some("a\u{1}b")))
+            .apply_to(&mut d)
+            .unwrap();
+        assert_eq!(
+            (info_text(&d, "Title"), xmp(&d).title()),
+            (Some("ab".to_owned()), Some("ab".to_owned()))
+        );
+    }
+
+    #[test]
+    fn in_a_pdf_2_file_it_writes_only_the_dates_to_info_and_the_rest_to_a_new_packet() {
+        let mut d = doc("/Version /2.0", Some("<< >>"), None);
+        SetInfo::new(InfoPatch::new().title(Some("T")), Some(date("D:20261110093000Z")))
+            .apply_to(&mut d)
+            .unwrap();
+        let info = d.info().unwrap().unwrap();
+        assert_eq!(
+            (info.keys(), xmp(&d).title().as_deref()),
+            (vec!["ModDate".to_owned()], Some("T"))
+        );
+    }
+
+    #[test]
+    fn in_an_older_file_without_a_packet_it_adds_none() {
+        let mut d = doc("", None, None);
+        SetInfo::patch(InfoPatch::new().title(Some("T")))
+            .apply_to(&mut d)
+            .unwrap();
+        assert!(matches!(d.xmp().unwrap(), PacketState::Absent));
     }
 }

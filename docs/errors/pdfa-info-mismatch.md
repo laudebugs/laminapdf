@@ -1,7 +1,7 @@
 # `pdfa-info-mismatch`
 
 - Type: warning
-- Kind: `usage` (the caller misused the API)
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
 
 ## What happened
 
@@ -9,11 +9,11 @@ The file says it conforms to PDF/A, which requires every entry of the Info dicti
 
 ## Why
 
-An edit wrote only one of the two places, for example a tool that changed `/Title` in the Info dictionary and left the XMP title alone. Lamina PDF's metadata edits write both, so this usually comes from the file as it was, or from the deprecated `setInfo` on a file without a packet.
+An edit wrote only one of the two places, for example a tool that changed `/Title` in the Info dictionary and left the XMP title alone. Lamina PDF's metadata edits write both, so this usually comes from the file as it was.
 
 ## How to fix
 
-Set the fields again with `setMetadata`, which writes Info and XMP together, or remove the Info entries that differ with `removeMetadata`. The warning never blocks a save.
+Set the fields again with `setMetadata`, which writes Info and XMP together, or remove the fields that differ from both copies with `removeMetadata`. The warning never blocks a save.
 
 ## Example
 

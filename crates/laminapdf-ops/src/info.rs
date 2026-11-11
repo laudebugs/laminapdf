@@ -1,4 +1,8 @@
 //! `SetInfo`: edit the document information dictionary (ISO 32000-2 §14.3.3).
+#![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
 
 use laminapdf_model::PdfDate;
 use laminapdf_model::xmp::{MappedField, Value};
@@ -135,6 +139,10 @@ impl InfoPatch {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
+#[deprecated(
+    since = "0.2.0",
+    note = "use SetMetadata, which writes Info and XMP together; SetInfo stays so op logs already written still apply"
+)]
 pub struct SetInfo {
     /// The entries to set or clear.
     #[serde(default)]

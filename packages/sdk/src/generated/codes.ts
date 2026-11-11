@@ -457,7 +457,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "malformed-xmp": "input",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
-  "pdfa-info-mismatch": "usage",
+  "pdfa-info-mismatch": "input",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",

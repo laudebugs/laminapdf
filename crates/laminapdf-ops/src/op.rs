@@ -1,4 +1,8 @@
 //! The typed, serialisable [`Op`] (ADR 0006 §1) and the versioned [`OpLog`] envelope (§6).
+#![allow(
+    deprecated,
+    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+)]
 
 use laminapdf_model::PageId;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -45,8 +49,9 @@ pub enum Op {
     SetMetadata(SetMetadata),
     /// Remove metadata fields from Info and XMP.
     RemoveMetadata(RemoveMetadata),
-    /// The save-time metadata stamp, made only by the save planner: never serialised and
-    /// never read from an op log.
+    /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
+    /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
+    /// log can name it.
     #[serde(skip)]
     UpdateSaveMetadata(UpdateSaveMetadata),
 }
