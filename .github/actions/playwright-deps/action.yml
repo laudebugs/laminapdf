@@ -10,6 +10,7 @@ inputs:
 runs:
   using: composite
   steps:
+    - uses: ./.github/actions/apt-fail-fast
     # apt can fail on a mirror hiccup: three tries, each retry a warning (ADR 0018 §4).
     - if: runner.os == 'Linux'
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0

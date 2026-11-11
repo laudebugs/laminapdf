@@ -5,6 +5,7 @@ description: >-
 runs:
   using: composite
   steps:
+    - uses: ./.github/actions/apt-fail-fast
     - name: Install WebKitGTK 4.1 and D-Bus development packages
       if: runner.os == 'Linux'
       # apt can fail on a mirror hiccup: three tries, each retry a warning (ADR 0018 §4).
@@ -17,6 +18,7 @@ runs:
         # tauri's `dbus` feature. The same list as `cargo xtask doctor`'s desktop line.
         command: |
           set -euo pipefail
-          sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends \
+          # Root stops its own apt: the retry action can't kill a root process (EPERM).
+          sudo timeout --kill-after=30s 5m apt-get update -q
+          sudo timeout --kill-after=30s 8m apt-get install -y -q --no-install-recommends \
             libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config

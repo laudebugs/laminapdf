@@ -1,0 +1,13 @@
+name: apt fails fast
+description: >-
+  Makes apt give up on a stalled mirror in about a minute instead of hanging. A hang outlasted
+  nick-fields/retry's timeout, whose kill of the root-owned apt process then failed (EPERM) and
+  ended the job without a retry. A no-op on macOS and Windows.
+runs:
+  using: composite
+  steps:
+    - if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        printf '%s\n' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' 'Acquire::Retries "3";' \
+          | sudo tee /etc/apt/apt.conf.d/99-fail-fast > /dev/null
