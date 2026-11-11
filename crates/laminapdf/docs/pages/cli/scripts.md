@@ -1,0 +1,97 @@
+---
+title: "Scripts and batch jobs"
+description: "Pipe PDFs through laminapdf, name pages with ranges, check thousands of files in parallel, and read its JSON reports and exit codes from a script."
+version: "0.2.0-alpha.6"
+url: "https://docs.laminapdf.com/cli/scripts/"
+---
+
+# Scripts and batch jobs
+
+Pipe PDFs through laminapdf, name pages with ranges, check thousands of files in parallel, and read its JSON reports and exit codes from a script.
+
+A script needs five things from the `laminapdf` tool: pipes, page ranges, many files in one run, JSON it can parse and exit codes it can trust. Use it for a build job that checks every PDF it ships, or a folder of uploads to sort.
+
+## Pipes
+
+`-` as an input reads standard input, and `-o -` writes standard output. Here a PDF is turned and described without a file in between:
+
+```console
+$ cat invoice.pdf | laminapdf pages rotate - 90 -o - | laminapdf info -
+rotated 1 page → - (incremental update)
+-  PDF 1.7 · 1 page · 12 KB · not encrypted · tagged
+Title: Invoice 42
+Author: Acme Widgets Ltd
+Producer: lamina examples
+Pages: 841.89 × 595.28 pt, rotated 90°
+```
+
+Data goes to standard output, and messages and warnings to standard error, so they never mix into a PDF. A PDF never goes to a terminal: the command refuses with exit 2 rather than fill the screen with binary.
+
+## Page ranges
+
+Pages count from 1. A range is a list of groups separated by commas:
+
+| Group | Pages |
+| --- | --- |
+| `7` | page 7 |
+| `3-7` | pages 3 to 7 |
+| `z` or `end` | the last page |
+| `r2` | the second page from the end |
+| `z-1` | every page, last to first |
+| `x3` | every page but 3; after other groups, removes page 3 from them |
+
+`:odd` or `:even` at the end keeps every other page of the result, so `1-10:even` is pages 2, 4, 6, 8 and 10. The grammar is the one qpdf uses.
+
+## Many files at once
+
+`info`, `check`, `extract`, `render` and `reveal` take several inputs. Name them on the command line, or pass a list with `--files-from FILE`: one file per line, or separated by NUL bytes with `-0`, as `find -print0` writes them. `--files-from -` reads the list from standard input.
+
+They run in parallel on `--jobs N` threads, one per processor core by default, up to 8. The results come out in the order you named the files. With `--json`, each file's result is one line, then a summary line:
+
+```console
+$ find . -name '*.pdf' -print0 | sort -z | laminapdf check --files-from - -0 --json
+{"index":0,"input":"./enc.pdf","objects":5,"pages":1,"schema":"laminapdf.check/1","status":"ok","type":"result","warnings":[]}
+{"index":1,"input":"./invoice.pdf","objects":39,"pages":1,"schema":"laminapdf.check/1","status":"ok","type":"result","warnings":[]}
+{"error":{"code":"not-pdf",…},"index":2,"input":"./notes.pdf","schema":"laminapdf.check/1","status":"error","type":"result"}
+{"index":3,"input":"./scan.pdf","objects":5,"pages":1,"schema":"laminapdf.check/1","status":"warnings","type":"result","warnings":[{"code":"xref-repaired",…}]}
+{"elapsedMs":71,"failed":1,"found":0,"ok":2,"skipped":0,"type":"summary","warnings":1}
+```
+
+`jq` picks out the files that need attention: `jq -c 'select(.type=="result" and .status!="ok")'`. Without `--json`, each report comes under a `==> file <==` line, and a progress bar shows on the terminal unless you pass `--quiet`. `--fail-fast` starts no new file after the first failure, and the summary counts those it skipped.
+
+## JSON reports
+
+With `--json`, every command prints one JSON report on standard output. Each report names its format in `schema`, such as `laminapdf.info/1`, and lists its warnings. A new key may appear within a format's version, so read only the keys you need.
+
+When a single file fails, standard output stays empty and standard error gets one line, the same error object Lamina PDF's libraries use:
+
+```console
+$ laminapdf info notes.pdf --json
+{"error":{"code":"not-pdf","docsUrl":"https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md","exitCode":1,"hint":"check that the bytes passed to open are a PDF file","input":"notes.pdf","kind":"input","message":"not a PDF: no objects found"},"schema":"laminapdf.error/1"}
+```
+
+The message and hint never quote the document, so a title or a line of text can't masquerade as an instruction in a log. `laminapdf schema info` prints the JSON Schema of the command's arguments, its report and its error line; `laminapdf schema` lists every schema.
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| 0 | Success |
+| 1 | The document could not be read, written or processed |
+| 2 | A bad flag, range or argument, or binary output to a terminal |
+| 3 | Success with warnings; `--warnings-ok` makes it 0 |
+| 4 | A destructive action refused without `--force` |
+| 5 | A password is required, or the one given is wrong |
+| 6 | `reveal --fail-on` found something in a category it names |
+
+When several codes apply, the tool exits with the one that comes first in this order: 2, 5, 4, 1, 6, 3, 0. A batch exits 1 if any file failed, or 5 if every failure was a missing or wrong password. Otherwise it follows the same order: 6, then 3, then 0. `laminapdf help exit-codes` prints the table.
+
+## Passwords and limits
+
+An encrypted file's password comes from a file, `--password-file FILE`, or from the `LAMINA_PDF_PASSWORD` environment variable, never from the command line, where other users of the machine could read it.
+
+Every command reads files within limits, such as how large a stream may grow when it's decompressed, so a hostile file can't exhaust the machine. Each limit has a flag, such as `--max-stream-decoded N`, listed by `laminapdf --help`. A file over a limit fails with `limit-exceeded`, and [open files you don't trust](../../pages/guides/untrusted-files.md) explains each limit.
+
+`--dry-run` does everything but write the output, to check a command before it changes files.
+
+Next: [connect the tool to an AI agent](../../pages/cli/mcp.md).
