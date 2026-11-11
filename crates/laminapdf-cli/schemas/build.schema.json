@@ -9,6 +9,13 @@
       "minimum": 0,
       "type": "integer"
     },
+    "data": {
+      "description": "The data a document's placeholders read, as given: a path, or `-` (left out without).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "input": {
       "description": "The input as given: a path, or `-`.",
       "type": "string"

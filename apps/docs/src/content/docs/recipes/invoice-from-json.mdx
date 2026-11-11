@@ -41,6 +41,13 @@ The result is two A4 pages that meet PDF/UA-1. The table's header row repeats at
 - **Totals, dates and currency:** put them in the data already formatted, such as `"total": "4,001.10 €"`. Templates have no arithmetic or formatting by design: whatever writes the data does the sums.
 - **A misspelt key:** reading the document fails with `invalid-document`. Its `data.pointer` names the value, such as `/blocks/2/spaceAftr`, and its `didYouMean` the closest key the format knows.
 - **A value the data lacks:** filling fails with `template-data-missing` and the pointer the template used, so a gap never reaches the PDF.
+- **Build it without code:** the command-line tool fills the template and lays it out in one command, giving each font by the name the template uses:
+
+  ```sh
+  laminapdf build invoice.json --data invoice-data.json --font regular=NotoSans-Regular.ttf --font bold=NotoSans-Bold.ttf -o invoice.pdf
+  ```
+
+  [Make and change PDFs](/cli/build-and-edit/#a-pdf-from-json) has the rest.
 - **Check what a model writes:** validate the document against `laminapdf.document/1`'s schema. The `laminapdf` crate and `@laminapdf/sdk` both ship it as `docs/schemas/document.schema.json`.
 
 Next: [Pages that flow](/guides/flowing-pages/), with every block a document can hold.
