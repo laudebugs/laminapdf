@@ -80,21 +80,23 @@ function NoMatches({ find }: { find: FindResultsControls }): ReactNode {
   return (
     <EmptyState
       title={message("find.results.none", { query })}
-      headingLevel={3}
       icon="find"
       {...(action === undefined ? {} : { actions: action })}
     />
   );
 }
 
-/** One page's group, named by its heading. */
+/**
+ * One page's group, named by its heading: an h2, since the rail's Results tab has no heading of its
+ * own, so the groups are its top level (as Recent's are).
+ */
 function ResultGroup({ heading, children }: { heading: string; children: ReactNode }): ReactNode {
   const id = useId();
   return (
     <section className="paper-find-results-group" aria-labelledby={id}>
-      <h3 id={id} className="paper-find-results-heading">
+      <h2 id={id} className="paper-find-results-heading">
         {heading}
-      </h3>
+      </h2>
       {children}
     </section>
   );

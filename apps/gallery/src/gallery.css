@@ -216,6 +216,12 @@ body {
   min-height: 240px;
 }
 
+/* The sample text's links (the link preview's citation) in the Paper accent, which holds text
+   contrast on the ground in every theme; the browser's default blue fails it on dark. */
+.g-selection a {
+  color: var(--paper-accent-strong);
+}
+
 .g-selected {
   background: var(--paper-accent-tint);
   color: var(--paper-text);
