@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features) (cloud storage and sync) |
 | Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
-| Depends on | [E1e](./E1e-save-and-constraint-banner.md), [H2](./H2-accounts-and-login.md) |
+| Depends on | [E1e](../ongoing/E1e-save-and-constraint-banner.md), [H2](./H2-accounts-and-login.md) |
 | ADRs | Implements ADR 0011 |
 | Branch | `feat/h3-cloud-document-storage` |
 | PR title | `feat(hosted): opt-in cloud storage for documents` |

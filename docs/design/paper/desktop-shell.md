@@ -128,7 +128,7 @@ Conventions on this canvas:
 
 **Purpose.** Keep the window in step with the file when another app saves, replaces, moves or deletes it, and never lose the user’s unsaved work silently.
 
-**Scope by release.** Desktop v0.1 is the reader ([UI/UX plan §5.1](../../plans/ui-ux.md) ships Read only), so only the silent reload with a toast, the moved-or-deleted strip, the unreadable-retrying notice and the setting-off banner apply there. The conflict with unsaved changes (`S04-file-changed`, drawn in a Comment session with the Editor top bar) arrives with the editor: D3b leaves editor conflicts out of scope, and [E1e](../../todos/ready/E1e-save-and-constraint-banner.md) owns the external-change conflict.
+**Scope by release.** Desktop v0.1 is the reader ([UI/UX plan §5.1](../../plans/ui-ux.md) ships Read only), so only the silent reload with a toast, the moved-or-deleted strip, the unreadable-retrying notice and the setting-off banner apply there. The conflict with unsaved changes (`S04-file-changed`, drawn in a Comment session with the Editor top bar) arrives with the editor: D3b leaves editor conflicts out of scope, and [E1e](../../todos/ongoing/E1e-save-and-constraint-banner.md) owns the external-change conflict.
 
 **Entry points.** The file watcher (no user action). The setting “Reload when the file changes on disk” (Settings › General, on by default).
 
@@ -159,7 +159,7 @@ Conventions on this canvas:
 
 **Artboards:** `S04-file-changed.dc.html` (Editor top bar and the full Comment toolbar of §8.1, with its Colour swatches), `S04-file-missing.dc.html` (Reader v0.1 top bar).
 
-**Todos:** [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) (reload, missing, retrying); [E1e](../../todos/ready/E1e-save-and-constraint-banner.md) (the conflict with unsaved changes: Compare, Keep mine, Reload from disk).
+**Todos:** [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) (reload, missing, retrying); [E1e](../../todos/ongoing/E1e-save-and-constraint-banner.md) (the conflict with unsaved changes: Compare, Keep mine, Reload from disk).
 
 ## S05 Print
 
