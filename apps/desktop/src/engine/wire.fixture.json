@@ -40,6 +40,8 @@
       "parsed": {
         "rotation": "three-quarters",
         "appearance": "high-contrast",
+        "ink": [255, 255, 0, 255],
+        "paper": [0, 0, 0, 255],
         "priority": "prefetch",
         "encoding": "raw"
       }

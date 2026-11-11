@@ -525,7 +525,21 @@ fn every_tile_address_the_client_builds_should_parse_to_what_it_means() {
             TileAppearance::Original => "original",
             TileAppearance::Sepia => "sepia",
             TileAppearance::Dark => "dark",
-            TileAppearance::HighContrast { .. } => "high-contrast",
+            TileAppearance::HighContrast { ink, paper } => {
+                let colour = |key: &str| -> Vec<u64> {
+                    expect[key]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|c| c.as_u64().unwrap())
+                        .collect()
+                };
+                assert_eq!(
+                    (ink.map(u64::from).to_vec(), paper.map(u64::from).to_vec()),
+                    (colour("ink"), colour("paper"))
+                );
+                "high-contrast"
+            }
         };
         let priority = match parsed.priority {
             Priority::Visible => "visible",

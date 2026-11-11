@@ -248,7 +248,10 @@ export class DesktopEngineClient implements ViewerEngine {
     try {
       const response = await this.#shell.fetch(url, signal === undefined ? {} : { signal });
       // A document replaced while its tile travelled: whatever came back is stale, failures too.
-      if (this.#generation !== generation) throw abortError();
+      if (this.#generation !== generation) {
+        void response.body?.cancel();
+        throw abortError();
+      }
       if (!response.ok) throw await this.#failure(response);
       const bitmap = await this.#bitmap(response, clip);
       // Aborted while it travelled, or the document went: dropped, never painted.
