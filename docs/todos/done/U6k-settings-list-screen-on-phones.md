@@ -11,7 +11,7 @@
 | Branch | `feat/u6k-settings-list-screen-on-phones` |
 | PR title | `feat(ui): settings on a phone open on a list of sections` |
 | Size | M (200–400 changed lines of code) |
-| PR | — |
+| PR | [#424](https://github.com/laudebugs/laminapdf/pull/424) |
 
 ## Goal
 
