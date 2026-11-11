@@ -20,7 +20,7 @@ The result is the draft's bytes, unchanged, followed by one revision that retitl
 - `setMetadata` changes the title, authors and other facts a viewer shows in a file's properties. `transact` applies it as one transaction, which `undo` reverts as a whole. In Rust, `apply` takes the list of ops as one transaction.
 - `mode: "incremental"` (`SaveMode::Incremental`) asks for an [incremental save](/reference/glossary/#incremental-save): the draft's bytes first, then one revision with the edit.
 - `editedAt` is the modification date to record, a PDF date such as `D:20261030120000Z`. Leave it out and no date is written, because Lamina PDF never reads the clock.
-- The builder wrote the draft's title twice: in its Info dictionary and in its XMP metadata, an XML copy of the same facts. `setMetadata` changes both, so they agree. [Edit the metadata](/recipes/edit-metadata/) shows more of it.
+- The builder wrote the draft's title twice: in its Info dictionary and in its XMP metadata, an XML copy of the same facts. `setMetadata` changes both, so they agree.
 
 ## What to change
 

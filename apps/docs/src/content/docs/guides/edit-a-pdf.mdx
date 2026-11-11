@@ -22,7 +22,7 @@ Your edits live beside the bytes you opened and never change them. Nothing reach
 
 ## Change the metadata
 
-`doc.setMetadata({ title, authors })` changes a document's title, authors, subject, keywords, tools and dates, and `doc.removeMetadata(["keywords"])` removes fields. A PDF keeps these facts twice, in its Info dictionary and its XMP metadata, and each edit writes both. `doc.metadata()` reads them back. [Edit the metadata](/recipes/edit-metadata/) has the whole program.
+`doc.setMetadata({ title, authors })` changes a document's title, authors, subject, keywords, dates, and the creating and producing applications, and `doc.removeMetadata(["keywords"])` removes fields. A PDF keeps these facts twice, in its Info dictionary and its XMP metadata, and each edit writes both. `doc.metadata()` reads them back. [Edit the metadata](/recipes/edit-metadata/) has the whole program.
 
 ## Undo and redo
 

@@ -55,6 +55,7 @@ Let users save edits safely on the web: Save (incremental by default), Save as, 
 - [ ] Web: streaming writable sink in the worker; fallback download path; OPFS spool; tests for Chromium (FSA) and Firefox/WebKit (download)
 - [ ] Banner and dialogs in `@laminapdf/ui` with copy reviewed against ADR 0007 wording
 - [ ] Rebase handling: after a full rewrite to a non-readable sink, call `rebase` with the spooled bytes; block ops while `SavedNotRebased`
+- [ ] Every save passes the save time (`metadataDate`, from the clock) and a fresh `instanceId` (a random UUID), so the file's modification date and XMP instance ID change ([E1c](../ongoing/E1c-metadata-ops.md): a save without them stamps nothing)
 - [ ] Error paths: disk full, permission denied, FSA permission revoked → document stays dirty, overlay untouched
 
 ## Acceptance criteria
