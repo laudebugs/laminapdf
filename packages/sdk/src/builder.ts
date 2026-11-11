@@ -20,7 +20,7 @@ import {
   type TableScope,
   type TagName,
 } from "./generated/builder-enums.js";
-import { type BaseGlue, readingModule, textModule } from "./init.js";
+import { type BaseGlue, readingModule, type TextGlue, textModule } from "./init.js";
 import { disposable, forget, Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 import type { Transform } from "./matrix.js";
@@ -175,6 +175,69 @@ export interface TextBoxOptions {
   readonly features?: readonly string[];
   /** The structure element the box is (as drawing it inside {@link Surface.tag}). */
   readonly tag?: Tag;
+}
+
+/** The fonts {@link Builder.markdown} sets each kind of text in. */
+export interface MarkdownFonts {
+  /** Body text; the other roles fall back to it. */
+  readonly regular: Font;
+  /** Bold text and headings. */
+  readonly bold?: Font;
+  /** Italic text. */
+  readonly italic?: Font;
+  /** Bold italic text. */
+  readonly boldItalic?: Font;
+  /** Code. */
+  readonly mono?: Font;
+  /** Fonts for characters the others lack, tried in order (Arabic, Devanagari, …). */
+  readonly fallbacks?: readonly Font[];
+}
+
+/** A header or footer: text at the start, centre and end, with `{page}`, `{pages}`, `{section}` and `{title}` filled in. */
+export interface PageRegion {
+  readonly start?: string;
+  readonly center?: string;
+  readonly end?: string;
+}
+
+/** The pages a {@link Builder.markdown} document flows through. */
+export interface PageTemplate {
+  /** A page size name or `[width, height]` in points. */
+  readonly size: PageSizeName | readonly [width: number, height: number];
+  /** Top, right, bottom and left margins in points (72 each by default). */
+  readonly margins?: readonly [top: number, right: number, bottom: number, left: number];
+  readonly header?: PageRegion;
+  readonly footer?: PageRegion;
+  /** The header and footer text's size in points, in the regular font (default 8). */
+  readonly furnitureSize?: number;
+}
+
+/** Options of {@link Builder.markdown}. */
+export interface MarkdownOptions {
+  /** The fonts by role; without them, Helvetica and Courier: Latin only, which PDF/UA-1 refuses (`font-not-embedded`). */
+  readonly fonts?: MarkdownFonts;
+  /** The images the Markdown shows, by the target it writes (`![…](photo.jpg)` → `"photo.jpg"`). Nothing is fetched. */
+  readonly images?: Readonly<Record<string, Image>>;
+  /** The body text's size in points (default 10.5); headings scale from it. */
+  readonly size?: number;
+  /** A contents page listing headings of levels 1 to `contents`, at the start. */
+  readonly contents?: number;
+  /** The pages (default A4, 56-point margins, "Page {page} of {pages}" in the footer). */
+  readonly page?: PageTemplate;
+}
+
+/** What {@link Builder.markdown} added. */
+export interface MarkdownReport {
+  /** The pages it added, in order, by ID. */
+  readonly pages: readonly string[];
+}
+
+/** `page` as the WebAssembly record takes it: the size in points, the tuples copied. */
+function pageRecord(page: PageTemplate) {
+  const [width, height] = typeof page.size === "string" ? namedSize(page.size) : page.size;
+  const { margins, size: _size, ...rest } = page;
+  const sized = { ...rest, size: [width, height] as [number, number] };
+  return margins === undefined ? sized : { ...sized, margins: [...margins] as [number, number, number, number] };
 }
 
 /** The size of a named page; `invalid-argument` (with suggestions) for an unknown name. */
@@ -612,8 +675,11 @@ disposable(Page);
 export class Builder extends Handle<BaseGlue> {
   #raw: TextBuilder | undefined;
   readonly #text: boolean;
-  /** Registered fonts: standard 14 by name, others by their bytes (one PDF font per distinct font). */
-  readonly #fonts = new Map<string | Uint8Array, WasmFont>();
+  /**
+   * Registered fonts: standard 14 by name, others by their bytes and then the face (-1 for a font
+   * that isn't in a collection): one PDF font per distinct font.
+   */
+  readonly #fonts = new Map<string | Uint8Array, Map<number, WasmFont>>();
   /** Pages not yet finished: freed with the builder, so they can't finish into nothing. */
   readonly #pages = new Set<LivePage>();
 
@@ -684,16 +750,20 @@ export class Builder extends Handle<BaseGlue> {
     // A cached font lives in the builder's instance: check it is still the current one.
     this.assertLive();
     const key = font.standard ?? this.#bytesKey(font.bytes ?? new Uint8Array());
-    let raw = this.#fonts.get(key);
+    const face = font.index ?? -1;
+    const faces = this.#fonts.get(key) ?? new Map<number, WasmFont>();
+    let raw = faces.get(face);
     if (raw !== undefined) return raw;
     if (!this.#text) {
       throw packageError("text-module-not-loaded", "this builder was created without the text module");
     }
     const builder = this.#builder;
-    raw = this.call(() =>
-      font.bytes !== undefined ? builder.fontBytes(font.bytes) : builder.standardFont(font.standard ?? ""),
-    );
-    this.#fonts.set(key, raw);
+    raw = this.call(() => {
+      if (font.bytes === undefined) return builder.standardFont(font.standard ?? "");
+      return font.index === undefined ? builder.fontBytes(font.bytes) : builder.fontCollection(font.bytes, font.index);
+    });
+    faces.set(face, raw);
+    this.#fonts.set(key, faces);
     return raw;
   }
 
@@ -720,6 +790,47 @@ export class Builder extends Handle<BaseGlue> {
   pageLabels(ranges: readonly PageLabel[]): this {
     this.call(() => this.#builder.pageLabels(ranges as PageLabel[]));
     return this;
+  }
+
+  /**
+   * Lays `markdown` out as tagged pages that flow, after any pages already added: CommonMark with
+   * tables, footnotes, strikethrough and task lists. The front matter (`title`, `lang`, `author`,
+   * `subject` as `key: value` lines) becomes the document's metadata and language. Raw HTML and
+   * images not given in `options.images` are left out with the warnings `markdown-html-ignored`
+   * and `markdown-image-missing`, which the finished document's `warnings()` lists. Needs the text module.
+   *
+   * @throws {@link LaminaPdfError} `text-module-not-loaded`; `unknown-option`, `invalid-argument`;
+   *   `missing-glyph` for a character the fonts lack; `flow-content-too-large`; `builder-finished`.
+   */
+  markdown(markdown: string, options: MarkdownOptions = {}): MarkdownReport {
+    if (!this.#text) {
+      throw packageError("text-module-not-loaded", "this builder was created without the text module");
+    }
+    const { fonts, images, page, ...layout } = options;
+    const roles: [string, Font][] = [];
+    if (fonts !== undefined) {
+      roles.push(["regular", fonts.regular]);
+      for (const role of ["bold", "italic", "boldItalic", "mono"] as const) {
+        const font = fonts[role];
+        if (font !== undefined) roles.push([role, font]);
+      }
+      for (const font of fonts.fallbacks ?? []) roles.push(["fallback", font]);
+    }
+    const raw = roles.map(([role, font]) => [role, this.wasmFont(font)] as const);
+    const pictures = Object.entries(images ?? {}).map(([target, image]) => [target, this.wasmImage(image)] as const);
+    const template = page === undefined ? undefined : pageRecord(page);
+    const builder = this.#builder;
+    return this.call((glue) => {
+      const resources = new (glue as unknown as TextGlue).WasmMarkdownOptions();
+      try {
+        for (const [role, font] of raw) resources.font(role, font);
+        for (const [target, image] of pictures) resources.image(target, image);
+        const record = template === undefined ? layout : { ...layout, page: template };
+        return builder.markdown(markdown, resources, record) as MarkdownReport;
+      } finally {
+        resources.free();
+      }
+    });
   }
 
   /** The metadata, written as the Info dictionary and an XMP packet. */
@@ -787,7 +898,7 @@ export class Builder extends Handle<BaseGlue> {
     forget(this);
     for (const page of [...this.#pages]) page.close();
     if (this.owned) {
-      for (const font of this.#fonts.values()) font.free();
+      for (const faces of this.#fonts.values()) for (const font of faces.values()) font.free();
       (this.#raw as unknown as BaseBuilder | undefined)?.free();
     }
     this.#fonts.clear();

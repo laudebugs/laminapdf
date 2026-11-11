@@ -42,8 +42,8 @@ use serde_json::{Map, Value};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use crate::commands::{
-    self, CheckArgs, ExplainArgs, ExtractArgs, Format, InfoArgs, RenderArgs, RevealArgs, RevealToolArgs, RotateArgs,
-    Settings,
+    self, BuildToolArgs, CheckArgs, ExplainArgs, ExtractArgs, Format, InfoArgs, RenderArgs, RevealArgs, RevealToolArgs,
+    RotateArgs, Settings,
 };
 use crate::exit::CliError;
 use roots::{RootedIo, Roots};
@@ -54,7 +54,7 @@ pub struct McpArgs {
     /// A folder the tools may read and write; repeat for more. Relative paths start at the first.
     #[arg(long = "root", value_name = "DIR", required = true)]
     pub roots: Vec<PathBuf>,
-    /// List the write tools (`laminapdf_pages_rotate`, `laminapdf_render`), which write new files only.
+    /// List the write tools (`laminapdf_build`, `laminapdf_pages_rotate`, `laminapdf_render`), which write new files only.
     #[arg(long)]
     pub allow_write: bool,
     /// Let the write tool replace its input (`inPlace`); needs --allow-write.
@@ -240,6 +240,11 @@ fn run_tool(
     // Each call writes its own files: the paths one call claims never refuse another's.
     settings.claimed = Arc::default();
     match name {
+        "laminapdf_build" => {
+            let args: BuildToolArgs = parse(arguments)?;
+            let input = args.input.clone();
+            report(commands::build_tool(args, &settings, &mut io), input.as_deref())
+        }
         "laminapdf_check" => {
             let args: CheckArgs = parse(arguments)?;
             report(commands::check(&args, &settings, &mut io), Some(&args.input))

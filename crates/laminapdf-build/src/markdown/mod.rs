@@ -126,6 +126,7 @@ pub struct MarkdownBuildOptions {
     pub(crate) fonts: Option<MarkdownFonts>,
     pub(crate) size: f64,
     pub(crate) template: Option<PageTemplate>,
+    pub(crate) page_size: PageSize,
     pub(crate) images: BTreeMap<String, Image>,
     pub(crate) contents: Option<u8>,
 }
@@ -146,6 +147,7 @@ impl MarkdownBuildOptions {
             fonts: None,
             size: 10.5,
             template: None,
+            page_size: PageSize::A4,
             images: BTreeMap::new(),
             contents: None,
         }
@@ -163,6 +165,15 @@ impl MarkdownBuildOptions {
     #[must_use]
     pub const fn with_size(mut self, size: f64) -> Self {
         self.size = size;
+        self
+    }
+
+    /// With the default template's pages at `size` (A4 by default): 56-point margins and
+    /// "Page {page} of {pages}" in the footer. A template set with
+    /// [`MarkdownBuildOptions::with_template`] takes its own size instead.
+    #[must_use]
+    pub const fn with_page_size(mut self, size: PageSize) -> Self {
+        self.page_size = size;
         self
     }
 
@@ -186,6 +197,14 @@ impl MarkdownBuildOptions {
         self.contents = Some(levels);
         self
     }
+}
+
+/// The target of every image `markdown` shows, as written (`chart.png`, `https://…`), once each
+/// in order of first use: what a caller passes to [`MarkdownBuildOptions::with_image`]. Reading
+/// the files, and refusing remote ones, is the caller's choice.
+#[must_use]
+pub fn image_targets(markdown: &str) -> Vec<String> {
+    convert::image_targets(markdown)
 }
 
 /// What the front matter says: plain `key: value` lines between `---` lines.
@@ -313,7 +332,7 @@ impl Builder {
         let small = styles.style(&styles.fonts.regular, options.size * 0.8);
         let template = options.template.clone().unwrap_or_else(|| {
             let footer = PageRegion::new().with_center("Page {page} of {pages}");
-            PageTemplate::new(PageSize::A4)
+            PageTemplate::new(options.page_size)
                 .with_margins(Margins::all(56.0))
                 .with_furniture(None, Some(footer), &small)
         });

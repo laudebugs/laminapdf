@@ -773,8 +773,13 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
         // Op logs, not PDFs: the frozen samples of the op format.
         fixtures.extend(files_in(&ws.root.join("fixtures/ops/v1"))?);
     } else if target == "markdown" {
-        // Markdown, not PDFs: the example's report (and fuzz/seeds/markdown/, copied below).
-        fixtures.extend(files_in(&ws.root.join("fixtures/markdown"))?);
+        // Markdown, not PDFs: the example's report (and fuzz/seeds/markdown/, copied below), not
+        // the photo beside it that `laminapdf build` reads.
+        fixtures.extend(
+            files_in(&ws.root.join("fixtures/markdown"))?
+                .into_iter()
+                .filter(|p| p.extension().is_some_and(|e| e == "md")),
+        );
     } else if target == "engine_protocol_decode" {
         // Frames, not PDFs: only fuzz/seeds/engine_protocol_decode/, copied below.
     } else {

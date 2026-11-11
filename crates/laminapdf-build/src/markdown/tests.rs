@@ -32,3 +32,9 @@ fn slugs_follow_github() {
     assert_eq!(slug("What's new, in 2.0?"), "whats-new-in-20");
     assert_eq!(slug("Café crème"), "café-crème");
 }
+
+#[test]
+fn image_targets_should_list_each_image_once_in_order_of_first_use() {
+    let markdown = "![a](b.png) and ![c](https://example.com/d.jpg)\n\n![again](b.png)\n\n`![not](code.png)`\n";
+    assert_eq!(super::image_targets(markdown), ["b.png", "https://example.com/d.jpg"]);
+}

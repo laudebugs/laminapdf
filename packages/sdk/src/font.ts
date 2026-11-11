@@ -49,10 +49,13 @@ export class Font {
   readonly bytes: Uint8Array | undefined;
   /** The PostScript name, for a standard 14 font. */
   readonly standard: Standard14 | undefined;
+  /** The face in a collection (`.ttc`), for a font loaded with {@link Font.fromCollection}. */
+  readonly index: number | undefined;
 
-  private constructor(bytes: Uint8Array | undefined, standard: Standard14 | undefined) {
+  private constructor(bytes: Uint8Array | undefined, standard: Standard14 | undefined, index?: number) {
     this.bytes = bytes;
     this.standard = standard;
+    this.index = index;
   }
 
   /**
@@ -61,6 +64,21 @@ export class Font {
    */
   static fromBytes(bytes: Uint8Array | ArrayBuffer): Font {
     return new Font(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), undefined);
+  }
+
+  /**
+   * Face `index` (from 0) of a font collection (`.ttc` or `.otc`). The bytes are checked when a
+   * builder first uses the font (`invalid-font` for a file that isn't a font, `collection-index` for a face the collection doesn't have).
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for an index that isn't a whole number from 0.
+   */
+  static fromCollection(bytes: Uint8Array | ArrayBuffer, index: number): Font {
+    if (!Number.isInteger(index) || index < 0 || index > 0xffff_ffff) {
+      throw packageError("invalid-argument", "a collection's face number is a whole number from 0", {
+        data: { argument: "index", detail: String(index) },
+      });
+    }
+    return new Font(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), undefined, index);
   }
 
   /** One of the standard 14 fonts. */
