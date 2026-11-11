@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3b](../ongoing/W3b-public-repository-links.md) |
+| Depends on | [W3b](../done/W3b-public-repository-links.md) |
 | ADRs | None |
 | Branch | `docs/w3f-agent-discovery` |
 | PR title | `docs: a Context7 listing, and llms.txt linked where agents look` |
