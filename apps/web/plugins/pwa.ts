@@ -39,10 +39,10 @@ export function manifest(): Record<string, unknown> {
 /**
  * Files left out of the precache, cached the first time they are fetched instead: the hayro
  * backend (the #debug switch) and the text module, which the reader never loads. The worker
- * itself and the server's header rules aren't files the page fetches.
+ * itself, the server's header rules and robots.txt aren't files the page fetches.
  */
 const LAZY = [/hayro/, /lamina_pdf_text/, /\.map$/];
-const NEVER = new Set(["_headers", "sw.js"]);
+const NEVER = new Set(["_headers", "robots.txt", "sw.js"]);
 
 /** The paths the worker installs, from the build's files (relative, `/`-separated): `/` for the shell. */
 export function precacheList(files: readonly string[]): string[] {

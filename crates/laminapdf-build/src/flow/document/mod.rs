@@ -31,7 +31,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
-pub use fill::fill;
+pub use fill::{fill, fill_or_read};
 
 use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
@@ -130,8 +130,8 @@ pub struct FlowDocument {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subject: Option<Text>,
     /// The profiles the PDF must meet: `PDF/UA-1`, and at most one of `PDF/A-2b`, `PDF/A-2u`
-    /// and `PDF/A-3b`. The caller passes them to the builder's options
-    /// ([`FlowDocument::profiles`]).
+    /// and `PDF/A-3b`. The caller passes them to the builder's options, as they are checked
+    /// there.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub profiles: Vec<ProfileName>,
     /// The pages the blocks flow through (A4 with 72-point margins when left out).

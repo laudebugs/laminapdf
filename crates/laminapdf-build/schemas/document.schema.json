@@ -1331,7 +1331,7 @@
       "description": "The pages the blocks flow through (A4 with 72-point margins when left out)."
     },
     "profiles": {
-      "description": "The profiles the PDF must meet: `PDF/UA-1`, and at most one of `PDF/A-2b`, `PDF/A-2u`\nand `PDF/A-3b`. The caller passes them to the builder's options\n([`FlowDocument::profiles`]).",
+      "description": "The profiles the PDF must meet: `PDF/UA-1`, and at most one of `PDF/A-2b`, `PDF/A-2u`\nand `PDF/A-3b`. The caller passes them to the builder's options, as they are checked\nthere.",
       "items": {
         "$ref": "#/$defs/ProfileName"
       },
