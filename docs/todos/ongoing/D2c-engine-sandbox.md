@@ -11,7 +11,7 @@
 | Branch | `feat/d2c-engine-sandbox` |
 | PR title | `feat(desktop): sandbox the engine process per OS` |
 | Size | M–L (400–900 lines, mostly per-OS code and tests) |
-| PR | — |
+| PR | [#420](https://github.com/laudebugs/laminapdf/pull/420) |
 
 ## Goal
 
@@ -54,24 +54,24 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] Add dependencies with licence comments: `landlock`, `seccompiler` (Linux, `cfg(target_os = "linux")`), `windows` crate features for security/job objects (`cfg(windows)`); no new deps on macOS if entitlements suffice.
-- [ ] Implement the per-OS start-up order above (Linux: all after load; macOS: from exec, PDFium loaded inside; Windows: Job + Low IL at spawn, impersonation token until PDFium is loaded, then `RevertToSelf` + mitigation policies).
-- [ ] Implement the per-OS modules behind a single `fn apply_engine_sandbox(cfg: &SandboxConfig) -> Result<SandboxLevel, SandboxError>` (engine side) and `fn spawn_sandboxed(cmd: Command, cfg: &SandboxConfig) -> Result<Child, SandboxError>` (main side); keep all `unsafe` FFI in these modules with `// SAFETY:` comments.
-- [ ] Font strategy: implement `FontRequest`/`FontData` protocol messages if PDFium needs system fonts for non-embedded fonts; main reads fonts from system directories; document in ADR 0008.
-- [ ] macOS: `apps/desktop/src-tauri/engine.entitlements`; ad-hoc sign the sidecar in the xtask `desktop-sidecar` step (`codesign -s - --entitlements … --options runtime`) so dev builds exercise the sandbox.
-- [ ] Probe binary/test mode: engine flag `--sandbox-selftest` that, after applying the sandbox, attempts forbidden actions (open `/etc/hosts` or `C:\Windows\win.ini`, TCP connect to 127.0.0.1, spawn a process, write to the user's home) and reports each as blocked/allowed, **and** attempts allowed actions that must keep working (spawn 4 `std::thread`s that each render a tile on the worker pool and join) — used by tests below. On Linux the forbidden probes run in a forked-before-sandbox helper or as separate selftest invocations, since a kill action ends the process (one probe per invocation: `--sandbox-selftest=<probe>`).
-- [ ] Measure and record: render time with and without sandbox (should be equal), engine startup time increase.
-- [ ] Amend ADR 0008 with the enforcement table.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
+- [x] Add dependencies with licence comments: `landlock`, `seccompiler` (Linux, `cfg(target_os = "linux")`), `windows` crate features for security/job objects (`cfg(windows)`); no new deps on macOS if entitlements suffice.
+- [x] Implement the per-OS start-up order above (Linux: all after load; macOS: from exec, PDFium loaded inside; Windows: Job + Low IL at spawn, impersonation token until PDFium is loaded, then `RevertToSelf` + mitigation policies).
+- [x] Implement the per-OS modules behind a single `fn apply_engine_sandbox(cfg: &SandboxConfig) -> Result<SandboxLevel, SandboxError>` (engine side) and `fn spawn_sandboxed(cmd: Command, cfg: &SandboxConfig) -> Result<Child, SandboxError>` (main side); keep all `unsafe` FFI in these modules with `// SAFETY:` comments.
+- [x] Font strategy: implement `FontRequest`/`FontData` protocol messages if PDFium needs system fonts for non-embedded fonts; main reads fonts from system directories; document in ADR 0008.
+- [x] macOS: `apps/desktop/src-tauri/engine.entitlements`; ad-hoc sign the sidecar in the xtask `desktop-sidecar` step (`codesign -s - --entitlements … --options runtime`) so dev builds exercise the sandbox.
+- [x] Probe binary/test mode: engine flag `--sandbox-selftest` that, after applying the sandbox, attempts forbidden actions (open `/etc/hosts` or `C:\Windows\win.ini`, TCP connect to 127.0.0.1, spawn a process, write to the user's home) and reports each as blocked/allowed, **and** attempts allowed actions that must keep working (spawn 4 `std::thread`s that each render a tile on the worker pool and join) — used by tests below. On Linux the forbidden probes run in a forked-before-sandbox helper or as separate selftest invocations, since a kill action ends the process (one probe per invocation: `--sandbox-selftest=<probe>`).
+- [x] Measure and record: render time with and without sandbox (should be equal), engine startup time increase.
+- [x] Amend ADR 0008 with the enforcement table.
 
 ## Acceptance criteria
 
-- [ ] On each OS, `--sandbox-selftest` reports **blocked** for: reading an arbitrary file, writing a file, opening a network socket, spawning a process. Any exception is listed in ADR 0008 with reason and OS version.
-- [ ] On each OS, the selftest's thread probe succeeds after the sandbox is applied (threads are created and join; tiles render on the worker pool); on Linux this holds with `clone3` returning `ENOSYS`.
-- [ ] All D2b integration tests still pass with the sandbox on (rendering, restart).
-- [ ] On Linux without Landlock (older kernel) the engine still starts with seccomp + no-new-privs and reports the reduced `SandboxLevel`; the app shows nothing to the user but logs it.
-- [ ] Windows engine memory limit enforced: a test document that forces excessive allocation (or a test-only "allocate N GiB" command under `e2e`) gets the engine killed and restarted, not the app.
-- [ ] No regression in the 1 GB open time from D2b (≤ 5 % slower).
+- [x] On each OS, `--sandbox-selftest` reports **blocked** for: reading an arbitrary file, writing a file, opening a network socket, spawning a process. Any exception is listed in ADR 0008 with reason and OS version.
+- [x] On each OS, the selftest's thread probe succeeds after the sandbox is applied (threads are created and join; tiles render on the worker pool); on Linux this holds with `clone3` returning `ENOSYS`.
+- [x] All D2b integration tests still pass with the sandbox on (rendering, restart).
+- [x] On Linux without Landlock (older kernel) the engine still starts with seccomp + no-new-privs and reports the reduced `SandboxLevel`; the app shows nothing to the user but logs it.
+- [x] Windows engine memory limit enforced: a test document that forces excessive allocation (or a test-only "allocate N GiB" command under `e2e`) gets the engine killed and restarted, not the app.
+- [x] No regression in the 1 GB open time from D2b (≤ 5 % slower).
 
 ## Post-merge checks
 
@@ -98,10 +98,19 @@ None.
 - **Windows Low integrity + pipes**: inherited anonymous pipe handles work across integrity levels; named pipes need an explicit DACL. Use inherited handles only.
 - **Font access** might push us toward granting read access to font directories; prefer the protocol approach.
 
+## Results and deviations
+
+- **One crate for both halves.** The spawn side and the engine side live in `crates/laminapdf-desktop-sandbox` (layer `app`, unpublished) instead of `apps/desktop/src-tauri/src/engine/sandbox/` and `crates/laminapdf-desktop-engine/src/sandbox/`, so the engine's tests start the real engine exactly as the app does (`SandboxSpawner`), on Windows too. The protocol crate's `CommandSpawner` moved there.
+- **macOS: Seatbelt, not App Sandbox.** App Sandbox works for an ad-hoc signed engine once the binary embeds an `Info.plist` and PDFium sits in the bundle (and without `--options runtime`: library validation refuses PDFium without a Team ID), but it left `/etc/hosts` readable and `/usr/bin/true` startable, and a process in App Sandbox can't apply Seatbelt on top. The engine applies a deny-by-default Seatbelt profile with `sandbox_init` after loading PDFium; `engine.entitlements` is empty on purpose and `desktop-sidecar` signs ad hoc with it.
+- **Windows:** the start-up token must be restricted itself (restricted to the user's own SIDs), or Windows drops the impersonation to identification level and the engine fails to load (STATUS_BAD_IMPERSONATION_LEVEL); the engine starts `DETACHED_PROCESS`, since attaching to a console needs the console driver, which the token can't open (STATUS_DLL_INIT_FAILED). AppContainer was evaluated on paper, not run: ADR 0008 §5 says why.
+- **Fonts:** not implemented here. PDFium falls back to its built-in fonts, which keep Latin text's layout; CJK text in a non-embedded font loses its glyphs. [D2f](../ready/D2f-engine-system-fonts.md) adds `FontRequest`/`FontData`.
+- **Memory limit test:** the selftest's `memory` probe allocates past the limit and is refused on Linux and Windows (macOS has no enforced limit, a recorded gap). The supervisor's restart after a sandbox kill is tested on Unix with a SIGSYS sent by the test, since nothing in a real engine can be made to violate the sandbox on purpose without test code in the shipped binary.
+- **Measured:** ADR 0008 §5. Every open and tile figure is within 2 % of the same build with the sandbox off.
+
 ## Definition of done
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

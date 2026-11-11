@@ -26,6 +26,16 @@ cargo xtask desktop-notices                           # target/desktop/THIRD_PAR
 
 `desktop:dev` and `desktop:build` merge `src-tauri/tauri.bundle.conf.json`, which bundles the engine binary (`src-tauri/binaries/`, Tauri's sidecar naming) and PDFium (`src-tauri/resources/pdfium/`); `cargo xtask desktop-sidecar` writes both, and Git ignores them. The base `tauri.conf.json` names neither, so plain `cargo build` and `cargo test` work on a fresh clone; documents then fail to open with `engine-start`, because no engine sits beside the app.
 
+The engine runs sandboxed on every OS ([ADR 0008 §5](../../docs/decisions/0008-desktop-shell.md#5-sandboxing-per-os)): it can't open files, use the network or start processes. To see whether a problem comes from the sandbox, turn it off in a debug build and try again:
+
+```sh
+LAMINA_PDF_ENGINE_SANDBOX=off pnpm --filter @laminapdf/desktop run desktop:dev
+target/debug/laminapdf-desktop-engine --sandbox-selftest          # what the sandbox blocks, probe by probe
+cargo build -p laminapdf-desktop-engine --features seccomp-trap   # Linux: name a system call the filter refuses
+```
+
+The log names each engine's sandbox layers (`engine 4242 is ready; sandbox: seatbelt`) and says `off` when the variable is set. A release build ignores the variable, so a user's environment can't turn the sandbox off. On Linux the seccomp filter kills an engine that makes a system call it doesn't expect; the log then says `sandbox violation: SIGSYS`, and the `seccomp-trap` build prints the call's number instead of dying silently.
+
 To measure the engine on a large file:
 
 ```sh
@@ -41,7 +51,7 @@ cargo run --release -p laminapdf-desktop-engine --example measure -- \
 - **`src/platform/desktop.ts`** is the desktop `Platform` (ADR 0010). It starts from the web platform, which works in any webview, and sets the four capability flags the desktop shell adds: saving in place, watching files, native printing and several windows. Until the shell implements them, the four matching methods reject with `NotYetSupportedError`, which names the feature.
 - **`src/app.tsx`** puts the reader's top bar, home screen and status bar in the window; **`src/app-info.ts`** calls the shell's one command, `app_info`, whose version the status bar shows.
 - **`src-tauri/`** is the Rust crate `laminapdf-desktop`, a member of the Cargo workspace. `src/lib.rs` builds the app and its main window; `src/commands.rs` holds the commands the webview may call; `src/error.rs` holds `DesktopError`, which reaches the UI as `{ kind, message }`.
-- **`src-tauri/src/engine/`** runs documents in the engine process (ADR 0008 §2). Each window gets its own engine, `crates/laminapdf-desktop-engine`, started on its first document. The main process opens each file read-only and answers the engine's range requests with positioned reads (`bytesource.rs`), so neither the webview nor the engine ever sees a path. `documents.rs` maps each document to its file, its window and its kept password, and keeps each window's engine away from other windows' documents. When an engine crashes or stops answering, the protocol crate's supervisor starts a new one, and `mod.rs` reopens the window's documents, unlocking encrypted ones with the kept password (`secret.rs`). The window then gets `engine://restarted`, which says whether each document is open, locked or closed; a document that fails to reopen, or kills the new engine, is closed. A fourth crash within 60 s sends `engine://failed` instead.
+- **`src-tauri/src/engine/`** runs documents in the engine process (ADR 0008 §2). Each window gets its own engine, `crates/laminapdf-desktop-engine`, started on its first document and sandboxed (`crates/laminapdf-desktop-sandbox`). The main process opens each file read-only and answers the engine's range requests with positioned reads (`bytesource.rs`), so neither the webview nor the engine ever sees a path. `documents.rs` maps each document to its file, its window and its kept password, and keeps each window's engine away from other windows' documents. When an engine crashes or stops answering, the protocol crate's supervisor starts a new one, and `mod.rs` reopens the window's documents, unlocking encrypted ones with the kept password (`secret.rs`). The window then gets `engine://restarted`, which says whether each document is open, locked or closed; a document that fails to reopen, or kills the new engine, is closed. A fourth crash within 60 s sends `engine://failed` instead.
 
 ## Security baseline
 
