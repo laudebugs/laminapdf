@@ -15,7 +15,7 @@
 //!
 //! It reads the todo files and the roadmap from `main` (`origin/main` when there is one), not from
 //! the checkout, so a branch's own todo moves never reach the snapshot. The file names no person
-//! and holds no pull request number or link into the repository, which is private.
+//! and holds no pull request number or link into the repository.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;

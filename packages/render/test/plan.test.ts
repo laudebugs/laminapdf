@@ -98,7 +98,7 @@ describe("RenderError", () => {
       kind: "state",
       message: "missing",
       data: { ranges: [[0, 10]] },
-      docsUrl: "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/data-pending.md",
+      docsUrl: "https://docs.laminapdf.com/reference/codes/data-pending/",
     });
   });
 });

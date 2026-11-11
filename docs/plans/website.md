@@ -83,7 +83,7 @@ The production deploy refreshes the dashboard. It runs the command before every 
 
 **The design** (chosen by the owner on 2026-11-05 from three samples): the whole page is one document page resting on the reader's paper ground, as a PDF sits in the reader, with Newsreader headings and Source Sans 3 text. The milestones run down a vertical timeline, the dashboard follows, and the packages sit in a table. The opening section carries the code panel. The site header stays §7.39's, the same on both sites.
 
-The page shows titles and counts only. It names no person and links nothing in the repository, which is private. Rounds get plain names ("Core library", "Web reader") from one table in the site, and todo titles appear as the board writes them.
+The page shows titles and counts only. It names no person and links nothing in the repository. Rounds get plain names ("Core library", "Web reader") from one table in the site, and todo titles appear as the board writes them.
 
 [W1e](../todos/done/W1e-progress-snapshot.md) builds the command and the first snapshot; [W1c](../todos/done/W1c-home-page.md) designs and builds the page. When the reader launches, the product leads the home page and the roadmap moves to a page of its own ([§7](#7-open-questions), question 3).
 

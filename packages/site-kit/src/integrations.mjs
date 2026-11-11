@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import { readdirSync } from "node:fs";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { isProduction } from "./robots.mjs";
 
 /** The token in public/_headers that {@link fillInlineScriptHashes} replaces. */
 const HASHES = "'inline-script-hashes'";
@@ -121,7 +122,7 @@ export const inlineScriptHashes = {
  * @returns {Promise<void>}
  */
 export async function markNoindex(dir, env) {
-  if (env === "production") return;
+  if (isProduction(env)) return;
   const headersFile = new URL("_headers", dir);
   const headers = await readFile(headersFile, "utf8");
   if (!/^\/\*$/m.test(headers)) throw new Error("public/_headers has no /* block for X-Robots-Tag");

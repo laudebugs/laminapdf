@@ -9,9 +9,11 @@ compatibility_date = "2026-10-01"
 # A Workers custom domain on the laminapdf.com zone: `wrangler deploy` creates the DNS record and
 # certificate for it. The deploy token needs Zone → Workers Routes → Edit on that zone.
 routes = [{ pattern = "docs.laminapdf.com", custom_domain = true }]
-# The workers.dev route stays on: the per-PR preview URLs live under it.
-workers_dev = true
-# Preview URLs for uploaded versions (the per-PR previews), on workers.dev.
+# No workers.dev address: it would serve the released docs a second time, without noindex, beside
+# docs.laminapdf.com. Preview URLs don't need it: the reader's preview Worker (apps/web, C4d) runs
+# with workers_dev off and preview URLs on.
+workers_dev = false
+# Preview URLs for uploaded versions (the per-PR previews), each on its own workers.dev host.
 preview_urls = true
 
 [assets]

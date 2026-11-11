@@ -8,6 +8,7 @@
 // only after its release is published (releases plan §3).
 import { readFile } from "node:fs/promises";
 import { filesIn } from "@laminapdf/site-kit/integrations";
+import { robotsProblems } from "@laminapdf/site-kit/robots";
 import { VERSION_PLACEHOLDER, withVersion } from "@laminapdf/site-kit/version";
 
 /**
@@ -96,8 +97,9 @@ export function headerProblems(headers, { release }) {
 }
 
 /**
- * Fails the build on a built page with a problem `releaseProblems` finds, on headers
- * `headerProblems` refuses, and on a Markdown twin or text file with a placeholder left.
+ * Fails the build on a robots.txt `robotsProblems` refuses, on a built page with a problem
+ * `releaseProblems` finds, on headers `headerProblems` refuses, and on a Markdown twin or text file
+ * with a placeholder left.
  *
  * @param {{ version: string, release: boolean }} docs
  * @returns {import("astro").AstroIntegration}
@@ -108,6 +110,8 @@ export function releaseChecks(docs) {
     hooks: {
       "astro:build:done": async ({ dir }) => {
         const problems = headerProblems(await readFile(new URL("_headers", dir), "utf8"), docs);
+        const robotsFile = await readFile(new URL("robots.txt", dir), "utf8");
+        problems.push(...robotsProblems(robotsFile, { production: docs.release, sitemap: true }));
         for (const file of await filesIn(dir, ".html")) {
           const name = file.pathname.slice(dir.pathname.length);
           const history = name.startsWith("reference/changelog/");
