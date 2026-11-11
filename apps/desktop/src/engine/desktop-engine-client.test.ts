@@ -33,10 +33,12 @@ const LOCKED: DesktopDocument = { ...PLAIN, doc: 5, encrypted: true, needsPasswo
 /** A bitmap that records whether it was closed. */
 class FakeBitmap {
   closed = false;
-  constructor(
-    readonly width: number,
-    readonly height: number,
-  ) {}
+  readonly width: number;
+  readonly height: number;
+  constructor(width: number, height: number) {
+    this.width = width;
+    this.height = height;
+  }
   close(): void {
     this.closed = true;
   }

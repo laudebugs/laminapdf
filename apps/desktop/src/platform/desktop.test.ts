@@ -5,8 +5,8 @@ import { createDesktopPlatform, DESKTOP_FLAGS, isNotYetSupportedError, NotYetSup
 const PRINT_JOB = { pages: [1], render: () => Promise.reject(new Error("unused")), scale: "fit" } as const;
 
 describe("the desktop platform", () => {
-  it("sets the desktop shell's four flags over the webview's", () => {
-    const web = fakePlatform({ flags: { canWriteInPlace: false, multiWindow: false } });
+  it("sets the desktop shell's flags over the webview's", () => {
+    const web = fakePlatform({ flags: { canWriteInPlace: false, multiWindow: false, ownsKeyboard: false } });
     expect(createDesktopPlatform(web).capabilities).toMatchObject(DESKTOP_FLAGS);
   });
 

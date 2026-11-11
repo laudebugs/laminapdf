@@ -36,8 +36,12 @@ export function isNotYetSupportedError(error: unknown): error is NotYetSupported
   return error instanceof NotYetSupportedError;
 }
 
-/** The flags the desktop shell sets on top of the webview's own (desktop plan §5). */
+/**
+ * The flags the desktop shell sets on top of the webview's own (desktop plan §5). `ownsKeyboard`
+ * (ADR 0010): no browser keeps ⌘−, ⌘W or F1, so the desktop-only shortcuts bind.
+ */
 export const DESKTOP_FLAGS = {
+  ownsKeyboard: true,
   canWriteInPlace: true,
   canWatchFiles: true,
   hasNativePrint: true,

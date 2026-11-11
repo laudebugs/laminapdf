@@ -91,8 +91,13 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     registerReaderCommands(commands);
     return commands;
   });
-  const context = useMemo<CommandContext>(() => ({ platform, reader }), [platform, reader]);
   const open = state.phase === "open";
+  // The page input, zoom and the viewer's commands work while a document is on screen.
+  const viewer = open && lost === undefined ? engine?.viewer : undefined;
+  const context = useMemo<CommandContext>(
+    () => ({ platform, reader, ...(viewer === undefined ? {} : { viewer }) }),
+    [platform, reader, viewer],
+  );
   const repaired = open && engine?.client.current?.repaired === true;
   return (
     <CommandsProvider registry={registry} context={context} keys={keys}>
@@ -100,6 +105,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         topBar={
           <ReaderTopBar
             reader={reader}
+            {...(viewer === undefined ? {} : { viewer })}
             keys={keys}
             home={<span className="desktop-wordmark">Lamina PDF</span>}
             more={{ items: [], onAction: () => undefined }}
