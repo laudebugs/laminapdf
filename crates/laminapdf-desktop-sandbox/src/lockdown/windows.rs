@@ -14,7 +14,8 @@
 )]
 
 use std::ffi::c_void;
-use std::mem::size_of;
+use std::mem::{size_of, zeroed};
+use std::ptr::null_mut;
 
 use laminapdf_desktop_protocol::SandboxLevel;
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
@@ -22,7 +23,9 @@ use windows_sys::Win32::Security::{
     GetSidSubAuthority, GetSidSubAuthorityCount, GetTokenInformation, IsTokenRestricted, RevertToSelf,
     TOKEN_MANDATORY_LABEL, TOKEN_QUERY, TokenIntegrityLevel,
 };
-use windows_sys::Win32::System::JobObjects::IsProcessInJob;
+use windows_sys::Win32::System::JobObjects::{
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JobObjectExtendedLimitInformation, QueryInformationJobObject,
+};
 use windows_sys::Win32::System::SystemServices::SECURITY_MANDATORY_LOW_RID;
 use windows_sys::Win32::System::Threading::{
     GetCurrentProcess, GetProcessMitigationPolicy, OpenProcessToken, PROCESS_MITIGATION_POLICY,
@@ -30,6 +33,9 @@ use windows_sys::Win32::System::Threading::{
 };
 
 use crate::{SandboxConfig, SandboxError};
+
+const JOB_OBJECT_LIMIT_ACTIVE_PROCESS: u32 = 0x8;
+const JOB_OBJECT_LIMIT_PROCESS_MEMORY: u32 = 0x100;
 
 pub(super) fn apply(_config: SandboxConfig) -> Result<SandboxLevel, SandboxError> {
     // Opened while still impersonating: the locked-down token can't open even its own token.
@@ -46,9 +52,10 @@ pub(super) fn apply(_config: SandboxConfig) -> Result<SandboxLevel, SandboxError
     }
     // NoChildProcessCreation, set at creation (PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY).
     let no_children = policy(ProcessChildProcessPolicy).is_some_and(|flags| flags & 1 == 1);
+    let (job, memory_limit) = our_job();
     Ok(SandboxLevel {
-        job: in_job(),
-        memory_limit: in_job(),
+        job,
+        memory_limit,
         low_integrity: token
             .integrity()
             .is_some_and(|rid| rid <= SECURITY_MANDATORY_LOW_RID as u32),
@@ -82,11 +89,31 @@ fn policy(policy: PROCESS_MITIGATION_POLICY) -> Option<u32> {
     (ok != 0).then_some(flags)
 }
 
-fn in_job() -> bool {
-    let mut result = 0;
-    // SAFETY: a null job handle asks about any job; `result` is a writable BOOL.
-    let ok = unsafe { IsProcessInJob(GetCurrentProcess(), std::ptr::null_mut(), &raw mut result) };
-    ok != 0 && result != 0
+/// Whether the engine's immediate job is the one the main process made (one active process,
+/// a process memory limit), and whether that limit is set. Not just any job: CI runners and
+/// some launchers put every process in one of their own.
+fn our_job() -> (bool, bool) {
+    // SAFETY: a zeroed JOBOBJECT_EXTENDED_LIMIT_INFORMATION is valid; a null job handle queries
+    // the calling process's immediate job; the pointer and length describe `info`.
+    let info = unsafe {
+        let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = zeroed();
+        let ok = QueryInformationJobObject(
+            null_mut(),
+            JobObjectExtendedLimitInformation,
+            (&raw mut info).cast::<c_void>(),
+            u32::try_from(size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>()).unwrap_or(u32::MAX),
+            null_mut(),
+        );
+        if ok == 0 {
+            return (false, false);
+        }
+        info
+    };
+    let flags = info.BasicLimitInformation.LimitFlags;
+    let one_process =
+        flags & JOB_OBJECT_LIMIT_ACTIVE_PROCESS != 0 && info.BasicLimitInformation.ActiveProcessLimit == 1;
+    let memory = flags & JOB_OBJECT_LIMIT_PROCESS_MEMORY != 0 && info.ProcessMemoryLimit > 0;
+    (one_process, one_process && memory)
 }
 
 /// The process's primary token, opened for queries.
@@ -94,7 +121,7 @@ struct Token(HANDLE);
 
 impl Token {
     fn open() -> Result<Self, SandboxError> {
-        let mut handle: HANDLE = std::ptr::null_mut();
+        let mut handle: HANDLE = null_mut();
         // SAFETY: `handle` is a writable HANDLE that receives the token, closed in `drop`.
         if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &raw mut handle) } == 0 {
             return Err(SandboxError::last_os("OpenProcessToken"));

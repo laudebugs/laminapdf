@@ -51,14 +51,14 @@ pub fn write(path: &Path) -> Outcome {
     }
 }
 
-/// Opens a TCP connection to `addr`. A refused connection still means a socket was created and
-/// the network reached, so only a failure before that counts as blocked.
+/// Opens a TCP connection to `addr`. A refused or unanswered connection still means a socket was
+/// created and the network reached, so only a failure before that counts as blocked.
 #[must_use]
 pub fn connect(addr: SocketAddr) -> Outcome {
     match TcpStream::connect_timeout(&addr, Duration::from_secs(2)) {
         Ok(_) => Outcome::Allowed(format!("connected to {addr}")),
-        Err(error) if error.kind() == io::ErrorKind::ConnectionRefused => {
-            Outcome::Allowed(format!("reached {addr}, which refused"))
+        Err(error) if matches!(error.kind(), io::ErrorKind::ConnectionRefused | io::ErrorKind::TimedOut) => {
+            Outcome::Allowed(format!("a socket reached {addr}, which didn't answer: {error}"))
         }
         Err(error) => Outcome::Blocked(error.to_string()),
     }

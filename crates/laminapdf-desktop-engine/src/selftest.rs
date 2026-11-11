@@ -9,7 +9,7 @@
 //! | `write` | creating a file | a path; default a file in the user's home |
 //! | `connect` | a TCP connection | an address; default `127.0.0.1:9` |
 //! | `spawn` | starting a process | — (`/bin/sh` or `cmd.exe`) |
-//! | `threads` | 4 threads that each open a page and render a tile, then join | — |
+//! | `threads` | 4 threads that each open a page and render it (a font lookup too), then join | — |
 //! | `memory` | allocating twice the memory limit, then a little more | — |
 //! | `fork`, `exec` | `fork()`, `execve("/bin/sh")` (Unix) | — |
 //! | `clone3` | a raw `clone3` (Linux): the sandbox answers `ENOSYS` | — |
@@ -171,18 +171,18 @@ fn render_once(pdf: &Arc<[u8]>, backend: Option<&Arc<Mutex<Box<dyn RenderBackend
     }
 }
 
-/// A one-page PDF, 64 × 64 pt, with a black square: the probe's page.
+/// A one-page PDF, 64 × 64 pt: a black square and a word in Helvetica, which the file doesn't
+/// embed, so PDFium looks for a system font (and, sandboxed, falls back to its built-in one).
 fn probe_pdf() -> Vec<u8> {
-    let content = b"0 g 16 16 32 32 re f";
+    let content = "0 g 16 16 32 32 re f BT /F1 12 Tf 4 4 Td (Probe) Tj ET";
     let objects = [
         "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
         "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_owned(),
-        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 64 64] /Contents 4 0 R >>".to_owned(),
-        format!(
-            "<< /Length {} >>\nstream\n{}\nendstream",
-            content.len(),
-            String::from_utf8_lossy(content)
-        ),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 64 64] /Contents 4 0 R \
+         /Resources << /Font << /F1 5 0 R >> >> >>"
+            .to_owned(),
+        format!("<< /Length {} >>\nstream\n{content}\nendstream", content.len()),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
     ];
     let mut pdf = b"%PDF-1.4\n".to_vec();
     let mut offsets = Vec::new();

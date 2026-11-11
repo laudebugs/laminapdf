@@ -9,12 +9,9 @@ use std::io::Read as _;
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::{Arc, Mutex, mpsc};
-use std::time::Duration;
 
-use laminapdf_desktop_protocol::supervisor::{Config, Event, Process as _, RangeServer, Supervisor};
-use laminapdf_desktop_protocol::{DocId, SandboxLevel};
-use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, spawn_sandboxed};
+use laminapdf_desktop_protocol::supervisor::Process as _;
+use laminapdf_desktop_sandbox::{SandboxConfig, spawn_sandboxed};
 
 fn engine() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_laminapdf-desktop-engine"))
@@ -219,52 +216,65 @@ fn the_process_limit_should_stay_what_it_was_without_the_sandbox() {
     assert_eq!(Some(limit), plain.outcome("nproc"), "RLIMIT_NPROC changed");
 }
 
-/// No document is served in these tests.
-struct NoFiles;
-
-impl RangeServer for NoFiles {
-    fn read(&self, _: DocId, _: u64, _: u32) -> std::io::Result<Vec<u8>> {
-        Err(std::io::Error::other("no files"))
-    }
-}
-
-/// An engine that dies of SIGSYS (here sent by the test, as seccomp's kill would) is a crash: the
-/// supervisor logs it as a sandbox violation and starts a new, sandboxed one.
+/// The supervisor's side of a sandbox kill (Unix: the test sends the signal).
 #[cfg(unix)]
-#[test]
-fn an_engine_killed_by_seccomp_should_be_restarted_and_logged_as_a_violation() {
-    let (tx, events) = mpsc::channel();
-    let tx = Mutex::new(tx);
-    let spawner = SandboxSpawner::new(engine(), Vec::new(), SandboxConfig::default(), |_| {});
-    let supervisor = Supervisor::start(
-        Box::new(spawner),
-        Arc::new(NoFiles),
-        Config {
-            backoff: Duration::from_millis(10),
-            ..Config::default()
-        },
-        move |_, event| {
-            let _ = tx.lock().unwrap().send(event);
-        },
-    )
-    .unwrap();
-    assert_ne!(
-        supervisor.sandbox(),
-        Some(SandboxLevel::default()),
-        "the engine is not sandboxed"
-    );
-    let pid = supervisor.pid().unwrap();
-    let killed = Command::new("kill").args(["-SYS", &pid.to_string()]).status().unwrap();
-    assert!(killed.success());
-    let mut logged = false;
-    let restarted = loop {
-        match events.recv_timeout(Duration::from_secs(10)) {
-            Ok(Event::Log(line)) => logged |= line.contains("sandbox violation"),
-            Ok(Event::Restarted { pid }) => break Some(pid),
-            Ok(Event::Failed) | Err(_) => break None,
+mod violation {
+    use std::process::Command;
+    use std::sync::{Arc, Mutex, mpsc};
+    use std::time::Duration;
+
+    use laminapdf_desktop_protocol::supervisor::{Config, Event, RangeServer, Supervisor};
+    use laminapdf_desktop_protocol::{DocId, SandboxLevel};
+    use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner};
+
+    use super::engine;
+
+    /// No document is served in these tests.
+    struct NoFiles;
+
+    impl RangeServer for NoFiles {
+        fn read(&self, _: DocId, _: u64, _: u32) -> std::io::Result<Vec<u8>> {
+            Err(std::io::Error::other("no files"))
         }
-    };
-    assert!(logged, "the exit was not logged as a sandbox violation");
-    assert!(restarted.is_some_and(|new| new != pid), "no restart");
-    supervisor.shutdown();
+    }
+
+    /// An engine that dies of SIGSYS (here sent by the test, as seccomp's kill would) is a crash: the
+    /// supervisor logs it as a sandbox violation and starts a new, sandboxed one.
+    #[test]
+    fn an_engine_killed_by_seccomp_should_be_restarted_and_logged_as_a_violation() {
+        let (tx, events) = mpsc::channel();
+        let tx = Mutex::new(tx);
+        let spawner = SandboxSpawner::new(engine(), Vec::new(), SandboxConfig::default(), |_| {});
+        let supervisor = Supervisor::start(
+            Box::new(spawner),
+            Arc::new(NoFiles),
+            Config {
+                backoff: Duration::from_millis(10),
+                ..Config::default()
+            },
+            move |_, event| {
+                let _ = tx.lock().unwrap().send(event);
+            },
+        )
+        .unwrap();
+        assert_ne!(
+            supervisor.sandbox(),
+            Some(SandboxLevel::default()),
+            "the engine is not sandboxed"
+        );
+        let pid = supervisor.pid().unwrap();
+        let killed = Command::new("kill").args(["-SYS", &pid.to_string()]).status().unwrap();
+        assert!(killed.success());
+        let mut logged = false;
+        let restarted = loop {
+            match events.recv_timeout(Duration::from_secs(10)) {
+                Ok(Event::Log(line)) => logged |= line.contains("sandbox violation"),
+                Ok(Event::Restarted { pid }) => break Some(pid),
+                Ok(Event::Failed) | Err(_) => break None,
+            }
+        };
+        assert!(logged, "the exit was not logged as a sandbox violation");
+        assert!(restarted.is_some_and(|new| new != pid), "no restart");
+        supervisor.shutdown();
+    }
 }

@@ -146,7 +146,10 @@ fn run() -> Result<(), String> {
     thread::sleep(Duration::from_millis(500));
     println!("file: {} ({} MiB)", args.file.display(), len >> 20);
     let sandbox = engine.sandbox().map(|level| level.describe()).unwrap_or_default();
-    println!("spawn → Ready: {:.1} ms (sandbox: {sandbox})", start_time.as_secs_f64() * 1000.0);
+    println!(
+        "spawn → Ready: {:.1} ms (sandbox: {sandbox})",
+        start_time.as_secs_f64() * 1000.0
+    );
     println!("engine idle: {:.1} MiB", rss_mib(pid));
 
     let doc = DocId(1);
