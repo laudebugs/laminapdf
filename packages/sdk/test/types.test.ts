@@ -111,6 +111,10 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "model-result-unexpected":
     case "model-needs-host":
     case "revision-index-out-of-range":
+    case "invalid-document":
+    case "template-data-missing":
+    case "template-data-type":
+    case "template-too-large":
       return "usage";
     case "data-pending":
     case "repaired-base":

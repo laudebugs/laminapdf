@@ -3896,6 +3896,125 @@ builder.flow(&flow)?;
 
 None.
 "#,
+        "invalid-document" => r#"# `invalid-document`
+
+- Type: error
+- Kind: `usage` (the caller passed something wrong)
+
+## What happened
+
+A `laminapdf.document/1` document didn't match its format: it has a key the format doesn't know, it lacks a key the format needs, or a value is of the wrong kind, such as text where a number belongs. Nothing was laid out.
+
+## Why
+
+A document describes its pages as JSON, so a program or a language model can write it and a schema can check it before anything is drawn. Lamina PDF reads only the keys the format defines. An unknown key is refused rather than ignored, because a misspelt key would otherwise drop its value without a word: `"spaceAftr": 12` would leave the space out of the PDF.
+
+The same check runs after a template is filled, so a filled template must also be a valid document.
+
+## How to fix
+
+`data.pointer` is the JSON Pointer of the value at fault, such as `/blocks/3/style`. Correct that value. For a misspelt key, `didYouMean` lists the closest keys the format knows there.
+
+A style, font or image the document names must also be defined: the style in the document's `styles`, the font and image among the files given beside it. `didYouMean` suggests only the format's own keys, never the document's names.
+
+## Example
+
+```rust
+let document = FlowDocument::from_json(&json)?; // fails here, before any page is laid out
+builder.document(&document, &resources)?;
+```
+
+## Data fields
+
+- `pointer`: the JSON Pointer of the value, from the document's root.
+- `reason`: what is wrong there: `unknown-key`, `missing-key`, `wrong-type`, `out-of-range` (a size, width or count below what the layout can use, or a heading level outside 1 to 6), `unknown-style`, `unknown-font`, `unknown-image` or `unsupported-schema`.
+"#,
+        "template-data-missing" => r#"# `template-data-missing`
+
+- Type: error
+- Kind: `usage` (the caller passed something wrong)
+
+## What happened
+
+A document template asked its data for a value the data doesn't have. A `{ "$data": "/invoice/number" }`, an `{ "$each": "/items", … }` or an `{ "$item": "/name" }` points to a place in the data where nothing is. Nothing was laid out.
+
+## Why
+
+A template is a document with placeholders that point into the data with JSON Pointers ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)). Filling it replaces each placeholder with the value it points to. Leaving a gap would print a document with something missing, so filling stops instead.
+
+Only `$if` accepts a missing value: it leaves its block out.
+
+## How to fix
+
+`data.pointer` is the pointer the template used. Add the value to the data, or correct the pointer in the template. A pointer starts with `/` and names each key on the way down, with an array's items by number from 0: `/items/0/name`. Inside an `$each`, `$item` points into the current item, not the whole data.
+
+## Example
+
+```rust
+let document = flow::document::fill(&template, &data)?; // fails when the data lacks a value the template names
+```
+
+## Data fields
+
+- `pointer`: the JSON Pointer the template used.
+- `placeholder`: which placeholder: `$data`, `$each` or `$item`.
+"#,
+        "template-data-type" => r#"# `template-data-type`
+
+- Type: error
+- Kind: `usage` (the caller passed something wrong)
+
+## What happened
+
+A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, a `$data` or `$item` put an object or a list where the document needs text or a number, or a placeholder's pointer isn't a valid JSON Pointer. Nothing was laid out.
+
+## Why
+
+Each placeholder needs one kind of value. `$each` repeats a block once per item, so it needs a list. A text placeholder is printed as it is, so it needs text, a number or `true`/`false`. Templates have no expressions, so they can't turn an object into text: the data arrives formatted.
+
+## How to fix
+
+`data.pointer` is the pointer the template used, and `data.expected` the kind it needs there. Point to a value of that kind, or change the data so the value has it. For a total or a date, put the formatted text in the data, such as `"total": "1,250.00 €"`.
+
+## Example
+
+```rust
+let document = flow::document::fill(&template, &data)?; // fails when "/items" isn't a list
+```
+
+## Data fields
+
+- `pointer`: the JSON Pointer the template used.
+- `placeholder`: which placeholder: `$data`, `$each` or `$item`.
+- `expected`: the kind the placeholder needs: `list`, `text, a number or true/false`, or `a JSON Pointer such as /items` (a pointer starts with `/`; `""` is the whole value).
+"#,
+        "template-too-large" => r"# `template-too-large`
+
+- Type: error
+- Kind: `usage` (the caller passed something wrong)
+
+## What happened
+
+Filling a document template would have made more than 100,000 values, or nested more than 64 levels deep. Filling stopped, and nothing was laid out.
+
+## Why
+
+`$each` repeats its block once per item, and an `$each` inside another repeats it once per item of each. A few levels over long lists multiply into millions of blocks, which no document needs. So filling counts what it makes and stops at a limit far beyond a real document.
+
+## How to fix
+
+`data.limit` is the limit that filling reached. Repeat fewer items, or nest fewer `$each` placeholders inside each other. For a very long report, split it into several documents.
+
+## Example
+
+```rust
+let document = flow::document::fill(&template, &data)?; // fails when nested $each placeholders multiply past the limit
+```
+
+## Data fields
+
+- `limit`: the limit passed: 100,000 values filled in, or 64 levels of nesting.
+",
         "flow-keep-broken" => r#"# `flow-keep-broken`
 
 - Type: warning

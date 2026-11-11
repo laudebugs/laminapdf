@@ -905,6 +905,34 @@
       "summary": "a flow's contents page kept changing its page numbers after four layouts",
       "hint": "report the flow that fails; a page break after the contents block may avoid it until it is fixed",
       "since": "0.2.0"
+    },
+    {
+      "code": "invalid-document",
+      "kind": "usage",
+      "summary": "a laminapdf.document/1 document has an unknown key, a missing one or a value of the wrong kind",
+      "hint": "data.pointer names the value; correct it against the document schema, and didYouMean lists the closest known keys",
+      "since": "0.2.0"
+    },
+    {
+      "code": "template-data-missing",
+      "kind": "usage",
+      "summary": "a template's $data, $each or $item points to a value the data doesn't have",
+      "hint": "data.pointer names the value the template asked for; add it to the data or correct the pointer",
+      "since": "0.2.0"
+    },
+    {
+      "code": "template-data-type",
+      "kind": "usage",
+      "summary": "a template's placeholder found data of the wrong kind: $each over something that isn't a list, or text from an object",
+      "hint": "data.pointer names the value and data.expected the kind the template needs there",
+      "since": "0.2.0"
+    },
+    {
+      "code": "template-too-large",
+      "kind": "usage",
+      "summary": "a template would fill in more values, or nest deeper, than a document may hold",
+      "hint": "data.limit is the limit it passed; repeat fewer items, or split the document",
+      "since": "0.2.0"
     }
   ],
   "buildWarnings": [
