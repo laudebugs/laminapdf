@@ -361,7 +361,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── desktop-print/   # D1b: webview, native raster and native vector printing per OS, scored against the fixtures (results in its README; D4c, ADR 0008)
 │   ├── desktop-ipc/     # D1a: Tauri tile transports (channel, ipc::Response, lamina:// raw and compressed) and COOP/COEP per webview (results in its README; ADR 0008)
 │   └── flow-layout/     # T4a: flowing layout by our own paginator over Surface, by Typst 0.15.1, and by Typst's frames through Surface (findings in its README; ADR 0032)
-├── .agents/skills/      # the repository's agent skills (rust-best-practices, lamina-story); .claude/skills links here
+├── .agents/skills/      # the repository's agent skills (rust-best-practices, lamina-story, session-name); .claude/skills links here
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs (each links to its todos)
@@ -387,6 +387,8 @@ Daily releases: `release-train.yml` runs after a full successful nightly on `mai
 - **Check visual changes in a browser, from the user's side.** Try every change to what a user sees or touches on screen (the reader, the viewer, the sites, the components) in the built app in a real browser, as a person uses it (mouse, keyboard, real files). Judge it by what they can see and do; tests that only call an API don't prove it. Other changes need their own tests, not a browser. See [bug triage §7](docs/guidelines/bug-triage.md#7-prove-the-fix).
 - **Never patch code just to make a test pass.** When a test fails, in CI or locally, find out why. Fix the product if it is wrong. If the test checks something that doesn't make sense, adjust it or remove it, and say why in the commit message. See [bug triage §6](docs/guidelines/bug-triage.md#6-fix-the-cause-not-the-symptom).
 - **Conventional Commits** for commit messages: `type(scope): summary`.
+- **PR titles name their work item.** A PR title is `type(scope): <workItemId> - <summary>`, with the todo's ID (`D2d`) or the bug's: `feat(ui): D2d - stream engine tiles to the viewer`. A PR with no todo or bug (CI upkeep, a typo) leaves the ID out. See [git workflow §5](docs/guidelines/git-workflow.md#5-pull-requests).
+- **Name the session after its work.** An agent session's name is `<Name> - [<workItemId>:#<PR>, …]`, such as `Yanny - [D2d:#421, E1c:#440]`; the `/session-name` skill has the format and asks the owner to run `/rename` whenever a PR opens, merges or changes hands.
 - **Document as you go.** Plans go in `docs/plans/`, decisions in `docs/decisions/`, research in `docs/research/`. Update the folder's `README.md` index whenever you add a file.
 - **Cite sources.** PDF behavior claims should point to ISO 32000-2 (PDF 2.0) or another primary source. Clearly label recommendations and opinions.
 - **Spec first.** When implementing PDF features, read the relevant research chapter in `docs/research/` and the spec section before writing code. Real-world PDFs are frequently malformed — parsers must be tolerant, writers must be strict.
