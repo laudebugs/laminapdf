@@ -4,7 +4,8 @@ import { readerCommands } from "../src/commands/reader-commands.ts";
 import { CommandRegistry } from "../src/commands/registry.ts";
 import { shortcutProblems } from "../src/commands/shortcuts.ts";
 import type { CommandContext } from "../src/commands/types.ts";
-import { inSentence, revertedText, saveStateText, sessionStarted } from "../src/edit/edit-controls.ts";
+import { inSentence, saveStateText, sessionStarted } from "../src/edit/edit-controls.ts";
+import { revertedText } from "../src/edit/outcome.ts";
 import { FakeEdits, fakePlatform } from "./fakes.ts";
 
 function registry(): CommandRegistry {

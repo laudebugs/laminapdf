@@ -14,7 +14,6 @@ export {
   urlArgs,
   zoomArgs,
 } from "./commands/args.js";
-export { editCommands, registerEditCommands } from "./commands/edit-commands.js";
 export {
   matchText,
   type Rankable,
@@ -132,20 +131,17 @@ export { Thumbnail, type ThumbnailProps, type ThumbnailSize } from "./components
 export { ToggleButton, type ToggleButtonProps, ToolToggle, type ToolToggleProps } from "./components/toggle.js";
 export { type Density, DensityProvider, type DensityProviderProps, useDensity } from "./density.js";
 export {
-  blockedReason,
   type EditBlockReason,
   type EditControls,
   type EditSlice,
   type EditStepSlice,
   inSentence,
   type RevertedSlice,
-  revertedText,
   saveStateText,
   sessionStarted,
   stepToRedo,
   stepToUndo,
 } from "./edit/edit-controls.js";
-export { HistoryPanel, type HistoryPanelProps } from "./edit/history-panel.js";
 export { type Catalogue, countMessage, ENGLISH, type MessageId, message } from "./messages.js";
 export {
   Dialog,
@@ -281,19 +277,18 @@ export {
 } from "./reader/properties.js";
 export {
   DEFAULT_READER_SETTINGS,
-  isCropBlock,
   READER_TEXT_SIZES,
-  type ReaderApproximation,
-  type ReaderBlock,
   type ReaderLineLength,
   type ReaderLineSpacing,
   type ReaderSettings,
-  ReaderSettingsPanel,
-  type ReaderSettingsPanelProps,
-  ReaderView,
-  type ReaderViewContent,
-  type ReaderViewProps,
   readerTextSize,
+} from "./reader/reader-settings.js";
+export type {
+  ReaderApproximation,
+  ReaderBlock,
+  ReaderSettingsPanelProps,
+  ReaderViewContent,
+  ReaderViewProps,
 } from "./reader/reader-view.js";
 export { type ContinueReading, RecentList, type RecentListProps, recentMeta } from "./reader/recent-list.js";
 export {
@@ -363,15 +358,4 @@ export {
   type ReaderState,
   transition,
 } from "./state/reader-machine.js";
-export {
-  attachTools,
-  handTool,
-  type InteractionMode,
-  type InteractionModes,
-  SELECT_TOOL,
-  TEXT_SELECT_TOOL,
-  type ToolHost,
-  type ToolModule,
-  ToolRegistry,
-  type ToolsState,
-} from "./tools/tools.js";
+export type { InteractionMode, InteractionModes, ToolHost, ToolModule, ToolsState } from "./tools/tools.js";

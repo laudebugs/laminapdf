@@ -19,7 +19,8 @@ import {
 import { Notice } from "../components/notice.js";
 import { countMessage, message } from "../messages.js";
 import { useStoreState } from "../state/hooks.js";
-import { type EditControls, type EditStepSlice, revertedText } from "./edit-controls.js";
+import type { EditControls, EditStepSlice } from "./edit-controls.js";
+import { revertedText } from "./outcome.js";
 
 /** Rows drawn above and below the ones in view. */
 const OVERSCAN = 8;

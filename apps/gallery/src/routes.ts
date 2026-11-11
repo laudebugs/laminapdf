@@ -59,6 +59,7 @@ export const ROUTES: readonly Route[] = [
     title: "Reader chrome",
     components: [
       "ReaderTopBar",
+      "EditArea",
       "FindBar",
       "FindResults",
       "PageInput",

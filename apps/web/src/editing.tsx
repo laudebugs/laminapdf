@@ -1,40 +1,40 @@
 // The edit session in the reader (Paper O01): the view's session (`viewer.edits`) in the commands'
-// context, with the shell's handlers for Show history and turning the current page; the History
-// tab once an edit was made; a toast after each undo or redo, with the way back, and for one that
-// restored only part of its step; the browser tab's "•" while there are unsaved changes; and the
-// close guards: the browser's own prompt when the tab closes (`beforeunload`), and a confirmation
-// before the reader closes or replaces a document with unsaved changes. Pointer input on the page
-// goes to the interaction mode on (select, unless a later tool is chosen).
+// context, with the shell's handlers for Show history and turning the current page; the More
+// menu's edit items; the History tab once an edit was made; the browser tab's "•" while there are
+// unsaved changes, and the browser's own prompt when the tab closes (`beforeunload`). What waits
+// until a document is open (the commands, toasts, the close confirmation, the tools) is in
+// editing-runtime.tsx, which loads then, with the History tab's panel, so none of it is in the
+// startup script (#380).
 
 import {
-  attachTools,
-  Button,
-  countMessage,
-  Dialog,
+  type CommandRegistry,
   type EditControls,
   type GatedEntry,
-  HistoryPanel,
   inSentence,
+  type KeyPlatform,
   message,
   type RailTab,
-  type ReaderController,
-  type RevertedSlice,
-  revertedText,
   type ShellLayout,
   sessionStarted,
   stepToRedo,
   stepToUndo,
   type ToastQueue,
-  ToolRegistry,
   useStoreState,
 } from "@laminapdf/ui";
+import type * as Editor from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, type ReactNode, Suspense, useEffect, useMemo } from "react";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import type { Engine } from "./session.ts";
 
 /** The History tab's id in the rail. */
 export const HISTORY_TAB = "history";
+
+/** The runtime and the History tab's panel load once a document is open (later.ts). */
+const loadRuntime = () => import("./later.ts");
+const HistoryPanel = lazy<typeof Editor.HistoryPanel>(() => loadRuntime().then((m) => ({ default: m.HistoryPanel })));
+const EditingRuntime = lazy(() => loadRuntime().then((m) => ({ default: m.EditingRuntime })));
+const EditArea = lazy<typeof Editor.EditArea>(() => loadRuntime().then((m) => ({ default: m.EditArea })));
 
 /** A session for a top bar without a document: nothing done, nothing to do. Its state is one object, as a store's must be. */
 const NOTHING: ReturnType<EditControls["getState"]> = {
@@ -43,12 +43,13 @@ const NOTHING: ReturnType<EditControls["getState"]> = {
   blocked: "no-document",
   notice: undefined,
 };
+const done = () => Promise.resolve();
 const NO_SESSION: EditControls = {
   getState: () => NOTHING,
   subscribe: () => () => undefined,
-  undo: () => Promise.resolve(),
-  redo: () => Promise.resolve(),
-  goTo: () => Promise.resolve(),
+  undo: done,
+  redo: done,
+  goTo: done,
 };
 
 /** The More menu's edit items (the web's Edit menu, O01). */
@@ -60,45 +61,19 @@ export interface Editing {
   readonly edits: EditControls | undefined;
   /** Handlers of the delegated edit commands. */
   readonly actions: Readonly<Record<"edit.history" | "pages.rotate-right" | "pages.rotate-left", () => void>>;
+  /** The top bar's save state, Undo and Redo, while a document is open. */
+  readonly topBar: ReactNode;
   /** The History tab, once the document has an edit session. */
   readonly tab: RailTab | undefined;
   /** The More menu's edit items and what each does. */
   readonly menu: { readonly items: GatedEntry<EditMenuId>[]; readonly run: (id: EditMenuId) => void };
   /** Whether the document has changes no save has written. */
   readonly unsaved: boolean;
-  /** The confirmation before a document with unsaved changes closes. */
-  readonly dialog: ReactNode;
-}
-
-/** The toast after an undo or redo: what it did, and the way back when it did all of it. */
-function revertedToast(toasts: ToastQueue, edits: EditControls, reverted: readonly RevertedSlice[]): void {
-  // Going to a step far away is one choice in the History tab, which shows where it went: only a
-  // step left alone is worth a toast then.
-  const notable = reverted.length === 1 ? reverted : reverted.filter((r) => r.outcome !== "applied");
-  for (const step of notable) {
-    const back =
-      step.outcome === "skipped"
-        ? undefined
-        : step.way === "undo"
-          ? { label: message("command.edit.redo"), onPress: () => void edits.redo().catch(() => undefined) }
-          : { label: message("command.edit.undo"), onPress: () => void edits.undo().catch(() => undefined) };
-    toasts.add({ message: revertedText(step), ...(back === undefined ? {} : { action: back }) });
-  }
-}
-
-/** Toasts after undos and redos, and when a restarted worker lost the edits. */
-function useEditToasts(viewer: Viewer | undefined, engine: Engine, toasts: ToastQueue): void {
-  useEffect(() => {
-    if (viewer === undefined) return;
-    return viewer.edits.onReverted((reverted) => revertedToast(toasts, viewer.edits, reverted));
-  }, [viewer, toasts]);
-  const lost = useStoreState(engine, (s) => s.editsLost);
-  const seen = useRef(lost);
-  useEffect(() => {
-    if (lost === seen.current) return;
-    seen.current = lost;
-    toasts.add({ message: message("edit.toast.lost") });
-  }, [lost, toasts]);
+  /**
+   * What runs while a document is open, given the commands' registry: the edit commands, the
+   * toasts, the tools, and the confirmation before a document with unsaved changes closes.
+   */
+  readonly runtime: (registry: CommandRegistry) => ReactNode;
 }
 
 /** Asks the browser to confirm closing the tab while `unsaved`; its own prompt, whose words can't be set. */
@@ -115,101 +90,31 @@ function useBeforeUnload(unsaved: boolean): void {
   }, [unsaved]);
 }
 
-/**
- * The reader's close guard while there are unsaved changes: the confirmation's state, resolved by
- * its buttons. Clean documents close without asking.
- */
-function useCloseGuard(reader: ReaderController, edits: EditControls | undefined) {
-  const [asking, setAsking] = useState<((leave: boolean) => void) | undefined>(undefined);
-  useEffect(() => {
-    if (edits === undefined) return;
-    return reader.setCloseGuard(() =>
-      edits.getState().history.unsaved === 0
-        ? Promise.resolve(true)
-        : new Promise<boolean>((resolve) => setAsking(() => resolve)),
-    );
-  }, [reader, edits]);
-  const answer = (leave: boolean) => {
-    asking?.(leave);
-    setAsking(undefined);
-  };
-  return { asking: asking !== undefined, answer };
-}
-
-/** The confirmation (O03 without Save, which comes with saving): close and lose the changes, or keep them. */
-function CloseDialog({
-  isOpen,
-  fileName,
-  unsaved,
-  onAnswer,
-}: {
-  isOpen: boolean;
-  fileName: string;
-  unsaved: number;
-  onAnswer: (leave: boolean) => void;
-}): ReactNode {
-  return (
-    <Dialog
-      isOpen={isOpen}
-      isRequired
-      role="alertdialog"
-      onOpenChange={(open) => {
-        if (!open) onAnswer(false);
-      }}
-      onEscape={() => onAnswer(false)}
-      title={message("edit.close.title", { file: fileName })}
-      description={countMessage(unsaved, { one: "edit.close.one", many: "edit.close.many" })}
-      actions={
-        <>
-          <Button autoFocus onPress={() => onAnswer(false)}>
-            {message("edit.close.cancel")}
-          </Button>
-          <Button variant="danger-filled" onPress={() => onAnswer(true)}>
-            {message("edit.close.discard")}
-          </Button>
-        </>
-      }
-    />
-  );
-}
-
 /** The More menu's edit items, named as their commands are. */
 function menuItems(edits: EditControls | undefined): GatedEntry<EditMenuId>[] {
   const state = (edits ?? NO_SESSION).getState();
   const blocked = state.blocked !== undefined;
-  const undo = stepToUndo(state);
-  const redo = stepToRedo(state);
+  /** Undo or Redo, named by the step it would take. */
+  const step = (way: "undo" | "redo", other: string): GatedEntry<EditMenuId> => {
+    const next = (way === "undo" ? stepToUndo : stepToRedo)(state);
+    return {
+      id: way,
+      label:
+        next === undefined
+          ? message(`command.edit.${way}`)
+          : message(`edit.${way}.step`, { step: inSentence(next.label) }),
+      icon: way,
+      shortcut: { mac: way === "undo" ? "Mod+Z" : "Mod+Shift+Z", other },
+      isDisabled: blocked || next === undefined,
+    };
+  };
   return [
-    {
-      id: "undo",
-      label:
-        undo === undefined ? message("command.edit.undo") : message("edit.undo.step", { step: inSentence(undo.label) }),
-      icon: "undo",
-      shortcut: { mac: "Mod+Z", other: "Mod+Z" },
-      isDisabled: blocked || undo === undefined,
-    },
-    {
-      id: "redo",
-      label:
-        redo === undefined ? message("command.edit.redo") : message("edit.redo.step", { step: inSentence(redo.label) }),
-      icon: "redo",
-      shortcut: { mac: "Mod+Shift+Z", other: "Mod+Y" },
-      isDisabled: blocked || redo === undefined,
-    },
+    step("undo", "Mod+Z"),
+    step("redo", "Mod+Y"),
     { id: "history", label: message("command.edit.history"), icon: "clock", isDisabled: edits === undefined },
     { id: "rotate-right", label: message("command.pages.rotate-right"), icon: "rotate-right", isDisabled: blocked },
     { id: "rotate-left", label: message("command.pages.rotate-left"), icon: "rotate-left", isDisabled: blocked },
   ];
-}
-
-/** Passes pointer input on the view to the interaction mode on. */
-function useTools(viewer: Viewer | undefined): void {
-  const [tools] = useState(() => new ToolRegistry());
-  useEffect(() => {
-    if (viewer === undefined) return;
-    const element = viewer.element;
-    return attachTools(tools, { element, scrollBy: (dx, dy) => element.scrollBy(dx, dy) });
-  }, [viewer, tools]);
 }
 
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
@@ -220,6 +125,8 @@ export function useEditing(options: {
   readonly toasts: ToastQueue;
   readonly fileName: string | undefined;
   readonly pages: readonly PageInfo[];
+  /** How shortcut chips are written. */
+  readonly keys: KeyPlatform;
 }): Editing {
   const { engine, layout, viewer, toasts } = options;
   const edits = viewer?.edits;
@@ -227,11 +134,8 @@ export function useEditing(options: {
   const started = sessionStarted(slice);
   const unsaved = slice.history.unsaved;
   const openedAt = useStoreState(engine, (s) => s.openedAt);
-  useEditToasts(viewer, engine, toasts);
   useBeforeUnload(unsaved > 0);
-  useTools(viewer);
-  const guard = useCloseGuard(engine.reader, edits);
-  const { pages } = options;
+  const { pages, fileName } = options;
   const actions = useMemo(() => {
     const current = () => viewer?.getState().currentPage ?? 0;
     const rotate = (delta: 90 | -90) => () =>
@@ -253,12 +157,14 @@ export function useEditing(options: {
             id: HISTORY_TAB,
             label: message("edit.history"),
             panel: (
-              <HistoryPanel
-                edits={edits}
-                headingLevel={3}
-                pageName={(index) => pageLabel(pages, index)}
-                {...(openedAt === undefined ? {} : { openedAt })}
-              />
+              <Suspense fallback={null}>
+                <HistoryPanel
+                  edits={edits}
+                  headingLevel={3}
+                  pageName={(index) => pageLabel(pages, index)}
+                  {...(openedAt === undefined ? {} : { openedAt })}
+                />
+              </Suspense>
             ),
           },
     [edits, started, pages, openedAt],
@@ -275,8 +181,17 @@ export function useEditing(options: {
     tab,
     menu: { items: menuItems(edits), run },
     unsaved: unsaved > 0,
-    dialog: (
-      <CloseDialog isOpen={guard.asking} fileName={options.fileName ?? ""} unsaved={unsaved} onAnswer={guard.answer} />
-    ),
+    topBar:
+      edits === undefined ? undefined : (
+        <Suspense fallback={null}>
+          <EditArea edits={edits} keys={options.keys} />
+        </Suspense>
+      ),
+    runtime: (registry) =>
+      viewer === undefined || fileName === undefined ? null : (
+        <Suspense fallback={null}>
+          <EditingRuntime engine={engine} viewer={viewer} registry={registry} toasts={toasts} fileName={fileName} />
+        </Suspense>
+      ),
   };
 }

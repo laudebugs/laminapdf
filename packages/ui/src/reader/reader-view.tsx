@@ -14,32 +14,14 @@ import { Notice } from "../components/notice.js";
 import { Skeleton } from "../components/progress.js";
 import { message } from "../messages.js";
 import { DockedPanel } from "./docked-panel.js";
-
-/** How far apart a paragraph's lines are. */
-export type ReaderLineSpacing = "tight" | "normal" | "loose";
-
-/** How wide the column is: about 55, 68 or 85 characters. */
-export type ReaderLineLength = "narrow" | "medium" | "wide";
-
-/** The reader's settings: global, kept by the app. */
-export interface ReaderSettings {
-  /** The text size in CSS px, from {@link READER_TEXT_SIZES}' first to its last. */
-  readonly textSize: number;
-  readonly lineSpacing: ReaderLineSpacing;
-  readonly lineLength: ReaderLineLength;
-}
-
-/** The smallest and largest text size, in CSS px. */
-export const READER_TEXT_SIZES = [14, 32] as const;
-
-/** The settings Reset brings back. */
-export const DEFAULT_READER_SETTINGS: ReaderSettings = { textSize: 19, lineSpacing: "normal", lineLength: "medium" };
-
-/** `size` kept between the smallest and largest text size, in whole pixels. */
-export function readerTextSize(size: number): number {
-  const [least, most] = READER_TEXT_SIZES;
-  return Math.min(most, Math.max(least, Math.round(size)));
-}
+import {
+  DEFAULT_READER_SETTINGS,
+  READER_TEXT_SIZES,
+  type ReaderLineLength,
+  type ReaderLineSpacing,
+  type ReaderSettings,
+  readerTextSize,
+} from "./reader-settings.js";
 
 /** One block of the reading view: what the app's reflow gives it. */
 export interface ReaderBlock {

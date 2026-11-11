@@ -180,7 +180,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   the virtualised History tab), commands/edit-commands.ts (edit.undo/redo with ⌘Z, ⇧⌘Z/Ctrl Y, `fields: false`;
 │                        #   edit.history, edit.go-to-step, pages.rotate-*), src/tools/ (ToolRegistry: select, hand, textSelect keyed by
 │                        #   InteractionModes, extended by declaration merging; attachTools), ReaderController.setMode and its close guard
-│                        #   (setCloseGuard, requestClose, open(file, { discard })), ReaderTopBar's `edits` (save state, Undo, Redo),
+│                        #   (setCloseGuard, requestClose, open(file, { discard })); src/editing.ts (the ./editing entry: EditArea, ReaderTopBar's
+│                        #   `editArea` with the save state, Undo and Redo; HistoryPanel; the edit commands; the tools) and src/reader-mode.ts
+│                        #   (the ./reader-mode entry: ReaderView, ReaderSettingsPanel), loaded once a document opens (#380),
 │                        #   src/messages.ts (the catalogue),
 │                        #   examples/ui-demo.{html,tsx} (`pnpm --filter @laminapdf/ui demo`: the chrome over a stand-in viewer, built with
 │                        #   the React Compiler through Babel, vite.demo.config.ts),
@@ -215,8 +217,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   document traffic and unexpected sites; monitor.ts, the log and its summary; panel.tsx, R13's indicator and panel);
 │                        #   src/reader-mode.tsx (U4b: the Reader toggle, the column over the reflow, crops, the place kept both ways, settings;
 │                        #   U4c: reader-origin.ts outlines a block on its page for View original page, reader-crop.ts a crop's clip);
-│                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, toasts after
-│                        #   undo and redo, "•" in the tab's title, beforeunload and the close confirmation, tools on the view);
+│                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
+│                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),
+│                        #   src/later.ts (the one chunk loaded once a document is open: dialogs, reader mode's column, the editor's parts);
 │                        #   src/reading/ (T5b: positions.ts parses, records and restores reading positions by fingerprint; resume.ts
 │                        #   reopens the document open at the last close; recent.tsx's Continue reading and the session record);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at

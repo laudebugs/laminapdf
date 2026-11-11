@@ -35,7 +35,6 @@ import {
   RemoteFailure,
   RepairDetails,
   RepairedNotice,
-  registerEditCommands,
   registerReaderCommands,
   type ShellLayout,
   StatusBarItem,
@@ -221,7 +220,6 @@ function useReaderCommands(
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
     registerReaderCommands(commands);
-    registerEditCommands(commands);
     return commands;
   });
   // A mode registered later gets its `mode.<id>` handler: the context follows the modes.
@@ -593,7 +591,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const shown = open ? engineState.viewer : undefined;
   const { settings, toasts } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined);
   const fileName = open ? state.file.name : undefined;
-  const editing = useEditing({ engine, layout, viewer: shown, toasts, fileName, pages: engineState.pages });
+  const editing = useEditing({ engine, layout, viewer: shown, toasts, fileName, pages: engineState.pages, keys: KEYS });
   const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts, edit: editing.menu });
   const { labels, output, moreItems, recent } = menu;
   const chrome = useDocumentChrome({ engine, platform, shell, state, shown, editing, menu });
@@ -622,7 +620,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           <ReaderTopBar
             reader={engine.reader}
             {...(shown === undefined ? {} : { viewer: shown })}
-            {...(editing.edits === undefined ? {} : { edits: editing.edits })}
+            editArea={editing.topBar}
             keys={KEYS}
             sidebarOpen={sidebar}
             findOpen={find.open}
@@ -650,7 +648,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
         />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
         {output.dialogs}
-        {editing.dialog}
+        {editing.runtime(commands.registry)}
       </ReaderShell>
       <ToastRegion queue={toasts} aria-label={message("shell.toasts")} />
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />

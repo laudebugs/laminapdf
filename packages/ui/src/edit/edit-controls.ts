@@ -3,7 +3,7 @@
 // the calls Undo, Redo and the History tab make. The words for a step and the save state are pure,
 // so they are tested in Node.
 
-import { countMessage, message } from "../messages.js";
+import { countMessage } from "../messages.js";
 import type { ExternalStore } from "../state/hooks.js";
 
 /** One step of the history: a transaction, as the worker lists it. */
@@ -83,24 +83,4 @@ export function saveStateText(slice: EditSlice): string {
     one: "edit.saveState.one",
     many: "edit.saveState.many",
   });
-}
-
-/** Why an edit command can't run: the session's block, else `undefined`. */
-export function blockedReason(reason: EditBlockReason | undefined): string | undefined {
-  if (reason === "encrypted") return message("edit.blocked.encrypted");
-  if (reason === "diverged") return message("edit.blocked.diverged");
-  if (reason === "no-document") return message("command.reason.noDocument");
-  return undefined;
-}
-
-/** What a toast says after an undo or redo. */
-export function revertedText(reverted: RevertedSlice): string {
-  const step = reverted.step.label;
-  if (reverted.outcome === "partial") {
-    return message(reverted.way === "undo" ? "edit.toast.undidPart" : "edit.toast.redidPart", { step });
-  }
-  if (reverted.outcome === "skipped") {
-    return message(reverted.way === "undo" ? "edit.toast.undoSkipped" : "edit.toast.redoSkipped", { step });
-  }
-  return message(reverted.way === "undo" ? "edit.toast.undid" : "edit.toast.redid", { step });
 }

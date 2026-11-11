@@ -3,6 +3,7 @@
 // the tests that need them, not from props, so shipped code carries nothing for tests.
 
 import type { ReactElement } from "react";
+import { EditArea, HistoryPanel } from "../src/editing.ts";
 import {
   Badge,
   Button,
@@ -11,7 +12,6 @@ import {
   EmptyState,
   FindBar,
   FindResults,
-  HistoryPanel,
   IconButton,
   ModeSwitcher,
   NetworkActivityPanel,
@@ -29,10 +29,8 @@ import {
   ProgressBar,
   Radio,
   RadioGroup,
-  ReaderSettingsPanel,
   type ReaderState,
   ReaderTopBar,
-  ReaderView,
   RecentList,
   RemoteFailure,
   RepairDetails,
@@ -54,6 +52,7 @@ import {
   WholeFileDownload,
   ZoomControl,
 } from "../src/index.ts";
+import { ReaderSettingsPanel, ReaderView } from "../src/reader-mode.ts";
 import { WithCommands } from "./commands.tsx";
 import { FakeEdits, FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
 
@@ -568,6 +567,27 @@ const topBar: Example[] = [
       return (
         <WithCommands reader={reader} viewer={viewer} actions={SHELL}>
           <ReaderTopBar reader={reader} viewer={viewer} keys="other" sidebarOpen more={MORE} />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "EditArea",
+    state: "the editor's top bar: two unsaved changes, one to redo",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const viewer = new FakeViewer();
+      const edits = new FakeEdits(["Rotate page 5", "Rotate page 2", "Change the title"], 2);
+      return (
+        <WithCommands reader={reader} viewer={viewer} actions={SHELL} edits={edits}>
+          <ReaderTopBar
+            reader={reader}
+            viewer={viewer}
+            keys="other"
+            sidebarOpen
+            editArea={<EditArea edits={edits} keys="other" />}
+            more={MORE}
+          />
         </WithCommands>
       );
     },

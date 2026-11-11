@@ -5,14 +5,8 @@
 // Each has a visible home: the top bar's Undo and Redo, the web's More menu (the desktop's Edit
 // menu, E1h), the History tab.
 
-import {
-  blockedReason,
-  type EditControls,
-  type EditSlice,
-  inSentence,
-  stepToRedo,
-  stepToUndo,
-} from "../edit/edit-controls.js";
+import { type EditControls, type EditSlice, inSentence, stepToRedo, stepToUndo } from "../edit/edit-controls.js";
+import { blockedReason } from "../edit/outcome.js";
 import { message } from "../messages.js";
 import type { CommandRegistry } from "./registry.js";
 import type { AnyCommand, ArgsSchema, Command, CommandContext, CommandId, Shortcut } from "./types.js";

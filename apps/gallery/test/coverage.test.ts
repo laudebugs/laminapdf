@@ -34,8 +34,8 @@ const NOT_DRAWN: Readonly<Record<string, string>> = {
   SettingsRegistry: "the Settings dialog's store of sections, which the dialogs route fills",
 };
 
-/** The package's entries that export components: the root and `./dialogs`. */
-const ENTRIES = ["index.ts", "dialogs.ts"];
+/** The package's entries that export components: the root, `./dialogs`, `./editing` and `./reader-mode`. */
+const ENTRIES = ["index.ts", "dialogs.ts", "editing.ts", "reader-mode.ts"];
 
 /** The value exports of @laminapdf/ui whose names start with a capital (components and classes). */
 function exportedComponents(): string[] {

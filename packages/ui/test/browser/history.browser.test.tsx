@@ -5,7 +5,8 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
-import { CommandRegistry, CommandsProvider, HistoryPanel, registerEditCommands } from "../../src/index.ts";
+import { HistoryPanel, registerEditCommands } from "../../src/editing.ts";
+import { CommandRegistry, CommandsProvider } from "../../src/index.ts";
 import { FakeEdits, fakePlatform } from "../fakes.ts";
 import { all, cleanup, focused, renderIn } from "./render.tsx";
 

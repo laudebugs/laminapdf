@@ -619,7 +619,6 @@ const EN = {
   "command.pages.rotate-left": "Rotate page left",
   "command.reason.nothingToUndo": "There is nothing to undo.",
   "command.reason.nothingToRedo": "There is nothing to redo.",
-  "command.reason.editing": "Wait for the last change to finish.",
   "command.reason.stepPrompt": "A step number from the history",
   "command.reason.noStep": "There is no step {value}. Enter a step from 0 to {total}.",
   "command.arg.step": "Step {step}",
