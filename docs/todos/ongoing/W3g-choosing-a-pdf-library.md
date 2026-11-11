@@ -11,7 +11,7 @@
 | Branch | `docs/w3g-choosing-a-pdf-library` |
 | PR title | `docs: choosing a PDF library, with what Lamina PDF does and doesn't do` |
 | Size | M (one page and its sources) |
-| PR | — |
+| PR | [#438](https://github.com/laudebugs/laminapdf/pull/438) |
 
 ## Goal
 
