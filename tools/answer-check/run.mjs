@@ -15,7 +15,7 @@ import { analyse, markdown } from "./report.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-/** Opts the request into a fallback model when the first declines (the API skill's default). */
+/** Opts the request into a fallback model when the pinned model declines the question. */
 const FALLBACK_BETA = "server-side-fallback-2026-07-01";
 
 /**
