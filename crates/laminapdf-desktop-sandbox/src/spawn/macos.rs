@@ -4,6 +4,7 @@
 //! like any crash; `wait` names the cause.
 #![expect(unsafe_code, reason = "FFI: proc_pid_rusage")]
 
+use std::io;
 use std::process::Child;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -22,20 +23,33 @@ pub(super) struct Watched {
 }
 
 impl Watched {
-    /// Starts watching `child` against `limit` bytes.
-    pub(super) fn new(child: Child, limit: u64) -> Self {
+    /// Starts watching `child` against `limit` bytes; `log` hears if the watch stops early.
+    ///
+    /// # Errors
+    /// The watchdog thread couldn't start. A release build then kills the engine and refuses it:
+    /// without the watchdog it would run with no memory limit at all. A debug build logs it and
+    /// lets the engine run.
+    pub(super) fn new(child: Child, limit: u64, log: &Arc<dyn Fn(String) + Send + Sync>) -> io::Result<Self> {
         let child = Arc::new(Mutex::new(child));
         let killed_at = Arc::new(AtomicU64::new(0));
-        let (watched, over) = (Arc::clone(&child), Arc::clone(&killed_at));
-        // No watchdog thread, no memory limit: the engine still runs, sandboxed otherwise.
-        let _ = thread::Builder::new()
+        let (watched, over, report) = (Arc::clone(&child), Arc::clone(&killed_at), Arc::clone(log));
+        let started = thread::Builder::new()
             .name("engine-memory".into())
-            .spawn(move || watch(&watched, &over, limit));
-        Self {
+            .spawn(move || watch(&watched, &over, limit, report.as_ref()));
+        if let Err(error) = started {
+            if !cfg!(debug_assertions) {
+                let _ = lock(&child).kill();
+                return Err(error);
+            }
+            log(format!(
+                "the engine's memory watchdog didn't start, so it has no memory limit: {error}"
+            ));
+        }
+        Ok(Self {
             child,
             killed_at,
             limit,
-        }
+        })
     }
 
     pub(super) fn id(&self) -> u32 {
@@ -71,7 +85,7 @@ impl Watched {
 }
 
 /// Reads the footprint every [`PERIOD`] until the engine ends or passes `limit`.
-fn watch(child: &Mutex<Child>, killed_at: &AtomicU64, limit: u64) {
+fn watch(child: &Mutex<Child>, killed_at: &AtomicU64, limit: u64, log: &(dyn Fn(String) + Send + Sync)) {
     loop {
         thread::sleep(PERIOD);
         let mut child = lock(child);
@@ -79,8 +93,14 @@ fn watch(child: &Mutex<Child>, killed_at: &AtomicU64, limit: u64) {
         if !matches!(child.try_wait(), Ok(None)) {
             return;
         }
-        let Some(footprint) = footprint(child.id()) else {
-            return;
+        let footprint = match footprint(child.id()) {
+            Ok(footprint) => footprint,
+            Err(error) => {
+                log(format!(
+                    "the engine's memory watchdog stopped, so it has no memory limit: {error}"
+                ));
+                return;
+            }
         };
         if footprint > limit {
             killed_at.store(footprint, Ordering::SeqCst);
@@ -91,14 +111,18 @@ fn watch(child: &Mutex<Child>, killed_at: &AtomicU64, limit: u64) {
 }
 
 /// The process's physical footprint in bytes.
-fn footprint(pid: u32) -> Option<u64> {
-    let pid = libc::c_int::try_from(pid).ok()?;
+fn footprint(pid: u32) -> io::Result<u64> {
+    let pid = libc::c_int::try_from(pid).map_err(|_| io::Error::other("a pid past c_int"))?;
     // SAFETY: a zeroed rusage_info_v2 is valid plain data; proc_pid_rusage writes at most one
     // rusage_info_v2 (the flavour asked for) through the pointer, which is valid for it.
     unsafe {
         let mut info: libc::rusage_info_v2 = std::mem::zeroed();
         let status = libc::proc_pid_rusage(pid, libc::RUSAGE_INFO_V2, (&raw mut info).cast());
-        (status == 0).then_some(info.ri_phys_footprint)
+        if status == 0 {
+            Ok(info.ri_phys_footprint)
+        } else {
+            Err(io::Error::last_os_error())
+        }
     }
 }
 

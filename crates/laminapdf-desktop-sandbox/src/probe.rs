@@ -2,7 +2,10 @@
 //! sandbox must stop, or must still allow, and says what happened. On Linux a forbidden system
 //! call kills the process (SIGSYS) instead of failing, so those probes never return there: the
 //! caller sees the signal.
-#![cfg_attr(unix, expect(unsafe_code, reason = "FFI: fork, execve, clone3, fcntl and getrlimit"))]
+#![cfg_attr(
+    unix,
+    expect(unsafe_code, reason = "FFI: fork, execve, clone3, fcntl, dup2 and the rlimits")
+)]
 
 use std::fmt;
 use std::io::{self, Write as _};
@@ -108,28 +111,47 @@ pub fn exhaust() -> ! {
     }
 }
 
-/// A copy of `fd` that a child process would inherit (no close-on-exec), as a GTK or D-Bus
-/// descriptor in the main process: for testing that the engine still gets none of them.
+/// A copy of `fd` at number `at` that a child process would inherit (no close-on-exec), as a GTK
+/// or D-Bus descriptor in the main process: for testing that the engine still gets none of them.
+/// `at` above the soft `RLIMIT_NOFILE` raises that limit first (to the hard one at most).
 ///
 /// # Errors
-/// `dup` failed.
+/// The limit can't reach `at`, or `dup2` failed.
 #[cfg(unix)]
-pub fn inheritable_copy(fd: std::os::fd::BorrowedFd<'_>) -> io::Result<std::os::fd::OwnedFd> {
+pub fn inheritable_copy(fd: std::os::fd::BorrowedFd<'_>, at: libc::c_int) -> io::Result<std::os::fd::OwnedFd> {
     use std::os::fd::{AsRawFd as _, FromRawFd as _};
-    // SAFETY: dup of a borrowed, open descriptor; the new descriptor has no close-on-exec flag.
-    let copy = unsafe { libc::dup(fd.as_raw_fd()) };
+    let mut limit = libc::rlimit {
+        rlim_cur: 0,
+        rlim_max: 0,
+    };
+    // SAFETY: `limit` is a writable rlimit.
+    if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &raw mut limit) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let wanted = libc::rlim_t::try_from(at).unwrap_or(0) + 1;
+    if limit.rlim_cur < wanted {
+        limit.rlim_cur = wanted;
+        // SAFETY: `limit` is a valid rlimit that outlives the call.
+        if unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &raw const limit) } != 0 {
+            return Err(io::Error::last_os_error());
+        }
+    }
+    // SAFETY: dup2 of a borrowed, open descriptor onto `at`; the copy has no close-on-exec flag.
+    let copy = unsafe { libc::dup2(fd.as_raw_fd(), at) };
     if copy < 0 {
         return Err(io::Error::last_os_error());
     }
-    // SAFETY: `copy` is a new descriptor this function owns and hands over once.
+    // SAFETY: `copy` is the descriptor dup2 made, owned here and handed over once.
     Ok(unsafe { std::os::fd::OwnedFd::from_raw_fd(copy) })
 }
 
-/// The descriptors above 2 this process holds: the engine should have only its three pipes.
+/// The descriptors above 2 this process holds, among 3–1023 and `also`: the engine should have
+/// only its three pipes.
 #[cfg(unix)]
 #[must_use]
-pub fn descriptors() -> Outcome {
+pub fn descriptors(also: Option<libc::c_int>) -> Outcome {
     let open: Vec<libc::c_int> = (3..1024)
+        .chain(also)
         // SAFETY: F_GETFD on any number only asks whether it is an open descriptor.
         .filter(|&fd| unsafe { libc::fcntl(fd, libc::F_GETFD) } != -1)
         .collect();

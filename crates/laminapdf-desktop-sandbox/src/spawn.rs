@@ -40,9 +40,15 @@ pub struct SandboxedChild {
 /// memory limit. With the
 /// sandbox off for diagnosis ([`sandbox_disabled`](crate::sandbox_disabled)) it starts plainly everywhere.
 ///
+/// `log` hears about the sandbox's own trouble while the engine runs (the macOS watchdog).
+///
 /// # Errors
 /// [`SandboxError`] when the process or a sandbox object can't be created.
-pub fn spawn_sandboxed(mut command: Command, config: &SandboxConfig) -> Result<SandboxedChild, SandboxError> {
+pub fn spawn_sandboxed(
+    mut command: Command,
+    config: &SandboxConfig,
+    log: &Arc<dyn Fn(String) + Send + Sync>,
+) -> Result<SandboxedChild, SandboxError> {
     command.arg(MEMORY_LIMIT_ARG).arg(config.memory_limit.to_string());
     #[cfg(windows)]
     if !crate::sandbox_disabled() {
@@ -71,10 +77,19 @@ pub fn spawn_sandboxed(mut command: Command, config: &SandboxConfig) -> Result<S
     let inner = if crate::sandbox_disabled() {
         Inner::Std(child)
     } else {
-        Inner::Watched(macos::Watched::new(child, config.memory_limit))
+        Inner::Watched(
+            macos::Watched::new(child, config.memory_limit, log).map_err(|source| SandboxError::Os {
+                step: "starting the memory watchdog",
+                source,
+            })?,
+        )
     };
     #[cfg(not(target_os = "macos"))]
-    let inner = Inner::Std(child);
+    let inner = {
+        // Only macOS's watchdog reports while the engine runs.
+        let _ = log;
+        Inner::Std(child)
+    };
     Ok(SandboxedChild {
         stdin: Box::new(stdin),
         stdout: Box::new(stdout),
@@ -183,7 +198,7 @@ impl Spawner for SandboxSpawner {
     fn spawn(&self) -> io::Result<Spawned> {
         let mut command = Command::new(&self.program);
         command.args(&self.args);
-        let child = spawn_sandboxed(command, &self.config).map_err(|error| match error {
+        let child = spawn_sandboxed(command, &self.config, &self.log).map_err(|error| match error {
             SandboxError::Spawn(error) => error,
             // Kept whole: the supervisor's log shows the step and the OS's error under it.
             other => io::Error::other(other),

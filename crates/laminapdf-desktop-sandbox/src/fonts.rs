@@ -24,6 +24,13 @@ use self::sfnt::Table;
 /// The largest face served: a frame carries at most 64 MiB, and no real face comes near this.
 const MAX_FACE: u64 = 48 << 20;
 
+/// The most faces listed: a system with every Noto and CJK font has a few thousand.
+const MAX_FACES: usize = 8_192;
+
+/// The most bytes of names in the list, which goes to every engine in one frame (64 MiB at most):
+/// a crafted font file can't push the list past it and stop engines from starting.
+const MAX_LIST_BYTES: usize = 4 << 20;
+
 /// Folders nested deeper than this aren't searched.
 const MAX_DEPTH: usize = 6;
 
@@ -31,6 +38,10 @@ const MAX_DEPTH: usize = 6;
 #[derive(Debug, Default)]
 pub struct SystemFonts {
     faces: Vec<Listed>,
+    /// The names' bytes so far, against [`MAX_LIST_BYTES`].
+    names: usize,
+    /// Faces left out past [`MAX_FACES`] or [`MAX_LIST_BYTES`].
+    pub dropped: usize,
     /// How long listing took.
     pub took: Duration,
 }
@@ -83,7 +94,7 @@ impl SystemFonts {
 
     fn add_file(&mut self, path: &Path) -> io::Result<()> {
         let file = File::open(path)?;
-        let mut read = |offset: u64, len: usize| read_at(&file, offset, len);
+        let mut read = |offset: u64, buf: &mut [u8]| read_at(&file, offset, buf);
         for offset in sfnt::faces(&mut read)? {
             let Ok(tables) = sfnt::tables(&mut read, offset) else {
                 continue;
@@ -95,6 +106,13 @@ impl SystemFonts {
             let Ok(described) = sfnt::describe(&mut read, &tables) else {
                 continue;
             };
+            // A face's share of the encoded list: its names and about 16 bytes of numbers.
+            let bytes = described.family.len() + described.style.len() + 16;
+            if self.faces.len() >= MAX_FACES || self.names + bytes > MAX_LIST_BYTES {
+                self.dropped += 1;
+                continue;
+            }
+            self.names += bytes;
             let id = u32::try_from(self.faces.len()).map_err(|_| io::Error::other("too many faces"))?;
             self.faces.push(Listed {
                 face: FontFace {
@@ -119,13 +137,17 @@ impl FontServer for SystemFonts {
         self.faces.iter().map(|listed| listed.face.clone()).collect()
     }
 
+    fn dropped(&self) -> usize {
+        self.dropped
+    }
+
     fn read(&self, font: u32) -> io::Result<Vec<u8>> {
         let listed = self
             .faces
             .get(font as usize)
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "no such font face"))?;
         let file = File::open(&listed.path)?;
-        let mut read = |offset: u64, len: usize| read_at(&file, offset, len);
+        let mut read = |offset: u64, buf: &mut [u8]| read_at(&file, offset, buf);
         sfnt::extract(&mut read, listed.offset, &listed.tables)
     }
 }
@@ -171,6 +193,10 @@ impl FontServer for BackgroundFonts {
         self.list().map(FontServer::faces).unwrap_or_default()
     }
 
+    fn dropped(&self) -> usize {
+        self.list().map_or(0, FontServer::dropped)
+    }
+
     fn read(&self, font: u32) -> io::Result<Vec<u8>> {
         self.list()
             .ok_or_else(|| io::Error::other("the font scan didn't run"))?
@@ -178,15 +204,14 @@ impl FontServer for BackgroundFonts {
     }
 }
 
-/// Exactly `len` bytes at `offset`, by positioned read.
-fn read_at(file: &File, offset: u64, len: usize) -> io::Result<Vec<u8>> {
-    let mut buf = vec![0; len];
+/// Fills `buf` from `offset`, by positioned read.
+fn read_at(file: &File, offset: u64, buf: &mut [u8]) -> io::Result<()> {
     #[cfg(unix)]
-    std::os::unix::fs::FileExt::read_exact_at(file, &mut buf, offset)?;
+    std::os::unix::fs::FileExt::read_exact_at(file, buf, offset)?;
     #[cfg(windows)]
     {
         let mut filled = 0;
-        while filled < len {
+        while filled < buf.len() {
             let Some(rest) = buf.get_mut(filled..) else { break };
             let n = std::os::windows::fs::FileExt::seek_read(file, rest, offset + filled as u64)?;
             if n == 0 {
@@ -195,7 +220,7 @@ fn read_at(file: &File, offset: u64, len: usize) -> io::Result<Vec<u8>> {
             filled += n;
         }
     }
-    Ok(buf)
+    Ok(())
 }
 
 /// Every font file under `folder`.
@@ -278,8 +303,11 @@ fn fontconfig_folders() -> Vec<PathBuf> {
                 data_home.as_ref().map(|base| base.join(dir))
             } else if let Some(rest) = dir.strip_prefix("~/") {
                 home().map(|home| home.join(rest))
-            } else {
+            } else if Path::new(dir).is_absolute() {
                 Some(PathBuf::from(dir))
+            } else {
+                // fontconfig's rule: a relative <dir> is relative to the file that names it.
+                config.parent().map(|parent| parent.join(dir))
             };
             folders.extend(folder);
         }

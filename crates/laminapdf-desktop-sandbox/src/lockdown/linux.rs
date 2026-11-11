@@ -221,7 +221,8 @@ fn filters() -> Result<Vec<BpfProgram>, seccompiler::Error> {
             rule(vec![equal(0, PR_SET_VMA)?])?,
         ],
     );
-    // The selftest's descriptor probe: whether a descriptor is open, nothing else.
+    // The selftest's descriptor probe: whether a descriptor is open, nothing else. Test builds only.
+    #[cfg(feature = "probe")]
     allow.insert(libc::SYS_fcntl, vec![rule(vec![equal(1, libc::F_GETFD as u64)?])?]);
     // Reading a limit, never setting one.
     allow.insert(libc::SYS_prlimit64, vec![rule(vec![equal(2, 0)?])?]);

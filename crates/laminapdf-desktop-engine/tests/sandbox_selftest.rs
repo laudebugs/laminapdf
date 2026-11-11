@@ -45,7 +45,12 @@ impl Run {
 fn selftest_with(probe: &str, config: SandboxConfig) -> Run {
     let mut command = Command::new(engine());
     command.arg(format!("--sandbox-selftest={probe}"));
-    let mut child = spawn_sandboxed(command, &config).unwrap();
+    let mut child = spawn_sandboxed(
+        command,
+        &config,
+        &(Arc::new(|line| eprintln!("sandbox: {line}")) as Arc<dyn Fn(String) + Send + Sync>),
+    )
+    .unwrap();
     drop(child.stdin);
     let mut stdout = String::new();
     child.stdout.read_to_string(&mut stdout).unwrap();
@@ -201,7 +206,12 @@ fn the_process_limit_should_stay_what_it_was_without_the_sandbox() {
     command
         .arg("--sandbox-selftest=nproc")
         .env(laminapdf_desktop_sandbox::SANDBOX_ENV, "off");
-    let mut child = spawn_sandboxed(command, &SandboxConfig::default()).unwrap();
+    let mut child = spawn_sandboxed(
+        command,
+        &SandboxConfig::default(),
+        &(Arc::new(|_| {}) as Arc<dyn Fn(String) + Send + Sync>),
+    )
+    .unwrap();
     let mut plain = String::new();
     child.stdout.read_to_string(&mut plain).unwrap();
     let plain = Run {
@@ -218,11 +228,20 @@ fn the_process_limit_should_stay_what_it_was_without_the_sandbox() {
 #[cfg(unix)]
 #[test]
 fn the_engine_should_inherit_no_descriptor_but_its_pipes() {
-    // A descriptor without close-on-exec, as GTK or D-Bus leave in the main process.
+    // Descriptors without close-on-exec, as GTK or D-Bus leave in the main process: a low one, and
+    // one past 65,536 where the limit allows, which a capped closing loop would miss.
     let file = std::fs::File::open(engine()).unwrap();
-    let leaked = laminapdf_desktop_sandbox::probe::inheritable_copy(std::os::fd::AsFd::as_fd(&file)).unwrap();
-    let run = selftest("descriptors");
-    drop(leaked);
+    let low = laminapdf_desktop_sandbox::probe::inheritable_copy(std::os::fd::AsFd::as_fd(&file), 40).unwrap();
+    let high = laminapdf_desktop_sandbox::probe::inheritable_copy(std::os::fd::AsFd::as_fd(&file), 66_000);
+    if let Err(error) = &high {
+        eprintln!("no descriptor past 65,536 here ({error}): checking the low one only");
+    }
+    let run = selftest(if high.is_ok() {
+        "descriptors:66000"
+    } else {
+        "descriptors"
+    });
+    drop((low, high));
     assert_eq!(
         run.outcome("descriptors"),
         Some("blocked (no descriptor above 2)"),

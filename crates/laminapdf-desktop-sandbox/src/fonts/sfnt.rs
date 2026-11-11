@@ -25,8 +25,19 @@ pub(super) struct Described {
     pub(super) charsets: Charsets,
 }
 
-/// Reads `len` bytes at `offset` of the file.
-pub(super) type ReadAt<'a> = dyn FnMut(u64, usize) -> io::Result<Vec<u8>> + 'a;
+/// Fills the buffer with the file's bytes at the offset.
+pub(super) type ReadAt<'a> = dyn FnMut(u64, &mut [u8]) -> io::Result<()> + 'a;
+
+/// The longest family or style name kept, in characters: real names are a few dozen, and the list
+/// goes to every engine in one frame.
+pub(super) const MAX_NAME: usize = 256;
+
+/// `len` bytes at `offset`, in a new buffer (the small reads: headers, directories, names).
+fn read_vec(read: &mut ReadAt<'_>, offset: u64, len: usize) -> io::Result<Vec<u8>> {
+    let mut buf = vec![0; len];
+    read(offset, &mut buf)?;
+    Ok(buf)
+}
 
 fn invalid(what: &str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, what.to_owned())
@@ -49,11 +60,11 @@ fn u32_at(bytes: &[u8], at: usize) -> io::Result<u32> {
 
 /// Where each face's table directory starts: one face at 0, or a collection's faces.
 pub(super) fn faces(read: &mut ReadAt<'_>) -> io::Result<Vec<u32>> {
-    let header = read(0, 12)?;
+    let header = read_vec(read, 0, 12)?;
     match header.get(..4) {
         Some(b"ttcf") => {
             let count = u32_at(&header, 8)?.min(256);
-            let offsets = read(12, count as usize * 4)?;
+            let offsets = read_vec(read, 12, count as usize * 4)?;
             (0..count as usize).map(|i| u32_at(&offsets, i * 4)).collect()
         }
         Some([0, 1, 0, 0] | b"OTTO" | b"true") => Ok(vec![0]),
@@ -63,9 +74,9 @@ pub(super) fn faces(read: &mut ReadAt<'_>) -> io::Result<Vec<u32>> {
 
 /// The table directory of the face at `offset`.
 pub(super) fn tables(read: &mut ReadAt<'_>, offset: u32) -> io::Result<Vec<Table>> {
-    let header = read(u64::from(offset), 12)?;
+    let header = read_vec(read, u64::from(offset), 12)?;
     let count = usize::from(u16_at(&header, 4)?).min(512);
-    let records = read(u64::from(offset) + 12, count * 16)?;
+    let records = read_vec(read, u64::from(offset) + 12, count * 16)?;
     (0..count)
         .map(|i| {
             let at = i * 16;
@@ -83,7 +94,7 @@ pub(super) fn describe(read: &mut ReadAt<'_>, tables: &[Table]) -> io::Result<De
     let find = |tag: &[u8; 4]| tables.iter().find(|t| &t.tag == tag).copied();
     let name = find(b"name").ok_or_else(|| invalid("no name table"))?;
     // Names sit near the start of `name`; 64 KiB holds every one a font lists in practice.
-    let names = read(u64::from(name.offset), (name.len as usize).min(64 << 10))?;
+    let names = read_vec(read, u64::from(name.offset), (name.len as usize).min(64 << 10))?;
     let family = name_string(&names, 1).ok_or_else(|| invalid("no family name"))?;
     let style = name_string(&names, 2).unwrap_or_else(|| "Regular".into());
     let mut described = Described {
@@ -94,7 +105,7 @@ pub(super) fn describe(read: &mut ReadAt<'_>, tables: &[Table]) -> io::Result<De
         charsets: Charsets::ANSI,
     };
     if let Some(os2) = find(b"OS/2") {
-        let os2 = read(u64::from(os2.offset), (os2.len as usize).min(100))?;
+        let os2 = read_vec(read, u64::from(os2.offset), (os2.len as usize).min(100))?;
         described.weight = u16_at(&os2, 4).unwrap_or(described.weight);
         let selection = u16_at(&os2, 62).unwrap_or(0);
         described.italic |= selection & 1 != 0 || selection & (1 << 9) != 0;
@@ -151,7 +162,7 @@ fn name_string(names: &[u8], id: u16) -> Option<String> {
             best = Some((rank, text));
         }
     }
-    best.map(|(_, text)| text)
+    best.map(|(_, text)| text.chars().take(MAX_NAME).collect())
 }
 
 fn utf16(raw: &[u8]) -> String {
@@ -165,9 +176,10 @@ fn utf16(raw: &[u8]) -> String {
 }
 
 /// The face at `offset` copied out as a standalone font file: its own table directory and its
-/// tables, each 4-byte aligned. PDFium then loads exactly that face, even from a collection.
+/// tables, each 4-byte aligned. PDFium then loads exactly that face, even from a collection. The
+/// tables are read straight into the output, sized once, so a large face is held once.
 pub(super) fn extract(read: &mut ReadAt<'_>, offset: u32, tables: &[Table]) -> io::Result<Vec<u8>> {
-    let version = read(u64::from(offset), 4)?;
+    let version = read_vec(read, u64::from(offset), 4)?;
     let count = u16::try_from(tables.len()).map_err(|_| invalid("too many tables"))?;
     let mut power = 1u16;
     let mut log2 = 0u16;
@@ -176,29 +188,111 @@ pub(super) fn extract(read: &mut ReadAt<'_>, offset: u32, tables: &[Table]) -> i
         log2 += 1;
     }
     let search = power.saturating_mul(16);
-    let mut out = Vec::new();
+    let directory_end = 12 + tables.len() * 16;
+    let data_len: usize = tables.iter().map(|t| (t.len as usize).next_multiple_of(4)).sum();
+    let mut out = Vec::with_capacity(directory_end + data_len);
     out.extend_from_slice(&version);
     for value in [count, search, log2, count.saturating_mul(16).saturating_sub(search)] {
         out.extend_from_slice(&value.to_be_bytes());
     }
-    let directory_end = 12 + tables.len() * 16;
-    let mut data = Vec::new();
+    let mut start = directory_end;
     for table in tables {
-        let start = u32::try_from(directory_end + data.len()).map_err(|_| invalid("face too large"))?;
         out.extend_from_slice(&table.tag);
         out.extend_from_slice(&[0; 4]);
-        out.extend_from_slice(&start.to_be_bytes());
+        let at = u32::try_from(start).map_err(|_| invalid("face too large"))?;
+        out.extend_from_slice(&at.to_be_bytes());
         out.extend_from_slice(&table.len.to_be_bytes());
-        data.extend_from_slice(&read(u64::from(table.offset), table.len as usize)?);
-        data.resize(data.len().next_multiple_of(4), 0);
+        start += (table.len as usize).next_multiple_of(4);
     }
-    out.extend_from_slice(&data);
+    for table in tables {
+        let at = out.len();
+        out.resize(at + (table.len as usize).next_multiple_of(4), 0);
+        let slot = out
+            .get_mut(at..at + table.len as usize)
+            .ok_or_else(|| invalid("face too large"))?;
+        read(u64::from(table.offset), slot)?;
+    }
     Ok(out)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A collection of two faces from the fixtures (Noto Sans regular and bold, OFL).
+    fn collection() -> Vec<u8> {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../fixtures/fonts/NotoSans-RegularBold.ttc"
+        );
+        std::fs::read(path).unwrap_or_default()
+    }
+
+    /// Lists and copies out every face of `bytes`, as the main process does, ignoring errors: a
+    /// malformed file may fail, never panic.
+    fn read_all(bytes: &[u8]) -> usize {
+        let mut read = |offset: u64, buf: &mut [u8]| {
+            let start = usize::try_from(offset).map_err(|_| invalid("offset"))?;
+            let end = start.checked_add(buf.len()).ok_or_else(|| invalid("length"))?;
+            let src = bytes.get(start..end).ok_or_else(|| invalid("past the end"))?;
+            buf.copy_from_slice(src);
+            Ok(())
+        };
+        let mut served = 0;
+        for offset in faces(&mut read).unwrap_or_default() {
+            let Ok(found) = tables(&mut read, offset) else { continue };
+            // The main process skips faces past its size cap before copying them.
+            if found.iter().map(|t| u64::from(t.len)).sum::<u64>() > 1 << 20 {
+                continue;
+            }
+            if describe(&mut read, &found).is_ok() && extract(&mut read, offset, &found).is_ok() {
+                served += 1;
+            }
+        }
+        served
+    }
+
+    #[test]
+    fn both_faces_of_a_collection_should_be_listed_and_copied_out() {
+        assert_eq!(read_all(&collection()), 2);
+    }
+
+    #[test]
+    fn a_truncated_file_should_fail_without_panicking() {
+        let bytes = collection();
+        for len in (0..bytes.len()).step_by(97) {
+            let _ = read_all(bytes.get(..len).unwrap_or_default());
+        }
+    }
+
+    #[test]
+    fn flipped_bytes_in_the_headers_should_fail_without_panicking() {
+        let bytes = collection();
+        // The collection header, both table directories and the start of the tables.
+        for at in 0..bytes.len().min(2048) {
+            for flip in [0x01, 0x80, 0xFF] {
+                let mut broken = bytes.clone();
+                if let Some(byte) = broken.get_mut(at) {
+                    *byte ^= flip;
+                }
+                let _ = read_all(&broken);
+            }
+        }
+    }
+
+    #[test]
+    fn a_long_name_should_be_cut_to_the_cap() {
+        let name: String = "x".repeat(MAX_NAME * 4);
+        let utf16: Vec<u8> = name.encode_utf16().flat_map(u16::to_be_bytes).collect();
+        // A `name` table with one Windows English record for ID 1.
+        let mut table = vec![0, 0, 0, 1, 0, 18];
+        let len = u16::try_from(utf16.len()).unwrap_or(u16::MAX);
+        for value in [3u16, 1, 0x409, 1, len, 0] {
+            table.extend_from_slice(&value.to_be_bytes());
+        }
+        table.extend_from_slice(&utf16);
+        assert_eq!(name_string(&table, 1).map(|n| n.chars().count()), Some(MAX_NAME));
+    }
 
     #[test]
     fn code_page_bits_should_map_to_pdfiums_charsets() {

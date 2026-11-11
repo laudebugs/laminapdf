@@ -11,7 +11,7 @@
 //! | `spawn` | starting a process | — (`/bin/sh` or `cmd.exe`) |
 //! | `threads` | 4 threads that each open a page and render it (a font lookup too), then join | — |
 //! | `memory` | allocating twice the memory limit and a little more, held 3 s | — |
-//! | `descriptors` | descriptors above 2 left open (Unix) | — |
+//! | `descriptors` | descriptors above 2 left open (Unix) | one more descriptor number to check |
 //! | `exhaust` | answer `Hello` with `Ready`, then allocate until killed: the supervisor's view | — |
 //! | `fork`, `exec` | `fork()`, `execve("/bin/sh")` (Unix) | — |
 //! | `clone3` | a raw `clone3` (Linux): the sandbox answers `ENOSYS` | — |
@@ -87,7 +87,7 @@ pub fn run(
                 std::time::Duration::from_secs(3),
             ),
             #[cfg(unix)]
-            "descriptors" => probe::descriptors(),
+            "descriptors" => probe::descriptors(target.and_then(|fd| fd.parse().ok())),
             #[cfg(unix)]
             "fork" => probe::fork(),
             #[cfg(unix)]

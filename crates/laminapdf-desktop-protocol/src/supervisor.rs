@@ -101,6 +101,11 @@ pub trait FontServer: Send + Sync + std::fmt::Debug {
     /// # Errors
     /// No such face, or its file can't be read or is too large.
     fn read(&self, font: u32) -> io::Result<Vec<u8>>;
+
+    /// Faces left out of [`FontServer::faces`] to keep the list within one frame.
+    fn dropped(&self) -> usize {
+        0
+    }
 }
 
 /// A started engine: its pipes and its process.
@@ -383,7 +388,7 @@ impl Supervisor {
     fn read_loop(
         &self,
         mut stdout: Box<dyn Read + Send>,
-        stdin: &Mutex<Box<dyn Write + Send>>,
+        stdin: &Arc<Mutex<Box<dyn Write + Send>>>,
         beat: &Mutex<Instant>,
         ready: &mpsc::Sender<(u32, SandboxLevel)>,
     ) {
@@ -407,16 +412,7 @@ impl Supervisor {
                         break;
                     }
                     self.log(format!("engine {pid} is ready; sandbox: {}", sandboxed.describe()));
-                    let faces = self
-                        .inner
-                        .config
-                        .fonts
-                        .as_ref()
-                        .map(|fonts| fonts.faces())
-                        .unwrap_or_default();
-                    if write_frame(&mut *lock(stdin), &ToEngine::Fonts { faces }, &[]).is_err() {
-                        break;
-                    }
+                    self.send_fonts(stdin);
                     let _ = ready.send((pid, sandboxed));
                 }
                 FromEngine::Ready { version, .. } => {
@@ -441,6 +437,27 @@ impl Supervisor {
                 },
             }
         }
+    }
+
+    /// Sends the system font list once the scan behind it has finished, from a thread of its own:
+    /// a cold scan can outlast [`Config::start_timeout`], and the engine renders with PDFium's
+    /// built-in fonts until the list arrives. A gone engine just drops the list.
+    fn send_fonts(&self, stdin: &Arc<Mutex<Box<dyn Write + Send>>>) {
+        let Some(fonts) = self.inner.config.fonts.clone() else {
+            return;
+        };
+        let (this, stdin) = (self.clone(), Arc::clone(stdin));
+        let _ = thread::Builder::new().name("engine-fonts".into()).spawn(move || {
+            let faces = fonts.faces();
+            let dropped = fonts.dropped();
+            if dropped > 0 {
+                this.log(format!(
+                    "{dropped} system font faces left out of the list, over its size cap"
+                ));
+            }
+            // A failed write means the engine is gone; its reader thread handles that.
+            let _ = write_frame(&mut *lock(&stdin), &ToEngine::Fonts { faces }, &[]);
+        });
     }
 
     /// Answers one `FontRequest`; `false` when the engine's stdin is gone.
