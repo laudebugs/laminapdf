@@ -71,6 +71,29 @@ fn every_block_kind_survives_a_round_trip_through_json() {
 }
 
 #[test]
+fn the_names_a_document_uses_are_its_styles_fonts_and_its_figures_images() {
+    let document = FlowDocument::from_json(&read("documents/every-block.json")).unwrap();
+    assert_eq!(
+        document.font_names().into_iter().collect::<Vec<_>>(),
+        ["Courier", "Helvetica", "Helvetica-Bold"]
+    );
+    assert_eq!(document.image_names().into_iter().collect::<Vec<_>>(), ["square"]);
+    let quoted = FlowDocument::from_json(&json!({
+        "schema": "laminapdf.document/1",
+        "styles": { "body": { "font": "regular", "size": 10, "fallbacks": ["arabic"] } },
+        "blocks": [{ "type": "quote", "blocks": [
+            { "type": "keep", "blocks": [{ "type": "figure", "image": "logo", "alt": "Logo" }] }
+        ] }]
+    }))
+    .unwrap();
+    assert_eq!(
+        quoted.font_names().into_iter().collect::<Vec<_>>(),
+        ["arabic", "regular"]
+    );
+    assert_eq!(quoted.image_names().into_iter().collect::<Vec<_>>(), ["logo"]);
+}
+
+#[test]
 fn every_block_kind_lays_out() {
     let document = FlowDocument::from_json(&read("documents/every-block.json")).unwrap();
     let square = laminapdf_build::Image::rgba(2, 2, &[128; 16]).unwrap();

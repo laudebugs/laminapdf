@@ -7,6 +7,7 @@ import {
   type Accent,
   type Appearance,
   AppearanceSettings,
+  appearanceSummary,
   applyAppearance,
   type CommandId,
   message,
@@ -77,9 +78,11 @@ export function useSettings(openPalette: () => void, page: PageAppearanceControl
     "appearance",
     message("settings.appearance"),
     () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
-    [appearance],
+    { shows: [appearance], summary: () => appearanceSummary(appearance) },
   );
-  useSettingsSection(registry, "about", message("about.title"), About);
+  useSettingsSection(registry, "about", message("about.title"), About, {
+    summary: () => message("about.summary", { version: __APP_VERSION__ }),
+  });
   const actions = useMemo(
     () => ({
       "view.settings": () => (phone.current ? setSettingsOpen(true) : setViewOpen(true)),

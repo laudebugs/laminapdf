@@ -43,4 +43,14 @@ The result is two A4 pages that meet PDF/UA-1. The table's header row repeats at
 - **A value the data lacks:** filling fails with `template-data-missing` and the pointer the template used, so a gap never reaches the PDF.
 - **Check what a model writes:** validate the document against `laminapdf.document/1`'s schema. The `laminapdf` crate and `@laminapdf/sdk` both ship it as `docs/schemas/document.schema.json`.
 
+## Build it without code
+
+The command-line tool fills the template and lays it out in one command, giving each font by the name the template uses:
+
+```sh
+laminapdf build invoice.json --data invoice-data.json --font regular=NotoSans-Regular.ttf --font bold=NotoSans-RegularBold.ttc#1 -o invoice.pdf
+```
+
+`#1` takes the bold face of a font collection. [Make and change PDFs](/cli/build-and-edit/#a-pdf-from-json) has the rest.
+
 Next: [Pages that flow](/guides/flowing-pages/), with every block a document can hold.
