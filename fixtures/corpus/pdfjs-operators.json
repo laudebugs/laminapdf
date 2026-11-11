@@ -203,6 +203,56 @@
       "showText": 19
     }
   ],
+  "fixtures/golden/cli-build-report.pdf": [
+    {
+      "beginMarkedContentProps": 17,
+      "beginText": 20,
+      "constructPath": 2,
+      "endMarkedContent": 17,
+      "endText": 20,
+      "paintImageXObject": 1,
+      "restore": 3,
+      "save": 3,
+      "setDash": 2,
+      "setFont": 20,
+      "setLineCap": 2,
+      "setLineJoin": 2,
+      "setLineWidth": 2,
+      "setMiterLimit": 2,
+      "setStrokeRGBColor": 1,
+      "setTextMatrix": 20,
+      "setTextRise": 2,
+      "showText": 20,
+      "transform": 1
+    },
+    {
+      "beginMarkedContentProps": 65,
+      "beginText": 65,
+      "constructPath": 1,
+      "endMarkedContent": 65,
+      "endText": 65,
+      "restore": 1,
+      "save": 1,
+      "setDash": 1,
+      "setFont": 65,
+      "setLineCap": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 1,
+      "setMiterLimit": 1,
+      "setTextMatrix": 65,
+      "setTextRise": 53,
+      "showText": 118
+    },
+    {
+      "beginMarkedContentProps": 2,
+      "beginText": 3,
+      "endMarkedContent": 2,
+      "endText": 3,
+      "setFont": 3,
+      "setTextMatrix": 3,
+      "showText": 3
+    }
+  ],
   "fixtures/golden/cli-rotate-hello.pdf": [
     {
       "beginText": 1,

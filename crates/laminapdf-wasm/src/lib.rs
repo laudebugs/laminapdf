@@ -48,10 +48,10 @@ mod source;
 #[cfg(feature = "extract")]
 mod text;
 
-#[cfg(feature = "text")]
-pub use builder::WasmFont;
 #[cfg(feature = "build")]
 pub use builder::{WasmBuilder, WasmImage, WasmPageBuilder};
+#[cfg(feature = "text")]
+pub use builder::{WasmFont, WasmMarkdownOptions};
 pub use document::{WasmDocument, WasmPage, WasmSaveJob, WasmWarningCursor};
 pub use memory::allocation_failed;
 pub use source::WasmSparseSource;

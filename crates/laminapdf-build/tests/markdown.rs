@@ -342,3 +342,14 @@ fn every_heading_s_marked_content_is_on_a_page() {
     let h1 = &elements(&bytes, b"H1")[0];
     assert!(h1.kids.iter().any(|k| matches!(k, StructKid::Mcid { .. })));
 }
+
+#[test]
+fn the_page_size_sets_the_default_template_s_pages() {
+    let (bytes, _) = build(
+        "# Letter\n",
+        MarkdownBuildOptions::new().with_page_size(laminapdf_build::PageSize::LETTER),
+    );
+    let doc = reopen(&bytes);
+    let frame = doc.pages().unwrap().get(0).unwrap().frame().unwrap();
+    assert_eq!((frame.width().get(), frame.height().get()), (612.0, 792.0));
+}
