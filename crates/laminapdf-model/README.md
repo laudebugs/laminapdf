@@ -1,5 +1,7 @@
 # laminapdf-model
 
+Typed views of a PDF document in Rust: its pages, outline, document info, page labels, name trees and structure tree, each read tolerantly, with stable IDs that edits can refer to. Most programs use it through [`laminapdf`](../laminapdf/README.md), which wraps the core crates in one API.
+
 Typed, tolerant views over a PDF's COS graph and the stable `LaminaPdfId`s that ops, undo and sync address ([ADR 0005](../../docs/decisions/0005-document-model.md) §4–§5). Part of Lamina PDF's pure core: bytes in, bytes out.
 
 - `Document`: a `laminapdf_cos::Document` (it dereferences to one) plus the document-level `IdAllocator`, a view of the COS overlay's number allocator (new objects' IDs come from the numbers it reserves). Views read through the overlay, so they see edits made by [`laminapdf-ops`](../laminapdf-ops/README.md); `cos_mut()` is the write access `laminapdf-ops` keeps private.

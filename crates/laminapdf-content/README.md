@@ -1,5 +1,7 @@
 # laminapdf-content
 
+Read what a PDF page draws, operator by operator, with the graphics and text state in effect. The interpreter is tolerant of malformed content streams and reports each operator to a visitor you write. Most programs use it through [`laminapdf`](../laminapdf/README.md), which wraps the core crates in one API.
+
 Read-only content-stream interpretation ([ADR 0023](../../docs/decisions/0023-content-stream-reading.md)): what a page draws, operator by operator, with the graphics and text state in effect. Below `laminapdf-text` (B9b, text extraction), which is its first consumer; the editor's append (E2) and editing (E7, ADR 0022) rounds extend it. Part of Lamina PDF's pure core: bytes in, bytes out.
 
 - `ContentIter`: a tolerant tokenizer over decoded content bytes (ISO 32000-2 §7.8.2), over `laminapdf-syntax`'s lexer and parser. Yields `Lexed::Op(Op)` (an `Operator`, one variant per Annex A operator plus `Unknown`, with the operands read since the previous one and its byte offset; `BI … ID … EI` is read whole as one `Op` with its `InlineImage`) and `Lexed::Issue` for skipped bytes. `Operator::signature()` and `Signature::check` give each operator's operands.

@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-ops"
-description = "Typed, serialisable editing ops over the COS overlay: transactions with savepoints, undo and redo (pure, bytes in / bytes out)."
+description = "Edit PDFs in Rust with typed operations you can serialise, group into transactions, and undo or redo."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = true
 readme = "README.md"
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "undo", "editing", "document"]
+keywords = ["pdf", "pdf-editing", "undo", "transactions", "editing"]
 categories = ["data-structures"]
 
 # Read by `cargo xtask`: core crates get the portability checks (no I/O, clocks or threads;

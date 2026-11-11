@@ -36,7 +36,7 @@ The GitHub repository went public, but the project still describes and builds it
 
 **Out of scope** (and which todo covers it)
 
-- Package READMEs' own wording and links: [W3c](./W3c-package-metadata.md).
+- Package READMEs' own wording and links: [W3c](../ongoing/W3c-package-metadata.md).
 - Linking llms.txt from the README: [W3f](./W3f-agent-discovery.md).
 
 ## Tasks

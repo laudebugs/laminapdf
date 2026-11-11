@@ -1,9 +1,12 @@
 {
   "name": "@laminapdf/viewer",
   "version": "0.2.0-alpha.6",
-  "description": "The web reader's framework-free viewer core (ADR 0009). Part 1 (C3a): one document worker per document, hosting @laminapdf/sdk and a RenderBackend, behind a typed RPC that extends @laminapdf/sdk/worker with priorities, coalescing, cancellation, timeouts and restart.",
+  "description": "A PDF viewer for the web with no UI framework inside: smooth scrolling through long documents, sharp pages at any zoom, and parsing and rendering in a Web Worker, off the main thread.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",
+  "bugs": {
+    "url": "https://github.com/laudebugs/laminapdf/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/laudebugs/laminapdf.git",
@@ -13,7 +16,10 @@
     "pdf",
     "viewer",
     "pdf-viewer",
-    "canvas"
+    "pdf-reader",
+    "canvas",
+    "web-worker",
+    "zoom"
   ],
   "type": "module",
   "sideEffects": false,

@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-render"
-description = "The RenderBackend trait (ADR 0004): bounded RGBA tiles of a page at a scale, with request validation, render limits and cancellation, and the pure-Rust hayro adapter behind a feature (pure, bytes in / bytes out)."
+description = "Render PDF pages to RGBA pixel tiles in Rust behind one renderer interface, with limits on output size, cancellation, and a pure-Rust backend (hayro) behind a feature."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = true
 readme = "README.md"
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "render", "raster", "tiles"]
+keywords = ["pdf", "render", "rendering", "raster", "pdf-renderer"]
 categories = ["rendering", "graphics"]
 
 # Read by `cargo xtask`: core crates get the portability checks (no I/O, clocks or threads;

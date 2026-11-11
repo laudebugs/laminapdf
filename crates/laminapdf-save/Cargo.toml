@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-save"
-description = "Saving PDFs: incremental and full-rewrite writers over the COS overlay, streaming WriteSink, rebase (pure, bytes in / bytes out)."
+description = "Save edited PDFs in Rust: an incremental update that leaves the original bytes and their signatures untouched, or a full rewrite, chosen by a planner that knows which is safe."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = true
 readme = "README.md"
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "incremental-save", "writer", "document"]
+keywords = ["pdf", "incremental-save", "writer", "signatures", "pdf-editing"]
 categories = ["encoding"]
 
 # Read by `cargo xtask`: core crates get the portability checks (no I/O, clocks or threads;

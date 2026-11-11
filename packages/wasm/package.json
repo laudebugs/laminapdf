@@ -1,9 +1,12 @@
 {
   "name": "@laminapdf/wasm",
   "version": "0.2.0-alpha.6",
-  "description": "Lamina PDF's WebAssembly modules and their wasm-bindgen glue: lamina_pdf_base (open, read, edit, save, vector and image pages), lamina_pdf_text (all of base plus fonts and text) and lamina_pdf_extract (all of base plus text extraction); and lamina_pdf_render_hayro, laminapdf-render's hayro adapter, which @laminapdf/render-hayro wraps. Generated into dist/ by `cargo xtask wasm`; @laminapdf/sdk is the API to use.",
+  "description": "The WebAssembly build of Lamina PDF's Rust core, which @laminapdf/sdk runs on: create, read, edit and save PDFs and extract their text. Use @laminapdf/sdk; this package holds its compiled modules.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",
+  "bugs": {
+    "url": "https://github.com/laudebugs/laminapdf/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/laudebugs/laminapdf.git",
@@ -12,7 +15,10 @@
   "keywords": [
     "pdf",
     "wasm",
-    "webassembly"
+    "webassembly",
+    "pdf-generation",
+    "pdf-editing",
+    "text-extraction"
   ],
   "type": "module",
   "sideEffects": false,

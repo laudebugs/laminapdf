@@ -142,6 +142,14 @@ impl Workspace {
         self.crates.iter().filter(|c| c.publishable).map(|c| c.name.as_str())
     }
 
+    /// The folders of the crates `cargo publish --workspace` uploads, by crate name.
+    pub(crate) fn publishable_crate_dirs(&self) -> impl Iterator<Item = (&str, &Path)> {
+        self.crates
+            .iter()
+            .filter(|c| c.publishable)
+            .map(|c| (c.name.as_str(), c.dir.as_path()))
+    }
+
     /// Names of the core crates.
     pub(crate) fn core_crates(&self) -> impl Iterator<Item = &str> {
         self.crates
