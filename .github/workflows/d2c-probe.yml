@@ -39,7 +39,11 @@ jobs:
           dir=$(cargo xtask fetch-pdfium | sed -n 's/^LAMINA_PDF_PDFIUM_DIR=//p')
           echo "LAMINA_PDF_PDFIUM_DIR=$dir" >> "$GITHUB_ENV"
           export LAMINA_PDF_PDFIUM_DIR=$dir
-          if [ "$RUNNER_OS" = Linux ]; then sudo apt-get update -q >/dev/null && sudo apt-get install -y -q --no-install-recommends fonts-noto-cjk | tail -1; fc-list :lang=zh | head -3; fi
+          if [ "$RUNNER_OS" = Linux ]; then
+            mkdir -p ~/.local/share/fonts
+            curl -sfL -o ~/.local/share/fonts/NotoSansSC-Regular.otf https://github.com/notofonts/noto-cjk/raw/main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf || sudo apt-get install -y -q fonts-noto-cjk | tail -1
+            ls -la ~/.local/share/fonts; fc-list :lang=zh | head -3
+          fi
           cargo test --locked -p laminapdf-desktop-sandbox -p laminapdf-desktop-protocol -p laminapdf-desktop-engine \
             --features laminapdf-desktop-protocol/test-support,laminapdf-desktop-engine/selftest \
             -- --include-ignored --nocapture 2>&1 | tee -a probe-logs/tests.log

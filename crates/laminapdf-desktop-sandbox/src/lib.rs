@@ -7,17 +7,20 @@
 //!
 //! - **The main process** starts the engine with [`spawn_sandboxed`], or through
 //!   [`SandboxSpawner`], the supervisor's way of starting engines. On Windows that is where most
-//!   of the sandbox comes from: a job object, Low integrity, a locked-down token whose first
-//!   thread impersonates a less restricted one until PDFium is loaded, and mitigation policies
-//!   that forbid child processes. On macOS and Linux the engine is started plainly.
+//!   of the sandbox comes from: a job object, Low integrity, a locked-down primary token, with the
+//!   first thread impersonating a less restricted one until PDFium is loaded, and mitigation
+//!   policies that forbid child processes. On macOS and Linux the engine starts with only its
+//!   pipes open; on macOS a watchdog enforces the memory limit. The main process also lists the
+//!   system's fonts ([`SystemFonts`]) and serves them to the engine, which can't open them.
 //! - **The engine** calls `apply_engine_sandbox` (feature `engine`) once PDFium is loaded and
 //!   before it reads any document: Seatbelt on macOS; no-new-privs, Landlock, `RLIMIT_AS` and a
 //!   seccomp-bpf allow-list on Linux; on Windows it drops the impersonation token
 //!   (`RevertToSelf`) and adds the mitigation policies that only work after loading.
 //!
-//! Each OS's [`SandboxLevel`] says which layers are on; the engine sends it in `Ready` and the
-//! main process logs it. `LAMINA_PDF_ENGINE_SANDBOX=off` turns the sandbox off for diagnosis, in
-//! debug builds only ([`sandbox_disabled`]).
+//! Each OS's [`SandboxLevel`] lists the layers that are on; the engine sends it in `Ready`, and the
+//! main process logs it and refuses an engine missing a layer its OS requires.
+//! `LAMINA_PDF_ENGINE_SANDBOX=off` turns the sandbox off for diagnosis, in debug builds only
+//! ([`sandbox_disabled`]).
 
 mod fonts;
 mod spawn;

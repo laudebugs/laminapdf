@@ -115,7 +115,10 @@ impl JobProcess {
             return format!("unknown ({})", io::Error::last_os_error());
         }
         let peak = self.peak_memory();
-        if OUT_OF_MEMORY_CODES.contains(&code) && peak >= self.memory_limit / 10 * 9 {
+        // An allocation the job refuses can be large (a 64 MiB buffer at 192 of 256 MiB), so the
+        // peak never reaches the limit: out of memory at half the limit or more is the job's doing,
+        // since the machine itself has far more.
+        if OUT_OF_MEMORY_CODES.contains(&code) && peak >= self.memory_limit / 2 {
             return format!(
                 "memory limit: the job stopped it at {} MiB (limit {} MiB, exit code {code:#010x})",
                 peak >> 20,
