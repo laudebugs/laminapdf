@@ -37,6 +37,6 @@ The result is four A5 pages that meet PDF/UA-1. The Result tab shows them, with 
 - **Latin text only:** leave out the fonts, and the text is set in Helvetica and Courier, which every PDF reader has. They aren't embedded, so PDF/UA-1 refuses them with `font-not-embedded`; drop the profile, or pass your own fonts.
 - **The page size:** `--page-size letter` on the command line, `page: { size: "Letter" }` in TypeScript, or a `PageTemplate` in Rust. The template also sets the margins, a header and the footer.
 - **No contents page:** remove `contents` (`with_contents` in Rust). The command line never adds one.
-- **An AI agent:** `laminapdf mcp --root DIR --allow-write` serves the `laminapdf_build` tool to agents that speak MCP. It takes the Markdown inline or as a file, reads fonts and images only inside `DIR`, and writes the PDF there as a new file.
+- **An AI agent:** `laminapdf mcp --root DIR --allow-write` serves the `laminapdf_build` tool to agents that speak MCP. It takes the Markdown inline or as a file, reads fonts and images only inside `DIR`, and writes the PDF there as a new file. Inline Markdown reads no images; pass a file for those.
 
 Next: [a PDF/UA report](/recipes/pdf-ua-report/), drawn block by block instead of written in Markdown.

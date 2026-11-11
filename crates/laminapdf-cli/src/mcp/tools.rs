@@ -54,7 +54,7 @@ pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
             0,
             Tool::new(
                 "laminapdf_build",
-                "Build a tagged PDF from Markdown (CommonMark with tables, footnotes, strikethrough and task lists; front matter for the title and language), given inline as `markdown` or as an `input` file. Images are read from the input's folder and never fetched; fonts are given by role as ROLE=FILE. Writes `output`, which must be a new file.",
+                "Build a tagged PDF from Markdown (CommonMark with tables, footnotes, strikethrough and task lists; front matter for the title and language), given inline as `markdown` or as an `input` file. Images are read only from an input file's folder, never for inline Markdown, and never fetched; fonts are given by role as ROLE=FILE. Writes `output`, which must be a new file.",
                 schema::<BuildToolArgs>(),
             )
             .with_raw_output_schema(schema::<BuildReport>())

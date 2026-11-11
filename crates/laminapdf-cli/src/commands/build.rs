@@ -61,11 +61,13 @@ pub struct BuildArgs {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BuildToolArgs {
-    /// The Markdown itself; give this or `input`.
+    /// The Markdown itself; give this or `input`. Inline Markdown reads no image files: its
+    /// images are left out with a warning. To include images, write the Markdown to a file in
+    /// the roots and give it as `input`.
     #[serde(default)]
     pub markdown: Option<String>,
     /// A Markdown file inside the roots; give this or `markdown`. Its images are read from its
-    /// folder, inline Markdown's from the first root.
+    /// folder or below it.
     #[serde(default)]
     pub input: Option<String>,
     /// The PDF to write inside the roots: a new file.
@@ -303,7 +305,7 @@ pub fn build(args: &BuildArgs, settings: &Settings, io: &mut dyn Io) -> Result<B
             .with("input", args.input.as_str())
             .with("reason", "InvalidData")
     })?;
-    build_markdown(args, &markdown, settings, io)
+    build_markdown(args, &markdown, Images::FromFolder, settings, io)
 }
 
 /// [`build`] for the MCP tool: the Markdown inline or from `input`.
@@ -323,9 +325,11 @@ pub fn build_tool(args: BuildToolArgs, settings: &Settings, io: &mut dyn Io) -> 
         creation_date: None,
     };
     match (args.markdown, args.input) {
+        // Inline Markdown has no folder, so it reads no image: otherwise text an agent was handed
+        // could choose which picture files under the roots go into the PDF.
         (Some(markdown), None) => {
             io.check(&command.output, settings.force)?;
-            build_markdown(&command, &markdown, settings, io)
+            build_markdown(&command, &markdown, Images::None, settings, io)
         }
         (None, Some(_)) => build(&command, settings, io),
         (Some(_), Some(_)) => Err(CliError::new(
@@ -339,10 +343,20 @@ pub fn build_tool(args: BuildToolArgs, settings: &Settings, io: &mut dyn Io) -> 
     }
 }
 
-/// Builds `markdown` with `args`' options; its images are read from `args.input`'s folder.
+/// Where a build's images come from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Images {
+    /// The Markdown file's folder, or below it (the working folder for standard input).
+    FromFolder,
+    /// Nowhere: every image is left out with `markdown-image-missing` (inline Markdown under MCP).
+    None,
+}
+
+/// Builds `markdown` with `args`' options and its images from where `images` says.
 fn build_markdown(
     args: &BuildArgs,
     markdown: &str,
+    images_from: Images,
     settings: &Settings,
     io: &mut dyn Io,
 ) -> Result<BuildReport, CliError> {
@@ -364,7 +378,10 @@ fn build_markdown(
     if let Some(fonts) = fonts(args, &mut builder, io)? {
         options = options.with_fonts(fonts);
     }
-    let options = images(args, markdown, options, io)?;
+    let options = match images_from {
+        Images::FromFolder => images(args, markdown, options, io)?,
+        Images::None => options,
+    };
     // Set first: the front matter's title and language win over them.
     if let Some(title) = &args.title {
         builder.metadata(laminapdf::Metadata::default().with_title(title.clone()));

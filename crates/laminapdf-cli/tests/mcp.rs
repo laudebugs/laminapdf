@@ -513,19 +513,21 @@ async fn build_should_refuse_images_and_outputs_outside_the_roots() {
     #[cfg(unix)]
     {
         std::os::unix::fs::symlink(base.join("outside/photo.jpg"), base.join("root/link.jpg")).unwrap();
+        std::fs::write(base.join("root/linked.md"), "![A photo](link.jpg)\n").unwrap();
         let image = call(
             &client,
             "laminapdf_build",
-            json!({ "markdown": "![A photo](link.jpg)\n", "output": "image.pdf" }),
+            json!({ "input": "linked.md", "output": "image.pdf" }),
         )
         .await;
         assert_eq!(error(&image)["code"], "path-outside-roots");
     }
     // A `..` target is never read at all: the image is left out with a warning.
+    std::fs::write(base.join("root/up.md"), "![A photo](../outside/photo.jpg)\n").unwrap();
     let up = call(
         &client,
         "laminapdf_build",
-        json!({ "markdown": "![A photo](../outside/photo.jpg)\n", "output": "up.pdf" }),
+        json!({ "input": "up.md", "output": "up.pdf" }),
     )
     .await;
     assert_eq!(ok(&up)["warnings"][0]["code"], "markdown-image-missing");
@@ -561,4 +563,31 @@ async fn build_should_take_a_file_and_need_exactly_one_of_markdown_and_input() {
     assert_eq!(error(&both)["code"], "invalid-command-line");
     let neither = call(&client, "laminapdf_build", json!({ "output": "neither.pdf" })).await;
     assert_eq!(error(&neither)["code"], "invalid-command-line");
+}
+
+#[tokio::test]
+async fn inline_markdown_should_read_no_image_but_a_file_reads_its_own_folder() {
+    let base = tree("build-images");
+    std::fs::write(
+        base.join("root/photo.jpg"),
+        laminapdf_test_fixtures::fixture("images/photo-rgb.jpg"),
+    )
+    .unwrap();
+    std::fs::write(base.join("root/report.md"), "![A photo](photo.jpg)\n").unwrap();
+    let client = connect(&base, &["--allow-write"]).await;
+    // Text handed to an agent can't choose which pictures in the roots go into the PDF.
+    let inline = call(
+        &client,
+        "laminapdf_build",
+        json!({ "markdown": "![A photo](photo.jpg)\n", "output": "inline.pdf" }),
+    )
+    .await;
+    assert_eq!(ok(&inline)["warnings"][0]["code"], "markdown-image-missing");
+    let file = call(
+        &client,
+        "laminapdf_build",
+        json!({ "input": "report.md", "output": "file.pdf" }),
+    )
+    .await;
+    assert_eq!(ok(&file)["warnings"].as_array().map(Vec::len), Some(0));
 }
