@@ -6,7 +6,6 @@
 
 mod build;
 mod check;
-mod document;
 mod explain;
 mod extract;
 mod info;

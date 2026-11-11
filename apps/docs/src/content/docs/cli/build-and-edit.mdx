@@ -1,6 +1,6 @@
 ---
 title: Make and change PDFs
-description: Turn a Markdown file into a tagged, accessible PDF with laminapdf build, and turn pages with laminapdf pages rotate.
+description: Turn Markdown or a JSON document into a tagged, accessible PDF with laminapdf build, and turn pages with laminapdf pages rotate.
 ---
 
 Make a PDF from a Markdown file or a JSON document, or turn pages of an existing one. Use `build` for reports and manuals you write in Markdown, and for invoices a program fills in; the PDF flows across as many pages as it needs, and screen readers can follow it.
@@ -82,13 +82,13 @@ $ laminapdf build invoice.json --data invoice-data.json --font regular=NotoSans-
 built 2 pages → invoice.pdf (24 KB, PDF/UA-1)
 ```
 
-A file whose name ends in `.json` is a document, and so is standard input holding JSON in this format. `--data -` reads the data from standard input instead, but not both at once. [Fill an invoice from JSON](/recipes/invoice-from-json/) explains the format and its placeholders.
+A file whose name ends in `.json` is a document, and so is standard input holding a JSON object. `--data -` reads the data from standard input; the document and the data can't both come from it. [Fill an invoice from JSON](/recipes/invoice-from-json/) explains the format and its placeholders.
 
 ### Fonts and images by name
 
-A document names its fonts and images, such as `regular` and `bold` above. `--font NAME=FILE` and `--image NAME=FILE` give the file for each name. A name you don't give is read from a file of that name in the document's folder, and never from anywhere else. A standard 14 font name, such as `Helvetica`, needs no file.
+A document names its fonts and images, such as `regular` and `bold` above. `--font NAME=FILE` and `--image NAME=FILE` give the file for each name. A name you don't give is read from a file with exactly that name, such as `regular`, in the document's folder (the working folder when the document comes from standard input), and never from anywhere else. A standard 14 font name, such as `Helvetica`, needs no file.
 
-The document sets its own page size, title, language and profiles. `--profile` adds a profile, and `--title` and `--lang` apply only when it gives none.
+The document sets its own page size, title, language and profiles, so `--page-size` is refused. `--profile` adds a profile, and `--title` and `--lang` apply only when it gives none.
 
 ### Errors that say where
 

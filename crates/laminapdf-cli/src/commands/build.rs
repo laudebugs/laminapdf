@@ -13,17 +13,20 @@ use laminapdf::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::document::{Unnamed, build_document, is_document, parse_json};
 use super::{Settings, schema_id, warnings, warnings_schema};
 use crate::exit::CliError;
 use crate::io::{Io, STDIO};
+
+mod document;
+
+use document::{Unnamed, build_document, parse_json, read_document};
 
 /// `laminapdf build <input.md | input.json | -> -o OUT`.
 #[derive(clap::Args, Debug, Clone, Default, PartialEq, Eq, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BuildArgs {
     /// The Markdown file, a `laminapdf.document/1` JSON document (`.json`), or `-` for standard
-    /// input (a document when it is JSON with that `schema`).
+    /// input (a document when it is a JSON object).
     pub input: String,
     /// The PDF to write, or `-` for standard output.
     #[arg(short = 'o', long, value_name = "OUT")]
@@ -76,7 +79,7 @@ pub struct BuildArgs {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BuildToolArgs {
-    /// The Markdown itself; give this or `input`. Inline Markdown reads no image files: its
+    /// The Markdown itself; give this, `document` or `input`. Inline Markdown reads no image files: its
     /// images are left out with a warning. To include images, write the Markdown to a file in
     /// the roots and give it as `input`.
     #[serde(default)]
@@ -107,7 +110,8 @@ pub struct BuildToolArgs {
     /// For a document, the images it names, as `NAME=FILE`, each file inside the roots.
     #[serde(default)]
     pub images: Vec<String>,
-    /// The page size of Markdown: a4 (the default), a0 to a6, letter, legal or tabloid.
+    /// The page size of Markdown: a4 (the default), a0 to a6, letter, legal or tabloid (a
+    /// document sets its own, and refuses this).
     #[serde(default)]
     pub page_size: Option<String>,
     /// Profiles to meet: pdf-ua-1, pdf-a-2b, pdf-a-2u, pdf-a-3b (PDF/UA-1 and at most one PDF/A).
@@ -142,7 +146,7 @@ pub struct BuildReport {
     /// `laminapdf.build/1`.
     #[schemars(schema_with = "build_id")]
     pub schema: &'static str,
-    /// The input as given: a path, or `-`.
+    /// The input as given: a path, or `-` (standard input, or inline under MCP).
     pub input: String,
     /// The data a document's placeholders read, as given: a path, or `-` (left out without).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -173,7 +177,7 @@ fn build_id(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
     schema_id(BuildReport::SCHEMA)
 }
 
-pub(super) fn usage(message: &str, argument: &str) -> CliError {
+fn usage(message: &str, argument: &str) -> CliError {
     CliError::new(ErrorCode::InvalidCommandLine, message).with("argument", argument)
 }
 
@@ -214,7 +218,7 @@ fn profile(name: &str) -> Result<Profile, CliError> {
 }
 
 /// A font from `FILE` or `FILE#N`: face `N` of a collection (`.ttc`), the first face without it.
-pub(super) fn load_font(builder: &mut Builder, given: &str, io: &mut dyn Io) -> Result<FontHandle, CliError> {
+fn load_font(builder: &mut Builder, given: &str, io: &mut dyn Io) -> Result<FontHandle, CliError> {
     let (path, face) = match given.rsplit_once('#') {
         Some((path, n)) if !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()) => (
             path,
@@ -225,13 +229,37 @@ pub(super) fn load_font(builder: &mut Builder, given: &str, io: &mut dyn Io) -> 
         ),
         _ => (given, None),
     };
-    let bytes = io.read(path)?;
+    Ok(builder.font(font_from_bytes(io.read(path)?, face)?)?)
+}
+
+/// Face `face` of a collection, or a font file's only face (a collection's first without `face`).
+fn font_from_bytes(bytes: Vec<u8>, face: Option<u32>) -> Result<Font, CliError> {
     let font = match face {
         Some(index) => Font::from_collection(bytes, index),
         None if bytes.starts_with(b"ttcf") => Font::from_collection(bytes, 0),
         None => Font::from_bytes(bytes),
     };
-    Ok(builder.font(font.map_err(laminapdf::Error::from)?)?)
+    Ok(font.map_err(laminapdf::Error::from)?)
+}
+
+/// The folder an input's files are read from: its own, or the working folder for standard
+/// input (and inline input under MCP).
+fn input_folder(input: &str) -> &Path {
+    match input {
+        STDIO => Path::new(""),
+        input => Path::new(input).parent().unwrap_or_else(|| Path::new("")),
+    }
+}
+
+/// `--title` and `--lang` on `builder`. Set before the input is laid out, so the front matter's
+/// or the document's own title and language win over them.
+fn set_title_and_lang(builder: &mut Builder, args: &BuildArgs) {
+    if let Some(title) = &args.title {
+        builder.metadata(laminapdf::Metadata::default().with_title(title.clone()));
+    }
+    if let Some(lang) = &args.lang {
+        builder.lang(lang);
+    }
 }
 
 /// The fonts `--font` names, by role; `None` without any.
@@ -286,7 +314,7 @@ fn fonts(args: &BuildArgs, builder: &mut Builder, io: &mut dyn Io) -> Result<Opt
 /// folder itself, so a Markdown file can't pull in a picture from elsewhere on the disk by its
 /// path. The command line follows links as the shell does; under MCP, `RootedIo` refuses a link
 /// that leads out of the roots.
-pub(super) fn is_local(target: &str) -> bool {
+fn is_local(target: &str) -> bool {
     use std::path::Component;
     let remote = target.contains("://") || target.starts_with("//") || target.starts_with("data:");
     let path = Path::new(target);
@@ -299,7 +327,7 @@ pub(super) fn is_local(target: &str) -> bool {
 }
 
 /// Whether reading an image failed because nothing is there: the file, or a folder on its path.
-pub(super) fn is_missing(error: &CliError) -> bool {
+fn is_missing(error: &CliError) -> bool {
     let reason = error.data().get("reason").and_then(serde_json::Value::as_str);
     matches!(reason, Some("NotFound" | "NotADirectory" | "IsADirectory"))
 }
@@ -314,10 +342,7 @@ fn images(
     mut options: MarkdownBuildOptions,
     io: &mut dyn Io,
 ) -> Result<MarkdownBuildOptions, CliError> {
-    let folder = match args.input.as_str() {
-        STDIO => Path::new(""),
-        input => Path::new(input).parent().unwrap_or_else(|| Path::new("")),
-    };
+    let folder = input_folder(&args.input);
     for target in image_targets(markdown).into_iter().filter(|t| is_local(t)) {
         let path = folder.join(&target);
         let shown = path.to_string_lossy();
@@ -332,7 +357,7 @@ fn images(
 }
 
 /// An image's bytes as an [`Image`]: JPEG by its signature, else PNG; `shown` names it in an error.
-pub(super) fn decode_image(bytes: Vec<u8>, shown: &str) -> Result<Image, CliError> {
+fn decode_image(bytes: Vec<u8>, shown: &str) -> Result<Image, CliError> {
     let image = if bytes.starts_with(&[0xFF, 0xD8]) {
         Image::jpeg(bytes)
     } else {
@@ -371,8 +396,7 @@ fn build_input(
     // Checked before the work, so a refused output costs nothing.
     io.check(&args.output, settings.force)?;
     let bytes = io.read(&args.input)?;
-    if is_document(&args.input, &bytes) {
-        let template = parse_json(&bytes, &args.input, "document")?;
+    if let Some(template) = read_document(&args.input, &bytes)? {
         let read = match &args.data {
             Some(path) => Some(parse_json(&io.read(path)?, path, "data")?),
             None => None,
@@ -380,25 +404,20 @@ fn build_input(
         let data = inline_data.or(read.as_ref());
         return build_document(args, &template, data, Unnamed::FromFolder, settings, io);
     }
-    if let Some(given) = args.data.as_ref().or(args.images.first()) {
-        return Err(usage("--data and --image are for a JSON document, not Markdown", given));
-    }
-    if inline_data.is_some() {
-        return Err(usage("data is for a JSON document, not Markdown", &args.input));
-    }
     let markdown = String::from_utf8(bytes).map_err(|_| {
         CliError::new(ErrorCode::InputUnreadable, "the Markdown isn't UTF-8 text")
             .with("input", args.input.as_str())
             .with("reason", "InvalidData")
     })?;
-    build_markdown(args, &markdown, Images::FromFolder, settings, io)
+    build_markdown(args, &markdown, Images::FromFolder, inline_data.is_some(), settings, io)
 }
 
-/// [`build`] for the MCP tool: the Markdown inline or from `input`.
+/// [`build`] for the MCP tool: the Markdown or the document inline, or either from `input`.
 ///
 /// # Errors
 ///
-/// `invalid-command-line` unless exactly one of `markdown` and `input` is given; as [`build`].
+/// `invalid-command-line` unless exactly one of `markdown`, `document` and `input` is given; as
+/// [`build`].
 pub fn build_tool(args: BuildToolArgs, settings: &Settings, io: &mut dyn Io) -> Result<BuildReport, CliError> {
     let command = BuildArgs {
         input: args.input.clone().unwrap_or_else(|| STDIO.to_owned()),
@@ -416,11 +435,8 @@ pub fn build_tool(args: BuildToolArgs, settings: &Settings, io: &mut dyn Io) -> 
         // Inline Markdown has no folder, so it reads no image: otherwise text an agent was handed
         // could choose which picture files under the roots go into the PDF.
         (Some(markdown), None, None) => {
-            if args.data.is_some() || !command.images.is_empty() {
-                return Err(usage("data and images are for a document, not Markdown", "markdown"));
-            }
             io.check(&command.output, settings.force)?;
-            build_markdown(&command, &markdown, Images::None, settings, io)
+            build_markdown(&command, &markdown, Images::None, args.data.is_some(), settings, io)
         }
         // Likewise an inline document reads only the files given to it by name.
         (None, Some(document), None) => {
@@ -449,15 +465,23 @@ enum Images {
 }
 
 /// Builds `markdown` with `args`' options and its images from where `images` says.
+/// `inline_data` is whether the MCP tool was given `data`, which, like `--data` and `--image`,
+/// only a document takes.
 fn build_markdown(
     args: &BuildArgs,
     markdown: &str,
     images_from: Images,
+    inline_data: bool,
     settings: &Settings,
     io: &mut dyn Io,
 ) -> Result<BuildReport, CliError> {
-    if let Some(given) = args.data.as_ref().or(args.images.first()) {
-        return Err(usage("--data and --image are for a JSON document, not Markdown", given));
+    if inline_data || args.data.is_some() || !args.images.is_empty() {
+        let given = args
+            .data
+            .as_ref()
+            .or(args.images.first())
+            .map_or("data", String::as_str);
+        return Err(usage("data and images are for a JSON document, not Markdown", given));
     }
     let build_options = options(args, BuildOptions::new())?;
     let profiles = profile_names(&build_options);
@@ -472,19 +496,13 @@ fn build_markdown(
         Images::FromFolder => images(args, markdown, options, io)?,
         Images::None => options,
     };
-    // Set first: the front matter's title and language win over them.
-    if let Some(title) = &args.title {
-        builder.metadata(laminapdf::Metadata::default().with_title(title.clone()));
-    }
-    if let Some(lang) = &args.lang {
-        builder.lang(lang);
-    }
+    set_title_and_lang(&mut builder, args);
     builder.markdown(markdown, &options)?;
     finish_build(args, builder, profiles, settings, io)
 }
 
 /// `build_options` with `args`' profiles (those it doesn't have yet) and creation date.
-pub(super) fn options(args: &BuildArgs, mut build_options: BuildOptions) -> Result<BuildOptions, CliError> {
+fn options(args: &BuildArgs, mut build_options: BuildOptions) -> Result<BuildOptions, CliError> {
     for name in &args.profiles {
         let wanted = profile(name)?;
         if !build_options.profiles().any(|have| have == wanted) {
@@ -501,13 +519,13 @@ pub(super) fn options(args: &BuildArgs, mut build_options: BuildOptions) -> Resu
 }
 
 /// The profiles `build_options` asks for, by their usual names, for the report.
-pub(super) fn profile_names(build_options: &BuildOptions) -> Vec<String> {
+fn profile_names(build_options: &BuildOptions) -> Vec<String> {
     build_options.profiles().map(|p| p.as_str().to_owned()).collect()
 }
 
 /// Finishes `builder`'s PDF, writes it to `args.output` (checked before the work) unless
 /// `--dry-run`, and reports it.
-pub(super) fn finish_build(
+fn finish_build(
     args: &BuildArgs,
     builder: Builder,
     profiles: Vec<String>,

@@ -95,6 +95,32 @@ fn a_document_on_standard_input_should_be_read_as_one() {
 }
 
 #[test]
+fn json_on_standard_input_with_another_schema_should_be_refused_not_built_as_markdown() {
+    let out = folder("document-stdin-schema").join("out.pdf");
+    let run = run(
+        &["build", "-", "-o", arg(&out), "--json"],
+        Some(br#"{ "schema": "laminapdf.document/2", "blocks": [] }"#),
+        &[],
+    );
+    assert_eq!(run.code, 2, "{}", run.stderr);
+    assert_eq!(error(&run)["code"], "invalid-document");
+    assert!(!out.exists());
+}
+
+#[test]
+fn a_font_no_one_gave_should_say_how_to_give_it() {
+    let path = document("document-unknown-font", &with_font("regular"), &[]);
+    let run = laminapdf(&["build", arg(&path), "-o", arg(&path.with_file_name("out.pdf"))]);
+    assert_eq!(run.code, 2);
+    assert!(
+        run.stderr.contains("= at: /styles/body/font (unknown-font)"),
+        "{}",
+        run.stderr
+    );
+    assert!(run.stderr.contains("NAME=FILE"), "{}", run.stderr);
+}
+
+#[test]
 fn the_report_should_name_the_data() {
     let out = folder("document-report").join("out.pdf");
     let run = invoice(arg(&out), DATA, None, &["--json"]);

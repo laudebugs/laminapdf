@@ -17,7 +17,7 @@
       ]
     },
     "input": {
-      "description": "The input as given: a path, or `-`.",
+      "description": "The input as given: a path, or `-` (standard input, or inline under MCP).",
       "type": "string"
     },
     "output": {

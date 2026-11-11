@@ -8,13 +8,13 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use laminapdf::flow::document::{DOCUMENT_SCHEMA, FlowDocument, Resources, fill};
+use laminapdf::flow::document::{FlowDocument, Resources, fill};
 use laminapdf::{BuildOptions, Builder, ErrorCode, Standard14};
 use serde_json::Value;
 
-use super::Settings;
-use super::build::{
-    BuildArgs, BuildReport, decode_image, finish_build, is_local, is_missing, load_font, options, profile_names, usage,
+use super::{
+    BuildArgs, BuildReport, Settings, decode_image, finish_build, font_from_bytes, input_folder, is_local, is_missing,
+    load_font, options, profile_names, set_title_and_lang, usage,
 };
 use crate::exit::CliError;
 use crate::io::{Io, STDIO};
@@ -28,19 +28,23 @@ pub(super) enum Unnamed {
     Nowhere,
 }
 
-/// Whether `bytes`, read from `input`, are a `laminapdf.document/1` document rather than
-/// Markdown: a `.json` file, or standard input holding a JSON object whose `schema` is the
-/// format's.
-pub(super) fn is_document(input: &str, bytes: &[u8]) -> bool {
+/// `bytes`, read from `input`, as a JSON document, or `None` for Markdown. A `.json` file is a
+/// document (and must be JSON); so is standard input holding a JSON object, whatever its
+/// `schema`, which the document check then reads: Markdown never parses as an object.
+pub(super) fn read_document(input: &str, bytes: &[u8]) -> Result<Option<Value>, CliError> {
     if input == STDIO {
-        let starts_object = bytes.iter().find(|b| !b.is_ascii_whitespace()) == Some(&b'{');
-        starts_object
-            && serde_json::from_slice::<Value>(bytes)
-                .is_ok_and(|json| json.get("schema").and_then(Value::as_str) == Some(DOCUMENT_SCHEMA))
+        if bytes.iter().find(|b| !b.is_ascii_whitespace()) != Some(&b'{') {
+            return Ok(None);
+        }
+        return Ok(serde_json::from_slice::<Value>(bytes).ok().filter(Value::is_object));
+    }
+    let json = Path::new(input)
+        .extension()
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("json"));
+    if json {
+        parse_json(bytes, input, "document").map(Some)
     } else {
-        Path::new(input)
-            .extension()
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
+        Ok(None)
     }
 }
 
@@ -75,7 +79,7 @@ fn named<'a>(given: &'a [String], what: &str) -> Result<BTreeMap<&'a str, &'a st
 
 /// The fonts and images `document` names: those `args` gives by name, then, with
 /// [`Unnamed::FromFolder`], files of the other names in `folder`. A name that isn't a plain file
-/// name in that folder, or whose file isn't there, is left for the build to report
+/// name in that folder or below it, or whose file isn't there, is left for the build to report
 /// (`invalid-document`, `unknown-font` or `unknown-image`); standard 14 font names need no file.
 fn resources(
     args: &BuildArgs,
@@ -103,7 +107,7 @@ fn resources(
         .filter(|name| !fonts.contains_key(name) && Standard14::from_base_font(name).is_none());
     for name in unnamed_fonts {
         if let Some(bytes) = read_beside(name, folder, io)? {
-            resources = resources.with_font(name, &builder.font(font_from(bytes)?)?);
+            resources = resources.with_font(name, &builder.font(font_from_bytes(bytes, None)?)?);
         }
     }
     for name in document
@@ -119,8 +123,8 @@ fn resources(
     Ok(resources)
 }
 
-/// The file `name` in `folder`, when `name` is a file name there (no path elsewhere) and the file
-/// exists.
+/// The file `name` in `folder`, when `name` names a file there or below it (no path elsewhere)
+/// and the file exists.
 fn read_beside(name: &str, folder: &Path, io: &mut dyn Io) -> Result<Option<Vec<u8>>, CliError> {
     if !is_local(name) {
         return Ok(None);
@@ -130,16 +134,6 @@ fn read_beside(name: &str, folder: &Path, io: &mut dyn Io) -> Result<Option<Vec<
         Err(e) if is_missing(&e) => Ok(None),
         Err(e) => Err(e),
     }
-}
-
-/// A font file's first face (a collection's too).
-fn font_from(bytes: Vec<u8>) -> Result<laminapdf::Font, CliError> {
-    let font = if bytes.starts_with(b"ttcf") {
-        laminapdf::Font::from_collection(bytes, 0)
-    } else {
-        laminapdf::Font::from_bytes(bytes)
-    };
-    Ok(font.map_err(laminapdf::Error::from)?)
 }
 
 /// Builds `template`, filled from `data` when given, with `args`' options, and writes the PDF.
@@ -170,18 +164,9 @@ pub(super) fn build_document(
     let profiles = profile_names(&build_options);
     settings.stop_if_cancelled()?;
     let mut builder = Builder::new(build_options);
-    let folder = match args.input.as_str() {
-        STDIO => Path::new(""),
-        input => Path::new(input).parent().unwrap_or_else(|| Path::new("")),
-    };
+    let folder = input_folder(&args.input);
     let resources = resources(args, &document, &mut builder, unnamed, folder, io)?;
-    // Set first: the document's own title and language win over them.
-    if let Some(title) = &args.title {
-        builder.metadata(laminapdf::Metadata::default().with_title(title.clone()));
-    }
-    if let Some(lang) = &args.lang {
-        builder.lang(lang);
-    }
+    set_title_and_lang(&mut builder, args);
     builder.document(&document, &resources)?;
     finish_build(args, builder, profiles, settings, io)
 }
