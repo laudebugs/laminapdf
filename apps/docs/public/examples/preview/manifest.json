@@ -1,5 +1,15 @@
 {
   "examples": {
+    "edit_metadata": {
+      "sha256": "a6169a6dbc5a42136a03865ec8a00155a225b9cec01721fab7f6322c38e31ec6",
+      "bytes": 6822,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
     "element_flow": {
       "sha256": "858d8fd31717699c099e91b9ef67296ff6cdcf5eca3433e89a7484ccc77a924f",
       "bytes": 6297,
@@ -91,8 +101,8 @@
       ]
     },
     "generate_then_edit": {
-      "sha256": "dbde950a020c7c28a7034994e3549a1d1279e051c1a84e18aff7eebd33b7b9a3",
-      "bytes": 2545,
+      "sha256": "8389a53af2ebdea3dc16b6ba3abc0a66064d7a614da4d736cc198df8ae6ab5e1",
+      "bytes": 5497,
       "pages": [
         {
           "width": 1190,

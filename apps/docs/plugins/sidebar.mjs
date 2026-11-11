@@ -78,6 +78,7 @@ export function sidebar(typeDoc) {
         { label: "Element flow", slug: "recipes/element-flow" },
         { label: "Links and outlines", slug: "recipes/links-and-outlines" },
         { label: "Generate, then edit", slug: "recipes/generate-then-edit" },
+        { label: "Edit the metadata", slug: "recipes/edit-metadata" },
         { label: "Extract text for an LLM", slug: "recipes/extract-markdown" },
         { label: "A PDF/UA report", slug: "recipes/pdf-ua-report" },
         { label: "A PDF/A archive", slug: "recipes/pdf-a-archive" },

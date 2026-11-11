@@ -81,6 +81,14 @@
       "kind": "function",
       "since": "0.2.0",
       "note": ""
+    },
+    {
+      "from": "Transaction.setInfo",
+      "to": "Transaction.setMetadata",
+      "surface": "ts",
+      "kind": "method",
+      "since": "0.2.0",
+      "note": "setMetadata writes the Info dictionary and the XMP metadata together, takes authors as a list, and edits PDF 2.0 files; setInfo still applies, as the setInfo op."
     }
   ]
 }

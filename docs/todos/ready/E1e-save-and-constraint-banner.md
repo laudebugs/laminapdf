@@ -7,7 +7,7 @@
 | Plan | [E1 editing foundation §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1c](../ongoing/E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
-| Dependency notes | [E1c](E1c-metadata-ops.md) (`SaveOptions { metadata_date, instance_id }`, `ConformanceWarning`, `SaveReport::metadata_not_updated`), [E1d](E1d-edit-session-undo-ui.md). The desktop's save in place is [E1i](./E1i-desktop-save-in-place.md), after D3b; the constraint table is [E1 plan §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
+| Dependency notes | [E1c](../ongoing/E1c-metadata-ops.md) (`SaveOptions { metadata_date, instance_id }`, `ConformanceWarning`, `SaveReport::metadata_not_updated`), [E1d](E1d-edit-session-undo-ui.md). The desktop's save in place is [E1i](./E1i-desktop-save-in-place.md), after D3b; the constraint table is [E1 plan §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1e-save-and-constraint-banner` |
 | PR title | `feat(app): save through the platform adapter with the save-constraint banner` |

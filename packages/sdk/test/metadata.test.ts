@@ -1,6 +1,6 @@
 // The metadata API: doc.metadata(), setMetadata, removeMetadata, plan and wouldViolate, saved and
-// reopened. The test names carry the capability tags the matrix will read once it reads
-// TypeScript tests.
+// reopened. The names start with the capability each test proves (J.01 and the rest); they become
+// capability tags once `cargo xtask capabilities` runs TypeScript tests.
 import { Document, init, isLaminaPdfError, type Op } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, readText, thrown } from "./helpers.js";
@@ -19,7 +19,7 @@ function savedAndReopened(doc: Document, mode: "incremental" | "fullRewrite" = "
 }
 
 describe("metadata", () => {
-  it("[cap J.01 pdf round-trip] sets the title and authors in Info and XMP together", () => {
+  it("J.01 (pdf, round-trip): sets the title and authors in Info and XMP together", () => {
     for (const mode of ["incremental", "fullRewrite"] as const) {
       using doc = open();
       doc.setMetadata({ title: "Quarterly figures", authors: ["Ada Lovelace", "Charles Babbage"], subject: null });
@@ -35,7 +35,7 @@ describe("metadata", () => {
     }
   });
 
-  it("[cap J.02 pdf round-trip] writes the dates, and the save stamps the modification date", () => {
+  it("J.02 (pdf, round-trip): writes the dates, and the save stamps the modification date", () => {
     using doc = open();
     doc.setMetadata({ created: "D:20260101120000+01'00'" });
     using again = savedAndReopened(doc);
@@ -43,7 +43,7 @@ describe("metadata", () => {
     expect([meta.created, meta.modified]).toEqual(["D:20260101120000+01'00'", SAVED_AT]);
   });
 
-  it("[cap J.03 pdf round-trip] writes the producer and the creator tool", () => {
+  it("J.03 (pdf, round-trip): writes the producer and the creator tool", () => {
     using doc = open();
     doc.setMetadata({ producer: "Lamina PDF", creator: "A writer" });
     using again = savedAndReopened(doc);
@@ -51,7 +51,7 @@ describe("metadata", () => {
     expect([meta.producer, meta.creator, meta.disagreements]).toEqual(["Lamina PDF", "A writer", []]);
   });
 
-  it("[cap J.10 pdf round-trip] removes selected fields from both sides", () => {
+  it("J.10 (pdf, round-trip): removes selected fields from both sides", () => {
     using doc = open();
     const edited = doc.removeMetadata(["keywords", "authors"]);
     expect(edited.stillInEarlierRevisions).toBe(true);

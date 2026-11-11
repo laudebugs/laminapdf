@@ -18,7 +18,11 @@ Your edits live beside the bytes you opened and never change them. Nothing reach
 
 ## Group edits into a transaction
 
-`doc.transact(tx => …)` collects edits, such as `setInfo` and `rotatePage`, and applies them together when the callback returns. If the callback throws, none of them apply. The callback is synchronous, and editing or saving the same document inside it fails with `nested-transaction`.
+`doc.transact(tx => …)` collects edits, such as `setMetadata` and `rotatePage`, and applies them together when the callback returns. If the callback throws, none of them apply. The callback is synchronous, and editing or saving the same document inside it fails with `nested-transaction`.
+
+## Change the metadata
+
+`doc.setMetadata({ title, authors })` changes a document's title, authors, subject, keywords, tools and dates, and `doc.removeMetadata(["keywords"])` removes fields. A PDF keeps these facts twice, in its Info dictionary and its XMP metadata, and each edit writes both. `doc.metadata()` reads them back. [Edit the metadata](/recipes/edit-metadata/) has the whole program.
 
 ## Undo and redo
 
