@@ -238,6 +238,18 @@ function historyAndZoomCommands(): AnyCommand[] {
       home: ["view-menu"],
       enabled: documentOpen,
     }),
+    // Its homes are the link itself and the link preview's sheet (R07); Enter on a link follows it.
+    delegated({
+      id: "nav.follow-link",
+      title: title("nav.follow-link"),
+      group: "navigate",
+      home: ["layer"],
+      enabled: (ctx) => {
+        const open = documentOpen(ctx);
+        if (open !== true) return open;
+        return ctx.viewer?.canFollowLink?.() === true ? true : message("command.reason.noLink");
+      },
+    }),
     {
       id: "view.zoom-in",
       title: title("view.zoom-in"),

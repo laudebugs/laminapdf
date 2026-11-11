@@ -29,6 +29,8 @@ export interface ViewerControls extends ExternalStore<ViewerSlice> {
   setZoom(zoom: Zoom): void;
   /** Rotates the view by a multiple of 90 degrees. */
   rotate(delta: number): void;
+  /** Whether a link is previewed or focused, so `nav.follow-link` has one to follow. */
+  canFollowLink?(): boolean;
 }
 
 /** The smallest zoom the viewer takes, in percent. */

@@ -134,6 +134,13 @@ export const ROUTES: readonly Route[] = [
     states: ["menu", "popover", "tooltip"],
   },
   {
+    id: "link-preview",
+    title: "Link preview",
+    components: [],
+    renders: ["LinkPreview"],
+    states: ["popover", "sheet"],
+  },
+  {
     id: "selection-toolbar",
     title: "Selection toolbar",
     components: [],

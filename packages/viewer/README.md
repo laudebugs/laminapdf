@@ -94,6 +94,13 @@ A left the file leaves out keeps the current horizontal scroll, and a top it lea
 
 Anchors follow page order, so Tab reaches a page's links in order. Each is named by its `/Contents` or by what it does ("Link to page 3"); `links.words` gives those names in another language. Only the anchors take pointer events, so text beside a link still selects. Style them as `a.lamina-link`; the viewer adds no style sheet.
 
+**Link previews.** The viewer asks to preview a link inside the document after 300 ms of mouse or pen hover or of visible keyboard focus, or on a 500 ms long-press with a finger that doesn't move. It cancels a long-press's click, and the long-press selects no text. Web links never preview.
+
+The viewer emits `linkpreview` with the link, its anchor, how it was asked for (`fine`, `keyboard` or `touch`) and what it shows: a destination, or the sentence of a page action or another file's link. `linkpreviewend` follows 300 ms after the pointer leaves both the link and the preview, or when focus leaves the link. The app draws the preview with these:
+- `viewer.preview(target, { signal })` draws where the link goes, in one render by the document's Web Worker. A destination with a point gets a crop from above and left of the point across its text column, at the reader's zoom clamped to 100–150 % and at most 480 × 180 CSS px. Any other destination gets the top of its page.
+- It returns the bitmap, its CSS size, the destination page and the text of the lines it shows. The viewer keeps the last 8 bitmaps and closes them on a zoom or rotation change and when the document closes, so draw the bitmap at once and never close it. `stats().previewBitmaps` counts them.
+- `viewer.holdLinkPreview(true | false)` keeps the preview while the pointer is on it, `viewer.dismissLinkPreview()` hides it on Escape or Close, and `viewer.followLinkPreview()` follows the previewed link, else the focused one.
+
 **History.** `viewer.history` records jumps: links, `jumpToPage`, `jumpToDestination`, find's moves and thumbnail clicks. Scrolling alone records nothing. Each jump saves the view it leaves, both scroll position and zoom, so Back returns there, not only to that page.
 - `back()`, `forward()` and `goTo(id)` move the view; `getState()` and `subscribe()` say where Back and Forward go (`back`, `forward`, `current`, each an entry with a page point and a zoom).
 - A jump that lands where the view already is adds nothing, and a new jump drops what Forward held.

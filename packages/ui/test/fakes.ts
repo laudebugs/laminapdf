@@ -225,6 +225,11 @@ export class FakeViewer {
     this.calls.push({ method: "jumpToPage", value: index });
   }
 
+  /** A link is focused, so `nav.follow-link` can run. */
+  canFollowLink(): boolean {
+    return true;
+  }
+
   setZoom(zoom: Zoom): void {
     this.calls.push({ method: "setZoom", value: zoom });
   }

@@ -52,6 +52,7 @@ import { useAnnouncements } from "./announce.tsx";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
+import { LinkPreviews } from "./link-preview.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { clearDocumentCache } from "./offline/document-cache.ts";
@@ -169,7 +170,7 @@ function useHistory(
   pages: readonly PageInfo[],
 ): {
   history: { readonly back: string | undefined; readonly forward: string | undefined };
-  actions: Readonly<Record<"nav.back" | "nav.forward", () => void>>;
+  actions: Readonly<Record<"nav.back" | "nav.forward" | "nav.follow-link", () => void>>;
 } {
   const state = useStoreState(viewer?.history ?? NO_HISTORY, (s) => s);
   const label = (entry: HistoryState["back"]) => (entry === undefined ? undefined : pageLabel(pages, entry.point.page));
@@ -180,6 +181,10 @@ function useHistory(
       },
       "nav.forward": () => {
         if (viewer?.history.getState().forward !== undefined) window.history.forward();
+      },
+      // The previewed link, else the focused one (R07).
+      "nav.follow-link": () => {
+        viewer?.followLinkPreview();
       },
     }),
     [viewer],
@@ -647,6 +652,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           readerMode={reading}
         />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
+        <LinkPreviews engine={engine} viewer={shown} />
         {output.dialogs}
         {editing.runtime(commands.registry)}
       </ReaderShell>

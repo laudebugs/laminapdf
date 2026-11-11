@@ -24,7 +24,7 @@ import {
 } from "../history/history.js";
 import type { CopyMode } from "../layers/copy.js";
 import { HighlightLayer } from "../layers/highlight-layer.js";
-import { LinkLayer, type LinkLayerOptions } from "../layers/link-layer.js";
+import { LinkLayer, type LinkLayerOptions, type LinkPreviewRequest } from "../layers/link-layer.js";
 import { TextLayer, type TextLayerOptions, type TextSelection } from "../layers/text-layer.js";
 import { isRotation, keptTop, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { range } from "../layout/range.js";
@@ -50,6 +50,7 @@ import {
   type Zoom,
 } from "../zoom/zoom.js";
 import { type DeviceHints, deviceHints, viewerBudgets } from "./budgets.js";
+import type { LinkPreviewPicture, LinkPreviews } from "./previews.js";
 import { TouchGestures, type TouchHost } from "./touch.js";
 import { setUserSelect } from "./user-select.js";
 
@@ -91,6 +92,8 @@ export interface RenderStats {
   /** Renders cancelled because their page left the margin or the zoom changed (the client rejected them). */
   readonly aborted: number;
   readonly cacheBytes: number;
+  /** Link preview pictures kept (at most `PREVIEW_CACHE`). */
+  readonly previewBitmaps: number;
   /** Each mounted page's state. */
   readonly pages: Readonly<Record<number, PageRenderState>>;
 }
@@ -102,6 +105,10 @@ export interface ViewerEventMap {
   renderstats: RenderStats;
   /** The text selection changed: `undefined` when it left the viewer (UI/UX plan §5.3). */
   selectionchange: { readonly selection: TextSelection | undefined };
+  /** A link asks to be previewed (hover, focus or long-press; R07). */
+  linkpreview: LinkPreviewRequest;
+  /** The preview of `anchor`'s link should go. */
+  linkpreviewend: { readonly anchor: HTMLElement };
   /** `invalidate` redrew these pages; each has its displayed size in points now. */
   invalidate: { readonly pages: readonly InvalidatedPage[] };
 }
@@ -329,6 +336,9 @@ export class Viewer {
   readonly #highlights: HighlightLayer;
   /** The link layer, unless `links: false`. */
   readonly #links: LinkLayer | undefined;
+  /** The link previews' pictures, loaded with their code on the first preview (not at startup). */
+  #previews: LinkPreviews | undefined;
+  #loadingPreviews: Promise<LinkPreviews> | undefined;
   /** Find in this viewer's document: query, options, matches, next and previous. */
   readonly find: FindController;
   /**
@@ -474,6 +484,7 @@ export class Viewer {
   open(document: OpenedDocument): void {
     this.#unmountAll();
     this.#cache.clear();
+    this.#previews?.clear();
     this.#documentId = document.id;
     this.#opens++;
     this.#revisions = new Map();
@@ -649,8 +660,42 @@ export class Viewer {
         this.#releaseCanvas(view);
       }
     }
+    this.#previews?.clear();
     this.#setState({ appearance });
     this.#schedule();
+  }
+
+  /**
+   * Where `target` goes, as a picture for a link preview (R07): one render of the region around its
+   * point (or the top of its page) through the document worker, and the text of the lines it shows.
+   * The viewer keeps the last few (`PREVIEW_CACHE`) and closes them on a zoom, rotation or
+   * appearance change and when the document closes, so draw the bitmap at once and never close it.
+   * Rejects with `AbortError` when `signal` aborts or the pictures are cleared while it draws.
+   */
+  preview(target: Target, options: { readonly signal?: AbortSignal } = {}): Promise<LinkPreviewPicture> {
+    return this.#linkPreviews().then((previews) =>
+      previews.picture(target, options.signal ?? new AbortController().signal),
+    );
+  }
+
+  /** The pointer is over the link preview (`true`) or has left it: a hovered preview stays (WCAG 1.4.13). */
+  holdLinkPreview(held: boolean): void {
+    this.#links?.hold(held);
+  }
+
+  /** Escape or Close on the link preview: it goes, and stays hidden until its link is left. */
+  dismissLinkPreview(): void {
+    this.#links?.dismiss();
+  }
+
+  /** Whether a link is previewed or focused, so {@link followLinkPreview} has one (`nav.follow-link`). */
+  canFollowLink(): boolean {
+    return this.#links?.canFollow() ?? false;
+  }
+
+  /** Follows the previewed link, else the focused one (`nav.follow-link`); `false` when there is neither. */
+  followLinkPreview(): boolean {
+    return this.#links?.follow() ?? false;
   }
 
   /**
@@ -804,6 +849,7 @@ export class Viewer {
       dropped: this.#dropped,
       aborted: this.#aborted,
       cacheBytes: this.#cache.bytes,
+      previewBitmaps: this.#previews?.size ?? 0,
       pages,
     };
   }
@@ -815,6 +861,7 @@ export class Viewer {
     clearTimeout(this.#settling);
     this.#unmountAll();
     this.#cache.clear();
+    this.#previews?.clear();
     this.find.reset();
     this.#text?.destroy();
     this.#links?.destroy();
@@ -823,6 +870,25 @@ export class Viewer {
   }
 
   // --- internals ---
+
+  /**
+   * The link previews' pictures, drawn at this viewer's zoom, rotation and appearance. Their code
+   * loads on the first preview, so the reader's startup script doesn't carry it.
+   */
+  #linkPreviews(): Promise<LinkPreviews> {
+    this.#loadingPreviews ??= import("./previews.js").then(({ LinkPreviews }) => {
+      this.#previews = new LinkPreviews({
+        client: this.#client,
+        size: (page) => this.#sizes[page],
+        rotation: () => this.#rotation,
+        percent: () => this.#state.percent,
+        appearance: () => this.#state.appearance,
+        dpr: () => this.#dpr(),
+      });
+      return this.#previews;
+    });
+    return this.#loadingPreviews;
+  }
 
   /** The link layer, added to every page, unless `links` is `false`. */
   #linkLayer(links: CreateViewerOptions["links"]): LinkLayer | undefined {
@@ -836,6 +902,8 @@ export class Viewer {
         pageCount: () => this.#sizes.length,
         goTo: (target) => this.jumpToDestination(target),
         goToPage: (page) => this.jumpToPage(page),
+        preview: (request) => this.#emit("linkpreview", request),
+        previewEnd: (anchor) => this.#emit("linkpreviewend", { anchor }),
       },
       links === true || links === undefined ? {} : links,
     );
@@ -1064,6 +1132,8 @@ export class Viewer {
     this.#spacer.style.height = `${layout.height}px`;
     this.#spacer.style.width = `${layout.contentWidth(viewport.width)}px`;
     if (zoomed) {
+      // Pictures drawn at the old zoom or rotation would show the wrong size or turn.
+      this.#previews?.clear();
       const percent = percentOfScale(layout.scale);
       this.#setState({ pageCount: layout.pageCount, zoom: this.#zoom, percent, rotation: this.#rotation });
       this.#emit("zoomchange", { zoom: this.#zoom, percent });

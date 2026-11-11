@@ -24,7 +24,7 @@ export interface OutlineModel {
 }
 
 /** The top of the viewport a target puts its point at, as a fraction down its page. */
-function placeOf(target: Target, pages: readonly PageInfo[]): OutlinePlace {
+export function placeOf(target: Target, pages: readonly PageInfo[]): OutlinePlace {
   const { view } = target;
   const top = view.kind === "at" || view.kind === "fit-width" ? view.y : view.kind === "fit-rect" ? view.y0 : undefined;
   const height = pages[target.page]?.height ?? 0;

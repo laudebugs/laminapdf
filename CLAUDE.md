@@ -111,7 +111,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); T5b: worker/fingerprint.ts
 │                        #   (documentFingerprint: "fp1:" + SHA-256 of the head through its first %%EOF within 64 KiB; OpenedDocument.fingerprint),
 │                        #   Viewer.viewPosition()/restore(ViewPosition: a history place plus rotation, a history jump), a pending place
-│                        #   for a view opened or restored while hidden; E1g: worker/edit.ts (applyEdit: ops as one transaction, an incremental save
+│                        #   for a view opened or restored while hidden; T5a: layers/link-preview.ts (previewRegion: a destination's
+│                        #   crop in page space, its text column, zoom clamped 100–150 %, ≤ 480 × 180 CSS px; previewRender: the turned
+│                        #   device-pixel clip), view/previews.ts (LinkPreviews: one visible-priority render, 8-picture LRU;
+│                        #   Viewer.preview), the link layer's linkpreview/linkpreviewend events (300 ms hover or focus, 500 ms
+│                        #   long-press), holdLinkPreview/dismissLinkPreview/followLinkPreview; E1g: worker/edit.ts (applyEdit: ops as one transaction, an incremental save
 │                        #   of the appended revision into memory, the render document reopened over the file with every revision appended and
 │                        #   swapped in once open; a failure undoes the transaction), viewer.invalidate(pages, sizes?) (bitmaps dropped by a per-page
 │                        #   revision in the view key (viewKey), late answers of an older revision dropped, keptTop's layout, layers remounted,
@@ -124,7 +128,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
-│                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)
+│                        #   Playwright scenarios (T5a's link-previews: 20 citations hovered, reported), report.ts against
+│                        #   web-app §4, serve.ts gzip server; `pnpm … perf`)
 ├── packages/cli/        # @laminapdf/cli (L4d; private in the workspace at 0.0.0, outside Changesets: its version is the
 │                        #   CLI crate's): bin/laminapdf.js runs src/launcher.ts, which finds this platform's
 │                        #   @laminapdf/cli-<os>-<cpu>[-<libc>] package (platforms.json, the one list; src/platform.ts) and
@@ -160,7 +165,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Notice, Toast, ProgressBar, Skeleton, EmptyState, StatusBarItem, NetworkIndicator, RepairedNotice, PageLabel,
 │                        #   Thumbnail, OutlineRow, ShortcutChip), src/overlays/ (the layer stack behind Escape, Dialog, Popover and
 │                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue, BottomSheet, SelectionToolbar,
-│                        #   CommandPalette; z-order from --paper-z-*), src/dialogs.ts (the ./dialogs entry: PrintDialog, PrintProgressDialog,
+│                        #   LinkPreview (T5a: a tooltip under its link, or a sheet on touch), CommandPalette; z-order from --paper-z-*), src/dialogs.ts (the ./dialogs entry: PrintDialog, PrintProgressDialog,
 │                        #   PropertiesDialog, which the web reader loads once a document opens, issue #380), src/platform/ (ADR 0010: the Platform interface and capability
 │                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files;
 │                        #   T5b: Platform.positions, positions.ts: the `positions` store of `lamina-pdf` v2, 500 by `readAt`; idb.ts opens
