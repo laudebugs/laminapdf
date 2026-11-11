@@ -9,8 +9,9 @@ use serde_json::{Value, json};
 
 use crate::batch::{BatchSummary, Status};
 use crate::commands::{
-    CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, InfoArgs,
-    InfoReport, PagesReport, RenderArgs, RenderReport, RevealArgs, RevealReport, RotateArgs, TextReport,
+    BuildArgs, BuildReport, CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs,
+    ExtractedReport, InfoArgs, InfoReport, PagesReport, RenderArgs, RenderReport, RevealArgs, RevealReport, RotateArgs,
+    TextReport,
 };
 
 /// Where the committed schemas are published; a schema's `$id` is this plus its file name.
@@ -21,6 +22,7 @@ const BASE: &str = "https://github.com/laudebugs/laminapdf/blob/main/crates/lami
 pub fn all() -> Vec<(&'static str, Value)> {
     vec![
         ("info.schema.json", report::<InfoReport>(InfoReport::SCHEMA)),
+        ("build.schema.json", report::<BuildReport>(BuildReport::SCHEMA)),
         ("check.schema.json", report::<CheckReport>(CheckReport::SCHEMA)),
         ("pages.schema.json", report::<PagesReport>(PagesReport::SCHEMA)),
         ("text.schema.json", report::<TextReport>(TextReport::SCHEMA)),
@@ -34,7 +36,8 @@ pub fn all() -> Vec<(&'static str, Value)> {
 }
 
 /// The commands `laminapdf schema` describes, by the name it takes.
-pub const COMMANDS: [&str; 7] = [
+pub const COMMANDS: [&str; 8] = [
+    "build",
     "check",
     "explain",
     "extract",
@@ -72,6 +75,7 @@ fn input<T: JsonSchema>(command: &str) -> Value {
 #[must_use]
 pub fn command(name: &str) -> Option<Value> {
     let (input, output) = match name {
+        "build" => (input::<BuildArgs>(name), committed("build.schema.json")),
         "check" => (input::<CheckArgs>(name), committed("check.schema.json")),
         "explain" => (input::<ExplainArgs>(name), committed("explain.schema.json")),
         "extract" => (

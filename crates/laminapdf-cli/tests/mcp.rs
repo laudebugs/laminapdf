@@ -462,3 +462,132 @@ async fn reveal_should_withhold_every_string_the_document_wrote() {
         assert!(!everything.contains(text), "{text} reached the agent: {everything}");
     }
 }
+
+#[tokio::test]
+async fn build_should_write_inline_markdown_inside_a_root_and_only_with_allow_write() {
+    let base = tree("build");
+    let reader = connect(&base, &[]).await;
+    let names: Vec<String> = reader
+        .list_all_tools()
+        .await
+        .unwrap()
+        .iter()
+        .map(|t| t.name.to_string())
+        .collect();
+    assert!(!names.iter().any(|n| n == "laminapdf_build"), "{names:?}");
+    let writer = connect(&base, &["--allow-write"]).await;
+    let built = call(
+        &writer,
+        "laminapdf_build",
+        json!({ "markdown": "# Notes\n\nPlain *Latin* text.\n", "output": "notes.pdf" }),
+    )
+    .await;
+    let report = ok(&built);
+    assert_eq!(
+        (report["pageCount"].as_u64(), report["input"].as_str()),
+        (Some(1), Some("-"))
+    );
+    let tools = writer.list_all_tools().await.unwrap();
+    validate(tools.iter().find(|t| t.name == "laminapdf_build").unwrap(), report);
+    assert!(base.join("root/notes.pdf").exists());
+    // Never overwrites.
+    let again = call(
+        &writer,
+        "laminapdf_build",
+        json!({ "markdown": "# Again\n", "output": "notes.pdf" }),
+    )
+    .await;
+    assert_eq!(error(&again)["code"], "overwrite-refused");
+}
+
+#[tokio::test]
+async fn build_should_refuse_images_and_outputs_outside_the_roots() {
+    let base = tree("build-roots");
+    std::fs::write(
+        base.join("outside/photo.jpg"),
+        laminapdf_test_fixtures::fixture("images/photo-rgb.jpg"),
+    )
+    .unwrap();
+    let client = connect(&base, &["--allow-write"]).await;
+    // A link inside the root that leads out: the server follows it and refuses.
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(base.join("outside/photo.jpg"), base.join("root/link.jpg")).unwrap();
+        std::fs::write(base.join("root/linked.md"), "![A photo](link.jpg)\n").unwrap();
+        let image = call(
+            &client,
+            "laminapdf_build",
+            json!({ "input": "linked.md", "output": "image.pdf" }),
+        )
+        .await;
+        assert_eq!(error(&image)["code"], "path-outside-roots");
+    }
+    // A `..` target is never read at all: the image is left out with a warning.
+    std::fs::write(base.join("root/up.md"), "![A photo](../outside/photo.jpg)\n").unwrap();
+    let up = call(
+        &client,
+        "laminapdf_build",
+        json!({ "input": "up.md", "output": "up.pdf" }),
+    )
+    .await;
+    assert_eq!(ok(&up)["warnings"][0]["code"], "markdown-image-missing");
+    let output = call(
+        &client,
+        "laminapdf_build",
+        json!({ "markdown": "# Hi\n", "output": "../outside/out.pdf" }),
+    )
+    .await;
+    assert_eq!(error(&output)["code"], "path-outside-roots");
+    assert!(!base.join("root/image.pdf").exists() && !base.join("outside/out.pdf").exists());
+}
+
+#[tokio::test]
+async fn build_should_take_a_file_and_need_exactly_one_of_markdown_and_input() {
+    let base = tree("build-input");
+    std::fs::write(base.join("root/notes.md"), "# Notes\n\nFrom a file.\n").unwrap();
+    let client = connect(&base, &["--allow-write"]).await;
+    let built = call(
+        &client,
+        "laminapdf_build",
+        json!({ "input": "notes.md", "output": "notes.pdf" }),
+    )
+    .await;
+    assert_eq!(ok(&built)["input"].as_str(), Some("notes.md"));
+    assert!(base.join("root/notes.pdf").exists());
+    let both = call(
+        &client,
+        "laminapdf_build",
+        json!({ "input": "notes.md", "markdown": "# Hi\n", "output": "both.pdf" }),
+    )
+    .await;
+    assert_eq!(error(&both)["code"], "invalid-command-line");
+    let neither = call(&client, "laminapdf_build", json!({ "output": "neither.pdf" })).await;
+    assert_eq!(error(&neither)["code"], "invalid-command-line");
+}
+
+#[tokio::test]
+async fn inline_markdown_should_read_no_image_but_a_file_reads_its_own_folder() {
+    let base = tree("build-images");
+    std::fs::write(
+        base.join("root/photo.jpg"),
+        laminapdf_test_fixtures::fixture("images/photo-rgb.jpg"),
+    )
+    .unwrap();
+    std::fs::write(base.join("root/report.md"), "![A photo](photo.jpg)\n").unwrap();
+    let client = connect(&base, &["--allow-write"]).await;
+    // Text handed to an agent can't choose which pictures in the roots go into the PDF.
+    let inline = call(
+        &client,
+        "laminapdf_build",
+        json!({ "markdown": "![A photo](photo.jpg)\n", "output": "inline.pdf" }),
+    )
+    .await;
+    assert_eq!(ok(&inline)["warnings"][0]["code"], "markdown-image-missing");
+    let file = call(
+        &client,
+        "laminapdf_build",
+        json!({ "input": "report.md", "output": "file.pdf" }),
+    )
+    .await;
+    assert_eq!(ok(&file)["warnings"].as_array().map(Vec::len), Some(0));
+}

@@ -24,7 +24,7 @@ default = ["build"]
 build = ["laminapdf/build"]
 # The text module (ADR 0016 §4): fonts, shaped text and text boxes (lamina's `text`). Without it,
 # the base module: open, read, edit, save, and build vector and image pages.
-text = ["build", "extract", "laminapdf/text"]
+text = ["build", "extract", "laminapdf/text", "laminapdf/markdown"]
 # Text extraction (`WasmPage.text`, B9c): lamina's extractor without the builder's text.
 extract = ["laminapdf/extract"]
 # Reader mode (`WasmDocument.reflow`, U4b): in the extract module only, so the text module keeps its

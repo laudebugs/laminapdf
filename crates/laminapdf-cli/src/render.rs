@@ -9,7 +9,7 @@ use std::io::Write as _;
 use anstream::{AutoStream, ColorChoice};
 use laminapdf::Diagnostic;
 use laminapdf_cli::commands::{
-    CheckReport, ExplainReport, InfoReport, PageSummary, PagesReport, RenderReport, TextReport,
+    BuildReport, CheckReport, ExplainReport, InfoReport, PageSummary, PagesReport, RenderReport, TextReport,
 };
 use laminapdf_cli::exit::{CliError, ExitCode};
 use serde_json::Value;
@@ -250,6 +250,20 @@ pub(crate) fn pages_text(report: &PagesReport) -> String {
         } else {
             "full rewrite"
         }
+    )
+}
+
+pub(crate) fn build_text(report: &BuildReport) -> String {
+    let profiles = if report.profiles.is_empty() {
+        String::new()
+    } else {
+        format!(", {}", report.profiles.join(", "))
+    };
+    format!(
+        "built {} → {} ({}{profiles})\n",
+        count(report.page_count, "page"),
+        report.output,
+        size(report.bytes)
     )
 }
 

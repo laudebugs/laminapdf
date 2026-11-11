@@ -364,3 +364,27 @@ fn header_footer_and_watermark_are_artifact_kinds() {
         page.end_tag().unwrap();
     }
 }
+
+/// `WasmBuilder.markdown` (the text module): its options record refuses an unknown key, the
+/// template's too, and a Latin document builds in the standard 14 fonts.
+#[cfg(feature = "text")]
+#[wasm_bindgen_test]
+fn markdown_options_refuse_unknown_keys_and_a_latin_document_builds() {
+    use laminapdf_wasm::WasmMarkdownOptions;
+    let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
+    let resources = WasmMarkdownOptions::new();
+    let err = builder
+        .markdown("# Hi\n", &resources, &js(r#"{"contentz":2}"#))
+        .unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("unknown-option"));
+    let err = builder
+        .markdown("# Hi\n", &resources, &js(r#"{"page":{"size":[420,595],"footr":{}}}"#))
+        .unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("unknown-option"));
+    let report = builder
+        .markdown("# Notes\n\nPlain *Latin* text.\n", &resources, &js(r#"{"contents":1}"#))
+        .unwrap();
+    let pages: js_sys::Array = get(&report, "pages").dyn_into().unwrap();
+    assert!(pages.length() >= 1);
+    assert_eq!(builder.finish().unwrap().page_count().unwrap(), pages.length());
+}

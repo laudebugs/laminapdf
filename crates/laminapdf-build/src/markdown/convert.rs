@@ -33,6 +33,19 @@ fn parser(markdown: &str) -> Parser<'_> {
     Parser::new_ext(markdown, options)
 }
 
+/// The target of every image in `markdown`, as written, once each in order of first use.
+pub(crate) fn image_targets(markdown: &str) -> Vec<String> {
+    let mut targets: Vec<String> = Vec::new();
+    for event in parser(markdown) {
+        if let Event::Start(Tag::Image { dest_url, .. }) = event
+            && !targets.iter().any(|t| *t == *dest_url)
+        {
+            targets.push(dest_url.to_string());
+        }
+    }
+    targets
+}
+
 /// The front matter of `markdown`, if it has any.
 pub(crate) fn front_matter(markdown: &str) -> FrontMatter {
     let mut inside = false;
