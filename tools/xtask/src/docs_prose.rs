@@ -17,8 +17,8 @@ use anyhow::{Context, Result};
 
 use crate::reports::{Options, Ratchet};
 use crate::tracked::Tracked;
-pub(crate) use rules::is_todo_id;
 use rules::{Config, Scope};
+pub(crate) use rules::{is_adr_number, is_todo_id};
 
 /// `cargo xtask check docs-prose [--all-strict] [--warnings] [--json]`.
 pub(crate) fn run(root: &Path, options: Options) -> Result<()> {

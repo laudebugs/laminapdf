@@ -1,5 +1,7 @@
 # laminapdf-source
 
+Read PDFs that aren't in memory with Lamina PDF: files, memory-mapped files, and sources filled range by range, such as a file fetched with HTTP range requests, so a reader can open a large file before all of it has arrived.
+
 Edge byte sources for Lamina PDF ([ADR 0005](../../docs/decisions/0005-document-model.md) §2, [L2c](../../docs/todos/done/L2c-range-byte-source.md)): inputs that are not one buffer in memory. The core reads synchronously; a source whose bytes haven't arrived answers `Pending`, the call fails with `data-pending` and the ranges it needs, and the shell fetches them and calls again.
 
 - **`SparseSource`** (pure, builds for wasm32): a source of known length that starts empty. `supply(offset, bytes)` adds a chunk (chunks are `Arc<[u8]>`, merged when they touch; bytes already held win over overlapping ones; a byte budget bounds them, `SupplyError::Budget` past it); `missing(ranges)` lists what a fetch still needs; reads of a gap answer `Pending` up to the next chunk. Nothing is evicted: the document may have read it. Behind a lock, since `supply` runs while a document shares the source, which is why it lives here and not in `laminapdf-cos` (ADR 0005 §7).

@@ -280,6 +280,14 @@ pub(crate) fn is_todo_id(word: &str) -> bool {
     letter && (1..=2).contains(&digits) && rest.len() == digits + 1 && rest.last().is_some_and(char::is_ascii_lowercase)
 }
 
+/// Whether `word`, followed by `next`, names an ADR by number: `ADR 0004` (`ADRs 0004`) or
+/// `ADR-0004`.
+pub(crate) fn is_adr_number(word: &str, next: Option<&str>) -> bool {
+    let is_number = |text: &str| text.len() == 4 && text.chars().all(|c| c.is_ascii_digit());
+    let adr_then_number = matches!(word, "ADR" | "ADRs") && next.is_some_and(is_number);
+    adr_then_number || word.strip_prefix("ADR-").is_some_and(is_number)
+}
+
 fn internal_ids(block: &Block, config: &Config) -> Vec<Finding> {
     let text = block.text();
     let words: Vec<&str> = words(&text).collect();
@@ -289,10 +297,7 @@ fn internal_ids(block: &Block, config: &Config) -> Vec<Finding> {
             found.insert(format!("the todo ID `{word}`"));
         }
         let next = words.get(index + 1);
-        let is_number = |text: &str| text.len() == 4 && text.chars().all(|c| c.is_ascii_digit());
-        let adr_then_number = matches!(*word, "ADR" | "ADRs") && next.is_some_and(|next| is_number(next));
-        let joined_adr = word.strip_prefix("ADR-").is_some_and(is_number);
-        if adr_then_number || joined_adr {
+        if is_adr_number(word, next.copied()) {
             found.insert("an ADR number".to_owned());
         }
         let round_id = next.is_some_and(|next| {

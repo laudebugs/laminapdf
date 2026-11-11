@@ -3,7 +3,10 @@
   "version": "0.2.0-alpha.6",
   "description": "Create, read, edit and save PDFs from TypeScript: Lamina PDF's Rust core as WebAssembly, synchronous after init(), in browsers, Node, Deno, Bun and Cloudflare Workers.",
   "license": "MIT OR Apache-2.0",
-  "homepage": "https://laminapdf.com",
+  "homepage": "https://docs.laminapdf.com",
+  "bugs": {
+    "url": "https://github.com/laudebugs/laminapdf/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/laudebugs/laminapdf.git",
@@ -13,8 +16,13 @@
     "pdf",
     "pdf-generation",
     "pdf-editing",
+    "create",
+    "edit",
+    "text-extraction",
+    "pdf-to-markdown",
+    "typescript",
     "wasm",
-    "typescript"
+    "webassembly"
   ],
   "type": "module",
   "sideEffects": false,

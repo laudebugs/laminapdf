@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-cos"
-description = "PDF file structure (COS): tolerant reader with xref repair and the page tree, plus the writer (pure, bytes in / bytes out)."
+description = "Read PDF files in Rust, broken ones included: the cross-reference table with repair, object streams, decryption and the page tree, plus an overlay that records edits."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = true
 readme = "README.md"
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "parser", "xref", "document"]
+keywords = ["pdf", "parser", "reader", "xref", "repair"]
 categories = ["parser-implementations", "encoding"]
 
 # Read by `cargo xtask`: core crates get the portability checks (no I/O, clocks or threads;

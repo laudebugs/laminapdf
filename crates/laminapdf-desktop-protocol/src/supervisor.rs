@@ -2,7 +2,8 @@
 //! to requests, serves the engine's reads, watches its heartbeat and restarts it after a crash.
 //!
 //! It knows nothing of Tauri, so the engine's tests drive it with the real binary and this
-//! module's tests with an in-process fake ([`Spawner`]).
+//! module's tests with an in-process fake ([`Spawner`]). The real engine starts through
+//! `laminapdf-desktop-sandbox`'s spawner, inside its sandbox.
 //!
 //! **Restart policy** (ADR 0008 §2): an engine that exits or misses its heartbeats for
 //! [`Config::heartbeat_timeout`] is killed and started again after [`Config::backoff`], doubled
@@ -17,10 +18,7 @@
 //! its reply slot and releases it before writing.
 
 use std::collections::{BTreeMap, VecDeque};
-use std::ffi::OsString;
-use std::io::{self, BufRead, BufReader, Read, Write};
-use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
+use std::io::{self, Read, Write};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -28,7 +26,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::{
-    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ReqId, ToEngine,
+    DocId, EngineLimits, FailureKind, FontFace, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ReqId,
+    SandboxLevel, ToEngine,
 };
 use crate::{read_frame, write_frame};
 
@@ -50,6 +49,8 @@ pub struct Config {
     pub max_restarts: usize,
     /// The span [`Config::max_restarts`] counts over.
     pub window: Duration,
+    /// The system fonts the engine may ask for; `None` serves none.
+    pub fonts: Option<Arc<dyn FontServer>>,
 }
 
 impl Default for Config {
@@ -62,6 +63,7 @@ impl Default for Config {
             backoff: Duration::from_millis(250),
             max_restarts: 3,
             window: Duration::from_secs(60),
+            fonts: None,
         }
     }
 }
@@ -87,6 +89,23 @@ pub trait RangeServer: Send + Sync {
     /// # Errors
     /// The document isn't this engine's, or the file can't be read.
     fn read(&self, doc: DocId, offset: u64, len: u32) -> io::Result<Vec<u8>>;
+}
+
+/// Serves the engine the system's fonts (ADR 0008 §5, fonts): the faces it lists, then each
+/// one's bytes by id. The engine never names a path.
+pub trait FontServer: Send + Sync + std::fmt::Debug {
+    /// Every face, by id.
+    fn faces(&self) -> Vec<FontFace>;
+    /// Face `font` as a standalone font file.
+    ///
+    /// # Errors
+    /// No such face, or its file can't be read or is too large.
+    fn read(&self, font: u32) -> io::Result<Vec<u8>>;
+
+    /// Faces left out of [`FontServer::faces`] to keep the list within one frame.
+    fn dropped(&self) -> usize {
+        0
+    }
 }
 
 /// A started engine: its pipes and its process.
@@ -172,6 +191,7 @@ struct State {
 struct Engine {
     generation: u64,
     pid: u32,
+    sandboxed: SandboxLevel,
     stdin: Arc<Mutex<Box<dyn Write + Send>>>,
     process: Arc<Mutex<Box<dyn Process>>>,
 }
@@ -258,6 +278,11 @@ impl Supervisor {
         self.state().engine.as_ref().map(|engine| engine.pid)
     }
 
+    /// What the running engine's sandbox enforces, from its `Ready`.
+    pub fn sandbox(&self) -> Option<SandboxLevel> {
+        self.state().engine.as_ref().map(|engine| engine.sandboxed.clone())
+    }
+
     /// Whether the engine crashed too often and stays down.
     pub fn has_failed(&self) -> bool {
         self.state().failed
@@ -324,12 +349,12 @@ impl Supervisor {
         };
         let pid = started.and_then(|()| reader.map_err(|e| e.to_string())).and_then(|_| {
             match ready_rx.recv_timeout(self.inner.config.start_timeout) {
-                Ok(pid) => Ok(pid),
+                Ok(ready) => Ok(ready),
                 Err(_) => Err("no Ready".to_owned()),
             }
         });
-        let pid = match pid {
-            Ok(pid) => pid,
+        let (pid, sandboxed) = match pid {
+            Ok(ready) => ready,
             Err(why) => return Err(SupervisorError::Start(format!("{why} ({})", reap(&process)))),
         };
         let stopping = {
@@ -337,6 +362,7 @@ impl Supervisor {
             state.engine = Some(Engine {
                 generation,
                 pid,
+                sandboxed,
                 stdin,
                 process: Arc::clone(&process),
             });
@@ -362,9 +388,9 @@ impl Supervisor {
     fn read_loop(
         &self,
         mut stdout: Box<dyn Read + Send>,
-        stdin: &Mutex<Box<dyn Write + Send>>,
+        stdin: &Arc<Mutex<Box<dyn Write + Send>>>,
         beat: &Mutex<Instant>,
-        ready: &mpsc::Sender<u32>,
+        ready: &mpsc::Sender<(u32, SandboxLevel)>,
     ) {
         loop {
             let (msg, payload) = match read_frame::<_, FromEngine>(&mut stdout, MAX_FRAME) {
@@ -376,8 +402,18 @@ impl Supervisor {
                 }
             };
             match msg {
-                FromEngine::Ready { version, pid } if version == PROTOCOL_VERSION => {
-                    let _ = ready.send(pid);
+                FromEngine::Ready {
+                    version,
+                    pid,
+                    sandboxed,
+                } if version == PROTOCOL_VERSION => {
+                    if let Err(why) = check_sandbox(&sandboxed) {
+                        self.log(format!("refusing engine {pid}: {why}"));
+                        break;
+                    }
+                    self.log(format!("engine {pid} is ready; sandbox: {}", sandboxed.describe()));
+                    self.send_fonts(stdin);
+                    let _ = ready.send((pid, sandboxed));
                 }
                 FromEngine::Ready { version, .. } => {
                     self.log(format!("the engine speaks protocol {version}"));
@@ -389,6 +425,11 @@ impl Supervisor {
                         break;
                     }
                 }
+                FromEngine::FontRequest { req, font } => {
+                    if !self.serve_font(stdin, req, font) {
+                        break;
+                    }
+                }
                 FromEngine::Error { req: None, message, .. } => self.log(format!("engine: {message}")),
                 reply => match reply_req(&reply) {
                     Some(req) => self.deliver(req, Ok((reply, payload))),
@@ -396,6 +437,46 @@ impl Supervisor {
                 },
             }
         }
+    }
+
+    /// Sends the system font list once the scan behind it has finished, from a thread of its own:
+    /// a cold scan can outlast [`Config::start_timeout`], and the engine renders with PDFium's
+    /// built-in fonts until the list arrives. A gone engine just drops the list.
+    fn send_fonts(&self, stdin: &Arc<Mutex<Box<dyn Write + Send>>>) {
+        let Some(fonts) = self.inner.config.fonts.clone() else {
+            return;
+        };
+        let (this, stdin) = (self.clone(), Arc::clone(stdin));
+        let _ = thread::Builder::new().name("engine-fonts".into()).spawn(move || {
+            let faces = fonts.faces();
+            let dropped = fonts.dropped();
+            if dropped > 0 {
+                this.log(format!(
+                    "{dropped} system font faces left out of the list, over its size cap"
+                ));
+            }
+            // A failed write means the engine is gone; its reader thread handles that.
+            let _ = write_frame(&mut *lock(&stdin), &ToEngine::Fonts { faces }, &[]);
+        });
+    }
+
+    /// Answers one `FontRequest`; `false` when the engine's stdin is gone.
+    fn serve_font(&self, stdin: &Mutex<Box<dyn Write + Send>>, req: ReqId, font: u32) -> bool {
+        let read = match &self.inner.config.fonts {
+            Some(fonts) => fonts.read(font),
+            None => Err(io::Error::new(io::ErrorKind::NotFound, "no system fonts")),
+        };
+        let written = match read {
+            Ok(bytes) => write_frame(&mut *lock(stdin), &ToEngine::FontData { req }, &bytes),
+            Err(error) => {
+                let msg = ToEngine::FontFailed {
+                    req,
+                    message: error.to_string(),
+                };
+                write_frame(&mut *lock(stdin), &msg, &[])
+            }
+        };
+        written.is_ok()
     }
 
     /// Answers one `ReadRange`; `false` when the engine's stdin is gone.
@@ -527,7 +608,10 @@ const fn reply_req(msg: &FromEngine) -> Option<ReqId> {
         | FromEngine::PageInfo { req, .. }
         | FromEngine::Tile { req, .. } => Some(*req),
         FromEngine::Error { req, .. } => *req,
-        FromEngine::Ready { .. } | FromEngine::ReadRange { .. } | FromEngine::Heartbeat => None,
+        FromEngine::Ready { .. }
+        | FromEngine::ReadRange { .. }
+        | FromEngine::FontRequest { .. }
+        | FromEngine::Heartbeat => None,
     }
 }
 
@@ -556,6 +640,24 @@ impl Drop for Gate<'_> {
     }
 }
 
+/// Refuses an engine whose sandbox lacks a layer this OS requires ([`Layer::REQUIRED`]). An
+/// engine with its sandbox off for diagnosis passes only in a debug build of the main process.
+fn check_sandbox(level: &SandboxLevel) -> Result<(), String> {
+    if level.is_off() {
+        return if cfg!(debug_assertions) {
+            Ok(())
+        } else {
+            Err("its sandbox is off, which only a debug build allows".into())
+        };
+    }
+    let missing = level.missing();
+    if missing.is_empty() {
+        return Ok(());
+    }
+    let names: Vec<String> = missing.iter().map(ToString::to_string).collect();
+    Err(format!("its sandbox lacks {} ({})", names.join(", "), level.describe()))
+}
+
 /// Kills an engine process (it may have exited already), waits for it and says how it ended.
 fn reap(process: &Mutex<Box<dyn Process>>) -> String {
     let mut process = lock(process);
@@ -565,79 +667,6 @@ fn reap(process: &Mutex<Box<dyn Process>>) -> String {
 
 fn lock<T: ?Sized>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(PoisonError::into_inner)
-}
-
-/// Starts the engine binary with piped stdio, copying its stderr lines to `log`.
-pub struct CommandSpawner {
-    program: PathBuf,
-    args: Vec<OsString>,
-    log: Arc<dyn Fn(String) + Send + Sync>,
-}
-
-impl CommandSpawner {
-    /// `program` with `args`; each line the engine writes to stderr goes to `log`.
-    pub fn new(program: PathBuf, args: Vec<OsString>, log: impl Fn(String) + Send + Sync + 'static) -> Self {
-        Self {
-            program,
-            args,
-            log: Arc::new(log),
-        }
-    }
-}
-
-impl Spawner for CommandSpawner {
-    fn spawn(&self) -> io::Result<Spawned> {
-        let mut command = Command::new(&self.program);
-        command
-            .args(&self.args)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt as _;
-            // CREATE_NO_WINDOW: the engine is a console program; the app shows no console.
-            command.creation_flags(0x0800_0000);
-        }
-        let mut child = command.spawn()?;
-        let missing = || io::Error::other("a pipe was not set up");
-        let stdin = child.stdin.take().ok_or_else(missing)?;
-        let stdout = child.stdout.take().ok_or_else(missing)?;
-        if let Some(stderr) = child.stderr.take() {
-            let log = Arc::clone(&self.log);
-            let _ = thread::Builder::new().name("engine-stderr".into()).spawn(move || {
-                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                    log(line);
-                }
-            });
-        }
-        Ok(Spawned {
-            stdin: Box::new(stdin),
-            stdout: Box::new(BufReader::new(stdout)),
-            process: Box::new(ChildProcess(child)),
-        })
-    }
-}
-
-/// A real engine process.
-struct ChildProcess(Child);
-
-impl Process for ChildProcess {
-    fn id(&self) -> u32 {
-        self.0.id()
-    }
-
-    fn kill(&mut self) {
-        // Fails only when it has already exited.
-        let _ = self.0.kill();
-    }
-
-    fn wait(&mut self) -> String {
-        match self.0.wait() {
-            Ok(status) => status.to_string(),
-            Err(error) => format!("unknown ({error})"),
-        }
-    }
 }
 
 #[cfg(any(test, feature = "test-support"))]

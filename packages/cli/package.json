@@ -5,6 +5,9 @@
   "description": "The laminapdf command-line tool: inspect, check, rotate, extract and render PDFs from the terminal, with JSON output for scripts and an MCP server for agents. Installs a prebuilt binary for your platform.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",
+  "bugs": {
+    "url": "https://github.com/laudebugs/laminapdf/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/laudebugs/laminapdf.git",
@@ -13,6 +16,11 @@
   "keywords": [
     "pdf",
     "cli",
+    "pdf-to-text",
+    "pdf-to-markdown",
+    "text-extraction",
+    "rotate",
+    "render",
     "mcp"
   ],
   "type": "module",

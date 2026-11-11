@@ -1,9 +1,12 @@
 {
   "name": "@laminapdf/render-hayro",
   "version": "0.2.0-alpha.6",
-  "description": "ADR 0004's second web renderer and CI oracle: laminapdf-render's hayro adapter as its own WebAssembly module (lamina_pdf_render_hayro in @laminapdf/wasm) behind @laminapdf/render's RenderBackend interface.",
+  "description": "Render PDF pages to RGBA pixels in the browser with hayro, a PDF renderer written in Rust and compiled to WebAssembly, behind @laminapdf/render's interface.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",
+  "bugs": {
+    "url": "https://github.com/laudebugs/laminapdf/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/laudebugs/laminapdf.git",
@@ -12,8 +15,11 @@
   "keywords": [
     "pdf",
     "render",
+    "rendering",
+    "pdf-renderer",
     "hayro",
-    "wasm"
+    "wasm",
+    "webassembly"
   ],
   "type": "module",
   "sideEffects": false,
