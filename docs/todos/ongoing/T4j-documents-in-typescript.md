@@ -11,7 +11,7 @@
 | Branch | `feat/t4j-documents-in-typescript` |
 | PR title | `feat(sdk): typed flow documents and builder.flow` |
 | Size | L (≈ 400–500 lines: the WebAssembly call, `builder.flow`, the schema converter's new keywords, the TypeScript example and its timing case; the generated types don't count) |
-| PR | — |
+| PR | [#423](https://github.com/laudebugs/laminapdf/pull/423) |
 
 ## Goal
 
