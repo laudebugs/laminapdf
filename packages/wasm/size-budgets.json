@@ -322,12 +322,12 @@
     },
     "text": {
       "glueGzip": 6000,
-      "wasmGzip": 1375000
+      "wasmGzip": 1460000
     }
   },
   "packages": {
     "@laminapdf/sdk": {
-      "jsGzip": 22000
+      "jsGzip": 22500
     },
     "@laminapdf/sdk/worker": {
       "jsGzip": 5000

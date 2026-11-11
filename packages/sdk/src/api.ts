@@ -5,6 +5,9 @@ export type {
   BlendMode,
   BuilderOptions,
   FillRule,
+  FlowOptions,
+  FlowReport,
+  FlowTemplate,
   LineCap,
   LineJoin,
   MarkdownFonts,
@@ -18,6 +21,7 @@ export type {
   Tag,
   TagName,
   TagSpec,
+  Templated,
   TextBoxOptions,
   TextOptions,
 } from "./builder.js";
@@ -69,6 +73,7 @@ export { ExtractJob, extractWithModels } from "./extract-job.js";
 export type { FontInfo, Standard14 } from "./font.js";
 export { Font, Image } from "./font.js";
 export type { ErrorCode, LimitName, WarningCode } from "./generated/codes.js";
+export type * from "./generated/document.js";
 export type { InitOptions, WasmMemory, WasmSource } from "./init.js";
 export { isExtractLoaded, isInitialized, isTextLoaded, reset, wasmMemory } from "./init.js";
 export type { Leak } from "./internal/handle.js";

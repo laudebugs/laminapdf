@@ -448,3 +448,34 @@ fn markdown_options_refuse_unknown_keys_and_a_latin_document_builds() {
     assert!(pages.length() >= 1);
     assert_eq!(builder.finish().unwrap().page_count().unwrap(), pages.length());
 }
+
+/// `WasmBuilder.flow` (the text module): an unknown option is `unknown-option`, a misspelt key in
+/// the document is `invalid-document` with the closest key, a template's missing value names its
+/// pointer, and a plain document builds in the standard 14 fonts.
+#[cfg(feature = "text")]
+#[wasm_bindgen_test]
+fn flow_refuses_unknown_keys_and_missing_data_and_a_plain_document_builds() {
+    use laminapdf_wasm::WasmFlowResources;
+    let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
+    let resources = WasmFlowResources::new();
+    let plain = js(
+        r#"{"schema":"laminapdf.document/1","styles":{"body":{"font":"Helvetica","size":10}},"blocks":[{"type":"paragraph","text":"Hi"}]}"#,
+    );
+    let err = builder.flow(&plain, &resources, &js(r#"{"dat":{}}"#)).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("unknown-option"));
+    let misspelt =
+        js(r#"{"schema":"laminapdf.document/1","styles":{"body":{"font":"Helvetica","size":10}},"blokcs":[]}"#);
+    let err = builder.flow(&misspelt, &resources, &JsValue::UNDEFINED).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("invalid-document"));
+    let suggestions: js_sys::Array = get(&err, "didYouMean").dyn_into().unwrap();
+    assert!(suggestions.includes(&JsValue::from_str("blocks"), 0), "{suggestions:?}");
+    let template = js(
+        r#"{"schema":"laminapdf.document/1","styles":{"body":{"font":"Helvetica","size":10}},"blocks":[{"type":"paragraph","text":{"$data":"/name"}}]}"#,
+    );
+    let err = builder.flow(&template, &resources, &js(r#"{"data":{}}"#)).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("template-data-missing"));
+    let report = builder.flow(&plain, &resources, &JsValue::UNDEFINED).unwrap();
+    let pages: js_sys::Array = get(&report, "pages").dyn_into().unwrap();
+    assert_eq!(pages.length(), 1);
+    assert_eq!(builder.finish().unwrap().page_count().unwrap(), 1);
+}
