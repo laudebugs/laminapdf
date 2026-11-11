@@ -140,20 +140,20 @@ describe(`print, download and properties in ${BROWSER}`, () => {
   it("prints 50 portrait and landscape pages, each loaded at its own size, with no CSP violation or request", async () => {
     const watched = await load();
     const { page } = watched;
+    // The text layer starts downloading the extract module once the first page draws (the
+    // worker's warmExtract). Recording starts only after that download has finished, so a slow
+    // runner can't put it inside the print, and every request during the print still counts.
+    const extract = page.waitForEvent("requestfinished", {
+      predicate: (request) => /\/lamina_pdf_extract-[^/]*\.wasm$/.test(request.url()),
+      timeout: 60_000,
+    });
     await choose(watched, "fifty.pdf", pagesPdf(SIZES));
+    await extract;
     // The service worker's own downloads of the reader's files while it installs aren't printing
-    // (Firefox reports them as the page's), so they are left out, as the network suite does. So is
-    // the extract module: the text layer starts its download once the first page draws, and on a
-    // slow run that download can still be starting when the print does.
+    // (Firefox reports them as the page's), so they are left out, as the network suite does.
     const requests: string[] = [];
     page.on("request", (request) => {
-      const url = request.url();
-      if (
-        request.serviceWorker() === null &&
-        !/^(blob|data):/.test(url) &&
-        !/\/lamina_pdf_extract-[^/]*\.(js|wasm)$/.test(url)
-      )
-        requests.push(url);
+      if (request.serviceWorker() === null && !/^(blob|data):/.test(request.url())) requests.push(request.url());
     });
     await page.keyboard.press("ControlOrMeta+p");
     const dialog = page.getByRole("dialog", { name: "Print" });
