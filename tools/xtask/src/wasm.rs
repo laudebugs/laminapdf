@@ -375,7 +375,9 @@ fn download_binaryen(dir: &Path) -> Result<()> {
         fs::remove_file(&archive)?;
         bail!("{file}: SHA-256 {found}, want {sha256}");
     }
-    crate::run(dir, "tar", &["-xzf", &archive_arg])?;
+    // The bare file name, from inside `dir`: GNU tar (Git Bash on Windows) reads `D:\…` as a
+    // remote host.
+    crate::run(dir, "tar", &["-xzf", &file])?;
     fs::remove_file(&archive)?;
     Ok(())
 }

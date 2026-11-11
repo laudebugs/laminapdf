@@ -2,7 +2,6 @@
 // `tauriShell()`, with only the webview's `fetch` and `createImageBitmap` stood in for, since Node
 // has neither the `lamina://` scheme nor a decoder.
 
-import { readFileSync } from "node:fs";
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,6 +15,7 @@ import {
 import { desktopFile, desktopOpener } from "./open.ts";
 import { tauriShell } from "./tauri-shell.ts";
 import { type TileAddress, tileUrl } from "./tile-url.ts";
+import wireFixture from "./wire.fixture.json" with { type: "json" };
 
 const LETTER = { width: 612, height: 792, rotate: 0 };
 
@@ -331,7 +331,7 @@ describe("picking a document", () => {
 
 describe("the wire, as the main process reads it", () => {
   // src/engine/wire.fixture.json: the Rust side's tests read the same file.
-  const wire = JSON.parse(readFileSync(new URL("./wire.fixture.json", import.meta.url), "utf8")) as {
+  const wire = wireFixture as {
     events: { restarted: string; failed: string };
     reopened: string[];
     cancelled: { kind: string; status: number };
