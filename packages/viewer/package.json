@@ -1,6 +1,6 @@
 {
   "name": "@laminapdf/viewer",
-  "version": "0.2.0-alpha.5",
+  "version": "0.2.0-alpha.6",
   "description": "The web reader's framework-free viewer core (ADR 0009). Part 1 (C3a): one document worker per document, hosting @laminapdf/sdk and a RenderBackend, behind a typed RPC that extends @laminapdf/sdk/worker with priorities, coalescing, cancellation, timeouts and restart.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",

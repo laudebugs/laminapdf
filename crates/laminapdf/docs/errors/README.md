@@ -1,6 +1,6 @@
 ---
 title: "Error and warning codes"
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/reference/codes/"
 ---
 
@@ -66,6 +66,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`invalid-color`](invalid-color.md)
 - [`invalid-command-line`](invalid-command-line.md)
 - [`invalid-date`](invalid-date.md)
+- [`invalid-document`](invalid-document.md)
 - [`invalid-entry`](invalid-entry.md)
 - [`invalid-feature`](invalid-feature.md)
 - [`invalid-font`](invalid-font.md)
@@ -138,6 +139,9 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`syntax`](syntax.md)
 - [`tag-element-not-open`](tag-element-not-open.md)
 - [`tag-element-unclosed`](tag-element-unclosed.md)
+- [`template-data-missing`](template-data-missing.md)
+- [`template-data-type`](template-data-type.md)
+- [`template-too-large`](template-too-large.md)
 - [`text-in-earlier-revision`](text-in-earlier-revision.md)
 - [`text-module-not-loaded`](text-module-not-loaded.md)
 - [`text-overflow`](text-overflow.md)
@@ -168,6 +172,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`would-invalidate-signatures`](would-invalidate-signatures.md)
 - [`wrong-document`](wrong-document.md)
 - [`wrong-password`](wrong-password.md)
+- [`xmp-invalid`](xmp-invalid.md)
 - [`xobject-cycle`](xobject-cycle.md)
 - [`xref-repaired`](xref-repaired.md)
 - [`xrefstm-ignored`](xrefstm-ignored.md)

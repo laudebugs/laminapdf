@@ -1,7 +1,7 @@
 ---
 title: "Edit a PDF"
 description: "Change an existing PDF in transactions you can undo, and replay edits stored as JSON."
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/guides/edit-a-pdf/"
 ---
 
@@ -131,6 +131,8 @@ Your edits live beside the bytes you opened and never change them. Nothing reach
 ## Undo and redo
 
 `doc.undo()` reverts the last transaction as a whole, and `doc.redo()` applies it again. A transaction is the unit of undo, so group the edits a user would expect to undo together. A new transaction clears what redo could apply.
+
+Both return a `Reverted` record, `{ outcome, touchedPages }`, or `undefined` when there is nothing to undo or redo. `outcome` is `applied`, or `partial` when a later edit replaced part of the change, which keeps the later value, or `skipped` when nothing could be restored. `touchedPages` lists the IDs of the pages the transaction changed, so a viewer redraws only those. `doc.apply(ops)` returns `touchedPages` too, and `changed`, which is false when the edit only set values the document already had and so left nothing to undo.
 
 *One undo reverts a whole transaction; redo applies it again.*
 
