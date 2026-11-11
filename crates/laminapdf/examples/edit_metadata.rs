@@ -5,7 +5,7 @@
 //! file forbids metadata changes) and which PDF/A or PDF/UA claims the edit breaks.
 //!
 //! ```sh
-//! cargo run -p laminapdf --example edit_metadata -- in.pdf [out-dir] [D:20261110093000Z]
+//! cargo run -p laminapdf --example edit_metadata -- in.pdf <save-time> [out-dir]   # the time as a PDF date
 //! ```
 
 use std::error::Error;
@@ -17,10 +17,11 @@ use laminapdf::{
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
-    let input = PathBuf::from(args.next().ok_or("usage: edit_metadata in.pdf [out-dir] [date]")?);
-    let out = PathBuf::from(args.next().unwrap_or_else(|| "target/examples-out".into()));
+    let usage = "usage: edit_metadata in.pdf <save-time> [out-dir]";
+    let input = PathBuf::from(args.next().ok_or(usage)?);
     // The time of the save, which your app takes from its clock.
-    let saved_at: PdfDate = args.next().unwrap_or_else(|| "D:20261110093000Z".into()).parse()?;
+    let saved_at: PdfDate = args.next().ok_or(usage)?.parse()?;
+    let out = PathBuf::from(args.next().unwrap_or_else(|| "target/examples-out".into()));
     std::fs::create_dir_all(&out)?;
     let edited = edit(std::fs::read(input)?, saved_at)?;
     std::fs::write(out.join("edit_metadata.pdf"), edited)?;
