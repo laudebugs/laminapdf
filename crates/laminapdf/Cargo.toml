@@ -25,7 +25,7 @@ categories = ["encoding", "parser-implementations", "text-processing", "wasm"]
 layer = "core"
 
 [features]
-default = ["text", "saslprep", "markdown", "reflow"]
+default = ["text", "saslprep", "markdown", "document", "reflow"]
 # SASLprep for R5/R6 passwords (RFC 4013; laminapdf-syntax's `saslprep`). Left out of the WASM
 # base module (ADR 0016 §5).
 saslprep = ["laminapdf-cos/saslprep"]
@@ -44,6 +44,10 @@ text = ["build", "extract", "laminapdf-build/text"]
 # pulldown-cmark. On by default; the workspace's crates (the WASM modules, the CLI) turn it on
 # where they need it.
 markdown = ["text", "laminapdf-build/markdown"]
+# JSON documents in, flowing pages out (ADR 0032 §6): `laminapdf.document/1` (`laminapdf::flow`'s
+# `FlowDocument`, `Resources` and `fill`) and `Builder::document`. On by default; the WASM modules
+# leave it out until T4j.
+document = ["text", "laminapdf-build/serde"]
 # `laminapdf::explain(code)`: every code's explain page (docs/errors/<code>.md, ADR 0026 §6), about
 # 80 KB of text. Off by default and in the WASM modules; the CLI turns it on.
 explain = []
@@ -134,6 +138,10 @@ required-features = ["text"]
 [[example]]
 name = "flowing_report"
 required-features = ["text"]
+
+[[example]]
+name = "invoice_from_json"
+required-features = ["document"]
 
 [[example]]
 name = "markdown_to_pdf"

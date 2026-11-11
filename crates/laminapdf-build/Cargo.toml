@@ -26,6 +26,12 @@ default = ["text"]
 text = ["dep:laminapdf-text"]
 # Markdown in, flowing pages out (ADR 0032 §6): `Builder::markdown` over pulldown-cmark.
 markdown = ["text", "dep:pulldown-cmark"]
+# JSON documents in, flowing pages out (ADR 0032 §6): `laminapdf.document/1`, its templates
+# (`flow::document::fill`) and `Builder::document`.
+serde = ["text", "dep:serde", "dep:serde_json", "dep:serde_path_to_error"]
+# The document format's JSON Schema (schemars): tests/document_schema.rs writes and checks
+# schemas/document.schema.json.
+schema = ["serde", "dep:schemars"]
 
 [dependencies]
 laminapdf-cos = { workspace = true }
@@ -34,6 +40,10 @@ laminapdf-ops = { workspace = true }
 laminapdf-syntax = { workspace = true }
 laminapdf-text = { workspace = true, optional = true }
 pulldown-cmark = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+serde_path_to_error = { workspace = true, optional = true }
+schemars = { workspace = true, optional = true }
 pdf-writer = { workspace = true }
 # zlib for PNG image data (surface/png/decode.rs; the same copy laminapdf-syntax's Flate uses).
 miniz_oxide = { workspace = true }
@@ -51,6 +61,8 @@ laminapdf-content = { path = "../laminapdf-content" }
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
 proptest = { workspace = true }
+# Validates the fixture documents against the committed schema (tests/document_schema.rs).
+boon = { workspace = true }
 
 [lints]
 workspace = true

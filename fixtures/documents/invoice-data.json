@@ -1,0 +1,251 @@
+{
+  "invoice": {
+    "number": "2026-115",
+    "period": "November",
+    "due": "30 days",
+    "paid": false
+  },
+  "items": [
+    {
+      "item": "001",
+      "description": "Paper, A4, 80 g, box of 2,500 sheets",
+      "quantity": 1,
+      "amount": "24.50"
+    },
+    {
+      "item": "002",
+      "description": "Toner cartridge, black",
+      "quantity": 2,
+      "amount": "138.00"
+    },
+    {
+      "item": "003",
+      "description": "Desk lamp with a weighted base and an adjustable arm",
+      "quantity": 3,
+      "amount": "128.25"
+    },
+    {
+      "item": "004",
+      "description": "Stapler",
+      "quantity": 4,
+      "amount": "51.60"
+    },
+    {
+      "item": "005",
+      "description": "Archive boxes, set of ten, with lids",
+      "quantity": 5,
+      "amount": "157.50"
+    },
+    {
+      "item": "006",
+      "description": "Ballpoint pens, box of fifty",
+      "quantity": 1,
+      "amount": "18.75"
+    },
+    {
+      "item": "007",
+      "description": "Paper, A4, 80 g, box of 2,500 sheets",
+      "quantity": 2,
+      "amount": "49.00"
+    },
+    {
+      "item": "008",
+      "description": "Toner cartridge, black",
+      "quantity": 3,
+      "amount": "207.00"
+    },
+    {
+      "item": "009",
+      "description": "Desk lamp with a weighted base and an adjustable arm",
+      "quantity": 4,
+      "amount": "171.00"
+    },
+    {
+      "item": "010",
+      "description": "Stapler",
+      "quantity": 5,
+      "amount": "64.50"
+    },
+    {
+      "item": "011",
+      "description": "Archive boxes, set of ten, with lids",
+      "quantity": 1,
+      "amount": "31.50"
+    },
+    {
+      "item": "012",
+      "description": "Ballpoint pens, box of fifty",
+      "quantity": 2,
+      "amount": "37.50"
+    },
+    {
+      "item": "013",
+      "description": "Paper, A4, 80 g, box of 2,500 sheets",
+      "quantity": 3,
+      "amount": "73.50"
+    },
+    {
+      "item": "014",
+      "description": "Toner cartridge, black",
+      "quantity": 4,
+      "amount": "276.00"
+    },
+    {
+      "item": "015",
+      "description": "Desk lamp with a weighted base and an adjustable arm",
+      "quantity": 5,
+      "amount": "213.75"
+    },
+    {
+      "item": "016",
+      "description": "Stapler",
+      "quantity": 1,
+      "amount": "12.90"
+    },
+    {
+      "item": "017",
+      "description": "Archive boxes, set of ten, with lids",
+      "quantity": 2,
+      "amount": "63.00"
+    },
+    {
+      "item": "018",
+      "description": "Ballpoint pens, box of fifty",
+      "quantity": 3,
+      "amount": "56.25"
+    },
+    {
+      "item": "019",
+      "description": "Paper, A4, 80 g, box of 2,500 sheets",
+      "quantity": 4,
+      "amount": "98.00"
+    },
+    {
+      "item": "020",
+      "description": "Toner cartridge, black",
+      "quantity": 5,
+      "amount": "345.00"
+    },
+    {
+      "item": "021",
+      "description": "Desk lamp with a weighted base and an adjustable arm",
+      "quantity": 1,
+      "amount": "42.75"
+    },
+    {
+      "item": "022",
+      "description": "Stapler",
+      "quantity": 2,
+      "amount": "25.80"
+    },
+    {
+      "item": "023",
+      "description": "Archive boxes, set of ten, with lids",
+      "quantity": 3,
+      "amount": "94.50"
+    },
+    {
+      "item": "024",
+      "description": "Ballpoint pens, box of fifty",
+      "quantity": 4,
+      "amount": "75.00"
+    },
+    {
+      "item": "025",
+      "description": "Paper, A4, 80 g, box of 2,500 sheets",
+      "quantity": 5,
+      "amount": "122.50"
+    },
+    {
+      "item": "026",
+      "description": "Toner cartridge, black",
+      "quantity": 1,
+      "amount": "69.00"
+    },
+    {
+      "item": "027",
+      "description": "Desk lamp with a weighted base and an adjustable arm",
+      "quantity": 2,
+      "amount": "85.50"
+    },
+    {
+      "item": "028",
+      "description": "Stapler",
+      "quantity": 3,
+      "amount": "38.70"
+    },
+    {
+      "item": "029",
+      "description": "Archive boxes, set of ten, with lids",
+      "quantity": 4,
+      "amount": "126.00"
+    },
+    {
+      "item": "030",
+      "description": "Ballpoint pens, box of fifty",
+      "quantity": 5,
+      "amount": "93.75"
+    },
+    {
+      "item": "031",
+      "description": "Paper, A4, 80 g, box of 2,500 sheets",
+      "quantity": 1,
+      "amount": "24.50"
+    },
+    {
+      "item": "032",
+      "description": "Toner cartridge, black",
+      "quantity": 2,
+      "amount": "138.00"
+    },
+    {
+      "item": "033",
+      "description": "Desk lamp with a weighted base and an adjustable arm",
+      "quantity": 3,
+      "amount": "128.25"
+    },
+    {
+      "item": "034",
+      "description": "Stapler",
+      "quantity": 4,
+      "amount": "51.60"
+    },
+    {
+      "item": "035",
+      "description": "Archive boxes, set of ten, with lids",
+      "quantity": 5,
+      "amount": "157.50"
+    },
+    {
+      "item": "036",
+      "description": "Ballpoint pens, box of fifty",
+      "quantity": 1,
+      "amount": "18.75"
+    },
+    {
+      "item": "037",
+      "description": "Paper, A4, 80 g, box of 2,500 sheets",
+      "quantity": 2,
+      "amount": "49.00"
+    },
+    {
+      "item": "038",
+      "description": "Toner cartridge, black",
+      "quantity": 3,
+      "amount": "207.00"
+    },
+    {
+      "item": "039",
+      "description": "Desk lamp with a weighted base and an adjustable arm",
+      "quantity": 4,
+      "amount": "171.00"
+    },
+    {
+      "item": "040",
+      "description": "Stapler",
+      "quantity": 5,
+      "amount": "64.50"
+    }
+  ],
+  "total": "4001.10"
+}

@@ -130,6 +130,8 @@ region = "4.0.1"
 serde = { version = "1.0.229", default-features = false, features = ["std", "derive"] }
 # MIT OR Apache-2.0
 serde_json = "1.0.154"
+# The JSON Pointer of the value a laminapdf.document/1 document gets wrong (laminapdf-build's `serde`).
+serde_path_to_error = "0.1.20"
 # The desktop reader's shell (ADR 0008): Tauri 2.12, pinned (its config schema, IPC and permission
 # model change between minors). MIT OR Apache-2.0; its own dependencies add MPL-2.0 crates with
 # per-crate exceptions in deny.toml (ADR 0019). App crates only (apps/*/src-tauri).

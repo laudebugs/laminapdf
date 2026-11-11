@@ -50,7 +50,7 @@ Decide whether flowing layout becomes a library goal and how Lamina PDF gets it:
 **Out of scope** (and which todo covers it)
 
 - The flow layer, as this todo reshaped it: [T4f](../done/T4f-flow-builder-groundwork.md) (builder groundwork), [T4g](../done/T4g-flow-styled-spans.md) (styled spans), [T4b](../done/T4b-flow-layout-core.md) (paragraphs, keep rules, page templates, page X of Y), [T4c](../done/T4c-flow-tables-notes-contents.md) (tables) and [T4h](../done/T4h-flow-notes-contents-outline.md) (footnotes, contents pages, the outline).
-- The front ends: [T4d](../done/T4d-markdown-documents.md) (Markdown in Rust), [T4i](../done/T4i-build-command-and-bindings.md) (`laminapdf build`, the MCP tool, the TypeScript `markdown` call), [T4e](../ready/T4e-json-documents-and-templates.md) (JSON documents and templates) and [T4j](../ready/T4j-documents-in-typescript.md) (documents in TypeScript).
+- The front ends: [T4d](../done/T4d-markdown-documents.md) (Markdown in Rust), [T4i](../done/T4i-build-command-and-bindings.md) (`laminapdf build`, the MCP tool, the TypeScript `markdown` call), [T4e](../done/T4e-json-documents-and-templates.md) (JSON documents and templates) and [T4j](../ready/T4j-documents-in-typescript.md) (documents in TypeScript).
 - HTML and CSS to PDF: [E13f](../ready/E13f-office-and-html-to-pdf.md).
 - Publishing the timings: [T1c](../done/T1c-publish-performance-numbers.md).
 

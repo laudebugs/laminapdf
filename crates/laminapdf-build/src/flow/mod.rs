@@ -34,6 +34,8 @@
 //! ```
 
 mod contents;
+#[cfg(feature = "serde")]
+pub mod document;
 mod draw_table;
 mod emit;
 mod items;

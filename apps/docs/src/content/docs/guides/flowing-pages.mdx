@@ -89,6 +89,14 @@ laminapdf build report.md -o report.pdf --font regular=NotoSans-Regular.ttf --pr
 
 If you pass no fonts, the builder sets the Markdown in Helvetica and Courier, two fonts every PDF reader has. They set only Latin text, and since they aren't embedded, a PDF/UA-1 build refuses them with `font-not-embedded`. Pass your own fonts with `MarkdownFonts` for other scripts or an accessible document.
 
+## Write it as JSON
+
+You can also describe the document as JSON, in the format `laminapdf.document/1`, and lay it out with `Builder::document`. The JSON names what you would build by hand. A `page` sets the size, margins, header and footer, `styles` each name a font and a size, and `blocks` are tagged by `type`, such as `paragraph`, `heading`, `list`, `table`, `figure` and `contents`. Fonts and images are named in the document, and their bytes come beside it in `Resources`, so the JSON holds no files.
+
+A format with a schema suits programs and language models: they write the document, and the schema checks it before anything is drawn. Lamina PDF reads only the keys the format defines. A misspelt one fails with `invalid-document`, whose `data.pointer` names the value and whose `didYouMean` suggests the key it was close to.
+
+A template is the same JSON with placeholders that `fill` replaces from your data. `$data` puts in a value and `$each` repeats a block or table row per item, with `$item` for a value of the current item. `$if` keeps a block only when a value is there. The [Fill an invoice from JSON](/recipes/invoice-from-json/) recipe builds a two-page invoice this way.
+
 ## Fields in headers and footers
 
 A slot's text can hold fields, which the flow fills in on each page:

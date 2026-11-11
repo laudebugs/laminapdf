@@ -17,6 +17,18 @@ fn data<const N: usize>(entries: [(&str, Value); N]) -> Data {
     entries.into_iter().map(|(k, v)| (k.to_owned(), v)).collect()
 }
 
+/// The `didYouMean` candidates of `error`: the closest known keys for a misspelt one in a
+/// document (`invalid-document`); none for every other error.
+pub(crate) fn did_you_mean(error: &Error) -> Vec<String> {
+    match error {
+        #[cfg(feature = "build")]
+        Error::Core(CoreError(Inner::Build(laminapdf_build::Error::InvalidDocument { did_you_mean, .. }))) => {
+            did_you_mean.clone()
+        }
+        _ => Vec::new(),
+    }
+}
+
 /// The `data` of `error`.
 pub(crate) fn of_error(error: &Error) -> Data {
     match error {
@@ -225,6 +237,20 @@ fn build(e: &laminapdf_build::Error) -> Data {
         }
         E::LinkWithoutStructure { page, count } => data([("page", json!(page)), ("count", json!(count))]),
         E::FontNotEmbedded { profile, font } => data([("profile", json!(profile.as_str())), ("font", json!(font))]),
+        E::InvalidDocument { pointer, reason, .. } => data([("pointer", json!(pointer)), ("reason", json!(reason))]),
+        E::TemplateDataMissing { pointer, placeholder } => {
+            data([("pointer", json!(pointer)), ("placeholder", json!(placeholder))])
+        }
+        E::TemplateDataType {
+            pointer,
+            placeholder,
+            expected,
+        } => data([
+            ("pointer", json!(pointer)),
+            ("placeholder", json!(placeholder)),
+            ("expected", json!(expected)),
+        ]),
+        E::TemplateTooLarge { limit } => data([("limit", json!(limit))]),
         E::GlyphWithoutUnicode { profile, font, gid } => data([
             ("profile", json!(profile.as_str())),
             ("font", json!(font)),

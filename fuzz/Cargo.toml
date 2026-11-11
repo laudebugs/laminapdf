@@ -23,7 +23,7 @@ laminapdf-ops = { path = "../crates/laminapdf-ops" }
 laminapdf-save = { path = "../crates/laminapdf-save", features = ["test-support"] }
 laminapdf-text = { path = "../crates/laminapdf-text" }
 laminapdf-extract = { path = "../crates/laminapdf-extract" }
-laminapdf-build = { path = "../crates/laminapdf-build", features = ["markdown"] }
+laminapdf-build = { path = "../crates/laminapdf-build", features = ["markdown", "serde"] }
 laminapdf-desktop-protocol = { path = "../crates/laminapdf-desktop-protocol" }
 serde = "1.0.229"
 serde_json = "1.0.154"
@@ -107,6 +107,13 @@ bench = false
 [[bin]]
 name = "markdown"
 path = "fuzz_targets/markdown.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "document"
+path = "fuzz_targets/document.rs"
 test = false
 doc = false
 bench = false

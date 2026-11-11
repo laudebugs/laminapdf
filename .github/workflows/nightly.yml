@@ -232,6 +232,7 @@ jobs:
             extract_text,
             extract,
             markdown,
+            document,
             xmp_parse,
             engine_protocol_decode,
           ]

@@ -264,6 +264,21 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             profile: Profile::PdfA3b,
             name: "data.bin".into(),
         }),
+        Error::from(B::InvalidDocument {
+            pointer: "/blocks/0/spaceAftr".into(),
+            reason: "unknown-key",
+            did_you_mean: vec!["spaceAfter".into()],
+        }),
+        Error::from(B::TemplateDataMissing {
+            pointer: "/total".into(),
+            placeholder: "$data",
+        }),
+        Error::from(B::TemplateDataType {
+            pointer: "/items".into(),
+            placeholder: "$each",
+            expected: "list",
+        }),
+        Error::from(B::TemplateTooLarge { limit: 100_000 }),
     ];
     let warnings: Vec<Warning> = vec![
         W::XrefStmIgnored { offset: 1 }.into(),
