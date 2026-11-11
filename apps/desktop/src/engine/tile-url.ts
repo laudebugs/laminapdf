@@ -31,7 +31,7 @@ function hex({ r, g, b, a }: Rgba8): string {
 }
 
 /** The `a` parameter: `original`, `sepia`, `dark` or `hc-{ink}-{paper}`. */
-export function appearanceParam(appearance: PageAppearance | undefined): string {
+function appearanceParam(appearance: PageAppearance | undefined): string {
   if (appearance === undefined || typeof appearance === "string") return appearance ?? "original";
   return `hc-${hex(appearance.ink)}-${hex(appearance.paper)}`;
 }

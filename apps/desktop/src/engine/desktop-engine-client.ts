@@ -31,7 +31,7 @@ import type {
 import { type TileTransport, tileUrl } from "./tile-url.ts";
 
 /** A page as the main process reports it: displayed size in points and `/Rotate`. */
-export interface DesktopPage {
+interface DesktopPage {
   readonly width: number;
   readonly height: number;
   readonly rotate: number;
@@ -53,7 +53,7 @@ export interface DesktopDocument {
 }
 
 /** How a document came back after its engine restarted (`Reopened` in Rust). */
-export type Reopened = "open" | "locked" | "closed";
+type Reopened = "open" | "locked" | "closed";
 
 /** `engine://restarted`'s payload. */
 export interface RestartedPayload {

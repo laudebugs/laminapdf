@@ -33,7 +33,7 @@ export function desktopFile(opened: DesktopDocument): PlatformFile {
 }
 
 /** The document `file` stands for, when the main process opened it. */
-export function documentOf(file: PlatformFile): DesktopDocument | undefined {
+function documentOf(file: PlatformFile): DesktopDocument | undefined {
   return documents.get(file);
 }
 
