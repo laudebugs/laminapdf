@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E1 editing foundation §8](../../plans/editor/e1-editing-foundation.md#8-differences-between-the-shells) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D4b](./D4b-native-menus.md), [E1d](./E1d-edit-session-undo-ui.md) |
+| Depends on | [D4b](./D4b-native-menus.md), [E1d](../ongoing/E1d-edit-session-undo-ui.md) |
 | ADRs | Follows ADR 0006, 0008 |
 | Branch | `feat/e1h-desktop-edit-session` |
 | PR title | `feat(desktop): the edit session, the Edit menu and the close guard` |

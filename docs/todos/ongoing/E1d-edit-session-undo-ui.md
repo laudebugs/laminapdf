@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E1 editing foundation §5](../../plans/editor/e1-editing-foundation.md#5-the-edit-session-and-the-modes) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [C4e](../done/C4e-reader-chrome.md), [E1a](../done/E1a-editing-foundation-feature-plan.md), [E1g](../done/E1g-redraw-after-edit.md) |
