@@ -1,7 +1,7 @@
 ---
 title: "A Cloudflare Worker"
 description: "A Cloudflare Worker that returns a one-page letter per request, in a standard 14 font or a bundled one, and a 400 for a name the font can't draw."
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/recipes/cloudflare-worker/"
 ---
 
