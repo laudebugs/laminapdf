@@ -15,7 +15,7 @@
 
 ## Goal
 
-Let a program or an LLM write a flowing document as JSON, check it against a committed schema, and fill it from data: an invoice template plus its line items gives a paginated, tagged invoice, from Rust (the command line and MCP follow in [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)). Filling a template from data is the second-largest generation request on Hacker News, about 560 comments: "I make invoices by having a Typst template read line items from a JSON file." ([39672973](https://news.ycombinator.com/item?id=39672973)) and "It’s absolutely trivial for example to build a Lambda function that parses some json input into a PDF." ([45394409](https://news.ycombinator.com/item?id=45394409)) Talk of AI near generation rose from 6 to 263 comments ("Frontier LLMs work great with Typst.", [48548712](https://news.ycombinator.com/item?id=48548712)); a format with a schema lets an agent write it and a program check it before anything is drawn. The typed TypeScript form comes next, in [T4j](../ready/T4j-documents-in-typescript.md).
+Let a program or an LLM write a flowing document as JSON, check it against a committed schema, and fill it from data: an invoice template plus its line items gives a paginated, tagged invoice, from Rust (the command line and MCP follow in [T4k](../ongoing/T4k-json-documents-in-the-cli-and-mcp.md)). Filling a template from data is the second-largest generation request on Hacker News, about 560 comments: "I make invoices by having a Typst template read line items from a JSON file." ([39672973](https://news.ycombinator.com/item?id=39672973)) and "It’s absolutely trivial for example to build a Lambda function that parses some json input into a PDF." ([45394409](https://news.ycombinator.com/item?id=45394409)) Talk of AI near generation rose from 6 to 263 comments ("Frontier LLMs work great with Typst.", [48548712](https://news.ycombinator.com/item?id=48548712)); a format with a schema lets an agent write it and a program check it before anything is drawn. The typed TypeScript form comes next, in [T4j](../ready/T4j-documents-in-typescript.md).
 
 ## Context
 
@@ -41,7 +41,7 @@ Let a program or an LLM write a flowing document as JSON, check it against a com
 
   Values are written as given: the data arrives formatted. Errors (new, `buildErrors`): `template-data-missing` (a pointer with no value) and `template-data-type` (`$each` over something that isn't an array, or text from an object). Both carry the pointer in their `data`.
 - **Rust:** `laminapdf::flow::document::fill(template, &data)` (new) gives a `Flow`; `Builder::flow` (T4b) builds it.
-- **The CLI and MCP inputs moved to [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)** (this todo's size risk: the Rust format, templates, example and fuzz target came to about 1,600 lines on their own). What follows was the plan for them. **The CLI:** `laminapdf build doc.json [--data FILE|-] -o OUT`. A `.json` input whose `schema` is `laminapdf.document/1` takes `--font NAME=FILE` and `--image NAME=FILE`, and resolves names it isn't given from files next to the document. The `laminapdf.build/1` report gains keys only.
+- **The CLI and MCP inputs moved to [T4k](../ongoing/T4k-json-documents-in-the-cli-and-mcp.md)** (this todo's size risk: the Rust format, templates, example and fuzz target came to about 1,600 lines on their own). What follows was the plan for them. **The CLI:** `laminapdf build doc.json [--data FILE|-] -o OUT`. A `.json` input whose `schema` is `laminapdf.document/1` takes `--font NAME=FILE` and `--image NAME=FILE`, and resolves names it isn't given from files next to the document. The `laminapdf.build/1` report gains keys only.
 - **MCP** (moved to T4k too): `laminapdf_build` takes `document` and `data` inline, beside T4i's `markdown` and `input`. Its `inputSchema` inlines `laminapdf.document/1` under `$defs`, as `laminapdf.error/1` is inlined today.
 - **The example:** `crates/laminapdf/examples/invoice_from_json.rs` over `fixtures/documents/invoice.json` (the template) and `fixtures/documents/invoice-data.json` (40 line items). The output runs to two pages, with the table header on both and the totals with the last rows, under PDF/UA-1. It has byte and render goldens.
 - **A `document` fuzz target:** any JSON in as document and data, a document or a coded error out, never a panic.
@@ -61,8 +61,8 @@ Let a program or an LLM write a flowing document as JSON, check it against a com
 - [x] The schema test in `crates/laminapdf-build/tests/document_schema.rs` (new): writes the schema with `UPDATE_GOLDEN=1`, fails when it is stale, and validates every fixture document against it with `boon`, as the façade's tests do
 - [x] `flow/template.rs`: `fill` with `$data`, `$each`, `$item` and `$if`; the three new codes with their `codes.json` entries and `docs/errors/` pages, then `cargo xtask gen codes`
 - [x] The façade: `laminapdf::flow::document::fill`, behind the façade feature that turns on `laminapdf-build`'s `serde` (decided: a separate `document` feature, on by default like `markdown`, which `text` doesn't imply, so the WebAssembly modules leave it out until T4j; decide in review whether `text` implies it)
-- [ ] ~~The CLI: `.json` inputs in `commands/build.rs`, `--data` (standard input once, as ADR 0031 §4 allows), `--font NAME=FILE` and `--image NAME=FILE`; the schema in `schemas/build.schema.json` regenerated~~ moved to [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)
-- [ ] ~~MCP: `document` and `data` on `laminapdf_build`; the inlined schema under `$defs`, checked by `every_reference_should_resolve_inside_its_schema`~~ moved to [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)
+- [ ] ~~The CLI: `.json` inputs in `commands/build.rs`, `--data` (standard input once, as ADR 0031 §4 allows), `--font NAME=FILE` and `--image NAME=FILE`; the schema in `schemas/build.schema.json` regenerated~~ moved to [T4k](../ongoing/T4k-json-documents-in-the-cli-and-mcp.md)
+- [ ] ~~MCP: `document` and `data` on `laminapdf_build`; the inlined schema under `$defs`, checked by `every_reference_should_resolve_inside_its_schema`~~ moved to [T4k](../ongoing/T4k-json-documents-in-the-cli-and-mcp.md)
 - [x] The fixtures with their provenance rows in `fixtures/README.md`, the Rust example and its goldens
 - [x] The fuzz target: `fuzz/fuzz_targets/document.rs`, its `[[bin]]` in `fuzz/Cargo.toml`, `FUZZ_TARGETS` in `tools/xtask/src/harness.rs`, seeds from the fixtures
 - [x] The docs (Docs to update)
@@ -71,10 +71,10 @@ Let a program or an LLM write a flowing document as JSON, check it against a com
 
 - [x] `document.schema.json` is committed and current, and every fixture document validates against it
 - [x] `invoice_from_json` writes the golden's bytes: two pages, the table header on both, the totals on the same page as the last body row; it passes `cargo xtask verapdf` under PDF/UA-1 and `qpdf --check`
-- [ ] ~~`laminapdf build fixtures/documents/invoice.json --data fixtures/documents/invoice-data.json` writes the same bytes, and so does `--data -` with the data on standard input~~ moved to [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)
+- [ ] ~~`laminapdf build fixtures/documents/invoice.json --data fixtures/documents/invoice-data.json` writes the same bytes, and so does `--data -` with the data on standard input~~ moved to [T4k](../ongoing/T4k-json-documents-in-the-cli-and-mcp.md)
 - [ ] A misspelt key fails with `invalid-document` and a `didYouMean` in Rust (the CLI's half moved to T4k)
 - [x] A pointer with no value fails with `template-data-missing` and the pointer in its `data`; with a marker string in the data and the template, no message or hint contains it
-- [ ] ~~`crates/laminapdf-cli/tests/mcp.rs`: `laminapdf_build` builds the invoice from inline `document` and `data` inside a root~~ moved to [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)
+- [ ] ~~`crates/laminapdf-cli/tests/mcp.rs`: `laminapdf_build` builds the invoice from inline `document` and `data` inside a root~~ moved to [T4k](../ongoing/T4k-json-documents-in-the-cli-and-mcp.md)
 - [x] The `document` fuzz target runs in the full lane without a crash
 
 ## Post-merge checks
@@ -118,4 +118,4 @@ Let a program or an LLM write a flowing document as JSON, check it against a com
 - **Pointers.** serde buffers a `type`-tagged block before reading it, so its path stops at the block; when reading fails inside `blocks`, each block is read again kind by kind for the exact pointer. `didYouMean` suggests only the format's own keys, read after serde's last `, expected `, never the document's names (ADR 0026 §4).
 - **Templates.** `$each` and `$if` also take `{ "$item": … }` for lists inside each item; a placeholder object holds nothing else; a malformed pointer is an error, not a silent false; `template-too-large` (a fourth new code) stops a template past 100,000 values or 64 levels.
 - **The façade feature** is `document`, on by default, not implied by `text`, so the WebAssembly modules leave it out until T4j.
-- **Split:** the CLI and MCP inputs are [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md).
+- **Split:** the CLI and MCP inputs are [T4k](../ongoing/T4k-json-documents-in-the-cli-and-mcp.md).

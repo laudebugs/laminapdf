@@ -3,13 +3,13 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4k` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [T4e](../done/T4e-json-documents-and-templates.md) |
 | Dependency notes | T4e split its CLI and MCP inputs off into this todo, as its risk note allowed: the Rust format, templates, example and fuzz target came to about 1,600 lines on their own. |
 | ADRs | Implements [ADR 0032 §7](../../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) (`--data` and the MCP tool's document input); follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as ADR 0032 amends it, and its [§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output) versioning rule |
-| Branch | `feat/t4k-json-documents-cli-mcp` |
+| Branch | `feat/t4k-json-documents-in-the-cli-and-mcp` |
 | PR title | `feat(cli): JSON documents and templates from laminapdf build and its MCP tool` |
 | Size | M (≈ 300–450 lines: the CLI inputs, the MCP arguments and their inlined schema, tests, docs) |
 | PR | — |
@@ -57,6 +57,7 @@ Build a `laminapdf.document/1` document, or fill a template, without writing cod
 ## Docs to update
 
 - The "Fill an invoice from JSON" recipe: the CLI command
+- The docs site's Command line pages: "Make and change PDFs" (a JSON document and `--data`), and the MCP page's `laminapdf_build`
 - `crates/laminapdf-cli/README.md`; `packages/sdk/examples/AGENTS.md` (the MCP tool's document input); `CLAUDE.md`'s CLI paragraph
 
 ## Risks and open questions
