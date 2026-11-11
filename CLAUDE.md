@@ -396,8 +396,9 @@ cargo xtask check docs       # docs-links + docs-prose + docs-snippets + todos -
                              #   in docs/design/paper/screens.md has its area heading and design file, canvas.json matches the files;
                              #   "Not yet drawn" IDs reported) + capability matrix static checks
                              #   + renames (docs/renames.json against laminapdf.renames/1, an entry per #[deprecated]/@deprecated item,
-                             #   every new name in the sources) + package metadata (no ADR number, todo ID or "private" in a published
-                             #   package's description or README's first paragraph) + gen codes --check + gen boundary --check + version sync --check
+                             #   every new name in the sources) + package metadata (every published package, the CLI's npm wrapper
+                             #   included, has a description; no ADR number, todo ID or "is private" in it or its README's
+                             #   first paragraph) + gen codes --check + gen boundary --check + version sync --check
                              #   (fast; no network, no build, no node_modules)
 cargo xtask check docs-prose [--all-strict] [--warnings] [--json]  # reader-facing text (docs site, docs/errors, package
                              #   READMEs) vs docs/guidelines/docs-writing.md (word lists: tools/xtask/docs-prose.toml); errors on

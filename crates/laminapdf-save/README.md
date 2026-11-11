@@ -1,6 +1,6 @@
 # laminapdf-save
 
-Save edited PDFs in Rust: an incremental update that leaves the original bytes, and the signatures over them, untouched, or a full rewrite. A planner checks which of the two is safe for the document before anything is written. Most programs use it through [`laminapdf`](../laminapdf/README.md), which wraps the core crates in one API.
+Save edited PDFs in Rust: an incremental update appended after the original bytes, which leaves them and the signatures over them as they were, or a full rewrite. A planner checks the document's signatures and permissions before anything is written, and refuses an edit that would break a signature unless you allow it. Most programs use it through [`laminapdf`](../laminapdf/README.md), which wraps the core crates in one API.
 
 Saving PDFs ([ADR 0007](../../docs/decisions/0007-save-planner.md), [ADR 0005](../../docs/decisions/0005-document-model.md) §3): the save planner that decides how a document may be saved, the writers that turn a document's overlay ([`laminapdf-cos`](../laminapdf-cos/README.md)) into bytes, the sinks they stream to, and the rebase that makes the output the new base of a [`laminapdf-ops`](../laminapdf-ops/README.md) document. Part of Lamina PDF's pure core: bytes in, bytes out.
 

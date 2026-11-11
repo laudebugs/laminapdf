@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-save"
-description = "Save edited PDFs in Rust: an incremental update that leaves the original bytes and their signatures untouched, or a full rewrite, chosen by a planner that knows which is safe."
+description = "Save edited PDFs in Rust: an incremental update appended after the original bytes, or a full rewrite, chosen by a planner that checks the document's signatures and permissions first."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
