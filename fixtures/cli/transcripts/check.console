@@ -1,0 +1,5 @@
+$ laminapdf check scan.pdf
+warning[xref-repaired]: the stored cross-reference data was unusable and was rebuilt by scanning
+scan.pdf: 1 warning · 1 page · 5 objects
+$ echo $?
+3

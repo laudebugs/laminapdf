@@ -1,0 +1,5 @@
+$ mkdir -p thumbs
+$ laminapdf render report.pdf --pages 1-3 --dpi 72 -o 'thumbs/{stem}-{n:03}.png'
+page 1: 419 × 595 px → thumbs/report-001.png
+page 2: 419 × 595 px → thumbs/report-002.png
+page 3: 419 × 595 px → thumbs/report-003.png
