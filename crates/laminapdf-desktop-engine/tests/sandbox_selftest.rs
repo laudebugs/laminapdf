@@ -13,8 +13,8 @@ use std::process::Command;
 use std::sync::{Arc, Mutex, mpsc};
 use std::time::Duration;
 
-use laminapdf_desktop_protocol::DocId;
 use laminapdf_desktop_protocol::supervisor::{Config, Event, Process as _, RangeServer, Supervisor};
+use laminapdf_desktop_protocol::{DocId, Layer};
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, spawn_sandboxed};
 
 fn engine() -> PathBuf {
@@ -82,23 +82,10 @@ fn assert_blocked(probe: &str) {
 fn the_selftest_should_name_this_os_sandbox_layers() {
     let run = selftest("threads");
     let layers = run.outcome("sandbox").unwrap();
-    let expected: &[&str] = if cfg!(target_os = "linux") {
-        &["no-new-privs", "seccomp", "memory-limit"]
-    } else if cfg!(target_os = "macos") {
-        &["seatbelt"]
-    } else if cfg!(windows) {
-        &[
-            "job",
-            "memory-limit",
-            "low-integrity",
-            "restricted-token",
-            "mitigations",
-        ]
-    } else {
-        &[]
-    };
-    for layer in expected {
-        assert!(layers.split(' ').any(|l| l == *layer), "{layer} missing from {layers}");
+    // Every layer this OS requires, by its log name (the main process refuses an engine without).
+    let expected: Vec<String> = Layer::REQUIRED.iter().map(ToString::to_string).collect();
+    for layer in &expected {
+        assert!(layers.split(' ').any(|l| l == layer), "{layer} missing from {layers}");
     }
 }
 

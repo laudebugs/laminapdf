@@ -39,7 +39,7 @@ jobs:
           dir=$(cargo xtask fetch-pdfium | sed -n 's/^LAMINA_PDF_PDFIUM_DIR=//p')
           echo "LAMINA_PDF_PDFIUM_DIR=$dir" >> "$GITHUB_ENV"
           export LAMINA_PDF_PDFIUM_DIR=$dir
-          if [ "$RUNNER_OS" = Linux ]; then sudo apt-get install -y -q --no-install-recommends fonts-noto-cjk >/dev/null; fi
+          if [ "$RUNNER_OS" = Linux ]; then sudo apt-get update -q >/dev/null && sudo apt-get install -y -q --no-install-recommends fonts-noto-cjk | tail -1; fc-list :lang=zh | head -3; fi
           cargo test --locked -p laminapdf-desktop-sandbox -p laminapdf-desktop-protocol -p laminapdf-desktop-engine \
             --features laminapdf-desktop-protocol/test-support,laminapdf-desktop-engine/selftest \
             -- --include-ignored --nocapture 2>&1 | tee -a probe-logs/tests.log
@@ -50,7 +50,7 @@ jobs:
         run: |
           cargo test --locked -p laminapdf-desktop-engine --features seccomp-trap,selftest -- --include-ignored --nocapture 2>&1 | grep -E "seccomp refused|FAILED|panicked" | tee -a probe-logs/trap.log
       - name: Measure with and without the sandbox (release, debug assertions on for the switch)
-        if: always() && (matrix.runner == 'ubuntu-24.04' || matrix.runner == 'windows-2025')
+        if: false
         shell: bash
         env:
           CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: "true"

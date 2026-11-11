@@ -135,7 +135,11 @@ fn run() -> Result<(), String> {
     });
     // The app lists the system's fonts once, in the background; here before the clock starts.
     let fonts = SystemFonts::scan();
-    println!("system fonts: {} faces listed in {:.1} ms", fonts.len(), fonts.took.as_secs_f64() * 1000.0);
+    println!(
+        "system fonts: {} faces listed in {:.1} ms",
+        fonts.len(),
+        fonts.took.as_secs_f64() * 1000.0
+    );
     let config = Config {
         fonts: Some(Arc::new(fonts)),
         ..Config::default()
