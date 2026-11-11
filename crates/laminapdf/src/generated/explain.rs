@@ -2309,7 +2309,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E1c](../todos/ongoing/E1c-metadata-ops.md): the metadata ops
+- [E1c](../todos/done/E1c-metadata-ops.md): the metadata ops
 "#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
@@ -2340,7 +2340,7 @@ Keep one author, writing several names as one entry (`"Ada Lovelace and Charles 
 
 The decisions and todos behind this code:
 
-- [E1c](../todos/ongoing/E1c-metadata-ops.md): the conformance warnings
+- [E1c](../todos/done/E1c-metadata-ops.md): the conformance warnings
 "#,
         "pdfua-title-missing" => r#"# `pdfua-title-missing`
 
@@ -2371,7 +2371,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E1c](../todos/ongoing/E1c-metadata-ops.md): the conformance warnings
+- [E1c](../todos/done/E1c-metadata-ops.md): the conformance warnings
 "#,
         "pdfa-info-mismatch" => r#"# `pdfa-info-mismatch`
 
@@ -2402,7 +2402,7 @@ A PDF/A-2b file whose Info `/Title` is "Draft" while its `dc:title` is "Final": 
 
 The decisions and todos behind this code:
 
-- [E1c](../todos/ongoing/E1c-metadata-ops.md): the conformance warnings
+- [E1c](../todos/done/E1c-metadata-ops.md): the conformance warnings
 "#,
         "sink" => r"# `sink`
 

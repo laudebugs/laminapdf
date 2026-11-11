@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E1 editing foundation §2](../../plans/editor/e1-editing-foundation.md#2-the-operations) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E1c](../ongoing/E1c-metadata-ops.md), [E1e](./E1e-save-and-constraint-banner.md), [X2](../done/X2-capability-matrix.md) |
+| Depends on | [E1c](../done/E1c-metadata-ops.md), [E1e](./E1e-save-and-constraint-banner.md), [X2](../done/X2-capability-matrix.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1f-metadata-ui-capability-page` |
 | PR title | `feat(ui): editable document properties and capability matrix page` |

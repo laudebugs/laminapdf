@@ -71,7 +71,7 @@ None.
 
 - Form corpus differential
 - Signed-form fixtures (FieldMDP)
-- Save-time metadata (moved from [E1c](../ongoing/E1c-metadata-ops.md), which had no form-fill op): a `SetFieldValue` on `fixtures/signed/certified-p2.pdf` saved with `metadataDate` saves `AppendOnly`, `SaveReport::metadata_not_updated` is set, and the appended revision touches neither the Info dictionary nor `/Metadata`
+- Save-time metadata (moved from [E1c](../done/E1c-metadata-ops.md), which had no form-fill op): a `SetFieldValue` on `fixtures/signed/certified-p2.pdf` saved with `metadataDate` saves `AppendOnly`, `SaveReport::metadata_not_updated` is set, and the appended revision touches neither the Info dictionary nor `/Metadata`
 
 ## Docs to update
 

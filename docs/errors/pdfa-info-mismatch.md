@@ -27,4 +27,4 @@ A PDF/A-2b file whose Info `/Title` is "Draft" while its `dc:title` is "Final": 
 
 The decisions and todos behind this code:
 
-- [E1c](../todos/ongoing/E1c-metadata-ops.md): the conformance warnings
+- [E1c](../todos/done/E1c-metadata-ops.md): the conformance warnings
