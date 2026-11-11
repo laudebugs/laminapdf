@@ -4,8 +4,9 @@
 //! - **The primary token is locked down** from the start: a restricted copy of the user's token
 //!   with every group (the user's SID too) deny-only, every privilege but `SeChangeNotify` gone,
 //!   the NULL SID as its only restricting SID (so no access check can succeed), at Low integrity.
-//! - **The first thread impersonates** a less restricted token (the user's groups, no privileges,
-//!   Low integrity) so the loader and PDFium can read the install folder; the engine drops it
+//! - **The first thread impersonates** a less restricted token (the user's groups, also as its
+//!   restricting SIDs, so it has the user's access but counts as restricted; no privileges; Low
+//!   integrity) so the loader and PDFium can read the install folder; the engine drops it
 //!   with `RevertToSelf` once PDFium is loaded (`lockdown/windows.rs`).
 //! - **A job object** holds it from creation (`PROC_THREAD_ATTRIBUTE_JOB_LIST`): a committed-
 //!   memory limit, one active process, killed when the main process's handle closes, and the
@@ -45,6 +46,7 @@ use windows_sys::Win32::System::Threading::{
 };
 
 use super::{Inner, SandboxedChild, SandboxedProcess};
+use crate::win32::{JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOB_OBJECT_LIMIT_PROCESS_MEMORY};
 use crate::{SandboxConfig, SandboxError};
 
 // winnt.h / winbase.h values, spelled out so each is next to its meaning.
@@ -66,8 +68,6 @@ const PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY: usize = 0x0002_0007;
 const PROC_THREAD_ATTRIBUTE_JOB_LIST: usize = 0x0002_000D;
 const PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY: usize = 0x0002_000E;
 const PROCESS_CREATION_CHILD_PROCESS_RESTRICTED: u32 = 0x1;
-const JOB_OBJECT_LIMIT_ACTIVE_PROCESS: u32 = 0x8;
-const JOB_OBJECT_LIMIT_PROCESS_MEMORY: u32 = 0x100;
 const JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION: u32 = 0x400;
 const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: u32 = 0x2000;
 /// Every `JOB_OBJECT_UILIMIT_*` flag: handles, clipboard, system parameters, display settings,
@@ -262,7 +262,8 @@ impl Tokens {
         // SAFETY: `user` holds a TOKEN_USER and `groups` a TOKEN_GROUPS as GetTokenInformation
         // wrote them, 8-byte aligned; the SID pointers inside point into the same buffers, which
         // live until the tokens below are made.
-        let disable: Vec<SID_AND_ATTRIBUTES> = unsafe {
+        // Every SID of the user's token but its integrity label.
+        let sids: Vec<SID_AND_ATTRIBUTES> = unsafe {
             let user = user.as_ptr().cast::<TOKEN_USER>().read();
             let groups = groups.as_ptr().cast::<TOKEN_GROUPS>();
             let count = (*groups).GroupCount as usize;
@@ -281,9 +282,12 @@ impl Tokens {
             Sid: null_sid.0,
             Attributes: 0,
         }];
-        let primary = restricted(&own, &disable, &restrict)?;
+        let primary = restricted(&own, &sids, &restrict)?;
         set_low_integrity(&primary)?;
-        let start_up = restricted(&own, &[], &[])?;
+        // Restricted to the user's own SIDs: the same access, but a restricted token, which is what a
+        // thread of a process with a restricted primary token may impersonate (otherwise Windows
+        // drops it to identification level and the loader fails, STATUS_BAD_IMPERSONATION_LEVEL).
+        let start_up = restricted(&own, &[], &sids)?;
         set_low_integrity(&start_up)?;
         let mut raw: HANDLE = null_mut();
         // SAFETY: `start_up` is an open primary token with TOKEN_DUPLICATE; `raw` receives the
@@ -423,7 +427,7 @@ fn create(
     job: &OwnedHandle,
     inherited: &[HANDLE; 3],
 ) -> Result<(OwnedHandle, OwnedHandle, u32), SandboxError> {
-    let program = wide(command.get_program());
+    let program = wide(&executable(command.get_program()));
     let mut line = command_line(command);
     let mitigations = MITIGATIONS;
     let child_policy = PROCESS_CREATION_CHILD_PROCESS_RESTRICTED;
@@ -518,6 +522,18 @@ fn create(
 /// `size_of::<T>()` as the `u32` Windows' length arguments take (every structure here is small).
 fn size32<T>() -> u32 {
     u32::try_from(size_of::<T>()).unwrap_or(u32::MAX)
+}
+
+/// `program`, with `.exe` added when it names no extension and that file exists, as `Command`
+/// does: `CreateProcessAsUserW` takes the file name as it is.
+fn executable(program: &OsStr) -> std::ffi::OsString {
+    let path = std::path::Path::new(program);
+    let exe = path.with_extension("exe");
+    if path.extension().is_none() && exe.is_file() {
+        exe.into_os_string()
+    } else {
+        program.to_os_string()
+    }
 }
 
 /// `s` as a NUL-terminated wide string.

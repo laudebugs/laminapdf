@@ -20,6 +20,8 @@
 //! debug builds only ([`sandbox_disabled`]).
 
 mod spawn;
+#[cfg(windows)]
+mod win32;
 
 #[cfg(feature = "engine")]
 mod lockdown;

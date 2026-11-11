@@ -12,7 +12,8 @@
 //!      clocks, signals to itself, reads and writes on open descriptors, `clone` only with
 //!      `CLONE_THREAD`. Not `socket`, `fork`, `vfork`, `execve` or `execveat`;
 //!    - the calls that name a path (`openat`, `newfstatat`, …) fail with `EACCES`, so PDFium's
-//!      font lookup finds nothing instead of killing the engine, Landlock or not;
+//!      font lookup finds nothing instead of killing the engine, Landlock or not; so does
+//!      `sysinfo`;
 //!    - `clone3` fails with `ENOSYS`: its flags sit behind a pointer the filter can't read, and
 //!      glibc (≥ 2.34) and Rust's std then fall back to `clone`, which the first filter checks.
 //!
@@ -151,8 +152,10 @@ const ALLOWED: &[libc::c_long] = &[
     libc::SYS_getrlimit,
 ];
 
-/// The calls that name a path: `EACCES`, so a lookup fails like a missing file.
+/// The calls that name a path: `EACCES`, so a lookup fails like a missing file. And `sysinfo`
+/// (uptime, load, memory), which glibc's `qsort` asks for and does without.
 const PATHS: &[libc::c_long] = &[
+    libc::SYS_sysinfo,
     libc::SYS_openat,
     libc::SYS_openat2,
     libc::SYS_newfstatat,

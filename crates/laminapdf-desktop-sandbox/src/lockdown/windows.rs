@@ -32,10 +32,8 @@ use windows_sys::Win32::System::Threading::{
     ProcessChildProcessPolicy, ProcessDynamicCodePolicy, ProcessSignaturePolicy, SetProcessMitigationPolicy,
 };
 
+use crate::win32::{JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOB_OBJECT_LIMIT_PROCESS_MEMORY};
 use crate::{SandboxConfig, SandboxError};
-
-const JOB_OBJECT_LIMIT_ACTIVE_PROCESS: u32 = 0x8;
-const JOB_OBJECT_LIMIT_PROCESS_MEMORY: u32 = 0x100;
 
 pub(super) fn apply(_config: SandboxConfig) -> Result<SandboxLevel, SandboxError> {
     // Opened while still impersonating: the locked-down token can't open even its own token.
