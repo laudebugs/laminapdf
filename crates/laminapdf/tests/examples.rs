@@ -31,6 +31,9 @@ mod images_and_vectors;
 #[path = "../examples/invoice.rs"]
 mod invoice;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/invoice_from_json.rs"]
+mod invoice_from_json;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/links_and_outlines.rs"]
 mod links_and_outlines;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -83,6 +86,7 @@ const FLOW_ID: &[u8; 16] = b"lamina-ex-flow!!";
 const FLOWING_ID: &[u8; 16] = b"lamina-ex-flowng";
 const FLOWING_INVOICE_ID: &[u8; 16] = b"lamina-ex-flowiv";
 const MARKDOWN_ID: &[u8; 16] = b"lamina-ex-mrkdwn";
+const JSON_INVOICE_ID: &[u8; 16] = b"lamina-ex-jsoniv";
 const PRODUCER: &str = "lamina examples";
 const CREATED: &str = "D:20261030120000Z";
 const EDITED: &str = "D:20261030130000Z";
@@ -102,7 +106,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 14] = [
+const EXAMPLES: [(&str, Build); 15] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -135,6 +139,15 @@ const EXAMPLES: [(&str, Build); 14] = [
     ("flowing_invoice", || {
         flowing_invoice::build(
             options(FLOWING_INVOICE_ID)?,
+            fixture(NOTO),
+            fixture("fonts/NotoSans-RegularBold.ttc"),
+        )
+    }),
+    ("invoice_from_json", || {
+        invoice_from_json::build(
+            options(JSON_INVOICE_ID)?,
+            &fixture("documents/invoice.json"),
+            &fixture("documents/invoice-data.json"),
             fixture(NOTO),
             fixture("fonts/NotoSans-RegularBold.ttc"),
         )

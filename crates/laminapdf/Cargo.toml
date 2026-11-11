@@ -137,6 +137,10 @@ name = "flowing_report"
 required-features = ["text"]
 
 [[example]]
+name = "invoice_from_json"
+required-features = ["document"]
+
+[[example]]
 name = "markdown_to_pdf"
 required-features = ["markdown"]
 
