@@ -11,7 +11,7 @@
 | Branch | `feat/t4e-json-documents-and-templates` |
 | PR title | `feat(build): JSON documents and templates in Rust and the CLI` |
 | Size | L (≈ 600–750 lines: the derives and schema test, validation, the template module, the CLI and MCP inputs, the example and the fuzz target; the schema, fixtures and goldens don't count) |
-| PR | — |
+| PR | [#413](https://github.com/laudebugs/laminapdf/pull/413) |
 
 ## Goal
 
