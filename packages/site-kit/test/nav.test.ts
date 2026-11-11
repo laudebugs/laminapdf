@@ -35,6 +35,17 @@ describe("siteNav", () => {
     ]);
   });
 
+  it("puts How we test between Performance and Privacy", () => {
+    const all = [...pages, "/src/pages/performance.astro", "/src/pages/how-we-test.astro"];
+    expect(siteNav(all, { site: "website", path: "/how-we-test/" }).map((link) => [link.label, link.current])).toEqual([
+      ["Download", undefined],
+      ["Docs", undefined],
+      ["Performance", undefined],
+      ["How we test", "page"],
+      ["Privacy", undefined],
+    ]);
+  });
+
   it("marks a website link as the current section on the pages below it", () => {
     const nav = siteNav(pages, { site: "website", path: "/download/linux/" });
     expect(nav.map((link) => [link.label, link.current])).toEqual([

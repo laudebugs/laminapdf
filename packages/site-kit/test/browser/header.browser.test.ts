@@ -60,11 +60,11 @@ for (const theme of ["light", "dark"] as const) {
       document.body.prepend(start);
       start.focus();
       const order: string[] = [];
-      for (let i = 0; i < 5; i += 1) {
+      for (let i = 0; i < 6; i += 1) {
         await tabForward();
         order.push(document.activeElement?.textContent?.trim() ?? "");
       }
-      expect(order).toEqual(["Lamina PDF", "Download", "Docs", "Privacy", "Search"]);
+      expect(order).toEqual(["Lamina PDF", "Download", "Docs", "How we test", "Privacy", "Search"]);
     });
 
     it("draws the current page in 600 with the accent underline, and the others plain", () => {

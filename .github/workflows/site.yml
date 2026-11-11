@@ -12,8 +12,9 @@
 # custom domain route in wrangler.toml). Before building, it regenerates the roadmap
 # (apps/site/src/data/progress.json) with `cargo xtask progress`: any merge can move a todo,
 # whatever files it touches, so pushes have no path filter, and the schedule picks up the pull
-# requests opened since the last deploy, whose todos show as in progress. The committed snapshot
-# is what PR previews and local builds show.
+# requests opened since the last deploy, whose todos show as in progress. It then refreshes How we
+# test's figures (apps/site/src/data/proof.json) from the newest full night on bench-data with
+# `cargo xtask proof snapshot`. The committed snapshots are what PR previews and local builds show.
 #
 # Fork deploy previews are skipped because they cannot receive deployment secrets. Without
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a
@@ -36,6 +37,9 @@ on:
       - crates/laminapdf/examples/hello.rs
       - crates/laminapdf-cli/README.md
       - apps/docs/src/content/docs/install.mdx
+      # What How we test reads at build time: the licence and the licence policy.
+      - Cargo.toml
+      - deny.toml
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
@@ -248,6 +252,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: cargo xtask progress
+      # How we test's figures (apps/site/src/data/proof.json) from the newest full night on
+      # bench-data, which fetch-depth: 0 fetched; without it the committed snapshot stays, with a warning.
+      - name: Refresh the test figures
+        if: steps.secrets.outputs.enabled == 'true'
+        run: cargo xtask proof snapshot
       - if: steps.secrets.outputs.enabled == 'true'
         uses: ./.github/actions/node-pnpm
       - name: Build the site
