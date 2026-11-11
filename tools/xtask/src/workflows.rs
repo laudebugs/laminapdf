@@ -604,6 +604,8 @@ mod tests {
             r#"echo "tag=laminapdf-cli-$version_tag" >> "$GITHUB_OUTPUT""#,
             "GH_TOKEN: ${{ steps.bot.outputs.token }}",
             r#"--raw-field ref="refs/tags/$TAG" --raw-field sha="$SHA""#,
+            r#"elif grep -q "HTTP 404" <<< "$answer"; then"#,
+            "if: steps.existing.outputs.exists == 'false' && github.event_name == 'workflow_dispatch' && !inputs.tag",
         ] {
             assert!(job.contains(part), "the CLI release train lacks {part}");
         }

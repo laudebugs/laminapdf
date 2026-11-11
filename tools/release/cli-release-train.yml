@@ -2,8 +2,8 @@
 # The command-line tool's releases (todo L4h): after the release lane publishes the libraries from a
 # `v<version>` tag, the release bot tags `laminapdf-cli-v<version>` on the same commit. That tag
 # starts cli-release.yml, which builds all eight targets and publishes the GitHub release, npm and
-# the Homebrew formula. Every library release gets a CLI release, so the docs' download links,
-# which name the docs' version, always find one. The job checks out and runs nothing from the
+# the Homebrew formula. Every library release gets a CLI release, so the docs' download links
+# (which use the docs' version) don't answer 404. The job checks out and runs nothing from the
 # repository. `CLI_RELEASE_TRAIN=off` (a repository variable) stops future trains.
 name: CLI release train
 
@@ -90,11 +90,15 @@ jobs:
           TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
-          if gh api "repos/$GH_REPO/git/ref/tags/$TAG" >/dev/null 2>&1; then
+          # Only a 404 means missing: any other failure stops the run rather than pass for one.
+          if answer=$(gh api "repos/$GH_REPO/git/ref/tags/$TAG" 2>&1); then
             echo "$TAG exists already; nothing to tag." >> "$GITHUB_STEP_SUMMARY"
             echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
+          elif grep -q "HTTP 404" <<< "$answer"; then
             echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Couldn't check for $TAG: $answer"
+            exit 1
           fi
       - name: Report a dry run
         if: steps.existing.outputs.exists == 'false' && github.event_name == 'workflow_dispatch' && !inputs.tag

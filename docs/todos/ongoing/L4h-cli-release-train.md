@@ -10,7 +10,7 @@
 | Dependency notes | L4g's tag push builds and publishes the CLI; C7e's web train is the pattern to follow. The owner's L4g setup is done: the first release, `laminapdf-cli-v0.2.0-alpha.5`, published on 2026-11-11. |
 | ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) (release gating, the release bot), [0031](../../decisions/0031-cli-and-mcp-contract.md) |
 | Branch | `ci/cli-release-train` |
-| PR title | `ci(cli): tag a CLI release after each daily release that changed it` |
+| PR title | `ci(cli): tag a CLI release after each daily release` |
 | Size | S (≈ 150–250 lines: the workflow, its tests, docs) |
 | PR | [#419](https://github.com/laudebugs/laminapdf/pull/419) |
 
@@ -18,7 +18,7 @@
 
 Release the `laminapdf` CLI without the owner pushing a tag. After each daily library release succeeds, the release bot tags `laminapdf-cli-v<version>` on the release's commit.
 
-**Decided 2026-11-11 (owner): every release, not only when the CLI changed.** The docs site's download table (L4f) links the release named by the docs' version, so a skipped version would leave its links answering 404. Tagging every release keeps the CLI and the libraries in lockstep and needs no change detection; the cost is one CLI build a day and unchanged binaries republished. This replaces the `cargo xtask cli next-release` decision below. The owner also asked for this before T4j, so the T4j dependency (a queue position) is dropped. The tag starts `cli-release.yml`, which builds all eight targets and publishes the GitHub release, npm and the Homebrew formula.
+**Decided 2026-11-11 (owner): every release, not only when the CLI changed.** The docs site's download table (L4f) links the release named by the docs' version, so a skipped version would leave its links answering 404. Tagging every release keeps the CLI and the libraries in lockstep and needs no change detection; the cost is one CLI build a day and unchanged binaries republished. This replaces the `cargo xtask cli next-release` decision the todo first planned. The owner also asked for this before T4j, so the T4j dependency (a queue position) is dropped. The tag starts `cli-release.yml`, which builds all eight targets and publishes the GitHub release, npm and the Homebrew formula.
 
 ## Context
 
@@ -51,7 +51,7 @@ Release the `laminapdf` CLI without the owner pushing a tag. After each daily li
 ## Acceptance criteria
 
 - [ ] A dispatch for an existing `v<version>` tag prints the decision and tags nothing.
-- [ ] After a daily release whose commit changed the CLI, `laminapdf-cli-v<version>` appears on that commit and `cli-release.yml` runs on it.
+- [ ] After each daily release, `laminapdf-cli-v<version>` appears on that commit and `cli-release.yml` runs on it.
 - [ ] A second run for the same release reports the existing tag and pushes nothing.
 - [ ] `CLI_RELEASE_TRAIN=off` stops the train.
 
@@ -66,6 +66,7 @@ Release the `laminapdf` CLI without the owner pushing a tag. After each daily li
 ## Risks and open questions
 
 - **Workflow installation:** if the agent's GitHub access can't push a new workflow file, the owner copies it from `tools/release/`, as with the other trains.
+- **The docs come first:** the release lane deploys the production docs before it finishes, and the CLI tag follows it, so for the CLI release's build time (about half an hour) the new docs' download links answer 404. Homebrew and npm keep serving the previous version meanwhile.
 - **Publishing gate:** while `LAMINA_PDF_PUBLISH_CLI` isn't `true`, a train's tag builds the CLI but publishes nothing. The tag then exists, so the next train skips that version.
 
 ## Definition of done
