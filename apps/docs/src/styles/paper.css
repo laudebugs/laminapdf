@@ -168,6 +168,11 @@ h1#_top,
   align-items: center;
   gap: 1rem;
 }
+/* The theme switch in the header stands as tall as the search box beside it (Starlight's 2.5rem),
+   so the two controls line up; elsewhere the select keeps design language §7.19's 32 px. */
+.docs-header-extras .site-select select {
+  min-block-size: 2.5rem;
+}
 @media (max-width: 49.99rem) {
   .header .site-nav {
     display: none;
