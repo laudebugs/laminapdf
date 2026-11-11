@@ -9,7 +9,10 @@
     "resolveJsonModule": true,
     "types": ["node", "vite/client"],
     "paths": {
-      "@laminapdf/ui": ["../../packages/ui/src/index.ts"]
+      "@laminapdf/ui": ["../../packages/ui/src/index.ts"],
+      "@laminapdf/ui/dialogs": ["../../packages/ui/src/dialogs.ts"],
+      "@laminapdf/ui/editing": ["../../packages/ui/src/editing.ts"],
+      "@laminapdf/ui/reader-mode": ["../../packages/ui/src/reader-mode.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "e2e/**/*.ts", "test/**/*.ts", "*.config.ts"]

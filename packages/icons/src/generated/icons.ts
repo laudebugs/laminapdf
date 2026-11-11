@@ -78,6 +78,7 @@ export const ICONS = {
   "lock": "<rect x=\"5.5\" y=\"10.5\" width=\"13\" height=\"9\" rx=\"1.5\"></rect><path d=\"M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5\"></path>",
   "mark-area": "<rect x=\"4.5\" y=\"5.5\" width=\"12\" height=\"10\" stroke-dasharray=\"2 2\"></rect><rect x=\"15\" y=\"14\" width=\"4.5\" height=\"4.5\"></rect>",
   "mark-text": "<path d=\"M6 5h12M12 5v11\"></path><path d=\"M5 20h14\"></path>",
+  "menu": "<path d=\"M4.5 7h15M4.5 12h15M4.5 17h15\"></path>",
   "more": "<circle cx=\"5.5\" cy=\"12\" r=\"0.9\"></circle><circle cx=\"12\" cy=\"12\" r=\"0.9\"></circle><circle cx=\"18.5\" cy=\"12\" r=\"0.9\"></circle>",
   "move": "<path d=\"M12 4v16M4 12h16M12 4l-2.5 2.5M12 4l2.5 2.5M12 20l-2.5-2.5M12 20l2.5-2.5M4 12l2.5-2.5M4 12l2.5 2.5M20 12l-2.5-2.5M20 12l-2.5 2.5\"></path>",
   "move-to-page": "<path d=\"M4.5 12h11M12 8l4 4-4 4\"></path><path d=\"M19.5 5v14\"></path>",

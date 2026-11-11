@@ -1,9 +1,9 @@
 ---
 title: Make and change PDFs
-description: Turn a Markdown file into a tagged, accessible PDF with laminapdf build, and turn pages with laminapdf pages rotate.
+description: Turn Markdown or a JSON document into a tagged, accessible PDF with laminapdf build, and turn pages with laminapdf pages rotate.
 ---
 
-Make a PDF from a Markdown file, or turn pages of an existing one. Use `build` for reports, release notes and manuals you already write in Markdown; the PDF it makes flows across as many pages as the text needs, and screen readers can follow it.
+Make a PDF from a Markdown file or a JSON document, or turn pages of an existing one. Use `build` for reports and manuals you write in Markdown, and for invoices a program fills in; the PDF flows across as many pages as it needs, and screen readers can follow it.
 
 ## A PDF from Markdown: `build`
 
@@ -72,6 +72,31 @@ The PDF has no creation date unless `--creation-date` gives one, such as `202611
 ### Page size and reports
 
 `--page-size` takes `a4` (the default), `a0` to `a6`, `letter`, `legal` or `tabloid`. With `--json`, `build` prints a `laminapdf.build/1` report with the page count, size and profiles.
+
+## A PDF from JSON
+
+`build` also reads a JSON document in Lamina PDF's own format, `laminapdf.document/1`, which a program or a language model can write. It can be a template whose placeholders `--data` fills, such as an invoice and its line items:
+
+```console
+$ laminapdf build invoice.json --data invoice-data.json --font regular=NotoSans-Regular.ttf --font bold=NotoSans-RegularBold.ttc#1 -o invoice.pdf
+built 2 pages → invoice.pdf (24 KB, PDF/UA-1)
+```
+
+A file whose name ends in `.json` is a document, and so is standard input holding a JSON object. `--data -` reads the data from standard input; the document and the data can't both come from it. [Fill an invoice from JSON](/recipes/invoice-from-json/) explains the format and its placeholders.
+
+### Fonts and images by name
+
+A document names its fonts and images, such as `regular` and `bold` above. `--font NAME=FILE` and `--image NAME=FILE` give the file for each name. A name you don't give is read from a file with exactly that name, such as `regular`, in the document's folder (the working folder when the document comes from standard input), and never from anywhere else. A standard 14 font name, such as `Helvetica`, needs no file.
+
+The document sets its own page size, title, language and profiles, so `--page-size` is refused. `--profile` adds a profile, and `--title` and `--lang` apply only when it gives none.
+
+### Errors that say where
+
+A mistake in the document or the data stops the build with exit 2 and says where it is, as a JSON Pointer, a path such as `/blocks/2/spaceAftr`:
+
+- `invalid-document`: a key the format doesn't know, with the key it probably meant, or a value of the wrong kind.
+- `template-data-missing`: a placeholder points at data that isn't there.
+- `template-data-type`: the data there is the wrong kind, such as text where a list belongs.
 
 ## Turn pages: `pages rotate`
 

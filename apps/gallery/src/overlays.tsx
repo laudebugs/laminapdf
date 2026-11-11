@@ -121,7 +121,7 @@ function SettingsDialogs({ state }: { state: string }): ReactNode {
     "appearance",
     "Appearance and accessibility",
     () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
-    [appearance],
+    { shows: [appearance] },
   );
   if (state === "settings") return <SettingsDialog registry={settings} isOpen onOpenChange={noop} />;
   if (state === "view-settings") {

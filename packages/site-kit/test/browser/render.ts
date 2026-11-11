@@ -28,7 +28,8 @@ export default async function setup(project: TestProject): Promise<void> {
     props: { links: siteNav(PAGES, { site: "website", path: "/privacy/" }), home: "/" },
   });
   const docs = await container.renderToString(SiteHeader, {
-    props: { links: siteNav(PAGES, { site: "docs", path: "/guides/" }), home: "https://laminapdf.com/" },
+    // As the docs site renders it: Starlight's phone menu, not the header's.
+    props: { links: siteNav(PAGES, { site: "docs", path: "/guides/" }), home: "https://laminapdf.com/", menu: false },
     slots: { tools: '<button type="button">Search</button>' },
   });
   project.provide("headers", { website, docs });
