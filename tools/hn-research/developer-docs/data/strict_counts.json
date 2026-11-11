@@ -1,116 +1,116 @@
 {
- "examples": {
-  "all": 481,
-  "threads": 115,
-  "early": 273,
-  "late": 208
- },
- "examples_dont_work": {
-  "all": 39,
-  "threads": 30,
-  "early": 18,
-  "late": 21
- },
- "reference_vs_guides": {
-  "all": 658,
-  "threads": 134,
-  "early": 399,
-  "late": 259
- },
- "marketing": {
-  "all": 105,
-  "threads": 58,
-  "early": 63,
-  "late": 42
- },
- "findability": {
-  "all": 476,
-  "threads": 146,
-  "early": 257,
-  "late": 219
- },
- "scattered": {
-  "all": 202,
-  "threads": 73,
-  "early": 105,
-  "late": 97
- },
- "versioning": {
-  "all": 174,
-  "threads": 89,
-  "early": 91,
-  "late": 83
- },
- "slow_heavy": {
-  "all": 185,
-  "threads": 91,
-  "early": 133,
-  "late": 52
- },
- "offline_plain_single": {
-  "all": 252,
-  "threads": 92,
-  "early": 143,
-  "late": 109
- },
- "interactive": {
-  "all": 96,
-  "threads": 56,
-  "early": 59,
-  "late": 37
- },
- "video": {
-  "all": 53,
-  "threads": 29,
-  "early": 27,
-  "late": 26
- },
- "ui_details": {
-  "all": 225,
-  "threads": 103,
-  "early": 141,
-  "late": 84
- },
- "ai": {
-  "all": 259,
-  "threads": 59,
-  "early": 6,
-  "late": 253
- },
- "source_code": {
-  "all": 559,
-  "threads": 148,
-  "early": 318,
-  "late": 241
- },
- "types_ide": {
-  "all": 61,
-  "threads": 42,
-  "early": 25,
-  "late": 36
- },
- "changelog": {
-  "all": 13,
-  "threads": 10,
-  "early": 9,
-  "late": 4
- },
- "error_messages": {
-  "all": 9,
-  "threads": 9,
-  "early": 5,
-  "late": 4
- },
- "screenshots_diagrams": {
-  "all": 139,
-  "threads": 56,
-  "early": 60,
-  "late": 79
- },
- "stack_overflow": {
-  "all": 64,
-  "threads": 27,
-  "early": 48,
-  "late": 16
- }
+  "examples": {
+    "all": 481,
+    "threads": 115,
+    "early": 273,
+    "late": 208
+  },
+  "examples_dont_work": {
+    "all": 39,
+    "threads": 30,
+    "early": 18,
+    "late": 21
+  },
+  "reference_vs_guides": {
+    "all": 658,
+    "threads": 134,
+    "early": 399,
+    "late": 259
+  },
+  "marketing": {
+    "all": 105,
+    "threads": 58,
+    "early": 63,
+    "late": 42
+  },
+  "findability": {
+    "all": 476,
+    "threads": 146,
+    "early": 257,
+    "late": 219
+  },
+  "scattered": {
+    "all": 202,
+    "threads": 73,
+    "early": 105,
+    "late": 97
+  },
+  "versioning": {
+    "all": 174,
+    "threads": 89,
+    "early": 91,
+    "late": 83
+  },
+  "slow_heavy": {
+    "all": 185,
+    "threads": 91,
+    "early": 133,
+    "late": 52
+  },
+  "offline_plain_single": {
+    "all": 252,
+    "threads": 92,
+    "early": 143,
+    "late": 109
+  },
+  "interactive": {
+    "all": 96,
+    "threads": 56,
+    "early": 59,
+    "late": 37
+  },
+  "video": {
+    "all": 53,
+    "threads": 29,
+    "early": 27,
+    "late": 26
+  },
+  "ui_details": {
+    "all": 225,
+    "threads": 103,
+    "early": 141,
+    "late": 84
+  },
+  "ai": {
+    "all": 259,
+    "threads": 59,
+    "early": 6,
+    "late": 253
+  },
+  "source_code": {
+    "all": 559,
+    "threads": 148,
+    "early": 318,
+    "late": 241
+  },
+  "types_ide": {
+    "all": 61,
+    "threads": 42,
+    "early": 25,
+    "late": 36
+  },
+  "changelog": {
+    "all": 13,
+    "threads": 10,
+    "early": 9,
+    "late": 4
+  },
+  "error_messages": {
+    "all": 9,
+    "threads": 9,
+    "early": 5,
+    "late": 4
+  },
+  "screenshots_diagrams": {
+    "all": 139,
+    "threads": 56,
+    "early": 60,
+    "late": 79
+  },
+  "stack_overflow": {
+    "all": 64,
+    "threads": 27,
+    "early": 48,
+    "late": 16
+  }
 }
