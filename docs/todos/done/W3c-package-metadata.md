@@ -35,7 +35,7 @@ npm and crates.io rank packages on their name, description and keywords, and sho
 
 **Out of scope** (and which todo covers it)
 
-- The root README: [W3b](../ready/W3b-public-repository-links.md).
+- The root README: [W3b](../ongoing/W3b-public-repository-links.md).
 - New docs pages: [W3g](../ready/W3g-choosing-a-pdf-library.md), [W3h](../ready/W3h-docs-titles-for-questions.md).
 
 ## Tasks

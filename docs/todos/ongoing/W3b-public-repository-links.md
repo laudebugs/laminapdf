@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
 | Depends on | None |
@@ -37,7 +37,7 @@ The GitHub repository went public, but the project still describes and builds it
 **Out of scope** (and which todo covers it)
 
 - Package READMEs' own wording and links: [W3c](../done/W3c-package-metadata.md).
-- Linking llms.txt from the README: [W3f](./W3f-agent-discovery.md).
+- Linking llms.txt from the README: [W3f](../ready/W3f-agent-discovery.md).
 
 ## Tasks
 
