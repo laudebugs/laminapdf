@@ -2277,6 +2277,133 @@ doc.rebase(bytes)?; // no-pending-save: no save is waiting
 
 None.
 ",
+        "malformed-xmp" => r#"# `malformed-xmp`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A metadata edit (`setMetadata` or `removeMetadata`) would have to write the document's XMP metadata packet, but the packet in the file can't be read (it raised `xmp-invalid` when it was read). Writing a new packet would throw away everything the old one held, so the edit was refused and nothing changed.
+
+## Why
+
+The packet may not be well-formed XML, may declare a DTD, or may be damaged. Lamina PDF reads such a packet as absent, and only replaces it when you say so.
+
+## How to fix
+
+Set `replaceMalformed` on the edit to replace the packet with a new one that holds the fields you set. Or leave the metadata as it is: the title, authors and dates still read from the Info dictionary.
+
+## Example
+
+```ts
+doc.setMetadata({ title: "Minutes" }); // malformed-xmp: the packet can't be read
+doc.setMetadata({ title: "Minutes" }, { replaceMalformed: true }); // replaces it
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E1c](../todos/done/E1c-metadata-ops.md): the metadata ops
+"#,
+        "pdfa-one-author" => r#"# `pdfa-one-author`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/A-1, which allows the metadata's author list (`dc:creator`) only one entry (ISO 19005-1 §6.7.3), and an edit gave it more than one. Saving it as it is writes a file that no longer meets PDF/A-1.
+
+## Why
+
+PDF/A-1 mirrors the Info dictionary's single `/Author` string in XMP, so it allows one name there. Later parts of PDF/A allow a list.
+
+## How to fix
+
+Keep one author, writing several names as one entry (`"Ada Lovelace and Charles Babbage"`), if the file must stay PDF/A-1. If it needn't, save anyway: the warning never blocks a save.
+
+## Example
+
+`doc.setMetadata({ authors: ["Ada Lovelace", "Charles Babbage"] })` on a PDF/A-1b file, then `doc.plan()`, lists `pdfa-one-author` with `authors` 2.
+
+## Data fields
+
+- `authors`: how many authors the metadata lists.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E1c](../todos/done/E1c-metadata-ops.md): the conformance warnings
+"#,
+        "pdfua-title-missing" => r#"# `pdfua-title-missing`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/UA-1, which requires a title in its XMP metadata (`dc:title`, ISO 14289-1 §7.1), and the metadata has none, usually because an edit removed it. Saving it as it is writes a file that no longer meets PDF/UA-1.
+
+## Why
+
+A screen reader announces a document by its title, so PDF/UA requires one.
+
+## How to fix
+
+Give the document a title (`setMetadata({ title: "…" })`) before saving. If the file needn't stay PDF/UA-1, save anyway: the warning never blocks a save.
+
+## Example
+
+`doc.removeMetadata(["title"])` on a PDF/UA-1 file, then `doc.plan()`, lists `pdfua-title-missing`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E1c](../todos/done/E1c-metadata-ops.md): the conformance warnings
+"#,
+        "pdfa-info-mismatch" => r#"# `pdfa-info-mismatch`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The file says it conforms to PDF/A, which requires every entry of the Info dictionary to have an equal property in the XMP packet (ISO 19005-2 §6.6.2.3.1), and some of them differ. Saving it as it is writes a file that no longer meets its PDF/A level.
+
+## Why
+
+An edit wrote only one of the two places, for example a tool that changed `/Title` in the Info dictionary and left the XMP title alone. Lamina PDF's metadata edits write both, so this usually comes from the file as it was.
+
+## How to fix
+
+Set the fields again with `setMetadata`, which writes Info and XMP together, or remove the fields that differ from both copies with `removeMetadata`. The warning never blocks a save.
+
+## Example
+
+A PDF/A-2b file whose Info `/Title` is "Draft" while its `dc:title` is "Final": `doc.plan()` lists `pdfa-info-mismatch` with `keys` `["title"]`.
+
+## Data fields
+
+- `keys`: the fields whose Info entry has no equal XMP property, by their metadata names (`title`, `authors`, `subject`, `keywords`, `creator`, `producer`, `created`, `modified`).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E1c](../todos/done/E1c-metadata-ops.md): the conformance warnings
+"#,
         "sink" => r"# `sink`
 
 - Type: error

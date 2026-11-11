@@ -1,12 +1,13 @@
 # Deliberate differences between lamina and the independent facts in expected.json
 # (ADR 0018 tier 4). Each entry names the file, the fact, and the ADR 0003 §1 rule that
 # explains lamina's answer, or the ISO 32000-2 section it follows where the independent tool
-# falls short; crates/laminapdf-model/tests/corpus.rs and crates/laminapdf/tests/navigation.rs
+# falls short; crates/laminapdf-model/tests/corpus.rs, crates/laminapdf/tests/navigation.rs and
+# crates/laminapdf/tests/properties.rs (the pypdf metadata differential)
 # skip exactly these.
 #
 # [[exception]]
 # file = "example.pdf"
-# facts = ["page_count"]         # page_count, outline_titles and/or outline_pages
+# facts = ["page_count"]         # page_count, outline_titles, outline_pages and/or properties.<key>
 # items = [4]                    # outline_pages only: the items (in outline_titles' order) that differ
 # rule = "ADR 0003 §1: Page tree" # the tolerance rule lamina follows
 # reason = "pypdf trusts /Count; lamina's walk is authoritative"

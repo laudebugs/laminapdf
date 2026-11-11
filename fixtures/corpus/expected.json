@@ -22,6 +22,12 @@
     "properties": {
       "title": "Secret",
       "producer": "pypdf",
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": null,
       "encryption_revision": 6,
       "fonts": [],
       "signatures": 0
@@ -52,6 +58,12 @@
     "properties": {
       "title": "Hello from lamina",
       "producer": null,
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": "D:20261028151420Z",
+      "mod_date": null,
       "encryption_revision": null,
       "fonts": [
         "Helvetica",
@@ -83,6 +95,12 @@
     "properties": {
       "title": null,
       "producer": null,
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": null,
       "encryption_revision": null,
       "fonts": [
         "Helvetica"
@@ -113,6 +131,12 @@
     "properties": {
       "title": null,
       "producer": null,
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": null,
       "encryption_revision": null,
       "fonts": [
         "Helvetica"
@@ -143,6 +167,12 @@
     "properties": {
       "title": null,
       "producer": null,
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": null,
       "encryption_revision": null,
       "fonts": [
         "Helvetica"
@@ -173,6 +203,12 @@
     "properties": {
       "title": null,
       "producer": null,
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": null,
       "encryption_revision": null,
       "fonts": [
         "Helvetica"
@@ -203,6 +239,12 @@
     "properties": {
       "title": null,
       "producer": null,
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": null,
       "encryption_revision": null,
       "fonts": [],
       "signatures": 0
@@ -254,6 +296,12 @@
     "properties": {
       "title": "Outline fixture",
       "producer": "tools/fixtures/outline.py",
+      "author": "lamina",
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": "D:20261028120000Z",
+      "mod_date": "yesterday",
       "encryption_revision": null,
       "fonts": [
         "Helvetica"
@@ -284,6 +332,12 @@
     "properties": {
       "title": "Hello from lamina",
       "producer": "pdf-lib (https://github.com/Hopding/pdf-lib)",
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": "pdf-lib (https://github.com/Hopding/pdf-lib)",
+      "creation_date": "D:20261028151419Z",
+      "mod_date": "D:20261028151419Z",
       "encryption_revision": null,
       "fonts": [
         "Helvetica",
@@ -315,6 +369,12 @@
     "properties": {
       "title": "Hello from lamina",
       "producer": "raw_writer.py",
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": null,
       "encryption_revision": null,
       "fonts": [
         "Helvetica",
@@ -347,6 +407,12 @@
     "properties": {
       "title": "Hello from lamina",
       "producer": "ReportLab PDF Library - (opensource)",
+      "author": "(anonymous)",
+      "subject": "(unspecified)",
+      "keywords": "",
+      "creator": "(unspecified)",
+      "creation_date": "D:20261028151420+00'00'",
+      "mod_date": "D:20261028151420+00'00'",
       "encryption_revision": null,
       "fonts": [
         "Helvetica",
@@ -381,6 +447,12 @@
     "properties": {
       "title": null,
       "producer": "pypdf; pyHanko 0.38.0",
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": "D:20261028150526Z",
       "encryption_revision": null,
       "fonts": [],
       "signatures": 1
@@ -412,6 +484,12 @@
     "properties": {
       "title": null,
       "producer": "pypdf; pyHanko 0.38.0",
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": "D:20261028150526Z",
       "encryption_revision": null,
       "fonts": [],
       "signatures": 1
@@ -445,6 +523,12 @@
     "properties": {
       "title": "lamina text example",
       "producer": null,
+      "author": null,
+      "subject": null,
+      "keywords": null,
+      "creator": null,
+      "creation_date": null,
+      "mod_date": null,
       "encryption_revision": null,
       "fonts": [
         "DejaVuSans",

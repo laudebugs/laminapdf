@@ -3,7 +3,7 @@
 //!
 //! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
-use laminapdf_ops::{ModificationClass, Op};
+use laminapdf_ops::{ConformanceWarning, ModificationClass, Op};
 
 use crate::constraint::{Restriction, RewriteReason, SaveConstraint, SignatureInfo, Violation};
 use crate::detect::{self, Patches, Signatures};
@@ -18,7 +18,7 @@ use crate::resolve::resolve;
 /// [`Save::save`](crate::Save::save) plans again itself.
 ///
 /// ```
-/// use laminapdf_ops::{Document, InfoPatch, Origin, SetInfo};
+/// use laminapdf_ops::{Document, MetadataPatch, Origin, SetMetadata};
 /// use laminapdf_save::{ConstraintKind, SaveMode, SaveOptions, SavePlanner};
 /// # use laminapdf_cos::{Dict, Object};
 /// # use laminapdf_save::test_support::Writer;
@@ -28,7 +28,7 @@ use crate::resolve::resolve;
 /// # let bytes = w.finish(&[("Root", root)].into_iter().collect())?;
 ///
 /// let mut doc = Document::open(bytes, Default::default())?;
-/// doc.apply_all(Origin::Local, [SetInfo::patch(InfoPatch::new().title(Some("Report"))).into()])?;
+/// doc.apply_all(Origin::Local, [SetMetadata::new(MetadataPatch::new().title(Some("Report")), None).into()])?;
 ///
 /// let planner = SavePlanner::new(&doc)?;
 /// assert_eq!(planner.constraint().kind(), ConstraintKind::Free);
@@ -42,6 +42,8 @@ use crate::resolve::resolve;
 pub struct SavePlanner {
     signatures: Signatures,
     constraint: SaveConstraint,
+    conformance: Vec<ConformanceWarning>,
+    packet_rewritten: bool,
 }
 
 impl SavePlanner {
@@ -92,7 +94,27 @@ impl SavePlanner {
             signatures_unknown: signatures.unknown,
             unchanged: !dirty,
         };
-        Ok(Self { signatures, constraint })
+        // Warnings only: a packet that can't be read (or read yet) claims nothing to break,
+        // and the save itself reports any error reading the document.
+        let conformance = if dirty {
+            laminapdf_ops::conformance_warnings(doc).unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        Ok(Self {
+            signatures,
+            constraint,
+            conformance,
+            packet_rewritten: dirty && pending.packet_rewritten(),
+        })
+    }
+
+    /// The PDF/A and PDF/UA claims the document's metadata, as edited, no longer meets (E1 plan
+    /// §3): for the UI to warn before the save. They never block it, since the user may mean to
+    /// drop the claim. Empty for a document with no changes.
+    #[must_use]
+    pub fn conformance_warnings(&self) -> &[ConformanceWarning] {
+        &self.conformance
     }
 
     /// Everything that restricts saving the document.
@@ -122,7 +144,32 @@ impl SavePlanner {
                 }
             }
         }
+        plan.metadata = self.metadata_update(options, &plan.would_invalidate);
+        plan.packet_rewritten = self.packet_rewritten;
         Ok(plan)
+    }
+
+    /// Whether a save with `options` stamps the save-time metadata ([E1 plan §2]): only when
+    /// the options ask for it and there are changes to save, and only when the stamp (class
+    /// `Metadata`) adds no violation the pending changes don't already have, besides those of
+    /// signatures the save invalidates anyway. Such a stamp also leaves the constraint's kind
+    /// as it was.
+    ///
+    /// [E1 plan §2]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e1-editing-foundation.md#2-the-operations
+    fn metadata_update(&self, options: &SaveOptions, invalidated: &[SignatureInfo]) -> MetadataUpdate {
+        if !options.stamps_metadata() || self.constraint.unchanged {
+            return MetadataUpdate::None;
+        }
+        let added: Vec<Violation> = self
+            .would_violate_class(ModificationClass::Metadata)
+            .into_iter()
+            .filter(|v| !self.constraint.violations.contains(v) && !invalidated.contains(&v.signature))
+            .collect();
+        if added.is_empty() {
+            MetadataUpdate::Stamp
+        } else {
+            MetadataUpdate::Skipped { violations: added }
+        }
     }
 
     /// The changes that remove `plan`'s invalidated signatures from `doc` (the document this
@@ -161,6 +208,23 @@ impl SavePlanner {
     }
 }
 
+/// What a save does with the save-time metadata ([`SaveOptions::with_metadata_date`]).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[non_exhaustive]
+pub enum MetadataUpdate {
+    /// Nothing to stamp: the options gave no date or ID, or the save writes no changes.
+    #[default]
+    None,
+    /// The save stamps `xmp:MetadataDate`, the modification dates and `xmpMM:InstanceID`.
+    Stamp,
+    /// The stamp would break these restrictions, which the changes saved keep, so the save
+    /// leaves it out ([`SaveReport::metadata_not_updated`](crate::SaveReport::metadata_not_updated)).
+    Skipped {
+        /// What the stamp would have broken.
+        violations: Vec<Violation>,
+    },
+}
+
 /// A resolved save: the constraint, the mode and the signatures it would invalidate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SavePlan {
@@ -168,6 +232,8 @@ pub struct SavePlan {
     mode: SaveMode,
     would_invalidate: Vec<SignatureInfo>,
     removes_encryption: bool,
+    metadata: MetadataUpdate,
+    packet_rewritten: bool,
 }
 
 impl SavePlan {
@@ -200,6 +266,8 @@ impl SavePlan {
             mode,
             would_invalidate,
             removes_encryption,
+            metadata: MetadataUpdate::None,
+            packet_rewritten: false,
         })
     }
 
@@ -225,5 +293,50 @@ impl SavePlan {
     #[must_use]
     pub const fn removes_encryption(&self) -> bool {
         self.removes_encryption
+    }
+
+    /// What the save does with the save-time metadata ([`SavePlanner::plan`] fills it in).
+    #[must_use]
+    pub const fn metadata_update(&self) -> &MetadataUpdate {
+        &self.metadata
+    }
+
+    /// Whether an edit to save rewrote the XMP packet whole (UTF-16, or `end="r"`).
+    #[must_use]
+    pub const fn packet_rewritten(&self) -> bool {
+        self.packet_rewritten
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use laminapdf_cos::OpenOptions;
+    use laminapdf_test_fixtures::fixture;
+
+    use super::*;
+    use crate::constraint::ConstraintKind;
+
+    /// The planner of a `DocMDP` P2 file whose pending changes break nothing: what a form fill
+    /// leaves (no form-filling op exists yet, so the changes are stood in for by marking the
+    /// constraint changed).
+    fn p2_after_an_allowed_change() -> SavePlanner {
+        let doc = laminapdf_ops::Document::open(fixture("signed/certified-p2.pdf"), OpenOptions::default()).unwrap();
+        let mut planner = SavePlanner::new(&doc).unwrap();
+        planner.constraint.unchanged = false;
+        planner
+    }
+
+    #[test]
+    fn a_form_fill_on_a_p2_file_saves_append_only_without_the_stamp() {
+        let planner = p2_after_an_allowed_change();
+        let options = SaveOptions::new().with_metadata_date("D:20261110093000Z".parse().unwrap());
+        let plan = planner.plan(&options).unwrap();
+        let MetadataUpdate::Skipped { violations } = plan.metadata_update() else {
+            panic!("stamped: {:?}", plan.metadata_update());
+        };
+        assert_eq!(
+            (plan.constraint().kind(), plan.mode(), violations.len()),
+            (ConstraintKind::AppendOnly, SaveMode::Incremental, 1)
+        );
     }
 }

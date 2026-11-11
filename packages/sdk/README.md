@@ -28,7 +28,7 @@ const bytes: Uint8Array = b.finish().save();
 
 // Read and edit
 const doc = Document.open(bytes);
-doc.transact((tx) => tx.setInfo({ title: "Hello" })); // synchronous: collected ops are applied as one transaction
+doc.transact((tx) => tx.setMetadata({ title: "Hello" })); // synchronous: collected ops are applied as one transaction
 const edited = doc.save({ mode: "incremental" }); // the original bytes, then one appended revision
 doc.free();
 ```

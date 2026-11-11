@@ -1,5 +1,9 @@
 //! The façade's contract (ADR 0028, ADR 0026): auto traits, jobs (budgets, cancellation,
 //! revision checks), the error and warning objects, and the owned read API.
+#![expect(
+    deprecated,
+    reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
+)]
 #![expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 
 use laminapdf::{

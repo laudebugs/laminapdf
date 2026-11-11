@@ -38,7 +38,7 @@ Give `laminapdf-model` a typed view over the catalog's `/Metadata` XMP packet th
 
 **Out of scope** (and which todo covers it)
 
-- Metadata ops, save-time `MetadataDate`/`InstanceID` and PDF/A checks → [E1c](../ready/E1c-metadata-ops.md)
+- Metadata ops, save-time `MetadataDate`/`InstanceID` and PDF/A checks → [E1c](../done/E1c-metadata-ops.md)
 - Editing arbitrary/custom/extension schemas in the UI (J.04 write) → [E3e](../ready/E3e-xmp-editor.md)
 
 **Editor facts**
@@ -80,7 +80,7 @@ None.
 - Unit tests in `crates/laminapdf-model/src/xmp/` for every RDF form (attribute, element, `rdf:Alt` with languages, `rdf:Seq`)
 - Golden packets in `fixtures/golden/xmp/` (input → edited output) — never rewritten by a test
 - Corpus test: round-trip of every packet in `fixtures/corpus`
-- Differential: values read vs `exiftool -j` on the corpus (nightly lane): not built here (`exiftool` couldn't be run); moved to [E1c](../ready/E1c-metadata-ops.md) as a task beside its pypdf metadata differential
+- Differential: values read vs `exiftool -j` on the corpus (nightly lane): not built here (`exiftool` couldn't be run); moved to [E1c](../done/E1c-metadata-ops.md) as a task beside its pypdf metadata differential
 - Fuzz target `fuzz/fuzz_targets/xmp_parse.rs`
 
 ## Docs to update

@@ -13,6 +13,8 @@ Writes, in fixtures/signed/:
   `/P` 1 (no changes), 2 (form filling and signing) and 3 (also annotations), referenced from
   the catalog's `/Perms /DocMDP`;
 * locked.pdf: an approval signature whose field has a FieldMDP `/Lock` (`/Action /All`);
+* two-signatures.pdf: two approval signatures, in fields `Sig1` and `Sig2`, each added in its
+  own incremental update (3 revisions);
 * timestamp.pdf: a document timestamp (`/Type /DocTimeStamp`, ISO 32000-2 §12.8.5);
 * signed-encrypted.pdf: an AES-128 file with an empty user password (owner password
   `owner-pw`), signed in an encrypted incremental update.
@@ -104,18 +106,22 @@ def main() -> None:
         fixed_dt=FIXED,
     )
 
-    def sign(name: str, meta: signers.PdfSignatureMetadata, *, spec: SigFieldSpec | None = None, encrypt=False):
-        w = IncrementalPdfFileWriter(io.BytesIO(base(encrypt=encrypt)))
+    def signed(pdf: bytes, meta: signers.PdfSignatureMetadata, spec: SigFieldSpec, *, encrypt=False) -> bytes:
+        w = IncrementalPdfFileWriter(io.BytesIO(pdf))
         if encrypt:
             w.encrypt("")
-        fields.append_signature_field(w, spec or SigFieldSpec(sig_field_name="Sig1", box=(50, 700, 250, 750)))
+        fields.append_signature_field(w, spec)
         out = io.BytesIO()
         signers.PdfSigner(meta, signer=signer).sign_pdf(w, output=out)
-        (HERE / name).write_bytes(out.getvalue())
+        return out.getvalue()
 
-    def meta(**kw) -> signers.PdfSignatureMetadata:
+    def sign(name: str, meta: signers.PdfSignatureMetadata, *, spec: SigFieldSpec | None = None, encrypt=False):
+        spec = spec or SigFieldSpec(sig_field_name="Sig1", box=(50, 700, 250, 750))
+        (HERE / name).write_bytes(signed(base(encrypt=encrypt), meta, spec, encrypt=encrypt))
+
+    def meta(field: str = "Sig1", **kw) -> signers.PdfSignatureMetadata:
         return signers.PdfSignatureMetadata(
-            field_name="Sig1", subfilter=fields.SigSeedSubFilter.PADES, md_algorithm="sha256", **kw
+            field_name=field, subfilter=fields.SigSeedSubFilter.PADES, md_algorithm="sha256", **kw
         )
 
     sign("approval.pdf", meta())
@@ -129,6 +135,10 @@ def main() -> None:
         ),
     )
     sign("signed-encrypted.pdf", meta(), encrypt=True)
+
+    once = signed(base(), meta(), SigFieldSpec(sig_field_name="Sig1", box=(50, 700, 250, 750)))
+    twice = signed(once, meta("Sig2"), SigFieldSpec(sig_field_name="Sig2", box=(300, 700, 500, 750)))
+    (HERE / "two-signatures.pdf").write_bytes(twice)
 
     w = IncrementalPdfFileWriter(io.BytesIO(base()))
     out = io.BytesIO()

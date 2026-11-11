@@ -93,3 +93,37 @@ pub(crate) mod double_option {
         Option::<T>::deserialize(d).map(Some)
     }
 }
+
+/// `Option<Option<PdfDate>>` as [`double_option`] reads it, the date in its PDF string form:
+/// absent leaves the field alone, `null` clears it, `"D:…"` sets it.
+pub(crate) mod double_date {
+    use laminapdf_model::PdfDate;
+
+    use super::{Deserialize, Deserializer, Serializer, de};
+
+    #[expect(
+        clippy::ref_option,
+        clippy::option_option,
+        reason = "serde's `with` passes the field by reference; absent, null and a date are three cases"
+    )]
+    pub(crate) fn serialize<S: Serializer>(date: &Option<Option<PdfDate>>, s: S) -> Result<S::Ok, S::Error> {
+        match date {
+            Some(Some(date)) => s.collect_str(date),
+            Some(None) | None => s.serialize_none(),
+        }
+    }
+
+    #[expect(clippy::option_option, reason = "absent, null and a date are three cases")]
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Option<PdfDate>>, D::Error> {
+        Option::<String>::deserialize(d)?
+            .map(|s| s.parse().map_err(de::Error::custom))
+            .transpose()
+            .map(Some)
+    }
+}
+
+/// For `skip_serializing_if`: a flag left at its default.
+#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")]
+pub(crate) const fn is_false(flag: &bool) -> bool {
+    !*flag
+}

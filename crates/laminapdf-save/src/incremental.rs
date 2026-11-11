@@ -8,7 +8,7 @@ use laminapdf_cos::{ByteSource, Dict, Document, Name, Object, OverlayEntry, merg
 use crate::detect::Patches;
 use crate::error::{Result, SaveError};
 use crate::id::{ContentHash, id_array, permanent_id};
-use crate::options::{IncrementalOutput, SaveMode, SaveOptions, SaveReport};
+use crate::options::{IncrementalOutput, MetadataFlags, SaveMode, SaveOptions, SaveReport};
 use crate::sink::{CountingSink, WriteSink, require_empty};
 use crate::xref::{
     Row, Rows, classic_table, document_keys, document_keys_and_size, link_free_list, stream_object, stream_table,
@@ -147,6 +147,7 @@ impl<'d> IncrementalWriter<'d> {
                 append_offset,
                 invalidated: Vec::new(),
                 encryption_removed: false,
+                metadata: MetadataFlags::default(),
             },
             appended,
             freed,

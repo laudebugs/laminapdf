@@ -406,6 +406,11 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             words: 1,
             pages: vec![0],
         }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaOneAuthor { authors: 2 }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfuaTitleMissing),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaInfoMismatch {
+            keys: vec![laminapdf::MetadataKey::Title],
+        }),
     ];
     (errors, warnings)
 }
@@ -479,6 +484,7 @@ fn the_generated_tables_agree_with_the_wrapped_crates() {
             Warning::Document(i) => (i.code(), i.kind()),
             Warning::Font(i) => (i.code(), i.kind()),
             Warning::Build(i) => (i.code(), i.kind()),
+            Warning::Conformance(i) => (i.code(), i.kind()),
             _ => continue,
         };
         if (w.code(), w.kind()) != (code, kind) {
