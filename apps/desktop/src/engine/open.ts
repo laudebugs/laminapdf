@@ -47,13 +47,9 @@ export async function pickDocument(shell: DesktopShell): Promise<PlatformFile[]>
     const opened = await shell.invoke<DesktopDocument | null>("open_dialog");
     return opened === null ? [] : [desktopFile(opened)];
   } catch (error) {
-    const file: PlatformFile = {
-      name: "",
-      size: 0,
-      writable: false,
-      read: () => Promise.reject(engineError(error)),
-    };
-    failures.set(file, engineError(error));
+    const failure = engineError(error);
+    const file: PlatformFile = { name: "", size: 0, writable: false, read: () => Promise.reject(failure) };
+    failures.set(file, failure);
     return [file];
   }
 }
@@ -69,7 +65,7 @@ export function desktopOpener(shell: DesktopShell, client: DesktopEngineClient, 
     if (failed !== undefined) throw failed;
     let opened = documentOf(file);
     if (opened === undefined) {
-      // Dropped and pasted files come with D3a: only the open dialog reaches the main process.
+      // Dropped and pasted files come with opening from the OS: only the open dialog reaches the main process.
       throw new DesktopEngineError("not-yet-supported", "open documents with the Open button for now");
     }
     if (opened.needsPassword) {
@@ -80,7 +76,7 @@ export function desktopOpener(shell: DesktopShell, client: DesktopEngineClient, 
       } catch (error) {
         throw engineError(error);
       }
-      opened = { ...unlocked, name: opened.name, size: opened.size };
+      opened = unlocked;
       documents.set(file, opened);
     }
     viewer.open(client.show(opened));

@@ -7,7 +7,7 @@
 //   skips it. A tile that arrives after its render was aborted, or after its document went, is
 //   closed and never painted.
 // - The main process restarts a crashed engine and reopens its documents, with their kept
-//   passwords (D2b): `engine://restarted` becomes the viewer's `restarted`, which redraws what is
+//   passwords: `engine://restarted` becomes the viewer's `restarted`, which redraws what is
 //   on screen; `engine://failed` and a document that didn't come back become `restart-failed`.
 // - Text, links, search and editing aren't served by the engine yet: their calls answer as for
 //   a document without them (no text runs, no links, untagged), and edits reject.
@@ -102,6 +102,11 @@ export const FAILED_EVENT = "engine://failed";
 
 const NOT_YET = "the desktop reader doesn't edit documents yet";
 
+/** The edit calls' answer until the engine edits: rejected, with why. */
+function notYet<T>(): Promise<T> {
+  return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
+}
+
 function abortError(): DOMException {
   return new DOMException("the render was cancelled", "AbortError");
 }
@@ -116,7 +121,7 @@ export class DesktopEngineClient implements ViewerEngine {
   #current: DesktopDocument | undefined;
   #document: OpenedDocument | undefined;
   /** Counts documents shown, as the viewer's document IDs; renders name it, so a stale tile is dropped. */
-  #shown = 0;
+  #generation = 0;
   #nextTicket = 1;
   /** Tickets of aborted renders, sent together in one `cancel_tiles`. */
   #cancelled: number[] = [];
@@ -147,10 +152,10 @@ export class DesktopEngineClient implements ViewerEngine {
 
   /** Shows `opened`: the viewer's document for it, with an ID of its own. */
   show(opened: DesktopDocument): OpenedDocument {
-    this.#shown += 1;
+    this.#generation += 1;
     this.#current = opened;
     this.#document = {
-      id: this.#shown,
+      id: this.#generation,
       pageCount: opened.pageCount,
       pages: opened.pages.map((page, index) => ({
         index,
@@ -171,7 +176,7 @@ export class DesktopEngineClient implements ViewerEngine {
     const doc = this.#current?.doc;
     this.#current = undefined;
     this.#document = undefined;
-    this.#shown += 1;
+    this.#generation += 1;
     if (doc !== undefined)
       await this.#shell.invoke("close_document", { doc }).catch((e: unknown) => {
         throw engineError(e);
@@ -224,7 +229,7 @@ export class DesktopEngineClient implements ViewerEngine {
     const page = current?.pages[request.page];
     if (current === undefined || page === undefined) throw new DesktopEngineError("disposed", "no document is open");
     if (current.needsPassword) throw new DesktopEngineError("password-required", "this document needs its password");
-    const shown = this.#shown;
+    const generation = this.#generation;
     const clip: PixelRect = request.clip ?? planTile(page, request, DEFAULT_LIMITS).tile;
     const ticket = this.#nextTicket++;
     const url = tileUrl(this.#shell.tileBase, {
@@ -242,10 +247,12 @@ export class DesktopEngineClient implements ViewerEngine {
     signal?.addEventListener("abort", onAbort, { once: true });
     try {
       const response = await this.#shell.fetch(url, signal === undefined ? {} : { signal });
+      // A document replaced while its tile travelled: whatever came back is stale, failures too.
+      if (this.#generation !== generation) throw abortError();
       if (!response.ok) throw await this.#failure(response);
       const bitmap = await this.#bitmap(response, clip);
       // Aborted while it travelled, or the document went: dropped, never painted.
-      if (aborted() || this.#shown !== shown) {
+      if (aborted() || this.#generation !== generation) {
         bitmap.close();
         throw abortError();
       }
@@ -311,22 +318,22 @@ export class DesktopEngineClient implements ViewerEngine {
   }
 
   applyEdit(): Promise<EditResult> {
-    return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
+    return notYet();
   }
 
   undoEdit(): Promise<EditResult> {
-    return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
+    return notYet();
   }
 
   redoEdit(): Promise<EditResult> {
-    return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
+    return notYet();
   }
 
   goToStep(): Promise<EditResult> {
-    return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
+    return notYet();
   }
 
   editHistory(): Promise<EditHistory> {
-    return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
+    return notYet();
   }
 }

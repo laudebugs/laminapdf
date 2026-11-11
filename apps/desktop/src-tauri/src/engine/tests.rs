@@ -3,7 +3,7 @@
 
 use std::io::Write as _;
 use std::path::PathBuf;
-use std::sync::mpsc;
+use std::sync::{OnceLock, mpsc};
 use std::time::Duration;
 
 use laminapdf_desktop_protocol::supervisor::fake::{FakeSpawner, Mode, PASSWORD};
@@ -436,6 +436,14 @@ fn a_locked_documents_tile_should_ask_for_its_password() {
     ));
 }
 
+/// Waits (up to 5 s) until a tile render has its ticket in `engines`, so a cancel can find it.
+fn until_waiting(engines: &Engines) {
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while engines.tickets().is_empty() && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+
 #[test]
 fn cancelling_a_tile_should_end_its_wait_as_cancelled() {
     let mut f = Fixture::new(Mode::Healthy);
@@ -443,10 +451,7 @@ fn cancelling_a_tile_should_end_its_wait_as_cancelled() {
     let engines = Arc::clone(&f.engines);
     // The fake holds page 2's tiles until they are cancelled.
     let waiting = std::thread::spawn(move || engines.render_tile("main", &tile_of(doc, 2, 7)));
-    let deadline = std::time::Instant::now() + Duration::from_secs(5);
-    while f.engines.tickets().is_empty() && std::time::Instant::now() < deadline {
-        std::thread::sleep(Duration::from_millis(5));
-    }
+    until_waiting(&f.engines);
     f.engines.cancel_tiles("main", &[7]);
     let result = waiting.join().unwrap();
     assert!(
@@ -462,14 +467,160 @@ fn another_windows_cancel_should_not_touch_a_tile() {
     let _other = open_plain(&mut f, "doc-2");
     let engines = Arc::clone(&f.engines);
     let waiting = std::thread::spawn(move || engines.render_tile("main", &tile_of(doc, 2, 7)));
-    let deadline = std::time::Instant::now() + Duration::from_secs(5);
-    while f.engines.tickets().is_empty() && std::time::Instant::now() < deadline {
-        std::thread::sleep(Duration::from_millis(5));
-    }
+    until_waiting(&f.engines);
     // The same ticket from another window names nothing of main's.
     f.engines.cancel_tiles("doc-2", &[7]);
     std::thread::sleep(Duration::from_millis(100));
     assert!(!waiting.is_finished());
     f.engines.cancel_tiles("main", &[7]);
     assert!(waiting.join().unwrap().is_err());
+}
+
+/// `src/engine/wire.fixture.json`: what this side and the webview's client must agree on. The
+/// client's tests read the same file.
+fn wire() -> serde_json::Value {
+    serde_json::from_str(include_str!("../../../src/engine/wire.fixture.json")).unwrap()
+}
+
+#[test]
+fn every_tile_address_the_client_builds_should_parse_to_what_it_means() {
+    use laminapdf_desktop_protocol::{Priority, TileAppearance, ViewRotation};
+
+    use super::tiles::Encoding;
+
+    for tile in wire()["tiles"].as_array().unwrap() {
+        let address = &tile["address"];
+        let parsed = parse_tile(tile["path"].as_str().unwrap(), tile["query"].as_str()).unwrap();
+        let expect = &tile["parsed"];
+        let clip = &address["clip"];
+        assert_eq!(
+            (
+                u64::from(parsed.doc.0),
+                u64::from(parsed.page),
+                f64::from(parsed.scale),
+                u64::from(parsed.x),
+                u64::from(parsed.y),
+                u64::from(parsed.w),
+                u64::from(parsed.h),
+                parsed.ticket
+            ),
+            (
+                address["doc"].as_u64().unwrap(),
+                address["page"].as_u64().unwrap(),
+                address["scale"].as_f64().unwrap(),
+                clip["x"].as_u64().unwrap(),
+                clip["y"].as_u64().unwrap(),
+                clip["width"].as_u64().unwrap(),
+                clip["height"].as_u64().unwrap(),
+                address["ticket"].as_u64().unwrap()
+            )
+        );
+        let rotation = match parsed.rotation {
+            ViewRotation::None => "none",
+            ViewRotation::Quarter => "quarter",
+            ViewRotation::Half => "half",
+            ViewRotation::ThreeQuarters => "three-quarters",
+        };
+        let appearance = match parsed.appearance {
+            TileAppearance::Original => "original",
+            TileAppearance::Sepia => "sepia",
+            TileAppearance::Dark => "dark",
+            TileAppearance::HighContrast { .. } => "high-contrast",
+        };
+        let priority = match parsed.priority {
+            Priority::Visible => "visible",
+            Priority::Prefetch => "prefetch",
+        };
+        let encoding = match parsed.encoding {
+            Encoding::Webp => "webp",
+            Encoding::Raw => "raw",
+        };
+        assert_eq!(
+            [rotation, appearance, priority, encoding],
+            ["rotation", "appearance", "priority", "encoding"].map(|key| expect[key].as_str().unwrap())
+        );
+    }
+}
+
+#[test]
+fn the_engine_events_and_restart_states_should_be_the_ones_the_client_listens_for() {
+    let wire = wire();
+    assert_eq!(
+        [RESTARTED_EVENT, FAILED_EVENT],
+        [
+            wire["events"]["restarted"].as_str().unwrap(),
+            wire["events"]["failed"].as_str().unwrap()
+        ]
+    );
+    let states: Vec<serde_json::Value> = [Reopened::Open, Reopened::Locked, Reopened::Closed]
+        .iter()
+        .map(|state| serde_json::to_value(state).unwrap())
+        .collect();
+    assert_eq!(serde_json::Value::from(states), wire["reopened"]);
+}
+
+#[test]
+fn a_cancelled_tile_should_answer_the_kind_and_status_the_client_reads_as_an_abort() {
+    let error = engine_error(FailureKind::Cancelled);
+    let cancelled = &wire()["cancelled"];
+    assert_eq!(
+        (error.kind(), u64::from(tiles::status_of(&error).as_u16())),
+        (
+            cancelled["kind"].as_str().unwrap(),
+            cancelled["status"].as_u64().unwrap()
+        )
+    );
+}
+
+/// Every log message this test process writes, at every level.
+fn logged() -> &'static Mutex<Vec<String>> {
+    use tauri_plugin_log::log;
+
+    struct Capture;
+    impl log::Log for Capture {
+        fn enabled(&self, _: &log::Metadata<'_>) -> bool {
+            true
+        }
+        fn log(&self, record: &log::Record<'_>) {
+            if let Ok(mut lines) = logged().lock() {
+                lines.push(record.args().to_string());
+            }
+        }
+        fn flush(&self) {}
+    }
+
+    static LINES: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
+    LINES.get_or_init(|| {
+        // Tracing's `log` bridge hands its events here while no subscriber is set.
+        if log::set_boxed_logger(Box::new(Capture)).is_ok() {
+            log::set_max_level(log::LevelFilter::Trace);
+        }
+        Mutex::new(Vec::new())
+    })
+}
+
+#[test]
+fn a_password_should_never_reach_the_log() {
+    let _ = logged();
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = DocId(
+        {
+            let path = f.file(ENCRYPTED);
+            f.engines.open("main", &path)
+        }
+        .unwrap()
+        .doc,
+    );
+    // A refused password, the right one, then a restart that reuses the kept one.
+    let _ = f.engines.unlock("main", doc, "not-the-password");
+    f.engines.unlock("main", doc, PASSWORD).unwrap();
+    f.engines.kill("main");
+    let _ = f.told();
+    let lines = logged().lock().unwrap();
+    assert!(!lines.is_empty(), "the restart logs at least its warning");
+    let leaked: Vec<&String> = lines
+        .iter()
+        .filter(|line| line.contains(PASSWORD) || line.contains("not-the-password"))
+        .collect();
+    assert!(leaked.is_empty(), "{leaked:?}");
 }

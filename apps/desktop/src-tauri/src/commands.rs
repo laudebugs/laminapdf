@@ -92,8 +92,9 @@ pub(crate) async fn page_info(
 }
 
 /// Unlocks one of this window's documents with the password the user typed; the main process
-/// keeps it while the document stays open, so a restarted engine never asks again. The password
-/// is moved into memory that is wiped when dropped as soon as it arrives, and is never logged.
+/// keeps it while the document stays open, so a restarted engine never asks again. The command's
+/// own copy is wiped when dropped and never logged; the IPC layer's buffers and serde's copies
+/// along the way are not ours to wipe.
 #[tauri::command]
 pub(crate) async fn unlock_document(
     window: tauri::WebviewWindow,

@@ -26,7 +26,7 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
-import type { DesktopEngineClient, DesktopShell } from "./engine/desktop-engine-client.ts";
+import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { desktopOpener } from "./engine/open.ts";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 
@@ -169,11 +169,7 @@ function useEngineEvents(engine: DesktopEngine | undefined, toasts: ToastQueue, 
       }),
       engine.client.on("password-required", () => setLost("locked")),
       engine.client.on("restart-failed", ({ error }) =>
-        setLost(
-          typeof error === "object" && error !== null && "code" in error && error.code === "closed"
-            ? "closed"
-            : "failed",
-        ),
+        setLost(error instanceof DesktopEngineError && error.code === "closed" ? "closed" : "failed"),
       ),
     ];
     return () => {

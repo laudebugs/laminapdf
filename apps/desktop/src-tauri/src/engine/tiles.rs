@@ -187,10 +187,11 @@ fn appearance(value: Option<&str>) -> Result<TileAppearance, UrlError> {
 
 /// Eight hex digits as straight RGBA.
 fn rgba(hex: &str) -> Result<[u8; 4], UrlError> {
-    let value = u32::from_str_radix(hex, 16).map_err(|_| UrlError::Bad("a"))?;
-    if hex.len() != 8 {
+    // Digits only: `from_str_radix` alone would also take a leading `+`.
+    if hex.len() != 8 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
         return Err(UrlError::Bad("a"));
     }
+    let value = u32::from_str_radix(hex, 16).map_err(|_| UrlError::Bad("a"))?;
     Ok(value.to_be_bytes())
 }
 
@@ -274,6 +275,13 @@ mod tests {
 
     fn parsed(path: &str, query: &str) -> Result<TileQuery, UrlError> {
         parse(path, Some(query))
+    }
+
+    #[test]
+    fn rgba_should_take_eight_hex_digits_and_nothing_else() {
+        assert_eq!(rgba("0a0b0cff"), Ok([10, 11, 12, 255]));
+        assert_eq!(rgba("+000000f"), Err(UrlError::Bad("a")));
+        assert_eq!(rgba("0a0b0c"), Err(UrlError::Bad("a")));
     }
 
     #[test]

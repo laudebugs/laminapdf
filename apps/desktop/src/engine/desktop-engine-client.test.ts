@@ -2,6 +2,7 @@
 // `tauriShell()`, with only the webview's `fetch` and `createImageBitmap` stood in for, since Node
 // has neither the `lamina://` scheme nor a decoder.
 
+import { readFileSync } from "node:fs";
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,6 +15,7 @@ import {
 } from "./desktop-engine-client.ts";
 import { desktopFile, desktopOpener } from "./open.ts";
 import { tauriShell } from "./tauri-shell.ts";
+import { type TileAddress, tileUrl } from "./tile-url.ts";
 
 const LETTER = { width: 612, height: 792, rotate: 0 };
 
@@ -81,7 +83,7 @@ beforeEach(() => {
         const { password } = args as { password: string };
         if (password !== "secret")
           return Promise.reject({ kind: "wrong-password", message: "the password doesn't open this document" });
-        return { ...LOCKED, needsPassword: false, pageCount: 2, pages: [LETTER, LETTER], name: "", size: 0 };
+        return { ...LOCKED, needsPassword: false, pageCount: 2, pages: [LETTER, LETTER] };
       }
       return undefined;
     },
@@ -171,14 +173,40 @@ describe("rendering", () => {
     ]);
   });
 
-  it("closes a tile of a document replaced while it travelled, and never returns it", async () => {
+  it("drops a tile of a document replaced while it travelled, without decoding it", async () => {
     serveTiles(tile, 10);
     const engine = client();
     engine.show(PLAIN);
     const rendering = engine.render({ page: 0, scale: 1, clip: CLIP });
     engine.show({ ...PLAIN, doc: 9 });
     await expect(rendering).rejects.toMatchObject({ name: "AbortError" });
+    expect(bitmaps).toEqual([]);
+  });
+
+  it("closes a tile whose render was aborted while it decoded, and never returns it", async () => {
+    serveTiles(tile);
+    const abort = new AbortController();
+    // The abort lands after the fetch answered, while the bitmap is being made.
+    vi.stubGlobal("createImageBitmap", () => {
+      const bitmap = new FakeBitmap(512, 300);
+      bitmaps.push(bitmap);
+      abort.abort();
+      return Promise.resolve(bitmap);
+    });
+    const engine = client();
+    engine.show(PLAIN);
+    const rendering = engine.render({ page: 0, scale: 1, clip: CLIP }, { signal: abort.signal });
+    await expect(rendering).rejects.toMatchObject({ name: "AbortError" });
     expect(bitmaps.map((b) => b.closed)).toEqual([true]);
+  });
+
+  it("reads a failure for a document replaced meanwhile as stale, not as an error", async () => {
+    serveTiles(() => Response.json({ kind: "unknown-document", message: "no such document" }, { status: 404 }), 10);
+    const engine = client();
+    engine.show(PLAIN);
+    const rendering = engine.render({ page: 0, scale: 1, clip: CLIP });
+    engine.show({ ...PLAIN, doc: 9 });
+    await expect(rendering).rejects.toMatchObject({ name: "AbortError" });
   });
 
   it("reads a tile the engine dropped as cancelled", async () => {
@@ -273,7 +301,7 @@ describe("the opener", () => {
     await expect(open(desktopFile(LOCKED), "nope")).rejects.toMatchObject({ code: "wrong-password" });
   });
 
-  it("unlocks with the right password and keeps the file's name", async () => {
+  it("unlocks with the right password and shows the unlocked document", async () => {
     const engine = client();
     const opened = await desktopOpener(tauriShell(), engine, viewer() as never)(desktopFile(LOCKED), "secret");
     expect([opened.pageCount, engine.current?.name, engine.current?.needsPassword]).toEqual([2, "letter.pdf", false]);
@@ -298,5 +326,44 @@ describe("picking a document", () => {
     mockIPC(() => null);
     const { pickDocument } = await import("./open.ts");
     await expect(pickDocument(tauriShell())).resolves.toEqual([]);
+  });
+});
+
+describe("the wire, as the main process reads it", () => {
+  // src/engine/wire.fixture.json: the Rust side's tests read the same file.
+  const wire = JSON.parse(readFileSync(new URL("./wire.fixture.json", import.meta.url), "utf8")) as {
+    events: { restarted: string; failed: string };
+    reopened: string[];
+    cancelled: { kind: string; status: number };
+    tiles: { address: TileAddress; path: string; query: string }[];
+  };
+
+  it("builds each tile address the main process parses", () => {
+    for (const { address, path, query } of wire.tiles)
+      expect(tileUrl("lamina://localhost/", address)).toBe(`lamina://localhost${path}?${query}`);
+  });
+
+  it("listens to the main process's event names", () => {
+    expect([RESTARTED_EVENT, FAILED_EVENT]).toEqual([wire.events.restarted, wire.events.failed]);
+  });
+
+  it("reads the main process's cancelled tile as an abort", async () => {
+    const { kind, status } = wire.cancelled;
+    serveTiles(() => Response.json({ kind, message: "cancelled" }, { status }));
+    const engine = client();
+    engine.show(PLAIN);
+    await expect(engine.render({ page: 0, scale: 1, clip: CLIP })).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("knows every state a document comes back in after a restart", async () => {
+    const heard: string[] = [];
+    const engine = client();
+    engine.show(PLAIN);
+    engine.on("restarted", () => heard.push("restarted"));
+    engine.on("password-required", () => heard.push("password-required"));
+    engine.on("restart-failed", () => heard.push("restart-failed"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    for (const state of wire.reopened) await emit(RESTARTED_EVENT, { window: "main", docs: [{ doc: 4, state }] });
+    expect(heard).toEqual(["restarted", "password-required", "restart-failed"]);
   });
 });

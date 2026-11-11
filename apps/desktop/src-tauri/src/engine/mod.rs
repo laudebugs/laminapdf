@@ -142,10 +142,7 @@ impl Engines {
     /// Opens `path` in `window`'s engine: its page count and page sizes, computed there.
     pub(crate) fn open(&self, window: &str, path: &Path) -> Result<DocumentMeta, DesktopError> {
         let (doc, len) = self.registry.register(path, window)?;
-        let name = path
-            .file_name()
-            .map_or_else(String::new, |name| name.to_string_lossy().into_owned());
-        let opened = self.open_in(window, doc, len).map(|meta| DocumentMeta { name, ..meta });
+        let opened = self.open_in(window, doc, len);
         if opened.is_err() {
             self.registry.remove(doc);
         }
@@ -172,7 +169,7 @@ impl Engines {
         };
         Ok(DocumentMeta {
             doc: doc.0,
-            name: String::new(),
+            name: self.registry.name_of(doc).unwrap_or_default(),
             size: len,
             page_count,
             encrypted,
@@ -188,7 +185,9 @@ impl Engines {
         self.check(window, query.doc)?;
         let engine = self.engine(window)?;
         let key = (window.to_owned(), query.ticket);
+        let mut sent = None;
         let reply = engine.request(|req| {
+            sent = Some(req);
             self.tickets().insert(key.clone(), req);
             ToEngine::RenderTile(TileRequest {
                 req,
@@ -205,7 +204,14 @@ impl Engines {
                 priority: query.priority,
             })
         });
-        self.tickets().remove(&key);
+        // Only this render's entry: a reloaded webview numbers its tickets from 1 again, and a newer
+        // tile may have taken the key.
+        {
+            let mut tickets = self.tickets();
+            if sent.is_some() && tickets.get(&key).copied() == sent {
+                tickets.remove(&key);
+            }
+        }
         match reply {
             Ok((
                 FromEngine::Tile {
@@ -226,7 +232,8 @@ impl Engines {
     }
 
     /// Drops the tiles `tickets` names that `window` still waits for: the engine skips them, or
-    /// answers them cancelled. A ticket already answered, or never seen, is ignored.
+    /// answers them cancelled. A ticket already answered, or not yet sent to the engine, is
+    /// ignored: such a tile is drawn anyway, and the client, whose render was aborted, drops it.
     pub(crate) fn cancel_tiles(&self, window: &str, tickets: &[u64]) {
         let Some(engine) = self.windows().get(window).cloned() else {
             return;
@@ -273,7 +280,7 @@ impl Engines {
         self.registry.keep_password(doc, kept);
         Ok(DocumentMeta {
             doc: doc.0,
-            name: String::new(),
+            name: self.registry.name_of(doc).unwrap_or_default(),
             size: self.registry.len_of(doc).unwrap_or(0),
             page_count,
             encrypted: true,

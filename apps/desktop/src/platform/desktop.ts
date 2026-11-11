@@ -61,7 +61,7 @@ export function createDesktopPlatform(web: Platform = createWebPlatform(), shell
   return {
     ...web,
     capabilities,
-    // One file at a time until tabs (D4a); the main process keeps its path.
+    // One file at a time until tabs; the main process keeps its path.
     ...(shell === undefined ? {} : { openFiles: () => pickDocument(shell) }),
     // The desktop flags are always on, so there is nothing for the user to enable.
     howToEnable: (flag) => (flag in DESKTOP_FLAGS ? undefined : web.howToEnable(flag)),

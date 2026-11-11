@@ -1,0 +1,48 @@
+{
+  "$comment": "What the main process (src-tauri/src/engine) and the client (src/engine) must agree on, written once: each side's tests read this file.",
+  "events": { "restarted": "engine://restarted", "failed": "engine://failed" },
+  "reopened": ["open", "locked", "closed"],
+  "cancelled": { "kind": "cancelled", "status": 409 },
+  "tiles": [
+    {
+      "address": {
+        "doc": 4,
+        "page": 1,
+        "scale": 1.5,
+        "rotation": 90,
+        "appearance": "dark",
+        "clip": { "x": 512, "y": 0, "width": 512, "height": 300 },
+        "visible": true,
+        "ticket": 7,
+        "transport": "webp"
+      },
+      "path": "/tile/4/1",
+      "query": "s=1.5&r=90&a=dark&x=512&y=0&w=512&h=300&p=v&t=7&fmt=webp",
+      "parsed": { "rotation": "quarter", "appearance": "dark", "priority": "visible", "encoding": "webp" }
+    },
+    {
+      "address": {
+        "doc": 2,
+        "page": 0,
+        "scale": 2,
+        "rotation": 270,
+        "appearance": {
+          "ink": { "r": 255, "g": 255, "b": 0, "a": 255 },
+          "paper": { "r": 0, "g": 0, "b": 0, "a": 255 }
+        },
+        "clip": { "x": 0, "y": 512, "width": 100, "height": 50 },
+        "visible": false,
+        "ticket": 8,
+        "transport": "raw"
+      },
+      "path": "/tile/2/0",
+      "query": "s=2&r=270&a=hc-ffff00ff-000000ff&x=0&y=512&w=100&h=50&p=p&t=8",
+      "parsed": {
+        "rotation": "three-quarters",
+        "appearance": "high-contrast",
+        "priority": "prefetch",
+        "encoding": "raw"
+      }
+    }
+  ]
+}

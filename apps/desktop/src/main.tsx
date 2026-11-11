@@ -18,8 +18,8 @@ import { createDesktopPlatform } from "./platform/desktop.ts";
 
 /**
  * This window's engine client and its view. The text and link layers stay off until the engine
- * reads text (a later desktop todo, after web C5); `#raw` in the address uses the raw RGBA
- * transport instead of WebP, for diagnosis (ADR 0008 §4).
+ * reads text; `#raw` in the address uses the raw RGBA transport instead of WebP, for diagnosis
+ * (ADR 0008 §4).
  */
 function startEngine(shell: DesktopShell | undefined): DesktopEngine | undefined {
   if (shell === undefined) return undefined;

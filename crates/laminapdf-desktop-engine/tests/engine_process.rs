@@ -268,12 +268,37 @@ fn a_closed_document_should_be_forgotten() {
 #[test]
 #[ignore = "needs the PDFium library: cargo xtask render-golden"]
 fn a_tile_should_match_an_in_process_pdfium_render() {
+    // fpdf2.pdf, then every example document: a tile of each first page.
+    let mut samples = vec![("corpus/fpdf2.pdf".to_owned(), fixture("corpus/fpdf2.pdf"))];
+    let examples = laminapdf_test_fixtures::fixtures_dir().join("golden/examples");
+    let mut names: Vec<_> = std::fs::read_dir(&examples)
+        .unwrap()
+        .filter_map(|entry| entry.ok().map(|entry| entry.file_name().to_string_lossy().into_owned()))
+        .filter(|name| {
+            std::path::Path::new(name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("pdf"))
+        })
+        .collect();
+    names.sort();
+    assert!(!names.is_empty(), "no example documents in {}", examples.display());
+    for name in names {
+        let rel = format!("golden/examples/{name}");
+        let bytes = fixture(&rel);
+        samples.push((rel, bytes));
+    }
+    let engine = Engine::start();
+    for (n, (name, bytes)) in samples.into_iter().enumerate() {
+        let (doc, len) = engine.add(n as u32 + 1, bytes.clone());
+        engine.open(doc, len);
+        assert_tile_matches(&engine, doc, bytes, &name);
+    }
+}
+
+/// Renders one tile of `doc`'s first page in the engine and in process, and compares the pixels.
+fn assert_tile_matches(engine: &Engine, doc: DocId, bytes: Vec<u8>, name: &str) {
     use laminapdf_render::{CancelToken, PixelRect, RenderBackend, RenderOpenOptions, RenderRequest};
 
-    let engine = Engine::start();
-    let bytes = fixture("corpus/fpdf2.pdf");
-    let (doc, len) = engine.add(1, bytes.clone());
-    engine.open(doc, len);
     let tile = TileRequest {
         req: ReqId(0),
         doc,
@@ -292,7 +317,10 @@ fn a_tile_should_match_an_in_process_pdfium_render() {
         .supervisor
         .request(|req| ToEngine::RenderTile(TileRequest { req, ..tile }))
         .unwrap();
-    assert!(matches!(reply, FromEngine::Tile { w: 256, h: 192, .. }), "{reply:?}");
+    assert!(
+        matches!(reply, FromEngine::Tile { w: 256, h: 192, .. }),
+        "{name}: {reply:?}"
+    );
 
     let backend = laminapdf_render_pdfium::PdfiumBackend::from_env().unwrap();
     let source: Arc<dyn laminapdf_render::ByteSource> = Arc::new(bytes);
@@ -307,6 +335,6 @@ fn a_tile_should_match_an_in_process_pdfium_render() {
     local.render(&request, &mut expected, &CancelToken::new()).unwrap();
     assert!(
         pixels == expected,
-        "the engine's tile differs from the in-process render"
+        "{name}: the engine's tile differs from the in-process render"
     );
 }

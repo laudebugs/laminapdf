@@ -10,7 +10,7 @@
 //! Both folders are git-ignored. The profile is `--release` or `--debug`, else what the Tauri CLI
 //! asked for, else debug. The CLI's `beforeDevCommand`/`beforeBuildCommand` set
 //! `TAURI_ENV_PLATFORM`, and `TAURI_ENV_DEBUG=true` only for a debug build: a release build leaves
-//! `TAURI_ENV_DEBUG` unset (Tauri CLI 2.12, checked on D2d, after release builds had shipped the
+//! `TAURI_ENV_DEBUG` unset (Tauri CLI 2.12, checked after release builds had shipped the
 //! debug engine).
 //! The host's target only: the universal macOS engine comes with code signing.
 
