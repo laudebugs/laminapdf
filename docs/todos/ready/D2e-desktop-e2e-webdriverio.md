@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D2c](./D2c-engine-sandbox.md), [D2d](./D2d-tile-transport-and-first-document.md) |
+| Depends on | [D2c](../ongoing/D2c-engine-sandbox.md), [D2d](./D2d-tile-transport-and-first-document.md) |
 | ADRs | Completes ADR 0008 §test strategy. Follows [0018](../../decisions/0018-test-strategy.md) (test lanes) |
 | Branch | `test/d2e-desktop-e2e` |
 | PR title | `test(desktop): run reader e2e scenarios with WebdriverIO on macOS, Windows and Linux` |

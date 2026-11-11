@@ -7,7 +7,7 @@
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [C4f](../done/C4f-reader-home-repairs-and-demo.md), [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../done/D2b-engine-process.md) |
-| Dependency notes | [D2b](../done/D2b-engine-process.md); web plan **C3** (`@laminapdf/viewer` and its engine RPC interface, [web-app §C3](../../plans/web-app.md#c3-viewer-core)) and **C4** (`@laminapdf/ui`), both already required by D2a. Can run in parallel with [D2c](D2c-engine-sandbox.md). |
+| Dependency notes | [D2b](../done/D2b-engine-process.md); web plan **C3** (`@laminapdf/viewer` and its engine RPC interface, [web-app §C3](../../plans/web-app.md#c3-viewer-core)) and **C4** (`@laminapdf/ui`), both already required by D2a. Can run in parallel with [D2c](../ongoing/D2c-engine-sandbox.md). |
 | ADRs | Implements ADR 0008 §tile transport. Follows ADR 0009 (typed viewer RPC, web C2) and ADR 0010 (Platform adapter) |
 | Branch | `feat/d2d-tile-transport` |
 | PR title | `feat(desktop): stream engine tiles to the viewer and open a document` |
