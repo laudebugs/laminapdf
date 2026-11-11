@@ -2,7 +2,7 @@
 
 > Lamina PDF creates, reads, edits and saves PDF files from TypeScript and Rust: one Rust core, run as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers (`@laminapdf/sdk`), or natively from the `laminapdf` crate. Positions are top-left points of the displayed page and page indexes start at 0; every error has a stable code with its own page.
 
-These docs describe version 0.2.0-alpha.5, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
+These docs describe version 0.2.0-alpha.6, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
 
 - [Using Lamina PDF with coding agents](AGENTS.md)
 - [What old names became](renames.json)
@@ -47,6 +47,16 @@ These docs describe version 0.2.0-alpha.5, the version of this package. The same
 - [Open password-protected files](pages/guides/password-protected-files.md): Open PDFs that need a password, ask again when it is missing or wrong, and save them afterwards.
 - [Open files you don't trust](pages/guides/untrusted-files.md): Cap how much work an uploaded PDF can make Lamina PDF do, and refuse damaged files with strict mode.
 - [Open large files by ranges](pages/guides/open-large-files.md): Open a PDF on a web server without downloading all of it, fetching only the byte ranges each read needs.
+
+## Command line
+
+- [The command line](pages/cli.md): Inspect, check, extract, render and build PDFs from a terminal, a build script or an AI agent with the laminapdf command.
+- [Install the command-line tool](pages/cli/install.md): Install the laminapdf command with Homebrew or npm, or download it for macOS, Linux or Windows and check it against its checksum.
+- [Inspect and check PDFs](pages/cli/inspect.md): Describe a PDF with laminapdf info, find what Lamina PDF had to repair with check, and list what a file holds beyond its pages with reveal.
+- [Extract text and render pages](pages/cli/extract-and-render.md): Read a PDF's text, or its blocks in reading order as Markdown, JSON or chunks for an LLM, and draw its pages as PNG images from the command line.
+- [Make and change PDFs](pages/cli/build-and-edit.md): Turn a Markdown file into a tagged, accessible PDF with laminapdf build, and turn pages with laminapdf pages rotate.
+- [Scripts and batch jobs](pages/cli/scripts.md): Pipe PDFs through laminapdf, name pages with ranges, check thousands of files in parallel, and read its JSON reports and exit codes from a script.
+- [Connect an AI agent (MCP)](pages/cli/mcp.md): Serve the laminapdf commands as tools for Claude and other AI agents over the Model Context Protocol, limited to the folders you choose.
 
 ## Production
 

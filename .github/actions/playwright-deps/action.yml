@@ -10,7 +10,10 @@ inputs:
 runs:
   using: composite
   steps:
-    # apt can fail on a mirror hiccup: three tries, each retry a warning (ADR 0018 §4).
+    # apt can fail on a mirror hiccup: three tries a minute apart, each retry a warning (ADR 0018
+    # §4). Playwright runs apt through sudo, which the retry can't stop at its timeout ("kill
+    # EPERM": the step fails with no retry), so Playwright runs as root under `sudo timeout` (KILL
+    # 30 s after TERM) and ends itself first (docs/bugs/ci-apt-retry-kill-eperm).
     - if: runner.os == 'Linux'
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
       env:
@@ -18,6 +21,7 @@ runs:
       with:
         timeout_minutes: 15
         max_attempts: 3
+        retry_wait_seconds: 60
         shell: bash
-        # $BROWSERS unquoted on purpose: one argument per browser.
-        command: pnpm --filter @laminapdf/sdk exec playwright install-deps $BROWSERS
+        # $BROWSERS unquoted on purpose: one argument per browser. PATH passed on for node.
+        command: sudo env "PATH=$PATH" timeout -k 30 780 packages/sdk/node_modules/.bin/playwright install-deps $BROWSERS

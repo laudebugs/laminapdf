@@ -2713,7 +2713,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "boon",
  "criterion",
@@ -2735,7 +2735,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-build"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "boon",
  "laminapdf-content",
@@ -2761,7 +2761,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cli"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "anstream",
  "boon",
@@ -2786,7 +2786,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-content"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -2799,7 +2799,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "criterion",
  "laminapdf-save",
@@ -2812,7 +2812,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "image-webp",
  "laminapdf-desktop-protocol",
@@ -2831,7 +2831,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop-engine"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf",
  "laminapdf-desktop-protocol",
@@ -2842,7 +2842,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop-protocol"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "postcard",
  "serde",
@@ -2852,7 +2852,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-extract"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "boon",
  "laminapdf-build",
@@ -2871,7 +2871,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-layout-onnx"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf-extract",
  "laminapdf-model",
@@ -2886,7 +2886,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-model"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-save",
@@ -2900,7 +2900,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-ops"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -2917,7 +2917,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "boon",
  "hayro",
@@ -2931,7 +2931,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render-pdfium"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf",
  "laminapdf-render",
@@ -2942,7 +2942,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render-wasm"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "js-sys",
  "laminapdf-render",
@@ -2951,7 +2951,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-save"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "criterion",
  "laminapdf-cos",
@@ -2968,7 +2968,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-source"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf",
  "laminapdf-cos",
@@ -2980,7 +2980,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "aes",
  "laminapdf-test-fixtures",
@@ -2995,7 +2995,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-test-fixtures"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "png",
  "serde_json",
@@ -3003,7 +3003,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-text"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "harfrust",
  "icu_properties",
@@ -3025,7 +3025,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-wasm"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "js-sys",
  "laminapdf",
@@ -4894,7 +4894,7 @@ checksum = "ff7589a1859b09232522bb9edf076ca7fcf14ded96685d3fa629db73023ffbb7"
 
 [[package]]
 name = "std14-gen"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "anyhow",
  "sha2 0.11.1",
@@ -6687,7 +6687,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 dependencies = [
  "anyhow",
  "boon",
