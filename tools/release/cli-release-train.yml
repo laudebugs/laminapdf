@@ -1,0 +1,128 @@
+# Install as .github/workflows/cli-release-train.yml (tools/release/README.md).
+# The command-line tool's releases (todo L4h): after the release lane publishes the libraries from a
+# `v<version>` tag, the release bot tags `laminapdf-cli-v<version>` on the same commit. That tag
+# starts cli-release.yml, which builds all eight targets and publishes the GitHub release, npm and
+# the Homebrew formula. Every library release gets a CLI release, so the docs' download links
+# (which use the docs' version) don't answer 404. The job checks out and runs nothing from the
+# repository. `CLI_RELEASE_TRAIN=off` (a repository variable) stops future trains.
+name: CLI release train
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      release-run-id:
+        description: ID of a successful Release run from a v<version> tag push
+        required: true
+        type: string
+      tag:
+        description: Push the CLI tag (off prints what it would tag)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cli-release-train
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  tag:
+    # workflow_run is privileged: only a tag push in this repository counts, and its code never runs.
+    if: >-
+      ${{ vars.CLI_RELEASE_TRAIN != 'off'
+      && ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      || (github.event_name == 'workflow_run'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.conclusion == 'success')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # The run must be the release lane's, from a v<version> tag push, and successful; the input of
+      # a dispatch is checked the same way before anything uses it.
+      - name: Select the successful release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_RUN: ${{ github.event.workflow_run.id || inputs.release-run-id }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$RELEASE_RUN" =~ ^[0-9]+$ ]]; then
+            echo "::error::release-run-id must be a numeric run ID."
+            exit 1
+          fi
+          run_json=$(gh run view "$RELEASE_RUN" --json workflowName,headBranch,status,conclusion,event,headSha)
+          if ! selected=$(jq -er '
+            select(.workflowName == "Release" and .event == "push"
+              and .status == "completed" and .conclusion == "success"
+              and (.headBranch | test("^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.]+)?$"))
+              and (.headSha | test("^[0-9a-f]{40}$")))
+            | "\(.headBranch) \(.headSha)"
+          ' <<< "$run_json"); then
+            echo "::error::Select a successful Release run from a v<version> tag push."
+            exit 1
+          fi
+          read -r version_tag sha <<< "$selected"
+          # The tag must still name the commit the release lane tested and published.
+          tagged=$(gh api "repos/$GH_REPO/commits/$version_tag" --jq .sha)
+          if [ "$tagged" != "$sha" ]; then
+            echo "::error::$version_tag now names $tagged, not the released commit $sha."
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "tag=laminapdf-cli-$version_tag" >> "$GITHUB_OUTPUT"
+      # A tag that exists already (a re-run, or one pushed by hand) is left alone.
+      - name: Check for the CLI tag
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Only a 404 means missing: any other failure stops the run rather than pass for one.
+          if answer=$(gh api "repos/$GH_REPO/git/ref/tags/$TAG" 2>&1); then
+            echo "$TAG exists already; nothing to tag." >> "$GITHUB_STEP_SUMMARY"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif grep -q "HTTP 404" <<< "$answer"; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Couldn't check for $TAG: $answer"
+            exit 1
+          fi
+      - name: Report a dry run
+        if: steps.existing.outputs.exists == 'false' && github.event_name == 'workflow_dispatch' && !inputs.tag
+        env:
+          SHA: ${{ steps.release.outputs.sha }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: echo "Would tag $TAG on $SHA (dispatch with tag set to push it)." >> "$GITHUB_STEP_SUMMARY"
+      - name: Create the release bot's token
+        if: steps.existing.outputs.exists == 'false' && (github.event_name == 'workflow_run' || inputs.tag)
+        id: bot
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      # The App's push starts cli-release.yml, which the default token's could not.
+      - name: Tag the CLI release
+        if: steps.existing.outputs.exists == 'false' && (github.event_name == 'workflow_run' || inputs.tag)
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          SHA: ${{ steps.release.outputs.sha }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            --raw-field ref="refs/tags/$TAG" --raw-field sha="$SHA" >/dev/null
+          echo "Tagged $TAG on $SHA; cli-release.yml builds and publishes it." >> "$GITHUB_STEP_SUMMARY"
