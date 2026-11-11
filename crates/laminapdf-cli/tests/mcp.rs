@@ -570,6 +570,85 @@ async fn build_should_take_a_file_and_need_exactly_one_of_markdown_and_input() {
 }
 
 #[tokio::test]
+async fn build_should_fill_an_inline_template_from_inline_data() {
+    let base = tree("build-document");
+    for (name, file) in [
+        ("regular.ttf", "fonts/NotoSans-Regular.ttf"),
+        ("bold.ttc", "fonts/NotoSans-RegularBold.ttc"),
+    ] {
+        std::fs::write(base.join("root").join(name), laminapdf_test_fixtures::fixture(file)).unwrap();
+    }
+    let read = |file: &str| -> Value { serde_json::from_slice(&laminapdf_test_fixtures::fixture(file)).unwrap() };
+    let arguments = json!({
+        "document": read("documents/invoice.json"),
+        "data": read("documents/invoice-data.json"),
+        "fonts": ["regular=regular.ttf", "bold=bold.ttc#1"],
+        "output": "invoice.pdf"
+    });
+    let client = connect(&base, &["--allow-write"]).await;
+    let tools = client.list_all_tools().await.unwrap();
+    let tool = tools.iter().find(|t| t.name == "laminapdf_build").unwrap();
+    // The arguments match the tool's input schema, laminapdf.document/1 inlined in it.
+    let mut compiler = boon::Compiler::new();
+    compiler
+        .add_resource(
+            "urn:laminapdf-test:build-input",
+            Value::Object((*tool.input_schema).clone()),
+        )
+        .unwrap();
+    let mut schemas = boon::Schemas::new();
+    let index = compiler
+        .compile("urn:laminapdf-test:build-input", &mut schemas)
+        .unwrap();
+    schemas.validate(&arguments, index).unwrap();
+    let built = call(&client, "laminapdf_build", arguments).await;
+    let report = ok(&built);
+    assert_eq!(report["pageCount"].as_u64(), Some(2));
+    validate(tool, report);
+    // The same bytes as `laminapdf build invoice.json --data invoice-data.json` with those fonts.
+    assert_eq!(
+        std::fs::read(base.join("root/invoice.pdf")).unwrap(),
+        laminapdf_test_fixtures::fixture("golden/cli-build-invoice.pdf")
+    );
+}
+
+#[tokio::test]
+async fn an_inline_document_should_read_no_file_it_is_not_given() {
+    let base = tree("build-document-files");
+    // A font of the name the document uses sits in the root, but nothing gave it.
+    std::fs::write(
+        base.join("root/regular"),
+        laminapdf_test_fixtures::fixture("fonts/NotoSans-Regular.ttf"),
+    )
+    .unwrap();
+    let client = connect(&base, &["--allow-write"]).await;
+    let document = json!({
+        "schema": "laminapdf.document/1",
+        "styles": { "body": { "font": "regular", "size": 11 } },
+        "blocks": [{ "type": "paragraph", "text": "Hello" }]
+    });
+    let built = call(
+        &client,
+        "laminapdf_build",
+        json!({ "document": document, "output": "out.pdf" }),
+    )
+    .await;
+    let refused = error(&built);
+    assert_eq!(
+        (refused["code"].as_str(), refused["data"]["reason"].as_str()),
+        (Some("invalid-document"), Some("unknown-font"))
+    );
+    let two = call(
+        &client,
+        "laminapdf_build",
+        json!({ "document": document, "markdown": "# Hi\n", "output": "two.pdf" }),
+    )
+    .await;
+    assert_eq!(error(&two)["code"], "invalid-command-line");
+    assert!(!base.join("root/out.pdf").exists());
+}
+
+#[tokio::test]
 async fn inline_markdown_should_read_no_image_but_a_file_reads_its_own_folder() {
     let base = tree("build-images");
     std::fs::write(

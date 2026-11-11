@@ -63,6 +63,18 @@ pub(crate) fn error(streams: &mut Streams, error: &CliError, input: Option<&str>
             "{RED}error{RESET}{BOLD}[{}]: {}{RESET}\n",
             diagnostic.code, diagnostic.message
         );
+        // Where in a JSON document or its data the error is (invalid-document, template-data-*):
+        // the user's own keys, so made safe for the terminal like any text read from a file.
+        if let Some(pointer) = diagnostic.data.get("pointer").and_then(Value::as_str) {
+            match diagnostic.data.get("reason").and_then(Value::as_str) {
+                Some(reason) => {
+                    let _ = writeln!(text, "  = at: {} ({})", for_terminal(pointer), for_terminal(reason));
+                }
+                None => {
+                    let _ = writeln!(text, "  = at: {}", for_terminal(pointer));
+                }
+            }
+        }
         if !diagnostic.did_you_mean.is_empty() {
             let _ = writeln!(text, "  = did you mean: {}", diagnostic.did_you_mean.join(", "));
         }

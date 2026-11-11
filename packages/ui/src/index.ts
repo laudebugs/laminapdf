@@ -204,6 +204,7 @@ export {
   AppearanceFields,
   type AppearanceFieldsProps,
   AppearanceSettings,
+  appearanceSummary,
   applyAppearance,
   DEFAULT_APPEARANCE,
   MOTIONS,
