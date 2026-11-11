@@ -507,7 +507,8 @@ fn manifest_problems(manifest: &str, version: &str) -> Result<Vec<String>> {
 }
 
 /// The manifests of the root workspace's members (`[workspace] members`, with `dir/*` and
-/// `dir/*/sub` globs expanded: `apps/*/src-tauri` is the Tauri apps' crates).
+/// `dir/*/sub` globs expanded, as Cargo does; the root lists the Tauri apps' crates by path,
+/// since Dependabot can't read `dir/*/sub`).
 fn member_manifests(root: &Path, manifest: &str) -> Result<Vec<PathBuf>> {
     let table: toml::Table = toml::from_str(manifest).context("Cargo.toml is not valid TOML")?;
     let members = table

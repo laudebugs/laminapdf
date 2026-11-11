@@ -1,7 +1,7 @@
 ---
 title: "Recipes"
 description: "Complete Lamina PDF programs, from one page of text to an archived invoice, each with its code and the PDF it writes."
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/recipes/"
 ---
 
@@ -22,6 +22,8 @@ To run a Rust recipe from a checkout of Lamina PDF, use `cargo run -p laminapdf 
 - [Multilingual text](../pages/recipes/multilingual.md): five scripts, each in its own embedded font.
 - [Images and vectors](../pages/recipes/images-and-vectors.md): paths, colour, transparency, a clip and two images.
 - [Element flow](../pages/recipes/element-flow.md): a report whose parts each start below the one before, over two pages.
+- [Turn Markdown into a PDF](../pages/recipes/markdown-to-pdf.md): a report written in Markdown, from the command line, TypeScript or Rust.
+- [Fill an invoice from JSON](../pages/recipes/invoice-from-json.md): a JSON template filled from data, its line items repeated into a table across pages.
 - [Links and outlines](../pages/recipes/links-and-outlines.md): links, an outline and page labels.
 
 ## Edit a PDF

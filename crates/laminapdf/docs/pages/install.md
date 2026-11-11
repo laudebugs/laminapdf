@@ -1,7 +1,7 @@
 ---
 title: "Install"
 description: "Install Lamina PDF from npm or crates.io, and find every published package."
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/install/"
 ---
 
@@ -16,10 +16,10 @@ Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/packa
 Install the version these docs describe:
 
 ```sh
-npm install @laminapdf/sdk@0.2.0-alpha.5
+npm install @laminapdf/sdk@0.2.0-alpha.6
 ```
 
-`npm install @laminapdf/sdk@alpha` installs the newest alpha, whichever version that is. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@0.2.0-alpha.5`), and Deno takes `npm:@laminapdf/sdk@0.2.0-alpha.5`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
+`npm install @laminapdf/sdk@alpha` installs the newest alpha, whichever version that is. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@0.2.0-alpha.6`), and Deno takes `npm:@laminapdf/sdk@0.2.0-alpha.6`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
 
 The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](../pages/quick-start/browser.md) show each one.
 
@@ -28,10 +28,14 @@ The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `b
 Add the crate at the version these docs describe:
 
 ```sh
-cargo add laminapdf@=0.2.0-alpha.5
+cargo add laminapdf@=0.2.0-alpha.6
 ```
 
-The command writes `laminapdf = "=0.2.0-alpha.5"` to `Cargo.toml`, which keeps your project on this release until you change it: alphas promise nothing to each other (see the [stability policy](../pages/reference/stability.md)). The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
+The command writes `laminapdf = "=0.2.0-alpha.6"` to `Cargo.toml`, which keeps your project on this release until you change it: alphas promise nothing to each other (see the [stability policy](../pages/reference/stability.md)). The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
+
+## The command-line tool
+
+The `laminapdf` command does the common jobs from a terminal or a script, without a Node or Rust project: describe, check, extract, render and build PDFs. Homebrew installs it with `brew install laudebugs/tap/laminapdf`; [install the command-line tool](../pages/cli/install.md) has npm and downloads for macOS, Linux and Windows.
 
 ## Every published package
 

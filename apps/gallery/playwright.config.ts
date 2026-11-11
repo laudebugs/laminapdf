@@ -7,18 +7,19 @@ import { defineConfig, devices } from "@playwright/test";
 // Snapshots are never written by a test run: only `cargo xtask gallery --update` passes
 // `--update-snapshots`. Comparisons are exact (no pixel may differ, by any amount: Playwright's default
 // colour threshold would let a small token change through). A default export because Playwright reads one.
+// The results folder: `cargo xtask gallery` passes its own. Each test's output and the HTML report
+// sit side by side in it, since Playwright refuses a report folder inside the output folder.
+const results = process.env.GALLERY_RESULTS ?? "test-results";
+
 export default defineConfig({
   testDir: "e2e",
   snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
-  outputDir: process.env.GALLERY_RESULTS ?? "test-results",
+  outputDir: `${results}/output`,
   fullyParallel: true,
   forbidOnly: true,
   retries: 0,
   updateSnapshots: "none",
-  reporter: [
-    ["list"],
-    ["html", { outputFolder: `${process.env.GALLERY_RESULTS ?? "test-results"}/report`, open: "never" }],
-  ],
+  reporter: [["list"], ["html", { outputFolder: `${results}/report`, open: "never" }]],
   expect: {
     toHaveScreenshot: { maxDiffPixels: 0, threshold: 0, animations: "disabled", caret: "hide", scale: "css" },
   },

@@ -40,7 +40,7 @@ cargo xtask gallery --update
 
 The command reruns the tests in the same image, rewrites `e2e/__screenshots__/` and lists the changed files. It is the only way to change a screenshot: a test run never writes one. Commit the changed images with the change that caused them.
 
-Without Docker, run the **Update gallery screenshots** workflow from the repository's Actions tab on your branch. It uploads the new images as an artifact; copy them into `e2e/__screenshots__/` and commit them.
+Without Docker, the screenshots can't be updated: they must come from the pinned image, so ask someone with Docker to run the command on your branch.
 
 ## Review screenshot changes
 
