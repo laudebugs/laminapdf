@@ -248,14 +248,14 @@ type ListPlaceholder<T> =
  */
 type AsWritten = "type" | "schema" | "profiles";
 
-/** `T` with a template's placeholders allowed where `fill` takes them: a value for text, numbers and `true`/`false`, a list placeholder among a list's items. */
+/** `T` with a template's placeholders allowed where `fill` takes them: a value for text, numbers and `true`/`false`, a list placeholder among a list's items. `type`, `schema` and `profiles` are written as they are, with no placeholder. */
 export type Templated<T> = T extends readonly (infer U)[]
   ? readonly (Templated<U> | ListPlaceholder<U>)[]
   : T extends object
     ? { readonly [K in keyof T]: K extends AsWritten ? T[K] : Templated<T[K]> }
     : T | ValuePlaceholder;
 
-/** A `laminapdf.document/1` template: a {@link FlowDocument} whose values may be placeholders that {@link Builder.flow} fills from data. */
+/** A `laminapdf.document/1` template: a {@link FlowDocument} whose values may be placeholders that {@link Builder.flow} fills from data. Its `type`, `schema` and `profiles` take none: `profiles` is read before filling, for `new Builder({ profiles })`. */
 export type FlowTemplate = Templated<FlowDocument>;
 
 /** Options of {@link Builder.flow}. */
