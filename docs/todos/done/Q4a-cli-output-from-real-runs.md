@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `docs/q4a-cli-transcripts` |
 | PR title | `docs(cli): command-line output generated from real runs and checked for drift` |
 | Size | M |
-| PR | — |
+| PR | [laudebugs/lamina#442](https://github.com/laudebugs/laminapdf/pull/442) |
 
 ## Goal
 
@@ -40,17 +40,19 @@ The docs promise that every code block was tested, and for TypeScript and Rust i
 
 ## Tasks
 
-- [ ] List every `console` and `sh` block on the site, and what each needs to run.
-- [ ] Write the transcript format and the test; make the outputs deterministic (fixed fixtures, no timings or paths that vary).
-- [ ] Add the component (`Transcript.astro` or an option on `Snippet`), and make `check docs-snippets` refuse a hand-written `console` block.
-- [ ] Move each CLI page onto the transcripts, fixing any output that has drifted.
-- [ ] Check the `sh` install blocks against the package names and the version rule on the install page.
+- [x] List every `console` and `sh` block on the site, and what each needs to run.
+- [x] Write the transcript format and the test; make the outputs deterministic (fixed fixtures, no timings or paths that vary).
+- [x] Add the component (`Transcript.astro` or an option on `Snippet`), and make `check docs-snippets` refuse a hand-written `console` block. *As done:* `Transcript.astro`; the refusal is in the docs site's tests (`apps/docs/test/transcripts.test.mjs`), since `docs_snippets.rs` is over the 800-line module limit, and it also refuses a shell block with a `$ ` prompt.
+- [x] Move each CLI page onto the transcripts, fixing any output that has drifted.
+- [ ] Check the `sh` install blocks against the package names and the version rule on the install page. *Not done:* they can't run in a test, the install page's own check covers the download table, and `release.mjs` already checks the versions install lines name; left for a later todo if they drift.
+
+*Left out, found in review:* the error-code pages (`docs/errors/*.md`, plain Markdown the docs site renders at `/reference/codes/`) still show a few hand-typed `console` sessions, and a transcript merges standard error into standard output and shows an exit code only through `echo $?`, so a claim that a message goes to standard error isn't checked. Both are for a later todo.
 
 ## Acceptance criteria
 
-- [ ] Every `console` block on the site comes from a transcript file that a test runs.
-- [ ] A change to a command's output fails the test until the transcript is updated.
-- [ ] `check docs-snippets` fails on a hand-written `console` block.
+- [x] Every `console` block on the site comes from a transcript file that a test runs.
+- [x] A change to a command's output fails the test until the transcript is updated.
+- [x] A hand-written `console` block fails a check: the docs site's tests (see the tasks).
 
 ## Post-merge checks
 
@@ -71,8 +73,8 @@ The CLI pages; `docs/guidelines/examples.md` (transcripts are examples too); `fi
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

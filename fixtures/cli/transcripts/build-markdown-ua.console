@@ -1,0 +1,2 @@
+$ laminapdf build notes.md -o notes.pdf --profile pdf-ua-1 --font regular=NotoSans-Regular.ttf --font bold=NotoSans-RegularBold.ttc#1
+built 1 page → notes.pdf (14 KB, PDF/UA-1)
