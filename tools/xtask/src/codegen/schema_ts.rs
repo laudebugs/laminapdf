@@ -1,7 +1,9 @@
 //! TypeScript types from a committed JSON Schema: `laminapdf.extract/1`
 //! (`crates/laminapdf-extract/schemas/extract.schema.json`, itself generated from the Rust types)
 //! becomes `packages/sdk/src/generated/extract.ts`, so `doc.extract({ format: "json" })` is typed
-//! by the same source as the JSON it parses.
+//! by the same source as the JSON it parses, and `laminapdf.document/1`
+//! (`crates/laminapdf-build/schemas/document.schema.json`) becomes `document.ts`, the types
+//! `builder.flow` takes.
 //!
 //! The converter knows the keywords that schemars writes for those types and fails, naming the
 //! path, on any other, so a new shape in the schema is a deliberate change here.
@@ -15,7 +17,7 @@ use serde_json::{Map, Value};
 const IGNORED: [&str; 7] = ["description", "format", "minimum", "maximum", "title", "$id", "$schema"];
 
 /// Keywords the converter turns into types.
-const HANDLED: [&str; 10] = [
+const HANDLED: [&str; 11] = [
     "type",
     "properties",
     "required",
@@ -26,6 +28,7 @@ const HANDLED: [&str; 10] = [
     "oneOf",
     "anyOf",
     "$ref",
+    "additionalProperties",
 ];
 
 /// The longest array of fixed length written as a tuple.
@@ -145,11 +148,26 @@ fn single(t: &str, map: &Map<String, Value>, path: &str, indent: &str) -> Result
     })
 }
 
-/// An object's properties, required ones without `?`, as a multi-line type literal.
+/// An object's properties, required ones without `?`, as a multi-line type literal; a map
+/// (`additionalProperties` with a schema and no properties) as a `Record`.
+///
+/// `additionalProperties: false` beside properties needs nothing more: TypeScript already refuses
+/// an unknown key in an object literal, which is how a document is written.
 fn object(map: &Map<String, Value>, path: &str, indent: &str) -> Result<String> {
+    let extra = map.get("additionalProperties");
     let Some(properties) = map.get("properties").and_then(Value::as_object) else {
-        return Ok("Record<string, unknown>".to_owned());
+        return Ok(match extra {
+            None | Some(Value::Bool(true)) => "Record<string, unknown>".to_owned(),
+            Some(Value::Bool(false)) => "Record<string, never>".to_owned(),
+            Some(value) => format!(
+                "Record<string, {}>",
+                ts(value, &format!("{path}/additionalProperties"), indent)?
+            ),
+        });
     };
+    if let Some(value) = extra.filter(|v| !v.is_boolean()) {
+        bail!("{path}: properties beside an additionalProperties schema ({value}) have no TypeScript form yet");
+    }
     let required: Vec<&str> = map
         .get("required")
         .and_then(Value::as_array)
@@ -199,9 +217,33 @@ mod tests {
 
     #[test]
     fn render_should_refuse_a_keyword_it_does_not_know() {
-        let schema = json!({ "type": "object", "additionalProperties": false });
+        let schema = json!({ "type": "object", "patternProperties": { "^x": { "type": "string" } } });
         let err = render(&schema, "Root", "", "test").unwrap_err().to_string();
-        assert!(err.contains("additionalProperties"), "{err}");
+        assert!(err.contains("patternProperties"), "{err}");
+    }
+
+    #[test]
+    fn render_should_write_a_map_as_a_record_and_a_closed_object_as_its_properties() {
+        let schema = json!({
+            "$defs": { "Style": { "properties": { "size": { "type": "number" } }, "type": "object", "additionalProperties": false } },
+            "properties": { "styles": { "type": "object", "additionalProperties": { "$ref": "#/$defs/Style" } } },
+            "type": "object",
+            "additionalProperties": false
+        });
+        let out = render(&schema, "Root", "", "test").unwrap();
+        assert!(out.contains("export type Style = {\n  size?: number;\n};"), "{out}");
+        assert!(out.contains("  styles?: Record<string, Style>;"), "{out}");
+    }
+
+    #[test]
+    fn render_should_refuse_properties_beside_an_additional_properties_schema() {
+        let schema = json!({
+            "properties": { "a": { "type": "string" } },
+            "additionalProperties": { "type": "number" },
+            "type": "object"
+        });
+        let err = render(&schema, "Root", "", "test").unwrap_err().to_string();
+        assert!(err.contains("additionalProperties schema"), "{err}");
     }
 
     #[test]
