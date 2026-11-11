@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [C4f](../done/C4f-reader-home-repairs-and-demo.md), [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../done/D2b-engine-process.md) |
