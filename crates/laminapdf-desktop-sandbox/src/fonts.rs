@@ -38,9 +38,9 @@ const MAX_DEPTH: usize = 6;
 #[derive(Debug, Default)]
 pub struct SystemFonts {
     faces: Vec<Listed>,
-    /// The names' bytes so far, against [`MAX_LIST_BYTES`].
+    /// The names' bytes so far, against `MAX_LIST_BYTES`.
     names: usize,
-    /// Faces left out past [`MAX_FACES`] or [`MAX_LIST_BYTES`].
+    /// Faces left out past `MAX_FACES` or `MAX_LIST_BYTES`.
     pub dropped: usize,
     /// How long listing took.
     pub took: Duration,

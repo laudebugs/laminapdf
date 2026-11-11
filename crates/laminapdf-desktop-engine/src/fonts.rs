@@ -1,6 +1,6 @@
 //! [`Fonts`]: the system fonts PDFium gets inside the sandbox (ADR 0008 §5, fonts). The main
 //! process sends the list of faces it can serve (`ToEngine::Fonts`) right after `Ready`; when a PDF
-//! names a font it doesn't embed, PDFium asks [`Fonts::find`], which picks a face the way PDFium's
+//! names a font it doesn't embed, PDFium asks the provider's `find`, which picks a face the way PDFium's
 //! own folder scan would and fetches its bytes with a `FontRequest`. The engine never names a
 //! path, and never opens a file.
 
