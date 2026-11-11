@@ -12,7 +12,7 @@
 | Branch | `ci/cli-release-train` |
 | PR title | `ci(cli): tag a CLI release after each daily release that changed it` |
 | Size | S (≈ 150–250 lines: the workflow, its tests, docs) |
-| PR | — |
+| PR | [#419](https://github.com/laudebugs/laminapdf/pull/419) |
 
 ## Goal
 
