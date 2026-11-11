@@ -305,6 +305,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] `SaveConstraint` banner and explanations
 - [ ] Metadata editing ops (J.01–J.03, J.10) writing Info and XMP in sync, with round-trip tests in core, `@laminapdf/sdk`, web, desktop
 - [x] XMP packet parse/update for Info-mapped properties; create a packet when missing ([E1b](../todos/done/E1b-xmp-packet-model.md))
+- [x] Redraw after an edit: the document worker reloads PDFium from the incremental update, and the viewer redraws only the touched pages at their new sizes, with the cost measured ([E1g](../todos/done/E1g-redraw-after-edit.md), [plan §6](editor/e1-editing-foundation.md#6-redrawing-after-an-edit))
 - [ ] PDF/A-aware metadata edits: keep `pdfaid:`, warn before a save that breaks the claim; tests that veraPDF still passes on edited PDF/A fixtures
 
 ### E2. Page organisation
