@@ -5,6 +5,7 @@ import { Builder, Font, init } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { openUntrusted } from "../examples/open-untrusted.js";
 import { hello as nodeQuickStart } from "../examples/quick-start/node.js";
+import { openOrAsk } from "../examples/react-to-error-codes.js";
 import { read } from "./helpers.js";
 import { registerQuickStart, runSuite } from "./suite/examples.js";
 
@@ -38,5 +39,13 @@ describe("examples", () => {
     expect(openUntrusted(file)).toMatchObject({ ok: false, code: "password-required" });
     expect(openUntrusted(file, "nope")).toMatchObject({ ok: false, code: "wrong-password" });
     expect(openUntrusted(new TextEncoder().encode("not a PDF"))).toMatchObject({ ok: false, code: "not-pdf" });
+  });
+
+  it("turns a missing or wrong password and a non-PDF into the app's next step", () => {
+    const file = read("fixtures/encrypted/r6-aes-256-user.pdf");
+    expect(openOrAsk(file)).toEqual({ step: "ask-for-password" });
+    expect(openOrAsk(file, "nope")).toEqual({ step: "ask-again" });
+    expect(openOrAsk(file, "Pässwört-6")).toEqual({ step: "show", pages: 2, warnings: [] });
+    expect(openOrAsk(new TextEncoder().encode("not a PDF"))).toEqual({ step: "not-a-pdf" });
   });
 });
