@@ -24,4 +24,6 @@ runs:
         retry_wait_seconds: 60
         shell: bash
         # $BROWSERS unquoted on purpose: one argument per browser. PATH passed on for node.
-        command: sudo env "PATH=$PATH" timeout -k 30 780 packages/sdk/node_modules/.bin/playwright install-deps $BROWSERS
+        command: >-
+          bash .github/actions/apt-fail-fast/update.sh &&
+          sudo env "PATH=$PATH" timeout -k 30 540 packages/sdk/node_modules/.bin/playwright install-deps $BROWSERS
