@@ -7,9 +7,8 @@ import { Icon } from "@laminapdf/icons/react";
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button, IconButton } from "../components/button.js";
 import { message } from "../messages.js";
-import { Dialog } from "../overlays/dialog.js";
+import { Dialog, usePhoneLayout } from "../overlays/dialog.js";
 import { Popover, PopoverTrigger } from "../overlays/popover.js";
-import { usePhone } from "../shell/phone.js";
 import { AppearanceFields, type AppearanceFieldsProps } from "./appearance.js";
 
 /** One section of the Settings dialog. */
@@ -134,8 +133,8 @@ interface SettingsRowProps {
   readonly section: SettingsSection;
   /** Whether it is the section shown beside the list (never on a phone's list screen). */
   readonly current: boolean;
-  /** The id its summary takes, which names it as the row's description. */
-  readonly summaryId: string;
+  /** The id its summary takes, which makes it the row's description; none wider than a phone, where it is hidden. */
+  readonly summaryId: string | undefined;
   readonly onPress: () => void;
 }
 
@@ -145,7 +144,7 @@ function SettingsRow({ section, current, summaryId, onPress }: SettingsRowProps)
     <Button
       variant="ghost"
       aria-current={current ? "page" : false}
-      {...(section.summary === undefined ? {} : { "aria-describedby": summaryId })}
+      {...(section.summary === undefined || summaryId === undefined ? {} : { "aria-describedby": summaryId })}
       onPress={onPress}
     >
       <span className="paper-settings-nav-name">{section.title}</span>
@@ -179,8 +178,8 @@ export function SettingsDialog({ registry, isOpen, onOpenChange }: SettingsDialo
   const shown = sections.find((s) => s.id === chosen) ?? sections[0];
   const listed = sections.length > 1;
   const summaryId = useId();
-  // The phone's two screens; wider, the list stays beside the fields and nothing here applies.
-  const phone = usePhone();
+  // Whether the Dialog is a phone's sheet, with its two screens; wider, none of this applies.
+  const phone = usePhoneLayout(isOpen);
   // Where focus goes once a phone's screen changes: the hidden screen took the pressed button with it.
   const back = useRef<HTMLDivElement>(null);
   const rows = useRef(new Map<string, HTMLLIElement>());
@@ -214,7 +213,7 @@ export function SettingsDialog({ registry, isOpen, onOpenChange }: SettingsDialo
                   <SettingsRow
                     section={section}
                     current={!phone && section === shown}
-                    summaryId={`${summaryId}-${section.id}`}
+                    summaryId={phone ? `${summaryId}-${section.id}` : undefined}
                     onPress={() => {
                       setChosen(section.id);
                       if (!phone) return;

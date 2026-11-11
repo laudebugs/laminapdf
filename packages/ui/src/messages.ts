@@ -502,7 +502,7 @@ const EN = {
   "storage.summary.both": "Keeps recent files and where you stopped",
   "storage.summary.files": "Keeps recent files",
   "storage.summary.positions": "Keeps where you stopped reading",
-  "storage.summary.none": "Keeps no recent files or reading positions",
+  "storage.summary.none": "Keeps no recent files or where you stopped",
   "storage.rememberLocal": "Remember recent local files",
   "storage.rememberLocal.help":
     "The home screen lists the files you open on this device, and the reader keeps copies of large files for next time. Both stay in this browser. Files opened from a link are never listed.",

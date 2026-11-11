@@ -1,7 +1,7 @@
-// The Settings dialog on a phone, where it opens as a bottom sheet showing one screen at a time
-// : the list of sections, each with what it is set to, then a section with "All settings" to
-// go back; nothing reaches past the sheet's edge (docs/bugs/settings-cut-off-on-phones). Wider
-// than a phone, the list stays beside the fields.
+// The Settings dialog on a phone, where it opens as a bottom sheet showing one screen at a time:
+// the list of sections, each with what it is set to, then a section with "All settings" to go back;
+// nothing reaches past the sheet's edge (docs/bugs/settings-cut-off-on-phones). Wider than a
+// phone, the list stays beside the fields.
 
 import { type ReactNode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
