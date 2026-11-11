@@ -173,8 +173,8 @@ pub use warning::{Warning, WarningCursor};
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
 pub use laminapdf_ops::{
-    ConformanceWarning, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource, Op, OpLog,
-    PacketStatus, RemoveMetadata, RotatePage, SetInfo, SetMetadata, UndoOutcome,
+    ConformanceWarning, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, Op,
+    OpLog, PacketStatus, RemoveMetadata, RotatePage, SetInfo, SetMetadata, UndoOutcome,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

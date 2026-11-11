@@ -151,12 +151,31 @@ pub(crate) struct SaveOptionsInit {
     /// The cross-reference form.
     #[tsify(optional)]
     pub xref: Option<XrefJs>,
+    /// When the save happens, as the app's clock reads it: a PDF date (`D:20261110093000Z`)
+    /// or an ISO 8601 date-time. A save that writes changes stamps it as the modification and
+    /// metadata dates and gives the XMP packet a new instance ID.
+    #[tsify(optional)]
+    pub metadata_date: Option<String>,
+    /// The XMP instance ID the save writes, a UUID (`uuid:` optional); without it, one is
+    /// derived from the content.
+    #[tsify(optional)]
+    pub instance_id: Option<String>,
 }
 
 impl SaveOptionsInit {
     /// The façade's options.
-    pub(crate) fn to_options(&self) -> SaveOptions {
+    ///
+    /// # Errors
+    /// `invalid-argument` for a `metadataDate` that is no date or an `instanceId` that is no
+    /// UUID.
+    pub(crate) fn to_options(&self) -> JsResult<SaveOptions> {
         let mut options = SaveOptions::new();
+        if let Some(date) = &self.metadata_date {
+            options = options.with_metadata_date(parse_date(date)?);
+        }
+        if let Some(id) = &self.instance_id {
+            options = options.with_instance_id(parse_uuid(id)?);
+        }
         if let Some(mode) = self.mode {
             options = options.with_mode(match mode {
                 SaveModeJs::Auto => SaveMode::Auto,
@@ -188,8 +207,49 @@ impl SaveOptionsInit {
                 XrefJs::Classic => XrefKind::Classic,
             });
         }
-        options
+        Ok(options)
     }
+}
+
+/// A PDF date (`D:…`) or an ISO 8601 date-time.
+fn parse_date(date: &str) -> JsResult<laminapdf::PdfDate> {
+    let parsed = if date.trim_start().starts_with("D:") {
+        date.parse().ok()
+    } else {
+        laminapdf::PdfDate::from_iso8601(date).ok()
+    };
+    parsed.ok_or_else(|| {
+        invalid_argument(
+            "options",
+            "metadataDate is neither a PDF date nor an ISO 8601 date-time".to_owned(),
+            Vec::new(),
+        )
+    })
+}
+
+/// A UUID's 16 bytes, from its hexadecimal form with or without dashes and `uuid:`.
+fn parse_uuid(id: &str) -> JsResult<[u8; 16]> {
+    let hex: Vec<u8> = id
+        .trim()
+        .trim_start_matches("uuid:")
+        .bytes()
+        .filter(|&b| b != b'-')
+        .collect();
+    if hex.len() != 32 {
+        return Err(bad_uuid());
+    }
+    let mut out = [0u8; 16];
+    for (slot, pair) in out.iter_mut().zip(hex.as_chunks::<2>().0) {
+        *slot = std::str::from_utf8(pair)
+            .ok()
+            .and_then(|p| u8::from_str_radix(p, 16).ok())
+            .ok_or_else(bad_uuid)?;
+    }
+    Ok(out)
+}
+
+fn bad_uuid() -> wasm_bindgen::JsValue {
+    invalid_argument("options", "instanceId is not a UUID".to_owned(), Vec::new())
 }
 
 /// One page's facts (`laminapdf::PageInfo`).
@@ -274,12 +334,19 @@ impl From<laminapdf::DocumentInfo> for DocumentInfoJs {
 pub(crate) struct EditedJs {
     /// IDs of the pages whose content or attributes changed.
     pub touched_pages: Vec<String>,
+    /// A metadata edit rewrote the XMP packet whole (UTF-16, or marked read-only).
+    pub packet_rewritten: bool,
+    /// A metadata edit removed values the file's earlier revisions still hold, which only a
+    /// full rewrite drops.
+    pub still_in_earlier_revisions: bool,
 }
 
 impl From<laminapdf::Edited> for EditedJs {
     fn from(e: laminapdf::Edited) -> Self {
         Self {
             touched_pages: e.touched_pages.iter().map(ToString::to_string).collect(),
+            packet_rewritten: e.packet_rewritten,
+            still_in_earlier_revisions: e.still_in_earlier_revisions,
         }
     }
 }
@@ -287,6 +354,10 @@ impl From<laminapdf::Edited> for EditedJs {
 /// What a save wrote (`laminapdf::SaveReport`).
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "a JSON record: one flag per fact the report states"
+)]
 pub(crate) struct SaveReportJs {
     /// Bytes written.
     pub bytes_written: u64,
@@ -304,6 +375,13 @@ pub(crate) struct SaveReportJs {
     pub invalidated_signatures: u32,
     /// Whether encryption was removed.
     pub encryption_removed: bool,
+    /// Whether the save stamped the save-time metadata (`metadataDate`, `instanceId`).
+    pub metadata_updated: bool,
+    /// Whether the options asked for the stamp and the save left it out, because it would have
+    /// broken a signature's restriction the saved changes keep.
+    pub metadata_not_updated: bool,
+    /// Whether an edit saved here rewrote the XMP packet whole.
+    pub packet_rewritten: bool,
 }
 
 impl From<&SaveReport> for SaveReportJs {
@@ -319,6 +397,9 @@ impl From<&SaveReport> for SaveReportJs {
             append_offset: r.append_offset(),
             invalidated_signatures: u32::try_from(r.invalidated().len()).unwrap_or(u32::MAX),
             encryption_removed: r.encryption_removed(),
+            metadata_updated: r.metadata_updated(),
+            metadata_not_updated: r.metadata_not_updated(),
+            packet_rewritten: r.packet_rewritten(),
         }
     }
 }

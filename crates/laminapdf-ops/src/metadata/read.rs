@@ -53,28 +53,33 @@ pub enum PacketStatus {
 #[non_exhaustive]
 pub struct DocumentMetadata {
     /// The title.
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub title: Option<String>,
     /// The authors, in order (Info's `/Author` split at `;`).
     pub authors: Vec<String>,
     /// The subject.
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub subject: Option<String>,
     /// The keywords.
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub keywords: Option<String>,
     /// The application the content came from.
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub creator: Option<String>,
     /// The application that wrote the PDF.
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub producer: Option<String>,
     /// The creation date (a PDF date string on the wire).
-    #[serde(with = "wire::opt_date")]
+    #[serde(with = "wire::opt_date", skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional, type = "string"))]
     pub created: Option<PdfDate>,
     /// The modification date.
-    #[serde(with = "wire::opt_date")]
+    #[serde(with = "wire::opt_date", skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional, type = "string"))]
     pub modified: Option<PdfDate>,
     /// Which side the values come from.
@@ -84,9 +89,11 @@ pub struct DocumentMetadata {
     /// What `/Metadata` holds.
     pub packet: PacketStatus,
     /// The PDF/A part and conformance the packet claims (`pdfaid:`), e.g. `"2B"`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub pdfa: Option<String>,
     /// The PDF/UA part the packet claims (`pdfuaid:part`).
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub pdfua: Option<u8>,
     /// In a PDF 2.0 file, the Info entries besides the two dates: deprecated, kept as they
@@ -263,8 +270,12 @@ pub fn read_metadata(doc: &laminapdf_model::Document) -> Result<DocumentMetadata
         }
     }
     let pdfa_claim = packet.and_then(|p| {
-        p.pdfa_part()
-            .map(|part| format!("{part}{}", p.pdfa_conformance().unwrap_or_default().to_uppercase()))
+        p.pdfa_part().map(|part| {
+            format!(
+                "{part}{}",
+                p.pdfa_conformance().unwrap_or_default().to_ascii_uppercase()
+            )
+        })
     });
     Ok(DocumentMetadata {
         title: pick_text(MetadataKey::Title),

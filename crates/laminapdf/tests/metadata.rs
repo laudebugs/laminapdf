@@ -74,7 +74,11 @@ fn plan_names_the_refusal_instead_of_failing() {
     doc.apply(vec![title("Edited")]).unwrap();
     let plan = doc.plan(&SaveOptions::new()).unwrap();
     assert_eq!(
-        (plan.constraint, plan.refusal.map(laminapdf::ErrorCode::as_str), plan.violations.len()),
+        (
+            plan.constraint,
+            plan.refusal.map(laminapdf::ErrorCode::as_str),
+            plan.violations.len()
+        ),
         (ConstraintKind::Conflict, Some("would-invalidate-signatures"), 1)
     );
 }
