@@ -27,15 +27,14 @@ $ laminapdf explain xref-repaired
 
 ## Install
 
-> **Not yet published.** The release builds below are configured and tested in CI, but no release exists yet. Until one does, build from source: `cargo install --git https://github.com/laudebugs/laminapdf laminapdf-cli --features mcp`.
-
-Each release will offer the same binary three ways, so you need no Rust toolchain:
+The docs site's [Command line](https://docs.laminapdf.com/cli/) section walks through installing and using the tool; [Install](https://docs.laminapdf.com/cli/install/) has a download link and checksum for each system. Each release offers the same binary three ways that need no Rust toolchain, and Cargo builds it from source:
 
 - **Homebrew** (macOS and Linux): `brew install laudebugs/tap/laminapdf`.
 - **npm**: `npm install -g @laminapdf/cli`, or `npx @laminapdf/cli info report.pdf`. npm installs only the binary for your platform, as an optional dependency; no install script downloads anything ([`packages/cli`](../../packages/cli/README.md)).
 - **Archives**: `laminapdf-cli-<target>.tar.xz` (`.zip` on Windows) on the GitHub release, each with a `.sha256` checksum. An archive holds the binary, `LICENSE-MIT`, `LICENSE-APACHE`, `THIRD_PARTY_NOTICES.md` (the licences of every crate in the binary), man pages in `man/` and shell completions in `completions/`.
+- **From source**, for a change not yet released: `cargo install --git https://github.com/laudebugs/laminapdf laminapdf-cli --features mcp`.
 
-Release binaries include the MCP server (`laminapdf mcp`). Each release will have eight builds: macOS, Linux (glibc and musl) and Windows, each on arm64 and x86_64. CI builds each one on a runner with its own OS and CPU, and installs and runs it before publishing. The binaries are unsigned for now, so macOS Gatekeeper and Windows SmartScreen warn about a downloaded archive; Homebrew and npm installs avoid most of these warnings.
+Release binaries include the MCP server (`laminapdf mcp`). Each release has eight builds: macOS, Linux (glibc and musl) and Windows, each on arm64 and x86_64. CI builds each one on a runner with its own OS and CPU, and installs and runs it before publishing. The binaries are unsigned for now, so macOS Gatekeeper and Windows SmartScreen warn about a downloaded archive; Homebrew and npm installs avoid most of these warnings.
 
 ## Commands
 
