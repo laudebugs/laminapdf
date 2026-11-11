@@ -42,8 +42,8 @@
 #   on main: main's runs only ever build into, and read from, directories that only main's runs
 #   write. This is the same rule as check-linux's rust-cache (only main saves). It keeps cargo
 #   from reusing PR output; it is not a sandbox: PR code runs as the runner's user, which can
-#   write anywhere in the tool cache, as it can CARGO_HOME today. The repository is private, so
-#   PR authors are collaborators and fork PRs can't run here.
+#   write anywhere in the tool cache, as it can CARGO_HOME today. The repository is public, so
+#   no workflow may run it on a runner that fork PRs reach.
 # - Bounded, since cargo never deletes stale output and the runners share one disk. Every job
 #   touches `.last-used` in its directory, and directories are deleted oldest-used first:
 #     every job (cheap: df)  while the disk has under 25 GB free;

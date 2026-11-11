@@ -14,7 +14,11 @@
       "additionalProperties": false,
       "properties": {
         "base": { "type": "string", "pattern": "^https://[^\\s]+/$" },
-        "suffix": { "type": "string", "pattern": "^[^\\s/]*$" }
+        "suffix": {
+          "description": "After the code: a file extension, or the trailing slash of a page's folder; never a further path, so the code ends the path.",
+          "type": "string",
+          "pattern": "^(/|[^\\s/]*)$"
+        }
       }
     },
     "limits": {

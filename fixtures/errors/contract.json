@@ -12,7 +12,7 @@
         "kind": "security",
         "message": "wrong password",
         "hint": "ask for the password again and retry with the correct one",
-        "docsUrl": "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/wrong-password.md"
+        "docsUrl": "https://docs.laminapdf.com/reference/codes/wrong-password/"
       }
     },
     {
@@ -36,7 +36,7 @@
         "data": {
           "limit": "max_nesting_depth"
         },
-        "docsUrl": "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/limit-exceeded.md"
+        "docsUrl": "https://docs.laminapdf.com/reference/codes/limit-exceeded/"
       }
     },
     {
@@ -48,7 +48,7 @@
         "kind": "input",
         "message": "not a PDF: no objects found",
         "hint": "check that the bytes passed to open are a PDF file",
-        "docsUrl": "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md"
+        "docsUrl": "https://docs.laminapdf.com/reference/codes/not-pdf/"
       }
     }
   ]
