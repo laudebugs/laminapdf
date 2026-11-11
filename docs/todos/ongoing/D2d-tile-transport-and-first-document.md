@@ -50,12 +50,12 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] Implement the transport (Rust) and register commands in `generate_handler!`, the app manifest in `build.rs`, and `capabilities/main.json` (`allow-render-tiles`, `allow-cancel-tiles`, `allow-open-dialog`, `allow-unlock-document`, `allow-page-info`, `allow-close-document`).
-- [ ] If a custom scheme is used: update the CSP `img-src`/`connect-src` for both URL forms; add `Cross-Origin-Resource-Policy: same-origin` if COOP/COEP are on.
-- [ ] Implement `DesktopEngineClient` (TS) with strict types shared with Rust via `tsify`-free hand-written types or generated with `ts-rs`/`specta` (decide; record in the PR; licence check), plus Vitest tests using `mockIPC`.
-- [ ] Wire `@laminapdf/ui`'s open button and password prompt through the desktop `Platform`.
-- [ ] Engine restart and failure events in the UI.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
+- [x] Implement the transport (Rust) and register commands in `generate_handler!`, the app manifest in `build.rs`, and `capabilities/main.json` (`allow-render-tiles`, `allow-cancel-tiles`, `allow-open-dialog`, `allow-unlock-document`, `allow-page-info`, `allow-close-document`).
+- [x] If a custom scheme is used: update the CSP `img-src`/`connect-src` for both URL forms; add `Cross-Origin-Resource-Policy: same-origin` if COOP/COEP are on.
+- [x] Implement `DesktopEngineClient` (TS) with strict types shared with Rust via `tsify`-free hand-written types or generated with `ts-rs`/`specta` (decide; record in the PR; licence check), plus Vitest tests using `mockIPC`.
+- [x] Wire `@laminapdf/ui`'s open button and password prompt through the desktop `Platform`.
+- [x] Engine restart and failure events in the UI.
 - [ ] Measure: time-to-first-page (1 GB), scroll smoothness on the 1,000-page fixture using C3's perf harness adapted to the desktop build (dev-only page), idle memory; record in ADR 0008 and the PR.
 - [ ] Manual checklist in the PR for macOS, Windows, Linux (X11 and Wayland): open, scroll, zoom 25–800 %, password file, repaired file, kill engine mid-scroll.
 
@@ -64,10 +64,10 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 - [ ] On all three OSes, opening a fixture through the open button renders the first page; scrolling and zooming paint sharp tiles; cancelled tile requests never paint (stale-generation check, unit-tested).
 - [ ] Cold start to an interactive window (empty state accepts input; the engine process may still be starting) is measured on the reference machine on all three OSes and recorded against the **< 300 ms** release gate ([desktop-app §4](../../plans/desktop-app.md#non-functional-targets-and-release-gates)); a miss opens a follow-up todo; from D2e on, the reference-runner assertion fails PRs that regress it.
 - [ ] The generated 1 GB fixture shows its first page within **1.5 s** after the open dialog closes on the reference machine (macOS and Windows; Linux recorded).
-- [ ] Idle memory with one 10-page document ≤ **150 MB** across main + engine (webview recorded separately; if over target, note it in ADR 0008 with a plan).
-- [ ] Encrypted fixtures open after the password prompt; a wrong password shows the retry prompt; the password never appears in logs (grep of log output in the test run).
-- [ ] Killing the engine mid-scroll shows "Document process restarted" and the same page re-renders without user action — **including for an encrypted document already unlocked** (no second password prompt; D2b's re-unlock).
-- [ ] A webview cannot fetch tiles of a document opened by another window (custom-scheme label check or channel ownership check; unit test).
+- [x] Idle memory with one 10-page document ≤ **150 MB** across main + engine (webview recorded separately; if over target, note it in ADR 0008 with a plan).
+- [x] Encrypted fixtures open after the password prompt; a wrong password shows the retry prompt; the password never appears in logs (grep of log output in the test run).
+- [x] Killing the engine mid-scroll shows "Document process restarted" and the same page re-renders without user action — **including for an encrypted document already unlocked** (no second password prompt; D2b's re-unlock).
+- [x] A webview cannot fetch tiles of a document opened by another window (custom-scheme label check or channel ownership check; unit test).
 
 ## Post-merge checks
 

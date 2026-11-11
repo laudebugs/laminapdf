@@ -67,7 +67,20 @@ The owner decided the app's identity on 2026-11-09: product name "Lamina PDF", b
 | Tile size | 512 device pixels | WebP moved 1.7–2.4× more pixels per second at 512 px than at 256 px (Windows: 184 against 77 Mpx/s) |
 | Isolation | No `app.security.headers`: no COOP or COEP; the desktop app runs the single-threaded build everywhere, and its `crossOriginIsolated` flag is `false` | [Only WebView2 became isolated](../../spikes/desktop-ipc/README.md#cross-origin-isolation) with `SharedArrayBuffer`. WKWebView on macOS 27 reports `crossOriginIsolated = true` without `SharedArrayBuffer`; macOS 15 and WebKitGTK ignore the headers |
 
-The engine renders a tile and streams it to the main process; the scheme handler encodes it and answers. The handler answers `Access-Control-Allow-Origin: *`, because the scheme's origin differs from the page's (`lamina://localhost` against `tauri://localhost`). D2d builds this. The hosted runners had no GPU, so the gap between WebP and raw RGBA on Windows and Linux is an upper bound ([D1a, Limits](../../spikes/desktop-ipc/README.md#limits-of-this-spike)); D2e measures real GPUs.
+The engine renders a tile and streams it to the main process; the scheme handler encodes it and answers. The handler answers `Access-Control-Allow-Origin: *`, because the scheme's origin differs from the page's (`lamina://localhost` against `tauri://localhost`).
+
+**As built (D2d).** The address is `tile/{doc}/{page}?s&r&a&x&y&w&h&p&t[&fmt=webp]`: scale, rotation, appearance, the tile's pixel rectangle, priority (`v` on screen, `p` ahead of a scroll) and a ticket. The main process parses it strictly (a side over 2,048 px, a scale over 64, or an unknown or repeated parameter is a 400) and takes the window from the webview that asked, never from the address, so a window can't fetch another window's tiles. It checks the engine's pixels against the size asked for before encoding them. A failure answers `{ kind, message }` with a status the client maps back: 404 for an unknown document or page, 409 for a cancelled tile, 423 for a locked document, 503 while the engine restarts. When the viewer aborts a render, the client batches its tickets into one `cancel_tiles` call per microtask, and the engine drops tiles it hasn't drawn; a tile that lands after its render was aborted, or after its document was replaced, is closed and never drawn. The scale travels as the single-precision number the viewer's planner sized the page with, so both sides agree on the page's size in pixels.
+
+**Measured (D2d,** M1 Pro, macOS 27, release build, one app instance, five runs**):**
+
+| What | Target | Measured |
+| --- | --- | --- |
+| First page of the 1 GB fixture, from the open to the first tile answered | ≤ 1.5 s | 0.49–0.71 s (opening and sizing 20,000 pages takes 0.46–0.67 s of it; a tile takes 1–28 ms) |
+| Idle memory, 13-page document (`flowing_report.pdf`), main + engine | ≤ 150 MB | 50 MB (main 39 MB, engine 11 MB; `footprint`) |
+| The webview's content process, same document | recorded | 170 MB |
+| Launch to the window's first command (the empty state accepts input) | < 300 ms | 0.49–0.68 s: **missed**, see [D2f](../todos/ready/D2f-desktop-cold-start.md) |
+
+The app's open takes about twice the engine-only number in §2, because the engine opens each document twice: once in the parser for the page list and once in PDFium for rendering. The hosted runners had no GPU, so the gap between WebP and raw RGBA on Windows and Linux is an upper bound ([D1a, Limits](../../spikes/desktop-ipc/README.md#limits-of-this-spike)); D2e measures real GPUs.
 
 ### 5. Sandboxing intent per OS
 
