@@ -12,7 +12,7 @@
 | Branch | `docs/l4f-command-line-docs` |
 | PR title | `docs(cli): a Command line section on the docs site` |
 | Size | M (≈ 600–900 lines: seven pages, a sidebar group, a build check, README lines) |
-| PR | — |
+| PR | [#415](https://github.com/laudebugs/laminapdf/pull/415) |
 
 ## Goal
 
