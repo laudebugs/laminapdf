@@ -2727,6 +2727,7 @@ dependencies = [
 name = "laminapdf-build"
 version = "0.2.0-alpha.5"
 dependencies = [
+ "boon",
  "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-model",

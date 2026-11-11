@@ -87,17 +87,15 @@ fn font(builder: &mut Builder, resources: &Resources, name: &str, pointer: &str)
     if let Some(font) = resources.fonts.get(name) {
         return Ok(font.clone());
     }
-    match Standard14::from_base_font(name) {
-        Some(standard) => builder.standard_font(standard),
-        None => {
-            let known: Vec<String> = resources.fonts.keys().cloned().collect();
-            Err(Error::InvalidDocument {
-                pointer: pointer.to_owned(),
-                reason: "unknown-font",
-                did_you_mean: laminapdf_syntax::did_you_mean(name, &known),
-            })
-        }
+    if let Some(standard) = Standard14::from_base_font(name) {
+        return builder.standard_font(standard);
     }
+    let known: Vec<String> = resources.fonts.keys().cloned().collect();
+    Err(Error::InvalidDocument {
+        pointer: pointer.to_owned(),
+        reason: "unknown-font",
+        did_you_mean: laminapdf_syntax::did_you_mean(name, &known),
+    })
 }
 
 fn color(text: &str, pointer: &str) -> Result<Color> {

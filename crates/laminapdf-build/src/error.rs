@@ -620,6 +620,20 @@ mod tests {
             },
             Error::FlowContentTooLarge { what: "line" },
             Error::FlowLayoutUnstable,
+            Error::InvalidDocument {
+                pointer: String::new(),
+                reason: "unknown-key",
+                did_you_mean: Vec::new(),
+            },
+            Error::TemplateDataMissing {
+                pointer: String::new(),
+                placeholder: "$data",
+            },
+            Error::TemplateDataType {
+                pointer: String::new(),
+                placeholder: "$each",
+                expected: "list",
+            },
         ]
     }
 

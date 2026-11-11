@@ -159,13 +159,12 @@ fn wrong_type(placeholder: &'static str, pointer: &Value, expected: &'static str
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 mod tests {
     use serde_json::json;
 
     use super::*;
 
-    fn document(blocks: Value) -> Value {
+    fn document(blocks: &Value) -> Value {
         json!({
             "schema": "laminapdf.document/1",
             "styles": { "body": { "font": "Helvetica", "size": 10 } },
@@ -185,7 +184,7 @@ mod tests {
 
     #[test]
     fn data_puts_text_and_numbers_where_the_document_takes_text() {
-        let template = document(json!([
+        let template = document(&json!([
             { "type": "paragraph", "text": { "$data": "/invoice/number" } },
             { "type": "paragraph", "text": { "$data": "/invoice/lines" } }
         ]));
@@ -195,7 +194,7 @@ mod tests {
 
     #[test]
     fn each_repeats_its_block_per_item_and_item_points_into_it() {
-        let template = document(json!([
+        let template = document(&json!([
             { "type": "paragraph", "text": "Items:" },
             { "$each": "/items", "do": { "type": "paragraph", "text": { "$item": "/name" } } }
         ]));
@@ -205,7 +204,7 @@ mod tests {
 
     #[test]
     fn each_nests_over_a_list_inside_each_item() {
-        let template = document(json!([{
+        let template = document(&json!([{
             "$each": "/groups",
             "do": [
                 { "type": "paragraph", "text": { "$item": "/title" } },
@@ -218,7 +217,7 @@ mod tests {
 
     #[test]
     fn if_keeps_its_block_only_for_a_value_that_is_there_and_not_false_or_null() {
-        let template = document(json!([
+        let template = document(&json!([
             { "$if": "/paid", "do": { "type": "paragraph", "text": "Paid" } },
             { "$if": "/overdue", "do": { "type": "paragraph", "text": "Overdue" } },
             { "$if": "/note", "do": { "type": "paragraph", "text": "Note" } },
@@ -230,7 +229,7 @@ mod tests {
 
     #[test]
     fn a_pointer_with_no_value_names_the_pointer() {
-        let template = document(json!([{ "type": "paragraph", "text": { "$data": "/invoice/total" } }]));
+        let template = document(&json!([{ "type": "paragraph", "text": { "$data": "/invoice/total" } }]));
         let error = fill(&template, &json!({ "invoice": {} })).unwrap_err();
         assert!(
             matches!(&error, Error::TemplateDataMissing { pointer, placeholder: "$data" } if pointer == "/invoice/total"),
@@ -240,13 +239,13 @@ mod tests {
 
     #[test]
     fn each_over_something_that_isn_t_a_list_and_text_from_an_object_are_wrong_types() {
-        let each = document(json!([{ "$each": "/items", "do": { "type": "rule" } }]));
+        let each = document(&json!([{ "$each": "/items", "do": { "type": "rule" } }]));
         let error = fill(&each, &json!({ "items": { "a": 1 } })).unwrap_err();
         assert!(
             matches!(&error, Error::TemplateDataType { expected: "list", .. }),
             "{error:?}"
         );
-        let text = document(json!([{ "type": "paragraph", "text": { "$data": "/invoice" } }]));
+        let text = document(&json!([{ "type": "paragraph", "text": { "$data": "/invoice" } }]));
         let error = fill(&text, &json!({ "invoice": { "number": 1 } })).unwrap_err();
         assert!(
             matches!(
@@ -262,7 +261,7 @@ mod tests {
 
     #[test]
     fn item_outside_an_each_has_nothing_to_point_into() {
-        let template = document(json!([{ "type": "paragraph", "text": { "$item": "/name" } }]));
+        let template = document(&json!([{ "type": "paragraph", "text": { "$item": "/name" } }]));
         let error = fill(&template, &json!({})).unwrap_err();
         assert!(matches!(
             error,

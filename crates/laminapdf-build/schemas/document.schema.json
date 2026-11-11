@@ -1,0 +1,1227 @@
+{
+  "$defs": {
+    "AlignSpec": {
+      "description": "Where a line's text sits.",
+      "oneOf": [
+        {
+          "const": "start",
+          "description": "The start side (left in left-to-right text).",
+          "type": "string"
+        },
+        {
+          "const": "end",
+          "description": "The end side.",
+          "type": "string"
+        },
+        {
+          "const": "left",
+          "description": "Flush left.",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "description": "Flush right.",
+          "type": "string"
+        },
+        {
+          "const": "center",
+          "description": "Centred.",
+          "type": "string"
+        }
+      ]
+    },
+    "Block": {
+      "description": "One block of the flow, tagged by `type`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A paragraph.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/AlignSpec"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Where the lines sit."
+            },
+            "breakBefore": {
+              "description": "Start it on a new page.",
+              "type": "boolean"
+            },
+            "keepWithNext": {
+              "description": "Keep it on the page of the next block.",
+              "type": "boolean"
+            },
+            "level": {
+              "description": "The heading's level, 1 to 6 (headings only).",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "lineHeight": {
+              "description": "The space between lines, as a factor of the size (1.2 when left out).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "spaceAfter": {
+              "description": "Points of space below.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "spaceBefore": {
+              "description": "Points of space above.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "spans": {
+              "description": "The text as spans; give this or `text`.",
+              "items": {
+                "$ref": "#/$defs/Span"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "style": {
+              "description": "The style of `text`, and of spans that name none (`body` when left out).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Text"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The text, in `style`; give this or `spans`."
+            },
+            "type": {
+              "const": "paragraph",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A heading of `level` 1 to 6, in the outline and kept with the next block.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/AlignSpec"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Where the lines sit."
+            },
+            "breakBefore": {
+              "description": "Start it on a new page.",
+              "type": "boolean"
+            },
+            "keepWithNext": {
+              "description": "Keep it on the page of the next block.",
+              "type": "boolean"
+            },
+            "level": {
+              "description": "The heading's level, 1 to 6 (headings only).",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "lineHeight": {
+              "description": "The space between lines, as a factor of the size (1.2 when left out).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "spaceAfter": {
+              "description": "Points of space below.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "spaceBefore": {
+              "description": "Points of space above.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "spans": {
+              "description": "The text as spans; give this or `text`.",
+              "items": {
+                "$ref": "#/$defs/Span"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "style": {
+              "description": "The style of `text`, and of spans that name none (`body` when left out).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Text"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The text, in `style`; give this or `spans`."
+            },
+            "type": {
+              "const": "heading",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A bulleted or numbered list.",
+          "properties": {
+            "indent": {
+              "description": "Points the items are indented.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "items": {
+              "description": "The items.",
+              "items": {
+                "$ref": "#/$defs/ListItemSpec"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "$ref": "#/$defs/ListKindSpec",
+              "description": "`bullet` or `numbered`."
+            },
+            "start": {
+              "description": "The first number of a numbered list (1 when left out).",
+              "format": "uint",
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "style": {
+              "description": "The markers' style (`body` when left out).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "list",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "kind",
+            "items"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An image, with its alternate text.",
+          "properties": {
+            "alt": {
+              "$ref": "#/$defs/Text",
+              "description": "Its alternate text, which a screen reader reads."
+            },
+            "image": {
+              "description": "An image given beside the document, by name.",
+              "type": "string"
+            },
+            "type": {
+              "const": "figure",
+              "type": "string"
+            },
+            "width": {
+              "description": "Its width in points (the body's width at most; its own size when left out).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "image",
+            "alt"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Empty space.",
+          "properties": {
+            "height": {
+              "description": "Its height in points.",
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "const": "spacer",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "height"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The next block starts a page.",
+          "properties": {
+            "type": {
+              "const": "pageBreak",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Blocks kept on one page.",
+          "properties": {
+            "blocks": {
+              "description": "The blocks.",
+              "items": {
+                "$ref": "#/$defs/Block"
+              },
+              "type": "array"
+            },
+            "type": {
+              "const": "keep",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "blocks"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A table whose header row repeats on each page it runs onto.",
+          "properties": {
+            "columns": {
+              "description": "One width per column.",
+              "items": {
+                "$ref": "#/$defs/ColumnSpec"
+              },
+              "type": "array"
+            },
+            "footer": {
+              "description": "The footer rows, kept with the last body row.",
+              "items": {
+                "$ref": "#/$defs/RowSpec"
+              },
+              "type": "array"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RuleSpec"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A rule around the table."
+            },
+            "header": {
+              "description": "The header rows, repeated on each page the table runs onto.",
+              "items": {
+                "$ref": "#/$defs/RowSpec"
+              },
+              "type": "array"
+            },
+            "headerBackground": {
+              "description": "The header rows' background, as `#rrggbb`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "headerRule": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RuleSpec"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A rule under the header."
+            },
+            "padding": {
+              "description": "Points of space inside each cell.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "rowRules": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RuleSpec"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A rule between body rows."
+            },
+            "rows": {
+              "description": "The body rows; a row is never split between pages.",
+              "items": {
+                "$ref": "#/$defs/RowSpec"
+              },
+              "type": "array"
+            },
+            "type": {
+              "const": "table",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "columns"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A contents page: the headings and the pages they start on.",
+          "properties": {
+            "levels": {
+              "description": "The heading levels it lists, 1 to `levels`.",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "style": {
+              "description": "The entries' style (`body` when left out).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "contents",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A block quotation.",
+          "properties": {
+            "blocks": {
+              "description": "The blocks quoted.",
+              "items": {
+                "$ref": "#/$defs/Block"
+              },
+              "type": "array"
+            },
+            "type": {
+              "const": "quote",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "blocks"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Code, line by line as written.",
+          "properties": {
+            "style": {
+              "description": "Its style (`body` when left out).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "$ref": "#/$defs/Text",
+              "description": "The code."
+            },
+            "type": {
+              "const": "codeBlock",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A horizontal rule.",
+          "properties": {
+            "type": {
+              "const": "rule",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "CellSpec": {
+      "additionalProperties": false,
+      "description": "A table cell.",
+      "properties": {
+        "align": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AlignSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where its lines sit."
+        },
+        "span": {
+          "description": "How many columns it spans (1 when left out).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "spans": {
+          "description": "The text as spans.",
+          "items": {
+            "$ref": "#/$defs/Span"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "style": {
+          "description": "The text's style (`body` when left out).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Text"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The text; give this or `spans` (an empty cell has neither)."
+        }
+      },
+      "type": "object"
+    },
+    "ColumnSpec": {
+      "description": "A column's width.",
+      "oneOf": [
+        {
+          "const": "auto",
+          "description": "As wide as its widest cell needs, if the table fits.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A width in points: `{ \"fixed\": 80 }`.",
+          "properties": {
+            "fixed": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "fixed"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A share of the room the other columns leave: `{ \"fraction\": 1 }`.",
+          "properties": {
+            "fraction": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "fraction"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ListItemSpec": {
+      "additionalProperties": false,
+      "description": "A list item: a paragraph, and a list nested under it.",
+      "properties": {
+        "list": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ListSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A list nested under the item."
+        },
+        "marker": {
+          "description": "A marker of its own, such as `☑`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spans": {
+          "description": "The text as spans.",
+          "items": {
+            "$ref": "#/$defs/Span"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "style": {
+          "description": "The text's style (`body` when left out).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Text"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The text; give this or `spans`."
+        }
+      },
+      "type": "object"
+    },
+    "ListKindSpec": {
+      "description": "A list's kind.",
+      "oneOf": [
+        {
+          "const": "bullet",
+          "description": "Bullets.",
+          "type": "string"
+        },
+        {
+          "const": "numbered",
+          "description": "Numbers.",
+          "type": "string"
+        }
+      ]
+    },
+    "ListSpec": {
+      "additionalProperties": false,
+      "description": "A list.",
+      "properties": {
+        "indent": {
+          "description": "Points the items are indented.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "items": {
+          "description": "The items.",
+          "items": {
+            "$ref": "#/$defs/ListItemSpec"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "$ref": "#/$defs/ListKindSpec",
+          "description": "`bullet` or `numbered`."
+        },
+        "start": {
+          "description": "The first number of a numbered list (1 when left out).",
+          "format": "uint",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "style": {
+          "description": "The markers' style (`body` when left out).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "items"
+      ],
+      "type": "object"
+    },
+    "MarginsSpec": {
+      "anyOf": [
+        {
+          "description": "The same on all four sides.",
+          "format": "double",
+          "type": "number"
+        },
+        {
+          "description": "`[top, right, bottom, left]`.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        }
+      ],
+      "description": "Margins."
+    },
+    "PageSizeSpec": {
+      "anyOf": [
+        {
+          "description": "`A0` to `A6`, `Letter`, `Legal` or `Tabloid`.",
+          "type": "string"
+        },
+        {
+          "description": "`[width, height]` in points.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        }
+      ],
+      "description": "A page size."
+    },
+    "PageSpec": {
+      "additionalProperties": false,
+      "description": "The pages a document flows through.",
+      "properties": {
+        "footer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RegionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The footer."
+        },
+        "header": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RegionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The header: text at its start, centre and end."
+        },
+        "margins": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MarginsSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The margins: one number for all four, or `[top, right, bottom, left]` (72 points)."
+        },
+        "size": {
+          "$ref": "#/$defs/PageSizeSpec",
+          "description": "A size name (`A4`, `A5`, `Letter`, `Legal`, …) or `[width, height]` in points."
+        },
+        "style": {
+          "description": "The header and footer's style (`body` when left out).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "size"
+      ],
+      "type": "object"
+    },
+    "ParagraphSpec": {
+      "additionalProperties": false,
+      "description": "A paragraph or a heading: its text as one string, or as spans of different styles.",
+      "properties": {
+        "align": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AlignSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where the lines sit."
+        },
+        "breakBefore": {
+          "description": "Start it on a new page.",
+          "type": "boolean"
+        },
+        "keepWithNext": {
+          "description": "Keep it on the page of the next block.",
+          "type": "boolean"
+        },
+        "level": {
+          "description": "The heading's level, 1 to 6 (headings only).",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lineHeight": {
+          "description": "The space between lines, as a factor of the size (1.2 when left out).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "spaceAfter": {
+          "description": "Points of space below.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "spaceBefore": {
+          "description": "Points of space above.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "spans": {
+          "description": "The text as spans; give this or `text`.",
+          "items": {
+            "$ref": "#/$defs/Span"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "style": {
+          "description": "The style of `text`, and of spans that name none (`body` when left out).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Text"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The text, in `style`; give this or `spans`."
+        }
+      },
+      "type": "object"
+    },
+    "ProfileName": {
+      "description": "A conformance profile, by its usual name.",
+      "oneOf": [
+        {
+          "const": "PDF/UA-1",
+          "description": "PDF/UA-1 (ISO 14289-1).",
+          "type": "string"
+        },
+        {
+          "const": "PDF/A-2b",
+          "description": "PDF/A-2b.",
+          "type": "string"
+        },
+        {
+          "const": "PDF/A-2u",
+          "description": "PDF/A-2u.",
+          "type": "string"
+        },
+        {
+          "const": "PDF/A-3b",
+          "description": "PDF/A-3b.",
+          "type": "string"
+        }
+      ]
+    },
+    "RegionSpec": {
+      "additionalProperties": false,
+      "description": "A header or footer: `{page}`, `{pages}`, `{section}` and `{title}` are filled in.",
+      "properties": {
+        "center": {
+          "description": "Centred.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "end": {
+          "description": "At the end of the line.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "start": {
+          "description": "At the start of the line.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RowSpec": {
+      "additionalProperties": false,
+      "description": "A table row.",
+      "properties": {
+        "cells": {
+          "description": "The cells, left to right.",
+          "items": {
+            "$ref": "#/$defs/CellSpec"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cells"
+      ],
+      "type": "object"
+    },
+    "RuleSpec": {
+      "additionalProperties": false,
+      "description": "A rule: its width in points and its colour.",
+      "properties": {
+        "color": {
+          "description": "The colour, as `#rrggbb`.",
+          "type": "string"
+        },
+        "width": {
+          "description": "The width in points.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "width",
+        "color"
+      ],
+      "type": "object"
+    },
+    "Span": {
+      "additionalProperties": false,
+      "description": "A piece of a paragraph: text in a style, a link, code, a line break or a footnote.",
+      "properties": {
+        "code": {
+          "description": "The text is code.",
+          "type": "boolean"
+        },
+        "href": {
+          "description": "A link: a web address, or `#name` for a heading or named destination.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lineBreak": {
+          "description": "A line break instead of text.",
+          "type": "boolean"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParagraphSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A footnote: its marker here, its text at the foot of the page."
+        },
+        "style": {
+          "description": "Its style (the paragraph's when left out).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Text"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The text."
+        }
+      },
+      "type": "object"
+    },
+    "StyleSpec": {
+      "additionalProperties": false,
+      "description": "A text style: a font and a size, and what else the text takes.",
+      "properties": {
+        "color": {
+          "description": "The colour, as `#rrggbb`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fallbacks": {
+          "description": "Fonts for characters `font` lacks, tried in order.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "font": {
+          "description": "A font given beside the document, by name, or a standard 14 font (`Helvetica`, …).",
+          "type": "string"
+        },
+        "language": {
+          "description": "The text's language, when it differs from the document's.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size": {
+          "description": "The size in points.",
+          "format": "double",
+          "type": "number"
+        },
+        "strikethrough": {
+          "description": "Struck through.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "font",
+        "size"
+      ],
+      "type": "object"
+    },
+    "Text": {
+      "anyOf": [
+        {
+          "description": "Text as given.",
+          "type": "string"
+        },
+        {
+          "description": "A number, written as JSON writes it.",
+          "type": "number"
+        },
+        {
+          "description": "`true` or `false`.",
+          "type": "boolean"
+        }
+      ],
+      "description": "Text, or a number or `true`/`false` written as text: what a template's `$data` may put where\nthe document takes text."
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-build/schemas/document.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A `laminapdf.document/1` document.",
+  "properties": {
+    "author": {
+      "description": "The author, in the metadata.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blocks": {
+      "description": "The blocks, in reading order.",
+      "items": {
+        "$ref": "#/$defs/Block"
+      },
+      "type": "array"
+    },
+    "lang": {
+      "description": "The natural language, a BCP 47 tag such as `en-GB`.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "outline": {
+      "description": "Whether headings make an outline (bookmarks); `true` when left out.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "page": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PageSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The pages the blocks flow through (A4 with 72-point margins when left out)."
+    },
+    "profiles": {
+      "description": "The profiles the PDF must meet: `PDF/UA-1`, and at most one of `PDF/A-2b`, `PDF/A-2u`\nand `PDF/A-3b`. The caller passes them to the builder's options\n([`FlowDocument::profiles`]).",
+      "items": {
+        "$ref": "#/$defs/ProfileName"
+      },
+      "type": "array"
+    },
+    "schema": {
+      "description": "`laminapdf.document/1`.",
+      "type": "string"
+    },
+    "styles": {
+      "additionalProperties": {
+        "$ref": "#/$defs/StyleSpec"
+      },
+      "description": "The text styles, by name; `body` is the one text takes when it names none.",
+      "type": "object"
+    },
+    "subject": {
+      "description": "The subject, in the metadata.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "title": {
+      "description": "The title: the document's metadata, `{title}` in a header or footer, and the window title.",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schema",
+    "styles",
+    "blocks"
+  ],
+  "title": "laminapdf.document/1",
+  "type": "object"
+}

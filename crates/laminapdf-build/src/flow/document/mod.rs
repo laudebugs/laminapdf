@@ -39,6 +39,24 @@ use crate::surface::text::FontHandle;
 /// The format's name, the value of a document's `schema`.
 pub const DOCUMENT_SCHEMA: &str = "laminapdf.document/1";
 
+/// Where the committed JSON Schema of `laminapdf.document/1` is published: its `$id`.
+pub const DOCUMENT_SCHEMA_URL: &str =
+    "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-build/schemas/document.schema.json";
+
+/// The JSON Schema (2020-12) of `laminapdf.document/1`, committed as
+/// `crates/laminapdf-build/schemas/document.schema.json`. It describes a document, not a
+/// template: a template's placeholders are filled before the check.
+#[cfg(feature = "schema")]
+#[must_use]
+pub fn json_schema() -> serde_json::Value {
+    let mut schema = schemars::schema_for!(FlowDocument).to_value();
+    if let Some(object) = schema.as_object_mut() {
+        object.insert("$id".to_owned(), DOCUMENT_SCHEMA_URL.into());
+        object.insert("title".to_owned(), DOCUMENT_SCHEMA.into());
+    }
+    schema
+}
+
 /// The fonts and images a document names, by name: the document holds no bytes.
 #[derive(Debug, Clone, Default)]
 pub struct Resources {
@@ -165,7 +183,7 @@ impl FlowDocument {
 fn invalid(error: &serde_path_to_error::Error<serde_json::Error>) -> Error {
     let message = error.inner().to_string();
     let mut pointer = String::new();
-    for segment in error.path().iter() {
+    for segment in error.path() {
         use serde_path_to_error::Segment;
         let part = match segment {
             Segment::Seq { index } => index.to_string(),

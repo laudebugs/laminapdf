@@ -61,6 +61,8 @@ laminapdf-content = { path = "../laminapdf-content" }
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
 proptest = { workspace = true }
+# Validates the fixture documents against the committed schema (tests/document_schema.rs).
+boon = { workspace = true }
 
 [lints]
 workspace = true
