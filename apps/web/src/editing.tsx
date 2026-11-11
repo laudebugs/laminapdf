@@ -28,7 +28,7 @@ export const HISTORY_TAB = "history";
 
 /** The runtime and the History tab's panel load once a document is open (later.ts). */
 /** What later.ts exports. */
-export type Later = typeof import("./later.ts");
+type Later = typeof import("./later.ts");
 
 export type { EditMenuId } from "./edit-menu.ts";
 
@@ -37,7 +37,7 @@ export type { EditMenuId } from "./edit-menu.ts";
  * which costs the startup script less than a React.lazy wrapper per part. A chunk that can't load
  * (a lost connection) is reported, and the parts it holds stay away.
  */
-export function useLater(open: boolean): Later | undefined {
+function useLater(open: boolean): Later | undefined {
   const [later, setLater] = useState<Later | undefined>(undefined);
   useEffect(() => {
     if (open && later === undefined) void import("./later.ts").then(setLater, reportError);
