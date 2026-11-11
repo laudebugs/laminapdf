@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { pageFiles } from "../src/integrations.mjs";
-import { routeOf, siteNav } from "../src/nav.mjs";
+import { inPhoneMenu, routeOf, siteNav } from "../src/nav.mjs";
 
 describe("routeOf", () => {
   it("serves a page file at its folder's path", () => {
@@ -88,5 +88,14 @@ describe("pageFiles", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("inPhoneMenu", () => {
+  it("keeps Docs in a phone's header bar and moves every other link into its menu", () => {
+    const all = ["/src/pages/download.astro", "/src/pages/how-we-test.astro", "/src/pages/privacy.astro"];
+    const nav = siteNav(all, { site: "website", path: "/" });
+    expect(nav.filter((link) => !inPhoneMenu(link)).map((link) => link.label)).toEqual(["Docs"]);
+    expect(nav.filter(inPhoneMenu).map((link) => link.label)).toEqual(["Download", "How we test", "Privacy"]);
   });
 });
