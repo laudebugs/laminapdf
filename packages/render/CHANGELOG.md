@@ -1,5 +1,9 @@
 # @laminapdf/render
 
+## 0.2.0-alpha.6
+
+No changes in this release.
+
 ## 0.2.0-alpha.5
 
 ### Minor Changes

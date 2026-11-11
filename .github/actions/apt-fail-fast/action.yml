@@ -1,9 +1,8 @@
 name: apt fails fast
 description: >-
-  Makes apt give up on a stalled or unreachable mirror in about a minute instead of hanging, and
-  makes `apt-get update` fail when it can't fetch an index (by default it only warns, and the
-  install that follows hangs). A hang outlasted nick-fields/retry's timeout, whose kill of the
-  root-owned apt process then failed (EPERM) and ended the job without a retry. A no-op on macOS
+  Makes a failing apt try end in about a minute: each download gets 30 s and 3 tries, and
+  `apt-get update` fails when it can't fetch an index (by default it only warns, and the install
+  after it hangs until its `sudo timeout`; docs/bugs/ci-apt-retry-kill-eperm). A no-op on macOS
   and Windows.
 runs:
   using: composite
