@@ -12,7 +12,6 @@ import {
   type EditControls,
   type GatedEntry,
   type KeyPlatform,
-  type Platform,
   type RailTab,
   type ShellLayout,
   sessionStarted,
@@ -58,7 +57,7 @@ export type EditActions = Readonly<
 const NO_ACTIONS: EditActions = {};
 
 /** The More menu before the edit commands load: no edit items. */
-const NO_MENU: Editing["menu"] = { items: [], run: () => undefined };
+const NO_MENU: ReturnType<Editing["menu"]> = { items: [], run: () => undefined };
 
 /** What the reader gets from `useEditing`. */
 export interface Editing {
@@ -72,8 +71,11 @@ export interface Editing {
   readonly topBar: ReactNode;
   /** The History tab, once the document has an edit session. */
   readonly tab: RailTab | undefined;
-  /** The More menu's edit items and what each does. */
-  readonly menu: { readonly items: GatedEntry<EditMenuId>[]; readonly run: (id: EditMenuId) => void };
+  /** The More menu's edit items and what each does, in the commands' context. */
+  readonly menu: (context: CommandContext) => {
+    readonly items: GatedEntry<EditMenuId>[];
+    readonly run: (id: EditMenuId) => void;
+  };
   /** Whether the document has changes no save has written. */
   readonly unsaved: boolean;
   /** How long the last edit, undo or redo took from the call to its pages redrawn, in ms (#debug). */
@@ -95,9 +97,8 @@ export function useEditing(options: {
   readonly fileName: string | undefined;
   /** How shortcut chips are written. */
   readonly keys: KeyPlatform;
-  readonly platform: Platform;
 }): Editing {
-  const { engine, viewer, toasts, platform } = options;
+  const { engine, viewer, toasts } = options;
   const { layout, registry } = options.shell;
   const pages = useStoreState(engine, (s) => s.pages);
   const edits = viewer?.edits;
@@ -123,12 +124,11 @@ export function useEditing(options: {
       edits === undefined || !started || later === undefined ? undefined : later.historyTab(edits, pages, openedAt),
     [edits, started, pages, openedAt, later],
   );
-  const context: CommandContext = { platform, ...(edits === undefined ? {} : { edits }), actions };
   return {
     edits,
     actions,
     tab,
-    menu: later === undefined ? NO_MENU : later.editMenu(registry, context, { version, state: slice }),
+    menu: (context) => (later === undefined ? NO_MENU : later.editMenu(registry, context, { version, state: slice })),
     unsaved: unsaved > 0,
     lastMs: slice?.lastMs,
     later,

@@ -17,6 +17,7 @@ import {
   type GatedEntry,
   Inspector,
   LeftRail,
+  type MenuEntry,
   type ModeRegistry,
   message,
   OpenDropZone,
@@ -75,8 +76,8 @@ const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 /** The website's privacy page, which states the reader's privacy promises. */
 const PRIVACY_URL = "https://laminapdf.com/privacy/";
 
-type MoreId =
-  | EditMenuId
+/** The More menu's own items; the edit items join them (`withEditItems`). */
+type ReaderMoreId =
   | "save-copy"
   | "print"
   | "properties"
@@ -93,23 +94,21 @@ const MORE_COMMANDS = {
   print: "file.print",
   properties: "file.properties",
 } as const satisfies Record<
-  Exclude<MoreId, EditMenuId | "install" | "open" | "rotate" | "settings" | "shortcuts" | "privacy">,
+  Exclude<ReaderMoreId, "install" | "open" | "rotate" | "settings" | "shortcuts" | "privacy">,
   OutputCommand
 >;
 
+/** Every item of the More menu: the edit items and its own. */
+type MoreId = EditMenuId | ReaderMoreId;
+
 /**
- * The More menu (R09): the edit items (the web's Edit menu, O01) while a document is open;
- * Download a copy, Print… and Document properties, which need an open document; then the
- * reader's own items.
+ * The More menu (R09): Download a copy, Print… and Document properties, which need an open
+ * document; then the reader's own items. The edit items (the web's Edit menu, O01) go first once
+ * a document is open (`withEditItems`).
  */
-function moreEntries(
-  open: boolean,
-  installable: boolean,
-  edit: readonly GatedEntry<EditMenuId>[],
-): GatedEntry<MoreId>[] {
+function moreEntries(open: boolean, installable: boolean): GatedEntry<ReaderMoreId>[] {
   const needsDocument = open ? {} : { isDisabled: true, disabledReason: message("command.reason.noDocument") };
   return [
-    ...(open ? edit : []),
     { id: "save-copy", label: message("command.file.save-copy"), icon: "download", ...needsDocument },
     {
       id: "print",
@@ -445,16 +444,16 @@ function useDocumentMenu(
   state: ReaderState,
   shown: Viewer | undefined,
   settings: Settings,
-  shared: { readonly updates: AppUpdates; readonly toasts: ToastQueue; readonly edit: Editing["menu"] },
+  shared: { readonly updates: AppUpdates; readonly toasts: ToastQueue },
 ): {
   labels: readonly string[] | undefined;
   output: Output;
-  moreItems: { items: ReturnType<typeof useGatedEntries<MoreId>>; onAction: (id: MoreId) => void };
+  moreItems: { items: ReturnType<typeof useGatedEntries<ReaderMoreId>>; onAction: (id: ReaderMoreId) => void };
   recent: Recent;
   /** The handlers that work with or without a document: the settings', recent files', install and update. */
   appActions: Settings["actions"];
 } {
-  const { updates, toasts, edit } = shared;
+  const { updates, toasts } = shared;
   const appActions = settings.actions;
   const pages = useStoreState(engine, (s) => s.pages);
   const labels = useMemo(
@@ -470,12 +469,9 @@ function useDocumentMenu(
     clearDocumentCache(platform.storage),
   );
   const install = useInstall();
-  const items = useGatedEntries<MoreId>(moreEntries(document !== undefined, install.available, edit.items));
-  // The edit items come with the edit commands, once a document is open.
-  const isEditItem = (id: MoreId): id is EditMenuId => edit.items.some((item) => item.id === id);
-  const onAction = (id: MoreId) => {
-    if (isEditItem(id)) edit.run(id);
-    else if (id === "open") void engine.reader.requestClose();
+  const items = useGatedEntries<ReaderMoreId>(moreEntries(document !== undefined, install.available));
+  const onAction = (id: ReaderMoreId) => {
+    if (id === "open") void engine.reader.requestClose();
     else if (id === "rotate") engine.getState().viewer?.rotate(90);
     else if (id === "settings") appActions["app.settings"]?.(undefined);
     else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
@@ -494,6 +490,21 @@ function useDocumentMenu(
       ...install.actions,
       ...(updates.getState().ready ? { "app.reload-update": () => updates.reload() } : {}),
     },
+  };
+}
+
+/**
+ * The More menu with the edit items first: they come with the edit commands, once a document is
+ * open, and are made in the commands' own context.
+ */
+function withEditItems(
+  edit: ReturnType<Editing["menu"]>,
+  more: { readonly items: readonly MenuEntry<ReaderMoreId>[]; readonly onAction: (id: ReaderMoreId) => void },
+): { items: MenuEntry<MoreId>[]; onAction: (id: MoreId) => void } {
+  const isEditItem = (id: MoreId): id is EditMenuId => edit.items.some((item) => item.id === id);
+  return {
+    items: [...edit.items, ...more.items],
+    onAction: (id) => (isEditItem(id) ? edit.run(id) : more.onAction(id)),
   };
 }
 
@@ -629,11 +640,12 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const shown = open ? engineState.viewer : undefined;
   const { settings, toasts } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined);
   const fileName = open ? state.file.name : undefined;
-  const editing = useEditing({ engine, shell, platform, viewer: shown, toasts, fileName, keys: KEYS });
-  const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts, edit: editing.menu });
-  const { labels, output, moreItems, recent } = menu;
+  const editing = useEditing({ engine, shell, viewer: shown, toasts, fileName, keys: KEYS });
+  const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts });
+  const { labels, output, recent } = menu;
   const chrome = useDocumentChrome({ engine, platform, shell, state, shown, editing, menu });
   const { find, tabs, rail, history, selection, reading, commands } = chrome;
+  const moreItems = withEditItems(editing.menu(commands.context), menu.moreItems);
   useWindowTitle(fileName, engineState.title, editing.unsaved);
   const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState);
   const { inspector, status, notice } = usePanels(layout, platform, network, fileName, engineState, debug, {

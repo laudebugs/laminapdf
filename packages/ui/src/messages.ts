@@ -643,6 +643,8 @@ const EN = {
   "edit.toast.undidPart": "Undid part of “{step}”: a later change replaced the rest, so it stays",
   "edit.toast.redidPart": "Redid part of “{step}”: a later change replaced the rest, so it stays",
   "edit.toast.skipped": "Couldn't {action} “{step}”: later changes replaced all of it, so it's gone from the history",
+  "edit.toast.several":
+    "{count} steps couldn't be restored in full: later changes replaced part or all of them, so those parts stay",
   "edit.toast.lost": "Lamina PDF had to restart and couldn't keep your unsaved changes",
   "edit.toast.failed": "Couldn't {action}. Try again.",
   "edit.failed.rotate": "turn the page",

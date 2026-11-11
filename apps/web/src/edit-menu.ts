@@ -24,10 +24,12 @@ export function editMenu(
   registry: CommandRegistry,
   context: CommandContext,
   /**
-   * What the items are read from, besides the context: the registry's version and the session's
-   * state. Named here so the React Compiler makes the items again when either changes.
+   * The registry's version and the session's state. The items read both through `registry` and
+   * `context.edits`, which stay the same objects while they change, so the React Compiler, which
+   * memoises this call on its arguments, would keep stale items. Passing the values themselves is
+   * the dependency it can see; the function needn't read them.
    */
-  _readFrom: { readonly version: number; readonly state: unknown },
+  _changesWith: { readonly version: number; readonly state: unknown },
 ): { readonly items: GatedEntry<EditMenuId>[]; readonly run: (id: EditMenuId) => void } {
   // Through the registry, so a command that can't run now doesn't; a failure is the session's to say.
   const run = (id: EditMenuId) => void registry.run(EDIT_MENU[id], context).catch(() => undefined);

@@ -28,10 +28,15 @@ export function failureText(failure: Omit<EditFailure, "error">): string {
   return message("edit.toast.failed", { action });
 }
 
+/** Where the history stands: its steps (by ID) and how many are done, as one comparable value. */
+function where(history: ReturnType<ToastedSession["getState"]>["history"]): string {
+  return `${history.position}:${history.steps.map((step) => step.id).join(",")}`;
+}
+
 /** Shows `session`'s toasts in `toasts`; returns the function that stops. */
 export function showEditToasts(session: ToastedSession, toasts: ToastQueue): () => void {
   let shown: ToastHandle | undefined;
-  let history = session.getState().history;
+  let at = where(session.getState().history);
   const dismiss = () => {
     shown?.dismiss();
     shown = undefined;
@@ -47,17 +52,22 @@ export function showEditToasts(session: ToastedSession, toasts: ToastQueue): () 
         ? { label: message("command.edit.redo"), onPress: () => void session.redo().catch(() => undefined) }
         : { label: message("command.edit.undo"), onPress: () => void session.undo().catch(() => undefined) };
   const stops = [
-    // The history moved: an older toast's action would act on another step.
+    // The history moved: an older toast's action would act on another step. A history read again
+    // after a failed call, the same steps at the same place, leaves the toast.
     session.subscribe(() => {
-      const next = session.getState().history;
-      if (next !== history) dismiss();
-      history = next;
+      const next = where(session.getState().history);
+      if (next !== at) dismiss();
+      at = next;
     }),
     session.onReverted((reverted) => {
       // Going far away is one choice in the History tab, which shows where it went: only a step
       // left alone is worth a toast then.
       const notable = reverted.length === 1 ? reverted : reverted.filter((r) => r.outcome !== "applied");
-      for (const step of notable) show(revertedText(step), way(step));
+      const [first] = notable;
+      if (first === undefined) return;
+      // One toast says it all: several steps left alone in part or whole are counted, not listed.
+      if (notable.length === 1) show(revertedText(first), way(first));
+      else show(message("edit.toast.several", { count: notable.length }));
     }),
     session.onFailed((failure) => show(failureText(failure))),
   ];

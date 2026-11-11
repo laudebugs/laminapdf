@@ -41,6 +41,18 @@ class FakeSession implements ToastedSession {
     for (const l of [...this.#listeners]) l();
     for (const l of [...this.#reverted]) l([{ step: STEP, way, outcome }]);
   }
+  /** A history jump over several steps, each with its outcome. */
+  jump(outcomes: readonly RevertedStep["outcome"][]): void {
+    this.#state = { ...this.#state, history: { ...this.#state.history, position: 0 } };
+    for (const l of [...this.#listeners]) l();
+    const reverted = outcomes.map((outcome, i) => ({ step: { ...STEP, id: i + 1 }, way: "undo" as const, outcome }));
+    for (const l of [...this.#reverted]) l(reverted);
+  }
+  /** The history read again after a failed call: a new object, the same steps at the same place. */
+  reread(): void {
+    this.#state = { ...this.#state, history: { ...this.#state.history, steps: [...this.#state.history.steps] } };
+    for (const l of [...this.#listeners]) l();
+  }
   /** A new edit: the history changes, with no undo or redo to report. */
   edit(): void {
     this.#state = { ...this.#state, history: { ...this.#state.history, position: 1 } };
@@ -88,6 +100,25 @@ describe("the edit session's toasts", () => {
     session.move(0, "undo");
     stop();
     expect(texts(toasts)).toEqual([]);
+  });
+
+  it("count the steps a jump left alone in part or whole, in one toast", () => {
+    const session = new FakeSession();
+    const toasts = new ToastQueue();
+    showEditToasts(session, toasts);
+    session.jump(["partial", "applied", "skipped"]);
+    expect(texts(toasts)).toEqual([
+      "2 steps couldn't be restored in full: later changes replaced part or all of them, so those parts stay",
+    ]);
+  });
+
+  it("stay when the history is read again unchanged after a failed call", () => {
+    const session = new FakeSession();
+    const toasts = new ToastQueue();
+    showEditToasts(session, toasts);
+    session.move(0, "undo");
+    session.reread();
+    expect(texts(toasts)).toEqual(["Undid “Rotate page 5”"]);
   });
 
   it("say which call failed", () => {
