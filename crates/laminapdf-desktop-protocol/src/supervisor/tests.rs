@@ -262,3 +262,36 @@ fn an_unlock_should_carry_its_password() {
     });
     assert!(matches!(reply, Ok((FromEngine::Unlocked { .. }, _))));
 }
+
+/// A font list whose scan takes longer than an engine may take to start.
+#[derive(Debug)]
+struct SlowFonts;
+
+impl FontServer for SlowFonts {
+    fn faces(&self) -> Vec<FontFace> {
+        thread::sleep(Duration::from_millis(600));
+        Vec::new()
+    }
+
+    fn read(&self, _: u32) -> io::Result<Vec<u8>> {
+        Err(io::Error::other("no fonts"))
+    }
+}
+
+#[test]
+fn a_slow_font_scan_should_not_hold_up_the_engines_start() {
+    let config = Config {
+        start_timeout: Duration::from_millis(300),
+        fonts: Some(Arc::new(SlowFonts)),
+        ..fast_config()
+    };
+    let started = Supervisor::start(
+        Box::new(FakeSpawner::new(Mode::Healthy)),
+        Arc::new(NoFiles),
+        config,
+        |_, _| {},
+    );
+    let supervisor = started.unwrap_or_else(|error| panic!("the scan held up the start: {error}"));
+    assert!(open(&supervisor).is_ok());
+    supervisor.shutdown();
+}

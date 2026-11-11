@@ -70,10 +70,22 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-desktop-protocol/  # app, unpublished: the frames between the desktop main process and its engine
 │   │                    #     (ToEngine/FromEngine, postcard header + raw payload, MAX_FRAME, PROTOCOL_VERSION) and
 │   │                    #     `supervisor` (std only: spawn, Hello/Ready, replies by ReqId, ReadRange served, heartbeat
-│   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b)
+│   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b);
+│   │                    #     SandboxLevel/Layer (an engine missing a required layer is refused), Fonts/FontRequest/FontData
+│   │                    #     with FontServer (D2c)
 │   ├── laminapdf-desktop-engine/  # app, unpublished: the desktop engine binary (ADR 0008 §2): stdin/stdout frames, a router
 │   │                    #     thread that never parses, one worker (lamina model + PDFium), RemoteSource (256 KiB blocks
-│   │                    #     read over the pipe); examples large_pdf (the 1 GB fixture) and measure (D2b)
+│   │                    #     read over the pipe); examples large_pdf (the 1 GB fixture) and measure (D2b);
+│   │                    #     fonts.rs (PDFium's system fonts, asked of the main process); --sandbox-selftest[=<probe>]
+│   │                    #     (feature `selftest`, selftest.rs), tests/sandbox_selftest.rs (D2c)
+│   ├── laminapdf-desktop-sandbox/  # edge, unpublished: the engine's sandbox (ADR 0008 §5), both halves: spawn_sandboxed /
+│   │                    #     SandboxSpawner (Windows: job, Low-IL restricted token + start-up impersonation, mitigation
+│   │                    #     policies, CreateProcessAsUserW; Unix: only fds 0–2 inherited; macOS: memory watchdog; names
+│   │                    #     sandbox exits (SIGSYS, memory limit)), SystemFonts/BackgroundFonts (the font faces the main
+│   │                    #     process serves) and, feature `engine`, apply_engine_sandbox (macOS Seatbelt; Linux
+│   │                    #     no-new-privs, Landlock, RLIMIT_AS, seccomp; Windows RevertToSelf + post-load policies);
+│   │                    #     `probe` (the selftest's, test only); `seccomp-trap`; LAMINA_PDF_ENGINE_SANDBOX=off in debug
+│   │                    #     builds only (D2c)
 │   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
 │   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers that crates share (fixtures_dir, fixture, corpus,

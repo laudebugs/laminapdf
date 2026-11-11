@@ -2805,6 +2805,7 @@ name = "laminapdf-desktop"
 version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf-desktop-protocol",
+ "laminapdf-desktop-sandbox",
  "region",
  "serde",
  "serde_json",
@@ -2824,6 +2825,7 @@ version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf",
  "laminapdf-desktop-protocol",
+ "laminapdf-desktop-sandbox",
  "laminapdf-render",
  "laminapdf-render-pdfium",
  "laminapdf-test-fixtures",
@@ -2837,6 +2839,18 @@ dependencies = [
  "serde",
  "thiserror 2.0.21",
  "zeroize",
+]
+
+[[package]]
+name = "laminapdf-desktop-sandbox"
+version = "0.2.0-alpha.6"
+dependencies = [
+ "laminapdf-desktop-protocol",
+ "landlock",
+ "libc",
+ "seccompiler",
+ "thiserror 2.0.21",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3026,6 +3040,17 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-test",
+]
+
+[[package]]
+name = "landlock"
+version = "0.4.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4cca98e95f35b29d469dade6724c6f96cec9236640f745a0e99b0334ec320ab1"
+dependencies = [
+ "enumflags2",
+ "libc",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -4491,6 +4516,15 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "seccompiler"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4ae55de56877481d112a559bbc12667635fdaf5e005712fd4e2b2fa50ffc884"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "selectors"
