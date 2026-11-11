@@ -181,7 +181,8 @@
     white-space: nowrap;
   }
 
-  .site-header-row .site-nav-more {
+  /* Only where the header draws its menu, which lists these links instead. */
+  .site-header-row[data-phone-menu] .site-nav-more {
     display: none;
   }
 
