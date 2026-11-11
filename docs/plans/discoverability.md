@@ -49,7 +49,7 @@ Round W3 closes those gaps in order of reach, then adds the pages and the measur
 | [W3c](../todos/done/W3c-package-metadata.md) | Package metadata written for users: npm and crates.io descriptions without internal IDs, keywords for the jobs people search for, `bugs` fields, READMEs that open with what the package does, and a check that keeps internal IDs out | — |
 | [W3d](../todos/ready/W3d-structured-data-and-share-tags.md) | Structured data and share tags: JSON-LD on the website and the docs, share tags on the docs and the reader, links to the Markdown twins, `lastmod` in the sitemaps | W3a, W3i |
 | [W3e](../todos/ready/W3e-search-engine-registration.md) | Search engines told about every change: Search Console and Bing Webmaster by DNS, sitemaps submitted, IndexNow pinged from the production deploys | W3d |
-| [W3f](../todos/ready/W3f-agent-discovery.md) | Coding agents find the docs: a Context7 listing claimed with `context7.json`, llms.txt linked from the website and the README, L5a's production check ticked | W3b |
+| [W3f](../todos/ongoing/W3f-agent-discovery.md) | Coding agents find the docs: a Context7 listing claimed with `context7.json`, llms.txt linked from the website and the README, L5a's production check ticked | W3b |
 | [W3g](../todos/ready/W3g-choosing-a-pdf-library.md) | A page that answers "which PDF library should I use?": what Lamina PDF does and doesn't do beside the common libraries, with sources, approved by the owner | W3c |
 | [W3h](../todos/ready/W3h-docs-titles-for-questions.md) | Docs titles and descriptions that match the questions people ask, checked against the page each one leads to | W3e, W3g |
 | [W3i](../todos/ready/W3i-answer-engine-check.md) | The answer-engine check: a fixed set of questions asked to answer engines by hand, with Lamina PDF's mentions and citations recorded, a baseline now and a run after each step | — |
@@ -65,7 +65,7 @@ W3a, W3b, W3c and W3i depend on nothing and can start at once, but W3a should me
 - [x] Write package metadata for users, and check it ([W3c](../todos/done/W3c-package-metadata.md))
 - [ ] Add structured data and share tags ([W3d](../todos/ready/W3d-structured-data-and-share-tags.md))
 - [ ] Register with Google and Bing, and ping IndexNow from the deploys ([W3e](../todos/ready/W3e-search-engine-registration.md))
-- [ ] List the docs with Context7 and link llms.txt where agents look ([W3f](../todos/ready/W3f-agent-discovery.md))
+- [ ] List the docs with Context7 and link llms.txt where agents look ([W3f](../todos/ongoing/W3f-agent-discovery.md))
 - [ ] Publish a page that helps a developer choose a PDF library ([W3g](../todos/ready/W3g-choosing-a-pdf-library.md))
 - [ ] Title the docs pages for the questions people ask ([W3h](../todos/ready/W3h-docs-titles-for-questions.md))
 - [ ] Ask answer engines a fixed set of questions, and record what they say ([W3i](../todos/ready/W3i-answer-engine-check.md))
