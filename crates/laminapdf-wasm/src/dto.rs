@@ -387,7 +387,7 @@ pub(crate) struct SaveReportJs {
     /// Whether an edit saved here rewrote the XMP packet whole.
     pub packet_rewritten: bool,
     /// Whether the save emptied the undo history (a full rewrite, or an incremental save that
-    /// freed objects); never for a copy.
+    /// freed objects); for a copy, whether adopting it would.
     pub history_cleared: bool,
 }
 

@@ -448,6 +448,22 @@ impl Document {
         Ok(Saved { bytes, report })
     }
 
+    /// Makes `bytes`, the whole output of [`Document::save_copy`], the document's saved file, as
+    /// if [`Document::save`] had written it: once the copy is written where the document lives,
+    /// the document rebases onto it, so a failed write leaves it unsaved. `history_cleared` is
+    /// the copy's [`SaveReport::history_cleared`]. The document must not change in between.
+    ///
+    /// # Errors
+    /// `nested-transaction` / `saved-not-rebased`; `not-rebased` when `bytes` can't be read
+    /// (the document then waits for [`Document::rebase`]).
+    pub fn adopt_copy(&mut self, bytes: Vec<u8>, history_cleared: bool) -> Result<()> {
+        let result = self.inner.adopt_copy(bytes.into(), history_cleared);
+        if matches!(&result, Ok(()) | Err(laminapdf_save::SaveError::NotRebased { .. })) {
+            self.bump();
+        }
+        Ok(result?)
+    }
+
     /// A save as a resumable job, with its own [`CancelToken`] ([`SaveJob::cancel_token`]).
     #[must_use]
     pub fn save_job(&self, options: &SaveOptions) -> SaveJob {

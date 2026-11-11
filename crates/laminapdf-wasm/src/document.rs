@@ -262,6 +262,24 @@ impl WasmDocument {
         saved(&out)
     }
 
+    /// Makes `bytes`, the whole output of `saveCopy`, the document's saved file (it rebases onto
+    /// them), once they are written where the document lives; `historyCleared` is the copy's
+    /// report's.
+    ///
+    /// # Errors
+    /// `nested-transaction`, `saved-not-rebased`; `not-rebased` when `bytes` can't be read.
+    #[wasm_bindgen(js_name = adoptCopy)]
+    pub fn adopt_copy(
+        &mut self,
+        bytes: &[u8],
+        #[wasm_bindgen(js_name = historyCleared)] history_cleared: bool,
+    ) -> JsResult<()> {
+        self.doc
+            .borrow_mut()
+            .adopt_copy(bytes.to_vec(), history_cleared)
+            .map_err(|e| lamina_error(&e))
+    }
+
     /// A save as a job, stepped with a budget of work units (ADR 0028 §3, §4).
     ///
     /// # Errors

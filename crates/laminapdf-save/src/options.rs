@@ -362,7 +362,8 @@ impl SaveReport {
     }
 
     /// Whether the save emptied the document's undo history: a full rewrite does, and so does
-    /// an incremental save that freed objects (their numbers may be reused). A copy never does.
+    /// an incremental save that freed objects (their numbers may be reused). For a copy
+    /// ([`Save::save_copy`](crate::Save::save_copy)), whether adopting it as the save would.
     #[must_use]
     pub const fn history_cleared(&self) -> bool {
         self.history_cleared

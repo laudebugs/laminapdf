@@ -133,7 +133,7 @@ fn a_violation_stays_pending_after_a_copy_that_overrides_it() {
 }
 
 #[test]
-fn the_report_says_when_a_save_emptied_the_undo_history() {
+fn the_report_says_when_a_save_empties_the_undo_history_or_adopting_a_copy_would() {
     let save = |mode: SaveMode, copy: bool| {
         let mut doc = editable(&fixture("corpus/hello.pdf"));
         set_title(&mut doc, "History");
@@ -151,6 +151,37 @@ fn the_report_says_when_a_save_emptied_the_undo_history() {
             save(SaveMode::FullRewrite, false),
             save(SaveMode::FullRewrite, true),
         ],
-        [false, true, false]
+        [false, true, true]
     );
+}
+
+#[test]
+fn an_adopted_copy_is_the_saved_file() {
+    let base = fixture("corpus/hello.pdf");
+    let mut doc = editable(&base);
+    set_title(&mut doc, "Adopted");
+    let mut copy = Vec::new();
+    let report = doc.save_copy(&mut copy, &SaveOptions::new()).unwrap();
+    doc.adopt_copy(copy.clone().into(), report.history_cleared()).unwrap();
+    // Saved, onto the copy's bytes, and the next save appends to them.
+    let mut next = Vec::new();
+    set_title(&mut doc, "After");
+    doc.save(&mut next, &SaveOptions::new()).unwrap();
+    assert_eq!(
+        (next.starts_with(&copy), title(&next).as_deref(), doc.save_state()),
+        (true, Some("After"), SaveState::Clean)
+    );
+}
+
+#[test]
+fn an_adopted_copy_keeps_the_undo_history_unless_its_report_cleared_it() {
+    let undoable = |history_cleared: bool| {
+        let mut doc = editable(&fixture("corpus/hello.pdf"));
+        set_title(&mut doc, "Undo me");
+        let mut copy = Vec::new();
+        doc.save_copy(&mut copy, &SaveOptions::new()).unwrap();
+        doc.adopt_copy(copy.into(), history_cleared).unwrap();
+        doc.undo().unwrap().is_some()
+    };
+    assert_eq!([undoable(false), undoable(true)], [true, false]);
 }

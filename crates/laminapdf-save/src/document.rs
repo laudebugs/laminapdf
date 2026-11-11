@@ -105,6 +105,21 @@ pub trait Save {
     /// # Errors
     /// As [`Save::save`], less [`SaveError::NotRebased`]; the document is unchanged either way.
     fn save_copy<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport>;
+
+    /// Makes `copy`, the whole output of [`Save::save_copy`] ([`IncrementalOutput::Whole`]),
+    /// the document's saved file, as if [`Save::save`] had written it: the document rebases onto
+    /// it, and keeps or empties its undo history as the copy's
+    /// [`SaveReport::history_cleared`] says. A shell writes the copy where the document lives,
+    /// then adopts it, so a failed write leaves the document unsaved. The document must not
+    /// change between the copy and its adoption.
+    ///
+    /// [`IncrementalOutput::Whole`]: crate::IncrementalOutput::Whole
+    ///
+    /// # Errors
+    /// [`SaveError::Ops`] while a transaction is open or another save waits for its rebase;
+    /// [`SaveError::NotRebased`] when `copy` can't be read (the document then waits for a
+    /// rebase, as after a full rewrite to a sink it couldn't read back).
+    fn adopt_copy(&mut self, copy: Source, history_cleared: bool) -> Result<()>;
 }
 
 /// The refusals every save shares.
@@ -223,23 +238,24 @@ fn write_incremental<S: WriteSink + ?Sized>(
     let saved = IncrementalWriter::new(doc.cos(), options)
         .with_patches(patches)
         .write(sink)?;
-    if copy {
-        return Ok(saved.into_parts().0);
-    }
-    if stamped {
-        doc.commit()?;
-    }
     let pending = if saved.freed_objects() {
         PendingRebase::ClearHistory
     } else {
         PendingRebase::KeepHistory
     };
     let (mut report, appended) = saved.into_parts();
+    // For a copy: whether adopting it as the save would.
+    report.history_cleared = !appended.is_empty() && pending == PendingRebase::ClearHistory;
+    if copy {
+        return Ok(report);
+    }
+    if stamped {
+        doc.commit()?;
+    }
     if appended.is_empty() {
         doc.mark_saved();
         return Ok(report);
     }
-    report.history_cleared = pending == PendingRebase::ClearHistory;
     let base = Arc::clone(doc.cos().source());
     let rebuilt: Source = match base.as_slice() {
         Some(bytes) => {
@@ -287,8 +303,23 @@ impl Save for Document {
     }
 
     fn save_copy<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport> {
-        let (Written::Incremental(report) | Written::Full(report)) = write(self, sink, *options, true)?;
-        Ok(report)
+        match write(self, sink, *options, true)? {
+            Written::Incremental(report) => Ok(report),
+            Written::Full(mut report) => {
+                report.history_cleared = true;
+                Ok(report)
+            }
+        }
+    }
+
+    fn adopt_copy(&mut self, copy: Source, history_cleared: bool) -> Result<()> {
+        ready(self)?;
+        let pending = if history_cleared {
+            PendingRebase::ClearHistory
+        } else {
+            PendingRebase::KeepHistory
+        };
+        settle(self, copy, pending)
     }
 }
 

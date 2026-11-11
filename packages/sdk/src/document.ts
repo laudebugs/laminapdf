@@ -764,6 +764,19 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Makes `bytes`, the whole output of {@link Document.saveCopy}, the document's saved file (it
+   * rebases onto them), once they are written where the document lives, so a failed write leaves
+   * the document unsaved. `historyCleared` is the copy's report's. Nothing may change the document
+   * in between.
+   *
+   * @throws {@link LaminaPdfError} `saved-not-rebased`; `not-rebased` when `bytes` can't be read.
+   */
+  adoptCopy(bytes: Uint8Array, historyCleared: boolean): void {
+    this.#notInTransaction("adoptCopy");
+    this.call(() => this.#doc.adoptCopy(bytes, historyCleared));
+  }
+
+  /**
    * A save as a job stepped by the caller (to keep a UI responsive).
    *
    * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for bad options.
