@@ -330,8 +330,8 @@ export type FlowDocument = {
   page?: PageSpec | null;
   /**
    * The profiles the PDF must meet: `PDF/UA-1`, and at most one of `PDF/A-2b`, `PDF/A-2u`
-   * and `PDF/A-3b`. The caller passes them to the builder's options
-   * ([`FlowDocument::profiles`]).
+   * and `PDF/A-3b`. The caller passes them to the builder's options, as they are checked
+   * there.
    */
   profiles?: ProfileName[];
   /** Always `laminapdf.document/1`. */

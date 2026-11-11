@@ -3,7 +3,7 @@
 //! data cross as JSON, so integers stay integers; the fonts and images it names are WebAssembly
 //! objects, which a record can't hold, so a [`WasmFlowResources`] collects them by name.
 
-use laminapdf::flow::document::{FlowDocument, Resources, fill};
+use laminapdf::flow::document::{Resources, fill_or_read};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -81,11 +81,7 @@ impl WasmBuilder {
     ) -> JsResult<JsValue> {
         let init: FlowOptionsInit = from_js_or_default(options, "options")?;
         let json: serde_json::Value = from_js(document, "document")?;
-        let document = match &init.data {
-            Some(data) => fill(&json, data),
-            None => FlowDocument::from_json(&json),
-        }
-        .map_err(|e| lamina_error(&laminapdf::Error::from(e)))?;
+        let document = fill_or_read(&json, init.data.as_ref()).map_err(|e| lamina_error(&laminapdf::Error::from(e)))?;
         let named = resources
             .fonts
             .iter()

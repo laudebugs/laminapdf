@@ -23,7 +23,7 @@ export function invoiceFromJson(
   options: BuilderOptions = {},
 ): Uint8Array<ArrayBuffer> {
   // The builder checks the profiles it is given: the ones the template asks for.
-  using b = new Builder({ ...options, profiles: ["PDF/UA-1"] });
+  using b = new Builder({ ...options, profiles: template.profiles ?? [] });
   b.flow(template, {
     data,
     fonts: { regular: Font.fromBytes(regular), bold: Font.fromCollection(bold, 1) },

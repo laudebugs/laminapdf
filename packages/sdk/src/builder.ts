@@ -233,16 +233,26 @@ type DataPointer = string | { readonly $item: string };
 /** A value a template fills in: `{ $data: "/invoice/number" }`, or `{ $item: "/name" }` inside an `$each`. */
 type ValuePlaceholder = { readonly $data: string } | { readonly $item: string };
 
-/** In a list, `do` once per item of a list in the data (`$each`), or only when a value is there and isn't `false` or `null` (`$if`). */
+/** What a list placeholder's `do` adds to its list: an item, another list placeholder, or several of either. */
+type ListBody<T> = Templated<T> | ListPlaceholder<T> | readonly (Templated<T> | ListPlaceholder<T>)[];
+
+/** In a list, `do` once per item of a list in the data (`$each`), or only when a value is there and isn't `false` or `null` (`$if`). They nest, as `fill` reads them. */
 type ListPlaceholder<T> =
-  | { readonly $each: DataPointer; readonly do: Templated<T> | readonly Templated<T>[] }
-  | { readonly $if: DataPointer; readonly do: Templated<T> | readonly Templated<T>[] };
+  | { readonly $each: DataPointer; readonly do: ListBody<T> }
+  | { readonly $if: DataPointer; readonly do: ListBody<T> };
+
+/**
+ * Keys kept as written in a template. `type` and `schema` say what an object is, so a misspelt key
+ * elsewhere in a block is reported as that, not as a type mismatch; `profiles` is read before
+ * filling, to give the builder the profiles the template asks for.
+ */
+type AsWritten = "type" | "schema" | "profiles";
 
 /** `T` with a template's placeholders allowed where `fill` takes them: a value for text, numbers and `true`/`false`, a list placeholder among a list's items. */
 export type Templated<T> = T extends readonly (infer U)[]
   ? readonly (Templated<U> | ListPlaceholder<U>)[]
   : T extends object
-    ? { readonly [K in keyof T]: Templated<T[K]> }
+    ? { readonly [K in keyof T]: K extends AsWritten ? T[K] : Templated<T[K]> }
     : T | ValuePlaceholder;
 
 /** A `laminapdf.document/1` template: a {@link FlowDocument} whose values may be placeholders that {@link Builder.flow} fills from data. */

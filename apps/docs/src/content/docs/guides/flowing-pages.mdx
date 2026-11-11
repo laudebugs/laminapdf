@@ -8,7 +8,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 This guide lays out a document whose length you don't know in advance, such as a report or a contract. You give Lamina PDF blocks and a page template, and it makes as many pages as they need, with a header and a footer on each.
 
-It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. In TypeScript, you give it the same document as JSON objects or Markdown; the [JSON section](#write-it-as-json) shows how.
+It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. In TypeScript, you give it the same document as plain objects or Markdown; the [JSON section](#write-it-as-json) shows how.
 
 ## The example
 
@@ -97,7 +97,7 @@ A format with a schema suits programs and language models: they write the docume
 
 A template is the same JSON with placeholders that `fill` replaces from your data. `$data` puts in a value and `$each` repeats a block or table row per item, with `$item` for a value of the current item. `$if` keeps a block only when a value is there. The [Fill an invoice from JSON](/recipes/invoice-from-json/) recipe builds a two-page invoice this way.
 
-In TypeScript, `builder.flow(document, { data, fonts, images })` takes the same document as plain objects, with the fonts as `Font`s and the images as `Image`s by name. The package's types follow the format, so your editor flags a misspelt key or an unknown block `type` before anything runs: a document is a `FlowDocument`, and a template with placeholders a `FlowTemplate`. Given `data`, `flow` fills the template first. It needs the text module, `init({ text: true })`.
+In TypeScript, `builder.flow(document, { data, fonts, images })` takes the same document as plain objects, with the fonts as `Font`s and the images as `Image`s by name. The package's types follow the format, so your editor flags a misspelt key or an unknown block `type` before anything runs. Type a document as `FlowDocument`, and a template with placeholders as `FlowTemplate`. Given `data`, `flow` fills the template first. It needs the text module, `init({ text: true })`.
 
 ## Fields in headers and footers
 

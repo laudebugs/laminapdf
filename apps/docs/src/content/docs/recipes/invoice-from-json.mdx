@@ -21,7 +21,7 @@ The template is a document with placeholders that point into the data. This tabl
 }]
 ```
 
-The example fills the template from the data, gives it its two fonts by the names it uses, and returns the PDF's bytes. Both languages write the same bytes:
+Each example fills the template from the data, gives it its two fonts by the names it uses, and returns the PDF's bytes. Both write the same bytes:
 
 <Example ts="packages/sdk/examples/invoice-from-json.ts" rust="crates/laminapdf/examples/invoice_from_json.rs" result="invoice_from_json" />
 
@@ -33,13 +33,13 @@ The result is two A4 pages that meet PDF/UA-1. The table's header row repeats at
 - `{ "$data": "/total" }` puts a value from the data where text belongs, and `{ "$item": "/amount" }` puts one from the current item of an `$each`.
 - `{ "$each": "/items", "do": … }` repeats a block or a table row once per item of a list. `{ "$if": "/invoice/paid", "do": … }` keeps its block only when that value is there and isn't `false` or `null`. This invoice's data says it isn't paid, so the "Paid in full" line is left out.
 - The template names its text styles once, such as `body` and `strong`, and each style names a font. The fonts' bytes come beside the template, through `Resources` in Rust and `fonts` in TypeScript, so the template holds no files.
-- The template asks for PDF/UA-1 in its `profiles`, so the example passes them to the builder, which checks the rules for accessible PDFs before it writes anything.
+- The template asks for PDF/UA-1 in its `profiles`, so each example passes them to the builder, which checks the rules for accessible PDFs before it writes anything.
 
 ## What to change
 
 - **The line items:** edit the data. The template doesn't change, and the table runs onto as many pages as the items need.
 - **Totals, dates and currency:** put them in the data already formatted, such as `"total": "4,001.10 €"`. Templates have no arithmetic or formatting by design: whatever writes the data does the sums.
-- **A misspelt key:** reading the document fails with `invalid-document`. Its `data.pointer` names the value, such as `/blocks/2/spaceAftr`, and its `didYouMean` the closest key the format knows. In TypeScript, a template written in your code as a `FlowTemplate` fails to type-check first.
+- **A misspelt key:** reading the document fails with `invalid-document`. Its `data.pointer` names the value, such as `/blocks/2/spaceAftr`, and its `didYouMean` the closest key the format knows. In TypeScript, `tsc` refuses a misspelt key in a template you write in your code as a `FlowTemplate`; a template read from a file is checked when `flow` reads it.
 - **A value the data lacks:** filling fails with `template-data-missing` and the pointer the template used, so a gap never reaches the PDF.
 - **Check what a model writes:** validate the document against `laminapdf.document/1`'s schema. The `laminapdf` crate and `@laminapdf/sdk` both ship it as `docs/schemas/document.schema.json`.
 

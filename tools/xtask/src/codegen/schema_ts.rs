@@ -85,6 +85,10 @@ fn ts(node: &Value, path: &str, indent: &str) -> Result<String> {
     {
         bail!("{path}: the keyword `{key}` has no TypeScript form yet (tools/xtask/src/codegen/schema_ts.rs)");
     }
+    // `additionalProperties` shapes objects only; anywhere else it would be dropped unread.
+    if map.contains_key("additionalProperties") && map.get("type").and_then(Value::as_str) != Some("object") {
+        bail!("{path}: additionalProperties outside an object schema has no TypeScript form yet");
+    }
     if let Some(target) = map.get("$ref").and_then(Value::as_str) {
         return Ok(target
             .strip_prefix("#/$defs/")
@@ -165,8 +169,10 @@ fn object(map: &Map<String, Value>, path: &str, indent: &str) -> Result<String> 
             ),
         });
     };
-    if let Some(value) = extra.filter(|v| !v.is_boolean()) {
-        bail!("{path}: properties beside an additionalProperties schema ({value}) have no TypeScript form yet");
+    // Beside properties only `false` (or nothing) fits a type literal, which already refuses an
+    // unknown key; `true` or a schema would promise keys the written type doesn't allow.
+    if let Some(value) = extra.filter(|v| **v != Value::Bool(false)) {
+        bail!("{path}: properties beside additionalProperties {value} have no TypeScript form yet");
     }
     let required: Vec<&str> = map
         .get("required")
@@ -243,7 +249,21 @@ mod tests {
             "type": "object"
         });
         let err = render(&schema, "Root", "", "test").unwrap_err().to_string();
-        assert!(err.contains("additionalProperties schema"), "{err}");
+        assert!(err.contains("beside additionalProperties"), "{err}");
+    }
+
+    #[test]
+    fn render_should_refuse_open_properties_and_additional_properties_off_an_object() {
+        let open = json!({
+            "properties": { "a": { "type": "string" } },
+            "additionalProperties": true,
+            "type": "object"
+        });
+        let err = render(&open, "Root", "", "test").unwrap_err().to_string();
+        assert!(err.contains("beside additionalProperties true"), "{err}");
+        let stray = json!({ "type": "string", "additionalProperties": false });
+        let err = render(&stray, "Root", "", "test").unwrap_err().to_string();
+        assert!(err.contains("outside an object schema"), "{err}");
     }
 
     #[test]

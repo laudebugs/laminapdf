@@ -64,15 +64,36 @@ describe("Builder.flow", () => {
     expect((error as { didYouMean?: string[] }).didYouMean).toContain("blocks");
   });
 
-  it("refuses an unknown option", () => {
+  it("refuses an unknown option, naming the one meant", () => {
     using b = new Builder();
     const options = { dat: {} } as unknown as Parameters<Builder["flow"]>[1];
-    expect(
-      isLaminaPdfError(
-        thrown(() => b.flow(NOTE, options)),
-        "unknown-option",
-      ),
-    ).toBe(true);
+    const error = thrown(() => b.flow(NOTE, options));
+    expect(isLaminaPdfError(error, "unknown-option")).toBe(true);
+    expect((error as { didYouMean?: string[] }).didYouMean).toContain("data");
+  });
+
+  it("types templates too: nested placeholders pass, a misspelt key fails", () => {
+    const nested: FlowTemplate = {
+      schema: "laminapdf.document/1",
+      styles: BODY,
+      blocks: [
+        {
+          $each: "/groups",
+          do: [
+            { type: "heading", level: 2, text: { $item: "/name" } },
+            { $each: { $item: "/lines" }, do: { type: "paragraph", text: { $item: "/text" } } },
+            { $if: { $item: "/note" }, do: { $if: "/showNotes", do: { type: "rule" } } },
+          ],
+        },
+      ],
+    };
+    const misspelt: FlowTemplate = {
+      schema: "laminapdf.document/1",
+      styles: BODY,
+      // @ts-expect-error: `txet` is not a key of a paragraph.
+      blocks: [{ type: "paragraph", txet: { $data: "/x" } }],
+    };
+    expect([nested, misspelt]).toHaveLength(2);
   });
 
   it("types documents by the schema: tsc refuses a misspelt key and an unknown block type", () => {
