@@ -318,8 +318,12 @@ impl Builder {
                 None if a.name == "xmlns" => "",
                 _ => continue,
             };
-            // `xmlns:="…"` declares nothing, and Namespaces in XML 1.0 can't undeclare a prefix.
-            if a.name.ends_with(':') || (!prefix.is_empty() && a.value.is_empty()) || prefix.contains(':') {
+            // `xmlns:="…"` declares nothing, and Namespaces in XML 1.0 can't undeclare a prefix. A
+            // prefix is an NCName (§3): `xmlns:1dc` is a Name, but `<1dc:title>` is not.
+            if a.name.ends_with(':')
+                || (!prefix.is_empty() && (a.value.is_empty() || !is_name(prefix)))
+                || prefix.contains(':')
+            {
                 return Err(ParseError::Syntax { offset });
             }
             declarations.push(Binding::new(prefix, &a.value));
@@ -455,9 +459,10 @@ fn scan_tag(tag: &str, base: usize) -> Option<RawTag<'_>> {
     Some(RawTag { name, attrs })
 }
 
-/// Whether `name` is an XML 1.0 `Name` (§2.3). Tags and attributes must be named so: a packet
-/// that names one otherwise is malformed, and a prefix taken from such a name (`xmlns:?dc`) would
-/// write tags that read back as something else (`<?dc:title>` is a processing instruction).
+/// Whether `name` is an XML 1.0 `Name` (§2.3). Tags and attributes must be named so, and a
+/// declared prefix must be one too: a packet that names one otherwise is malformed, and the writer
+/// would build tags from such a prefix (`xmlns:?dc`) that read back as something else (`<?dc:title>`
+/// is a processing instruction).
 fn is_name(name: &str) -> bool {
     let mut chars = name.chars();
     chars.next().is_some_and(is_name_start) && chars.all(|c| is_name_start(c) || is_name_rest(c))

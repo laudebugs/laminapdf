@@ -18,9 +18,11 @@ The [code-organization guide](../guidelines/code-organization.md) has since turn
    ```toml
    [workspace]
    resolver = "3"
-   members = ["crates/*", "apps/*/src-tauri", "tools/xtask"]
+   members = ["crates/*", "apps/desktop/src-tauri", "tools/xtask"]
    exclude = ["spikes", "fuzz"]
    ```
+
+   Each Tauri app's crate is listed by its path. An `"apps/*/src-tauri"` glob works for Cargo, but Dependabot reads a wildcard only at a path's end and failed every Cargo update on it ([bug log](../bugs/dependabot-cargo-workspace-glob/detail.md)).
 
 2. **Root pnpm workspace.** `pnpm-workspace.yaml` lists `packages/*` and `apps/*` only, with shared versions in the pnpm `catalog:`. The root `package.json` is private and holds dev tooling only. One lockfile per ecosystem (`Cargo.lock`, `pnpm-lock.yaml`), both committed.
 

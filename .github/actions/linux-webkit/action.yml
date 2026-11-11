@@ -9,8 +9,9 @@ runs:
       if: runner.os == 'Linux'
       # apt can fail on a mirror hiccup: three tries a minute apart, each retry a warning (ADR 0018
       # §4). apt runs as root, which the retry can't stop at its timeout ("kill EPERM": the step
-      # fails with no retry), so each apt call ends itself first, under `sudo timeout`, and the
-      # two together stay inside one try (docs/bugs/ci-apt-retry-kill-eperm).
+      # fails with no retry), so each apt call ends itself first, under `sudo timeout` (KILL 30 s
+      # after TERM), all of them inside one try. A try cut off mid-install leaves dpkg half done:
+      # the next one finishes it first (docs/bugs/ci-apt-retry-kill-eperm).
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
       with:
         timeout_minutes: 15
@@ -21,6 +22,7 @@ runs:
         # tauri's `dbus` feature. The same list as `cargo xtask doctor`'s desktop line.
         command: |
           set -euo pipefail
-          sudo timeout 240 apt-get update -q
-          sudo timeout 600 apt-get install -y -q --no-install-recommends \
+          sudo timeout -k 30 60 dpkg --configure -a
+          sudo timeout -k 30 240 apt-get update -q
+          sudo timeout -k 30 420 apt-get install -y -q --no-install-recommends \
             libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config
