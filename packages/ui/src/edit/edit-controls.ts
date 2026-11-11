@@ -49,7 +49,9 @@ export interface EditSlice {
 
 /** The edit session as the chrome drives it: `viewer.edits` fits. */
 export interface EditControls extends ExternalStore<EditSlice> {
+  /** Takes back the last step done, if any. */
   undo(): Promise<unknown>;
+  /** Does again the next step undone, if any. */
   redo(): Promise<unknown>;
   /** Undoes or redoes until `position` steps are done. */
   goTo(position: number): Promise<unknown>;

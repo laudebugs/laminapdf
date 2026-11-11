@@ -49,7 +49,9 @@ export interface ToolModule {
   readonly selectsText: boolean;
   /** A press on the page; return true to take the pointer until it is released. */
   pointerDown?(event: PointerEvent, host: ToolHost): boolean;
+  /** A move while this tool holds the pointer (its `pointerDown` returned true). */
   pointerMove?(event: PointerEvent, host: ToolHost): void;
+  /** The release that ends this tool's hold on the pointer. */
   pointerUp?(event: PointerEvent, host: ToolHost): void;
 }
 

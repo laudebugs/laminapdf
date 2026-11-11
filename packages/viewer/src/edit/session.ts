@@ -72,13 +72,18 @@ const CLOSED: EditSessionState = {
  * in place of a store of its own.
  */
 export const CLOSED_SESSION = {
+  /** The closed state: no steps, nothing unsaved, edits blocked. */
   getState: (): EditSessionState => CLOSED,
+  /** Never calls `listener`: a closed session doesn't change. */
   subscribe:
     (_listener: () => void): (() => void) =>
     () =>
       undefined,
+  /** Does nothing. */
   undo: (): Promise<undefined> => Promise.resolve(undefined),
+  /** Does nothing. */
   redo: (): Promise<undefined> => Promise.resolve(undefined),
+  /** Does nothing. */
   goTo: (_position: number): Promise<undefined> => Promise.resolve(undefined),
 } as const;
 
@@ -101,8 +106,10 @@ export class EditSession {
     this.#now = now;
   }
 
+  /** The session now: its history, whether a call is running, and why edits are blocked, if they are. */
   getState = (): EditSessionState => this.#state;
 
+  /** Calls `listener` whenever the state changes; returns the function that stops it. */
   subscribe = (listener: () => void): (() => void) => {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
