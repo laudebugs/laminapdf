@@ -52,7 +52,7 @@ describe("lamina_pdf_base", () => {
     doc.apply([sample]);
     doc.apply([{ op: "rotatePage", args: { page: id, rotate: 90 } }]);
     expect(doc.pageInfo(0).rotation).toBe(90);
-    expect(doc.undo()).toBe("applied");
+    expect(doc.undo()).toEqual({ outcome: "applied", touchedPages: [id] });
     const saved = doc.save({ mode: "incremental" });
     expect(saved.report.mode).toBe("incremental");
     const again = base.WasmDocument.openBytes(saved.bytes, undefined);
@@ -148,10 +148,13 @@ describe("lamina_pdf_render_hayro", () => {
     expect(doc.pageCount()).toBe(1);
     const [width, height] = Array.from(doc.page(0));
     expect([width, height]).toEqual([612, 792]);
-    // The top-left 8 × 8 pixels at 1×, upright, annotations and widgets on, on white.
+    // The top-left 8 × 8 pixels at 1×, upright, annotations and widgets on, on white, in the
+    // page's own colours (appearance 0), then in Dark (2): white paper becomes Dark's.
     const out = new Uint8Array(8 * 8 * 4);
-    doc.render(0, 1, 0, 0, 8, 8, 0, 3, 0xffffffff, out);
+    doc.render(0, 1, 0, 0, 8, 8, 0, 3, 0xffffffff, 0, 0, 0, out);
     expect(out.every((b) => b === 255)).toBe(true);
+    doc.render(0, 1, 0, 0, 8, 8, 0, 3, 0xffffffff, 2, 0, 0, out);
+    expect(Array.from(out.subarray(0, 4))).toEqual([0x22, 0x21, 0x1f, 255]);
     doc.free();
   });
 

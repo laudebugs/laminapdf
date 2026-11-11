@@ -100,6 +100,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "device-color-without-output-intent":
     case "embedded-file-forbidden":
     case "embedded-file-without-mime-type":
+    case "flow-content-too-large":
     case "invalid-argument":
     case "unknown-option":
     case "worker-version-mismatch":
@@ -110,6 +111,10 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "model-result-unexpected":
     case "model-needs-host":
     case "revision-index-out-of-range":
+    case "invalid-document":
+    case "template-data-missing":
+    case "template-data-type":
+    case "template-too-large":
       return "usage";
     case "data-pending":
     case "repaired-base":
@@ -137,6 +142,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "worker-failed":
     case "wasm-trap":
     case "model-failed":
+    case "flow-layout-unstable":
       return "internal";
     default: {
       const unhandled: never = code;

@@ -10,34 +10,34 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| F01 | Web reader v0.1 (Reader top bar), selection mini toolbar | W | [C4a](../../todos/done/C4a-ui-chrome-and-platform.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
+| F01 | Web reader v0.1 (Reader top bar), selection mini toolbar | W | [C4a](../../todos/done/C4a-ui-chrome-and-platform.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/done/U2a-selection-surfaces-and-copy-modes.md) |
 | F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
-| F03 | Phone, reading | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
-| F04 | Phone, text selected, Pages sheet | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
-| F05 | Style tile | — | [U1a](../../todos/done/U1a-adr-0024-app-shell-ux.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
+| F03 | Phone, reading | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
+| F04 | Phone, text selected, Pages sheet | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md), [U2a](../../todos/done/U2a-selection-surfaces-and-copy-modes.md) |
+| F05 | Style tile | — | [U1a](../../todos/done/U1a-adr-0024-app-shell-ux.md), [C7a](../../todos/done/C7a-accessibility-and-theming.md) |
 
 ## R. Reader (web reader v0.1 and the shared viewer)
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| R01 | Home / open: drop zone, open file, open from URL, recent files (local only), privacy line | W, M | [C4b](../../todos/done/C4b-web-app-shell.md), [C4c](../../todos/ready/C4c-remote-files-encryption-privacy.md) |
+| R01 | Home / open: drop zone, open file, open from URL, recent files (local only), privacy line | W, M | [C4b](../../todos/done/C4b-web-app-shell.md), [C4c](../../todos/done/C4c-remote-files-encryption-privacy.md) |
 | R02 | Loading states: placeholders at true aspect, low-res then sharp tiles, progress for large files | W | [C3b](../../todos/done/C3b-viewer-virtualiser-and-zoom.md) |
-| R03 | Password prompt (password-required, wrong-password) | W, M | [C4c](../../todos/ready/C4c-remote-files-encryption-privacy.md) |
+| R03 | Password prompt (password-required, wrong-password) | W, M | [C4c](../../todos/done/C4c-remote-files-encryption-privacy.md) |
 | R04 | Repaired / damaged file: status-bar notice and details panel; unrecoverable error page | W | [C4b](../../todos/done/C4b-web-app-shell.md) |
-| R05 | Find in document: find bar, match count, results list in the rail, case/whole-word options | W, M | [C5b](../../todos/ready/C5b-find-in-document.md) |
-| R06 | Rail tabs: Pages (thumbnails with page labels) · Outline (nested, expand/collapse) · contextual tabs (Attachments, Results…) | W | [C6a](../../todos/ready/C6a-thumbnails-outline-page-labels.md) |
-| R07 | Links and history: link hover target preview, back/forward after following a link | W | [C6b](../../todos/ready/C6b-links-and-history.md) |
-| R08 | Document properties (dialog: title, author, PDF version, page size, fonts, security, tagged) | W | [C6c](../../todos/ready/C6c-print-download-properties.md) |
-| R09 | Print and Download a copy (print dialog: range, scale, page appearance warning) | W | [C6c](../../todos/ready/C6c-print-download-properties.md) |
-| R10 | View settings: UI theme (light, dark, high contrast, match system), accent colour (Teal, Blue, Plum, Green), page appearance (Original, Sepia, Dark, High contrast), page layout (single, two-up, continuous), zoom presets | W, M | [C7a](../../todos/ready/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md) |
-| R11 | Dark UI theme (F01 in dark chrome, page Original) | W | [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
-| R12 | Keyboard shortcuts (help generated from the command registry) | W | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
-| R13 | Network activity panel: requests since open, per-origin list, "what this proves" | W | [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md) |
-| R14 | Reader mode (reflow): tagged (tier 1) with settings; approximate (tier 2) label; back to page | W, M | [U4b](../../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md) |
-| R15 | Offline, install and update: install prompt, offline strip, update available | W | [C7b](../../todos/ready/C7b-offline-pwa.md) |
+| R05 | Find in document: find bar, match count, results list in the rail, case/whole-word options | W, M | [C5b](../../todos/done/C5b-find-in-document.md), [C5c](../../todos/done/C5c-find-results-tab.md) |
+| R06 | Rail tabs: Pages (thumbnails with page labels) · Outline (nested, expand/collapse) · contextual tabs (Attachments, Results…) | W | [C6a](../../todos/done/C6a-thumbnails-outline-page-labels.md) |
+| R07 | Links and history: link hover target preview, back/forward after following a link | W | [C6b](../../todos/done/C6b-links-and-history.md) |
+| R08 | Document properties (dialog: title, author, PDF version, page size, fonts, security, tagged) | W | [C6c](../../todos/done/C6c-print-download-properties.md) |
+| R09 | Print and Download a copy (print dialog: range, scale, page appearance warning) | W | [C6c](../../todos/done/C6c-print-download-properties.md) |
+| R10 | View settings: UI theme (light, dark, high contrast, match system), accent colour (Teal, Blue, Plum, Green), page appearance (Original, Sepia, Dark, High contrast), page layout (single, two-up, continuous), zoom presets | W, M | [C7a](../../todos/done/C7a-accessibility-and-theming.md), [U2c](../../todos/done/U2c-page-appearance-modes.md) |
+| R11 | Dark UI theme (F01 in dark chrome, page Original) | W | [C7a](../../todos/done/C7a-accessibility-and-theming.md) |
+| R12 | Keyboard shortcuts (help generated from the command registry) | W | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/done/C7a-accessibility-and-theming.md) |
+| R13 | Network activity panel: requests since open, per-origin list, "what this proves" | W | [U4a](../../todos/done/U4a-network-indicator-and-privacy-proof.md) |
+| R14 | Reader mode (reflow): tagged (tier 1) with settings; approximate (tier 2) label; back to page | W, M | [U4b](../../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/done/U4c-approximate-reader-mode.md) |
+| R15 | Offline, install and update: install prompt, offline strip, update available | W | [C7b](../../todos/done/C7b-offline-pwa.md) |
 | R16 | Focus mode (rails hidden; inspector returns on selection) | W | [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md) |
-| R17 | Tablet reading: rail as sheet, pen hover | T | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
-| R18 | Phone: outline, find, more (outline sheet, find, more menu, view settings sheet) | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
+| R17 | Tablet reading: rail as sheet, pen hover | T | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
+| R18 | Phone: outline, find, more (outline sheet, find, more menu, view settings sheet) | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 
 ## S. Desktop shell
 
@@ -58,7 +58,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| O01 | Edit session and history: unsaved state in title and status bar, undo/redo, History tab | D | [E1d](../../todos/ready/E1d-edit-session-undo-ui.md) |
+| O01 | Edit session and history: unsaved state in title and status bar, undo/redo, History tab | D | [E1d](../../todos/done/E1d-edit-session-undo-ui.md) |
 | O02 | Save, Save as and Download a copy: Save a copy, signed-file constraint banner, incremental vs full explanation | D, W | [E1e](../../todos/ready/E1e-save-and-constraint-banner.md) |
 | O03 | Close with unsaved changes (dialog) | D | [E2i](../../todos/ready/E2i-signed-gating-and-close.md) |
 | O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/ready/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md) |
@@ -87,7 +87,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/ready/E5c-stamps-and-attachments.md) |
 | C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/ready/E5d-xfdf-fdf.md) |
 | C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/ready/E5e-flatten-and-summary.md) |
-| C08 | Phone annotate (pen, highlighter, eraser), comment sheet | M | [E4f](../../todos/ready/E4f-annotation-tools-ui.md), [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
+| C08 | Phone annotate (pen, highlighter, eraser), comment sheet | M | [E4f](../../todos/ready/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 | C09 | Tablet stylus: ink with palm rejection, tool shelf | T | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 
 ## A. Add and edit content (E6–E7)
@@ -163,6 +163,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | H10 | Telemetry opt-in and what we collect | W, D | [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md) |
 | H11 | Upgrade prompt before work starts (never after) | W | [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) |
 | H12 | Website home, for now the roadmap: what Lamina PDF is, a first PDF in code, the milestones, the dashboard, the packages | W, M | [W1c](../../todos/done/W1c-home-page.md) |
+| H13 | How we test: the latest full night's figures with what each counts, the licence policy, where the code comes from | W, M | [T1b](../../todos/done/T1b-how-we-test-page.md) |
 
 ## Canvases
 
@@ -183,3 +184,4 @@ Each canvas is private to the owner until shared. Its source files are committed
 | X | Convert, compare and produce | [convert-compare-produce.md](convert-compare-produce.md) | [canvas](https://claude.ai/artifact/GwyjtEGo2D2wMo4VUubKKZ) | [`convert-compare-produce/`](convert-compare-produce/project/canvas.json) |
 | H | Account, cloud and product | [account-cloud-product.md](account-cloud-product.md) | [canvas](https://claude.ai/artifact/Ronx2eZUMeMbgZGbx8CYhX) | [`account-cloud-product/`](account-cloud-product/project/canvas.json) |
 | H12 | Website home | [account-cloud-product.md](account-cloud-product.md#h12-website-home) | [canvas](https://claude.ai/artifact/2doFGoyD8t9KJZZnLAwGAQ) | [`website-home/`](website-home/project/canvas.json) |
+| H13 | How we test | [account-cloud-product.md](account-cloud-product.md#h13-how-we-test) | not published yet: the files are drawn from the built page | [`website-home/`](website-home/project/canvas.json) |

@@ -1,0 +1,6 @@
+blank_frame_pct,burst_mb_per_s,burst_tiles,burst_tiles_per_s,cpu_avg_pct,dpr,dropped_frames,encode_ms_avg,frame_interval_ms,frames,inflight,label,lat_p50_ms,lat_p95_ms,lat_p99_ms,long_tasks,main_rss_peak_mb,max_gap_ms,mb,ready_p50_ms,ready_p95_ms,ready_p99_ms,render_ms_avg,renders,run,run_ms,scroll_tiles_per_s,source,tile,tiles,transport,wasted_tiles,web_processes,web_rss_peak_mb,zoom200_fill_ms,zoom400_fill_ms
+18.9,214.9,96,342.9,117.65233956110998,2,386,0.0,16,435,4,linux-wayland-dmabuf-on,27,48,51,,385.9609375,38,156.21,20,45,47,1.4879606666666667,6,0,11007,21.8,pdf,512,240,channel,0,2,596.953125,167,239
+16.7,209.7,96,334.5,112.34851899097484,2,404,0.0,16,436,8,linux-wayland-dmabuf-on,26,57,7833,,396.25,50,156.21,23,57,58,1.434574,6,0,11004,21.8,pdf,512,240,channel,0,2,618.93359375,155,175
+15.6,218,96,347.8,111.03055698044815,2,397,0.0,16,435,16,linux-wayland-dmabuf-on,27,83,111,,409.70703125,78,156.21,18,83,98,0.0,0,0,11011,21.8,pdf,512,240,channel,0,2,628.23828125,127,144
+16.5,244.6,96,390.2,111.05172965098716,2,402,0.0,16,436,4,linux-wayland-dmabuf-on,25,29,33,,397.203125,34,156.21,16,27,30,0.0,0,0,11002,21.8,pdf,512,240,response,0,2,646.484375,139,171
+15.4,221.3,96,352.9,110.93153984479389,2,402,0.0,16,434,8,linux-wayland-dmabuf-on,26,53,61,,403.76171875,52,160.58,16,51,61,0.0,0,0,11006,22.3,pdf,512,245,response,0,2,648.78125,160,150

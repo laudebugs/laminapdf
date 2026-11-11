@@ -3,21 +3,14 @@ title: Save a PDF
 description: Save edits as a revision appended to the original bytes or as a whole new file, and see when a file refuses a save.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Diagram from "../../../components/Diagram.astro";
+import Example from "../../../components/Example.astro";
 
 You'll save an edited PDF, either by appending your changes to the original bytes or by writing the whole file again. The choice matters when a file is signed, was damaged, or is password-protected, because each one limits how it can be saved.
 
 This example, from [Edit a PDF](/guides/edit-a-pdf/), asks for an [incremental save](/reference/glossary/#incremental-save), which keeps the original bytes at the start of the result, unchanged:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Snippet file="packages/sdk/examples/generate-then-edit.ts" />
-  </TabItem>
-  <TabItem label="Rust">
-    <Snippet file="crates/laminapdf/examples/generate_then_edit.rs" />
-  </TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/generate-then-edit.ts" rust="crates/laminapdf/examples/generate_then_edit.rs" result="generate_then_edit" />
 
 ## Choose a save mode
 
@@ -31,6 +24,8 @@ Every save either appends a revision to the bytes you opened (an incremental sav
 
 `doc.save(options)` returns the bytes, and `doc.saveWithReport(options)` also says what it wrote. `doc.saveJob()` does the same work in steps, so a page can save a large file without freezing. The same file with the same edits always saves to the same bytes.
 
+<Diagram name="save-modes" />
+
 ## When a file refuses a save
 
 Every save makes a plan before it writes. The plan reads the file's save constraint: what its signatures, permissions, repairs and encryption allow. Then it picks a mode or refuses:
@@ -38,7 +33,9 @@ Every save makes a plan before it writes. The plan reads the file's save constra
 - **A signed file** saves only incrementally, and only with edits its signatures allow. Anything else fails with `would-invalidate-signatures`. Pass `invalidateSignatures: true` to save anyway, which removes the broken signatures from the output.
 - **A repaired file**, one Lamina PDF had to fix as it opened, can't safely take an appended revision. It needs a full rewrite, so asking for `incremental` fails with `requires-rewrite`.
 - **An edited encrypted file** saves only as a full rewrite without its encryption, and only when you pass `removeEncryption: true`. Otherwise every mode fails with `encrypted-base`.
-- **An unchanged document** always saves incrementally, which returns its bytes unchanged.
+- **An unchanged document**, even a signed, repaired or encrypted one, saves incrementally in `auto` and `incremental` mode and returns the bytes you opened. Passing `removeEncryption: true` rewrites it instead.
+
+<Diagram name="save-decision" />
 
 :::note[Details]
 The save constraint covers signature fields, the [DocMDP](/reference/glossary/#docmdp) and [UR3](/reference/glossary/#ur3) permissions, a signature's `/Lock` entry (the form fields it locks), document timestamps, and whether the file needed repair.

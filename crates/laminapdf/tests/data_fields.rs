@@ -216,6 +216,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Error::from(B::ColorComponents { expected: 1, actual: 0 }),
         Error::from(B::InvalidColor { text: s() }),
         Error::from(B::InvalidGeometry { what: "w" }),
+        Error::from(B::FlowContentTooLarge { what: "line" }),
         Error::from(B::TextOverflow { fits: 1, needed: 2 }),
         Error::from(B::PageIndexOutOfRange { index: 1, count: 1 }),
         Error::from(B::UnknownDestination { name: s() }),
@@ -263,6 +264,21 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             profile: Profile::PdfA3b,
             name: "data.bin".into(),
         }),
+        Error::from(B::InvalidDocument {
+            pointer: "/blocks/0/spaceAftr".into(),
+            reason: "unknown-key",
+            did_you_mean: vec!["spaceAfter".into()],
+        }),
+        Error::from(B::TemplateDataMissing {
+            pointer: "/total".into(),
+            placeholder: "$data",
+        }),
+        Error::from(B::TemplateDataType {
+            pointer: "/items".into(),
+            placeholder: "$each",
+            expected: "list",
+        }),
+        Error::from(B::TemplateTooLarge { limit: 100_000 }),
     ];
     let warnings: Vec<Warning> = vec![
         W::XrefStmIgnored { offset: 1 }.into(),
@@ -294,6 +310,12 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }
         .into(),
         W::InvalidPageLabel { start: 0 }.into(),
+        W::XmpInvalid {
+            object: None,
+            offset: Some(0),
+            reason: "dtd",
+        }
+        .into(),
         W::ContentUnknownOperator {
             object: None,
             offset: 0,
@@ -367,6 +389,9 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }
         .into(),
         TW::WholeFontRebuilt { font: s() }.into(),
+        Warning::Build(laminapdf_build::Warning::FlowKeepBroken { page: 1 }),
+        Warning::Build(laminapdf_build::Warning::MarkdownHtmlIgnored { offset: 4 }),
+        Warning::Build(laminapdf_build::Warning::MarkdownImageMissing { offset: 4 }),
         Warning::Redaction(laminapdf::RedactionWarning::CoveredText {
             page: 0,
             chars: 9,
@@ -453,6 +478,7 @@ fn the_generated_tables_agree_with_the_wrapped_crates() {
         let (code, kind) = match w {
             Warning::Document(i) => (i.code(), i.kind()),
             Warning::Font(i) => (i.code(), i.kind()),
+            Warning::Build(i) => (i.code(), i.kind()),
             _ => continue,
         };
         if (w.code(), w.kind()) != (code, kind) {

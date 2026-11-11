@@ -1,6 +1,8 @@
 //! Writes the render goldens (`cargo xtask render-golden --update` runs this): every page of
 //! every `fixtures/corpus/` file, by each backend at 96 DPI on white, to
-//! `fixtures/golden/render/<backend>/<stem>-p<N>.png`, except the files `skip.json` lists.
+//! `fixtures/golden/render/<backend>/<stem>-p<N>.png`, except the files `skip.json` lists; and
+//! each page appearance of each `fixtures/appearance/` file to
+//! `fixtures/golden/render-appearance/<backend>/<stem>-<appearance>.png`.
 //! Old PNGs of each backend are removed first, so a page that went away doesn't linger.
 //! Needs `LAMINA_PDF_PDFIUM_DIR` (`cargo xtask fetch-pdfium`).
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a tool: a panic is a failed run")]
@@ -37,5 +39,14 @@ fn main() {
             backend.version(),
             dir.display()
         );
+        let dir = common::appearance_dir(backend.name());
+        std::fs::create_dir_all(&dir).unwrap();
+        for stem in common::APPEARANCE_FILES {
+            for (name, mode) in common::APPEARANCES {
+                let bitmap = common::render_appearance(backend.as_ref(), stem, mode);
+                laminapdf_test_fixtures::image::write_png(&dir.join(format!("{stem}-{name}.png")), &bitmap);
+            }
+        }
+        println!("{}: appearance goldens in {}", backend.name(), dir.display());
     }
 }

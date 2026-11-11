@@ -493,6 +493,19 @@ impl Builder {
         self.state.tag.close(element)
     }
 
+    /// The metadata set so far, for a front end that adds to it (Markdown's front matter, a
+    /// JSON document's title).
+    #[cfg(any(feature = "markdown", feature = "serde"))]
+    pub(crate) fn metadata_so_far(&self) -> Option<&Metadata> {
+        self.features.metadata.as_ref()
+    }
+
+    /// How many pages have been added so far.
+    #[cfg(feature = "text")]
+    pub(crate) fn page_count(&self) -> usize {
+        self.state.pages.len()
+    }
+
     /// A page of `size`, appended to the document by [`PageBuilder::finish`].
     pub fn page(&mut self, size: PageSize) -> PageBuilder<'_> {
         PageBuilder::new(

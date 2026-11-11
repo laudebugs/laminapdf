@@ -8,13 +8,18 @@ use schemars::JsonSchema;
 use serde_json::{Map, Value};
 
 use crate::commands::{
-    CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, InfoArgs,
-    InfoReport, PagesReport, RenderArgs, RenderReport, RevealReport, RevealToolArgs, RotateArgs, TextReport,
+    BuildReport, BuildToolArgs, CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs,
+    ExtractedReport, InfoArgs, InfoReport, PagesReport, RenderArgs, RenderReport, RevealReport, RevealToolArgs,
+    RotateArgs, TextReport,
 };
 
 /// What the copied `laminapdf.error/1` definitions are named after in a tool's `$defs`, so they
 /// can never collide with a report's own.
 const ERROR_DEFS: &str = "laminapdf-error-";
+
+/// What the copied `laminapdf.document/1` schema is named in the build tool's `$defs`; its own
+/// definitions follow as `laminapdf-document-<name>`.
+const DOCUMENT_DEF: &str = "laminapdf-document";
 
 /// The tools, in name order. Their descriptions are fixed text, never a path or document text.
 pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
@@ -44,6 +49,21 @@ pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
         ),
     ];
     if allow_write {
+        let build = ToolAnnotations::new()
+            .read_only(false)
+            .destructive(false)
+            .open_world(false);
+        // First in name order: laminapdf_build sorts before laminapdf_check.
+        tools.insert(
+            0,
+            Tool::new(
+                "laminapdf_build",
+                "Build a tagged PDF from Markdown (CommonMark with tables, footnotes, strikethrough and task lists; front matter for the title and language) or from a laminapdf.document/1 JSON document, given inline as `markdown` or `document` or as an `input` file. A document may be a template whose $data, $each, $item and $if placeholders `data` fills. Markdown's fonts are given by role as ROLE=FILE, a document's fonts and images by the names it uses as NAME=FILE. Inline input reads no file it isn't given; an input file reads images (and a document's unnamed files) only from its own folder; nothing is fetched. Writes `output`, which must be a new file.",
+                schema::<BuildToolArgs>(),
+            )
+            .with_raw_output_schema(schema::<BuildReport>())
+            .with_annotations(build),
+        );
         let what = "Rotate pages of a PDF: +90 or -90 turn them, 90 sets their rotation, :RANGE names the pages.";
         let (description, destructive) = if allow_in_place {
             (
@@ -160,9 +180,65 @@ pub(super) fn schema<T: JsonSchema>() -> Arc<Map<String, Value>> {
             }
         }
     }
+    inline_document(&mut schema);
     match schema {
         Value::Object(map) => Arc::new(map),
         _ => Arc::default(),
+    }
+}
+
+/// Points a reference to `laminapdf.document/1` (the build tool's `document`) at a copy of it in
+/// the schema's own `$defs`: the document schema as [`DOCUMENT_DEF`], its definitions after it.
+fn inline_document(schema: &mut Value) {
+    let url = laminapdf::flow::document::DOCUMENT_SCHEMA_URL;
+    // The reference is the bare URL, so the rewritten name is DOCUMENT_DEF itself.
+    let mut found = false;
+    rename_exact(schema, url, &format!("#/$defs/{DOCUMENT_DEF}"), &mut found);
+    if !found {
+        return;
+    }
+    let mut document = laminapdf_build::flow::document::json_schema();
+    let own = document.as_object_mut().and_then(|map| {
+        map.remove("$id");
+        map.remove("$schema");
+        map.remove("$defs")
+    });
+    let prefix = format!("{DOCUMENT_DEF}-");
+    rename_refs(&mut document, "#/$defs/", &prefix);
+    let Some(defs) = schema
+        .as_object_mut()
+        .map(|map| map.entry("$defs").or_insert_with(|| Value::Object(Map::new())))
+    else {
+        return;
+    };
+    let Some(defs) = defs.as_object_mut() else {
+        return;
+    };
+    if let Some(Value::Object(own)) = own {
+        for (name, mut definition) in own {
+            rename_refs(&mut definition, "#/$defs/", &prefix);
+            defs.insert(format!("{prefix}{name}"), definition);
+        }
+    }
+    defs.insert(DOCUMENT_DEF.to_owned(), document);
+}
+
+/// Rewrites every `$ref` equal to `from` to `to`; sets `found` when it rewrote one.
+fn rename_exact(value: &mut Value, from: &str, to: &str, found: &mut bool) {
+    match value {
+        Value::Object(map) => {
+            for (key, child) in map.iter_mut() {
+                match child {
+                    Value::String(target) if key == "$ref" && target == from => {
+                        to.clone_into(target);
+                        *found = true;
+                    }
+                    _ => rename_exact(child, from, to, found),
+                }
+            }
+        }
+        Value::Array(items) => items.iter_mut().for_each(|item| rename_exact(item, from, to, found)),
+        _ => {}
     }
 }
 
@@ -228,6 +304,7 @@ mod tests {
             ]
         );
         let write = tools(true, false);
+        assert_eq!(names(&write).first().map(String::as_str), Some("laminapdf_build"));
         let mut sorted = names(&write);
         sorted.sort();
         assert_eq!(names(&write), sorted);
@@ -252,9 +329,10 @@ mod tests {
             (
                 destructive(&write, "laminapdf_pages_rotate"),
                 destructive(&in_place, "laminapdf_pages_rotate"),
-                destructive(&in_place, "laminapdf_render")
+                destructive(&in_place, "laminapdf_render"),
+                destructive(&in_place, "laminapdf_build")
             ),
-            (Some(false), Some(true), Some(false))
+            (Some(false), Some(true), Some(false), Some(false))
         );
     }
 
@@ -282,5 +360,22 @@ mod tests {
             }
         }
         assert!(schema::<InfoReport>()["$defs"].get("laminapdf-error-warning").is_some());
+    }
+
+    #[test]
+    fn the_build_tool_should_carry_the_document_schema_inline() {
+        let input = schema::<BuildToolArgs>();
+        let document = &input["properties"]["document"];
+        let text = serde_json::to_string(document).unwrap_or_default();
+        assert!(text.contains("#/$defs/laminapdf-document\""), "{text}");
+        let inlined = &input["$defs"][DOCUMENT_DEF];
+        assert_eq!(inlined["title"], "laminapdf.document/1", "{inlined}");
+        // None still points at the URL; every_reference_should_resolve_inside_its_schema checks
+        // the rest resolve.
+        assert!(
+            !serde_json::to_string(&*input)
+                .unwrap_or_default()
+                .contains(laminapdf::flow::document::DOCUMENT_SCHEMA_URL)
+        );
     }
 }

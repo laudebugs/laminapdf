@@ -594,7 +594,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.2.0-alpha.3"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf-syntax",
  "thiserror",
@@ -602,16 +602,17 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-model"
-version = "0.2.0-alpha.3"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-syntax",
+ "quick-xml",
  "thiserror",
 ]
 
 [[package]]
 name = "laminapdf-render"
-version = "0.2.0-alpha.3"
+version = "0.2.0-alpha.6"
 dependencies = [
  "hayro",
  "laminapdf-cos",
@@ -623,7 +624,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render-pdfium"
-version = "0.2.0-alpha.3"
+version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf-render",
  "pdfium-render",
@@ -631,7 +632,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.2.0-alpha.3"
+version = "0.2.0-alpha.6"
 dependencies = [
  "aes",
  "md-5",
@@ -876,6 +877,15 @@ name = "pxfm"
 version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
+
+[[package]]
+name = "quick-xml"
+version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41b1177fdf999d2321d3fb46ff47159d9c1fb9ad66a4879f8c50a0b504615e9b"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "quote"

@@ -2,6 +2,7 @@
 // window's title, and the repairs listed in the repair details panel. Pure, so Node tests them.
 
 import type { RepairKind } from "@laminapdf/ui";
+import { hasKey, parseFragment } from "./open/url-fragment.ts";
 
 /** The app's name, which ends every window title. */
 export const APP_NAME = "Lamina PDF";
@@ -14,13 +15,16 @@ export interface DocumentWarning {
 }
 
 /**
- * The window's title: the document's metadata title, else its file name, then the app's name.
- * Only the app's name while no document is open.
+ * The window's title: the document's metadata title, else its file name, then the app's name; a
+ * leading "• " while it has unsaved changes (Paper O01: the browser tab shows them). Only the
+ * app's name while no document is open.
  */
-export function windowTitle(document: { readonly title?: string; readonly fileName: string } | undefined): string {
+export function windowTitle(
+  document: { readonly title?: string; readonly fileName: string; readonly unsaved?: boolean } | undefined,
+): string {
   if (document === undefined) return APP_NAME;
   const name = document.title?.trim() || document.fileName;
-  return `${name} · ${APP_NAME}`;
+  return `${document.unsaved === true ? "• " : ""}${name} · ${APP_NAME}`;
 }
 
 /**
@@ -44,7 +48,10 @@ export function repairsText(repairs: readonly RepairKind[]): string {
     .join("\n");
 }
 
-/** Whether the address's fragment asks for the debug menu (ADR 0011 §3.6: a fragment, never sent). */
+/**
+ * Whether the address's fragment asks for the debug menu (ADR 0011 §3.6: a fragment, never sent):
+ * a `debug` key, alone (`#debug`) or beside others (`#url=…&debug`).
+ */
 export function wantsDebug(hash: string): boolean {
-  return hash === "#debug";
+  return hasKey(parseFragment(hash), "debug");
 }

@@ -10,6 +10,7 @@ import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
 import { invoice } from "../../examples/invoice.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";
+import { markdownToPdf } from "../../examples/markdown-to-pdf.js";
 import { multilingual } from "../../examples/multilingual.js";
 import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
@@ -40,6 +41,14 @@ const SCRIPT_FONTS = [
 const PHOTO = "fixtures/images/photo-rgb.jpg";
 /** The report the element-flow example lays out; its body runs onto a second page. */
 const FLOW_REPORT = "fixtures/text/element-flow-report.json";
+/** The Markdown report and the fonts it is set in (the bold face is the collection's second). */
+const MARKDOWN = "fixtures/markdown/report.md";
+const MARKDOWN_FONTS = [
+  NOTO,
+  "fixtures/fonts/NotoSans-RegularBold.ttc",
+  "fixtures/fonts/NotoSansArabic-Regular.ttf",
+  "fixtures/fonts/NotoSansDevanagari-Regular.ttf",
+] as const;
 /** The modification date generate-then-edit records, fixed like the options. */
 const EDITED_AT = "D:20261030130000Z";
 
@@ -73,6 +82,23 @@ export const EXAMPLES: readonly Example[] = [
         SCRIPT_FONTS.map((f) => input(i, f)),
         exampleOptions("lamina-ex-multil"),
       ),
+  },
+  {
+    name: "markdown-to-pdf",
+    golden: "markdown_to_pdf",
+    inputs: [MARKDOWN, ...MARKDOWN_FONTS, PHOTO],
+    build: (i) => {
+      const [regular, bold, arabic, devanagari] = MARKDOWN_FONTS.map((f) => input(i, f));
+      if (regular === undefined || bold === undefined || arabic === undefined || devanagari === undefined) {
+        throw new Error("four fonts");
+      }
+      return markdownToPdf(
+        new TextDecoder().decode(input(i, MARKDOWN)),
+        { regular, bold, arabic, devanagari },
+        input(i, PHOTO),
+        exampleOptions("lamina-ex-mrkdwn"),
+      );
+    },
   },
   {
     name: "images-and-vectors",

@@ -7,7 +7,8 @@
 #
 # Adding a suite: give it `needs: changes`, the code-change condition below, and add it to
 # `gate.needs`. All code suites are required, including the hosted Linux Arm64 and Windows x64
-# checks.
+# checks. A suite with its own path filter (`desktop`) uses its own `changes` output instead,
+# and the gate's loop maps the job to that output.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Full lane
@@ -50,11 +51,14 @@ jobs:
     timeout-minutes: 10
     outputs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
+      desktop: ${{ steps.pr.outputs.desktop || steps.push.outputs.desktop }}
     steps:
       - name: Pushes to main run every suite
         id: push
         if: github.event_name != 'pull_request'
-        run: echo "code=true" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "code=true" >> "$GITHUB_OUTPUT"
+          echo "desktop=true" >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -96,7 +100,7 @@ jobs:
         with:
           persist-credentials: false
       # The pinned stable toolchain (rust-toolchain.toml) builds xtask; fuzz/ needs nightly.
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -162,7 +166,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       # Installs exactly what rust-toolchain.toml pins.
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           # ci.yml's Rust job's linux-arm64 leg builds the same and saves this cache on main; this
           # job only restores it (one cache, not two copies of about 600 MB).
@@ -178,7 +182,82 @@ jobs:
       # Versions come from package.json and .nvmrc.
       # The pnpm store is restored on every run and saved only on pushes to main (node-pnpm).
       - uses: ./.github/actions/node-pnpm
+      # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
+      - uses: ./.github/actions/linux-webkit
       - run: cargo xtask check
+
+  # The desktop app (apps/desktop, ADR 0008) built on each OS the way `tauri build` builds it, without
+  # installers (D6b makes those). Only when `cargo xtask changes` says the app's inputs changed
+  # (`desktop`: the app, packages/, crates/, the manifests, lockfiles and toolchain, this workflow);
+  # the gate requires it then. Ubuntu 22.04: the oldest Linux the app supports, so its glibc and
+  # WebKitGTK are the floor.
+  desktop:
+    name: Desktop build (${{ matrix.os }})
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.desktop == 'true' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: linux, runner: ubuntu-22.04 }
+          - { os: macos, runner: macos-15 }
+          - { os: windows, runner: windows-2025 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Installs exactly what rust-toolchain.toml pins. Its own cache: only this job builds the
+      # app's debug binary with Tauri's tree, saved on pushes to main.
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        with:
+          cache: true
+          cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          cache-shared-key: desktop
+          cache-bin: false
+      - uses: ./.github/actions/node-pnpm
+      - uses: ./.github/actions/linux-webkit
+      # The frontend imports the built @laminapdf/ui, tokens, fonts and icons.
+      - name: Build the packages the frontend imports
+        run: pnpm --filter "@laminapdf/desktop^..." run build
+      # desktop:build merges tauri.bundle.conf.json, whose beforeBuildCommand runs
+      # `cargo xtask desktop-sidecar` (the engine, and PDFium from its pinned, hash-checked release).
+      - name: Build the app with its engine and PDFium (tauri build --debug --no-bundle)
+        run: pnpm --filter @laminapdf/desktop run desktop:build --debug --no-bundle
+      # Tauri copied the sidecar and the resources next to the app: neither may be missing or empty.
+      - name: Check the engine and PDFium are next to the app
+        shell: bash
+        run: |
+          set -euo pipefail
+          exe=""
+          if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
+          test -s "target/debug/laminapdf-desktop-engine$exe"
+          find target/debug/pdfium -maxdepth 1 -type f \( -name '*.dylib' -o -name '*.so' -o -name '*.dll' \) -size +1M | grep -q .
+      # ADR 0008 §3: the main process never links the parser or PDFium. Exact names: the app and
+      # the protocol crate are expected.
+      - name: Check the main process links no parser or renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=$(cargo tree --locked -p laminapdf-desktop -e normal --prefix none --format '{p}' \
+            | awk '{print $1}' | sort -u \
+            | grep -Fx -e laminapdf -e laminapdf-render -e laminapdf-render-pdfium -e laminapdf-desktop-engine -e pdfium-render || true)
+          if [ -n "$found" ]; then
+            echo "::error::laminapdf-desktop depends on $found"
+            exit 1
+          fi
+      # ADR 0008 §8: only builds with the `e2e` feature have the end-to-end tests' commands.
+      - name: Check the build has no end-to-end command
+        shell: bash
+        run: |
+          set -euo pipefail
+          exe=""
+          if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
+          if grep -aq debug_kill_engine "target/debug/laminapdf-desktop$exe"; then
+            echo "::error::the app holds debug_kill_engine without the e2e feature"
+            exit 1
+          fi
 
   # The whole `cargo xtask check` on Windows x64 (todo X6): the docs, Rust and TypeScript checks,
   # where the fast lane's Windows legs run only `check rust`. It catches what only Windows breaks:
@@ -197,7 +276,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       # Installs exactly what rust-toolchain.toml pins.
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -208,7 +287,7 @@ jobs:
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # Versions come from package.json and .nvmrc.
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -244,10 +323,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/qpdf
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -306,10 +385,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -338,7 +417,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, suites, render-golden, fuzz, check-linux, check-windows]
+    needs: [changes, suites, render-golden, fuzz, check-linux, check-windows, desktop]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -346,6 +425,7 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           CODE: ${{ needs.changes.outputs.code }}
+          DESKTOP: ${{ needs.changes.outputs.desktop }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -363,11 +443,14 @@ jobs:
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
+            # The desktop build follows its own paths (`desktop`), every other suite `code`.
+            needed=$CODE
+            if [ "$job" = desktop ]; then needed=$DESKTOP; fi
             echo "$job: $result"
-            case "$CODE/$result" in
+            case "$needed/$result" in
               true/success | false/skipped) ;;
               *)
-                echo "::error::$job ended with '$result' (suites needed: $CODE)"
+                echo "::error::$job ended with '$result' (needed: $needed)"
                 failed=1
                 ;;
             esac

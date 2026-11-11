@@ -3,16 +3,17 @@
 
 [workspace]
 resolver = "3"
-# ADR 0015 also lists "apps/*/src-tauri"; Cargo rejects a glob that matches nothing, so it is added
-# with the first Tauri app (Round D).
-members = ["crates/*", "tools/xtask", "tools/std14-gen"]
+# The Tauri apps' Rust crates (ADR 0015) are listed one by one, the desktop reader first
+# (ADR 0008): Dependabot reads a wildcard only at a path's end, and "apps/*/src-tauri" failed
+# every Cargo update (docs/bugs/dependabot-cargo-workspace-glob).
+members = ["crates/*", "apps/desktop/src-tauri", "tools/xtask", "tools/std14-gen"]
 # Spikes are frozen research code and fuzz/ is its own (nightly) workspace: never members (ADR 0015).
 # tools/render (hayro, for `cargo xtask render-golden`) is its own workspace too, with its own
 # Cargo.lock, so the fast lane never compiles a renderer; the full lane builds it.
 exclude = ["spikes", "fuzz", "tools/render"]
 
 [workspace.package]
-version = "0.2.0-alpha.3"
+version = "0.2.0-alpha.6"
 edition = "2024"
 # MSRV policy (rust.md): N-2, at least two stable releases behind the pinned toolchain in
 # rust-toolchain.toml (1.99), since the first registry release. CI's `msrv-and-spike` job checks it.
@@ -29,21 +30,24 @@ publish = false
 # gives each the workspace version (ADR 0017).
 # No default features: `saslprep` (R5/R6 passwords, ~130 KB of Unicode tables in WASM) is asked
 # for by the crates and builds that want it (laminapdf-cos and the façade by default; ADR 0016 §5).
-laminapdf-syntax = { version = "0.2.0-alpha.3", path = "crates/laminapdf-syntax", default-features = false }
-laminapdf-cos = { version = "0.2.0-alpha.3", path = "crates/laminapdf-cos", default-features = false }
-laminapdf-model = { version = "0.2.0-alpha.3", path = "crates/laminapdf-model" }
-laminapdf-ops = { version = "0.2.0-alpha.3", path = "crates/laminapdf-ops" }
-laminapdf-source = { version = "0.2.0-alpha.3", path = "crates/laminapdf-source" }
-laminapdf-save = { version = "0.2.0-alpha.3", path = "crates/laminapdf-save" }
-laminapdf-content = { version = "0.2.0-alpha.3", path = "crates/laminapdf-content" }
-laminapdf-text = { version = "0.2.0-alpha.3", path = "crates/laminapdf-text" }
-laminapdf-extract = { version = "0.2.0-alpha.3", path = "crates/laminapdf-extract" }
+laminapdf-syntax = { version = "0.2.0-alpha.6", path = "crates/laminapdf-syntax", default-features = false }
+laminapdf-cos = { version = "0.2.0-alpha.6", path = "crates/laminapdf-cos", default-features = false }
+laminapdf-model = { version = "0.2.0-alpha.6", path = "crates/laminapdf-model" }
+laminapdf-ops = { version = "0.2.0-alpha.6", path = "crates/laminapdf-ops" }
+laminapdf-source = { version = "0.2.0-alpha.6", path = "crates/laminapdf-source" }
+laminapdf-save = { version = "0.2.0-alpha.6", path = "crates/laminapdf-save" }
+laminapdf-content = { version = "0.2.0-alpha.6", path = "crates/laminapdf-content" }
+laminapdf-text = { version = "0.2.0-alpha.6", path = "crates/laminapdf-text" }
+laminapdf-extract = { version = "0.2.0-alpha.6", path = "crates/laminapdf-extract", default-features = false }
 # No default features: dependents ask for `text` (fonts and text) explicitly (ADR 0016 §4).
-laminapdf-build = { version = "0.2.0-alpha.3", path = "crates/laminapdf-build", default-features = false }
-laminapdf = { version = "0.2.0-alpha.3", path = "crates/laminapdf", default-features = false }
-laminapdf-render = { version = "0.2.0-alpha.3", path = "crates/laminapdf-render" }
-laminapdf-render-pdfium = { version = "0.2.0-alpha.3", path = "crates/laminapdf-render-pdfium" }
-laminapdf-render-wasm = { version = "0.2.0-alpha.3", path = "crates/laminapdf-render-wasm" }
+laminapdf-build = { version = "0.2.0-alpha.6", path = "crates/laminapdf-build", default-features = false }
+laminapdf = { version = "0.2.0-alpha.6", path = "crates/laminapdf", default-features = false }
+laminapdf-render = { version = "0.2.0-alpha.6", path = "crates/laminapdf-render" }
+laminapdf-render-pdfium = { version = "0.2.0-alpha.6", path = "crates/laminapdf-render-pdfium" }
+laminapdf-render-wasm = { version = "0.2.0-alpha.6", path = "crates/laminapdf-render-wasm" }
+# The desktop reader's engine process and its protocol (ADR 0008 §3): app crates, never published.
+laminapdf-desktop-protocol = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-protocol" }
+laminapdf-desktop-engine = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-engine" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
@@ -107,16 +111,41 @@ icu_properties = { version = "=2.4.0", default-features = false, features = ["co
 # Bidi_Class data comes from icu_properties above. MIT OR Apache-2.0
 unicode-bidi = { version = "0.3.18", default-features = false, features = ["std"] }
 
+# XML tokenizer under laminapdf-model's XMP reader (E1 plan §4): no DTD or entity expansion,
+# byte positions for lossless edits; laminapdf-model only. MIT
+quick-xml = { version = "0.42.0", default-features = false }
 # Library errors. MIT OR Apache-2.0
 thiserror = { version = "2.0.21", default-features = false }
 # Memory-mapped files for laminapdf-source's opt-in `mmap` feature (MIT OR Apache-2.0).
 memmap2 = "0.9.12"
 # Binaries, xtask and tests only (never in library APIs). MIT OR Apache-2.0
 anyhow = "1.0.104"
+# The desktop engine protocol's encoding (ADR 0008 §3): serde's compact binary format.
+# MIT OR Apache-2.0 (dependency cobs: MIT OR Apache-2.0). `use-std` without the default
+# `heapless-cas` (the protocol allocates).
+postcard = { version = "1.1.3", default-features = false, features = ["use-std"] }
+# Wipes secrets (a document's password) from memory when they're dropped. Apache-2.0 OR MIT.
+zeroize = { version = "1.9.1", default-features = false, features = ["std"] }
+# Locks a password's buffer into RAM (mlock / VirtualLock) so it never reaches swap. MIT.
+region = "4.0.1"
 # Serialisable ops (ADR 0006 §1, §6): derive only. MIT OR Apache-2.0
 serde = { version = "1.0.229", default-features = false, features = ["std", "derive"] }
 # MIT OR Apache-2.0
 serde_json = "1.0.154"
+# The JSON Pointer of the value a laminapdf.document/1 document gets wrong (laminapdf-build's `serde`).
+serde_path_to_error = "0.1.20"
+# The desktop reader's shell (ADR 0008): Tauri 2.12, pinned (its config schema, IPC and permission
+# model change between minors). MIT OR Apache-2.0; its own dependencies add MPL-2.0 crates with
+# per-crate exceptions in deny.toml (ADR 0019). App crates only (apps/*/src-tauri).
+tauri = "=2.12.5"
+tauri-build = "=2.7.4"
+# Rust-side plugins only: no permission of theirs reaches the webview (ADR 0008 §6). Each a release
+# at least two weeks old when added. MIT OR Apache-2.0.
+tauri-plugin-dialog = "=2.8.3"
+tauri-plugin-log = "=2.10.1"
+tauri-plugin-opener = "=2.7.2"
+# Structured logs in the app crates (tauri-plugin-log routes `log` and these). MIT
+tracing = { version = "=0.1.44", default-features = false, features = ["std", "log"] }
 # The laminapdf CLI (ADR 0031): argument parsing, colour that respects NO_COLOR, JSON Schemas of its reports.
 clap = { version = "4.6.7", default-features = false, features = ["std", "derive", "help", "usage", "error-context", "color"] }
 anstream = { version = "1.0.0", default-features = false, features = ["auto"] }
@@ -126,7 +155,7 @@ clap_complete = { version = "4.6.11", default-features = false }
 clap_mangen = { version = "0.3.3", default-features = false }
 indicatif = { version = "0.18.6", default-features = false }
 # `laminapdf mcp` (L4c, ADR 0031 §9): the MCP SDK, pinned (MCP revises often), and the runtime it needs.
-rmcp = { version = "=3.8.0", default-features = false, features = ["server", "transport-io"] }
+rmcp = { version = "=3.9.0", default-features = false, features = ["server", "transport-io"] }
 tokio = { version = "1.54.1", default-features = false, features = ["rt", "sync", "time"] }
 # JSON Schema 2020-12 validation, for xtask (`gen codes` validates fixtures/codes.json against
 # fixtures/codes.schema.json) and tests (errors against the generated laminapdf.error/1 schema):
@@ -162,8 +191,9 @@ criterion = { version = "0.8.2", default-features = false, features = ["cargo_be
 # Brotli sizes in `cargo xtask size` (xtask only). No default features: compression only, no
 # SIMD. BSD-3-Clause AND MIT (alloc-no-stdlib, alloc-stdlib, brotli-decompressor: BSD-3-Clause OR MIT)
 brotli = { version = "9.1.1", default-features = false, features = ["std"] }
-# Markdown links and headings for `cargo xtask docs-links`; no default features (they add HTML
-# output and a CLI). MIT (dependencies bitflags, memchr, unicase: MIT OR Apache-2.0)
+# Markdown links and headings for `cargo xtask docs-links`, and laminapdf-build's `markdown`
+# feature (ADR 0032 §5–§6); no default features (they add HTML output and a CLI). MIT
+# (dependencies bitflags, memchr, unicase: MIT OR Apache-2.0)
 pulldown-cmark = { version = "0.13.6", default-features = false }
 # Unicode general categories for GitHub's heading slugs (marks such as U+0301 and the Devanagari
 # virama are kept; std has no category API). MIT OR Apache-2.0
@@ -218,6 +248,13 @@ lto = "thin"
 # The `laminapdf` release binaries (cargo-dist, dist-workspace.toml; todo L4d).
 [profile.dist]
 inherits = "release"
+
+# `cargo xtask scaling`: release code without the release profile's link-time optimisation,
+# which made the nightly link every test binary for half an hour. The tests measure ratios
+# (twice the input, at most about twice the time), which optimisation level, not LTO, decides.
+[profile.scaling]
+inherits = "release"
+lto = false
 
 # Size-optimised profile for WebAssembly builds (`cargo xtask wasm`); the spike's settings.
 [profile.wasm-release]

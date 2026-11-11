@@ -2,10 +2,11 @@
 // The docs site's header (Starlight's `Header` override, W1d): the site header both sites share
 // (@laminapdf/site-kit: the wordmark to laminapdf.com and the one list of links, with "Docs" marked
 // on every page here), and Starlight's own search, social icons, theme switch and language switch
-// beside it, imported the way Starlight's header imports them, so an override of one still applies.
-// The mobile menu button stays where Starlight draws it. Before the search, the version the docs
-// describe (plugins/release.mjs): the release's, linked to its changelog, or "Unreleased", linked to
-// the released docs.
+// beside it, imported the way Starlight's header imports them, so an override of one still applies:
+// the theme switch is ThemeSelect.astro, on the sites' Paper select.
+// The mobile menu button stays where Starlight draws it, so the shared header draws no menu of its
+// own. Before the search, the version the docs describe (plugins/release.mjs): the release's,
+// linked to its changelog, or "Unreleased", linked to the released docs.
 
 import LanguageSelect from "virtual:starlight/components/LanguageSelect";
 import Search from "virtual:starlight/components/Search";
@@ -18,7 +19,7 @@ const links = siteNav(__SITE_PAGES__, { site: "docs", path: Astro.url.pathname }
 const { version, release } = __DOCS_RELEASE__;
 ---
 
-<SiteHeader links={links} home={`${WEBSITE}/`}>
+<SiteHeader links={links} home={`${WEBSITE}/`} menu={false}>
   <Fragment slot="tools">
     {
       release ? (

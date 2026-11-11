@@ -43,6 +43,10 @@ ts = "packages/sdk/examples/pdf-a3-invoice-with-xml.ts"
 rust = "crates/laminapdf/examples/pdf_a3_invoice_with_xml.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/markdown-to-pdf.ts"
+rust = "crates/laminapdf/examples/markdown_to_pdf.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/extract-markdown.ts"
 rust = "crates/laminapdf/examples/extract_markdown.rs"
 

@@ -3,8 +3,7 @@ title: Accessible PDFs
 description: Build PDF/UA-1 documents that screen readers can follow, with every machine-checkable rule checked when the builder finishes.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 This guide builds a report that screen-reader users can read, which you need whenever a document has to meet accessibility law or a client's accessibility policy.
 
@@ -34,14 +33,7 @@ The builder writes the rest for you. It puts the PDF/UA identifier in the docume
 
 The report below draws its running header as an artifact. Then come a heading, a paragraph, a table with header cells, a bar chart as a figure with alternate text, and a link with a description. A small `line` helper gives each line of text its structure element.
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Snippet file="packages/sdk/examples/pdf-ua-report.ts" />
-  </TabItem>
-  <TabItem label="Rust">
-    <Snippet file="crates/laminapdf/examples/pdf_ua_report.rs" />
-  </TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/pdf-ua-report.ts" rust="crates/laminapdf/examples/pdf_ua_report.rs" result="pdf_ua_report" />
 
 [See the output](/recipes/pdf-ua-report/).
 

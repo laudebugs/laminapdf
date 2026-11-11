@@ -1,0 +1,938 @@
+{
+  "tool": "pdf.js",
+  "version": "6.4.299",
+  "cases": [
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "the",
+      "options": {},
+      "pages": [
+        2
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "The",
+      "options": {
+        "matchCase": true
+      },
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "the",
+      "options": {
+        "wholeWords": true
+      },
+      "pages": [
+        2
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "office",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "fine",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "waffle flask",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "cafe",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "café",
+      "options": {
+        "matchDiacritics": true
+      },
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "chapter",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "שלום",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "مرحبا",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "हिन्दी",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-latin.pdf",
+      "query": "中文",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "the",
+      "options": {},
+      "pages": [
+        3
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "The",
+      "options": {
+        "matchCase": true
+      },
+      "pages": [
+        2
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "the",
+      "options": {
+        "wholeWords": true
+      },
+      "pages": [
+        3
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "office",
+      "options": {},
+      "pages": [
+        2
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "fine",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "waffle flask",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "cafe",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "café",
+      "options": {
+        "matchDiacritics": true
+      },
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "chapter",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "שלום",
+      "options": {},
+      "pages": [
+        3
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "مرحبا",
+      "options": {},
+      "pages": [
+        2
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "हिन्दी",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "query": "中文",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "the",
+      "options": {},
+      "pages": [
+        2
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "The",
+      "options": {
+        "matchCase": true
+      },
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "the",
+      "options": {
+        "wholeWords": true
+      },
+      "pages": [
+        2
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "office",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "fine",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "waffle flask",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "cafe",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "café",
+      "options": {
+        "matchDiacritics": true
+      },
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "chapter",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "שלום",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "مرحبا",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "हिन्दी",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-std14.pdf",
+      "query": "中文",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "the",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "The",
+      "options": {
+        "matchCase": true
+      },
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "the",
+      "options": {
+        "wholeWords": true
+      },
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "office",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "fine",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "waffle flask",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "cafe",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "café",
+      "options": {
+        "matchDiacritics": true
+      },
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "chapter",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "שלום",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "مرحبا",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "हिन्दी",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/text-cff.pdf",
+      "query": "中文",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "the",
+      "options": {},
+      "pages": [
+        12
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "The",
+      "options": {
+        "matchCase": true
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "the",
+      "options": {
+        "wholeWords": true
+      },
+      "pages": [
+        12
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "office",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "fine",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "waffle flask",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "cafe",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "café",
+      "options": {
+        "matchDiacritics": true
+      },
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "chapter",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "שלום",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "مرحبا",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "हिन्दी",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-latin.pdf",
+      "query": "中文",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "the",
+      "options": {},
+      "pages": [
+        2,
+        2
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "The",
+      "options": {
+        "matchCase": true
+      },
+      "pages": [
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "the",
+      "options": {
+        "wholeWords": true
+      },
+      "pages": [
+        2,
+        2
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "office",
+      "options": {},
+      "pages": [
+        1,
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "fine",
+      "options": {},
+      "pages": [
+        1,
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "waffle flask",
+      "options": {},
+      "pages": [
+        1,
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "cafe",
+      "options": {},
+      "pages": [
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "café",
+      "options": {
+        "matchDiacritics": true
+      },
+      "pages": [
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "chapter",
+      "options": {},
+      "pages": [
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "שלום",
+      "options": {},
+      "pages": [
+        1,
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "مرحبا",
+      "options": {},
+      "pages": [
+        1,
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "हिन्दी",
+      "options": {},
+      "pages": [
+        1,
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/build-text-multiscript.pdf",
+      "query": "中文",
+      "options": {},
+      "pages": [
+        1,
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "the",
+      "options": {},
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "The",
+      "options": {
+        "matchCase": true
+      },
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "the",
+      "options": {
+        "wholeWords": true
+      },
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "office",
+      "options": {},
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "fine",
+      "options": {},
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "waffle flask",
+      "options": {},
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "cafe",
+      "options": {},
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "café",
+      "options": {
+        "matchDiacritics": true
+      },
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "chapter",
+      "options": {},
+      "pages": [
+        2,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "שלום",
+      "options": {},
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "مرحبا",
+      "options": {},
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "हिन्दी",
+      "options": {},
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/links-and-outlines.pdf",
+      "query": "中文",
+      "options": {},
+      "pages": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "the",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "The",
+      "options": {
+        "matchCase": true
+      },
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "the",
+      "options": {
+        "wholeWords": true
+      },
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "office",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "fine",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "waffle flask",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "cafe",
+      "options": {},
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "café",
+      "options": {
+        "matchDiacritics": true
+      },
+      "pages": [
+        1
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "chapter",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "שלום",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "مرحبا",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "हिन्दी",
+      "options": {},
+      "pages": [
+        0
+      ]
+    },
+    {
+      "file": "fixtures/golden/examples/invoice.pdf",
+      "query": "中文",
+      "options": {},
+      "pages": [
+        0
+      ]
+    }
+  ]
+}

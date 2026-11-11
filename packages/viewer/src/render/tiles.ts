@@ -17,11 +17,15 @@ export const BACKDROP_MAX_PIXELS = 8 * 1024 * 1024;
 
 /**
  * Device px per CSS px of the backdrop of a page `css` CSS px in size: `dpr`, or less so that the
- * whole page fits {@link BACKDROP_MAX_PIXELS}.
+ * whole page fits `maxPixels` ({@link BACKDROP_MAX_PIXELS} by default; less on touch devices).
  */
-export function backdropRatio(dpr: number, css: { readonly width: number; readonly height: number }): number {
+export function backdropRatio(
+  dpr: number,
+  css: { readonly width: number; readonly height: number },
+  maxPixels = BACKDROP_MAX_PIXELS,
+): number {
   const pixels = css.width * dpr * css.height * dpr;
-  return pixels <= BACKDROP_MAX_PIXELS ? dpr : dpr * Math.sqrt(BACKDROP_MAX_PIXELS / pixels);
+  return pixels <= maxPixels ? dpr : dpr * Math.sqrt(maxPixels / pixels);
 }
 
 /** The smallest rectangle covering every one of `rects`; undefined when there are none. */
@@ -55,15 +59,22 @@ export function lowScale(sharpScale: number, widthPt: number): number {
 
 /**
  * The sharp scale (device px per pt) of a page `css` CSS px in size at layout scale `layoutScale`:
- * `layoutScale × dpr`, lowered when the canvas pool could only `fit` fewer pixels. The canvas is
- * then `pagePixels` at this scale, which never exceeds `fitted` on either side.
+ * `layoutScale × dpr`, unless the canvas pool could only `fit` fewer pixels than `wanted`, the page
+ * in whole pixels at that scale (`pagePixels`); then lowered to what fits. The canvas is then
+ * `pagePixels` at this scale, which never exceeds `fitted` on either side.
+ *
+ * `wanted` is in whole pixels, as the pool fits them: comparing `fitted` with the fractional CSS
+ * size instead takes the pool's rounding (79.33 px to 79) for a cap, which lowers the scale a
+ * hair below the full one and sends every page asking for a detail canvas it doesn't need.
  */
 export function sharpScale(
   layoutScale: number,
   dpr: number,
   css: { readonly width: number; readonly height: number },
   fitted: { readonly width: number; readonly height: number },
+  wanted: { readonly width: number; readonly height: number },
 ): number {
+  if (fitted.width >= wanted.width && fitted.height >= wanted.height) return layoutScale * dpr;
   return layoutScale * Math.min(dpr, fitted.width / css.width, fitted.height / css.height);
 }
 

@@ -16,15 +16,23 @@ import type {
   MetadataInit,
   Op as OpJs,
   OutlineEntryInit,
+  OutlineNodeJs,
   OverflowInit,
   PageInfoJs,
   PageLabelInit,
+  PageLinkJs,
   ProfileInit,
   ProgressJs,
+  PropertiesJs,
   RectJs,
   RenderModeInit,
+  RevertedJs,
   SaveOptionsInit,
   SaveReportJs,
+  StructureKidJs,
+  StructureNodeJs,
+  TargetJs,
+  TargetViewJs,
   TextLayoutJs,
   TextRunJs,
   UndoOutcomeJs,
@@ -57,10 +65,19 @@ export type SaveReport = SaveReportJs;
 export type PageInfo = PageInfoJs;
 /** The Info dictionary's text entries (document text). */
 export type DocumentInfo = DocumentInfoJs;
+/**
+ * An element of a tagged document's structure tree: its standard type (`H1`, `P`, `LI`,
+ * `Figure` …), alternate text, language, actual text, and kids in reading order (document text).
+ */
+export type StructureNode = StructureNodeJs;
+/** A kid of a {@link StructureNode}: an element, or marked content `mcid` on page `page`. */
+export type StructureKid = StructureKidJs;
 /** The pages an edit touched. */
 export type Edited = EditedJs;
 /** How an undo or redo went. */
 export type UndoOutcome = UndoOutcomeJs;
+/** What an undo or redo did: how it went (`outcome`) and the pages to draw again (`touchedPages`, IDs). */
+export type Reverted = RevertedJs;
 /** A save job's progress. */
 export type Progress = ProgressJs;
 /** Options for a new document: version, fixed file ID (32 hex digits), producer, creation date. */
@@ -77,6 +94,38 @@ export type LinkTarget = LinkTargetInit;
 export type Fit = FitInit;
 /** An outline (bookmarks) item with its children. */
 export type OutlineEntry = OutlineEntryInit;
+
+/** One item of a document's outline (its bookmarks), with where it goes and its children. */
+export type OutlineNode = OutlineNodeJs;
+
+/**
+ * One link on a page, in page space: its `rect` (`[x0, y0, x1, y1]`), the `quads` that follow it
+ * when the file gives them (eight numbers per area), its `contents` (a description), and what it
+ * does by `kind`: `"dest"` and `"named"` go to a `target` in this document (absent when it names
+ * no page here), `"uri"` to a `uri` as the file stores it, `"remote"` to another `file`,
+ * `"named-action"` runs a named action (`NextPage`, `PrevPage`, `FirstPage`, `LastPage`), and
+ * `"unsupported"` names an `action` a reader never runs (`Launch`, `JavaScript`…).
+ */
+export type PageLink = PageLinkJs;
+
+/**
+ * What a properties view shows about a document: its Info entries and dates (ISO 8601), the
+ * XMP packet's text, version, pages, file size, linearization and tagging, its `encryption`
+ * (with the author's `permissions`, a request rather than a lock), the `fonts` its pages use,
+ * the `signatures` present (not verified) and what it `contains` besides its pages.
+ */
+export type DocumentProperties = PropertiesJs;
+
+/** A place in a document: a 0-based page index and how to show it. */
+export type Target = TargetJs;
+
+/**
+ * How a {@link Target} shows its page, in page space (points from the displayed page's top-left,
+ * y down), by `kind`: `"at"` puts (`x`, `y`) at the viewport's top-left at `zoom`, `"fit"` fits
+ * the page, `"fit-width"` its width from `y`, `"fit-height"` its height from `x`, `"fit-rect"` the
+ * rectangle. A coordinate the file leaves unset is absent: keep the current one.
+ */
+export type TargetView = TargetViewJs;
 /** A page-label range, by its first page. */
 export type PageLabel = PageLabelInit;
 /** The document's metadata (Info and XMP). */

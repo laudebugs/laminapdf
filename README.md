@@ -6,6 +6,8 @@ Lamina PDF creates, reads, edits and saves PDFs from code, in Rust and in TypeSc
 
 **Documentation:** [docs.laminapdf.com](https://docs.laminapdf.com) has quick starts for each runtime, guides, examples and the API reference.
 
+**Web reader:** [app.laminapdf.com](https://app.laminapdf.com) opens PDFs inside your browser; nothing you open is uploaded. It is free, and [laminapdf.com/privacy](https://laminapdf.com/privacy/) explains how it keeps your files private.
+
 ```ts
 import { Builder, Font, init } from "@laminapdf/sdk";
 

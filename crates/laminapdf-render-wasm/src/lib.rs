@@ -13,6 +13,8 @@
 //! the worker (ADR 0009 §3.6). Requests are `(page, scale, clip x/y/width/height, rotation, flags, background)`,
 //! with a clip width of 0 meaning the whole page; flags are bits (1 annotations, 2 form
 //! widgets, 4 print, 8 grayscale); the background is `0xRRGGBBAA` or `None` for transparent.
+//! `render` also takes the page appearance as a number (0 original, 1 sepia, 2 dark, 3 high
+//! contrast) and high contrast's ink and paper as `0xRRGGBBAA`.
 //! Errors are thrown as the ADR 0026 §1 object (a plain object: `code`, `kind`, `message`,
 //! `hint`, `data`, `docsUrl`; a `data-pending` lists its `[offset, length]` pairs in
 //! `data.ranges`), built by `RenderError::diagnostic`, the serialiser every binding shares. A
@@ -23,8 +25,8 @@
 use std::sync::Arc;
 
 use laminapdf_render::{
-    ByteSource, CancelToken, HayroBackend, PixelRect, RenderBackend, RenderDocument, RenderError, RenderFlags,
-    RenderLimits, RenderOpenOptions, RenderRequest, Rgba8, Rotation,
+    ByteSource, CancelToken, HayroBackend, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderError,
+    RenderFlags, RenderLimits, RenderOpenOptions, RenderRequest, Rgba8, Rotation,
 };
 use wasm_bindgen::prelude::{JsValue, wasm_bindgen};
 
@@ -158,10 +160,13 @@ impl HayroDocument {
         ])
     }
 
-    /// Renders the request into `out` (exactly `width × height × 4` bytes, straight RGBA).
+    /// Renders the request into `out` (exactly `width × height × 4` bytes, straight RGBA), in
+    /// the page appearance `appearance` (0 original, 1 sepia, 2 dark, 3 high contrast with `ink`
+    /// and `paper` as `0xRRGGBBAA`; the colours are ignored otherwise).
     ///
     /// # Errors
-    /// As [`HayroDocument::plan`], plus `render-failed` and `invalid-argument` for a wrong size.
+    /// As [`HayroDocument::plan`], plus `render-failed`, and `invalid-argument` for a wrong size
+    /// or an unknown appearance.
     #[expect(clippy::too_many_arguments, reason = "a flat binding surface: numbers only")]
     pub fn render(
         &self,
@@ -174,9 +179,26 @@ impl HayroDocument {
         rotation: u16,
         flags: u32,
         background: Option<u32>,
+        appearance: u8,
+        ink: u32,
+        paper: u32,
         out: &mut [u8],
     ) -> Result<(), JsValue> {
-        let req = request(page, scale, x, y, width, height, rotation, flags, background)?;
+        let appearance = match appearance {
+            0 => PageAppearance::Original,
+            1 => PageAppearance::Sepia,
+            2 => PageAppearance::Dark,
+            3 => PageAppearance::HighContrast {
+                ink: rgba(ink),
+                paper: rgba(paper),
+            },
+            _ => {
+                return Err(throw(&RenderError::InvalidRequest {
+                    what: "appearance must be 0, 1, 2 or 3",
+                }));
+            }
+        };
+        let req = request(page, scale, x, y, width, height, rotation, flags, background)?.with_appearance(appearance);
         self.doc
             .render(&req, out, &CancelToken::new())
             .map(|_| ())
@@ -199,11 +221,7 @@ fn saturating_u64(v: f64) -> u64 {
     v
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    clippy::many_single_char_names,
-    reason = "mirrors the flat binding surface; x/y are the tile's corner"
-)]
+#[expect(clippy::too_many_arguments, reason = "mirrors the flat binding surface")]
 fn request(
     page: u32,
     scale: f32,
@@ -228,14 +246,22 @@ fn request(
             print: flags & 4 != 0,
             grayscale: flags & 8 != 0,
         })
-        .with_background(background.map(|c| {
-            let [r, g, b, a] = c.to_be_bytes();
-            Rgba8 { r, g, b, a }
-        }));
+        .with_background(background.map(rgba));
     if width > 0 {
         req = req.with_clip(PixelRect { x, y, width, height });
     }
     Ok(req)
+}
+
+/// `0xRRGGBBAA` as a colour.
+const fn rgba(colour: u32) -> Rgba8 {
+    let [red, green, blue, alpha] = colour.to_be_bytes();
+    Rgba8 {
+        r: red,
+        g: green,
+        b: blue,
+        a: alpha,
+    }
 }
 
 /// The error as the ADR 0026 §1 object, a plain JS object (offsets stay below 2^53, so the

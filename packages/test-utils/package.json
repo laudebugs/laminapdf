@@ -2,7 +2,7 @@
   "name": "@laminapdf/test-utils",
   "version": "0.0.0",
   "private": true,
-  "description": "Test helpers the Lamina PDF packages share: the render contract suite, the browser harness and config, the Firefox workaround and the repository root. Workspace-only; never published or versioned.",
+  "description": "Test helpers the Lamina PDF packages share: the render contract suite, the browser harness and config, the Firefox workaround, the flaky-test retry and report, the e2e server and the repository root. Workspace-only; never published or versioned.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -14,11 +14,14 @@
     "./browser-harness": "./src/browser-harness.ts",
     "./browser-config": "./src/browser-config.ts",
     "./firefox": "./src/firefox.ts",
+    "./flaky": "./src/flaky.ts",
     "./root": "./src/root.ts",
     "./worker-hooks": "./src/worker-hooks.ts",
+    "./wrangler-dev": "./src/wrangler-dev.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {

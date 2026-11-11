@@ -5,8 +5,9 @@ use std::collections::BTreeSet;
 
 use laminapdf_cos::{Dict, Object, Result, tolerant};
 
-use super::{EmbeddedFile, EmbeddedFileHolder, Scan, XmpPacket, len, name_of, text_of};
+use super::{EmbeddedFile, EmbeddedFileHolder, Scan, XmpPacket, len, name_of};
 use crate::document::Document;
+use crate::values::file_spec_name;
 
 impl Scan<'_> {
     /// Reads every in-use object once and classifies what it finds.
@@ -97,14 +98,7 @@ pub(super) fn attachment(doc: &Document, dict: &Dict, object: Option<u32>) -> Re
     let Some(ef) = ef.as_dict() else {
         return Ok(None);
     };
-    let mut name = None;
-    for key in ["UF", "F"] {
-        if name.is_none()
-            && let Some(v) = dict.get(key)
-        {
-            name = doc.read(v)?.as_deref().and_then(text_of);
-        }
-    }
+    let name = file_spec_name(doc, dict)?;
     let file = match ef.get("UF").or_else(|| ef.get("F")) {
         Some(f) => doc.read(f)?,
         None => None,

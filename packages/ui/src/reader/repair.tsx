@@ -1,15 +1,17 @@
 // What the reader says about a damaged file (R04). `RepairDetails` is the docked panel behind the
 // status bar's "Repaired on open": the notice, one row per kind of repair (a plain sentence over
 // its code), the unsupported features found, and Copy details. `OpenFailure` is the page the
-// canvas holds when nothing could be recovered, with its primary action focused.
+// canvas holds when nothing could be recovered, with its primary action focused; `RemoteFailure`
+// the page for a link the reader can't open or a host that refuses it.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { Button, IconButton } from "../components/button.js";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Button } from "../components/button.js";
 import { Notice } from "../components/notice.js";
 import { message } from "../messages.js";
 import type { ReaderError } from "../state/reader-machine.js";
 import { failureSentence, repairSentence } from "./codes.js";
+import { DockedPanel } from "./docked-panel.js";
 
 /** One kind of repair: its warning code, how many times it happened and on which pages (1-based). */
 export interface RepairKind {
@@ -35,7 +37,6 @@ const SHOWN = 5;
 
 /** The repair details panel, for the inspector slot. Escape closes it. */
 export function RepairDetails({ fileName, repairs, notRun = [], onClose, onCopy }: RepairDetailsProps): ReactNode {
-  const title = useId();
   const [all, setAll] = useState(false);
   const firstMore = useRef<HTMLLIElement>(null);
   const shown = all ? repairs : repairs.slice(0, SHOWN);
@@ -44,24 +45,12 @@ export function RepairDetails({ fileName, repairs, notRun = [], onClose, onCopy 
     if (all) firstMore.current?.focus();
   }, [all]);
   return (
-    <aside
-      className="paper-repair"
-      aria-labelledby={title}
-      onKeyDown={(event) => {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        onClose();
-      }}
+    <DockedPanel
+      title={message("repair.title")}
+      subtitle={fileName}
+      closeLabel={message("repair.close")}
+      onClose={onClose}
     >
-      <header className="paper-repair-header">
-        <div>
-          <h2 id={title} className="paper-repair-title">
-            {message("repair.title")}
-          </h2>
-          <p className="paper-repair-file">{fileName}</p>
-        </div>
-        <IconButton icon="close" label={message("repair.close")} onPress={onClose} />
-      </header>
       <Notice tone="warning" title={message("repair.notice.title")}>
         {message("repair.notice.body")}
       </Notice>
@@ -104,7 +93,7 @@ export function RepairDetails({ fileName, repairs, notRun = [], onClose, onCopy 
           {message("repair.copy")}
         </Button>
       </div>
-    </aside>
+    </DockedPanel>
   );
 }
 
@@ -142,6 +131,105 @@ export function OpenFailure({ error, detail, onTryAnother, onCopy }: OpenFailure
           {message("failure.copy")}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Why a link's document can't be opened: the host refused to let this page read it (`cors`,
+ * which the browser can't tell apart from being offline), or the link's address is unusable.
+ */
+export type RemoteFailureReason = "cors" | "not-encoded" | "not-absolute" | "insecure" | "scheme";
+
+/** Props of `RemoteFailure`. */
+export interface RemoteFailureProps {
+  reason: RemoteFailureReason;
+  /** The document's address (`cors`): shown, and opened in a new tab with no referrer. */
+  url?: string;
+  /** Tries the link again (`cors`). */
+  onRetry?: () => void;
+  /** Opens the file picker, for the copy the user downloaded (`cors`). */
+  onChooseFile: () => void;
+  /** Back to the home screen (an unusable link). */
+  onHome?: () => void;
+}
+
+/** `url` with its host in bold, as the address box shows it. */
+function Address({ url }: { url: string }): ReactNode {
+  let host: string;
+  try {
+    host = new URL(url).host;
+  } catch {
+    return <p className="paper-failure-code paper-failure-address">{url}</p>;
+  }
+  // The parsed host is normalised (lower case, punycode, no default port): when the address
+  // writes it otherwise, the address shows unbolded rather than cut in the wrong place.
+  const at = url.indexOf(host);
+  if (at < 0) return <p className="paper-failure-code paper-failure-address">{url}</p>;
+  return (
+    <p className="paper-failure-code paper-failure-address">
+      {url.slice(0, at)}
+      <strong>{host}</strong>
+      {url.slice(at + host.length)}
+    </p>
+  );
+}
+
+/**
+ * The page the canvas holds when a link's document can't be opened (R01's "site blocks
+ * reading", and an unusable link); announced, its primary action focused.
+ */
+export function RemoteFailure({ reason, url, onRetry, onChooseFile, onHome }: RemoteFailureProps): ReactNode {
+  const page = useRef<HTMLDivElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs again for each new reason
+  useEffect(() => {
+    page.current?.querySelector<HTMLElement>("[data-variant='primary']")?.focus();
+  }, [reason]);
+  if (reason !== "cors") {
+    return (
+      <div ref={page} role="alert" className="paper-failure">
+        <Icon name="warning" size={32} />
+        <h2 className="paper-failure-title">{message("remote.link.title")}</h2>
+        <p className="paper-failure-body">{message(`remote.${reason}`)}</p>
+        <div className="paper-failure-actions">
+          <Button variant="primary" onPress={onHome ?? onChooseFile}>
+            {message("remote.home")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div ref={page} role="alert" className="paper-failure">
+      <Icon name="warning" size={32} />
+      <h2 className="paper-failure-title">{message("remote.cors.title")}</h2>
+      <p className="paper-failure-body">{message("remote.cors")}</p>
+      {url === undefined ? null : <Address url={url} />}
+      <div className="paper-failure-actions">
+        {url === undefined ? null : (
+          <a
+            className="paper-button"
+            data-variant="primary"
+            data-size={32}
+            href={url}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            {message("remote.cors.open")}
+          </a>
+        )}
+        {onRetry === undefined ? null : (
+          <Button variant="ghost" onPress={onRetry}>
+            {message("remote.retry")}
+          </Button>
+        )}
+      </div>
+      <p className="paper-failure-body">
+        {message("remote.cors.downloaded")}{" "}
+        <button type="button" className="paper-failure-link" onClick={onChooseFile}>
+          {message("remote.cors.choose")}
+        </button>
+      </p>
     </div>
   );
 }

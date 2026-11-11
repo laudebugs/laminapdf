@@ -23,7 +23,7 @@ Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) buil
 - Design: F04 (Pages sheet) in [screens.md §F](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards).
 - [UI/UX plan §5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) (sheets, safe areas).
 - [U6e](../done/U6e-overlays-and-sheets.md): the layer stack, z-order tokens and `Dialog` the sheet joins; [U6d](../done/U6d-core-components.md) and [U6h](../done/U6h-display-components.md): the density context and the test helpers.
-- Consumers: [U3a](../ready/U3a-responsive-mobile-and-touch.md) (which panels become sheets), [U6j](./U6j-positioning-and-palette-shell.md).
+- Consumers: [U3a](../done/U3a-responsive-mobile-and-touch.md) (which panels become sheets), [U6j](./U6j-positioning-and-palette-shell.md).
 - WCAG 2.2 SC 2.4.11 (focus not obscured), 2.5.7 (dragging movements).
 
 ## Scope
@@ -44,8 +44,8 @@ Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) buil
 - Anchored positioning, the selection mini toolbar shell and the command palette shell → [U6j](./U6j-positioning-and-palette-shell.md).
 - The layer stack, z-order tokens, `Dialog`, menus, tooltips and the toast region → [U6e](../done/U6e-overlays-and-sheets.md).
 - Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](../done/U1b-command-registry-and-palette.md).
-- When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
-- Which panels become sheets on the phone → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
+- When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../done/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](../done/U3a-responsive-mobile-and-touch.md).
+- Which panels become sheets on the phone → [U3a](../done/U3a-responsive-mobile-and-touch.md).
 - Gallery pages and screenshots → [U6f](../done/U6f-gallery-and-visual-tests.md).
 
 ## Tasks
@@ -79,14 +79,14 @@ The overlays' browser tests in `packages/ui` (Vitest browser mode, Chromium, Fir
 
 ## Risks and open questions
 
-- **Bottom sheet gestures vs the viewer's**: the viewer owns pan and pinch on the canvas (UI/UX §5.4); the sheet only handles drags that start on the sheet or the grabber. Test on real iOS Safari and Android Chrome before [U3a](../ready/U3a-responsive-mobile-and-touch.md) relies on it.
+- **Bottom sheet gestures vs the viewer's**: the viewer owns pan and pinch on the canvas (UI/UX §5.4); the sheet only handles drags that start on the sheet or the grabber. Test on real iOS Safari and Android Chrome before [U3a](../done/U3a-responsive-mobile-and-touch.md) relies on it.
 
 ## Outcome
 
 - `@laminapdf/ui` gains `BottomSheet`: medium (48 % down) and large (under the phone top bar) detents; a 64 × 44 grabber button that switches detent on a press, Enter or Space; drags of the grabber or header that snap, flick one detent further, or close from medium; a header with title, count and close button; a footer of full-width actions. It is modal by default, on React Aria's modal (scrim, inert page, `aria-modal`), and non-modal with `isModal={false}`, when it scrolls the page's focused element clear of itself unless focus is in a layer opened from it (`LayerStack.hasOpenedFrom`). An on-screen keyboard lifts the whole sheet.
 - `Dialog` renders as a large-detent `BottomSheet` at 599 px or less, and keeps the layout it opened with until it closes.
 - Tokens: `sheet-detent-large` (an alias of `phone-top-bar-height`, approved) and `sheet-detent-medium` (0.48).
-- Decisions, recorded in the design language (§7.16, §7.18): a modal sheet draws in the scrim's layer (40), a non-modal one at 30; the sheet moves without a slide, so reduced motion changes nothing; it runs to the viewport's bottom, where F04 stops it above the phone bottom bar, which [U3a](../ready/U3a-responsive-mobile-and-touch.md) places.
+- Decisions, recorded in the design language (§7.16, §7.18): a modal sheet draws in the scrim's layer (40), a non-modal one at 30; the sheet moves without a slide, so reduced motion changes nothing; it runs to the viewport's bottom, where F04 stops it above the phone bottom bar, which [U3a](../done/U3a-responsive-mobile-and-touch.md) places.
 - The browser tests run at 1280 × 800, since Vitest's default viewport is phone-wide; focus checks after an open or a close poll, for WebKit.
 - The selection toolbar's positioning and the palette shell moved to [U6j](./U6j-positioning-and-palette-shell.md) when this todo was claimed.
 

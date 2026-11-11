@@ -1,0 +1,7 @@
+---
+"@laminapdf/viewer": minor
+---
+
+Every page's text is selectable and copyable, and a tagged document reads well in a screen reader. The viewer lays one transparent span over each text run of Lamina PDF's extraction, aligned to the rendered glyphs at every zoom and rotation, in any script. A selection runs from one page into the next, and the pages it touches stay mounted while you scroll away. Copy writes the extracted text in reading order. A tagged document's structure tree becomes a hidden tree of headings, paragraphs, lists, tables and figures that owns the spans.
+
+`createViewer`'s `text` option turns the layer off or sets `outline`, `untaggedLabel` and `onSelection`. `Viewer.keepMounted(pages)` pins pages. `ViewerClient.pageText(index)` and `structure()` give a page's runs and glyph quads and the document's structure tree. The document Web Worker loads the extract module once the render backend is ready, so the first page never waits for it.

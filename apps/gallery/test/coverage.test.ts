@@ -11,6 +11,8 @@ import { ROUTES } from "../src/routes.ts";
 const NESTED: Readonly<Record<string, string>> = {
   Radio: "RadioGroup",
   TabPanel: "SegmentedTabs",
+  AppearanceFields: "ViewSettingsButton",
+  AppearanceSettings: "SettingsDialog",
 };
 
 /** Exports that draw nothing themselves, with why. */
@@ -21,19 +23,28 @@ const NOT_DRAWN: Readonly<Record<string, string>> = {
   DensityProvider: "a context provider: the gallery's density control sets it on every route",
   PlatformProvider: "a context provider",
   ModeRegistry: "the shell's store of modes, which the shell-regions route drives",
+  ToolRegistry: "the store of interaction modes (tools), which draws nothing",
   ReaderController: "a state controller, which the reader routes drive",
   RecentCommands: "the palette's list of recent commands, kept in storage",
   RegistryPalette: "CommandPalette (on the overlays route) filled from a command registry",
   ShellLayout: "the shell's layout store, which the shell-regions route drives",
   ToastQueue: "the toast region's queue, not a component",
+  Announcer: "the live regions' store of what to say, not a component",
+  LiveRegions: "two live regions screen readers hear, drawn out of sight",
+  SettingsRegistry: "the Settings dialog's store of sections, which the dialogs route fills",
 };
+
+/** The package's entries that export components: the root, `./dialogs`, `./editing` and `./reader-mode`. */
+const ENTRIES = ["index.ts", "dialogs.ts", "editing.ts", "reader-mode.ts"];
 
 /** The value exports of @laminapdf/ui whose names start with a capital (components and classes). */
 function exportedComponents(): string[] {
-  const index = readFileSync(new URL("../../../packages/ui/src/index.ts", import.meta.url), "utf8");
-  const names = [...index.matchAll(/export\s*\{([^}]*)\}/g)].flatMap((m) =>
-    (m[1] ?? "").split(",").map((part) => part.trim()),
-  );
+  const names = ENTRIES.flatMap((entry) => {
+    const source = readFileSync(new URL(`../../../packages/ui/src/${entry}`, import.meta.url), "utf8");
+    return [...source.matchAll(/export\s*\{([^}]*)\}/g)].flatMap((m) =>
+      (m[1] ?? "").split(",").map((part) => part.trim()),
+    );
+  });
   return names.filter((name) => /^[A-Z][a-z]/.test(name) && !name.startsWith("type "));
 }
 

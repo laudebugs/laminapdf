@@ -1,0 +1,53 @@
+[package]
+name = "laminapdf-desktop"
+description = "Lamina PDF's desktop reader: the Tauri 2 shell around @laminapdf/ui (ADR 0008)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Shipped as signed installers, never on crates.io (todos D6b–D6d).
+publish = false
+homepage.workspace = true
+
+# Read by `cargo xtask`: an app crate, so it may use the file system, windows and processes.
+[package.metadata.laminapdf]
+layer = "app"
+
+[lib]
+name = "laminapdf_desktop_lib"
+# Desktop only (ADR 0008): no `staticlib`/`cdylib` for a mobile build.
+crate-type = ["rlib"]
+
+[[bin]]
+name = "laminapdf-desktop"
+path = "src/main.rs"
+
+[features]
+# The end-to-end tests' commands (`debug_kill_engine`) and, from D2e, the WebDriver plugin. Off in
+# every release build; CI checks the release binary holds none of them (ADR 0008 §8).
+e2e = []
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[dependencies]
+# The engine process's protocol and supervisor; never the parser or PDFium (ADR 0008 §3).
+laminapdf-desktop-protocol = { workspace = true }
+region = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { workspace = true }
+tauri-plugin-dialog = { workspace = true }
+tauri-plugin-log = { workspace = true }
+tauri-plugin-opener = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+zeroize = { workspace = true }
+
+[dev-dependencies]
+# The fake engine (`supervisor::fake`) for the engine registry's tests.
+laminapdf-desktop-protocol = { workspace = true, features = ["test-support"] }
+
+[lints]
+workspace = true

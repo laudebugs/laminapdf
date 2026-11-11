@@ -5,11 +5,10 @@
 // local file must cause neither.
 
 import { readdirSync, readFileSync } from "node:fs";
-import { env } from "node:process";
-import { firefoxEnv } from "@laminapdf/test-utils/firefox";
-import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
+import { getLocal } from "@laminapdf/test-utils/wrangler-dev";
+import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
-import { getLocal } from "./local-tls.ts";
+import { BROWSER, launch } from "./browser.ts";
 import {
   ASSET_CACHE,
   bytes,
@@ -25,9 +24,8 @@ import {
 } from "./reader.ts";
 
 const APP = new URL("../", import.meta.url);
-const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
-const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
+const ca = inject("ca");
 
 /** A built asset's path whose file name matches `pattern`. */
 function asset(pattern: RegExp): string {
@@ -36,9 +34,9 @@ function asset(pattern: RegExp): string {
   return `/assets/${name}`;
 }
 
-/** `GET path` from the local server, which has a self-signed certificate (local-tls.ts), without following redirects. */
+/** `GET path` from the local server, which has a self-signed certificate (@laminapdf/test-utils/wrangler-dev), without following redirects. */
 function get(server: string, path: string): Promise<Response> {
-  return getLocal(new URL(path, server));
+  return getLocal(new URL(path, server), ca);
 }
 
 describe("what the server sends", () => {
@@ -85,16 +83,14 @@ describe(`opening local files in ${BROWSER}`, () => {
   let browser: Browser;
 
   beforeAll(async () => {
-    const type = BROWSERS[BROWSER];
-    if (type === undefined) throw new Error(`LAMINA_PDF_E2E_BROWSER: unknown browser ${BROWSER}`);
-    browser = await type.launch(BROWSER === "firefox" ? { env: firefoxEnv(APP) } : {});
+    browser = await launch();
   });
 
   afterAll(async () => {
     await browser?.close();
   });
 
-  /** Opens the app at `path` in this run's browser, after `init`. The server's certificate is self-signed (local-tls.ts). */
+  /** Opens the app at `path` in this run's browser, after `init`. The server's certificate is self-signed (@laminapdf/test-utils/wrangler-dev). */
   const load = (path = "/", init?: InitScript): Promise<Watched> =>
     loadPage(browser, origin, path, init, { ignoreHTTPSErrors: true });
 
@@ -164,7 +160,8 @@ describe(`opening local files in ${BROWSER}`, () => {
   it("refuses a file that isn't a PDF and stays on the home screen", async () => {
     const watched = await load();
     await transfer(watched.page, "drop", "notes.txt", [...new TextEncoder().encode("plain text")], "text/plain");
-    await expect.poll(() => watched.page.getByRole("alert").textContent()).toContain("isn't a PDF");
+    // The file is read before it is refused: a slow runner (WebKit on macOS) can take over a second.
+    await expect.poll(() => watched.page.getByRole("alert").textContent(), { timeout: 5000 }).toContain("isn't a PDF");
     await watched.page.getByRole("heading", { name: "Open a PDF" }).waitFor();
     await clean(watched);
   });

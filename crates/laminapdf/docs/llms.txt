@@ -1,0 +1,100 @@
+# Lamina PDF
+
+> Lamina PDF creates, reads, edits and saves PDF files from TypeScript and Rust: one Rust core, run as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers (`@laminapdf/sdk`), or natively from the `laminapdf` crate. Positions are top-left points of the displayed page and page indexes start at 0; every error has a stable code with its own page.
+
+These docs describe version 0.2.0-alpha.6, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
+
+- [Using Lamina PDF with coding agents](AGENTS.md)
+- [What old names became](renames.json)
+
+## Start here
+
+- [Lamina PDF](pages/index.md): Create, read, edit and save PDFs from Rust and TypeScript, with one Rust core that runs natively and as WebAssembly.
+- [Install](pages/install.md): Install Lamina PDF from npm or crates.io, and find every published package.
+- [Your first PDF](pages/start/first-pdf.md): Write hello.pdf from Node in five minutes.
+- [Use Lamina PDF with coding agents](pages/start/coding-agents.md): Point a coding agent at the docs inside the installed package, so its answers match the version you use.
+
+## Your runtime
+
+- [Browser and bundlers](pages/quick-start/browser.md): Load @laminapdf/sdk in a web page through Vite or another bundler.
+- [Node](pages/quick-start/node.md): Generate a PDF from Node with @laminapdf/sdk.
+- [Deno](pages/quick-start/deno.md): Use @laminapdf/sdk in Deno.
+- [Bun](pages/quick-start/bun.md): Use @laminapdf/sdk in Bun.
+- [Cloudflare Workers](pages/quick-start/workers.md): Generate PDFs per request in a Cloudflare Worker.
+- [Rust](pages/quick-start/rust.md): Generate a PDF with the Lamina PDF crate.
+
+## Concepts
+
+- [How Lamina PDF thinks about a PDF](pages/concepts/how-lamina-thinks.md): Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free, three JavaScript modules.
+- [Pages and coordinates](pages/concepts/pages-and-coordinates.md): Points from the top-left corner of the page as it's displayed, y going down, and pages numbered from 0.
+- [Errors and warnings](pages/concepts/errors-and-warnings.md): One coded error shape on every surface, and warnings for what Lamina PDF repaired.
+- [What Lamina PDF writes and what it borrows](pages/concepts/dependencies.md): Lamina PDF writes the parts that decide a PDF's bytes, borrows the rest from permissive projects, and pins and checks everything it borrows.
+- [How a page is drawn](pages/concepts/drawing-pages.md): A renderer turns a page into pixels; Lamina PDF reads the page's text, links and selection itself, from the same bytes.
+
+## Create PDFs
+
+- [Text and fonts](pages/guides/fonts-and-text.md): Draw text in any script with your own fonts or the standard 14, one line at a time or as a paragraph that wraps in a box.
+- [Shapes, colour and images](pages/guides/images-and-vectors.md): Draw lines, shapes and images on a page, in any colour, with transparency, clipping and transforms.
+- [Links, outlines and metadata](pages/guides/links-outlines-and-metadata.md): Add links, named destinations, an outline, page labels, viewer preferences and metadata to a document.
+- [Pages that flow](pages/guides/flowing-pages.md): Pour headings, paragraphs, tables and images, or a Markdown file, into as many pages as they need, with footnotes, a contents page and "Page X of Y" footers.
+- [Accessible PDFs](pages/guides/accessible-pdfs.md): Build PDF/UA-1 documents that screen readers can follow, with every machine-checkable rule checked when the builder finishes.
+- [Archival PDFs](pages/guides/archival-pdfs.md): Build PDF/A-2b, PDF/A-2u and PDF/A-3b documents that look the same in years to come, and attach files such as an e-invoice's XML.
+
+## Read and edit PDFs
+
+- [Edit a PDF](pages/guides/edit-a-pdf.md): Change an existing PDF in transactions you can undo, and replay edits stored as JSON.
+- [Save a PDF](pages/guides/save-a-pdf.md): Save edits as a revision appended to the original bytes or as a whole new file, and see when a file refuses a save.
+- [Open password-protected files](pages/guides/password-protected-files.md): Open PDFs that need a password, ask again when it is missing or wrong, and save them afterwards.
+- [Open files you don't trust](pages/guides/untrusted-files.md): Cap how much work an uploaded PDF can make Lamina PDF do, and refuse damaged files with strict mode.
+- [Open large files by ranges](pages/guides/open-large-files.md): Open a PDF on a web server without downloading all of it, fetching only the byte ranges each read needs.
+
+## Command line
+
+- [The command line](pages/cli.md): Inspect, check, extract, render and build PDFs from a terminal, a build script or an AI agent with the laminapdf command.
+- [Install the command-line tool](pages/cli/install.md): Install the laminapdf command with Homebrew or npm, or download it for macOS, Linux or Windows and check it against its checksum.
+- [Inspect and check PDFs](pages/cli/inspect.md): Describe a PDF with laminapdf info, find what Lamina PDF had to repair with check, and list what a file holds beyond its pages with reveal.
+- [Extract text and render pages](pages/cli/extract-and-render.md): Read a PDF's text, or its blocks in reading order as Markdown, JSON or chunks for an LLM, and draw its pages as PNG images from the command line.
+- [Make and change PDFs](pages/cli/build-and-edit.md): Turn a Markdown file into a tagged, accessible PDF with laminapdf build, and turn pages with laminapdf pages rotate.
+- [Scripts and batch jobs](pages/cli/scripts.md): Pipe PDFs through laminapdf, name pages with ranges, check thousands of files in parallel, and read its JSON reports and exit codes from a script.
+- [Connect an AI agent (MCP)](pages/cli/mcp.md): Serve the laminapdf commands as tools for Claude and other AI agents over the Model Context Protocol, limited to the folders you choose.
+
+## Production
+
+- [Keep the page responsive](pages/guides/keep-the-page-responsive.md): Run Lamina PDF in a Web Worker with @laminapdf/sdk/worker, so a large file never freezes the page.
+- [Test the PDFs you generate](pages/guides/test-generated-pdfs.md): Compare the PDFs your code makes with reference PDFs you approved, byte for byte, and draw both files' pages to see what changed.
+
+## Recipes
+
+- [Recipes](pages/recipes.md): Complete Lamina PDF programs, from one page of text to an archived invoice, each with its code and the PDF it writes.
+- [Hello, world](pages/recipes/hello.md): One A4 page with a line of text in a standard 14 font, the smallest PDF Lamina PDF writes, in TypeScript and Rust.
+- [An invoice](pages/recipes/invoice.md): A tagged one-page invoice with an embedded font, a table of line items with right-aligned amounts and a total, in TypeScript and Rust.
+- [Multilingual text](pages/recipes/multilingual.md): Latin, Arabic, Devanagari, Hebrew and Chinese on one page, each in its own embedded font, as a shaped line and a wrapped paragraph.
+- [Images and vectors](pages/recipes/images-and-vectors.md): Shapes, a dashed curve, gray, RGB, CMYK and hex colour, transparency, a blend mode, a clip, a rotation, a JPEG and an RGBA image on one page.
+- [Element flow](pages/recipes/element-flow.md): A report whose title, paragraphs and photo each start below wherever the one before ended, with a body that continues on a new page.
+- [Links and outlines](pages/recipes/links-and-outlines.md): Four A5 pages joined by web, page and named links, with a nested outline, page labels that read i, ii, 1, 2 and the outline shown on open.
+- [Generate, then edit](pages/recipes/generate-then-edit.md): Build a one-page draft, open its bytes, retitle it in one transaction and save the edit as a revision after the original bytes.
+- [Extract text for an LLM](pages/recipes/extract-markdown.md): Turn a PDF into Markdown in reading order, JSON with a box for every block, and chunks sized for retrieval, in TypeScript and Rust.
+- [A PDF/UA report](pages/recipes/pdf-ua-report.md): A one-page sales report a screen reader can follow, with headings, a table, a described chart and a link, checked against PDF/UA-1 as it's built.
+- [A PDF/A archive](pages/recipes/pdf-a-archive.md): An order confirmation for long-term archiving, written as PDF/A-2b and as PDF/A-2u that is also PDF/UA-1, with an embedded font and a photo.
+- [A PDF/A-3 invoice with XML](pages/recipes/pdf-a3-invoice-with-xml.md): A PDF/A-3b invoice that carries the same invoice as an attached XML file, for people to read and for software to process.
+- [A 100-page report](pages/recipes/report.md): A 100-page A4 report with two embedded fonts and a table on every page, the document Lamina PDF times in each JavaScript runtime.
+- [Open someone else's file](pages/recipes/open-untrusted.md): Open an uploaded PDF with an optional password and tighter limits, and get its page count and warnings, or the error, back as a value.
+- [Save in a Web Worker](pages/recipes/web-worker-client.md): Open and save a PDF in a Web Worker, so a large file never freezes the page, with progress as it saves and a signal that stops the work.
+- [A Cloudflare Worker](pages/recipes/cloudflare-worker.md): A Cloudflare Worker that returns a one-page letter per request, in a standard 14 font or a bundled one, and a 400 for a name the font can't draw.
+
+## Troubleshooting
+
+- [Troubleshooting](pages/troubleshooting.md): The problems people hit with Lamina PDF, from a missing init() to a signed file that won't save, with the cause and the fix of each.
+
+## Reference
+
+- [Rust API (rustdoc)](pages/reference/rust.md): Where to read the API documentation of the Lamina PDF crates.
+- [Error and warning codes](pages/reference/codes.md): Every code Lamina PDF raises, generated from fixtures/codes.json when the site is built.
+- [Stability policy](pages/reference/stability.md): What a Lamina PDF version number promises, and what stays the same in every version.
+- [Benchmarks](pages/reference/benchmarks.md): How fast Lamina PDF makes PDFs in each runtime, how large its WebAssembly files are, and how well it extracts text on a public benchmark.
+- [Changelog](pages/reference/changelog.md): What changed in each Lamina PDF release, newest first.
+- [Glossary](pages/reference/glossary.md): The PDF and Lamina PDF terms the docs use, each in a sentence or two.
+
+## Optional
+
+- [Error and warning codes](errors/README.md)

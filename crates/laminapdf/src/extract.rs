@@ -21,6 +21,10 @@ pub use laminapdf_extract::{
     ReadingOrder, Region, RegionLabel, Rendered, Span, SplitOn, StructRef, StructSource, TableDetector, TableMode,
     TextLayer, TextLayerStatus, TextLayerThresholds, TextRange, chunks_jsonl, tokens_approx,
 };
+#[cfg(feature = "reflow")]
+pub use laminapdf_extract::{
+    PageImageReason, Reflow, ReflowBlock, ReflowChecks, ReflowKind, ReflowRefusal, ReflowSource,
+};
 pub use laminapdf_text::{Code, Glyph, PageText, PageTextRun, Quad, UserSpaceVector};
 
 use crate::job::{Budget, CancelToken, JobCore, Step};
@@ -83,6 +87,17 @@ impl Document {
     /// As [`Document::extract`], and `cancelled`.
     pub fn extract_with(&self, options: &ExtractOptions, cancel: &CancelToken) -> Result<Extraction> {
         Ok(laminapdf_extract::extract(self.ops(), options, cancel)?)
+    }
+
+    /// The document for reader mode: its blocks in the structure tree's order, figures,
+    /// formulas and tables as crops of their pages with their alternate text, or why its tree
+    /// can't be trusted ([`Reflow::reason`]). An untagged document is refused as `untagged`.
+    ///
+    /// # Errors
+    /// `cancelled`; reading errors (the page tree, the structure tree, a page's content).
+    #[cfg(feature = "reflow")]
+    pub fn reflow(&self, cancel: &CancelToken) -> Result<Reflow> {
+        Ok(laminapdf_extract::reflow(self.ops(), cancel)?)
     }
 
     /// An extraction as a job: [`ExtractionJob::step`] does one page per work unit.

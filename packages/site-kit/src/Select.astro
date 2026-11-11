@@ -1,0 +1,45 @@
+---
+// The sites' select (design language §7.19): a native <select> in the Paper look with the Paper
+// chevron, so the platform's own list opens, with its keyboard and touch behaviour. The label names
+// it, shown above it or for assistive technology only. The docs site's theme switch uses it
+// (apps/docs/src/components/ThemeSelect.astro). Its look is select.css; no inline style, which the
+// website's checks refuse.
+import "./select.css";
+import chevron from "@laminapdf/icons/svg/chevron-down.svg?raw";
+import { decorativeIcon } from "./icon.mjs";
+
+export interface SelectOption {
+  /** The value the select takes. */
+  value: string;
+  /** The visible text. */
+  label: string;
+  /** Whether the page starts with it chosen. */
+  selected?: boolean;
+}
+
+interface Props {
+  /** The select's name: shown above it, or for assistive technology only with `hideLabel`. */
+  label: string;
+  hideLabel?: boolean;
+  options: readonly SelectOption[];
+}
+
+const { label, hideLabel = false, options } = Astro.props;
+---
+
+<label class="site-select">
+  <span class:list={["site-select-label", { "site-select-label-hidden": hideLabel }]}>{label}</span>
+  <span class="site-select-control">
+    {/* The browser keeps a chosen value across reloads; the page's own script sets the right one. */}
+    <select autocomplete="off">
+      {
+        options.map(({ value, label: text, selected = false }) => (
+          <option value={value} selected={selected}>
+            {text}
+          </option>
+        ))
+      }
+    </select>
+    <Fragment set:html={decorativeIcon(chevron, "site-select-chevron")} />
+  </span>
+</label>

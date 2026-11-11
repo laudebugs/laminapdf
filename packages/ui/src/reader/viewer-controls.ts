@@ -1,6 +1,6 @@
 // What the reader chrome needs of `@laminapdf/viewer`'s viewer, written as a shape rather than an
-// import (the package never imports the viewer): its state as a store, and the three calls the
-// top bar makes. The zoom steps and page parsing are pure, so their rules are tested in Node.
+// import (the package never imports the viewer): its state as a store, and the calls the top
+// bar and the commands make. The zoom steps and page parsing are pure, so their rules are tested in Node.
 
 import type { ExternalStore } from "../state/hooks.js";
 
@@ -15,16 +15,22 @@ export interface ViewerSlice {
   readonly zoom: Zoom;
   /** The zoom as a percentage, whatever the mode. */
   readonly percent: number;
+  /** How far the document is scrolled, in CSS px: the phone's top bar hides while it grows. */
+  readonly scrollTop?: number;
 }
 
 /** The viewer as the chrome drives it: `createViewer()`'s result fits. */
 export interface ViewerControls extends ExternalStore<ViewerSlice> {
   /** Scrolls to page `index`, 0-based. */
   goToPage(index: number): void;
+  /** Goes to page `index` as a history jump, so Back returns. */
+  jumpToPage(index: number): void;
   /** Sets the zoom: a percentage, or a fit mode. */
   setZoom(zoom: Zoom): void;
   /** Rotates the view by a multiple of 90 degrees. */
   rotate(delta: number): void;
+  /** Whether a link is previewed or focused, so `nav.follow-link` has one to follow. */
+  canFollowLink?(): boolean;
 }
 
 /** The smallest zoom the viewer takes, in percent. */

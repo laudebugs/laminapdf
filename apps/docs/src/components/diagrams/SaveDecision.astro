@@ -1,0 +1,85 @@
+---
+// "How a save picks its mode" (guides/save-a-pdf, "When a file refuses a save"): for each state a
+// file can be in, the mode a save writes and, beside it, the error it is refused with otherwise
+// and the option that changes that. Modes, codes and options are API names, in mono. Nothing here
+// takes the accent: every row weighs the same. The rows are written once, below, and drawn in both
+// layouts. Caption and text description: registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import Box from "./kit/Box.astro";
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import Markers from "./kit/Markers.astro";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { prefix, labelledby, describedby } = Astro.props;
+const wide = `${prefix}-wide`;
+const narrow = `${prefix}-narrow`;
+
+interface Row {
+  /** The file's state, in the page's words. */
+  state: string;
+  mode: string;
+  modeSub: string;
+  /** The error a save is refused with otherwise, and its two sub lines. */
+  error?: { code: string; sub: string; sub2: string };
+}
+const rows: readonly Row[] = [
+  {
+    state: "A signed file",
+    mode: "incremental",
+    modeSub: "edits its signatures allow",
+    error: { code: "would-invalidate-signatures", sub: "refused, unless", sub2: "`invalidateSignatures: true`" },
+  },
+  {
+    state: "A repaired file",
+    mode: "fullRewrite",
+    modeSub: "`auto` picks it",
+    error: { code: "requires-rewrite", sub: "refused for", sub2: '`mode: "incremental"`' },
+  },
+  {
+    state: "An edited encrypted file",
+    mode: "fullRewrite",
+    modeSub: "`removeEncryption: true`",
+    error: { code: "encrypted-base", sub: "refused, in any mode,", sub2: "without that option" },
+  },
+  { state: "An unchanged document", mode: "incremental", modeSub: "in `auto` or `incremental`" },
+];
+/** Wide: one row per state, 76 high, every 92. Narrow: the state as a heading, the boxes stacked. */
+const ROW = 92;
+const BOX = 76;
+const NARROW_ROW = 216;
+---
+
+<Svg viewBox="0 0 720 352" layout="wide" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={wide} />
+  {
+    rows.map((r, i) => (
+      <>
+        <Box x={0} y={i * ROW} w={190} h={BOX} label={r.state} />
+        <Arrow d={`M190 ${i * ROW + BOX / 2} H214`} prefix={wide} />
+        <Box x={218} y={i * ROW} w={204} h={BOX} label={r.mode} sub={r.modeSub} mono />
+        {r.error && <Arrow d={`M422 ${i * ROW + BOX / 2} H446`} prefix={wide} />}
+        {r.error && (
+          <Box x={450} y={i * ROW} w={270} h={BOX} label={r.error.code} sub={r.error.sub} sub2={r.error.sub2} mono />
+        )}
+      </>
+    ))
+  }
+</Svg>
+
+<Svg viewBox="0 0 320 732" layout="narrow" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={narrow} />
+  {
+    rows.map((r, i) => (
+      <>
+        <Label x={0} y={i * NARROW_ROW + 16} text={r.state} />
+        <Box x={0} y={i * NARROW_ROW + 28} w={320} h={52} label={r.mode} sub={r.modeSub} mono />
+        {r.error && <Arrow d={`M160 ${i * NARROW_ROW + 80} V${i * NARROW_ROW + 104}`} prefix={narrow} />}
+        {r.error && (
+          <Box x={0} y={i * NARROW_ROW + 108} w={320} h={BOX} label={r.error.code} sub={r.error.sub} sub2={r.error.sub2} mono />
+        )}
+      </>
+    ))
+  }
+</Svg>

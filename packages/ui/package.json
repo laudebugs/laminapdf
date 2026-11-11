@@ -20,6 +20,18 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./dialogs": {
+      "types": "./dist/dialogs.d.ts",
+      "default": "./dist/dialogs.js"
+    },
+    "./editing": {
+      "types": "./dist/editing.d.ts",
+      "default": "./dist/editing.js"
+    },
+    "./reader-mode": {
+      "types": "./dist/reader-mode.d.ts",
+      "default": "./dist/reader-mode.js"
+    },
     "./testing": "./test/testing.ts",
     "./styles.css": "./src/styles/index.css",
     "./package.json": "./package.json"

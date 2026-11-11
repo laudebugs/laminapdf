@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C6c](./C6c-print-download-properties.md), [D1b](./D1b-desktop-print-spike.md), [D4b](./D4b-native-menus.md) |
-| Dependency notes | [D4b](D4b-native-menus.md) (Print menu item), [D1b](D1b-desktop-print-spike.md) (recommended path). Cross-plan: web **C6** ([web-app §C6](../../plans/web-app.md#c6-navigation-print-and-properties)) only if D1b recommends the webview raster path, which reuses C6's print-at-print-DPI code. |
+| Depends on | [C6c](../done/C6c-print-download-properties.md), [D1b](../done/D1b-desktop-print-spike.md), [D4b](./D4b-native-menus.md) |
+| Dependency notes | [D4b](D4b-native-menus.md) (Print menu item), [D1b](../done/D1b-desktop-print-spike.md) (recommended path). Cross-plan: web **C6** ([web-app §C6](../../plans/web-app.md#c6-navigation-print-and-properties)) only if D1b recommends the webview raster path, which reuses C6's print-at-print-DPI code. |
 | ADRs | Follows ADR 0008 (engine renders, main owns printer handles), ADR 0010 (`hasNativePrint`) |
 | Branch | `feat/d4c-native-printing` |
 | PR title | `feat(desktop): print documents through the native print path on each OS` |
@@ -84,6 +84,8 @@ None.
 - `apps/desktop/README.md`: printing architecture and troubleshooting.
 
 ## Risks and open questions
+
+- **From D1b** ([desktop-print spike](../../../spikes/desktop-print/README.md)): print path B (engine rasters through AppKit, GDI, GTK); no webview fallback. On macOS, AppKit snapped US Letter and A5 to A4 when each page's paper was set in `beginPageInRect:atPlacement:`, pages need the printer's imageable origin as an offset, read for each paper and orientation (read once for portrait, it left a landscape page 17.3 pt off), and 50 pages at 300 dpi peaked at 1.7–1.8 GB: per-page paper and memory need work here. The fidelity bar D1b measured is SSIM ≥ 0.95 at 150 dpi after alignment, sizes and placement within 2 pt. `hasNativePrint` should mean the OS dialog plus Lamina PDF's own rasters on paper of each page's size, not handing the PDF to the OS (ADR 0010's table): restate it in ADR 0008 or here.
 
 - **Decision recorded (owner to confirm in the PR): raster only, no vector printing in the main process.** The macOS PDFKit path, Windows PDFium-on-DC/EMF playback and Linux raw-PDF-to-CUPS all make something other than the sandboxed engine parse untrusted bytes, breaking ADR 0008. Vector printing comes back only through (a) a sandboxed print helper process (follow-up todo) or (b) an ADR 0008 exception the owner signs off explicitly, naming the OS, the parser and the accepted risk. ADR 0008 gets a "printing" line saying this.
 - **Raster cost**: 600 dpi A4 RGBA is ~140 MB per page uncompressed; render in bands and measure spool size and time for the 50-page check; drop to 300 dpi for non-photo printers if needed (record).

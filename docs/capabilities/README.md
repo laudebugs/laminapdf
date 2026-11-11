@@ -192,7 +192,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | J.01 | Title, author, subject, keywords | 🟢 round-trip | — | — | — | E1 round-trip | [`text_fields_are_decoded`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | J.02 | Creation/modification dates | 🟡 read | — | — | — | E1 round-trip | [`a_valid_date_is_parsed`](../../crates/laminapdf-model/tests/views.rs) core read |
 | J.03 | Producer & creator | — | — | — | — | E1 round-trip |  |
-| J.04 | Manage XMP | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| J.04 | Manage XMP | 🔵 write | — | — | — | E3 round-trip | [`a_documents_packet_is_parsed_and_its_fields_read`](../../crates/laminapdf-model/tests/xmp.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | J.05 | Attach / extract / delete embedded files | — | — | — | — | E3 round-trip |  |
 | J.06 | Portfolios / collections | — | — | — | — | E3 read |  |
 | J.07 | Inspect version & conformance | — | — | — | — | E3 read |  |

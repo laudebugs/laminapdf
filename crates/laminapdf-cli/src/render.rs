@@ -9,7 +9,7 @@ use std::io::Write as _;
 use anstream::{AutoStream, ColorChoice};
 use laminapdf::Diagnostic;
 use laminapdf_cli::commands::{
-    CheckReport, ExplainReport, InfoReport, PageSummary, PagesReport, RenderReport, TextReport,
+    BuildReport, CheckReport, ExplainReport, InfoReport, PageSummary, PagesReport, RenderReport, TextReport,
 };
 use laminapdf_cli::exit::{CliError, ExitCode};
 use serde_json::Value;
@@ -63,6 +63,18 @@ pub(crate) fn error(streams: &mut Streams, error: &CliError, input: Option<&str>
             "{RED}error{RESET}{BOLD}[{}]: {}{RESET}\n",
             diagnostic.code, diagnostic.message
         );
+        // Where in a JSON document or its data the error is (invalid-document, template-data-*):
+        // the user's own keys, so made safe for the terminal like any text read from a file.
+        if let Some(pointer) = diagnostic.data.get("pointer").and_then(Value::as_str) {
+            match diagnostic.data.get("reason").and_then(Value::as_str) {
+                Some(reason) => {
+                    let _ = writeln!(text, "  = at: {} ({})", for_terminal(pointer), for_terminal(reason));
+                }
+                None => {
+                    let _ = writeln!(text, "  = at: {}", for_terminal(pointer));
+                }
+            }
+        }
         if !diagnostic.did_you_mean.is_empty() {
             let _ = writeln!(text, "  = did you mean: {}", diagnostic.did_you_mean.join(", "));
         }
@@ -253,6 +265,20 @@ pub(crate) fn pages_text(report: &PagesReport) -> String {
     )
 }
 
+pub(crate) fn build_text(report: &BuildReport) -> String {
+    let profiles = if report.profiles.is_empty() {
+        String::new()
+    } else {
+        format!(", {}", report.profiles.join(", "))
+    };
+    format!(
+        "built {} → {} ({}{profiles})\n",
+        count(report.page_count, "page"),
+        report.output,
+        size(report.bytes)
+    )
+}
+
 pub(crate) fn explain_text(report: &ExplainReport) -> String {
     let mut page = report.page.clone();
     if !page.ends_with('\n') {
@@ -263,7 +289,14 @@ pub(crate) fn explain_text(report: &ExplainReport) -> String {
 
 /// `laminapdf help exit-codes`.
 pub(crate) fn exit_codes_text() -> String {
-    let mut out = String::from("Exit codes (when several apply, the first in 2, 5, 4, 1, 3, 0 wins):\n");
+    let order: Vec<String> = ExitCode::by_priority()
+        .iter()
+        .map(|code| code.number().to_string())
+        .collect();
+    let mut out = format!(
+        "Exit codes (when several apply, the first in {} wins):\n",
+        order.join(", ")
+    );
     for code in ExitCode::ALL {
         let _ = writeln!(out, "  {}  {}", code.number(), code.meaning());
     }
@@ -274,6 +307,13 @@ pub(crate) fn exit_codes_text() -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn exit_codes_should_list_every_code_in_the_order_they_win() {
+        assert!(
+            exit_codes_text().starts_with("Exit codes (when several apply, the first in 2, 5, 4, 1, 6, 3, 0 wins):")
+        );
+    }
 
     #[test]
     fn sizes_should_read_like_a_file_manager() {

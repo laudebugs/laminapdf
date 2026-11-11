@@ -2,11 +2,13 @@
 // reader, viewer and shell handlers a test gives, wrapped around the components that run them.
 
 import { type ReactNode, useState } from "react";
+import { registerEditCommands } from "../src/commands/edit-commands.ts";
 import { CommandsProvider } from "../src/commands/react.tsx";
 import { registerReaderCommands } from "../src/commands/reader-commands.ts";
 import { CommandRegistry } from "../src/commands/registry.ts";
 import type { CommandContext, CommandId } from "../src/commands/types.ts";
 import type { KeyPlatform } from "../src/components/shortcut-chip.tsx";
+import type { EditControls } from "../src/edit/edit-controls.ts";
 import type { Platform } from "../src/platform/types.ts";
 import type { ViewerControls } from "../src/reader/viewer-controls.ts";
 import type { ExternalStore } from "../src/state/hooks.ts";
@@ -21,12 +23,15 @@ export interface CommandsSetup {
   readonly viewer?: ViewerControls;
   readonly labels?: readonly string[];
   readonly actions?: Partial<Record<CommandId, (args: unknown) => void>>;
+  /** An edit session: the edit commands join the reader's. */
+  readonly edits?: EditControls;
 }
 
 /** A registry with the reader's commands, and the context the setup describes. */
 export function readerCommandsFor(setup: CommandsSetup = {}): { registry: CommandRegistry; context: CommandContext } {
   const registry = new CommandRegistry();
   registerReaderCommands(registry);
+  if (setup.edits !== undefined) registerEditCommands(registry);
   const { reader } = setup;
   const context: CommandContext = {
     platform: setup.platform ?? fakePlatform(),
@@ -43,6 +48,7 @@ export function readerCommandsFor(setup: CommandsSetup = {}): { registry: Comman
     ...(setup.viewer === undefined ? {} : { viewer: setup.viewer }),
     ...(setup.labels === undefined ? {} : { labels: setup.labels }),
     ...(setup.actions === undefined ? {} : { actions: setup.actions }),
+    ...(setup.edits === undefined ? {} : { edits: setup.edits }),
   };
   return { registry, context };
 }

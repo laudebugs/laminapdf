@@ -18,6 +18,19 @@ git push origin HEAD
 
 `cargo test -p xtask` compares the installed workflows with these files. It fails until both are installed. Keep these copies in sync when changing either workflow.
 
+### The web reader's train
+
+The web reader releases on its own, apart from the packages ([C7e](../../docs/todos/done/C7e-automated-web-releases.md)). `web-release-train.yml` runs after the same full nightly. When what the reader ships changed since its newest `web-v*` tag, it tags `web-v<next>` on the nightly's commit with the release bot, and that tag runs `web-deploy.yml`'s release gates and production deploy. `cargo xtask web next-release` decides. The patch number goes up by itself. For a new minor or major, raise `apps/web/package.json`'s version in a PR, and the next release takes it as written. Install it the same way:
+
+```sh
+cp tools/release/web-release-train.yml .github/workflows/web-release-train.yml
+git add .github/workflows/web-release-train.yml
+git commit -m "build: install the web reader's release train"
+git push origin HEAD
+```
+
+A release counts as made once its deploy passes the smoke test and creates its GitHub release. When a deploy fails, the next night's release, under a new tag, includes that tag's changes again. Create `web-v0.1.0`'s GitHub release by hand once, from [its notes](../../apps/web/CHANGELOG.md) (`gh release create web-v0.1.0 --verify-tag --notes-file apps/web/CHANGELOG.md`): it predates the train, and the train counts changes from the newest release. Set the repository variable `WEB_RELEASE_TRAIN=off` to stop it. To release by hand, run the workflow with a nightly's run ID, or push a `web-v<version>` tag on a commit of `main`. Each release gets a GitHub release with the tag's notes once its deploy passes the smoke test.
+
 The GitHub App needs contents and pull-request write access to this repository. Set its ID and private key as repository secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY`. Enable auto-merge, squash merging and automatic deletion of merged branches in the repository settings. These settings and the bot secrets were configured by the owner on 2026-11-05.
 
 The existing publishing setup must also be ready: crates.io and npm trusted publishers for `release.yml`, and the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets for production docs. A missing docs credential fails the release; it cannot silently skip deployment and merge the version PR.
@@ -59,3 +72,24 @@ A failed release leaves its branch and, once created, its tag in place. A signin
 If the version PR conflicts with later merges, merge `main` into its branch and finish the PR by hand after checks pass. The release lane refuses to enable auto-merge when that branch differs from the published commit. Automatic branch deletion removes the blocker after the PR merges. A closed, unmerged release PR requires the owner's recovery before another release.
 
 After installation and merge, check the first full nightly's daily-release run. Confirm the same version is on both registries and the production docs, and that its version PR merges. This is the remaining post-merge check in the [task](../../docs/todos/done/P6-daily-release.md).
+
+## The CLI's release
+
+The `laminapdf` command-line tool releases from a `laminapdf-cli-v<version>` tag, which the CLI release train pushes after each daily release. [`.github/workflows/cli-release.yml`](../../.github/workflows/cli-release.yml) builds and installs all eight targets, then publishes three things: the GitHub release with build-provenance attestations, the nine npm packages (`@laminapdf/cli` and one per target) and the Homebrew formula. It publishes only on that tag's push, while the repository variable `LAMINA_PDF_PUBLISH_CLI` is `true`.
+
+Before the first release, the owner does this once:
+
+1. **Create the tap.** Make a public repository `laudebugs/homebrew-tap`. `brew install laudebugs/tap/laminapdf` reads the tap's `Formula/laminapdf.rb`, which each release writes.
+2. **Let the release bot write to it.** Install the release bot, the GitHub App behind `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY`, on `laudebugs/homebrew-tap` with read and write access to its contents. The release asks for a token for that repository alone.
+3. **Publish each npm package once.** npm sets a trusted publisher only on a package that already exists. Tag the same commit you dispatch on, because the tag's run skips versions already on npm. Run the workflow by hand on `main` (`gh workflow run cli-release.yml --ref main`), and download its `cli-npm` artifact. Its `publish.json` lists the tarballs in order. Run `npm login`, then publish each with `npm publish <tarball> --access public --tag <tag from publish.json>`, in that order.
+4. **Add the trusted publisher.** On npmjs.com, open each of the nine packages' settings and add a trusted publisher: GitHub Actions, repository `laudebugs/laminapdf`, workflow `cli-release.yml`, environment `release`.
+5. **Turn publishing on.** Set the repository variable `LAMINA_PDF_PUBLISH_CLI` to `true`.
+
+After that, every daily release brings a CLI release at the same version ([L4h](../../docs/todos/done/L4h-cli-release-train.md)). When the release lane finishes a `v<version>` tag push successfully, `cli-release-train.yml` has the release bot tag `laminapdf-cli-v<version>` on the same commit, and that tag runs `cli-release.yml`. The train checks that the run succeeded and that `v<version>` still names its commit, leaves an existing CLI tag alone, and checks out nothing. Every version gets a CLI release, changed or not, because the docs site's download links name the docs' version. Install it the same way as the other trains (its first PR installed it already):
+
+```sh
+cp tools/release/cli-release-train.yml .github/workflows/cli-release-train.yml
+git add .github/workflows/cli-release-train.yml
+```
+
+Set the repository variable `CLI_RELEASE_TRAIN=off` to stop it; that also stops the hand-run recovery below, so tag by hand while it's off. To tag a release the train missed, run the workflow by hand with the release lane's run ID (`gh workflow run cli-release-train.yml -f release-run-id=<id>`): it prints what it would tag, and pushes the tag only with `-f tag=true`. Or tag by hand: `git tag laminapdf-cli-v<version> v<version>` and push the tag. A failed publish job can be re-run with **Re-run failed jobs**: the GitHub release job uploads its files again to the release it made, npm skips versions it has, and the tap's formula is replaced.

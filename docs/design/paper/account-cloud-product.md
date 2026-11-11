@@ -386,6 +386,33 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 
 **Todos.** [W1c](../../todos/done/W1c-home-page.md).
 
+## H13 How we test
+
+**Purpose.** The website's `/how-we-test/` page (`apps/site`, [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof)): what the nightly measured on its latest full night, with what each figure counts, the licence policy and how the code is written. It answers two questions people ask before choosing a PDF library: how robust is it, and can I use it.
+
+**Entry points.** The site header's "How we test" link on both sites (design language [§7.39](design-language.md#739-site-and-product-pages-proposed), between Performance and Privacy; the owner's decision on 2026-11-11), the home page's "Where each part lives", and the footer's licence line, which links to the licence section.
+
+**Layout.** H12's document sheet on the paper ground, under the same header and footer. One `h1` and a lead paragraph, then a short summary of the night (its date, version and short commit; the checks that failed, if any; how many of the last 30 full nights passed), then sections after a hairline, each an `h2` (Newsreader, `page-heading`) with a paragraph that says what is counted before the figures:
+
+1. **Files that break PDF readers.** A table per source (pdf.js, PDFBox, PDFium, qpdf, the damaged copies of Lamina PDF's own files): files, opened, repaired, refused, refused while another tool opened them; then what "opened" means and doesn't.
+2. **Agreement with other PDF tools.** A table per tool with its version under its name: the share of files where the answers matched, per fact; then page text against pdf.js and pdftotext, per source.
+3. **Fuzzing**, **Saved files that other tools read back** (with the runtimes whose bytes matched), **PDF/A and PDF/UA** (veraPDF's verdict per example) and **Drawing pages: hayro and PDFium** (the share drawn alike in bold, then per source).
+4. **What these figures leave out**, **The licence** (the licence, the allowed licences in two columns, the named exceptions, the banned crates, what the checks cover), **How the code is written**, and **More** (links).
+
+Tables are the home page's package table: a hairline frame with radius 4, labels in `label` and `muted`, rows on hairlines; numbers right-aligned in tabular figures, the first column a row header.
+
+**Content and controls.** Every figure comes from `apps/site/src/data/proof.json`, which `cargo xtask proof snapshot` writes before each production build; the licences come from `Cargo.toml` and `deny.toml` at build time; the words are `HOW_WE_TEST` in `apps/site/src/data/copy.ts`, for the owner to approve. Percentages have one decimal and never round to 100% or 0%.
+
+**States.** A night where a job failed names it in the summary. A section whose job left no report shows one italic `text-2` sentence in place of its figures ("There is no figure for this night: the drawing comparison failed."), never a zero; one whose job failed but left a report adds a sentence saying the figure may leave files out.
+
+**Accessibility.** One `h1`; each section labelled by its `h2`; tables with column and row headers; each table's frame scrolls sideways at phone width, so it is a named region in the tab order. axe finds no violations in light and dark at 375 and 1280 px in Chromium.
+
+**Platform differences.** A web page only; at phone width the tables scroll inside their frames and the page doesn't.
+
+**Artboards.** `H13-how-we-test.dc.html` and `H13-how-we-test-phone.dc.html` in [`website-home/`](website-home/project/canvas.json), drawn from the built page with the 2026-11-10 night's figures.
+
+**Todos.** [T1b](../../todos/done/T1b-how-we-test-page.md).
+
 ## New components
 
 None beyond the proposed additions below; the presence palette, `mono`, the sync status item, the Undo/Redo top bar, the bell, the licence key field, the plan block and card, the site header and the code block were merged into the design language (§2.7, §3, §7.1, §7.19, §7.37–§7.39).

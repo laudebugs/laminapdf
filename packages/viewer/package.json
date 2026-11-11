@@ -1,6 +1,6 @@
 {
   "name": "@laminapdf/viewer",
-  "version": "0.2.0-alpha.3",
+  "version": "0.2.0-alpha.6",
   "description": "The web reader's framework-free viewer core (ADR 0009). Part 1 (C3a): one document worker per document, hosting @laminapdf/sdk and a RenderBackend, behind a typed RPC that extends @laminapdf/sdk/worker with priorities, coalescing, cancellation, timeouts and restart.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",
@@ -34,6 +34,7 @@
     "build:wasm": "pnpm --filter @laminapdf/render --filter @laminapdf/render-pdfium run build && pnpm --filter @laminapdf/render-hayro run build:wasm && tsc -p tsconfig.build.json",
     "typecheck:wasm": "pnpm --filter @laminapdf/render --filter @laminapdf/render-pdfium run build && pnpm --filter @laminapdf/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
     "perf": "node perf/run.ts",
+    "perf:gate": "node perf/gate.ts",
     "test:wasm": "pnpm --filter @laminapdf/render --filter @laminapdf/render-pdfium run build && pnpm --filter @laminapdf/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json && vitest run -c vitest.node.config.ts"
   },
   "dependencies": {

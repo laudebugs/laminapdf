@@ -95,14 +95,18 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D1. IPC and print spikes
 
-**Todos:** [D1a](../todos/ready/D1a-desktop-ipc-spike.md), [D1b](../todos/ready/D1b-desktop-print-spike.md)
+**Todos:** [D1a](../todos/done/D1a-desktop-ipc-spike.md), [D1b](../todos/done/D1b-desktop-print-spike.md)
 
 **Deliverable:** `spikes/desktop-ipc/` measuring Channel vs `ipc::Response` vs `lamina://` scheme for 256/512 px tiles on macOS, Windows and Linux, and whether WKWebView/WebView2/WebKitGTK honour COOP/COEP; `spikes/desktop-print/` comparing `window.print()` with native print paths per OS.
 **Accepted when:** both READMEs report numbers per OS and recommend a tile transport and a print path.
 
+**Result (`desktop-ipc`):** [spikes/desktop-ipc/README.md](../../spikes/desktop-ipc/README.md): lossless WebP tiles of 512 px over the `lamina://` scheme, raw RGBA on the same scheme as the fallback; cross-origin isolation only in WebView2, so the desktop app stays single-threaded; Linux without a GPU driver needs `WEBKIT_DISABLE_DMABUF_RENDERER=1`; Tauri's own dependencies need an MPL-2.0 exception (granted 2026-11-09, `deny.toml`).
+
+**Result (`desktop-print`):** [spikes/desktop-print/README.md](../../spikes/desktop-print/README.md): D4c prints Lamina PDF's own rasters, rendered by the engine, through each OS's print API (AppKit, GDI, GTK) with the OS dialog; no webview print path ships, even as a fallback (WebView2 printed every page on US Letter, WebKitGTK split each page across two sheets, `window.print()` does nothing in WKWebView); PDFium's vector printing on Windows was the most faithful but needs a sandboxed print helper.
+
 ### D2. Shell and native core
 
-**Todos:** [D2a](../todos/ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/ready/D2b-engine-process.md), [D2c](../todos/ready/D2c-engine-sandbox.md), [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md)
+**Todos:** [D2a](../todos/done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/done/D2b-engine-process.md), [D2c](../todos/ready/D2c-engine-sandbox.md), [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md)
 
 **Deliverable:** ADR 0008; `apps/desktop` with Tauri 2, desktop `Platform` adapter, engine child process, tile transport, single window opening one file.
 **Accepted when:** the reader end-to-end scenarios run against the desktop build with WebdriverIO and `@wdio/tauri-service` on Windows and Linux (`tauri-driver`) and on macOS (the service's embedded WebDriver server via `tauri-plugin-wdio-webdriver`, compiled into test builds only behind a Cargo feature) ([Tauri WebDriver docs](https://v2.tauri.app/develop/tests/webdriver/)); the C-round Playwright suite keeps running against the web build on all three OSes (Playwright drives browsers, not Tauri webviews); killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target. If the macOS embedded driver proves unreliable, macOS falls back to the web-build Playwright run plus a recorded manual smoke checklist, and ADR 0008 records the gap.
@@ -157,7 +161,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 1. Mac App Store, Microsoft Store, Flathub: in scope, and when?
 2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)?
-3. One engine process per window, or a shared pool with per-document isolation?
+3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
 4. Default channel for new installs: stable only, or beta during 0.x?
 5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user?
 
@@ -169,19 +173,20 @@ Ticked by the PR that completes them.
 
 ### D1. IPC and print spikes
 
-- [ ] Build `spikes/desktop-ipc` with three tile transports and a scroll benchmark
-- [ ] Measure throughput and latency for 256 and 512 px tiles on macOS, Windows, Linux (x64)
-- [ ] Check `crossOriginIsolated` under COOP/COEP in each webview
-- [ ] Build `spikes/desktop-print` comparing `window.print()` and native print paths per OS
-- [ ] Write both results with recommendations for ADR 0008
+- [x] Build `spikes/desktop-ipc` with three tile transports and a scroll benchmark
+- [x] Measure throughput and latency for 256 and 512 px tiles on macOS, Windows, Linux (x64)
+- [x] Check `crossOriginIsolated` under COOP/COEP in each webview
+- [x] Build `spikes/desktop-print` comparing `window.print()` and native print paths per OS
+- [x] Write both results with recommendations for ADR 0008
 
 ### D2. Shell and native core
 
-- [ ] Write ADR 0008 (Tauri 2, process model, tile transport, Linux fallback)
-- [ ] Create `apps/desktop` and `src-tauri` as a workspace member depending on `crates/*` by path
-- [ ] Implement the desktop `Platform` adapter and capability flags
-- [ ] Implement the engine child process with restart on crash
-- [ ] Implement the chosen tile transport and a positioned-read `ByteSource` (no mmap in the main process; see [D2b](../todos/ready/D2b-engine-process.md))
+- [x] Write ADR 0008 (Tauri 2, process model, tile transport, Linux fallback)
+- [x] Create `apps/desktop` and `src-tauri` as a workspace member depending on `crates/*` by path
+- [x] Implement the desktop `Platform` adapter and capability flags
+- [x] Implement the engine child process with restart on crash
+- [x] Implement a positioned-read `ByteSource` (no mmap in the main process; see [D2b](../todos/done/D2b-engine-process.md) and ADR 0008 §2)
+- [ ] Implement the chosen tile transport
 - [ ] Port the reader end-to-end scenarios to WebdriverIO (`@wdio/tauri-service`): `tauri-driver` on Windows and Linux, embedded WebDriver plugin (test builds only) on macOS; run in CI on three OSes
 - [ ] Record the per-OS test strategy and any macOS gap in ADR 0008
 

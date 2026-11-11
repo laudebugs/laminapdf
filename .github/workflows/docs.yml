@@ -29,6 +29,16 @@ on:
     paths: &inputs
       - apps/docs/**
       - packages/sdk/**
+      # The example runner (B7e) and the WebAssembly it runs and draws with.
+      - crates/**
+      - packages/wasm/**
+      - packages/render/**
+      - packages/render-hayro/**
+      - packages/icons/svg/**
+      - tools/xtask/**
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
       - packages/tokens/**
       - packages/fonts/**
       - packages/site-kit/**
@@ -96,7 +106,7 @@ jobs:
     name: Docs preview (build)
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     permissions:
       contents: read
     steps:
@@ -104,6 +114,19 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/node-pnpm
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        with:
+          cache: true
+          cache-save-if: false
+          cache-shared-key: wasm
+          cache-bin: false
+      # Same version as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
+      - uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      # "Edit and run" (B7e): the docs build makes the example runner from these.
+      - name: Build the example runner's WebAssembly
+        run: cargo xtask web docs-runner
       # Without LAMINA_PDF_ENV=production the build marks every response noindex (ADR 0011 §1).
       - run: pnpm --filter @laminapdf/docs build
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -230,7 +253,7 @@ jobs:
     name: Docs next
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.tag == '')) }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     permissions:
       contents: read
     steps:
@@ -256,6 +279,22 @@ jobs:
           persist-credentials: false
       - if: steps.mode.outputs.mode != 'skip'
         uses: ./.github/actions/node-pnpm
+      - if: steps.mode.outputs.mode != 'skip'
+        uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        with:
+          cache: true
+          cache-save-if: false
+          cache-shared-key: wasm
+          cache-bin: false
+      # Same version as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
+      - if: steps.mode.outputs.mode != 'skip'
+        uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      # "Edit and run" (B7e): the docs build makes the example runner from these.
+      - name: Build the example runner's WebAssembly
+        if: steps.mode.outputs.mode != 'skip'
+        run: cargo xtask web docs-runner
       # Without LAMINA_PDF_ENV=production, every page says it describes unreleased changes and links
       # to the released docs, and the build marks every response noindex.
       - name: Build the site as the next docs
@@ -282,7 +321,7 @@ jobs:
     # workflow github.event_name is the caller's, so the tag input is what marks this job's runs.
     if: ${{ inputs.tag != '' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     permissions:
       contents: read
     steps:
@@ -327,6 +366,22 @@ jobs:
             echo "::error::$TAG holds version $version; the docs would name the wrong version"
             exit 1
           fi
+      - if: steps.mode.outputs.mode != 'skip'
+        uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        with:
+          cache: true
+          cache-save-if: false
+          cache-shared-key: wasm
+          cache-bin: false
+      # Same version as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
+      - if: steps.mode.outputs.mode != 'skip'
+        uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      # "Edit and run" (B7e): the docs build makes the example runner from these.
+      - name: Build the example runner's WebAssembly
+        if: steps.mode.outputs.mode != 'skip'
+        run: cargo xtask web docs-runner
       - name: Build the site
         if: steps.mode.outputs.mode != 'skip'
         env:

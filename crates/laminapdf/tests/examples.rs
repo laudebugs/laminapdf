@@ -13,6 +13,12 @@ mod element_flow;
 #[path = "../examples/extract_markdown.rs"]
 mod extract_markdown;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/flowing_invoice.rs"]
+mod flowing_invoice;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/flowing_report.rs"]
+mod flowing_report;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/generate_then_edit.rs"]
 mod generate_then_edit;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -25,8 +31,14 @@ mod images_and_vectors;
 #[path = "../examples/invoice.rs"]
 mod invoice;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/invoice_from_json.rs"]
+mod invoice_from_json;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/links_and_outlines.rs"]
 mod links_and_outlines;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/markdown_to_pdf.rs"]
+mod markdown_to_pdf;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/multilingual.rs"]
 mod multilingual;
@@ -71,6 +83,10 @@ const IMAGES_AND_VECTORS_ID: &[u8; 16] = b"lamina-ex-vector";
 const LINKS_ID: &[u8; 16] = b"lamina-ex-links!";
 const EDIT_ID: &[u8; 16] = b"lamina-ex-edit!!";
 const FLOW_ID: &[u8; 16] = b"lamina-ex-flow!!";
+const FLOWING_ID: &[u8; 16] = b"lamina-ex-flowng";
+const FLOWING_INVOICE_ID: &[u8; 16] = b"lamina-ex-flowiv";
+const MARKDOWN_ID: &[u8; 16] = b"lamina-ex-mrkdwn";
+const JSON_INVOICE_ID: &[u8; 16] = b"lamina-ex-jsoniv";
 const PRODUCER: &str = "lamina examples";
 const CREATED: &str = "D:20261030120000Z";
 const EDITED: &str = "D:20261030130000Z";
@@ -90,7 +106,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 11] = [
+const EXAMPLES: [(&str, Build); 15] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -115,6 +131,31 @@ const EXAMPLES: [(&str, Build); 11] = [
     }),
     ("element_flow", || {
         element_flow::build(options(FLOW_ID)?, fixture(PHOTO), &FlowReport::load().as_report())
+    }),
+    ("flowing_report", || {
+        let fonts = [NOTO, "fonts/NotoSans-RegularBold.ttc", SCRIPT_FONTS[1], SCRIPT_FONTS[2]];
+        flowing_report::build(options(FLOWING_ID)?, fonts.map(fixture), fixture(PHOTO))
+    }),
+    ("flowing_invoice", || {
+        flowing_invoice::build(
+            options(FLOWING_INVOICE_ID)?,
+            fixture(NOTO),
+            fixture("fonts/NotoSans-RegularBold.ttc"),
+        )
+    }),
+    ("invoice_from_json", || {
+        invoice_from_json::build(
+            options(JSON_INVOICE_ID)?,
+            &fixture("documents/invoice.json"),
+            &fixture("documents/invoice-data.json"),
+            fixture(NOTO),
+            fixture("fonts/NotoSans-RegularBold.ttc"),
+        )
+    }),
+    ("markdown_to_pdf", || {
+        let markdown = String::from_utf8(fixture("markdown/report.md"))?;
+        let fonts = [NOTO, "fonts/NotoSans-RegularBold.ttc", SCRIPT_FONTS[1], SCRIPT_FONTS[2]];
+        markdown_to_pdf::build(options(MARKDOWN_ID)?, &markdown, fonts.map(fixture), fixture(PHOTO))
     }),
 ];
 
@@ -247,7 +288,22 @@ fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     let invoice = fixture("golden/examples/invoice.pdf");
     extract_markdown::write_outputs(&invoice, &out, "invoice").unwrap_or_else(|e| panic!("{e}"));
     let read = |name: &str| std::fs::read_to_string(out.join(name)).unwrap_or_else(|e| panic!("{name}: {e}"));
-    assert!(read("invoice.md").starts_with("<!-- page 1 -->\n\n# Invoice 42\n"));
+    // The whole Markdown is a golden: the docs' Extract Markdown recipe shows it as the example's
+    // output. `UPDATE_GOLDEN=1` rewrites it.
+    let markdown = read("invoice.md");
+    let golden = fixtures_dir().join("extract/examples/invoice.md");
+    if std::env::var_os("UPDATE_GOLDEN").is_some() {
+        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
+            .unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(&golden, &markdown).unwrap_or_else(|e| panic!("{e}"));
+    }
+    let want = std::fs::read_to_string(&golden).unwrap_or_default();
+    assert!(
+        markdown == want,
+        "{} is stale: run with UPDATE_GOLDEN=1",
+        golden.display()
+    );
+    assert!(markdown.starts_with("<!-- page 1 -->\n\n# Invoice 42\n"));
     assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
     assert!(read("invoice.chunks.jsonl").lines().count() >= 1);
     let _ = std::fs::remove_dir_all(&out);

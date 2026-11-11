@@ -16,9 +16,9 @@ use clap::{Args, CommandFactory as _, Parser, Subcommand, ValueEnum};
 use laminapdf::reveal::Category;
 use laminapdf::{Diagnostic, ErrorCode};
 use laminapdf_cli::commands::{
-    self, CheckArgs, CheckReport, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, Format, InfoArgs,
-    InfoReport, OpenArgs, PagesReport, RenderArgs, RenderReport, RevealArgs, RevealReport, RotateArgs, Settings,
-    TextReport,
+    self, BuildArgs, CheckArgs, CheckReport, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, Format,
+    InfoArgs, InfoReport, OpenArgs, PagesReport, RenderArgs, RenderReport, RevealArgs, RevealReport, RotateArgs,
+    Settings, TextReport,
 };
 use laminapdf_cli::exit::{CliError, ExitCode};
 use laminapdf_cli::io::{Io, ProcessIo, STDIO};
@@ -93,6 +93,8 @@ enum Command {
     Info(Many<InfoArgs>),
     /// Read a whole PDF and report what a tolerant read had to repair (exit 3 on warnings).
     Check(Many<CheckArgs>),
+    /// Markdown into a tagged PDF whose pages flow: headings, lists, tables, images, footnotes.
+    Build(BuildArgs),
     /// Change pages.
     #[command(subcommand)]
     Pages(PagesCommand),
@@ -462,6 +464,7 @@ fn finish(
 const fn input_of(command: &Command) -> Option<&str> {
     match command {
         Command::Pages(PagesCommand::Rotate(a)) => Some(a.input.as_str()),
+        Command::Build(a) => Some(a.input.as_str()),
         _ => None,
     }
 }
@@ -522,6 +525,11 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
             let report = commands::rotate(args, settings, io)?;
             let taken = report.output == STDIO && !settings.dry_run;
             outcome(to_json(&report), render::pages_text(&report), report.warnings, taken)
+        }
+        Command::Build(args) => {
+            let report = commands::build(args, settings, io)?;
+            let taken = report.output == STDIO && !settings.dry_run;
+            outcome(to_json(&report), render::build_text(&report), report.warnings, taken)
         }
         Command::Explain(args) => {
             let report = commands::explain(args)?;

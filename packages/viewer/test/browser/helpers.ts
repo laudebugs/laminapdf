@@ -13,6 +13,15 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/corpus/*.pdf",
     "../../../../fixtures/text/encrypted/*.pdf",
     "../../../../fixtures/corpus/expected.json",
+    "../../../../fixtures/golden/text-*.pdf",
+    "../../../../fixtures/golden/build-text-multiscript.pdf",
+    "../../../../fixtures/golden/tagged-report.pdf",
+    "../../../../fixtures/golden/links-and-outlines.pdf",
+    "../../../../fixtures/links/links.pdf",
+    "../../../../fixtures/golden/examples/hello.pdf",
+    "../../../../fixtures/text/extracted.json",
+    "../../../../fixtures/reading-order/*.pdf",
+    "../../../../fixtures/reading-order/*.json",
   ],
   { query: "?url", import: "default", eager: true },
 );
@@ -25,6 +34,13 @@ export const CORPUS = Object.keys(urls)
 /** An AES-256 file whose user password is `user` (fixtures/README.md). */
 export const ENCRYPTED = "fixtures/text/encrypted/text-shaped-aes-256.pdf";
 export const PASSWORD = "user";
+
+/** Where the test server serves `path`, an address the document worker can fetch with Range requests. */
+export function addressOf(path: string): string {
+  const url = urls[`../../../../${path}`];
+  if (url === undefined) throw new Error(`${path} is not served`);
+  return new URL(url, location.href).href;
+}
 
 export async function read(path: string): Promise<Uint8Array> {
   const url = urls[`../../../../${path}`];
@@ -56,8 +72,16 @@ export function testViewer(
   return viewer(backend, { worker: testWorker, ...options });
 }
 
-/** Calls one of the test worker's hooks: `__busy` (ms), `__renderLog` or `__crash`. */
-export function hook(client: ViewerClient, method: "__busy" | "__renderLog" | "__crash", params: unknown[] = []) {
+/**
+ * Calls one of the test worker's hooks: `__busy` (ms; answers the wall clock when the hold ends),
+ * `__renderLog`, `__renderDocument` (a number per render document the worker draws from),
+ * `__failNextReopen`, `__failNextUndo` or `__crash`.
+ */
+export function hook(
+  client: ViewerClient,
+  method: "__busy" | "__renderLog" | "__renderDocument" | "__failNextReopen" | "__failNextUndo" | "__crash",
+  params: unknown[] = [],
+) {
   return (client.call as (m: string, p: unknown[]) => Promise<unknown>).call(client, method, params);
 }
 

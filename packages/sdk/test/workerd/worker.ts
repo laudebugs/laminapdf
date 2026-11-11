@@ -5,11 +5,13 @@
 // alone (memory never shrinks).
 import { init } from "@laminapdf/sdk";
 import notoSans from "../../../../fixtures/fonts/NotoSans-Regular.ttf";
+import notoSansCollection from "../../../../fixtures/fonts/NotoSans-RegularBold.ttc";
 import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.ttf";
 import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Regular.ttf";
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
+import report from "../../../../fixtures/markdown/report.md";
 import flowReport from "../../../../fixtures/text/element-flow-report.json" with { type: "json" };
 import { EXAMPLES, INPUT_PATHS, type Inputs, measure, missingInputs, sha256 } from "../suite/examples.js";
 
@@ -25,6 +27,8 @@ const inputs: Inputs = {
       "fixtures/fonts/NotoSansHebrew-Regular.ttf": notoSansHebrew,
       "fixtures/fonts/NotoSansSC-Regular.otf": notoSansSC,
       "fixtures/images/photo-rgb.jpg": photo,
+      "fixtures/fonts/NotoSans-RegularBold.ttc": notoSansCollection,
+      "fixtures/markdown/report.md": report,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),
   // The element-flow report comes in as a JSON module; the suite reads every input as bytes.

@@ -29,5 +29,6 @@ const tabs = [
     <a class="button-secondary" href="#packages">{OPENING.packages}</a>
     {APP_LAUNCHED && <a class="button-secondary" href={APP_URL}>{OPENING.app}</a>}
   </p>
+  {APP_LAUNCHED && <p class="opening-free">{OPENING.free}</p>}
   <CodePanel tabs={tabs} caption={OPENING.caption} />
 </section>

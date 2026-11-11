@@ -1,0 +1,69 @@
+{
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/build.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.build/1`.",
+  "properties": {
+    "bytes": {
+      "description": "The bytes written (none with `--dry-run`).",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "data": {
+      "description": "The data a document's placeholders read, as given: a path, or `-` (left out without).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "input": {
+      "description": "The input as given: a path, or `-` (standard input, or inline under MCP).",
+      "type": "string"
+    },
+    "output": {
+      "description": "Where the PDF went: a path, or `-`.",
+      "type": "string"
+    },
+    "pageCount": {
+      "description": "The pages built.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "profiles": {
+      "description": "The profiles the PDF meets, as their usual names (`PDF/UA-1`).",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "schema": {
+      "const": "laminapdf.build/1",
+      "description": "`laminapdf.build/1`.",
+      "type": "string"
+    },
+    "tagged": {
+      "description": "Whether the PDF is tagged (the flow tags every document).",
+      "type": "boolean"
+    },
+    "warnings": {
+      "description": "What the PDF leaves out or works around: raw HTML (`markdown-html-ignored`); images that\nare remote, outside the Markdown's folder or missing (`markdown-image-missing`); and\nkeep-together rules it had to break.",
+      "items": {
+        "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/warning"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "input",
+    "output",
+    "pageCount",
+    "bytes",
+    "tagged",
+    "profiles",
+    "warnings"
+  ],
+  "title": "laminapdf.build/1",
+  "type": "object"
+}

@@ -21,7 +21,7 @@ mod fuzz_run;
 pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 10] = [
+pub(crate) const FUZZ_TARGETS: [&str; 14] = [
     "lex",
     "parse_object",
     "flate_decode",
@@ -32,6 +32,10 @@ pub(crate) const FUZZ_TARGETS: [&str; 10] = [
     "save_roundtrip",
     "extract_text",
     "extract",
+    "markdown",
+    "document",
+    "xmp_parse",
+    "engine_protocol_decode",
 ];
 
 /// Default `cargo xtask fuzz` run time in seconds (the scheduled workflow uses 600).
@@ -99,13 +103,17 @@ fn page_text_snapshot(ws: &Workspace, update: bool) -> Result<Vec<String>> {
     Ok(vec!["text/page-text.json".to_owned()])
 }
 
-/// The reading-order corpus (todo U2b): `laminapdf-build`'s `reading_order` example writes it.
-/// With `update`, into `fixtures/reading-order/`, removing the files no layout writes any
-/// more (they would still be scored); without, it compares and returns the files that
-/// differ or have no generator. `threshold.json` is hand-kept.
-fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
-    let dir = ws.root.join("fixtures/reading-order");
-    let out = scratch(ws, "reading-order")?;
+/// The generated corpora: `laminapdf-build`'s example that writes each, and its directory
+/// under `fixtures/`: the reading-order corpus (todo U2b) and the reader-mode corpus (U4b).
+const CORPORA: [(&str, &str); 2] = [("reading_order", "reading-order"), ("reflow", "reflow")];
+
+/// A generated corpus: `laminapdf-build`'s `example` writes it. With `update`, into
+/// `fixtures/<dir>/`, removing the files no generator writes any more (they would still be
+/// read); without, it compares and returns the files that differ or have no generator.
+/// `threshold.json` is hand-kept.
+fn corpus(ws: &Workspace, example: &str, dir_name: &str, update: bool) -> Result<Vec<String>> {
+    let dir = ws.root.join("fixtures").join(dir_name);
+    let out = scratch(ws, dir_name)?;
     ws.cargo(&[
         "run",
         "--locked",
@@ -113,12 +121,13 @@ fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
         "-p",
         "laminapdf-build",
         "--example",
-        "reading_order",
+        example,
         "--",
         &out.to_string_lossy(),
     ])?;
     let generated = files_in(&out)?;
     let mut stale = Vec::new();
+    fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
     for path in &generated {
         let name = path.file_name().context("file name")?;
         let target = dir.join(name);
@@ -127,7 +136,7 @@ fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
             if update {
                 fs::write(&target, &bytes).with_context(|| format!("writing {}", target.display()))?;
             } else {
-                stale.push(format!("reading-order/{}", name.to_string_lossy()));
+                stale.push(format!("{dir_name}/{}", name.to_string_lossy()));
             }
         }
     }
@@ -138,9 +147,9 @@ fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
         }
         if update {
             fs::remove_file(&path).with_context(|| format!("removing {}", path.display()))?;
-            step(&format!("removed {} (no layout writes it)", path.display()));
+            step(&format!("removed {} (no generator writes it)", path.display()));
         } else {
-            stale.push(format!("reading-order/{} (no generator)", name.to_string_lossy()));
+            stale.push(format!("{dir_name}/{} (no generator)", name.to_string_lossy()));
         }
     }
     Ok(stale)
@@ -151,7 +160,7 @@ const GOLDEN_CRATES: [&str; 4] = ["laminapdf-build", "laminapdf-cli", "laminapdf
 
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
 /// source (`--update` writes them in place and prints the list), the `laminapdf` examples' into
-/// `fixtures/golden/examples/` and the reading-order corpus into `fixtures/reading-order/`; without `--update`, checks that regenerating them changes
+/// `fixtures/golden/examples/` and the generated corpora into `fixtures/reading-order/` and `fixtures/reflow/`; without `--update`, checks that regenerating them changes
 /// nothing.
 pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     let golden_dir = ws.root.join("fixtures/golden");
@@ -177,7 +186,10 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     }
     // The façade's examples are goldens too, one directory down (todo B5c).
     let examples = crate::examples::run_all(ws, &out.join("examples"))?;
-    let mut reading_stale = reading_order(ws, update)?;
+    let mut reading_stale = Vec::new();
+    for (example, dir) in CORPORA {
+        reading_stale.extend(corpus(ws, example, dir, update)?);
+    }
     reading_stale.extend(page_text_snapshot(ws, update)?);
     if update {
         // A golden whose example is gone would fail `crates/laminapdf/tests/examples.rs`.
@@ -728,7 +740,8 @@ pub(crate) fn nightly_host() -> Result<String> {
     host_triple(&String::from_utf8_lossy(&output.stdout)).context("no `host:` line in `rustc +nightly -vV`")
 }
 
-fn host_triple(version: &str) -> Option<String> {
+/// The `host:` line of `rustc -vV`'s output.
+pub(crate) fn host_triple(version: &str) -> Option<String> {
     version
         .lines()
         .find_map(|line| line.strip_prefix("host: "))
@@ -749,7 +762,8 @@ const SAVE_SEED_CONTROL: [u8; 8] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04]
 /// saved crash inputs in `fixtures/regressions/<target>/` and everything under
 /// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`,
 /// follow [`SAVE_SEED_CONTROL`] for `save_roundtrip` (which also gets `fixtures/signed/`), and
-/// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead;
+/// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead, `markdown` from
+/// `fixtures/markdown/`, `xmp_parse` from `fixtures/golden/xmp/`, and `document` and `engine_protocol_decode` from their seeds alone;
 /// crash inputs and hand-written seeds are copied verbatim (they already are what the target
 /// reads). Seed names carry their source path, so files from different folders never
 /// collide. Returns the corpus directory.
@@ -760,6 +774,21 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
     if target == "ops_json" {
         // Op logs, not PDFs: the frozen samples of the op format.
         fixtures.extend(files_in(&ws.root.join("fixtures/ops/v1"))?);
+    } else if target == "markdown" {
+        // Markdown, not PDFs: the example's report (and fuzz/seeds/markdown/, copied below), not
+        // the photo beside it that `laminapdf build` reads.
+        fixtures.extend(
+            files_in(&ws.root.join("fixtures/markdown"))?
+                .into_iter()
+                .filter(|p| p.extension().is_some_and(|e| e == "md")),
+        );
+    } else if target == "xmp_parse" {
+        // XMP packets, not PDFs: the producers' packets and their edited goldens.
+        fixtures.extend(files_in(&ws.root.join("fixtures/golden/xmp"))?);
+    } else if target == "document" {
+        // A template and its data, not PDFs: only fuzz/seeds/document/, copied below.
+    } else if target == "engine_protocol_decode" {
+        // Frames, not PDFs: only fuzz/seeds/engine_protocol_decode/, copied below.
     } else {
         for dir in ["fixtures/corpus", "fixtures/golden", "fixtures/content"] {
             fixtures.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));

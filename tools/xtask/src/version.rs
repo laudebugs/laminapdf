@@ -157,7 +157,7 @@ fn plan(root: &Path) -> Result<Plan> {
         members: packages,
     } = fixed_group_version(root)?;
     let mut updates = Vec::new();
-    let mut problems = Vec::new();
+    let mut problems = crate::changesets::private_packages_outside_ignore(root)?;
     let mut update = |path: PathBuf, old: &str, new: String| {
         if old != new {
             updates.push((path, new));
@@ -321,13 +321,7 @@ fn fixed_group(config: &str) -> Result<Vec<String>> {
 /// one a member's name points to (`@laminapdf/render` → `packages/render`); two folders with the same
 /// member name fail.
 fn find_packages(root: &Path, names: &[String]) -> Result<BTreeMap<String, (PathBuf, Value)>> {
-    let dir = root.join(PACKAGES_DIR);
-    let mut folders: Vec<PathBuf> = fs::read_dir(&dir)
-        .with_context(|| format!("listing {}", dir.display()))?
-        .filter_map(|entry| entry.ok().map(|e| e.path()))
-        .filter(|path| path.join("package.json").is_file())
-        .collect();
-    folders.sort();
+    let folders = package_folders(root, PACKAGES_DIR)?;
     let mut found: BTreeMap<String, (PathBuf, Value)> = BTreeMap::new();
     for folder in folders {
         let path = folder.join("package.json");
@@ -369,7 +363,19 @@ fn find_packages(root: &Path, names: &[String]) -> Result<BTreeMap<String, (Path
     Ok(found)
 }
 
-fn read_json(path: &Path) -> Result<Value> {
+/// The folders under `root/dir` that hold a `package.json`, sorted.
+pub(crate) fn package_folders(root: &Path, dir: &str) -> Result<Vec<PathBuf>> {
+    let dir = root.join(dir);
+    let mut folders: Vec<PathBuf> = fs::read_dir(&dir)
+        .with_context(|| format!("listing {}", dir.display()))?
+        .filter_map(|entry| entry.ok().map(|e| e.path()))
+        .filter(|path| path.join("package.json").is_file())
+        .collect();
+    folders.sort();
+    Ok(folders)
+}
+
+pub(crate) fn read_json(path: &Path) -> Result<Value> {
     serde_json::from_str(&read(path)?).with_context(|| format!("{} is not JSON", path.display()))
 }
 
@@ -500,7 +506,9 @@ fn manifest_problems(manifest: &str, version: &str) -> Result<Vec<String>> {
     Ok(problems)
 }
 
-/// The manifests of the root workspace's members (`[workspace] members`, `dir/*` globs expanded).
+/// The manifests of the root workspace's members (`[workspace] members`, with `dir/*` and
+/// `dir/*/sub` globs expanded, as Cargo does; the root lists the Tauri apps' crates by path,
+/// since Dependabot can't read `dir/*/sub`).
 fn member_manifests(root: &Path, manifest: &str) -> Result<Vec<PathBuf>> {
     let table: toml::Table = toml::from_str(manifest).context("Cargo.toml is not valid TOML")?;
     let members = table
@@ -511,21 +519,36 @@ fn member_manifests(root: &Path, manifest: &str) -> Result<Vec<PathBuf>> {
     let mut manifests = Vec::new();
     for member in members {
         let member = member.as_str().context("[workspace] members must be strings")?;
-        if let Some(dir) = member.strip_suffix("/*") {
+        if let Some((dir, sub)) = split_glob(member)? {
             let mut found: Vec<PathBuf> = fs::read_dir(root.join(dir))
                 .with_context(|| format!("listing {dir}"))?
-                .filter_map(|entry| entry.ok().map(|e| e.path().join("Cargo.toml")))
+                .filter_map(|entry| entry.ok().map(|e| e.path().join(sub).join("Cargo.toml")))
                 .filter(|path| path.is_file())
                 .collect();
             found.sort();
             manifests.extend(found);
-        } else if member.contains('*') {
-            bail!("member glob {member:?}: only `dir/*` is supported");
         } else {
             manifests.push(root.join(member).join("Cargo.toml"));
         }
     }
     Ok(manifests)
+}
+
+/// A member glob as the folder before its `*` and the path after it (`""` for `dir/*`), or `None`
+/// for a plain path. Only one `*`, as a whole path segment, is supported.
+fn split_glob(member: &str) -> Result<Option<(&str, &str)>> {
+    if !member.contains('*') {
+        return Ok(None);
+    }
+    if let Some(dir) = member.strip_suffix("/*")
+        && !dir.contains('*')
+    {
+        return Ok(Some((dir, "")));
+    }
+    match member.split_once("/*/") {
+        Some((dir, sub)) if !dir.contains('*') && !sub.contains('*') => Ok(Some((dir, sub))),
+        _ => bail!("member glob {member:?}: only `dir/*` and `dir/*/sub` are supported"),
+    }
 }
 
 /// A member manifest's package name, and whether it inherits the workspace version.
@@ -741,9 +764,32 @@ mod tests {
 
     use super::{
         CHANGELOG_HEADER, Command, compare_versions, fixed_group, is_version, manifest_problems, parse_args, plan,
-        root_changelog, sync_lockfile, sync_manifest, sync_version_ts, with_version,
+        root_changelog, split_glob, sync_lockfile, sync_manifest, sync_version_ts, with_version,
     };
     use crate::tracked::TempTree;
+
+    #[test]
+    fn split_glob_should_read_a_trailing_wildcard() {
+        assert_eq!(split_glob("crates/*").ok().flatten(), Some(("crates", "")));
+    }
+
+    #[test]
+    fn split_glob_should_read_a_wildcard_folder_with_a_sub_path() {
+        assert_eq!(
+            split_glob("apps/*/src-tauri").ok().flatten(),
+            Some(("apps", "src-tauri"))
+        );
+    }
+
+    #[test]
+    fn split_glob_should_leave_a_plain_path_alone() {
+        assert_eq!(split_glob("tools/xtask").ok().flatten(), None);
+    }
+
+    #[test]
+    fn split_glob_should_refuse_two_wildcards() {
+        assert!(split_glob("apps/*/x/*").is_err());
+    }
 
     const MANIFEST: &str = "\
 [workspace]

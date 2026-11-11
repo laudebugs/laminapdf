@@ -33,12 +33,16 @@ When one layer asks for something another refuses, check whether both compute th
 
 Change the design so the bug can't recur. Don't make the failing case pass with a guard, a retry, a wider tolerance or a special case. When two layers disagree, give the quantity one home ([maintainability.md](maintainability.md): one home per concept) and make both layers use it. The blurry-zoom fix exported the renderer's own rule, `pagePixels`, and the viewer sizes its canvases and tiles with it, so the viewer can no longer ask for a tile the renderer refuses.
 
+The same holds for a failing test, in CI or on your machine. Don't change product code only to make a test pass. First find out why it fails. If the product is wrong, fix the cause as above. If the test checks something that doesn't make sense (a timing the user never notices, a shortcut of the wrong platform, an implementation detail), change it to check what the user needs, or remove it and say why in the commit message. A change you can't explain by what it does for the user is a patch, and it leaves the real fault in place.
+
 Note what you leave alone. A retry for a failed tile, or a canvas size that would stay sharp at very high zoom, could be worth doing, but they are separate changes with their own PRs.
 
 ## 7. Prove the fix
 
 - **A regression test that fails without the fix.** Sweep the inputs that matter (here zoom levels, pixel ratios, page sizes and rotations) rather than adding one case. Then run the old rule through the same sweep and count the failures it would have had. Under the old rule, the blurry-zoom sweep failed in 4,365 of 14,464 cases.
 - **The reproduction again.** Rerun step 1's steps and compare with the evidence you kept: the same zoom levels, the same screenshots, now with no failed request.
+- **For a visual bug, a test of what the user does and sees.** Drive the interaction the user performs (a real mouse drag, real keys) and check what they would see, not only what an API returns. The text layer's tests selected through the Selection API and passed while no mouse drag could select anything; once a drag could, its tint hid the text it selected, and only a check of the pixels would have caught it.
+- **For a visual bug, a look from the user's side.** Ask whether the user can now do what they came to do, not only whether the symptom is gone: try the fix in the built app in a real browser, as they would, and look at the screenshots.
 - **The package's own suites.** Run them in every runtime they cover (Node and the browsers for the viewer).
 
 ## 8. Record it and report

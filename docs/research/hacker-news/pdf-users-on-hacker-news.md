@@ -244,7 +244,7 @@ Features no longer set a PDF tool apart: 359 Show HN PDF posts appeared in 2026,
   - round trips checked by qpdf, pdf.js and PDFium
   - the nightly differential against pdf.js, PDFium, qpdf and pypdf
 - **The gap:** none of this evidence reaches users.
-- **Work:** [T1a](../../todos/done/T1a-nightly-proof-figures.md) records the nightly's figures as data, and [T1b](../../todos/ready/T1b-how-we-test-page.md) publishes them on the website with the licence and where the code comes from. [U5b](../../todos/ready/U5b-reader-benchmark.md) compares the reader with others.
+- **Work:** [T1a](../../todos/done/T1a-nightly-proof-figures.md) records the nightly's figures as data, and [T1b](../../todos/done/T1b-how-we-test-page.md) publishes them on the website with the licence and where the code comes from. [U5b](../../todos/ready/U5b-reader-benchmark.md) compares the reader with others.
 
 ### R2. Ship real redaction, and catch fake redaction in any file
 
@@ -300,7 +300,7 @@ Control over pages is the generation request with the clearest gap (~345 comment
 
 - **Lamina PDF today:** `laminapdf-build` places text runs and breaks lines inside one box, reporting what overflows. The [library plan](../../plans/pdf-library.md) lists a flowing layout engine as a non-goal for now, and its open question 4 asks whether layout should become a library goal.
 - **The gap:** the most common unmet generation need.
-- **Work:** [T4a](../../todos/done/T4a-adr-0032-layout-engine.md) answers open question 4 in [ADR 0032](../../decisions/0032-flowing-layout-and-document-inputs.md), after a spike that weighed an engine of our own over `Surface` against embedding Typst: our own engine. [T4f](../../todos/done/T4f-flow-builder-groundwork.md), [T4g](../../todos/done/T4g-flow-styled-spans.md), [T4b](../../todos/ready/T4b-flow-layout-core.md), [T4c](../../todos/ready/T4c-flow-tables-notes-contents.md) and [T4h](../../todos/ready/T4h-flow-notes-contents-outline.md) build the flow layer, and [T4d](../../todos/ready/T4d-markdown-documents.md), [T4i](../../todos/ready/T4i-build-command-and-bindings.md), [T4e](../../todos/ready/T4e-json-documents-and-templates.md) and [T4j](../../todos/ready/T4j-documents-in-typescript.md) the Markdown and JSON inputs. [T1c](../../todos/done/T1c-publish-performance-numbers.md) publishes generation timings: a Typst user reports [under 100 ms for a two-page invoice](https://news.ycombinator.com/item?id=45697377).
+- **Work:** [T4a](../../todos/done/T4a-adr-0032-layout-engine.md) answers open question 4 in [ADR 0032](../../decisions/0032-flowing-layout-and-document-inputs.md), after a spike that weighed an engine of our own over `Surface` against embedding Typst: our own engine. [T4f](../../todos/done/T4f-flow-builder-groundwork.md), [T4g](../../todos/done/T4g-flow-styled-spans.md), [T4b](../../todos/done/T4b-flow-layout-core.md), [T4c](../../todos/done/T4c-flow-tables-notes-contents.md) and [T4h](../../todos/done/T4h-flow-notes-contents-outline.md) build the flow layer, and [T4d](../../todos/done/T4d-markdown-documents.md), [T4i](../../todos/done/T4i-build-command-and-bindings.md), [T4e](../../todos/done/T4e-json-documents-and-templates.md) and [T4j](../../todos/ready/T4j-documents-in-typescript.md) the Markdown and JSON inputs. [T1c](../../todos/done/T1c-publish-performance-numbers.md) publishes generation timings: a Typst user reports [under 100 ms for a two-page invoice](https://news.ycombinator.com/item?id=45697377).
 
 ### R6. Keep the reader fast, quiet and safe
 
@@ -312,7 +312,7 @@ Speed draws the most reader praise and slowness the second-largest complaint, 47
 
 - **Lamina PDF today:** PDFium in a document worker (ADRs 0004 and 0009), telemetry and hosted features only by opt-in (ADR 0011), and the viewer performance harness.
 - **The gap:** none beyond the plans.
-- **Work:** [C7c](../../todos/ready/C7c-performance-gates-and-launch.md) turns the performance targets into gates, [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md) shows the network indicator, and [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) publishes the promises.
+- **Work:** [C7c](../../todos/done/C7c-performance-gates-and-launch.md) turns the performance targets into gates, [U4a](../../todos/done/U4a-network-indicator-and-privacy-proof.md) shows the network indicator, and [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) publishes the promises.
 
 ### R7. Serve long reading: reflow, a dark page, papers and manuals
 
@@ -324,9 +324,9 @@ Reflow for phones comes up in 501 reader comments, and dark mode in 90, a rising
 
 > "when you re-open a PDF, opens it at the position you were last time(!!!)." ([2017-07-24](https://news.ycombinator.com/item?id=14839643))
 
-- **Lamina PDF today:** ADR 0024 §5 fixes a dark page that recolours text and paths and never images ([U2c](../../todos/ready/U2c-page-appearance-modes.md)). Reader mode comes from the structure tree, then by approximation ([U4b](../../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md)). Find lists every match ([C5b](../../todos/ready/C5b-find-in-document.md)), and [C6a](../../todos/ready/C6a-thumbnails-outline-page-labels.md) and [C6b](../../todos/ready/C6b-links-and-history.md) plan the outline and links with history. The performance harness already scrolls 1,000 pages.
+- **Lamina PDF today:** ADR 0024 §5 fixes a dark page that recolours text and paths and never images ([U2c](../../todos/done/U2c-page-appearance-modes.md)). Reader mode comes from the structure tree, then by approximation ([U4b](../../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/done/U4c-approximate-reader-mode.md)). Find lists every match ([C5b](../../todos/done/C5b-find-in-document.md)), and [C6a](../../todos/done/C6a-thumbnails-outline-page-labels.md) and [C6b](../../todos/done/C6b-links-and-history.md) plan the outline and links with history. The performance harness already scrolls 1,000 pages.
 - **The gap:** previews of internal links and citations, and reopening each file at its last position.
-- **Work:** [T5a](../../todos/ready/T5a-link-previews.md) and [T5b](../../todos/ready/T5b-reopen-at-last-position.md).
+- **Work:** [T5a](../../todos/done/T5a-link-previews.md) and [T5b](../../todos/done/T5b-reopen-at-last-position.md).
 
 ### R8. Sanitise without flattening, and report what a file reveals
 
@@ -358,7 +358,7 @@ Licences decide which library people pick (~150 comments), and warnings about AG
   - an invoice with embedded XML (`pdf_a3_invoice_with_xml`)
   - PDF/UA-1 and PDF/A-2b, 2u and 3b profiles, checked by veraPDF every night
 - **The gap:** the website and docs don't say so where people decide.
-- **Work:** [T1b](../../todos/ready/T1b-how-we-test-page.md) states the licence and where the code comes from; [T1d](../../todos/done/T1d-snapshot-testing-guide.md) shows users how to snapshot-test their own PDFs. Whether tagged output becomes the default is an open question in the [plan](../../plans/trust-and-proof.md).
+- **Work:** [T1b](../../todos/done/T1b-how-we-test-page.md) states the licence and where the code comes from; [T1d](../../todos/done/T1d-snapshot-testing-guide.md) shows users how to snapshot-test their own PDFs. Whether tagged output becomes the default is an open question in the [plan](../../plans/trust-and-proof.md).
 
 ### R10. Grow the CLI and MCP server for chained jobs
 

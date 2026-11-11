@@ -8,7 +8,7 @@ A recipe's reader should see what its code makes without leaving the page, and c
 
 An example gets a preview only when it makes something a reader can look at. Three kinds follow from that rule:
 
-- **It makes a PDF:** Code and Result tabs, with pictures of every page and the link to open the PDF. The Rust and TypeScript twins write the same bytes, so one Result serves both languages.
+- **It makes a PDF:** a Result tab after the TypeScript and Rust tabs, in one row, with pictures of every page and the link to open the PDF. The Rust and TypeScript twins write the same bytes, so one Result serves both languages.
 - **It turns a PDF into text:** Code and Output tabs, with the text it prints, taken from its golden.
 - **It sets something up, or checks something:** code only. A Worker's `wrangler.toml`, a test helper or a worker client has no output worth showing.
 
@@ -36,7 +36,7 @@ An example gets a preview only when it makes something a reader can look at. Thr
 
 An `Example` component in `apps/docs` wraps the language tabs that pages already use, and adds a Result or Output tab when the example has one. The Result tab shows each page as an image with its alt text and page number, the link to open the PDF, and the PDF's size. Pictures load lazily (`loading="lazy"`), so a page with five examples costs nothing until a reader opens a tab.
 
-The pictures come from the example goldens, rendered at 144 dpi (2× the render goldens' 72 dpi) by the render tooling in `tools/render`, as WebP. They are committed to `apps/docs/public/examples/preview/`, next to a manifest of each golden PDF's SHA-256. `cargo xtask check docs` compares the manifest with `fixtures/golden/examples/`, so a changed example can't ship with old pictures; regenerating them is one command. The docs build stays as it is: no WebAssembly, no Python.
+The pictures come from the example goldens, rendered at 144 dpi (2× the render goldens' 72 dpi) by the render tooling in `tools/render` (hayro), as PNG. They are committed to `apps/docs/public/examples/preview/`, next to a manifest of each golden PDF's SHA-256. `cargo xtask check docs` compares the manifest with `fixtures/golden/examples/`, so a changed example can't ship with old pictures; regenerating them is one command. The docs build stays as it is: no WebAssembly, no Python.
 
 ### Edit and run (B7e)
 
@@ -44,11 +44,14 @@ An "Edit and run" button on the Result tab loads, on first press, a small runner
 
 - **Editor:** CodeMirror 6 (MIT) with TypeScript highlighting, holding the example's own file.
 - **Types:** stripped by Sucrase (MIT) in the runner, with no type check, so a typo shows as the error the SDK throws, not a compiler message.
-- **Run:** in an iframe page on the docs site, `sandbox="allow-scripts"` without `allow-same-origin`, so the code it runs can't read the docs' storage. That page gets its own headers in `_headers` (`'unsafe-eval'` for it alone); the rest of the site keeps ADR 0011's headers unchanged. The page imports the docs' own build of `@laminapdf/sdk` and any fonts or images the example takes, all from the docs site.
-- **Result:** the bytes come back to the page, `@laminapdf/viewer` (PDFium) draws them in the Result tab, and a Download button saves them. An error shows its code and hint, as `LaminaPdfError` gives them.
+- **Run:** in a module worker the docs site serves at `/run/worker.js`. A worker's CSP comes from its own script's response, so `_headers` gives `/run/*` a policy of its own with `'unsafe-eval'`, and every page keeps ADR 0011's headers unchanged. The worker loads the docs' own build of `@laminapdf/sdk` and the fonts, images and data the example takes, all from the docs site, and passes the same fixed file ID and date as the SDK's tests, so an unchanged example gives its golden's bytes.
+- **Result:** `@laminapdf/render-hayro` draws each page in the worker, the same renderer as the Result tab's pictures, and the page shows them as canvases in the Result tab. A Download button saves the PDF. An error shows its code and hint, as `LaminaPdfError` gives them.
 - **Reset:** puts the example's file back.
+- **Limits:** a run stops after 30 seconds, so an endless loop can't hang the page, and draws at most 20 pages.
 
-Only the first press loads anything: about 3.5 MB (the SDK's text module and PDFium) and the editor. Rust tabs keep the Result pictures, with no button.
+Only the first press loads anything: the editor (CodeMirror), then, on the first run, about 3 MB gzipped (the SDK's text module and hayro). Rust tabs keep the Result pictures, with no button.
+
+The first draft of this plan ran the code in a sandboxed iframe and drew it with `@laminapdf/viewer` (PDFium). The worker needs neither: it runs only the docs' own examples, as edited by the reader in their own tab, and its separate CSP keeps `'unsafe-eval'` off every page. hayro also keeps the drawn pages identical to the pictures and ships no third-party engine.
 
 ## 3. What this plan leaves out
 
@@ -60,10 +63,10 @@ Only the first press loads anything: about 3.5 MB (the SDK's text module and PDF
 
 | Todo | Delivers |
 | --- | --- |
-| [B7d](../todos/ready/B7d-docs-example-results.md) | The `Example` component, Result and Output tabs, page pictures with their manifest and check, every page in §1 moved to it |
-| [B7e](../todos/ready/B7e-docs-edit-and-run.md) | "Edit and run" for the six examples in §1: editor, sandboxed runner, viewer, download, reset |
+| [B7d](../todos/done/B7d-docs-example-results.md) | The `Example` component, Result and Output tabs, page pictures with their manifest and check, every page in §1 moved to it |
+| [B7e](../todos/done/B7e-docs-edit-and-run.md) | "Edit and run" for the six examples in §1: editor, runner worker, pages drawn by hayro, download, reset |
 
 ## 5. To-dos
 
-- [ ] Show every example's result beside its code ([B7d](../todos/ready/B7d-docs-example-results.md))
-- [ ] Let readers edit and run the TypeScript examples that teach by changing ([B7e](../todos/ready/B7e-docs-edit-and-run.md))
+- [x] Show every example's result beside its code ([B7d](../todos/done/B7d-docs-example-results.md))
+- [x] Let readers edit and run the TypeScript examples that teach by changing ([B7e](../todos/done/B7e-docs-edit-and-run.md))

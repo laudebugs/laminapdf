@@ -7,7 +7,12 @@ export type {
   FillRule,
   LineCap,
   LineJoin,
+  MarkdownFonts,
+  MarkdownOptions,
+  MarkdownReport,
+  PageRegion,
   PageSizeName,
+  PageTemplate,
   StrokeStyle,
   TableScope,
   Tag,
@@ -71,6 +76,15 @@ export { onLeak } from "./internal/handle.js";
 export type { Transform } from "./matrix.js";
 export { Matrix } from "./matrix.js";
 export type { PathBuilder } from "./path.js";
+export type {
+  PageImageReason,
+  Reflow,
+  ReflowBlock,
+  ReflowChecks,
+  ReflowKind,
+  ReflowRefusal,
+  ReflowSource,
+} from "./reflow.js";
 export type { HttpRangeOptions } from "./source/http.js";
 export { httpRangeSource } from "./source/http.js";
 export type { ByteRange, RangeOptions, RangeSource } from "./source/range.js";
@@ -88,6 +102,7 @@ export type {
   Color,
   Direction,
   DocumentInfo,
+  DocumentProperties,
   Edited,
   Fit,
   Limits,
@@ -98,16 +113,23 @@ export type {
   OpenOptions,
   OpLog,
   OutlineEntry,
+  OutlineNode,
   Overflow,
   PageInfo,
   PageLabel,
+  PageLink,
   Point,
   Profile,
   Progress,
   Rect,
   RenderMode,
+  Reverted,
   SaveOptions,
   SaveReport,
+  StructureKid,
+  StructureNode,
+  Target,
+  TargetView,
   TextLayout,
   TextRunInfo,
   UndoOutcome,

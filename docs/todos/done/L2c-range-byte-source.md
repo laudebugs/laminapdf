@@ -27,8 +27,8 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 - [ADR 0005 §2](../../decisions/0005-document-model.md#2-bytesource-and-ownership-of-the-input): `ByteSource` (`Send + Sync`, `read_at`, `as_slice`), the `Pending` → `DataPending` retry pattern, "edge implementations: mmap, `FileReaderSync`, HTTP-range cache … none in core crates".
 - [B2d](../done/B2d-windowed-reading.md): windows, chunked repair, `DataPending` carrying only the needed ranges, and its risk that lazy calls after open can also return `DataPending`.
 - [Report: bytes cross once](../../research/libraries/shareable-libraries.md#bytes-cross-once-ranges-are-pulled-and-the-core-stays-synchronous) and [rust-core-bridge note §4](../../research/libraries/notes/rust-core-bridge.md#4-zero-copy-streaming-partial-loading): pdf.js range/stream/auto-fetch options, PDFium's `FPDF_AVAIL` pull model **[unverified]**, the tail-first read for non-linearized files, and incremental save returning only the appended part.
-- [C3a](../done/C3a-viewer-worker-rpc.md) (a TS `ByteSource` interface `read(offset, length, signal)`, `size`) and [C4c](../ready/C4c-remote-files-encryption-privacy.md) (`HttpRangeByteSource` in the viewer with block cache, `ETag` check → `source-changed`, privacy fetch options). Align with both, so the viewer can reuse this source instead of writing its own.
-- [D2b](../ready/D2b-engine-process.md): the desktop main process uses positioned reads, **not** `memmap2`, because a mapped file truncated underneath raises `SIGBUS`.
+- [C3a](../done/C3a-viewer-worker-rpc.md) (a TS `ByteSource` interface `read(offset, length, signal)`, `size`) and [C4c](../done/C4c-remote-files-encryption-privacy.md) (`HttpRangeByteSource` in the viewer with block cache, `ETag` check → `source-changed`, privacy fetch options). Align with both, so the viewer can reuse this source instead of writing its own.
+- [D2b](../done/D2b-engine-process.md): the desktop main process uses positioned reads, **not** `memmap2`, because a mapped file truncated underneath raises `SIGBUS`.
 - [Code organisation §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction) and [Rust guideline: unsafe](../../guidelines/rust.md#unsafe): fs and `unsafe` only in edge crates, with `// SAFETY:` comments.
 
 ## Scope
@@ -62,8 +62,8 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 **Out of scope** (and which todo covers it)
 
 - The windowed reader and chunked repair themselves: [B2d](../done/B2d-windowed-reading.md).
-- Viewer block cache on OPFS, privacy fetch options and the remote-URL UI: [C4c](../ready/C4c-remote-files-encryption-privacy.md) (it should wrap `httpRangeSource`).
-- The desktop engine's IPC-backed source: [D2b](../ready/D2b-engine-process.md).
+- Viewer block cache on OPFS, privacy fetch options and the remote-URL UI: [C4c](../done/C4c-remote-files-encryption-privacy.md) (it should wrap `httpRangeSource`).
+- The desktop engine's IPC-backed source: [D2b](../done/D2b-engine-process.md).
 - Linearization fast paths and prefetch hints: later, if the web perf harness ([C3c](./C3c-viewer-perf-harness.md)) asks for it.
 - Returning only the appended bytes of an incremental save: a follow-up on the save API ([B3c](../done/B3c-save-planner-and-roundtrip.md) area).
 - Streaming input (`ReadableStream`) with no `size`: later; it needs a growing source and tail-last handling.
@@ -113,12 +113,12 @@ None.
 - [x] `crates/lamina-source/README.md` (sparse sources, `open_with`, native sources), `packages/sdk/README.md` (remote and large files)
 - [x] `CLAUDE.md` (layout: `crates/lamina-source`; reading API paragraph mentions range sources)
 - [x] ADR 0005 §2: implementation note naming `SparseSource` and the edge crate
-- [x] [C4c](../ready/C4c-remote-files-encryption-privacy.md): a Context line pointing at `httpRangeSource`, so the viewer wraps it instead of duplicating it
+- [x] [C4c](../done/C4c-remote-files-encryption-privacy.md): a Context line pointing at `httpRangeSource`, so the viewer wraps it instead of duplicating it
 
 ## Risks and open questions
 
 - **Sync API and lazy `DataPending`:** every lazy call on a range document can need more data. `doc.ensure` makes that explicit but clumsy. Recommendation: point range users to the worker client, where the loop is hidden behind Promises; keep `ensure` for in-thread use. Decide in the PR with the reviewer.
-- **mmap at all?** [D2b](../ready/D2b-engine-process.md) avoids it in the desktop main process because of `SIGBUS`. Recommendation: ship `FileSource` as the default and `MmapSource` only behind a feature, documented as unsafe if the file changes. Drop it if no consumer wants it.
+- **mmap at all?** [D2b](../done/D2b-engine-process.md) avoids it in the desktop main process because of `SIGBUS`. Recommendation: ship `FileSource` as the default and `MmapSource` only behind a feature, documented as unsafe if the file changes. Drop it if no consumer wants it.
 - **Round trips:** non-linearized files need the tail, then the xref, then objects, so latency adds up. Recommendation: let B2d's `DataPending` return several ranges at once, add readahead in the adapter, and measure rounds per corpus file (ratio only, no wall clock, per ADR 0018).
 - **CORS and compression** on third-party hosts are outside lamina's control. Document them, and fail with clear codes.
 - **Crate name** `lamina-source` vs `lamina-io`: decide in the PR. Check [code organisation §11](../../guidelines/code-organization.md#11-when-to-split-a-crate-or-package-and-when-not-to) before adding a crate.

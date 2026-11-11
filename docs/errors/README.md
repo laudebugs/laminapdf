@@ -36,6 +36,7 @@ A PR that adds a code adds:
 | [`outline-cycle`](outline-cycle.md) | `input` | an outline item was reached twice; that branch of the walk stopped |
 | [`outline-item-skipped`](outline-item-skipped.md) | `input` | an outline item was missing, not a dictionary or too deep, and was skipped with its subtree |
 | [`invalid-date`](invalid-date.md) | `input` | an Info date is not a valid PDF date; the raw string is kept |
+| [`xmp-invalid`](xmp-invalid.md) | `input` | the XMP metadata packet is not readable XMP and reads as absent |
 | [`invalid-page-label`](invalid-page-label.md) | `input` | a /PageLabels entry is malformed; the malformed part is dropped |
 | [`invalid-entry`](invalid-entry.md) | `input` | an entry a view reads is unreadable or of the wrong type and reads as absent |
 | [`content-unknown-operator`](content-unknown-operator.md) | `input` | an operator the spec does not define was skipped outside a BX/EX section |
@@ -169,6 +170,20 @@ A PR that adds a code adds:
 | [`device-color-without-output-intent`](device-color-without-output-intent.md) | `usage` | a DeviceCMYK colour or image was used, but the PDF/A output intent is sRGB |
 | [`embedded-file-forbidden`](embedded-file-forbidden.md) | `usage` | PDF/A-2 doesn't allow attached files that aren't PDF/A themselves |
 | [`embedded-file-without-mime-type`](embedded-file-without-mime-type.md) | `usage` | an attached file has no MIME type, which every PDF/A profile requires |
+| [`flow-content-too-large`](flow-content-too-large.md) | `usage` | a line or a figure of a flow is taller than the page's body, so no page can hold it |
+| [`flow-layout-unstable`](flow-layout-unstable.md) | `internal` | a flow's contents page kept changing its page numbers after four layouts |
+| [`invalid-document`](invalid-document.md) | `usage` | a laminapdf.document/1 document has an unknown key, a missing one or a value of the wrong kind |
+| [`template-data-missing`](template-data-missing.md) | `usage` | a template's $data, $each or $item points to a value the data doesn't have |
+| [`template-data-type`](template-data-type.md) | `usage` | a template's placeholder found data of the wrong kind: $each over something that isn't a list, or text from an object |
+| [`template-too-large`](template-too-large.md) | `usage` | a template would fill in more values, or nest deeper, than a document may hold |
+
+## Build warnings (`laminapdf-build`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`flow-keep-broken`](flow-keep-broken.md) | `usage` | blocks kept together are taller than a page, so the flow split them |
+| [`markdown-html-ignored`](markdown-html-ignored.md) | `unsupported` | the Markdown holds raw HTML, which the PDF leaves out |
+| [`markdown-image-missing`](markdown-image-missing.md) | `usage` | the Markdown names an image that wasn't supplied, so the PDF leaves it out |
 
 ## Render errors (`laminapdf-render`)
 

@@ -2,9 +2,11 @@
 // "Loading pages…" or "Locked" while those apply; the page input, zoom, Commands and More on the
 // right. Without a document the file area shows what the shell gives it (the wordmark, or Back).
 // It reads the reader controller and the viewer; its buttons run registered commands
-// (`view.toggle-sidebar`, `palette.open`), whose handlers are the shell's.
+// (`view.toggle-sidebar`, `palette.open`), whose handlers are the shell's. On a phone (§6.2) it keeps
+// the file name and More, which opens the More sheet; the bottom bar holds the rest, pinch replaces
+// the zoom, and the bar slides away while the document scrolls down and back when it scrolls up.
 
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button as AriaButton } from "react-aria-components";
 import { useCommand } from "../commands/react.js";
 import { IconButton } from "../components/button.js";
@@ -12,6 +14,7 @@ import { type KeyPlatform, ShortcutChip } from "../components/shortcut-chip.js";
 import { ToggleButton } from "../components/toggle.js";
 import { message } from "../messages.js";
 import { Menu, type MenuEntry, MenuTrigger } from "../overlays/popover.js";
+import { MoreSheet, usePhone } from "../shell/phone.js";
 import { type ExternalStore, useStoreState } from "../state/hooks.js";
 import type { ReaderState } from "../state/reader-machine.js";
 import { LockedPageInput, PageInput } from "./page-input.js";
@@ -32,10 +35,33 @@ export interface ReaderTopBarProps<Id extends string> {
   labels?: readonly string[];
   /** Whether the sidebar is open: the toggle shows it, and runs `view.toggle-sidebar` when pressed. */
   sidebarOpen?: boolean;
+  /** Whether the find bar is open: the Find button shows it, pressed, and runs `find.open` when pressed. */
+  findOpen?: boolean;
+  /**
+   * Whether reader mode is on: the Reader toggle shows it, pressed, and runs `view.reader-mode`;
+   * while it is on, the page input and zoom hide and the Reader settings button, which runs
+   * `view.reader-settings`, takes the View button's place.
+   */
+  readerMode?: boolean;
+  /** Whether the reader settings panel is open: the Reader settings button's `aria-expanded`. */
+  readerSettingsOpen?: boolean;
+  /**
+   * Where Back and Forward go, as page labels (`undefined`: nowhere, so the button is disabled);
+   * left out, there are no history buttons. They run `nav.back` and `nav.forward`.
+   */
+  history?: { readonly back: string | undefined; readonly forward: string | undefined };
+  /**
+   * The editor's part of the file area (§7.1's editor top bar), after the file name: `EditArea`
+   * from `@laminapdf/ui/editing`, the save state then Undo and Redo. Pass it only while a document
+   * is open; left out, the bar is the reader's.
+   */
+  editArea?: ReactNode;
   /** The file area without a document: the wordmark, or Back. "No document open" when left out. */
   home?: ReactNode;
   /** A `DebugMenu`, which the shell shows only for `#debug`. */
   debug?: ReactNode;
+  /** The View settings button with its popover (`ViewSettingsButton`, R10), after Find. */
+  view?: ReactNode;
   /** The More menu's items, gated by capability where they need one (`useGatedEntries`). */
   more: {
     /** The menu's entries. */
@@ -45,12 +71,123 @@ export interface ReaderTopBarProps<Id extends string> {
   };
 }
 
+/** A viewer that never scrolls, for a top bar without one. */
+const STILL: ExternalStore<{ readonly scrollTop?: number; readonly percent?: number }> = {
+  getState: () => ({}),
+  subscribe: () => () => undefined,
+};
+
+/** Scrolled this far down past where it last turned, the phone's top bar hides. */
+const HIDE_AFTER = 24;
+/**
+ * After the bar hides or shows, scrolling is ignored this long (ms): the viewer grows or shrinks by
+ * the bar's height and re-fits its zoom, which moves the scroll position by half that, and would
+ * otherwise toggle the bar back and forth.
+ */
+const SETTLE_MS = 400;
+
+/** Whether the phone's top bar is out of the way: hidden while `viewer` scrolls down, back on the way up. */
+function useHiddenWhileScrolling(viewer: ViewerControls | undefined, phone: boolean): boolean {
+  const top = useStoreState<{ readonly scrollTop?: number }, number>(viewer ?? STILL, (s) => s.scrollTop ?? 0);
+  const percent = useStoreState<{ readonly percent?: number }, number>(viewer ?? STILL, (s) => s.percent ?? 100);
+  const [hidden, setHidden] = useState(false);
+  // Where the scrolling last turned: any move up shows the bar, a move down past HIDE_AFTER hides it.
+  const turn = useRef(top);
+  const quietUntil = useRef(0);
+  const isHidden = useRef(false);
+  const zoomedTo = useRef(percent);
+  useEffect(() => {
+    const now = performance.now();
+    // A zoom (a pinch, a double tap) moves the scroll to keep a point still: never a reason to move
+    // the bar, which would shift the page under the fingers.
+    if (percent !== zoomedTo.current) {
+      zoomedTo.current = percent;
+      quietUntil.current = now + SETTLE_MS;
+    }
+    if (!phone || now < quietUntil.current) {
+      turn.current = top;
+      return;
+    }
+    const moved = top - turn.current;
+    if (moved < 0 || moved > HIDE_AFTER) {
+      turn.current = top;
+      if (isHidden.current !== moved > 0) quietUntil.current = now + SETTLE_MS;
+      isHidden.current = moved > 0;
+      setHidden(moved > 0);
+    }
+  }, [top, percent, phone]);
+  return phone && hidden && top > 0;
+}
+
+/** The phone's top bar: the file area, and More as a sheet. */
+function PhoneTopBar<Id extends string>(props: ReaderTopBarProps<Id> & { hidden: boolean }): ReactNode {
+  const state = useStoreState(props.reader, (s) => s);
+  const [more, setMore] = useState(false);
+  return (
+    // Hidden, the bar is inert, so focus never rests in it out of sight.
+    <header className="paper-top-bar" data-phone="" data-hidden={props.hidden || undefined} inert={props.hidden}>
+      <div className="paper-top-bar-file">
+        <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
+      </div>
+      {props.debug}
+      <IconButton icon="more" label={message("reader.more")} onPress={() => setMore(true)} />
+      <MoreSheet isOpen={more} onOpenChange={setMore} more={props.more} keys={props.keys} />
+    </header>
+  );
+}
+
 /** The reader's top bar. */
 export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNode {
+  const phone = usePhone();
+  const hidden = useHiddenWhileScrolling(props.viewer, phone);
+  return phone ? <PhoneTopBar {...props} hidden={hidden} /> : <DesktopTopBar {...props} />;
+}
+
+/** The Reader toggle: pressed while reader mode is on. */
+function ReaderToggle({ readerMode }: { readerMode: boolean }): ReactNode {
+  const reader = useCommand("view.reader-mode");
+  if (reader.availability.state === "hidden") return null;
+  return (
+    <ToggleButton
+      icon="reader"
+      aria-label={message("command.view.reader-mode")}
+      isSelected={readerMode}
+      isDisabled={reader.availability.state === "disabled"}
+      onChange={() => reader.run()}
+    />
+  );
+}
+
+/** The Reader settings button, which takes the View button's place while reader mode is on (R14). */
+function ReaderSettingsButton({ open }: { open: boolean }): ReactNode {
+  const settings = useCommand("view.reader-settings");
+  if (settings.availability.state === "hidden") return null;
+  return (
+    <IconButton
+      icon="view-settings"
+      label={message("command.view.reader-settings")}
+      aria-expanded={open}
+      onPress={() => settings.run()}
+    />
+  );
+}
+
+/** The View button, or while reader mode is on, the Reader settings button in its place. */
+function ViewOrReaderSettings({
+  readerMode,
+  readerSettingsOpen,
+  view,
+}: Pick<ReaderTopBarProps<string>, "readerMode" | "readerSettingsOpen" | "view">): ReactNode {
+  return readerMode === true ? <ReaderSettingsButton open={readerSettingsOpen === true} /> : view;
+}
+
+/** The top bar on a window wider than a phone. */
+function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNode {
   const state = useStoreState(props.reader, (s) => s);
   const { viewer, keys, more } = props;
   const sidebar = useCommand("view.toggle-sidebar");
   const palette = useCommand("palette.open");
+  const find = useCommand("find.open");
   return (
     <header className="paper-top-bar">
       <div className="paper-top-bar-file">
@@ -64,15 +201,30 @@ export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): R
           />
         )}
         <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
+        {props.editArea}
       </div>
       <div className="paper-top-bar-tools">
         {state.phase === "needs-password" ? <LockedPageInput /> : null}
-        {viewer === undefined || state.phase !== "open" ? null : (
+        {viewer === undefined || state.phase !== "open" || props.readerMode === true ? null : (
           <>
+            {props.history === undefined ? null : <HistoryButtons history={props.history} />}
             <PageInput viewer={viewer} {...(props.labels === undefined ? {} : { labels: props.labels })} />
             <ZoomControl viewer={viewer} keys={keys} />
           </>
         )}
+        {state.phase !== "open" ? null : <ReaderToggle readerMode={props.readerMode === true} />}
+        {state.phase !== "open" || find.availability.state === "hidden" ? null : (
+          // A plain button: pressing it again puts the focus back in the field, so it is never a
+          // toggle; it shows find is open with `aria-expanded`.
+          <IconButton
+            icon="find"
+            label={message("command.find.open")}
+            aria-expanded={props.findOpen === true}
+            isDisabled={find.availability.state === "disabled"}
+            onPress={() => find.run()}
+          />
+        )}
+        <ViewOrReaderSettings {...props} />
         {palette.availability.state === "hidden" ? null : (
           <AriaButton className="paper-commands-button" onPress={() => palette.run()}>
             <span>{message("reader.commands")}</span>
@@ -92,6 +244,40 @@ export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): R
         </MenuTrigger>
       </div>
     </header>
+  );
+}
+
+/** Back and Forward (R07): named by where they go, disabled when they go nowhere. */
+function HistoryButtons({ history }: { history: NonNullable<ReaderTopBarProps<string>["history"]> }): ReactNode {
+  const back = useCommand("nav.back");
+  const forward = useCommand("nav.forward");
+  if (back.availability.state === "hidden" && forward.availability.state === "hidden") return null;
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: a toolbar group of buttons, as R07 specifies; <fieldset> holds form controls.
+    <div className="paper-top-bar-history" role="group" aria-label={message("reader.history")}>
+      <IconButton
+        icon="back"
+        size={26}
+        label={
+          history.back === undefined
+            ? message("command.nav.back")
+            : message("reader.history.back", { page: history.back })
+        }
+        isDisabled={history.back === undefined || back.availability.state !== "available"}
+        onPress={() => back.run()}
+      />
+      <IconButton
+        icon="forward"
+        size={26}
+        label={
+          history.forward === undefined
+            ? message("command.nav.forward")
+            : message("reader.history.forward", { page: history.forward })
+        }
+        isDisabled={history.forward === undefined || forward.availability.state !== "available"}
+        onPress={() => forward.run()}
+      />
+    </div>
   );
 }
 

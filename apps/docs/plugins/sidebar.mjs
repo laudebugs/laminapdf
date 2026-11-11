@@ -36,6 +36,7 @@ export function sidebar(typeDoc) {
         { label: "Pages and coordinates", slug: "concepts/pages-and-coordinates" },
         { label: "Errors and warnings", slug: "concepts/errors-and-warnings" },
         { label: "What Lamina PDF writes and what it borrows", slug: "concepts/dependencies" },
+        { label: "How a page is drawn", slug: "concepts/drawing-pages" },
       ],
     },
     {
@@ -44,6 +45,7 @@ export function sidebar(typeDoc) {
         { label: "Text and fonts", slug: "guides/fonts-and-text" },
         { label: "Shapes, colour and images", slug: "guides/images-and-vectors" },
         { label: "Links, outlines and metadata", slug: "guides/links-outlines-and-metadata" },
+        { label: "Pages that flow", slug: "guides/flowing-pages" },
         { label: "Accessible PDFs", slug: "guides/accessible-pdfs" },
         { label: "Archival PDFs", slug: "guides/archival-pdfs" },
       ],
@@ -55,6 +57,19 @@ export function sidebar(typeDoc) {
         { label: "Save a PDF", slug: "guides/save-a-pdf" },
         { label: "Open password-protected files", slug: "guides/password-protected-files" },
         { label: "Open files you don't trust", slug: "guides/untrusted-files" },
+        { label: "Open large files by ranges", slug: "guides/open-large-files" },
+      ],
+    },
+    {
+      label: "Command line",
+      items: [
+        { label: "The command line", slug: "cli" },
+        { label: "Install the tool", slug: "cli/install" },
+        { label: "Inspect and check PDFs", slug: "cli/inspect" },
+        { label: "Extract text and render pages", slug: "cli/extract-and-render" },
+        { label: "Make and change PDFs", slug: "cli/build-and-edit" },
+        { label: "Scripts and batch jobs", slug: "cli/scripts" },
+        { label: "Connect an AI agent (MCP)", slug: "cli/mcp" },
       ],
     },
     {

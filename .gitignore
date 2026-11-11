@@ -1,5 +1,7 @@
 # OS
 .DS_Store
+# macOS AppleDouble metadata (._<name>), written beside files by some copies and archives
+._*
 Thumbs.db
 desktop.ini
 
@@ -84,3 +86,5 @@ __diff_output__/
 # The docs that ship inside the packages (L5a), written by apps/docs/scripts/package-docs.mjs.
 /packages/sdk/docs/
 /crates/laminapdf/docs/
+# The docs' example runner, built before `astro build` by apps/docs/scripts/build-runner.mjs.
+apps/docs/public/run/

@@ -123,7 +123,7 @@ pub(crate) const MODULES: [Module; 4] = [
         name: "extract",
         krate: "laminapdf-wasm",
         artefact: "laminapdf_wasm",
-        features: &["--features", "extract"],
+        features: &["--features", "extract,reflow"],
     },
     // laminapdf-render's hayro adapter (C2c, ADR 0004 §5): its own crate, wrapped by
     // @laminapdf/render-hayro; never loaded by @laminapdf/sdk.
@@ -411,7 +411,7 @@ impl Sizes {
 
 /// The size of `bytes` as a gzip file at level 9: the deflate stream plus gzip's 18-byte
 /// header and trailer (RFC 1952).
-fn gzip_len(bytes: &[u8]) -> u64 {
+pub(crate) fn gzip_len(bytes: &[u8]) -> u64 {
     len(miniz_oxide::deflate::compress_to_vec(bytes, 9).len() + 18)
 }
 

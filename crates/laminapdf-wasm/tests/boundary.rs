@@ -215,6 +215,74 @@ fn a_text_call_that_fails_draws_nothing() {
     assert!(!bytes.windows(5).any(|w| w == b"Hello"));
 }
 
+/// `WasmDocument.outline` and `namedDestination` (the extract and text modules): nested items
+/// with page targets, views tagged by `kind`, and `undefined` for an unknown name.
+#[cfg(feature = "extract")]
+#[wasm_bindgen_test]
+fn the_outline_and_named_destinations_cross_as_records() {
+    use js_sys::Array;
+    const NAV: &[u8] = include_bytes!("../../../fixtures/golden/links-and-outlines.pdf");
+    let doc = WasmDocument::open_bytes(NAV.to_vec(), &JsValue::UNDEFINED).unwrap();
+    let outline: Array = doc.outline().unwrap().dyn_into().unwrap();
+    let chapters = outline.get(2);
+    assert_eq!(string(&chapters, "title").as_deref(), Some("Chapters"));
+    let children: Array = get(&chapters, "children").dyn_into().unwrap();
+    assert_eq!(get(&get(&children.get(0), "target"), "page").as_f64(), Some(2.0));
+    let contents = doc.named_destination("contents").unwrap();
+    assert_eq!(string(&get(&contents, "view"), "kind").as_deref(), Some("fit"));
+    assert!(doc.named_destination("nowhere").unwrap().is_undefined());
+}
+
+/// `WasmDocument.properties` (the extract and text modules): Info entries, a nested `contains`,
+/// encryption with its permissions, and fonts as records.
+#[cfg(feature = "extract")]
+#[wasm_bindgen_test]
+fn properties_cross_as_one_record() {
+    use js_sys::Array;
+    const OUTLINE: &[u8] = include_bytes!("../../../fixtures/corpus/outline.pdf");
+    const ENC: &[u8] = include_bytes!("../../../fixtures/corpus/enc.pdf");
+    let doc = WasmDocument::open_bytes(OUTLINE.to_vec(), &JsValue::UNDEFINED).unwrap();
+    let p = doc.properties().unwrap();
+    assert_eq!(string(&p, "title").as_deref(), Some("Outline fixture"));
+    assert_eq!(string(&p, "created").as_deref(), Some("2026-10-28T12:00:00Z"));
+    assert_eq!(get(&p, "pageCount").as_f64(), Some(3.0));
+    assert_eq!(get(&get(&p, "contains"), "forms").as_bool(), Some(false));
+    let fonts: Array = get(&p, "fonts").dyn_into().unwrap();
+    assert_eq!(string(&fonts.get(0), "name").as_deref(), Some("Helvetica"));
+    // A missing value is left out, never `null`: the `.d.ts` types it as optional.
+    assert!(Reflect::has(&p, &JsValue::from_str("encryption")).is_ok_and(|has| !has));
+    let enc = WasmDocument::open_bytes(ENC.to_vec(), &JsValue::UNDEFINED).unwrap();
+    let encryption = get(&enc.properties().unwrap(), "encryption");
+    assert_eq!(get(&encryption, "revision").as_f64(), Some(6.0));
+    assert!(get(&get(&encryption, "permissions"), "print").as_bool().is_some());
+}
+
+/// `WasmDocument.pageLinks` (the extract and text modules): a rectangle in page space, the kind
+/// at the top level beside its fields, and `page-index-out-of-range` past the end.
+#[cfg(feature = "extract")]
+#[wasm_bindgen_test]
+fn page_links_cross_as_records_tagged_by_kind() {
+    use js_sys::Array;
+    const LINKS: &[u8] = include_bytes!("../../../fixtures/links/links.pdf");
+    let doc = WasmDocument::open_bytes(LINKS.to_vec(), &JsValue::UNDEFINED).unwrap();
+    let links: Array = doc.page_links(0).unwrap().dyn_into().unwrap();
+    let first = links.get(0);
+    assert_eq!(string(&first, "kind").as_deref(), Some("dest"));
+    assert_eq!(get(&get(&first, "target"), "page").as_f64(), Some(2.0));
+    let rect: Array = get(&first, "rect").dyn_into().unwrap();
+    assert_eq!(rect.get(1).as_f64(), Some(38.0));
+    assert_eq!(string(&links.get(1), "name").as_deref(), Some("chapter"));
+    assert_eq!(
+        string(&links.get(3), "uri").as_deref(),
+        Some("https://example.com/a?b=c#d")
+    );
+    assert_eq!(string(&links.get(3), "contents").as_deref(), Some("The project site"));
+    assert_eq!(string(&links.get(10), "kind").as_deref(), Some("named-action"));
+    assert_eq!(string(&links.get(12), "action").as_deref(), Some("Launch"));
+    let err = doc.page_links(3).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("page-index-out-of-range"));
+}
+
 /// `WasmPage.text` (the extract and text modules): lines, runs as records, one quad per glyph
 /// in a `Float32Array`, glyph text with UTF-16 offsets.
 #[cfg(feature = "extract")]
@@ -239,6 +307,22 @@ fn page_text_crosses_as_a_struct_of_arrays() {
         .text(&js(r#"{"skipInvisibles":true}"#))
         .unwrap_err();
     assert_eq!(string(&err, "code").as_deref(), Some("unknown-option"));
+}
+
+/// `WasmDocument.reflow` (the extract module): reader mode's JSON in one string.
+#[cfg(feature = "reflow")]
+#[wasm_bindgen_test]
+fn reflow_crosses_as_json_and_reads_an_untagged_file_approximately() {
+    const MIXED: &[u8] = include_bytes!("../../../fixtures/reflow/mixed.pdf");
+    let doc = WasmDocument::open_bytes(MIXED.to_vec(), &JsValue::UNDEFINED).unwrap();
+    let json = doc.reflow().unwrap();
+    assert!(json.starts_with(r#"{"available":true,"source":"tags","#), "{json}");
+    assert!(json.contains(r#""kind":"figure""#) && json.contains(r#""alt":"Four coloured squares in a grid""#));
+    let untagged = hello().reflow().unwrap();
+    assert!(
+        untagged.starts_with(r#"{"available":true,"source":"approximate","reason":"untagged""#),
+        "{untagged}"
+    );
 }
 
 #[wasm_bindgen_test]
@@ -279,4 +363,28 @@ fn header_footer_and_watermark_are_artifact_kinds() {
         assert!(page.begin_artifact(kind).is_ok(), "{kind}");
         page.end_tag().unwrap();
     }
+}
+
+/// `WasmBuilder.markdown` (the text module): its options record refuses an unknown key, the
+/// template's too, and a Latin document builds in the standard 14 fonts.
+#[cfg(feature = "text")]
+#[wasm_bindgen_test]
+fn markdown_options_refuse_unknown_keys_and_a_latin_document_builds() {
+    use laminapdf_wasm::WasmMarkdownOptions;
+    let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
+    let resources = WasmMarkdownOptions::new();
+    let err = builder
+        .markdown("# Hi\n", &resources, &js(r#"{"contentz":2}"#))
+        .unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("unknown-option"));
+    let err = builder
+        .markdown("# Hi\n", &resources, &js(r#"{"page":{"size":[420,595],"footr":{}}}"#))
+        .unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("unknown-option"));
+    let report = builder
+        .markdown("# Notes\n\nPlain *Latin* text.\n", &resources, &js(r#"{"contents":1}"#))
+        .unwrap();
+    let pages: js_sys::Array = get(&report, "pages").dyn_into().unwrap();
+    assert!(pages.length() >= 1);
+    assert_eq!(builder.finish().unwrap().page_count().unwrap(), pages.length());
 }

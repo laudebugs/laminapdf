@@ -14,14 +14,15 @@
     "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
     "typecheck": "ASTRO_TELEMETRY_DISABLED=1 astro sync && tsc --noEmit",
     "test": "vitest run",
-    "share-image": "node scripts/share-image.mjs"
+    "share-image": "node scripts/share-image.mjs",
+    "story-image": "node scripts/story-image.mjs"
   },
   "devDependencies": {
     "@laminapdf/fonts": "workspace:*",
     "@laminapdf/site-kit": "workspace:*",
     "@laminapdf/tokens": "workspace:*",
     "@types/node": "catalog:",
-    "astro": "7.4.2",
+    "astro": "7.4.5",
     "playwright": "catalog:",
     "shiki": "catalog:",
     "typescript": "catalog:",

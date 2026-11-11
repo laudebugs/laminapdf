@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [B7a](../done/B7a-docs-site.md), [C7c](./C7c-performance-gates-and-launch.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D7c](./D7c-desktop-beta-release.md) |
+| Depends on | [B7a](../done/B7a-docs-site.md), [C7c](../done/C7c-performance-gates-and-launch.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D7c](./D7c-desktop-beta-release.md) |
 | ADRs | Follows 0011 (hosted service, privacy, telemetry) — the pricing page must agree with it |
 | Branch | `docs/u5a-pricing-and-promises` |
 | PR title | `docs(site): publish pricing, product promises and performance targets` |
@@ -19,12 +19,12 @@ lamina will be priced (owner decision, 2026-10-29). The research found that user
 
 ## Context
 
-- [T1b](./T1b-how-we-test-page.md) states the licence and what checks it at `/how-we-test/`; the promise that the code stays MIT OR Apache-2.0 links there, and the performance page links to [T1c](../done/T1c-publish-performance-numbers.md)'s benchmarks page for the library's numbers.
+- [T1b](../done/T1b-how-we-test-page.md) states the licence and what checks it at `/how-we-test/`; the promise that the code stays MIT OR Apache-2.0 links there, and the performance page links to [T1c](../done/T1c-publish-performance-numbers.md)'s benchmarks page for the library's numbers.
 - **Design (Paper):** [H02 Account and plan](../../design/paper/account-cloud-product.md#h02-account-and-plan), [H08 Pricing and promises page](../../design/paper/account-cloud-product.md#h08-pricing-and-promises-page), [H11 Upgrade prompt before work starts](../../design/paper/account-cloud-product.md#h11-upgrade-prompt-before-work-starts). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §4 principle 10 and §5.9](../../plans/ui-ux.md#59-product-promises-r18-r19) — "priced, never hostile" and the fair-pricing rules.
 - [Research: monetisation](../../research/product/pdf-app-product-and-ux.md#monetisation-the-obsidian-template) — Obsidian (free core, paid services), Stirling-PDF's paid tiers, the GoodNotes/LiquidText/PDF Expert backlash after changed deals; Acrobat Studio's AI tier. The free-core model was considered and not chosen.
 - [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — the targets table (desktop gates: cold start < 300 ms, installer < 15 MB).
-- The website (`apps/site`, [W1b](../done/W1b-site-scaffold-and-deploys.md)), where these pages live ([website plan §4](../../plans/website.md#4-the-website)); [B7a](../done/B7a-docs-site.md) — the docs site they link to; [C7c](./C7c-performance-gates-and-launch.md) and [D7c](./D7c-desktop-beta-release.md) — the web launch and desktop beta they follow, so every promise and gate can be checked against shipped builds.
+- The website (`apps/site`, [W1b](../done/W1b-site-scaffold-and-deploys.md)), where these pages live ([website plan §4](../../plans/website.md#4-the-website)); [B7a](../done/B7a-docs-site.md) — the docs site they link to; [C7c](../done/C7c-performance-gates-and-launch.md) and [D7c](./D7c-desktop-beta-release.md) — the web launch and desktop beta they follow, so every promise and gate can be checked against shipped builds.
 - [Architecture §8 Q2](../../plans/architecture.md#8-open-questions-for-the-team) and [H2](./H2-accounts-and-login.md) — the hosted service and accounts, one possible way to check entitlements.
 
 ## Scope

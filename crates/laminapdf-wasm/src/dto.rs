@@ -274,12 +274,16 @@ impl From<laminapdf::DocumentInfo> for DocumentInfoJs {
 pub(crate) struct EditedJs {
     /// IDs of the pages whose content or attributes changed.
     pub touched_pages: Vec<String>,
+    /// Whether the edit changed the document: one that only set values they already had leaves
+    /// no step to undo.
+    pub changed: bool,
 }
 
 impl From<laminapdf::Edited> for EditedJs {
     fn from(e: laminapdf::Edited) -> Self {
         Self {
             touched_pages: e.touched_pages.iter().map(ToString::to_string).collect(),
+            changed: e.changed,
         }
     }
 }
@@ -341,6 +345,25 @@ impl From<&laminapdf::UndoOutcome> for UndoOutcomeJs {
             laminapdf::UndoOutcome::Applied => Self::Applied,
             laminapdf::UndoOutcome::Partial { .. } => Self::Partial,
             _ => Self::Skipped,
+        }
+    }
+}
+
+/// What an undo or redo did (`laminapdf::Reverted`).
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct RevertedJs {
+    /// How it went.
+    pub outcome: UndoOutcomeJs,
+    /// IDs of the pages the undone or redone transaction touched: draw these again.
+    pub touched_pages: Vec<String>,
+}
+
+impl From<laminapdf::Reverted> for RevertedJs {
+    fn from(r: laminapdf::Reverted) -> Self {
+        Self {
+            outcome: UndoOutcomeJs::from(&r.outcome),
+            touched_pages: r.touched_pages.iter().map(ToString::to_string).collect(),
         }
     }
 }

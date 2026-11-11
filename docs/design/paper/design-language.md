@@ -159,7 +159,7 @@ Used for find results and for every other search hit on the page (Find sensitive
 | Dark (paper `#22211F`, ink `#E6E1D8`) | `#5A4520` (ink 6.99) | 1 px bottom `#E0AE5A` (7.95 on paper, 4.50 on fill) | `#7A5818` (ink 4.98) | 2 px `#7DBDC2` (7.61 on paper) |
 | High contrast | system `Mark` / `MarkText` | 1 px bottom: the ink `#FFFFFF` | system `Highlight` / `HighlightText` | 2 px: the ink `#FFFFFF` |
 
-On a High contrast page, the edge and the outline are the ink rather than `CanvasText`: the paper there is always `#000000`, and outside forced colours `CanvasText` is black too. The page's white ink under a `Mark` or `Highlight` fill can't be measured in advance, so the renderer draws the text under those fills in `MarkText` or `HighlightText` ([U2c](../../todos/ready/U2c-page-appearance-modes.md)); the tokens report those pairs as exempt.
+On a High contrast page, the edge and the outline are the ink rather than `CanvasText`: the paper there is always `#000000`, and outside forced colours `CanvasText` is black too. The page's white ink under a `Mark` or `Highlight` fill can't be measured in advance, so the renderer draws the text under those fills in `MarkText` or `HighlightText` ([U2c](../../todos/done/U2c-page-appearance-modes.md)); the tokens report those pairs as exempt.
 
 ### 2.7 Fixed content palettes
 
@@ -331,6 +331,7 @@ Each icon's markup lives in `packages/icons/svg/<file>.svg` (`@laminapdf/icons`)
 | Zoom out | `zoom-out` | `<path d="M6 12h12"></path>` |
 | Zoom in | `zoom-in` | `<path d="M6 12h12M12 6v12"></path>` |
 | More (⋯) | `more` | `<circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle>` |
+| Menu (☰) | `menu` | `<path d="M4.5 7h15M4.5 12h15M4.5 17h15"></path>` |
 | Close | `close` | `<path d="M6 6l12 12M18 6L6 18"></path>` |
 | Back | `back` | `<path d="M15 5l-7 7 7 7"></path>` |
 | Copy | `copy` | `<rect x="8.5" y="8.5" width="11" height="11" rx="1.5"></rect><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"></path>` |
@@ -1092,10 +1093,10 @@ One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, 
 
 ### 7.27 Tooltip and link preview
 
-In `@laminapdf/ui`: `Tooltip`, in the popover layer. The link preview stays proposed.
+In `@laminapdf/ui`: `Tooltip` and `LinkPreview`, in the popover layer.
 
 - **Tooltip:** `surface`, `chip-border` edge, radius 6, floating shadow, 12 px text plus a shortcut chip, 6 px below the control; `role="tooltip"`; shown on hover after 500 ms and on keyboard focus; hoverable; Escape dismisses.
-- **Link preview (proposed):** popover (z 30) 248 px, `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a 92 px crop of the target page's top (thumbnail shadow) over the target title (Newsreader 15/500) and a 12 `muted` line (“Link to page 11 · Enter to go”). Shown after 300 ms on hover or focus; `role="tooltip"`, hoverable, Escape dismisses.
+- **Link preview:** popover (z 30) at least 248 px (`link-preview-width`), `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a crop of the destination (thumbnail shadow) over the destination's title (Newsreader 15/500) and a 12 `muted` line (“Link to page 11 · Enter to go”). A destination with no point gets a 224 × 92 px crop of the page's top (`link-preview-crop-width`, `-height`). One with a point (a citation) gets a crop from that point across its text column, at the reader's zoom clamped to 100–150 %, up to 480 × 180 px (`link-preview-crop-max-width`). Under the link, above it when there is no room. Shown after 300 ms on hover or focus; `role="tooltip"` named by the link's `aria-describedby`, hoverable, Escape dismisses. On touch, a long-press opens it as a medium sheet with **Go to page 11** instead.
 - **Address box:** a URL shown before acting on it: white, `hairline` edge, radius 4, padding `10px 12px`, wraps anywhere, host in 600 `text` (punycode for international hosts), the rest `text-3`.
 
 ### 7.28 Popover (proposed)
@@ -1202,7 +1203,7 @@ Drawn over the page (layer 1, §4) and `aria-hidden` unless stated. Every overla
 
 ### 7.39 Site and product pages (proposed)
 
-- **Site header** (the website at `laminapdf.com` and the docs site): 64 px, max 1120 px: wordmark Source Sans 3 24/700 (the docs site is sans-only, §3), the one site nav for every page of both sites (15 px links Download · Docs · Pricing · Performance · Privacy; current 600 + 2 px `accent` underline), and one secondary button, “Open the web app” (shown once the reader launches, [website plan §4](../../plans/website.md#4-the-website)). The download page uses a 56 px variant with a 22 px Source Sans 3 wordmark and the same five links and button. Footer 12 `muted` with the licence line. No app shell.
+- **Site header** (the website at `laminapdf.com` and the docs site): 64 px, max 1120 px: wordmark Source Sans 3 24/700 (the docs site is sans-only, §3), the one site nav for every page of both sites (15 px links Download · Docs · Pricing · Performance · How we test · Privacy, How we test added by the owner on 2026-11-11 with screen H13; current 600 + 2 px `accent` underline), and one secondary button, “Open the web app” (shown once the reader launches, [website plan §4](../../plans/website.md#4-the-website)). The download page uses a 56 px variant with a 22 px Source Sans 3 wordmark and the same links and button. Footer 12 `muted` with the licence line. No app shell.
 - **Large primary link:** 40 px primary button styling on an `<a>`, with the Download icon (“Download for macOS”).
 - **Plan block** (in dialogs): white, `hairline` edge, radius 4, padding 16: plan name Newsreader 18, price 600 + terms `muted`, a 13 px check list. **Plan card** (website): `surface`, padding 28, name 26, price 40 Source Sans 3 700.
 
@@ -1468,7 +1469,7 @@ On 2026-10-29 the “New components” and “Proposed design-language additions
 
 ## Appendix: Command ids
 
-Every command id used in the area documents on 2026-10-29 (regenerated after the second merge, decision 32), after the renames in the decisions table, sorted by id; `mode.read` and `mode.edit` come from §8.1. Shortcuts are macOS · Windows/Linux (one value means the same on both); “—” means palette and menus only. “Shared key, scoped” marks a key used by more than one command in different modes or focus regions (§8.8); no two commands share a key in the same scope. ⚠ marks a shortcut the web app must not use. Preference keys in Settings (`open.target`, `session.reopen`, `watch.reload`, `tabs.allow-duplicates`, `recent.enabled`, `print.mode`) are not commands and are left out.
+Every command id used in the area documents on 2026-10-29 (regenerated after the second merge, decision 32), after the renames in the decisions table, sorted by id; `mode.read` and `mode.edit` come from §8.1. Shortcuts are macOS · Windows/Linux (one value means the same on both); “—” means palette and menus only. “Shared key, scoped” marks a key used by more than one command in different modes or focus regions (§8.8); no two commands share a key in the same scope. ⚠ marks a shortcut the web app must not use. Preference keys in Settings (`open.target`, `session.reopen`, `watch.reload`, `tabs.allow-duplicates`, `recent.enabled`, `positions.enabled`, `print.mode`) are not commands and are left out.
 
 | Id | Title | Area and screen | Shortcut | Note |
 | --- | --- | --- | --- | --- |
@@ -1579,6 +1580,7 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `edit.bring-forward` | Bring forward | Add and edit A02, A05 | — |  |
 | `edit.bring-to-front` | Bring to front | Add and edit A02, A05 | — |  |
 | `edit.copy` | Copy | Reader B R11, R12; Desktop shell S03; Add and edit A05 | ⌘C · Ctrl C | Also copies selected text in Read |
+| `edit.copy-exact` | Copy exact | Reader B R11, R12 | — | The layout's line breaks kept (U2a) |
 | `edit.crop-image` | Crop image | Add and edit A02 | — |  |
 | `edit.cut` | Cut | Add and edit A05 | ⌘X · Ctrl X |  |
 | `edit.delete` | Delete selection | Add and edit A01, A02, A05 | ⌫ · Delete (object) — shared key, scoped |  |
@@ -1604,6 +1606,7 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `edit.revert-object` | Revert object | Add and edit A05 | — |  |
 | `edit.revert-text` | Revert text | Add and edit A04 | — |  |
 | `edit.select-all` | Select all | Desktop shell S03 | — |  |
+| `edit.select-column-mode` | Select by column | Reader B R11 | — | A drag selects a rectangle, as Alt/Option-drag does (U2a) |
 | `edit.send-backward` | Send backward | Add and edit A02, A05 | — |  |
 | `edit.send-to-back` | Send to back | Add and edit A02, A05 | — |  |
 | `edit.set-fill` | Set fill | Add and edit A02 | — |  |
@@ -1625,6 +1628,7 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `edit.undo` | Undo | Reader B R16; Edit session O01 | ⌘Z · Ctrl Z |  |
 | `file.change-reviewer-role` | Change reviewer role | Account and cloud H05 | — |  |
 | `file.clear-recent` | Clear recent | Reader A R01; Desktop shell S01, S03 | — |  |
+| `file.clear-reading-positions` | Forget reading positions | Settings › Storage and privacy (T5b) | — | Its visible home is the button in that section |
 | `file.compare-with-disk` | Compare with the version on disk | Desktop shell S04; Edit session O02; Convert and produce X04 | — | Opens `compare.open` with the on-disk preset (§8.12) |
 | `file.copy-repair-details` | Copy repair details | Reader A R04 | — |  |
 | `file.copy-review-link` | Copy review link | Account and cloud H05 | — |  |
@@ -1819,6 +1823,9 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `security.remove-protection` | Remove protection… | Sign, protect, redact G06 | — |  |
 | `security.sanitise` | Sanitise document… | Sign, protect, redact G07 | — |  |
 | `selection.actions` | Show selection actions | Reader B R12 | Shift F10 |  |
+| `selection.search` | Search for the selection | Reader B R11, R12 | — | (U2a) |
+| `selection.share` | Share the selection | Reader B R12 | — | Where the device can share (U2a) |
+| `selection.toggle-toolbar` | Show or hide the selection toolbar | Reader B R11 | — | (U2a) |
 | `session.reopen-selected` | Reopen selected tabs | Desktop shell S08 | — |  |
 | `session.show-missing` | Show missing file | Desktop shell S02 | — |  |
 | `session.start-empty` | Start with no documents | Desktop shell S08 | — |  |

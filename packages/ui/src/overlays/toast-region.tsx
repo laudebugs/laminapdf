@@ -19,6 +19,11 @@ export interface ToastOptions {
   message: string;
   /** One action, such as "Undo"; also offer it elsewhere (a menu, a shortcut), since a toast goes away. */
   action?: ToastAction;
+  /**
+   * A second button that only dismisses the toast ("Later"), for a toast that waits on the user and
+   * so never times out; its action stays offered elsewhere.
+   */
+  dismissLabel?: string;
   /** How long it stays, in ms; 4 s when left out. `Infinity` keeps it until it is dismissed. */
   timeout?: number;
 }
@@ -145,9 +150,10 @@ function TimedToast({ entry, paused, onDone }: { entry: Entry; paused: boolean; 
       remaining.current -= performance.now() - started;
     };
   }, [paused]);
-  const { message, action } = entry.options;
+  const { message, action, dismissLabel } = entry.options;
   return (
     <Toast
+      {...(dismissLabel === undefined ? {} : { dismiss: { label: dismissLabel, onPress: () => done.current() } })}
       {...(action === undefined
         ? {}
         : {

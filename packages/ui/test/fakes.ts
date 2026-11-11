@@ -2,8 +2,13 @@
 // combination testable without a browser matrix), files from bytes, and a stand-in window for
 // the web platform's feature detection.
 
+import type { EditSlice } from "../src/edit/edit-controls.ts";
+import { openDatabase } from "../src/platform/idb.ts";
+import { createPositions } from "../src/platform/positions.ts";
 import type { Capabilities, Platform, PlatformFile, RecentFile } from "../src/platform/types.ts";
 import type { WebScope } from "../src/platform/web.ts";
+import type { FindOptionsSlice, FindSlice } from "../src/reader/find-bar.tsx";
+import type { FindResultItem } from "../src/reader/find-results.tsx";
 import type { ViewerSlice, Zoom } from "../src/reader/viewer-controls.ts";
 
 /** Every flag false: a platform that can do nothing optional. */
@@ -21,6 +26,7 @@ const NO_CAPABILITIES: Capabilities = {
   canOpenUrl: false,
   crossOriginIsolated: false,
   ownsKeyboard: false,
+  canShare: false,
 };
 
 /** A file over `bytes`, as a picker or a drop would give it. */
@@ -37,6 +43,8 @@ export function fakeFile(name = "report.pdf", bytes = new Uint8Array([37, 80, 68
 export interface FakeCalls {
   readonly openFiles: { multiple: boolean }[];
   readonly copied: string[];
+  /** What `shareText` was given. */
+  readonly shared: string[];
 }
 
 /**
@@ -50,7 +58,7 @@ export function fakePlatform(
     picked?: PlatformFile[];
   } = {},
 ): Platform & { readonly calls: FakeCalls } {
-  const calls: FakeCalls = { openFiles: [], copied: [] };
+  const calls: FakeCalls = { openFiles: [], copied: [], shared: [] };
   const capabilities = { ...NO_CAPABILITIES, ...options.flags };
   const values = new Map<string, unknown>();
   let recent: RecentFile[] = [];
@@ -77,6 +85,9 @@ export function fakePlatform(
     async copyText(text) {
       calls.copied.push(text);
     },
+    async shareText(text) {
+      calls.shared.push(text);
+    },
     openExternal: async () => undefined,
     storage: {
       opfs: async () => undefined,
@@ -90,6 +101,7 @@ export function fakePlatform(
       list: async () => recent,
       async add(file) {
         recent = [{ id: file.name, name: file.name, size: file.size, lastOpened: 0 }, ...recent];
+        return file.name;
       },
       async remove(id) {
         recent = recent.filter((entry) => entry.id !== id);
@@ -98,6 +110,8 @@ export function fakePlatform(
         recent = [];
       },
     },
+    // The web platform's own store, in memory: no database opens without a factory.
+    positions: createPositions(openDatabase(undefined)),
   };
 }
 
@@ -118,12 +132,12 @@ export function fakeScope(parts: Partial<WebScope> = {}): WebScope & { readonly 
  * An IndexedDB with one database and one store, in memory: enough for the web platform's
  * key-value store. Values are kept as given, not cloned, so fake file handles survive. With
  * `failOpen` the database won't open, as in some private modes; with `blockOpen` another tab
- * holds it at an older version; with `abortWrites` every write's
+ * holds it at an older version, until `release` settles when one is given; with `abortWrites` every write's
  * request succeeds and its transaction then aborts, as when the origin is out of quota.
  */
 export function fakeIndexedDb(
-  options: { failOpen?: boolean; blockOpen?: boolean; abortWrites?: boolean } = {},
-): IDBFactory {
+  options: { failOpen?: boolean; blockOpen?: boolean; release?: Promise<void>; abortWrites?: boolean } = {},
+): IDBFactory & { readonly data: ReadonlyMap<unknown, unknown> } {
   const data = new Map<unknown, unknown>();
   type Handlers = Record<string, unknown> & { onsuccess?: () => void; onerror?: () => void };
   type Transaction = { oncomplete?: () => void; onabort?: () => void; error?: DOMException };
@@ -149,20 +163,33 @@ export function fakeIndexedDb(
     };
     return tx;
   };
-  const database = { transaction: (_name: string, mode: string) => transaction(mode), createObjectStore: () => ({}) };
+  // One store stands in for every store of the database; the upgrade sees none yet and creates them.
+  const database = {
+    transaction: (_name: string, mode: string) => transaction(mode),
+    objectStoreNames: { contains: () => false },
+    createObjectStore: () => ({ createIndex: () => ({}) }),
+  };
   return {
     open: () => {
       const opening: Handlers & { onupgradeneeded?: () => void; onblocked?: () => void } = {};
-      queueMicrotask(() => {
-        if (options.failOpen === true) return opening.onerror?.();
-        if (options.blockOpen === true) return opening.onblocked?.();
+      const succeed = () => {
         opening.result = database;
         opening.onupgradeneeded?.();
         opening.onsuccess?.();
+      };
+      queueMicrotask(() => {
+        if (options.failOpen === true) return opening.onerror?.();
+        if (options.blockOpen === true) {
+          opening.onblocked?.();
+          void options.release?.then(succeed);
+          return;
+        }
+        succeed();
       });
       return opening;
     },
-  } as unknown as IDBFactory;
+    data,
+  } as unknown as IDBFactory & { readonly data: ReadonlyMap<unknown, unknown> };
 }
 
 /** A viewer the chrome can drive: its state as a store, and every call it was asked to make. */
@@ -194,11 +221,121 @@ export class FakeViewer {
     this.calls.push({ method: "goToPage", value: index });
   }
 
+  jumpToPage(index: number): void {
+    this.calls.push({ method: "jumpToPage", value: index });
+  }
+
+  /** A link is focused, so `nav.follow-link` can run. */
+  canFollowLink(): boolean {
+    return true;
+  }
+
   setZoom(zoom: Zoom): void {
     this.calls.push({ method: "setZoom", value: zoom });
   }
 
   rotate(delta: number): void {
     this.calls.push({ method: "rotate", value: delta });
+  }
+}
+
+/** Find as the find bar drives it: a state that tests set, and the calls it was asked to make. */
+export class FakeFind {
+  readonly calls: { query: string; options: FindOptionsSlice | undefined }[] = [];
+  #state: FindSlice;
+  readonly #listeners = new Set<() => void>();
+
+  constructor(state: Partial<FindSlice> = {}) {
+    this.#state = {
+      query: "",
+      options: {},
+      total: 0,
+      current: undefined,
+      searched: 0,
+      pageCount: 24,
+      done: true,
+      pagesWithoutText: 0,
+      ...state,
+    };
+  }
+
+  getState(): FindSlice {
+    return this.#state;
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+
+  /** Changes the state as results arrive, and tells subscribers. */
+  set(next: Partial<FindSlice>): void {
+    this.#state = { ...this.#state, ...next };
+    for (const listener of this.#listeners) listener();
+  }
+
+  find(query: string, options?: FindOptionsSlice): void {
+    this.calls.push({ query, options });
+  }
+
+  /** The matches the Results tab lists; tests set them. */
+  list: readonly FindResultItem[] = [];
+  readonly went: number[] = [];
+
+  results(): readonly FindResultItem[] {
+    return this.list;
+  }
+
+  goTo(ordinal: number): void {
+    this.went.push(ordinal);
+    this.set({ current: ordinal });
+  }
+}
+
+/** An edit session in memory: steps by label, undo, redo and going to a step move the position. */
+export class FakeEdits {
+  readonly went: number[] = [];
+  #state: EditSlice;
+  readonly #listeners = new Set<() => void>();
+
+  constructor(labels: readonly string[] = [], position = labels.length, more: Partial<EditSlice> = {}) {
+    const steps = labels.map((label, i) => ({ id: i + 1, label, pages: [i], at: Date.UTC(2026, 10, 2, 16, 2 + i) }));
+    this.#state = {
+      history: { steps, position, dropped: 0, unsaved: position },
+      busy: false,
+      blocked: undefined,
+      notice: undefined,
+      ...more,
+    };
+  }
+
+  getState(): EditSlice {
+    return this.#state;
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+
+  /** Changes the state, and tells subscribers. */
+  set(next: Partial<EditSlice>): void {
+    this.#state = { ...this.#state, ...next };
+    for (const listener of this.#listeners) listener();
+  }
+
+  async undo(): Promise<void> {
+    await this.goTo(this.#state.history.position - 1);
+  }
+
+  async redo(): Promise<void> {
+    await this.goTo(this.#state.history.position + 1);
+  }
+
+  async goTo(position: number): Promise<void> {
+    this.went.push(position);
+    const { history } = this.#state;
+    const at = Math.max(0, Math.min(history.steps.length, position));
+    this.set({ history: { ...history, position: at, unsaved: at } });
   }
 }

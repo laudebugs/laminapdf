@@ -25,7 +25,7 @@ use crate::{Font, FontHandle};
 /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 #[derive(Debug)]
-pub struct Builder(laminapdf_build::Builder);
+pub struct Builder(laminapdf_build::Builder, Vec<crate::Warning>);
 
 impl Builder {
     /// A builder for a new, empty document. Everything that would come from the
@@ -33,7 +33,7 @@ impl Builder {
     /// the same bytes.
     #[must_use]
     pub fn new(options: BuildOptions) -> Self {
-        Self(laminapdf_build::Builder::new(options))
+        Self(laminapdf_build::Builder::new(options), Vec::new())
     }
 
     /// Registers `font` for text; it is subset to the glyphs drawn and embedded at
@@ -138,6 +138,60 @@ impl Builder {
         Ok(self.0.close_element(element)?)
     }
 
+    /// Lays `flow` out and adds its pages ([`laminapdf::flow`](crate::flow), ADR 0032): blocks
+    /// poured through a page template into as many pages as they need. Its warnings
+    /// (`flow-keep-broken`) are in the finished document's [`Document::warnings`].
+    ///
+    /// # Errors
+    /// `flow-content-too-large` for a line or a figure taller than a page's body; shaping
+    /// errors (`missing-glyph`).
+    #[cfg(feature = "text")]
+    pub fn flow(&mut self, flow: &crate::flow::Flow) -> Result<crate::flow::FlowReport> {
+        let report = self.0.flow(flow)?;
+        self.1.extend(report.warnings.iter().cloned().map(crate::Warning::from));
+        Ok(report)
+    }
+
+    /// Lays `markdown` out as a flow and adds its pages ([`laminapdf::markdown`](crate::markdown),
+    /// ADR 0032 §6): `CommonMark` with tables, footnotes, strikethrough and task lists, its front
+    /// matter as the document's metadata. Without fonts in `options` it sets the standard 14
+    /// Helvetica family and Courier: Latin text only, and refused under PDF/UA-1
+    /// (`font-not-embedded`). Its warnings (`markdown-html-ignored`, `markdown-image-missing`,
+    /// the flow's) are in the finished document's [`Document::warnings`].
+    ///
+    /// # Errors
+    /// As [`Builder::flow`]; `missing-glyph` for a character the fonts lack.
+    #[cfg(feature = "markdown")]
+    pub fn markdown(
+        &mut self,
+        markdown: &str,
+        options: &crate::markdown::MarkdownBuildOptions,
+    ) -> Result<crate::flow::FlowReport> {
+        let report = self.0.markdown(markdown, options)?;
+        self.1.extend(report.warnings.iter().cloned().map(crate::Warning::from));
+        Ok(report)
+    }
+
+    /// Lays a `laminapdf.document/1` document out and adds its pages after any already added
+    /// ([`laminapdf::flow::document::FlowDocument`](crate::flow::document::FlowDocument), ADR 0032 §6), with its
+    /// fonts and images from `resources`; its title, author, subject and language become the
+    /// document's metadata. Pass its [profiles](crate::flow::document::FlowDocument::profiles) to the
+    /// builder's options. Its warnings are in the finished document's [`Document::warnings`].
+    ///
+    /// # Errors
+    /// `invalid-document` for a style, font or image it names but doesn't have; as
+    /// [`Builder::flow`].
+    #[cfg(feature = "document")]
+    pub fn document(
+        &mut self,
+        document: &crate::flow::document::FlowDocument,
+        resources: &crate::flow::document::Resources,
+    ) -> Result<crate::flow::FlowReport> {
+        let report = self.0.document(document, resources)?;
+        self.1.extend(report.warnings.iter().cloned().map(crate::Warning::from));
+        Ok(report)
+    }
+
     /// A page of `size`, added by [`PageBuilder::finish`].
     pub fn page(&mut self, size: PageSize) -> PageBuilder<'_> {
         self.0.page(size)
@@ -152,14 +206,17 @@ impl Builder {
     /// `invalid-geometry`, `subset-failed`; under a [`Profile`](crate::Profile), the first rule
     /// the document breaks (see `laminapdf_build::Builder::finish`).
     pub fn finish(self) -> Result<Document> {
-        // Only font embedding raises build warnings.
+        // Flows' warnings first, in the order they were raised, then the fonts'.
+        let Self(builder, flows) = self;
         #[cfg(feature = "text")]
         let (doc, warnings) = {
-            let (doc, warnings) = self.0.finish_with_warnings()?;
-            (doc, warnings.into_iter().map(crate::Warning::from).collect())
+            let (doc, fonts) = builder.finish_with_warnings()?;
+            let mut warnings = flows;
+            warnings.extend(fonts.into_iter().map(crate::Warning::from));
+            (doc, warnings)
         };
         #[cfg(not(feature = "text"))]
-        let (doc, warnings) = (self.0.finish()?, Vec::new());
+        let (doc, warnings) = (builder.finish()?, flows);
         Ok(Document::built(doc, warnings))
     }
 }

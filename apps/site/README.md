@@ -53,11 +53,21 @@ The panel's code is coloured when the site is built, so the page ships no script
 
 Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt` lets search engines in only on the production build, and `sitemap.xml` lists every page but the 404 page.
 
+## How we test
+
+`/how-we-test/` ([screen H13](../../docs/design/paper/account-cloud-product.md#h13-how-we-test)) publishes what the nightly lane measured on its latest full night, says what each figure counts, and states the licence and where the code comes from:
+
+- **Figures** come from `src/data/proof.json`, which `cargo xtask proof snapshot` writes from the newest full proof record in `history.jsonl` on `bench-data`, with how many of the last 30 full nights passed and the fuzzing hours over every night. Each production deploy runs it before it builds; without the branch, or offline, it keeps the committed file and warns. Refreshing the committed file is an exempt pull request, like the progress snapshot. `src/data/proof.ts` checks the file at build time; a section a night's job didn't produce is `null` and the page says so instead of showing a zero.
+- **Licences** come from the root `Cargo.toml` and `deny.toml` (`licencePolicy` in `src/data/sources.ts`): the licence, the allowed licences, the named exceptions and the banned crates.
+- **Words** are `HOW_WE_TEST` in `src/data/copy.ts`, for the owner to approve.
+
+`test/how-we-test.test.ts` renders the page from fixture snapshots, a night with a failed job and no figure among them; `test/proof.test.ts` and `test/licence.test.ts` hold the snapshot and the licence policy to their files.
+
 ## Look and header
 
 The pages use the tokens of `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` (Lamina Sans and Newsreader), with the layout's style sheet in `src/styles/site.css`. The theme follows the visitor's system, so the site needs no script. `src/layouts/Base.astro` writes each page's head and preloads Lamina Sans' Latin file, the face of the first paint.
 
-The header is the one both sites share, from [`@laminapdf/site-kit`](../../packages/site-kit/README.md#the-site-header): design language §7.39's wordmark, links and "Open the web app". A link to a page of this site appears once the page exists, on both sites. `astro.config.mjs` lists the files in `src/pages/` once per build, so the todo that writes `/privacy/` adds its link by adding the page. "Open the web app" appears once `APP_LAUNCHED` in the package's `src/nav.mjs` is `true`, which [C7c](../../docs/todos/ready/C7c-performance-gates-and-launch.md) sets when the reader goes live.
+The header is the one both sites share, from [`@laminapdf/site-kit`](../../packages/site-kit/README.md#the-site-header): design language §7.39's wordmark, links and "Open the web app". A link to a page of this site appears once the page exists, on both sites. `astro.config.mjs` lists the files in `src/pages/` once per build, so the todo that writes `/privacy/` adds its link by adding the page. "Open the web app" appears once `APP_LAUNCHED` in the package's `src/nav.mjs` is `true`, which [C7c](../../docs/todos/done/C7c-performance-gates-and-launch.md) sets when the reader goes live.
 
 ## Deploying
 
@@ -67,13 +77,13 @@ The header is the one both sites share, from [`@laminapdf/site-kit`](../../packa
 
 - **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`.
 - **`preview-deploy`** (pull requests): holds the secrets and never runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch and uploads the artifact as a preview version under the alias `pr-<n>`. Then it posts one comment with the URL and updates it on each push.
-- **`production`** (every push to `main`, and every six hours): regenerates `src/data/progress.json` with `cargo xtask progress`, builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`. The schedule catches pull requests opened since the last merge, so the todos they claim show as in progress.
+- **`production`** (every push to `main`, and every six hours): regenerates `src/data/progress.json` with `cargo xtask progress` and `src/data/proof.json` with `cargo xtask proof snapshot`, builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`. The schedule catches pull requests opened since the last merge, so the todos they claim show as in progress.
 
 Pushes to `main` deploy whatever they change, because any merge can move a todo. The pull request trigger's `paths` must list everything the site builds from, or a pull request that changes one of those files gets no preview:
 
 - `apps/site/**`;
 - the packages it imports: `packages/site-kit/**`, `packages/tokens/**` and `packages/fonts/**`;
-- the files `src/data/sources.ts` reads: `packages/sdk/examples/hello.ts`, `packages/sdk/package.json`, `crates/laminapdf/examples/hello.rs`, `crates/laminapdf-cli/README.md` and `apps/docs/src/content/docs/install.mdx`.
+- the files `src/data/sources.ts` reads: `packages/sdk/examples/hello.ts`, `packages/sdk/package.json`, `crates/laminapdf/examples/hello.rs`, `crates/laminapdf-cli/README.md` and `apps/docs/src/content/docs/install.mdx`, and the root `Cargo.toml` and `deny.toml` for How we test's licence section.
 
 Until the workflow is on `main`, the owner can upload a preview by hand: build the site, then run this from `apps/site` with the deploy token:
 

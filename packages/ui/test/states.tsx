@@ -3,18 +3,27 @@
 // the tests that need them, not from props, so shipped code carries nothing for tests.
 
 import type { ReactElement } from "react";
+import { EditArea, HistoryPanel } from "../src/editing.ts";
 import {
   Badge,
   Button,
   Checkbox,
+  DEFAULT_READER_SETTINGS,
   EmptyState,
+  FindBar,
+  FindResults,
   IconButton,
   ModeSwitcher,
+  NetworkActivityPanel,
   NetworkIndicator,
   Notice,
+  OfflineNotice,
   OpenFailure,
   OutlineRow,
+  OutlineTree,
+  type OutlineTreeItem,
   PageAppearanceChips,
+  PageAppearanceFields,
   PageInput,
   PageLabel,
   ProgressBar,
@@ -22,6 +31,8 @@ import {
   RadioGroup,
   type ReaderState,
   ReaderTopBar,
+  RecentList,
+  RemoteFailure,
   RepairDetails,
   RepairedNotice,
   SegmentedTabs,
@@ -41,8 +52,9 @@ import {
   WholeFileDownload,
   ZoomControl,
 } from "../src/index.ts";
+import { ReaderSettingsPanel, ReaderView } from "../src/reader-mode.ts";
 import { WithCommands } from "./commands.tsx";
-import { FakeViewer, fakeFile } from "./fakes.ts";
+import { FakeEdits, FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
 
 /** One rendering of one component in one state. */
 export interface Example {
@@ -249,6 +261,16 @@ const pickers: Example[] = [
       <PageAppearanceChips aria-label="Page appearance" labels={APPEARANCE_LABELS} value="sepia" onChange={noop} />
     ),
   },
+  {
+    component: "PageAppearanceFields",
+    state: "Dark, this document",
+    element: () => <PageAppearanceFields value="dark" onChange={noop} scope="document" onScopeChange={noop} />,
+  },
+  {
+    component: "PageAppearanceFields",
+    state: "No document open",
+    element: () => <PageAppearanceFields value="original" onChange={noop} />,
+  },
 ];
 
 const page = () => <span style={{ display: "block", blockSize: "100%", background: "var(--paper-page-paper)" }} />;
@@ -285,6 +307,16 @@ const rail: Example[] = [
     component: "OutlineRow",
     state: "level 2",
     element: () => <OutlineRow title="Open repairs by region" page="3" level={2} onPress={noop} toggle="space" />,
+  },
+  {
+    component: "OutlineTree",
+    state: "nested, current section open",
+    element: () => <OutlineTree items={OUTLINE} current="1.1" onNavigate={noop} />,
+  },
+  {
+    component: "OutlineTree",
+    state: "closed",
+    element: () => <OutlineTree items={OUTLINE.map((i) => ({ ...i, open: false }))} onNavigate={noop} />,
   },
   {
     component: "OutlineRow",
@@ -409,6 +441,122 @@ const MORE = { items: [{ id: "open", label: "Open another file…" }], onAction:
 /** The shell's handlers the top bar's toggle and Commands button run. */
 const SHELL = { "view.toggle-sidebar": noop, "palette.open": noop };
 
+const FIND_ACTIONS = {
+  "find.next": noop,
+  "find.previous": noop,
+  "find.match-case": noop,
+  "find.whole-words": noop,
+  "find.close": noop,
+};
+
+const findBar: Example[] = [
+  {
+    component: "FindBar",
+    state: "done: 3 of 9",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const find = new FakeFind({
+        query: "repairs",
+        total: 9,
+        current: 2,
+        searched: 24,
+        options: { wholeWords: true },
+      });
+      return (
+        <WithCommands reader={reader} viewer={new FakeViewer()} actions={FIND_ACTIONS}>
+          <FindBar find={find} onClose={noop} />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "FindBar",
+    state: "counting, with pages without text",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const find = new FakeFind({ query: "repairs", total: 40, searched: 14, done: false, pagesWithoutText: 4 });
+      return (
+        <WithCommands reader={reader} viewer={new FakeViewer()} actions={FIND_ACTIONS}>
+          <FindBar find={find} onClose={noop} />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "FindBar",
+    state: "no matches",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const find = new FakeFind({ query: "backlogs", searched: 24 });
+      return (
+        <WithCommands reader={reader} viewer={new FakeViewer()} actions={FIND_ACTIONS}>
+          <FindBar find={find} onClose={noop} />
+        </WithCommands>
+      );
+    },
+  },
+];
+
+/** A page's results heading, as the reader makes them. */
+const resultHeading = (page: number) => (page === 2 ? "Page 3 · Repairs backlog" : `Page ${page + 1}`);
+const RESULTS = [
+  { ordinal: 0, page: 2, snippet: { before: "…the ", match: "repairs", after: " backlog for the third quarter…" } },
+  { ordinal: 1, page: 2, snippet: { before: "Open ", match: "repairs", after: " are listed by site." } },
+  { ordinal: 2, page: 6, snippet: { before: "…when ", match: "repairs", after: " ran over budget." } },
+];
+
+/** The History tab's steps, as O01 draws them. */
+const STEPS = ["Rotate page 5", "Rotate page 2", "Rotate page 5", "Change the title"];
+const AT = {
+  formatTime: (at: number) => new Date(at).toISOString().slice(11, 16),
+  openedAt: Date.UTC(2026, 10, 2, 16, 0),
+};
+
+const history: Example[] = [
+  {
+    component: "HistoryPanel",
+    state: "three of four steps done",
+    element: () => <HistoryPanel edits={new FakeEdits(STEPS, 3)} {...AT} />,
+  },
+  {
+    component: "HistoryPanel",
+    state: "an undo restored only part of a step",
+    element: () => {
+      const edits = new FakeEdits(STEPS, 2);
+      const step = { id: 3, label: "Rotate page 5", pages: [4], at: 0, partial: "undo" as const };
+      edits.set({ notice: { step, way: "undo", outcome: "partial" } });
+      return <HistoryPanel edits={edits} {...AT} />;
+    },
+  },
+  {
+    component: "HistoryPanel",
+    state: "no changes yet",
+    element: () => <HistoryPanel edits={new FakeEdits()} {...AT} />,
+  },
+];
+
+const findResults: Example[] = [
+  {
+    component: "FindResults",
+    state: "results, the second current",
+    element: () => {
+      const find = new FakeFind({ query: "repairs", total: 3, current: 1, searched: 24 });
+      find.list = RESULTS;
+      return <FindResults find={find} heading={resultHeading} />;
+    },
+  },
+  {
+    component: "FindResults",
+    state: "no matches, Whole words on",
+    element: () => (
+      <FindResults
+        find={new FakeFind({ query: "backlogs", searched: 24, options: { wholeWords: true } })}
+        heading={resultHeading}
+      />
+    ),
+  },
+];
+
 const topBar: Example[] = [
   {
     component: "ReaderTopBar",
@@ -419,6 +567,47 @@ const topBar: Example[] = [
       return (
         <WithCommands reader={reader} viewer={viewer} actions={SHELL}>
           <ReaderTopBar reader={reader} viewer={viewer} keys="other" sidebarOpen more={MORE} />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "EditArea",
+    state: "the editor's top bar: two unsaved changes, one to redo",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const viewer = new FakeViewer();
+      const edits = new FakeEdits(["Rotate page 5", "Rotate page 2", "Change the title"], 2);
+      return (
+        <WithCommands reader={reader} viewer={viewer} actions={SHELL} edits={edits}>
+          <ReaderTopBar
+            reader={reader}
+            viewer={viewer}
+            keys="other"
+            sidebarOpen
+            editArea={<EditArea edits={edits} keys="other" />}
+            more={MORE}
+          />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "ReaderTopBar",
+    state: "after a jump: Back to page 2",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const viewer = new FakeViewer({ currentPage: 10 });
+      return (
+        <WithCommands reader={reader} viewer={viewer} actions={{ ...SHELL, "nav.back": noop, "nav.forward": noop }}>
+          <ReaderTopBar
+            reader={reader}
+            viewer={viewer}
+            keys="other"
+            sidebarOpen
+            history={{ back: "2", forward: undefined }}
+            more={MORE}
+          />
         </WithCommands>
       );
     },
@@ -516,11 +705,203 @@ const repairs: Example[] = [
       />
     ),
   },
+  {
+    component: "RemoteFailure",
+    state: "site blocks reading",
+    element: () => (
+      <RemoteFailure
+        reason="cors"
+        url="https://files.example.org/reports/Q3-board-report.pdf"
+        onRetry={noop}
+        onChooseFile={noop}
+      />
+    ),
+  },
+  {
+    component: "RemoteFailure",
+    state: "unencoded link",
+    element: () => <RemoteFailure reason="not-encoded" onChooseFile={noop} onHome={noop} />,
+  },
+  {
+    component: "OfflineNotice",
+    state: "offline",
+    element: () => <OfflineNotice onDismiss={noop} />,
+  },
+  {
+    component: "RecentList",
+    state: "three files",
+    element: () => (
+      <RecentList
+        entries={[
+          {
+            id: "a",
+            name: "Q3-board-report.pdf",
+            size: 1_262_480,
+            lastOpened: 1_793_000_000_000,
+            pages: 24,
+            hasHandle: true,
+          },
+          {
+            id: "b",
+            name: "Tenant-survey-2026.pdf",
+            size: 412_000,
+            lastOpened: 1_792_900_000_000,
+            pages: 6,
+            hasHandle: true,
+          },
+          { id: "c", name: "Asset-register-summary.pdf", size: 88_000, lastOpened: 1_792_800_000_000, pages: 3 },
+        ]}
+        stoppedAt={new Map([["b", 3]])}
+        onOpen={noop}
+        onClear={noop}
+        locale="en-GB"
+      />
+    ),
+  },
+  {
+    component: "RecentList",
+    // Only the document to continue, so the page shows one Recent list (the state above).
+    state: "continue reading",
+    element: () => {
+      const report = {
+        id: "a",
+        name: "Q3-board-report.pdf",
+        size: 1_262_480,
+        lastOpened: 1_793_000_000_000,
+        pages: 24,
+      };
+      return (
+        <RecentList
+          entries={[report]}
+          continueReading={{ entry: report, page: 11, pageCount: 24 }}
+          onOpen={noop}
+          onClear={noop}
+          locale="en-GB"
+        />
+      );
+    },
+  },
+  {
+    component: "NetworkActivityPanel",
+    state: "file from a link",
+    element: () => (
+      <NetworkActivityPanel
+        since="09:12"
+        documentRequests={5}
+        documentRows={[{ origin: "https://files.example.org", requests: 5, bytes: 327_680, unexpected: false }]}
+        appRequests={11}
+        appRows={[{ purpose: "webassembly", requests: 3, bytes: 4_812_000 }]}
+        blocked={[]}
+        fileHost="files.example.org"
+        feeds={{ page: true, worker: true, serviceWorker: false }}
+        onClose={noop}
+        onCopy={noop}
+      />
+    ),
+  },
+];
+
+/** A reflowed report: a heading, paragraphs, a figure kept as a crop, a list and a quote. */
+const READER_BLOCKS = [
+  { kind: "heading", level: 1, text: "Repairs backlog, third quarter", page: 2 },
+  {
+    kind: "paragraph",
+    text: "Open repairs fell by a fifth over the quarter, most of them in the north and east, where two new crews started in July.",
+    page: 2,
+  },
+  { kind: "figure", text: "", alt: "A bar chart of open repairs by region, falling in every region", page: 2 },
+  { kind: "caption", text: "Figure 2. Open repairs by region at the end of each month.", page: 2 },
+  { kind: "list-item", marker: "•", depth: 0, text: "North: 112 open, down from 150.", page: 2 },
+  { kind: "list-item", marker: "•", depth: 0, text: "East: 87 open, down from 109.", page: 2 },
+  { kind: "quote", text: "The new crews cleared the oldest jobs first, as the board asked.", page: 3 },
+] as const;
+
+/** The same report read from its layout: a page shown as its image after the reflowed text. */
+const APPROXIMATE_BLOCKS = [
+  ...READER_BLOCKS.slice(0, 4),
+  { kind: "page-image", why: "uncertain", text: "", page: 3 },
+] as const;
+
+/** A crop as the app draws it: a block of the page's paper. */
+const crop = () => <span className="paper-skeleton" aria-hidden="true" />;
+
+const readerMode: Example[] = [
+  {
+    component: "ReaderView",
+    state: "from the document's tags",
+    element: () => (
+      <ReaderView
+        content={{ status: "ready", blocks: READER_BLOCKS, lang: "en" }}
+        settings={DEFAULT_READER_SETTINGS}
+        pageName="3"
+        onBack={noop}
+        renderCrop={crop}
+      />
+    ),
+  },
+  {
+    component: "ReaderView",
+    state: "approximate",
+    element: () => (
+      <ReaderView
+        content={{ status: "ready", blocks: APPROXIMATE_BLOCKS, lang: "en", approximate: "untagged" }}
+        settings={DEFAULT_READER_SETTINGS}
+        pageName="3"
+        onBack={noop}
+        renderCrop={crop}
+        onViewOriginal={noop}
+        onOpenPage={noop}
+      />
+    ),
+  },
+  {
+    component: "ReaderView",
+    state: "not available",
+    element: () => (
+      <ReaderView
+        content={{ status: "unavailable" }}
+        settings={DEFAULT_READER_SETTINGS}
+        pageName="3"
+        onBack={noop}
+        renderCrop={crop}
+      />
+    ),
+  },
+  {
+    component: "ReaderSettingsPanel",
+    state: "larger text, loose",
+    element: () => (
+      <ReaderSettingsPanel
+        settings={{ textSize: 24, lineSpacing: "loose", lineLength: "narrow" }}
+        onChange={noop}
+        onClose={noop}
+      />
+    ),
+  },
 ];
 
 /** Every example, grouped as the design language's §7 orders the components. */
+/** A two-level outline with labelled pages (the outline tree's states). */
+const OUTLINE: readonly OutlineTreeItem[] = [
+  { id: "0", title: "Summary", page: "i", children: [] },
+  {
+    id: "1",
+    title: "2. Repairs backlog",
+    page: "3",
+    open: true,
+    children: [
+      { id: "1.0", title: "Open repairs by region", page: "3", children: [] },
+      { id: "1.1", title: "Closed this quarter", page: "4", children: [] },
+    ],
+  },
+  { id: "2", title: "3. Budget", page: "7", children: [{ id: "2.0", title: "Capital", page: "8", children: [] }] },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
+  ...findBar,
+  ...findResults,
+  ...history,
   ...buttons,
   ...toggles,
   ...rail,
@@ -530,4 +911,5 @@ export const EXAMPLES: readonly Example[] = [
   ...pickers,
   ...feedback,
   ...repairs,
+  ...readerMode,
 ];

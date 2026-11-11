@@ -162,7 +162,7 @@ describe("PageInput", () => {
     renderIn(<TopBar reader={await openedController()} viewer={viewer} />);
     await userEvent.click(input());
     await userEvent.keyboard("12{Enter}");
-    expect(viewer.calls).toEqual([{ method: "goToPage", value: 11 }]);
+    expect(viewer.calls).toEqual([{ method: "jumpToPage", value: 11 }]);
   });
 
   it("announces a page that doesn't exist, and goes back to the current one", async () => {
@@ -223,7 +223,7 @@ describe("PageInput", () => {
     expect(host.querySelector(".paper-page-input-total")?.textContent).toBe("(22 / 24)");
     await userEvent.click(input());
     await userEvent.keyboard("a-3{Enter}");
-    expect(viewer.calls).toEqual([{ method: "goToPage", value: 23 }]);
+    expect(viewer.calls).toEqual([{ method: "jumpToPage", value: 23 }]);
   });
 });
 
@@ -330,8 +330,10 @@ describe("ReaderShell", () => {
         </ReaderShell>
       </div>,
     );
-    // Wait out the inspector's growing animation, where motion is allowed.
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    // Wait out the inspector's growing animation, where motion is allowed: until it is at its width,
+    // since a slow runner (WebKit on macOS) can take longer than the animation's 160 ms.
+    const aside = () => (host.querySelector("aside.paper-inspector") as HTMLElement).getBoundingClientRect().width;
+    await expect.poll(aside, { timeout: 5000 }).toBeCloseTo(288, 0);
     expect(host.querySelector("header")?.className).toBe("paper-top-bar");
     expect(host.querySelector("main [data-testid=viewer]")).not.toBeNull();
     expect(host.querySelector("footer")?.textContent).toBe("0 network requests for this document");

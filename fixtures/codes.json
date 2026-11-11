@@ -139,6 +139,13 @@
       "since": "0.1.0"
     },
     {
+      "code": "xmp-invalid",
+      "kind": "input",
+      "summary": "the XMP metadata packet is not readable XMP and reads as absent",
+      "hint": "nothing to do; a metadata edit asks before replacing it",
+      "since": "0.2.0"
+    },
+    {
       "code": "invalid-page-label",
       "kind": "input",
       "summary": "a /PageLabels entry is malformed; the malformed part is dropped",
@@ -883,6 +890,71 @@
       "kind": "usage",
       "summary": "an attached file has no MIME type, which every PDF/A profile requires",
       "hint": "pass the file's MIME type, such as text/xml or application/octet-stream",
+      "since": "0.2.0"
+    },
+    {
+      "code": "flow-content-too-large",
+      "kind": "usage",
+      "summary": "a line or a figure of a flow is taller than the page's body, so no page can hold it",
+      "hint": "make the figure smaller, the text size smaller or the page's margins narrower",
+      "since": "0.2.0"
+    },
+    {
+      "code": "flow-layout-unstable",
+      "kind": "internal",
+      "summary": "a flow's contents page kept changing its page numbers after four layouts",
+      "hint": "report the flow that fails; a page break after the contents block may avoid it until it is fixed",
+      "since": "0.2.0"
+    },
+    {
+      "code": "invalid-document",
+      "kind": "usage",
+      "summary": "a laminapdf.document/1 document has an unknown key, a missing one or a value of the wrong kind",
+      "hint": "data.pointer names the value; correct it against the document schema, and didYouMean lists the closest known keys",
+      "since": "0.2.0"
+    },
+    {
+      "code": "template-data-missing",
+      "kind": "usage",
+      "summary": "a template's $data, $each or $item points to a value the data doesn't have",
+      "hint": "data.pointer names the value the template asked for; add it to the data or correct the pointer",
+      "since": "0.2.0"
+    },
+    {
+      "code": "template-data-type",
+      "kind": "usage",
+      "summary": "a template's placeholder found data of the wrong kind: $each over something that isn't a list, or text from an object",
+      "hint": "data.pointer names the value and data.expected the kind the template needs there",
+      "since": "0.2.0"
+    },
+    {
+      "code": "template-too-large",
+      "kind": "usage",
+      "summary": "a template would fill in more values, or nest deeper, than a document may hold",
+      "hint": "data.limit is the limit it passed; repeat fewer items, or split the document",
+      "since": "0.2.0"
+    }
+  ],
+  "buildWarnings": [
+    {
+      "code": "flow-keep-broken",
+      "kind": "usage",
+      "summary": "blocks kept together are taller than a page, so the flow split them",
+      "hint": "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
+      "since": "0.2.0"
+    },
+    {
+      "code": "markdown-html-ignored",
+      "kind": "unsupported",
+      "summary": "the Markdown holds raw HTML, which the PDF leaves out",
+      "hint": "write the content in Markdown instead of HTML, or remove the HTML",
+      "since": "0.2.0"
+    },
+    {
+      "code": "markdown-image-missing",
+      "kind": "usage",
+      "summary": "the Markdown names an image that wasn't supplied, so the PDF leaves it out",
+      "hint": "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",
       "since": "0.2.0"
     }
   ],

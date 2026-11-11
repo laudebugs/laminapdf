@@ -1,0 +1,15 @@
+---
+// How we test (todo T1b): the nightly's latest full night from proof.json, which `cargo xtask proof
+// snapshot` writes before every production build, the licence policy from Cargo.toml and
+// deny.toml, and how the code is written (src/components/how-we-test/).
+import HowWeTest from "../components/how-we-test/HowWeTest.astro";
+import { HOW_WE_TEST } from "../data/copy.js";
+import { readProof } from "../data/proof.js";
+import proofFile from "../data/proof.json";
+import { licencePolicy } from "../data/sources.js";
+import Base from "../layouts/Base.astro";
+---
+
+<Base title={HOW_WE_TEST.title} description={HOW_WE_TEST.description}>
+  <HowWeTest proof={readProof(proofFile)} policy={licencePolicy()} pages={__SITE_PAGES__} />
+</Base>

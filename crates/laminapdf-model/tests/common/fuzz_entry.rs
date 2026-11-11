@@ -4,6 +4,7 @@
 //! (`fixtures/regressions/<target>/`) through the same function, so a regression test runs
 //! exactly what the fuzzer ran.
 
+use laminapdf_model::xmp::{MAPPINGS, Packet};
 use laminapdf_model::{Document, OpenOptions};
 use laminapdf_syntax::filters::{decode, flate_decode};
 use laminapdf_syntax::{DecodeBudget, Dict, Lexer, Limits, Object, Parser, Token, parse_object_with};
@@ -12,12 +13,13 @@ use laminapdf_syntax::{DecodeBudget, Dict, Lexer, Limits, Object, Parser, Token,
 pub type Entry = fn(&[u8]);
 
 /// The targets, by name.
-pub const TARGETS: [(&str, Entry); 5] = [
+pub const TARGETS: [(&str, Entry); 6] = [
     ("lex", lex),
     ("parse_object", parse_object),
     ("flate_decode", flate),
     ("open", open),
     ("page_tree", page_tree),
+    ("xmp_parse", xmp_parse),
 ];
 
 /// Passwords the `open` target tries after the empty one (`fuzz/seeds/open/passwords.txt`,
@@ -148,4 +150,40 @@ pub fn wrap_page_tree(body: &[u8]) -> Vec<u8> {
     }
     out.extend_from_slice(format!("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes());
     out
+}
+
+/// Reads `data` as an XMP packet. One that parses must write back unchanged, read every mapped
+/// field, and after an edit of the title, the authors, a date and the keywords write a packet
+/// that parses again with those values.
+pub fn xmp_parse(data: &[u8]) {
+    let Ok(mut packet) = Packet::parse(data) else {
+        return;
+    };
+    assert_eq!(packet.write().bytes, data, "an unchanged packet writes back as it was");
+    for mapping in MAPPINGS {
+        let _ = packet.get(mapping.field);
+    }
+    let _ = (packet.pdfa_part(), packet.pdfa_conformance(), packet.pdfua_part());
+    let modified = "D:20261028143000+01'00".parse().ok();
+    packet.set_title(Some("A <title> & more"));
+    packet.set_authors(&["Ada", "Grace"]);
+    packet.set_modify_date(modified);
+    packet.set_keywords(None);
+    let written = packet.write();
+    let edited = Packet::parse(&written.bytes).unwrap_or_else(|e| panic!("the edited packet doesn't parse: {e}"));
+    assert_eq!(
+        (
+            edited.title(),
+            edited.authors(),
+            edited.modify_date(),
+            edited.keywords()
+        ),
+        (
+            Some("A <title> & more".to_owned()),
+            vec!["Ada".to_owned(), "Grace".to_owned()],
+            modified,
+            None
+        ),
+        "the edited packet reads back what was set"
+    );
 }

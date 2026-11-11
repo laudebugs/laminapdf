@@ -53,6 +53,8 @@ export interface ToastProps {
   children: ReactNode;
   /** An optional action, shown as underlined text. */
   action?: ToastAction;
+  /** An optional second button that dismisses the toast ("Later"), after the action. */
+  dismiss?: ToastAction;
 }
 
 /**
@@ -60,13 +62,18 @@ export interface ToastProps {
  * exists before the toast arrives, so screen readers announce it. Never the only place an error is
  * reported.
  */
-export function Toast({ children, action }: ToastProps): ReactNode {
+export function Toast({ children, action, dismiss }: ToastProps): ReactNode {
   return (
     <div className="paper-toast">
       <span>{children}</span>
       {action === undefined ? null : (
         <AriaButton className="paper-toast-action" onPress={action.onPress}>
           {action.label}
+        </AriaButton>
+      )}
+      {dismiss === undefined ? null : (
+        <AriaButton className="paper-toast-action" onPress={dismiss.onPress}>
+          {dismiss.label}
         </AriaButton>
       )}
     </div>

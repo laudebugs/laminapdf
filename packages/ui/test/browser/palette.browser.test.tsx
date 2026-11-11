@@ -111,6 +111,23 @@ describe("SelectionToolbar", () => {
     expect(focused()).toBe(text);
   });
 
+  it("keeps the page's text selected while focus moves along it", async () => {
+    const host = renderIn(
+      <>
+        <p>Selected words on the page</p>
+        <Selection anchor={() => rect(300, 300)} />
+      </>,
+    );
+    const selection = document.getSelection() as Selection;
+    selection.selectAllChildren(host.querySelector("p") as HTMLParagraphElement);
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+    expect(focused().textContent).toBe("Copy");
+    expect(selection.toString()).toBe("Selected words on the page");
+    await userEvent.keyboard("{ArrowRight}");
+    expect(focused().textContent).toBe("Highlight");
+    expect(selection.toString()).toBe("Selected words on the page");
+  });
+
   it("leaves focus where it is on an Escape after focus left the toolbar", async () => {
     const onDismiss = vi.fn();
     const host = renderIn(

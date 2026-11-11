@@ -4,7 +4,7 @@ description: Bytes in and out, the same bytes every time, edits kept apart from 
 ---
 
 import Diagram from "../../../components/Diagram.astro";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 The rest of the docs build on six ideas. The first two follow from one choice: Lamina PDF treats a PDF as bytes, which you give it and it gives back.
 
@@ -33,7 +33,7 @@ The default, `auto`, saves incrementally when it can. A signed file saves only i
 
 This example builds a document, opens its bytes, changes the title and saves incrementally. The saved file starts with the original bytes:
 
-<Snippet file="packages/sdk/examples/generate-then-edit.ts" />
+<Example ts="packages/sdk/examples/generate-then-edit.ts" result="generate_then_edit" />
 
 ## You free what you create
 
@@ -48,3 +48,5 @@ In JavaScript, Lamina PDF is WebAssembly, split into three modules so a page dow
 - **Text:** everything in base, plus fonts, shaped text and extraction.
 
 `init()` loads the base module, and `init({ text: true })` or `init({ extract: true })` loads one of the others. Call `loadText()` or `loadExtract()` to add a module later, when a page first needs it. Rust has one crate, with features instead.
+
+<Diagram name="package-map-modules" />

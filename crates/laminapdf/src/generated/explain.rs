@@ -590,6 +590,48 @@ The Info view's `creation_date` is `None` and its raw string is kept; `data` is 
 
 `key` (which entry).
 "#,
+        "xmp-invalid" => r#"# `xmp-invalid`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The document's XMP metadata packet (the catalog's `/Metadata` stream, ISO 32000-2 §14.3.2) isn't readable XMP, so it is treated as absent. The packet may not be well-formed XML. It may declare a DTD, which XMP doesn't allow, or refer to an entity other than XML's five predefined ones. It may use a prefix it never declares, nest elements more than 64 deep, have more than 256 namespace declarations in scope at once or give a tag more than 256 attributes, or have no `rdf:RDF` element.
+
+Lamina PDF never expands entities, so a packet built to make a reader fetch files or fill its memory is refused.
+
+## Why
+
+A producer bug, a damaged or truncated stream, or a packet written by hand. A DTD in a packet is also the shape of an attack on XML readers.
+
+## How to fix
+
+Nothing to do when reading: the title, authors and dates still come from the Info dictionary. An edit that writes metadata asks before it replaces the packet, since whatever the packet held is lost when it is replaced. Regenerating the file with a current producer writes a valid packet.
+
+## Example
+
+```text
+<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<!DOCTYPE x [ <!ENTITY e SYSTEM "file:///etc/passwd"> ]>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">…</x:xmpmeta>
+```
+
+The packet declares a DTD, so it is refused at the `<!DOCTYPE`; `data` is `{ "offset": 51, "reason": "dtd" }`.
+
+## Data fields
+
+- `offset`: about where reading stopped, in bytes of the stream's decoded data, so a UTF-16 packet counts two bytes a character. It is left out when no one place is at fault (`encoding` and `no-rdf`).
+- `reason`: one of `encoding`, `dtd`, `entity`, `prefix`, `depth`, `limit`, `syntax` or `no-rdf`.
+
+The `location` is the metadata stream's `object`, none for a direct stream; where in its data is the `offset` above.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E1b](../todos/done/E1b-xmp-packet-model.md): the XMP packet model
+"#,
         "invalid-page-label" => r#"# `invalid-page-label`
 
 - Type: warning
@@ -3792,6 +3834,273 @@ builder.finish()?; // embedded-file-without-mime-type: pass "text/xml"
 - `profile`: the profile, such as `PDF/A-3b`.
 - `name`: the file's name (untrusted: the caller's text).
 "#,
+        "flow-content-too-large" => r#"# `flow-content-too-large`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Builder::flow` found a figure, a single line of text or a table row taller than the body of a page: the space between the top and bottom margins. No page can hold it, so the flow stopped and added no pages. A line or row counts together with the footnotes it cites, since its notes go at the foot of its page.
+
+## Why
+
+A flow moves a figure to the next page when it doesn't fit, and splits a paragraph only between lines. A figure or a line taller than a whole page would fit on no page at all, and cutting it would hide part of it.
+
+## How to fix
+
+Make the figure narrower with `Figure::with_width`, so its height shrinks with it. For a line, use a smaller text size or a smaller line height. For a footnote, shorten the note or split it into two. Or give the page more room with a taller page size or smaller top and bottom margins.
+
+## Example
+
+```rust
+let tall = Image::rgba(1, 10, &[0; 40])?; // ten times as tall as it is wide
+let flow = Flow::new(PageTemplate::new(PageSize::A6)).block(FlowBlock::Figure(Figure::new(tall, "A bar")));
+builder.flow(&flow)?; // flow-content-too-large
+```
+
+## Data fields
+
+- `what`: what is too tall: `line`, `figure`, `table row`, or `footnote` when a line or table row and its footnotes fit on no page together.
+"#,
+        "flow-layout-unstable" => r#"# `flow-layout-unstable`
+
+- Type: error
+- Kind: `internal` (a bug in Lamina PDF or a broken invariant)
+
+## What happened
+
+`Builder::flow` laid out a flow with a contents page four times, and the page numbers on the contents page still changed. The flow stopped and added no pages.
+
+## Why
+
+A contents page lists each heading with the page it starts on, but those pages aren't known until the flow is laid out. So the flow lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps the same room for its number however wide the number is, so the contents page's length never depends on the numbers, and the second layout finds the same pages.
+
+The flow still checks up to four layouts. This error means the numbers kept changing anyway, which points to a fault in Lamina PDF's layout rather than in your document.
+
+## How to fix
+
+Report the flow that fails, with the blocks and page template that produce it. Until it is fixed, a page break after the contents block may avoid the error, since the headings after it then start on pages of their own.
+
+## Example
+
+```rust
+let flow = Flow::new(template)
+    .block(FlowBlock::Contents(Contents::new(&style)))
+    .block(FlowBlock::PageBreak) // the headings start on their own pages
+    .block(FlowBlock::Heading(1, Paragraph::plain("Introduction", &heading)));
+builder.flow(&flow)?;
+```
+
+## Data fields
+
+None.
+"#,
+        "invalid-document" => r#"# `invalid-document`
+
+- Type: error
+- Kind: `usage` (the caller passed something wrong)
+
+## What happened
+
+A `laminapdf.document/1` document didn't match its format: it has a key the format doesn't know, it lacks a key the format needs, or a value is of the wrong kind, such as text where a number belongs. Nothing was laid out.
+
+## Why
+
+A document describes its pages as JSON, so a program or a language model can write it and a schema can check it before anything is drawn. Lamina PDF reads only the keys the format defines. An unknown key is refused rather than ignored, because a misspelt key would otherwise drop its value without a word: `"spaceAftr": 12` would leave the space out of the PDF.
+
+The same check runs after a template is filled, so a filled template must also be a valid document.
+
+## How to fix
+
+`data.pointer` is the JSON Pointer of the value at fault, such as `/blocks/3/style`. Correct that value. For a misspelt key, `didYouMean` lists the closest keys the format knows there.
+
+A style, font or image the document names must also be defined: the style in the document's `styles`, the font and image among the files given beside it. `didYouMean` suggests only the format's own keys, never the document's names.
+
+## Example
+
+```rust
+let document = FlowDocument::from_json(&json)?; // fails here, before any page is laid out
+builder.document(&document, &resources)?;
+```
+
+## Data fields
+
+- `pointer`: the JSON Pointer of the value, from the document's root.
+- `reason`: what is wrong there: `unknown-key`, `missing-key`, `wrong-type`, `out-of-range` (a size, width or count below what the layout can use, or a heading level outside 1 to 6), `unknown-style`, `unknown-font`, `unknown-image` or `unsupported-schema`.
+"#,
+        "template-data-missing" => r#"# `template-data-missing`
+
+- Type: error
+- Kind: `usage` (the caller passed something wrong)
+
+## What happened
+
+A document template asked its data for a value the data doesn't have. A `{ "$data": "/invoice/number" }`, an `{ "$each": "/items", … }` or an `{ "$item": "/name" }` points to a place in the data where nothing is. Nothing was laid out.
+
+## Why
+
+A template is a document with placeholders that point into the data with JSON Pointers ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)). Filling it replaces each placeholder with the value it points to. Leaving a gap would print a document with something missing, so filling stops instead.
+
+Only `$if` accepts a missing value: it leaves its block out.
+
+## How to fix
+
+`data.pointer` is the pointer the template used. Add the value to the data, or correct the pointer in the template. A pointer starts with `/` and names each key on the way down, with an array's items by number from 0: `/items/0/name`. Inside an `$each`, `$item` points into the current item, not the whole data.
+
+## Example
+
+```rust
+let document = flow::document::fill(&template, &data)?; // fails when the data lacks a value the template names
+```
+
+## Data fields
+
+- `pointer`: the JSON Pointer the template used.
+- `placeholder`: which placeholder: `$data`, `$each` or `$item`.
+"#,
+        "template-data-type" => r#"# `template-data-type`
+
+- Type: error
+- Kind: `usage` (the caller passed something wrong)
+
+## What happened
+
+A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, a `$data` or `$item` put an object or a list where the document needs text or a number, or a placeholder's pointer isn't a valid JSON Pointer. Nothing was laid out.
+
+## Why
+
+Each placeholder needs one kind of value. `$each` repeats a block once per item, so it needs a list. A text placeholder is printed as it is, so it needs text, a number or `true`/`false`. Templates have no expressions, so they can't turn an object into text: the data arrives formatted.
+
+## How to fix
+
+`data.pointer` is the pointer the template used, and `data.expected` the kind it needs there. Point to a value of that kind, or change the data so the value has it. For a total or a date, put the formatted text in the data, such as `"total": "1,250.00 €"`.
+
+## Example
+
+```rust
+let document = flow::document::fill(&template, &data)?; // fails when "/items" isn't a list
+```
+
+## Data fields
+
+- `pointer`: the JSON Pointer the template used.
+- `placeholder`: which placeholder: `$data`, `$each` or `$item`.
+- `expected`: the kind the placeholder needs: `list`, `text, a number or true/false`, or `a JSON Pointer such as /items` (a pointer starts with `/`; `""` is the whole value).
+"#,
+        "template-too-large" => r"# `template-too-large`
+
+- Type: error
+- Kind: `usage` (the caller passed something wrong)
+
+## What happened
+
+Filling a document template would have made more than 100,000 values, or nested more than 64 levels deep. Filling stopped, and nothing was laid out.
+
+## Why
+
+`$each` repeats its block once per item, and an `$each` inside another repeats it once per item of each. A few levels over long lists multiply into millions of blocks, which no document needs. So filling counts what it makes and stops at a limit far beyond a real document.
+
+## How to fix
+
+`data.limit` is the limit that filling reached. Repeat fewer items, or nest fewer `$each` placeholders inside each other. For a very long report, split it into several documents.
+
+## Example
+
+```rust
+let document = flow::document::fill(&template, &data)?; // fails when nested $each placeholders multiply past the limit
+```
+
+## Data fields
+
+- `limit`: the limit passed: 100,000 values filled in, or 64 levels of nesting.
+",
+        "flow-keep-broken" => r#"# `flow-keep-broken`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Builder::flow` met blocks it was asked to keep on one page, and together they are taller than a page. The flow split them across pages anyway. Blocks are kept together by a `FlowBlock::Keep` group, or by a heading or a paragraph set to keep with the block after it.
+
+## Why
+
+Blocks that can't fit on one page can't be kept on one page. No layout can keep them together, so the flow doesn't look for one. It lays them out as it would without the rule, and every page still ends on a whole line.
+
+## How to fix
+
+Keep fewer blocks together: split a long `Keep` group into smaller ones, or turn off `keep_with_next` on a paragraph in a long chain. Or make the page taller, or its margins smaller, so the group fits.
+
+## Example
+
+```rust
+let group = FlowBlock::Keep(vec![long_intro, long_paragraph]); // taller than a page
+let report = builder.flow(&Flow::new(template).block(group))?;
+assert_eq!(report.warnings[0].code(), "flow-keep-broken");
+```
+
+## Data fields
+
+- `page`: the page the blocks start on, counted from 0 within the flow.
+"#,
+        "markdown-html-ignored" => r#"# `markdown-html-ignored`
+
+- Type: warning
+- Kind: `unsupported` (valid input that Lamina PDF can't handle yet)
+
+## What happened
+
+`Builder::markdown` found raw HTML in the Markdown, such as a `<div>` block or an inline `<span>`, left it out of the PDF and laid out the rest as usual. The builder raises one warning for each HTML block and each inline HTML tag.
+
+## Why
+
+Markdown lets authors mix in HTML, and a browser would draw it. Laying out HTML needs a web page's layout rules, which a PDF builder doesn't have. Rather than print the tags as text, the builder leaves the HTML out and says where it was.
+
+## How to fix
+
+Write the content in Markdown instead: `**bold**` for `<b>`, a table for `<table>`, an image for `<img>`. If the HTML is only a comment, such as `<!-- draft -->`, remove it or ignore the warning.
+
+## Example
+
+```rust
+let report = builder.markdown("Hello <span>there</span>\n", &MarkdownBuildOptions::new())?;
+assert_eq!(report.warnings[0].code(), "markdown-html-ignored");
+```
+
+## Data fields
+
+- `offset`: where the HTML starts, as a byte offset into the Markdown.
+"#,
+        "markdown-image-missing" => r#"# `markdown-image-missing`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Builder::markdown` met an image, such as `![Chart](chart.png)`, whose bytes weren't passed in. It left the image out of the PDF and laid out the rest of the document as usual.
+
+## Why
+
+The builder reads no files and fetches nothing from the network, so it can only draw images the caller supplies. An image path the options don't list, or a web address, has nothing behind it.
+
+## How to fix
+
+Read the image yourself and pass it with `MarkdownBuildOptions::with_image`, under the same path the Markdown uses.
+
+## Example
+
+```rust
+let chart = Image::png(&std::fs::read("chart.png")?)?;
+let options = MarkdownBuildOptions::new().with_image("chart.png", chart);
+builder.markdown("![Chart](chart.png)\n", &options)?;
+```
+
+## Data fields
+
+- `offset`: where the image starts, as a byte offset into the Markdown.
+"#,
         "render-too-large" => r"# `render-too-large`
 
 - Type: error
@@ -4523,11 +4832,11 @@ A range source of `@laminapdf/sdk` (`httpRangeSource`) couldn't get bytes it ask
 
 ## Why
 
-Opening a remote file range by range depends on the server: it must allow the `Range` request (and, across origins, expose `Content-Range`, `Content-Length` and `ETag` through CORS), and must not compress the response (`Content-Encoding` breaks byte ranges). Lamina PDF never retries on its own; the error says the bytes are not available.
+Opening a remote file range by range depends on the server: it must allow the `Range` request and must not compress the response (`Content-Encoding` breaks byte ranges). Across origins, it must also allow the `If-Range` header that every request after the first carries, and expose `Content-Range`, `Content-Length` and `ETag` through CORS. Lamina PDF never retries on its own; the error says the bytes are not available.
 
 ## How to fix
 
-Check that the URL is reachable from where the code runs and that the server sends `Access-Control-Allow-Origin`, `Access-Control-Allow-Headers: Range` and `Access-Control-Expose-Headers: Content-Range, Content-Length, ETag`. Serve PDFs without `Content-Encoding`. Retry the call yourself if the failure was transient.
+Check that the URL is reachable from where the code runs and that the server sends `Access-Control-Allow-Origin`, `Access-Control-Allow-Headers: Range, If-Range` and `Access-Control-Expose-Headers: Content-Range, Content-Length, ETag`. Serve PDFs without `Content-Encoding`. Retry the call yourself if the failure was transient.
 
 ## Example
 

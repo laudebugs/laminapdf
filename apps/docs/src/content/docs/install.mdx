@@ -3,6 +3,8 @@ title: Install
 description: Install Lamina PDF from npm or crates.io, and find every published package.
 ---
 
+import Diagram from "../../components/Diagram.astro";
+
 Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both are alpha releases, so name the version when you install them. A plain `npm install` or `cargo add` picks a `0.0.0` placeholder that only reserves the name.
 
 ## TypeScript: `@laminapdf/sdk`
@@ -26,6 +28,10 @@ cargo add laminapdf@={{version}}
 ```
 
 The command writes `laminapdf = "={{version}}"` to `Cargo.toml`, which keeps your project on this release until you change it: alphas promise nothing to each other (see the [stability policy](/reference/stability/)). The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
+
+## The command-line tool
+
+The `laminapdf` command does the common jobs from a terminal or a script, without a Node or Rust project: describe, check, extract, render and build PDFs. Homebrew installs it with `brew install laudebugs/tap/laminapdf`; [install the command-line tool](/cli/install/) has npm and downloads for macOS, Linux and Windows.
 
 ## Every published package
 
@@ -51,6 +57,8 @@ Most projects need only the two above. The table links every published package t
 | `laminapdf-source` | [crates.io](https://crates.io/crates/laminapdf-source) | Byte sources filled range by range, for remote files |
 | `laminapdf-render` | [crates.io](https://crates.io/crates/laminapdf-render) | The Rust interface that page renderers implement |
 | `laminapdf-render-pdfium` | [crates.io](https://crates.io/crates/laminapdf-render-pdfium) | The native PDFium renderer |
+
+<Diagram name="package-map" />
 
 ## Try a change before it's released
 

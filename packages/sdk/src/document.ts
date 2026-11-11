@@ -3,27 +3,33 @@
 // pages and save jobs are handles (internal/handle.ts): a page or save job is freed with its
 // document.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
-import type { PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
+import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
 import { type BaseGlue, extractsText, readingModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
+import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
 import { Transaction } from "./transaction.js";
 import type {
   DocumentInfo,
+  DocumentProperties,
   Edited,
   Op,
   OpenOptions,
   OpLog,
+  OutlineNode,
   PageInfo,
+  PageLink,
   Progress,
+  Reverted,
   SaveOptions,
   SaveReport,
-  UndoOutcome,
+  StructureNode,
+  Target,
 } from "./types.js";
 
 function isThenable(value: unknown): boolean {
@@ -358,6 +364,52 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * The outline (bookmarks): its top-level items in order, each with its children, and where
+   * each goes as a page and a view in page space; empty without one. Needs a document opened
+   * while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
+   *   module; reading errors (`data-pending` for a range document: use `ensure`).
+   */
+  outline(): OutlineNode[] {
+    return this.call(() => this.#extracting("doc.outline()").outline());
+  }
+
+  /**
+   * Where the named destination `name` goes (the names a link or a `#nameddest=` address uses),
+   * or `undefined` when the document has none by that name. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   */
+  namedDestination(name: string): Target | undefined {
+    return this.call(() => this.#extracting("doc.namedDestination()").namedDestination(name));
+  }
+
+  /**
+   * What a properties view shows about the document: Info entries and dates, version, pages,
+   * size, tagging, encryption and permissions, fonts, signatures (counted, not verified) and
+   * whether it holds JavaScript, attachments or a form. It reads every object once, so call it
+   * when the view opens. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   */
+  properties(): DocumentProperties {
+    return this.call(() => this.#extracting("doc.properties()").properties());
+  }
+
+  /**
+   * The visible links on page `index` (0-based), in the page's annotation order, each with what
+   * following it does. Nothing is run: a link to a `Launch` or `JavaScript` action is reported as
+   * `"unsupported"`. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.outline}.
+   */
+  pageLinks(index: number): PageLink[] {
+    return this.call(() => this.#extracting("doc.pageLinks()").pageLinks(index));
+  }
+
+  /**
    * The document's text for retrieval and LLMs: Markdown or plain text in reading order, the
    * `laminapdf.extract/1` JSON with a box for every block, or chunks sized for retrieval. Tables
    * drawn with lines come out as tables, and text a reader can't see is left out. Needs a
@@ -423,6 +475,68 @@ export class Document extends Handle<BaseGlue> {
     return this.call(() => this.#doc.info());
   }
 
+  /**
+   * Whether the document says it is tagged (`/MarkInfo /Marked true`); it doesn't check the tree.
+   * Needs a document opened while the extract or text module was loaded, as `page.text()` does.
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`; reading errors.
+   */
+  get isTagged(): boolean {
+    return this.call(() => this.#extracting("doc.isTagged").isTagged());
+  }
+
+  /**
+   * The structure tree's top-level elements in reading order, or `undefined` for a document
+   * without one. A text run's `mcid` (on {@link PageTextRun}) links it to the element whose
+   * `{ type: "content", page, mcid }` kid names it. Needs the extract or text module, as
+   * `page.text()` does.
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`; reading errors.
+   */
+  structureTree(): StructureNode[] | undefined {
+    return this.call(() => this.#extracting("doc.structureTree()").structureTree());
+  }
+
+  /**
+   * The document for a reader mode: its blocks in the structure tree's reading order, with
+   * headings, list items, quotes, captions and notes, and each figure, formula and table as a
+   * crop of its page with its alternate text, never as reflowed text. A document whose tree is
+   * missing or can't be trusted (empty, mostly bare spans, too little of the text, or in an order
+   * the pages' layout contradicts) comes back with `available: false` and the `reason`. Needs a
+   * document opened in the extract module: load it without the text module, since with both
+   * loaded documents open in the text module, which leaves reader mode out to keep its size.
+   *
+   * @example
+   * ```ts
+   * const reflow = doc.reflow();
+   * if (reflow.available) for (const block of reflow.blocks) console.log(block.kind, block.text);
+   * ```
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` in the base or text module;
+   *   reading errors.
+   */
+  reflow(): Reflow {
+    this.assertLive();
+    const doc = this.#doc as WasmDocument & { reflow?: () => string };
+    if (typeof doc.reflow !== "function") {
+      throw packageError(
+        "extract-module-not-loaded",
+        "doc.reflow() needs a document opened in the extract module: with the text module loaded too, documents open in the text module, which leaves reader mode out",
+      );
+    }
+    const reflow = doc.reflow.bind(doc);
+    return JSON.parse(this.call(() => reflow())) as Reflow;
+  }
+
+  /** The document as the extract module made it, or `extract-module-not-loaded` naming `what`. */
+  #extracting(what: string): ExtractWasmDocument {
+    const doc = this.#doc as Partial<ExtractWasmDocument>;
+    if (typeof doc.structureTree !== "function" || typeof doc.isTagged !== "function") {
+      throw packageError(
+        "extract-module-not-loaded",
+        `${what} needs a document opened while the extract or text module was loaded`,
+      );
+    }
+    return doc as ExtractWasmDocument;
+  }
+
   /** Every warning so far (build warnings first), each the ADR 0026 §1 object. */
   get warnings(): readonly LaminaPdfWarning[] {
     return this.call(() => {
@@ -438,6 +552,14 @@ export class Document extends Handle<BaseGlue> {
         cursor.free();
       }
     });
+  }
+
+  /**
+   * Whether the file is encrypted: it opened with its password, or the empty one. An encrypted
+   * document can't be saved incrementally yet (`encrypted-base`).
+   */
+  get isEncrypted(): boolean {
+    return this.call(() => this.#doc.isEncrypted());
   }
 
   /** Whether there are changes no save has written yet. */
@@ -519,10 +641,11 @@ export class Document extends Handle<BaseGlue> {
   /**
    * Undoes the newest transaction.
    *
-   * @returns how it went, or `undefined` when there is nothing to undo.
+   * @returns how it went (`outcome`) and the pages it touched (`touchedPages`, to draw again), or
+   *   `undefined` when there is nothing to undo.
    * @throws {@link LaminaPdfError} `saved-not-rebased`; reading errors.
    */
-  undo(): UndoOutcome | undefined {
+  undo(): Reverted | undefined {
     this.#notInTransaction("undo");
     return this.call(() => this.#doc.undo());
   }
@@ -530,10 +653,11 @@ export class Document extends Handle<BaseGlue> {
   /**
    * Redoes the newest undone transaction.
    *
-   * @returns how it went, or `undefined` when there is nothing to redo.
+   * @returns how it went (`outcome`) and the pages it touched (`touchedPages`), or `undefined`
+   *   when there is nothing to redo.
    * @throws {@link LaminaPdfError} as {@link Document.undo}.
    */
-  redo(): UndoOutcome | undefined {
+  redo(): Reverted | undefined {
     this.#notInTransaction("redo");
     return this.call(() => this.#doc.redo());
   }

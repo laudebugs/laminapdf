@@ -30,6 +30,8 @@ export interface Capabilities {
   readonly crossOriginIsolated: boolean;
   /** No browser sits around the app, so it may bind keys a browser keeps for itself. */
   readonly ownsKeyboard: boolean;
+  /** `shareText` hands text to the system's share sheet. */
+  readonly canShare: boolean;
 }
 
 /** One of the capability flags. */
@@ -55,12 +57,27 @@ export type SaveResult =
   | { readonly saved: true; readonly name: string }
   | { readonly saved: false; readonly reason: "cancelled" };
 
-/** A print request: the pages, how to render them at the print resolution, and the original bytes. */
+/** One page drawn for printing: an image, and the size it prints at in points. */
+export interface PrintPage {
+  /** The page as an image (PNG or JPEG). */
+  readonly image: Blob;
+  /** Its size in points, rotation applied. */
+  readonly width: number;
+  readonly height: number;
+}
+
+/** A print request: the pages, how to draw each for printing, and the original bytes. */
 export interface PrintJob {
-  /** Page indices, 0-based. */
+  /** Page indices, 0-based, in the order they print. */
   readonly pages: readonly number[];
-  /** Renders one page at `dpi` for printing. */
-  render(page: number, dpi: number): Promise<ImageBitmap>;
+  /** Draws one page for printing; called one page at a time, so one page's pixels are held at once. */
+  render(page: number, signal: AbortSignal): Promise<PrintPage>;
+  /** `fit` scales each page to the paper; `actual` prints it at its own size. */
+  readonly scale: "fit" | "actual";
+  /** Told after each page is ready; the last call (`ready === total`) comes as the print window opens. */
+  readonly onProgress?: (ready: number, total: number) => void;
+  /** Stops preparing: no print window opens, and what was drawn is let go. */
+  readonly signal?: AbortSignal;
   /** The PDF itself, for platforms that print it natively. */
   readonly bytes?: Uint8Array;
 }
@@ -88,20 +105,61 @@ export interface RecentFile {
   readonly size: number;
   /** When it was last opened, in milliseconds since the epoch. */
   readonly lastOpened: number;
+  /** Its page count, when it was known at the last open. */
+  readonly pages?: number | undefined;
+  /** A handle to the file was kept, so `reopen` may read it again without a picker. */
+  readonly hasHandle?: boolean | undefined;
+  /** The document's fingerprint, the key its reading position is kept under (`Platform.positions`). */
+  readonly fingerprint?: string | undefined;
+}
+
+/** What `RecentFiles.add` keeps besides the file's name and size. */
+export interface RecentDetails {
+  /** The page count. */
+  readonly pages?: number | undefined;
+  /** The document's fingerprint. */
+  readonly fingerprint?: string | undefined;
 }
 
 /** The recently opened documents. */
 export interface RecentFiles {
   /** Newest first. */
   list(): Promise<readonly RecentFile[]>;
-  /** Puts `file` first, replacing an older entry for the same document. */
-  add(file: PlatformFile): Promise<void>;
+  /** Puts `file` first, replacing an older entry for the same document; gives the entry's id. */
+  add(file: PlatformFile, details?: RecentDetails): Promise<string>;
   /** Forgets one document. */
   remove(id: string): Promise<void>;
   /** Forgets every document. */
   clear(): Promise<void>;
-  /** Reads a recent document again without a picker. Only when capabilities.canReopenRecent. */
-  reopen?(id: string): Promise<PlatformFile | undefined>;
+  /**
+   * Reads a recent document again without a picker. Only when capabilities.canReopenRecent. It asks
+   * for permission when the browser no longer holds it, which needs a click; with `ask: false`
+   * (at start-up, with no click) it resolves undefined instead of asking.
+   */
+  reopen?(id: string, options?: { readonly ask?: boolean }): Promise<PlatformFile | undefined>;
+}
+
+/**
+ * Where a reader stopped in one document: the view (the viewer's position, opaque to this package:
+ * the app checks it on read), the page count when it was kept, and when, in milliseconds since the
+ * epoch. Never a name, path, address, bytes or text (ADR 0011 §3 guarantee 9).
+ */
+export interface ReadingPosition {
+  readonly view: unknown;
+  readonly pageCount: number;
+  readonly readAt: number;
+}
+
+/** Reading positions by document fingerprint, kept on this device only; the oldest go past a cap. */
+export interface ReadingPositions {
+  /** The position kept for the document with `fingerprint`, or undefined when there is none. */
+  get(fingerprint: string): Promise<ReadingPosition | undefined>;
+  /** Keeps `entry` for the document with `fingerprint`, replacing its last; the oldest go past the cap. */
+  set(fingerprint: string, entry: ReadingPosition): Promise<void>;
+  /** Forgets the position of the document with `fingerprint`. */
+  remove(fingerprint: string): Promise<void>;
+  /** Forgets every position ("Forget reading positions"). */
+  clear(): Promise<void>;
 }
 
 /** Everything the reader asks of the shell it runs in (ADR 0010 §1). */
@@ -129,11 +187,15 @@ export interface Platform {
   print(job: PrintJob): Promise<void>;
   /** Plain text to the system clipboard (write only). */
   copyText(text: string): Promise<void>;
+  /** Hands `text` to the system's share sheet (where `canShare`); rejects when the user cancels. */
+  shareText(text: string): Promise<void>;
   /** Opens a URL outside the app, after the UI's own confirmation. http(s) and mailto only. */
   openExternal(url: string): Promise<void>;
 
   readonly storage: PlatformStorage;
   readonly recent: RecentFiles;
+  /** Where the reader stopped in each document, by its fingerprint. */
+  readonly positions: ReadingPositions;
 
   /** Watches a file for changes on disk. Only when capabilities.canWatchFiles. */
   watch?(file: PlatformFile, onChange: () => void): () => void;

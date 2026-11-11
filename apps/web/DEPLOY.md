@@ -14,7 +14,7 @@ Three Workers hold the reader, each at one kind of address:
 | --- | --- | --- |
 | A pull request from this repository | `preview-build`, `preview-deploy`, `preview-smoke` | A preview version of `lamina-pdf-web-preview` under the alias `pr-<number>`, at the URL commented on the PR |
 | A push to `main`, or a manual run on `main` | `staging` | `staging-app.laminapdf.com` |
-| A tag `web-v<version>` on a commit of `main` | `production-checks`, `production` | `app.laminapdf.com` |
+| A tag `web-v<version>` on a commit of `main`: the web release train's, once a day when the reader changed, or one pushed by hand | `production-checks`, `production` | `app.laminapdf.com` |
 
 A pull request or a push deploys only when it changes something the reader may be built from. `cargo xtask changes` decides and prints `web=true` or `web=false`. It counts every path except the docs and `OUTSIDE_WEB` in `tools/xtask/src/changes.rs`, the parts of the repository the reader can't depend on. Those are the other apps and workflows, the tools other than xtask, the spikes and the fuzz workspace. A root config file or a shared action nobody thought to list still counts. When nothing it counts changed, the job reports success and its summary says why nothing deployed.
 
@@ -36,8 +36,8 @@ Pull requests from forks are skipped, as in the docs and website workflows, beca
 
 A `web-v<version>` tag runs two jobs, one after the other:
 
-1. **`production-checks`** fails unless the tag is on a commit of `main`, which takes changes only through pull requests that passed CI. It builds the tag, typechecks the reader and runs its e2e suite in Chromium against `wrangler dev`. Todo C7c adds the release gates to this job: the runtimes, Lighthouse and installability.
-2. **`production`** needs those checks. It deploys the build they passed, in the `production` GitHub environment, then runs the smoke test against `app.laminapdf.com`. Whenever the smoke test doesn't pass, the job runs `wrangler rollback`, which restores the previous deployment, and fails; a smoke test that times out or is cancelled counts too. The first release has no deployment to go back to, so its rollback fails too, and the release stays up until a fixed tag replaces it.
+1. **`production-checks`** fails unless the tag is on a commit of `main`, which takes changes only through pull requests that passed CI, and unless its version suits `package.json`'s (`cargo xtask web check-tag`). It builds the reader with the tag's version, which Settings › About shows. It builds the tag, typechecks the reader and runs its e2e suite in Chromium against `wrangler dev`, with the same version, so the suite checks that Settings › About shows it. Todo C7c adds the release gates to this job: the runtimes, Lighthouse and installability.
+2. **`production`** needs those checks. It deploys the build they passed, in the `production` GitHub environment, then runs the smoke test against `app.laminapdf.com`. Once the smoke test passes, it publishes the tag's GitHub release with the tag's notes. Whenever the smoke test doesn't pass, the job runs `wrangler rollback`, which restores the previous deployment, and fails; a smoke test that times out or is cancelled counts too. The first release has no deployment to go back to, so its rollback fails too, and the release stays up until a fixed tag replaces it.
 
 `production-checks` takes longer than a preview build. A tag's run builds everything from scratch, because `isolate-rust-home` and `node-pnpm` empty its build directory and package store before every use.
 

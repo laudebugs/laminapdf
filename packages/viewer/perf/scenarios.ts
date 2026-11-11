@@ -2,7 +2,10 @@
 // `window.__laminaPerf` with Playwright's real input: wheel steps at fixed intervals, so two runs
 // scroll the same way.
 
-import type { Browser, BrowserContext, Page } from "playwright";
+import { Buffer } from "node:buffer";
+import { type Browser, type BrowserContext, devices, type Page } from "playwright";
+// The built module: its own imports end in .js, which Node resolves only once compiled.
+import { budgetBytes, viewerBudgets } from "../dist/view/budgets.js";
 import type { BrowserResult } from "./report.ts";
 import "./types.ts";
 
@@ -71,24 +74,36 @@ async function firstPageWarm(context: BrowserContext, url: string): Promise<numb
   return ms;
 }
 
+/** How the cold scenario's file reaches the reader: from the device, or from its address. */
+type ColdFrom = "device" | "link";
+
 /**
  * Chromium only: a new context with the cache off and Fast 4G, opening the file during startup.
- * The throttling reaches the document Web Worker's downloads too: serving the WebAssembly
- * compressed (serve.ts) cut this figure from 7.6 s to 4.2 s, what 3.2 MB fewer bytes take at
- * Fast 4G's 1 MB/s.
+ * The throttling reaches the document Web Worker's downloads too. A file on the device (one the
+ * user chose or dropped) costs no download: its bytes come from memory, past the throttled
+ * network. A linked file is read from its address with Range requests, as the reader reads a
+ * `#url=` link. Before C7d the page fetched the whole file over the throttled network, a case the
+ * reader never has; the first paint then also waited for the extract module, which the link
+ * layer's first call needed (5.2 s; 3.3 s for the device file after).
  */
-async function firstPageCold(browser: Browser, url: string): Promise<number> {
+async function firstPageCold(browser: Browser, url: string, from: ColdFrom): Promise<number> {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 });
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
   await cdp.send("Network.enable");
   await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
   await cdp.send("Network.emulateNetworkConditions", FAST_4G);
-  await page.goto(`${url}?open=ten`);
+  if (from === "device") {
+    const body = await (await fetch(new URL("ten.pdf", url))).arrayBuffer();
+    await context.route("**/ten.pdf", (route) =>
+      route.fulfill({ body: Buffer.from(body), contentType: "application/pdf" }),
+    );
+  }
+  await page.goto(`${url}?open=ten${from === "link" ? "&remote" : ""}`);
   await page.waitForFunction(() => "__laminaPerf" in globalThis, undefined, { timeout: 180_000 });
   const ms = await page.evaluate(() => globalThis.__laminaPerf.firstPaintMs);
   await context.close();
-  if (ms === null) throw new Error("the cold page never painted its first page");
+  if (ms === null) throw new Error(`the cold page (${from}) never painted its first page`);
   return ms;
 }
 
@@ -155,6 +170,123 @@ async function zoom(context: BrowserContext, url: string): Promise<BrowserResult
   return { recording, toSharpMs };
 }
 
+/** Each engine's phone profile: touch and a coarse pointer, so the viewer takes its touch budgets. */
+const PHONES: Record<string, string> = { chromium: "Pixel 8", webkit: "iPhone 15" };
+
+/**
+ * The 1,000-page file stepped through ten pages at a time in a phone's profile (the 100-page
+ * stretch when quick), with the peak memory against the budgets the viewer gives that device.
+ * Pages are jumped to rather than scrolled by touch, so every engine moves through them the same way.
+ */
+async function mobile(browser: Browser, name: string, url: string, quick: boolean): Promise<BrowserResult["mobile"]> {
+  const device = PHONES[name];
+  if (device === undefined) return null;
+  const context = await browser.newContext({ ...devices[device] });
+  try {
+    const page = await harness(context, url);
+    await opened(page, "thousand", "fit-width");
+    // The budgets the viewer chose from what the page reports, so a profile without a coarse pointer shows as such.
+    const hints = await page.evaluate(() => ({
+      coarse: matchMedia("(pointer: coarse)").matches,
+      memoryGb: (globalThis.navigator as { deviceMemory?: number }).deviceMemory,
+    }));
+    const budget = viewerBudgets(hints);
+    await page.evaluate(() => globalThis.__laminaPerf.record());
+    for (let index = 0; index < (quick ? 100 : 1000); index += 10) {
+      await page.evaluate((i) => globalThis.__laminaPerf.goToPage(i), index);
+      await page.waitForTimeout(STEP_MS);
+    }
+    await page.evaluate(() => globalThis.__laminaPerf.untilSharp());
+    const { peakMemory } = await page.evaluate(() => globalThis.__laminaPerf.stop());
+    return { device: hints.coarse ? device : `${device} (fine pointer)`, peakMemory, budgetBytes: budgetBytes(budget) };
+  } finally {
+    await context.close();
+  }
+}
+
+/**
+ * Find on the 1,000-page file from page 1, while the view scrolls a page every step: "worker", a
+ * word on nearly every page, then "Page 778", on one page only, so its first result needs most of
+ * a pass. The recording covers both searches and the scrolling.
+ */
+async function find(context: BrowserContext, url: string): Promise<BrowserResult["find"]> {
+  const page = await harness(context, url);
+  await opened(page, "thousand", "fit-width");
+  await page.evaluate(() => globalThis.__laminaPerf.record());
+  const scrolling = (async () => {
+    for (let index = 1; index < 40; index++) {
+      await page.evaluate((i) => globalThis.__laminaPerf.goToPage(i), index);
+      await page.waitForTimeout(STEP_MS * 5);
+    }
+  })();
+  const common = await page.evaluate(() => globalThis.__laminaPerf.find("worker"));
+  await scrolling;
+  await page.evaluate(() => globalThis.__laminaPerf.goToPage(0));
+  const rare = await page.evaluate(() => globalThis.__laminaPerf.find("Page 778"));
+  const recording = await page.evaluate(() => globalThis.__laminaPerf.stop());
+  return { common, rare, recording };
+}
+
+/** 20 citations hovered in a row on the paper: the time from dwell to crop, and the longest task. */
+async function linkPreviews(context: BrowserContext, url: string): Promise<BrowserResult["linkPreviews"]> {
+  const page = await harness(context, url);
+  try {
+    await opened(page, "paper", "fit-width");
+    await page.evaluate(() => globalThis.__laminaPerf.record());
+    const toCropMs = await page.evaluate(() => globalThis.__laminaPerf.hoverLinks(20));
+    const recording = await page.evaluate(() => globalThis.__laminaPerf.stop());
+    return { toCropMs, recording };
+  } finally {
+    await page.close();
+  }
+}
+
+/** The files an edit is measured on, by their page counts. */
+const EDITED = [
+  ["ten", 10],
+  ["hundred", 100],
+  ["thousand", 1000],
+] as const;
+
+/** Edits per file: the median is reported. */
+const EDITS = 5;
+/** Edits in a row on the 100-page file, each appending a revision PDFium reads on its next open. */
+const CHAIN = 20;
+
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)] ?? Number.NaN;
+}
+
+/**
+ * An edit on screen (the E1 plan's §6): the page in view turned a quarter, five times, in files
+ * of 10, 100 and 1,000 pages, each turn timed from the edit's call to the page's first new pixels
+ * (its quick pass) and to sharp again, once the page before it is sharp. The worker saves the edit
+ * into memory and reopens the render document each time, so the cost grows with what reopening
+ * reads. On the 100-page file the turns go on to 20, and the last is reported too: each edit adds
+ * a cross-reference section PDFium reads on every later open.
+ */
+async function edit(context: BrowserContext, url: string): Promise<BrowserResult["edit"]> {
+  const out: BrowserResult["edit"][number][] = [];
+  for (const [name, pages] of EDITED) {
+    const page = await harness(context, url);
+    await opened(page, name, "fit-width");
+    const runs = [];
+    const count = pages === 100 ? CHAIN : EDITS;
+    for (let i = 0; i < count; i++) runs.push(await page.evaluate(() => globalThis.__laminaPerf.edit()));
+    await page.close();
+    const first = runs.slice(0, EDITS);
+    out.push({
+      pages,
+      applyMs: median(first.map((r) => r.applyMs)),
+      firstPixelsMs: median(first.map((r) => r.firstPixelsMs)),
+      sharpMs: median(first.map((r) => r.sharpMs)),
+      ...(count > EDITS ? { lastOf: count, lastFirstPixelsMs: runs[count - 1]?.firstPixelsMs ?? Number.NaN } : {}),
+    });
+  }
+  return out;
+}
+
 /** Every scenario in `browser`, against the harness served at `url`. */
 export async function runScenarios(
   browser: Browser,
@@ -165,12 +297,17 @@ export async function runScenarios(
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 });
   try {
     const warmMs = await firstPageWarm(context, url);
-    const coldMs = name === "chromium" ? await firstPageCold(browser, url) : null;
+    const coldMs = name === "chromium" ? await firstPageCold(browser, url, "device") : null;
+    const coldLinkMs = name === "chromium" ? await firstPageCold(browser, url, "link") : null;
     return {
-      firstPage: { warmMs, coldMs },
+      firstPage: { warmMs, coldMs, coldLinkMs },
       scroll: await scroll(context, url, quick),
       fling: await fling(context, url, quick),
       zoom: await zoom(context, url),
+      find: await find(context, url),
+      linkPreviews: await linkPreviews(context, url),
+      edit: await edit(context, url),
+      mobile: await mobile(browser, name, url, quick),
     };
   } finally {
     await context.close();

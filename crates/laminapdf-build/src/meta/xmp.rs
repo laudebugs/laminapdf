@@ -3,10 +3,14 @@
 //!
 //! The packet is deterministic: one `rdf:Description` with the namespaces in a fixed order,
 //! properties in a fixed order, values escaped for XML, no padding.
+//!
+//! Each property is the element `laminapdf_model::xmp::property_element` writes for its row of
+//! the shared Info ↔ XMP table (`MAPPINGS`), which a test below holds it to. It is spelled out
+//! here rather than built from the table at run time because this code is in every WebAssembly
+//! module, and the general writer cost the text module about 800 bytes of its gzip budget (E1
+//! plan §4).
 
-use std::fmt::Write as _;
-
-use laminapdf_model::PdfDate;
+use laminapdf_model::xmp::escape;
 
 use super::info::Metadata;
 use crate::profile::Conformance;
@@ -39,50 +43,6 @@ const PDFUA_EXTENSION: &str = "  <rdf:Description rdf:about=\"\" \
    </pdfaExtension:schemas>
   </rdf:Description>
 ";
-
-/// `&`, `<`, `>` and `"` escaped; tab, line feed and carriage return as character references;
-/// other characters XML 1.0 can't hold (C0 controls, U+FFFE, U+FFFF) are left out.
-pub(crate) fn escape(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    for ch in text.chars() {
-        match ch {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
-            '\t' => out.push_str("&#x9;"),
-            '\n' => out.push_str("&#xA;"),
-            '\r' => out.push_str("&#xD;"),
-            c if super::info::not_xml(c) => {}
-            _ => out.push(ch),
-        }
-    }
-    out
-}
-
-/// A date as XMP writes it (ISO 8601): `2026-10-29T12:00:00Z`, `…+01:00`, or no zone when
-/// the PDF date gives none.
-pub(crate) fn date(d: &PdfDate) -> String {
-    let mut s = format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
-        d.year(),
-        d.month(),
-        d.day(),
-        d.hour(),
-        d.minute(),
-        d.second()
-    );
-    match d.utc_offset_minutes() {
-        None => {}
-        Some(0) => s.push('Z'),
-        Some(m) => {
-            let sign = if m < 0 { '-' } else { '+' };
-            let m = m.unsigned_abs();
-            let _ = write!(s, "{sign}{:02}:{:02}", m / 60, m % 60);
-        }
-    }
-    s
-}
 
 /// The packet: `<?xpacket … ?>` around `x:xmpmeta`, UTF-8, with the profiles'
 /// identification (`pdfaid:part` and `pdfaid:conformance`, ISO 19005-2 §6.6.4; `pdfuaid:part`,
@@ -127,7 +87,7 @@ pub(crate) fn packet(meta: &Metadata, conformance: Conformance) -> String {
         ("xmp:ModifyDate", &meta.mod_date),
     ] {
         if let Some(d) = value {
-            line(&format!("<{tag}>{}</{tag}>", date(d)));
+            line(&format!("<{tag}>{}</{tag}>", d.to_iso8601()));
         }
     }
     let mut namespaces = String::new();
@@ -166,24 +126,47 @@ pub(crate) fn packet(meta: &Metadata, conformance: Conformance) -> String {
 
 #[cfg(test)]
 mod tests {
+    use laminapdf_model::xmp::{MAPPINGS, MappedField, Value, property_element};
+
     use super::*;
 
     #[test]
-    fn values_are_escaped() {
-        assert_eq!(escape("a<b & \"c\">\u{1}\n"), "a&lt;b &amp; &quot;c&quot;&gt;&#xA;");
-    }
-
-    #[test]
-    fn dates_carry_their_zone() {
-        let d = |s: &str| date(&s.parse().unwrap());
-        assert_eq!(
-            [d("D:20261029120000Z"), d("D:20261029120000-05'30'"), d("D:2026")],
-            [
-                "2026-10-29T12:00:00Z",
-                "2026-10-29T12:00:00-05:30",
-                "2026-01-01T00:00:00"
-            ]
-        );
+    fn every_property_is_what_the_shared_table_writes() {
+        // Every field a different value, so a swapped pair of lines fails.
+        let created: laminapdf_model::PdfDate = "D:20261029120000+01'00'".parse().unwrap();
+        let modified: laminapdf_model::PdfDate = "D:20261030090000Z".parse().unwrap();
+        let meta = Metadata::default()
+            .with_title("T <&>")
+            .with_author("A")
+            .with_subject("S")
+            .with_keywords("K")
+            .with_creator("C")
+            .with_producer("P")
+            .with_creation_date(created)
+            .with_mod_date(modified);
+        let p = packet(&meta, Conformance::default());
+        let expected: Vec<String> = MAPPINGS
+            .iter()
+            .filter_map(|m| {
+                let value = match m.field {
+                    MappedField::Title => Value::Text("T <&>".into()),
+                    MappedField::Authors => Value::List(vec!["A".into()]),
+                    MappedField::Subject => Value::Text("S".into()),
+                    MappedField::Keywords => Value::Text("K".into()),
+                    MappedField::Creator => Value::Text("C".into()),
+                    MappedField::Producer => Value::Text("P".into()),
+                    MappedField::Created => Value::Date(created),
+                    MappedField::Modified => Value::Date(modified),
+                    _ => return None,
+                };
+                Some(format!("   {}\n", property_element(m, &value)))
+            })
+            .collect();
+        let written: Vec<&str> = p
+            .split_inclusive('\n')
+            .filter(|l| expected.iter().any(|e| e == l))
+            .collect();
+        assert_eq!(written, expected);
     }
 
     #[test]

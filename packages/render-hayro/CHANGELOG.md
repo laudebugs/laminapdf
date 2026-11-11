@@ -1,5 +1,53 @@
 # @laminapdf/render-hayro
 
+## 0.2.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [810d0d4]
+- Updated dependencies [64f7860]
+- Updated dependencies [70eb584]
+  - @laminapdf/wasm@0.2.0-alpha.6
+  - @laminapdf/render@0.2.0-alpha.6
+
+## 0.2.0-alpha.5
+
+### Minor Changes
+
+- 771fafd: Pages can be drawn in Sepia, Dark or High contrast instead of their own colours. Images and annotations keep theirs, and so does text under a highlight.
+  
+  - **Render request:** `RenderRequest.appearance` is `"original"` (the default), `"sepia"`, `"dark"` or `{ kind: "high-contrast", ink, paper }`, for both backends.
+  - **Colour maps:** `recolourRgb` and `recolourTile` in `@laminapdf/render` give the same bytes as the Rust crate's.
+  - **Viewer:** `setAppearance()` redraws the pages in view in the new colours, keeping the scroll position. The thumbnails follow.
+
+### Patch Changes
+
+- Updated dependencies [526aae3]
+- Updated dependencies [771fafd]
+- Updated dependencies [5fc1f96]
+- Updated dependencies [95d2a70]
+- Updated dependencies [513aeb3]
+  - @laminapdf/wasm@0.2.0-alpha.5
+  - @laminapdf/render@0.2.0-alpha.5
+
+## 0.2.0-alpha.4
+
+### Patch Changes
+
+- Updated dependencies [00bf63b]
+- Updated dependencies [915c253]
+- Updated dependencies [4fdbfd4]
+- Updated dependencies [f69228f]
+- Updated dependencies [2254184]
+- Updated dependencies [c74d78f]
+- Updated dependencies [cc7f9ce]
+- Updated dependencies [703c2d8]
+- Updated dependencies [60495bf]
+- Updated dependencies [2886263]
+- Updated dependencies [baec4bc]
+  - @laminapdf/wasm@0.2.0-alpha.4
+  - @laminapdf/render@0.2.0-alpha.4
+
 ## 0.2.0-alpha.3
 
 ### Patch Changes

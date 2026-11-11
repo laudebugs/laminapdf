@@ -16,7 +16,16 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": "Secret",
+      "producer": "pypdf",
+      "encryption_revision": 6,
+      "fonts": [],
+      "signatures": 0
+    }
   },
   "fpdf2.pdf": {
     "size": 1307,
@@ -37,7 +46,19 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": "Hello from lamina",
+      "producer": null,
+      "encryption_revision": null,
+      "fonts": [
+        "Helvetica",
+        "Helvetica-Bold"
+      ],
+      "signatures": 0
+    }
   },
   "hello-broken.pdf": {
     "size": 599,
@@ -56,7 +77,18 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": null,
+      "producer": null,
+      "encryption_revision": null,
+      "fonts": [
+        "Helvetica"
+      ],
+      "signatures": 0
+    }
   },
   "hello-incremental.pdf": {
     "size": 810,
@@ -75,7 +107,18 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": null,
+      "producer": null,
+      "encryption_revision": null,
+      "fonts": [
+        "Helvetica"
+      ],
+      "signatures": 0
+    }
   },
   "hello-xrefstm.pdf": {
     "size": 521,
@@ -94,7 +137,18 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": null,
+      "producer": null,
+      "encryption_revision": null,
+      "fonts": [
+        "Helvetica"
+      ],
+      "signatures": 0
+    }
   },
   "hello.pdf": {
     "size": 599,
@@ -113,7 +167,18 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": null,
+      "producer": null,
+      "encryption_revision": null,
+      "fonts": [
+        "Helvetica"
+      ],
+      "signatures": 0
+    }
   },
   "imaging-demo.pdf": {
     "size": 1467,
@@ -132,7 +197,16 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": null,
+      "producer": null,
+      "encryption_revision": null,
+      "fonts": [],
+      "signatures": 0
+    }
   },
   "outline.pdf": {
     "size": 2594,
@@ -163,7 +237,29 @@
       "Section 2.2",
       "Appendix 𝄞 Ω",
       "Notes"
-    ]
+    ],
+    "outline_pages": [
+      0,
+      1,
+      1,
+      null,
+      null,
+      2
+    ],
+    "page_labels": [
+      "i",
+      "A-1",
+      "A-2"
+    ],
+    "properties": {
+      "title": "Outline fixture",
+      "producer": "tools/fixtures/outline.py",
+      "encryption_revision": null,
+      "fonts": [
+        "Helvetica"
+      ],
+      "signatures": 0
+    }
   },
   "pdflib.pdf": {
     "size": 1129,
@@ -182,7 +278,19 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": "Hello from lamina",
+      "producer": "pdf-lib (https://github.com/Hopding/pdf-lib)",
+      "encryption_revision": null,
+      "fonts": [
+        "Helvetica",
+        "Helvetica-Bold"
+      ],
+      "signatures": 0
+    }
   },
   "raw.pdf": {
     "size": 983,
@@ -201,7 +309,19 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": "Hello from lamina",
+      "producer": "raw_writer.py",
+      "encryption_revision": null,
+      "fonts": [
+        "Helvetica",
+        "Helvetica-Bold"
+      ],
+      "signatures": 0
+    }
   },
   "reportlab.pdf": {
     "size": 1763,
@@ -221,7 +341,19 @@
       "/Pages",
       "/Type"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": "Hello from lamina",
+      "producer": "ReportLab PDF Library - (opensource)",
+      "encryption_revision": null,
+      "fonts": [
+        "Helvetica",
+        "Helvetica-Bold"
+      ],
+      "signatures": 0
+    }
   },
   "signed.pdf": {
     "size": 7436,
@@ -243,7 +375,16 @@
       "/Type",
       "/Version"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": null,
+      "producer": "pypdf; pyHanko 0.38.0",
+      "encryption_revision": null,
+      "fonts": [],
+      "signatures": 1
+    }
   },
   "tampered.pdf": {
     "size": 7436,
@@ -265,7 +406,16 @@
       "/Type",
       "/Version"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": null,
+      "producer": "pypdf; pyHanko 0.38.0",
+      "encryption_revision": null,
+      "fonts": [],
+      "signatures": 1
+    }
   },
   "text-example.pdf": {
     "size": 9497,
@@ -289,6 +439,18 @@
       "/Type",
       "/ViewerPreferences"
     ],
-    "outline_titles": []
+    "outline_titles": [],
+    "outline_pages": [],
+    "page_labels": null,
+    "properties": {
+      "title": "lamina text example",
+      "producer": null,
+      "encryption_revision": null,
+      "fonts": [
+        "DejaVuSans",
+        "Helvetica"
+      ],
+      "signatures": 0
+    }
   }
 }

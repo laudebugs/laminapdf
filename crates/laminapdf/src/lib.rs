@@ -112,11 +112,30 @@ mod generated {
     pub(crate) mod explain;
 }
 mod job;
+mod links;
+mod navigation;
+mod properties;
 #[cfg(feature = "extract")]
 mod redaction;
 #[cfg(feature = "extract")]
 pub mod reveal;
+/// Flowing layout ([ADR 0032]): `laminapdf-build`'s flow layer, for [`Builder::flow`].
+///
+/// [ADR 0032]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0032-flowing-layout-and-document-inputs.md
+#[cfg(feature = "text")]
+pub mod flow {
+    pub use laminapdf_build::flow::*;
+}
+/// Markdown in, flowing pages out ([ADR 0032] §6): `laminapdf-build`'s Markdown front end, for
+/// [`Builder::markdown`].
+///
+/// [ADR 0032]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0032-flowing-layout-and-document-inputs.md
+#[cfg(feature = "markdown")]
+pub mod markdown {
+    pub use laminapdf_build::markdown::*;
+}
 mod revisions;
+mod structure;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
@@ -126,6 +145,12 @@ pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
+pub use laminapdf_cos::Cipher;
+pub use laminapdf_model::FontEncoding;
+pub use links::{LinkTo, PageLink};
+pub use navigation::{OutlineNode, PageTarget, PageTargetView};
+pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};
+pub use structure::{StructureKid, StructureNode};
 
 /// The JSON Schema of the error and warning object, `laminapdf.error/1` (ADR 0026 §1), as
 /// `cargo xtask gen codes` writes it. Tools that embed it in schemas of their own, such as
@@ -143,7 +168,7 @@ pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
-pub use laminapdf_ops::{InfoPatch, Op, OpLog, RotatePage, SetInfo, UndoOutcome};
+pub use laminapdf_ops::{InfoPatch, Op, OpLog, Reverted, RotatePage, SetInfo, UndoOutcome};
 pub use laminapdf_save::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefEol, XrefKind};
 
 #[cfg(feature = "build")]

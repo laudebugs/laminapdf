@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { pageFiles } from "../src/integrations.mjs";
-import { routeOf, siteNav } from "../src/nav.mjs";
+import { inPhoneMenu, routeOf, siteNav } from "../src/nav.mjs";
 
 describe("routeOf", () => {
   it("serves a page file at its folder's path", () => {
@@ -32,6 +32,17 @@ describe("siteNav", () => {
       { label: "Download", href: "/download/", current: undefined },
       { label: "Docs", href: "https://docs.laminapdf.com/", current: undefined },
       { label: "Privacy", href: "/privacy/", current: "page" },
+    ]);
+  });
+
+  it("puts How we test between Performance and Privacy", () => {
+    const all = [...pages, "/src/pages/performance.astro", "/src/pages/how-we-test.astro"];
+    expect(siteNav(all, { site: "website", path: "/how-we-test/" }).map((link) => [link.label, link.current])).toEqual([
+      ["Download", undefined],
+      ["Docs", undefined],
+      ["Performance", undefined],
+      ["How we test", "page"],
+      ["Privacy", undefined],
     ]);
   });
 
@@ -77,5 +88,14 @@ describe("pageFiles", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("inPhoneMenu", () => {
+  it("keeps Docs in a phone's header bar and moves every other link into its menu", () => {
+    const all = ["/src/pages/download.astro", "/src/pages/how-we-test.astro", "/src/pages/privacy.astro"];
+    const nav = siteNav(all, { site: "website", path: "/" });
+    expect(nav.filter((link) => !inPhoneMenu(link)).map((link) => link.label)).toEqual(["Docs"]);
+    expect(nav.filter(inPhoneMenu).map((link) => link.label)).toEqual(["Download", "How we test", "Privacy"]);
   });
 });

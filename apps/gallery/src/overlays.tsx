@@ -3,46 +3,165 @@
 // `state` URL parameter), so a screenshot holds exactly one overlay.
 
 import {
+  AppearanceSettings,
   BottomSheet,
   Button,
   CommandPalette,
   CommandRegistry,
   CommandsProvider,
+  DEFAULT_APPEARANCE,
   DebugMenu,
   Dialog,
+  ExternalLinkDialog,
   FocusModeItem,
   IconButton,
   Inspector,
   LeftRail,
+  LinkPreview,
+  type LinkPreviewImage,
   Menu,
   MenuTrigger,
   ModeRegistry,
+  MoreSheet,
   OpenDropZone,
   PasswordDialog,
+  PhoneBottomBar,
   Popover,
   PopoverTrigger,
   ReaderController,
   ReaderShell,
   registerReaderCommands,
+  SelectionActionBar,
   SelectionToolbar,
   SelectionToolbarDivider,
+  SettingsDialog,
+  SettingsRegistry,
   ShellLayout,
+  ShortcutsDialog,
   Switch,
   shellActions,
   TextInput,
   ToastQueue,
   ToastRegion,
   Tooltip,
+  useSettingsSection,
+  ViewSettingsButton,
 } from "@laminapdf/ui";
+import { PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
 
 const noop = () => {};
 const SHORTCUT = { mac: "⌘F", other: "Ctrl+F" };
 
-/** The dialogs: the three widths, a destructive confirm, and the reader's password prompt. */
+/** R08's sample file: a 24-page report, labelled 1–21 then A-1–A-3, with two fonts and two signatures. */
+const PROPERTIES = {
+  title: "Q3 Board Report",
+  author: "Finance team",
+  creator: "Northwind report template",
+  producer: "Northwind print service",
+  created: "2026-10-14T09:12:00",
+  modified: "2026-10-28T16:04:00",
+  version: "1.7",
+  pageCount: 24,
+  fileSize: 1_262_480,
+  linearized: true,
+  tagged: true,
+  fonts: [
+    { name: "SourceSerif4-Regular", kind: "Type0", embedded: true, subset: true },
+    { name: "Helvetica", kind: "Type1", embedded: false, subset: false },
+  ],
+  signatures: 2,
+  contains: { javascript: false, attachments: 3, forms: false },
+};
+const LABELS = [...Array.from({ length: 21 }, (_, i) => String(i + 1)), "A-1", "A-2", "A-3"];
+const PAGES = Array.from({ length: 24 }, (_, i) =>
+  i < 22 ? { width: 612, height: 792 } : { width: 792, height: 1224 },
+);
+
+/** Print (R09), restricted or not, and its progress; Document properties (R08). */
+function OutputDialog({ state }: { state: string }): ReactNode {
+  if (state === "print-progress") return <PrintProgressDialog progress={{ ready: 8, total: 24 }} onCancel={noop} />;
+  if (state === "properties") {
+    return (
+      <PropertiesDialog
+        isOpen
+        fileName="Q3-board-report.pdf"
+        state={{ status: "ready", properties: PROPERTIES }}
+        context={{ pages: PAGES, labels: LABELS }}
+        onCopy={noop}
+        onClose={noop}
+      />
+    );
+  }
+  return (
+    <PrintDialog
+      isOpen
+      pageCount={24}
+      currentPage={2}
+      labels={LABELS}
+      {...(state === "print-restricted" ? { permissions: { print: false, printHighQuality: false } } : {})}
+      onPrint={noop}
+      onClose={noop}
+    />
+  );
+}
+
+/** Settings, Keyboard shortcuts (inside the reader's commands) and the View settings popover. */
+function SettingsDialogs({ state }: { state: string }): ReactNode {
+  const [appearance, setAppearance] = useState(DEFAULT_APPEARANCE);
+  const [settings] = useState(() => new SettingsRegistry());
+  const [commands] = useState(() => {
+    const registry = new CommandRegistry();
+    registerReaderCommands(registry);
+    return { registry, context: { platform: fakePlatform(), actions: { "help.shortcuts": noop } } };
+  });
+  useSettingsSection(
+    settings,
+    "appearance",
+    "Appearance and accessibility",
+    () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
+    { shows: [appearance] },
+  );
+  if (state === "settings") return <SettingsDialog registry={settings} isOpen onOpenChange={noop} />;
+  if (state === "view-settings") {
+    return (
+      <ViewSettingsButton
+        appearance={appearance}
+        onChange={setAppearance}
+        isOpen
+        onOpenChange={noop}
+        onMoreSettings={noop}
+      />
+    );
+  }
+  return (
+    <CommandsProvider registry={commands.registry} context={commands.context} keys="other">
+      <ShortcutsDialog isOpen onOpenChange={noop} singleKeys onSingleKeysChange={noop} onOpenPalette={noop} />
+    </CommandsProvider>
+  );
+}
+
+/** The dialogs: the three widths, a destructive confirm, the reader's password prompt, print and properties. */
 export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "password") return <PasswordPrompt />;
+  if (state.startsWith("print") || state === "properties") return <OutputDialog state={state} />;
+  if (state === "settings" || state === "shortcuts" || state === "view-settings")
+    return <SettingsDialogs state={state} />;
+  if (state === "external-link") {
+    // R07's drawn state: the page's text shows a shorter address than the link's real target.
+    return (
+      <ExternalLinkDialog
+        link={{
+          href: "https://surveys.example.org/2026/capacity?region=north",
+          parts: { before: "https://", host: "surveys.example.org", after: "/2026/capacity?region=north" },
+        }}
+        onOpen={noop}
+        onCopy={noop}
+        onClose={noop}
+      />
+    );
+  }
   const size = state === "form" ? "form" : state === "wide" ? "wide" : "default";
   if (state === "alert") {
     return (
@@ -101,6 +220,9 @@ function PasswordPrompt(): ReactNode {
 /** A bottom sheet at each detent, and the non-modal one beside a page in use. */
 export function Sheets({ state }: { state: string }): ReactNode {
   const pages = <p>24 pages, three selected.</p>;
+  if (state === "more") {
+    return <MoreSheet isOpen onOpenChange={noop} more={MORE} keys="other" />;
+  }
   if (state === "non-modal") {
     return (
       <BottomSheet isOpen isModal={false} onOpenChange={noop} title="Pages" count="24 pages" closeLabel="Close pages">
@@ -123,6 +245,16 @@ export function Sheets({ state }: { state: string }): ReactNode {
     </BottomSheet>
   );
 }
+
+/** The phone's More items: the reader's More menu. */
+const MORE = {
+  items: [
+    { id: "open", label: "Open another file…" },
+    { id: "rotate", label: "Rotate clockwise", icon: "rotate-right" as const },
+    { id: "save", label: "Save a copy…", icon: "download" as const },
+  ],
+  onAction: noop,
+};
 
 /** A menu and a popover open from their buttons; a tooltip shows on keyboard focus (the test tabs to it). */
 export function Menus({ state }: { state: string }): ReactNode {
@@ -178,6 +310,64 @@ export function Selection(): ReactNode {
         <SelectionToolbarDivider />
         <IconButton label="Comment" icon="comment" />
       </SelectionToolbar>
+    </div>
+  );
+}
+
+/** A stand-in crop of a reference list, drawn at the device's pixels: what `Viewer.preview` returns. */
+async function standInCrop(): Promise<LinkPreviewImage> {
+  const [width, height] = [300, 64];
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  const g = canvas.getContext("2d");
+  if (g !== null) {
+    g.scale(dpr, dpr);
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, width, height);
+    g.fillStyle = "#222";
+    g.font = "11px serif";
+    g.fillText("[12] D. E. Knuth. The TeXbook. Addison-Wesley,", 10, 22);
+    g.fillText("Reading, Massachusetts, 1984.", 28, 38);
+    g.fillText("[13] L. Lamport. LaTeX: A Document Preparation", 10, 56);
+  }
+  return { bitmap: await createImageBitmap(canvas), width, height };
+}
+
+/** The link preview over a stand-in citation: the popover (mouse and keyboard), and the touch sheet. */
+export function LinkPreviews({ state }: { state: string }): ReactNode {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [picture, setPicture] = useState<LinkPreviewImage | undefined>(undefined);
+  useEffect(() => {
+    void standInCrop().then(setPicture);
+  }, []);
+  const text = "[12] D. E. Knuth. The TeXbook. Addison-Wesley, Reading, Massachusetts, 1984.";
+  return (
+    <div className="g-selection">
+      <p>
+        As shown in{" "}
+        <a ref={setAnchor} href="#cite.12">
+          [12]
+        </a>
+        , previews help.
+      </p>
+      {anchor === null ? null : (
+        <LinkPreview
+          anchor={anchor}
+          pointer={state === "sheet" ? "touch" : "fine"}
+          title="References"
+          caption="Link to page 7 · Enter to go"
+          picture={picture}
+          pictureLabel={text}
+          text={text}
+          goLabel="Go to page 7"
+          closeLabel="Close"
+          onFollow={noop}
+          onDismiss={noop}
+          onHold={noop}
+        />
+      )}
     </div>
   );
 }
@@ -262,7 +452,10 @@ export function ShellRegions(): ReactNode {
     registerReaderCommands(registry);
     const platform = fakePlatform();
     const reader = new ReaderController(platform, async () => ({ pageCount: 24 }));
-    const context = { platform, reader, actions: shellActions(focus, new ModeRegistry(), { rail: true }) };
+    // The selection bar's buttons need handlers to show; here they do nothing.
+    const selection = { "edit.copy": () => undefined, "selection.search": () => undefined };
+    const actions = { ...shellActions(focus, new ModeRegistry(), { rail: true }), ...selection };
+    const context = { platform, reader, actions };
     return { layout, focus, registry, context };
   });
   const tabs = [
@@ -285,6 +478,8 @@ export function ShellRegions(): ReactNode {
         >
           <p>The page</p>
         </ReaderShell>
+        <PhoneBottomBar layout={shell.layout} rail more={MORE} keys="other" />
+        <SelectionActionBar more={MORE} keys="other" />
       </div>
     </CommandsProvider>
   );

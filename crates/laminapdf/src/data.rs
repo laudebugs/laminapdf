@@ -17,6 +17,18 @@ fn data<const N: usize>(entries: [(&str, Value); N]) -> Data {
     entries.into_iter().map(|(k, v)| (k.to_owned(), v)).collect()
 }
 
+/// The `didYouMean` candidates of `error`: the closest known keys for a misspelt one in a
+/// document (`invalid-document`); none for every other error.
+pub(crate) fn did_you_mean(error: &Error) -> Vec<String> {
+    match error {
+        #[cfg(feature = "build")]
+        Error::Core(CoreError(Inner::Build(laminapdf_build::Error::InvalidDocument { did_you_mean, .. }))) => {
+            did_you_mean.clone()
+        }
+        _ => Vec::new(),
+    }
+}
+
 /// The `data` of `error`.
 pub(crate) fn of_error(error: &Error) -> Data {
     match error {
@@ -193,7 +205,9 @@ fn build(e: &laminapdf_build::Error) -> Data {
         }
         E::InvalidIccProfile { reason } => data([("reason", json!(reason))]),
         E::InvalidColor { text } => data([("text", json!(text))]),
-        E::InvalidGeometry { what } | E::InvalidPageLabels { what } => data([("what", json!(what))]),
+        E::InvalidGeometry { what } | E::InvalidPageLabels { what } | E::FlowContentTooLarge { what } => {
+            data([("what", json!(what))])
+        }
         E::TextOverflow { fits, needed } => data([("fits", json!(fits)), ("needed", json!(needed))]),
         E::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
         E::UnknownDestination { name } => data([("name", json!(name))]),
@@ -223,6 +237,20 @@ fn build(e: &laminapdf_build::Error) -> Data {
         }
         E::LinkWithoutStructure { page, count } => data([("page", json!(page)), ("count", json!(count))]),
         E::FontNotEmbedded { profile, font } => data([("profile", json!(profile.as_str())), ("font", json!(font))]),
+        E::InvalidDocument { pointer, reason, .. } => data([("pointer", json!(pointer)), ("reason", json!(reason))]),
+        E::TemplateDataMissing { pointer, placeholder } => {
+            data([("pointer", json!(pointer)), ("placeholder", json!(placeholder))])
+        }
+        E::TemplateDataType {
+            pointer,
+            placeholder,
+            expected,
+        } => data([
+            ("pointer", json!(pointer)),
+            ("placeholder", json!(placeholder)),
+            ("expected", json!(expected)),
+        ]),
+        E::TemplateTooLarge { limit } => data([("limit", json!(limit))]),
         E::GlyphWithoutUnicode { profile, font, gid } => data([
             ("profile", json!(profile.as_str())),
             ("font", json!(font)),
@@ -243,6 +271,18 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
         Warning::Font(w) => text_warning(w),
         #[cfg(feature = "extract")]
         Warning::Redaction(w) => redaction_warning(w),
+        #[cfg(feature = "text")]
+        Warning::Build(w) => build_warning(w),
+    }
+}
+
+#[cfg(feature = "text")]
+fn build_warning(w: &laminapdf_build::Warning) -> Data {
+    match w {
+        laminapdf_build::Warning::FlowKeepBroken { page } => data([("page", json!(page))]),
+        laminapdf_build::Warning::MarkdownHtmlIgnored { offset }
+        | laminapdf_build::Warning::MarkdownImageMissing { offset } => data([("offset", json!(offset))]),
+        _ => Data::new(),
     }
 }
 
@@ -271,6 +311,13 @@ fn cos_warning(w: laminapdf_cos::Warning) -> Data {
             data([("key", json!(key))])
         }
         W::InvalidPageLabel { start } => data([("start", json!(start))]),
+        W::XmpInvalid { offset, reason, .. } => {
+            let mut d = data([("reason", json!(reason))]);
+            if let Some(offset) = offset {
+                d.insert("offset".to_owned(), json!(offset));
+            }
+            d
+        }
         W::ContentResourceMissing { offset, category, .. } => {
             data([("offset", json!(offset)), ("category", json!(category))])
         }

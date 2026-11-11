@@ -1,6 +1,7 @@
 /* Text fields and the select (§7.19): label 12/600 above with gap 8, help 12 muted or the error
    12 danger below, a white field with a control border that turns danger when invalid. */
 @layer paper.components {
+  /* The sites' twin, for Astro without React: @laminapdf/site-kit's select.css. */
   .paper-field {
     display: flex;
     flex-direction: column;

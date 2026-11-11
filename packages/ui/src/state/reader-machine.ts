@@ -3,6 +3,7 @@
 // transition is a plain function of state and event, and every one has a unit test.
 
 import type { PlatformFile } from "../platform/types.js";
+import type { InteractionMode } from "../tools/tools.js";
 
 /** What the reader is doing. A password is never part of it: it goes to the opener and no further. */
 export type ReaderState =
@@ -12,13 +13,12 @@ export type ReaderState =
   | { readonly phase: "open"; readonly file: PlatformFile; readonly pageCount: number; readonly mode: InteractionMode }
   | { readonly phase: "error"; readonly file: PlatformFile; readonly error: ReaderError };
 
-/** How pointer input on the page is read. Only selection in v0.1. */
-export type InteractionMode = "select";
-
-/** Why a document couldn't open: its error code (ADR 0026), and its message for the log. */
+/** Why a document couldn't open: its error code (ADR 0026), its message for the log and its `data`. */
 export interface ReaderError {
   readonly code: string;
   readonly message: string;
+  /** The error's code-specific fields (`fetch-failed`'s `reason` …), when it has them. */
+  readonly data?: Readonly<Record<string, unknown>>;
 }
 
 /** What can happen to the reader. */

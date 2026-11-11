@@ -1,6 +1,6 @@
 # 0010 — Platform adapter: one `Platform` interface, capability flags, no platform checks in UI code
 
-- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`)
+- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), 2026-11-09 by U2a (`canShare`, `shareText`) and by [ADR 0008](0008-desktop-shell.md) (`hasNativePrint` and `crossOriginIsolated` on desktop), and 2026-11-10 by T5b (`positions`, `recent.reopen`'s `{ ask }`, `recent.add` giving the entry's id)
 - Date: 2026-10-31
 
 ## Context
@@ -43,6 +43,8 @@ export interface Platform {
   print(job: PrintJob): Promise<void>;
   /** Plain text to the system clipboard (write only; lamina never reads the clipboard unasked). */
   copyText(text: string): Promise<void>;
+  /** Text to the system's share sheet, where `canShare` (amended 2026-11-09). */
+  shareText(text: string): Promise<void>;
   /** Open a URL outside the app, after the UI's own confirmation (C6b). http(s) and mailto only. */
   openExternal(url: string): Promise<void>;
 
@@ -50,6 +52,8 @@ export interface Platform {
   readonly storage: PlatformStorage;
   /** Recently opened documents (metadata only; reopening needs capabilities.canReopenRecent). */
   readonly recent: RecentFiles;
+  /** Where the reader stopped in each document, by its fingerprint (T5b). */
+  readonly positions: ReadingPositions;
 
   /** Watch a file for changes on disk. Only when capabilities.canWatchFiles. */
   watch?(file: PlatformFile, onChange: () => void): () => void;
@@ -72,13 +76,14 @@ export interface PlatformFile {
 
 - **What `PlatformFile` carries:** a file's name and size are shown in the UI, but its contents only ever go to the document worker. `PlatformFile` carries no path on the web; on desktop, paths stay in the Rust process (ADR 0008).
 - **`SaveResult`** is `{ saved: true, name } | { saved: false, reason: "cancelled" }`.
-- **`PrintJob`:** the page range, a callback that renders pages at the print DPI, and the original bytes for native PDF printing.
+- **`PrintJob`:** the page range, a callback that renders pages at the print DPI, and the original bytes for native PDF printing (the desktop doesn't use them: it prints the rendered pages, [ADR 0008 §9](0008-desktop-shell.md#9-printing-the-engines-rasters-through-each-oss-print-api)).
 - **`PlatformStorage`:**
   - `opfs()`, returning a `FileSystemDirectoryHandle` or `undefined`;
   - `get(key)`, `set(key, value)` and `delete(key)` for small metadata (IndexedDB on the web);
   - `persist()`, which requests persistent storage;
   - `clear()`, used by the settings page.
-- **`RecentFiles`:** `list()`, `add(file)`, `remove(id)` and `clear()`, plus `reopen(id)` when `canReopenRecent`. The entries hold the name, size, last-opened time and an opaque reopen token. Never the bytes or a URL (ADR 0011 §3).
+- **`RecentFiles`:** `list()`, `add(file, { pages })`, `remove(id)` and `clear()`, plus `reopen(id)` when `canReopenRecent`. The entries hold the name, size, page count, last-opened time, an opaque reopen token and whether one was kept (`hasHandle`). Never the bytes or a URL (ADR 0011 §3). (Page count and `hasHandle` added by C7b, 2026-11-09.) `reopen(id, { ask: false })` reads a file only where the browser kept the permission and never asks for it, since asking needs a click: start-up uses it (T5b). Entries also keep the document's `fingerprint`, and `add` gives the entry's id, so the caller can name it without listing again (T5b).
+- **`ReadingPositions`** (T5b): `get(fingerprint)`, `set(fingerprint, entry)`, `remove(fingerprint)` and `clear()`. An entry is `{ view, pageCount, readAt }`, where `view` is opaque to the UI package (the app checks it on read). On the web it is the `positions` object store of the `lamina-pdf` IndexedDB database (version 2, indexed by `readAt`), trimmed to the newest 500 in each write's transaction, in memory where IndexedDB doesn't open. `storage.clear()` empties it too. The fingerprint is `"fp1:"` and a SHA-256 of the file's first revision (its head through the first `%%EOF` within 64 KiB), computed in the document worker, so a renamed copy and the file after an incremental update share it.
 
 ### 2. Capability flags and their web values
 
@@ -89,7 +94,7 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 | `canWriteInPlace` | `saveInPlace` can overwrite an opened file | `true` only when `showOpenFilePicker` and `FileSystemFileHandle.prototype.createWritable` both exist (Chromium); else `false` | `true` |
 | `canSaveAsDialog` | `saveAs` shows a save dialog (else it downloads) | `true` when `showSaveFilePicker` exists; else `false` (download) | `true` |
 | `canWatchFiles` | `watch` reports external changes | `false` | `true` |
-| `hasNativePrint` | `print` can hand the PDF to the OS print system | `false`: the web prints rendered pages from a hidden iframe (C6c) | `true` where D1b's spike proves it per OS |
+| `hasNativePrint` | `print` uses the OS print dialog and prints with no browser headers, footers or margins (amended by [ADR 0008 §9](0008-desktop-shell.md#9-printing-the-engines-rasters-through-each-oss-print-api): the desktop prints the engine's rendered pages, not the PDF) | `false`: the web prints rendered pages from a hidden iframe (C6c) | `true` on macOS, Windows and Linux |
 | `multiWindow` | `openWindow` exists | `false` (one document view per tab; a new tab is the browser's job) | `true` |
 | `hasFileHandlers` | the OS can open files in the app (`onOpenRequest` fires) | `true` when `"launchQueue" in window` **and** the app runs installed (`matchMedia("(display-mode: standalone)")` or `window-controls-overlay` matches); else `false`. `"launchQueue" in window` alone only means the browser could, so the UI uses it for the "install to open files from your computer" hint (rule 2) | `true` |
 | `canReopenRecent` | `recent.reopen` can read a file again without a picker | `true` only where file handles persist in IndexedDB (Chromium, with permission); else `false` | `true` |
@@ -97,8 +102,9 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 | `canPersistStorage` | `storage.persist()` can make storage durable | `true` when `navigator.storage.persist` exists | `true` |
 | `hasNativeMenus` | the shell draws the menu bar; the UI hides its own overflow equivalents | `false` | `true` (D4b) |
 | `canOpenUrl` | documents can be opened from an `http(s)` URL (range requests, ADR 0011 §2) | `true` | `true` |
-| `crossOriginIsolated` | the threaded variant may run (ADR 0009 §5) | `self.crossOriginIsolated` (`false` in v0.1, which ships no COOP/COEP) | measured in D1a |
+| `crossOriginIsolated` | the threaded variant may run (ADR 0009 §5) | `self.crossOriginIsolated` (`false` in v0.1, which ships no COOP/COEP) | `false`: the desktop sends no COOP/COEP ([ADR 0008 §4](0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)) |
 | `ownsKeyboard` | no browser sits around the app, so it may bind keys a browser keeps for itself (⌘W, ⌘[, F1; ADR 0024 §3) | `false` | `true` |
+| `canShare` | `shareText` hands text to the system's share sheet (the selection's Share, UI/UX plan §5.3) | `typeof navigator.share === "function"` | `false` until the desktop platform implements it |
 
 ### 3. Rules
 

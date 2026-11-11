@@ -87,6 +87,14 @@ impl ExitCode {
         }
     }
 
+    /// Every code, the one that wins first.
+    #[must_use]
+    pub fn by_priority() -> [Self; Self::ALL.len()] {
+        let mut all = Self::ALL;
+        all.sort_by_key(|code| std::cmp::Reverse(code.priority()));
+        all
+    }
+
     /// The code of the two that wins.
     #[must_use]
     pub const fn max(self, other: Self) -> Self {
@@ -127,6 +135,17 @@ impl CliError {
             diagnostic: Box::new(Diagnostic::error(code, message)),
             exit: exit_code_for(code),
         }
+    }
+
+    /// The error with `hint` in place of its code's.
+    #[must_use]
+    pub(crate) fn with_hint(mut self, hint: &str) -> Self {
+        let diagnostic = std::mem::replace(
+            &mut *self.diagnostic,
+            Diagnostic::error(ErrorCode::InvalidCommandLine, ""),
+        );
+        *self.diagnostic = diagnostic.with_hint(Some(hint.to_owned()));
+        self
     }
 
     /// The same error with `key` set to `value` in its `data`.
@@ -193,6 +212,23 @@ impl From<laminapdf::Error> for CliError {
                     limit.replace('_', "-")
                 )
             }),
+            // `laminapdf build` without fonts sets the standard 14, Latin text only and never embedded.
+            ErrorCode::MissingGlyph => Some(
+                "a font lacks a character the text uses: give fonts that have it by role, regular=FILE (and bold, italic, mono, fallback), or a document's by name, NAME=FILE, with --font or the tool's fonts".to_owned(),
+            ),
+            ErrorCode::FontNotEmbedded => Some(
+                "the profile needs embedded fonts: give them by role, regular=FILE (and bold, italic, mono), or a document's by name, NAME=FILE, with --font or the tool's fonts".to_owned(),
+            ),
+            // A document's fonts and images come from `laminapdf build`'s flags, not from code.
+            ErrorCode::InvalidDocument => match diagnostic.data.get("reason").and_then(Value::as_str) {
+                Some("unknown-font") => Some(
+                    "give the font's file by the name the document uses, NAME=FILE, with --font or the tool's fonts, or, for a document file, put a file with exactly that name beside it".to_owned(),
+                ),
+                Some("unknown-image") => Some(
+                    "give the image's file by the name the document uses, NAME=FILE, with --image or the tool's images, or, for a document file, put a file with exactly that name beside it".to_owned(),
+                ),
+                _ => None,
+            },
             _ => None,
         };
         let diagnostic = match hint {

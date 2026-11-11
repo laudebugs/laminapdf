@@ -23,7 +23,7 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
     version: "141.0",
     quick: false,
     machine: { cpu: "Test CPU", cores: 8, memoryBytes: 16 * 1024 * MB, os: "Darwin 25.0" },
-    firstPage: { warmMs: 400, coldMs: 2500 },
+    firstPage: { warmMs: 400, coldMs: 2500, coldLinkMs: 2900 },
     scroll: {
       passes: [recording(), recording()],
       settled: [memory(200 * MB), memory(205 * MB)],
@@ -32,26 +32,89 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
     },
     fling: { toSharpMs: 280, counters },
     zoom: { recording: recording(), toSharpMs: [150, 200] },
+    find: {
+      common: { firstResultMs: 40, fullMs: 3200, total: 950 },
+      rare: { firstResultMs: 2600, fullMs: 3300, total: 1 },
+      recording: recording(),
+    },
+    linkPreviews: { toCropMs: [60, 80], recording: recording() },
+    edit: [
+      { pages: 10, applyMs: 20, firstPixelsMs: 40, sharpMs: 90 },
+      { pages: 100, applyMs: 30, firstPixelsMs: 60, sharpMs: 110, lastOf: 20, lastFirstPixelsMs: 75 },
+      { pages: 1000, applyMs: 80, firstPixelsMs: 120, sharpMs: 170 },
+    ],
+    mobile: {
+      device: "Pixel 8",
+      peakMemory: { ...memory(150 * MB), canvases: 80 * MB, bitmaps: 60 * MB },
+      budgetBytes: 184 * MB,
+    },
     ...over,
   };
 }
 
 const byName = (r: BrowserResult) => Object.fromEntries(checks(r).map((c) => [c.name, c]));
 
+describe("edit check", () => {
+  const name = "Edit to the page's first new pixels (quick pass), 10 / 100 / 1,000 pages";
+
+  it("lists each file's figure and checks the 100-page one against the plan's budget", () => {
+    expect(byName(result())[name]).toMatchObject({ value: "40 ms / 60 ms / 120 ms", pass: true });
+    const slow = result({ edit: [{ pages: 100, applyMs: 100, firstPixelsMs: 151, sharpMs: 200 }] });
+    expect(checks(slow).find((c) => c.name.startsWith("Edit"))?.pass).toBe(false);
+  });
+
+  it("reports the last of a file's edits in a row", () => {
+    expect(byName(result())["Edit 20 in a row, 100 pages: first new pixels"]).toMatchObject({ value: "75 ms" });
+  });
+
+  it("keeps each file's figure in the history", () => {
+    expect(historyEntries(result())).toMatchObject({
+      "edit-first-pixels-10": 40e6,
+      "edit-first-pixels-100": 60e6,
+      "edit-first-pixels-1000": 120e6,
+    });
+  });
+});
+
+describe("find checks", () => {
+  it("checks the first result and the full pass against §4", () => {
+    const c = byName(
+      result({
+        find: {
+          common: { firstResultMs: 501, fullMs: 3000, total: 9 },
+          rare: { firstResultMs: 9000, fullMs: 10_001, total: 1 },
+          recording: recording(),
+        },
+      }),
+    );
+    expect([c["Find, 1,000 pages: first result"]?.pass, c["Find, 1,000 pages: every page searched"]?.pass]).toEqual([
+      false,
+      false,
+    ]);
+  });
+});
+
 describe("checks", () => {
   it("passes a run that meets every target, at the boundaries too", () => {
-    const r = result({ firstPage: { warmMs: TARGETS.firstPageWarmMs, coldMs: TARGETS.firstPageColdMs } });
+    const r = result({
+      firstPage: {
+        warmMs: TARGETS.firstPageWarmMs,
+        coldMs: TARGETS.firstPageColdMs,
+        coldLinkMs: TARGETS.firstPageColdMs,
+      },
+    });
     expect(checks(r).every((c) => c.pass !== false)).toBe(true);
   });
 
   it("marks each target a run misses", () => {
     const r = result({
-      firstPage: { warmMs: 701, coldMs: 3001 },
+      firstPage: { warmMs: 701, coldMs: 3001, coldLinkMs: 3001 },
       fling: { toSharpMs: 301, counters: { ...counters, drawsOnUnmounted: 1 } },
     });
     const c = byName(r);
     expect(c["First page, 10-page file, warm"]?.pass).toBe(false);
-    expect(c["First page, 10-page file, cold on Fast 4G"]?.pass).toBe(false);
+    expect(c["First page, 10-page file on the device, cold on Fast 4G"]?.pass).toBe(false);
+    expect(c["First page, 10-page file from a link, cold on Fast 4G"]?.pass).toBe(false);
     expect(c["Pages sharp after scrolling stops"]?.value).toBe("301 ms");
     expect(c["Pages sharp after scrolling stops"]?.pass).toBe(false);
     expect(c["Cancelled renders that painted"]?.pass).toBe(false);
@@ -87,8 +150,9 @@ describe("checks", () => {
   });
 
   it("leaves the cold first page unjudged where it wasn't measured", () => {
-    const c = byName(result({ browser: "firefox", firstPage: { warmMs: 400, coldMs: null } }));
-    expect(c["First page, 10-page file, cold on Fast 4G"]?.pass).toBeNull();
+    const c = byName(result({ browser: "firefox", firstPage: { warmMs: 400, coldMs: null, coldLinkMs: null } }));
+    expect(c["First page, 10-page file on the device, cold on Fast 4G"]?.pass).toBeNull();
+    expect(c["First page, 10-page file from a link, cold on Fast 4G"]?.pass).toBeNull();
   });
 });
 
@@ -96,7 +160,7 @@ describe("summary", () => {
   it("has a column per browser and marks each judged cell", () => {
     const text = summary([
       result(),
-      result({ browser: "webkit", version: "26.0", firstPage: { warmMs: 800, coldMs: null } }),
+      result({ browser: "webkit", version: "26.0", firstPage: { warmMs: 800, coldMs: null, coldLinkMs: null } }),
     ]);
     expect(text).toContain("| Check | Target | chromium 141.0 | webkit 26.0 |");
     expect(text).toContain("| First page, 10-page file, warm | ≤ 700 ms | 400 ms (pass) | 800 ms (miss) |");
@@ -110,15 +174,40 @@ describe("summary", () => {
 });
 
 describe("historyEntries", () => {
+  it("holds a phone's canvases and bitmaps to its touch budgets, and says where there was no phone", () => {
+    const over = result({
+      mobile: {
+        device: "iPhone 15",
+        peakMemory: { ...memory(0), canvases: 150 * MB, bitmaps: 40 * MB },
+        budgetBytes: 184 * MB,
+      },
+    });
+    const name = "Canvases and bitmaps on a phone, 1,000 pages";
+    expect([
+      byName(result())[name]?.pass,
+      byName(over)[name]?.pass,
+      byName(result({ mobile: null }))[name]?.pass,
+    ]).toEqual([true, false, null]);
+  });
+
   it("records times in nanoseconds and memory in bytes, and the cold figure only where measured", () => {
     expect(historyEntries(result())).toEqual({
       "first-page-warm": 400_000_000,
       "first-page-cold": 2_500_000_000,
+      "first-page-cold-link": 2_900_000_000,
       "scroll-longest-frame": 20_000_000,
       "to-sharp": 280_000_000,
       "zoom-to-sharp": 200_000_000,
+      "find-full-pass": 3_300_000_000,
+      "find-first-result": 40_000_000,
       "memory-peak-bytes": 300 * MB,
+      "mobile-memory-peak-bytes": 140 * MB,
+      "edit-first-pixels-10": 40_000_000,
+      "edit-first-pixels-100": 60_000_000,
+      "edit-first-pixels-1000": 120_000_000,
     });
-    expect(historyEntries(result({ firstPage: { warmMs: 1, coldMs: null } }))).not.toHaveProperty("first-page-cold");
+    expect(historyEntries(result({ firstPage: { warmMs: 1, coldMs: null, coldLinkMs: null } }))).not.toHaveProperty(
+      "first-page-cold",
+    );
   });
 });

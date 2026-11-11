@@ -7,6 +7,11 @@ body,
   margin: 0;
 }
 
+/* The phone's browser bars come and go: the dynamic viewport height keeps the bottom bar on screen. */
+#app {
+  height: 100dvh;
+}
+
 body {
   background: var(--paper-ground);
   color: var(--paper-text);
@@ -16,6 +21,22 @@ body {
 .web-viewer {
   position: absolute;
   inset: 0;
+  /* A page's paper before it is drawn, in the page appearance's colour. */
+  --lamina-page-paper: var(--paper-page-paper);
+  /* Find marks in the page appearance's colours (design language §2.6). */
+  --lamina-find-match: var(--paper-page-find-match);
+  --lamina-find-current: var(--paper-page-find-current);
+  --lamina-find-current-outline: var(--paper-page-find-current-outline);
+}
+
+/* High contrast pages are drawn in the system's colours, so their paper before drawing is too. */
+:root[data-page-appearance="high-contrast"] .web-viewer {
+  --lamina-page-paper: Canvas;
+}
+
+/* Under reader mode's column: laid out, so leaving reader mode can scroll it at once, but unseen. */
+.web-viewer[data-covered] {
+  visibility: hidden;
 }
 
 .web-wordmark {
@@ -35,5 +56,98 @@ body {
 @layer react-aria {
   [data-react-aria-pressable] {
     touch-action: pan-x pan-y pinch-zoom;
+  }
+}
+
+/* The text layer's selection over the page (design language §2.2): the page appearance's
+   selection tint, so the transparent text shows only where it is selected. */
+.lamina-text-layer span::selection {
+  background: var(--paper-page-selection-tint);
+}
+
+/* The rail's Pages tab: the viewer's thumbnails strip fills the panel and scrolls inside it, each
+   thumbnail in the Paper thumbnail's look (§7.6): a white page with the thumbnail shadow and a
+   hairline, its label below; the current page gets the accent outline and a bold label. */
+.web-thumbnails {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+.web-thumbnails .lamina-thumbnails {
+  flex: 1;
+  min-block-size: 0;
+}
+
+.web-thumbnails .lamina-thumbnail {
+  outline: none;
+}
+
+.web-thumbnails .lamina-thumbnail-page {
+  outline: var(--paper-border-width) solid var(--paper-hairline);
+  background: var(--paper-page-paper);
+  box-shadow: var(--paper-shadow-thumbnail);
+}
+
+.web-thumbnails .lamina-thumbnail[aria-selected="true"] .lamina-thumbnail-page {
+  outline: var(--paper-focus-ring-width) solid var(--paper-accent);
+  outline-offset: var(--paper-thumbnail-current-offset);
+}
+
+.web-thumbnails .lamina-thumbnail:focus-visible .lamina-thumbnail-page {
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset);
+}
+
+.web-thumbnails .lamina-thumbnail-label {
+  margin-block-start: var(--paper-space-4);
+  font: var(--paper-type-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-muted);
+}
+
+.web-thumbnails .lamina-thumbnail[aria-selected="true"] .lamina-thumbnail-label {
+  font-weight: 600;
+  color: var(--paper-text);
+}
+
+/* The Settings dialog's Storage and privacy section: each switch or button over its help. */
+.web-storage-settings {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--paper-space-6);
+}
+
+.web-settings-help {
+  margin: 0 0 var(--paper-space-8);
+  color: var(--paper-text-3);
+  font: var(--paper-type-caption);
+}
+
+/* "View original page": the block's box on its page, outlined for a moment (reader-origin.ts). */
+.web-reader-origin {
+  position: absolute;
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset-tight);
+  border-radius: 2px;
+  pointer-events: none;
+  animation: web-reader-origin 2s ease-out forwards;
+}
+
+@keyframes web-reader-origin {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .web-reader-origin {
+    animation: none;
   }
 }

@@ -4,8 +4,8 @@
 // app does when a file is chosen during startup (the cold scenario).
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import { createViewer, ViewerClient, type Zoom } from "@laminapdf/viewer";
-import type { MemorySample, PerfHook, Recording } from "../types.ts";
+import { createViewer, type LinkPreviewRequest, ViewerClient, type Zoom } from "@laminapdf/viewer";
+import type { EditTiming, FindTiming, MemorySample, PerfHook, Recording } from "../types.ts";
 
 const host = document.querySelector<HTMLDivElement>("#viewer");
 if (host === null) throw new Error("the page has no #viewer");
@@ -16,8 +16,16 @@ async function fixture(name: string): Promise<Blob> {
   return response.blob();
 }
 
-const auto = new URLSearchParams(location.search).get("open");
-const autoFile = auto === null ? undefined : fixture(auto);
+const params = new URLSearchParams(location.search);
+const auto = params.get("open");
+// `&remote` opens it by its address, with Range requests from the document worker, as the reader
+// opens a linked file; otherwise the page fetches it whole, as a file chosen on the device arrives.
+const autoFile =
+  auto === null
+    ? undefined
+    : params.has("remote")
+      ? Promise.resolve({ url: new URL(`./${auto}.pdf`, location.href).href })
+      : fixture(auto);
 
 const client = await ViewerClient.create({ backend: { backend: "pdfium", wasm: pdfiumWasm } });
 const viewer = createViewer({ client });
@@ -73,6 +81,42 @@ function watch(): void {
 }
 requestAnimationFrame(watch);
 
+/** Resolves with the time of the first `renderstats` event at which `done()` holds (now, if it already does). */
+function at(done: () => boolean, limitMs: number, what: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    if (done()) {
+      resolve(performance.now());
+      return;
+    }
+    const timer = setTimeout(() => {
+      off();
+      reject(new Error(`${what} within ${limitMs} ms`));
+    }, limitMs);
+    const off = viewer.on("renderstats", () => {
+      if (!done()) return;
+      clearTimeout(timer);
+      off();
+      resolve(performance.now());
+    });
+  });
+}
+
+/** Turns the page in view a quarter, and times the call, its first new pixels and sharp again. */
+async function edit(): Promise<EditTiming> {
+  const index = viewer.getState().currentPage;
+  const page = client.document?.pages[index];
+  if (page === undefined) throw new Error(`page ${index} isn't open`);
+  const ops = [{ op: "rotatePage", args: { page: page.id, rotate: (page.rotation + 90) % 360 } }];
+  const start = performance.now();
+  // The viewer redraws the page as the call answers: it shows a placeholder until the quick pass.
+  await viewer.applyEdit(ops as Parameters<typeof viewer.applyEdit>[0]);
+  const applyMs = performance.now() - start;
+  const state = () => viewer.stats().pages[index];
+  const firstPixels = await at(() => state() === "low" || state() === "sharp", 20_000, "the page didn't redraw");
+  const sharp = await at(() => state() === "sharp", 20_000, "the page wasn't sharp again");
+  return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
+}
+
 async function memory(): Promise<MemorySample> {
   const reported = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
   const heap = reported?.usedJSHeapSize ?? null;
@@ -122,7 +166,46 @@ const hook: PerfHook = {
     return performance.now() - start;
   },
   setZoom: (zoom) => viewer.setZoom(zoom as Zoom),
+  async hoverLinks(count) {
+    const links = [...viewer.element.querySelectorAll<HTMLElement>("a.lamina-link")]
+      .filter((a) => a.getAttribute("aria-label")?.startsWith("Link to page") === true)
+      .slice(0, count);
+    const times: number[] = [];
+    for (const link of links) {
+      const asked = new Promise<LinkPreviewRequest>((resolve) => {
+        const off = viewer.on("linkpreview", (request) => {
+          off();
+          resolve(request);
+        });
+      });
+      const at = { bubbles: true, pointerType: "mouse", pointerId: 1 };
+      link.dispatchEvent(new PointerEvent("pointerover", at));
+      const request = await asked;
+      const start = performance.now();
+      if (request.shows.kind === "target") await viewer.preview(request.shows.target);
+      times.push(performance.now() - start);
+      link.dispatchEvent(new PointerEvent("pointerout", { ...at, relatedTarget: viewer.element }));
+      viewer.dismissLinkPreview();
+    }
+    return times;
+  },
+  find(query) {
+    return new Promise<FindTiming>((resolve) => {
+      const start = performance.now();
+      let firstResultMs: number | null = null;
+      const off = viewer.find.subscribe(() => {
+        const state = viewer.find.getState();
+        if (state.query !== query) return;
+        if (firstResultMs === null && state.total > 0) firstResultMs = performance.now() - start;
+        if (!state.done) return;
+        off();
+        resolve({ firstResultMs, fullMs: performance.now() - start, total: state.total });
+      });
+      viewer.find.find(query);
+    });
+  },
   goToPage: (index) => viewer.goToPage(index),
+  edit,
   scroll: () => ({ top: viewer.element.scrollTop, max: viewer.element.scrollHeight - viewer.element.clientHeight }),
   record() {
     live = { frames: [], longTasks: [], last: undefined, peak: undefined, sampler: setInterval(sample, 500) };

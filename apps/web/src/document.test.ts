@@ -14,6 +14,10 @@ describe("windowTitle", () => {
     expect(windowTitle({ fileName: "scan.pdf" })).toBe("scan.pdf · Lamina PDF");
     expect(windowTitle({ title: "  ", fileName: "scan.pdf" })).toBe("scan.pdf · Lamina PDF");
   });
+
+  it("starts with a dot while the document has unsaved changes", () => {
+    expect(windowTitle({ fileName: "scan.pdf", unsaved: true })).toBe("• scan.pdf · Lamina PDF");
+  });
 });
 
 describe("repairsFrom", () => {
@@ -42,8 +46,9 @@ describe("repairsText", () => {
 });
 
 describe("wantsDebug", () => {
-  it("is true only for the #debug fragment", () => {
+  it("is true only for a debug key in the fragment", () => {
     expect(wantsDebug("#debug")).toBe(true);
+    expect(wantsDebug("#url=https%3A%2F%2Fh%2Fa.pdf&debug")).toBe(true);
     expect(wantsDebug("")).toBe(false);
     expect(wantsDebug("#debugger")).toBe(false);
   });

@@ -6,17 +6,21 @@
 mod benchmarks;
 mod capabilities;
 mod changes;
+mod changesets;
 mod cli_docs;
 mod codegen;
 mod corpus;
 mod design_screens;
+mod desktop_sidecar;
 mod docs_links;
+mod docs_previews;
 mod docs_prose;
 mod docs_snippets;
 mod doctor;
 mod examples;
 mod examples_lints;
 mod extract_bench;
+mod fixtures;
 mod gallery;
 mod harness;
 mod licenses;
@@ -26,6 +30,7 @@ mod machine;
 mod maintainability;
 mod models;
 mod nightly;
+mod notices;
 mod package_docs;
 mod pdf_runtimes;
 mod pdfium;
@@ -54,6 +59,7 @@ mod wasm;
 mod wasm_glue;
 mod wasm_module;
 mod web;
+mod web_release;
 #[cfg(test)]
 mod workflows;
 mod workspace;
@@ -128,15 +134,29 @@ tasks:
   web build         the reader (apps/web) into apps/web/dist/ from a fresh checkout: the
                     @laminapdf/wasm modules without their tests, @laminapdf/sdk, the packages the
                     app imports, then the app (what .github/workflows/web-deploy.yml deploys)
+  web docs-runner   what the docs' example runner needs, from a fresh checkout: the WebAssembly
+                    modules (without their tests), @laminapdf/sdk, @laminapdf/render and
+                    @laminapdf/render-hayro; then the docs build makes the runner
+  web size          the reader's startup JavaScript (index.html's scripts and module preloads in
+                    apps/web/dist/), gzipped, against apps/web/size-budget.json; after `web build`
+  web next-release [--commit <rev>] [--since <tag>] [--notes <file>]
+                    whether <rev> (default HEAD) is a new reader release: what ships changed since
+                    <tag> (default the newest web-v* tag); prints and sets ready, tag and previous
+                    in $GITHUB_OUTPUT, and writes the notes (the commits that changed it) to <file>
+  web check-tag <tag>
+                    fail unless <tag> is web-v<version> on apps/web/package.json's major and minor,
+                    below no other web-v* tag
   size [--update-baseline]
                     measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
                     target/size-report.json, fail above packages/wasm/size-budgets.json
   deny              cargo-deny (licences, advisories, bans, sources) + npm licence check
   npm-licenses      npm licence check only (pnpm licenses list)
-  docs-links [--external] [--json]
+  docs-links [--external [--cache <file>]] [--json]
                     check every relative link and #anchor in the tracked Markdown files;
                     --external checks the http(s) URLs over the network instead (nightly;
-                    allowlist in .config/link-check.toml, report in target/nightly/links/)
+                    allowlist in .config/link-check.toml, report in target/nightly/links/);
+                    --cache <file> skips URLs that answered OK in the last 4 to 7 days and
+                    updates the file
   todos [--check]   check the todo files, point each Depends on link at its todo's folder, print
                     the todos that can start now and write the whole board (never committed) to
                     target/todos/board.md; --check only verifies
@@ -155,6 +175,9 @@ tasks:
                     without it, fail if they would change)
   examples          run the lamina crate's examples into target/examples-out/, compare them
                     with fixtures/golden/examples/ and run qpdf --check on each (needs qpdf)
+  docs-previews     the docs' Result-tab pictures: every page of fixtures/golden/examples/ by hayro at
+                    144 dpi into apps/docs/public/examples/preview/, with manifest.json (`check docs`
+                    compares it with the PDFs)
   render-golden [--update]
                     render every page of fixtures/golden/examples/ with PDFium (pypdfium2:
                     tools/render/requirements.txt, $LAMINA_PDF_PYTHON) and hayro (tools/render, its
@@ -197,6 +220,17 @@ tasks:
   cli-docs          the laminapdf CLI's man pages and shell completions into target/cli-docs/
   cli-dist          cli-docs plus the third-party notices (cargo-about) into target/cli-docs/:
                     the files dist-workspace.toml puts in every release archive
+  desktop-notices   the desktop app's third-party notices, MPL-2.0 text included (cargo-about),
+                    into target/desktop/
+  fixtures large-pdf [--pages N] [--out PATH]
+                    write an image-heavy PDF with the laminapdf builder (default 20,000 pages, about
+                    1.1 GB, into target/fixtures/1gb.pdf; never committed): the desktop engine's
+                    large-file fixture. Needs about 1.5 GB of RAM
+  desktop-sidecar [--release | --debug]
+                    build the desktop engine binary into apps/desktop/src-tauri/binaries/ (Tauri's
+                    sidecar naming) and the pinned PDFium into src-tauri/resources/pdfium/, which
+                    tauri.bundle.conf.json bundles; the profile defaults to the Tauri CLI's
+                    (TAURI_ENV_DEBUG), else debug
   extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
                     score lamina's extraction on the pinned public benchmark of
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
@@ -224,7 +258,7 @@ tasks:
                     Python with tools/roundtrip/requirements.txt; outputs in target/xtask/roundtrip)
   fuzz <target> [--time <seconds>]
                     run a fuzz target (lex, parse_object, flate_decode, open, page_tree, content,
-                    ops_json, save_roundtrip) with
+                    ops_json, save_roundtrip, extract_text, extract, markdown, xmp_parse) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz --all [--time <seconds>] [--jobs <n>]
                     run every fuzz target, <n> at once (default 1: in turn; at most 8); built
@@ -269,6 +303,11 @@ tasks:
                     --from (default: the workspace root) into one record (kind proof) in
                     target/nightly/proof/proof.json and the job summary; a missing input is a null
                     section; --record appends it to <dir>/history.jsonl, only for a full-budget night
+  proof snapshot [--offline]
+                    apps/site/src/data/proof.json, the website's How we test figures: the newest
+                    full proof record on origin/bench-data, how many of the last 30 full nights
+                    passed, the fuzzing hours; keeps the committed file (with a warning) offline,
+                    without the branch or with no full record, and warns when it is over 3 days old
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs), the gallery's inputs or the
@@ -360,7 +399,7 @@ fn main() -> Result<()> {
         ("publish", args) => publish::run(&ws, publish::parse_args(args)?),
         ("sbom", [dir]) => publish::sbom(&ws, Path::new(dir)),
         ("wasm", []) => wasm(&ws),
-        ("web", [cmd]) if cmd == "build" => web::build(&ws),
+        ("web", args) => web::run(&ws, args),
         ("size", []) => wasm::size(&ws, false),
         ("size", [flag]) if flag == "--update-baseline" => wasm::size(&ws, true),
         ("deny", []) => {
@@ -372,13 +411,12 @@ fn main() -> Result<()> {
         ("doctor", [flag]) if flag == "--install" => doctor::run(&ws, true),
         ("docs-links", []) => docs_links::run(&ws.root, false),
         ("docs-links", [flag]) if flag == "--json" => docs_links::run(&ws.root, true),
-        ("docs-links", [flag]) if flag == "--external" => docs_links::external::run(&ws.root, false),
-        ("docs-links", [a, b]) if [a, b].iter().all(|f| *f == "--external" || *f == "--json") && a != b => {
-            docs_links::external::run(&ws.root, true)
+        ("docs-links", args) if args.iter().any(|a| a == "--external") => {
+            docs_links::external::run(&ws.root, &docs_links::cache::parse_args(args)?)
         }
         ("todos", []) => todos::run(&ws.root, false),
         ("todos", [flag]) if flag == "--check" => todos::run(&ws.root, true),
-        ("progress", args) => progress::run(&ws.root, progress::offline(args)?),
+        ("progress", args) => progress::run(&ws.root, progress::offline(args, "progress")?),
         ("capabilities", []) => capabilities::run(&ws.root, false),
         ("capabilities", [flag]) if flag == "--check" => capabilities::run(&ws.root, true),
         ("golden", []) => harness::golden(&ws, false),
@@ -389,9 +427,13 @@ fn main() -> Result<()> {
         ("models", [cmd, name]) if cmd == "fetch" => models::fetch(&ws, name).map(|_| ()),
         ("cli-docs", []) => cli_docs::run(&ws),
         ("cli-dist", []) => cli_docs::dist_files(&ws),
+        ("desktop-notices", []) => notices::desktop(&ws),
+        ("desktop-sidecar", args) => desktop_sidecar::run(&ws, args),
+        ("fixtures", [what, rest @ ..]) if what == "large-pdf" => fixtures::large_pdf(&ws, rest),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("benchmarks", args) => benchmarks::run(&ws, &benchmarks::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
+        ("docs-previews", []) => docs_previews::run(&ws),
         ("render-golden", []) => render::run(&ws, false),
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("render-diff", args) => render_diff::run(&ws, &render_diff::parse_args(args)?),
@@ -407,6 +449,9 @@ fn main() -> Result<()> {
         ("pdf-runtimes", args) => pdf_runtimes::run(&ws, &pdf_runtimes::parse_args(args)?),
         ("viewer-perf", args) => viewer_perf::run(&ws, &viewer_perf::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
+        ("proof", [sub, rest @ ..]) if sub == "snapshot" => {
+            proof::snapshot::run(&ws.root, progress::offline(rest, "proof snapshot")?)
+        }
         ("proof", args) => proof::run(&ws, &proof::parse_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
         ("semver", args) => semver::run(&ws, args),
@@ -486,6 +531,8 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     capabilities::check_static(&ws.root)?;
     step("renames: docs/renames.json against its schema, every deprecation listed, every new name defined");
     renames::check(&ws.root)?;
+    step("docs previews: the docs' example pictures match the example goldens");
+    docs_previews::check(&ws.root)?;
     models::check(&ws.root)?;
     codegen::codes(ws, true)?;
     codegen::boundary::generate(ws, true)?;
@@ -570,7 +617,7 @@ fn clippy(ws: &Workspace) -> Result<()> {
     for features in [
         &["-p", "laminapdf-wasm"][..],
         &["-p", "laminapdf-wasm", "--features", "text"],
-        &["-p", "laminapdf-wasm", "--features", "extract"],
+        &["-p", "laminapdf-wasm", "--features", "extract,reflow"],
         &["-p", "laminapdf", "--no-default-features"],
         // The reader configuration: extraction without the builder (B9c).
         &["-p", "laminapdf", "--no-default-features", "--features", "extract"],

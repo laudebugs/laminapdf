@@ -11,6 +11,10 @@ updates:
     cooldown:
       default-days: 7
     groups:
+      # Tauri and its plugins move together (ADR 0008): one PR, checked by the desktop build.
+      # Listed first, since a dependency joins the first group that matches it.
+      tauri:
+        patterns: ["tauri", "tauri-*"]
       cargo-minor-patch:
         update-types: [minor, patch]
     commit-message:
@@ -24,6 +28,9 @@ updates:
     cooldown:
       default-days: 7
     groups:
+      # The desktop app's @tauri-apps/api and cli, in step with the tauri crate (ADR 0008).
+      tauri:
+        patterns: ["@tauri-apps/*"]
       npm-minor-patch:
         update-types: [minor, patch]
     commit-message:

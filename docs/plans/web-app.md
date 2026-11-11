@@ -116,25 +116,25 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** `@laminapdf/ui` chrome (toolbar, page indicator, zoom, open dialogs, error and password prompts), `apps/web` Worker with static assets, `_headers`, CSP, per-PR preview deploys, staging deploy from `main`, production deploy from `web-v*` release tags.
 **Accepted when:** each PR gets a preview URL comment; local open, drag-drop and `#url=` (CORS-enabled) work; encrypted fixtures open after the password prompt; securityheaders-style checks pass; Playwright asserts that no request body carries document bytes and that no request to our origin (URL, request line or headers, including `Referer`) contains the remote document URL.
-**Todos:** [C4a](../todos/done/C4a-ui-chrome-and-platform.md), [C4e](../todos/done/C4e-reader-chrome.md), [C4f](../todos/done/C4f-reader-home-repairs-and-demo.md), [C4b](../todos/done/C4b-web-app-shell.md), [C4c](../todos/ready/C4c-remote-files-encryption-privacy.md), [C4d](../todos/done/C4d-deploy-previews-and-production.md)
+**Todos:** [C4a](../todos/done/C4a-ui-chrome-and-platform.md), [C4e](../todos/done/C4e-reader-chrome.md), [C4f](../todos/done/C4f-reader-home-repairs-and-demo.md), [C4b](../todos/done/C4b-web-app-shell.md), [C4c](../todos/done/C4c-remote-files-encryption-privacy.md), [C4d](../todos/done/C4d-deploy-previews-and-production.md)
 
 ### C5. Text, selection and search
 
 **Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`laminapdf-content` interpreter + `laminapdf-text`), selection and copy, find bar with streaming results and highlights. The API exists ([B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md)): `await init({ extract: true })` loads the extract module (about 525 KB gzip), and `doc.page(i).text()` returns lines, runs and every glyph's quad in page space, with `buffers` to transfer the arrays from a worker.
 **Accepted when:** copy from fixtures in five scripts equals expected text, including encrypted fixtures; search results match pdf.js counts on the corpus; selection works with screen readers on tagged fixtures.
-**Todos:** [C5a](../todos/ready/C5a-text-layer-and-selection.md), [C5b](../todos/ready/C5b-find-in-document.md)
+**Todos:** [C5a](../todos/done/C5a-text-layer-and-selection.md), [C5b](../todos/done/C5b-find-in-document.md), [C5c](../todos/done/C5c-find-results-tab.md)
 
 ### C6. Navigation, print and properties
 
 **Deliverable:** thumbnails, outline, links (with external-link confirmation), page labels, history, print, download, document properties dialog.
 **Accepted when:** link and outline targets match `expected.json`; printing a 50-page document works in Chrome, Firefox and Safari; download is byte-identical to the input.
-**Todos:** [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/ready/C6b-links-and-history.md), [C6c](../todos/ready/C6c-print-download-properties.md)
+**Todos:** [C6a](../todos/done/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/done/C6b-links-and-history.md), [C6c](../todos/done/C6c-print-download-properties.md)
 
 ### C7. Accessibility, offline and launch
 
 **Deliverable:** keyboard map and help dialog, focus management, ARIA landmarks, high contrast and dark mode; service worker and web app manifest (with `file_handlers`); performance budgets enforced in CI; ADR 0011 privacy page published; public release `web v0.1`.
 **Accepted when:** axe shows zero serious violations; a manual NVDA, VoiceOver and keyboard-only pass is recorded; the app works offline after first load; Lighthouse PWA installability passes; performance targets in §4 are met on the reference machine.
-**Todos:** [C7a](../todos/ready/C7a-accessibility-and-theming.md), [C7b](../todos/ready/C7b-offline-pwa.md), [C7c](../todos/ready/C7c-performance-gates-and-launch.md)
+**Todos:** [C7a](../todos/done/C7a-accessibility-and-theming.md), [C7b](../todos/done/C7b-offline-pwa.md), [C7c](../todos/done/C7c-performance-gates-and-launch.md), [C7d](../todos/done/C7d-cold-first-page.md), [C7e](../todos/done/C7e-automated-web-releases.md)
 
 ## 7. Risks
 
@@ -189,32 +189,32 @@ Ticked by the PR that completes them.
 - [ ] Create `packages/ui` (React 19, React Compiler) with the `Platform` interface and web implementation
 - [x] Create `apps/web` (Vite 8) with `wrangler.jsonc`, SPA fallback, `_headers`, CSP
 - [x] Implement open via input, drag-drop, paste and `showOpenFilePicker`
-- [ ] Implement `#url=` (fragment) with range requests
-- [ ] Add password prompt (passes the password to PDFium and `Document::open`) and error/repair notices
+- [x] Implement `#url=` (fragment) with range requests ([C4c](../todos/done/C4c-remote-files-encryption-privacy.md))
+- [x] Add password prompt (passes the password to PDFium and `Document::open`) and error/repair notices ([C4c](../todos/done/C4c-remote-files-encryption-privacy.md))
 - [x] Add CI deploy: preview URL per PR (comment on the PR), staging on `main`, production from `web-v*` release tags (behind C7c's release gates) ([C4d](../todos/done/C4d-deploy-previews-and-production.md); production is first deployed by C7c's first tag)
-- [ ] Playwright test asserting no request body contains document bytes and no request to our origin contains the remote document URL
+- [x] Playwright test asserting no request body contains document bytes and no request to our origin contains the remote document URL ([C4c](../todos/done/C4c-remote-files-encryption-privacy.md))
 
 ### C5. Text, selection and search
-- [ ] Expose glyph runs and quads from the B9 extraction API through the worker RPC
-- [ ] Build the DOM text layer aligned to rendered glyphs at every zoom
-- [ ] Link the struct tree via `aria-owns` for tagged files
-- [ ] Implement the find controller with streaming results, highlights and options
-- [ ] Copy/extraction tests in five scripts; search-count parity tests vs pdf.js
+- [x] Expose glyph runs and quads from the B9 extraction API through the worker RPC ([C5a](../todos/done/C5a-text-layer-and-selection.md))
+- [x] Build the DOM text layer aligned to rendered glyphs at every zoom ([C5a](../todos/done/C5a-text-layer-and-selection.md))
+- [x] Link the struct tree via `aria-owns` for tagged files ([C5a](../todos/done/C5a-text-layer-and-selection.md))
+- [x] Implement the find controller with streaming results, highlights and options
+- [x] Copy/extraction tests in five scripts (copy: [C5a](../todos/done/C5a-text-layer-and-selection.md)); search-count parity tests vs pdf.js ([C5b](../todos/done/C5b-find-in-document.md))
 
 ### C6. Navigation, print and properties
-- [ ] Thumbnails sidebar (rendered at low priority, virtualised)
-- [ ] Outline sidebar with expand/collapse and current-section tracking
-- [ ] Link layer: internal destinations, URIs with confirmation, named destinations
-- [ ] Page labels in the page indicator and go-to-page
-- [ ] Back/forward navigation history
-- [ ] Print path at print DPI; download of original bytes
-- [ ] Document properties dialog (metadata, fonts, version, encryption, signatures present)
+- [x] Thumbnails sidebar (rendered at low priority, virtualised)
+- [x] Outline sidebar with expand/collapse and current-section tracking
+- [x] Link layer: internal destinations, URIs with confirmation, named destinations
+- [x] Page labels in the page indicator and go-to-page
+- [x] Back/forward navigation history
+- [x] Print path at print DPI; download of original bytes
+- [x] Document properties dialog (metadata, fonts, version, encryption, signatures present)
 
 ### C7. Accessibility, offline and launch
-- [ ] Keyboard shortcuts (from the command registry, [UI/UX U1b](../todos/done/U1b-command-registry-and-palette.md)) shared with desktop; help dialog
-- [ ] Focus management, landmarks, live-region announcements for search and page changes
-- [ ] High contrast, dark mode, reduced motion
-- [ ] Service worker caching shell + WASM; web app manifest with `file_handlers`
-- [ ] Performance budgets as CI gates
+- [x] Keyboard shortcuts (from the command registry, [UI/UX U1b](../todos/done/U1b-command-registry-and-palette.md)) shared with desktop; help dialog
+- [x] Focus management, landmarks, live-region announcements for search and page changes
+- [x] High contrast, dark mode, reduced motion
+- [x] Service worker caching shell + WASM; web app manifest with `file_handlers`
+- [x] Performance budgets as CI gates ([C7c](../todos/done/C7c-performance-gates-and-launch.md): the startup size on every PR, Lighthouse and the §4 timings before each release)
 - [ ] axe in Playwright; record a manual NVDA, VoiceOver and keyboard-only pass
 - [ ] Publish the privacy page; tag `web v0.1` and deploy to production

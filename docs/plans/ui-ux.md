@@ -89,7 +89,7 @@ A command is `{ id, title, keywords, group, shortcut?, icon?, enabled(ctx), run(
 - the **palette** (cmdk, MIT): fuzzy search over titles and keywords, recents first, a shortcut chip on every row, argument parsing inline (`extract 4-8`, `zoom 150`, `go to 12`) and a pushed page for arguments typed afterwards; the APG combobox pattern (focus stays in the input, `aria-activedescendant` on the active row);
 - **native menus** on desktop ([D4b](../todos/ready/D4b-native-menus.md)) and the web overflow menu;
 - **toolbars and context menus** (buttons reference command ids, so labels, shortcuts and enabled state never drift);
-- the **shortcut help dialog** ([C7a](../todos/ready/C7a-accessibility-and-theming.md)), generated, never hand-written.
+- the **shortcut help dialog** ([C7a](../todos/done/C7a-accessibility-and-theming.md)), generated, never hand-written.
 
 Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/Ctrl) and checked for collisions with browser and OS shortcuts by a test. Delivered by [U1b](../todos/done/U1b-command-registry-and-palette.md).
 
@@ -101,7 +101,7 @@ Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/
 - **Copy as paragraph** is the default: column-aware, line breaks joined inside paragraphs, hyphenation repaired from lamina's extraction (B9). **Copy exact** keeps the layout's line breaks. Rectangular (column) selection with Alt/Option-drag, as in Preview.
 - Quality is measured, not assumed: [U2b](../todos/done/U2b-reading-order-ground-truth.md) builds a reading-order ground-truth corpus and metric (no public benchmark measures reading order).
 
-Delivered by [C5a](../todos/ready/C5a-text-layer-and-selection.md) (text layer and selection events) and [U2a](../todos/ready/U2a-selection-surfaces-and-copy-modes.md) (menus and copy modes).
+Delivered by [C5a](../todos/done/C5a-text-layer-and-selection.md) (text layer and selection events) and [U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md) (menus and copy modes).
 
 ### 5.4 Mobile and touch (R17)
 
@@ -113,20 +113,20 @@ Web reader on phones (responsive PWA, from Round C) and the base for any native 
 - **Memory caps**: tile bitmaps ≤ 5 MP each on mobile and a total bitmap budget (iOS Safari caps one canvas at ≈ 16.7 MP and all canvases at 224–384 MB).
 - **Targets** ≥ 44 px on touch.
 
-Delivered by [U3a](../todos/ready/U3a-responsive-mobile-and-touch.md). Native apps: [U3b](../todos/ready/U3b-mobile-shell-spike.md) compares Tauri 2 mobile with UniFFI and native UI (SwiftUI, Compose) on selection-menu conflicts, Apple Pencil latency, share sheet and Files integration, and access to Vision and ML Kit OCR, then proposes ADR 0025.
+Delivered by [U3a](../todos/done/U3a-responsive-mobile-and-touch.md). Native apps: [U3b](../todos/ready/U3b-mobile-shell-spike.md) compares Tauri 2 mobile with UniFFI and native UI (SwiftUI, Compose) on selection-menu conflicts, Apple Pencil latency, share sheet and Files integration, and access to Vision and ML Kit OCR, then proposes ADR 0025.
 
 ### 5.5 Page appearance and themes (R8)
 
-UI themes (light, dark, high contrast, from [C7a](../todos/ready/C7a-accessibility-and-theming.md)) and the **accent colour** (Teal, Blue, Plum or Green, in light and dark; [design language §2.8](../design/paper/design-language.md#28-accent-colours)) are separate from **page appearance**, which the user picks per document or globally. Theme and accent are cached on every device and applied before first paint; when the user is signed in they are also saved to the account, so every device matches (first-sign-in rule in the design language §2.8).
+UI themes (light, dark, high contrast, from [C7a](../todos/done/C7a-accessibility-and-theming.md)) and the **accent colour** (Teal, Blue, Plum or Green, in light and dark; [design language §2.8](../design/paper/design-language.md#28-accent-colours)) are separate from **page appearance**, which the user picks per document or globally. Theme and accent are cached on every device and applied before first paint; when the user is signed in they are also saved to the account, so every device matches (first-sign-in rule in the design language §2.8).
 
 | Page mode | How | Notes |
 | --- | --- | --- |
 | Original | No change | Default, even in dark UI |
 | Sepia | Recolour paper and text in the renderer | Raster images untouched |
-| Dark | Recolour text and paths in the renderer (PDFium forced-colours path; hayro equivalent) | Never a CSS `invert()`: photos would become negatives |
+| Dark | Recolour text and paths in the renderer, after drawing, with images and annotations left as drawn (U2c: PDFium's forced-colours path flattens every fill to one colour) | Never a CSS `invert()`: photos would become negatives |
 | High contrast | Follow `forced-colors` system colours | As pdf.js does with `Canvas`/`CanvasText` |
 
-Annotation colours never change (they carry meaning). The gutter around pages has its own token. Delivered by [U2c](../todos/ready/U2c-page-appearance-modes.md).
+Annotation colours never change (they carry meaning). The gutter around pages has its own token. Delivered by [U2c](../todos/done/U2c-page-appearance-modes.md).
 
 ### 5.6 Perceived performance (R6, R7)
 
@@ -151,7 +151,7 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 
 ### 5.7 Trust surfaces (R9–R13)
 
-- **Network indicator** ([U4a](../todos/ready/U4a-network-indicator-and-privacy-proof.md)): a status-bar item that counts requests made since the document opened, from the page, the document worker and the service worker (expected: 0 for local files, range requests to the file's own host for `#url=`), with a panel listing each origin; checked against an independent Playwright request log. The production CSP (`connect-src 'self' https:`, C4b) blocks plain HTTP; for HTTPS the indicator is the proof.
+- **Network indicator** ([U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md)): a status-bar item that counts requests made since the document opened, from the page, the document worker and the service worker (expected: 0 for local files, range requests to the file's own host for `#url=`), with a panel listing each origin; checked against an independent Playwright request log. The production CSP (`connect-src 'self' https:`, C4b) blocks plain HTTP; for HTTPS the indicator is the proof.
 - **Saving** (editor, [E1e](../todos/ready/E1e-save-and-constraint-banner.md)): explicit save only, incremental by default; the constraint banner says in plain words what saving will do to signatures before it happens.
 - **Annotations and form values** (E4, E8): written into the file with appearance streams, readable by Acrobat, pdf.js, Zotero and Readwise; export of highlights as Markdown.
 - **Signing** (E10, [E10j](../todos/ready/E10j-signature-ui.md)): two separately named actions, "Add a signature image" and "Sign with a certificate", each with one sentence on what it proves; a validation badge on open.
@@ -160,8 +160,8 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 
 ### 5.8 Reader mode (reflow) and local intelligence (R15, R16)
 
-- **Tier 1, tagged files** ([U4b](../todos/ready/U4b-reader-mode-from-structure-tree.md)): derive semantic blocks from the structure tree (ISO 32000-2 §14.8; PDF Association "Deriving HTML from PDF"); about half of web PDFs are tagged since mid-2025. Tables, figures and formulas show as cropped page images with their `/Alt` text; "back to page" returns to the matching position. Font size, line spacing, width and page mode are adjustable.
-- **Tier 2, untagged files** ([U4c](../todos/ready/U4c-approximate-reader-mode.md)): heuristic layout analysis in pure Rust from lamina's extraction, labelled **"Approximate"**.
+- **Tier 1, tagged files** ([U4b](../todos/done/U4b-reader-mode-from-structure-tree.md)): derive semantic blocks from the structure tree (ISO 32000-2 §14.8; PDF Association "Deriving HTML from PDF"); about half of web PDFs are tagged since mid-2025. Tables, figures and formulas show as cropped page images with their `/Alt` text; "back to page" returns to the matching position. Font size, line spacing, width and page mode are adjustable.
+- **Tier 2, untagged files** ([U4c](../todos/done/U4c-approximate-reader-mode.md)): heuristic layout analysis in pure Rust from lamina's extraction, labelled **"Approximate"**.
 - The core emits blocks (bytes-in/bytes-out); `@laminapdf/ui` renders them. No cloud processing and no page cap (Liquid Mode needs Adobe's cloud and skips files over 200 pages).
 - **OCR and semantic search** come with E13 and later: OCR behind one trait (platform OCR on native, ocrs or PP-OCR in WASM), model weights licence-audited separately from code (DocLayout-YOLO is AGPL; Marker's weights are OpenRAIL-M with commercial limits).
 
@@ -173,7 +173,7 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 
 ## 6. Rounds
 
-Round U runs alongside Rounds C, D and E; each todo's "Depends on" fixes where it lands. U1 and the v0.1 parts of U2–U4 gate the web reader launch ([C7c](../todos/ready/C7c-performance-gates-and-launch.md)); reflow, the mobile spike and the product-promise todos follow.
+Round U runs alongside Rounds C, D and E; each todo's "Depends on" fixes where it lands. U1 and the v0.1 parts of U2–U4 gate the web reader launch ([C7c](../todos/done/C7c-performance-gates-and-launch.md)); reflow, the mobile spike and the product-promise todos follow.
 
 Each round is split into todos (one pull request each) on the [todo board](../todos/README.md); they move `ready/` → `ongoing/` → `done/`. When a todo moves, the PR that moves it updates every link to it, including these.
 
@@ -187,19 +187,19 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** selection toolbar and bottom action bar, copy as paragraph / copy exact / column selection; a reading-order ground-truth corpus with a metric in CI; page appearance modes in both render backends.
 **Accepted when:** copy-as-paragraph meets the U2b reading-order threshold on the corpus; Sepia and Dark modes leave opaque raster images pixel-identical to Original, and never recolour any image's samples.
-**Todos:** [U2a](../todos/ready/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/done/U2b-reading-order-ground-truth.md), [U2c](../todos/ready/U2c-page-appearance-modes.md)
+**Todos:** [U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/done/U2b-reading-order-ground-truth.md), [U2c](../todos/done/U2c-page-appearance-modes.md)
 
 ### U3. Mobile and touch
 
 **Deliverable:** the responsive phone and tablet layout of the web reader; the `mobile-shell` spike with a recommendation for ADR 0025.
 **Accepted when:** Playwright mobile profiles (iPhone, Pixel, iPad) pass the reader flows with touch; a 1,000-page file scrolls on a real iPhone without a canvas-memory crash; the spike README answers the four criteria with measurements.
-**Todos:** [U3a](../todos/ready/U3a-responsive-mobile-and-touch.md), [U3b](../todos/ready/U3b-mobile-shell-spike.md)
+**Todos:** [U3a](../todos/done/U3a-responsive-mobile-and-touch.md), [U3b](../todos/ready/U3b-mobile-shell-spike.md)
 
 ### U4. Trust and reflow
 
 **Deliverable:** the network indicator and privacy proof; reader mode from the structure tree, then the approximate reader mode for untagged files.
 **Accepted when:** the indicator shows 0 requests for local files in a Playwright test that also counts requests independently; reader mode round-trips position and passes axe; the approximate mode is labelled and scored against U2b's corpus.
-**Todos:** [U4a](../todos/ready/U4a-network-indicator-and-privacy-proof.md), [U4b](../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../todos/ready/U4c-approximate-reader-mode.md)
+**Todos:** [U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md), [U4b](../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../todos/done/U4c-approximate-reader-mode.md)
 
 ### U5. Product promises
 
@@ -222,11 +222,11 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [C2a](../todos/done/C2a-render-adrs.md) | ADR 0004's `RenderBackend` renders tiles `(page, scale, clip)` into bounded bitmaps; PDFium never writes documents |
 | [C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md) | The four-step render pipeline in §5.6 and the mobile bitmap caps |
 | [C4a](../todos/done/C4a-ui-chrome-and-platform.md) | Depends on U1a (ADR 0024 fixes the layout first); `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
-| [C5a](../todos/ready/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
-| [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md) | Depends on U1c; thumbnails and outline fill the left rail's tabs instead of a sidebar of their own |
-| [C7a](../todos/ready/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
+| [C5a](../todos/done/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
+| [C6a](../todos/done/C6a-thumbnails-outline-page-labels.md) | Depends on U1c; thumbnails and outline fill the left rail's tabs instead of a sidebar of their own |
+| [C7a](../todos/done/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
 | [C2a](../todos/done/C2a-render-adrs.md) (ADR 0011) | Telemetry optional, opt-in and off by default (owner decision 2026-10-29) |
-| [C7c](../todos/ready/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
+| [C7c](../todos/done/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
 | [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decision 2026-10-29): cold start < 300 ms measured in D2d and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
 | [D7a](../todos/ready/D7a-crash-reporting.md), [H1](../todos/ready/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md) | Usage analytics via U5c only; pricing questions decided once, in U5a |
 | [D4b](../todos/ready/D4b-native-menus.md) | Depends on U1b; native menus are generated from the command registry |
@@ -269,20 +269,20 @@ Ticked by the PR that completes them.
 - [x] Left rail, docked inspector, mode switcher, secondary toolbar slot and focus mode ([U1c](../todos/done/U1c-inverted-l-shell-and-modes.md))
 
 ### U2. Reading quality
-- [ ] Desktop selection toolbar and touch bottom action bar
-- [ ] Copy as paragraph, copy exact and rectangular selection
+- [x] Desktop selection toolbar and touch bottom action bar ([U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md))
+- [x] Copy as paragraph, copy exact and rectangular selection ([U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md))
 - [x] Reading-order ground-truth corpus and metric in CI ([U2b](../todos/done/U2b-reading-order-ground-truth.md): 22 generated files, first mean 0.787, ratchet in `fixtures/reading-order/threshold.json`)
-- [ ] Page appearance modes (Original, Sepia, Dark, High contrast) in both render backends
+- [x] Page appearance modes (Original, Sepia, Dark, High contrast) in both render backends
 
 ### U3. Mobile and touch
-- [ ] Responsive phone and tablet layout: bottom bar, sheets with detents, safe areas
-- [ ] Viewer-owned gestures and mobile bitmap budgets
+- [x] Responsive phone and tablet layout: bottom bar, sheets with detents, safe areas ([U3a](../todos/done/U3a-responsive-mobile-and-touch.md))
+- [x] Viewer-owned gestures and mobile bitmap budgets ([U3a](../todos/done/U3a-responsive-mobile-and-touch.md))
 - [ ] `mobile-shell` spike and a recommendation for ADR 0025
 
 ### U4. Trust and reflow
-- [ ] Network indicator and CSP-backed privacy test
-- [ ] Reader mode from the structure tree
-- [ ] Approximate reader mode for untagged files
+- [x] Network indicator and CSP-backed privacy test ([U4a](../todos/done/U4a-network-indicator-and-privacy-proof.md))
+- [x] Reader mode from the structure tree ([U4b](../todos/done/U4b-reader-mode-from-structure-tree.md))
+- [x] Approximate reader mode for untagged files ([U4c](../todos/done/U4c-approximate-reader-mode.md))
 
 ### U5. Product promises
 - [ ] Pricing, promises and targets pages (after the owner sets the pricing model)

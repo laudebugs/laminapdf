@@ -11,7 +11,16 @@ all-features = true
 # too, and each accepted one goes in `ignore` with its ID, a reason and a review date:
 #   { id = "RUSTSEC-YYYY-NNNN", reason = "…; review 2027-01" }
 yanked = "deny"
-ignore = []
+ignore = [
+    # Tauri's tree (apps/desktop, ADR 0008), Linux builds only. Unmaintained, no vulnerability.
+    # zbus 5 through tauri-plugin-opener 2.7.2: zvariant, zvariant_derive and zbus_names were merged
+    # into zbus 6, which only opener 3.0's alphas use.
+    { id = "RUSTSEC-2026-0370", reason = "zvariant via zbus 5 via tauri-plugin-opener; gone with opener 3 (zbus 6); review 2027-02" },
+    { id = "RUSTSEC-2026-0371", reason = "zbus_names via zbus 5 via tauri-plugin-opener; gone with opener 3 (zbus 6); review 2027-02" },
+    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive via zbus 5 via tauri-plugin-opener; gone with opener 3 (zbus 6); review 2027-02" },
+    # The GTK 3 bindings (gtk-rs 0.18) that Tauri's Linux runtime uses, through glib-macros.
+    { id = "RUSTSEC-2024-0370", reason = "proc-macro-error via glib-macros 0.18 via Tauri's GTK 3 runtime (build time only); review 2027-02" },
+]
 
 [licenses]
 # Permissive licences only (ADR 0019). No GPL, LGPL or AGPL in any form; MPL-2.0 and other weak
@@ -46,6 +55,17 @@ exceptions = [
     { name = "uniffi_meta", allow = ["MPL-2.0"] },
     { name = "uniffi_pipeline", allow = ["MPL-2.0"] },
     { name = "uniffi_udl", allow = ["MPL-2.0"] },
+    # Tauri 2 (the desktop shell, ADR 0008): MPL-2.0 crates that Tauri itself depends on, allowed
+    # for these crates only (owner decision 2026-11-09, found by the desktop-ipc spike). selectors,
+    # cssparser, cssparser-macros and dtoa-short come through dom_query in tauri-utils, which
+    # parses the app's HTML to inject the CSP; option-ext comes through dirs in tauri and wry.
+    # Every Tauri 2 app has them. As with UniFFI, lamina stays MIT OR Apache-2.0; the sources are
+    # unmodified on crates.io, and the desktop app's third-party notices will carry the MPL-2.0 text (D2a).
+    { name = "selectors", allow = ["MPL-2.0"] },
+    { name = "cssparser", allow = ["MPL-2.0"] },
+    { name = "cssparser-macros", allow = ["MPL-2.0"] },
+    { name = "dtoa-short", allow = ["MPL-2.0"] },
+    { name = "option-ext", allow = ["MPL-2.0"] },
     # MIT-0 (MIT without the notice condition; OSI-approved, more permissive than MIT). Reached
     # only through boon → fluent-uri, the JSON Schema validator of xtask and the façade's tests
     # (L1b): never in a library build. Every 2020-12 validator in Rust (boon, jsonschema) uses

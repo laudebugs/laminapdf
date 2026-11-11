@@ -3,8 +3,7 @@ title: Shapes, colour and images
 description: Draw lines, shapes and images on a page, in any colour, with transparency, clipping and transforms.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll draw lines, shapes and images on a page, in colour and with transparency. You need this for anything visual in a PDF: a logo, a chart, the rules of a table or a photo.
 
@@ -30,14 +29,7 @@ A `Matrix` rotates, scales or moves what you draw. It works in [page space](/ref
 
 This example draws rectangles, circles, curves and dashed strokes in several colours, with transparency, a clip and a rotation, and places a JPEG and a transparent image:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Snippet file="packages/sdk/examples/images-and-vectors.ts" />
-  </TabItem>
-  <TabItem label="Rust">
-    <Snippet file="crates/laminapdf/examples/images_and_vectors.rs" />
-  </TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/images-and-vectors.ts" rust="crates/laminapdf/examples/images_and_vectors.rs" result="images_and_vectors" />
 
 [See the output](/recipes/images-and-vectors/).
 

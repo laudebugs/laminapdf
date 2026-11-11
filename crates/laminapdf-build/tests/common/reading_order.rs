@@ -27,7 +27,7 @@ pub enum Role {
 }
 
 impl Role {
-    const fn name(self) -> &'static str {
+    pub const fn name(self) -> &'static str {
         match self {
             Self::Heading => "heading",
             Self::Paragraph => "paragraph",
@@ -138,7 +138,7 @@ const CHINESE_CHARS: [&str; 20] = [
 
 /// `count` words of `script`, a different sequence for each `seed` (each block's own seed),
 /// so a line of one block is never a line of another.
-fn words(script: Script, seed: usize, count: usize) -> String {
+pub fn words(script: Script, seed: usize, count: usize) -> String {
     let list: &[&str] = match script {
         Script::Latin => &LATIN_WORDS,
         Script::Arabic => &ARABIC_WORDS,
@@ -405,15 +405,10 @@ fn font_file(script: Script) -> &'static str {
     }
 }
 
-fn build(layout: &Layout, order: DrawOrder) -> Vec<u8> {
-    let options = BuildOptions::default()
-        .with_id(*b"lamina-reading-o")
-        .with_producer("lamina-build reading-order corpus")
-        .with_creation_date("D:20261030120000Z".parse().unwrap())
-        .with_compress(false);
-    let mut b = Builder::new(options);
+/// The fonts `layout`'s blocks use, registered with `b`.
+pub fn fonts(b: &mut Builder, layout: &Layout) -> Vec<(Script, FontHandle)> {
     let scripts = [Script::Latin, Script::Arabic, Script::Hebrew, Script::Chinese];
-    let fonts: Vec<(Script, FontHandle)> = scripts
+    scripts
         .iter()
         .filter(|s| layout.blocks.iter().any(|b| b.script == **s))
         .map(|s| {
@@ -423,7 +418,38 @@ fn build(layout: &Layout, order: DrawOrder) -> Vec<u8> {
                     .unwrap(),
             )
         })
-        .collect();
+        .collect()
+}
+
+/// The corpus's build options: fixed ID, producer and date, uncompressed.
+pub fn options() -> BuildOptions {
+    BuildOptions::default()
+        .with_id(*b"lamina-reading-o")
+        .with_producer("lamina-build reading-order corpus")
+        .with_creation_date("D:20261030120000Z".parse().unwrap())
+        .with_compress(false)
+}
+
+/// Draws `block` on `s` as one `text_box`.
+pub fn draw(s: &mut laminapdf_build::Surface, fonts: &[(Script, FontHandle)], layout: &Layout, block: &Block) {
+    let font = &fonts.iter().find(|(s, _)| *s == block.script).unwrap().1;
+    let direction = match block.script {
+        Script::Arabic | Script::Hebrew => Direction::RightToLeft,
+        Script::Latin | Script::Chinese => Direction::LeftToRight,
+    };
+    let (left, top, width, height) = block.area;
+    let area = RectPt::from_xywh(Pt::new(left), Pt::new(top), Pt::new(width), Pt::new(height));
+    let options = TextBoxOptions::default()
+        .with_direction(direction)
+        .with_align(block.align)
+        .with_overflow(laminapdf_build::Overflow::Error);
+    s.text_box(&block.text, font, Pt::new(block.size), area, &options)
+        .unwrap_or_else(|e| panic!("{} block {:?}: {e}", layout.name, block.role));
+}
+
+fn build(layout: &Layout, order: DrawOrder) -> Vec<u8> {
+    let mut b = Builder::new(options());
+    let fonts = fonts(&mut b, layout);
     for page_index in 0..layout.pages {
         let mut page = b.page(PageSize::A4);
         page.rotate(layout.rotate);
@@ -433,19 +459,7 @@ fn build(layout: &Layout, order: DrawOrder) -> Vec<u8> {
             blocks.reverse();
         }
         for block in blocks {
-            let font = &fonts.iter().find(|(s, _)| *s == block.script).unwrap().1;
-            let direction = match block.script {
-                Script::Arabic | Script::Hebrew => Direction::RightToLeft,
-                Script::Latin | Script::Chinese => Direction::LeftToRight,
-            };
-            let (left, top, width, height) = block.area;
-            let area = RectPt::from_xywh(Pt::new(left), Pt::new(top), Pt::new(width), Pt::new(height));
-            let options = TextBoxOptions::default()
-                .with_direction(direction)
-                .with_align(block.align)
-                .with_overflow(laminapdf_build::Overflow::Error);
-            s.text_box(&block.text, font, Pt::new(block.size), area, &options)
-                .unwrap_or_else(|e| panic!("{} block {:?}: {e}", layout.name, block.role));
+            draw(s, &fonts, layout, block);
         }
         page.finish().unwrap();
     }

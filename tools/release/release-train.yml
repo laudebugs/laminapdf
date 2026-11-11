@@ -120,20 +120,32 @@ jobs:
           tree=$(git rev-parse 'HEAD^{tree}')
           parent=$(git rev-parse 'HEAD^')
           parent_tree=$(git rev-parse "$parent^{tree}")
-          # One tree request with each changed text file inline: a blob request per file would
-          # pass GitHub's 80-a-minute limit on content-creating requests (199 package-docs files).
+          # Changed text files go inline in tree requests: a blob request per file would pass
+          # GitHub's 80-a-minute limit on content-creating requests (199 package-docs files).
+          # Requests carry 50 entries each, built on the tree before: one request with all 289
+          # files of v0.2.0-alpha.4 (1 MiB) took two minutes, and the next release's got a 502.
           entries="$RUNNER_TEMP/release-entries"
           rm -rf "$entries" && mkdir "$entries"
           count=0
+          # Deletions go first, so a file that becomes a folder can't clash with its old path
+          # when the two land in different requests.
+          while IFS= read -r -d '' path; do
+            mode=$(git --literal-pathspecs ls-tree "$parent" -- "$path" | awk 'NR == 1 { print $1 }')
+            test -n "$mode"
+            count=$((count + 1))
+            jq -n --arg path "$path" --arg mode "$mode" \
+              '{path: $path, mode: $mode, type: "blob", sha: null}' > "$entries/$(printf '%06d' "$count").json"
+          done < <(git diff --no-renames --name-only --diff-filter=D -z "$parent" HEAD)
           while IFS= read -r -d '' path; do
             mode=$(git --literal-pathspecs ls-tree HEAD -- "$path" | awk 'NR == 1 { print $1 }')
             test -n "$mode"
             git cat-file blob "HEAD:$path" > "$RUNNER_TEMP/release-file"
             count=$((count + 1))
+            entry="$entries/$(printf '%06d' "$count").json"
             if ! LC_ALL=C grep -q $'\x00' "$RUNNER_TEMP/release-file" \
               && iconv -f UTF-8 -t UTF-8 "$RUNNER_TEMP/release-file" > /dev/null 2>&1; then
               jq -n --arg path "$path" --arg mode "$mode" --rawfile content "$RUNNER_TEMP/release-file" \
-                '{path: $path, mode: $mode, type: "blob", content: $content}' > "$entries/$count.json"
+                '{path: $path, mode: $mode, type: "blob", content: $content}' > "$entry"
             else
               # Binary content can't go inline: upload it as a blob (rare in a release commit).
               base64 < "$RUNNER_TEMP/release-file" | tr -d '\n' > "$RUNNER_TEMP/release-file.b64"
@@ -142,21 +154,38 @@ jobs:
                 | gh api --method POST "repos/$GITHUB_REPOSITORY/git/blobs" --input - \
                 | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
               jq -n --arg path "$path" --arg mode "$mode" --arg sha "$blob" \
-                '{path: $path, mode: $mode, type: "blob", sha: $sha}' > "$entries/$count.json"
+                '{path: $path, mode: $mode, type: "blob", sha: $sha}' > "$entry"
             fi
           done < <(git diff --no-renames --name-only --diff-filter=ACMRTUXB -z "$parent" HEAD)
-          while IFS= read -r -d '' path; do
-            mode=$(git --literal-pathspecs ls-tree "$parent" -- "$path" | awk 'NR == 1 { print $1 }')
-            test -n "$mode"
-            count=$((count + 1))
-            jq -n --arg path "$path" --arg mode "$mode" \
-              '{path: $path, mode: $mode, type: "blob", sha: null}' > "$entries/$count.json"
-          done < <(git diff --no-renames --name-only --diff-filter=D -z "$parent" HEAD)
           test "$count" -gt 0
+          # A tree's SHA depends only on its content, so a request that failed on GitHub's side
+          # (5xx, timeout) is safe to send again. A 4xx answer won't change: fail on it at once.
+          # Three tries at most keep a hanging batch inside the job's 30 minutes.
+          post_tree() {
+            local attempt sha
+            for attempt in 1 2 3; do
+              if sha=$(gh api --method POST "repos/$GITHUB_REPOSITORY/git/trees" --input "$1" \
+                2> "$RUNNER_TEMP/release-tree.err" | jq -er '.sha | select(test("^[0-9a-f]{40}$"))'); then
+                echo "$sha"
+                return 0
+              fi
+              cat "$RUNNER_TEMP/release-tree.err" >&2
+              if grep -q 'HTTP 4[0-9][0-9]' "$RUNNER_TEMP/release-tree.err"; then
+                return 1
+              fi
+              echo "::warning::Tree request failed (attempt $attempt of 3)." >&2
+              if ((attempt < 3)); then sleep $((attempt * 15)); fi
+            done
+            return 1
+          }
+          files=("$entries"/*.json)
+          signed_tree=$parent_tree
+          for ((i = 0; i < ${#files[@]}; i += 50)); do
+            jq -s --arg base_tree "$signed_tree" '{base_tree: $base_tree, tree: .}' "${files[@]:i:50}" \
+              > "$RUNNER_TEMP/release-tree.json"
+            signed_tree=$(post_tree "$RUNNER_TEMP/release-tree.json")
+          done
           # The tree GitHub builds must be the one prepared here, byte for byte.
-          signed_tree=$(jq -s --arg base_tree "$parent_tree" '{base_tree: $base_tree, tree: .}' "$entries"/*.json \
-            | gh api --method POST "repos/$GITHUB_REPOSITORY/git/trees" --input - \
-            | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
           test "$signed_tree" = "$tree"
           signed_sha=$(jq -n --arg message "release: $TAG" --arg tree "$signed_tree" --arg parent "$parent" \
             '{message: $message, tree: $tree, parents: [$parent]}' \

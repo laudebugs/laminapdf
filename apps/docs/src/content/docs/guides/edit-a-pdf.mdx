@@ -3,21 +3,14 @@ title: Edit a PDF
 description: Change an existing PDF in transactions you can undo, and replay edits stored as JSON.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Diagram from "../../../components/Diagram.astro";
+import Example from "../../../components/Example.astro";
 
 You'll open a PDF, change its title and author, and save the edit after the original bytes. You need this whenever your app changes a file someone gave it: a corrected title, a rotated scan, a report marked final.
 
 This example generates a draft report, opens its bytes and retitles it in one transaction. Then it saves incrementally, which keeps the draft's bytes at the start of the result, unchanged:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Snippet file="packages/sdk/examples/generate-then-edit.ts" />
-  </TabItem>
-  <TabItem label="Rust">
-    <Snippet file="crates/laminapdf/examples/generate_then_edit.rs" />
-  </TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/generate-then-edit.ts" rust="crates/laminapdf/examples/generate_then_edit.rs" result="generate_then_edit" />
 
 [See the output](/recipes/generate-then-edit/).
 
@@ -29,7 +22,11 @@ Your edits live beside the bytes you opened and never change them. Nothing reach
 
 ## Undo and redo
 
-`doc.undo()` reverts the last transaction as a whole, and `doc.redo()` applies it again. A transaction is the unit of undo, so group the edits a user would expect to undo together.
+`doc.undo()` reverts the last transaction as a whole, and `doc.redo()` applies it again. A transaction is the unit of undo, so group the edits a user would expect to undo together. A new transaction clears what redo could apply.
+
+Both return a `Reverted` record, `{ outcome, touchedPages }`, or `undefined` when there is nothing to undo or redo. `outcome` is `applied`, or `partial` when a later edit replaced part of the change, which keeps the later value, or `skipped` when nothing could be restored. `touchedPages` lists the IDs of the pages the transaction changed, so a viewer redraws only those. `doc.apply(ops)` returns `touchedPages` too, and `changed`, which is false when the edit only set values the document already had and so left nothing to undo.
+
+<Diagram name="undo-timeline" />
 
 ## Replay edits stored as JSON
 

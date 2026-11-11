@@ -1,8 +1,10 @@
 // The harness's PDFs, built with @laminapdf/sdk from fixed seeds and cached under perf/.fixtures/
 // by a hash of this file, so each is built once until its recipe changes:
 // - `ten`: 10 pages of text with one image each, about 1 MB (first page, zoom);
+// - `hundred`: 100 pages of text (an edit on screen, with `ten` and `thousand`);
 // - `thousand`: 1,000 pages of text (the scroll);
-// - `images`: 300 pages, each one full-page image (the fling).
+// - `images`: 300 pages, each one full-page image (the fling);
+// - `paper`: 2 pages citing [1]–[24], linked to their references on 2 pages of two columns (link previews).
 // The cache key also hashes the WebAssembly module that writes them, so a builder change rebuilds
 // them after `cargo xtask wasm`.
 
@@ -14,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { Builder, Font, Image, init } from "@laminapdf/sdk";
 
 /** The fixtures by name, in the order the harness builds them. */
-export const FIXTURES = ["ten", "thousand", "images"] as const;
+export const FIXTURES = ["ten", "hundred", "thousand", "images", "paper"] as const;
 export type FixtureName = (typeof FIXTURES)[number];
 
 const A4: [number, number] = [595, 842];
@@ -73,14 +75,50 @@ function textPage(b: Builder, next: () => number, page: number, image?: Image): 
   p.finish();
 }
 
+/** Pages 1–2 cite [1]–[24]; pages 3–4 hold the references, 6 per column, as named destinations. */
+function paper(b: Builder): void {
+  const font = Font.standard("Helvetica");
+  const place = (n: number) => ({
+    page: 2 + Math.floor((n - 1) / 12),
+    x: (n - 1) % 12 < 6 ? 56 : 316,
+    top: 96 + ((n - 1) % 6) * 110,
+  });
+  for (let n = 1; n <= 24; n++) {
+    const at = place(n);
+    b.destination(`cite.${n}`, at.page, { type: "xyz", left: at.x, top: at.top });
+  }
+  for (let p = 0; p < 4; p++) {
+    const page = b.page(A4);
+    const s = page.surface();
+    for (let n = 1; n <= 24; n++) {
+      if (p < 2 && Math.floor((n - 1) / 12) === p) {
+        const y = 96 + ((n - 1) % 12) * 56;
+        s.text("As shown in", { font, size: 11, at: [56, y] });
+        s.text(`[${n}]`, { font, size: 11, at: [124, y], link: { target: { type: "named", name: `cite.${n}` } } });
+      }
+      const at = place(n);
+      if (p >= 2 && at.page === p) {
+        s.textBox(`[${n}] ${paragraph(random(n), 30)}`, { font, size: 9, box: [at.x, at.top, 224, 96] });
+      }
+    }
+    page.finish();
+  }
+}
+
+/** The fixtures of text pages alone, by their page counts. */
+const TEXT_PAGES: Partial<Record<FixtureName, number>> = { hundred: 100, thousand: 1000 };
+
 /** Builds fixture `name`'s bytes. */
 function build(name: FixtureName): Uint8Array {
   const b = builder(name);
   const next = random(name.length * 7919);
+  const text = TEXT_PAGES[name];
   if (name === "ten") {
     for (let i = 0; i < 10; i++) textPage(b, next, i, noise(next, 184));
-  } else if (name === "thousand") {
-    for (let i = 0; i < 1000; i++) textPage(b, next, i);
+  } else if (text !== undefined) {
+    for (let i = 0; i < text; i++) textPage(b, next, i);
+  } else if (name === "paper") {
+    paper(b);
   } else {
     const images = [0, 1, 2, 3].map(() => noise(next, 384));
     for (let i = 0; i < 300; i++) {

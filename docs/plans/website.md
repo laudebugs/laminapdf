@@ -51,10 +51,10 @@ Remote documents open from `https://app.laminapdf.com/#url=…`. The fragment ru
   | --- | --- | --- |
   | `/` | home: what Lamina PDF is, and for now the roadmap with a dashboard of what's coming next ([below](#the-home-page-for-now-the-roadmap)) | [W1c](../todos/done/W1c-home-page.md), [W1e](../todos/done/W1e-progress-snapshot.md) |
   | `/download` | desktop downloads, detecting the visitor's system | [D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md) |
-  | `/privacy` | the privacy page, every statement tied to ADR 0011 | [C7c](../todos/ready/C7c-performance-gates-and-launch.md) |
+  | `/privacy` | the privacy page, every statement tied to ADR 0011 | [C7c](../todos/done/C7c-performance-gates-and-launch.md) |
   | `/pricing` | plans, prices and the fair-pricing promises | [U5a](../todos/ready/U5a-pricing-and-promises-page.md) |
   | `/performance` | the reader benchmark | [U5b](../todos/ready/U5b-reader-benchmark.md) |
-  | `/how-we-test` | the nightly's robustness figures, the licence and where the code comes from | [T1b](../todos/ready/T1b-how-we-test-page.md) |
+  | `/how-we-test` | the nightly's robustness figures, the licence and how the code is written | [T1b](../todos/done/T1b-how-we-test-page.md) |
   | `/desktop/releases/<version>` | desktop release notes, which the updater links to | [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) |
   | `/keys/lamina-release.asc` | the public key that signs the Linux packages | [D6a](../todos/ready/D6a-signing-runbook-and-owner-setup.md) |
 
@@ -104,6 +104,10 @@ The page shows titles and counts only. It names no person and links nothing in t
 | [W1d](../todos/done/W1d-one-site-header.md) | One header for the website and the docs site | W1b |
 | [W1e](../todos/done/W1e-progress-snapshot.md) | The progress snapshot: `cargo xtask progress` writes the dashboard's data from the board, the roadmap and `git log` | W1b |
 | [W1f](../todos/done/W1f-home-page-code-colouring.md) | Code colouring on the home page: Shiki at build time, classes instead of inline styles, colours from the Paper tokens | W1c |
+| [W1g](../todos/done/W1g-site-select.md) | A Paper select for both sites, and the docs site's theme switch on it | W1d |
+| [W2a](../todos/ongoing/W2a-story-skill-and-coverage-map.md) | Stories: the `lamina-story` skill, its images in the Paper look, and the stories folder outside the repository ([§9](#9-stories-off-the-site)) | W1b |
+
+Round W3, how search engines, answer engines, coding agents and registries find the sites and packages, has its own plan: [discoverability](discoverability.md).
 
 C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a and U5b depend on W1b, because their pages move to the website. W1b depends on U6b for the fonts.
 
@@ -121,5 +125,15 @@ C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a 
 - [x] Share one header between the website and the docs site ([W1d](../todos/done/W1d-one-site-header.md))
 - [x] Write the dashboard's data with one command ([W1e](../todos/done/W1e-progress-snapshot.md))
 - [x] Colour the home page's code ([W1f](../todos/done/W1f-home-page-code-colouring.md))
+- [x] Give both sites a Paper select, and put the docs site's theme switch on it ([W1g](../todos/done/W1g-site-select.md))
+- [ ] Write stories about the project for LinkedIn, X and Threads with one skill, and keep a map of what they've covered ([W2a](../todos/ongoing/W2a-story-skill-and-coverage-map.md))
 
 With these six todos done, `laminapdf.com` tells a visitor what Lamina PDF is, where the work stands and what comes next, and the reader launches at `app.laminapdf.com` on its own origin.
+
+## 9. Stories off the site
+
+On 2026-11-09 the owner asked for short posts on LinkedIn, X and Threads that tell Lamina PDF's story one part at a time. They should bring people to the product and share what building it with AI agents teaches. Each post tells one story, carries at least one image per platform that shows what words explain badly (a chart, a drawing, a diagram), and must be technically correct.
+
+- **The skill.** [`lamina-story`](../../.agents/skills/lamina-story/SKILL.md) turns one part of the project into a LinkedIn post of 150–200 words, a post for X and one for Threads, with their images. It checks every fact against the repository, has a second agent try to refute each one, and never posts.
+- **The images.** HTML cards in the Paper look, drawn by `apps/site/scripts/story-image.mjs` with the site's own tokens and fonts, through the same renderer as the site's share image (`paper-render.mjs`): 1080 × 1350 for LinkedIn and Threads, 1600 × 900 for X.
+- **The stories folder.** The stories and their coverage map live outside this repository, in `~/git/lamina-stories` on the owner's Mac (decided 2026-11-09). The map lists the stories worth telling, with their sources and whether each is open, drafted or told, so no part of the project is told twice. Stories never become commits or pull requests here; only the skill, its templates and the image script do.

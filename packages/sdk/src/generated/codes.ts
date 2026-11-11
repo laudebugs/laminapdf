@@ -93,6 +93,12 @@ export type ErrorCode =
   | "device-color-without-output-intent"
   | "embedded-file-forbidden"
   | "embedded-file-without-mime-type"
+  | "flow-content-too-large"
+  | "flow-layout-unstable"
+  | "invalid-document"
+  | "template-data-missing"
+  | "template-data-type"
+  | "template-too-large"
   | "render-too-large"
   | "render-failed"
   | "render-backend-unavailable"
@@ -150,6 +156,7 @@ export type WarningCode =
   | "outline-cycle"
   | "outline-item-skipped"
   | "invalid-date"
+  | "xmp-invalid"
   | "invalid-page-label"
   | "invalid-entry"
   | "content-unknown-operator"
@@ -175,6 +182,9 @@ export type WarningCode =
   | "extract-column-order-uncertain"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
+  | "flow-keep-broken"
+  | "markdown-html-ignored"
+  | "markdown-image-missing"
   | "covered-text"
   | "redaction-not-applied"
   | "text-in-earlier-revision";
@@ -274,6 +284,12 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "device-color-without-output-intent",
   "embedded-file-forbidden",
   "embedded-file-without-mime-type",
+  "flow-content-too-large",
+  "flow-layout-unstable",
+  "invalid-document",
+  "template-data-missing",
+  "template-data-type",
+  "template-too-large",
   "render-too-large",
   "render-failed",
   "render-backend-unavailable",
@@ -332,6 +348,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "outline-cycle",
   "outline-item-skipped",
   "invalid-date",
+  "xmp-invalid",
   "invalid-page-label",
   "invalid-entry",
   "content-unknown-operator",
@@ -357,6 +374,9 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "extract-column-order-uncertain",
   "tounicode-conflict",
   "whole-font-rebuilt",
+  "flow-keep-broken",
+  "markdown-html-ignored",
+  "markdown-image-missing",
   "covered-text",
   "redaction-not-applied",
   "text-in-earlier-revision",
@@ -383,6 +403,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "outline-cycle": "input",
   "outline-item-skipped": "input",
   "invalid-date": "input",
+  "xmp-invalid": "input",
   "invalid-page-label": "input",
   "invalid-entry": "input",
   "content-unknown-operator": "input",
@@ -486,6 +507,15 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "device-color-without-output-intent": "usage",
   "embedded-file-forbidden": "usage",
   "embedded-file-without-mime-type": "usage",
+  "flow-content-too-large": "usage",
+  "flow-layout-unstable": "internal",
+  "invalid-document": "usage",
+  "template-data-missing": "usage",
+  "template-data-type": "usage",
+  "template-too-large": "usage",
+  "flow-keep-broken": "usage",
+  "markdown-html-ignored": "unsupported",
+  "markdown-image-missing": "usage",
   "render-too-large": "limit",
   "render-failed": "input",
   "render-backend-unavailable": "io",
@@ -547,6 +577,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "outline-cycle": "nothing to do; the outline is read without the loop",
   "outline-item-skipped": "check the outline: the skipped item and its children are missing",
   "invalid-date": "read the raw value from the Info view if you need it",
+  "xmp-invalid": "nothing to do; a metadata edit asks before replacing it",
   "invalid-page-label": "nothing to do; affected pages fall back to decimal labels",
   "invalid-entry": "nothing to do; the view uses the entry's default",
   "content-unknown-operator": "nothing to do; check the page's rendering if the operator mattered",
@@ -650,6 +681,15 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "device-color-without-output-intent": "use RGB or gray colours, or a CMYK colour with an ICC profile (Color::icc)",
   "embedded-file-forbidden": "choose PDF/A-3b, which allows attached files of any kind",
   "embedded-file-without-mime-type": "pass the file's MIME type, such as text/xml or application/octet-stream",
+  "flow-content-too-large": "make the figure smaller, the text size smaller or the page's margins narrower",
+  "flow-layout-unstable": "report the flow that fails; a page break after the contents block may avoid it until it is fixed",
+  "invalid-document": "data.pointer names the value; correct it against the document schema, and didYouMean lists the closest known keys",
+  "template-data-missing": "data.pointer names the value the template asked for; add it to the data or correct the pointer",
+  "template-data-type": "data.pointer names the value and data.expected the kind the template needs there",
+  "template-too-large": "data.limit is the limit it passed; repeat fewer items, or split the document",
+  "flow-keep-broken": "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
+  "markdown-html-ignored": "write the content in Markdown instead of HTML, or remove the HTML",
+  "markdown-image-missing": "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",
   "render-too-large": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
   "render-failed": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
   "render-backend-unavailable": "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
@@ -717,6 +757,7 @@ export const ERROR_GROUPS: readonly string[] = [
 export const WARNING_GROUPS: readonly string[] = [
   "warnings",
   "textWarnings",
+  "buildWarnings",
   "facadeWarnings",
 ];
 

@@ -165,7 +165,7 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -176,6 +176,14 @@ jobs:
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2,wasm-bindgen@0.2.129,twiggy@0.8.0
       - uses: ./.github/actions/node-pnpm
+      # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
+      # Inline, not .github/actions/linux-webkit: a dispatch checks out another ref, whose local
+      # actions this lane must not run. The list matches the action's (doctor.rs tests both).
+      - name: Install WebKitGTK 4.1 and D-Bus development packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends \
+            libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config
       - run: cargo xtask check
       # Builds the modules and @laminapdf/sdk, tests them in Node and Vite, and runs publint
       # --strict and attw --pack on the package (the packaging checks).
@@ -201,7 +209,7 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -224,7 +232,7 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -260,7 +268,7 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           # Restores main's cache; a tag run never saves one.
           cache: true
@@ -269,12 +277,20 @@ jobs:
       - uses: ./.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
+      # Inline, not .github/actions/linux-webkit: a dispatch checks out another ref, whose local
+      # actions this lane must not run. The list matches the action's (doctor.rs tests both).
+      - name: Install WebKitGTK 4.1 and D-Bus development packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends \
+            libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config
       - run: cargo xtask check
 
   roundtrip:
@@ -288,10 +304,10 @@ jobs:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
       - uses: ./.github/actions/qpdf
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -320,10 +336,10 @@ jobs:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
       - uses: ./.github/actions/qpdf
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -349,7 +365,7 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: false

@@ -21,6 +21,11 @@ pub(crate) struct Drawn {
     pub(crate) image_boxes: Vec<RectPt>,
     /// How many paths it fills or strokes.
     pub(crate) paths: usize,
+    /// What marked-content sequences (by MCID) paint besides text, their images and their
+    /// filled or stroked paths, one box in page space clipped to the page per thing painted:
+    /// reader mode crops a figure to their union.
+    #[cfg(feature = "reflow")]
+    pub(crate) mcid_boxes: Vec<(i64, RectPt)>,
 }
 
 /// The visitor [`laminapdf_text::TextExtractor::page_with`] is given.
@@ -30,6 +35,9 @@ pub(crate) struct Marks<'f> {
     backdrops: Backdrops,
     frame: PageFrame,
     drawn: Drawn,
+    /// The open marked-content sequences' MCIDs, innermost last.
+    #[cfg(feature = "reflow")]
+    marked: Vec<Option<i64>>,
 }
 
 impl<'f> Marks<'f> {
@@ -41,6 +49,16 @@ impl<'f> Marks<'f> {
             backdrops: Backdrops::new(frame),
             frame: *frame,
             drawn: Drawn::default(),
+            #[cfg(feature = "reflow")]
+            marked: Vec::new(),
+        }
+    }
+
+    /// Records `bbox` for the innermost marked content with an MCID, if any.
+    #[cfg(feature = "reflow")]
+    fn mark(&mut self, bbox: RectPt) {
+        if let Some(mcid) = self.marked.iter().rev().find_map(|m| *m) {
+            self.drawn.mcid_boxes.push((mcid, bbox));
         }
     }
 
@@ -78,6 +96,14 @@ impl Visitor for Marks<'_> {
         self.backdrops.paint_path(paint);
         if paint.paint.draws() {
             self.drawn.paths += 1;
+            #[cfg(feature = "reflow")]
+            if let Some(bbox) = paint
+                .bounds
+                .map(|b| self.frame.rect_to_page(&b))
+                .and_then(|b| clip_to_page(&b, self.frame.width(), self.frame.height()))
+            {
+                self.mark(bbox);
+            }
         }
     }
 
@@ -87,6 +113,8 @@ impl Visitor for Marks<'_> {
         self.drawn.images += 1;
         if let Some(bbox) = image_box(&self.frame, &image.state.ctm) {
             self.drawn.image_boxes.push(bbox);
+            #[cfg(feature = "reflow")]
+            self.mark(bbox);
         }
     }
 
@@ -97,10 +125,16 @@ impl Visitor for Marks<'_> {
 
     fn begin_marked(&mut self, marked: &MarkedContent<'_>) {
         self.paint.begin_marked(marked);
+        // A form's own MCIDs belong to the form's structure parent, not the page's: only the
+        // page's are recorded (a page MCID open around a form still takes what the form paints).
+        #[cfg(feature = "reflow")]
+        self.marked.push(marked.mcid.filter(|_| marked.depth == 0));
     }
 
     fn end_marked(&mut self) {
         self.paint.end_marked();
+        #[cfg(feature = "reflow")]
+        self.marked.pop();
     }
 
     fn enter_xobject(&mut self, form: &FormXObject<'_>) {

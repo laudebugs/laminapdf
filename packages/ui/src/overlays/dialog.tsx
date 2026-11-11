@@ -2,9 +2,9 @@
 // opener, Escape and scrim clicks closing it unless it asks a required question, the page behind
 // inert and its scrolling held still.
 
-import { BREAKPOINTS } from "@laminapdf/tokens";
 import { type ReactNode, type RefObject, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Dialog as AriaDialog, Heading, Modal, ModalOverlay } from "react-aria-components";
+import { PHONE_QUERY } from "../breakpoints.js";
 import { IconButton } from "../components/button.js";
 import { markModal } from "./aria-modal.js";
 import { LayerScope } from "./layers.js";
@@ -58,7 +58,7 @@ const FRAME: Record<DialogSize, string> = {
 /** The phone's width, where a dialog becomes a bottom sheet (§7.18); one list for every dialog. */
 let phoneQuery: MediaQueryList | undefined;
 function phone(): MediaQueryList {
-  phoneQuery ??= window.matchMedia(`(max-width: ${BREAKPOINTS["phone-max"]}px)`);
+  phoneQuery ??= window.matchMedia(PHONE_QUERY);
   return phoneQuery;
 }
 
@@ -71,7 +71,7 @@ function subscribePhone(onChange: () => void): () => void {
  * Whether the dialog lays out as a phone's sheet: the viewport's width when it opens, kept until
  * it closes, so turning the phone doesn't rebuild an open dialog and lose what was typed in it.
  */
-function usePhoneLayout(isOpen: boolean): boolean {
+export function usePhoneLayout(isOpen: boolean): boolean {
   const live = useSyncExternalStore(
     subscribePhone,
     () => phone().matches,

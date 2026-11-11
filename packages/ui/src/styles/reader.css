@@ -4,7 +4,10 @@
    44 px of §7.1; tabular figures; "/ N" muted), the zoom
    percentage between its 26 px buttons, and the Commands button with its chip. */
 @layer paper.components {
+  /* The shell never scrolls sideways, down to a 320 wide phone: its parts shrink or wrap instead
+     (the phone tests check that nothing reaches past the window). */
   .paper-reader-shell {
+    overflow-x: clip;
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     block-size: 100%;
@@ -25,6 +28,12 @@
     flex: 1 1 auto;
     min-inline-size: 0;
     overflow: hidden;
+  }
+
+  /* The second row: a notice (R15's offline strip) over the secondary toolbar, each optional. */
+  .paper-reader-under {
+    grid-row: 2;
+    min-inline-size: 0;
   }
 
   .paper-reader-secondary {
@@ -86,6 +95,24 @@
     gap: var(--paper-space-14);
   }
 
+  /* The viewer's link anchors (R07): the focus ring the design language gives every control; in
+     forced colours, the system's highlight. The viewer adds no style sheet of its own. */
+  .lamina-link:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  @media (forced-colors: active) {
+    .lamina-link:focus-visible {
+      outline-color: Highlight;
+    }
+  }
+
+  .paper-top-bar-history {
+    display: flex;
+    gap: var(--paper-space-2);
+  }
+
   .paper-page-input {
     display: flex;
     align-items: center;
@@ -137,7 +164,8 @@
   }
 
   .paper-zoom-percent {
-    min-inline-size: var(--paper-zoom-percent-min-width);
+    /* A target in both directions: a short percentage ("98%") is narrower than a touch target. */
+    min-inline-size: max(var(--paper-zoom-percent-min-width), var(--ui-target));
     min-block-size: max(var(--paper-icon-button-size-zoom), var(--ui-target));
     padding-inline: var(--paper-space-4);
     border: var(--paper-border-width) solid transparent;
@@ -435,6 +463,38 @@
     justify-content: center;
     margin-block-start: var(--paper-space-8);
   }
+
+  /* The remote page's address: wrapped anywhere, so a long one never widens the page. */
+  .paper-failure-address {
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-failure-address strong {
+    color: var(--paper-text);
+    font-weight: 600;
+  }
+
+  /* Open the link in a new tab: a link drawn as the primary button, so without a link's underline. */
+  .paper-failure-actions a.paper-button {
+    text-decoration: none;
+  }
+
+  /* "Choose the downloaded file": a button that reads as a link in the sentence. */
+  .paper-failure-link {
+    min-block-size: var(--ui-target);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+  }
+
+  .paper-failure-link:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
 }
 
 /* The whole-file download (R02): a `raised` card a dialog wide, its title, the reason in muted
@@ -472,5 +532,355 @@
 
   .paper-download-why {
     color: var(--paper-muted);
+  }
+}
+
+/* The network activity panel (R13): the repair panel's header and rows, a summary count in the
+   display face, tables of origin · requests · bytes with a purpose line under each origin, and the
+   App files disclosure. */
+@layer paper.components {
+  .paper-network-summary {
+    display: flex;
+    align-items: baseline;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-network-number {
+    font: var(--paper-type-display);
+    letter-spacing: var(--paper-type-display-letter-spacing);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-network-note {
+    margin: 0;
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-network-section {
+    display: grid;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-network-table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font: var(--paper-type-body);
+  }
+
+  .paper-network-table caption {
+    padding-block-end: var(--paper-space-8);
+    text-align: start;
+  }
+
+  .paper-network-table th,
+  .paper-network-table td {
+    padding-block: var(--paper-space-6);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .paper-network-table td {
+    padding-inline-start: var(--paper-space-8);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .paper-network-table thead th {
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+    white-space: nowrap;
+  }
+
+  .paper-network-table thead th + th {
+    padding-inline-start: var(--paper-space-8);
+  }
+
+  .paper-network-origin {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-network-purpose {
+    display: block;
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-network-table tr[data-unexpected] .paper-network-origin {
+    color: var(--paper-warning);
+  }
+
+  .paper-network-disclosure {
+    justify-self: start;
+    min-block-size: var(--ui-target);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: var(--paper-type-label);
+    text-decoration: underline;
+  }
+
+  .paper-network-disclosure:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
+
+  .paper-network-steps {
+    margin: 0;
+    padding-inline-start: var(--paper-space-16);
+    font: var(--paper-type-caption);
+  }
+}
+
+/* Reader mode (R14): the canvas becomes one reading column on the page's paper, in the serif at
+   the reader's size (set on the column) with its line spacing and line length; a crop is its part
+   of the page, framed, with its description under it. */
+@layer paper.components {
+  .paper-reader-mode {
+    block-size: 100%;
+    overflow-y: auto;
+    background: var(--paper-page-paper);
+    color: var(--paper-page-ink);
+  }
+
+  /* In the reader's canvas, the column covers the page view (which stays laid out under it). */
+  .paper-reader-canvas > .paper-reader-mode {
+    position: absolute;
+    inset: 0;
+  }
+
+  .paper-reader-mode:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: calc(var(--paper-focus-ring-width) * -1);
+  }
+
+  /* The empty state is the app's, not the page's: the theme's ground and text, as anywhere else. */
+  .paper-reader-mode-empty {
+    display: grid;
+    place-items: center;
+    background: var(--paper-ground);
+    color: var(--paper-text);
+  }
+
+  .paper-reader-column {
+    box-sizing: border-box;
+    max-inline-size: 68ch;
+    margin-inline: auto;
+    padding: var(--paper-space-24) var(--paper-space-16) var(--paper-space-32);
+    font-family: var(--paper-font-serif);
+    line-height: 1.65;
+    overflow-wrap: break-word;
+  }
+
+  .paper-reader-column[data-line-length="narrow"] {
+    max-inline-size: 55ch;
+  }
+
+  .paper-reader-column[data-line-length="wide"] {
+    max-inline-size: 85ch;
+  }
+
+  .paper-reader-column[data-line-spacing="tight"] {
+    line-height: 1.4;
+  }
+
+  .paper-reader-column[data-line-spacing="loose"] {
+    line-height: 1.9;
+  }
+
+  /* Room after the last block, so any block, the last page's too, can reach the column's top:
+     where reader mode starts and what "Back to page" names. */
+  .paper-reader-column::after {
+    content: "";
+    display: block;
+    block-size: 80vh;
+  }
+
+  /* The head stays in view, so "Back to page" never has to be scrolled to, which would change
+     the block at the column's top and so the page it goes back to. */
+  .paper-reader-mode-head {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 1;
+    padding-block: var(--paper-space-8);
+    background: var(--paper-page-paper);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8);
+    margin-block-end: var(--paper-space-24);
+    font-family: var(--paper-font-sans);
+    font-size: initial;
+    line-height: normal;
+  }
+
+  .paper-reader-block p,
+  .paper-reader-block blockquote {
+    margin: 0 0 1em;
+  }
+
+  .paper-reader-heading {
+    margin: 1.2em 0 0.5em;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  h2.paper-reader-heading {
+    font-size: 1.5em;
+  }
+
+  h3.paper-reader-heading {
+    font-size: 1.25em;
+  }
+
+  .paper-reader-quote {
+    padding-inline-start: 1em;
+    border-inline-start: var(--paper-border-width) solid var(--paper-hairline);
+    font-style: italic;
+  }
+
+  /* The page's own muted ink, set per page appearance, not the UI's (which a dark theme lightens). */
+  .paper-reader-caption,
+  .paper-reader-note,
+  .paper-reader-alt {
+    font-size: 0.85em;
+    color: var(--paper-page-mockup-muted);
+  }
+
+  .paper-reader-list {
+    margin: 0 0 1em;
+    padding-inline-start: 1.5em;
+    list-style: none;
+  }
+
+  .paper-reader-list li[data-depth="1"] {
+    margin-inline-start: 1.5em;
+  }
+
+  .paper-reader-list li[data-depth="2"] {
+    margin-inline-start: 3em;
+  }
+
+  .paper-reader-marker {
+    display: inline-block;
+    min-inline-size: 1.5em;
+    margin-inline-start: -1.5em;
+  }
+
+  .paper-reader-crop {
+    margin: 0 0 1em;
+  }
+
+  .paper-reader-crop-image {
+    display: flex;
+    justify-content: center;
+    padding: var(--paper-space-8);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-page-paper);
+  }
+
+  .paper-reader-crop-image canvas,
+  .paper-reader-crop-image img {
+    max-inline-size: 100%;
+    block-size: auto;
+  }
+
+  .paper-reader-alt {
+    margin-block-start: var(--paper-space-4);
+  }
+
+  /* The approximate view's "View original page": over the block's top corner, taking no room,
+     and unseen until the block is hovered or holds the focus. Without hover (touch), it sits
+     under the block and always shows. */
+  .paper-reader-block {
+    position: relative;
+  }
+
+  .paper-reader-view-original {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    opacity: 0;
+  }
+
+  .paper-reader-block:hover > .paper-reader-view-original,
+  .paper-reader-block:focus-within > .paper-reader-view-original {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .paper-reader-view-original {
+      position: static;
+      display: block;
+      margin-block-end: var(--paper-space-8);
+      opacity: 1;
+    }
+  }
+
+  .paper-reader-mode-head + .paper-notice {
+    margin-block-end: var(--paper-space-16);
+  }
+
+  .paper-reader-loading {
+    display: grid;
+    gap: var(--paper-space-12);
+  }
+
+  .paper-reader-settings {
+    display: grid;
+    gap: var(--paper-space-16);
+  }
+
+  .paper-reader-stepper-row {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-reader-stepper-row output {
+    min-inline-size: 4em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer paper.components {
+  .paper-reader-stepper {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+}
+
+/* The skip link: out of sight until Tab reaches it, then over the top bar's start. */
+@layer paper.components {
+  .paper-skip-link {
+    position: absolute;
+    inset-block-start: var(--paper-space-8);
+    inset-inline-start: var(--paper-space-8);
+    z-index: var(--paper-z-toast);
+    padding: var(--paper-space-6) var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-chip-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-surface);
+    color: var(--paper-accent);
+    font: var(--paper-type-control);
+    box-shadow: var(--paper-shadow-float);
+    transform: translateY(-200%);
+  }
+
+  .paper-skip-link:focus-visible {
+    transform: none;
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
+
+  .paper-reader-canvas:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-inset);
   }
 }

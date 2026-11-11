@@ -37,8 +37,8 @@ Give `ReaderShell` the layout the research recommends — a collapsible left rai
 
 **Out of scope** (and which todo covers it)
 
-- Thumbnails and outline contents → [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
-- Phone layout (bottom bar, sheets) → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
+- Thumbnails and outline contents → [C6a](C6a-thumbnails-outline-page-labels.md).
+- Phone layout (bottom bar, sheets) → [U3a](../done/U3a-responsive-mobile-and-touch.md).
 - Editor modes → E rounds (E1a defines Edit, E4f Comment, E8e Fill & Sign, E2h Organise).
 
 ## Tasks

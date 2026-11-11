@@ -36,7 +36,13 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Artboards.** `R10-view-settings.dc.html`, `R10-page-dark.dc.html`, `R10-view-settings-phone.dc.html`. The `accent` tweak of each board is also the selected swatch of the Accent row. On the phone the Accent row is below Theme, under the medium detent's fold (the sheet scrolls).
 
-**Todos.** [C7a](../../todos/ready/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md).
+**As built ([U2c](../../todos/done/U2c-page-appearance-modes.md)).** The web popover's Page appearance section has the chips, “This document · All documents” while a document is open, and the help line. Choosing shows “Page appearance: Dark, for this document only” with Undo. The page and thumbnails are recoloured, and the highlight keeps its colour. Under `forced-colors: active` the page starts in High contrast, in the system's CanvasText and Canvas, unless the user chose something. Three parts differ from the boards:
+
+- The chips sit in one row of four, the §7.25 chips, not the compact 2 × 2 grid.
+- The notice for text drawn as images isn't built yet.
+- An annotation's edge keeps the paper colour it was drawn over, so in Dark a filled annotation can show a light one-pixel rim.
+
+**Todos.** [C7a](../../todos/done/C7a-accessibility-and-theming.md), [U2c](../../todos/done/U2c-page-appearance-modes.md).
 
 ## R11 Dark UI theme
 
@@ -58,7 +64,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Artboards.** `R11-dark-theme.dc.html`.
 
-**Todos.** [C7a](../../todos/ready/C7a-accessibility-and-theming.md).
+**Todos.** [C7a](../../todos/done/C7a-accessibility-and-theming.md).
 
 ## R12 Keyboard shortcuts
 
@@ -107,7 +113,7 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 
 **Artboards.** `R12-shortcut-help.dc.html`.
 
-**Todos.** [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md).
+**Todos.** [U1b](../../todos/done/U1b-command-registry-and-palette.md), [C7a](../../todos/done/C7a-accessibility-and-theming.md).
 
 ## R13 Network activity panel
 
@@ -140,9 +146,11 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 
 **Platform differences.** The desktop app shows the indicator only if something networks (updates): U4a scope. Phone: the More row opens this panel as a sheet at the large detent.
 
+**As built (U4a).** Three differences from the boards. “How to check it yourself” opens its steps in the panel, since the privacy page it should open comes with the launch (C7c). The status item is a toggle: it opens the panel and closes it, and its pressed state is `aria-expanded`. The phone’s More › Network activity row waits for its sheet; the palette’s `privacy.network-activity` reaches the panel there.
+
 **Artboards.** `R13-network-panel.dc.html`, `R13-network-remote.dc.html`.
 
-**Todos.** [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md).
+**Todos.** [U4a](../../todos/done/U4a-network-indicator-and-privacy-proof.md).
 
 ## R14 Reader mode
 
@@ -182,9 +190,13 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Platform differences.** On the phone (*R14-reader-phone*), the top bar shows Back (“Back to page 3”), the title with “Reader · from the document’s tags”, and a Reader settings button. Reader is active in the bottom bar (accent tint), and text is 18–20 px. Settings open as a sheet at the medium detent (*R14-reader-approximate-phone*, which also shows the Approximate notice) with 44 px controls and no line-length control. On the phone, tapping a block reveals “View original page” under it. The tablet uses the web layout.
 
+**As built (U4b).** Tier 1 on the web, with these differences from the boards. The settings panel has text size, line spacing, line length and Reset; it has no Appearance chips, but the column takes the paper and ink of the page appearance chosen in View settings (R10, [U2c](../../todos/done/U2c-page-appearance-modes.md)). While reader mode is on, a Reader settings button takes the View button's place in the top bar, so the page appearance is changed before entering or from the palette. "Back to page n" and the badge sit in a head that stays at the column's top, so pressing Back never scrolls the column and changes the page it names. Tables show as crops, like figures and formulas, with their alternate text; their cells aren't an HTML table yet. Not built: the phone's bottom-bar Reader button and settings sheet (the palette reaches reader mode there), "View original page" on a block, links inside the text, Find in the column, and "How Reader mode works". The empty state's sentence names why: no tags ("It has no tags, so Lamina PDF can't tell the order its text is read in."), or a tree that can't be trusted (the board's sentence).
+
+**As built (U4c).** Tier 2 follows the boards: the warning badge "Approximate", the notice in R14's words as a `role="status"` strip under the head, "View original page" on every block, and page-image blocks with "Open page n". Five differences. The notice says "This file's tags don't match its pages" when a tree fails the checks, since tier 2 now covers those files too, so the *Not available* state only appears for a file with nothing to show. "View original page" sits over the block's top corner on hover or focus and below it on touch; it leaves reader mode at the block and outlines the block on the page for two seconds. A page-image block names its reason in one sentence: "This page is a picture of text" or "Lamina PDF couldn't tell the order of this page's text". The notice has no "How Reader mode works" link, since the help page isn't built. Figures drawn as paths rather than images aren't cropped, so they don't appear in the column.
+
 **Artboards.** `R14-reader-tagged.dc.html`, `R14-reader-approximate.dc.html`, `R14-reader-phone.dc.html`, `R14-reader-approximate-phone.dc.html`.
 
-**Todos.** [U4b](../../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md).
+**Todos.** [U4b](../../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/done/U4c-approximate-reader-mode.md).
 
 ## R15 Offline, install and update
 
@@ -206,9 +218,17 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Platform differences.** The desktop app has its own updater (S06), and the offline notice doesn’t apply to it. On the phone, the offline notice is a strip under the top bar, and the update toast sits above the bottom bar in place of the page pill.
 
+**As built ([C7b](../../todos/done/C7b-offline-pwa.md)).** The web reader ships the install dialog, the offline notice with Offline in the status bar, and the update toast with Reload and Later. Five parts differ from the boards:
+
+- Install appears only where the browser offers one (`beforeinstallprompt`, Chromium). Safari’s Add to Dock how-to waits for a later todo, so Safari shows no item, like Firefox.
+- With a document open, the toast says “you’ll need to open this file again” (reopening at the same page is [T5b](../../todos/done/T5b-reopen-at-last-position.md)).
+- The status bar’s Update ready reloads at once rather than opening a popover with Reload.
+- Reload is never disabled, since the reader can’t change a file yet.
+- Open from URL keeps its own error while offline; the field’s offline message comes with the URL form’s next change.
+
 **Artboards.** `R15-install.dc.html`, `R15-offline.dc.html`, `R15-update.dc.html`.
 
-**Todos.** [C7b](../../todos/ready/C7b-offline-pwa.md).
+**Todos.** [C7b](../../todos/done/C7b-offline-pwa.md).
 
 ## R16 Focus mode
 
@@ -268,7 +288,9 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Artboards.** `R17-tablet.dc.html` (prop `penHover` toggles the preview), `R17-tablet-sheet.dc.html`. The outline’s second level under section 2 (“Open repairs by region” p. 3, “Oldest cases by region” p. 4) and the collapsed children of sections 3 and 4 are invented sample content.
 
-**Todos.** [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md).
+**As built ([U3a](../../todos/done/U3a-responsive-mobile-and-touch.md)).** The web reader's shell on a tablet is the desktop one, with 44 px targets wherever the pointer is coarse. In portrait (834 px wide) the rail is the drawer of narrow windows rather than a sheet; landscape docks it. Pinch, pan and double-tap are the viewer's, but the zoom controls stay in the top bar. The pen's hover preview comes with Comment mode.
+
+**Todos.** [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md).
 
 ## R18 Phone: outline, find, more
 
@@ -305,7 +327,9 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Artboards.** `R18-outline-phone.dc.html` (prop `emptyOutline` shows the empty state), `R18-find-phone.dc.html` (prop `noMatch` shows the no-match state with the help line), `R18-more-phone.dc.html` (page in Sepia, matching the View settings value) (+ `R10-view-settings-phone.dc.html`).
 
-**Todos.** [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md).
+**As built ([U3a](../../todos/done/U3a-responsive-mobile-and-touch.md)).** The Contents sheet (Pages · Outline once C6a gives the rail its tabs) and the More sheet are as drawn, and the inspector is a sheet too. The page pill isn't built yet. The bottom bar shows Pages and More; Search joins it when find has a handler (C5b), and Annotate and Reader when their rounds land. The top bar keeps the file name and the overflow, with no Back, since the reader has no files view to go back to yet.
+
+**Todos.** [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md).
 
 ## New components
 

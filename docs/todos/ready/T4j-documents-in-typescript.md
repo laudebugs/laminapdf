@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4e](./T4e-json-documents-and-templates.md), [T4i](./T4i-build-command-and-bindings.md) |
+| Depends on | [T4e](../done/T4e-json-documents-and-templates.md), [T4i](../done/T4i-build-command-and-bindings.md) |
 | ADRs | Implements [ADR 0032 §7](../../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) (`builder.flow(document, { data })` with the document as typed objects generated from the committed schema) and [§9](../../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) (the text module's 1,280,000 B gzip budget; the invoice joins `cargo xtask pdf-runtimes`). Follows [0016 §6–§7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary) (module budgets; records as JSON with `unknown-option`) and [0018](../../decisions/0018-test-strategy.md) (timings recorded, not asserted) |
 | Branch | `feat/t4j-documents-in-typescript` |
 | PR title | `feat(sdk): typed flow documents and builder.flow` |
@@ -15,13 +15,13 @@
 
 ## Goal
 
-Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(document, { data })` takes a `laminapdf.document/1` document, checked by `tsc` against types generated from [T4e](./T4e-json-documents-and-templates.md)'s committed schema, and fills it from data in every runtime. L3e brought extraction to TypeScript this way after L3a–L3d built it in Rust. Filling a template from data is the second-largest generation request on Hacker News, about 560 comments, and one commenter put the use case in one line: "It’s absolutely trivial for example to build a Lambda function that parses some json input into a PDF." ([45394409](https://news.ycombinator.com/item?id=45394409)). A typed document lets an editor catch a misspelt key before anything is drawn.
+Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(document, { data })` takes a `laminapdf.document/1` document, checked by `tsc` against types generated from [T4e](../done/T4e-json-documents-and-templates.md)'s committed schema, and fills it from data in every runtime. L3e brought extraction to TypeScript this way after L3a–L3d built it in Rust. Filling a template from data is the second-largest generation request on Hacker News, about 560 comments, and one commenter put the use case in one line: "It’s absolutely trivial for example to build a Lambda function that parses some json input into a PDF." ([45394409](https://news.ycombinator.com/item?id=45394409)). A typed document lets an editor catch a misspelt key before anything is drawn.
 
 ## Context
 
 - [ADR 0032 §7](../../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces): `builder.flow(document, { data })`, with the document as typed objects generated from the committed schema, fonts as `Font`s and images as `Image`s by name. `Builder::flow` runs in one call; if T4b's 100-page benchmark exceeds §9's budget in WebAssembly, a `FlowJob` stepped by page follows ADR 0028 §3, in a todo of its own.
 - [ADR 0032 §9](../../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets): the two-page invoice in Node 24, best of 30, ≤ 25 ms (the spike measured 10.8 ms), recorded by `cargo xtask pdf-runtimes`, not asserted; the text module's budget covers the flow layer and both inputs.
-- [T4e](./T4e-json-documents-and-templates.md): `crates/laminapdf-build/schemas/document.schema.json`, `laminapdf::flow::fill`, the `invalid-document`, `template-data-missing` and `template-data-type` errors, and `invoice_from_json.rs` with its golden. [T4i](./T4i-build-command-and-bindings.md): `WasmBuilder.markdown`, `builder.markdown` and the text module's `markdown` feature, which this todo builds beside.
+- [T4e](../done/T4e-json-documents-and-templates.md): `crates/laminapdf-build/schemas/document.schema.json`, `laminapdf::flow::document::fill`, the `invalid-document`, `template-data-missing` and `template-data-type` errors, and `invoice_from_json.rs` with its golden. [T4i](../done/T4i-build-command-and-bindings.md): `WasmBuilder.markdown`, `builder.markdown` and the text module's `markdown` feature, which this todo builds beside.
 - The precedent for generated types: `cargo xtask gen boundary` turns `crates/laminapdf-extract/schemas/extract.schema.json` into `packages/sdk/src/generated/extract.ts` (`tools/xtask/src/codegen/boundary.rs` and `schema_ts.rs`, which fails on a schema keyword it doesn't know). See [L3e](../done/L3e-extract-bindings-and-benchmark.md).
 - Unknown keys in a binding record: `unknown-option` ([ADR 0016 §7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary)) with a `didYouMean`.
 - The runtime suite's `measure()` (`packages/sdk/test/suite/examples.ts`) records timings per runtime. [T1c](../done/T1c-publish-performance-numbers.md) adds a one-page `invoice` case there, publishes generation timings, and leaves flowing-layout timings and a two-page invoice to this round. A Typst user reports a two-page invoice in under 100 ms ([45697377](https://news.ycombinator.com/item?id=45697377)).
@@ -37,7 +37,7 @@ Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(d
 
 **Out of scope** (and which todo covers it)
 
-- The format, validation, templates, the CLI and MCP inputs: [T4e](./T4e-json-documents-and-templates.md).
+- The format, validation, templates, the CLI and MCP inputs: [T4e](../done/T4e-json-documents-and-templates.md).
 - A `FlowJob` stepped by page: only if T4b's benchmark exceeds ADR 0032 §9's budget in WebAssembly, in its own todo.
 - A JSX layer over the typed objects (ADR 0032 §6 leaves it for later), and a visual template designer.
 - Publishing the timings: [T1c](../done/T1c-publish-performance-numbers.md).
@@ -57,7 +57,7 @@ Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(d
 - [ ] A misspelt key fails with `unknown-option` and a `didYouMean` in the binding, and fails to type-check in TypeScript
 - [ ] `template-data-missing` reaches TypeScript as a `LaminaPdfError` with the pointer in its `data`
 - [ ] The runtime suite's measurements include the `invoice-from-json` case in each runtime
-- [ ] `cargo xtask gen boundary --check` and `cargo xtask size` pass, within the text module's 1,280,000 B gzip budget
+- [ ] `cargo xtask gen boundary --check` and `cargo xtask size` pass, within the text module's 1,360,000 B gzip budget
 - [ ] `cargo xtask check docs` passes with the example pair shown on a docs page
 
 ## Post-merge checks

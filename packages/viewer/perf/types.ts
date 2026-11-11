@@ -41,6 +41,25 @@ export interface Counters {
   readonly peakCanvases: number;
 }
 
+/** One find in the open file: when its first match showed, and when every page was searched. */
+export interface FindTiming {
+  /** ms from the query until the first match was found, or null when there was none. */
+  readonly firstResultMs: number | null;
+  /** ms from the query until every page was searched. */
+  readonly fullMs: number;
+  readonly total: number;
+}
+
+/** One edit on screen: the page in view turned a quarter, from the call to its pixels. */
+export interface EditTiming {
+  /** ms until the edit's call answered: the transaction, the save into memory and the reopen. */
+  readonly applyMs: number;
+  /** ms until the turned page's first new pixels were drawn: its quick pass, the whole page blurry. */
+  readonly firstPixelsMs: number;
+  /** ms until it was sharp again. */
+  readonly sharpMs: number;
+}
+
 /** `globalThis.__laminaPerf`. */
 export interface PerfHook {
   /** With `?open=<name>`: ms from navigation start until the first page painted (null until then). */
@@ -48,7 +67,16 @@ export interface PerfHook {
   /** Opens fixture `<name>.pdf`, read before the clock starts; ms until the first page painted. */
   open(name: string): Promise<number>;
   setZoom(zoom: string): void;
+  /**
+   * Hovers the first `count` internal links in view one after another, as a mouse does: for each,
+   * ms from the preview being asked for (after the 300 ms dwell) until its crop is drawn.
+   */
+  hoverLinks(count: number): Promise<number[]>;
+  /** Finds `query` in the open file from its current page; resolves once every page is searched. */
+  find(query: string): Promise<FindTiming>;
   goToPage(index: number): void;
+  /** Turns the page in view a quarter through the viewer (`viewer.applyEdit`) and times its redraw. */
+  edit(): Promise<EditTiming>;
   /** The scroll position and its largest value, in CSS px. */
   scroll(): { readonly top: number; readonly max: number };
   record(): void;

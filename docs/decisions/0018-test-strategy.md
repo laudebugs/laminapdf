@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Amended 2026-11-10 (owner): browser suites retry a failed test once, and a test that passes on its retry is reported as flaky, never hidden; the nightly opens its issue (§4). The shared setup actions' downloads (pnpm, Playwright, apt) retry up to three times. Rust tests in the PR lanes still never retry.
 - Amended 2026-11-08 (owner): with the repository public, jobs run on hosted Ubuntu x64 and use macOS Arm64 only where a Mac is needed (WebKit, the render goldens and render diff, the CLI's macOS build); benchmarks restart on Ubuntu.
 - Amended 2026-11-07 (owner): standard GitHub-hosted runners replace the private runners; native Rust checks run on Linux, macOS and Windows, x64 and Arm64.
 - Amended 2026-11-05 (owner): the release lane skips its own nightly run when the release commit differs from a commit a full nightly passed on only in version files, as the daily release's commits do ([ADR 0017 §6](0017-versioning-and-release.md#6-the-release-lane); [P5](../todos/done/P5-npm-trusted-publishing-and-version-only-releases.md)).
@@ -56,7 +57,7 @@ A nightly failure opens an issue automatically and blocks the next release, not 
 - **Capability matrix** ([X2](../todos/done/X2-capability-matrix.md)). The `suites` job runs `cargo xtask capabilities --check`: every test tagged `/// capability: <ID> <surface> <status>` with `cargo test`, failing when one fails or when [`docs/capabilities/README.md`](../capabilities/README.md) differs from what they prove. `cargo xtask check docs` (so every PR, docs-only ones included) checks the manifest against the feature inventory and rejects a README that differs from what the manifest and the tags generate. Core `write` and `round-trip` claims are accepted only on tests in `laminapdf-save/tests/roundtrip_suite.rs`, so tier 7's qpdf, pdf.js and PDFium checks back them.
 - **Path portability.** Docs-only PRs skip native suites, so `cargo xtask check docs` (the full lane's `changes` job, every PR) rejects tracked paths Windows or a case-insensitive file system can't check out.
 - **Docs-only PRs.** The fast lane classifies the PR the same way and skips its Rust, WASM, runtime, MSRV-and-spike and TypeScript jobs when it is docs-only; the full lane's `changes` job runs `cargo xtask check docs` (links, todo board, path portability) on every PR, so those checks still count toward `gate`.
-- **No retries.** Both PR lanes set `NEXTEST_PROFILE=ci`: `retries = 0` and the same slow-timeouts as the default profile (§4).
+- **Retries** (amended 2026-11-10). Rust tests never retry in the PR lanes: both set `NEXTEST_PROFILE=ci`, with `retries = 0` and the same slow-timeouts as the default profile. Browser suites retry a failed test once, and the shared setup actions' downloads retry up to three times (§4).
 - **The fast lane's gate** ([X7](../todos/done/X7-fast-lane-gate.md), 2026-11-01). `gate` used to be the only required check, so a red fast-lane job didn't block a merge: B8b (#143) merged with the fast lane's rustdoc step failing and turned `main` red. `ci.yml` now ends with `fast-gate`, built like `gate`: it needs every other job of the fast lane and fails unless each one passed, or was skipped on a docs-only PR. Branch protection requires both. A test in `tools/xtask/src/workflows.rs` fails when a job of either lane is missing from its gate's `needs`.
 - **Fewer, larger jobs** (2026-11-01). A code PR started 23 jobs over both lanes, so with several PRs open at once jobs waited up to 17 minutes for a runner, and most short jobs spent longer setting up than testing. The lanes now run 12, after three merges. The full lane's differential, capability matrix, round-trip and examples suites run one after another in one `suites` job with one build directory. The fast lane's MSRV check and the pdf-basics spike share a job. The full lane's five `@laminapdf/sdk` runtimes joined the fast lane's three, as two jobs (browsers; Deno, Bun, workerd and Node 22 and 26) over the `wasm` job's build, so the full lane no longer builds the same packages a second time. Jobs also do less. The fast lane's Rust job leaves the docs checks to the full lane's `changes` job on PRs. Each macOS job that installed pnpm used to download its store (290 MB) from the Actions cache, since pnpm kept it in the job's temp dir; `.github/actions/node-pnpm` keeps it in the runner's tool cache instead. `cargo xtask size` measures the modules on parallel threads.
 - **Timing** (measured on PR #30): `changes` about 20 s on a cold cache, so a docs-only `gate` finishes in under a minute after the job starts; a code PR's full lane took 18 minutes, fuzzing 13 of them.
@@ -69,7 +70,11 @@ A nightly failure opens an issue automatically and blocks the next release, not 
 
 ### 4. Flaky tests
 
-A flaky test is a bug. Within a day of noticing it, mark it `#[ignore = "flaky: #<issue>"]` (or `it.skip` with the issue) and assign the issue; fix or delete it within two weeks. PR lanes never retry failures (nextest `retries = 0`). The nightly lane may retry once only to *report* flakiness, and a test that passes on retry is still reported. Tests must not depend on time, ordering, the network or unseeded randomness.
+A flaky test is a bug. Within a day of noticing it, mark it `#[ignore = "flaky: #<issue>"]` (or `it.skip` with the issue) and assign the issue; fix or delete it within two weeks. PR lanes never retry Rust tests (nextest `retries = 0`). The nightly lane may retry them once only to *report* flakiness, and a test that passes on retry is still reported. Tests must not depend on time, ordering, the network or unseeded randomness.
+
+Retries report, never hide (amended 2026-11-10). Real browsers on shared runners stall, crash and lose races that a test can't control: in the first three days on hosted runners, a pinch-zoom gesture in WebKit, a window title in all three engines and a status line in Firefox each failed three runs that passed when rerun. So the browser suites (the Vitest browser projects and the reader's and docs' e2e suites) retry a failed test once. `@laminapdf/test-utils/flaky` holds the one setting every suite spreads in. Each test that passed only on its retry gets a warning annotation, a line under "Flaky Tests" in the job summary (Vitest's own GitHub reporter) and `flaky=true` in its step's outputs, from which the nightly opens or updates its issue. The retry buys a day, not a pass: the rule above still applies. A browser page that crashes fails its whole file, which no retry repeats: it stays a failure and gets its issue.
+
+Setup retries hide nothing of ours. The shared setup actions' downloads (`pnpm install`, Playwright's Chromium and system libraries, the WebKitGTK packages) run under `nick-fields/retry`, up to three times, each retry a warning. They download from registries and mirrors and test nothing, so a second try can only turn a network hiccup into a pass.
 
 ### 5. Shared expectations across languages
 
@@ -90,7 +95,7 @@ Fixtures, `expected.json`, error and warning codes (`fixtures/codes.json`, [ADR 
 - **Expected facts produced by lamina.** Circular: a bug would confirm itself.
 - **Differential against external tools in every PR.** Slow and installs four toolchains; the precomputed mutant set catches most regressions.
 - **Committing the large corpora.** Licences forbid it for much of them, and the repository would grow by gigabytes.
-- **Retrying flaky tests automatically.** Hides real races.
+- **Retrying flaky tests automatically.** Rejected at first because it hides real races. Amended 2026-11-10: browser suites retry once, but a pass on the retry is reported and needs its issue, so the race stays in sight; Rust tests in the PR lanes still never retry. Rerunning a whole failed job by hand cost more and reported nothing.
 
 ## Implementation notes
 
@@ -121,3 +126,13 @@ Fixtures, `expected.json`, error and warning codes (`fixtures/codes.json`, [ADR 
 ### Release guard accepts a full dispatched nightly (2026-11-02)
 
 The release guard used to count only scheduled nightly runs, since a dispatched run can shorten the fuzz budget or sample the differential and render diff. GitHub, however, created the scheduled runs of 2026-10-31 and 2026-11-01 about 6.5 hours late and created none on 2026-11-02, which left the v0.2.0-alpha.1 release waiting on its queue. With the owner's approval, the guard now also accepts a `workflow_dispatch` run on `main` with every input at its default. nightly.yml's `run-name` titles such a run "Nightly (full budgets)" and every other dispatch "Nightly (short budgets)". The guard takes the newest completed run on `main` that is scheduled or carries that exact title, and applies the same rules as before: completed, successful, on `main`, and on the release commit or an ancestor. Dispatched runs from before nightly.yml had a `run-name` are titled "Nightly" and don't count. `tools/xtask/src/release.rs` tests the rule and the `run-name` expression.
+
+### The web reader's release gates (C7c, 2026-11-10)
+
+The reader's production deploy (`web-v*` tags, `.github/workflows/web-deploy.yml`) waits on three gates in its `production-checks` job, on the GitHub-hosted `ubuntu-24.04` runner the reader's workflow already uses (the repository is public, so hosted minutes cost nothing):
+
+- **Startup size.** `cargo xtask web size`: the scripts the built `index.html` loads at startup, gzipped, against `apps/web/size-budget.json`. Bytes are deterministic, so the same check also fails pull requests: `cargo xtask pdf-runtimes` runs it after it builds the reader in the fast lane.
+- **Lighthouse.** `lighthouse:local` serves the build with its deployed headers (`wrangler dev --local`) and asserts `lighthouserc.json`'s thresholds over three runs. PR previews run Lighthouse too, reported only.
+- **Timings.** `cargo xtask viewer-perf --gate` runs the viewer's harness three times in Chromium and compares each figure's median with its web-app §4 target plus 25 %. A shared runner is noisier than a dedicated one: the median and the margin keep a slow neighbour from failing a release, while a real regression still shows. A miss fails the release unless `packages/viewer/perf/waivers.json` names it with an issue and the version that fixes it, with the owner's approval. The nightly keeps reporting the raw figures against the targets with no margin.
+
+These are the only wall-clock checks that can fail a run, and they run only for a release tag, never on a pull request.

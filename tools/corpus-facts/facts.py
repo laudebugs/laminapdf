@@ -52,6 +52,84 @@ def outline_titles(reader):
     return out
 
 
+def outline_pages(reader):
+    """Each outline item's 0-based page index, in `outline_titles`' order: None for an item
+    whose destination names no page of the file (a URI, another file, a broken reference)."""
+    out = []
+    stack = [iter(reader.outline)]
+    while stack:
+        item = next(stack[-1], None)
+        if item is None:
+            stack.pop()
+        elif isinstance(item, list):
+            stack.append(iter(item))
+        else:
+            try:
+                page = reader.get_destination_page_number(item)
+            except Exception:  # noqa: BLE001 - an item without a page is its own fact
+                page = None
+            out.append(page if isinstance(page, int) and page >= 0 else None)
+    return out
+
+
+def font_names(reader):
+    """Every font the pages use (their resources, and Form XObjects' in turn), by /BaseFont without
+    a subset tag, sorted and each once."""
+    names = set()
+    seen = set()
+
+    def walk(resources, depth=0):
+        if resources is None or depth > 32:
+            return
+        resources = resources.get_object()
+        for font in (resources.get("/Font") or {}).values():
+            font = font.get_object()
+            base = font.get("/BaseFont")
+            if base is not None:
+                base = str(base).lstrip("/")
+                names.add(re.sub(r"^[A-Z]{6}\+", "", base))
+        for ref in (resources.get("/XObject") or {}).values():
+            key = getattr(ref, "idnum", None)
+            if key is not None and key in seen:
+                continue
+            seen.add(key)
+            xobject = ref.get_object()
+            if xobject.get("/Subtype") == "/Form":
+                walk(xobject.get("/Resources"), depth + 1)
+
+    for page in reader.pages:
+        walk(page.get("/Resources"))
+    return sorted(names)
+
+
+def signature_count(reader):
+    """Signature fields with a value (/FT /Sig and /V), through the field tree."""
+    count = 0
+    fields = reader.get_fields() or {}
+    for field in fields.values():
+        if field.get("/FT") == "/Sig" and field.get("/V") is not None:
+            count += 1
+    return count
+
+
+def properties(reader):
+    """What a properties view shows that pypdf can tell independently."""
+    info = reader.metadata or {}
+    encrypt = reader.trailer.get("/Encrypt")
+    return {
+        "title": str(info["/Title"]) if "/Title" in info else None,
+        "producer": str(info["/Producer"]) if "/Producer" in info else None,
+        "encryption_revision": int(encrypt.get_object()["/R"]) if encrypt is not None else None,
+        "fonts": font_names(reader),
+        "signatures": signature_count(reader),
+    }
+
+
+def page_labels(reader, root):
+    """Every page's label (ISO 32000-2 §12.4.2) for a file with /PageLabels, else None."""
+    return list(reader.page_labels) if "/PageLabels" in root else None
+
+
 @contextlib.contextmanager
 def captured_warnings():
     """Collects pypdf's warnings for the whole block: pypdf parses pages and the outline
@@ -97,6 +175,9 @@ def corpus_facts_of(reader, data):
         "first_page_mediabox": [float(v) for v in reader.pages[0].mediabox] if len(reader.pages) else None,
         "root_keys": sorted(root.keys()),
         "outline_titles": outline_titles(reader),
+        "outline_pages": outline_pages(reader),
+        "page_labels": page_labels(reader, root),
+        "properties": properties(reader),
     }
 
 

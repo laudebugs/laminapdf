@@ -32,8 +32,21 @@ const EXAMPLE_SSIM: f64 = 0.98;
 
 /// Examples whose page is mostly small text, so those glyph-edge differences weigh more, with
 /// their own bar. `element_flow` is two A5 pages of 11 pt Helvetica: its first page scores
-/// 0.958, though the layout matches the golden exactly; only edges differ.
-const EXAMPLE_SSIM_BELOW: [(&str, f64); 1] = [("element_flow", 0.95)];
+/// 0.958, though the layout matches the golden exactly; only edges differ. `flowing_report` is
+/// twelve A5 pages of 11 pt Noto Sans: its second page scores 0.962, its layout also exact.
+/// `flowing_invoice` is three A4 pages of 10 pt text in a table ruled with 0.25 pt lines, whose
+/// anti-aliased edges differ the same way: its first page scores 0.899, its layout exact.
+/// `markdown_to_pdf` is four A5 pages of 10.5 pt text, a photo and a ruled table: its second
+/// page scores 0.965, its layout exact. `invoice_from_json` is two A4 pages of the same kind
+/// of table as `flowing_invoice`, 10 pt text ruled with 0.25 pt lines: its first page scores
+/// 0.8997, its layout exact.
+const EXAMPLE_SSIM_BELOW: [(&str, f64); 5] = [
+    ("element_flow", 0.95),
+    ("flowing_report", 0.95),
+    ("flowing_invoice", 0.88),
+    ("invoice_from_json", 0.88),
+    ("markdown_to_pdf", 0.95),
+];
 
 /// The bar for `example`'s pages.
 fn example_bar(example: &str) -> f64 {

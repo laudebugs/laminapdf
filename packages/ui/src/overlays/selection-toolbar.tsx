@@ -4,11 +4,12 @@
 // and puts focus back where it was. When it shows and what it holds are the app's.
 
 import { SPACE } from "@laminapdf/tokens";
-import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef } from "react";
 import { Separator, Toolbar } from "react-aria-components";
 import { createPortal } from "react-dom";
+import { useAnchoredPlacement } from "./anchored.js";
 import { LayerScope } from "./layers.js";
-import { type Box, intersect, type Placement, placeAbove } from "./place.js";
+import { type Box, placeAbove } from "./place.js";
 
 /** Props of `SelectionToolbar`. */
 export interface SelectionToolbarProps {
@@ -40,9 +41,10 @@ export function SelectionToolbar({
   children,
 }: SelectionToolbarProps): ReactNode {
   const ref = useRef<HTMLDivElement>(null);
-  const place = useAnchoredPlacement(ref, anchor, bounds);
+  const place = useAnchoredPlacement(ref, { anchor, bounds, place: placeAbove, gap: GAP });
   const returnTo = useRef<HTMLElement | null>(null);
   useShiftF10(ref, returnTo);
+  useKeptSelection(ref);
   useLayoutEffect(() => {
     // Hiding the toolbar would drop the focus inside it to the page: it goes back where it came from.
     if (place === null && ref.current?.contains(document.activeElement) === true) returnTo.current?.focus();
@@ -72,60 +74,6 @@ export function SelectionToolbar({
 /** A divider between groups of the toolbar's buttons. */
 export function SelectionToolbarDivider(): ReactNode {
   return <Separator orientation="vertical" className="paper-selection-toolbar-divider" />;
-}
-
-/**
- * Keeps `layer` placed against `anchor`: before it first paints, after every render (a new
- * selection or a zoom comes as a render), and on every scroll of any scroller, window resize and
- * change of the layer's own size.
- */
-function useAnchoredPlacement(
-  layer: RefObject<HTMLElement | null>,
-  anchor: () => Box | null,
-  bounds: (() => Box | null) | undefined,
-): Placement | null {
-  // The compiler can't follow the latest-value ref kept here for effects (useEffectEvent could replace it).
-  "use no memo";
-  const [place, setPlace] = useState<Placement | null>(null);
-  const measure = () => {
-    const element = layer.current;
-    const target = anchor();
-    if (element === null || target === null) return setPlace(null);
-    const viewport = { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight };
-    const area = intersect(viewport, bounds?.() ?? viewport);
-    const next = placeAbove(target, element.offsetWidth, element.offsetHeight, area, GAP, GAP);
-    // The same placement keeps the same object, so measuring after a render doesn't render again.
-    setPlace((last) => (last !== null && next !== null && samePlace(last, next) ? last : next));
-  };
-  const latest = useRef(measure);
-  latest.current = measure;
-  useLayoutEffect(() => {
-    latest.current();
-  });
-  useLayoutEffect(() => {
-    let frame = 0;
-    const later = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => latest.current());
-    };
-    const size = new ResizeObserver(later);
-    if (layer.current !== null) size.observe(layer.current);
-    document.addEventListener("scroll", later, true);
-    window.addEventListener("resize", later);
-    window.visualViewport?.addEventListener("resize", later);
-    return () => {
-      cancelAnimationFrame(frame);
-      size.disconnect();
-      document.removeEventListener("scroll", later, true);
-      window.removeEventListener("resize", later);
-      window.visualViewport?.removeEventListener("resize", later);
-    };
-  }, [layer]);
-  return place;
-}
-
-function samePlace(a: Placement, b: Placement): boolean {
-  return a.top === b.top && a.left === b.left && a.side === b.side;
 }
 
 /**
@@ -159,6 +107,34 @@ function useShiftF10(toolbar: RefObject<HTMLElement | null>, returnTo: RefObject
       document.removeEventListener("focusin", onFocusIn);
     };
   }, [toolbar, returnTo]);
+}
+
+/**
+ * WebKit drops the page's selection when a button takes focus, and the toolbar's actions act on
+ * that selection: the last range selected is put back whenever focus moves into the toolbar.
+ */
+function useKeptSelection(toolbar: RefObject<HTMLElement | null>): void {
+  useEffect(() => {
+    let kept: Range | undefined;
+    const onSelectionChange = () => {
+      const selection = document.getSelection();
+      if (selection !== null && selection.rangeCount > 0 && !selection.isCollapsed) kept = selection.getRangeAt(0);
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      const selection = document.getSelection();
+      const into = event.target instanceof Node && toolbar.current?.contains(event.target) === true;
+      if (!into || kept === undefined || selection === null || !selection.isCollapsed) return;
+      selection.removeAllRanges();
+      selection.addRange(kept);
+    };
+    onSelectionChange();
+    document.addEventListener("selectionchange", onSelectionChange);
+    document.addEventListener("focusin", onFocusIn);
+    return () => {
+      document.removeEventListener("selectionchange", onSelectionChange);
+      document.removeEventListener("focusin", onFocusIn);
+    };
+  }, [toolbar]);
 }
 
 /** Whether the toolbar can take focus: shown (it has a placement) and not inert under a modal layer. */

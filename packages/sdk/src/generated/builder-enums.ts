@@ -104,6 +104,13 @@ export const TAG_NAMES = [
   "Quote",
   "Note",
   "Code",
+  "THead",
+  "TBody",
+  "TFoot",
+  "TOC",
+  "TOCI",
+  "Reference",
+  "BlockQuote",
 ] as const;
 
 /** A standard structure type (ISO 32000-1 §14.8.4). */

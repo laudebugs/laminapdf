@@ -1,0 +1,321 @@
+/* The View settings popover (R10), the Settings dialog and the accent swatches (§2.8). Each swatch
+   carries its own data-accent, so --paper-accent inside it is that accent's colour. */
+@layer paper.components {
+  .paper-view-settings {
+    display: grid;
+    gap: var(--paper-space-16);
+    inline-size: min(var(--paper-wide-panel-width), calc(100vw - 2 * var(--paper-space-16)));
+    padding: var(--paper-space-16);
+  }
+
+  /* The Page appearance section (R10): its label, the chips, whom it is for, the help line. */
+  .paper-page-appearance-fields {
+    display: grid;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-page-appearance-fields .paper-field-help {
+    margin: 0;
+  }
+
+  .paper-view-settings-title,
+  .paper-settings-heading {
+    margin: 0;
+    font: var(--paper-type-heading);
+    color: var(--paper-text);
+  }
+
+  .paper-view-settings .paper-radio-options,
+  .paper-settings-fields .paper-radio-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--paper-space-8);
+  }
+
+  .paper-view-settings-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+    padding-block-start: var(--paper-space-12);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-accent-group {
+    display: grid;
+    gap: var(--paper-space-6);
+  }
+
+  .paper-accent-options {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-accent-swatch {
+    display: inline-grid;
+    place-items: center;
+    inline-size: max(var(--paper-button-height), var(--ui-target));
+    block-size: max(var(--paper-button-height), var(--ui-target));
+    border-radius: var(--paper-radius-pill);
+    cursor: default;
+  }
+
+  .paper-accent-dot {
+    display: inline-grid;
+    place-items: center;
+    inline-size: var(--paper-swatch-size-toolbar);
+    block-size: var(--paper-swatch-size-toolbar);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-pill);
+    background: var(--paper-accent);
+    color: var(--paper-on-accent);
+  }
+
+  .paper-accent-dot svg {
+    inline-size: var(--paper-icon-size-label);
+    block-size: var(--paper-icon-size-label);
+  }
+
+  .paper-accent-swatch[data-selected] .paper-accent-dot {
+    box-shadow:
+      0 0 0 var(--paper-focus-ring-width) var(--paper-surface),
+      0 0 0 calc(2 * var(--paper-focus-ring-width)) var(--paper-text);
+  }
+
+  .paper-accent-swatch[data-disabled] {
+    opacity: 0.4;
+  }
+
+  .paper-accent-name {
+    font: var(--paper-type-control);
+    color: var(--paper-text-2);
+  }
+
+  .paper-settings {
+    display: grid;
+    grid-template-columns: var(--paper-rail-width-min) minmax(0, 1fr);
+    gap: var(--paper-space-24);
+  }
+
+  .paper-settings:not(:has(.paper-settings-nav)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .paper-settings-nav ul {
+    display: grid;
+    gap: var(--paper-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-settings-nav .paper-button {
+    inline-size: 100%;
+    justify-content: start;
+  }
+
+  .paper-settings-nav .paper-button[aria-current="page"] {
+    background: var(--paper-accent-tint);
+  }
+
+  .paper-settings-section,
+  .paper-settings-fields {
+    display: grid;
+    gap: var(--paper-space-20);
+    align-content: start;
+  }
+
+  /* Wider than a phone the list sits beside the fields: names only, no way back. */
+  .paper-settings-summary,
+  .paper-settings-chevron,
+  .paper-settings-back {
+    display: none;
+  }
+
+  /* On a phone the dialog is a sheet (§7.18) as wide as the screen, showing one screen at a time
+     (account-cloud-product.md: "the settings nav becomes a list screen; each block is its own
+     screen"). The list: full-width rows, each name over what it is set to, a chevron at the end.
+     A section: "All settings" back, its heading, then its fields. */
+  .paper-sheet .paper-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--paper-space-12);
+  }
+
+  .paper-sheet .paper-settings-section,
+  .paper-sheet .paper-settings-fields {
+    gap: var(--paper-space-16);
+  }
+
+  .paper-sheet .paper-settings[data-screen="list"] .paper-settings-section,
+  .paper-sheet .paper-settings[data-screen="section"] .paper-settings-nav {
+    display: none;
+  }
+
+  .paper-sheet .paper-settings-nav ul {
+    gap: 0;
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-12);
+    overflow: hidden;
+  }
+
+  .paper-sheet .paper-settings-nav li + li {
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-sheet .paper-settings-nav .paper-button {
+    block-size: auto;
+    min-block-size: calc(var(--ui-target) + var(--paper-space-16));
+    padding-block: var(--paper-space-10);
+    border-radius: 0;
+    white-space: normal;
+    text-align: start;
+  }
+
+  .paper-sheet .paper-settings-nav .paper-button[aria-current="page"] {
+    background: none;
+  }
+
+  .paper-sheet .paper-settings-nav .paper-button-label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--paper-space-12);
+    inline-size: 100%;
+  }
+
+  .paper-sheet .paper-settings-chevron {
+    display: block;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    color: var(--paper-muted);
+  }
+
+  .paper-sheet .paper-settings-summary {
+    display: block;
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-sheet .paper-settings-back {
+    display: block;
+    margin-inline-start: calc(-1 * var(--paper-space-16));
+  }
+
+  @media (forced-colors: active) {
+    .paper-accent-dot {
+      forced-color-adjust: none;
+      border-color: CanvasText;
+    }
+
+    .paper-accent-swatch[data-selected] .paper-accent-dot {
+      box-shadow: 0 0 0 var(--paper-focus-ring-width) Highlight;
+    }
+  }
+}
+
+/* Reduce motion, chosen in Settings: no animation, transition or smooth scroll, as the system's
+   prefers-reduced-motion asks of every style that animates. */
+@layer paper.motion {
+  :where([data-motion="reduce"]) *,
+  :where([data-motion="reduce"]) *::before,
+  :where([data-motion="reduce"]) *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: the setting must beat every component's own animation */
+    animation: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: as above, for transitions */
+    transition: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: as above, for smooth scrolling */
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Keyboard shortcuts (R12): two columns of groups, a name and its chips per row. */
+@layer paper.components {
+  .paper-shortcuts {
+    display: grid;
+    gap: var(--paper-space-16);
+  }
+
+  .paper-shortcuts-groups {
+    columns: 2 var(--paper-menu-width);
+    column-gap: var(--paper-space-32);
+  }
+
+  .paper-shortcuts-group {
+    break-inside: avoid;
+    margin-block-end: var(--paper-space-16);
+  }
+
+  .paper-shortcuts-heading {
+    margin: 0 0 var(--paper-space-6);
+    padding-block-end: var(--paper-space-4);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    font: var(--paper-type-heading);
+    color: var(--paper-text);
+  }
+
+  .paper-shortcuts dl {
+    display: grid;
+    gap: var(--paper-space-4);
+    margin: 0;
+  }
+
+  .paper-shortcuts-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--paper-space-12);
+    font: var(--paper-type-control);
+    color: var(--paper-text);
+  }
+
+  .paper-shortcuts-row dd {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    gap: var(--paper-space-4);
+    margin: 0;
+  }
+
+  .paper-shortcuts-keys {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-shortcuts-keys[data-off] .paper-shortcut-chip {
+    color: var(--paper-disabled);
+  }
+
+  .paper-shortcuts-off {
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-shortcuts-none {
+    display: grid;
+    justify-items: start;
+    gap: var(--paper-space-8);
+    color: var(--paper-text-2);
+  }
+
+  .paper-shortcuts-browser summary {
+    font: var(--paper-type-control);
+    color: var(--paper-text-2);
+    cursor: default;
+  }
+
+  .paper-shortcuts-browser dl {
+    margin-block-start: var(--paper-space-8);
+  }
+
+  .paper-shortcuts-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--paper-space-12);
+    padding-block-start: var(--paper-space-12);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+  }
+}

@@ -91,6 +91,13 @@ function fileOpenCommands(): AnyCommand[] {
       home: ["home", "file-menu"],
     }),
     delegated({ id: "file.clear-recent", title: title("file.clear-recent"), group: "file", home: ["home"] }),
+    delegated({
+      id: "file.clear-reading-positions",
+      title: title("file.clear-reading-positions"),
+      keywords: ["forget", "position", "page", "privacy"],
+      group: "file",
+      home: ["settings"],
+    }),
     {
       id: "file.unlock",
       title: title("file.unlock"),
@@ -184,7 +191,8 @@ function pageCommands(): AnyCommand[] {
       shortcuts: [keys("page", "Home")],
       home: ["view-menu"],
       enabled: withViewer((s) => (s.currentPage > 0 ? true : message("command.reason.firstPage"))),
-      run: viewerRun((viewer) => viewer.goToPage(0)),
+      // The first and last page are jumps, as going to a page is; the next and previous are steps.
+      run: viewerRun((viewer) => viewer.jumpToPage(0)),
     },
     {
       id: "nav.last-page",
@@ -193,7 +201,7 @@ function pageCommands(): AnyCommand[] {
       shortcuts: [keys("page", "End")],
       home: ["view-menu"],
       enabled: withViewer((s) => (s.currentPage < s.pageCount - 1 ? true : message("command.reason.lastPage"))),
-      run: viewerRun((viewer, s) => viewer.goToPage(s.pageCount - 1)),
+      run: viewerRun((viewer, s) => viewer.jumpToPage(s.pageCount - 1)),
     },
     {
       id: "nav.go-to-page",
@@ -203,7 +211,8 @@ function pageCommands(): AnyCommand[] {
       home: ["page-indicator"],
       args: pageArgs(),
       enabled: viewerOpen,
-      run: (ctx, page: number) => ctx.viewer?.goToPage(page),
+      // Going to a page is a jump: Back returns to where the reader was.
+      run: (ctx, page: number) => ctx.viewer?.jumpToPage(page),
     } satisfies Command<number>,
   ];
 }
@@ -228,6 +237,18 @@ function historyAndZoomCommands(): AnyCommand[] {
       shortcuts: [desktop("Mod+]", "Alt+ArrowRight")],
       home: ["view-menu"],
       enabled: documentOpen,
+    }),
+    // Its homes are the link itself and the link preview's sheet (R07); Enter on a link follows it.
+    delegated({
+      id: "nav.follow-link",
+      title: title("nav.follow-link"),
+      group: "navigate",
+      home: ["layer"],
+      enabled: (ctx) => {
+        const open = documentOpen(ctx);
+        if (open !== true) return open;
+        return ctx.viewer?.canFollowLink?.() === true ? true : message("command.reason.noLink");
+      },
     }),
     {
       id: "view.zoom-in",
@@ -312,6 +333,45 @@ function zoomModeCommands(): AnyCommand[] {
   ];
 }
 
+/** The View settings popover and the Settings dialog. */
+function settingsCommands(): AnyCommand[] {
+  return [
+    delegated({
+      id: "view.settings",
+      title: title("view.settings"),
+      keywords: ["theme", "accent", "appearance", "dark"],
+      group: "view",
+      icon: "view-settings",
+      home: ["top-bar"],
+    }),
+    delegated({
+      id: "app.settings",
+      title: title("app.settings"),
+      keywords: ["preferences", "options", "motion", "accessibility"],
+      group: "app",
+      icon: "settings",
+      shortcuts: [desktop("Mod+,")],
+      home: ["view-settings", "help-menu"],
+    }),
+    // R15: the app's handlers exist only while the browser offers an install or an update waits.
+    delegated({
+      id: "app.install",
+      title: title("app.install"),
+      keywords: ["install", "app", "offline", "open with"],
+      group: "app",
+      icon: "download",
+      home: ["file-menu"],
+    }),
+    delegated({
+      id: "app.reload-update",
+      title: title("app.reload-update"),
+      keywords: ["update", "new version", "reload"],
+      group: "app",
+      home: ["status-bar"],
+    }),
+  ];
+}
+
 /** The view settings. */
 function viewSettingCommands(): AnyCommand[] {
   return [
@@ -370,6 +430,53 @@ function viewSettingCommands(): AnyCommand[] {
   ];
 }
 
+/** Reader mode (R14): its toggle and the settings of its reading column. */
+function readerModeCommands(): AnyCommand[] {
+  const setting = (id: CommandId, keywords: string[]) =>
+    delegated({ id, title: title(id), keywords, group: "view", home: ["view-settings"], enabled: documentOpen });
+  return [
+    delegated({
+      id: "view.reader-mode",
+      title: title("view.reader-mode"),
+      keywords: ["reflow", "read", "text", "large text"],
+      group: "view",
+      icon: "reader",
+      shortcuts: [keys("page", "R")],
+      home: ["top-bar"],
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "view.reader-settings",
+      title: title("view.reader-settings"),
+      keywords: ["text size", "line spacing", "line length"],
+      group: "view",
+      home: ["top-bar"],
+      enabled: documentOpen,
+    }),
+    setting("view.reader-text-smaller", ["font", "size", "zoom out"]),
+    setting("view.reader-text-larger", ["font", "size", "zoom in"]),
+    delegated({
+      id: "view.reader-line-spacing",
+      title: title("view.reader-line-spacing"),
+      keywords: ["leading", "line height"],
+      group: "view",
+      home: ["view-settings"],
+      args: choiceArgs(["tight", "normal", "loose"] as const),
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "view.reader-line-length",
+      title: title("view.reader-line-length"),
+      keywords: ["measure", "column width"],
+      group: "view",
+      home: ["view-settings"],
+      args: choiceArgs(["narrow", "medium", "wide"] as const),
+      enabled: documentOpen,
+    }),
+    setting("view.reader-reset", ["defaults"]),
+  ];
+}
+
 /** Read mode and find. */
 function findCommands(): AnyCommand[] {
   return [
@@ -404,6 +511,56 @@ function findCommands(): AnyCommand[] {
       group: "find",
       shortcuts: [keys("find-field", "Shift+Enter"), keys("find-field", "Shift+F3")],
       home: ["find-bar"],
+      enabled: documentOpen,
+    }),
+  ];
+}
+
+/** The selection's commands besides Copy (UI/UX plan §5.3): its other copy, search, share and settings. */
+function selectionCommands(): AnyCommand[] {
+  return [
+    delegated({
+      id: "edit.copy-exact",
+      title: title("edit.copy-exact"),
+      keywords: ["clipboard", "line breaks", "layout"],
+      group: "edit",
+      icon: "copy",
+      home: ["mini-toolbar", "context-menu"],
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "edit.select-column-mode",
+      title: title("edit.select-column-mode"),
+      keywords: ["rectangle", "column", "select", "Alt drag"],
+      group: "edit",
+      icon: "select",
+      home: ["context-menu"],
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "selection.search",
+      title: title("selection.search"),
+      keywords: ["find", "selected text"],
+      group: "find",
+      icon: "find",
+      home: ["mini-toolbar", "context-menu"],
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "selection.toggle-toolbar",
+      title: title("selection.toggle-toolbar"),
+      keywords: ["mini toolbar", "settings", "selection"],
+      group: "view",
+      home: ["view-settings"],
+    }),
+    delegated({
+      id: "selection.share",
+      title: title("selection.share"),
+      keywords: ["send", "selected text"],
+      group: "edit",
+      icon: "share",
+      requires: "canShare",
+      home: ["context-menu"],
       enabled: documentOpen,
     }),
   ];
@@ -478,8 +635,11 @@ export function readerCommands(): readonly AnyCommand[] {
     ...historyAndZoomCommands(),
     ...zoomModeCommands(),
     ...viewSettingCommands(),
+    ...readerModeCommands(),
+    ...settingsCommands(),
     ...findCommands(),
     ...appCommands(),
+    ...selectionCommands(),
   ];
 }
 

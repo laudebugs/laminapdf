@@ -1,5 +1,5 @@
 // The site header's links (design language §7.39), one list for the website and the docs site:
-// Download · Docs · Pricing · Performance · Privacy, and "Open the web app" once the reader is live.
+// Download · Docs · Pricing · Performance · How we test · Privacy, and "Open the web app" once the reader is live.
 // A link to a website page appears on both sites once the page exists, so the todo that writes a
 // page adds its link by adding the page.
 
@@ -17,7 +17,7 @@ export const APP_URL = "https://app.laminapdf.com/";
  *
  * @type {boolean}
  */
-export const APP_LAUNCHED = false;
+export const APP_LAUNCHED = true;
 
 /**
  * One link of the header, resolved for the site it renders on. `current` is `"page"` on the page it
@@ -33,8 +33,24 @@ const LINKS = /** @type {const} */ ([
   { label: "Docs", site: "docs", path: "/" },
   { label: "Pricing", site: "website", path: "/pricing/" },
   { label: "Performance", site: "website", path: "/performance/" },
+  // The owner chose (2026-11-11) to keep the page on the website, linked from the header.
+  { label: "How we test", site: "website", path: "/how-we-test/" },
   { label: "Privacy", site: "website", path: "/privacy/" },
 ]);
+
+/** The links a phone keeps in the header bar; the rest go in its menu. */
+const PHONE_BAR = new Set(["Docs"]);
+
+/**
+ * Whether `link` goes in the phone menu rather than staying in the header bar, which on a phone
+ * has room only for the wordmark, Docs, App and the menu button.
+ *
+ * @param {NavLink} link
+ * @returns {boolean}
+ */
+export function inPhoneMenu(link) {
+  return !PHONE_BAR.has(link.label);
+}
 
 /**
  * The path a website page file is served at: `/src/pages/privacy.astro` and

@@ -2,7 +2,9 @@
 
 - Status: Accepted (2026-10-31, when C2a's PR merges). The login stack is added by amendment after the [`auth` spike (H1)](../todos/ready/H1-auth-spike.md).
 - Date: 2026-10-31
+- Amended 2026-11-10 (owner): the reader's releases are automatic but stay apart from the packages'. Once a day, after the full nightly passes on `main`, a release train tags `web-v<next>` on the nightly's commit when what the reader ships changed since its last release; production still deploys only from `web-v*` tags, behind the release gates. The reader keeps its own version (`apps/web/package.json`: the train raises the patch, the owner the minor and major). [C7e](../todos/done/C7e-automated-web-releases.md) implements it.
 - Amended 2026-11-05 (owner; the [releases plan](../plans/releases.md)): `docs.laminapdf.com` deploys from each release instead of from `main`, and `main`'s docs move to `next.docs.laminapdf.com` (the Worker `lamina-pdf-docs-next`). This amendment edits §1's host table; [P4](../todos/done/P4-docs-match-the-release.md) implements it.
+- Amended 2026-11-10 ([T5b](../todos/done/T5b-reopen-at-last-position.md)): guarantee 9 lists reading positions, kept by document fingerprint, and the recent-list ID of the document open now.
 - Amended: 2026-11-05 ([W1a](../todos/done/W1a-domain-map.md), the [website plan](../plans/website.md)): the website is at `laminapdf.com` and the reader moves to `app.laminapdf.com`, with its staging at `staging-app.laminapdf.com`. Until then the plan put the reader at the apex and its staging at `staging.laminapdf.com`. The reader had never been deployed, so nothing redirects. This amendment edits §1–§4 in place: the hosts (§1), the `#url=` links (§2), the origin the guarantees name and the website's own rules (§3), and the website's headers and the HSTS preload (§4).
 
 ## Context
@@ -80,7 +82,9 @@ Each statement is an assertion in C4c's Playwright suite (and, where noted, C4d'
 8. **Passwords stay in the worker.** A password is posted once, to the document worker, and is never stored, logged or sent anywhere (C3a asserts the message flow).
 9. **Local data is the user's to clear.** The app stores only:
    - the OPFS cache of opened files;
-   - the recent list (name, size, time and a reopen handle; never bytes or URLs);
+   - the recent list (name, size, page count, time and a reopen handle; never bytes or URLs; the page count added by C7b, 2026-11-09; each entry's fingerprint added by T5b, 2026-11-10);
+   - reading positions: a fingerprint of each document (a hash of its first bytes) with its page, place on the page, zoom, rotation and when it was read; never its name, bytes or URL (T5b, 2026-11-10);
+   - the recent-list ID of the document open now, so it can come back at the next start (T5b);
    - settings;
    - the service worker's cache of the app itself.
 
@@ -156,6 +160,10 @@ These rules bind every later round that adds a server feature: telemetry (U5c), 
    - The login stack is chosen by H1 and added to this ADR by amendment. Until then, no round may ship sign-in.
    - Session cookies exist only for signed-in users, only on `/api` routes, as first-party `HttpOnly; Secure; SameSite=Strict` cookies. Anonymous use stays cookie-free (§3.4).
    - Sign-in flows must work without COOP/COEP on the main app (ADR 0009 §5).
+
+### Implementation note (2026-11-08): the docs' example runner
+
+The docs site's "Edit and run" (todo B7e) runs a reader's edit of an example in a module worker at `/run/worker.js`. The worker needs `'unsafe-eval'` to run that code, so `apps/docs/public/_headers` gives `/run/*` its own CSP: `default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self'`, plus the closing `base-uri`, `form-action` and `object-src` of §4. A worker's CSP comes from its own script's response, so every page keeps the docs' headers unchanged, and the worker loads only same-origin files: the SDK, hayro and the examples' inputs. The code it runs is one of the docs' own examples, edited in the reader's own tab; nothing is sent anywhere. apps/docs/e2e checks both policies in Chromium, Firefox and WebKit.
 
 ## Consequences
 

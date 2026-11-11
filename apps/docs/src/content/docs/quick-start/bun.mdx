@@ -5,13 +5,13 @@ sidebar:
   order: 4
 ---
 
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 Bun loads `@laminapdf/sdk` the way Node does: it reads the `.wasm` files from the `@laminapdf/wasm` package. Call `await init({ text: true })` once; after that, every call is synchronous.
 
 This app builds one A4 page that says "Hello, world!" and writes it to `hello.pdf` with `Bun.write`:
 
-<Snippet file="packages/sdk/examples/quick-start/bun.ts" />
+<Example ts="packages/sdk/examples/quick-start/bun.ts" result="hello" />
 
 Save it as `hello.ts` in a project with `@laminapdf/sdk` [installed](/install/), and run it:
 

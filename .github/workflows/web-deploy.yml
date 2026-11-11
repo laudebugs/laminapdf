@@ -17,15 +17,22 @@
 #   version under the alias pr-<number>, which deploys nothing. Its URL, the commit and the build's
 #   gzip sizes go in one comment on the PR, updated on every push.
 # - `preview-smoke` runs the PR's smoke test (apps/web/e2e/smoke.test.ts) against that URL, with
-#   no secrets.
+#   no secrets, then Lighthouse against it (reported; the release lane's run is the gate).
 # Pushes to main (and manual runs on main): `staging` deploys main to
 # https://staging-app.laminapdf.com (wrangler.jsonc's env.staging, the Worker
 # lamina-pdf-web-staging) and runs the smoke test there; main is trusted. A push deploys when the
 # reader's inputs changed since the commit of the workflow's last successful run on main, so a
 # cancelled or failed deploy is made up by the next push. A manual run always deploys.
-# Tags web-v<version> on a commit of main: `production-checks` builds the tag and runs the reader's
-# typecheck and its e2e suite in Chromium against `wrangler dev`; C7c adds the release gates
-# here. `production` needs it: it deploys that same build to https://app.laminapdf.com
+# Tags web-v<version> on a commit of main, which the web release train
+# (.github/workflows/web-release-train.yml, todo C7e) pushes once a day when the reader changed, or
+# the owner pushes by hand: `production-checks` checks the tag against apps/web/package.json
+# (`cargo xtask web check-tag`), builds the tag with its version and runs the reader's
+# typecheck and its e2e suite in Chromium against `wrangler dev` (installability included), then
+# the release gates (todo C7c): the startup JavaScript's size (`cargo xtask web size`), Lighthouse
+# against the build served with its deployed headers (`lighthouse:local`, lighthouserc.json's
+# thresholds) and the viewer's §4 timings (`cargo xtask viewer-perf --gate`: the median of three
+# runs against each target plus 25 %, for this hosted runner's noise; waivers in
+# packages/viewer/perf/waivers.json). `production` needs it: it deploys that same build to https://app.laminapdf.com
 # (environment `production`) and runs the smoke test. If the smoke test doesn't pass, it rolls
 # back to the previous deployment and fails. Tags are never path-filtered, and nothing else
 # deploys production.
@@ -78,7 +85,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -307,6 +314,17 @@ jobs:
         env:
           LAMINA_PDF_SMOKE_URL: ${{ needs.preview-deploy.outputs.url }}
         run: pnpm --filter @laminapdf/web run smoke
+      - name: Lighthouse on the preview
+        env:
+          URL: ${{ needs.preview-deploy.outputs.url }}
+        run: pnpm --filter @laminapdf/web run lighthouse --collect.url="$URL"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: web-preview-lighthouse
+          path: target/lighthouse/
+          if-no-files-found: ignore
+          retention-days: 7
 
   staging:
     name: Reader staging
@@ -332,7 +350,7 @@ jobs:
           account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           setup: apps/web/DEPLOY.md
       - if: steps.secrets.outputs.enabled == 'true'
-        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -396,8 +414,9 @@ jobs:
     name: Reader production (checks)
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}
     runs-on: ubuntu-24.04
-    # A tag's run saves no Rust cache (only main does), so it never feeds a later build.
-    timeout-minutes: 90
+    # A tag's run saves no Rust cache (only main does), so it never feeds a later build. The
+    # release gates' three perf runs take about half an hour.
+    timeout-minutes: 150
     permissions:
       contents: read
     steps:
@@ -423,7 +442,7 @@ jobs:
             echo "::error::$TAG is on $GITHUB_SHA, which isn't a commit of main"
             exit 1
           fi
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -433,15 +452,39 @@ jobs:
         with:
           tool: wasm-bindgen@0.2.129
       - uses: ./.github/actions/node-pnpm
+      - name: Check the tag against the reader's version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: cargo xtask web check-tag "$TAG"
+      # Settings › About shows the release's version (apps/web/plugins/app-version.ts).
       - name: Build the reader
-        run: cargo xtask web build
+        env:
+          TAG: ${{ github.ref_name }}
+        run: LAMINA_PDF_WEB_VERSION="${TAG#web-v}" cargo xtask web build
       - name: Typecheck the reader
         run: pnpm --filter @laminapdf/web run typecheck:wasm
       - uses: ./.github/actions/playwright-chromium
+      # The same version the build was given, which Settings › About must show.
       - name: The reader's e2e suite in Chromium
         env:
           LAMINA_PDF_E2E_BROWSER: chromium
-        run: pnpm --filter @laminapdf/web run e2e
+          TAG: ${{ github.ref_name }}
+        run: LAMINA_PDF_WEB_VERSION="${TAG#web-v}" pnpm --filter @laminapdf/web run e2e
+      - name: Release gate - startup JavaScript size
+        run: cargo xtask web size
+      - name: Release gate - Lighthouse with the deployed headers
+        run: pnpm --filter @laminapdf/web run lighthouse:local
+      - name: Release gate - viewer performance (median of three runs)
+        run: cargo xtask viewer-perf --gate
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: web-release-gates
+          path: |
+            target/lighthouse/
+            target/viewer-perf/
+          if-no-files-found: ignore
+          retention-days: 30
       # The build these checks passed is the one production deploys.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -460,7 +503,8 @@ jobs:
     timeout-minutes: 40
     environment: production
     permissions:
-      contents: read
+      # The GitHub release, once the deploy passes its smoke test.
+      contents: write
     env:
       URL: https://app.laminapdf.com
     steps:
@@ -503,6 +547,28 @@ jobs:
         env:
           LAMINA_PDF_SMOKE_URL: ${{ env.URL }}
         run: pnpm --filter @laminapdf/web run smoke
+      # The notes are the tag's: the web release train writes them into the annotated tag (the
+      # commits that changed what ships). They are read through the API, since the checkout above
+      # fetches the tag without its annotation; a tag pushed by hand has none, so its release gets
+      # GitHub's generated notes. A re-run keeps the release it already made.
+      - name: Publish the GitHub release
+        if: steps.smoke.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "$TAG already has a release."
+            exit 0
+          fi
+          ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG")
+          if [ "$(jq -r .object.type <<< "$ref")" = tag ]; then
+            gh api "repos/$GITHUB_REPOSITORY/git/tags/$(jq -r .object.sha <<< "$ref")" --jq .message > "$RUNNER_TEMP/notes.md"
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "Web reader $TAG" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "Web reader $TAG" --generate-notes
+          fi
       # Whenever the deploy went out and its smoke test didn't pass, whatever stopped it. The job
       # still fails. The first release has no deployment to go back to, so its rollback fails too.
       - name: Roll back a release that didn't pass its smoke test

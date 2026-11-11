@@ -156,9 +156,17 @@ impl Measurement {
     }
 }
 
-/// Vitest over `config`, limited to `projects`, with every test's output.
+/// The SDK's browser config, whose reporters print every test and report a pass on retry as flaky
+/// (`@laminapdf/test-utils/flaky`).
+const BROWSER_CONFIG: &str = "vitest.browser.config.ts";
+
+/// Vitest over `config`, limited to `projects`, with every test's output. The browser config lists
+/// its own reporters, which a `--reporter` would replace; the others get `--reporter verbose`.
 fn vitest<'a>(config: &'a str, projects: &[&'a str]) -> Vec<&'a str> {
-    let mut args = vec!["vitest", "run", "-c", config, "--reporter", "verbose"];
+    let mut args = vec!["vitest", "run", "-c", config];
+    if config != BROWSER_CONFIG {
+        args.extend(["--reporter", "verbose"]);
+    }
     for project in projects {
         args.extend(["--project", project]);
     }
@@ -177,11 +185,11 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
         // Chromium alone first (its timings shouldn't share the machine with a Vite build), then
         // the `vite-build` project: a Vite production build run in a Chromium page.
         "chromium" => vec![
-            vitest("vitest.browser.config.ts", &["chromium"]),
-            vitest("vitest.browser.config.ts", &["vite-build"]),
+            vitest(BROWSER_CONFIG, &["chromium"]),
+            vitest(BROWSER_CONFIG, &["vite-build"]),
         ],
-        "firefox" => vec![vitest("vitest.browser.config.ts", &["firefox"])],
-        "webkit" => vec![vitest("vitest.browser.config.ts", &["webkit"])],
+        "firefox" => vec![vitest(BROWSER_CONFIG, &["firefox"])],
+        "webkit" => vec![vitest(BROWSER_CONFIG, &["webkit"])],
         // --sloppy-imports: the suite imports `.ts` files by their `.js` paths (as tsc wants);
         // --no-check: tsc checks the types (the wasm job's typecheck).
         "deno" => vec![vec![
@@ -207,7 +215,8 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// header (W1d: keyboard order, the current page, phone width, axe), the docs' diagrams (contrast in the
 /// light, dark and high-contrast themes and with forced colours, the 12 px label floor), and the reader app (`apps/web`,
 /// C4b): typechecked and built over the packages above, then its e2e suite against `wrangler dev`
-/// (headers, local files opened four ways, CSP violations and other origins). They record no measurements.
+/// (headers, local files opened four ways, CSP violations and other origins), and the docs site's
+/// "Edit and run" (B7e: built, then its e2e suite). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::web::packages(ws)?;
     for package in [
@@ -222,17 +231,29 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         "@laminapdf/docs",
     ] {
         let mut args = vec!["--filter", package, "exec"];
-        args.extend(vitest("vitest.browser.config.ts", &[browser]));
+        args.extend(vitest(BROWSER_CONFIG, &[browser]));
         crate::run(&ws.root, "pnpm", &args)?;
     }
     // The reader imports the built viewer, so its typecheck runs here, after `wasm`, not in `check ts`.
     for script in ["typecheck:wasm", "build"] {
         crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/web", "run", script])?;
     }
+    // The app shell's startup JavaScript against its budget, on the build just made (the PR lane's
+    // size gate, todo C7c): bytes, not time, so it may fail a pull request (ADR 0018 §2).
+    crate::web::size(ws)?;
     crate::run_env(
         &ws.root,
         "pnpm",
         &["--filter", "@laminapdf/web", "run", "e2e"],
+        &[("LAMINA_PDF_E2E_BROWSER", browser)],
+    )?;
+    // The docs site's "Edit and run" (B7e): its build makes the example runner from the same
+    // WebAssembly, then its e2e suite runs the six examples against `wrangler dev`.
+    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/docs", "run", "build"])?;
+    crate::run_env(
+        &ws.root,
+        "pnpm",
+        &["--filter", "@laminapdf/docs", "run", "e2e"],
         &[("LAMINA_PDF_E2E_BROWSER", browser)],
     )
 }
@@ -530,6 +551,13 @@ mod tests {
         };
         assert_eq!(last("node"), [Some("measure"), Some("node")]);
         assert_eq!(last("chromium"), [Some("chromium"), Some("vite-build")]);
+    }
+
+    #[test]
+    fn browser_suites_should_keep_their_config_reporters_and_the_others_print_every_test() {
+        // A --reporter replaces the config's list, which reports a pass on retry as flaky.
+        assert!(!vitest(BROWSER_CONFIG, &["webkit"]).contains(&"--reporter"));
+        assert!(vitest("vitest.node.config.ts", &["node"]).ends_with(&["--reporter", "verbose", "--project", "node"]));
     }
 
     #[test]

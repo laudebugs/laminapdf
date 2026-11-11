@@ -1,0 +1,59 @@
+---
+title: "Stability policy"
+description: "What a Lamina PDF version number promises, and what stays the same in every version."
+version: "0.2.0-alpha.6"
+url: "https://docs.laminapdf.com/reference/stability/"
+---
+
+# Stability policy
+
+What a Lamina PDF version number promises, and what stays the same in every version.
+
+Lamina PDF is in alpha, so its API can still change from one release to the next. A few things never change, whatever the version: error and warning codes, the error object's fields, saved edit logs, and identical output from every runtime. This page says what each version number promises, so you know when an upgrade needs a code change.
+
+## One version for every package
+
+Every crate and every npm package shares one version, and they are released together, from `laminapdf` and its crates to `@laminapdf/sdk` and the viewer. So `@laminapdf/sdk` at a version always runs the Rust code of `laminapdf` at the same version. [Install](../../pages/install.md#every-published-package) lists every package.
+
+## What a version number tells you
+
+- **Alphas promise nothing to each other.** Anything can change between `0.2.0-alpha.1` and `0.2.0-alpha.2`. While you try an alpha, pin the exact version: `npm install --save-exact @laminapdf/sdk@0.2.0-alpha.6`, and `laminapdf = "=0.2.0-alpha.6"` in `Cargo.toml`.
+- **The `alpha` tag names the newest alpha.** `npm install @laminapdf/sdk@alpha` gets it. A plain `npm install @laminapdf/sdk` gets a `0.0.0` placeholder that only reserves the name.
+- **After the alphas, `0.x` versions follow SemVer as Cargo reads it.** A breaking change raises the minor version (`0.2` to `0.3`), and features and fixes raise the patch (`0.2.0` to `0.2.1`). So an upgrade within one `0.x` line never needs a code change.
+
+## What counts as a breaking change
+
+A change breaks your code when it does one of these:
+
+- removes or renames a public Rust item or an export of `@laminapdf/sdk`
+- changes one so that code using it stops compiling or behaves differently from its documentation
+- raises the minimum Rust version, the minimum Node version or the Cloudflare Workers `compatibility_date`
+- adds an error kind, since code that matches on the nine kinds has to handle the new one
+- changes the bytes written for the same input and options
+
+Everything else keeps your code working: new functions, types, options and fields; new error and warning codes; documentation; speed; and fixes that make output follow the PDF standard where it didn't. The changelog lists those fixes.
+
+## What never changes
+
+Four promises hold across every version, `0.x` and alphas included:
+
+- **Error and warning codes are never renamed or reused** for another meaning. A retired code stays in the [code reference](../../errors/README.md) with the version that retired it, and keeps its page. New codes can appear in any release, so handle a code you don't know.
+- **The error object only grows.** Each error names its schema, `laminapdf.error/1`. Within one schema, a field can be added, but never removed or given another type.
+- **Saved edit logs keep loading.** A log names its format version (`{ v: 1, ops }`, as [Edit a PDF](../../pages/guides/edit-a-pdf.md#replay-edits-stored-as-json) shows). A new op or optional field keeps the version. A changed or removed one raises it, and every older version still loads.
+- **The same input gives the same bytes everywhere.** With the same input, options and version, Rust and every JavaScript runtime write identical files, so you can [test your PDFs against reference PDFs](../../pages/guides/test-generated-pdfs.md).
+
+## How the promises are checked
+
+Lamina PDF compares every change with the newest published release: the Rust crates with [cargo-semver-checks](https://github.com/obi1kenobi/cargo-semver-checks), and `@laminapdf/sdk` with a report of its exported types. A change that breaks either one has to raise the minor version, and the changelog lists it first.
+
+Each release also installs itself twice and runs the quick start: once from the packages before they're published, and once from npm and crates.io after. Both runs cover Node 22, 24 and 26, Deno, Bun, Chromium, Cloudflare Workers and a Rust program, and every run has to write the same `hello.pdf`, byte for byte.
+
+## What isn't promised yet
+
+- The low-level file-structure and model types that `laminapdf` re-exports are public, but they can change in any minor release.
+- Package sizes and speed are measured on every change, not promised.
+- The minimum Rust version is two releases behind the newest stable Rust (1.97 today). Raising it is a minor-version change, and the changelog says so.
+
+## Before you upgrade
+
+The [changelog](../../pages/reference/changelog.md) lists every release's changes, breaking ones first. Read the entries between your version and the new one, then move the exact version you pin.

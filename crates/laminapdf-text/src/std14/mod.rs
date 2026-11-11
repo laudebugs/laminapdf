@@ -186,6 +186,18 @@ impl Standard14 {
         (index < self.glyph_names().len()).then_some(index)
     }
 
+    /// Whether a standard 14 font lays `ch` out as nothing: a control, a line or paragraph
+    /// separator (a flow's hard break), or a default-ignorable format character such as a
+    /// zero-width space. Shaping gives it no width and the builder draws no byte for it.
+    #[must_use]
+    pub const fn draws_nothing(ch: char) -> bool {
+        ch.is_control()
+            || matches!(
+                ch,
+                '\u{2028}' | '\u{2029}' | '\u{200b}'..='\u{200f}' | '\u{2060}'..='\u{206f}' | '\u{feff}'
+            )
+    }
+
     /// The glyph that draws `ch`, through the Adobe Glyph List (`é` is `eacute`). For Symbol
     /// and `ZapfDingbats` only glyphs their built-in encoding reaches are found.
     pub(crate) fn glyph_for_char(self, ch: char) -> Option<GlyphId> {

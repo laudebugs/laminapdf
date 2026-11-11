@@ -2,17 +2,22 @@
 // (docs/plans/web-app.md, "Non-functional"), the Markdown summary, and the figures the nightly
 // history keeps (`cargo xtask viewer-perf --record`). The checks inform; nothing here fails a run.
 
-import type { Counters, MemorySample, Recording } from "./types.ts";
+import type { Counters, EditTiming, FindTiming, MemorySample, Recording } from "./types.ts";
 
 /** The §4 targets. */
 export const TARGETS = {
   firstPageWarmMs: 700,
   firstPageColdMs: 3000,
   longestTaskMs: 50,
+  /** Find on the 1,000-page file: the first result, and every page searched (§4's search row). */
+  findFirstResultMs: 500,
+  findFullMs: 10_000,
   toSharpMs: 300,
   memoryBytes: 600 * 1024 * 1024,
   /** The second pass may end at most this much above the first (the plan's "stable"). */
   memoryGrowth: 0.05,
+  /** An edit on the 100-page file, to the page's first new pixels (the E1 plan's §6 budget). */
+  editFirstPixelsMs: 150,
 } as const;
 
 /** The machine a run took its numbers on (official numbers come from the reference machine). */
@@ -29,8 +34,11 @@ export interface BrowserResult {
   readonly version: string;
   readonly quick: boolean;
   readonly machine: Machine;
-  /** The 10-page file: warm in every browser, cold on Fast 4G in Chromium only (null elsewhere). */
-  readonly firstPage: { readonly warmMs: number; readonly coldMs: number | null };
+  /**
+   * The 10-page file: warm in every browser; cold on Fast 4G in Chromium only (null elsewhere),
+   * from the device (`coldMs`, the release gate's) and from a link (`coldLinkMs`, reported).
+   */
+  readonly firstPage: { readonly warmMs: number; readonly coldMs: number | null; readonly coldLinkMs: number | null };
   /** The 1,000-page file scrolled end to end twice. */
   readonly scroll: {
     readonly passes: readonly [Recording, Recording];
@@ -44,6 +52,32 @@ export interface BrowserResult {
   readonly fling: { readonly toSharpMs: number; readonly counters: Counters };
   /** ctrl+wheel bursts on the 10-page file. */
   readonly zoom: { readonly recording: Recording; readonly toSharpMs: readonly number[] };
+  /**
+   * Find on the 1,000-page file from page 1: a word on every page and one on page 778 only, while
+   * the view scrolls.
+   */
+  readonly find: { readonly common: FindTiming; readonly rare: FindTiming; readonly recording: Recording };
+  /** 20 citations hovered in a row on the paper (T5a): ms from dwell to crop for each, reported only. */
+  readonly linkPreviews: { readonly toCropMs: readonly number[]; readonly recording: Recording };
+  /**
+   * The page in view turned a quarter in files of 10, 100 and 1,000 pages: each one's median turn
+   * of the first five, and on a file turned more often, the last turn's first pixels.
+   */
+  readonly edit: readonly (EditTiming & {
+    readonly pages: number;
+    readonly lastOf?: number;
+    readonly lastFirstPixelsMs?: number;
+  })[];
+  /**
+   * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
+   * touch budgets), against those budgets; null in a browser without one (Firefox).
+   */
+  readonly mobile: {
+    readonly device: string;
+    readonly peakMemory: MemorySample;
+    /** The canvases and bitmap cache the viewer's budgets allow on that device, in bytes. */
+    readonly budgetBytes: number;
+  } | null;
 }
 
 /** One row of the report: `pass` is null where nothing was measured or there is no target. */
@@ -59,16 +93,21 @@ const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
 
 /** The longest main-thread task while scrolling: the Long Tasks API where there is one, else the longest frame. */
 function longestTask(result: BrowserResult): Check {
-  const name = "Longest main-thread task while scrolling";
+  return { ...longestTaskOf(...result.scroll.passes), name: "Longest main-thread task while scrolling" };
+}
+
+/** The longest main-thread task across `recordings`: the Long Tasks API's, else the longest frame. */
+function longestTaskOf(...recordings: readonly Recording[]): Check {
+  const name = "Longest main-thread task";
   const target = `≤ ${TARGETS.longestTaskMs} ms`;
-  const [first, second] = result.scroll.passes;
-  if (first.longTasks !== null && second.longTasks !== null) {
+  const lists = recordings.map((r) => r.longTasks);
+  if (lists.every((l) => l !== null)) {
     // The API reports only tasks over 50 ms, so any entry misses the target.
-    const tasks = [...first.longTasks, ...second.longTasks];
+    const tasks = lists.flatMap((l) => l ?? []);
     if (tasks.length === 0) return { name, target, value: "none over 50 ms", pass: true };
     return { name, target, value: `${tasks.length} over 50 ms, longest ${ms(Math.max(...tasks))}`, pass: false };
   }
-  const longest = Math.max(first.longestFrameMs, second.longestFrameMs);
+  const longest = Math.max(...recordings.map((r) => r.longestFrameMs));
   return { name, target, value: `${ms(longest)} (longest frame)`, pass: longest <= TARGETS.longestTaskMs };
 }
 
@@ -88,10 +127,16 @@ export function checks(result: BrowserResult): Check[] {
       pass: firstPage.warmMs <= TARGETS.firstPageWarmMs,
     },
     {
-      name: "First page, 10-page file, cold on Fast 4G",
+      name: "First page, 10-page file on the device, cold on Fast 4G",
       target: `≤ ${ms(TARGETS.firstPageColdMs)}`,
       value: firstPage.coldMs === null ? "not measured (Chromium only)" : ms(firstPage.coldMs),
       pass: firstPage.coldMs === null ? null : firstPage.coldMs <= TARGETS.firstPageColdMs,
+    },
+    {
+      name: "First page, 10-page file from a link, cold on Fast 4G",
+      target: `≤ ${ms(TARGETS.firstPageColdMs)}`,
+      value: firstPage.coldLinkMs === null ? "not measured (Chromium only)" : ms(firstPage.coldLinkMs),
+      pass: firstPage.coldLinkMs === null ? null : firstPage.coldLinkMs <= TARGETS.firstPageColdMs,
     },
     longestTask(result),
     {
@@ -113,6 +158,10 @@ export function checks(result: BrowserResult): Check[] {
       pass: second.total <= first.total * (1 + TARGETS.memoryGrowth),
     },
     { name: "Cancelled renders that painted", target: "0", value: String(painted), pass: painted === 0 },
+    ...findChecks(result),
+    ...linkPreviewChecks(result),
+    ...editChecks(result),
+    mobileMemory(result),
     {
       name: "Zoom bursts: longest frame, slowest to sharp",
       target: "—",
@@ -120,6 +169,83 @@ export function checks(result: BrowserResult): Check[] {
       pass: null,
     },
   ];
+}
+
+/** Find's first result and full pass against §4, and its longest task while the view scrolls. */
+function findChecks({ find }: BrowserResult): Check[] {
+  const first = find.common.firstResultMs;
+  const full = Math.max(find.common.fullMs, find.rare.fullMs);
+  return [
+    {
+      name: "Find, 1,000 pages: first result",
+      target: `≤ ${ms(TARGETS.findFirstResultMs)}`,
+      value: first === null ? "no match" : ms(first),
+      pass: first === null ? false : first <= TARGETS.findFirstResultMs,
+    },
+    {
+      name: "Find, 1,000 pages: every page searched",
+      target: `≤ ${ms(TARGETS.findFullMs)}`,
+      value: `${ms(find.common.fullMs)} (common word), ${ms(find.rare.fullMs)} (rare word)`,
+      pass: full <= TARGETS.findFullMs,
+    },
+    { ...longestTaskOf(find.recording), name: "Longest main-thread task while finding and scrolling" },
+  ];
+}
+
+/** Link previews: the slowest dwell-to-crop and the longest task while hovering, reported (no target). */
+function linkPreviewChecks({ linkPreviews }: BrowserResult): Check[] {
+  const slowest = linkPreviews.toCropMs.length === 0 ? 0 : Math.max(...linkPreviews.toCropMs);
+  return [
+    {
+      name: "Link previews, 20 citations: dwell to crop (slowest)",
+      target: "—",
+      value: ms(slowest),
+      pass: null,
+    },
+    {
+      ...longestTaskOf(linkPreviews.recording),
+      name: "Longest main-thread task while previewing links",
+      target: "—",
+      pass: null,
+    },
+  ];
+}
+
+/** An edit to the page's first new pixels (its quick pass) per file size, against the plan's budget at 100 pages. */
+function editChecks({ edit }: BrowserResult): Check[] {
+  const hundred = edit.find((e) => e.pages === 100);
+  const rows: Check[] = [
+    {
+      name: `Edit to the page's first new pixels (quick pass), ${edit.map((e) => e.pages.toLocaleString("en")).join(" / ")} pages`,
+      target: `≤ ${ms(TARGETS.editFirstPixelsMs)} at 100 pages`,
+      value: edit.map((e) => ms(e.firstPixelsMs)).join(" / "),
+      pass: hundred === undefined ? null : hundred.firstPixelsMs <= TARGETS.editFirstPixelsMs,
+    },
+  ];
+  for (const e of edit) {
+    if (e.lastOf === undefined || e.lastFirstPixelsMs === undefined) continue;
+    rows.push({
+      name: `Edit ${e.lastOf} in a row, ${e.pages.toLocaleString("en")} pages: first new pixels`,
+      target: "—",
+      value: ms(e.lastFirstPixelsMs),
+      pass: null,
+    });
+  }
+  return rows;
+}
+
+/** The phone's canvases and bitmaps at their peak, against the budgets the viewer gives that device. */
+function mobileMemory({ mobile }: BrowserResult): Check {
+  const name = "Canvases and bitmaps on a phone, 1,000 pages";
+  if (mobile === null)
+    return { name, target: "≤ the touch budgets", value: "not measured (no phone profile)", pass: null };
+  const used = mobile.peakMemory.canvases + mobile.peakMemory.bitmaps;
+  return {
+    name,
+    target: `≤ ${mb(mobile.budgetBytes)} (${mobile.device})`,
+    value: mb(used),
+    pass: used <= mobile.budgetBytes,
+  };
 }
 
 const mark = (pass: boolean | null) => (pass === null ? "" : pass ? " (pass)" : " (miss)");
@@ -163,8 +289,17 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
     "scroll-longest-frame": ns(Math.max(...result.scroll.passes.map((p) => p.longestFrameMs))),
     "to-sharp": ns(Math.max(...result.scroll.toSharpMs, result.fling.toSharpMs)),
     "zoom-to-sharp": ns(Math.max(...result.zoom.toSharpMs)),
+    "find-full-pass": ns(Math.max(result.find.common.fullMs, result.find.rare.fullMs)),
     "memory-peak-bytes": Math.round(Math.max(...result.scroll.passes.map((p) => p.peakMemory.total))),
   };
   if (result.firstPage.coldMs !== null) entries["first-page-cold"] = ns(result.firstPage.coldMs);
+  if (result.firstPage.coldLinkMs !== null) entries["first-page-cold-link"] = ns(result.firstPage.coldLinkMs);
+  if (result.find.common.firstResultMs !== null) entries["find-first-result"] = ns(result.find.common.firstResultMs);
+  for (const { pages, firstPixelsMs } of result.edit) entries[`edit-first-pixels-${pages}`] = ns(firstPixelsMs);
+  if (result.mobile !== null) {
+    entries["mobile-memory-peak-bytes"] = Math.round(
+      result.mobile.peakMemory.canvases + result.mobile.peakMemory.bitmaps,
+    );
+  }
   return entries;
 }

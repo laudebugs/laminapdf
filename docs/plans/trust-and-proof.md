@@ -63,7 +63,7 @@ The nightly already runs Lamina PDF against pdf.js, PDFium, qpdf and pypdf on th
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
 | [T1a](../todos/done/T1a-nightly-proof-figures.md) | The nightly records the figures that show how the core copes with real files | L | — |
-| [T1b](../todos/ready/T1b-how-we-test-page.md) | A "How we test" page on the website, with the nightly's figures, the licence and where the code comes from | M | T1a |
+| [T1b](../todos/done/T1b-how-we-test-page.md) | A "How we test" page on the website, with the nightly's figures, the licence and how the code is written | M | T1a |
 | [T1c](../todos/done/T1c-publish-performance-numbers.md) | Publish extraction scores and speed, and generation timings | L | — |
 | [T1d](../todos/done/T1d-snapshot-testing-guide.md) | A docs guide: snapshot-test your own generated PDFs | M | — |
 
@@ -96,12 +96,13 @@ The library plan lists flowing layout as a non-goal for now and asks, in its ope
 | [T4a](../todos/done/T4a-adr-0032-layout-engine.md) | ADR 0032: a layout engine for flowing pages, with a spike | M | — |
 | [T4f](../todos/done/T4f-flow-builder-groundwork.md) | Builder groundwork: elements across pages, measuring, artifact subtypes, marks under PDF/UA-1 | L | T4a |
 | [T4g](../todos/done/T4g-flow-styled-spans.md) | Styled spans in one paragraph | M | T4a |
-| [T4b](../todos/ready/T4b-flow-layout-core.md) | Flowing layout: paragraphs across pages, keep-together, running headers and footers, page X of Y | L | T4f, T4g |
-| [T4c](../todos/ready/T4c-flow-tables-notes-contents.md) | Flowing layout: tables across pages with repeated headers and kept totals | L | T4b |
-| [T4h](../todos/ready/T4h-flow-notes-contents-outline.md) | Flowing layout: footnotes, a contents page with page numbers, and the outline | L | T4b |
-| [T4d](../todos/ready/T4d-markdown-documents.md) | Markdown in Rust, flowing pages out | L | T4c, T4h |
-| [T4i](../todos/ready/T4i-build-command-and-bindings.md) | `laminapdf build`, its MCP tool and the TypeScript `markdown` call | L | T4d |
-| [T4e](../todos/ready/T4e-json-documents-and-templates.md) | JSON documents and templates in Rust and the CLI | L | T4i |
+| [T4b](../todos/done/T4b-flow-layout-core.md) | Flowing layout: paragraphs across pages, keep-together, running headers and footers, page X of Y | L | T4f, T4g |
+| [T4c](../todos/done/T4c-flow-tables-notes-contents.md) | Flowing layout: tables across pages with repeated headers and kept totals | L | T4b |
+| [T4h](../todos/done/T4h-flow-notes-contents-outline.md) | Flowing layout: footnotes, a contents page with page numbers, and the outline | L | T4b |
+| [T4d](../todos/done/T4d-markdown-documents.md) | Markdown in Rust, flowing pages out | L | T4c, T4h |
+| [T4i](../todos/done/T4i-build-command-and-bindings.md) | `laminapdf build`, its MCP tool and the TypeScript `markdown` call | L | T4d |
+| [T4e](../todos/done/T4e-json-documents-and-templates.md) | JSON documents and templates in Rust | L | T4i |
+| [T4k](../todos/done/T4k-json-documents-in-the-cli-and-mcp.md) | JSON documents and templates from the CLI and MCP | M | T4e |
 | [T4j](../todos/ready/T4j-documents-in-typescript.md) | Typed documents and `builder.flow` in TypeScript | L | T4e, T4i |
 
 ### T5. Long reading
@@ -110,8 +111,8 @@ Readers of papers, manuals and textbooks want to see where a link or citation go
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [T5a](../todos/ready/T5a-link-previews.md) | Preview internal links and citations before jumping | L | C6b, U3a |
-| [T5b](../todos/ready/T5b-reopen-at-last-position.md) | Reopen each document where the reader left it | L | C6b, C7b |
+| [T5a](../todos/done/T5a-link-previews.md) | Preview internal links and citations before jumping | L | C6b, U3a |
+| [T5b](../todos/done/T5b-reopen-at-last-position.md) | Reopen each document where the reader left it | L | C6b, C7b |
 
 ### T6. Chained jobs in the CLI
 
@@ -146,7 +147,7 @@ This plan's PR also changes these files, so the evidence and the new todos reach
   - [E3g](../todos/ready/E3g-inspectors.md), [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) and [E14b](../todos/ready/E14b-revision-browser.md) use T2c's revision index and T2b's `open_revision`.
   - [E11d](../todos/ready/E11d-sanitiser.md)'s sanitiser removes what `laminapdf reveal` lists, by its category names, and [E12f](../todos/ready/E12f-leak-tests.md)'s redacted fixtures must pass T2b's checks.
   - [E6d](../todos/ready/E6d-watermarks-headers-footers.md) uses T4b's page-number fields.
-- **Out-of-scope pointers:** [C6b](../todos/ready/C6b-links-and-history.md) and the reader design's R07 point the link preview at T5a; [C7b](../todos/ready/C7b-offline-pwa.md) points the remembered position at T5b; E2b–E2d point the CLI's page commands at T6a; E16b and E16c point `optimize --target-size` at T6b.
+- **Out-of-scope pointers:** [C6b](../todos/done/C6b-links-and-history.md) and the reader design's R07 point the link preview at T5a; [C7b](../todos/done/C7b-offline-pwa.md) points the remembered position at T5b; E2b–E2d point the CLI's page commands at T6a; E16b and E16c point `optimize --target-size` at T6b.
 - **Evidence:** [E8b](../todos/ready/E8b-form-filling-feature-plan.md), [E10b](../todos/ready/E10b-signatures-feature-plan.md), [E11a](../todos/ready/E11a-security-and-sanitisation-feature-plan.md), [E12a](../todos/ready/E12a-redaction-feature-plan.md), [U5a](../todos/ready/U5a-pricing-and-promises-page.md) and [U5b](../todos/ready/U5b-reader-benchmark.md) gain a Context line; U5a and U5b link T1b's and T1c's pages rather than repeating their numbers.
 - **Plans:** the [library plan](pdf-library.md)'s open question 4 points to T4a; the [architecture plan §3](architecture.md#3-decisions-to-record-adrs) reserves ADR 0032 for it; the [website plan](website.md) lists `/how-we-test`; the [roadmap](roadmap.md), the [plans index](README.md), the [todo board's ID list](../todos/README.md) and CLAUDE.md name Round T.
 
@@ -156,7 +157,7 @@ This plan's PR also changes these files, so the evidence and the new todos reach
 - **Covered-text detection can flag honest layouts.** Shading drawn over text, white boxes used for layout, and form widgets can look like a redaction box. T2a tests those cases and T2b words its warnings as "likely"; false positives cost trust too.
 - **Round T competes for time with the launch rounds.** T1 and T3 are the parts worth doing early; T2a can start now that L3g is done, and T5 and T6 wait on the rounds they extend.
 - **Parallel todos touch the same files.** T1c, T3a and T3b all edit the extraction benchmark (`crates/laminapdf/examples/differential/extract-bench.rs`, `tools/xtask/src/extract_bench.rs`); T2a and T3a both forward image events through `TextExtractor::page_with`. Each todo says so, and whichever lands second extends the first's code.
-- **The WASM text module grows.** [ADR 0032 §9](../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) raises its budget from 1,200,000 to 1,280,000 B gzip for the flow layer, Markdown and documents together; the spike measured +19 KB for a paginator and +60 KB for the Markdown parser.
+- **The WASM text module grows.** [ADR 0032 §9](../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) raised its budget from 1,200,000 to 1,280,000 B gzip for the flow layer, Markdown and documents together; the spike measured +19 KB for a paginator and +60 KB for the Markdown parser. T4i measured more (the flow layer about +60 KB and Markdown about +90 KB, 1,316,930 B in all), and the owner raised the budget to 1,360,000 B on 2026-11-10.
 
 ## 9. Open questions
 
@@ -166,11 +167,11 @@ The owner decides these; the todo named in each holds the details and a recommen
 
 1. **Tagged output by default.** Should `BuildOptions` tag documents unless asked not to, or at least flowing output (T4b)? Tagging changes the byte goldens and adds structure to every file. *[ADR 0032 §4](../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging) decides it for flowing output; the fixed-position builder keeps its opt-in.*
 2. **MCP tools that write.** ADR 0031 keeps the MCP server read-only unless started with `--allow-write`. T4i adds a `laminapdf_build` tool under that flag ([ADR 0032 §7](../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) amends ADR 0031), and T6a proposes write tools; form filling would be next.
-3. **Where the proof lives,** on `laminapdf.com` (T1b's proposal) or in the docs, and whether "How we test" joins the site header's links.
+3. **Where the proof lives,** on `laminapdf.com` (T1b's proposal) or in the docs, and whether "How we test" joins the site header's links. *Decided 2026-11-11: the website, at `/how-we-test/`, with a "How we test" link in the site header of both sites (T1b).*
 
 **Proof (T1)**
 
-4. **Where the code comes from.** Many commits carry `Co-Authored-By: Claude` trailers. T1b's statement must describe the AI coding agents' part truthfully; only the owner can write or approve it.
+4. **Where the code comes from.** Many commits carry `Co-Authored-By: Claude` trailers. T1b's statement must describe the AI coding agents' part truthfully; only the owner can write or approve it. *Decided 2026-11-11:* the owner approved "How the code is written" on the How we test page: AI coding agents write most of the code, the owner decides what gets built, a person reviews every pull request, and a release waits for a full nightly to pass.
 5. **Which quiet machine** publishes the benchmark numbers (T1c), and whether a two-page invoice case is needed beside the one-page invoice and the 100-page report.
 6. **Examples that import the render packages** (T1d's page-comparison example), or a separate example folder in `@laminapdf/render-hayro`.
 
@@ -193,7 +194,7 @@ The owner decides these; the todo named in each holds the details and a recommen
 
 **Reader and CLI (T5, T6)**
 
-15. **Remembered positions for `#url=` documents,** by content hash only (T5b's recommendation) or off by default like C7b's remembered URLs; and the cap of 500 documents.
+15. **Remembered positions for `#url=` documents,** by content hash only (T5b's recommendation) or off by default like C7b's remembered URLs; and the cap of 500 documents. *T5b takes the recommendations: a linked document's position is kept by its fingerprint alone, on by default, and the store keeps 500 documents.*
 16. **Signed files in the CLI.** T6a and T6b refuse them with no override flag; and "MB" in `--target-size` reads as decimal.
 
 ## 10. Later
@@ -209,10 +210,10 @@ Work the agents found while writing the todos, left out of Round T for now:
 
 - [x] Research what PDF users want on Hacker News, 2016–2026 ([report](../research/hacker-news/pdf-users-on-hacker-news.md), [notes](../research/hacker-news/README.md), [scripts](../../tools/hn-research/README.md))
 - [x] Write the Round T todos and amend E4f, E7f and the feature-plan todos (§7)
-- [ ] T1: publish the proof ([T1a](../todos/done/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/done/T1c-publish-performance-numbers.md), [T1d](../todos/done/T1d-snapshot-testing-guide.md))
+- [x] T1: publish the proof ([T1a](../todos/done/T1a-nightly-proof-figures.md), [T1b](../todos/done/T1b-how-we-test-page.md), [T1c](../todos/done/T1c-publish-performance-numbers.md), [T1d](../todos/done/T1d-snapshot-testing-guide.md))
 - [x] T2: find what files hide ([T2a](../todos/done/T2a-covered-text-flag.md), [T2b](../todos/done/T2b-check-failed-redactions.md), [T2c](../todos/done/T2c-reveal-command.md))
 - [ ] T3: extraction users can check ([T3a](../todos/done/T3a-text-layer-status.md), [T3b](../todos/done/T3b-reading-order-confidence.md), [T3c](../todos/done/T3c-tables-across-pages.md))
-- [ ] T4: pages that flow ([T4a](../todos/done/T4a-adr-0032-layout-engine.md), [T4f](../todos/done/T4f-flow-builder-groundwork.md), [T4g](../todos/done/T4g-flow-styled-spans.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4h](../todos/ready/T4h-flow-notes-contents-outline.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4i](../todos/ready/T4i-build-command-and-bindings.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md), [T4j](../todos/ready/T4j-documents-in-typescript.md))
-- [ ] T5: long reading ([T5a](../todos/ready/T5a-link-previews.md), [T5b](../todos/ready/T5b-reopen-at-last-position.md))
+- [ ] T4: pages that flow ([T4a](../todos/done/T4a-adr-0032-layout-engine.md), [T4f](../todos/done/T4f-flow-builder-groundwork.md), [T4g](../todos/done/T4g-flow-styled-spans.md), [T4b](../todos/done/T4b-flow-layout-core.md), [T4c](../todos/done/T4c-flow-tables-notes-contents.md), [T4h](../todos/done/T4h-flow-notes-contents-outline.md), [T4d](../todos/done/T4d-markdown-documents.md), [T4i](../todos/done/T4i-build-command-and-bindings.md), [T4e](../todos/done/T4e-json-documents-and-templates.md), [T4k](../todos/done/T4k-json-documents-in-the-cli-and-mcp.md), [T4j](../todos/ready/T4j-documents-in-typescript.md))
+- [x] T5: long reading ([T5a](../todos/done/T5a-link-previews.md), [T5b](../todos/done/T5b-reopen-at-last-position.md))
 - [ ] T6: chained jobs in the CLI ([T6a](../todos/ready/T6a-cli-page-commands.md), [T6b](../todos/ready/T6b-cli-optimize-target-size.md))
 - [ ] The owner answers §9's open questions

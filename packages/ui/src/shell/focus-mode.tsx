@@ -13,14 +13,6 @@ import { LayerScope } from "../overlays/layers.js";
 import { useStoreState } from "../state/hooks.js";
 import type { ShellLayout } from "./layout.js";
 
-/** `Mod+\` as `aria-keyshortcuts` writes it on `platform`. */
-function ariaKeys(keys: string, mac: boolean): string {
-  return keys
-    .split("+")
-    .map((k) => (k === "Mod" ? (mac ? "Meta" : "Control") : k === "\\" ? "Backslash" : k))
-    .join("+");
-}
-
 /** The status-bar item and the announcement; place it in the status bar. */
 export function FocusModeItem({ layout }: { layout: ShellLayout }): ReactNode {
   const focus = useStoreState(layout, (s) => s.focus);
@@ -36,7 +28,6 @@ export function FocusModeItem({ layout }: { layout: ShellLayout }): ReactNode {
     setSaid(message(focus ? "shell.focus.on" : "shell.focus.off"));
   }, [focus]);
   const shortcut = command.shortcut;
-  const mac = keys === "mac";
   return (
     <>
       <span className="paper-visually-hidden" role="status">
@@ -44,17 +35,17 @@ export function FocusModeItem({ layout }: { layout: ShellLayout }): ReactNode {
       </span>
       {focus ? (
         <LayerScope dismiss={() => layout.escapeFocus()}>
-          <ToggleButton
-            className="paper-status-item"
-            aria-label={message("shell.focus.item")}
-            isSelected
-            onChange={() => layout.leaveFocus()}
-            {...(shortcut === undefined
-              ? {}
-              : { "aria-keyshortcuts": ariaKeys(mac ? shortcut.mac : shortcut.other, mac) })}
-          >
+          <ToggleButton className="paper-status-item" isSelected onChange={() => layout.leaveFocus()}>
+            {/* Named by its content, chip included, as the top bar's Commands button is: a name must
+                hold all the visible text (WCAG 2.5.3). The space keeps the two apart in the name;
+                the flex gap does on screen. */}
             {message("shell.focus.item")}
-            {shortcut === undefined ? null : <ShortcutChip keys={shortcut} platform={keys} />}
+            {shortcut === undefined ? null : (
+              <>
+                {" "}
+                <ShortcutChip keys={shortcut} platform={keys} />
+              </>
+            )}
           </ToggleButton>
         </LayerScope>
       ) : null}
