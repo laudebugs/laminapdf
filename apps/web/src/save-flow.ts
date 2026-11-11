@@ -33,7 +33,7 @@ export interface SaveFlowState {
 const IDLE: SaveFlowState = { plan: undefined, asking: undefined, failure: undefined };
 
 /** Why a write failed, in words: the disk was full, permission was refused, … */
-export function failureReason(error: unknown): string {
+function failureReason(error: unknown): string {
   const name = error instanceof DOMException ? error.name : undefined;
   const text = String(error instanceof Error ? error.message : error);
   if (name === "QuotaExceededError" || /quota|disk is full|no space/i.test(text)) return message("save.reason.full");
