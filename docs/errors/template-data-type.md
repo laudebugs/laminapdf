@@ -5,7 +5,7 @@
 
 ## What happened
 
-A document template found data of the wrong kind where a placeholder pointed: an `$each` over something that isn't a list, or a `$data` or `$item` that put an object or a list where the document needs text or a number. Nothing was laid out.
+A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, or a `$data` or `$item` put an object or a list where the document needs text or a number. Nothing was laid out.
 
 ## Why
 

@@ -144,7 +144,7 @@ pub struct FlowDocument {
     /// The text styles, by name; `body` is the one text takes when it names none.
     pub styles: BTreeMap<String, StyleSpec>,
     /// The blocks, in reading order.
-    pub blocks: Vec<Block>,
+    pub blocks: Vec<BlockSpec>,
 }
 
 impl FlowDocument {
@@ -315,7 +315,7 @@ pub struct ParagraphSpec {
     pub text: Option<Text>,
     /// The text as spans; give this or `text`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub spans: Option<Vec<Span>>,
+    pub spans: Option<Vec<SpanSpec>>,
     /// The style of `text`, and of spans that name none (`body` when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style: Option<String>,
@@ -343,7 +343,7 @@ pub struct ParagraphSpec {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Span {
+pub struct SpanSpec {
     /// The text.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<Text>,
@@ -368,7 +368,7 @@ pub struct Span {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
-pub enum Block {
+pub enum BlockSpec {
     /// A paragraph.
     Paragraph(ParagraphSpec),
     /// A heading of `level` 1 to 6, in the outline and kept with the next block.
@@ -387,7 +387,7 @@ pub enum Block {
     /// Blocks kept on one page.
     Keep {
         /// The blocks.
-        blocks: Vec<Block>,
+        blocks: Vec<BlockSpec>,
     },
     /// A table whose header row repeats on each page it runs onto.
     Table(TableSpec),
@@ -396,7 +396,7 @@ pub enum Block {
     /// A block quotation.
     Quote {
         /// The blocks quoted.
-        blocks: Vec<Block>,
+        blocks: Vec<BlockSpec>,
     },
     /// Code, line by line as written.
     CodeBlock {
@@ -451,7 +451,7 @@ pub struct ListItemSpec {
     pub text: Option<Text>,
     /// The text as spans.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub spans: Option<Vec<Span>>,
+    pub spans: Option<Vec<SpanSpec>>,
     /// The text's style (`body` when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style: Option<String>,
@@ -542,7 +542,7 @@ pub struct CellSpec {
     pub text: Option<Text>,
     /// The text as spans.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub spans: Option<Vec<Span>>,
+    pub spans: Option<Vec<SpanSpec>>,
     /// The text's style (`body` when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style: Option<String>,

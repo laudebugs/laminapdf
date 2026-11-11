@@ -35,5 +35,8 @@ fn replay(dir: &std::path::Path) -> usize {
 #[test]
 fn every_seed_and_saved_crash_input_replays_without_a_panic() {
     replay(&fixtures_dir().join("regressions/document"));
-    assert!(replay(&fixtures_dir().join("../fuzz/seeds/document")) > 0, "the seeds are there");
+    assert!(
+        replay(&fixtures_dir().join("../fuzz/seeds/document")) > 0,
+        "the seeds are there"
+    );
 }

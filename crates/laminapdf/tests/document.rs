@@ -2,7 +2,6 @@
 //! JSON Pointer in its data and the closest known key in `didYouMean`; a template's missing value
 //! carries its pointer.
 #![cfg(feature = "document")]
-#![expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 
 use laminapdf::flow::{FlowDocument, fill};
 use serde_json::json;

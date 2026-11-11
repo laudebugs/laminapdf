@@ -30,7 +30,7 @@
         }
       ]
     },
-    "Block": {
+    "BlockSpec": {
       "description": "One block of the flow, tagged by `type`.",
       "oneOf": [
         {
@@ -93,7 +93,7 @@
             "spans": {
               "description": "The text as spans; give this or `text`.",
               "items": {
-                "$ref": "#/$defs/Span"
+                "$ref": "#/$defs/SpanSpec"
               },
               "type": [
                 "array",
@@ -188,7 +188,7 @@
             "spans": {
               "description": "The text as spans; give this or `text`.",
               "items": {
-                "$ref": "#/$defs/Span"
+                "$ref": "#/$defs/SpanSpec"
               },
               "type": [
                 "array",
@@ -347,7 +347,7 @@
             "blocks": {
               "description": "The blocks.",
               "items": {
-                "$ref": "#/$defs/Block"
+                "$ref": "#/$defs/BlockSpec"
               },
               "type": "array"
             },
@@ -491,7 +491,7 @@
             "blocks": {
               "description": "The blocks quoted.",
               "items": {
-                "$ref": "#/$defs/Block"
+                "$ref": "#/$defs/BlockSpec"
               },
               "type": "array"
             },
@@ -575,7 +575,7 @@
         "spans": {
           "description": "The text as spans.",
           "items": {
-            "$ref": "#/$defs/Span"
+            "$ref": "#/$defs/SpanSpec"
           },
           "type": [
             "array",
@@ -666,7 +666,7 @@
         "spans": {
           "description": "The text as spans.",
           "items": {
-            "$ref": "#/$defs/Span"
+            "$ref": "#/$defs/SpanSpec"
           },
           "type": [
             "array",
@@ -908,7 +908,7 @@
         "spans": {
           "description": "The text as spans; give this or `text`.",
           "items": {
-            "$ref": "#/$defs/Span"
+            "$ref": "#/$defs/SpanSpec"
           },
           "type": [
             "array",
@@ -1026,7 +1026,7 @@
       ],
       "type": "object"
     },
-    "Span": {
+    "SpanSpec": {
       "additionalProperties": false,
       "description": "A piece of a paragraph: text in a style, a link, code, a line break or a footnote.",
       "properties": {
@@ -1155,7 +1155,7 @@
     "blocks": {
       "description": "The blocks, in reading order.",
       "items": {
-        "$ref": "#/$defs/Block"
+        "$ref": "#/$defs/BlockSpec"
       },
       "type": "array"
     },

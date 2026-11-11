@@ -6,8 +6,8 @@ use std::collections::BTreeMap;
 use laminapdf_text::{Alignment, Standard14};
 
 use super::{
-    AlignSpec, Block, CellSpec, ColumnSpec, ContentsSpec, FlowDocument, ListItemSpec, ListKindSpec, ListSpec,
-    MarginsSpec, PageSizeSpec, PageSpec, ParagraphSpec, RegionSpec, Resources, RuleSpec, Span, StyleSpec, Text,
+    AlignSpec, BlockSpec, CellSpec, ColumnSpec, ContentsSpec, FlowDocument, ListItemSpec, ListKindSpec, ListSpec,
+    MarginsSpec, PageSizeSpec, PageSpec, ParagraphSpec, RegionSpec, Resources, RuleSpec, SpanSpec, StyleSpec, Text,
 };
 use crate::builder::Builder;
 use crate::error::{Error, Result};
@@ -198,7 +198,7 @@ const fn align(spec: AlignSpec) -> Alignment {
 fn paragraph(
     ctx: &Ctx<'_>,
     text: Option<&Text>,
-    spans: Option<&Vec<Span>>,
+    spans: Option<&Vec<SpanSpec>>,
     style: &TextStyle,
     pointer: &str,
 ) -> Result<Paragraph> {
@@ -366,7 +366,7 @@ fn contents(ctx: &Ctx<'_>, spec: &ContentsSpec, pointer: &str) -> Result<Content
     })
 }
 
-fn blocks(ctx: &Ctx<'_>, blocks: &[Block], pointer: &str) -> Result<Vec<FlowBlock>> {
+fn blocks(ctx: &Ctx<'_>, blocks: &[BlockSpec], pointer: &str) -> Result<Vec<FlowBlock>> {
     blocks
         .iter()
         .enumerate()
@@ -374,16 +374,16 @@ fn blocks(ctx: &Ctx<'_>, blocks: &[Block], pointer: &str) -> Result<Vec<FlowBloc
         .collect()
 }
 
-fn convert_block(ctx: &Ctx<'_>, block: &Block, pointer: &str) -> Result<FlowBlock> {
+fn convert_block(ctx: &Ctx<'_>, block: &BlockSpec, pointer: &str) -> Result<FlowBlock> {
     Ok(match block {
-        Block::Paragraph(spec) => FlowBlock::Paragraph(paragraph_spec(ctx, spec, pointer)?),
-        Block::Heading(spec) => {
+        BlockSpec::Paragraph(spec) => FlowBlock::Paragraph(paragraph_spec(ctx, spec, pointer)?),
+        BlockSpec::Heading(spec) => {
             let level = spec.level.filter(|l| (1..=6).contains(l));
             let level = level.ok_or_else(|| invalid(&format!("{pointer}/level"), "wrong-type"))?;
             FlowBlock::Heading(level, paragraph_spec(ctx, spec, pointer)?)
         }
-        Block::List(spec) => FlowBlock::List(list(ctx, spec, pointer)?),
-        Block::Figure(spec) => {
+        BlockSpec::List(spec) => FlowBlock::List(list(ctx, spec, pointer)?),
+        BlockSpec::Figure(spec) => {
             let image = ctx.resources.images.get(&spec.image).ok_or_else(|| {
                 let known: Vec<String> = ctx.resources.images.keys().cloned().collect();
                 Error::InvalidDocument {
@@ -398,17 +398,17 @@ fn convert_block(ctx: &Ctx<'_>, block: &Block, pointer: &str) -> Result<FlowBloc
                 None => figure,
             })
         }
-        Block::Spacer { height } => FlowBlock::Spacer(*height),
-        Block::PageBreak => FlowBlock::PageBreak,
-        Block::Keep { blocks: inner } => FlowBlock::Keep(blocks(ctx, inner, pointer)?),
-        Block::Table(spec) => FlowBlock::Table(table(ctx, spec, pointer)?),
-        Block::Contents(spec) => FlowBlock::Contents(contents(ctx, spec, pointer)?),
-        Block::Quote { blocks: inner } => FlowBlock::Quote(blocks(ctx, inner, pointer)?),
-        Block::CodeBlock { text, style } => FlowBlock::CodeBlock(
+        BlockSpec::Spacer { height } => FlowBlock::Spacer(*height),
+        BlockSpec::PageBreak => FlowBlock::PageBreak,
+        BlockSpec::Keep { blocks: inner } => FlowBlock::Keep(blocks(ctx, inner, pointer)?),
+        BlockSpec::Table(spec) => FlowBlock::Table(table(ctx, spec, pointer)?),
+        BlockSpec::Contents(spec) => FlowBlock::Contents(contents(ctx, spec, pointer)?),
+        BlockSpec::Quote { blocks: inner } => FlowBlock::Quote(blocks(ctx, inner, pointer)?),
+        BlockSpec::CodeBlock { text, style } => FlowBlock::CodeBlock(
             text.as_string(),
             ctx.style(style.as_ref(), &format!("{pointer}/style"))?.clone(),
         ),
-        Block::Rule => FlowBlock::Rule,
+        BlockSpec::Rule => FlowBlock::Rule,
     })
 }
 

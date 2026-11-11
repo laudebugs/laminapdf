@@ -176,7 +176,7 @@ mod tests {
         doc.blocks
             .iter()
             .filter_map(|b| match b {
-                super::super::Block::Paragraph(p) => p.text.as_ref().map(super::super::Text::as_string),
+                super::super::BlockSpec::Paragraph(p) => p.text.as_ref().map(super::super::Text::as_string),
                 _ => None,
             })
             .collect()
