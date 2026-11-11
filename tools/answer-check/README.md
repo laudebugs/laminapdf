@@ -1,6 +1,6 @@
 # Answer-engine check
 
-This check measures whether an AI answer engine recommends Lamina PDF when a developer asks it for a PDF library or reader. It asks twenty fixed questions, none of which names Lamina PDF, to Claude with web search. Each question is asked three times, because answers vary. For every answer it records three things: whether the text names Lamina PDF, whether one of Lamina PDF's pages came back in the searches, and whether the answer cites one. The [discoverability plan](../../docs/plans/discoverability.md) uses it to tell whether its work changes what answer engines say: a baseline before the bigger changes ship, then a run after each step. It is run by hand and never gates anything, because it needs a paid API key and answers change from day to day.
+This check measures whether an AI answer engine recommends Lamina PDF when a developer asks it for a PDF library or reader. It asks twenty fixed questions, none of which names Lamina PDF, to Claude with web search. Each question is asked three times, because answers vary. For every answer it records three things: whether the text names Lamina PDF (hyphens, underscores and line breaks inside the name count), whether one of Lamina PDF's pages came back in the searches, and whether the answer cites one. The [discoverability plan](../../docs/plans/discoverability.md) uses it to tell whether its work changes what answer engines say: a baseline before the bigger changes ship, then a run after each step. It is run by hand and never gates anything, because it needs a paid API key and answers change from day to day.
 
 ## Run it
 
@@ -25,16 +25,18 @@ The credentials are read from the environment, or from an `ant auth login` profi
 - the model (`claude-opus-5-5`) and its effort (`medium`);
 - the web search tool (`web_search_20260209`) and at most five searches per answer;
 - three runs per question;
-- what counts as Lamina PDF: its names (`Lamina PDF`, `laminapdf`, `@laminapdf/`), its domain and subdomains, and its pages on GitHub, npm, crates.io, lib.rs and docs.rs.
+- what counts as Lamina PDF: its names (`Lamina PDF`, `laminapdf`, `@laminapdf/`), its domain and subdomains, and its pages on GitHub, npm, crates.io, lib.rs and docs.rs, matched without the scheme, `www.`, query, fragment or case.
 
-Each request holds the question alone, with no system prompt. A turn the server pauses after many searches is resumed, at most three times. Requests opt into the API's fallback model: if the model declines a question, another model answers it instead, and the answer records which model served it.
+Each request holds the question alone, with no system prompt. A turn the server pauses after many searches is resumed, at most three times. Requests opt into the API's fallback model: if the model declines a question, another model answers it instead. The answer records which model served it, and the report counts those answers apart, since a run with more of them isn't comparable with one with fewer. Search results are read from the search tool's own blocks and from any other tool result, such as a fetched page.
 
 ## Results
 
 Each run writes to `target/answer-check/<date>/`, or `<date>-2` and so on for a second run that day:
 
 - `answers.json`: the settings, then every answer with its text, search queries, result URLs, cited URLs, the model that served it, its stop reason and its token and search counts;
-- `report.md`: the totals, then a row per question with how many runs named Lamina PDF, found its pages, and cited them, and the hosts that answer cited most.
+- `report.md`: the totals, then a row per question with how many runs named Lamina PDF, found its pages, and cited them; how many failed (a refusal, a turn still paused or cut off, or a failed search) or were answered by the fallback model; and the hosts its answers cited most.
+
+If a request fails part-way through a run (the API overloaded after the SDK's retries, or the network down), the run stops, writes the answers it has with a note that it stopped early, and exits with an error.
 
 ## Cost
 

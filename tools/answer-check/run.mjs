@@ -42,14 +42,25 @@ export function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--dry-run") options.dryRun = true;
-    else if (arg === "--questions") options.questions = (argv[++i] ?? "").split(",").filter(Boolean);
-    else if (arg === "--repeats") {
-      const value = Number(argv[++i]);
-      if (!Number.isInteger(value) || value < 1) throw new Error("--repeats takes a whole number of 1 or more");
-      options.repeats = value;
-    } else throw new Error(`unknown argument ${arg} (try --questions a,b, --repeats N or --dry-run)`);
+    else if (arg === "--questions") options.questions = questionIds(argv[++i]);
+    else if (arg === "--repeats") options.repeats = repeatCount(argv[++i]);
+    else throw new Error(`unknown argument ${arg} (try --questions a,b, --repeats N or --dry-run)`);
   }
   return options;
+}
+
+/** @param {string | undefined} value - `--questions`' value */
+function questionIds(value) {
+  const ids = (value ?? "").split(",").filter(Boolean);
+  if (ids.length === 0) throw new Error("--questions takes one or more question ids");
+  return ids;
+}
+
+/** @param {string | undefined} value - `--repeats`' value */
+function repeatCount(value) {
+  const count = Number(value);
+  if (!Number.isInteger(count) || count < 1) throw new Error("--repeats takes a whole number of 1 or more");
+  return count;
 }
 
 /**
@@ -95,11 +106,18 @@ async function ask(client, config, params) {
   for (let turn = 0; ; turn += 1) {
     const response = await client.beta.messages.create(/** @type {any} */ ({ ...params, messages }));
     blocks.push(...response.content);
-    usage.inputTokens += response.usage.input_tokens + (response.usage.cache_read_input_tokens ?? 0);
+    const { input_tokens, cache_read_input_tokens, cache_creation_input_tokens } = response.usage;
+    usage.inputTokens += input_tokens + (cache_read_input_tokens ?? 0) + (cache_creation_input_tokens ?? 0);
     usage.outputTokens += response.usage.output_tokens;
     usage.searches += response.usage.server_tool_use?.web_search_requests ?? 0;
     if (response.stop_reason !== "pause_turn" || turn >= config.maxContinuations) {
-      return { model: response.model, stopReason: response.stop_reason, blocks, usage };
+      return {
+        model: response.model,
+        fallback: response.model !== config.model,
+        stopReason: response.stop_reason,
+        blocks,
+        usage,
+      };
     }
     messages.push({ role: "assistant", content: response.content });
   }
@@ -139,15 +157,20 @@ async function askAll(config, questions, repeats) {
   // Credentials as the SDK reads them: ANTHROPIC_API_KEY, else an `ant auth login` profile.
   const client = new Anthropic();
   const answers = [];
-  for (const question of questions) {
-    for (let run = 1; run <= repeats; run += 1) {
-      const raw = await ask(client, config, request(config, question.question));
-      const answer = analyse({ question: question.id, run, ...raw }, config.target);
-      answers.push(answer);
-      console.log(describe(answer));
+  try {
+    for (const question of questions) {
+      for (let run = 1; run <= repeats; run += 1) {
+        const raw = await ask(client, config, request(config, question.question));
+        const answer = analyse({ question: question.id, run, ...raw }, config.target);
+        answers.push(answer);
+        console.log(describe(answer));
+      }
     }
+  } catch (error) {
+    // Keep the answers already paid for: the caller writes them, then fails.
+    return { answers, stopped: error instanceof Error ? error.message : String(error) };
   }
-  return answers;
+  return { answers, stopped: undefined };
 }
 
 async function main() {
@@ -165,7 +188,7 @@ async function main() {
     return;
   }
 
-  const answers = await askAll(config, questions, repeats);
+  const { answers, stopped } = await askAll(config, questions, repeats);
   const { date, dir } = outputDir();
   mkdirSync(dir, { recursive: true });
   const settings = {
@@ -175,9 +198,10 @@ async function main() {
     repeats,
     tool: "web_search_20260209",
   };
-  writeFileSync(join(dir, "answers.json"), `${JSON.stringify({ date, settings, answers }, null, 2)}\n`);
-  writeFileSync(join(dir, "report.md"), markdown({ date, settings, answers }));
+  writeFileSync(join(dir, "answers.json"), `${JSON.stringify({ date, settings, stopped, answers }, null, 2)}\n`);
+  writeFileSync(join(dir, "report.md"), markdown({ date, settings, answers, stopped }));
   console.log(`Wrote ${join(dir, "report.md")}`);
+  if (stopped) throw new Error(`the run stopped early after ${answers.length} answers: ${stopped}`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

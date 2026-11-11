@@ -49,6 +49,12 @@ describe("isTargetUrl", () => {
     assert.equal(isTargetUrl("https://crates.io/crates/laminapdf", target), true);
   });
 
+  it("ignores the scheme, www, the query, the fragment, a trailing slash and case", () => {
+    assert.equal(isTargetUrl("http://npmjs.com/package/@laminapdf/sdk", target), true);
+    assert.equal(isTargetUrl("https://github.com/laudebugs/laminapdf#readme", target), true);
+    assert.equal(isTargetUrl("https://github.com/LaudeBugs/LaminaPDF/?tab=readme", target), true);
+  });
+
   it("refuses look-alikes and other projects", () => {
     assert.equal(isTargetUrl("https://notlaminapdf.com/", target), false);
     assert.equal(isTargetUrl("https://crates.io/crates/laminapdf-unrelated-fork", target), false);
@@ -62,6 +68,11 @@ describe("mentions", () => {
     assert.equal(mentions("Consider lamina pdf, or…", target), true);
     assert.equal(mentions("npm i @laminapdf/sdk", target), true);
     assert.equal(mentions("(LaminaPDF)", target), true);
+  });
+
+  it("reads hyphens, underscores and line breaks as spaces", () => {
+    assert.equal(mentions("Use Lamina-PDF here", target), true);
+    assert.equal(mentions("Use Lamina\nPDF here", target), true);
   });
 
   it("refuses a name inside a longer word", () => {
@@ -90,6 +101,26 @@ describe("analyse", () => {
   it("counts Lamina PDF in the results but not in the citations", () => {
     assert.equal(answer.surfaced, true);
     assert.equal(answer.citedTarget, false);
+  });
+
+  it("takes the URLs of other tool results, such as a fetched page", () => {
+    const fetched = analyse(
+      {
+        question: "q",
+        run: 1,
+        model: "m",
+        stopReason: "end_turn",
+        blocks: [
+          {
+            type: "web_fetch_tool_result",
+            tool_use_id: "t",
+            content: { type: "web_fetch_result", url: "https://laminapdf.com/" },
+          },
+        ],
+      },
+      target,
+    );
+    assert.equal(fetched.surfaced, true);
   });
 
   it("records a failed search's error code, not results", () => {
@@ -132,15 +163,30 @@ describe("the report", () => {
         surfaced: 1,
         cited: 0,
         failed: 1,
+        fallback: 0,
         topHosts: ["github.com", "pdf-lib.js.org"],
       },
     ]);
   });
 
+  it("counts an unfinished turn and a fallback answer", () => {
+    const rows = summarise([
+      analyse({ question: "q", run: 1, model: "m", stopReason: "pause_turn", blocks: [] }, target),
+      analyse({ question: "q", run: 2, model: "other", fallback: true, stopReason: "end_turn", blocks: [] }, target),
+    ]);
+    assert.equal(rows[0]?.failed, 1);
+    assert.equal(rows[0]?.fallback, 1);
+  });
+
+  it("says when a run stopped early", () => {
+    const text = markdown({ date: "2026-11-11", settings: {}, answers, stopped: "overloaded" });
+    assert.match(text, /The run stopped early:\*\* overloaded/);
+  });
+
   it("writes the totals and a row per question", () => {
     const text = markdown({ date: "2026-11-11", settings: { model: "claude-opus-5-5" }, answers });
     assert.match(text, /Of 2 answers to 1 questions, 1 name Lamina PDF, 1 saw one of its pages/);
-    assert.match(text, /\| ts-generate \| 2 \| 1 \| 1 \| 0 \| 1 \| github\.com, pdf-lib\.js\.org \|/);
+    assert.match(text, /\| ts-generate \| 2 \| 1 \| 1 \| 0 \| 1 \| 0 \| github\.com, pdf-lib\.js\.org \|/);
   });
 });
 
@@ -161,6 +207,7 @@ describe("the runner", () => {
     });
     assert.throws(() => parseArgs(["--repeats", "0"]), /whole number/);
     assert.throws(() => parseArgs(["--nope"]), /unknown argument/);
+    assert.throws(() => parseArgs(["--questions", ""]), /one or more question ids/);
   });
 
   it("selects questions by id and refuses an unknown one", () => {
