@@ -15,7 +15,7 @@
 
 ## Goal
 
-Let a program or an LLM write a flowing document as JSON, check it against a committed schema, and fill it from data: an invoice template plus its line items gives a paginated, tagged invoice, from Rust (the command line and MCP follow in [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)). Filling a template from data is the second-largest generation request on Hacker News, about 560 comments: "I make invoices by having a Typst template read line items from a JSON file." ([39672973](https://news.ycombinator.com/item?id=39672973)) and "It’s absolutely trivial for example to build a Lambda function that parses some json input into a PDF." ([45394409](https://news.ycombinator.com/item?id=45394409)) Talk of AI near generation rose from 6 to 263 comments ("Frontier LLMs work great with Typst.", [48548712](https://news.ycombinator.com/item?id=48548712)); a format with a schema lets an agent write it and a program check it before anything is drawn. The typed TypeScript form comes next, in [T4j](../ready/T4j-documents-in-typescript.md).
+Let a program or an LLM write a flowing document as JSON, check it against a committed schema, and fill it from data: an invoice template plus its line items gives a paginated, tagged invoice, from Rust (the command line and MCP follow in [T4k](../ready/T4k-json-documents-in-the-cli-and-mcp.md)). Filling a template from data is the second-largest generation request on Hacker News, about 560 comments: "I make invoices by having a Typst template read line items from a JSON file." ([39672973](https://news.ycombinator.com/item?id=39672973)) and "It’s absolutely trivial for example to build a Lambda function that parses some json input into a PDF." ([45394409](https://news.ycombinator.com/item?id=45394409)) Talk of AI near generation rose from 6 to 263 comments ("Frontier LLMs work great with Typst.", [48548712](https://news.ycombinator.com/item?id=48548712)); a format with a schema lets an agent write it and a program check it before anything is drawn. The typed TypeScript form comes next, in [T4j](../ongoing/T4j-documents-in-typescript.md).
 
 ## Context
 
@@ -48,7 +48,7 @@ Let a program or an LLM write a flowing document as JSON, check it against a com
 
 **Out of scope** (and which todo covers it)
 
-- `WasmBuilder.flow`, `builder.flow(document, { data })`, the generated `FlowDocument` types, the TypeScript example and the `invoice-from-json` timing in `cargo xtask pdf-runtimes`: [T4j](../ready/T4j-documents-in-typescript.md).
+- `WasmBuilder.flow`, `builder.flow(document, { data })`, the generated `FlowDocument` types, the TypeScript example and the `invoice-from-json` timing in `cargo xtask pdf-runtimes`: [T4j](../ongoing/T4j-documents-in-typescript.md).
 - Typst templates and text template engines: rejected by ADR 0032 §2 and §6.
 - Number, currency and date formatting, expressions, and loops other than `$each`: the data arrives formatted. A later todo can add formatting if users ask.
 - A JSX layer over the document tree (ADR 0032 §6 leaves it for later, mapped onto this format), and a visual template designer.

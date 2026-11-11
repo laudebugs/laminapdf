@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4j` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [T4e](../done/T4e-json-documents-and-templates.md), [T4i](../done/T4i-build-command-and-bindings.md) |
