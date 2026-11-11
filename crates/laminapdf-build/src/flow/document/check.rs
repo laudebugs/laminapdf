@@ -268,6 +268,8 @@ fn check_page(page: &PageSpec, pointer: &str) -> Result<()> {
         None => {}
     }
     match &page.first {
+        // The first page's settings are one level deep: a first page has no first page.
+        Some(first) if first.first.is_some() => Err(refuse(format!("{pointer}/first/first"), "unknown-key")),
         Some(first) => check_page(first, &format!("{pointer}/first")),
         None => Ok(()),
     }

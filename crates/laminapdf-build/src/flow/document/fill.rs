@@ -166,7 +166,7 @@ impl<'a> Filler<'a> {
         match self.lookup(key, pointer)? {
             Some(found @ (Value::String(_) | Value::Number(_) | Value::Bool(_))) => Ok(found.clone()),
             Some(_) => Err(wrong_type(key, pointer, SCALAR)),
-            None => Err(missing(key, pointer.as_str().unwrap_or_default())),
+            None => Err(missing(key, &pointer_text(pointer))),
         }
     }
 
@@ -191,9 +191,8 @@ impl<'a> Filler<'a> {
         match placeholder(map) {
             Some((EACH, pointer)) => {
                 self.check_keys(map, EACH)?;
-                let text = pointer.as_str().unwrap_or_default();
                 let Some(found) = self.lookup(EACH, pointer)? else {
-                    return Err(missing(EACH, text));
+                    return Err(missing(EACH, &pointer_text(pointer)));
                 };
                 let Value::Array(list) = found else {
                     return Err(wrong_type(EACH, pointer, "list"));
@@ -222,9 +221,11 @@ impl<'a> Filler<'a> {
     /// Adds the members `do` makes to `out`: each of a list's, else the one value.
     fn body(&mut self, body: &'a Value, out: &mut Vec<Value>) -> Result<()> {
         self.path.push(DO.to_owned());
+        // `do` adds to the list it stands in, so a lone value is a member too: an `$each` or `$if`
+        // there expands as it would in a list.
         let filled = match body {
             Value::Array(items) => self.list(items).map(|items| out.extend(items)),
-            other => self.value(other).map(|v| out.push(v)),
+            other => self.member(other, out),
         };
         self.path.pop();
         filled
@@ -238,13 +239,17 @@ fn missing(placeholder: &'static str, pointer: &str) -> Error {
     }
 }
 
-fn wrong_type(placeholder: &'static str, pointer: &Value, expected: &'static str) -> Error {
-    let pointer = match pointer {
+/// The pointer a placeholder gave, as text: the string, or the one inside `{ "$item": … }`.
+fn pointer_text(pointer: &Value) -> String {
+    match pointer {
         Value::String(p) => p.clone(),
         other => other.get(ITEM).and_then(Value::as_str).unwrap_or_default().to_owned(),
-    };
+    }
+}
+
+fn wrong_type(placeholder: &'static str, pointer: &Value, expected: &'static str) -> Error {
     Error::TemplateDataType {
-        pointer,
+        pointer: pointer_text(pointer),
         placeholder,
         expected,
     }
@@ -422,6 +427,19 @@ mod tests {
         let error = fill(&template, &json!({ "ten": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] })).unwrap_err();
         assert!(
             matches!(error, Error::TemplateTooLarge { limit: MAX_FILLED }),
+            "{error:?}"
+        );
+    }
+
+    #[test]
+    fn a_nested_each_that_finds_nothing_names_its_item_pointer() {
+        let template = document(&json!([{
+            "$each": "/groups",
+            "do": { "$each": { "$item": "/lines" }, "do": { "type": "rule" } }
+        }]));
+        let error = fill(&template, &json!({ "groups": [{ "lines": [1] }, {}] })).unwrap_err();
+        assert!(
+            matches!(&error, Error::TemplateDataMissing { pointer, placeholder: "$each" } if pointer == "/lines"),
             "{error:?}"
         );
     }
