@@ -1,5 +1,5 @@
 // The site header's links (design language §7.39), one list for the website and the docs site:
-// Download · Docs · Pricing · Performance · Privacy, and "Open the web app" once the reader is live.
+// Download · Docs · Pricing · Performance · How we test · Privacy, and "Open the web app" once the reader is live.
 // A link to a website page appears on both sites once the page exists, so the todo that writes a
 // page adds its link by adding the page.
 
@@ -33,6 +33,8 @@ const LINKS = /** @type {const} */ ([
   { label: "Docs", site: "docs", path: "/" },
   { label: "Pricing", site: "website", path: "/pricing/" },
   { label: "Performance", site: "website", path: "/performance/" },
+  // The owner's decision on T1b's pull request (2026-11-11): the page joins the header.
+  { label: "How we test", site: "website", path: "/how-we-test/" },
   { label: "Privacy", site: "website", path: "/privacy/" },
 ]);
 

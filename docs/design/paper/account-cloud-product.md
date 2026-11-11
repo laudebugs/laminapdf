@@ -390,7 +390,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 
 **Purpose.** The website's `/how-we-test/` page (`apps/site`, [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof)): what the nightly measured on its latest full night, with what each figure counts, the licence policy and where the code comes from. It answers two questions people ask before choosing a PDF library: how robust is it, and can I use it.
 
-**Entry points.** The home page's "Where each part lives" and the footer's licence line, which links to the licence section; not the site header, whose five links design language [§7.39](design-language.md#739-site-and-product-pages-proposed) fixes.
+**Entry points.** The site header's "How we test" link on both sites (design language [§7.39](design-language.md#739-site-and-product-pages-proposed), between Performance and Privacy; the owner's decision on 2026-11-11), the home page's "Where each part lives", and the footer's licence line, which links to the licence section.
 
 **Layout.** H12's document sheet on the paper ground, under the same header and footer. One `h1` and a lead paragraph, then a short summary of the night (its date, version and short commit; the checks that failed, if any; how many of the last 30 full nights passed), then sections after a hairline, each an `h2` (Newsreader, `page-heading`) with a paragraph that says what is counted before the figures:
 

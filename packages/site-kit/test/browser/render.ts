@@ -8,7 +8,12 @@ import Select from "../../src/Select.astro";
 import SiteHeader from "../../src/SiteHeader.astro";
 
 /** The website's page files in these tests: three of §7.39's links have their page. */
-const PAGES = ["/src/pages/index.astro", "/src/pages/download.astro", "/src/pages/privacy/index.astro"];
+const PAGES = [
+  "/src/pages/index.astro",
+  "/src/pages/download.astro",
+  "/src/pages/how-we-test.astro",
+  "/src/pages/privacy/index.astro",
+];
 
 declare module "vitest" {
   export interface ProvidedContext {

@@ -68,7 +68,7 @@ On Hacker News, licences decide which PDF library people pick (about 150 comment
 - The record itself → [T1a](../done/T1a-nightly-proof-figures.md).
 - Extraction scores, generation timings and module sizes → [T1c](../done/T1c-publish-performance-numbers.md), on the docs site; this page links to them.
 - The reader benchmark and the speed targets → [U5b](../ready/U5b-reader-benchmark.md) and [U5a](../ready/U5a-pricing-and-promises-page.md); the privacy promises → [C7c](../done/C7c-performance-gates-and-launch.md).
-- A "How we test" link in the site header: §7.39 fixes five links, so adding one is a design decision (open question below).
+- ~~A "How we test" link in the site header~~: the owner decided on the pull request (2026-11-11) that it joins the header, between Performance and Privacy, so it is in scope.
 - R9's Arabic, Devanagari and Chinese sample on the home page: not in this todo (see Risks).
 
 ## Tasks
@@ -115,7 +115,7 @@ On Hacker News, licences decide which PDF library people pick (about 150 comment
 - **The provenance statement must be true.** Many commits carry `Co-Authored-By: Claude` trailers. A page that implies hand-written code would fail the very question it answers, so it describes the process as it is. Only the owner can approve it. Claims about origin stay to what the repository shows: a dependency check proves nothing about copied code, and the page says which check covers what.
 - **Figures can embarrass** ([plan §8](../../plans/trust-and-proof.md#8-risks)). Publish them with their method; the owner approves what the page shows for a failed night.
 - **Stale figures.** If the nightly stops recording, the page keeps showing the last night. The night's date sits beside the figures, and the snapshot command warns after three days.
-- **Header link.** Whether "How we test" joins §7.39's five header links is the owner's call; until then the page is linked from the home page and the footer.
+- **Header link.** Decided 2026-11-11: "How we test" joins the header, between Performance and Privacy, on both sites.
 - **Where the proof lives** ([§9](../../plans/trust-and-proof.md#9-open-questions), question 3): this todo proposes the website, since the page speaks to people choosing a library. The owner decides with the copy; if the docs site wins, the same data and components move to `apps/docs`.
 - **R9's script sample.** The report also suggests an Arabic, Devanagari and Chinese sample on the home page; the multilingual example's reference PDF exists on the docs site. That is a home page copy change for the owner, not part of this page.
 
