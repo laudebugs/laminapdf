@@ -11,7 +11,7 @@
 | Branch | `docs/w3f-agent-discovery` |
 | PR title | `docs: a Context7 listing, and llms.txt linked where agents look` |
 | Size | S |
-| PR | — |
+| PR | [#448](https://github.com/laudebugs/laminapdf/pull/448) |
 
 ## Goal
 
