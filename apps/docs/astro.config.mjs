@@ -124,7 +124,7 @@ export default defineConfig({
     inlineScriptHashes,
     previewNoindex(process.env.LAMINA_PDF_ENV),
     // Starlight writes sitemap-index.xml from `site`; only the released docs name it.
-    robots({ production: DOCS_RELEASE.release, sitemap: "https://docs.laminapdf.com/sitemap-index.xml" }),
+    robots({ env: process.env.LAMINA_PDF_ENV, sitemap: "https://docs.laminapdf.com/sitemap-index.xml" }),
     agentDocs(sidebarRoutes),
     // Last, so it also reads the Markdown twins agentDocs writes.
     releaseChecks(DOCS_RELEASE),

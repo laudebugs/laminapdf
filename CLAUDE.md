@@ -199,7 +199,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/site-kit/   # @laminapdf/site-kit (private, outside Changesets; build time only): what both Astro sites share.
 │                        #   src/integrations.mjs: the CSP's inline-script hashes into dist/_headers, X-Robots-Tag noindex unless
 │                        #   LAMINA_PDF_ENV=production, src/robots.mjs (W3a: the one robots.txt of the three sites, every crawler
-│                        #   let in, the sitemap named in production; robots, writeRobotsTxt, robotsProblems), the website's checks of every built page (ADR 0011 §3: same-origin loads, no
+│                        #   let in, the sitemap named in production; robots, isProduction, robotsProblems), the website's checks of every built page (ADR 0011 §3: same-origin loads, no
 │                        #   inline styles, cookies or beacons, title, description, canonical URL, internal links), pageFiles, pageExists;
 │                        #   src/version.mjs (withVersion: the pages' `{{version}}`, P4);
 │                        #   the site header (W1d): src/nav.mjs (the one list of links, siteNav per site and page, APP_LAUNCHED),

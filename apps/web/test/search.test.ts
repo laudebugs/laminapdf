@@ -1,22 +1,24 @@
 import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { writeSearchRules } from "../plugins/search.ts";
+import { searchRules } from "../plugins/search.ts";
 
 const HEADERS = new URL("../public/_headers", import.meta.url);
 let dir = "";
 
-/** A built folder holding the reader's own `_headers`, after the search rules of `environment`. */
+/** What a build for `environment` writes: robots.txt (emitted with the bundle) and dist/_headers. */
 async function built(environment: string | undefined): Promise<{ robots: string; headers: string }> {
   dir = await mkdtemp(join(tmpdir(), "lamina-web-search-"));
   await copyFile(HEADERS, join(dir, "_headers"));
-  await writeSearchRules(pathToFileURL(`${dir}/`), environment);
-  return {
-    robots: await readFile(join(dir, "robots.txt"), "utf8"),
-    headers: await readFile(join(dir, "_headers"), "utf8"),
-  };
+  const plugin = searchRules(environment);
+  let robots = "";
+  const call = <A extends unknown[]>(hook: unknown, self: unknown, ...args: A) =>
+    (hook as (...a: A) => unknown).call(self, ...args);
+  call(plugin.configResolved, undefined, { root: "/", build: { outDir: dir } });
+  call(plugin.generateBundle, { emitFile: (file: { source: string }) => (robots = file.source) });
+  await call(plugin.closeBundle, undefined);
+  return { robots, headers: await readFile(join(dir, "_headers"), "utf8") };
 }
 
 afterEach(async () => {
@@ -24,18 +26,19 @@ afterEach(async () => {
 });
 
 describe("what the reader tells search engines", () => {
-  it("production lets crawlers in, names no sitemap and adds no noindex", async () => {
+  it("production lets crawlers in, names no sitemap, and leaves _headers as public/_headers", async () => {
     const { robots, headers } = await built("production");
     expect(robots).toBe("User-agent: *\nAllow: /\n");
     expect(headers).toBe(await readFile(HEADERS, "utf8"));
   });
 
   it.each([["staging"], [undefined]])(
-    "%s lets crawlers in so they read noindex on every response",
+    "%s lets crawlers in, and adds only the noindex line to public/_headers",
     async (environment) => {
       const { robots, headers } = await built(environment);
       expect(robots).toBe("User-agent: *\nAllow: /\n");
-      expect(headers).toMatch(/^\/\*\n {2}X-Robots-Tag: noindex$/m);
+      const source = await readFile(HEADERS, "utf8");
+      expect(headers).toBe(source.replace(/^\/\*$/m, "/*\n  X-Robots-Tag: noindex"));
     },
   );
 });

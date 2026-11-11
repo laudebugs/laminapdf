@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
-import { robotsProblems, robotsTxt, writeRobotsTxt } from "../src/robots.mjs";
+import { isProduction, robots, robotsProblems, robotsTxt } from "../src/robots.mjs";
 
 const SITEMAP = "https://laminapdf.com/sitemap.xml";
 
@@ -49,14 +49,29 @@ describe("robotsProblems", () => {
   });
 });
 
-describe("writeRobotsTxt", () => {
-  it("writes robots.txt into the build's folder", async () => {
+describe("robots", () => {
+  it("writes the build's robots.txt into dist/ for its LAMINA_PDF_ENV", async () => {
     const dir = await mkdtemp(join(tmpdir(), "lamina-robots-"));
     try {
-      await writeRobotsTxt(pathToFileURL(`${dir}/`), { production: true, sitemap: SITEMAP });
-      expect(await readFile(join(dir, "robots.txt"), "utf8")).toBe(robotsTxt({ production: true, sitemap: SITEMAP }));
+      for (const env of ["production", "staging", undefined]) {
+        const hook = robots({ env, sitemap: SITEMAP }).hooks["astro:build:done"] as (options: {
+          dir: URL;
+        }) => Promise<void>;
+        await hook({ dir: pathToFileURL(`${dir}/`) });
+        expect(await readFile(join(dir, "robots.txt"), "utf8"), String(env)).toBe(
+          robotsTxt({ production: isProduction(env), sitemap: SITEMAP }),
+        );
+      }
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+
+  it("counts only `production` as production", () => {
+    expect([isProduction("production"), isProduction("staging"), isProduction(undefined)]).toEqual([
+      true,
+      false,
+      false,
+    ]);
   });
 });

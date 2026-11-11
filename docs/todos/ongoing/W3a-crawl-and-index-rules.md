@@ -65,9 +65,10 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 ## As built
 
 - **The owner's decisions** (2026-11-11): training crawlers allowed, so `robotsTxt` has no training option; the reader's `/` may be indexed. Plan §4 records both.
-- **One build step, not endpoints.** `@laminapdf/site-kit/robots` writes `dist/robots.txt` after each build: the `robots` integration for the two Astro sites (the website's `robots.txt.ts` endpoint is gone), `writeRobotsTxt` for the reader's Vite build (`apps/web/plugins/search.ts`), and `robotsProblems` for the docs site's release checks.
+- **One build step, not endpoints.** `@laminapdf/site-kit/robots` writes `dist/robots.txt`: the `robots` integration after each Astro build (the website's `robots.txt.ts` endpoint is gone), and the reader's Vite plugin (`apps/web/plugins/search.ts`) emits it with the bundle. Both decide by `isProduction`, which `markNoindex` uses too; `robotsProblems` feeds the docs site's release checks.
 - **Staging takes no `staging` value.** Any build without `LAMINA_PDF_ENV=production` is noindex, as on the two Astro sites, so only `production-checks` sets the variable, on its build and on its e2e step; `tools/xtask/src/workflows.rs` checks it.
 - **C4d's comparison** is the reader's e2e suite: it checks `X-Robots-Tag` against the run's `LAMINA_PDF_ENV` beside the §4 headers it already checked, and `test/search.test.ts` checks that production's `_headers` is `public/_headers` unchanged and every other build's adds only the `noindex` line.
+- **The reader's other paths.** The single-page fallback answers every path with the app, and production lets crawlers in, so a stray link could make `/anything` a copy of `/`. A canonical link to `/` on the one page fixes that; it belongs with the reader's other head tags in [W3d](../ready/W3d-structured-data-and-share-tags.md), which now says so.
 - **The docs' `workers.dev` copy** is gone: `workers_dev = false` with `preview_urls = true`, the pair the website's and the reader's preview Workers already run. Whether PR previews still deploy is a post-merge check.
 
 ## Post-merge checks

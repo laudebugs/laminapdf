@@ -9,7 +9,7 @@ import { writeFile } from "node:fs/promises";
 /**
  * The robots.txt for a build.
  *
- * @param {{ production: boolean, sitemap?: string | URL }} build `sitemap`: the sitemap's address,
+ * @param {{ production: boolean, sitemap?: string | URL | undefined }} build `sitemap`: the sitemap's address,
  *   named only in production (a preview's sitemap would list the production host's pages)
  * @returns {string}
  */
@@ -37,23 +37,27 @@ export function robotsProblems(text, { production, sitemap }) {
 }
 
 /**
- * Writes `dir`/robots.txt (a build's output folder, a file: URL) from {@link robotsTxt}.
+ * Whether a build is production's, the one search engines may index: `LAMINA_PDF_ENV=production`.
+ * The robots.txt and `markNoindex` both decide by it, so the two rules can't disagree.
  *
- * @param {URL} dir
- * @param {{ production: boolean, sitemap?: string | URL }} build
- * @returns {Promise<void>}
+ * @param {string | undefined} env the build's `LAMINA_PDF_ENV`
+ * @returns {boolean}
  */
-export async function writeRobotsTxt(dir, build) {
-  await writeFile(new URL("robots.txt", dir), robotsTxt(build));
+export function isProduction(env) {
+  return env === "production";
 }
 
 /**
- * An Astro site's robots.txt, written after the build; the reader's Vite build calls
- * {@link writeRobotsTxt} itself.
+ * An Astro site's robots.txt, written into `dist/` after the build, for the build's `LAMINA_PDF_ENV`.
+ * The reader's Vite build emits the same file with {@link robotsTxt}.
  *
- * @param {{ production: boolean, sitemap?: string | URL }} build
+ * @param {{ env: string | undefined, sitemap?: string | URL }} build
  * @returns {import("astro").AstroIntegration}
  */
-export function robots(build) {
-  return { name: "lamina-robots", hooks: { "astro:build:done": ({ dir }) => writeRobotsTxt(dir, build) } };
+export function robots({ env, sitemap }) {
+  const text = robotsTxt({ production: isProduction(env), sitemap });
+  return {
+    name: "lamina-robots",
+    hooks: { "astro:build:done": ({ dir }) => writeFile(new URL("robots.txt", dir), text) },
+  };
 }
