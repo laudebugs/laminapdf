@@ -11,7 +11,7 @@
 //   errors/<code>.md    every error and warning code's page
 //   api/                @laminapdf/sdk's API reference in Markdown (TypeDoc), with --api
 //   renames.json        what old names became (laminapdf.renames/1)
-//   schemas/            laminapdf.error/1 and laminapdf.renames/1
+//   schemas/            laminapdf.error/1, laminapdf.renames/1 and laminapdf.document/1
 import { copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import process from "node:process";
@@ -240,6 +240,10 @@ export async function packageDocs(out, options) {
   await mkdir(new URL("schemas/", out), { recursive: true });
   await copyFile(new URL("packages/sdk/schemas/error.schema.json", ROOT), new URL("schemas/error.schema.json", out));
   await copyFile(new URL("docs/renames.schema.json", ROOT), new URL("schemas/renames.schema.json", out));
+  await copyFile(
+    new URL("crates/laminapdf-build/schemas/document.schema.json", ROOT),
+    new URL("schemas/document.schema.json", out),
+  );
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

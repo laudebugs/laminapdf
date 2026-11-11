@@ -261,6 +261,43 @@ pub enum Error {
     /// settles them: this is a guard against a fault in the layout.
     #[error("a flow's contents page did not settle in four layouts")]
     FlowLayoutUnstable,
+    /// A `laminapdf.document/1` document has an unknown key, lacks one, or holds a value of the
+    /// wrong kind, or names a style, font or image it doesn't have.
+    #[error("the document doesn't match laminapdf.document/1")]
+    InvalidDocument {
+        /// The JSON Pointer of the value at fault, from the document's root.
+        pointer: String,
+        /// What is wrong: `unknown-key`, `missing-key`, `wrong-type`, `unknown-style`,
+        /// `unknown-font`, `unknown-image` or `unsupported-schema` (fixed text).
+        reason: &'static str,
+        /// The closest known keys, for a misspelt one.
+        did_you_mean: Vec<String>,
+    },
+    /// A template's placeholder points to a value the data doesn't have.
+    #[error("the template asks for a value the data doesn't have")]
+    TemplateDataMissing {
+        /// The JSON Pointer the template used.
+        pointer: String,
+        /// `$data`, `$each` or `$item` (fixed text).
+        placeholder: &'static str,
+    },
+    /// A template's placeholder found data of the wrong kind.
+    #[error("the template found data of the wrong kind")]
+    TemplateDataType {
+        /// The JSON Pointer the template used.
+        pointer: String,
+        /// `$data`, `$each` or `$item` (fixed text).
+        placeholder: &'static str,
+        /// The kind it needs: `list`, `text, a number or true/false`, or `a JSON Pointer such as
+        /// /items` (fixed text).
+        expected: &'static str,
+    },
+    /// A template would fill in more values, or nest deeper, than a document may hold.
+    #[error("the template would fill in too much")]
+    TemplateTooLarge {
+        /// The limit it passed: the most values filled in, or the deepest nesting.
+        limit: usize,
+    },
     /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
     #[cfg(feature = "text")]
     #[error(transparent)]
@@ -305,6 +342,10 @@ impl Error {
         "embedded-file-without-mime-type",
         "flow-content-too-large",
         "flow-layout-unstable",
+        "invalid-document",
+        "template-data-missing",
+        "template-data-type",
+        "template-too-large",
     ];
 
     /// A stable kebab-case code for this error.
@@ -342,6 +383,10 @@ impl Error {
             Self::EmbeddedFileWithoutMimeType { .. } => "embedded-file-without-mime-type",
             Self::FlowContentTooLarge { .. } => "flow-content-too-large",
             Self::FlowLayoutUnstable => "flow-layout-unstable",
+            Self::InvalidDocument { .. } => "invalid-document",
+            Self::TemplateDataMissing { .. } => "template-data-missing",
+            Self::TemplateDataType { .. } => "template-data-type",
+            Self::TemplateTooLarge { .. } => "template-too-large",
             #[cfg(feature = "text")]
             Self::Text(e) => e.code(),
             Self::Cos(e) => e.code(),
@@ -387,7 +432,11 @@ impl Error {
             | Self::DeviceColorWithoutOutputIntent { .. }
             | Self::EmbeddedFileForbidden { .. }
             | Self::EmbeddedFileWithoutMimeType { .. }
-            | Self::FlowContentTooLarge { .. } => ErrorKind::Usage,
+            | Self::FlowContentTooLarge { .. }
+            | Self::InvalidDocument { .. }
+            | Self::TemplateDataMissing { .. }
+            | Self::TemplateDataType { .. }
+            | Self::TemplateTooLarge { .. } => ErrorKind::Usage,
             Self::FlowLayoutUnstable => ErrorKind::Internal,
         }
     }
@@ -434,7 +483,11 @@ impl Error {
             | Self::EmbeddedFileForbidden { .. }
             | Self::EmbeddedFileWithoutMimeType { .. }
             | Self::FlowContentTooLarge { .. }
-            | Self::FlowLayoutUnstable => Location::NONE,
+            | Self::FlowLayoutUnstable
+            | Self::InvalidDocument { .. }
+            | Self::TemplateDataMissing { .. }
+            | Self::TemplateDataType { .. }
+            | Self::TemplateTooLarge { .. } => Location::NONE,
         }
     }
 }
@@ -578,6 +631,21 @@ mod tests {
             },
             Error::FlowContentTooLarge { what: "line" },
             Error::FlowLayoutUnstable,
+            Error::InvalidDocument {
+                pointer: String::new(),
+                reason: "unknown-key",
+                did_you_mean: Vec::new(),
+            },
+            Error::TemplateDataMissing {
+                pointer: String::new(),
+                placeholder: "$data",
+            },
+            Error::TemplateDataType {
+                pointer: String::new(),
+                placeholder: "$each",
+                expected: "list",
+            },
+            Error::TemplateTooLarge { limit: 1 },
         ]
     }
 

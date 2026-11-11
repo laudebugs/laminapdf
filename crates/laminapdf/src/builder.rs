@@ -172,6 +172,26 @@ impl Builder {
         Ok(report)
     }
 
+    /// Lays a `laminapdf.document/1` document out and adds its pages after any already added
+    /// ([`laminapdf::flow::document::FlowDocument`](crate::flow::document::FlowDocument), ADR 0032 §6), with its
+    /// fonts and images from `resources`; its title, author, subject and language become the
+    /// document's metadata. Pass its [profiles](crate::flow::document::FlowDocument::profiles) to the
+    /// builder's options. Its warnings are in the finished document's [`Document::warnings`].
+    ///
+    /// # Errors
+    /// `invalid-document` for a style, font or image it names but doesn't have; as
+    /// [`Builder::flow`].
+    #[cfg(feature = "document")]
+    pub fn document(
+        &mut self,
+        document: &crate::flow::document::FlowDocument,
+        resources: &crate::flow::document::Resources,
+    ) -> Result<crate::flow::FlowReport> {
+        let report = self.0.document(document, resources)?;
+        self.1.extend(report.warnings.iter().cloned().map(crate::Warning::from));
+        Ok(report)
+    }
+
     /// A page of `size`, added by [`PageBuilder::finish`].
     pub fn page(&mut self, size: PageSize) -> PageBuilder<'_> {
         self.0.page(size)
