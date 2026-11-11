@@ -126,36 +126,80 @@
     align-content: start;
   }
 
-  /* On a phone the dialog is a sheet (§7.18) as wide as the screen: one column, the sections a
-     row of equal buttons above the chosen one's fields (a long name wraps rather than pushing the
-     row past the edge), and no heading repeating the section the row already marks; the section
-     keeps its name for assistive technology (aria-label). Tighter gaps keep more options in view. */
+  /* Wider than a phone the list sits beside the fields: names only, no way back. */
+  .paper-settings-summary,
+  .paper-settings-chevron,
+  .paper-settings-back {
+    display: none;
+  }
+
+  /* On a phone the dialog is a sheet (§7.18) as wide as the screen, showing one screen at a time
+     (account-cloud-product.md: "the settings nav becomes a list screen; each block is its own
+     screen"). The list: full-width rows, each name over what it is set to, a chevron at the end.
+     A section: "All settings" back, its heading, then its fields. */
   .paper-sheet .paper-settings {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--paper-space-12);
   }
 
-  .paper-sheet .paper-settings-nav ul {
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    gap: var(--paper-space-4);
-  }
-
-  .paper-sheet .paper-settings-nav .paper-button {
-    justify-content: center;
-    block-size: auto;
-    min-block-size: max(var(--paper-button-height), var(--ui-target));
-    white-space: normal;
-    text-align: center;
-  }
-
-  .paper-sheet .paper-settings-heading {
-    display: none;
-  }
-
   .paper-sheet .paper-settings-section,
   .paper-sheet .paper-settings-fields {
     gap: var(--paper-space-16);
+  }
+
+  .paper-sheet .paper-settings[data-screen="list"] .paper-settings-section,
+  .paper-sheet .paper-settings[data-screen="section"] .paper-settings-nav {
+    display: none;
+  }
+
+  .paper-sheet .paper-settings-nav ul {
+    gap: 0;
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-12);
+    overflow: hidden;
+  }
+
+  .paper-sheet .paper-settings-nav li + li {
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-sheet .paper-settings-nav .paper-button {
+    block-size: auto;
+    min-block-size: calc(var(--ui-target) + var(--paper-space-16));
+    padding-block: var(--paper-space-10);
+    border-radius: 0;
+    white-space: normal;
+    text-align: start;
+  }
+
+  .paper-sheet .paper-settings-nav .paper-button[aria-current="page"] {
+    background: none;
+  }
+
+  .paper-sheet .paper-settings-nav .paper-button-label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--paper-space-12);
+    inline-size: 100%;
+  }
+
+  .paper-sheet .paper-settings-chevron {
+    display: block;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    color: var(--paper-muted);
+  }
+
+  .paper-sheet .paper-settings-summary {
+    display: block;
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-sheet .paper-settings-back {
+    display: block;
+    margin-inline-start: calc(-1 * var(--paper-space-16));
   }
 
   @media (forced-colors: active) {

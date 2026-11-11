@@ -170,7 +170,10 @@ fn files(root: &Path) -> Result<Vec<String>> {
     )?;
     files.extend(manifests.split('\0').filter(|p| !p.is_empty()).map(str::to_owned));
     files.extend(ROOT_FILES.iter().map(|f| (*f).to_owned()));
-    files.retain(|f| root.join(f).is_file());
+    files.retain(|f| {
+        let name = Path::new(f).file_name().unwrap_or_default();
+        !is_apple_double(name) && root.join(f).is_file()
+    });
     files.sort();
     files.dedup();
     Ok(files)
@@ -222,6 +225,9 @@ fn in_container(ws: &Workspace, image: &str, out: &Path, mode: Mode) -> Result<b
         .args(["-cf", "-", "--null", "-T"])
         .arg(&list)
         .current_dir(&ws.root)
+        // macOS's tar adds an `AppleDouble` `._<name>` entry beside every file with extended
+        // attributes; unpacked in the container they are stray sources and screenshots.
+        .env("COPYFILE_DISABLE", "1")
         .stdout(Stdio::piped())
         .spawn()
         .context("running tar")?;
@@ -288,6 +294,11 @@ fn owner(path: &Path) -> String {
     "0:0".to_owned()
 }
 
+/// Whether `name` is a macOS `AppleDouble` file (`._<name>`): metadata, never a screenshot.
+fn is_apple_double(name: &std::ffi::OsStr) -> bool {
+    name.as_encoded_bytes().starts_with(b"._")
+}
+
 /// Replaces the committed screenshots with those the container wrote; leaves them alone when it
 /// wrote none (it failed before its tests ran).
 fn replace_screenshots(root: &Path, from: &Path) -> Result<()> {
@@ -304,6 +315,9 @@ fn replace_screenshots(root: &Path, from: &Path) -> Result<()> {
     fs::create_dir_all(&to)?;
     for entry in fs::read_dir(from).with_context(|| format!("reading {}", from.display()))? {
         let entry = entry?;
+        if is_apple_double(&entry.file_name()) {
+            continue;
+        }
         fs::copy(entry.path(), to.join(entry.file_name()))?;
     }
     Ok(())
@@ -312,6 +326,30 @@ fn replace_screenshots(root: &Path, from: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn is_apple_double_should_match_only_dot_underscore_names() {
+        assert!(is_apple_double(std::ffi::OsStr::new("._icons--dark.png")));
+        assert!(!is_apple_double(std::ffi::OsStr::new("icons--dark.png")));
+        assert!(!is_apple_double(std::ffi::OsStr::new(".gitignore")));
+    }
+
+    #[test]
+    fn replace_screenshots_should_leave_out_apple_double_files() -> Result<()> {
+        let root = std::env::temp_dir().join(format!("lamina-gallery-test-{}", std::process::id()));
+        let from = root.join("written");
+        fs::create_dir_all(&from)?;
+        fs::write(from.join("icons--dark.png"), b"png")?;
+        fs::write(from.join("._icons--dark.png"), b"meta")?;
+        replace_screenshots(&root, &from)?;
+        let mut copied: Vec<_> = fs::read_dir(root.join(SCREENSHOTS))?
+            .map(|e| e.map(|e| e.file_name().to_string_lossy().into_owned()))
+            .collect::<Result<_, _>>()?;
+        copied.sort();
+        fs::remove_dir_all(&root)?;
+        assert_eq!(copied, ["icons--dark.png"]);
+        Ok(())
+    }
 
     #[test]
     fn parse_args_should_read_each_mode() {

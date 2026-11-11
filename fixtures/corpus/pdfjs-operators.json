@@ -203,6 +203,46 @@
       "showText": 19
     }
   ],
+  "fixtures/golden/cli-build-invoice.pdf": [
+    {
+      "beginMarkedContentProps": 109,
+      "beginText": 107,
+      "constructPath": 27,
+      "endMarkedContent": 109,
+      "endText": 107,
+      "restore": 2,
+      "save": 2,
+      "setDash": 1,
+      "setFillRGBColor": 1,
+      "setFont": 107,
+      "setLineCap": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 3,
+      "setMiterLimit": 1,
+      "setStrokeRGBColor": 3,
+      "setTextMatrix": 107,
+      "showText": 107
+    },
+    {
+      "beginMarkedContentProps": 69,
+      "beginText": 67,
+      "constructPath": 18,
+      "endMarkedContent": 69,
+      "endText": 67,
+      "restore": 2,
+      "save": 2,
+      "setDash": 1,
+      "setFillRGBColor": 1,
+      "setFont": 67,
+      "setLineCap": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 3,
+      "setMiterLimit": 1,
+      "setStrokeRGBColor": 3,
+      "setTextMatrix": 67,
+      "showText": 67
+    }
+  ],
   "fixtures/golden/cli-build-report.pdf": [
     {
       "beginMarkedContentProps": 17,

@@ -1,11 +1,13 @@
 // The app's one Settings dialog (plan §5.5, design S07's section list) and the View settings
 // popover (R10). Later work adds a section instead of a dialog of its own: `register` a section
-// with an id, a title and what it renders, and the dialog lists it in registration order.
+// with an id, a title and what it renders, and the dialog lists it in registration order. On a
+// phone the list is a screen of its own, and each section opens as the next screen.
 
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Icon } from "@laminapdf/icons/react";
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button, IconButton } from "../components/button.js";
 import { message } from "../messages.js";
-import { Dialog } from "../overlays/dialog.js";
+import { Dialog, usePhoneLayout } from "../overlays/dialog.js";
 import { Popover, PopoverTrigger } from "../overlays/popover.js";
 import { AppearanceFields, type AppearanceFieldsProps } from "./appearance.js";
 
@@ -17,6 +19,8 @@ export interface SettingsSection {
   readonly title: string;
   /** The section's fields. */
   readonly render: () => ReactNode;
+  /** One line under its name in a phone's list of sections, saying what it is set to ("Match system · Green"). */
+  readonly summary?: () => string;
 }
 
 /** The Settings dialog's sections, in the order they were registered. */
@@ -71,24 +75,45 @@ export class SettingsRegistry {
   }
 }
 
+/** What `useSettingsSection` may add to a section besides its fields. */
+export interface SettingsSectionOptions {
+  /**
+   * The values its fields show: when one changes, the dialog draws the section again, so a switch
+   * shows the state it was just set to.
+   */
+  readonly shows?: readonly unknown[];
+  /** The line under its name in a phone's list of sections, read when the dialog draws. */
+  readonly summary?: () => string;
+}
+
 /**
  * Registers a section for as long as the calling component is mounted. `render` is read when the
- * dialog draws, so it may close over the caller's latest state. `shows` lists the values its
- * fields show: when one changes, the dialog draws the section again, so a switch shows the state
- * it was just set to.
+ * dialog draws, so it may close over the caller's latest state.
  */
 export function useSettingsSection(
   registry: SettingsRegistry,
   id: string,
   title: string,
   render: () => ReactNode,
-  shows: readonly unknown[] = [],
+  { shows = [], summary }: SettingsSectionOptions = {},
 ): void {
   const latest = useRef(render);
+  const latestSummary = useRef(summary);
   useLayoutEffect(() => {
     latest.current = render;
+    latestSummary.current = summary;
   });
-  useEffect(() => registry.register({ id, title, render: () => latest.current() }), [registry, id, title]);
+  const hasSummary = summary !== undefined;
+  useEffect(
+    () =>
+      registry.register({
+        id,
+        title,
+        render: () => latest.current(),
+        ...(hasSummary ? { summary: () => latestSummary.current?.() ?? "" } : {}),
+      }),
+    [registry, id, title, hasSummary],
+  );
   // biome-ignore lint/correctness/useExhaustiveDependencies: `shows` is the caller's list of what the section shows.
   useEffect(() => registry.refresh(id), [registry, id, ...shows]);
 }
@@ -103,14 +128,69 @@ export interface SettingsDialogProps {
   readonly onOpenChange: (open: boolean) => void;
 }
 
-/** The Settings dialog: a list of sections beside the chosen one's fields. */
+/** Props of `SettingsRow`. */
+interface SettingsRowProps {
+  readonly section: SettingsSection;
+  /** Whether it is the section shown beside the list (never on a phone's list screen). */
+  readonly current: boolean;
+  /** The id its summary takes, which makes it the row's description; none wider than a phone, where it is hidden. */
+  readonly summaryId: string | undefined;
+  readonly onPress: () => void;
+}
+
+/** One row of the sections list: the name, and on a phone its summary and a chevron. */
+function SettingsRow({ section, current, summaryId, onPress }: SettingsRowProps): ReactNode {
+  return (
+    <Button
+      variant="ghost"
+      aria-current={current ? "page" : false}
+      {...(section.summary === undefined || summaryId === undefined ? {} : { "aria-describedby": summaryId })}
+      onPress={onPress}
+    >
+      <span className="paper-settings-nav-name">{section.title}</span>
+      {section.summary === undefined ? null : (
+        // Hidden from the name: the row's description reads it instead, so the name stays short.
+        <span id={summaryId} className="paper-settings-summary" aria-hidden="true">
+          {section.summary()}
+        </span>
+      )}
+      <Icon name="chevron-right" size={16} className="paper-settings-chevron" />
+    </Button>
+  );
+}
+
+/**
+ * The Settings dialog: a list of sections beside the chosen one's fields. On a phone's sheet the
+ * list is the first screen, with each section's summary, and a section opens as the next screen
+ * with a way back (settings.css shows one screen at a time from `data-screen`).
+ */
 export function SettingsDialog({ registry, isOpen, onOpenChange }: SettingsDialogProps): ReactNode {
   const sections = useSyncExternalStore(
     (listener) => registry.subscribe(listener),
     () => registry.sections(),
   );
   const [chosen, setChosen] = useState<string | undefined>(undefined);
+  // Whether a phone shows the chosen section rather than the list; each opening starts at the list.
+  const [opened, setOpened] = useState(false);
+  useEffect(() => {
+    if (!isOpen) setOpened(false);
+  }, [isOpen]);
   const shown = sections.find((s) => s.id === chosen) ?? sections[0];
+  const listed = sections.length > 1;
+  const summaryId = useId();
+  // Whether the Dialog is a phone's sheet, with its two screens; wider, none of this applies.
+  const phone = usePhoneLayout(isOpen);
+  // Where focus goes once a phone's screen changes: the hidden screen took the pressed button with it.
+  const back = useRef<HTMLDivElement>(null);
+  const rows = useRef(new Map<string, HTMLLIElement>());
+  const focusNext = useRef<"back" | "row" | undefined>(undefined);
+  // After every render: only a press sets `focusNext`, and the screen it asks for is drawn by then.
+  useEffect(() => {
+    const next = focusNext.current;
+    focusNext.current = undefined;
+    const target = next === "back" ? back.current : next === "row" && shown ? rows.current.get(shown.id) : undefined;
+    target?.querySelector("button")?.focus();
+  });
   return (
     <Dialog
       isOpen={isOpen}
@@ -119,26 +199,49 @@ export function SettingsDialog({ registry, isOpen, onOpenChange }: SettingsDialo
       closeLabel={message("settings.close")}
       size="wide"
     >
-      <div className="paper-settings">
-        {sections.length < 2 ? null : (
+      <div className="paper-settings" data-screen={listed && !opened ? "list" : "section"}>
+        {listed ? (
           <nav className="paper-settings-nav" aria-label={message("settings.sections")}>
             <ul>
               {sections.map((section) => (
-                <li key={section.id}>
-                  <Button
-                    variant="ghost"
-                    aria-current={section === shown ? "page" : false}
-                    onPress={() => setChosen(section.id)}
-                  >
-                    {section.title}
-                  </Button>
+                <li
+                  key={section.id}
+                  ref={(row) =>
+                    void (row === null ? rows.current.delete(section.id) : rows.current.set(section.id, row))
+                  }
+                >
+                  <SettingsRow
+                    section={section}
+                    current={!phone && section === shown}
+                    summaryId={phone ? `${summaryId}-${section.id}` : undefined}
+                    onPress={() => {
+                      setChosen(section.id);
+                      if (!phone) return;
+                      setOpened(true);
+                      focusNext.current = "back";
+                    }}
+                  />
                 </li>
               ))}
             </ul>
           </nav>
-        )}
+        ) : null}
         {shown === undefined ? null : (
           <section className="paper-settings-section" aria-label={shown.title}>
+            {listed ? (
+              <div ref={back} className="paper-settings-back">
+                <Button
+                  variant="ghost"
+                  icon="chevron-left"
+                  onPress={() => {
+                    setOpened(false);
+                    focusNext.current = "row";
+                  }}
+                >
+                  {message("settings.back")}
+                </Button>
+              </div>
+            ) : null}
             <h3 className="paper-settings-heading">{shown.title}</h3>
             {shown.render()}
           </section>
