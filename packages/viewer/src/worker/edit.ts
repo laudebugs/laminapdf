@@ -7,43 +7,191 @@
 // render answered before this call drew the old file, one answered after it draws the new one.
 
 import type { RenderSource } from "@laminapdf/render";
-import type { Document, Op, PageInfo } from "@laminapdf/sdk";
-import type { EditResult } from "../protocol.js";
+import type { Document, Op, PageInfo, Reverted } from "@laminapdf/sdk";
+import type { EditHistory, EditResult, ReplayedStep, RevertedStep } from "../protocol.js";
 import { current, currentBackend, type EditState, filling, followEdit, type Open } from "./document.js";
 import { forgetSearch } from "./find.js";
 import { forgetLinks } from "./navigation.js";
+import {
+  clearRedo,
+  historyOf,
+  record,
+  removeStep,
+  restore,
+  type Session,
+  snapshot,
+  stepBack,
+  stepForward,
+} from "./session.js";
 import { forgetText } from "./text.js";
 
 /** Why an edit that failed left the model and the pages drawn apart: the document must be opened again. */
 const DIVERGED = "an edit failed and couldn't be undone: the document and the pages drawn may differ; open it again";
 
+/** Why an encrypted document takes no edit: its edits can't be written into memory to be drawn. */
+const ENCRYPTED = "an encrypted document can't be edited yet: its edits can't be saved (encrypted-base)";
+
+/** The edit session's history of document `id`. */
+export function editHistory(id: number): EditHistory {
+  const { edit } = current(id);
+  return historyOf(edit.session, edit.diverged);
+}
+
+/** Throws why document `opened` can't take an edit, undo or redo now, if it can't. */
+function editable(opened: Open): void {
+  if (opened.edit.diverged) throw new Error(DIVERGED);
+  if (opened.model.isEncrypted) throw new Error(ENCRYPTED);
+}
+
 /**
  * Applies `ops` to document `id`'s model as one transaction; when it touched pages, writes the
- * edit and draws those pages from it from now on.
+ * edit and draws those pages from it from now on. The edit session records it as a step named
+ * `label`; an edit that changed nothing records none.
  *
  * @throws the op's error (nothing changed); a save or reopen error, after the transaction is
  *   undone, so the model again matches what is drawn; an error saying the document must be opened
- *   again when that undo failed too, and for every edit after it.
+ *   again when that undo failed too, and for every edit after it; an encrypted document's refusal.
  */
-export async function applyEdit(ops: readonly Op[], id: number, signal: AbortSignal): Promise<EditResult> {
+export async function applyEdit(
+  ops: readonly Op[],
+  id: number,
+  signal: AbortSignal,
+  label = describe(ops),
+): Promise<EditResult> {
   const opened = current(id);
+  editable(opened);
   const { model, edit } = opened;
-  if (edit.diverged) throw new Error(DIVERGED);
   const count = await model.ensure(() => model.pageCount, { signal });
   const edited = await model.ensure(() => model.apply(ops), { signal });
+  if (!edited.changed) return { pages: [], history: historyOf(edit.session, false) };
+  // The transaction cleared the model's redo stack, whatever happens next.
+  clearRedo(edit.session);
   if (edited.touchedPages.length > 0) {
     try {
       await samePages(model, count);
       await redraw(opened);
     } catch (e) {
       // The edit never reached the screen: take it back out of the model, so the model matches
-      // what is drawn (the undone transaction becomes a redo entry, for the edit session to show).
-      await undo(model, edit, e);
+      // what is drawn. The undone transaction is left on the model's redo stack, but the session
+      // has no step for it, so nothing redoes it, and the next edit clears it.
+      await revert(model, edit, "undo", e);
       throw e;
     }
   }
   followEdit(opened, ops);
-  return { pages: await touched(opened, edited.touchedPages) };
+  const pages = await touched(opened, edited.touchedPages);
+  record(
+    edit.session,
+    label,
+    pages.map((page) => page.index),
+    Date.now(),
+  );
+  return { pages, history: historyOf(edit.session, false) };
+}
+
+/**
+ * Undoes or redoes steps of document `id`'s edit session until `position` of them are done, then
+ * draws the pages they touched, once. A move that fails half way is taken back, so the document,
+ * the history and the pages drawn stay together.
+ */
+export async function goToStep(position: number, id: number, signal: AbortSignal): Promise<EditResult> {
+  const opened = current(id);
+  editable(opened);
+  const { model, edit } = opened;
+  const { session } = edit;
+  const target = Math.max(0, Math.min(session.steps.length, Math.trunc(position)));
+  const kept = snapshot(session);
+  const done: RevertedStep[] = [];
+  const ids = new Set<string>();
+  try {
+    while (session.position !== target) {
+      const way = session.position > target ? "undo" : "redo";
+      const reverted = await model.ensure(() => (way === "undo" ? model.undo() : model.redo()), { signal });
+      // The model has no entry where the session has a step: they disagree, which only a bug does.
+      if (reverted === undefined) throw new Error(`the document has nothing to ${way}`);
+      for (const page of reverted.touchedPages) ids.add(page);
+      done.push(way === "undo" ? stepBack(session, reverted.outcome) : stepForward(session, reverted.outcome));
+      followEdit(opened, way);
+    }
+    if (ids.size > 0) await redraw(opened);
+  } catch (e) {
+    await takeBack(opened, kept, done, e);
+    throw e;
+  }
+  const pages = await touched(opened, [...ids]);
+  return { pages, history: historyOf(session, false), reverted: done };
+}
+
+/**
+ * Takes back the undos and redos in `done`, newest first, and puts the history back as `kept`
+ * was, less the steps the model dropped (a skipped undo or redo leaves it no entry).
+ */
+async function takeBack(opened: Open, kept: Session, done: readonly RevertedStep[], failure: unknown): Promise<void> {
+  const { model, edit } = opened;
+  for (const step of [...done].reverse()) {
+    if (step.outcome === "skipped") continue;
+    await revert(model, edit, step.way === "undo" ? "redo" : "undo", failure);
+    followEdit(opened, step.way === "undo" ? "redo" : "undo");
+  }
+  const { session } = edit;
+  restore(session, kept);
+  for (const step of done) {
+    if (step.outcome !== "skipped") continue;
+    const index = session.steps.findIndex((s) => s.id === step.step.id);
+    if (index >= 0) removeStep(session, index, step.way);
+  }
+}
+
+/**
+ * Applies `steps` to document `id` again, one transaction each, then undoes the newest `undone`
+ * of them, and draws once: a restarted worker's document takes back the edits the old one had.
+ * The history keeps their labels and times.
+ *
+ * @throws an op's error, or a save or reopen error: the document is then marked diverged, since
+ *   the edits applied so far can't all be taken back (the depth limit may have dropped some).
+ */
+export async function restoreEdits(
+  steps: readonly ReplayedStep[],
+  undone: number,
+  id: number,
+  signal: AbortSignal,
+): Promise<EditResult> {
+  const opened = current(id);
+  editable(opened);
+  const { model, edit } = opened;
+  const ids = new Set<string>();
+  try {
+    const count = await model.ensure(() => model.pageCount, { signal });
+    for (const step of steps) {
+      const edited = await model.ensure(() => model.apply(step.ops), { signal });
+      if (!edited.changed) continue;
+      for (const page of edited.touchedPages) ids.add(page);
+      followEdit(opened, step.ops);
+      const pages = await model.ensure(() => model.pages);
+      const wanted = new Set(edited.touchedPages);
+      const indices = pages.filter((page) => wanted.has(page.id)).map((page) => page.index);
+      record(edit.session, step.label, indices, step.at);
+    }
+    for (let i = 0; i < undone && edit.session.position > 0; i++) {
+      const reverted = await model.ensure(() => model.undo(), { signal });
+      if (reverted === undefined) break;
+      stepBack(edit.session, reverted.outcome);
+      followEdit(opened, "undo");
+    }
+    await samePages(model, count);
+    if (ids.size > 0) await redraw(opened);
+  } catch (e) {
+    edit.diverged = true;
+    throw new Error(DIVERGED, { cause: e });
+  }
+  // The file reopened as it was: the saved document is the one opened, unless the depth dropped it.
+  edit.session.saved = edit.session.dropped === 0 ? 0 : undefined;
+  return { pages: await touched(opened, [...ids]), history: historyOf(edit.session, false) };
+}
+
+/** A label for an edit whose caller gave none: its ops' names. */
+function describe(ops: readonly Op[]): string {
+  return ops.map((op) => op.op).join(", ");
 }
 
 /**
@@ -56,13 +204,22 @@ async function samePages(model: Document, before: number): Promise<void> {
     throw new Error(`an edit that changes the page count (${before} → ${after}) can't be shown yet`);
 }
 
-/** Undoes the transaction just applied; when that fails too, marks the document diverged. */
-async function undo(model: Document, edit: EditState, failure: unknown): Promise<void> {
+/**
+ * Undoes (or redoes) the transaction just applied (or undone); when that fails too, marks the
+ * document diverged.
+ */
+async function revert(model: Document, edit: EditState, way: "undo" | "redo", failure: unknown): Promise<void> {
+  let reverted: Reverted | undefined;
   try {
-    await model.ensure(() => model.undo());
+    reverted = await model.ensure(() => (way === "undo" ? model.undo() : model.redo()));
   } catch (e) {
     edit.diverged = true;
     throw new Error(DIVERGED, { cause: [failure, e] });
+  }
+  // A partial outcome still restored what it could; only nothing at all leaves them apart.
+  if (reverted === undefined || reverted.outcome === "skipped") {
+    edit.diverged = true;
+    throw new Error(DIVERGED, { cause: failure });
   }
 }
 

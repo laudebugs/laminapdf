@@ -5,7 +5,7 @@ import type { RenderRequest } from "@laminapdf/render";
 import type { Op } from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
-import type { BackendInit, PrintOptions, SourceInit, ViewerOpenOptions } from "../protocol.js";
+import type { BackendInit, PrintOptions, ReplayedStep, SourceInit, ViewerOpenOptions } from "../protocol.js";
 import {
   closeDocument,
   current,
@@ -15,7 +15,7 @@ import {
   textModel,
   workerMemory,
 } from "./document.js";
-import { applyEdit } from "./edit.js";
+import { applyEdit, editHistory, goToStep, restoreEdits } from "./edit.js";
 import { find, forgetSearch } from "./find.js";
 import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
 import { networkLog } from "./network.js";
@@ -40,7 +40,24 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     },
   },
   applyEdit: {
-    run: ([ops, id], { signal }) => applyEdit(ops as readonly Op[], id as number, signal),
+    run: ([ops, id, label], { signal }) =>
+      applyEdit(ops as readonly Op[], id as number, signal, label as string | undefined),
+  },
+  undoEdit: {
+    run: ([id], { signal }) => goToStep(editHistory(id as number).position - 1, id as number, signal),
+  },
+  redoEdit: {
+    run: ([id], { signal }) => goToStep(editHistory(id as number).position + 1, id as number, signal),
+  },
+  goToStep: {
+    run: ([position, id], { signal }) => goToStep(position as number, id as number, signal),
+  },
+  editHistory: {
+    run: ([id]) => editHistory(id as number),
+  },
+  restoreEdits: {
+    run: ([steps, undone, id], { signal }) =>
+      restoreEdits(steps as readonly ReplayedStep[], undone as number, id as number, signal),
   },
   pageInfo: {
     run: ([index], { signal }) => {

@@ -1,0 +1,72 @@
+// What the page keeps of an edit session so a restarted worker can take it back (ViewerClient's
+// restart): the ops of every step still in the document, with their labels and times, and the
+// history the worker last answered. The worker holds the session itself; this copy only ever
+// replays it into a new worker, which applies the steps again and undoes the undone ones.
+
+import type { Op } from "@laminapdf/sdk";
+import { type EditHistory, type EditResult, EMPTY_HISTORY, type ReplayedStep } from "./protocol.js";
+
+/** One step's ops, under the ID its worker gave it. */
+interface LoggedStep extends ReplayedStep {
+  readonly id: number;
+}
+
+/** The steps of the open document's edit session and how many of them are undone. */
+export class EditLog {
+  /** The steps the depth limit dropped from the history, oldest first: still part of the document. */
+  #dropped: ReplayedStep[] = [];
+  /** The history's steps, oldest first. */
+  #steps: LoggedStep[] = [];
+  #history: EditHistory = EMPTY_HISTORY;
+
+  /** The history the worker last answered. */
+  get history(): EditHistory {
+    return this.#history;
+  }
+
+  /** Whether there is anything a new worker would lose. */
+  get empty(): boolean {
+    return this.#dropped.length === 0 && this.#steps.length === 0;
+  }
+
+  /** Forgets everything: a document opened, closed, or its edits lost. */
+  reset(): void {
+    this.#dropped = [];
+    this.#steps = [];
+    this.#history = EMPTY_HISTORY;
+  }
+
+  /**
+   * Takes the worker's answer to a call: an edit's `ops` under the step it made, the oldest steps
+   * the depth limit dropped kept apart (they are still part of the document, so a replay needs
+   * them), and the steps the answer no longer lists forgotten.
+   */
+  take(result: EditResult, edit?: { readonly ops: readonly Op[]; readonly label: string }): void {
+    const { steps, dropped } = result.history;
+    const newest = steps.at(-1);
+    if (edit !== undefined && newest !== undefined && !this.#steps.some((s) => s.id === newest.id)) {
+      this.#steps.push({ id: newest.id, ops: edit.ops, label: newest.label, at: newest.at });
+    }
+    const newlyDropped = Math.max(0, dropped - this.#history.dropped);
+    for (const { ops, label, at } of this.#steps.splice(0, newlyDropped)) this.#dropped.push({ ops, label, at });
+    const kept = new Set(steps.map((s) => s.id));
+    this.#steps = this.#steps.filter((s) => kept.has(s.id));
+    this.#history = result.history;
+  }
+
+  /** What a new worker replays: every step, and how many of the newest to undo after. */
+  replay(): { readonly steps: readonly ReplayedStep[]; readonly undone: number } {
+    const { steps, position } = this.#history;
+    return {
+      steps: [...this.#dropped, ...this.#steps.map(({ ops, label, at }) => ({ ops, label, at }))],
+      undone: steps.length - position,
+    };
+  }
+
+  /** Takes a new worker's answer to the replay: its steps have new IDs, in the same order. */
+  replayed(result: EditResult): void {
+    const ids = result.history.steps.map((s) => s.id);
+    this.#steps = this.#steps.map((step, i) => ({ ...step, id: ids[i] ?? step.id }));
+    this.#history = result.history;
+  }
+}

@@ -2,13 +2,16 @@
 // the render document from the edited file, so a turned page draws turned and at its new size;
 // the viewer and its thumbnails redraw that page alone, and the other pages keep what they drew.
 // A metadata edit reopens and redraws nothing. A failed edit, a failed reopen or a failed undo
-// leaves the pages drawing as before, and a restarted worker draws the file as it was. Files read
-// range by range (from a link, or from their OPFS copy) take edits too.
+// leaves the pages drawing as before, and a restarted worker applies the edits again. Files read
+// range by range (from a link, or from their OPFS copy) take edits too. The edit session (the
+// worker's session methods) undoes and redoes through the same redraw, goes to any step in one
+// call, keeps 500 steps, records nothing for an edit that changed nothing, and refuses an
+// encrypted document.
 
 import { Builder, Font, init, type Op } from "@laminapdf/sdk";
 import { createViewer, ThumbnailStrip, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { addressOf, hook, next, read, rejection, testViewer } from "./helpers.js";
+import { addressOf, ENCRYPTED, hook, next, PASSWORD, read, rejection, testViewer } from "./helpers.js";
 
 const LETTER = [612, 792] as const;
 /** The red box on every page, in page points from the top-left: x, y, width, height. */
@@ -36,8 +39,8 @@ function threePages(): Uint8Array {
   return bytes;
 }
 
-/** Turns page `id` a quarter clockwise. */
-const turn = (id: string): Op[] => [{ op: "rotatePage", args: { page: id, rotate: 90 } } as Op];
+/** Turns page `id`, upright, a quarter clockwise (or to `rotate`: the op sets the rotation). */
+const turn = (id: string, rotate = 90): Op[] => [{ op: "rotatePage", args: { page: id, rotate } } as Op];
 
 /** The RGBA pixel of `source` at (`fx`, `fy`), fractions of its width and height. */
 function pixel(source: CanvasImageSource & { width: number; height: number }, fx: number, fy: number): number[] {
@@ -276,23 +279,32 @@ describe("redraw after an edit", () => {
     page.bitmap.close();
   });
 
-  it("draws the file as it was after the worker restarts, the edit gone", async () => {
+  it("takes the edits back after the worker restarts, with the same history", async () => {
     const client = await opened();
     const v = await showing(client);
-    await v.applyEdit(turn(client.document?.pages[1]?.id as string));
+    const id = client.document?.pages[1]?.id as string;
+    await v.applyEdit(turn(id), { label: "Rotate page 2" });
+    await v.applyEdit(turn(id, 180), { label: "Rotate page 2 again" });
+    await v.edits.undo();
     await sharp(v, 1);
     const restarted = next(client, "restarted");
 
     void hook(client, "__crash").catch(() => undefined);
-    expect(await restarted).toMatchObject({ reopened: true });
+    expect(await restarted).toMatchObject({ reopened: true, edits: "restored" });
 
     await sharp(v, 1);
+    const history = await client.editHistory();
+    expect([history.steps.map((s) => s.label), history.position]).toEqual([
+      ["Rotate page 2", "Rotate page 2 again"],
+      1,
+    ]);
+    expect(v.edits.getState().history.position).toBe(1);
     const shell = document.querySelector<HTMLElement>('.lamina-page[data-page-index="1"]') as HTMLElement;
-    expect(shell.offsetWidth / shell.offsetHeight).toBeCloseTo(612 / 792, 2);
-    expect(isRed(pixel(canvasOf(1), ...UPRIGHT))).toBe(true);
-    await expect
-      .poll(() => (thumbnails()[1]?.width ?? 1) < (thumbnails()[1]?.height ?? 0), { timeout: 20_000 })
-      .toBe(true);
+    expect(shell.offsetWidth / shell.offsetHeight).toBeCloseTo(792 / 612, 2);
+    expect(isRed(pixel(canvasOf(1), ...TURNED))).toBe(true);
+    // The undone step is still there to redo.
+    await v.edits.redo();
+    expect(client.document?.pages[1]).toMatchObject({ rotation: 180 });
   });
 
   it("edits a file read range by range: from a link, and from its OPFS copy", async () => {
@@ -312,5 +324,93 @@ describe("redraw after an edit", () => {
       expect(tile.width > tile.height).toBe(before.height > before.width);
       tile.bitmap.close();
     }
+  });
+});
+
+describe("the edit session", () => {
+  it("undoes a turn and redoes it, drawing the page each way", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const id = client.document?.pages[1]?.id as string;
+    await v.edits.apply(turn(id), "Rotate page 2");
+    await sharp(v, 1);
+
+    const undone = await v.edits.undo();
+    await sharp(v, 1);
+    expect(undone?.reverted).toEqual([expect.objectContaining({ way: "undo", outcome: "applied" })]);
+    expect(undone?.pages[0]).toMatchObject({ index: 1, width: 612, height: 792 });
+    expect(isRed(pixel(canvasOf(1), ...UPRIGHT))).toBe(true);
+    expect(v.edits.getState().history).toMatchObject({ position: 0, unsaved: 0 });
+
+    await v.edits.redo();
+    await sharp(v, 1);
+    expect(isRed(pixel(canvasOf(1), ...TURNED))).toBe(true);
+    expect(v.edits.getState().history).toMatchObject({ position: 1, unsaved: 1 });
+  });
+
+  it("lists each step with its label and page, and goes back to any of them in one call", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const ids = client.document?.pages.map((p) => p.id) as string[];
+    await v.edits.apply(turn(ids[0] as string), "Rotate page 1");
+    await v.edits.apply(turn(ids[2] as string), "Rotate page 3");
+    expect(v.edits.getState().history.steps.map((s) => [s.label, s.pages])).toEqual([
+      ["Rotate page 1", [0]],
+      ["Rotate page 3", [2]],
+    ]);
+    const events = invalidated(v);
+
+    const result = await v.edits.goTo(0);
+
+    expect(result?.reverted?.map((r) => r.step.label)).toEqual(["Rotate page 3", "Rotate page 1"]);
+    expect(events).toEqual([[0, 2]]);
+    expect(client.document?.pages.map((p) => p.rotation)).toEqual([0, 0, 0]);
+  });
+
+  it("records no step for an edit that changed nothing", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const title = [{ op: "setInfo", args: { patch: { title: "Same" } } } as Op];
+    await v.edits.apply(title, "Change the title");
+    await v.edits.apply(title, "Change the title");
+    expect(v.edits.getState().history.steps).toHaveLength(1);
+  });
+
+  it("keeps nothing to redo after an edit that couldn't be shown", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const id = client.document?.pages[1]?.id as string;
+    await v.edits.apply(turn(id), "Rotate page 2");
+    await v.edits.undo();
+    await hook(client, "__failNextReopen");
+
+    await rejection(v.edits.apply(turn(id), "Rotate page 2"));
+
+    expect(v.edits.getState().history).toMatchObject({ steps: [], position: 0 });
+    expect(await v.edits.redo()).toBeUndefined();
+    expect(client.document?.pages[1]).toMatchObject({ rotation: 0 });
+  });
+
+  it("keeps 500 steps: the 501st drops the oldest, and the file as opened can't be reached again", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    for (let i = 1; i <= 501; i++) {
+      await v.edits.apply([{ op: "setInfo", args: { patch: { title: `Title ${i}` } } } as Op], `Title ${i}`);
+    }
+    const { history } = v.edits.getState();
+    expect([history.steps.length, history.dropped, history.steps[0]?.label]).toEqual([500, 1, "Title 2"]);
+
+    await v.edits.goTo(0);
+
+    expect(v.edits.getState().history).toMatchObject({ position: 0, unsaved: 1 });
+    expect((await client.properties()).title).toBe("Title 1");
+  }, 120_000);
+
+  it("refuses to edit an encrypted document, which says so when it opens", async () => {
+    rpc = await testViewer("pdfium");
+    const opened = await rpc.open(await read(ENCRYPTED), { password: PASSWORD });
+    expect(opened.encrypted).toBe(true);
+    const error = await rejection(rpc.applyEdit(turn(opened.pages[0]?.id as string)));
+    expect(String((error as Error).message)).toContain("encrypted");
   });
 });

@@ -39,6 +39,7 @@ import { HttpRangeByteSource } from "../source/http-range.js";
 import { COPY_ABOVE, OpfsByteSource } from "../source/opfs.js";
 import { blobSource, readAll } from "../source.js";
 import { documentFingerprint, HEAD_BYTES } from "./fingerprint.js";
+import { newSession, type Session } from "./session.js";
 
 let backend: RenderBackend | undefined;
 /** Backends loaded or loading, by name; a failed load is forgotten, so the next call retries. */
@@ -81,13 +82,18 @@ export interface EditState {
   /** The revisions the edits appended to `source`, in order, each as its save wrote it. */
   readonly appended: Uint8Array[];
   /**
-   * The edits a text-capable copy has yet to apply, oldest first: kept only while there is a copy,
-   * or one may be opened, so a document that reads its own text keeps none.
+   * The edits, undos and redos a text-capable copy has yet to make, oldest first: kept only while
+   * there is a copy, or one may be opened, so a document that reads its own text keeps none.
    */
-  readonly pending: (readonly Op[])[];
+  readonly pending: EditAction[];
   /** Set when an edit failed and couldn't be undone: the model and the pages drawn may differ. */
   diverged: boolean;
+  /** The edit session's history (session.ts). */
+  readonly session: Session;
 }
+
+/** What the model did that a text-capable copy does after it: an edit's ops, an undo or a redo. */
+export type EditAction = readonly Op[] | "undo" | "redo";
 
 /**
  * Rounds of fetching a call may need before it gives up with its last `data-pending`: the SDK's
@@ -193,13 +199,13 @@ export async function textModel(signal: AbortSignal): Promise<Document> {
 }
 
 /**
- * Passes an edit the model committed to the text-capable copy (edit.ts calls it after each). The
- * model reads its text itself when it can, and then nothing is kept. A copy still opening applies
- * the edits once open; each call waits for the one before, so no edit is applied twice.
+ * Passes an edit, undo or redo the model committed to the text-capable copy (edit.ts calls it
+ * after each). The model reads its text itself when it can, and then nothing is kept. A copy still
+ * opening makes them once open; each call waits for the one before, so none is made twice.
  */
-export function followEdit(opened: Open, ops: readonly Op[]): void {
+export function followEdit(opened: Open, action: EditAction): void {
   if (opened.text === undefined && opened.reopen === undefined) return;
-  opened.edit.pending.push(ops);
+  opened.edit.pending.push(action);
   const text = opened.text;
   if (text === undefined) return;
   const synced = text.then(async (copy) => {
@@ -220,11 +226,12 @@ function dropUnfollowable(opened: Open): void {
   if (opened.text === undefined && opened.reopen === undefined) opened.edit.pending.length = 0;
 }
 
-/** Applies to `copy` the edits it hasn't applied yet, one transaction each, as the model did. */
+/** Makes in `copy` the edits, undos and redos it hasn't made yet, as the model did. */
 async function replayEdits(opened: Open, copy: Document): Promise<void> {
   const { pending } = opened.edit;
-  for (let ops = pending[0]; ops !== undefined; ops = pending[0]) {
-    await copy.ensure(() => copy.apply(ops));
+  for (let action = pending[0]; action !== undefined; action = pending[0]) {
+    const next = action;
+    await copy.ensure(() => (next === "undo" ? copy.undo() : next === "redo" ? copy.redo() : copy.apply(next)));
     pending.shift();
   }
 }
@@ -432,7 +439,7 @@ async function openFrom(
     id: nextDocument++,
     model,
     render,
-    edit: { source, renderLimits, appended: [], pending: [], diverged: false },
+    edit: { source, renderLimits, appended: [], pending: [], diverged: false, session: newSession() },
     remote,
     local: from.kind === "copy" ? from.source : undefined,
     reopen: reopenFor(model, from.kind === "memory" ? from.bytes : undefined, options),
@@ -444,6 +451,7 @@ async function openFrom(
     pages,
     id: open.id,
     needsPassword,
+    encrypted: model.isEncrypted,
     ...(fingerprint === undefined ? {} : { fingerprint }),
     backend: { name: engine.name, version: engine.version },
     ...(title === undefined || title === "" ? {} : { title }),
