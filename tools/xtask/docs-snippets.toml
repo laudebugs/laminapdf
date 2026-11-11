@@ -31,6 +31,10 @@ ts = "packages/sdk/examples/generate-then-edit.ts"
 rust = "crates/laminapdf/examples/generate_then_edit.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/edit-metadata.ts"
+rust = "crates/laminapdf/examples/edit_metadata.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/pdf-ua-report.ts"
 rust = "crates/laminapdf/examples/pdf_ua_report.rs"
 
@@ -49,6 +53,10 @@ rust = "crates/laminapdf/examples/markdown_to_pdf.rs"
 [[pair]]
 ts = "packages/sdk/examples/extract-markdown.ts"
 rust = "crates/laminapdf/examples/extract_markdown.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/invoice-from-json.ts"
+rust = "crates/laminapdf/examples/invoice_from_json.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/element-flow.ts"

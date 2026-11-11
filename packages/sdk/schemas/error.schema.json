@@ -32,6 +32,7 @@
             "invalid-op-log",
             "saved-not-rebased",
             "no-pending-save",
+            "malformed-xmp",
             "sink",
             "not-rebased",
             "sink-not-empty",
@@ -140,7 +141,7 @@
         },
         "docsUrl": {
           "description": "The code's explain page: base + code + suffix (ADR 0026 §6).",
-          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/laminapdf\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
+          "pattern": "^https:\\/\\/docs\\.laminapdf\\.com\\/reference\\/codes\\/[a-z0-9-]+\\/$",
           "type": "string"
         },
         "hint": {
@@ -266,6 +267,9 @@
             "extract-untagged-content",
             "extract-needs-ocr",
             "extract-column-order-uncertain",
+            "pdfa-one-author",
+            "pdfua-title-missing",
+            "pdfa-info-mismatch",
             "tounicode-conflict",
             "whole-font-rebuilt",
             "flow-keep-broken",
@@ -283,7 +287,7 @@
         "didYouMean": false,
         "docsUrl": {
           "description": "The code's explain page: base + code + suffix (ADR 0026 §6).",
-          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/laminapdf\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
+          "pattern": "^https:\\/\\/docs\\.laminapdf\\.com\\/reference\\/codes\\/[a-z0-9-]+\\/$",
           "type": "string"
         },
         "hint": {

@@ -45,7 +45,7 @@ The cadence is at most one release a day, set by the nightly. A release on every
 
 ## 5. Risks
 
-- **The bot's key is a repository secret.** Any workflow on a same-repository pull request can read repository secrets, and environments that would fence them off aren't available to a private repository on the owner's plan. The app gets only contents and pull-request permissions on this one repository, and the owner can revoke it in one step.
+- **The bot's key is a repository secret.** Any workflow on a same-repository pull request can read repository secrets, and environments that would fence them off weren't available while the repository was private; now that it is public, the key can move into the `release` environment (the [architecture plan](architecture.md)'s release to-do). The app gets only contents and pull-request permissions on this one repository, and the owner can revoke it in one step.
 - **A version pull request can conflict.** Pull requests merged after the nightly's commit may touch the same lines, most likely in `Cargo.lock`. The release is published by then, so the fix is a merge of `main` into the branch. The next day's release waits until the pull request has merged.
 - **A second-level name needs its own certificate.** Cloudflare's universal certificate covers `*.laminapdf.com` but not `*.docs.laminapdf.com`. A Workers custom domain issues its own, so `next.docs.laminapdf.com` needs nothing more (P4 checked).
 - **GitHub-hosted minutes.** The npm job is the project's first on a GitHub-hosted runner. It downloads the tarballs and publishes them, a few minutes a release, and runs no code from the repository.

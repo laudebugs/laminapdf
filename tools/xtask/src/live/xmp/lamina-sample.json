@@ -1,0 +1,38 @@
+{
+  "tool": "lamina",
+  "version": "0.1.0",
+  "reports_repair": false,
+  "facts": {
+    "broken.pdf": { "outcome": "failed", "error": "missing-root", "packet": null, "fields": {} },
+    "differs.pdf": {
+      "outcome": "opened",
+      "packet": "parsed",
+      "fields": {
+        "title": "Final",
+        "authors": ["Grace Hopper"],
+        "keywords": "2024",
+        "creator_tool": "Writer",
+        "modify_date": "2026-10-28T15:30:00Z",
+        "pdfua_part": 1
+      }
+    },
+    "noxmp.pdf": { "outcome": "opened", "packet": "absent", "fields": {} },
+    "panics.pdf": { "outcome": "panic", "packet": null, "fields": {} },
+    "plain.pdf": { "outcome": "opened", "packet": "malformed", "fields": {} },
+    "same.pdf": {
+      "outcome": "opened",
+      "packet": "parsed",
+      "fields": {
+        "title": "Quarterly report",
+        "authors": ["Ada Lovelace", "Charles Babbage"],
+        "producer": "Lamina PDF 0.1.0",
+        "create_date": "2026-10-28T14:30:00+01:00",
+        "document_id": "uuid:6b1f7c2e-1d3a-4f6b-9a8e-2c4d5e6f7a8b",
+        "instance_id": "uuid:0f9e8d7c-6b5a-4938-8271-605f4e3d2c1b",
+        "pdfa_part": 2,
+        "pdfa_conformance": "B"
+      }
+    },
+    "unreadable.pdf": { "outcome": "opened", "packet": "absent", "fields": {} }
+  }
+}

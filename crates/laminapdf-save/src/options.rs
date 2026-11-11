@@ -5,6 +5,8 @@
 
 use std::collections::BTreeMap;
 
+use laminapdf_model::PdfDate;
+
 use crate::constraint::SignatureInfo;
 
 /// The 20-byte cross-reference entry ends with a two-byte EOL; both forms are legal (§7.5.4).
@@ -101,6 +103,8 @@ pub struct SaveOptions {
     renumber: Renumber,
     xref: XrefKind,
     eol: XrefEol,
+    metadata_date: Option<PdfDate>,
+    instance_id: Option<[u8; 16]>,
 }
 
 impl Default for SaveOptions {
@@ -122,6 +126,8 @@ impl SaveOptions {
             renumber: Renumber::Keep,
             xref: XrefKind::Stream,
             eol: XrefEol::CrLf,
+            metadata_date: None,
+            instance_id: None,
         }
     }
 
@@ -187,6 +193,54 @@ impl SaveOptions {
         self
     }
 
+    /// When the save happens, as the shell's clock reads it: a save that writes changes stamps
+    /// it as `xmp:MetadataDate`, `xmp:ModifyDate` and Info's `/ModDate`, and gives the XMP
+    /// packet a new `xmpMM:InstanceID` (E1 plan §2). The core never reads a clock, so without
+    /// this (or [`SaveOptions::with_instance_id`]) a save stamps nothing.
+    ///
+    /// The stamp is an op of class `Metadata` like any other: when it would break a signature's
+    /// restriction the pending changes don't already break, the save leaves it out and says so
+    /// ([`SaveReport::metadata_not_updated`]). It is never on the undo history.
+    ///
+    /// ```
+    /// use laminapdf_save::SaveOptions;
+    ///
+    /// let options = SaveOptions::new().with_metadata_date("D:20261110093000Z".parse()?);
+    /// assert!(options.metadata_date().is_some());
+    /// # Ok::<(), laminapdf_model::InvalidDate>(())
+    /// ```
+    #[must_use]
+    pub const fn with_metadata_date(mut self, date: PdfDate) -> Self {
+        self.metadata_date = Some(date);
+        self
+    }
+
+    /// The `xmpMM:InstanceID` the save writes, as the 16 bytes of a UUID (written
+    /// `uuid:xxxxxxxx-xxxx-…`). Without it, a save that stamps derives one from the content it
+    /// writes, so the same edits give the same bytes.
+    #[must_use]
+    pub const fn with_instance_id(mut self, id: [u8; 16]) -> Self {
+        self.instance_id = Some(id);
+        self
+    }
+
+    /// See [`SaveOptions::with_metadata_date`].
+    #[must_use]
+    pub const fn metadata_date(&self) -> Option<PdfDate> {
+        self.metadata_date
+    }
+
+    /// See [`SaveOptions::with_instance_id`].
+    #[must_use]
+    pub const fn instance_id(&self) -> Option<[u8; 16]> {
+        self.instance_id
+    }
+
+    /// Whether a save that writes changes stamps the save-time metadata.
+    pub(crate) const fn stamps_metadata(&self) -> bool {
+        self.metadata_date.is_some() || self.instance_id.is_some()
+    }
+
     /// See [`SaveOptions::with_mode`].
     #[must_use]
     pub const fn mode(&self) -> SaveMode {
@@ -239,6 +293,16 @@ pub struct SaveReport {
     pub(crate) append_offset: Option<u64>,
     pub(crate) invalidated: Vec<SignatureInfo>,
     pub(crate) encryption_removed: bool,
+    pub(crate) metadata: MetadataFlags,
+}
+
+/// What a save did with the document's metadata ([`SaveReport::metadata_updated`] and the
+/// two after it).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct MetadataFlags {
+    pub(crate) updated: bool,
+    pub(crate) not_updated: bool,
+    pub(crate) packet_rewritten: bool,
 }
 
 impl SaveReport {
@@ -279,5 +343,27 @@ impl SaveReport {
     #[must_use]
     pub const fn encryption_removed(&self) -> bool {
         self.encryption_removed
+    }
+
+    /// Whether the save stamped the save-time metadata ([`SaveOptions::with_metadata_date`]).
+    #[must_use]
+    pub const fn metadata_updated(&self) -> bool {
+        self.metadata.updated
+    }
+
+    /// Whether the options asked for the save-time metadata and the save left it out, because
+    /// writing it would have broken a signature's restriction that the saved changes keep (a
+    /// form fill on a certified file, which allows form filling but not metadata changes). The
+    /// file's Info and `/Metadata` are as the changes left them.
+    #[must_use]
+    pub const fn metadata_not_updated(&self) -> bool {
+        self.metadata.not_updated
+    }
+
+    /// Whether an edit saved here rewrote the XMP packet whole, because it was UTF-16 or marked
+    /// read-only (`end="r"`): every property is kept, the packet's layout and comments are not.
+    #[must_use]
+    pub const fn packet_rewritten(&self) -> bool {
+        self.metadata.packet_rewritten
     }
 }

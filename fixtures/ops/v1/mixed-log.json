@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "ops": [
+    { "op": "setInfo", "args": { "patch": { "title": "Draft" } } },
+    { "op": "setMetadata", "args": { "patch": { "title": "Quarterly figures", "authors": ["Ada Lovelace"] }, "at": "D:20261110093000Z" } },
+    { "op": "removeMetadata", "args": { "keys": ["producer"] } }
+  ]
+}

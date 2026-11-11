@@ -273,6 +273,16 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
         Warning::Redaction(w) => redaction_warning(w),
         #[cfg(feature = "text")]
         Warning::Build(w) => build_warning(w),
+        Warning::Conformance(w) => conformance_warning(w),
+    }
+}
+
+fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
+    use laminapdf_ops::ConformanceWarning as W;
+    match w {
+        W::PdfaOneAuthor { authors } => data([("authors", json!(authors))]),
+        W::PdfaInfoMismatch { keys } => data([("keys", json!(keys))]),
+        _ => Data::new(),
     }
 }
 

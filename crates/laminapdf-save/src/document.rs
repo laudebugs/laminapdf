@@ -7,14 +7,15 @@
 use std::sync::Arc;
 
 use laminapdf_cos::{ByteSource, Source, SourceError};
-use laminapdf_ops::{Document, PendingRebase, SaveState};
+use laminapdf_ops::{Document, Origin, PendingRebase, SaveState, UpdateSaveMetadata};
 
 use crate::detect::Patches;
 use crate::error::{Result, SaveError, SavedOutput};
 use crate::full::FullWriter;
+use crate::id::{derived_instance_id, uuid};
 use crate::incremental::IncrementalWriter;
 use crate::options::{SaveMode, SaveOptions, SaveReport};
-use crate::planner::{SavePlan, SavePlanner};
+use crate::planner::{MetadataUpdate, SavePlan, SavePlanner};
 use crate::sink::{ReadableSink, WriteSink};
 
 /// Saving a [`laminapdf_ops::Document`] ([ADR 0007] §1): [`Save::plan`] shows how a save would
@@ -45,7 +46,7 @@ use crate::sink::{ReadableSink, WriteSink};
 /// objects, clears it ([`PendingRebase::ClearHistory`]).
 ///
 /// ```
-/// use laminapdf_ops::{Document, InfoPatch, Origin, SaveState, SetInfo};
+/// use laminapdf_ops::{Document, MetadataPatch, Origin, SaveState, SetMetadata};
 /// use laminapdf_save::{Save, SaveMode, SaveOptions};
 /// # use laminapdf_cos::{Dict, Object};
 /// # use laminapdf_save::test_support::Writer;
@@ -55,7 +56,7 @@ use crate::sink::{ReadableSink, WriteSink};
 /// # let bytes = w.finish(&[("Root", root)].into_iter().collect())?;
 ///
 /// let mut doc = Document::open(bytes.clone(), Default::default())?;
-/// doc.apply_all(Origin::Local, [SetInfo::patch(InfoPatch::new().title(Some("Report"))).into()])?;
+/// doc.apply_all(Origin::Local, [SetMetadata::new(MetadataPatch::new().title(Some("Report")), None).into()])?;
 ///
 /// let mut out = Vec::new();
 /// let report = doc.save(&mut out, &SaveOptions::new())?; // Auto: incremental here
@@ -123,22 +124,74 @@ enum Written {
 }
 
 /// Plans and writes: the shared part of [`Save::save`] and [`Save::save_and_rebase`].
+///
+/// When the plan stamps the save-time metadata, the stamp is applied in a transaction of its
+/// own ([`Origin::System`]: never on the undo history) that stays open while the writer runs:
+/// committed once the bytes are written, rolled back when writing fails, so a failed save leaves
+/// the document as it was.
 fn write<S: WriteSink + ?Sized>(doc: &mut Document, sink: &mut S, options: SaveOptions) -> Result<Written> {
     ready(doc)?;
     let planner = SavePlanner::new(doc)?;
     let plan = planner.plan(&options)?;
-    let patches = planner.patches(doc.cos(), &plan)?;
-    let mut report = if plan.mode() == SaveMode::Incremental {
-        write_incremental(doc, sink, options, &patches).map(Written::Incremental)?
-    } else {
-        FullWriter::new(doc.cos(), options)
-            .with_patches(&patches)
-            .write(sink)
-            .map(Written::Full)?
-    };
+    // Whether the stamp changed anything: a file without a packet and a save without a date
+    // has nothing to stamp, and the report must say so.
+    let stamped = *plan.metadata_update() == MetadataUpdate::Stamp && stamp(doc, &options)?;
+    let result = write_planned(doc, sink, options, &planner, &plan, stamped);
+    if result.is_err() && doc.in_transaction() {
+        // The writer failed before the stamp was committed; a failed rollback leaves the
+        // transaction closed, and the error to report is the writer's.
+        let _ = doc.rollback();
+    }
+    let mut report = result?;
     let (Written::Incremental(r) | Written::Full(r)) = &mut report;
     r.invalidated = plan.would_invalidate().to_vec();
+    r.metadata.updated = stamped;
+    r.metadata.not_updated = matches!(plan.metadata_update(), MetadataUpdate::Skipped { .. });
+    r.metadata.packet_rewritten = plan.packet_rewritten();
     Ok(report)
+}
+
+/// Opens the stamp's transaction and applies [`UpdateSaveMetadata`] in it; returns whether it
+/// changed anything (the transaction is left open only then).
+fn stamp(doc: &mut Document, options: &SaveOptions) -> Result<bool> {
+    let id = match options.instance_id() {
+        Some(id) => id,
+        None => derived_instance_id(doc.cos())?,
+    };
+    let op = UpdateSaveMetadata::new(options.metadata_date(), uuid(id));
+    doc.begin(Origin::System)?;
+    match doc.apply(op) {
+        Ok(applied) if !applied.undo.is_empty() => Ok(true),
+        Ok(_) => {
+            doc.rollback()?;
+            Ok(false)
+        }
+        Err(e) => {
+            doc.rollback()?;
+            Err(e.into())
+        }
+    }
+}
+
+/// Writes the planned save; commits the stamp's transaction once the bytes are written.
+fn write_planned<S: WriteSink + ?Sized>(
+    doc: &mut Document,
+    sink: &mut S,
+    options: SaveOptions,
+    planner: &SavePlanner,
+    plan: &SavePlan,
+    stamped: bool,
+) -> Result<Written> {
+    let patches = planner.patches(doc.cos(), plan)?;
+    if plan.mode() == SaveMode::Incremental {
+        write_incremental(doc, sink, options, &patches, stamped).map(Written::Incremental)
+    } else {
+        let report = FullWriter::new(doc.cos(), options).with_patches(&patches).write(sink)?;
+        if stamped {
+            doc.commit()?;
+        }
+        Ok(Written::Full(report))
+    }
 }
 
 /// The incremental writer, then the rebase onto old base ‖ revision.
@@ -147,10 +200,14 @@ fn write_incremental<S: WriteSink + ?Sized>(
     sink: &mut S,
     options: SaveOptions,
     patches: &Patches,
+    stamped: bool,
 ) -> Result<SaveReport> {
     let saved = IncrementalWriter::new(doc.cos(), options)
         .with_patches(patches)
         .write(sink)?;
+    if stamped {
+        doc.commit()?;
+    }
     let pending = if saved.freed_objects() {
         PendingRebase::ClearHistory
     } else {

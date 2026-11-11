@@ -13,23 +13,34 @@ import type { Instance } from "./internal/instance.js";
 import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
-import { Transaction } from "./transaction.js";
+import {
+  type MetadataEditOptions,
+  type MetadataRemoveOptions,
+  removeMetadataOp,
+  setMetadataOp,
+  Transaction,
+} from "./transaction.js";
 import type {
   DocumentInfo,
+  DocumentMetadata,
   DocumentProperties,
   Edited,
+  MetadataKey,
+  MetadataPatch,
   Op,
   OpenOptions,
   OpLog,
   OutlineNode,
   PageInfo,
   PageLink,
+  PlannedSave,
   Progress,
   Reverted,
   SaveOptions,
   SaveReport,
   StructureNode,
   Target,
+  Violation,
 } from "./types.js";
 
 function isThenable(value: unknown): boolean {
@@ -636,6 +647,63 @@ export class Document extends Handle<BaseGlue> {
     if (this.#transacting) {
       throw packageError("nested-transaction", `${call} was called inside a transaction of the same document`);
     }
+  }
+
+  /**
+   * The document's metadata (title, authors, subject, keywords, creator and producer tools,
+   * dates), read from its Info dictionary and its XMP metadata together, with the fields where
+   * they disagree and the PDF/A and PDF/UA levels it claims.
+   *
+   * @throws {@link LaminaPdfError} reading errors.
+   */
+  metadata(): DocumentMetadata {
+    return this.call(() => this.#doc.metadata());
+  }
+
+  /**
+   * Edits the document's metadata in one transaction, writing its Info dictionary and its XMP
+   * metadata together (`setMetadata`). A document without XMP metadata gets it.
+   *
+   * @param patch - the fields to set (a value) or remove (`null`); authors are a list.
+   * @param options - `at`: the modification date to record (a PDF date, from your clock);
+   *   `replaceMalformed`: replace XMP metadata that can't be read, losing what it held.
+   * @throws {@link LaminaPdfError} `malformed-xmp` when the XMP metadata can't be read and
+   *   `replaceMalformed` isn't set; as {@link Document.apply}.
+   */
+  setMetadata(patch: MetadataPatch, options?: MetadataEditOptions): Edited {
+    return this.apply([setMetadataOp(patch, options)]);
+  }
+
+  /**
+   * Removes metadata fields from the Info dictionary and the XMP metadata (`removeMetadata`).
+   * The file's earlier revisions keep the old values until a full rewrite
+   * (`save({ mode: "fullRewrite" })`); the result's `stillInEarlierRevisions` says when.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.setMetadata}.
+   */
+  removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Edited {
+    return this.apply([removeMetadataOp(keys, options)]);
+  }
+
+  /**
+   * How a save with `options` would go, without saving: the save strip's constraint, the
+   * signatures and the edits they forbid, the mode or the refusal code, and the
+   * conformance warnings. A save that would be refused is a plan with a `refusal`, not an error.
+   *
+   * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for bad options; reading errors.
+   */
+  plan(options?: SaveOptions): PlannedSave {
+    return this.call(() => this.#doc.plan(options));
+  }
+
+  /**
+   * The signature restrictions `op` would break if it were applied and saved: for warning
+   * before an edit (a metadata change on a certified file, for example).
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for a value that isn't an op; reading errors.
+   */
+  wouldViolate(op: Op): Violation[] {
+    return this.call(() => this.#doc.wouldViolate(op));
   }
 
   /**

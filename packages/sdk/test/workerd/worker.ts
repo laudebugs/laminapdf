@@ -4,12 +4,15 @@
 // isolate: hello-first is then cold and the WebAssembly memory is the hello and report runs'
 // alone (memory never shrinks).
 import { init } from "@laminapdf/sdk";
+import invoiceTemplate from "../../../../fixtures/documents/invoice.json" with { type: "json" };
+import invoiceData from "../../../../fixtures/documents/invoice-data.json" with { type: "json" };
 import notoSans from "../../../../fixtures/fonts/NotoSans-Regular.ttf";
 import notoSansCollection from "../../../../fixtures/fonts/NotoSans-RegularBold.ttc";
 import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.ttf";
 import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Regular.ttf";
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
+import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
 import flowReport from "../../../../fixtures/text/element-flow-report.json" with { type: "json" };
@@ -29,10 +32,13 @@ const inputs: Inputs = {
       "fixtures/images/photo-rgb.jpg": photo,
       "fixtures/fonts/NotoSans-RegularBold.ttc": notoSansCollection,
       "fixtures/markdown/report.md": report,
+      "fixtures/golden/metadata.pdf": metadataPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),
   // The element-flow report comes in as a JSON module; the suite reads every input as bytes.
   "fixtures/text/element-flow-report.json": new TextEncoder().encode(JSON.stringify(flowReport)),
+  "fixtures/documents/invoice.json": new TextEncoder().encode(JSON.stringify(invoiceTemplate)),
+  "fixtures/documents/invoice-data.json": new TextEncoder().encode(JSON.stringify(invoiceData)),
 };
 const missing = missingInputs(inputs, INPUT_PATHS);
 if (missing.length > 0) throw new Error(`test/workerd/worker.ts doesn't bundle ${missing.join(", ")}`);

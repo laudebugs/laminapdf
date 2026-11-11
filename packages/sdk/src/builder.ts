@@ -20,6 +20,7 @@ import {
   type TableScope,
   type TagName,
 } from "./generated/builder-enums.js";
+import type { FlowDocument } from "./generated/document.js";
 import { type BaseGlue, readingModule, type TextGlue, textModule } from "./init.js";
 import { disposable, forget, Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
@@ -224,6 +225,53 @@ export interface MarkdownOptions {
   readonly contents?: number;
   /** The pages (default A4, 56-point margins, "Page {page} of {pages}" in the footer). */
   readonly page?: PageTemplate;
+}
+
+/** A pointer into the data (`"/items"`) or, inside an `$each`, into the current item. */
+type DataPointer = string | { readonly $item: string };
+
+/** A value a template fills in: `{ $data: "/invoice/number" }`, or `{ $item: "/name" }` inside an `$each`. */
+type ValuePlaceholder = { readonly $data: string } | { readonly $item: string };
+
+/** What a list placeholder's `do` adds to its list: an item, another list placeholder, or several of either. */
+type ListBody<T> = Templated<T> | ListPlaceholder<T> | readonly (Templated<T> | ListPlaceholder<T>)[];
+
+/** In a list, `do` once per item of a list in the data (`$each`), or only when a value is there and isn't `false` or `null` (`$if`). They nest, as `fill` reads them. */
+type ListPlaceholder<T> =
+  | { readonly $each: DataPointer; readonly do: ListBody<T> }
+  | { readonly $if: DataPointer; readonly do: ListBody<T> };
+
+/**
+ * Keys kept as written in a template. `type` and `schema` say what an object is, so a misspelt key
+ * elsewhere in a block is reported as that, not as a type mismatch; `profiles` is read before
+ * filling, to give the builder the profiles the template asks for.
+ */
+type AsWritten = "type" | "schema" | "profiles";
+
+/** `T` with a template's placeholders allowed where `fill` takes them: a value for text, numbers and `true`/`false`, a list placeholder among a list's items. `type`, `schema` and `profiles` are written as they are, with no placeholder. */
+export type Templated<T> = T extends readonly (infer U)[]
+  ? readonly (Templated<U> | ListPlaceholder<U>)[]
+  : T extends object
+    ? { readonly [K in keyof T]: K extends AsWritten ? T[K] : Templated<T[K]> }
+    : T | ValuePlaceholder;
+
+/** A `laminapdf.document/1` template: a {@link FlowDocument} whose values may be placeholders that {@link Builder.flow} fills from data. Its `type`, `schema` and `profiles` take none: `profiles` is read before filling, for `new Builder({ profiles })`. */
+export type FlowTemplate = Templated<FlowDocument>;
+
+/** Options of {@link Builder.flow}. */
+export interface FlowOptions {
+  /** The data a template's placeholders read; without it, the document is read as it is. */
+  readonly data?: unknown;
+  /** The fonts the document's styles name, by name; without one, a style that names it fails with `unknown-font`. */
+  readonly fonts?: Readonly<Record<string, Font>>;
+  /** The images the document's figures name, by name. Nothing is fetched. */
+  readonly images?: Readonly<Record<string, Image>>;
+}
+
+/** What {@link Builder.flow} added. */
+export interface FlowReport {
+  /** The pages it added, in order, by ID. */
+  readonly pages: readonly string[];
 }
 
 /** What {@link Builder.markdown} added. */
@@ -827,6 +875,45 @@ export class Builder extends Handle<BaseGlue> {
         for (const [target, image] of pictures) resources.image(target, image);
         const record = template === undefined ? layout : { ...layout, page: template };
         return builder.markdown(markdown, resources, record) as MarkdownReport;
+      } finally {
+        resources.free();
+      }
+    });
+  }
+
+  /**
+   * Lays out a `laminapdf.document/1` document as tagged pages that flow, after any pages already
+   * added. Given `options.data`, the document is a template: its `$data`, `$item`, `$each` and
+   * `$if` placeholders are filled from the data first. The fonts and images it names come by
+   * name in `options`. Its `profiles` are the builder's to check: pass the same ones to
+   * `new Builder({ profiles })`. Its warnings are the finished document's.
+   * Needs the text module.
+   *
+   * @example
+   * ```ts
+   * const builder = new Builder({ profiles: ["PDF/UA-1"] });
+   * builder.flow(template, { data, fonts: { regular, bold } });
+   * ```
+   * @throws {@link LaminaPdfError} `text-module-not-loaded`; `unknown-option` for an unknown
+   *   option; `invalid-document` with the JSON Pointer at fault in its `data` and the closest
+   *   keys in `didYouMean`; `template-data-missing`, `template-data-type` and
+   *   `template-too-large` with the pointer in `data`; `unknown-font` and `unknown-image` for a
+   *   name `options` lacks; `missing-glyph`; `flow-content-too-large`; `builder-finished`.
+   */
+  flow(document: FlowTemplate, options: FlowOptions = {}): FlowReport {
+    if (!this.#text) {
+      throw packageError("text-module-not-loaded", "this builder was created without the text module");
+    }
+    const { fonts, images, ...rest } = options;
+    const named = Object.entries(fonts ?? {}).map(([name, font]) => [name, this.wasmFont(font)] as const);
+    const pictures = Object.entries(images ?? {}).map(([name, image]) => [name, this.wasmImage(image)] as const);
+    const builder = this.#builder;
+    return this.call((glue) => {
+      const resources = new (glue as unknown as TextGlue).WasmFlowResources();
+      try {
+        for (const [name, font] of named) resources.font(name, font);
+        for (const [name, image] of pictures) resources.image(name, image);
+        return builder.flow(document, resources, rest) as FlowReport;
       } finally {
         resources.free();
       }

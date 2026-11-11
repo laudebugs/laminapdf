@@ -1,0 +1,13 @@
+name: apt fails fast
+description: >-
+  Makes a failing apt try end sooner (docs/bugs/ci-apt-retry-kill-eperm): each download gets
+  30 s and 3 tries (`config.sh`). `linux-webkit` and `playwright-deps` run its `update.sh` inside
+  their retry instead: it writes the same config, then fails a try at once when an Ubuntu index
+  can't be fetched. They run no nested local action, so a release dispatch, which checks out
+  another ref, runs no more local actions than before. A no-op on macOS and Windows.
+runs:
+  using: composite
+  steps:
+    - if: runner.os == 'Linux'
+      shell: bash
+      run: bash "$GITHUB_ACTION_PATH/config.sh"

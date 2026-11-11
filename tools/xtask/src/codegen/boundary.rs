@@ -9,6 +9,8 @@
 //!   which laminapdf-render's `HayroBackend::version` must also return (checked here);
 //! - `packages/sdk/src/generated/extract.ts`: the `laminapdf.extract/1` JSON's types, from its
 //!   committed schema ([`super::schema_ts`]).
+//! - `packages/sdk/src/generated/document.ts`: the `laminapdf.document/1` types `builder.flow`
+//!   takes, from `laminapdf-build`'s committed schema.
 //!
 //! It reads source text, not a build, so `cargo xtask check docs` runs `--check`. The parser
 //! accepts only the literal shapes those files use and fails, naming the item, on anything else.
@@ -28,9 +30,11 @@ const CARGO_TOML: &str = "Cargo.toml";
 const RUST_HAYRO: &str = "crates/laminapdf-render/src/hayro.rs";
 
 const EXTRACT_SCHEMA: &str = "crates/laminapdf-extract/schemas/extract.schema.json";
+const DOCUMENT_SCHEMA: &str = "crates/laminapdf-build/schemas/document.schema.json";
 
 const SDK_ENUMS: &str = "packages/sdk/src/generated/builder-enums.ts";
 const SDK_EXTRACT: &str = "packages/sdk/src/generated/extract.ts";
+const SDK_DOCUMENT: &str = "packages/sdk/src/generated/document.ts";
 const HAYRO_VERSION: &str = "packages/render-hayro/src/generated/version.ts";
 
 /// One list: the Rust table it comes from (the TS list has the same name), its TS union type
@@ -84,6 +88,7 @@ pub(crate) fn generate(ws: &Workspace, check: bool) -> Result<()> {
         (SDK_ENUMS.to_owned(), render_sdk(&read(DTO)?, &read(TAG_KIND)?)?),
         (HAYRO_VERSION.to_owned(), render_hayro(&version)),
         (SDK_EXTRACT.to_owned(), render_extract(&read(EXTRACT_SCHEMA)?)?),
+        (SDK_DOCUMENT.to_owned(), render_document(&read(DOCUMENT_SCHEMA)?)?),
     ];
     super::write_outputs(ws, &outputs, check, "gen boundary", "the Rust source and Cargo.toml")
 }
@@ -180,6 +185,13 @@ fn render_sdk(dto: &str, tag_kind: &str) -> Result<String> {
         &tag_names(tag_kind)?,
     );
     Ok(out.trim_end().to_owned() + "\n")
+}
+
+/// The flow document's types from its schema.
+fn render_document(schema: &str) -> Result<String> {
+    let schema: serde_json::Value =
+        serde_json::from_str(schema).with_context(|| format!("parsing {DOCUMENT_SCHEMA}"))?;
+    super::schema_ts::render(&schema, "FlowDocument", HEADER, DOCUMENT_SCHEMA)
 }
 
 /// The extraction JSON's types from its schema.

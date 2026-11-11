@@ -142,10 +142,18 @@ describe(`print, download and properties in ${BROWSER}`, () => {
     const { page } = watched;
     await choose(watched, "fifty.pdf", pagesPdf(SIZES));
     // The service worker's own downloads of the reader's files while it installs aren't printing
-    // (Firefox reports them as the page's), so they are left out, as the network suite does.
+    // (Firefox reports them as the page's), so they are left out, as the network suite does. So is
+    // the extract module: the text layer starts its download once the first page draws, and on a
+    // slow run that download can still be starting when the print does.
     const requests: string[] = [];
     page.on("request", (request) => {
-      if (request.serviceWorker() === null && !/^(blob|data):/.test(request.url())) requests.push(request.url());
+      const url = request.url();
+      if (
+        request.serviceWorker() === null &&
+        !/^(blob|data):/.test(url) &&
+        !/\/lamina_pdf_extract-[^/]*\.wasm$/.test(url)
+      )
+        requests.push(url);
     });
     await page.keyboard.press("ControlOrMeta+p");
     const dialog = page.getByRole("dialog", { name: "Print" });

@@ -38,6 +38,7 @@ mod extract;
 mod memory;
 #[cfg(feature = "extract")]
 mod navigation;
+mod plan;
 #[cfg(feature = "extract")]
 mod properties;
 // Reader mode is for the reader, which loads the extract module: the text module (for builders)
@@ -51,7 +52,7 @@ mod text;
 #[cfg(feature = "build")]
 pub use builder::{WasmBuilder, WasmImage, WasmPageBuilder};
 #[cfg(feature = "text")]
-pub use builder::{WasmFont, WasmMarkdownOptions};
+pub use builder::{WasmFlowResources, WasmFont, WasmMarkdownOptions};
 pub use document::{WasmDocument, WasmPage, WasmSaveJob, WasmWarningCursor};
 pub use memory::allocation_failed;
 pub use source::WasmSparseSource;

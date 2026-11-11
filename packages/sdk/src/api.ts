@@ -5,6 +5,9 @@ export type {
   BlendMode,
   BuilderOptions,
   FillRule,
+  FlowOptions,
+  FlowReport,
+  FlowTemplate,
   LineCap,
   LineJoin,
   MarkdownFonts,
@@ -18,6 +21,7 @@ export type {
   Tag,
   TagName,
   TagSpec,
+  Templated,
   TextBoxOptions,
   TextOptions,
 } from "./builder.js";
@@ -69,6 +73,7 @@ export { ExtractJob, extractWithModels } from "./extract-job.js";
 export type { FontInfo, Standard14 } from "./font.js";
 export { Font, Image } from "./font.js";
 export type { ErrorCode, LimitName, WarningCode } from "./generated/codes.js";
+export type * from "./generated/document.js";
 export type { InitOptions, WasmMemory, WasmSource } from "./init.js";
 export { isExtractLoaded, isInitialized, isTextLoaded, reset, wasmMemory } from "./init.js";
 export type { Leak } from "./internal/handle.js";
@@ -92,7 +97,7 @@ export { callbackSource } from "./source/range.js";
 export type { GlyphQuad, QuadPoint, TextGlyph, TextOptions as PageTextOptions } from "./text.js";
 export { PageText, PageTextRun } from "./text.js";
 export type { InfoPatch, Rotation } from "./transaction.js";
-export { Transaction } from "./transaction.js";
+export { type MetadataEditOptions, type MetadataRemoveOptions, Transaction } from "./transaction.js";
 export type {
   AfRelationship,
   Align,
@@ -102,6 +107,7 @@ export type {
   Color,
   Direction,
   DocumentInfo,
+  DocumentMetadata,
   DocumentProperties,
   Edited,
   Fit,
@@ -109,6 +115,8 @@ export type {
   LineBox,
   LinkTarget,
   Metadata,
+  MetadataKey,
+  MetadataPatch,
   Op,
   OpenOptions,
   OpLog,
@@ -118,6 +126,7 @@ export type {
   PageInfo,
   PageLabel,
   PageLink,
+  PlannedSave,
   Point,
   Profile,
   Progress,
@@ -134,4 +143,5 @@ export type {
   TextRunInfo,
   UndoOutcome,
   ViewerPreferences,
+  Violation,
 } from "./types.js";

@@ -3,12 +3,14 @@
 // framework; each runner supplies the fixture bytes its own way (`runSuite`'s `read`, or the
 // Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
 // runtime produces the same bytes.
-import { type BuilderOptions, init, wasmMemory } from "@laminapdf/sdk";
+import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
+import { editMetadata } from "../../examples/edit-metadata.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
 import { invoice } from "../../examples/invoice.js";
+import { invoiceFromJson } from "../../examples/invoice-from-json.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";
 import { markdownToPdf } from "../../examples/markdown-to-pdf.js";
 import { multilingual } from "../../examples/multilingual.js";
@@ -49,14 +51,36 @@ const MARKDOWN_FONTS = [
   "fixtures/fonts/NotoSansArabic-Regular.ttf",
   "fixtures/fonts/NotoSansDevanagari-Regular.ttf",
 ] as const;
-/** The modification date generate-then-edit records, fixed like the options. */
+/** The invoice template, its data, and its bold face (the collection's second). */
+const JSON_INVOICE = ["fixtures/documents/invoice.json", "fixtures/documents/invoice-data.json"] as const;
+const BOLD = "fixtures/fonts/NotoSans-RegularBold.ttc";
+/** The modification date generate-then-edit and edit-metadata record, fixed like the options. */
 const EDITED_AT = "D:20261030130000Z";
+/** The document edit-metadata edits. */
+const METADATA_PDF = "fixtures/golden/metadata.pdf";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
   const bytes = inputs[path];
   if (bytes === undefined) throw new Error(`the runner did not supply ${path}`);
   return bytes;
+}
+
+/** A JSON input, parsed. */
+function json(inputs: Inputs, path: string): unknown {
+  return JSON.parse(new TextDecoder().decode(input(inputs, path)));
+}
+
+/** The two-page invoice, filled from its data. Needs `init({ text: true })`. */
+function buildInvoiceFromJson(inputs: Inputs): Uint8Array {
+  const [template, data] = JSON_INVOICE.map((p) => json(inputs, p));
+  return invoiceFromJson(
+    template as FlowTemplate,
+    data,
+    input(inputs, NOTO),
+    input(inputs, BOLD),
+    exampleOptions("lamina-ex-jsoniv"),
+  );
 }
 
 /** The report of `FLOW_REPORT`, as the runner supplied it. */
@@ -118,6 +142,12 @@ export const EXAMPLES: readonly Example[] = [
     inputs: [],
     build: () => generateThenEdit(exampleOptions("lamina-ex-edit!!"), EDITED_AT),
   },
+  {
+    name: "edit-metadata",
+    golden: "edit_metadata",
+    inputs: [METADATA_PDF],
+    build: (i) => editMetadata(input(i, METADATA_PDF), EDITED_AT),
+  },
   { name: "pdf-ua-report", golden: "pdf_ua_report", inputs: [NOTO], build: (i) => pdfUaReport(input(i, NOTO)) },
   {
     name: "pdf-a-archive-2b",
@@ -142,6 +172,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "element_flow",
     inputs: [PHOTO, FLOW_REPORT],
     build: (i) => elementFlow(input(i, PHOTO), flowReport(i), exampleOptions("lamina-ex-flow!!")),
+  },
+  {
+    name: "invoice-from-json",
+    golden: "invoice_from_json",
+    inputs: [...JSON_INVOICE, NOTO, BOLD],
+    build: buildInvoiceFromJson,
   },
 ];
 
@@ -255,7 +291,7 @@ export interface Measurement {
   readonly runtime: string;
   /**
    * `hello-first` (the first call after `init()`), `hello` (median), `invoice` (median),
-   * `report` (median), or
+   * `invoice-from-json` (best of 30, ADR 0032 §9's figure), `report` (median), or
    * `wasm-memory` (both modules' linear memory after the reports: memory never shrinks, so this
    * is its peak; hello() and report() free their builder and document, so it is one run's peak,
    * not the garbage collector's backlog).
@@ -271,6 +307,13 @@ const MEASUREMENT_PREFIX = "LAMINA_PDF_MEASUREMENT ";
 /** Prints `m` on its own line for `cargo xtask pdf-runtimes`. */
 export function printMeasurement(m: Measurement): void {
   console.info(`${MEASUREMENT_PREFIX}${JSON.stringify(m)}`);
+}
+
+/** The example named `name`, else an error. */
+function example(name: string): Example {
+  const found = EXAMPLES.find((e) => e.name === name);
+  if (found === undefined) throw new Error(`the suite has no ${name} example`);
+  return found;
 }
 
 /** The median; for an even count, the mean of the two middle values. */
@@ -292,10 +335,11 @@ export async function difference(actual: Uint8Array, golden: Uint8Array): Promis
 
 /**
  * Times hello (the first call after `init()`, then the median of 20), the invoice example (the
- * median of 20; its bytes are checked against the Rust golden by the suite's own test) and the
+ * median of 20; its bytes are checked against the Rust golden by the suite's own test), the
+ * two-page invoice filled from JSON (the best of 30) and the
  * 100-page report (median of 3) with `performance.now()`. Returns the report's bytes, for the hash check.
  * Needs `init({ text: true })`, and must run first in a fresh module instance (before any other
- * example): then `hello-first` is cold and `wasm-memory` is the hello, invoice and report runs' alone.
+ * example): then `hello-first` is cold and `wasm-memory` is the timed runs' alone.
  *
  * @param settle - awaited before reading the clock at the start and the end of each sample: in
  *   workerd the clock only advances across I/O, so the Worker passes a zero-length timer; elsewhere
@@ -316,10 +360,12 @@ export async function measure(
   const first = await time(() => hello(HELLO_OPTIONS));
   const hellos: number[] = [];
   for (let i = 0; i < 20; i++) hellos.push(await time(() => hello(HELLO_OPTIONS)));
-  const invoiceExample = EXAMPLES.find((e) => e.name === "invoice");
-  if (invoiceExample === undefined) throw new Error("the suite has no invoice example");
+  const invoiceExample = example("invoice");
   const invoices: number[] = [];
   for (let i = 0; i < 20; i++) invoices.push(await time(() => invoiceExample.build(inputs)));
+  const fromJson = example("invoice-from-json");
+  const filled: number[] = [];
+  for (let i = 0; i < 30; i++) filled.push(await time(() => fromJson.build(inputs)));
   // report() returns a JS copy of the saved bytes and frees its document, so the last run's
   // bytes stay valid for the hash check.
   let bytes: Uint8Array = new Uint8Array();
@@ -337,6 +383,7 @@ export async function measure(
       { runtime, case: "hello-first", value: first },
       { runtime, case: "hello", value: median(hellos) },
       { runtime, case: "invoice", value: median(invoices) },
+      { runtime, case: "invoice-from-json", value: Math.min(...filled) },
       { runtime, case: "report", value: median(reports) },
       { runtime, case: "wasm-memory", value: (memory.base ?? 0) + (memory.text ?? 0) },
     ],

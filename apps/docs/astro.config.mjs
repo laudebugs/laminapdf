@@ -6,28 +6,37 @@
 // @laminapdf/site-kit fills the CSP's inline-script hashes into dist/_headers, as for the website.
 //
 // Build-time settings (environment variables):
-// - LAMINA_PDF_DOCS_GITHUB=1 adds the links to GitHub (the repository in the header, "Edit page",
-//   TypeDoc's "Defined in" source links). Off by default: while the repository is private they
-//   would 404 for readers.
 // - LAMINA_PDF_DOCS_TYPEDOC=0 leaves the TypeDoc reference out (the package's `typecheck` uses it,
 //   so the TypeScript checks generate the reference only once, in the build).
 // - LAMINA_PDF_ENV=production builds the released docs, docs.laminapdf.com: the header names the
 //   version. Every other build (next.docs.laminapdf.com, the previews, a local build) says on every
-//   page that it describes unreleased changes, and is noindex (plugins/release.mjs).
+//   page that it describes unreleased changes, and is noindex (plugins/release.mjs). Every build
+//   lets crawlers in (robots.txt), so they read that noindex; only the released docs name a sitemap.
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
 import { inlineScriptHashes, pageFiles, previewNoindex } from "@laminapdf/site-kit/integrations";
+import { robots } from "@laminapdf/site-kit/robots";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 import { agentDocs, packageVersion } from "./plugins/agent-docs.mjs";
 import { cliDownloadChecks } from "./plugins/cli-downloads.mjs";
-import { checkedLinks, examplePdfs, WEBSITE_ICONS, websiteIcons } from "./plugins/integrations.mjs";
+import {
+  checkedLinks,
+  codePages,
+  examplePdfs,
+  repositoryLinks,
+  WEBSITE_ICONS,
+  websiteIcons,
+} from "./plugins/integrations.mjs";
 import { releaseChecks, versionInPages } from "./plugins/release.mjs";
-import { GITHUB, REPOSITORY } from "./plugins/repository.mjs";
+import { EDIT_BASE, REPOSITORY } from "./plugins/repository.mjs";
 import { sidebar, sidebarRoutes } from "./plugins/sidebar.mjs";
+import { sourceRevision, TYPEDOC_OUTPUT } from "./plugins/typedoc-sources.mjs";
 
 const ROOT = new URL("../../", import.meta.url);
+/** Production's address, which every error's `docsUrl` starts with (fixtures/codes.json). */
+const SITE = "https://docs.laminapdf.com";
 /** The website's pages: the shared header links to one only once it exists (W1d). */
 const WEBSITE_PAGES = pageFiles(new URL("apps/site/src/pages/", ROOT));
 const TYPEDOC = process.env.LAMINA_PDF_DOCS_TYPEDOC !== "0";
@@ -38,7 +47,7 @@ const typeDoc = starlightTypeDoc({
   // TypeDoc reads entry points as globs, which take only forward slashes (not Windows' `\`).
   entryPoints: [fileURLToPath(new URL("packages/sdk/src/index.ts", ROOT)).replaceAll("\\", "/")],
   tsconfig: fileURLToPath(new URL("packages/sdk/tsconfig.build.json", ROOT)),
-  output: "reference/sdk",
+  output: TYPEDOC_OUTPUT,
   sidebar: { label: "@laminapdf/sdk (TypeDoc)", collapsed: true },
   typeDoc: {
     // The wasm-bindgen types come from @laminapdf/wasm's dist/, which only `cargo xtask wasm`
@@ -46,16 +55,20 @@ const typeDoc = starlightTypeDoc({
     skipErrorChecking: true,
     excludeInternal: true,
     excludePrivate: true,
-    ...(GITHUB
-      ? { gitRevision: "main", sourceLinkTemplate: `${REPOSITORY}/blob/main/{path}#L{line}` }
-      : { disableSources: true }),
+    // "Defined in" links to the file at the release's tag (main for unreleased docs). disableGit
+    // builds them from the template alone, so a worktree or a shallow CI checkout links the same way.
+    disableGit: true,
+    displayBasePath: fileURLToPath(ROOT),
+    // Sources in node_modules (TypeScript's own types) keep no link: they aren't on GitHub.
+    plugin: [fileURLToPath(new URL("plugins/typedoc-sources.mjs", import.meta.url))],
+    sourceLinkTemplate: `${REPOSITORY}/blob/${sourceRevision(DOCS_RELEASE)}/{path}#L{line}`,
   },
 });
 
 // A default export because that is how Astro reads its configuration.
 export default defineConfig({
   // Production's address: canonical links and the sitemap use it (previews too; they're noindex).
-  site: "https://docs.laminapdf.com",
+  site: SITE,
   // Telemetry is off in the package scripts (ASTRO_TELEMETRY_DISABLED).
   devToolbar: { enabled: false },
   vite: {
@@ -77,12 +90,10 @@ export default defineConfig({
       title: "Lamina PDF",
       description:
         "Create, read, edit and save PDFs from Rust and TypeScript: one Rust core, as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers.",
-      ...(GITHUB
-        ? {
-            social: [{ icon: "github", label: "GitHub", href: REPOSITORY }],
-            editLink: { baseUrl: `${REPOSITORY}/edit/main/apps/docs/` },
-          }
-        : {}),
+      social: [{ icon: "github", label: "GitHub", href: REPOSITORY }],
+      // "Edit page" opens the page's file on GitHub; generated pages have none (src/routeData.ts).
+      editLink: { baseUrl: `${EDIT_BASE}apps/docs/` },
+      routeMiddleware: "./src/routeData.ts",
       lastUpdated: false,
       // The website's icon, from its files (plugins/integrations.mjs, `websiteIcons` below).
       favicon: WEBSITE_ICONS.favicon,
@@ -116,11 +127,15 @@ export default defineConfig({
       sidebar: sidebar(TYPEDOC ? typeDocSidebarGroup : undefined),
     }),
     examplePdfs(new URL("fixtures/golden/examples/", ROOT)),
+    codePages(new URL("fixtures/codes.json", ROOT), SITE),
+    repositoryLinks("/install/", REPOSITORY, `${EDIT_BASE}apps/docs/src/content/docs/install.mdx`),
     cliDownloadChecks(ROOT),
     websiteIcons(new URL("apps/site/public/", ROOT)),
     checkedLinks,
     inlineScriptHashes,
     previewNoindex(process.env.LAMINA_PDF_ENV),
+    // Starlight writes sitemap-index.xml from `site`; only the released docs name it.
+    robots({ env: process.env.LAMINA_PDF_ENV, sitemap: "https://docs.laminapdf.com/sitemap-index.xml" }),
     agentDocs(sidebarRoutes),
     // Last, so it also reads the Markdown twins agentDocs writes.
     releaseChecks(DOCS_RELEASE),

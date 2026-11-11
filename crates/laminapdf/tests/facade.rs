@@ -1,5 +1,9 @@
 //! The façade's contract (ADR 0028, ADR 0026): auto traits, jobs (budgets, cancellation,
 //! revision checks), the error and warning objects, and the owned read API.
+#![expect(
+    deprecated,
+    reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
+)]
 #![expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 
 use laminapdf::{
@@ -291,7 +295,7 @@ mod diagnostics {
                 "hint": "the input exceeds a safety limit; raise max_nesting_depth in Limits only if you trust the input",
                 "location": { "object": 12 },
                 "data": { "limit": "max_nesting_depth" },
-                "docsUrl": "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/limit-exceeded.md"
+                "docsUrl": "https://docs.laminapdf.com/reference/codes/limit-exceeded/"
             })
         );
     }
@@ -327,7 +331,7 @@ mod diagnostics {
             (
                 d.kind.as_str(),
                 d.hint.is_some(),
-                d.docs_url.ends_with("/document-changed.md")
+                d.docs_url.ends_with("/document-changed/")
             ),
             ("state", true, true)
         );

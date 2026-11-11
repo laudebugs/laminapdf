@@ -97,5 +97,5 @@ pub mod test_support {
     pub use crate::legacy::{Writer, incremental_update};
 }
 pub use options::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefEol, XrefKind};
-pub use planner::{SavePlan, SavePlanner};
+pub use planner::{MetadataUpdate, SavePlan, SavePlanner};
 pub use sink::{CountingSink, IoWrite, ReadableSink, SinkError, WriteSink};

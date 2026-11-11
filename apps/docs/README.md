@@ -13,12 +13,11 @@ pnpm --filter @laminapdf/docs typecheck
 
 ## Build settings
 
-Three environment variables change what the build writes (`astro.config.mjs`):
+Two environment variables change what the build writes (`astro.config.mjs`):
 
 | Variable | Default | Effect |
 | --- | --- | --- |
 | `LAMINA_PDF_ENV` | unset | `production` builds the released docs for `docs.laminapdf.com`: the header names the version, and search engines may index the pages. Every other build (`next.docs.laminapdf.com`, the previews, a local build) says on every page that it describes unreleased changes, links to the released docs, and sends `X-Robots-Tag: noindex` with every response. |
-| `LAMINA_PDF_DOCS_GITHUB` | off | `1` adds every link to GitHub: the repository in the header, "Edit page", TypeDoc's "Defined in" source links, and links to the repository inside the code pages. Off while the repository is private, since those links would 404 for readers. Turn it on (in `.github/workflows/docs.yml`'s build steps) when the repository is public. |
 | `LAMINA_PDF_DOCS_TYPEDOC` | on | `0` leaves the TypeDoc reference out. `typecheck` uses it, so each lane runs TypeDoc once, in the build. |
 
 ## Look
@@ -76,13 +75,16 @@ Every page names the version it documents: the fixed group's version (`packages/
   - a placeholder left unfilled;
   - an install command that names another version, the `alpha` tag aside, on any page but the changelog (a page of history);
   - a released page without the version in its header, or an unreleased page without the notice;
-  - a `_headers` file that sends `X-Robots-Tag: noindex` on the released docs, or doesn't on any other build.
+  - a `_headers` file that sends `X-Robots-Tag: noindex` on the released docs, or doesn't on any other build;
+  - a `robots.txt` that blocks crawlers, that names no sitemap on the released docs, or that names one on any other build.
+
+Every build lets crawlers in (`@laminapdf/site-kit/robots`), so they can read the `noindex` on unreleased docs; only the released docs name `sitemap-index.xml`.
 
 ## Deploying
 
 `wrangler.toml` describes two Workers, both static assets with no script, and `.github/workflows/docs.yml` deploys them:
 
-- **`lamina-pdf-docs`**, at **https://docs.laminapdf.com** (a Workers custom domain): the latest release's docs, with `preview_urls` on for the per-PR previews on workers.dev.
+- **`lamina-pdf-docs`**, at **https://docs.laminapdf.com** (a Workers custom domain): the latest release's docs, with `preview_urls` on for the per-PR previews on workers.dev. It has no workers.dev address of its own, which would serve the released docs a second time without `noindex`; the website's Worker and the reader's preview Worker run with the same pair of settings.
 - **`lamina-pdf-docs-next`** (`[env.next]`), at **https://next.docs.laminapdf.com**: `main`'s docs, unreleased and noindex.
 
 The workflow runs for changes to the site or anything it's built from (`apps/docs/`, `packages/sdk/`, the Rust examples and their goldens, `codes.json` and its schema, `docs/errors/`, the workspace's `package.json`, lockfile, `pnpm-workspace.yaml`, `tsconfig.base.json` and `.nvmrc`):
@@ -106,7 +108,6 @@ The workflow runs for changes to the site or anything it's built from (`apps/doc
    Scope it to the one account (Account Resources → Include → that account). Optionally, set a TTL and restrict client IPs.
 2. Add two repository secrets (Settings → Secrets and variables → Actions): `CLOUDFLARE_API_TOKEN` (the token) and `CLOUDFLARE_ACCOUNT_ID` (the account ID, shown on the account's Workers overview page).
 3. After this site is on `main`, run the **Docs site** workflow there once (Actions → Docs site → Run workflow). The first `wrangler deploy` creates the Worker, and previews need it to exist. The account also needs a workers.dev subdomain, which the dashboard asks for on first use of Workers.
-4. When the repository becomes public, set `LAMINA_PDF_DOCS_GITHUB: "1"` in the workflow's `env` so the site links to GitHub.
-5. The custom domain: `laminapdf.com` is a zone on the same Cloudflare account, and `wrangler.toml` routes `docs.laminapdf.com` to the Worker (`custom_domain = true`). The next production deploy creates the DNS record and certificate; it fails if the token lacks the zone permission above or if a DNS record for `docs` already exists (delete it first, or attach the domain once in the dashboard: Worker → Settings → Domains & Routes).
-6. `next.docs.laminapdf.com`: the first push to `main` after this setup creates the Worker `lamina-pdf-docs-next`, its DNS record and its certificate, with the same token. A Workers custom domain gets its own certificate, so the two-level name needs no advanced certificate ([Cloudflare's custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)).
-7. From then on, a push to `main` no longer changes `docs.laminapdf.com`. Until the release lane deploys it after each release, put the latest release's docs there by hand: run the **Docs site** workflow with `tag` set to that release's tag (for example `v0.2.0-alpha.2`).
+4. The custom domain: `laminapdf.com` is a zone on the same Cloudflare account, and `wrangler.toml` routes `docs.laminapdf.com` to the Worker (`custom_domain = true`). The next production deploy creates the DNS record and certificate; it fails if the token lacks the zone permission above or if a DNS record for `docs` already exists (delete it first, or attach the domain once in the dashboard: Worker → Settings → Domains & Routes).
+5. `next.docs.laminapdf.com`: the first push to `main` after this setup creates the Worker `lamina-pdf-docs-next`, its DNS record and its certificate, with the same token. A Workers custom domain gets its own certificate, so the two-level name needs no advanced certificate ([Cloudflare's custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)).
+6. From then on, a push to `main` no longer changes `docs.laminapdf.com`. Until the release lane deploys it after each release, put the latest release's docs there by hand: run the **Docs site** workflow with `tag` set to that release's tag (for example `v0.2.0-alpha.2`).
