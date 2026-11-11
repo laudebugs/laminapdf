@@ -118,9 +118,7 @@ describe("the popover (mouse and keyboard)", () => {
   });
 
   it("holds once when the pointer comes from outside React, as from the viewer's links", async () => {
-    // The viewer draws its links without React. React makes up enter and leave from pointerover and
-    // pointerout, and counts an enter twice when the pointer comes from a node outside its roots:
-    // once from the node's pointerout, once from the card's pointerover.
+    // The viewer draws its links without React (docs/bugs/link-preview-held-twice).
     const h = handlers();
     renderIn(<Harness pointer="fine" handlers={h} />);
     const outside = document.createElement("div");
@@ -134,6 +132,37 @@ describe("the popover (mouse and keyboard)", () => {
     await userEvent.hover(outside);
     expect(h.onHold.mock.calls.map(([held]) => held)).toEqual([true, false]);
   });
+});
+
+// The probe of docs/bugs/link-preview-held-twice, opt-in: the hover test's hover and unhover 150
+// times in one page, logging the native pointer events of any run where onHold isn't [true, false].
+// Run it with VITE_LINK_PREVIEW_PROBE=1 and `-t probe`.
+describe.runIf(import.meta.env.VITE_LINK_PREVIEW_PROBE === "1")("probe: hold under repeated hovers", () => {
+  const types = ["pointerover", "pointerout", "pointerenter", "pointerleave", "pointermove"];
+  const name = (node: EventTarget | null) =>
+    node instanceof Element ? `${node.tagName.toLowerCase()}.${node.className}` : String(node);
+  for (let run = 0; run < 150; run++) {
+    it(`hover ${run}`, async () => {
+      const log: string[] = [];
+      const record = (e: Event) => {
+        const p = e as PointerEvent;
+        log.push(`${e.type} target=${name(e.target)} relatedTarget=${name(p.relatedTarget)}`);
+      };
+      for (const type of types) document.addEventListener(type, record, true);
+      const h = handlers();
+      h.onHold.mockImplementation((held) => log.push(`onHold(${held})`));
+      renderIn(<Harness pointer="fine" handlers={h} />);
+      await frame();
+      await frame();
+      const tip = tooltip() as HTMLElement;
+      await userEvent.hover(tip);
+      await userEvent.unhover(tip);
+      for (const type of types) document.removeEventListener(type, record, true);
+      const held = h.onHold.mock.calls.map(([value]) => value);
+      if (held.length !== 2) console.log(`run ${run}\n${log.join("\n")}`);
+      expect(held).toEqual([true, false]);
+    });
+  }
 });
 
 describe("the sheet (touch)", () => {

@@ -172,25 +172,25 @@ function Picture({
 }
 
 /**
- * Calls `onHold` when the pointer comes onto `ref`'s element (`true`) and when it leaves, from the
- * browser's own pointerenter and pointerleave. React's `onPointerEnter` makes them up from
- * pointerover and pointerout instead, and reports an enter twice when the pointer comes from a node
- * outside React's roots, such as the viewer's links or the page's body: once for that node's
- * pointerout, once for the popover's pointerover (docs/bugs/link-preview-held-twice).
+ * Calls `onChange` with `true` when the pointer comes onto `ref`'s element and `false` when it
+ * leaves, from the browser's own pointerenter and pointerleave. React's `onPointerEnter` makes them
+ * up from pointerout and pointerover instead, and reports an enter twice when the pointer comes from
+ * a node outside React's roots, such as the page's body: once for that node's pointerout, once for
+ * the element's pointerover (docs/bugs/link-preview-held-twice).
  */
-function useHover(ref: RefObject<HTMLElement | null>, onHold: (held: boolean) => void): void {
+function useHover(ref: RefObject<HTMLElement | null>, onChange: (hovered: boolean) => void): void {
   useEffect(() => {
     const element = ref.current;
     if (element === null) return;
-    const enter = () => onHold(true);
-    const leave = () => onHold(false);
+    const enter = () => onChange(true);
+    const leave = () => onChange(false);
     element.addEventListener("pointerenter", enter);
     element.addEventListener("pointerleave", leave);
     return () => {
       element.removeEventListener("pointerenter", enter);
       element.removeEventListener("pointerleave", leave);
     };
-  }, [ref, onHold]);
+  }, [ref, onChange]);
 }
 
 /** Names the popover from the link while it shows (`aria-describedby`), leaving any other description. */
