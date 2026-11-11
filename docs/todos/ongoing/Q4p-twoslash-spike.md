@@ -11,7 +11,7 @@
 | Branch | `spike/q4p-twoslash` |
 | PR title | `spike(docs): measure twoslash hover types on one docs page` |
 | Size | S (throwaway spike code outside the workspaces; README with measurements) |
-| PR | — |
+| PR | [#453](https://github.com/laudebugs/laminapdf/pull/453) |
 
 ## Goal
 
