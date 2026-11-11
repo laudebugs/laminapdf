@@ -752,6 +752,18 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Writes what {@link Document.save} would, and leaves the document as it was: not rebased, its
+   * changes still unsaved ({@link Document.hasUnsavedChanges}), the save-time stamp in the copy
+   * only. For Save a copy, and for a copy to draw the pages from while edits stay unsaved.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.save}; the document is unchanged either way.
+   */
+  saveCopy(options?: SaveOptions): { readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
+    this.#notInTransaction("saveCopy");
+    return this.call(() => this.#doc.saveCopy(options));
+  }
+
+  /**
    * A save as a job stepped by the caller (to keep a UI responsive).
    *
    * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for bad options.

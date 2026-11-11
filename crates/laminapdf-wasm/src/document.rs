@@ -243,6 +243,25 @@ impl WasmDocument {
         saved(&out)
     }
 
+    /// Writes what `save` would and leaves the document as it was: not rebased, its changes
+    /// still unsaved, the save-time stamp in the copy only (Save a copy).
+    ///
+    /// # Errors
+    /// As `save`; the document is unchanged either way.
+    #[wasm_bindgen(js_name = saveCopy, unchecked_return_type = "{ bytes: Uint8Array<ArrayBuffer>; report: SaveReportJs }")]
+    pub fn save_copy(
+        &mut self,
+        #[wasm_bindgen(unchecked_param_type = "SaveOptionsInit | undefined")] options: &JsValue,
+    ) -> JsResult<JsValue> {
+        let options: SaveOptionsInit = from_js_or_default(options, "options")?;
+        let out = self
+            .doc
+            .borrow_mut()
+            .save_copy(&options.to_options()?)
+            .map_err(|e| lamina_error(&e))?;
+        saved(&out)
+    }
+
     /// A save as a job, stepped with a budget of work units (ADR 0028 §3, §4).
     ///
     /// # Errors

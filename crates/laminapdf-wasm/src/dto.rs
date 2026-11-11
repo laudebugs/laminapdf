@@ -386,6 +386,9 @@ pub(crate) struct SaveReportJs {
     pub metadata_not_updated: bool,
     /// Whether an edit saved here rewrote the XMP packet whole.
     pub packet_rewritten: bool,
+    /// Whether the save emptied the undo history (a full rewrite, or an incremental save that
+    /// freed objects); never for a copy.
+    pub history_cleared: bool,
 }
 
 impl From<&SaveReport> for SaveReportJs {
@@ -404,6 +407,7 @@ impl From<&SaveReport> for SaveReportJs {
             metadata_updated: r.metadata_updated(),
             metadata_not_updated: r.metadata_not_updated(),
             packet_rewritten: r.packet_rewritten(),
+            history_cleared: r.history_cleared(),
         }
     }
 }

@@ -294,6 +294,7 @@ pub struct SaveReport {
     pub(crate) invalidated: Vec<SignatureInfo>,
     pub(crate) encryption_removed: bool,
     pub(crate) metadata: MetadataFlags,
+    pub(crate) history_cleared: bool,
 }
 
 /// What a save did with the document's metadata ([`SaveReport::metadata_updated`] and the
@@ -358,6 +359,13 @@ impl SaveReport {
     #[must_use]
     pub const fn metadata_not_updated(&self) -> bool {
         self.metadata.not_updated
+    }
+
+    /// Whether the save emptied the document's undo history: a full rewrite does, and so does
+    /// an incremental save that freed objects (their numbers may be reused). A copy never does.
+    #[must_use]
+    pub const fn history_cleared(&self) -> bool {
+        self.history_cleared
     }
 
     /// Whether an edit saved here rewrote the XMP packet whole, because it was UTF-16 or marked
