@@ -2,8 +2,11 @@
 // The site header (design language §7.39) of both sites: the wordmark, the one list of links from
 // nav.mjs (the current page's in 600 with the accent underline), any tools a site adds in the
 // `tools` slot (the docs site's search and theme switch), and "Open the web app" once the reader
-// is live. Its look is header.css; each site sizes it with header.css's variables.
+// is live (on a phone it shows "App" and the external-link icon; its name stays the whole phrase).
+// Its look is header.css; each site sizes it with header.css's variables.
 import "./header.css";
+import externalLink from "@laminapdf/icons/svg/external-link.svg?raw";
+import { decorativeIcon } from "./icon.mjs";
 import { APP_LAUNCHED, APP_URL, type NavLink } from "./nav.mjs";
 import SiteNav from "./SiteNav.astro";
 
@@ -27,5 +30,12 @@ const { links, home } = Astro.props;
       </div>
     )
   }
-  {APP_LAUNCHED && <a class="site-header-app" href={APP_URL}>Open the web app</a>}
+  {
+    APP_LAUNCHED && (
+      <a class="site-header-app" href={APP_URL}>
+        <span><span class="site-header-app-lead">Open the web </span><span class="site-header-app-word">app</span></span>
+        <Fragment set:html={decorativeIcon(externalLink, "site-header-app-icon")} />
+      </a>
+    )
+  }
 </div>

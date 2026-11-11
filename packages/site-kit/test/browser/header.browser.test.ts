@@ -87,6 +87,31 @@ for (const theme of ["light", "dark"] as const) {
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(375);
     });
 
+    it("shortens the app link to App and the open-in-new icon on a phone, keeping its name", async () => {
+      const app = () => {
+        const link = document.querySelector<HTMLAnchorElement>(".site-header-app");
+        if (link === null) throw new Error("no app link");
+        return link;
+      };
+      const icon = () => app().querySelector("svg");
+      mount(HEADERS.website, theme);
+      expect(app().textContent?.trim()).toBe("Open the web app");
+      expect(icon() === null ? "none" : getComputedStyle(icon() as SVGElement).display).toBe("none");
+      await page.viewport(375, 800);
+      // innerText keeps visually hidden text, so check what is drawn: the lead clipped to 1 px,
+      // the word capitalised.
+      const lead = app().querySelector(".site-header-app-lead")?.getBoundingClientRect();
+      expect(lead?.width).toBeLessThanOrEqual(1);
+      const word = app().querySelector(".site-header-app-word");
+      expect(word === null ? "" : getComputedStyle(word).textTransform).toBe("capitalize");
+      expect(getComputedStyle(icon() as SVGElement).display).not.toBe("none");
+      await expect.element(page.getByRole("link", { name: "Open the web app" })).toBeVisible();
+      const box = app().getBoundingClientRect();
+      const iconBox = (icon() as SVGElement).getBoundingClientRect();
+      expect(box.right).toBeLessThanOrEqual(375);
+      expect(Math.abs(iconBox.top + iconBox.height / 2 - (box.top + box.height / 2))).toBeLessThan(2);
+    });
+
     it("has no axe violation on either site", async () => {
       for (const html of [HEADERS.website, HEADERS.docs]) {
         mount(html, theme);

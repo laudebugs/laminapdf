@@ -83,3 +83,38 @@
   color: var(--paper-text);
   background: var(--paper-hover);
 }
+
+/* The label is one flex item, so "Open the web app" stays one phrase. The external-link icon
+   shows only on a phone. */
+.site-header-app-icon {
+  display: none;
+  flex: none;
+}
+
+/* On a phone (--paper-breakpoint-phone-max, 599px: a media query can't read a custom property)
+   the button shows "App" and the external-link icon, so it keeps to one line beside the wordmark
+   and the tools. "Open the web" is hidden from sight only: the link's name stays "Open the web app". */
+@media (max-width: 599px) {
+  .site-header-app {
+    gap: var(--paper-space-6);
+    padding: 0 var(--paper-space-12);
+    white-space: nowrap;
+  }
+
+  .site-header-app-lead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .site-header-app-word {
+    text-transform: capitalize;
+  }
+
+  .site-header-app-icon {
+    display: block;
+  }
+}
