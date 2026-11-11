@@ -27,7 +27,6 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
-use super::compare::cell;
 use super::exceptions::glob;
 use super::{LiveArgs, MAX_ROWS, PENDING_ISSUE, Report, example_binary, run_readers};
 use crate::doctor::Probe;
@@ -417,19 +416,17 @@ impl Comparison {
         }
         let rows: Vec<_> = self.mismatches.iter().take(MAX_ROWS).collect();
         if !rows.is_empty() {
-            md.push_str("\n| File | Field | lamina | ExifTool | Excused by |\n| --- | --- | --- | --- | --- |\n");
+            // The values are text from the files: they stay in report.json, out of the job summary,
+            // which people and agents read (the text differential keeps page text out the same way).
+            md.push_str(
+                "\nThe values each reader found are in report.json, not here: they are text from the files.\n\n\
+                 | File | Field | Excused by |\n| --- | --- | --- |\n",
+            );
             for (m, excuse) in rows {
                 let by = excuse
                     .and_then(|i| known.get(i))
                     .map_or_else(|| "**unexcused**".to_owned(), Known::label);
-                let _ = writeln!(
-                    md,
-                    "| `{}` | {} | {} | {} | {by} |",
-                    m.file,
-                    m.field,
-                    cell(&m.lamina),
-                    cell(&m.exiftool)
-                );
+                let _ = writeln!(md, "| `{}` | {} | {by} |", util::md_cell(&m.file), m.field);
             }
             if self.mismatches.len() > MAX_ROWS {
                 let _ = writeln!(md, "\n{} more in report.json.", self.mismatches.len() - MAX_ROWS);
