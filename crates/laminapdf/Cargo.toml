@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf"
-description = "The Lamina PDF façade: one crate for opening, reading, editing (ops, undo), saving and building PDFs, with one error type, jobs and cancellation shaped for the bindings (pure, bytes in / bytes out)."
+description = "Create, read, edit and save PDFs in Rust: pages with shaped text, images and tagged PDF, text extraction in reading order, and incremental saves. Pure Rust that takes and returns bytes, so it runs in WebAssembly too."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -14,7 +14,7 @@ readme = "README.md"
 include = ["src/**", "schemas/**", "examples/**", "tests/**", "benches/**", "docs/**", "README.md"]
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "pdf-generation", "pdf-editing", "document", "wasm"]
+keywords = ["pdf", "pdf-generation", "pdf-editing", "text-extraction", "wasm"]
 categories = ["encoding", "parser-implementations", "text-processing", "wasm"]
 # `explain` carries the text of docs/errors/*.md as raw strings (src/generated/explain.rs, generated
 # from fixtures/codes.json by `cargo xtask gen codes`), so the published crate needs no outside file.

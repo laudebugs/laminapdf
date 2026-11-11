@@ -50,6 +50,7 @@ export function platformManifest(platform: Platform, version: string): Record<st
     description: `The laminapdf command-line tool's binary for ${platform.target}. Install @laminapdf/cli, which picks it.`,
     license: "MIT OR Apache-2.0",
     homepage: "https://laminapdf.com",
+    bugs: { url: "https://github.com/laudebugs/laminapdf/issues" },
     repository: { type: "git", url: "git+https://github.com/laudebugs/laminapdf.git", directory: "packages/cli" },
     os: [platform.os],
     cpu: [platform.cpu],

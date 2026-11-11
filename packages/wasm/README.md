@@ -1,6 +1,6 @@
 # `@laminapdf/wasm`
 
-Lamina PDF's WebAssembly modules and their [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) glue. The package is private: use [`@laminapdf/sdk`](../sdk/README.md), which is built on it. This package is its raw layer.
+Lamina PDF's WebAssembly modules and their [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) glue. Use [`@laminapdf/sdk`](../sdk/README.md), which is built on it and gives the modules a typed API: create, read, edit and save PDFs and extract their text. This package is its raw layer.
 
 | Export | File | What it has |
 | --- | --- | --- |

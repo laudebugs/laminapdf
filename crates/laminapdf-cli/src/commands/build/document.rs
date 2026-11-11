@@ -8,7 +8,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use laminapdf::flow::document::{FlowDocument, Resources, fill};
+use laminapdf::flow::document::{FlowDocument, Resources, fill_or_read};
 use laminapdf::{BuildOptions, Builder, ErrorCode, Standard14};
 use serde_json::Value;
 
@@ -152,11 +152,7 @@ pub(super) fn build_document(
             args.page_size.as_deref().unwrap_or_default(),
         ));
     }
-    let document = match data {
-        Some(data) => fill(template, data),
-        None => FlowDocument::from_json(template),
-    }
-    .map_err(laminapdf::Error::from)?;
+    let document = fill_or_read(template, data).map_err(laminapdf::Error::from)?;
     let mut build_options = BuildOptions::new();
     for profile in document.profiles() {
         build_options = build_options.with_profile(profile);

@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-build"
-description = "Generating PDFs: a builder over the COS overlay with pages and boxes, paths, colour (device and ICC), opacity and blend modes, clipping, images (JPEG pass-through, PNG with soft masks, raw RGBA), shaped text and text boxes, links, named destinations, outlines, page labels, Info and XMP metadata, tagged PDF, PDF/UA-1 and PDF/A-2/3 profiles and attached files (pure, bytes in / bytes out)."
+description = "Generate PDFs in Rust: pages, vector paths, colour, images, shaped text, links, outlines, metadata, tagged PDF and PDF/UA and PDF/A output. Most programs use it through the laminapdf crate."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = true
 readme = "README.md"
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "pdf-generation", "tagged-pdf", "pdf-a"]
+keywords = ["pdf", "pdf-generation", "tagged-pdf", "pdf-a", "pdf-ua"]
 categories = ["encoding", "graphics"]
 
 # Read by `cargo xtask`: core crates get the portability checks (no I/O, clocks or threads;

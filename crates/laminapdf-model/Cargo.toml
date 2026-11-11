@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-model"
-description = "Typed, tolerant views over a PDF's COS graph (pages, outline, Info, name and number trees, page labels) and stable LaminaPdfIds (pure, bytes in / bytes out)."
+description = "Typed views of a PDF document in Rust: pages, outline, document info, page labels, name trees and the structure tree, read tolerantly."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = true
 readme = "README.md"
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "document", "outline", "structure-tree"]
+keywords = ["pdf", "document", "outline", "structure-tree", "parser"]
 categories = ["parser-implementations"]
 
 # Read by `cargo xtask`: core crates get the portability checks (no I/O, clocks or threads;

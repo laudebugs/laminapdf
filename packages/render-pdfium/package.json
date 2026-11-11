@@ -1,9 +1,12 @@
 {
   "name": "@laminapdf/render-pdfium",
   "version": "0.2.0-alpha.6",
-  "description": "ADR 0004's default web renderer: the pinned PDFium-WASM build (@embedpdf/pdfium 2.15.1, SHA-256 checked) behind @laminapdf/render's RenderBackend interface, for the document worker.",
+  "description": "Render PDF pages to RGBA pixels in the browser with PDFium compiled to WebAssembly, behind @laminapdf/render's interface: the default renderer of Lamina PDF's viewer.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",
+  "bugs": {
+    "url": "https://github.com/laudebugs/laminapdf/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/laudebugs/laminapdf.git",
@@ -12,8 +15,11 @@
   "keywords": [
     "pdf",
     "render",
+    "rendering",
+    "pdf-renderer",
     "pdfium",
-    "wasm"
+    "wasm",
+    "webassembly"
   ],
   "type": "module",
   "sideEffects": false,

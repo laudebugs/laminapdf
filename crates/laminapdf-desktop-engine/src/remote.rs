@@ -65,14 +65,19 @@ impl Ranges {
 
     /// Asks the main process for `len` bytes of `doc` from `offset` and waits for them.
     fn fetch(&self, doc: DocId, offset: u64, len: u32) -> Answer {
+        self.ask(|req| FromEngine::ReadRange { req, doc, offset, len })
+    }
+
+    /// Sends the request `make` builds (given its id) and waits for its bytes: a range, or a
+    /// system font face ([`crate::fonts`]).
+    pub(crate) fn ask(&self, make: impl FnOnce(ReqId) -> FromEngine) -> Answer {
         if self.closed.load(Ordering::SeqCst) {
             return Err("the main process is gone".into());
         }
         let req = ReqId(self.next.fetch_add(1, Ordering::Relaxed));
         let (tx, rx) = mpsc::channel();
         self.lock().insert(req, tx);
-        let asked = FromEngine::ReadRange { req, doc, offset, len };
-        if let Err(error) = self.out.send(&asked, &[]) {
+        if let Err(error) = self.out.send(&make(req), &[]) {
             self.lock().remove(&req);
             return Err(format!("could not ask for bytes: {error}"));
         }
