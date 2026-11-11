@@ -141,7 +141,7 @@ mod warning;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
-pub use document::{Document, DocumentInfo, Edited, PageInfo, Reverted, Saved};
+pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
@@ -168,7 +168,7 @@ pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
-pub use laminapdf_ops::{InfoPatch, Op, OpLog, RotatePage, SetInfo, UndoOutcome};
+pub use laminapdf_ops::{InfoPatch, Op, OpLog, Reverted, RotatePage, SetInfo, UndoOutcome};
 pub use laminapdf_save::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefEol, XrefKind};
 
 #[cfg(feature = "build")]

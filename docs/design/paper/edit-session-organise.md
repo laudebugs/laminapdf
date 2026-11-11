@@ -59,7 +59,7 @@ Command ids use the registry’s `namespace.verb-object` form ([U1b](../../todos
 
 **Platform differences.** Web: no window title; the browser tab title gets a leading “•”; Redo is `Ctrl Y` on Windows/Linux and `⇧⌘Z` on macOS (tested in Chromium, Firefox and WebKit). Desktop Windows/Linux: Edit menu in the window menu bar, “Edited” shown as “•” in the title. Phone/tablet: Undo and Redo move into the More sheet; history is a sheet.
 
-**As built (web, E1d).** Until saving arrives (E1e), the save state counts the steps since the file opened and closing asks with Cancel and Close without saving only (O03 without Save). On the web, Undo, Redo and Show history sit at the top of the More menu, with Rotate page right and left, the reader's one edit until Organise. Choosing a History row that moves one step shows the same toast as Undo or Redo.
+**As built (web, E1d).** Until saving arrives (E1e), the save state counts the steps since the file opened and closing asks with Cancel and Close without saving only (O03 without Save). On the web, Undo, Redo and Show history sit at the top of the More menu, with Rotate page right and left, the reader's one edit until Organise. Choosing a History row that moves one step shows the same toast as Undo or Redo. Undo and Redo have no hover tooltip yet; their accessible names carry the step and `aria-keyshortcuts` the keys.
 
 **Artboards:** `O01-edit-session.dc.html`.
 

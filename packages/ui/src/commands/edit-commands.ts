@@ -3,7 +3,7 @@
 // makes until Organise (E2) brings the page grid. Undo, Redo and Go to step drive the session in
 // the context; Show history and the page turns are the shell's, which knows the rail and the pages.
 // Each has a visible home: the top bar's Undo and Redo, the web's More menu (the desktop's Edit
-// menu, E1h), the History tab.
+// menu, once it has one), the History tab.
 
 import { type EditControls, type EditSlice, inSentence, stepToRedo, stepToUndo } from "../edit/edit-controls.js";
 import { blockedReason } from "../edit/outcome.js";

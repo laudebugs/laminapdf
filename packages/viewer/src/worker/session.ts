@@ -139,7 +139,7 @@ export function removeStep(session: Session, index: number, way: "undo" | "redo"
   else if (saved > before) session.saved = saved - 1;
 }
 
-/** Records the document now as the one saved (E1e's saves). */
+/** Records the document now as the one saved, for a save that writes the file. */
 export function markSaved(session: Session): void {
   session.saved = at(session);
 }

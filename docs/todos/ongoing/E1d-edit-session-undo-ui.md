@@ -112,7 +112,9 @@ None.
 - **Interaction modes** are `@laminapdf/ui`'s `ToolRegistry` (select, hand, textSelect; `InteractionModes` extended by declaration merging) and `attachTools`. The reader has no control to switch them yet: no screen draws one, so `select` stays on, as before.
 - **Turning a page.** O06's page grid is E2's, so the reader turns the current page from More › Rotate page right or left (`pages.rotate-right`, `pages.rotate-left`, also in the palette), without the Organise grid's R and Shift R.
 
-**Deviations from O01 and O03:** closing a document with unsaved changes asks with Cancel and Close without saving only, since Save comes with E1e; on the web the Edit menu's items sit at the top of More; choosing a row in the History tab that undoes or redoes one step shows the same toast as Undo.
+- **The startup script stays in its budget.** The edit session first put the reader's startup script at 278,123 bytes gzipped (main: 267,696; budget 270,000). What only an open document needs now loads after open, in one chunk (`apps/web/src/later.ts`): the new `@laminapdf/ui/editing` entry (the top bar's `EditArea`, the History tab, the edit commands, the tools) and `@laminapdf/ui/reader-mode` (reader mode's column, until now in the startup script), with Print and Properties as before. The startup script is now 269,870 bytes.
+
+**Deviations from O01 and O03:** closing a document with unsaved changes asks with Cancel and Close without saving only, since Save comes with E1e; on the web the Edit menu's items sit at the top of More; choosing a row in the History tab that undoes or redoes one step shows the same toast as Undo; Undo and Redo have no hover tooltip (their names carry the step and the keys), since the tooltip's code would have put the startup script over its budget.
 
 **Checked in the built reader** in Chromium (light and dark), Firefox and WebKit: turn, undo, redo, the History tab by mouse and keys, the close guard. The gallery's screenshots (the History tab's new examples) can't be updated here, since `cargo xtask gallery --update` times out in Docker.
 

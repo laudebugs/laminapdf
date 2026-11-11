@@ -441,9 +441,10 @@ mod state {
             .unwrap();
         let undone = doc.undo().unwrap().unwrap();
         let redone = doc.redo().unwrap().unwrap();
+        let pages = std::collections::BTreeSet::from([page]);
         assert_eq!(
             (undone.outcome, undone.touched_pages, redone.touched_pages),
-            (UndoOutcome::Applied, vec![page.clone()], vec![page])
+            (UndoOutcome::Applied, pages.clone(), pages)
         );
     }
 
@@ -459,7 +460,7 @@ mod state {
     fn a_metadata_undo_touches_no_page() {
         let mut doc = hello();
         doc.apply(vec![set_title("New")]).unwrap();
-        assert_eq!(doc.undo().unwrap().unwrap().touched_pages, vec![]);
+        assert!(doc.undo().unwrap().unwrap().touched_pages.is_empty());
     }
 
     #[test]

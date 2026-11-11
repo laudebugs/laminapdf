@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use laminapdf_cos::{ByteSource, OpenOptions};
 use laminapdf_model::PageId;
-use laminapdf_ops::{Op, OpLog, Origin, UndoOutcome};
+use laminapdf_ops::{Op, OpLog, Origin, Reverted};
 use laminapdf_save::{ReadableSink, Save as _, SaveOptions, SaveReport, SinkError, WriteSink};
 
 use crate::error::{Error, Result};
@@ -100,25 +100,6 @@ pub struct Edited {
     /// Whether the edit changed the document. One that only set values they already had
     /// changes nothing and leaves no step to undo.
     pub changed: bool,
-}
-
-/// What an undo or redo did (owned, F5): how it went, and the pages to draw again.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct Reverted {
-    /// Whether everything was restored, or what was left alone (ADR 0006 §4).
-    pub outcome: UndoOutcome,
-    /// IDs of the pages the undone or redone transaction touched, in ID order: draw these again.
-    pub touched_pages: Vec<PageId>,
-}
-
-impl From<laminapdf_ops::Reverted> for Reverted {
-    fn from(reverted: laminapdf_ops::Reverted) -> Self {
-        Self {
-            outcome: reverted.outcome,
-            touched_pages: reverted.touched_pages.into_iter().collect(),
-        }
-    }
 }
 
 /// A finished save: the output and what the writer did.
@@ -398,7 +379,7 @@ impl Document {
     /// # Errors
     /// `nested-transaction`, `saved-not-rebased`; reading errors (nothing is undone).
     pub fn undo(&mut self) -> Result<Option<Reverted>> {
-        let reverted = self.inner.undo()?.map(Reverted::from);
+        let reverted = self.inner.undo()?;
         if reverted.is_some() {
             self.bump();
         }
@@ -411,7 +392,7 @@ impl Document {
     /// # Errors
     /// As [`Document::undo`].
     pub fn redo(&mut self) -> Result<Option<Reverted>> {
-        let reverted = self.inner.redo()?.map(Reverted::from);
+        let reverted = self.inner.redo()?;
         if reverted.is_some() {
             self.bump();
         }
