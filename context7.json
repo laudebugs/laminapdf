@@ -1,5 +1,7 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
+  "url": "https://context7.com/laudebugs/laminapdf",
+  "public_key": "pk_hA415awZ9FucG36S5gNXn",
   "projectTitle": "Lamina PDF",
   "description": "Create, read, edit and save PDF files from TypeScript (@laminapdf/sdk, WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers) and Rust (the laminapdf crate): generation with shaped text and tagged PDF, text extraction in reading order, incremental saves.",
   "folders": ["apps/docs/src/content/docs", "packages/sdk/examples", "crates/laminapdf/examples", "docs/errors"],
