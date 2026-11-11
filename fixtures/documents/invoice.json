@@ -1,0 +1,179 @@
+{
+  "schema": "laminapdf.document/1",
+  "title": "Invoice",
+  "lang": "en",
+  "profiles": [
+    "PDF/UA-1"
+  ],
+  "page": {
+    "size": "A4",
+    "margins": 56,
+    "footer": {
+      "center": "{title}, page {page} of {pages}"
+    },
+    "style": "small"
+  },
+  "styles": {
+    "body": {
+      "font": "regular",
+      "size": 10
+    },
+    "strong": {
+      "font": "bold",
+      "size": 10
+    },
+    "small": {
+      "font": "regular",
+      "size": 8
+    },
+    "title": {
+      "font": "bold",
+      "size": 18
+    }
+  },
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 1,
+      "style": "title",
+      "spans": [
+        {
+          "text": "Invoice "
+        },
+        {
+          "text": {
+            "$data": "/invoice/number"
+          }
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "spans": [
+        {
+          "text": "Office supplies delivered in "
+        },
+        {
+          "text": {
+            "$data": "/invoice/period"
+          }
+        },
+        {
+          "text": ", to be paid within "
+        },
+        {
+          "text": {
+            "$data": "/invoice/due"
+          }
+        },
+        {
+          "text": "."
+        }
+      ]
+    },
+    {
+      "$if": "/invoice/paid",
+      "do": {
+        "type": "paragraph",
+        "style": "strong",
+        "text": "Paid in full."
+      }
+    },
+    {
+      "type": "table",
+      "columns": [
+        "auto",
+        "auto",
+        "auto",
+        "auto"
+      ],
+      "padding": 6,
+      "frame": {
+        "width": 0.75,
+        "color": "#666666"
+      },
+      "headerRule": {
+        "width": 0.75,
+        "color": "#666666"
+      },
+      "rowRules": {
+        "width": 0.25,
+        "color": "#b3b3b3"
+      },
+      "headerBackground": "#ebebeb",
+      "header": [
+        {
+          "cells": [
+            {
+              "text": "Item",
+              "style": "strong"
+            },
+            {
+              "text": "Description",
+              "style": "strong"
+            },
+            {
+              "text": "Qty",
+              "style": "strong",
+              "align": "end"
+            },
+            {
+              "text": "Amount",
+              "style": "strong",
+              "align": "end"
+            }
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "$each": "/items",
+          "do": {
+            "cells": [
+              {
+                "text": {
+                  "$item": "/item"
+                }
+              },
+              {
+                "text": {
+                  "$item": "/description"
+                }
+              },
+              {
+                "text": {
+                  "$item": "/quantity"
+                },
+                "align": "end"
+              },
+              {
+                "text": {
+                  "$item": "/amount"
+                },
+                "align": "end"
+              }
+            ]
+          }
+        }
+      ],
+      "footer": [
+        {
+          "cells": [
+            {
+              "text": "Total",
+              "style": "strong",
+              "span": 3
+            },
+            {
+              "text": {
+                "$data": "/total"
+              },
+              "style": "strong",
+              "align": "end"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

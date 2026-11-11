@@ -21,7 +21,7 @@ mod fuzz_run;
 pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 13] = [
+pub(crate) const FUZZ_TARGETS: [&str; 14] = [
     "lex",
     "parse_object",
     "flate_decode",
@@ -33,6 +33,7 @@ pub(crate) const FUZZ_TARGETS: [&str; 13] = [
     "extract_text",
     "extract",
     "markdown",
+    "document",
     "xmp_parse",
     "engine_protocol_decode",
 ];
@@ -762,7 +763,7 @@ const SAVE_SEED_CONTROL: [u8; 8] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04]
 /// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`,
 /// follow [`SAVE_SEED_CONTROL`] for `save_roundtrip` (which also gets `fixtures/signed/`), and
 /// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead, `markdown` from
-/// `fixtures/markdown/`, `xmp_parse` from `fixtures/golden/xmp/` and `engine_protocol_decode` from its seeds alone;
+/// `fixtures/markdown/`, `xmp_parse` from `fixtures/golden/xmp/`, and `document` and `engine_protocol_decode` from their seeds alone;
 /// crash inputs and hand-written seeds are copied verbatim (they already are what the target
 /// reads). Seed names carry their source path, so files from different folders never
 /// collide. Returns the corpus directory.
@@ -784,6 +785,8 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
     } else if target == "xmp_parse" {
         // XMP packets, not PDFs: the producers' packets and their edited goldens.
         fixtures.extend(files_in(&ws.root.join("fixtures/golden/xmp"))?);
+    } else if target == "document" {
+        // A template and its data, not PDFs: only fuzz/seeds/document/, copied below.
     } else if target == "engine_protocol_decode" {
         // Frames, not PDFs: only fuzz/seeds/engine_protocol_decode/, copied below.
     } else {

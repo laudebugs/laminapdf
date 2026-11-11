@@ -220,6 +220,7 @@ impl Error {
     pub fn diagnostic(&self) -> Diagnostic {
         Diagnostic::error(self.error_code(), self.to_string())
             .with_hint(self.hint())
+            .with_did_you_mean(data::did_you_mean(self))
             .with_location(self.location())
             .with_data(data::of_error(self))
     }

@@ -130,6 +130,20 @@
         }
       ]
     },
+    "invoice_from_json": {
+      "sha256": "8eff7674f06245294dda9464bae6e2193f9f55b3a6002bb92ce2945853dcc39f",
+      "bytes": 24278,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "links_and_outlines": {
       "sha256": "e094221354635103768d301d080621b618836e6279e25efaeff7bd1c08319f81",
       "bytes": 2593,
