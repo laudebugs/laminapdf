@@ -71,7 +71,7 @@ function subscribePhone(onChange: () => void): () => void {
  * Whether the dialog lays out as a phone's sheet: the viewport's width when it opens, kept until
  * it closes, so turning the phone doesn't rebuild an open dialog and lose what was typed in it.
  */
-function usePhoneLayout(isOpen: boolean): boolean {
+export function usePhoneLayout(isOpen: boolean): boolean {
   const live = useSyncExternalStore(
     subscribePhone,
     () => phone().matches,
