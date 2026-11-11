@@ -16,7 +16,7 @@ Keep the section order; delete a section only if it truly doesn't apply (write "
 | Depends on | <todo IDs that must be **done** (merged) first, linked; or "None"> |
 | ADRs | <ADRs this todo writes, implements or must follow> |
 | Branch | `<type>/<id>-<slug>` (e.g. `feat/b2b-decryption`) |
-| PR title | `<conventional commit title>` |
+| PR title | `<type>(<scope>): <ID> - <summary>` (e.g. `feat(ui): D2d - stream engine tiles to the viewer`) |
 | Size | S (< 200 changed lines of code) \| M (200–400) \| L (400–800: split if you can; fixtures, lockfiles and generated files don't count) \| XL (> 800: split it) |
 | PR | <link once opened; "—" while ready> |
 
