@@ -493,8 +493,9 @@ impl Builder {
         self.state.tag.close(element)
     }
 
-    /// The metadata set so far, for a front end that adds to it (Markdown's front matter).
-    #[cfg(feature = "markdown")]
+    /// The metadata set so far, for a front end that adds to it (Markdown's front matter, a
+    /// JSON document's title).
+    #[cfg(any(feature = "markdown", feature = "serde"))]
     pub(crate) fn metadata_so_far(&self) -> Option<&Metadata> {
         self.features.metadata.as_ref()
     }
