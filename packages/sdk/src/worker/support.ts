@@ -34,6 +34,7 @@ export const DOCUMENT_METHODS = {
   hasUnsavedChanges: 0,
   info: 0,
   isTagged: 0,
+  metadata: 0,
   namedDestination: 1,
   outline: 0,
   page: 1,
@@ -42,15 +43,19 @@ export const DOCUMENT_METHODS = {
   pageInfo: 1,
   pageLinks: 1,
   pages: 0,
+  plan: 1,
   properties: 0,
   rebase: 1,
   redo: 0,
   reflow: 0,
+  removeMetadata: 2,
   save: 1,
   saveWithReport: 1,
+  setMetadata: 2,
   structureTree: 0,
   undo: 0,
   warnings: 0,
+  wouldViolate: 1,
 } as const satisfies Record<RemotableDocumentMember, number>;
 
 export const PAGE_METHODS = {
