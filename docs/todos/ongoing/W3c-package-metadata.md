@@ -11,7 +11,7 @@
 | Branch | `docs/w3c-package-metadata` |
 | PR title | `docs(packages): descriptions, keywords and READMEs written for users` |
 | Size | M (six package manifests, thirteen crate manifests, their READMEs, one check) |
-| PR | — |
+| PR | [#432](https://github.com/laudebugs/laminapdf/pull/432) |
 
 ## Goal
 
