@@ -54,10 +54,13 @@
 //!
 //! * [`Document`]: [`open_bytes`](Document::open_bytes) → reads ([`page_count`](Document::page_count),
 //!   [`page_info`](Document::page_info), [`info`](Document::info),
-//!   [`warnings`](Document::warnings)) → edits ([`apply`](Document::apply) a list of [`Op`]s as
-//!   one transaction, [`undo`](Document::undo), [`redo`](Document::redo)) →
-//!   [`save`](Document::save) with [`SaveOptions`] (incremental or a full rewrite, planned
-//!   around signatures).
+//!   [`metadata`](Document::metadata), [`warnings`](Document::warnings)) → edits
+//!   ([`apply`](Document::apply) a list of [`Op`]s as one transaction, such as
+//!   [`SetMetadata`] and [`RemoveMetadata`], which keep Info and XMP in step;
+//!   [`undo`](Document::undo), [`redo`](Document::redo)) → [`plan`](Document::plan) shows how a
+//!   save would go → [`save`](Document::save) with [`SaveOptions`] (incremental or a full
+//!   rewrite, planned around signatures; [`SaveOptions::with_metadata_date`] stamps the
+//!   save-time metadata).
 //! * [`Builder`] (feature `text`, on by default): pages, paths, colour, images, shaped text in
 //!   any script, text boxes, links, outlines, page labels and metadata, tagged PDF
 //!   ([`Surface::tag`], [`Surface::figure`], [`Surface::artifact`]; [`Tag`], [`TagKind`]),
@@ -113,6 +116,7 @@ mod generated {
 }
 mod job;
 mod links;
+mod metadata;
 mod navigation;
 mod properties;
 #[cfg(feature = "extract")]
@@ -168,8 +172,15 @@ pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
-pub use laminapdf_ops::{InfoPatch, Op, OpLog, RotatePage, SetInfo, UndoOutcome};
-pub use laminapdf_save::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefEol, XrefKind};
+pub use laminapdf_ops::{
+    ConformanceWarning, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource, Op, OpLog,
+    PacketStatus, RemoveMetadata, RotatePage, SetInfo, SetMetadata, UndoOutcome,
+};
+pub use laminapdf_save::{
+    ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
+    SaveMode, SaveOptions, SaveReport, SignatureInfo, SignatureKind, Violation, XrefEol, XrefKind,
+};
+pub use metadata::PlannedSave;
 
 #[cfg(feature = "build")]
 pub use builder::Builder;

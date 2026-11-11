@@ -391,6 +391,11 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             words: 1,
             pages: vec![0],
         }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaOneAuthor { authors: 2 }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfuaTitleMissing),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaInfoMismatch {
+            keys: vec![laminapdf::MetadataKey::Title],
+        }),
     ];
     (errors, warnings)
 }
