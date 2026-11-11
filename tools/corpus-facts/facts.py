@@ -116,9 +116,20 @@ def properties(reader):
     """What a properties view shows that pypdf can tell independently."""
     info = reader.metadata or {}
     encrypt = reader.trailer.get("/Encrypt")
+
+    def text(key):
+        # The Info string as pypdf decodes it (PDFDocEncoding or UTF-16), dates left raw.
+        return str(info[key]) if key in info else None
+
     return {
-        "title": str(info["/Title"]) if "/Title" in info else None,
-        "producer": str(info["/Producer"]) if "/Producer" in info else None,
+        "title": text("/Title"),
+        "producer": text("/Producer"),
+        "author": text("/Author"),
+        "subject": text("/Subject"),
+        "keywords": text("/Keywords"),
+        "creator": text("/Creator"),
+        "creation_date": text("/CreationDate"),
+        "mod_date": text("/ModDate"),
         "encryption_revision": int(encrypt.get_object()["/R"]) if encrypt is not None else None,
         "fonts": font_names(reader),
         "signatures": signature_count(reader),
