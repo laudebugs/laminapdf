@@ -1,9 +1,9 @@
 //! `laminapdf mcp` over stdio, through rmcp's own client: discovery, a fixed tool list, every
 //! tool's output against its `outputSchema`, the root policy on the real file system, argument
 //! errors as tool errors, and document text kept in data fields.
-#![allow(
+#![expect(
     deprecated,
-    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+    reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
 )]
 #![cfg(feature = "mcp")]
 #![expect(

@@ -6,9 +6,9 @@
 //!
 //! The seed is fixed (`SEED`, also printed to stderr, which the test harness shows for a
 //! failing test) so failures reproduce; proptest still shrinks.
-#![allow(
+#![expect(
     deprecated,
-    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+    reason = "these tests check that SetInfo, deprecated but still on the wire, keeps working"
 )]
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 

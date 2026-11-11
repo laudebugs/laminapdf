@@ -12,7 +12,7 @@
 //! `remove_encryption`, as a plaintext full rewrite.
 #![allow(
     deprecated,
-    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+    reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
 )]
 #![allow(
     unreachable_pub,

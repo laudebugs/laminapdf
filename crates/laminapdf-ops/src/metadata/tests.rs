@@ -1,8 +1,8 @@
 //! Unit tests of the metadata writer and reader: the mapping both ways, the patch semantics,
 //! the read precedence, the PDF 2.0 rule and each conformance warning.
-#![allow(
+#![expect(
     deprecated,
-    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+    reason = "these tests check that SetInfo, deprecated but still on the wire, keeps working"
 )]
 
 use laminapdf_cos::OpenOptions;

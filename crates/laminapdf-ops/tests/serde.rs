@@ -1,8 +1,8 @@
 //! The JSON form of ops and logs (ADR 0006 §1, §6) and the frozen samples in
 //! `fixtures/ops/v1/` (never rewritten by a test).
-#![allow(
+#![expect(
     deprecated,
-    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+    reason = "these tests check that SetInfo, deprecated but still on the wire, keeps working"
 )]
 
 mod common;

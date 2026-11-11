@@ -1,7 +1,7 @@
 //! The typed, serialisable [`Op`] (ADR 0006 §1) and the versioned [`OpLog`] envelope (§6).
-#![allow(
+#![expect(
     deprecated,
-    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+    reason = "SetInfo is defined and dispatched here; it stays, deprecated, so v1 op logs still apply"
 )]
 
 use laminapdf_model::PageId;

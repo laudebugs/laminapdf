@@ -3,7 +3,7 @@
 //! `laminapdf-test-fixtures`.
 #![allow(
     deprecated,
-    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+    reason = "these tests check that SetInfo, deprecated but still on the wire, keeps working"
 )]
 #![allow(
     dead_code,

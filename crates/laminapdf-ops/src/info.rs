@@ -1,7 +1,7 @@
 //! `SetInfo`: edit the document information dictionary (ISO 32000-2 §14.3.3).
-#![allow(
+#![expect(
     deprecated,
-    reason = "SetInfo, deprecated, is used here on purpose: v1 op logs still name it"
+    reason = "SetInfo is defined and dispatched here; it stays, deprecated, so v1 op logs still apply"
 )]
 
 use laminapdf_model::PdfDate;
@@ -128,8 +128,8 @@ impl InfoPatch {
 /// **Deprecated:** use [`SetMetadata`](crate::SetMetadata), which writes authors as a list and
 /// the dates, and edits files whose metadata is in XMP alone. `SetInfo` stays, with its v1 wire
 /// form (`setInfo`) and meaning, so op logs already written still apply (ADR 0006 §6). It now
-/// goes through the same writer, so a document's XMP packet, when it has one, changes with it;
-/// it never adds a packet to a file without one.
+/// goes through the same writer, so a document's XMP packet, when it has one, changes with it.
+/// It adds a packet only to a PDF 2.0 file, where the fields other than the dates belong in XMP.
 /// The date is part of the op, never read from a clock, so the same op gives the same bytes
 /// everywhere (ADR 0006 §1).
 ///
