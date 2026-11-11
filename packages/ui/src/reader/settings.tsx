@@ -1,7 +1,9 @@
 // The app's one Settings dialog (plan §5.5, design S07's section list) and the View settings
 // popover (R10). Later work adds a section instead of a dialog of its own: `register` a section
-// with an id, a title and what it renders, and the dialog lists it in registration order.
+// with an id, a title and what it renders, and the dialog lists it in registration order. On a
+// phone the list is a screen of its own, and each section opens as the next screen.
 
+import { Icon } from "@laminapdf/icons/react";
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button, IconButton } from "../components/button.js";
 import { message } from "../messages.js";
@@ -17,6 +19,8 @@ export interface SettingsSection {
   readonly title: string;
   /** The section's fields. */
   readonly render: () => ReactNode;
+  /** One line under its name in a phone's list of sections, saying what it is set to ("Match system · Green"). */
+  readonly summary?: () => string;
 }
 
 /** The Settings dialog's sections, in the order they were registered. */
@@ -75,7 +79,7 @@ export class SettingsRegistry {
  * Registers a section for as long as the calling component is mounted. `render` is read when the
  * dialog draws, so it may close over the caller's latest state. `shows` lists the values its
  * fields show: when one changes, the dialog draws the section again, so a switch shows the state
- * it was just set to.
+ * it was just set to. `summary`, read the same way, is the line under its name in a phone's list.
  */
 export function useSettingsSection(
   registry: SettingsRegistry,
@@ -83,12 +87,25 @@ export function useSettingsSection(
   title: string,
   render: () => ReactNode,
   shows: readonly unknown[] = [],
+  summary?: () => string,
 ): void {
   const latest = useRef(render);
+  const latestSummary = useRef(summary);
   useLayoutEffect(() => {
     latest.current = render;
+    latestSummary.current = summary;
   });
-  useEffect(() => registry.register({ id, title, render: () => latest.current() }), [registry, id, title]);
+  const summed = summary !== undefined;
+  useEffect(
+    () =>
+      registry.register({
+        id,
+        title,
+        render: () => latest.current(),
+        ...(summed ? { summary: () => latestSummary.current?.() ?? "" } : {}),
+      }),
+    [registry, id, title, summed],
+  );
   // biome-ignore lint/correctness/useExhaustiveDependencies: `shows` is the caller's list of what the section shows.
   useEffect(() => registry.refresh(id), [registry, id, ...shows]);
 }
@@ -103,14 +120,34 @@ export interface SettingsDialogProps {
   readonly onOpenChange: (open: boolean) => void;
 }
 
-/** The Settings dialog: a list of sections beside the chosen one's fields. */
+/**
+ * The Settings dialog: a list of sections beside the chosen one's fields. On a phone's sheet the
+ * list is the first screen, with each section's summary, and a section opens as the next screen
+ * with a way back (settings.css shows one screen at a time from `data-screen`).
+ */
 export function SettingsDialog({ registry, isOpen, onOpenChange }: SettingsDialogProps): ReactNode {
   const sections = useSyncExternalStore(
     (listener) => registry.subscribe(listener),
     () => registry.sections(),
   );
   const [chosen, setChosen] = useState<string | undefined>(undefined);
+  // Whether a phone shows the chosen section rather than the list; each opening starts at the list.
+  const [opened, setOpened] = useState(false);
+  useEffect(() => {
+    if (!isOpen) setOpened(false);
+  }, [isOpen]);
+  // Where focus goes once the screen changes: the hidden screen took the focused button with it.
+  const root = useRef<HTMLDivElement>(null);
+  const focusNext = useRef<string | undefined>(undefined);
+  // After every render: only a press sets `focusNext`, and the screen it asks for is drawn by then.
+  useEffect(() => {
+    const selector = focusNext.current;
+    focusNext.current = undefined;
+    // Wider than a phone the back button is hidden and focusing it does nothing: focus stays put.
+    if (selector !== undefined) root.current?.querySelector<HTMLElement>(selector)?.focus();
+  });
   const shown = sections.find((s) => s.id === chosen) ?? sections[0];
+  const listed = sections.length > 1;
   return (
     <Dialog
       isOpen={isOpen}
@@ -119,8 +156,8 @@ export function SettingsDialog({ registry, isOpen, onOpenChange }: SettingsDialo
       closeLabel={message("settings.close")}
       size="wide"
     >
-      <div className="paper-settings">
-        {sections.length < 2 ? null : (
+      <div ref={root} className="paper-settings" data-screen={listed && !opened ? "list" : "section"}>
+        {listed ? (
           <nav className="paper-settings-nav" aria-label={message("settings.sections")}>
             <ul>
               {sections.map((section) => (
@@ -128,17 +165,39 @@ export function SettingsDialog({ registry, isOpen, onOpenChange }: SettingsDialo
                   <Button
                     variant="ghost"
                     aria-current={section === shown ? "page" : false}
-                    onPress={() => setChosen(section.id)}
+                    onPress={() => {
+                      setChosen(section.id);
+                      setOpened(true);
+                      focusNext.current = ".paper-settings-back button";
+                    }}
                   >
-                    {section.title}
+                    <span className="paper-settings-nav-name">{section.title}</span>
+                    {section.summary === undefined ? null : (
+                      <span className="paper-settings-summary">{section.summary()}</span>
+                    )}
+                    <Icon name="chevron-right" size={16} className="paper-settings-chevron" />
                   </Button>
                 </li>
               ))}
             </ul>
           </nav>
-        )}
+        ) : null}
         {shown === undefined ? null : (
           <section className="paper-settings-section" aria-label={shown.title}>
+            {listed ? (
+              <div className="paper-settings-back">
+                <Button
+                  variant="ghost"
+                  icon="chevron-left"
+                  onPress={() => {
+                    setOpened(false);
+                    focusNext.current = '.paper-settings-nav [aria-current="page"]';
+                  }}
+                >
+                  {message("settings.back")}
+                </Button>
+              </div>
+            ) : null}
             <h3 className="paper-settings-heading">{shown.title}</h3>
             {shown.render()}
           </section>

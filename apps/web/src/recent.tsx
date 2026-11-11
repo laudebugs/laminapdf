@@ -134,18 +134,16 @@ async function reopen(entry: RecentFile, platform: Platform, reader: ReaderContr
   return file === undefined ? reader.openFromPicker() : reader.open(file);
 }
 
-/** The Storage and privacy section of the Settings dialog. */
-function StorageSettings({
-  choices,
-  onChange,
-  onClear,
-  onForgetPositions,
-}: {
+/** Props of `StorageSettings`. */
+interface StorageSettingsProps {
   choices: StorageChoices;
   onChange: (choices: StorageChoices) => void;
   onClear: () => void;
   onForgetPositions: () => void;
-}): ReactNode {
+}
+
+/** The Storage and privacy section of the Settings dialog. */
+function StorageSettings({ choices, onChange, onClear, onForgetPositions }: StorageSettingsProps): ReactNode {
   return (
     <div className="web-storage-settings">
       <Switch isSelected={choices.rememberLocal} onChange={(on) => onChange({ ...choices, rememberLocal: on })}>
@@ -208,20 +206,13 @@ export function useRecent(
     // Turning positions off forgets every one, and none is written while it stays off.
     if (!next.rememberPositions) void forgetPositions().catch(reportError);
   };
-  useSettingsSection(
-    registry,
-    "storage",
-    message("storage.title"),
-    () => (
-      <StorageSettings
-        choices={choices}
-        onChange={change}
-        onClear={() => void clear(true).then(() => toasts.add({ message: message("storage.cleared") }), reportError)}
-        onForgetPositions={forgetWithToast}
-      />
-    ),
-    [choices],
-  );
+  const clearWithToast = () =>
+    void clear(true).then(() => toasts.add({ message: message("storage.cleared") }), reportError);
+  useStorageSection(registry, choices, {
+    onChange: change,
+    onClear: clearWithToast,
+    onForgetPositions: forgetWithToast,
+  });
   const open = (entry: RecentFile) => void reopen(entry, platform, engine.reader).catch(reportError);
   return {
     home: (
@@ -243,4 +234,27 @@ export function useRecent(
       },
     },
   };
+}
+
+/** Settings' Storage and privacy section, with its summary for a phone's list of sections. */
+function useStorageSection(
+  registry: SettingsRegistry,
+  choices: StorageChoices,
+  actions: Omit<StorageSettingsProps, "choices">,
+): void {
+  useSettingsSection(
+    registry,
+    "storage",
+    message("storage.title"),
+    () => <StorageSettings choices={choices} {...actions} />,
+    [choices],
+    () => storageSummary(choices),
+  );
+}
+
+/** What the storage choices are, in one line for a phone's list of Settings sections. */
+function storageSummary({ rememberLocal, rememberPositions }: StorageChoices): string {
+  if (rememberLocal && rememberPositions) return message("storage.summary.both");
+  if (rememberLocal) return message("storage.summary.files");
+  return message(rememberPositions ? "storage.summary.positions" : "storage.summary.none");
 }
