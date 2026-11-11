@@ -233,7 +233,7 @@ tasks:
                     build the desktop engine binary into apps/desktop/src-tauri/binaries/ (Tauri's
                     sidecar naming) and the pinned PDFium into src-tauri/resources/pdfium/, which
                     tauri.bundle.conf.json bundles; the profile defaults to the Tauri CLI's
-                    (TAURI_ENV_DEBUG), else debug
+                    (release unless its hook sets TAURI_ENV_DEBUG=true), else debug
   extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
                     score lamina's extraction on the pinned public benchmark of
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per

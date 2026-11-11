@@ -8,7 +8,10 @@
 //!   its licence notices, which ship with every bundle (ADR 0004 §3).
 //!
 //! Both folders are git-ignored. The profile is `--release` or `--debug`, else what the Tauri CLI
-//! asked for (`TAURI_ENV_DEBUG` in its `beforeDevCommand`/`beforeBuildCommand`), else debug.
+//! asked for, else debug. The CLI's `beforeDevCommand`/`beforeBuildCommand` set
+//! `TAURI_ENV_PLATFORM`, and `TAURI_ENV_DEBUG=true` only for a debug build: a release build leaves
+//! `TAURI_ENV_DEBUG` unset (Tauri CLI 2.12, checked on D2d, after release builds had shipped the
+//! debug engine).
 //! The host's target only: the universal macOS engine comes with code signing.
 
 use std::env;
@@ -20,12 +23,21 @@ use anyhow::{Context, Result, bail};
 use crate::workspace::Workspace;
 use crate::{pdfium, step};
 
+/// Whether the Tauri CLI that ran this hook builds for release: inside a hook (`platform` set)
+/// unless `debug` is `true`; outside Tauri, never.
+fn tauri_wants_release(platform: Option<&str>, debug: Option<&str>) -> bool {
+    platform.is_some() && debug != Some("true")
+}
+
 /// The engine's package and binary name.
 pub(crate) const ENGINE: &str = "laminapdf-desktop-engine";
 
 pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     let release = match args {
-        [] => env::var("TAURI_ENV_DEBUG").is_ok_and(|debug| debug == "false"),
+        [] => tauri_wants_release(
+            env::var("TAURI_ENV_PLATFORM").ok().as_deref(),
+            env::var("TAURI_ENV_DEBUG").ok().as_deref(),
+        ),
         [flag] if flag == "--release" => true,
         [flag] if flag == "--debug" => false,
         _ => bail!("usage: cargo xtask desktop-sidecar [--release | --debug]"),
@@ -91,4 +103,17 @@ fn copy_libraries(from: &Path, to: &Path) -> Result<()> {
         bail!("no PDFium library in {}", from.display());
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::tauri_wants_release;
+
+    #[test]
+    fn tauri_wants_release_should_follow_the_cli_hooks_environment() {
+        // tauri build: TAURI_ENV_PLATFORM set, TAURI_ENV_DEBUG unset; --debug and dev: "true".
+        assert!(tauri_wants_release(Some("darwin"), None));
+        assert!(!tauri_wants_release(Some("darwin"), Some("true")));
+        assert!(!tauri_wants_release(None, None));
+    }
 }
