@@ -12,6 +12,8 @@ import {
   type RenderBackend,
   type RenderDocument,
   RenderError,
+  type RenderOpenOptions,
+  type RenderSource,
 } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
@@ -19,6 +21,7 @@ import {
   Document,
   isLaminaPdfError,
   loadExtract,
+  type Op,
   type OpenOptions,
   type RangeSource,
   wasmMemory,
@@ -41,10 +44,13 @@ let backend: RenderBackend | undefined;
 /** Backends loaded or loading, by name; a failed load is forgotten, so the next call retries. */
 const loading = new Map<string, Promise<RenderBackend>>();
 
-interface Open {
+export interface Open {
   readonly id: number;
   readonly model: Document;
-  readonly render: RenderDocument;
+  /** What draws the pages: replaced by one opened from the edited file after each edit (edit.ts). */
+  render: RenderDocument;
+  /** What edits keep and change (edit.ts); a text-capable copy here applies its `pending` edits. */
+  readonly edit: EditState;
   /** Where a remote document's bytes come from; undefined when they are all in memory. */
   readonly remote: HttpRangeByteSource | undefined;
   /** A large local file's OPFS copy it is read from; undefined when it is in memory. */
@@ -58,6 +64,29 @@ interface Open {
   text?: Promise<Document> | undefined;
   /** What its open answered, and the page's number for that open (`currentDocument`). */
   answer?: { readonly document: OpenedDocument; readonly ticket: number | undefined };
+}
+
+/**
+ * What edit.ts keeps of a document between edits. It reopens the render document over `source`
+ * with every appended revision after it.
+ */
+export interface EditState {
+  /** The file as first opened. */
+  readonly source: RenderSource;
+  /**
+   * The render limits, to open the render document again after an edit. Never the password: an
+   * encrypted file can't take an incremental save, so an edit never reopens one.
+   */
+  readonly renderLimits: RenderOpenOptions["limits"];
+  /** The revisions the edits appended to `source`, in order, each as its save wrote it. */
+  readonly appended: Uint8Array[];
+  /**
+   * The edits a text-capable copy has yet to apply, oldest first: kept only while there is a copy,
+   * or one may be opened, so a document that reads its own text keeps none.
+   */
+  readonly pending: (readonly Op[])[];
+  /** Set when an edit failed and couldn't be undone: the model and the pages drawn may differ. */
+  diverged: boolean;
 }
 
 /**
@@ -152,12 +181,52 @@ export async function textModel(signal: AbortSignal): Promise<Document> {
     }
     // The copy is open: the password and bytes it needed are no longer kept.
     opened.reopen = undefined;
+    // It opened from the file as it was: the edits made since then come next.
+    await replayEdits(opened, model);
     return model;
   })();
   opened.text.catch(() => {
     opened.text = undefined;
+    dropUnfollowable(opened);
   });
   return untilAborted(opened.text, signal);
+}
+
+/**
+ * Passes an edit the model committed to the text-capable copy (edit.ts calls it after each). The
+ * model reads its text itself when it can, and then nothing is kept. A copy still opening applies
+ * the edits once open; each call waits for the one before, so no edit is applied twice.
+ */
+export function followEdit(opened: Open, ops: readonly Op[]): void {
+  if (opened.text === undefined && opened.reopen === undefined) return;
+  opened.edit.pending.push(ops);
+  const text = opened.text;
+  if (text === undefined) return;
+  const synced = text.then(async (copy) => {
+    await replayEdits(opened, copy);
+    return copy;
+  });
+  opened.text = synced;
+  synced.catch(() => {
+    // A copy that can't follow the edits would show the old text: it goes, and text calls then
+    // answer `extract-module-not-loaded` from the model.
+    if (opened.text === synced) opened.text = undefined;
+    dropUnfollowable(opened);
+  });
+}
+
+/** With no copy open and none that can open (`reopen` is gone), nothing will apply the pending edits. */
+function dropUnfollowable(opened: Open): void {
+  if (opened.text === undefined && opened.reopen === undefined) opened.edit.pending.length = 0;
+}
+
+/** Applies to `copy` the edits it hasn't applied yet, one transaction each, as the model did. */
+async function replayEdits(opened: Open, copy: Document): Promise<void> {
+  const { pending } = opened.edit;
+  for (let ops = pending[0]; ops !== undefined; ops = pending[0]) {
+    await copy.ensure(() => copy.apply(ops));
+    pending.shift();
+  }
 }
 
 /**
@@ -178,7 +247,7 @@ function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   });
 }
 
-function currentBackend(): RenderBackend {
+export function currentBackend(): RenderBackend {
   // Only a viewer bug gets here (the client loads the backend before anything else), so it stays
   // an Error: the worker reports it as worker-failed, kind internal.
   if (backend === undefined) throw new Error("initBackend was not called");
@@ -326,9 +395,9 @@ async function openFrom(
   let render: RenderDocument;
   let pages: OpenedDocument["pages"];
   let title: string | undefined;
+  const source = from.kind === "memory" ? bytesSource(from.bytes) : from.source;
   let fingerprint: string | undefined;
   try {
-    const source = from.kind === "memory" ? bytesSource(from.bytes) : from.source;
     const renderOptions = {
       ...(password === undefined ? {} : { password }),
       ...(renderLimits === undefined ? {} : { limits: renderLimits }),
@@ -363,6 +432,7 @@ async function openFrom(
     id: nextDocument++,
     model,
     render,
+    edit: { source, renderLimits, appended: [], pending: [], diverged: false },
     remote,
     local: from.kind === "copy" ? from.source : undefined,
     reopen: reopenFor(model, from.kind === "memory" ? from.bytes : undefined, options),

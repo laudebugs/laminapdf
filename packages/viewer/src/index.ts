@@ -21,11 +21,12 @@ export type { CopyMode } from "./layers/copy.js";
 export type { LinkLayerOptions, LinkWords } from "./layers/link-layer.js";
 export { type ExternalLink, externalLink, type OpenableLink } from "./layers/link-url.js";
 export type { TextLayerOptions, TextSelection } from "./layers/text-layer.js";
-export type { Rotation } from "./layout/page-layout.js";
+export type { PageSize, Rotation } from "./layout/page-layout.js";
 export { type NetworkSink, watchNetwork } from "./network/watch.js";
 export type {
   BackendInit,
   BackendName,
+  EditResult,
   FindPageResult,
   LoadProgress,
   MethodName,
@@ -54,6 +55,7 @@ export { CACHE_FOLDER } from "./source/opfs.js";
 export { ThumbnailStrip, type ThumbnailStripOptions } from "./thumbnails/strip.js";
 export type {
   CreateViewerOptions,
+  InvalidatedPage,
   PageLayer,
   PageRegionOptions,
   PageRenderState,

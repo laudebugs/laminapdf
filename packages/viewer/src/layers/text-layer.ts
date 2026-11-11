@@ -12,7 +12,7 @@
 import type { ViewerClient } from "../client.js";
 import type { Rotation } from "../layout/page-layout.js";
 import { range as range_ } from "../layout/range.js";
-import type { OpenedDocument, ReadingBlock } from "../protocol.js";
+import type { ReadingBlock } from "../protocol.js";
 import { setUserSelect } from "../view/user-select.js";
 import type { PageLayer } from "../view/viewer.js";
 import { placeBox } from "./box.js";
@@ -27,6 +27,8 @@ export interface TextLayerHost {
   readonly client: Pick<ViewerClient, "pageText" | "structure" | "readingOrder">;
   /** The view's rotation now. */
   rotation(): Rotation;
+  /** Page `page`'s displayed size in points now. */
+  points(page: number): { readonly width: number; readonly height: number } | undefined;
   /** Keeps these pages mounted (the ones the selection touches). */
   keepMounted(pages: Iterable<number>): void;
 }
@@ -79,7 +81,6 @@ export class TextLayer implements PageLayer {
   readonly #specs = new WeakMap<HTMLElement, { readonly page: number; readonly spec: SpanSpec }>();
   readonly #structure: StructureLayer;
   readonly #cleanup: (() => void)[] = [];
-  #points: readonly { width: number; height: number }[] = [];
   /** Each mounted page's size in CSS px, as the last resize gave it. */
   readonly #sizes = new Map<number, { readonly width: number; readonly height: number }>();
   #pointerType = "";
@@ -163,9 +164,8 @@ export class TextLayer implements PageLayer {
     }
   }
 
-  /** A new document: its page sizes, and its structure tree, read once. */
-  open(document: OpenedDocument): void {
-    this.#points = document.pages.map((p) => ({ width: p.width, height: p.height }));
+  /** A new document: its structure tree, read once. */
+  open(): void {
     this.#structure.reset();
     this.#blocks.clear();
     const opening = ++this.#generation;
@@ -235,7 +235,7 @@ export class TextLayer implements PageLayer {
   /** Scales and turns page `page`'s box to `size` at the view's rotation. */
   #place(page: number, size: { readonly width: number; readonly height: number }): void {
     const text = this.#pages.get(page);
-    const points = this.#points[page];
+    const points = this.#host.points(page);
     if (text === undefined || points === undefined) return;
     placeBox(text.box, points, size, this.#host.rotation());
   }

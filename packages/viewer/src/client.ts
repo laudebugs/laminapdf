@@ -16,7 +16,7 @@
 //   fires and the caller opens again with the password.
 
 import type { RenderRequest } from "@laminapdf/render";
-import { isLaminaPdfError } from "@laminapdf/sdk";
+import { isLaminaPdfError, type Op } from "@laminapdf/sdk";
 import {
   connect,
   Emitter,
@@ -28,6 +28,7 @@ import type { FindOptions } from "./find/fold.js";
 import { FirstDraw } from "./first-draw.js";
 import {
   type BackendInit,
+  type EditResult,
   type LoadProgress,
   type MethodName,
   type NetworkRecord,
@@ -297,6 +298,27 @@ export class ViewerClient {
     this.#reopen = undefined;
     this.#document = undefined;
     await this.call("closeDocument", []);
+  }
+
+  /**
+   * Applies `ops` to the open document as one transaction (`@laminapdf/sdk`'s ops, such as
+   * `rotatePage`), and draws the pages it touched from the edited file from then on. Resolves
+   * with those pages as they now are; `document` gives their new sizes too. Pass them to
+   * `viewer.invalidate`, or call `viewer.applyEdit`, which does both. A failed edit changes nothing.
+   * The edits live in the worker: a restarted worker opens the file as it was.
+   */
+  async applyEdit(ops: readonly Op[], options?: ViewerCallOptions): Promise<EditResult> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const opened = this.#document;
+    // 0 names no document: the worker answers `disposed`.
+    const result = await this.call("applyEdit", [ops, opened?.id ?? 0], options);
+    // The pages keep their sizes in `document`, for whoever lays them out.
+    if (opened !== undefined && this.#document === opened && result.pages.length > 0) {
+      const pages = [...opened.pages];
+      for (const page of result.pages) pages[page.index] = page;
+      this.#document = { ...opened, pages };
+    }
+    return result;
   }
 
   /**

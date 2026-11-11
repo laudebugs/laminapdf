@@ -10,10 +10,10 @@
 // gesture settles. Framework-free: UI layers read `getState()`, `subscribe()` and the events.
 
 import { type PageAppearance, type PixelRect, pagePixels } from "@laminapdf/render";
-import type { Target } from "@laminapdf/sdk";
+import type { Op, Target } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
-import type { ViewerClient } from "../client.js";
+import type { ViewerCallOptions, ViewerClient } from "../client.js";
 import { FindController } from "../find/controller.js";
 import {
   type HistoryPlace,
@@ -25,15 +25,16 @@ import type { CopyMode } from "../layers/copy.js";
 import { HighlightLayer } from "../layers/highlight-layer.js";
 import { LinkLayer, type LinkLayerOptions } from "../layers/link-layer.js";
 import { TextLayer, type TextLayerOptions, type TextSelection } from "../layers/text-layer.js";
-import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
+import { isRotation, keptTop, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { range } from "../layout/range.js";
 import {
   appearanceField,
   appearanceKey,
+  type EditResult,
   type OpenedDocument,
   type Priority,
-  renderKey,
   renderKeyFields,
+  viewKey,
 } from "../protocol.js";
 import { backdropRatio, bounds, contains, lowScale, sharpScale, tilesFor } from "../render/tiles.js";
 import { destinationView } from "../zoom/destination.js";
@@ -100,6 +101,15 @@ export interface ViewerEventMap {
   renderstats: RenderStats;
   /** The text selection changed: `undefined` when it left the viewer (UI/UX plan §5.3). */
   selectionchange: { readonly selection: TextSelection | undefined };
+  /** `invalidate` redrew these pages; each has its displayed size in points now. */
+  invalidate: { readonly pages: readonly InvalidatedPage[] };
+}
+
+/** A page `invalidate` redrew: its index and its displayed size in points now. */
+export interface InvalidatedPage {
+  readonly index: number;
+  readonly width: number;
+  readonly height: number;
 }
 
 /** A layer that later todos mount into each page (text, annotations, highlights, …). */
@@ -228,7 +238,7 @@ interface Detail {
   readonly scale: number;
   /** The geometry (`geometryOf`) it was placed for. */
   readonly geometry: string;
-  /** The sharp tiles drawn into it, by `renderKey`. */
+  /** The sharp tiles drawn into it, by `viewKey`. */
   readonly tiles: Set<string>;
 }
 
@@ -248,7 +258,7 @@ interface PageView {
    * canvas is the page at this scale exactly, as the renderer sizes it (`pagePixels`).
    */
   scale: number;
-  /** The sharp tiles drawn at `painted`, by `renderKey`. */
+  /** The sharp tiles drawn at `painted`, by `viewKey`. */
   readonly tiles: Set<string>;
   /** The detail canvas, while the page is in view and its canvas is below the full pixel ratio. */
   detail: Detail | undefined;
@@ -335,8 +345,13 @@ export class Viewer {
   readonly #listeners = new Set<() => void>();
   readonly #events = new Map<keyof ViewerEventMap, Set<(data: never) => void>>();
   readonly #cleanup: (() => void)[] = [];
-  #document: OpenedDocument | undefined;
+  /** The open document's ID (renders name it), or undefined before one opens. */
+  #documentId: number | undefined;
+  /** Counts `open`s: an edit answered for a document since replaced redraws nothing. */
+  #opens = 0;
   #sizes: PageSize[] = [];
+  /** Each edited page's revision (`invalidate` bumps it), part of its bitmaps' cache keys. */
+  #revisions = new Map<number, number>();
   #layout: PageLayout | undefined;
   #zoom: Zoom;
   #rotation: Rotation = 0;
@@ -413,6 +428,7 @@ export class Viewer {
     });
     this.addLayer(this.#highlights);
     this.#links = this.#linkLayer(options.links);
+    this.#cleanup.push(this.#client.on("restarted", ({ reopened }) => reopened && this.#reopened()));
   }
 
   /** The scroll container (append it, or use {@link mount}). */
@@ -430,12 +446,14 @@ export class Viewer {
   open(document: OpenedDocument): void {
     this.#unmountAll();
     this.#cache.clear();
-    this.#document = document;
+    this.#documentId = document.id;
+    this.#opens++;
+    this.#revisions = new Map();
     this.#pinned = new Set();
     this.#focusTarget = undefined;
     this.find.reset();
     this.history.reset();
-    this.#text?.open(document);
+    this.#text?.open();
     this.#sizes = document.pages.map((p) => ({ width: p.width, height: p.height }));
     this.#layout = undefined;
     this.#root.scrollTop = 0;
@@ -604,6 +622,74 @@ export class Viewer {
     }
     this.#setState({ appearance });
     this.#schedule();
+  }
+
+  /**
+   * Draws `pages` again: an edit changed them. Their bitmaps go, here and in a thumbnail strip,
+   * and their layers read their text and links again; every other page keeps what it drew.
+   * `sizes` gives the pages whose displayed size in points changed (a quarter turn swaps width and
+   * height): the layout takes them, and the page at the top of the viewport stays there. A page in
+   * view keeps its old pixels until the new ones are drawn over them.
+   */
+  invalidate(pages: Iterable<number>, sizes?: ReadonlyMap<number, PageSize>): void {
+    const count = this.#sizes.length;
+    const changed = new Set(
+      [...pages, ...(sizes?.keys() ?? [])].filter((p) => Number.isInteger(p) && p >= 0 && p < count),
+    );
+    if (changed.size === 0) return;
+    const resized = new Set<number>();
+    for (const [page, size] of sizes ?? []) {
+      const old = this.#sizes[page];
+      if (old === undefined || (old.width === size.width && old.height === size.height)) continue;
+      this.#sizes[page] = { width: size.width, height: size.height };
+      resized.add(page);
+    }
+    for (const page of changed) {
+      this.#revisions.set(page, (this.#revisions.get(page) ?? 0) + 1);
+      this.#cache.prune(page, () => false);
+    }
+    if (resized.size > 0) this.#resize();
+    const { first, last } = this.#state.visibleRange;
+    for (const page of changed) {
+      const view = this.#pages.get(page);
+      if (view === undefined) continue;
+      this.#redraw(view, resized.has(page) || page < first || page > last);
+      this.#remountLayers(view);
+    }
+    this.find.refresh([...changed]);
+    const list = [...changed].sort((a, b) => a - b);
+    this.#emit("invalidate", { pages: list.map((index) => ({ index, ...(this.#sizes[index] as PageSize) })) });
+    this.#emit("renderstats", this.stats());
+    this.#schedule();
+  }
+
+  /**
+   * Applies `ops` to the open document through the client (`ViewerClient.applyEdit`) and redraws
+   * the pages they touched ({@link invalidate}): an edit on screen in one call. A failed edit
+   * changes nothing and redraws nothing.
+   */
+  async applyEdit(ops: readonly Op[], options?: ViewerCallOptions): Promise<EditResult> {
+    const opens = this.#opens;
+    const result = await this.#client.applyEdit(ops, options);
+    // Another document opened meanwhile: these pages aren't its pages.
+    if (this.#opens === opens) {
+      this.invalidate(
+        result.pages.map((page) => page.index),
+        new Map(result.pages.map((page) => [page.index, page])),
+      );
+    }
+    return result;
+  }
+
+  /**
+   * Every page's displayed size in points, as the view lays it out: the sizes the document opened
+   * with, and those edits gave since (`invalidate`). A thumbnail strip lays its pages out from it.
+   * With `documentId`, empty unless the view shows that document: a page count alone can't tell two
+   * documents apart.
+   */
+  pageSizes(documentId?: number): readonly PageSize[] {
+    if (documentId !== undefined && documentId !== this.#documentId) return [];
+    return this.#sizes;
   }
 
   /**
@@ -787,6 +873,70 @@ export class Viewer {
     this.#schedule();
   }
 
+  /**
+   * The worker restarted and opened the file again as it was, without the edits: the edited pages
+   * take their sizes from it and draw again (at a new revision, so no bitmap of theirs is reused).
+   */
+  #reopened(): void {
+    const document = this.#client.document;
+    if (document === undefined || document.pages.length !== this.#sizes.length) return;
+    this.#documentId = document.id;
+    const edited = [...this.#revisions.keys()];
+    const sizes = new Map(edited.map((index) => [index, document.pages[index] as PageSize]));
+    this.invalidate(edited, sizes);
+  }
+
+  /**
+   * Lays the pages out again at the same zoom after some changed size, keeping the page at the
+   * viewport's top where it is (scaled into its new height, if it is one that changed).
+   */
+  #resize(): void {
+    const before = this.#layout;
+    if (before === undefined) return;
+    const after = new PageLayout(this.#sizes, { scale: before.scale, rotation: before.rotation, gap: this.#gap });
+    if (after.height > MAX_HEIGHT) {
+      // Past what browsers can scroll: the zoom is capped again.
+      this.#rezoom(undefined);
+      return;
+    }
+    const top = keptTop(before, after, this.#root.scrollTop);
+    this.#layout = after;
+    this.#spacer.style.height = `${after.height}px`;
+    this.#spacer.style.width = `${after.contentWidth(this.#viewport().width)}px`;
+    this.#root.scrollTop = top;
+  }
+
+  /**
+   * Makes `view` draw its page again: its renders aborted (a late one is dropped), its tiles
+   * forgotten. A page in view at its old size keeps its pixels, and sharp tiles replace them; a
+   * page that changed size, or one outside the view, paints its quick pass first.
+   */
+  #redraw(view: PageView, repaint: boolean): void {
+    this.#abort(view);
+    view.waiting = false;
+    view.tiles.clear();
+    // A page whose render failed tries again from the start.
+    if (repaint || view.state === "error") {
+      this.#releaseDetail(view);
+      view.painted = "";
+      view.state = "placeholder";
+    } else {
+      view.detail?.tiles.clear();
+      if (view.state !== "placeholder") view.state = "low";
+    }
+  }
+
+  /** Mounts `view`'s layers again, so they read its text and links again, at its size now. */
+  #remountLayers(view: PageView): void {
+    const size = { width: this.#layout?.widths[view.index] ?? 0, height: this.#layout?.heights[view.index] ?? 0 };
+    for (const layer of this.#layers) {
+      const slot = this.#slot(view, layer.name);
+      layer.onUnmount?.(view.index, slot);
+      layer.onMount?.(view.index, slot);
+      layer.onZoom?.(view.index, slot, size);
+    }
+  }
+
   #scroll() {
     return { left: this.#root.scrollLeft, top: this.#root.scrollTop };
   }
@@ -819,6 +969,7 @@ export class Viewer {
       root: this.#root,
       client: this.#client,
       rotation: () => this.#rotation,
+      points: (page: number) => this.#sizes[page],
       keepMounted: (pages: Iterable<number>) => this.keepMounted(pages),
     };
     const textOptions = option === true || option === undefined ? {} : option;
@@ -1141,7 +1292,12 @@ export class Viewer {
   /** The tile `clip` of page `index` at `scale`: its render request and cache key. */
   #tile(index: number, layout: PageLayout, scale: number, clip: PixelRect): Tile {
     const request = { page: index, scale, rotation: layout.rotation, clip, ...appearanceField(this.#state.appearance) };
-    return { clip, request, key: renderKey(request, this.#document?.id ?? 0) };
+    return { clip, request, key: this.#key(request) };
+  }
+
+  /** `request`'s cache key: the render key with its page's revision. */
+  #key(request: Parameters<ViewerClient["render"]>[0]): string {
+    return viewKey(request, this.#documentId ?? 0, this.#revisions.get(request.page) ?? 0);
   }
 
   /** The device px per pt of a sharp tile: the layout's scale × the device pixel ratio. */
@@ -1211,7 +1367,7 @@ export class Viewer {
     const view = this.#pages.get(index);
     // A page in the margin gives its detail canvas back for the pages in view.
     if (view !== undefined && priority === "prefetch") this.#releaseDetail(view);
-    if (view === undefined || this.#document === undefined || view.busy || view.waiting || view.state === "error") {
+    if (view === undefined || this.#documentId === undefined || view.busy || view.waiting || view.state === "error") {
       return;
     }
     if (!this.#readyForAppearance(view, priority) || this.#upToDate(view, priority, frame)) return;
@@ -1273,7 +1429,7 @@ export class Viewer {
       rotation: layout.rotation,
       ...appearanceField(this.#state.appearance),
     };
-    const low = await this.#bitmap(request, renderKey(request, this.#document?.id ?? 0), priority, signal);
+    const low = await this.#bitmap(request, this.#key(request), priority, signal);
     if (!live()) {
       this.#drop(low);
       return false;
@@ -1476,7 +1632,17 @@ export class Viewer {
   ): Promise<Held> {
     const cached = this.#cache.get(key);
     if (cached !== undefined && !isClosed(cached)) return { bitmap: cached, owned: false };
+    const revision = this.#revisions.get(request.page) ?? 0;
     const { bitmap } = await this.#client.render(request, { priority, signal });
+    // The page was edited while this render waited: its pixels may be the old file's, and its key
+    // names a revision nothing asks for again. The worker runs one call at a time and `invalidate`
+    // runs only once the edit has answered, so an answer that comes after it, at the same
+    // revision, drew the edited file; the worker's coalescing key needs no revision for the same
+    // reason (no render can run across an edit).
+    if ((this.#revisions.get(request.page) ?? 0) !== revision) {
+      bitmap.close();
+      throw new DOMException("the page changed while it rendered", "AbortError");
+    }
     const kept = this.#cache.set(key, request.page, bitmap, this.#state.currentPage);
     return { bitmap, owned: !kept };
   }
