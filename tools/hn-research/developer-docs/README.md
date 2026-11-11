@@ -4,4 +4,4 @@ The scripts behind [the developer docs research](../../../docs/research/docs-sit
 
 The order: `collect_stories.py`, `select.py`, `collect_comments.py`, then `themes.py`, `strict.py`, `story_groups.py` and `nominations.py` for the counts, and `verify.py` for the quotes. `grep.py` searches the comments for a phrase.
 
-`data/` holds the selected stories (`stories.jsonl`) and the printed outputs the notes cite. The raw search results and the 13 MB of comment threads stay out of git, as in the [earlier study](../README.md); the scripts were written to run from a scratch folder, so set their input and output paths before running them again.
+`data/` holds the selected stories (`stories.jsonl`) and the printed outputs the notes cite. The raw search results and the 13 MB of comment threads stay out of git, as in the [earlier study](../README.md); each script takes a working folder as its first argument (`python3 themes.py <dir>`) and reads and writes `<dir>/data/`, so run them on a scratch folder, not this one.
