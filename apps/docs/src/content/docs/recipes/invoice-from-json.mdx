@@ -29,7 +29,7 @@ The result is two A4 pages that meet PDF/UA-1. The table's header row repeats at
 
 ## How it works
 
-- `fill` in Rust, and `builder.flow` given `data` in TypeScript, replace each placeholder with the value it points to, then read the result as a document. A pointer is a path into the data ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)): `/invoice/number` is the `number` inside `invoice`, and `/items/0` the first line item.
+- `fill` (in TypeScript, `builder.flow` given `data`) replaces each placeholder with the value it points to, then reads the result as a document. A pointer is a path into the data ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)): `/invoice/number` is the `number` inside `invoice`, and `/items/0` the first line item.
 - `{ "$data": "/total" }` puts a value from the data where text belongs, and `{ "$item": "/amount" }` puts one from the current item of an `$each`.
 - `{ "$each": "/items", "do": … }` repeats a block or a table row once per item of a list. `{ "$if": "/invoice/paid", "do": … }` keeps its block only when that value is there and isn't `false` or `null`. This invoice's data says it isn't paid, so the "Paid in full" line is left out.
 - The template names its text styles once, such as `body` and `strong`, and each style names a font. The fonts' bytes come beside the template, through `Resources` in Rust and `fonts` in TypeScript, so the template holds no files.

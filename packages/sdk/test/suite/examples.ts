@@ -330,7 +330,7 @@ export async function difference(actual: Uint8Array, golden: Uint8Array): Promis
  * two-page invoice filled from JSON (the best of 30) and the
  * 100-page report (median of 3) with `performance.now()`. Returns the report's bytes, for the hash check.
  * Needs `init({ text: true })`, and must run first in a fresh module instance (before any other
- * example): then `hello-first` is cold and `wasm-memory` is the hello, invoice and report runs' alone.
+ * example): then `hello-first` is cold and `wasm-memory` is the timed runs' alone.
  *
  * @param settle - awaited before reading the clock at the start and the end of each sample: in
  *   workerd the clock only advances across I/O, so the Worker passes a zero-length timer; elsewhere
