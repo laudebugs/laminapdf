@@ -15,6 +15,8 @@ export function sidebar(typeDoc) {
         { label: "What is Lamina PDF", link: "/" },
         { label: "Install", slug: "install" },
         { label: "Your first PDF", slug: "start/first-pdf" },
+        { label: "Your first PDF in Rust", slug: "start/first-pdf-rust" },
+        { label: "Your first PDF on the command line", slug: "start/first-pdf-cli" },
         { label: "Use with coding agents", slug: "start/coding-agents" },
       ],
     },

@@ -3,7 +3,7 @@
 //! and compares, so no command or output on the docs' pages is typed by hand.
 //!
 //! `transcripts.json` gives each transcript's commands and the files it needs, under the names the
-//! page uses. Each runs in a folder of its own with those files and the built `laminapdf` first on
+//! page uses, and any setup commands that run first and aren't shown. Each runs in a folder of its own with those files and the built `laminapdf` first on
 //! `PATH`, and with no `LAMINA_PDF_*` variable from the caller's environment. Its commands run in
 //! one `sh`, so `echo $?` and pipes work as they do in a terminal, with standard error merged into
 //! standard output. The version is written `{{version}}` (the docs fill it in), and timings
@@ -37,6 +37,9 @@ fn transcripts_dir() -> PathBuf {
 
 /// What `transcripts.json` gives one transcript.
 struct Entry {
+    /// Commands run first and not shown, such as the build that makes the PDF a later step of a
+    /// tutorial reads (optional).
+    setup: Vec<String>,
     /// The commands, as the reader types them.
     commands: Vec<String>,
     /// The name in its folder → the path from the repository root.
@@ -56,19 +59,26 @@ fn manifest() -> BTreeMap<String, Entry> {
                 .iter()
                 .map(|(to, from)| (to.clone(), from.as_str().unwrap().to_owned()))
                 .collect();
-            let commands = entry["commands"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|command| command.as_str().unwrap().to_owned())
-                .collect();
-            (name.clone(), Entry { commands, files })
+            let list = |key: &str| -> Vec<String> {
+                entry[key].as_array().map_or_else(Vec::new, |commands| {
+                    commands
+                        .iter()
+                        .map(|command| command.as_str().unwrap().to_owned())
+                        .collect()
+                })
+            };
+            let entry = Entry {
+                setup: list("setup"),
+                commands: list("commands"),
+                files,
+            };
+            (name.clone(), entry)
         })
         .collect()
 }
 
 /// Runs `commands` in `dir` and writes the session as a terminal shows it.
-fn run(dir: &Path, commands: &[String]) -> String {
+fn run(dir: &Path, setup: &[String], commands: &[String]) -> String {
     let binary = PathBuf::from(env!("CARGO_BIN_EXE_laminapdf"));
     let path = format!(
         "{}:{}",
@@ -77,6 +87,12 @@ fn run(dir: &Path, commands: &[String]) -> String {
     );
     // Each command starts with the exit status of the one before (`echo $?`), after the mark.
     let mut script = String::from("exec 2>&1\n");
+    // The setup must work: a failure stops the session before the first mark, and the assertion
+    // below names it.
+    for command in setup {
+        script.push_str(command);
+        script.push_str(" >/dev/null || exit 1\n");
+    }
     for command in commands {
         script.push_str("s=$?; printf '");
         script.push_str(MARK);
@@ -144,7 +160,7 @@ fn every_transcript_is_what_the_commands_print() {
         for (to, from) in &entry.files {
             fs::copy(root().join(from), dir.join(to)).unwrap_or_else(|e| panic!("{name}: {from}: {e}"));
         }
-        let actual = run(&dir, &entry.commands);
+        let actual = run(&dir, &entry.setup, &entry.commands);
         if update {
             fs::write(&file, &actual).unwrap();
         } else if masked(&actual) != masked(&expected) {
