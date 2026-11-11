@@ -1,6 +1,6 @@
 ---
 title: "extract-needs-ocr"
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/reference/codes/extract-needs-ocr/"
 ---
 

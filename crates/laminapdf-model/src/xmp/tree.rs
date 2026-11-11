@@ -318,8 +318,12 @@ impl Builder {
                 None if a.name == "xmlns" => "",
                 _ => continue,
             };
-            // `xmlns:="…"` declares nothing, and Namespaces in XML 1.0 can't undeclare a prefix.
-            if a.name.ends_with(':') || (!prefix.is_empty() && a.value.is_empty()) || prefix.contains(':') {
+            // `xmlns:="…"` declares nothing, and Namespaces in XML 1.0 can't undeclare a prefix. A
+            // prefix is an NCName (§3): `xmlns:1dc` is a Name, but `<1dc:title>` is not.
+            if a.name.ends_with(':')
+                || (!prefix.is_empty() && (a.value.is_empty() || !is_name(prefix)))
+                || prefix.contains(':')
+            {
                 return Err(ParseError::Syntax { offset });
             }
             declarations.push(Binding::new(prefix, &a.value));
@@ -419,7 +423,7 @@ fn scan_tag(tag: &str, base: usize) -> Option<RawTag<'_>> {
     let inner = inner.strip_suffix("/>").or_else(|| inner.strip_suffix('>'))?;
     let is_space = |c: char| matches!(c, ' ' | '\t' | '\n' | '\r');
     let name_len = inner.find(is_space).unwrap_or(inner.len());
-    let name = inner.get(..name_len)?;
+    let name = inner.get(..name_len).filter(|n| is_name(n))?;
     let mut at = name_len;
     let mut attrs = Vec::new();
     loop {
@@ -442,7 +446,7 @@ fn scan_tag(tag: &str, base: usize) -> Option<RawTag<'_>> {
         let close = body.find(quote)?;
         let raw_value = body.get(..close)?;
         let consumed = trimmed.len() - body.len() + close + 1;
-        if attr_name.is_empty() || attr_name.contains(is_space) || raw_value.contains('<') {
+        if !is_name(attr_name) || raw_value.contains('<') {
             return None;
         }
         attrs.push(RawAttr {
@@ -453,6 +457,29 @@ fn scan_tag(tag: &str, base: usize) -> Option<RawTag<'_>> {
         at += consumed;
     }
     Some(RawTag { name, attrs })
+}
+
+/// Whether `name` is an XML 1.0 `Name` (§2.3). Tags and attributes must be named so, and a
+/// declared prefix must be one too: a packet that names one otherwise is malformed, and the writer
+/// would build tags from such a prefix (`xmlns:?dc`) that read back as something else (`<?dc:title>`
+/// is a processing instruction).
+fn is_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    chars.next().is_some_and(is_name_start) && chars.all(|c| is_name_start(c) || is_name_rest(c))
+}
+
+/// XML 1.0's `NameStartChar`.
+const fn is_name_start(c: char) -> bool {
+    matches!(c,
+        ':' | 'A'..='Z' | '_' | 'a'..='z' | '\u{C0}'..='\u{D6}' | '\u{D8}'..='\u{F6}' | '\u{F8}'..='\u{2FF}'
+        | '\u{370}'..='\u{37D}' | '\u{37F}'..='\u{1FFF}' | '\u{200C}'..='\u{200D}' | '\u{2070}'..='\u{218F}'
+        | '\u{2C00}'..='\u{2FEF}' | '\u{3001}'..='\u{D7FF}' | '\u{F900}'..='\u{FDCF}' | '\u{FDF0}'..='\u{FFFD}'
+        | '\u{10000}'..='\u{EFFFF}')
+}
+
+/// The characters XML 1.0's `NameChar` adds to [`is_name_start`]'s.
+const fn is_name_rest(c: char) -> bool {
+    matches!(c, '-' | '.' | '0'..='9' | '\u{B7}' | '\u{300}'..='\u{36F}' | '\u{203F}'..='\u{2040}')
 }
 
 /// An attribute value as XML 1.0 §3.3.3 normalises it: line ends and literal white space
