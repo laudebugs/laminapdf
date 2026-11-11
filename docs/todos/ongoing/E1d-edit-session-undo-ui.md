@@ -59,14 +59,14 @@ Turn the web reader into an editor shell: an edit session per open document that
 - [x] Wire undo/redo commands and shortcuts (desktop menus come from them in E1h); disable when stacks are empty; announce outcomes via ARIA live region
 - [x] History panel component with virtualised list; clicking an entry undoes/redoes to that point
 - [x] Dirty indicator and the web's close guard
-- [x] Invalidate and re-render touched pages only; measure and log time per invalidation
+- [x] Invalidate and re-render touched pages only; measure and log time per invalidation (`viewer.edits`' `lastMs`, from the call to the pages redrawn, shown under `#debug` in the status bar beside the first page's time)
 
 ## Acceptance criteria
 
 - [x] Playwright e2e in Chromium, Firefox and WebKit: rotate a page, undo, redo, check rendering and dirty indicator each step
 - [x] Undo after 500 transactions drops the oldest (depth limit) and the panel reflects it
 - [x] Closing a dirty document prompts; closing a clean one does not
-- [x] Keyboard-only and screen-reader pass of the history panel recorded (axe: zero serious violations)
+- [ ] Keyboard-only and screen-reader pass of the history panel recorded (axe: zero serious violations). Done: the keyboard-only pass (Tab reaches one row, Up, Down, Home, End, Page Up, Page Down and Enter, a Tab stop kept when the wheel scrolls; `history.browser.test.tsx`) and axe with no violations in light, dark and high contrast, both directions, in Chromium, Firefox and WebKit. Checked for a screen reader without one: the list is an `<ol>` named "Edit history" of buttons whose names are the step's label and meta, each item with `aria-posinset`/`aria-setsize` of the whole list, the current one `aria-current="step"`; Undo and Redo are named by their step with `aria-keyshortcuts`; the save state is `aria-live="polite"`; toasts are announced by the toast region's `role="status"`. Owed: a pass with VoiceOver and NVDA, which can't run here.
 
 ## Post-merge checks
 
@@ -100,11 +100,12 @@ None.
 
 ## What was built, and how E1g's follow-ups were settled
 
+- **Serial edits.** The worker runs one edit call per document at a time (`serial` in `edit.ts`), so concurrent callers can't compute the same target, and an undo or redo reads the position only when its turn comes; the page's `EditSession` reads the history inside its queue too.
 - **The session.** The document worker keeps a history per document (`packages/viewer/src/worker/session.ts`): a step per committed transaction with its label, pages and time, the position, 500 steps (the model's own undo depth), and the saved position. Its methods are `applyEdit` (with a label), `undoEdit`, `redoEdit`, `goToStep` (one redraw however many steps) and `editHistory`; the client fires `edit` after each, with the touched pages and the history. `viewer.edits` is the store the chrome reads. `plan(options)` and `save(options)` are E1e's: the SDK has no save plan yet, and E1d saves nothing.
 - **Undo and redo redraw through E1g.** The façade's `undo` and `redo` now return `Reverted { outcome, touched_pages }`, through `laminapdf-wasm` and `@laminapdf/sdk` (a breaking change, under a minor changeset). `Edited.changed` says whether an edit made a step, so the session's steps stay the model's undo stack.
 - **Its own dirty flag.** The session counts the steps between the document now and its saved position (the file as opened, until E1e saves), so E1g's in-memory saves don't clear it. Steps the depth limit drops still count.
 - **The redo entry a failed save leaves.** Settled without a new API: the session records no step for it and drops its own undone steps (the model's transaction cleared them), so nothing ever redoes the stale entry, and the next edit clears it.
-- **A worker restart.** The client keeps each step's ops (`edit-log.ts`) and replays them into the new worker (`restoreEdits`), then undoes the undone ones: the history and the pages come back as they were (`restarted`'s `edits: "restored"`). If the replay fails, the file opens as it was and the reader says the changes were lost.
+- **A worker restart.** The client keeps each step's ops (`edit-log.ts`) and replays them into the new worker (`restoreEdits`), then undoes the undone ones: the history and the pages come back as they were (`restarted`'s `edits: "restored"`). A replay can't recreate an undo or redo that restored only part of a step, or none of it, so after one of those, or if the replay fails, the file opens as it was and the reader says the changes were lost.
 - **Encrypted documents** open with `encrypted: true`; the worker refuses their edits and every edit command is disabled with the reason, until E11.
 - **Fit-width after a turn.** A fit mode fits again when a page changes size.
 - **Compacting the revision chain: not needed yet.** Turning a page 400 times in a row through the reader's palette (Chromium, M1 Pro) took a median 100 ms per edit for edits 1–20 and for edits 381–400, most of it typing into the palette: the chain doesn't slow edits within a session's 500 steps. E1e's full rewrite on save is the natural place to compact.
@@ -113,6 +114,8 @@ None.
 - **Turning a page.** O06's page grid is E2's, so the reader turns the current page from More › Rotate page right or left (`pages.rotate-right`, `pages.rotate-left`, also in the palette), without the Organise grid's R and Shift R.
 
 - **The startup script stays in its budget.** The edit session first put the reader's startup script at 278,123 bytes gzipped (main: 267,696; budget 270,000). What only an open document needs now loads after open, in one chunk (`apps/web/src/later.ts`): the new `@laminapdf/ui/editing` entry (the top bar's `EditArea`, the History tab, the edit commands, the tools) and `@laminapdf/ui/reader-mode` (reader mode's column, until now in the startup script), with Print and Properties as before. The startup script is now 269,870 bytes.
+
+**Handed on to E1e** (its tasks list them): the session's `plan(options)`, the close confirmation's Save button, the History footer's sentence about Save, and Undo and Redo's tooltips (they belong with saving's work on the top bar, and loading the tooltip after open keeps the startup script in its budget).
 
 **Deviations from O01 and O03:** closing a document with unsaved changes asks with Cancel and Close without saving only, since Save comes with E1e; on the web the Edit menu's items sit at the top of More; choosing a row in the History tab that undoes or redoes one step shows the same toast as Undo; Undo and Redo have no hover tooltip (their names carry the step and the keys), since the tooltip's code would have put the startup script over its budget.
 

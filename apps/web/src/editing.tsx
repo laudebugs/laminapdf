@@ -7,24 +7,25 @@
 // startup script (#380).
 
 import {
+  type CommandContext,
+  type CommandId,
   type CommandRegistry,
+  chipKeys,
   type EditControls,
   type GatedEntry,
-  inSentence,
   type KeyPlatform,
   message,
+  type Platform,
   type RailTab,
   type ShellLayout,
   sessionStarted,
-  stepToRedo,
-  stepToUndo,
   type ToastQueue,
   useStoreState,
 } from "@laminapdf/ui";
 import type * as Editor from "@laminapdf/ui/editing";
-import type { Viewer } from "@laminapdf/viewer";
-import { lazy, type ReactNode, Suspense, useEffect, useMemo } from "react";
-import { type PageInfo, pageLabel } from "./outline.ts";
+import { CLOSED_SESSION, type Viewer } from "@laminapdf/viewer";
+import { lazy, type ReactNode, Suspense, useEffect, useMemo, useSyncExternalStore } from "react";
+import { pageLabel } from "./outline.ts";
 import type { Engine } from "./session.ts";
 
 /** The History tab's id in the rail. */
@@ -36,24 +37,17 @@ const HistoryPanel = lazy<typeof Editor.HistoryPanel>(() => loadRuntime().then((
 const EditingRuntime = lazy(() => loadRuntime().then((m) => ({ default: m.EditingRuntime })));
 const EditArea = lazy<typeof Editor.EditArea>(() => loadRuntime().then((m) => ({ default: m.EditArea })));
 
-/** A session for a top bar without a document: nothing done, nothing to do. Its state is one object, as a store's must be. */
-const NOTHING: ReturnType<EditControls["getState"]> = {
-  history: { steps: [], position: 0, dropped: 0, unsaved: 0 },
-  busy: false,
-  blocked: "no-document",
-  notice: undefined,
-};
-const done = () => Promise.resolve();
-const NO_SESSION: EditControls = {
-  getState: () => NOTHING,
-  subscribe: () => () => undefined,
-  undo: done,
-  redo: done,
-  goTo: done,
-};
+/** The More menu's edit items (the web's Edit menu, O01), and the command each runs. */
+const EDIT_MENU = {
+  undo: "edit.undo",
+  redo: "edit.redo",
+  history: "edit.history",
+  "rotate-right": "pages.rotate-right",
+  "rotate-left": "pages.rotate-left",
+} as const satisfies Record<string, CommandId>;
 
-/** The More menu's edit items (the web's Edit menu, O01). */
-export type EditMenuId = "undo" | "redo" | "history" | "rotate-right" | "rotate-left";
+/** An edit item of the More menu. */
+export type EditMenuId = keyof typeof EDIT_MENU;
 
 /** What the reader gets from `useEditing`. */
 export interface Editing {
@@ -69,6 +63,8 @@ export interface Editing {
   readonly menu: { readonly items: GatedEntry<EditMenuId>[]; readonly run: (id: EditMenuId) => void };
   /** Whether the document has changes no save has written. */
   readonly unsaved: boolean;
+  /** How long the last edit, undo or redo took from the call to its pages redrawn, in ms (#debug). */
+  readonly lastMs: number | undefined;
   /**
    * What runs while a document is open, given the commands' registry: the edit commands, the
    * toasts, the tools, and the confirmation before a document with unsaved changes closes.
@@ -90,56 +86,68 @@ function useBeforeUnload(unsaved: boolean): void {
   }, [unsaved]);
 }
 
-/** The More menu's edit items, named as their commands are. */
-function menuItems(edits: EditControls | undefined): GatedEntry<EditMenuId>[] {
-  const state = (edits ?? NO_SESSION).getState();
-  const blocked = state.blocked !== undefined;
-  /** Undo or Redo, named by the step it would take. */
-  const step = (way: "undo" | "redo", other: string): GatedEntry<EditMenuId> => {
-    const next = (way === "undo" ? stepToUndo : stepToRedo)(state);
-    return {
-      id: way,
-      label:
-        next === undefined
-          ? message(`command.edit.${way}`)
-          : message(`edit.${way}.step`, { step: inSentence(next.label) }),
-      icon: way,
-      shortcut: { mac: way === "undo" ? "Mod+Z" : "Mod+Shift+Z", other },
-      isDisabled: blocked || next === undefined,
-    };
-  };
-  return [
-    step("undo", "Mod+Z"),
-    step("redo", "Mod+Y"),
-    { id: "history", label: message("command.edit.history"), icon: "clock", isDisabled: edits === undefined },
-    { id: "rotate-right", label: message("command.pages.rotate-right"), icon: "rotate-right", isDisabled: blocked },
-    { id: "rotate-left", label: message("command.pages.rotate-left"), icon: "rotate-left", isDisabled: blocked },
-  ];
+/**
+ * The More menu's edit items, from their registered commands (ADR 0024 §3): the title, the
+ * shortcut and whether each can run now. Before the commands register (they load once a document
+ * is open) there are none.
+ */
+function menuItems(
+  registry: CommandRegistry,
+  context: CommandContext,
+  /**
+   * What the items are read from, besides the context: the registry's version and the session's
+   * state. Named here so the React Compiler makes the items again when either changes.
+   */
+  _readFrom: { readonly version: number; readonly state: unknown },
+): GatedEntry<EditMenuId>[] {
+  return (Object.entries(EDIT_MENU) as [EditMenuId, CommandId][]).flatMap(([id, commandId]) => {
+    const command = registry.get(commandId);
+    const availability = registry.availability(commandId, context);
+    if (command === undefined || availability.state === "hidden") return [];
+    const shortcut = chipKeys(command, context);
+    return [
+      {
+        id,
+        label: registry.title(command, context),
+        ...(command.icon === undefined ? {} : { icon: command.icon }),
+        ...(shortcut === undefined ? {} : { shortcut }),
+        ...(availability.state === "disabled" ? { isDisabled: true, disabledReason: availability.reason } : {}),
+      },
+    ];
+  });
 }
 
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
 export function useEditing(options: {
   readonly engine: Engine;
-  readonly layout: ShellLayout;
+  /** The rail's layout, and the commands' registry, which the edit commands join once a document is open. */
+  readonly shell: { readonly layout: ShellLayout; readonly registry: CommandRegistry };
   readonly viewer: Viewer | undefined;
   readonly toasts: ToastQueue;
   readonly fileName: string | undefined;
-  readonly pages: readonly PageInfo[];
   /** How shortcut chips are written. */
   readonly keys: KeyPlatform;
+  readonly platform: Platform;
 }): Editing {
-  const { engine, layout, viewer, toasts } = options;
+  const { engine, viewer, toasts, platform } = options;
+  const { layout, registry } = options.shell;
+  const pages = useStoreState(engine, (s) => s.pages);
   const edits = viewer?.edits;
-  const slice = useStoreState(edits ?? NO_SESSION, (s) => s);
+  const slice = useStoreState(edits ?? CLOSED_SESSION, (s) => s);
+  // The menu follows the registry too: the edit commands register after the first paint.
+  const version = useSyncExternalStore(
+    (listener) => registry.subscribe(listener),
+    () => registry.version,
+  );
   const started = sessionStarted(slice);
   const unsaved = slice.history.unsaved;
   const openedAt = useStoreState(engine, (s) => s.openedAt);
   useBeforeUnload(unsaved > 0);
-  const { pages, fileName } = options;
+  const { fileName } = options;
   const actions = useMemo(() => {
     const current = () => viewer?.getState().currentPage ?? 0;
-    const rotate = (delta: 90 | -90) => () =>
-      void engine.rotatePage(current(), delta).catch(() => toasts.add({ message: message("edit.toast.failed") }));
+    // A failed turn is said by the session's failure toast (edit-toasts.ts).
+    const rotate = (delta: 90 | -90) => () => void engine.rotatePage(current(), delta).catch(() => undefined);
     return {
       "edit.history": () => {
         layout.setRailTab(HISTORY_TAB);
@@ -148,7 +156,7 @@ export function useEditing(options: {
       "pages.rotate-right": rotate(90),
       "pages.rotate-left": rotate(-90),
     };
-  }, [engine, layout, viewer, toasts]);
+  }, [engine, layout, viewer]);
   const tab = useMemo<RailTab | undefined>(
     () =>
       edits === undefined || !started
@@ -169,18 +177,16 @@ export function useEditing(options: {
           },
     [edits, started, pages, openedAt],
   );
-  const run = (id: EditMenuId) => {
-    if (id === "undo") void edits?.undo().catch(() => undefined);
-    else if (id === "redo") void edits?.redo().catch(() => undefined);
-    else if (id === "history") actions["edit.history"]();
-    else actions[id === "rotate-right" ? "pages.rotate-right" : "pages.rotate-left"]();
-  };
+  const context: CommandContext = { platform, ...(edits === undefined ? {} : { edits }), actions };
+  // Through the registry, so a command that can't run now doesn't; a failure is the session's to say.
+  const run = (id: EditMenuId) => void registry.run(EDIT_MENU[id], context).catch(() => undefined);
   return {
     edits,
     actions,
     tab,
-    menu: { items: menuItems(edits), run },
+    menu: { items: menuItems(registry, context, { version, state: slice }), run },
     unsaved: unsaved > 0,
+    lastMs: slice.lastMs,
     topBar:
       edits === undefined ? undefined : (
         <Suspense fallback={null}>

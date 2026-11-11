@@ -56,6 +56,10 @@ Let users save edits safely on the web: Save (incremental by default), Save as, 
 - [ ] Banner and dialogs in `@laminapdf/ui` with copy reviewed against ADR 0007 wording
 - [ ] Rebase handling: after a full rewrite to a non-readable sink, call `rebase` with the spooled bytes; block ops while `SavedNotRebased`
 - [ ] Error paths: disk full, permission denied, FSA permission revoked → document stays dirty, overlay untouched
+- [ ] The edit session's `plan(options)` in the document worker (E1 plan §5), which E1d left for this todo since the SDK had no save plan yet; mark the session's saved position after each save (`markSaved`)
+- [ ] The close confirmation's Save button (Paper O03), which E1d shipped with Cancel and Close without saving only
+- [ ] The History tab's footer sentence on Save ("History is kept after Save and cleared by Save as optimised", O01) once saving exists
+- [ ] Undo and Redo's tooltips naming the step with the keys (O01: "accessible name and tooltip name the step"), which E1d left out to keep the startup script in its budget: load the tooltip with the editor's parts after open
 
 ## Acceptance criteria
 

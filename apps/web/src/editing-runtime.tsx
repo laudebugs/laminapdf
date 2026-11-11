@@ -1,6 +1,6 @@
 // The parts of the edit session that wait until a document is open (loaded with import(), as the
-// print and properties dialogs are, #380): the edit commands registered, a toast after each undo
-// or redo with the way back, and for one that restored only part of its step; the confirmation
+// print and properties dialogs are, #380): the edit commands registered, the toasts (edit-toasts.ts);
+// the confirmation
 // before the reader closes or replaces a document with unsaved changes; and the interaction mode
 // that reads pointer input on the page (select, unless a later tool is chosen).
 
@@ -12,36 +12,18 @@ import {
   type EditControls,
   message,
   type ReaderController,
-  type RevertedSlice,
   type ToastQueue,
   useStoreState,
 } from "@laminapdf/ui";
-import { attachTools, registerEditCommands, revertedText, ToolRegistry } from "@laminapdf/ui/editing";
+import { attachTools, registerEditCommands, ToolRegistry } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { showEditToasts } from "./edit-toasts.ts";
 import type { Engine } from "./session.ts";
-
-/** The toast after an undo or redo: what it did, and the way back when it did all of it. */
-function revertedToast(toasts: ToastQueue, edits: EditControls, reverted: readonly RevertedSlice[]): void {
-  // Going to a step far away is one choice in the History tab, which shows where it went: only a
-  // step left alone is worth a toast then.
-  const notable = reverted.length === 1 ? reverted : reverted.filter((r) => r.outcome !== "applied");
-  for (const step of notable) {
-    const back =
-      step.outcome === "skipped"
-        ? undefined
-        : step.way === "undo"
-          ? { label: message("command.edit.redo"), onPress: () => void edits.redo().catch(() => undefined) }
-          : { label: message("command.edit.undo"), onPress: () => void edits.undo().catch(() => undefined) };
-    toasts.add({ message: revertedText(step), ...(back === undefined ? {} : { action: back }) });
-  }
-}
 
 /** Toasts after undos and redos, and when a restarted worker lost the edits. */
 function useEditToasts(viewer: Viewer, engine: Engine, toasts: ToastQueue): void {
-  useEffect(() => {
-    return viewer.edits.onReverted((reverted) => revertedToast(toasts, viewer.edits, reverted));
-  }, [viewer, toasts]);
+  useEffect(() => showEditToasts(viewer.edits, toasts), [viewer, toasts]);
   const lost = useStoreState(engine, (s) => s.editsLost);
   const seen = useRef(lost);
   useEffect(() => {
@@ -109,12 +91,26 @@ function CloseDialog({
 }
 
 /** Passes pointer input on the view to the interaction mode on. */
-function useTools(viewer: Viewer): void {
+function useTools(viewer: Viewer, reader: ReaderController): void {
   const [tools] = useState(() => new ToolRegistry());
   useEffect(() => {
     const element = viewer.element;
     return attachTools(tools, { element, scrollBy: (dx, dy) => element.scrollBy(dx, dy) });
   }, [viewer, tools]);
+  // One mode: the reader machine's. A `set-mode` turns the tool on; a name no tool has goes back
+  // to the tool on, so the machine never names a mode nothing reads.
+  useEffect(() => {
+    const follow = () => {
+      const state = reader.getState();
+      if (state.phase !== "open" || state.mode === tools.getState().current) return;
+      if (!tools.use(state.mode)) reader.setMode(tools.getState().current);
+    };
+    follow();
+    const stops = [reader.subscribe(follow), tools.subscribe(() => reader.setMode(tools.getState().current))];
+    return () => {
+      for (const stop of stops) stop();
+    };
+  }, [reader, tools]);
 }
 
 /** Props of `EditingRuntime`. */
@@ -130,7 +126,7 @@ export interface EditingRuntimeProps {
 export function EditingRuntime({ engine, viewer, registry, toasts, fileName }: EditingRuntimeProps): ReactNode {
   useEffect(() => registerEditCommands(registry), [registry]);
   useEditToasts(viewer, engine, toasts);
-  useTools(viewer);
+  useTools(viewer, engine.reader);
   const guard = useCloseGuard(engine.reader, viewer.edits);
   const unsaved = useStoreState(viewer.edits, (s) => s.history.unsaved);
   return <CloseDialog isOpen={guard.asking} fileName={fileName} unsaved={unsaved} onAnswer={guard.answer} />;

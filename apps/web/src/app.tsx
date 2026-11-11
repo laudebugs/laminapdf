@@ -209,7 +209,7 @@ function useReaderCommands(
   platform: Platform,
   reader: ReaderController,
   viewer: Viewer | undefined,
-  shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
+  shell: Shell,
   rail: boolean,
   /** The handlers that need an open document: find, Back and Forward, print, download, properties, the selection's and the edits'. */
   documentActions: FindActions &
@@ -222,11 +222,7 @@ function useReaderCommands(
   appActions: Settings["actions"],
   edits: Editing["edits"],
 ): { registry: CommandRegistry; context: CommandContext } {
-  const [registry] = useState(() => {
-    const commands = new CommandRegistry();
-    registerReaderCommands(commands);
-    return commands;
-  });
+  const { registry } = shell;
   // A mode registered later gets its `mode.<id>` handler: the context follows the modes.
   const modes = useStoreState(shell.modes, (s) => s.modes);
   const context = useMemo<CommandContext>(
@@ -249,8 +245,45 @@ function useReaderCommands(
   return { registry, context };
 }
 
-/** The status bar's items: the repaired notice, and under #debug the first page's timing. */
-function statusItems(engine: EngineState, debug: boolean, onRepairs: (() => void) | undefined): ReactNode[] {
+/** The shell's parts every hook shares: the layout, the modes, the palette and the commands. */
+interface Shell {
+  readonly layout: ShellLayout;
+  readonly modes: ModeRegistry;
+  readonly openPalette: () => void;
+  /** The commands, with the reader's registered; the edit commands join once a document is open. */
+  readonly registry: CommandRegistry;
+}
+
+/** The shell's parts, made once, and whether the palette is open. */
+function useAppShell(platform: Platform) {
+  const [palette, setPalette] = useState(false);
+  const { layout, modes } = useShell(platform.storage);
+  const [shell] = useState<Shell>(() => ({
+    layout,
+    modes,
+    openPalette: () => setPalette(true),
+    registry: readerRegistry(),
+  }));
+  return { shell, palette, setPalette };
+}
+
+/** The commands' registry with the reader's commands. */
+function readerRegistry(): CommandRegistry {
+  const commands = new CommandRegistry();
+  registerReaderCommands(commands);
+  return commands;
+}
+
+/**
+ * The status bar's items: the repaired notice, and under #debug the first page's timing and the
+ * last edit's, from the call to its pages redrawn.
+ */
+function statusItems(
+  engine: EngineState,
+  debug: boolean,
+  onRepairs: (() => void) | undefined,
+  editMs: number | undefined,
+): ReactNode[] {
   const items: ReactNode[] = [];
   if (onRepairs !== undefined) {
     items.push(
@@ -265,6 +298,9 @@ function statusItems(engine: EngineState, debug: boolean, onRepairs: (() => void
   const { timing } = engine;
   if (debug && timing !== undefined) {
     items.push(<StatusBarItem key="timing">{`${timing.backend} · page 1 in ${timing.firstPageMs} ms`}</StatusBarItem>);
+  }
+  if (debug && editMs !== undefined) {
+    items.push(<StatusBarItem key="edit-timing">{`last edit drawn in ${Math.round(editMs)} ms`}</StatusBarItem>);
   }
   return items;
 }
@@ -378,6 +414,8 @@ function usePanels(
     readonly toasts: ToastQueue;
     readonly documentOpen: boolean;
     readonly readerMode: ReaderMode;
+    /** The last edit's time from the call to its pages redrawn, for #debug. */
+    readonly editMs: number | undefined;
   },
 ): { inspector: ReactNode; status: ReactNode[]; notice: ReactNode } {
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, platform, fileName, engine.repairs);
@@ -390,7 +428,7 @@ function usePanels(
     status: [
       ...(shared.readerMode.status === undefined ? [] : [shared.readerMode.status]),
       ...(indicator === undefined ? [] : [indicator]),
-      ...statusItems(engine, debug, showRepairs),
+      ...statusItems(engine, debug, showRepairs, shared.editMs),
       ...connection.status,
       <FocusModeItem key="focus-mode" layout={layout} />,
     ],
@@ -556,7 +594,7 @@ function useAppSettings(
 function useDocumentChrome(options: {
   readonly engine: Engine;
   readonly platform: Platform;
-  readonly shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void };
+  readonly shell: Shell;
   readonly state: ReaderState;
   readonly shown: Viewer | undefined;
   readonly editing: Editing;
@@ -588,15 +626,14 @@ function useDocumentChrome(options: {
 export function App({ engine, platform, network, updates, debug }: AppProps): ReactNode {
   const state = useReaderState(engine.reader);
   const engineState = useStoreState(engine, (s) => s);
-  const [palette, setPalette] = useState(false);
-  const { layout, modes } = useShell(platform.storage);
-  const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
+  const { shell, palette, setPalette } = useAppShell(platform);
+  const { layout, modes } = shell;
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const open = state.phase === "open";
   const shown = open ? engineState.viewer : undefined;
   const { settings, toasts } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined);
   const fileName = open ? state.file.name : undefined;
-  const editing = useEditing({ engine, layout, viewer: shown, toasts, fileName, pages: engineState.pages, keys: KEYS });
+  const editing = useEditing({ engine, shell, platform, viewer: shown, toasts, fileName, keys: KEYS });
   const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts, edit: editing.menu });
   const { labels, output, moreItems, recent } = menu;
   const chrome = useDocumentChrome({ engine, platform, shell, state, shown, editing, menu });
@@ -608,6 +645,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
     toasts,
     documentOpen: open,
     readerMode: reading,
+    editMs: editing.lastMs,
   });
   return (
     <CommandsProvider
