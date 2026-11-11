@@ -2,7 +2,7 @@
 
 - Status: Accepted when D2a's PR merges (proposed 2026-11-09)
 - Date: 2026-11-09
-- Amended 2026-11-11 ([D2c](../todos/ongoing/D2c-engine-sandbox.md)): §5 records what each OS's sandbox enforces, its gaps and the OS versions it needs. macOS uses a Seatbelt profile instead of App Sandbox, which left system files readable and process creation open, and a main-process watchdog for memory. The main process serves the engine the system's fonts.
+- Amended 2026-11-11 ([D2c](../todos/done/D2c-engine-sandbox.md)): §5 records what each OS's sandbox enforces, its gaps and the OS versions it needs. macOS uses a Seatbelt profile instead of App Sandbox, which left system files readable and process creation open, and a main-process watchdog for memory. The main process serves the engine the system's fonts.
 
 ## Context
 

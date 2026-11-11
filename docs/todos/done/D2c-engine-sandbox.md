@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D2b](../done/D2b-engine-process.md) |
+| Depends on | [D2b](./D2b-engine-process.md) |
 | ADRs | Implements and amends ADR 0008 §sandboxing (records what is actually enforced per OS). Follows [Rust guidelines](../../guidelines/rust.md) (`unsafe` only with `// SAFETY:`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/d2c-engine-sandbox` |
 | PR title | `feat(desktop): sandbox the engine process per OS` |
