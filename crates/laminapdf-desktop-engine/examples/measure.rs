@@ -29,8 +29,9 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use laminapdf_desktop_protocol::supervisor::{CommandSpawner, Config, RangeServer, Supervisor};
+use laminapdf_desktop_protocol::supervisor::{Config, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{DocId, FromEngine, Priority, TileFormat, TileRequest, ToEngine};
+use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner};
 
 /// The file, read by position, counting what the engine asked for.
 struct Counted {
@@ -128,7 +129,9 @@ fn run() -> Result<(), String> {
         reads: AtomicU64::new(0),
         bytes: AtomicU64::new(0),
     });
-    let spawner = CommandSpawner::new(args.engine.clone(), Vec::new(), |line| eprintln!("engine: {line}"));
+    let spawner = SandboxSpawner::new(args.engine.clone(), Vec::new(), SandboxConfig::default(), |line| {
+        eprintln!("engine: {line}");
+    });
     let engine = Supervisor::start(
         Box::new(spawner),
         Arc::clone(&files) as Arc<dyn RangeServer>,

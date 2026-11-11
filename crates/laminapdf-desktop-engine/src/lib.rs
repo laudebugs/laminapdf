@@ -18,6 +18,7 @@ mod limits;
 mod outbox;
 mod queue;
 mod remote;
+pub mod selftest;
 mod worker;
 
 use std::io::{Read, Write};
@@ -27,7 +28,7 @@ use std::thread;
 use std::time::Duration;
 
 use laminapdf_desktop_protocol::{
-    FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ToEngine, read_frame,
+    FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, SandboxLevel, ToEngine, read_frame,
 };
 use laminapdf_render::RenderBackend;
 
@@ -45,7 +46,8 @@ pub const STALLED: Duration = Duration::from_secs(45);
 
 /// Serves the main process on `input` and `output` until it sends `Shutdown` or closes the pipe.
 /// `backend` renders tiles; without one, documents open and report their pages but every tile
-/// answers `RenderUnavailable`.
+/// answers `RenderUnavailable`. `sandboxed` is what the sandbox enforces, which `Ready` reports:
+/// the caller locks the engine down before it calls this, so no request is read before.
 ///
 /// # Errors
 /// [`ProtocolError`] when the first message isn't a `Hello` of this version, a frame is malformed,
@@ -54,6 +56,7 @@ pub fn run<R: Read, W: Write + Send + 'static>(
     mut input: R,
     output: W,
     backend: Option<Box<dyn RenderBackend>>,
+    sandboxed: SandboxLevel,
 ) -> Result<(), ProtocolError> {
     let out = Outbox::new(Box::new(output));
     let limits = match read_frame(&mut input, MAX_FRAME)? {
@@ -71,6 +74,7 @@ pub fn run<R: Read, W: Write + Send + 'static>(
         &FromEngine::Ready {
             version: PROTOCOL_VERSION,
             pid: std::process::id(),
+            sandboxed,
         },
         &[],
     )?;
