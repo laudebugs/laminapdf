@@ -24,6 +24,6 @@ runs:
         command: |
           set -euo pipefail
           sudo timeout -k 30 60 dpkg --configure -a
-          sudo timeout -k 30 240 apt-get update -q
+          bash .github/actions/apt-fail-fast/update.sh
           sudo timeout -k 30 420 apt-get install -y -q --no-install-recommends \
             libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config

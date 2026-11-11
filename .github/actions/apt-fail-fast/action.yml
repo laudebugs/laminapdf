@@ -1,9 +1,9 @@
 name: apt fails fast
 description: >-
-  Makes a failing apt try end in about a minute: each download gets 30 s and 3 tries, and
-  `apt-get update` fails when it can't fetch an index (by default it only warns, and the install
-  after it hangs until its `sudo timeout`; docs/bugs/ci-apt-retry-kill-eperm). A no-op on macOS
-  and Windows.
+  Makes a failing apt try end sooner (docs/bugs/ci-apt-retry-kill-eperm): each download gets
+  30 s and 3 tries, rather than waiting on a stalled mirror until the try's `sudo timeout`. Its
+  `update.sh`, which the setup actions run inside their retry, fails a try at once when an Ubuntu
+  index can't be fetched. A no-op on macOS and Windows.
 runs:
   using: composite
   steps:
@@ -11,5 +11,4 @@ runs:
       shell: bash
       run: |
         printf '%s\n' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' 'Acquire::Retries "3";' \
-          'APT::Update::Error-Mode "any";' \
           | sudo tee /etc/apt/apt.conf.d/99-fail-fast > /dev/null
