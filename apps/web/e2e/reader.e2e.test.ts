@@ -1,10 +1,11 @@
 // The reader against `wrangler dev` (e2e/server.ts), in one browser per run (LAMINA_PDF_E2E_BROWSER):
-// the headers ADR 0011 §4 sets, the built page's lack of inline code, and each way of opening a
-// local file (the input, a drop, a paste, showOpenFilePicker in Chromium), a repaired file and a
-// refused one. Every page load listens for CSP violations and for requests to another origin: a
-// local file must cause neither.
+// the headers ADR 0011 §4 sets, robots.txt and noindex outside production, the built page's lack of
+// inline code, and each way of opening a local file (the input, a drop, a paste, showOpenFilePicker
+// in Chromium), a repaired file and a refused one. Every page load listens for CSP violations and
+// for requests to another origin: a local file must cause neither.
 
 import { readdirSync, readFileSync } from "node:fs";
+import { env } from "node:process";
 import { getLocal } from "@laminapdf/test-utils/wrangler-dev";
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -50,6 +51,21 @@ describe("what the server sends", () => {
     expect(response.headers.get("cache-control")).toBe(HTML_CACHE);
     expectHeaders(response);
     expect(await response.text()).toContain('<div id="app">');
+  });
+
+  it("/robots.txt is a text file that lets crawlers in, not the app", async () => {
+    const response = await get(origin, "/robots.txt");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/plain");
+    expect(await response.text()).toBe("User-agent: *\nAllow: /\n");
+  });
+
+  it("only a production build may be indexed", async () => {
+    // The suite runs with the environment its build had: none for local runs and PRs, as staging
+    // and the previews; production for a release tag's checks (web-deploy.yml).
+    const production = env.LAMINA_PDF_ENV === "production";
+    const response = await get(origin, "/");
+    expect(response.headers.get("x-robots-tag")).toBe(production ? null : "noindex");
   });
 
   it("/index.html redirects to /, the page's one address, with the same headers", async () => {
