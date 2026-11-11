@@ -25,7 +25,25 @@ npm install -g @laminapdf/cli@{{version}}
 
 ## Make a PDF
 
-Save this Markdown as `notes.md`, then build it. `build` lays it out on A4 pages:
+Save this Markdown as `notes.md`:
+
+```md title="notes.md"
+---
+title: Release notes
+lang: en
+---
+
+# Release notes
+
+The new version opens **twice as fast** and reads files with broken cross-references.
+
+| Change | Pages |
+| --- | --- |
+| Faster open | 1 to 3 |
+| Repairs | 4 |
+```
+
+Then build it. `build` lays it out on A4 pages:
 
 <Transcript name="build-markdown" />
 
@@ -49,6 +67,6 @@ Save this Markdown as `notes.md`, then build it. `build` lays it out on A4 pages
 
 ## What happened
 
-`build` read the Markdown, set it in Helvetica and Courier (two of the [standard 14 fonts](/reference/glossary/), which PDF viewers have), and wrote a tagged PDF with no creation date, so the same file always gives the same bytes. `info`, `check`, `extract` and `render` each opened that PDF and printed what they found.
+`build` read the Markdown and set it in Helvetica, one of the [standard 14 fonts](/reference/glossary/) that PDF viewers have; code would use Courier. It wrote a tagged PDF with no creation date, so the same file always gives the same bytes. `info`, `check`, `extract` and `render` each opened that PDF and printed what they found.
 
 Next, see what else the tool does in [the command line](/cli/), or make the same PDF [with your own fonts and an accessibility profile](/cli/build-and-edit/#accessible-and-archival-pdfs).
