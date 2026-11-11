@@ -154,6 +154,7 @@ mod tests {
     const DOCS: &str = include_str!("../../../.github/workflows/docs.yml");
     const CLI_RELEASE: &str = include_str!("../../../.github/workflows/cli-release.yml");
     const WEB_DEPLOY: &str = include_str!("../../../.github/workflows/web-deploy.yml");
+    const CLI_TRAIN: &str = include_str!("../../release/cli-release-train.yml");
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {
@@ -568,6 +569,59 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// The owner installs the train from tools/release: never merge a partial installation.
+    #[test]
+    fn installed_cli_release_train_should_match_the_reviewed_file() {
+        let path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github/workflows/cli-release-train.yml");
+        assert!(
+            std::fs::read_to_string(&path).is_ok_and(|installed| installed == CLI_TRAIN),
+            "the owner must install tools/release/cli-release-train.yml as .github/workflows/cli-release-train.yml before merge"
+        );
+    }
+
+    /// Only a successful release lane from a v<version> tag push in this repository starts a CLI
+    /// release, the kill switch stops it, nothing from the repository runs, and only the release
+    /// bot's token (whose push starts cli-release.yml) creates the tag.
+    #[test]
+    fn cli_release_train_should_tag_only_a_successful_releases_commit_through_the_bot() {
+        let trigger = lines_of(CLI_TRAIN, "on", "workflow_run").join("\n");
+        for condition in ["workflows: [Release]", "types: [completed]"] {
+            assert!(trigger.contains(condition), "missing trigger {condition}");
+        }
+        let job = lines_of(CLI_TRAIN, "jobs", "tag").join("\n");
+        for part in [
+            "vars.CLI_RELEASE_TRAIN != 'off'",
+            "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'",
+            "github.event.workflow_run.head_repository.full_name == github.repository",
+            "github.event.workflow_run.event == 'push'",
+            "github.event.workflow_run.conclusion == 'success'",
+            r#"select(.workflowName == "Release" and .event == "push""#,
+            r#"(.headBranch | test("^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.]+)?$"))"#,
+            r#"tagged=$(gh api "repos/$GH_REPO/commits/$version_tag" --jq .sha)"#,
+            r#"echo "tag=laminapdf-cli-$version_tag" >> "$GITHUB_OUTPUT""#,
+            "GH_TOKEN: ${{ steps.bot.outputs.token }}",
+            r#"--raw-field ref="refs/tags/$TAG" --raw-field sha="$SHA""#,
+        ] {
+            assert!(job.contains(part), "the CLI release train lacks {part}");
+        }
+        assert!(
+            !job.contains("actions/checkout"),
+            "the train runs nothing from the repository"
+        );
+        assert!(
+            !CLI_TRAIN.lines().any(|line| line.trim() == "contents: write"),
+            "the train's own token stays read-only"
+        );
+        let pushes =
+            "if: steps.existing.outputs.exists == 'false' && (github.event_name == 'workflow_run' || inputs.tag)";
+        assert_eq!(
+            job.matches(pushes).count(),
+            2,
+            "the bot's token and the tag both wait for a missing tag and a push"
+        );
     }
 
     #[test]
