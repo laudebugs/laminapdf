@@ -31,8 +31,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// The document with its metadata edited, saved incrementally at `saved_at`.
 pub(crate) fn edit(bytes: Vec<u8>, saved_at: PdfDate) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
-    let before = doc.metadata()?;
-    println!("title before: {}", before.title.as_deref().unwrap_or("(none)"));
 
     let patch = MetadataPatch::new()
         .title(Some("Quarterly figures"))

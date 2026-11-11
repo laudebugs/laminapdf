@@ -12,7 +12,6 @@ import { Document } from "@laminapdf/sdk";
  */
 export function editMetadata(bytes: Uint8Array, savedAt: string): Uint8Array<ArrayBuffer> {
   using doc = Document.open(bytes);
-  console.log(`title before: ${doc.metadata().title ?? "(none)"}`);
 
   doc.setMetadata({ title: "Quarterly figures", authors: ["Ada Lovelace", "Charles Babbage"] }, { at: savedAt });
   doc.removeMetadata(["keywords"]);
