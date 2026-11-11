@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4h` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4g](../done/L4g-cli-release-targets-and-publishing.md), [C7e](../done/C7e-automated-web-releases.md) |
+| Depends on | [L4g](./L4g-cli-release-targets-and-publishing.md), [C7e](./C7e-automated-web-releases.md) |
 | Dependency notes | L4g's tag push builds and publishes the CLI; C7e's web train is the pattern to follow. The owner's L4g setup is done: the first release, `laminapdf-cli-v0.2.0-alpha.5`, published on 2026-11-11. |
 | ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) (release gating, the release bot), [0031](../../decisions/0031-cli-and-mcp-contract.md) |
 | Branch | `ci/cli-release-train` |
@@ -44,16 +44,16 @@ Release the `laminapdf` CLI without the owner pushing a tag. After each daily li
 
 ## Tasks
 
-- [ ] `cli-release-train.yml`, its dispatch path and the kill switch.
-- [ ] `workflows.rs` tests.
-- [ ] Docs: `tools/release/README.md` ("The CLI's release": the train replaces the manual tag), `crates/laminapdf-cli/README.md`, CLAUDE.md.
+- [x] `cli-release-train.yml`, its dispatch path and the kill switch.
+- [x] `workflows.rs` tests.
+- [x] Docs: `tools/release/README.md` ("The CLI's release": the train replaces the manual tag), `crates/laminapdf-cli/README.md`, CLAUDE.md.
 
 ## Acceptance criteria
 
 - [ ] A dispatch for an existing `v<version>` tag prints the decision and tags nothing.
 - [ ] After each daily release, `laminapdf-cli-v<version>` appears on that commit and `cli-release.yml` runs on it.
 - [ ] A second run for the same release reports the existing tag and pushes nothing.
-- [ ] `CLI_RELEASE_TRAIN=off` stops the train.
+- [x] `CLI_RELEASE_TRAIN=off` stops the train.
 
 ## Tests
 
@@ -71,8 +71,15 @@ Release the `laminapdf` CLI without the owner pushing a tag. After each daily li
 
 ## Definition of done
 
-- [ ] Claimed: the work PR's first commit moves this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moves this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes
+
+- **Every release, no change detection** (the owner's decision): the train has no xtask step; it checks the release run and the tag through the API and creates the CLI tag with the release bot. It checks out nothing.
+- **Only a 404 means missing:** any other failure of the existing-tag check stops the run, so a dry run never claims it would tag a release that exists.
+- **Left open until a real release:** the three criteria that need one (a dispatch dry run, the tag after a daily release, a second run leaving it alone). The first daily release after merge, 0.2.0-alpha.6, checks them.
+- **The workflow file pushed with the PR**, so the owner had nothing to install.

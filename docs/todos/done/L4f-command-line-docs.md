@@ -81,7 +81,7 @@ Rescoped on 2026-11-10 from "a download table on the install page": the owner as
 
 ## Risks and open questions
 
-- **Version drift:** the links use the docs' version. If the library releases without the CLI, the links name a CLI release that doesn't exist. [L4h](../ongoing/L4h-cli-release-train.md) releases the CLI with every library release, which closes the gap.
+- **Version drift:** the links use the docs' version. If the library releases without the CLI, the links name a CLI release that doesn't exist. [L4h](../done/L4h-cli-release-train.md) releases the CLI with every library release, which closes the gap.
 - **Two homes for the same facts:** the README and the pages both describe the commands. The README keeps the contributor's view (code, tests, release) and links the pages for the rest.
 
 ## Definition of done
