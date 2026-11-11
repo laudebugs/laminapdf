@@ -14,8 +14,10 @@ mkdirSync(output, { recursive: true });
 
 export const config: WebdriverIO.Config = {
   runner: "local",
-  specs: [join(here, "specs", "**", "*.e2e.ts")],
-  // One app at a time: each scenario starts its own, and they share the WebDriver port.
+  // The service starts the app once for the whole run, so the scenarios share it and run in this
+  // order: the empty state while nothing is open, then each scenario opens its own file, which
+  // replaces the one before.
+  specs: [["start", "open"].map((name) => join(here, "specs", `${name}.e2e.ts`))],
   maxInstances: 1,
   capabilities: [{ browserName: "tauri", "tauri:options": { application: binary } }],
   services: [["@wdio/tauri-service", { driverProvider: "embedded", captureBackendLogs: true, logDir: output }]],
