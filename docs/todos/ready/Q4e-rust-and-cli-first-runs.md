@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
-| Depends on | [Q4a](../ongoing/Q4a-cli-output-from-real-runs.md) |
+| Depends on | [Q4a](../done/Q4a-cli-output-from-real-runs.md) |
 | ADRs | None |
 | Branch | `docs/q4e-rust-cli-first-runs` |
 | PR title | `docs: first PDFs in Rust and on the command line` |

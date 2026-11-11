@@ -44,7 +44,7 @@ An example is code a reader will paste into their own app, so it must be code we
 
 ## Command-line transcripts
 
-A page shows a terminal session as a transcript, never as a `console` block typed into the page. A transcript is a `.console` file in `fixtures/cli/transcripts/`: the `$ ` lines a reader types and what they print. `transcripts.json` gives each one's commands and the files it needs, under the names the page uses, and the page shows it with `<Transcript name="…" />`. `crates/laminapdf-cli/tests/transcripts.rs` runs every transcript and fails when its output changes; `UPDATE_GOLDEN=1` rewrites them. Pick inputs that give short, readable output, and narrow JSON with `--fields` where the page allows; never cut output by hand.
+A page shows a terminal session as a transcript, never as a `console` block typed into the page. A transcript is a `.console` file in `fixtures/cli/transcripts/`: the `$ ` lines a reader types and what they print. `transcripts.json` gives each one's commands and the files it needs, under the names the page uses, and the page shows it with `<Transcript name="…" />`. `crates/laminapdf-cli/tests/transcripts.rs` runs every transcript and fails when its output changes; `UPDATE_GOLDEN=1` rewrites the transcripts. Pick inputs that give short, readable output, and narrow JSON with `--fields` where the page allows; never cut output by hand. To add a transcript, give its commands and files in `transcripts.json`, then run the test with `UPDATE_GOLDEN=1` to write it.
 
 ## How it's checked
 

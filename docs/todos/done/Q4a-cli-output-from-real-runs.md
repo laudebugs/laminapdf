@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `docs/q4a-cli-transcripts` |
 | PR title | `docs(cli): command-line output generated from real runs and checked for drift` |
 | Size | M |
-| PR | — |
+| PR | [laudebugs/lamina#442](https://github.com/laudebugs/laminapdf/pull/442) |
 
 ## Goal
 
@@ -71,8 +71,8 @@ The CLI pages; `docs/guidelines/examples.md` (transcripts are examples too); `fi
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
