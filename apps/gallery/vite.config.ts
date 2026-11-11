@@ -23,5 +23,7 @@ export default defineConfig({
     ],
   },
   build: { outDir: "dist", emptyOutDir: true },
-  preview: { port: 4174, strictPort: true },
+  // The address Playwright waits on (playwright.config.ts's webServer.url). Left as "localhost",
+  // Node can listen on ::1 only, as in the Playwright image, and the tests time out waiting.
+  preview: { host: "127.0.0.1", port: 4174, strictPort: true },
 });
