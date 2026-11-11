@@ -6,8 +6,11 @@
 # down. Run inside the setup action's retry, so a failed try is tried again a minute later.
 set -euo pipefail
 log=$(mktemp)
+trap 'rm -f "$log"' EXIT
 sudo timeout -k 30 240 apt-get update -q 2>&1 | tee "$log"
-if grep -qE '^(W|E): Failed to fetch .*ubuntu\.com' "$log"; then
+# The failing source, not apt's reason, decides: noble names Ubuntu's mirrors through
+# mirror+file:/etc/apt/apt-mirrors.txt, and a timeout's reason may name only an IP address.
+if grep -qE '^(W|E): Failed to fetch (mirror\+file:/etc/apt/apt-mirrors\.txt|[^ ]*ubuntu\.com)' "$log"; then
   echo "::warning::apt couldn't fetch Ubuntu's package indexes; this try ends here"
   exit 1
 fi
