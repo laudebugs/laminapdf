@@ -277,3 +277,22 @@ describe("the opener", () => {
     expect(commands).toContainEqual({ command: "unlock_document", args: { doc: 5, password: "secret" } });
   });
 });
+
+describe("picking a document", () => {
+  it("hands the reader a file that fails to open with the main process's reason", async () => {
+    mockIPC((command) => {
+      if (command === "open_dialog") throw { kind: "invalid", message: "this file isn't a PDF Lamina PDF can read" };
+      return undefined;
+    });
+    const { pickDocument } = await import("./open.ts");
+    const [file] = await pickDocument(tauriShell());
+    const open = desktopOpener(tauriShell(), client(), { open: vi.fn() } as never);
+    await expect(open(file as never, undefined)).rejects.toMatchObject({ code: "invalid" });
+  });
+
+  it("hands nothing back when the user cancels", async () => {
+    mockIPC(() => null);
+    const { pickDocument } = await import("./open.ts");
+    await expect(pickDocument(tauriShell())).resolves.toEqual([]);
+  });
+});

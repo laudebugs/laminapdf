@@ -17,6 +17,9 @@ import {
 /** The documents the main process opened, by the PlatformFile that stands for each in the reader. */
 const documents = new WeakMap<PlatformFile, DesktopDocument>();
 
+/** Why the main process couldn't open the file a PlatformFile stands for. */
+const failures = new WeakMap<PlatformFile, DesktopEngineError>();
+
 /** The PlatformFile that stands for `opened`: its name and size; its bytes stay in the main process. */
 export function desktopFile(opened: DesktopDocument): PlatformFile {
   const file: PlatformFile = {
@@ -34,12 +37,25 @@ export function documentOf(file: PlatformFile): DesktopDocument | undefined {
   return documents.get(file);
 }
 
-/** Lets the user pick a PDF in the main process's dialog; empty when they cancel. */
+/**
+ * Lets the user pick a PDF in the main process's dialog; empty when they cancel. A file the main
+ * process couldn't open (unreadable, not a PDF) still comes back, standing for its failure, so
+ * the reader's opener shows it on its failure page rather than losing it.
+ */
 export async function pickDocument(shell: DesktopShell): Promise<PlatformFile[]> {
-  const opened = await shell.invoke<DesktopDocument | null>("open_dialog").catch((error: unknown) => {
-    throw engineError(error);
-  });
-  return opened === null ? [] : [desktopFile(opened)];
+  try {
+    const opened = await shell.invoke<DesktopDocument | null>("open_dialog");
+    return opened === null ? [] : [desktopFile(opened)];
+  } catch (error) {
+    const file: PlatformFile = {
+      name: "",
+      size: 0,
+      writable: false,
+      read: () => Promise.reject(engineError(error)),
+    };
+    failures.set(file, engineError(error));
+    return [file];
+  }
 }
 
 /**
@@ -49,6 +65,8 @@ export async function pickDocument(shell: DesktopShell): Promise<PlatformFile[]>
  */
 export function desktopOpener(shell: DesktopShell, client: DesktopEngineClient, viewer: Viewer): Opener {
   return async (file, password) => {
+    const failed = failures.get(file);
+    if (failed !== undefined) throw failed;
     let opened = documentOf(file);
     if (opened === undefined) {
       // Dropped and pasted files come with D3a: only the open dialog reaches the main process.
