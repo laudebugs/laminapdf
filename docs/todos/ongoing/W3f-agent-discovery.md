@@ -38,7 +38,7 @@ Coding agents look up a library's current docs through tools such as Context7, o
 
 ## Tasks
 
-- [ ] Read Context7's current docs for `context7.json` and the add-library flow; write the file; submit the listing (the owner, if it needs an account) and record its URL.
+- [x] Read Context7's current docs for `context7.json` and the add-library flow; write the file; submit the listing (the owner, if it needs an account) and record its URL. The owner submitted it on 2026-11-11: [context7.com/llmstxt/laminapdf_llms_txt](https://context7.com/llmstxt/laminapdf_llms_txt). An llms.txt listing is claimed by a `context7.json` under the docs' own address, so the docs serve `apps/docs/public/context7.json` (its `url` and `public_key`) at `https://docs.laminapdf.com/context7.json`; the owner finishes the claim once a release deploys it. Context7 also built `/laudebugs/laminapdf` from the repository, which the root `context7.json` configures.
 - [ ] Website links (the owner approves any change to the home page's words) and the README line.
 - [ ] Check `/llms.txt`, `/llms-full.txt` and one twin on production; tick L5a's check.
 - [ ] Ask Context7's MCP server a question about Lamina PDF and note the answer in the PR.
