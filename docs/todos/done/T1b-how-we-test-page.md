@@ -1,21 +1,21 @@
-# T1b — A "How we test" page on the website, with the nightly's figures, the licence and where the code comes from
+# T1b — A "How we test" page on the website, with the nightly's figures, the licence and how the code is written
 
 | Field | Value |
 | --- | --- |
 | ID | `T1b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T1a](../done/T1a-nightly-proof-figures.md) |
+| Depends on | [T1a](./T1a-nightly-proof-figures.md) |
 | ADRs | Follows [0011 §3](../../decisions/0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable) (the website's rules: static data in the build, nothing from a third party, each claim tied to the rule or test behind it); states what [0001](../../decisions/0001-core-language-and-licence.md), [0004](../../decisions/0004-render-backend.md) (MuPDF prohibited) and [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (cargo-deny, the npm licence check) decide |
 | Branch | `feat/t1b-how-we-test-page` |
-| PR title | `feat(site): a How we test page with the nightly's figures, the licence and where the code comes from` |
+| PR title | `feat(site): a How we test page with the nightly's figures, the licence and how the code is written` |
 | Size | M (≈ 300–450 lines: the snapshot command, the page and its components, the reader and tests, one workflow step; copy and design not counted) |
 | PR | [#401](https://github.com/laudebugs/laminapdf/pull/401) |
 
 ## Goal
 
-Publish what Lamina PDF's nightly measures, on a page at `laminapdf.com/how-we-test/`, with each number explained in plain English. The same page states the licence and where the code comes from. The figures come from [T1a](../done/T1a-nightly-proof-figures.md)'s record, through a committed snapshot that each production deploy refreshes, as `progress.json` is refreshed today.
+Publish what Lamina PDF's nightly measures, on a page at `laminapdf.com/how-we-test/`, with each number explained in plain English. The same page states the licence and how the code is written. The figures come from [T1a](../done/T1a-nightly-proof-figures.md)'s record, through a committed snapshot that each production deploy refreshes, as `progress.json` is refreshed today.
 
 On Hacker News, licences decide which PDF library people pick (about 150 comments), and warnings about AGPL in Ghostscript, MuPDF and iText recur in every year. In October 2026 a commenter asked of a new Rust engine: "Is this PDF engine vibe-coded and derived from reading the MuPDF source code?" ([50239092](https://news.ycombinator.com/item?id=50239092)). Another asked a library's author: "Do you have a comprehensive integration test suite that can validate the robustness of your implementation?" ([47214653](https://news.ycombinator.com/item?id=47214653)). Lamina PDF can answer both with evidence, and today it says neither ([report R1](../../research/hacker-news/pdf-users-on-hacker-news.md#r1-prove-correctness-in-public), [R9](../../research/hacker-news/pdf-users-on-hacker-news.md#r9-say-loudly-what-lamina-already-has)).
 
@@ -57,8 +57,8 @@ On Hacker News, licences decide which PDF library people pick (about 150 comment
   - what the figures leave out: the corpus is files chosen by four projects for being difficult, not a sample of everyday PDFs, and other limits the owner names;
   - the night's date, its commit (shortened, no link: the repository is private) and "N of the last 30 nights passed". A night where a check failed or a figure is `null` says so instead of showing a number.
 - **The licence section**: MIT OR Apache-2.0; the allowed licences and the MPL-2.0 exception, read from `deny.toml` at build time through `src/data/sources.ts`; MuPDF banned, from `deny.toml`'s `[bans]`; what each check covers (cargo-deny and the npm licence check on every change check dependencies, not copied code); veraPDF used only as a separate program in tests.
-- **Where the code comes from**: a statement the owner writes or approves. It says how the code is written: in Rust for Lamina PDF, from ISO 32000-2 and the other standards it cites. It names the part AI coding agents play, as the commit history shows, and says that every change is a reviewed pull request with tests. It links to the docs page on what Lamina PDF borrows.
-- **Copy**: a `HOW_WE_TEST` export in `src/data/copy.ts` under the owner's approval comment, marked `[OWNER TO APPROVE]` until the owner approves it in the PR.
+- **How the code is written** (drafted as "Where the code comes from"): a statement the owner writes or approves. It says how the code is written: in Rust for Lamina PDF, from ISO 32000-2 and the other standards it cites. It names the part AI coding agents play, as the commit history shows, and says that every change is a reviewed pull request with tests. It links to the docs page on what Lamina PDF borrows.
+- **Copy**: a `HOW_WE_TEST` export in `src/data/copy.ts` under the owner's approval comment, marked `[OWNER TO APPROVE]` until the owner approves it in the PR (approved 2026-11-11).
 - **Links**: one line in the home page's "Where each part lives" (`Parts.astro`) and a link from the footer's licence line (`SiteFooter.astro`) to the licence section, both with owner-approved words. From the page: the docs site's dependencies page, T1c's benchmarks page once it exists there, and `/performance/`, `/pricing/` and `/privacy/` only once their page files exist (`pageFiles`).
 - **`site.yml`**: production runs `cargo xtask proof snapshot` before it builds; the PR trigger's `paths` gain `deny.toml` and `Cargo.toml`, which the page now reads.
 - **Design**: screen H13, "How we test", added to `screens.md` and `account-cloud-product.md`, built from H12's document sheet: light and dark, at phone and desktop widths.
@@ -73,25 +73,25 @@ On Hacker News, licences decide which PDF library people pick (about 150 comment
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`. Start once T1a's first full record is on `bench-data` (its post-merge check), so the first snapshot holds a real night.
-- [ ] `cargo xtask proof snapshot`, its tests, and the first `proof.json`.
-- [ ] `proof.ts` and its test.
-- [ ] Design H13 from H12; add it to `screens.md` and `account-cloud-product.md`.
-- [ ] Draft the copy with `/writing`; check each explanation against what the code counts (`live.rs`, `live/compare.rs`, `live/text.rs`, `render_diff.rs`, `harness.rs`, `roundtrip.rs`, `verapdf.rs`), and record the check in the PR.
-- [ ] Ask the owner for the provenance statement, or for approval of a draft; check every claim in it against the repository (commit trailers, `deny.toml`, the ADRs) before asking.
-- [ ] Build the page and its components; read `deny.toml` and the licence through `sources.ts`; the home page line and the footer link.
-- [ ] `site.yml`'s production step and `paths`; the `workflows.rs` test.
-- [ ] `/writing-review` on the copy; owner approval in the PR.
+- [x] Claim: the first commit moves this file to `ongoing/`. Start once T1a's first full record is on `bench-data` (its post-merge check), so the first snapshot holds a real night.
+- [x] `cargo xtask proof snapshot`, its tests, and the first `proof.json`.
+- [x] `proof.ts` and its test.
+- [x] Design H13 from H12; add it to `screens.md` and `account-cloud-product.md`.
+- [x] Draft the copy with `/writing`; check each explanation against what the code counts (`live.rs`, `live/compare.rs`, `live/text.rs`, `render_diff.rs`, `harness.rs`, `roundtrip.rs`, `verapdf.rs`), and record the check in the PR.
+- [x] Ask the owner for the provenance statement, or for approval of a draft; check every claim in it against the repository (commit trailers, `deny.toml`, the ADRs) before asking.
+- [x] Build the page and its components; read `deny.toml` and the licence through `sources.ts`; the home page line and the footer link.
+- [x] `site.yml`'s production step and `paths`; the `workflows.rs` test.
+- [x] `/writing-review` on the copy; owner approval in the PR.
 
 ## Acceptance criteria
 
-- [ ] The owner has approved the page's words, the provenance statement included, in the PR; `copy.ts` records the date.
-- [ ] Every figure on the page comes from `proof.json`. `test/how-we-test.test.ts` renders the page from fixture snapshots and finds each figure, the night's date and the short commit. For a fixture with `render: null` and `render-diff` failed, it finds the sentence that says the figure is missing for that night, and no `0` in its place.
-- [ ] The allowed licences on the page equal `deny.toml`'s `allow` list, and the banned crates its `[bans]` (a test over `sources.ts`).
-- [ ] Every statement in the licence and provenance sections is checkable in the repository; the PR lists, per statement, the file or setting that shows it.
-- [ ] `proof snapshot`'s tests: it takes the newest full proof record, skips other kinds and non-full records, counts passed nights over the last 30, sums the fuzzing hours, and keeps the committed file with `--offline`.
-- [ ] `workflows.rs`: production runs `cargo xtask proof snapshot` before `pnpm --filter @laminapdf/site build`.
-- [ ] The build passes the site's checks; axe finds nothing on the built page in light and dark at 375 and 1280 px in Chromium.
+- [x] The owner has approved the page's words, the provenance statement included, in the PR; `copy.ts` records the date.
+- [x] Every figure on the page comes from `proof.json`. `test/how-we-test.test.ts` renders the page from fixture snapshots and finds each figure, the night's date and the short commit. For a fixture with `render: null` and `render-diff` failed, it finds the sentence that says the figure is missing for that night, and no `0` in its place.
+- [x] The allowed licences on the page equal `deny.toml`'s `allow` list, and the banned crates its `[bans]` (a test over `sources.ts`).
+- [x] Every statement in the licence and provenance sections is checkable in the repository; the PR lists, per statement, the file or setting that shows it.
+- [x] `proof snapshot`'s tests: it takes the newest full proof record, skips other kinds and non-full records, counts passed nights over the last 30, sums the fuzzing hours, and keeps the committed file with `--offline`.
+- [x] `workflows.rs`: production runs `cargo xtask proof snapshot` before `pnpm --filter @laminapdf/site build`.
+- [x] The build passes the site's checks; axe finds nothing on the built page in light and dark at 375 and 1280 px in Chromium.
 
 ## Post-merge checks
 
@@ -116,13 +116,13 @@ On Hacker News, licences decide which PDF library people pick (about 150 comment
 - **Figures can embarrass** ([plan §8](../../plans/trust-and-proof.md#8-risks)). Publish them with their method; the owner approves what the page shows for a failed night.
 - **Stale figures.** If the nightly stops recording, the page keeps showing the last night. The night's date sits beside the figures, and the snapshot command warns after three days.
 - **Header link.** Decided 2026-11-11: "How we test" joins the header, between Performance and Privacy, on both sites.
-- **Where the proof lives** ([§9](../../plans/trust-and-proof.md#9-open-questions), question 3): this todo proposes the website, since the page speaks to people choosing a library. The owner decides with the copy; if the docs site wins, the same data and components move to `apps/docs`.
+- **Where the proof lives** ([§9](../../plans/trust-and-proof.md#9-open-questions), question 3): decided 2026-11-11: the page stays on the website, since it speaks to people choosing a library.
 - **R9's script sample.** The report also suggests an Arabic, Devanagari and Chinese sample on the home page; the multilingual example's reference PDF exists on the docs site. That is a home page copy change for the owner, not part of this page.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

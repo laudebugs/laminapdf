@@ -10,7 +10,7 @@
     "H12-sample-a.dc.html": { "x": 1830, "y": 0, "w": 1280, "h": 3000, "title": "Sample A · Roadmap first (not chosen)", "expand": "fill" },
     "H12-sample-a-phone.dc.html": { "x": 3190, "y": 0, "w": 390, "h": 4300, "title": "Sample A on a phone (not chosen)" },
     "H12-sample-c.dc.html": { "x": 3660, "y": 0, "w": 1280, "h": 2900, "title": "Sample C · Developer first (its code panel was kept)", "expand": "fill", "is_interactive": true },
-    "H13-how-we-test.dc.html": { "x": 0, "y": 4100, "w": 1280, "h": 5600, "title": "H13 How we test · the night's figures, the licence and where the code comes from", "expand": "fill" },
+    "H13-how-we-test.dc.html": { "x": 0, "y": 4100, "w": 1280, "h": 5600, "title": "H13 How we test · the night's figures, the licence and how the code is written", "expand": "fill" },
     "H13-how-we-test-phone.dc.html": { "x": 1360, "y": 4100, "w": 390, "h": 7600, "title": "H13 How we test · phone" }
   },
   "order": ["H12-home.dc.html", "H12-home-phone.dc.html", "H12-sample-a.dc.html", "H12-sample-a-phone.dc.html", "H12-sample-c.dc.html", "H13-how-we-test.dc.html", "H13-how-we-test-phone.dc.html"],

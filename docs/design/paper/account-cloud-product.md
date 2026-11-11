@@ -388,7 +388,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 
 ## H13 How we test
 
-**Purpose.** The website's `/how-we-test/` page (`apps/site`, [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof)): what the nightly measured on its latest full night, with what each figure counts, the licence policy and where the code comes from. It answers two questions people ask before choosing a PDF library: how robust is it, and can I use it.
+**Purpose.** The website's `/how-we-test/` page (`apps/site`, [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof)): what the nightly measured on its latest full night, with what each figure counts, the licence policy and how the code is written. It answers two questions people ask before choosing a PDF library: how robust is it, and can I use it.
 
 **Entry points.** The site header's "How we test" link on both sites (design language [§7.39](design-language.md#739-site-and-product-pages-proposed), between Performance and Privacy; the owner's decision on 2026-11-11), the home page's "Where each part lives", and the footer's licence line, which links to the licence section.
 
@@ -397,7 +397,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 1. **Files that break PDF readers.** A table per source (pdf.js, PDFBox, PDFium, qpdf, the damaged copies of Lamina PDF's own files): files, opened, repaired, refused, refused while another tool opened them; then what "opened" means and doesn't.
 2. **Agreement with other PDF tools.** A table per tool with its version under its name: the share of files where the answers matched, per fact; then page text against pdf.js and pdftotext, per source.
 3. **Fuzzing**, **Saved files that other tools read back** (with the runtimes whose bytes matched), **PDF/A and PDF/UA** (veraPDF's verdict per example) and **Drawing pages: hayro and PDFium** (the share drawn alike in bold, then per source).
-4. **What these figures leave out**, **The licence** (the licence, the allowed licences in two columns, the named exceptions, the banned crates, what the checks cover), **Where the code comes from**, and **More** (links).
+4. **What these figures leave out**, **The licence** (the licence, the allowed licences in two columns, the named exceptions, the banned crates, what the checks cover), **How the code is written**, and **More** (links).
 
 Tables are the home page's package table: a hairline frame with radius 4, labels in `label` and `muted`, rows on hairlines; numbers right-aligned in tabular figures, the first column a row header.
 
@@ -411,7 +411,7 @@ Tables are the home page's package table: a hairline frame with radius 4, labels
 
 **Artboards.** `H13-how-we-test.dc.html` and `H13-how-we-test-phone.dc.html` in [`website-home/`](website-home/project/canvas.json), drawn from the built page with the 2026-11-10 night's figures.
 
-**Todos.** [T1b](../../todos/ongoing/T1b-how-we-test-page.md).
+**Todos.** [T1b](../../todos/done/T1b-how-we-test-page.md).
 
 ## New components
 

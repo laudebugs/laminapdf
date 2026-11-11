@@ -15,7 +15,7 @@
 
 ## Goal
 
-Each night the lane measures how Lamina PDF does on 2,172 files from four projects' test suites. It compares Lamina PDF with pdf.js, PDFium, qpdf and pypdf, fuzzes every parser entry point and renders pages against PDFium. It also checks the examples with veraPDF and builds them in seven runtimes. Those numbers sit in job summaries and artefacts that expire, where nobody outside the repository sees them. This todo adds `cargo xtask proof`, which gathers them after a full nightly into one versioned record. The record is appended to the `bench-data` history beside the benchmark figures, so [T1b](../ongoing/T1b-how-we-test-page.md) can publish it.
+Each night the lane measures how Lamina PDF does on 2,172 files from four projects' test suites. It compares Lamina PDF with pdf.js, PDFium, qpdf and pypdf, fuzzes every parser entry point and renders pages against PDFium. It also checks the examples with veraPDF and builds them in seven runtimes. Those numbers sit in job summaries and artefacts that expire, where nobody outside the repository sees them. This todo adds `cargo xtask proof`, which gathers them after a full nightly into one versioned record. The record is appended to the `bench-data` history beside the benchmark figures, so [T1b](../done/T1b-how-we-test-page.md) can publish it.
 
 Hacker News users judge PDF tools by named failures, not feature lists: one tester found that "Only three of them can process all 2500 files i tried" ([44785629](https://news.ycombinator.com/item?id=44785629)), after trying about 25 engines. Show HN saw 359 PDF launches in 2026, at a median of 2 points. Figures anyone can check are what a new engine has to offer against that ([report R1](../../research/hacker-news/pdf-users-on-hacker-news.md#r1-prove-correctness-in-public)).
 
@@ -70,7 +70,7 @@ Hacker News users judge PDF tools by named failures, not feature lists: one test
 
 **Out of scope** (and which todo covers it)
 
-- The snapshot the website reads, the page and its copy → [T1b](../ongoing/T1b-how-we-test-page.md).
+- The snapshot the website reads, the page and its copy → [T1b](../done/T1b-how-we-test-page.md).
 - Extraction scores, generation timings and module sizes → [T1c](../done/T1c-publish-performance-numbers.md).
 - Turning any of these figures into a gate: they stay reported, as ADR 0018 tier 11 and C7c's split between nightly reporting and release gates keep them ([C7c](../done/C7c-performance-gates-and-launch.md)).
 - A larger or more representative corpus (SafeDocs was left out in X3a): a later todo, if T1b's page shows the need.

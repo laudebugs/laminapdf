@@ -69,19 +69,18 @@ export const PARTS = {
   // The milestone and its state follow, from progress.json: "The web reader: milestone M2, under way".
   reader: "The web reader",
   desktop: "The desktop app",
-  // [OWNER TO APPROVE] (T1b)
-  howWeTest: "How we test it: the latest night's results, the licence and where the code comes from",
+  howWeTest: "How we test it: the latest night's results, the licence and how the code is written",
 } as const;
 
-// [OWNER TO APPROVE] The How we test page's words (todo T1b): drafted for the owner's approval in
-// its pull request; the date of that approval goes here. The figures come from proof.json and the
+// The How we test page's words. The owner approved them on 2026-11-11, and a change to a sentence
+// that makes a claim needs their approval again. The figures come from proof.json and the
 // licences from Cargo.toml and deny.toml, never from here.
 export const HOW_WE_TEST = {
   title: "How Lamina PDF is tested",
   description:
-    "Every night, Lamina PDF reads thousands of difficult PDFs and compares what it finds with other PDF tools. The latest night's results, the licence, and where the code comes from.",
+    "Every night, Lamina PDF reads thousands of difficult PDFs and compares what it finds with other PDF tools. The latest night's results, the licence, and how the code is written.",
   heading: "How we test Lamina PDF",
-  lead: "Every night, Lamina PDF reads thousands of difficult PDFs and compares what it finds with other PDF tools. This page shows the latest night's results and what each number counts. It also states the licence and where the code comes from.",
+  lead: "Every night, Lamina PDF reads thousands of difficult PDFs and compares what it finds with other PDF tools. This page shows the latest night's results and what each number counts. It also states the licence and how the code is written.",
   night: {
     // "The latest night ran on 10 November 2026 and tested version 0.2.0-alpha.4, commit 709961c."
     ran: "The latest night ran on",
@@ -206,11 +205,13 @@ export const HOW_WE_TEST = {
     docs: "What Lamina PDF writes and what it borrows",
   },
   provenance: {
-    heading: "Where the code comes from",
-    // [OWNER TO APPROVE] Every claim here is checked against the repository in the pull request.
+    heading: "How the code is written",
+    // Every claim here was checked against the repository when the owner approved it.
     body: [
-      "Lamina PDF is written in Rust, from the PDF standard (ISO 32000-2) and the other standards it cites. Reading, editing and saving PDFs are its own code. For fonts, text shaping and writing page content it builds on other open-source libraries, listed on the docs site with their licences.",
-      "Most of the code is written by AI coding agents, Claude Code above all, as the commit history shows. Each change starts from a written plan in the repository and comes as a pull request with its tests. It goes through an automated code review, and it merges only when its checks pass: the tests, and shorter runs of some of the checks on this page.",
+      "Lamina PDF's own Rust code reads, edits and saves PDFs, written from the PDF standard (ISO 32000-2) and the standards it cites. For fonts, text shaping and writing page content, it uses open-source libraries such as skrifa, HarfRust and pdf-writer, each under one of the licences listed above.",
+      "AI coding agents write most of the code, Claude Code above all. Each of their commits says so in its message, so anyone can count them. The project's owner decides what gets built and in what order.",
+      "Every change starts from a written plan in the repository and arrives as a pull request with its tests. An automated code review reads it, and a person reviews it before it merges. It merges only when its checks pass: the tests, plus shorter runs of the comparisons, fuzzing and saved-file checks on this page.",
+      "The full checks on this page run every night. They don't hold up a merge, but they do hold up a release: a version goes out only after a full nightly run passes on its commit or an earlier one.",
     ],
   },
   related: {
