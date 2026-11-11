@@ -97,7 +97,7 @@ export function stepBack(session: Session, outcome: Outcome): RevertedStep {
     return { step, way: "undo", outcome };
   }
   session.position -= 1;
-  return { step: mark(session, index, outcome), way: "undo", outcome };
+  return { step: mark(session, index, "undo", outcome), way: "undo", outcome };
 }
 
 /**
@@ -113,13 +113,13 @@ export function stepForward(session: Session, outcome: Outcome): RevertedStep {
     return { step, way: "redo", outcome };
   }
   session.position += 1;
-  return { step: mark(session, index, outcome), way: "redo", outcome };
+  return { step: mark(session, index, "redo", outcome), way: "redo", outcome };
 }
 
-/** Marks step `index` partly restored, or not, after an undo or redo that went `outcome`. */
-function mark(session: Session, index: number, outcome: Outcome): EditStep {
+/** Marks step `index` partly restored by its `way`, or not, after an undo or redo that went `outcome`. */
+function mark(session: Session, index: number, way: "undo" | "redo", outcome: Outcome): EditStep {
   const { partial: _, ...step } = session.steps[index] as EditStep;
-  const next: EditStep = outcome === "partial" ? { ...step, partial: true } : step;
+  const next: EditStep = outcome === "partial" ? { ...step, partial: way } : step;
   session.steps[index] = next;
   return next;
 }
@@ -137,6 +137,27 @@ export function removeStep(session: Session, index: number, way: "undo" | "redo"
   const lost = way === "undo" ? before : before + 1;
   if (saved === lost) session.saved = undefined;
   else if (saved > before) session.saved = saved - 1;
+}
+
+/**
+ * Undoes or redoes steps until `target` of them are done, calling `revert` for each move (which
+ * makes it in the model and says how it went); `done` collects each move as it is made, so a
+ * caller can take them back when one fails. A skipped redo takes its step out without moving the
+ * position, so the target, among the steps after it, is one lower.
+ */
+export async function walkTo(
+  session: Session,
+  target: number,
+  revert: (way: "undo" | "redo") => Promise<Outcome>,
+  done: RevertedStep[],
+): Promise<void> {
+  let goal = Math.max(0, Math.min(session.steps.length, Math.trunc(target)));
+  while (session.position !== goal) {
+    const way = session.position > goal ? "undo" : "redo";
+    const outcome = await revert(way);
+    done.push(way === "undo" ? stepBack(session, outcome) : stepForward(session, outcome));
+    if (way === "redo" && outcome === "skipped") goal -= 1;
+  }
 }
 
 /** Records the document now as the one saved, for a save that writes the file. */

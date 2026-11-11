@@ -35,14 +35,14 @@ describe("the page's edit log", () => {
     log.take(result([1]), { ops: rotate(1), label: "one" });
     log.take(result([1], 0));
     log.take(result([2]), { ops: rotate(2), label: "two" });
-    expect(log.replay().steps.map((s) => s.label)).toEqual(["step 2"]);
+    expect(log.replay()?.steps.map((s) => s.label)).toEqual(["step 2"]);
   });
 
   it("keeps the steps the depth limit dropped, which are still in the document", () => {
     const log = new EditLog();
     log.take(result([1]), { ops: rotate(1), label: "one" });
     log.take(result([2], 1, 1), { ops: rotate(2), label: "two" });
-    expect(log.replay().steps.length).toBe(2);
+    expect(log.replay()?.steps.length).toBe(2);
   });
 
   it("takes the new worker's IDs after a replay", () => {
@@ -50,7 +50,26 @@ describe("the page's edit log", () => {
     log.take(result([7]), { ops: rotate(1), label: "one" });
     log.replayed(result([1]));
     log.take(result([1, 2]), { ops: rotate(2), label: "two" });
-    expect(log.replay().steps.length).toBe(2);
+    expect(log.replay()?.steps.length).toBe(2);
+  });
+
+  it("won't replay once an undo restored only part of a step, or none of it", () => {
+    for (const outcome of ["partial", "skipped"] as const) {
+      const log = new EditLog();
+      log.take(result([1]), { ops: rotate(1), label: "one" });
+      const undone = result([1], 0);
+      log.take({ ...undone, reverted: [{ step: undone.history.steps[0] as EditStep, way: "undo", outcome }] });
+      expect(log.replay()).toBeUndefined();
+    }
+  });
+
+  it("replays again after a reset", () => {
+    const log = new EditLog();
+    const undone = result([1], 0);
+    log.take({ ...undone, reverted: [{ step: undone.history.steps[0] as EditStep, way: "undo", outcome: "partial" }] });
+    log.reset();
+    log.take(result([2]), { ops: rotate(2), label: "two" });
+    expect(log.replay()?.steps.length).toBe(1);
   });
 
   it("starts over when reset", () => {

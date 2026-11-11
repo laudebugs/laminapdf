@@ -6,7 +6,15 @@
 export type { CanvasPoolOptions } from "./canvas/pool.js";
 export type { RestartReason, ViewerCallOptions, ViewerEvent, ViewerEvents, ViewerOptions } from "./client.js";
 export { ViewerClient } from "./client.js";
-export type { EditBlock, EditSession, EditSessionState, RevertListener } from "./edit/session.js";
+export {
+  CLOSED_SESSION,
+  type EditBlock,
+  type EditFailure,
+  type EditSession,
+  type EditSessionState,
+  type FailureListener,
+  type RevertListener,
+} from "./edit/session.js";
 export type { FindController, FindResult, FindState } from "./find/controller.js";
 export type { FindOptions } from "./find/fold.js";
 export type { FindSnippet } from "./find/page.js";

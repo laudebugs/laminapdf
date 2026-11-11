@@ -21,7 +21,7 @@ import {
   type Session,
   snapshot,
   stepBack,
-  stepForward,
+  walkTo,
 } from "./session.js";
 import { forgetText } from "./text.js";
 
@@ -52,12 +52,16 @@ function editable(opened: Open): void {
  *   undone, so the model again matches what is drawn; an error saying the document must be opened
  *   again when that undo failed too, and for every edit after it; an encrypted document's refusal.
  */
-export async function applyEdit(
+export function applyEdit(
   ops: readonly Op[],
   id: number,
   signal: AbortSignal,
   label = describe(ops),
 ): Promise<EditResult> {
+  return serial(current(id), () => apply(ops, id, signal, label));
+}
+
+async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label: string): Promise<EditResult> {
   const opened = current(id);
   editable(opened);
   const { model, edit } = opened;
@@ -94,25 +98,52 @@ export async function applyEdit(
  * draws the pages they touched, once. A move that fails half way is taken back, so the document,
  * the history and the pages drawn stay together.
  */
-export async function goToStep(position: number, id: number, signal: AbortSignal): Promise<EditResult> {
+export function goToStep(position: number, id: number, signal: AbortSignal): Promise<EditResult> {
+  return serial(current(id), () => moveTo(() => position, id, signal));
+}
+
+/**
+ * Undoes (`delta` -1) or redoes (+1) one step of document `id`'s edit session, reading where it
+ * stands only once the calls before it are done.
+ */
+export function stepEdit(delta: -1 | 1, id: number, signal: AbortSignal): Promise<EditResult> {
+  const opened = current(id);
+  return serial(opened, () => moveTo(() => opened.edit.session.position + delta, id, signal));
+}
+
+/**
+ * Runs `call` after document `opened`'s edit calls before it have settled: the worker serves
+ * calls as they come, and an edit's awaits would otherwise let another start against the history
+ * it is changing.
+ */
+function serial<T>(opened: Open, call: () => Promise<T>): Promise<T> {
+  const run = opened.edit.queue.then(call);
+  opened.edit.queue = run.catch(() => undefined);
+  return run;
+}
+
+async function moveTo(position: () => number, id: number, signal: AbortSignal): Promise<EditResult> {
   const opened = current(id);
   editable(opened);
   const { model, edit } = opened;
   const { session } = edit;
-  const target = Math.max(0, Math.min(session.steps.length, Math.trunc(position)));
   const kept = snapshot(session);
   const done: RevertedStep[] = [];
   const ids = new Set<string>();
   try {
-    while (session.position !== target) {
-      const way = session.position > target ? "undo" : "redo";
-      const reverted = await model.ensure(() => (way === "undo" ? model.undo() : model.redo()), { signal });
-      // The model has no entry where the session has a step: they disagree, which only a bug does.
-      if (reverted === undefined) throw new Error(`the document has nothing to ${way}`);
-      for (const page of reverted.touchedPages) ids.add(page);
-      done.push(way === "undo" ? stepBack(session, reverted.outcome) : stepForward(session, reverted.outcome));
-      followEdit(opened, way);
-    }
+    await walkTo(
+      session,
+      position(),
+      async (way) => {
+        const reverted = await model.ensure(() => (way === "undo" ? model.undo() : model.redo()), { signal });
+        // The model has no entry where the session has a step: they disagree, which only a bug does.
+        if (reverted === undefined) throw new Error(`the document has nothing to ${way}`);
+        for (const page of reverted.touchedPages) ids.add(page);
+        followEdit(opened, way);
+        return reverted.outcome;
+      },
+      done,
+    );
     if (ids.size > 0) await redraw(opened);
   } catch (e) {
     await takeBack(opened, kept, done, e);
@@ -150,7 +181,16 @@ async function takeBack(opened: Open, kept: Session, done: readonly RevertedStep
  * @throws an op's error, or a save or reopen error: the document is then marked diverged, since
  *   the edits applied so far can't all be taken back (the depth limit may have dropped some).
  */
-export async function restoreEdits(
+export function restoreEdits(
+  steps: readonly ReplayedStep[],
+  undone: number,
+  id: number,
+  signal: AbortSignal,
+): Promise<EditResult> {
+  return serial(current(id), () => replay(steps, undone, id, signal));
+}
+
+async function replay(
   steps: readonly ReplayedStep[],
   undone: number,
   id: number,

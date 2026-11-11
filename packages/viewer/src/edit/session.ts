@@ -49,6 +49,16 @@ export interface EditSessionHost {
 /** Called after an undo or redo, with each step it took back or made again. */
 export type RevertListener = (reverted: readonly RevertedStep[]) => void;
 
+/** A call of the session that failed: which, the edit's label for an edit, and why. */
+export interface EditFailure {
+  readonly call: "apply" | "undo" | "redo" | "goTo";
+  readonly label?: string;
+  readonly error: unknown;
+}
+
+/** Called when a call failed, so the interface can say so: nothing else reports it. */
+export type FailureListener = (failure: EditFailure) => void;
+
 const CLOSED: EditSessionState = {
   history: EMPTY_HISTORY,
   busy: false,
@@ -57,11 +67,27 @@ const CLOSED: EditSessionState = {
   lastMs: undefined,
 };
 
+/**
+ * A session with no document, which can do nothing: what an interface reads while none is open,
+ * in place of a store of its own.
+ */
+export const CLOSED_SESSION = {
+  getState: (): EditSessionState => CLOSED,
+  subscribe:
+    (_listener: () => void): (() => void) =>
+    () =>
+      undefined,
+  undo: (): Promise<undefined> => Promise.resolve(undefined),
+  redo: (): Promise<undefined> => Promise.resolve(undefined),
+  goTo: (_position: number): Promise<undefined> => Promise.resolve(undefined),
+} as const;
+
 /** The open document's edit session (`viewer.edits`). */
 export class EditSession {
   readonly #host: EditSessionHost;
   readonly #listeners = new Set<() => void>();
   readonly #reverted = new Set<RevertListener>();
+  readonly #failed = new Set<FailureListener>();
   #state: EditSessionState = CLOSED;
   /** The calls waiting, the newest last: each starts when the one before it settles. */
   #queue: Promise<unknown> = Promise.resolve();
@@ -88,6 +114,15 @@ export class EditSession {
     return () => this.#reverted.delete(listener);
   }
 
+  /**
+   * Calls `listener` when a call fails (the edit, undo, redo or move changed nothing); returns the
+   * function that stops it. The call's promise rejects too.
+   */
+  onFailed(listener: FailureListener): () => void {
+    this.#failed.add(listener);
+    return () => this.#failed.delete(listener);
+  }
+
   /** Starts over for `document` (undefined: none is open). */
   reset(document: OpenedDocument | undefined): void {
     this.#turn += 1;
@@ -109,18 +144,27 @@ export class EditSession {
 
   /** Applies `ops` as one step named `label` ("Rotate page 5"). Rejects as the edit failed. */
   apply(ops: readonly Op[], label: string): Promise<EditResult> {
-    return this.#run(() => this.#host.applyEdit(ops, { label }), true);
+    return this.#run(() => this.#host.applyEdit(ops, { label }), true, { call: "apply", label });
   }
 
   /** Undoes the newest done step; resolves undefined when there was none. */
   undo(): Promise<EditResult | undefined> {
-    return this.#run(() => (this.#state.history.position > 0 ? this.#host.undoEdit() : undefined), false);
+    return this.#run(() => (this.#state.history.position > 0 ? this.#host.undoEdit() : undefined), false, {
+      call: "undo",
+    });
   }
 
   /** Redoes the oldest undone step; resolves undefined when there was none. */
   redo(): Promise<EditResult | undefined> {
-    const { history } = this.#state;
-    return this.#run(() => (history.position < history.steps.length ? this.#host.redoEdit() : undefined), false);
+    // Read once the calls before it are done: an undo queued just before makes a step to redo.
+    return this.#run(
+      () => {
+        const { history } = this.#state;
+        return history.position < history.steps.length ? this.#host.redoEdit() : undefined;
+      },
+      false,
+      { call: "redo" },
+    );
   }
 
   /** Undoes or redoes steps until `position` of them are done, in one call. */
@@ -128,6 +172,7 @@ export class EditSession {
     return this.#run(
       () => (position === this.#state.history.position ? undefined : this.#host.goToStep(position)),
       false,
+      { call: "goTo" },
     );
   }
 
@@ -135,7 +180,11 @@ export class EditSession {
    * Runs `call` after the calls before it, unless editing is blocked by then; takes its history.
    * An edit (`clears`) drops the last partial undo's notice.
    */
-  #run<R extends EditResult | undefined>(call: () => Promise<R> | R, clears: boolean): Promise<R> {
+  #run<R extends EditResult | undefined>(
+    call: () => Promise<R> | R,
+    clears: boolean,
+    what: Omit<EditFailure, "error">,
+  ): Promise<R> {
     const turn = this.#turn;
     this.#waiting += 1;
     this.#set({ busy: true });
@@ -150,6 +199,7 @@ export class EditSession {
         return result;
       } catch (error) {
         await this.#reread(turn);
+        if (turn === this.#turn) for (const listener of [...this.#failed]) listener({ ...what, error });
         throw error;
       }
     });

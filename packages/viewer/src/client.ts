@@ -571,7 +571,13 @@ export class ViewerClient {
    */
   async #restoreEdits(opened: OpenedDocument): Promise<"restored" | "lost" | undefined> {
     if (this.#edits.empty) return undefined;
-    const { steps, undone } = this.#edits.replay();
+    const replay = this.#edits.replay();
+    // A replay that can't reproduce the document would show something else as restored.
+    if (replay === undefined) {
+      this.#edits.reset();
+      return "lost";
+    }
+    const { steps, undone } = replay;
     try {
       const result = (await this.#pdf.request("restoreEdits", [steps, undone, opened.id], {
         priority: PRIORITY.document,

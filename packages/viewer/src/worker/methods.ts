@@ -15,7 +15,7 @@ import {
   textModel,
   workerMemory,
 } from "./document.js";
-import { applyEdit, editHistory, goToStep, restoreEdits } from "./edit.js";
+import { applyEdit, editHistory, goToStep, restoreEdits, stepEdit } from "./edit.js";
 import { find, forgetSearch } from "./find.js";
 import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
 import { networkLog } from "./network.js";
@@ -44,10 +44,10 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
       applyEdit(ops as readonly Op[], id as number, signal, label as string | undefined),
   },
   undoEdit: {
-    run: ([id], { signal }) => goToStep(editHistory(id as number).position - 1, id as number, signal),
+    run: ([id], { signal }) => stepEdit(-1, id as number, signal),
   },
   redoEdit: {
-    run: ([id], { signal }) => goToStep(editHistory(id as number).position + 1, id as number, signal),
+    run: ([id], { signal }) => stepEdit(1, id as number, signal),
   },
   goToStep: {
     run: ([position, id], { signal }) => goToStep(position as number, id as number, signal),

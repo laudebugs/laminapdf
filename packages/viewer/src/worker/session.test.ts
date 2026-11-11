@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { clearRedo, historyOf, markSaved, newSession, record, removeStep, stepBack, stepForward } from "./session.js";
+import {
+  clearRedo,
+  historyOf,
+  markSaved,
+  newSession,
+  record,
+  removeStep,
+  stepBack,
+  stepForward,
+  walkTo,
+} from "./session.js";
 
 /** A session with `n` steps done, labelled "1", "2", …. */
 function withSteps(n: number, depth?: number) {
@@ -80,7 +90,13 @@ describe("the edit session's history", () => {
 
   it("marks a step partly undone", () => {
     const session = withSteps(1);
-    expect(stepBack(session, "partial").step.partial).toBe(true);
+    expect(stepBack(session, "partial").step.partial).toBe("undo");
+  });
+
+  it("marks a step partly redone", () => {
+    const session = withSteps(1);
+    stepBack(session, "applied");
+    expect(stepForward(session, "partial").step.partial).toBe("redo");
   });
 
   it("clears the partial mark when a later undo restores everything", () => {
@@ -108,6 +124,24 @@ describe("the edit session's history", () => {
     markSaved(session);
     removeStep(session, 0, "undo");
     expect(session.saved).toBe(2);
+  });
+
+  it("walks to a step, undoing then redoing", async () => {
+    const session = withSteps(3);
+    const ways: string[] = [];
+    await walkTo(session, 1, async (way) => (ways.push(way), "applied"), []);
+    await walkTo(session, 3, async (way) => (ways.push(way), "applied"), []);
+    expect([ways, session.position]).toEqual([["undo", "undo", "redo", "redo"], 3]);
+  });
+
+  it("stops at the end after a skipped redo takes its step out", async () => {
+    const session = withSteps(3);
+    await walkTo(session, 0, async () => "applied", []);
+    const outcomes = ["skipped", "applied"] as const;
+    const done: Parameters<typeof walkTo>[3] = [];
+    let n = 0;
+    await walkTo(session, 3, async () => outcomes[n++] ?? "applied", done);
+    expect([labels(session), session.position, done.length]).toEqual([["2", "3"], 2, 3]);
   });
 
   it("refuses to undo with nothing done", () => {

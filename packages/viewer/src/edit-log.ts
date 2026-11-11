@@ -18,6 +18,12 @@ export class EditLog {
   /** The history's steps, oldest first. */
   #steps: LoggedStep[] = [];
   #history: EditHistory = EMPTY_HISTORY;
+  /**
+   * Whether applying the steps again reproduces the document: not once an undo or redo restored
+   * only part of a step, or nothing (a later change kept its value), since the replay can't
+   * recreate the change that made it so.
+   */
+  #replayable = true;
 
   /** The history the worker last answered. */
   get history(): EditHistory {
@@ -34,6 +40,7 @@ export class EditLog {
     this.#dropped = [];
     this.#steps = [];
     this.#history = EMPTY_HISTORY;
+    this.#replayable = true;
   }
 
   /**
@@ -42,6 +49,7 @@ export class EditLog {
    * them), and the steps the answer no longer lists forgotten.
    */
   take(result: EditResult, edit?: { readonly ops: readonly Op[]; readonly label: string }): void {
+    if (result.reverted?.some((step) => step.outcome !== "applied")) this.#replayable = false;
     const { steps, dropped } = result.history;
     const newest = steps.at(-1);
     if (edit !== undefined && newest !== undefined && !this.#steps.some((s) => s.id === newest.id)) {
@@ -54,8 +62,12 @@ export class EditLog {
     this.#history = result.history;
   }
 
-  /** What a new worker replays: every step, and how many of the newest to undo after. */
-  replay(): { readonly steps: readonly ReplayedStep[]; readonly undone: number } {
+  /**
+   * What a new worker replays: every step, then how many of the newest to undo; undefined when
+   * the replay couldn't reproduce the document (a partial or skipped undo or redo).
+   */
+  replay(): { readonly steps: readonly ReplayedStep[]; readonly undone: number } | undefined {
+    if (!this.#replayable) return undefined;
     const { steps, position } = this.#history;
     return {
       steps: [...this.#dropped, ...this.#steps.map(({ ops, label, at }) => ({ ops, label, at }))],

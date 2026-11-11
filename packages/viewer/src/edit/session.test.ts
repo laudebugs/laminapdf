@@ -98,6 +98,13 @@ describe("the edit session store", () => {
     expect([busy, session.getState().busy]).toEqual([true, false]);
   });
 
+  it("redoes a step an undo just queued, however quickly the keys come", async () => {
+    const { session, worker } = open();
+    await session.apply([], "a");
+    await Promise.all([session.undo(), session.redo()]);
+    expect([worker.calls, session.getState().history.position]).toEqual([["apply a", "go 0", "go 1"], 1]);
+  });
+
   it("does nothing on undo with nothing done", async () => {
     const { session, worker } = open();
     await session.undo();
@@ -138,6 +145,15 @@ describe("the edit session store", () => {
     worker.fail = true;
     await expect(session.apply([], "b")).rejects.toThrow();
     expect(session.getState().history.steps).toEqual([]);
+  });
+
+  it("tells its listeners which call failed, with an edit's label", async () => {
+    const { session, worker } = open();
+    const heard: string[] = [];
+    session.onFailed(({ call, label }) => heard.push(`${call} ${label ?? ""}`.trim()));
+    worker.fail = true;
+    await expect(session.apply([], "Rotate page 1")).rejects.toThrow();
+    expect(heard).toEqual(["apply Rotate page 1"]);
   });
 
   it("blocks editing once the worker says the document diverged", () => {

@@ -114,10 +114,10 @@ export interface EditStep {
   /** When it was made, in ms since the epoch. */
   readonly at: number;
   /**
-   * Its last undo or redo restored only part of it (`UndoOutcome::Partial`): a later change
-   * replaced some of what it changed, which stays.
+   * Its last undo (`"undo"`) or redo (`"redo"`) restored only part of it (`UndoOutcome::Partial`):
+   * a later change replaced some of what it changed, which keeps the later value.
    */
-  readonly partial?: true;
+  readonly partial?: "undo" | "redo";
 }
 
 /**

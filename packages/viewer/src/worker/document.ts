@@ -67,6 +67,19 @@ export interface Open {
   answer?: { readonly document: OpenedDocument; readonly ticket: number | undefined };
 }
 
+/** The edit state of a document just opened from `source`. */
+function newEditState(source: RenderSource, renderLimits: RenderOpenOptions["limits"]): EditState {
+  return {
+    source,
+    renderLimits,
+    appended: [],
+    pending: [],
+    diverged: false,
+    session: newSession(),
+    queue: Promise.resolve(),
+  };
+}
+
 /**
  * What edit.ts keeps of a document between edits. It reopens the render document over `source`
  * with every appended revision after it.
@@ -90,6 +103,8 @@ export interface EditState {
   diverged: boolean;
   /** The edit session's history (session.ts). */
   readonly session: Session;
+  /** The edit calls running and waiting, one after another (edit.ts's `serial`). */
+  queue: Promise<unknown>;
 }
 
 /** What the model did that a text-capable copy does after it: an edit's ops, an undo or a redo. */
@@ -439,7 +454,7 @@ async function openFrom(
     id: nextDocument++,
     model,
     render,
-    edit: { source, renderLimits, appended: [], pending: [], diverged: false, session: newSession() },
+    edit: newEditState(source, renderLimits),
     remote,
     local: from.kind === "copy" ? from.source : undefined,
     reopen: reopenFor(model, from.kind === "memory" ? from.bytes : undefined, options),
