@@ -7,7 +7,7 @@
 // words) is the app's.
 
 import { SPACE } from "@laminapdf/tokens";
-import { type ReactNode, useEffect, useId, useLayoutEffect, useRef } from "react";
+import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../components/button.js";
 import { useAnchoredPlacement } from "./anchored.js";
@@ -78,6 +78,7 @@ function PreviewPopover({
   const ref = useRef<HTMLDivElement>(null);
   const place = useAnchoredPlacement(ref, { anchor: () => boxOf(anchor), place: placeBelow, gap: GAP });
   useDescribedBy(anchor, id);
+  useHover(ref, onHold);
   return createPortal(
     <LayerScope dismiss={onDismiss}>
       <div
@@ -87,8 +88,6 @@ function PreviewPopover({
         className="paper-link-preview"
         data-side={place?.side}
         style={place === null ? { visibility: "hidden" } : { top: place.top, left: place.left }}
-        onPointerEnter={() => onHold(true)}
-        onPointerLeave={() => onHold(false)}
       >
         <Picture picture={picture} label={pictureLabel ?? title} />
         <div className="paper-link-preview-title">{title}</div>
@@ -170,6 +169,28 @@ function Picture({
       style={{ width: picture.width, height: picture.height }}
     />
   );
+}
+
+/**
+ * Calls `onHold` when the pointer comes onto `ref`'s element (`true`) and when it leaves, from the
+ * browser's own pointerenter and pointerleave. React's `onPointerEnter` makes them up from
+ * pointerover and pointerout instead, and reports an enter twice when the pointer comes from a node
+ * outside React's roots, such as the viewer's links or the page's body: once for that node's
+ * pointerout, once for the popover's pointerover (docs/bugs/link-preview-held-twice).
+ */
+function useHover(ref: RefObject<HTMLElement | null>, onHold: (held: boolean) => void): void {
+  useEffect(() => {
+    const element = ref.current;
+    if (element === null) return;
+    const enter = () => onHold(true);
+    const leave = () => onHold(false);
+    element.addEventListener("pointerenter", enter);
+    element.addEventListener("pointerleave", leave);
+    return () => {
+      element.removeEventListener("pointerenter", enter);
+      element.removeEventListener("pointerleave", leave);
+    };
+  }, [ref, onHold]);
 }
 
 /** Names the popover from the link while it shows (`aria-describedby`), leaving any other description. */

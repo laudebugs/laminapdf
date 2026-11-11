@@ -116,6 +116,24 @@ describe("the popover (mouse and keyboard)", () => {
     await userEvent.unhover(tip);
     expect(h.onHold.mock.calls.map(([held]) => held)).toEqual([true, false]);
   });
+
+  it("holds once when the pointer comes from outside React, as from the viewer's links", async () => {
+    // The viewer draws its links without React. React makes up enter and leave from pointerover and
+    // pointerout, and counts an enter twice when the pointer comes from a node outside its roots:
+    // once from the node's pointerout, once from the card's pointerover.
+    const h = handlers();
+    renderIn(<Harness pointer="fine" handlers={h} />);
+    const outside = document.createElement("div");
+    outside.style.cssText = "position: fixed; right: 0; bottom: 0; width: 100px; height: 100px";
+    document.body.append(outside);
+    await frame();
+    await frame();
+    await userEvent.hover(outside);
+    const tip = tooltip() as HTMLElement;
+    await userEvent.hover(tip);
+    await userEvent.hover(outside);
+    expect(h.onHold.mock.calls.map(([held]) => held)).toEqual([true, false]);
+  });
 });
 
 describe("the sheet (touch)", () => {
