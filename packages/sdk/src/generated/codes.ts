@@ -731,7 +731,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
 };
 
 /** `docsUrl` = base + code + suffix (ADR 0026 §6). */
-export const DOCS_URL = { base: "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/", suffix: ".md" } as const;
+export const DOCS_URL = { base: "https://docs.laminapdf.com/reference/codes/", suffix: "/" } as const;
 
 /** The explain page of `code` (`docsUrl`, ADR 0026 §6). */
 export function docsUrl(code: ErrorCode | WarningCode): string {

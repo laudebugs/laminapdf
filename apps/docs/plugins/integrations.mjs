@@ -102,3 +102,47 @@ export const checkedLinks = {
     },
   },
 };
+
+/**
+ * The site path of each code's `docsUrl` (ADR 0026 §6: base + code + suffix), from `codes.json`'s
+ * text: every item of its groups that has a `code`. The base must be on `site`, the docs site's
+ * address, so every `docsUrl` the library hands out is a page this build writes.
+ *
+ * @param {string} codesJson
+ * @param {string} site
+ * @returns {string[]}
+ */
+export function codePagePaths(codesJson, site) {
+  const codes = JSON.parse(codesJson);
+  const { base, suffix } = codes.docsUrl;
+  if (!base.startsWith(`${site}/`)) throw new Error(`codes.json's docsUrl base ${base} is not on ${site}`);
+  const path = base.slice(site.length);
+  return Object.values(codes)
+    .filter(Array.isArray)
+    .flat()
+    .filter((item) => typeof item?.code === "string")
+    .map((item) => `${path}${item.code}${suffix}`);
+}
+
+/**
+ * Fails the build when a code in `codes.json` has no page at its `docsUrl`, which every error and
+ * warning the library reports carries.
+ *
+ * @param {URL} codesJson
+ * @param {string} site
+ * @returns {import("astro").AstroIntegration}
+ */
+export function codePages(codesJson, site) {
+  return {
+    name: "lamina-code-pages",
+    hooks: {
+      "astro:build:done": async ({ dir }) => {
+        const missing = [];
+        for (const path of codePagePaths(await readFile(codesJson, "utf8"), site)) {
+          if (!(await pageExists(dir, path))) missing.push(path);
+        }
+        if (missing.length > 0) throw new Error(`codes with no page at their docsUrl: ${missing.join(", ")}`);
+      },
+    },
+  };
+}

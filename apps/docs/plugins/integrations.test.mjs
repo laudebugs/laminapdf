@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
-import { copyWebsiteIcons, WEBSITE_ICON_FILES, WEBSITE_ICONS } from "./integrations.mjs";
+import { codePagePaths, copyWebsiteIcons, WEBSITE_ICON_FILES, WEBSITE_ICONS } from "./integrations.mjs";
 
 const WEBSITE = new URL("../../site/", import.meta.url);
 
@@ -33,4 +33,19 @@ test("the build gets each icon, byte for byte, from the website's public folder"
   } finally {
     await rm(dist, { recursive: true, force: true });
   }
+});
+
+const SITE = "https://docs.laminapdf.com";
+
+test("every code's docsUrl names a page on the docs site, for every group in codes.json", async () => {
+  const codes = await readFile(new URL("../../../fixtures/codes.json", import.meta.url), "utf8");
+  const paths = codePagePaths(codes, SITE);
+  assert.ok(paths.includes("/reference/codes/wrong-password/"));
+  assert.ok(paths.includes("/reference/codes/overwrite-refused/"), "a CLI code");
+  assert.equal(new Set(paths).size, paths.length);
+});
+
+test("a docsUrl base off the docs site fails the build", () => {
+  const codes = JSON.stringify({ docsUrl: { base: "https://example.com/errors/", suffix: ".md" }, errors: [] });
+  assert.throws(() => codePagePaths(codes, SITE), /not on https:\/\/docs\.laminapdf\.com/);
 });
