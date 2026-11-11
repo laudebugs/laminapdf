@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
 | Depends on | None |
@@ -40,17 +40,17 @@ npm and crates.io rank packages on their name, description and keywords, and sho
 
 ## Tasks
 
-- [ ] Search npm and crates.io for "pdf" jobs (generate, parse, extract text, render, viewer, edit, sign, form) and note which keywords comparable packages use; pick keywords per package from that list.
-- [ ] Rewrite each description and the first README paragraph; keep the SDK's, which already reads well, unless the keywords suggest a change.
-- [ ] Add `bugs` to every published npm package and the CLI generator.
-- [ ] Open `@laminapdf/sdk` on npmjs.com and `laminapdf` on crates.io and follow their README links; fix any that don't resolve.
-- [ ] Add the check to xtask's docs checks (the `todo-id` rule's ID list and an `ADR \d{4}` pattern), with tests.
-- [ ] A changeset for the npm metadata (patch).
+- [x] Search npm and crates.io for "pdf" jobs (generate, parse, extract text, render, viewer, edit, sign, form) and note which keywords comparable packages use; pick keywords per package from that list.
+- [x] Rewrite each description and the first README paragraph; keep the SDK's, which already reads well, unless the keywords suggest a change.
+- [x] Add `bugs` to every published npm package and the CLI generator.
+- [x] Open `@laminapdf/sdk` on npmjs.com and `laminapdf` on crates.io and follow their README links; fix any that don't resolve.
+- [x] Add the check to xtask's docs checks (the `todo-id` rule's ID list and an `ADR \d{4}` pattern), with tests.
+- [x] A changeset for the npm metadata (patch).
 
 ## Acceptance criteria
 
-- [ ] No published package's description or README names an ADR or a todo ID, or says the package is private.
-- [ ] The new check fails on a fixture description with "ADR 0004" and on a fixture README whose first paragraph names a todo ID, and passes on the repository.
+- [x] No published package's description or README names an ADR or a todo ID, or says the package is private.
+- [x] The new check fails on a fixture description with "ADR 0004" and on a fixture README whose first paragraph names a todo ID, and passes on the repository.
 
 ## Post-merge checks
 
@@ -70,8 +70,8 @@ The package READMEs, CLAUDE.md's `check docs` line, and the [discoverability pla
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
