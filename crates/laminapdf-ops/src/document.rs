@@ -338,6 +338,8 @@ impl Document {
             touched: BTreeSet::new(),
             pending: PendingChanges::default(),
             coalesce,
+            packet_rewritten: false,
+            removed: false,
         });
         Ok(())
     }
@@ -385,6 +387,8 @@ impl Document {
         Ok(Applied {
             undo,
             touched_pages: state.touched,
+            packet_rewritten: state.packet_rewritten,
+            still_in_earlier_revisions: state.removed,
         })
     }
 

@@ -6,6 +6,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
+use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
 use crate::rotate::RotatePage;
 
 /// An editing operation ([ADR 0006] §1): typed and semantic (it names things by
@@ -32,10 +33,22 @@ use crate::rotate::RotatePage;
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub enum Op {
-    /// Edit the document information dictionary.
+    /// Edit the document information dictionary (and an existing XMP packet with it).
+    ///
+    /// Deprecated in favour of [`Op::SetMetadata`], which also writes authors as a list, dates
+    /// and XMP-only files; kept, with its v1 wire form, so logs already written still apply
+    /// (ADR 0006 §6).
     SetInfo(SetInfo),
     /// Set a page's rotation.
     RotatePage(RotatePage),
+    /// Edit the document's metadata in Info and XMP together.
+    SetMetadata(SetMetadata),
+    /// Remove metadata fields from Info and XMP.
+    RemoveMetadata(RemoveMetadata),
+    /// The save-time metadata stamp, made only by the save planner: never serialised and
+    /// never read from an op log.
+    #[serde(skip)]
+    UpdateSaveMetadata(UpdateSaveMetadata),
 }
 
 impl Op {
@@ -43,33 +56,75 @@ impl Op {
     #[must_use]
     pub const fn class(&self) -> ModificationClass {
         match self {
-            Self::SetInfo(_) => ModificationClass::Metadata,
+            Self::SetInfo(_) | Self::SetMetadata(_) | Self::RemoveMetadata(_) | Self::UpdateSaveMetadata(_) => {
+                ModificationClass::Metadata
+            }
             Self::RotatePage(_) => ModificationClass::PageStructure,
         }
     }
 
     /// Whether saving this op needs a full rewrite rather than an incremental update
-    /// (redaction, encryption changes; neither B3 op does).
+    /// (redaction, encryption changes; none of these ops does).
     #[must_use]
     pub const fn requires_rewrite(&self) -> bool {
         match self {
-            Self::SetInfo(_) | Self::RotatePage(_) => false,
+            Self::SetInfo(_)
+            | Self::RotatePage(_)
+            | Self::SetMetadata(_)
+            | Self::RemoveMetadata(_)
+            | Self::UpdateSaveMetadata(_) => false,
         }
     }
 
-    /// Applies the op's writes through the overlay; returns the pages it touched. The caller
+    /// Applies the op's writes through the overlay; returns what it did. The caller
     /// ([`Tx::apply`](crate::Tx::apply)) rolls back on error and records the undo.
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Vec<PageId>> {
+    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
         match self {
             Self::SetInfo(op) => op.apply_to(doc),
-            Self::RotatePage(op) => op.apply_to(doc),
+            Self::RotatePage(op) => op.apply_to(doc).map(|pages| Effect {
+                pages,
+                ..Effect::default()
+            }),
+            Self::SetMetadata(op) => op.apply_to(doc),
+            Self::RemoveMetadata(op) => op.apply_to(doc),
+            Self::UpdateSaveMetadata(op) => op.apply_to(doc),
         }
     }
+}
+
+/// What applying one op did, besides the changes the journal records.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct Effect {
+    /// The pages it touched.
+    pub(crate) pages: Vec<PageId>,
+    /// It rewrote the XMP packet whole, losing its layout and comments
+    /// ([`Written::canonical`](laminapdf_model::xmp::Written::canonical)).
+    pub(crate) packet_rewritten: bool,
+    /// It removed metadata that the file's earlier revisions still hold.
+    pub(crate) removed: bool,
 }
 
 impl From<SetInfo> for Op {
     fn from(op: SetInfo) -> Self {
         Self::SetInfo(op)
+    }
+}
+
+impl From<SetMetadata> for Op {
+    fn from(op: SetMetadata) -> Self {
+        Self::SetMetadata(op)
+    }
+}
+
+impl From<RemoveMetadata> for Op {
+    fn from(op: RemoveMetadata) -> Self {
+        Self::RemoveMetadata(op)
+    }
+}
+
+impl From<UpdateSaveMetadata> for Op {
+    fn from(op: UpdateSaveMetadata) -> Self {
+        Self::UpdateSaveMetadata(op)
     }
 }
 

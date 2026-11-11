@@ -512,6 +512,36 @@
       "summary": "rebase was called without a save waiting for it",
       "hint": "call rebase only after a save that returned SavedNotRebased",
       "since": "0.1.0"
+    },
+    {
+      "code": "malformed-xmp",
+      "kind": "input",
+      "summary": "a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds",
+      "hint": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
+      "since": "0.2.0"
+    }
+  ],
+  "opWarnings": [
+    {
+      "code": "pdfa-one-author",
+      "kind": "usage",
+      "summary": "the file claims PDF/A-1, which allows one author, and its metadata lists more",
+      "hint": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
+      "since": "0.2.0"
+    },
+    {
+      "code": "pdfua-title-missing",
+      "kind": "usage",
+      "summary": "the file claims PDF/UA-1, which requires a title in its metadata, and it has none",
+      "hint": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
+      "since": "0.2.0"
+    },
+    {
+      "code": "pdfa-info-mismatch",
+      "kind": "usage",
+      "summary": "the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ",
+      "hint": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
+      "since": "0.2.0"
     }
   ],
   "saveErrors": [

@@ -1,6 +1,7 @@
-//! Property tests (ADR 0018 tier 5, ADR 0006 §3–§4): random sequences of `SetInfo` and
-//! `RotatePage`, grouped into local transactions (some coalescing), over files with an indirect, a direct and
-//! no Info dictionary and with inherited `/Rotate`. Undoing everything leaves the overlay
+//! Property tests (ADR 0018 tier 5, ADR 0006 §3–§4): random sequences of `SetInfo`,
+//! `SetMetadata`, `RemoveMetadata` and `RotatePage`, grouped into local transactions (some
+//! coalescing), over files with an indirect, a direct and no Info dictionary, with and without
+//! an XMP packet, a PDF 2.0 file and inherited `/Rotate`. Undoing everything leaves the overlay
 //! empty; redoing everything gives the same overlay as before the undo.
 //!
 //! The seed is fixed (`SEED`, also printed to stderr, which the test harness shows for a
@@ -9,9 +10,12 @@
 
 mod common;
 
-use common::{corpus, inherited_rotate, page_ids, snapshot};
+use common::{corpus, fixture, inherited_rotate, open, page_ids, snapshot};
 use laminapdf_model::{PdfDate, Rotation};
-use laminapdf_ops::{Document, InfoPatch, Op, Origin, RotatePage, SetInfo, UndoOutcome};
+use laminapdf_ops::{
+    Document, InfoPatch, MetadataKey, MetadataPatch, Op, Origin, RemoveMetadata, RotatePage, SetInfo, SetMetadata,
+    UndoOutcome,
+};
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};
 
@@ -22,6 +26,8 @@ const SEED: u64 = 0x1a31_0b3a;
 #[expect(clippy::option_option, reason = "InfoPatch's fields: leave, clear or set")]
 enum Recipe {
     Info([Option<Option<&'static str>>; 3], Option<u8>),
+    Metadata([Option<Option<&'static str>>; 3], Option<u8>),
+    Remove(Vec<usize>),
     Rotate(usize, Rotation),
 }
 
@@ -48,6 +54,12 @@ fn recipe() -> impl Strategy<Value = Recipe> {
             proptest::option::of(0u8..30)
         )
             .prop_map(|(f, d)| Recipe::Info(f, d)),
+        (
+            [text_field(), text_field(), text_field()],
+            proptest::option::of(0u8..30)
+        )
+            .prop_map(|(f, d)| Recipe::Metadata(f, d)),
+        proptest::collection::vec(0usize..8, 1..3).prop_map(Recipe::Remove),
         (0usize..8, rotation).prop_map(|(p, r)| Recipe::Rotate(p, r)),
     ]
 }
@@ -59,15 +71,31 @@ fn to_op(doc: &laminapdf_model::Document, recipe: &Recipe) -> Op {
             patch.title = title.map(|t| t.map(str::to_owned));
             patch.author = author.map(|t| t.map(str::to_owned));
             patch.keywords = keywords.map(|t| t.map(str::to_owned));
-            let at = day.map(|d| format!("D:202610{:02}120000Z", d % 28 + 1).parse::<PdfDate>().unwrap());
-            SetInfo::new(patch, at).into()
+            SetInfo::new(patch, day.map(date)).into()
         }
+        Recipe::Metadata([title, author, keywords], day) => {
+            let mut patch = MetadataPatch::new();
+            patch.title = title.map(|t| t.map(str::to_owned));
+            patch.authors = author.map(|t| t.map(|a| vec![a.to_owned(), "Second".to_owned()]));
+            patch.keywords = keywords.map(|t| t.map(str::to_owned));
+            SetMetadata::new(patch, day.map(date)).into()
+        }
+        Recipe::Remove(keys) => RemoveMetadata::new(
+            keys.iter()
+                .filter_map(|k| MetadataKey::ALL.get(k % 8).copied())
+                .collect(),
+        )
+        .into(),
         Recipe::Rotate(index, rotation) => {
             let ids = page_ids(doc);
             let page = ids.get(index % ids.len()).unwrap().clone();
             RotatePage::new(page, *rotation).into()
         }
     }
+}
+
+fn date(day: u8) -> PdfDate {
+    format!("D:202610{:02}120000Z", day % 28 + 1).parse().unwrap()
 }
 
 /// A named way to open a test document.
@@ -79,6 +107,8 @@ fn documents() -> Vec<Make> {
         ("hello.pdf (no Info)", || corpus("hello.pdf")),
         ("text-example.pdf (direct Info)", || corpus("text-example.pdf")),
         ("outline.pdf", || corpus("outline.pdf")),
+        ("metadata.pdf (Info and XMP)", || open(&fixture("golden/metadata.pdf"))),
+        ("pdf20-xmp-only.pdf", || open(&fixture("metadata/pdf20-xmp-only.pdf"))),
     ]
 }
 

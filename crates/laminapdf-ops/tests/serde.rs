@@ -80,7 +80,7 @@ mod samples {
 
     #[test]
     fn every_sample_round_trips() {
-        for name in ["set-info", "rotate-page"] {
+        for name in ["set-info", "rotate-page", "set-metadata", "remove-metadata"] {
             let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
             let again: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();
             assert_eq!(again, op, "{name}");
@@ -133,6 +133,23 @@ mod rejects {
     #[test]
     fn a_date_that_is_not_a_pdf_date() {
         assert!(op(r#"{ "op": "setInfo", "args": { "patch": {}, "at": "yesterday" } }"#).is_err());
+    }
+
+    #[test]
+    fn an_unknown_metadata_key() {
+        assert!(op(r#"{ "op": "removeMetadata", "args": { "keys": ["colour"] } }"#).is_err());
+    }
+
+    #[test]
+    fn an_unknown_field_in_a_metadata_patch() {
+        assert!(op(r#"{ "op": "setMetadata", "args": { "patch": { "author": "A" } } }"#).is_err());
+    }
+
+    #[test]
+    fn the_save_time_stamp_from_the_wire() {
+        // Only the save planner makes it (E1 plan §2).
+        let json = r#"{ "op": "updateSaveMetadata", "args": { "metadataDate": null, "instanceId": "uuid:x" } }"#;
+        assert!(op(json).is_err());
     }
 
     #[test]

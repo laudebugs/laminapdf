@@ -97,6 +97,15 @@ A PR that adds a code adds:
 | [`invalid-op-log`](invalid-op-log.md) | `input` | an op log does not parse: an unknown op or field, a bad value, or not JSON |
 | [`saved-not-rebased`](saved-not-rebased.md) | `state` | the document was saved to a sink Lamina PDF cannot read back and waits for rebase |
 | [`no-pending-save`](no-pending-save.md) | `state` | rebase was called without a save waiting for it |
+| [`malformed-xmp`](malformed-xmp.md) | `input` | a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds |
+
+## Op warnings
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`pdfa-one-author`](pdfa-one-author.md) | `usage` | the file claims PDF/A-1, which allows one author, and its metadata lists more |
+| [`pdfua-title-missing`](pdfua-title-missing.md) | `usage` | the file claims PDF/UA-1, which requires a title in its metadata, and it has none |
+| [`pdfa-info-mismatch`](pdfa-info-mismatch.md) | `usage` | the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ |
 
 ## Save errors
 

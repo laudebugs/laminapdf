@@ -34,7 +34,9 @@
 //! This crate is part of Lamina PDF's pure core: bytes in, bytes out, no file system, network,
 //! clocks or threads.
 //!
-//! * [`Op`]: [`SetInfo`] (with [`InfoPatch`]) and [`RotatePage`], each with a
+//! * [`Op`]: [`SetMetadata`] (with [`MetadataPatch`]), [`RemoveMetadata`] (with
+//!   [`MetadataKey`]), the save planner's [`UpdateSaveMetadata`], [`RotatePage`] and the
+//!   deprecated [`SetInfo`] (with [`InfoPatch`]), each with a
 //!   [`ModificationClass`] and [`Op::requires_rewrite`]; [`OpLog`] is the versioned JSON
 //!   envelope `{ "v": 1, "ops": [ … ] }`.
 //! * [`Document`]: wraps a [`laminapdf_model::Document`] (it dereferences to one) and is the
@@ -43,6 +45,9 @@
 //!   [`Error::NestedTransaction`] for a transaction inside one.
 //! * [`Applied`] carries the [`UndoRecord`] (each property's value before and after) and the
 //!   touched pages; [`Document::undo`] / [`Document::redo`] return an [`UndoOutcome`].
+//! * [`read_metadata`] → [`DocumentMetadata`]: Info and XMP read together, the side that wins
+//!   and where they disagree; [`conformance_warnings`] → [`ConformanceWarning`]s for a PDF/A or
+//!   PDF/UA claim the metadata breaks.
 //! * [`PendingChanges`] ([`Document::pending_changes`]): the op classes not yet saved, which
 //!   `laminapdf-save`'s planner checks against signatures (ADR 0007 §2).
 //!
@@ -75,6 +80,7 @@ mod document;
 mod error;
 mod history;
 mod info;
+mod metadata;
 mod op;
 mod pending;
 mod record;
@@ -91,6 +97,10 @@ pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
 pub use info::{InfoPatch, SetInfo};
+pub use metadata::{
+    ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
+    SetMetadata, UpdateSaveMetadata, conformance_warnings, read_metadata,
+};
 pub use op::{Op, OpLog};
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
