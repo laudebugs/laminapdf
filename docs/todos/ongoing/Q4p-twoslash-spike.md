@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4p` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
-| Depends on | [Q4i](./Q4i-code-colours-by-class.md) |
+| Depends on | [Q4i](../ready/Q4i-code-colours-by-class.md) |
 | ADRs | [ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the headers, no third-party loads) |
 | Branch | `spike/q4p-twoslash` |
 | PR title | `spike(docs): measure twoslash hover types on one docs page` |
