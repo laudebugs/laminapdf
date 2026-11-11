@@ -33,7 +33,7 @@ const LINKS = /** @type {const} */ ([
   { label: "Docs", site: "docs", path: "/" },
   { label: "Pricing", site: "website", path: "/pricing/" },
   { label: "Performance", site: "website", path: "/performance/" },
-  // The owner's decision on T1b's pull request (2026-11-11): the page joins the header.
+  // The owner chose (2026-11-11) to keep the page on the website, linked from the header.
   { label: "How we test", site: "website", path: "/how-we-test/" },
   { label: "Privacy", site: "website", path: "/privacy/" },
 ]);
