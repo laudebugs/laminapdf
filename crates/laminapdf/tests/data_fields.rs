@@ -295,6 +295,12 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }
         .into(),
         W::InvalidPageLabel { start: 0 }.into(),
+        W::XmpInvalid {
+            object: None,
+            offset: Some(0),
+            reason: "dtd",
+        }
+        .into(),
         W::ContentUnknownOperator {
             object: None,
             offset: 0,

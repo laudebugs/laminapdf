@@ -124,6 +124,20 @@ pub enum Warning {
         /// Which entry, e.g. `"ModDate"` (`"other"` for a key outside the standard ones).
         key: &'static str,
     },
+    /// `xmp-invalid`: the catalog's XMP metadata packet isn't readable XMP (not well-formed
+    /// XML, a DTD, an undefined entity, an undeclared prefix, too deep or too many
+    /// declarations, or no `rdf:RDF`); the model reads it as absent.
+    XmpInvalid {
+        /// The metadata stream's object number (`None` for a direct one).
+        object: Option<u32>,
+        /// About where in the stream's decoded bytes reading stopped; `None` when no one place
+        /// is at fault (an unknown encoding, no `rdf:RDF`). Data only: the location names the
+        /// object, which keeps this rare warning's code small in the WebAssembly modules.
+        offset: Option<u64>,
+        /// What was wrong: `encoding`, `dtd`, `entity`, `prefix`, `depth`, `limit`, `syntax`
+        /// or `no-rdf`.
+        reason: &'static str,
+    },
     /// `invalid-page-label`: a `/PageLabels` entry is malformed: not a dictionary, a negative
     /// start, an unknown `/S` style (no numeric part), a `/P` that is not a string (no prefix)
     /// or `/St` below 1 (numbering from 1). The rest of the entry is kept.
@@ -336,6 +350,7 @@ impl Warning {
         "outline-cycle",
         "outline-item-skipped",
         "invalid-date",
+        "xmp-invalid",
         "invalid-page-label",
         "invalid-entry",
         "content-unknown-operator",
@@ -384,6 +399,7 @@ impl Warning {
             Self::OutlineCycle { .. } => "outline-cycle",
             Self::OutlineItemSkipped { .. } => "outline-item-skipped",
             Self::InvalidDate { .. } => "invalid-date",
+            Self::XmpInvalid { .. } => "xmp-invalid",
             Self::InvalidPageLabel { .. } => "invalid-page-label",
             Self::InvalidEntry { .. } => "invalid-entry",
             Self::ContentUnknownOperator { .. } => "content-unknown-operator",
@@ -429,6 +445,7 @@ impl Warning {
             | Self::NameTreeNodeSkipped { object }
             | Self::OutlineItemSkipped { object }
             | Self::InvalidDate { object, .. }
+            | Self::XmpInvalid { object, .. }
             | Self::InvalidEntry { object, .. }
             | Self::ContentUnknownOperator { object, .. }
             | Self::ContentBadOperands { object, .. }
@@ -481,6 +498,7 @@ impl Warning {
             | Self::OutlineCycle { .. }
             | Self::OutlineItemSkipped { .. }
             | Self::InvalidDate { .. }
+            | Self::XmpInvalid { .. }
             | Self::InvalidPageLabel { .. }
             | Self::InvalidEntry { .. }
             | Self::ContentUnknownOperator { .. }
@@ -573,12 +591,16 @@ impl Warning {
             | Self::ContentSyntax { offset, .. }
             | Self::ContentResourceMissing { offset, .. }
             | Self::InlineImageUnterminated { offset, .. }
-            | Self::ContentPathUnpainted { offset, .. } => Some(offset as i128),
+            | Self::ContentPathUnpainted { offset, .. }
+            | Self::XmpInvalid {
+                offset: Some(offset), ..
+            } => Some(offset as i128),
             _ => None,
         };
         let detail = match *self {
             Self::InvalidBox { key, .. } | Self::InvalidDate { key, .. } | Self::InvalidEntry { key, .. } => Some(key),
             Self::ContentResourceMissing { category, .. } => Some(category),
+            Self::XmpInvalid { reason, .. } => Some(reason),
             _ => None,
         };
         (self.code(), self.object(), position, detail)
@@ -661,6 +683,11 @@ mod tests {
             Warning::InvalidDate {
                 object: None,
                 key: "ModDate",
+            },
+            Warning::XmpInvalid {
+                object: None,
+                offset: Some(0),
+                reason: "dtd",
             },
             Warning::InvalidPageLabel { start: 0 },
             Warning::InvalidEntry {
@@ -747,6 +774,7 @@ mod tests {
                 | Warning::OutlineCycle { .. }
                 | Warning::OutlineItemSkipped { .. }
                 | Warning::InvalidDate { .. }
+                | Warning::XmpInvalid { .. }
                 | Warning::InvalidPageLabel { .. }
                 | Warning::InvalidEntry { .. }
                 | Warning::ContentUnknownOperator { .. }

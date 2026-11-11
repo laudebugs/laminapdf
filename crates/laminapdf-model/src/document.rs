@@ -13,6 +13,7 @@ use crate::labels::PageLabels;
 use crate::outline::Outline;
 use crate::page::Pages;
 use crate::tree::{NameTree, NumberTree};
+use crate::xmp;
 
 /// An opened PDF with typed views ([ADR 0005] §4): [`laminapdf_cos::Document`] plus the
 /// document-level [`IdAllocator`] (a view of the COS overlay's number allocator).
@@ -110,6 +111,31 @@ impl Document {
             return Ok(None);
         };
         tolerant(self.decode_stream(stream))
+    }
+
+    /// The XMP metadata packet, parsed ([`xmp::Packet`]); [`xmp::PacketState::Malformed`]
+    /// with [`Warning::XmpInvalid`] raised when the packet can't be read, so it counts as
+    /// absent until an edit chooses to replace it.
+    ///
+    /// # Errors
+    /// As [`Document::xmp_packet`]; [`Error::Strict`](laminapdf_cos::Error::Strict) in strict
+    /// mode for a malformed packet.
+    pub fn xmp(&self) -> Result<xmp::PacketState> {
+        let Some(bytes) = self.xmp_packet()? else {
+            return Ok(xmp::PacketState::Absent);
+        };
+        match xmp::Packet::parse(&bytes) {
+            Ok(packet) => Ok(xmp::PacketState::Parsed(packet)),
+            Err(error) => {
+                let object = self.catalog()?.get("Metadata").and_then(Object::as_ref).map(|r| r.num);
+                self.warn(Warning::XmpInvalid {
+                    object,
+                    offset: error.offset(),
+                    reason: error.reason(),
+                })?;
+                Ok(xmp::PacketState::Malformed { bytes, error })
+            }
+        }
     }
 
     /// The pages, in page-tree order.

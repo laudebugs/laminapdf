@@ -258,7 +258,7 @@ tasks:
                     Python with tools/roundtrip/requirements.txt; outputs in target/xtask/roundtrip)
   fuzz <target> [--time <seconds>]
                     run a fuzz target (lex, parse_object, flate_decode, open, page_tree, content,
-                    ops_json, save_roundtrip) with
+                    ops_json, save_roundtrip, extract_text, extract, markdown, xmp_parse) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz --all [--time <seconds>] [--jobs <n>]
                     run every fuzz target, <n> at once (default 1: in turn; at most 8); built

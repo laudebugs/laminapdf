@@ -109,6 +109,9 @@ icu_properties = { version = "=2.4.0", default-features = false, features = ["co
 # Bidi_Class data comes from icu_properties above. MIT OR Apache-2.0
 unicode-bidi = { version = "0.3.18", default-features = false, features = ["std"] }
 
+# XML tokenizer under laminapdf-model's XMP reader (E1 plan §4): no DTD or entity expansion,
+# byte positions for lossless edits; laminapdf-model only. MIT
+quick-xml = { version = "0.42.0", default-features = false }
 # Library errors. MIT OR Apache-2.0
 thiserror = { version = "2.0.21", default-features = false }
 # Memory-mapped files for laminapdf-source's opt-in `mmap` feature (MIT OR Apache-2.0).

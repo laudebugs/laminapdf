@@ -112,6 +112,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "xmp_parse"
+path = "fuzz_targets/xmp_parse.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "engine_protocol_decode"
 path = "fuzz_targets/engine_protocol_decode.rs"
 test = false

@@ -191,6 +191,7 @@ const EN = {
   "repairCode.outline-cycle": "Stopped following an outline that loops back on itself",
   "repairCode.outline-item-skipped": "Left out outline entries that point to no page",
   "repairCode.invalid-date": "Ignored dates that couldn't be read",
+  "repairCode.xmp-invalid": "Ignored document metadata that couldn't be read",
   "repairCode.invalid-page-label": "Ignored page labels that couldn't be read",
   "repairCode.invalid-entry": "Ignored settings that had the wrong kind of value",
   "repairCode.content": "Skipped drawing instructions on a page that couldn't be read",

@@ -2,12 +2,8 @@
 
 use laminapdf_cos::{Dict, PdfString};
 use laminapdf_model::PdfDate;
+use laminapdf_model::xmp::is_xml_char;
 use laminapdf_syntax::text::encode_text_string;
-
-/// Whether XML 1.0 can't hold `ch` (§2.2 `Char`).
-pub(crate) const fn not_xml(ch: char) -> bool {
-    matches!(ch, '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}' | '\u{FFFE}' | '\u{FFFF}')
-}
 
 /// What the Info dictionary and the XMP packet say about the document. Dates are given,
 /// never read from a clock (ADR 0001): the same values give the same bytes. Characters XML
@@ -114,8 +110,8 @@ impl Metadata {
             &mut self.producer,
         ];
         for text in fields.into_iter().flatten() {
-            if text.chars().any(not_xml) {
-                text.retain(|c| !not_xml(c));
+            if !text.chars().all(is_xml_char) {
+                text.retain(is_xml_char);
             }
         }
     }
