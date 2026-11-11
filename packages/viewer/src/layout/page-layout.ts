@@ -131,3 +131,18 @@ export class PageLayout {
     return Math.max(viewportWidth, this.maxWidth + 2 * this.gap);
   }
 }
+
+/**
+ * The scroll offset in `after` that keeps the reader where they were at `top` in `before`, when
+ * some pages changed size (an edit turned them): the page at `top` keeps its place under the
+ * viewport's top edge, the distance into it scaled by its new height if it is one that changed.
+ * Both layouts hold the same pages.
+ */
+export function keptTop(before: PageLayout, after: PageLayout, top: number): number {
+  if (before.pageCount === 0 || after.pageCount !== before.pageCount) return top;
+  const page = before.pageAt(top);
+  const into = top - before.offsetOf(page);
+  const was = before.heights[page] as number;
+  const now = after.heights[page] as number;
+  return Math.max(0, after.offsetOf(page) + (was > 0 ? (into * now) / was : into));
+}

@@ -153,4 +153,41 @@ describe("FindController", () => {
     find.close();
     expect(find.results()).toEqual([]);
   });
+
+  it("searches edited pages again without moving the view, keeping the current match where it can", async () => {
+    const counts = [2, 3, 1];
+    const { fake, calls, revealed } = host(counts);
+    const find = new FindController(fake);
+    find.find("x");
+    await settle(calls);
+    find.goTo(4); // page 1's last match
+    const shown = revealed.length;
+    // An edit leaves page 1 with one match and page 2 with none.
+    counts[1] = 1;
+    counts[2] = 0;
+    find.refresh([1, 2]);
+    expect(calls.map((c) => c.pages)).toEqual([[1, 2]]);
+    await settle(calls);
+    expect(find.getState()).toMatchObject({ total: 3, current: 2, done: true });
+    expect(find.matchesOn(2).matches).toEqual([]);
+    expect(revealed.length).toBe(shown);
+  });
+
+  it("leaves an idle find alone, and searches pages edited during a search again once it ends", async () => {
+    const counts = [1, 1, 1, 1, 1, 1, 1, 1];
+    const { fake, calls } = host(counts);
+    const find = new FindController(fake);
+    find.refresh([0]);
+    expect(calls).toEqual([]);
+    find.find("x");
+    // The first call has read pages 0–3; then an edit takes page 0's match away.
+    calls.shift()?.resolve();
+    await new Promise((r) => setTimeout(r, 0));
+    counts[0] = 0;
+    find.refresh([0]);
+    expect(calls.map((c) => c.pages)).toEqual([[4, 5, 6, 7]]);
+    await settle(calls);
+    expect(find.getState()).toMatchObject({ total: 7, done: true });
+    expect(find.matchesOn(0).matches).toEqual([]);
+  });
 });
