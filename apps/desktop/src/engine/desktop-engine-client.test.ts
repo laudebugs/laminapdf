@@ -77,7 +77,8 @@ beforeEach(() => {
       commands.push({ command, args });
       if (command === "unlock_document") {
         const { password } = args as { password: string };
-        if (password !== "secret") throw { kind: "wrong-password", message: "the password doesn't open this document" };
+        if (password !== "secret")
+          return Promise.reject({ kind: "wrong-password", message: "the password doesn't open this document" });
         return { ...LOCKED, needsPassword: false, pageCount: 2, pages: [LETTER, LETTER], name: "", size: 0 };
       }
       return undefined;
@@ -281,7 +282,8 @@ describe("the opener", () => {
 describe("picking a document", () => {
   it("hands the reader a file that fails to open with the main process's reason", async () => {
     mockIPC((command) => {
-      if (command === "open_dialog") throw { kind: "invalid", message: "this file isn't a PDF Lamina PDF can read" };
+      if (command === "open_dialog")
+        return Promise.reject({ kind: "invalid", message: "this file isn't a PDF Lamina PDF can read" });
       return undefined;
     });
     const { pickDocument } = await import("./open.ts");
