@@ -35,8 +35,8 @@ Round W3 closes those gaps in order of reach, then adds the pages and the measur
 
 ## 4. Decisions for the owner
 
-1. **Training crawlers** (`GPTBot`, `ClaudeBot`, `Google-Extended`, `CCBot`): allow or block? Search crawlers are allowed either way. Recommendation: allow. The code and docs are public and permissively licensed, and a model that learned the API writes correct code for it without a search. W3a writes whichever the owner chooses into every robots.txt.
-2. **Index the reader?** Recommendation: index `app.laminapdf.com/` only, as the page that answers "open a PDF in the browser", with a canonical URL and share tags; the reader has no other pages to index.
+1. **Training crawlers** (`GPTBot`, `ClaudeBot`, `Google-Extended`, `CCBot`): allow or block? Search crawlers are allowed either way. Recommendation: allow. The code and docs are public and permissively licensed, and a model that learned the API writes correct code for it without a search. W3a writes whichever the owner chooses into every robots.txt. **Decided (owner, 2026-11-11): allow.**
+2. **Index the reader?** Recommendation: index `app.laminapdf.com/` only, as the page that answers "open a PDF in the browser", with a canonical URL and share tags; the reader has no other pages to index. **Decided (owner, 2026-11-11): index `/` only.**
 3. **Repository description and topics** (a GitHub setting only the owner can change; the homepage is already `https://laminapdf.com`). Recommendation: "Create, read, edit and render PDFs from Rust and TypeScript, and a PDF reader for the browser", with the topics `pdf`, `pdf-generation`, `pdf-parser`, `pdf-editor`, `pdf-viewer`, `rust`, `typescript`, `webassembly`, `pdf-extraction`, `mcp`.
 4. **Cloudflare's Markdown for Agents** on the docs zone: optional, since the docs already publish Markdown twins (W3f).
 
