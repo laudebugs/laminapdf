@@ -1,11 +1,13 @@
 ---
 title: Error and warning codes
-description: Every code Lamina PDF raises, generated from fixtures/codes.json when the site is built.
+description: Every error and warning code Lamina PDF raises, with a page for each that says when it happens and how to fix it.
 tableOfContents: false
 ---
 
 import CodeTable from "../../../components/CodeTable.astro";
 
-Every error and warning Lamina PDF raises, in Rust, in WebAssembly and in `@laminapdf/sdk`, has one of these codes. The tables below are read from `fixtures/codes.json` when this site is built: the same file `cargo xtask gen codes` generates the Rust enums and the TypeScript unions from. Each code links to its page on this site, which explains when it happens, why, how to fix it and what its `data` holds. See [Errors and warnings](/concepts/errors-and-warnings/) for how to handle them.
+Every error and warning Lamina PDF raises has a code, such as `wrong-password`, and the code is the same in Rust, WebAssembly and `@laminapdf/sdk`. Match on the code, not the message: messages can change, but a code keeps its meaning in every version.
+
+The tables below group the codes by the part of Lamina PDF that raises them. Each row gives the code's kind, one of nine broad groups you can match on instead, then what happened and what to do. Each code links to its own page, which says when the code happens, why, how to fix it, and what its `data` holds. To learn how to catch errors and read warnings in your code, see [errors and warnings](/concepts/errors-and-warnings/).
 
 <CodeTable />
