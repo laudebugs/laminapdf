@@ -326,7 +326,7 @@ Reflow for phones comes up in 501 reader comments, and dark mode in 90, a rising
 
 - **Lamina PDF today:** ADR 0024 §5 fixes a dark page that recolours text and paths and never images ([U2c](../../todos/done/U2c-page-appearance-modes.md)). Reader mode comes from the structure tree, then by approximation ([U4b](../../todos/done/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/done/U4c-approximate-reader-mode.md)). Find lists every match ([C5b](../../todos/done/C5b-find-in-document.md)), and [C6a](../../todos/done/C6a-thumbnails-outline-page-labels.md) and [C6b](../../todos/done/C6b-links-and-history.md) plan the outline and links with history. The performance harness already scrolls 1,000 pages.
 - **The gap:** previews of internal links and citations, and reopening each file at its last position.
-- **Work:** [T5a](../../todos/ready/T5a-link-previews.md) and [T5b](../../todos/done/T5b-reopen-at-last-position.md).
+- **Work:** [T5a](../../todos/done/T5a-link-previews.md) and [T5b](../../todos/done/T5b-reopen-at-last-position.md).
 
 ### R8. Sanitise without flattening, and report what a file reveals
 

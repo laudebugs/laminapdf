@@ -17,6 +17,8 @@ import {
   IconButton,
   Inspector,
   LeftRail,
+  LinkPreview,
+  type LinkPreviewImage,
   Menu,
   MenuTrigger,
   ModeRegistry,
@@ -308,6 +310,64 @@ export function Selection(): ReactNode {
         <SelectionToolbarDivider />
         <IconButton label="Comment" icon="comment" />
       </SelectionToolbar>
+    </div>
+  );
+}
+
+/** A stand-in crop of a reference list, drawn at the device's pixels: what `Viewer.preview` returns. */
+async function standInCrop(): Promise<LinkPreviewImage> {
+  const [width, height] = [300, 64];
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  const g = canvas.getContext("2d");
+  if (g !== null) {
+    g.scale(dpr, dpr);
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, width, height);
+    g.fillStyle = "#222";
+    g.font = "11px serif";
+    g.fillText("[12] D. E. Knuth. The TeXbook. Addison-Wesley,", 10, 22);
+    g.fillText("Reading, Massachusetts, 1984.", 28, 38);
+    g.fillText("[13] L. Lamport. LaTeX: A Document Preparation", 10, 56);
+  }
+  return { bitmap: await createImageBitmap(canvas), width, height };
+}
+
+/** The link preview over a stand-in citation: the popover (mouse and keyboard), and the touch sheet. */
+export function LinkPreviews({ state }: { state: string }): ReactNode {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [picture, setPicture] = useState<LinkPreviewImage | undefined>(undefined);
+  useEffect(() => {
+    void standInCrop().then(setPicture);
+  }, []);
+  const text = "[12] D. E. Knuth. The TeXbook. Addison-Wesley, Reading, Massachusetts, 1984.";
+  return (
+    <div className="g-selection">
+      <p>
+        As shown in{" "}
+        <a ref={setAnchor} href="#cite.12">
+          [12]
+        </a>
+        , previews help.
+      </p>
+      {anchor === null ? null : (
+        <LinkPreview
+          anchor={anchor}
+          pointer={state === "sheet" ? "touch" : "fine"}
+          title="References"
+          caption="Link to page 7 · Enter to go"
+          picture={picture}
+          pictureLabel={text}
+          text={text}
+          goLabel="Go to page 7"
+          closeLabel="Close"
+          onFollow={noop}
+          onDismiss={noop}
+          onHold={noop}
+        />
+      )}
     </div>
   );
 }

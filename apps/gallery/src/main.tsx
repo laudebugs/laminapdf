@@ -12,7 +12,17 @@ import { EXAMPLES, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Icons } from "./icons.tsx";
-import { Dialogs, Menus, Palette, ReaderParts, Selection, Sheets, ShellRegions, Toasts } from "./overlays.tsx";
+import {
+  Dialogs,
+  LinkPreviews,
+  Menus,
+  Palette,
+  ReaderParts,
+  Selection,
+  Sheets,
+  ShellRegions,
+  Toasts,
+} from "./overlays.tsx";
 import {
   APPEARANCES,
   DENSITIES,
@@ -68,6 +78,8 @@ function Extra({ route, state, theme }: { route: Route; state: string; theme: st
       return <Sheets state={open} />;
     case "menus":
       return <Menus state={open} />;
+    case "link-preview":
+      return <LinkPreviews state={open} />;
     case "selection-toolbar":
       return <Selection />;
     case "palette":

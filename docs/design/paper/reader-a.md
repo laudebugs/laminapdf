@@ -248,13 +248,19 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Artboards.** `R07-link-preview.dc.html`, `R07-external-link.dc.html`.
 
-**Todos.** [C6b](../../todos/done/C6b-links-and-history.md) (links, the external-link dialog, history); [T5a](../../todos/ready/T5a-link-previews.md) (the link preview).
+**Todos.** [C6b](../../todos/done/C6b-links-and-history.md) (links, the external-link dialog, history); [T5a](../../todos/done/T5a-link-previews.md) (the link preview).
 
 **As built ([C6b](../../todos/done/C6b-links-and-history.md)).** The web reader ships the link layer, the external-link dialog and Back and Forward, which sit before the page input. Four parts differ from the boards or wait for later todos:
-- **Names.** A link without a description is named "Link to page 11", without the target's outline title, which comes with the preview ([T5a](../../todos/ready/T5a-link-previews.md)). Until then, hovering a link that does something shows nothing extra. A link that does nothing has a hover note saying why, as the board shows; for an action, it reads "This link asks to run an action. Lamina PDF never runs these."
+- **Names.** A link without a description is named "Link to page 11", without the target's outline title, which the preview shows ([T5a](../../todos/done/T5a-link-previews.md)). A link that does nothing has a hover note saying why, as the board shows; for an action, it reads "This link asks to run an action. Lamina PDF never runs these."
 - **Not run.** Actions a link would run are never run. They aren't yet listed in R04's Not run section, which lists repairs only.
-- **Commands.** `nav.follow-link`, `nav.open-external-link` and `nav.copy-link` aren't registered. A click or Enter follows a link, and the dialog's buttons open or copy it.
+- **Commands.** `nav.open-external-link` and `nav.copy-link` aren't registered (T5a registered `nav.follow-link`). A click or Enter follows a link, and the dialog's buttons open or copy it.
 - **Phone.** The phone's top bar has no Back or Forward, and More doesn't hold them yet. The OS back gesture still steps the reader's history, because each jump is a browser history entry.
+
+**As built ([T5a](../../todos/done/T5a-link-previews.md)).** The web reader shows the link preview after 300 ms of hover or keyboard focus, or on a long-press on the phone, and registers `nav.follow-link`. Four parts differ from the board:
+- **Region preview.** A link whose destination names a point (as a citation's does: LaTeX points it at the reference entry) shows a crop around that point, not the page's top: from just above and left of the point to the right edge of its text column, at the reader's zoom clamped to 100–150 %. So the card grows past 248 px, up to a 480 × 180 px crop. A destination with no point keeps the board's 92 px crop of the page's top.
+- **Title.** The title is the outline section at the destination, else "Page 11"; the link's own name stays "Link to page 11".
+- **Page actions and other files.** They show their sentence ("Goes to the next page") as the title, with no crop. Web links show no preview and still ask first.
+- **Phone.** The sheet shows the crop, the title, the destination's text and **Go to page 11**, without "Enter to go".
 
 ## R08 Document properties
 
