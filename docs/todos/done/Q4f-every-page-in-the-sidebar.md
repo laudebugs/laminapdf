@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `docs/q4f-sidebar-complete` |
 | PR title | `docs: put every recipe in the sidebar and check that every page is listed` |
 | Size | S |
-| PR | — |
+| PR | [laudebugs/lamina#440](https://github.com/laudebugs/laminapdf/pull/440) |
 
 ## Goal
 
@@ -35,13 +35,13 @@ The docs' house rule is that every page is in the sidebar, in the story's order.
 
 ## Tasks
 
-- [ ] Add the two recipes in a sensible place in the Recipes group.
-- [ ] Add the check (a test beside the plugins, or a build step) and make it fail on a missing page.
+- [x] Add the two recipes in a sensible place in the Recipes group.
+- [x] Add the check (a test beside the plugins, or a build step) and make it fail on a missing page.
 
 ## Acceptance criteria
 
-- [ ] Every hand-written page is in the sidebar.
-- [ ] Removing a page from `sidebar.mjs` fails the check.
+- [x] Every hand-written page is in the sidebar.
+- [x] Removing a page from `sidebar.mjs` fails the check.
 
 ## Post-merge checks
 
@@ -61,8 +61,8 @@ None beyond the sidebar.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
