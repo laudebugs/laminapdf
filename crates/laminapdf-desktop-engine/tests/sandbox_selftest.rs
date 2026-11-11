@@ -20,6 +20,7 @@ fn engine() -> PathBuf {
 /// What one selftest run printed on stdout and how it ended.
 struct Run {
     stdout: String,
+    stderr: String,
     exit: String,
 }
 
@@ -30,8 +31,10 @@ impl Run {
         self.stdout.lines().find_map(|line| line.strip_prefix(prefix.as_str()))
     }
 
+    /// Killed by seccomp, or (with the `seccomp-trap` feature, which `--all-features` turns on)
+    /// trapped and reported by name.
     fn killed_by_seccomp(&self) -> bool {
-        self.exit.contains("SIGSYS")
+        self.exit.contains("SIGSYS") || self.stderr.contains("seccomp refused system call")
     }
 }
 
@@ -46,7 +49,7 @@ fn selftest_with(probe: &str, config: SandboxConfig) -> Run {
     child.stderr.read_to_string(&mut stderr).unwrap();
     let exit = child.process.wait();
     eprintln!("{probe}: {stdout}{stderr}exit: {exit}");
-    Run { stdout, exit }
+    Run { stdout, stderr, exit }
 }
 
 fn selftest(probe: &str) -> Run {
@@ -208,6 +211,7 @@ fn the_process_limit_should_stay_what_it_was_without_the_sandbox() {
     child.stdout.read_to_string(&mut plain).unwrap();
     let plain = Run {
         stdout: plain,
+        stderr: String::new(),
         exit: child.process.wait(),
     };
     assert_eq!(plain.outcome("sandbox"), Some("off"));
@@ -216,8 +220,9 @@ fn the_process_limit_should_stay_what_it_was_without_the_sandbox() {
     assert_eq!(Some(limit), plain.outcome("nproc"), "RLIMIT_NPROC changed");
 }
 
-/// The supervisor's side of a sandbox kill (Unix: the test sends the signal).
-#[cfg(unix)]
+/// The supervisor's side of a sandbox kill (Unix: the test sends the signal). Not with
+/// `seccomp-trap`, whose handler catches the signal.
+#[cfg(all(unix, not(feature = "seccomp-trap")))]
 mod violation {
     use std::process::Command;
     use std::sync::{Arc, Mutex, mpsc};
