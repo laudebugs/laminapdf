@@ -52,7 +52,7 @@ describe("lamina_pdf_base", () => {
     doc.apply([sample]);
     doc.apply([{ op: "rotatePage", args: { page: id, rotate: 90 } }]);
     expect(doc.pageInfo(0).rotation).toBe(90);
-    expect(doc.undo()).toBe("applied");
+    expect(doc.undo()).toEqual({ outcome: "applied", touchedPages: [id] });
     const saved = doc.save({ mode: "incremental" });
     expect(saved.report.mode).toBe("incremental");
     const again = base.WasmDocument.openBytes(saved.bytes, undefined);

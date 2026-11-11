@@ -16,7 +16,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::convert::{from_js, from_js_or_default, to_js};
 use crate::dto::{
-    DocumentInfoJs, EditedJs, OpenOptionsInit, PageInfoJs, ProgressJs, SaveOptionsInit, SaveReportJs, UndoOutcomeJs,
+    DocumentInfoJs, EditedJs, OpenOptionsInit, PageInfoJs, ProgressJs, RevertedJs, SaveOptionsInit, SaveReportJs,
     phase_name,
 };
 use crate::error::{JsResult, disposed, invalid_argument, lamina_error};
@@ -175,6 +175,12 @@ impl WasmDocument {
         self.doc.borrow().has_unsaved_changes()
     }
 
+    /// Whether the file is encrypted (it opened with its password, or the empty one).
+    #[wasm_bindgen(js_name = isEncrypted)]
+    pub fn is_encrypted(&self) -> bool {
+        self.doc.borrow().is_encrypted()
+    }
+
     /// Applies `ops` (the op JSON of ADR 0006 §6) in order, as one transaction.
     ///
     /// # Errors
@@ -197,24 +203,26 @@ impl WasmDocument {
         Ok(to_js(&EditedJs::from(edited)))
     }
 
-    /// Undoes the newest transaction; `undefined` when there is nothing to undo.
+    /// Undoes the newest transaction: how it went and the pages it touched; `undefined` when
+    /// there is nothing to undo.
     ///
     /// # Errors
     /// `nested-transaction`, `saved-not-rebased`; reading errors.
-    #[wasm_bindgen(unchecked_return_type = "UndoOutcomeJs | undefined")]
+    #[wasm_bindgen(unchecked_return_type = "RevertedJs | undefined")]
     pub fn undo(&mut self) -> JsResult<JsValue> {
-        let outcome = self.doc.borrow_mut().undo().map_err(|e| lamina_error(&e))?;
-        Ok(outcome.map_or(JsValue::UNDEFINED, |o| to_js(&UndoOutcomeJs::from(&o))))
+        let reverted = self.doc.borrow_mut().undo().map_err(|e| lamina_error(&e))?;
+        Ok(reverted.map_or(JsValue::UNDEFINED, |r| to_js(&RevertedJs::from(r))))
     }
 
-    /// Redoes the newest undone transaction; `undefined` when there is nothing to redo.
+    /// Redoes the newest undone transaction: how it went and the pages it touched; `undefined`
+    /// when there is nothing to redo.
     ///
     /// # Errors
     /// As [`WasmDocument::undo`].
-    #[wasm_bindgen(unchecked_return_type = "UndoOutcomeJs | undefined")]
+    #[wasm_bindgen(unchecked_return_type = "RevertedJs | undefined")]
     pub fn redo(&mut self) -> JsResult<JsValue> {
-        let outcome = self.doc.borrow_mut().redo().map_err(|e| lamina_error(&e))?;
-        Ok(outcome.map_or(JsValue::UNDEFINED, |o| to_js(&UndoOutcomeJs::from(&o))))
+        let reverted = self.doc.borrow_mut().redo().map_err(|e| lamina_error(&e))?;
+        Ok(reverted.map_or(JsValue::UNDEFINED, |r| to_js(&RevertedJs::from(r))))
     }
 
     /// Saves and rebases onto the output, running to completion: `{ bytes, report }`.

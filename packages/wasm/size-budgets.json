@@ -333,7 +333,7 @@
       "jsGzip": 5000
     },
     "@laminapdf/sdk/worker/entry": {
-      "jsGzip": 20000
+      "jsGzip": 21000
     }
   },
   "thirdParty": {

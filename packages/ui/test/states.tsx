@@ -3,6 +3,7 @@
 // the tests that need them, not from props, so shipped code carries nothing for tests.
 
 import type { ReactElement } from "react";
+import { EditArea, HistoryPanel } from "../src/editing.ts";
 import {
   Badge,
   Button,
@@ -28,10 +29,8 @@ import {
   ProgressBar,
   Radio,
   RadioGroup,
-  ReaderSettingsPanel,
   type ReaderState,
   ReaderTopBar,
-  ReaderView,
   RecentList,
   RemoteFailure,
   RepairDetails,
@@ -53,8 +52,9 @@ import {
   WholeFileDownload,
   ZoomControl,
 } from "../src/index.ts";
+import { ReaderSettingsPanel, ReaderView } from "../src/reader-mode.ts";
 import { WithCommands } from "./commands.tsx";
-import { FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
+import { FakeEdits, FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
 
 /** One rendering of one component in one state. */
 export interface Example {
@@ -505,6 +505,36 @@ const RESULTS = [
   { ordinal: 2, page: 6, snippet: { before: "…when ", match: "repairs", after: " ran over budget." } },
 ];
 
+/** The History tab's steps, as O01 draws them. */
+const STEPS = ["Rotate page 5", "Rotate page 2", "Rotate page 5", "Change the title"];
+const AT = {
+  formatTime: (at: number) => new Date(at).toISOString().slice(11, 16),
+  openedAt: Date.UTC(2026, 10, 2, 16, 0),
+};
+
+const history: Example[] = [
+  {
+    component: "HistoryPanel",
+    state: "three of four steps done",
+    element: () => <HistoryPanel edits={new FakeEdits(STEPS, 3)} {...AT} />,
+  },
+  {
+    component: "HistoryPanel",
+    state: "an undo restored only part of a step",
+    element: () => {
+      const edits = new FakeEdits(STEPS, 2);
+      const step = { id: 3, label: "Rotate page 5", pages: [4], at: 0, partial: "undo" as const };
+      edits.set({ notice: { step, way: "undo", outcome: "partial" } });
+      return <HistoryPanel edits={edits} {...AT} />;
+    },
+  },
+  {
+    component: "HistoryPanel",
+    state: "no changes yet",
+    element: () => <HistoryPanel edits={new FakeEdits()} {...AT} />,
+  },
+];
+
 const findResults: Example[] = [
   {
     component: "FindResults",
@@ -537,6 +567,27 @@ const topBar: Example[] = [
       return (
         <WithCommands reader={reader} viewer={viewer} actions={SHELL}>
           <ReaderTopBar reader={reader} viewer={viewer} keys="other" sidebarOpen more={MORE} />
+        </WithCommands>
+      );
+    },
+  },
+  {
+    component: "EditArea",
+    state: "the editor's top bar: two unsaved changes, one to redo",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const viewer = new FakeViewer();
+      const edits = new FakeEdits(["Rotate page 5", "Rotate page 2", "Change the title"], 2);
+      return (
+        <WithCommands reader={reader} viewer={viewer} actions={SHELL} edits={edits}>
+          <ReaderTopBar
+            reader={reader}
+            viewer={viewer}
+            keys="other"
+            sidebarOpen
+            editArea={<EditArea edits={edits} keys="other" />}
+            more={MORE}
+          />
         </WithCommands>
       );
     },
@@ -850,6 +901,7 @@ export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
   ...findResults,
+  ...history,
   ...buttons,
   ...toggles,
   ...rail,

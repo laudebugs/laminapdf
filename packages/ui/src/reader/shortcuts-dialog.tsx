@@ -93,15 +93,17 @@ function ShortcutRow({ command, platform, singleKeys }: { command: Row; platform
     <div className="paper-shortcuts-row">
       <dt>{command.title}</dt>
       <dd>
-        {command.keys.map((keys) => {
-          const off = !singleKeys && isSingleKey(keys[platform], platform);
-          return (
-            <span key={keys[platform]} className="paper-shortcuts-keys" data-off={off || undefined}>
-              <ShortcutChip keys={keys} platform={platform} />
-              {off ? <span className="paper-shortcuts-off">{message("help.shortcuts.off")}</span> : null}
-            </span>
-          );
-        })}
+        {command.keys
+          .filter((keys) => keys.on === undefined || keys.on === platform)
+          .map((keys) => {
+            const off = !singleKeys && isSingleKey(keys[platform], platform);
+            return (
+              <span key={keys[platform]} className="paper-shortcuts-keys" data-off={off || undefined}>
+                <ShortcutChip keys={keys} platform={platform} />
+                {off ? <span className="paper-shortcuts-off">{message("help.shortcuts.off")}</span> : null}
+              </span>
+            );
+          })}
       </dd>
     </div>
   );

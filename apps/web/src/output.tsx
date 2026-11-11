@@ -50,7 +50,7 @@ export function printDpi(choice: PrintChoice, pages: readonly PageInfo[]): { dpi
 
 // The dialogs load once a document is open, not at start (#380). One that can't load (a lost
 // connection) is reported and shows nothing; the reader carries on without it.
-const loadDialogs = () => import("@laminapdf/ui/dialogs");
+const loadDialogs = () => import("./later.ts");
 const nothing = (error: unknown) => {
   reportError(error);
   return { default: () => null };

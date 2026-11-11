@@ -35,11 +35,11 @@ import type {
   PageLink,
   PlannedSave,
   Progress,
+  Reverted,
   SaveOptions,
   SaveReport,
   StructureNode,
   Target,
-  UndoOutcome,
   Violation,
 } from "./types.js";
 
@@ -565,6 +565,14 @@ export class Document extends Handle<BaseGlue> {
     });
   }
 
+  /**
+   * Whether the file is encrypted: it opened with its password, or the empty one. An encrypted
+   * document can't be saved incrementally yet (`encrypted-base`).
+   */
+  get isEncrypted(): boolean {
+    return this.call(() => this.#doc.isEncrypted());
+  }
+
   /** Whether there are changes no save has written yet. */
   get hasUnsavedChanges(): boolean {
     return this.call(() => this.#doc.hasUnsavedChanges());
@@ -662,7 +670,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `malformed-xmp` when the XMP metadata can't be read and
    *   `replaceMalformed` isn't set; as {@link Document.apply}.
    */
-  setMetadata(patch: MetadataPatch, options: MetadataEditOptions = {}): Edited {
+  setMetadata(patch: MetadataPatch, options?: MetadataEditOptions): Edited {
     return this.apply([setMetadataOp(patch, options)]);
   }
 
@@ -673,7 +681,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.setMetadata}.
    */
-  removeMetadata(keys: readonly MetadataKey[], options: MetadataRemoveOptions = {}): Edited {
+  removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Edited {
     return this.apply([removeMetadataOp(keys, options)]);
   }
 
@@ -701,10 +709,11 @@ export class Document extends Handle<BaseGlue> {
   /**
    * Undoes the newest transaction.
    *
-   * @returns how it went, or `undefined` when there is nothing to undo.
+   * @returns how it went (`outcome`) and the pages it touched (`touchedPages`, to draw again), or
+   *   `undefined` when there is nothing to undo.
    * @throws {@link LaminaPdfError} `saved-not-rebased`; reading errors.
    */
-  undo(): UndoOutcome | undefined {
+  undo(): Reverted | undefined {
     this.#notInTransaction("undo");
     return this.call(() => this.#doc.undo());
   }
@@ -712,10 +721,11 @@ export class Document extends Handle<BaseGlue> {
   /**
    * Redoes the newest undone transaction.
    *
-   * @returns how it went, or `undefined` when there is nothing to redo.
+   * @returns how it went (`outcome`) and the pages it touched (`touchedPages`), or `undefined`
+   *   when there is nothing to redo.
    * @throws {@link LaminaPdfError} as {@link Document.undo}.
    */
-  redo(): UndoOutcome | undefined {
+  redo(): Reverted | undefined {
     this.#notInTransaction("redo");
     return this.call(() => this.#doc.redo());
   }

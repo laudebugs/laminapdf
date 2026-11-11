@@ -3,6 +3,7 @@
 // toolbar and menus call its methods, so registered commands can call the same ones.
 
 import type { Platform, PlatformFile } from "../platform/types.js";
+import type { InteractionMode } from "../tools/tools.js";
 import { EMPTY, type ReaderError, type ReaderEvent, type ReaderState, transition } from "./reader-machine.js";
 
 /** A document the opener opened: its page count, and how to free it once the reader lets it go. */
@@ -14,6 +15,12 @@ export interface OpenedDocument {
 
 /** Opens `file`, with `password` when given. */
 export type Opener = (file: PlatformFile, password: string | undefined) => Promise<OpenedDocument>;
+
+/**
+ * Asked before the open document goes (closed, or replaced by another): resolves true to let it go,
+ * false to keep it. The editor asks the user when there are unsaved changes.
+ */
+export type CloseGuard = () => Promise<boolean>;
 
 /** The codes an opener's error carries when the document needs a password (ADR 0026). */
 const NEEDS_PASSWORD = "password-required";
@@ -29,6 +36,7 @@ export class ReaderController {
   #attempt = 0;
   /** The document that is open, freed when another replaces it or the reader closes. */
   #document: OpenedDocument | undefined;
+  #guard: CloseGuard | undefined;
 
   constructor(platform: Platform, opener: Opener) {
     this.#platform = platform;
@@ -50,8 +58,34 @@ export class ReaderController {
     if (file !== undefined) await this.open(file);
   }
 
-  /** Opens `file`, replacing whatever was open. */
-  open(file: PlatformFile): Promise<void> {
+  /**
+   * Sets what is asked before the user's open or close lets the open document go (undefined:
+   * nothing). Returns the function that removes it.
+   */
+  setCloseGuard(guard: CloseGuard | undefined): () => void {
+    this.#guard = guard;
+    return () => {
+      if (this.#guard === guard) this.#guard = undefined;
+    };
+  }
+
+  /** The guard to ask before the open document goes; undefined with no guard or no document open. */
+  #guardNow(): CloseGuard | undefined {
+    return this.#state.phase === "open" ? this.#guard : undefined;
+  }
+
+  /**
+   * Opens `file`, replacing whatever was open, once the close guard lets the open document go;
+   * `{ discard: true }` skips the guard (the shell reopening the same file, a backend switch).
+   */
+  open(file: PlatformFile, options: { readonly discard?: boolean } = {}): Promise<void> {
+    const guard = options.discard === true ? undefined : this.#guardNow();
+    // Without a guard to ask, the open starts at once: the state is `opening` when this returns.
+    if (guard !== undefined) return guard().then((leave) => (leave ? this.#openNow(file) : undefined));
+    return this.#openNow(file);
+  }
+
+  #openNow(file: PlatformFile): Promise<void> {
     this.#release();
     this.#dispatch({ type: "open", file });
     return this.#attemptOpen(file, undefined);
@@ -69,6 +103,19 @@ export class ReaderController {
   cancel(): void {
     this.#attempt += 1;
     this.#dispatch({ type: "cancel" });
+  }
+
+  /** Reads pointer input on the open document as interaction mode `mode` (a registered tool's name). */
+  setMode(mode: InteractionMode): void {
+    this.#dispatch({ type: "set-mode", mode });
+  }
+
+  /** Closes the document as the user asked, once the close guard lets it go; resolves whether it closed. */
+  async requestClose(): Promise<boolean> {
+    const guard = this.#guardNow();
+    if (guard !== undefined && !(await guard())) return false;
+    this.close();
+    return true;
   }
 
   /** Closes the document, whether open, opening, asking for a password or failed, back to empty. */

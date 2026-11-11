@@ -30,6 +30,7 @@ import type {
   PropertiesJs,
   RectJs,
   RenderModeInit,
+  RevertedJs,
   SaveOptionsInit,
   SaveReportJs,
   StructureKidJs,
@@ -105,6 +106,8 @@ export type StructureKid = StructureKidJs;
 export type Edited = EditedJs;
 /** How an undo or redo went. */
 export type UndoOutcome = UndoOutcomeJs;
+/** What an undo or redo did: how it went (`outcome`) and the pages to draw again (`touchedPages`, IDs). */
+export type Reverted = RevertedJs;
 /** A save job's progress. */
 export type Progress = ProgressJs;
 /** Options for a new document: version, fixed file ID (32 hex digits), producer, creation date. */

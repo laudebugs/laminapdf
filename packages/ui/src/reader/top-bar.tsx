@@ -50,6 +50,12 @@ export interface ReaderTopBarProps<Id extends string> {
    * left out, there are no history buttons. They run `nav.back` and `nav.forward`.
    */
   history?: { readonly back: string | undefined; readonly forward: string | undefined };
+  /**
+   * The editor's part of the file area (§7.1's editor top bar), after the file name: `EditArea`
+   * from `@laminapdf/ui/editing`, the save state then Undo and Redo. Pass it only while a document
+   * is open; left out, the bar is the reader's.
+   */
+  editArea?: ReactNode;
   /** The file area without a document: the wordmark, or Back. "No document open" when left out. */
   home?: ReactNode;
   /** A `DebugMenu`, which the shell shows only for `#debug`. */
@@ -195,6 +201,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
           />
         )}
         <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
+        {props.editArea}
       </div>
       <div className="paper-top-bar-tools">
         {state.phase === "needs-password" ? <LockedPageInput /> : null}

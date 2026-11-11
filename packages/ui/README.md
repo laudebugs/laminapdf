@@ -140,7 +140,7 @@ const context = { platform, reader, viewer, actions: { ...shellActions(layout, m
 - **Where the reader stopped** shows in the Recent list too. Given `stoppedAt` (the page each entry's reader stopped at), a row adds "stopped at page 12". Given `continueReading`, the document open when the app last closed comes first, under Continue reading, with "page 12 of 40".
 - **Reading positions** (`platform.positions`, `ReadingPositions`) keep where the reader stopped in each document under its fingerprint: `get`, `set`, `remove` and `clear`. An entry is `{ view, pageCount, readAt }`, and this package never looks inside `view`: the app checks it when it reads it. The web store keeps the 500 entries read most recently, in IndexedDB, or in memory where IndexedDB doesn't open. `recent.reopen(id, { ask: false })` reads a file only where the browser kept the permission, without asking, as an app does at start, when nothing has been clicked.
 - **Install** (`InstallDialog`) says what installing the reader gives and that the browser asks to confirm, with Not now and Install. Show it only where the browser offers an install.
-- **Print** and **Document properties** come from their own entry, `@laminapdf/ui/dialogs`, so an app can load them after its first paint. The web reader loads them once a document opens.
+- **Print** and **Document properties** come from their own entry, `@laminapdf/ui/dialogs`, so an app can load them after its first paint. The web reader loads them once a document opens. Reader mode's column and its settings panel (`ReaderView`, `ReaderSettingsPanel`) are `@laminapdf/ui/reader-mode` for the same reason, and the editor's parts are `@laminapdf/ui/editing` (below).
 - **Print** (`PrintDialog`) asks which pages (all, the current one, or a range of numbers or labels such as `1–5, 11, A-1`), the scale, the quality and whether comments print, then calls `onPrint` with a `PrintChoice`. A range that names a page the file lacks shows the error under the field and focuses it. `PrintProgressDialog` counts the pages drawn, with Cancel. On the web, `Platform.print` prints them from a hidden frame, one page at a time.
 - **A restricted file's print** follows the author's `permissions`, when given. If printing is restricted, `PrintDialog` says so and asks once more in an alertdialog, with Cancel focused, before `onPrint`; if only high quality is, Quality stays at Standard.
 - **Document properties** (`PropertiesDialog`) shows a `DocumentPropertiesData`, the shape `@laminapdf/sdk`'s `doc.properties()` returns, in four sections. It merges the Info and XMP fields, and XMP wins where they differ. It gives the pages with their label runs, the sizes by paper name, the fonts in a table, and the encryption with the author's permissions; it counts signatures and never verifies them. Each value has a copy button and Copy all copies every section as text, both through `onCopy`.
@@ -196,6 +196,35 @@ The shell gives `CommandsProvider` the registry and a `CommandContext`: the plat
 - `ShortcutsDialog` is Keyboard shortcuts, built from `useShortcutMap()`: searchable, with the match count announced, the single-key switch, and the browser keys the reader takes while a document is open. Its rows mark a single key "Off" while single keys are off.
 
 A Node test checks every shortcut against the keys the browser, the OS and assistive tech keep (`NEVER_BIND`), and against the browser keys a command may take only with a reason (`OVERRIDES`). It also fails when two commands share keys where their scopes meet. A new browser or OS key a command needs goes in `OVERRIDES`, with the reason.
+
+## Editing
+
+An open document's edit session comes in as any object with its store and three calls (`undo`, `redo`, `goTo`), so `@laminapdf/viewer`'s `viewer.edits` fits. Put it in the commands' context as `edits`. The editor's parts are in their own entry, `@laminapdf/ui/editing`, so an app can load them once a document opens: `EditArea`, `HistoryPanel`, the edit commands and the tools.
+
+Give `ReaderTopBar` an `EditArea` as `editArea` while a document is open. Once the first edit is made, it shows how many changes are unsaved after the file name ("4 unsaved changes", announced politely), then Undo and Redo after a divider. Their names say which step they take back or make again ("Undo rotate page 5").
+
+`registerEditCommands` adds the edit commands. `edit.undo` is ⌘Z or Ctrl+Z; `edit.redo` is ⇧⌘Z, or Ctrl+Y and Ctrl+Shift+Z on Windows and Linux. Both leave a text field its own undo. `edit.go-to-step` takes a step number. `edit.history`, `pages.rotate-right` and `pages.rotate-left` are the shell's: it knows the rail and the pages, so it gives their handlers in `actions`. Every command but `edit.history` is disabled, with the reason, while the document can't be edited, such as an encrypted file; the history can still be read.
+
+`HistoryPanel` is the rail's History tab. It lists the file as opened, then one row per step with its pages and time; the current row is tinted and carries `aria-current="step"`, and undone steps are struck through. Choosing a row goes to that step in one call.
+
+The list is a single Tab stop: Up and Down move between rows, Home and End go to the ends, and Enter goes to the step. It draws only the rows in view, so a full history of 500 steps stays fast. A row the wheel scrolls away from leaves the Tab stop on a row in view. When an undo restores only part of a step, a notice at the top says so until the next edit.
+
+`ReaderController.setCloseGuard(guard)` runs `guard` before the user opens another file or closes this one; it resolves true to go ahead. The reader's own opens pass `{ discard: true }` to skip it, and `requestClose()` is the user's close.
+
+**Interaction modes** say how pointer input on the page is read: `select`, `hand` (drag to scroll) and `textSelect`. Each is a tool module in a `ToolRegistry`: a name, a cursor, the viewer layer it draws into, whether it selects text, and its pointer handlers. `attachTools(registry, host)` passes pointer input on the viewer's element to the tool that is on. A later tool adds its name to `InteractionModes` by declaration merging, then registers:
+
+```ts
+declare module "@laminapdf/ui" {
+  interface InteractionModes {
+    measure: true;
+  }
+}
+
+tools.register({ name: "measure", cursor: "crosshair", layer: "annot", selectsText: false, pointerDown: start });
+tools.use("measure");
+```
+
+Shell modes (`ModeRegistry`, above) are different: a shell mode owns a toolbar, and the tools on that toolbar are interaction modes.
 
 ## Settings, appearance and announcements
 

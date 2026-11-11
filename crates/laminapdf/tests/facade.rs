@@ -8,7 +8,7 @@
 
 use laminapdf::{
     Budget, CancelToken, Document, Error, InfoPatch, Op, OpenOptions, RotatePage, Rotation, SaveMode, SaveOptions,
-    SetInfo, Step,
+    SetInfo, Step, UndoOutcome,
 };
 
 use laminapdf_test_fixtures::fixture;
@@ -435,6 +435,36 @@ mod state {
         doc.apply(vec![Op::from(RotatePage::new(before.id, Rotation::Clockwise90))])
             .unwrap();
         assert_eq!(doc.page_info(0).unwrap().rotation, 90);
+    }
+
+    #[test]
+    fn undo_and_redo_name_the_pages_the_transaction_touched() {
+        let mut doc = hello();
+        let page = doc.page_info(0).unwrap().id;
+        doc.apply(vec![Op::from(RotatePage::new(page.clone(), Rotation::Clockwise90))])
+            .unwrap();
+        let undone = doc.undo().unwrap().unwrap();
+        let redone = doc.redo().unwrap().unwrap();
+        let pages = std::collections::BTreeSet::from([page]);
+        assert_eq!(
+            (undone.outcome, undone.touched_pages, redone.touched_pages),
+            (UndoOutcome::Applied, pages.clone(), pages)
+        );
+    }
+
+    #[test]
+    fn an_edit_that_sets_the_value_it_had_changes_nothing() {
+        let mut doc = hello();
+        let first = doc.apply(vec![set_title("Same")]).unwrap().changed;
+        let second = doc.apply(vec![set_title("Same")]).unwrap().changed;
+        assert_eq!((first, second), (true, false));
+    }
+
+    #[test]
+    fn a_metadata_undo_touches_no_page() {
+        let mut doc = hello();
+        doc.apply(vec![set_title("New")]).unwrap();
+        assert!(doc.undo().unwrap().unwrap().touched_pages.is_empty());
     }
 
     #[test]

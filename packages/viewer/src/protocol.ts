@@ -80,16 +80,84 @@ export interface OpenedDocument {
   readonly backend: { readonly name: BackendName; readonly version: string };
   /** The title in the file's metadata, for the window's title; absent when the file has none. */
   readonly title?: string;
+  /**
+   * Whether the file is encrypted: it can't take an edit until saving can encrypt again (E11),
+   * since its edits are written into memory to be drawn, and that save is refused (`encrypted-base`).
+   */
+  readonly encrypted: boolean;
 }
 
 /**
- * What an edit did, for the view to redraw (`applyEdit`): the pages it touched, as they are after
- * it. Each page's size is its displayed size in points, so a quarter turn swaps its width and
- * height. An edit that touched no page (the document's metadata) leaves `pages` empty.
+ * What an edit, an undo or a redo did, for the view to redraw (`applyEdit`, `undoEdit`,
+ * `redoEdit`, `goToStep`): the pages it touched, as they are after it, and the edit session's
+ * history now. Each page's size is its displayed size in points, so a quarter turn swaps its width
+ * and height. An edit that touched no page (the document's metadata) leaves `pages` empty.
  */
 export interface EditResult {
   readonly pages: readonly PageInfo[];
+  readonly history: EditHistory;
+  /** Each step an undo or redo took back or made again, in order, with how it went (none for an edit). */
+  readonly reverted?: readonly RevertedStep[];
 }
+
+/** The most steps an edit session keeps: the oldest go after this many (ADR 0006 §4). */
+export const HISTORY_DEPTH = 500;
+
+/** One step of an edit session: a transaction, as the history lists it. */
+export interface EditStep {
+  /** Unique in the session, and increasing. */
+  readonly id: number;
+  /** What it did, in the words its caller gave ("Rotate page 5"). */
+  readonly label: string;
+  /** The pages it touched (0-based), in order. */
+  readonly pages: readonly number[];
+  /** When it was made, in ms since the epoch. */
+  readonly at: number;
+  /**
+   * Its last undo (`"undo"`) or redo (`"redo"`) restored only part of it (`UndoOutcome::Partial`):
+   * a later change replaced some of what it changed, which keeps the later value.
+   */
+  readonly partial?: "undo" | "redo";
+}
+
+/**
+ * An edit session's history (the worker holds the op log; this is its summary): the steps kept,
+ * oldest first, of which the first `position` are done and the rest undone, ready to redo.
+ */
+export interface EditHistory {
+  readonly steps: readonly EditStep[];
+  readonly position: number;
+  /** How many of the oldest steps the depth limit dropped ({@link HISTORY_DEPTH}). */
+  readonly dropped: number;
+  /**
+   * Transactions between the document now and its last save, or as opened (ADR 0006 §7, the
+   * semantic level): 0 when they match, as after undoing every step since.
+   */
+  readonly unsaved: number;
+  /** An edit failed and couldn't be undone: nothing more can be edited until the document opens again. */
+  readonly diverged: boolean;
+}
+
+/** How an undo or redo of one step went. */
+export interface RevertedStep {
+  readonly step: EditStep;
+  readonly way: "undo" | "redo";
+  /**
+   * `partial`: some of it was left alone, because a later change replaced it; `skipped`: nothing
+   * could be restored, and the step is gone from the history.
+   */
+  readonly outcome: "applied" | "partial" | "skipped";
+}
+
+/** The ops of one step and its label, as a restarted worker replays them (`restoreEdits`). */
+export interface ReplayedStep {
+  readonly ops: readonly Op[];
+  readonly label: string;
+  readonly at: number;
+}
+
+/** An edit session with nothing in it. */
+export const EMPTY_HISTORY: EditHistory = { steps: [], position: 0, dropped: 0, unsaved: 0, diverged: false };
 
 /** A rendered tile on the page: an ImageBitmap transferred from the worker. Close it when done. */
 export interface RenderedBitmap {
@@ -122,7 +190,20 @@ export interface Methods {
    * Applies `ops` to document `document` as one transaction, then redraws from the result: the
    * pages it touched are drawn from the edited file from then on.
    */
-  applyEdit: { params: [ops: readonly Op[], document: number]; result: EditResult };
+  applyEdit: { params: [ops: readonly Op[], document: number, label?: string]; result: EditResult };
+  /** Undoes the newest done step of document `document`'s edit session, and redraws. */
+  undoEdit: { params: [document: number]; result: EditResult };
+  /** Redoes the oldest undone step, and redraws. */
+  redoEdit: { params: [document: number]; result: EditResult };
+  /** Undoes or redoes steps until `position` of them are done, and redraws once. */
+  goToStep: { params: [position: number, document: number]; result: EditResult };
+  /** The edit session's history. */
+  editHistory: { params: [document: number]; result: EditHistory };
+  /**
+   * A restarted worker's document takes the edits the old one had: `steps` applied again, one
+   * transaction each, then the newest `undone` of them undone, and drawn once.
+   */
+  restoreEdits: { params: [steps: readonly ReplayedStep[], undone: number, document: number]; result: EditResult };
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
   memory: { params: []; result: WorkerMemory };

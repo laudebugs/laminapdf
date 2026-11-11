@@ -33,6 +33,7 @@ export const DOCUMENT_METHODS = {
   extract: 1,
   hasUnsavedChanges: 0,
   info: 0,
+  isEncrypted: 0,
   isTagged: 0,
   metadata: 0,
   namedDestination: 1,

@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use laminapdf_cos::{ByteSource, OpenOptions};
 use laminapdf_model::PageId;
-use laminapdf_ops::{Op, OpLog, Origin, UndoOutcome};
+use laminapdf_ops::{Op, OpLog, Origin, Reverted};
 use laminapdf_save::{ReadableSink, Save as _, SaveOptions, SaveReport, SinkError, WriteSink};
 
 use crate::error::{Error, Result};
@@ -106,6 +106,9 @@ pub struct Edited {
     ///
     /// [`SaveMode::FullRewrite`]: crate::SaveMode::FullRewrite
     pub still_in_earlier_revisions: bool,
+    /// Whether the edit changed the document. One that only set values they already had
+    /// changes nothing and leaves no step to undo.
+    pub changed: bool,
 }
 
 /// A finished save: the output and what the writer did.
@@ -350,13 +353,15 @@ impl Document {
         let applied = self.inner.apply_all(Origin::Local, ops)?;
         // An edit that changed nothing (setting a value it already had) commits no record:
         // the document is unchanged, so running jobs stay valid.
-        if !applied.undo.is_empty() {
+        let changed = !applied.undo.is_empty();
+        if changed {
             self.bump();
         }
         Ok(Edited {
             touched_pages: applied.touched_pages.into_iter().collect(),
             packet_rewritten: applied.packet_rewritten,
             still_in_earlier_revisions: applied.still_in_earlier_revisions,
+            changed,
         })
     }
 
@@ -369,28 +374,30 @@ impl Document {
         self.apply(OpLog::from_json(json)?.into_ops())
     }
 
-    /// Undoes the newest transaction; `None` when there is nothing to undo.
+    /// Undoes the newest transaction: how it went and the pages it touched; `None` when there
+    /// is nothing to undo.
     ///
     /// # Errors
     /// `nested-transaction`, `saved-not-rebased`; reading errors (nothing is undone).
-    pub fn undo(&mut self) -> Result<Option<UndoOutcome>> {
-        let outcome = self.inner.undo()?.map(|r| r.outcome);
-        if outcome.is_some() {
+    pub fn undo(&mut self) -> Result<Option<Reverted>> {
+        let reverted = self.inner.undo()?;
+        if reverted.is_some() {
             self.bump();
         }
-        Ok(outcome)
+        Ok(reverted)
     }
 
-    /// Redoes the newest undone transaction; `None` when there is nothing to redo.
+    /// Redoes the newest undone transaction: how it went and the pages it touched; `None` when
+    /// there is nothing to redo.
     ///
     /// # Errors
     /// As [`Document::undo`].
-    pub fn redo(&mut self) -> Result<Option<UndoOutcome>> {
-        let outcome = self.inner.redo()?.map(|r| r.outcome);
-        if outcome.is_some() {
+    pub fn redo(&mut self) -> Result<Option<Reverted>> {
+        let reverted = self.inner.redo()?;
+        if reverted.is_some() {
             self.bump();
         }
-        Ok(outcome)
+        Ok(reverted)
     }
 
     /// Saves the document and rebases it onto the output, running to completion: the same

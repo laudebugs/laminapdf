@@ -34,7 +34,7 @@ import { type DocumentWarning, repairsFrom } from "./document.ts";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
-import { type OutlineModel, outlineModel, type PageInfo } from "./outline.ts";
+import { type OutlineModel, outlineModel, type PageInfo, pageLabel } from "./outline.ts";
 import { type KeptView, keptPosition, type PositionRecorder, recordPosition } from "./reading/positions.ts";
 import { readChoices } from "./storage-choices.ts";
 
@@ -78,7 +78,14 @@ export interface EngineState {
   readonly fingerprint: string | undefined;
   /** The page (0-based) the open document came back at, where its reader stopped last time. */
   readonly resumedAt: number | undefined;
+  /** When the open document was opened (ms since the epoch): the History tab's first row. */
+  readonly openedAt: number | undefined;
+  /** The document worker restarted and couldn't apply the unsaved edits again; counts each time. */
+  readonly editsLost: number;
 }
+
+/** An edit, as the view applies it. */
+type Ops = Parameters<Viewer["applyEdit"]>[0];
 
 /** #debug's log of a link the layer never follows (R07: actions are never run). */
 const logInert: NonNullable<LinkLayerOptions["onInert"]> = (link, note) =>
@@ -240,6 +247,8 @@ export class Engine implements ExternalStore<EngineState> {
       externalLink: undefined,
       fingerprint: undefined,
       resumedAt: undefined,
+      openedAt: undefined,
+      editsLost: 0,
     };
     this.#platform = platform;
     this.#session = this.#start(backend);
@@ -377,6 +386,21 @@ export class Engine implements ExternalStore<EngineState> {
     }
   }
 
+  /**
+   * Turns page `index` of the open document a quarter (`delta` 90 clockwise, -90 the other way),
+   * as one step of the edit session, named by the page's label. The op sets the rotation, so the
+   * new one is worked out from the page's own.
+   */
+  async rotatePage(index: number, delta: 90 | -90): Promise<void> {
+    const session = await this.#session;
+    const page = session.client.document?.pages[index];
+    if (page === undefined) return;
+    const rotate = (((page.rotation + delta) % 360) + 360) % 360;
+    const ops = [{ op: "rotatePage", args: { page: page.id, rotate } }] as unknown as Ops;
+    const label = message("edit.rotate.label", { page: pageLabel(this.#state.pages, index) });
+    await session.viewer.edits.apply(ops, label);
+  }
+
   /** Moves to `backend`: a new document worker, and the open file reopened in it. */
   async switchBackend(backend: DebugBackend): Promise<void> {
     if (backend === this.#state.backend) return;
@@ -394,7 +418,7 @@ export class Engine implements ExternalStore<EngineState> {
       viewer.destroy();
       client.terminate();
     });
-    if (file !== undefined) await this.reader.open(file);
+    if (file !== undefined) await this.reader.open(file, { discard: true });
   }
 
   #start(backend: DebugBackend): Promise<Session> {
@@ -414,15 +438,33 @@ export class Engine implements ExternalStore<EngineState> {
         // one, and this page never kept it. Opening the file again asks for it.
         started.client.on("password-required", () => {
           const file = this.#file;
-          if (this.#session === session && file !== undefined) void this.reader.open(file);
+          if (this.#session === session && file !== undefined) void this.reader.open(file, { discard: true });
         });
         this.#watchWorkerNetwork(started.client);
+        this.#followEdits(session, started.client);
         this.#set({ viewer: started.viewer, strip: started.strip });
       },
       // A backend that can't load fails the next open, which the reader reports.
       () => undefined,
     );
     return session;
+  }
+
+  /**
+   * Keeps the pages' sizes and rotations as edits change them (the outline and the labels read
+   * them), and counts the times a restarted worker lost the unsaved edits.
+   */
+  #followEdits(session: Promise<Session>, client: ViewerClient): void {
+    client.on("edit", ({ pages }) => {
+      if (this.#session !== session || pages.length === 0) return;
+      const next = [...this.#state.pages];
+      for (const page of pages) if (page.index < next.length) next[page.index] = page;
+      this.#set({ pages: next });
+    });
+    client.on("restarted", ({ edits }) => {
+      if (this.#session !== session) return;
+      if (edits === "lost") this.#set({ editsLost: this.#state.editsLost + 1, pages: client.document?.pages ?? [] });
+    });
   }
 
   /**
@@ -487,6 +529,7 @@ export class Engine implements ExternalStore<EngineState> {
       externalLink: undefined,
       fingerprint: opened.fingerprint,
       resumedAt: resume === undefined ? undefined : shownFirst,
+      openedAt: Date.now(),
     });
     const firstPage = () => {
       const state = session.viewer.stats().pages[shownFirst];
@@ -531,6 +574,7 @@ export class Engine implements ExternalStore<EngineState> {
       timing: undefined,
       fingerprint: undefined,
       resumedAt: undefined,
+      openedAt: undefined,
     });
     if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
   }

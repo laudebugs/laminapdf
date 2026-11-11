@@ -24,12 +24,12 @@ export interface MetadataRemoveOptions {
 }
 
 /** @internal The `setMetadata` op. */
-export const setMetadataOp = (patch: MetadataPatch, options: MetadataEditOptions): Op =>
+export const setMetadataOp = (patch: MetadataPatch, options?: MetadataEditOptions): Op =>
   ({ op: "setMetadata", args: { patch, ...options } }) as Op;
 
 /** @internal The `removeMetadata` op. */
-export const removeMetadataOp = (keys: readonly MetadataKey[], options: MetadataRemoveOptions): Op =>
-  ({ op: "removeMetadata", args: { keys: [...keys], ...options } }) as Op;
+export const removeMetadataOp = (keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Op =>
+  ({ op: "removeMetadata", args: { keys, ...options } }) as Op;
 
 /** Collects the ops of one {@link Document.transact} call. */
 export class Transaction {
@@ -66,7 +66,7 @@ export class Transaction {
    * @param options - as {@link Document.setMetadata}: `at`, the modification date to write
    *   (`D:20261110093000Z`; omitted, none is written), and `replaceMalformed`.
    */
-  setMetadata(patch: MetadataPatch, options: MetadataEditOptions = {}): this {
+  setMetadata(patch: MetadataPatch, options?: MetadataEditOptions): this {
     return this.apply(setMetadataOp(patch, options));
   }
 
@@ -75,7 +75,7 @@ export class Transaction {
    *
    * @param options - as {@link Document.removeMetadata}: `replaceMalformed`.
    */
-  removeMetadata(keys: readonly MetadataKey[], options: MetadataRemoveOptions = {}): this {
+  removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): this {
     return this.apply(removeMetadataOp(keys, options));
   }
 

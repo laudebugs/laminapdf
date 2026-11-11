@@ -10,17 +10,24 @@ import {
   type Platform,
   type ReaderBlock,
   type ReaderSettings,
-  ReaderSettingsPanel,
-  ReaderView,
   type ReaderViewContent,
   readerTextSize,
   type ShellLayout,
   StatusBarItem,
   useStoreState,
 } from "@laminapdf/ui";
+import type * as ReaderModeParts from "@laminapdf/ui/reader-mode";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, type ReactNode, type RefObject, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { pageLabel } from "./outline.ts";
+
+/** The column and its settings panel, loaded when reader mode first turns on, so they aren't in the startup script (#380). */
+const loadParts = () => import("./later.ts");
+const ReaderView = lazy<typeof ReaderModeParts.ReaderView>(() => loadParts().then((m) => ({ default: m.ReaderView })));
+const ReaderSettingsPanel = lazy<typeof ReaderModeParts.ReaderSettingsPanel>(() =>
+  loadParts().then((m) => ({ default: m.ReaderSettingsPanel })),
+);
+
 import { cropClip, cropScale } from "./reader-crop.ts";
 import { type OriginBox, outlineOrigin } from "./reader-origin.ts";
 import { blockAt } from "./reader-start.ts";
@@ -348,22 +355,26 @@ export function useReaderMode(
   const settingsOpen = useStoreState(layout, (s) => s.inspector?.id === READER_SETTINGS_PANEL);
   const { on, content, leave } = reader;
   const view = on ? (
-    <ReaderView
-      content={content?.view ?? { status: "loading" }}
-      settings={settings}
-      pageName={pageLabel(pages, reader.topPage)}
-      onBack={leave}
-      renderCrop={(block: ReaderBlock) => <Crop engine={engine} block={block as Block} />}
-      {...(content === undefined ? {} : { startAt: content.startAt })}
-      onTopBlock={reader.onTopBlock}
-      onViewOriginal={(block: ReaderBlock) => reader.leaveAt(block as Block)}
-      onOpenPage={reader.openPage}
-      nameOfPage={(page: number) => pageLabel(pages, page)}
-    />
+    <Suspense fallback={null}>
+      <ReaderView
+        content={content?.view ?? { status: "loading" }}
+        settings={settings}
+        pageName={pageLabel(pages, reader.topPage)}
+        onBack={leave}
+        renderCrop={(block: ReaderBlock) => <Crop engine={engine} block={block as Block} />}
+        {...(content === undefined ? {} : { startAt: content.startAt })}
+        onTopBlock={reader.onTopBlock}
+        onViewOriginal={(block: ReaderBlock) => reader.leaveAt(block as Block)}
+        onOpenPage={reader.openPage}
+        nameOfPage={(page: number) => pageLabel(pages, page)}
+      />
+    </Suspense>
   ) : undefined;
   const inspector = settingsOpen ? (
     <Inspector layout={layout}>
-      <ReaderSettingsPanel settings={settings} onChange={setSettings} onClose={() => layout.closeInspector()} />
+      <Suspense fallback={null}>
+        <ReaderSettingsPanel settings={settings} onChange={setSettings} onClose={() => layout.closeInspector()} />
+      </Suspense>
     </Inspector>
   ) : undefined;
   const status = on ? (

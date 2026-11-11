@@ -14,6 +14,7 @@ import type { Op, Target } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerCallOptions, ViewerClient } from "../client.js";
+import { EditSession } from "../edit/session.js";
 import { FindController } from "../find/controller.js";
 import {
   type HistoryPlace,
@@ -345,6 +346,11 @@ export class Viewer {
    * `jumpToDestination` and find's matches record a jump; scrolling doesn't.
    */
   readonly history: NavigationHistory;
+  /**
+   * The open document's edit session: its history, and edits, undo, redo and going to a step,
+   * each redrawing the pages it touched. One call runs at a time, in the order they were made.
+   */
+  readonly edits: EditSession;
   /** Pages kept mounted whatever the scroll (`keepMounted`): those a selection touches. */
   #pinned = new Set<number>();
   readonly #regions: PageRegionOptions;
@@ -438,7 +444,29 @@ export class Viewer {
     });
     this.addLayer(this.#highlights);
     this.#links = this.#linkLayer(options.links);
-    this.#cleanup.push(this.#client.on("restarted", ({ reopened }) => reopened && this.#reopened()));
+    this.edits = this.#editSession();
+  }
+
+  /**
+   * The edit session over this view's calls, which follows a restarted worker: its replay tells
+   * the session its history (`edit`), and lost edits leave it empty.
+   */
+  #editSession(): EditSession {
+    const edits = new EditSession({
+      applyEdit: (ops, call) => this.applyEdit(ops, call),
+      undoEdit: () => this.#editCall(() => this.#client.undoEdit()),
+      redoEdit: () => this.#editCall(() => this.#client.redoEdit()),
+      goToStep: (position) => this.#editCall(() => this.#client.goToStep(position)),
+      editHistory: () => this.#client.editHistory(),
+    });
+    this.#cleanup.push(
+      this.#client.on("restarted", ({ reopened, edits: replay }) => {
+        if (reopened) this.#reopened();
+        if (replay === "lost") edits.reset(this.#client.document);
+      }),
+      this.#client.on("edit", ({ history }) => edits.follow(history)),
+    );
+    return edits;
   }
 
   /** The scroll container (append it, or use {@link mount}). */
@@ -464,6 +492,7 @@ export class Viewer {
     this.#focusTarget = undefined;
     this.find.reset();
     this.history.reset();
+    this.edits.reset(document);
     this.#text?.open();
     this.#sizes = document.pages.map((p) => ({ width: p.width, height: p.height }));
     this.#layout = undefined;
@@ -713,9 +742,14 @@ export class Viewer {
    * the pages they touched ({@link invalidate}): an edit on screen in one call. A failed edit
    * changes nothing and redraws nothing.
    */
-  async applyEdit(ops: readonly Op[], options?: ViewerCallOptions): Promise<EditResult> {
+  applyEdit(ops: readonly Op[], options?: ViewerCallOptions & { readonly label?: string }): Promise<EditResult> {
+    return this.#editCall(() => this.#client.applyEdit(ops, options));
+  }
+
+  /** Runs an edit session call and redraws the pages it touched, unless another document opened meanwhile. */
+  async #editCall(call: () => Promise<EditResult>): Promise<EditResult> {
     const opens = this.#opens;
-    const result = await this.#client.applyEdit(ops, options);
+    const result = await call();
     // Another document opened meanwhile: these pages aren't its pages.
     if (this.#opens === opens) {
       this.invalidate(
@@ -955,13 +989,19 @@ export class Viewer {
   }
 
   /**
-   * Lays the pages out again at the same zoom after some changed size, keeping the page at the
-   * viewport's top where it is (scaled into its new height, if it is one that changed).
+   * Lays the pages out again after some changed size, keeping the page at the viewport's top where
+   * it is (scaled into its new height, if it is one that changed). A fixed zoom stays; a fit mode
+   * fits again, since a page turned a quarter can be wider than the window at the old scale.
    */
   #resize(): void {
     const before = this.#layout;
     if (before === undefined) return;
-    const after = new PageLayout(this.#sizes, { scale: before.scale, rotation: before.rotation, gap: this.#gap });
+    const viewport = this.#viewport();
+    const scale =
+      typeof this.#zoom === "string"
+        ? scaleFor(this.#zoom, this.#reference(), this.#rotation, viewport, this.#gap)
+        : before.scale;
+    const after = new PageLayout(this.#sizes, { scale, rotation: before.rotation, gap: this.#gap });
     if (after.height > MAX_HEIGHT) {
       // Past what browsers can scroll: the zoom is capped again.
       this.#rezoom(undefined);
@@ -970,8 +1010,14 @@ export class Viewer {
     const top = keptTop(before, after, this.#root.scrollTop);
     this.#layout = after;
     this.#spacer.style.height = `${after.height}px`;
-    this.#spacer.style.width = `${after.contentWidth(this.#viewport().width)}px`;
+    this.#spacer.style.width = `${after.contentWidth(viewport.width)}px`;
     this.#root.scrollTop = top;
+    if (scale !== before.scale) {
+      const percent = percentOfScale(scale);
+      this.#setState({ zoom: this.#zoom, percent });
+      this.#emit("zoomchange", { zoom: this.#zoom, percent });
+      this.#staleRenders();
+    }
   }
 
   /**
@@ -1109,8 +1155,14 @@ export class Viewer {
     const scroll = scrollToPoint(after, viewport.width, point, at);
     this.#root.scrollTop = scroll.top;
     this.#root.scrollLeft = scroll.left;
-    // Renders for the old geometry are stale: abort them (a page that failed gets another try);
-    // the canvases stretch until the gesture settles and the new pass paints, so no page is sharp.
+    this.#staleRenders();
+  }
+
+  /**
+   * Renders for the old geometry are stale: abort them (a page that failed gets another try); the
+   * canvases stretch until the zoom settles and the new pass paints, so no page is sharp.
+   */
+  #staleRenders(): void {
     let unsharpened = false;
     for (const view of this.#pages.values()) {
       this.#abort(view);
