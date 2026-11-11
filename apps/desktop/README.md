@@ -26,15 +26,15 @@ cargo xtask desktop-notices                           # target/desktop/THIRD_PAR
 
 `desktop:dev` and `desktop:build` merge `src-tauri/tauri.bundle.conf.json`, which bundles the engine binary (`src-tauri/binaries/`, Tauri's sidecar naming) and PDFium (`src-tauri/resources/pdfium/`); `cargo xtask desktop-sidecar` writes both, and Git ignores them. The base `tauri.conf.json` names neither, so plain `cargo build` and `cargo test` work on a fresh clone; documents then fail to open with `engine-start`, because no engine sits beside the app.
 
-The engine runs sandboxed on every OS ([ADR 0008 §5](../../docs/decisions/0008-desktop-shell.md#5-sandboxing-per-os)): it can't open files, use the network or start processes. To see whether a problem comes from the sandbox, turn it off in a debug build and try again:
+The engine runs sandboxed on every OS ([ADR 0008 §5](../../docs/decisions/0008-desktop-shell.md#5-sandboxing-per-os)): it can't open files, use the network or start processes. It gets the system's fonts from the main process, which lists them once at start-up. To see whether a problem comes from the sandbox, turn it off in a debug build and try again:
 
 ```sh
 LAMINA_PDF_ENGINE_SANDBOX=off pnpm --filter @laminapdf/desktop run desktop:dev
-target/debug/laminapdf-desktop-engine --sandbox-selftest          # what the sandbox blocks, probe by probe
-cargo build -p laminapdf-desktop-engine --features seccomp-trap   # Linux: name a system call the filter refuses
+cargo run -p laminapdf-desktop-engine --features selftest -- --sandbox-selftest   # what the sandbox blocks, probe by probe
+cargo build -p laminapdf-desktop-engine --features seccomp-trap                  # Linux: name a system call the filter refuses
 ```
 
-The log names each engine's sandbox layers (`engine 4242 is ready; sandbox: seatbelt`) and says `off` when the variable is set. A release build ignores the variable, so a user's environment can't turn the sandbox off. On Linux the seccomp filter kills an engine that makes a system call it doesn't expect; the log then says `sandbox violation: SIGSYS`, and the `seccomp-trap` build prints the call's number instead of dying silently.
+The log names each engine's sandbox layers (`engine 4242 is ready; sandbox: seatbelt`) and says `off` when the variable is set. A release build ignores the variable, so a user's environment can't turn the sandbox off, and the main process refuses an engine that reports a layer missing. On Linux the seccomp filter kills an engine that makes a system call it doesn't expect; the log then says `sandbox violation: SIGSYS`, and a `seccomp-trap` build also prints which call it was.
 
 To measure the engine on a large file:
 
