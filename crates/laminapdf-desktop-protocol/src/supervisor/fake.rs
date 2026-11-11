@@ -12,8 +12,8 @@ use std::time::Duration;
 
 use super::{Process, Spawned, Spawner, lock};
 use crate::{
-    DocId, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, PageDimensions, SandboxLevel, TileFormat, ToEngine,
-    read_frame, write_frame,
+    DocId, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, PageDimensions, TileFormat, ToEngine, read_frame,
+    write_frame,
 };
 
 /// How a fake engine behaves.
@@ -114,7 +114,7 @@ fn fake_engine(mode: Mode, pid: u32, mut stdin: PipeReader, out: &SharedOut) {
         &FromEngine::Ready {
             version: PROTOCOL_VERSION,
             pid,
-            sandboxed: SandboxLevel::default(),
+            sandboxed: crate::complete_level(),
         },
     );
     match mode {

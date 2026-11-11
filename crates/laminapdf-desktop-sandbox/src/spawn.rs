@@ -1,5 +1,9 @@
 //! The main process's half: starting the engine inside its sandbox, and saying how it ended.
 
+#[cfg(target_os = "macos")]
+mod macos;
+#[cfg(unix)]
+mod unix;
 #[cfg(windows)]
 mod windows;
 
@@ -31,7 +35,9 @@ pub struct SandboxedChild {
 ///
 /// On Windows the process starts suspended in a job object, with a locked-down Low-integrity
 /// token, an impersonation token for its start-up, and mitigation policies that forbid child
-/// processes; then it is resumed. Elsewhere it starts plainly and sandboxes itself. With the
+/// processes; then it is resumed. Elsewhere it starts with only its three pipes open (every other
+/// descriptor closed before `exec`) and sandboxes itself; on macOS a watchdog thread enforces the
+/// memory limit. With the
 /// sandbox off for diagnosis ([`sandbox_disabled`](crate::sandbox_disabled)) it starts plainly everywhere.
 ///
 /// # Errors
@@ -52,16 +58,28 @@ pub fn spawn_sandboxed(mut command: Command, config: &SandboxConfig) -> Result<S
         // CREATE_NO_WINDOW: the engine is a console program; the app shows no console.
         command.creation_flags(0x0800_0000);
     }
+    #[cfg(unix)]
+    if !crate::sandbox_disabled() {
+        unix::close_inherited(&mut command);
+    }
     let mut child = command.spawn()?;
     let missing = || SandboxError::Spawn(io::Error::other("a pipe was not set up"));
     let stdin = child.stdin.take().ok_or_else(missing)?;
     let stdout = child.stdout.take().ok_or_else(missing)?;
     let stderr = child.stderr.take().ok_or_else(missing)?;
+    #[cfg(target_os = "macos")]
+    let inner = if crate::sandbox_disabled() {
+        Inner::Std(child)
+    } else {
+        Inner::Watched(macos::Watched::new(child, config.memory_limit))
+    };
+    #[cfg(not(target_os = "macos"))]
+    let inner = Inner::Std(child);
     Ok(SandboxedChild {
         stdin: Box::new(stdin),
         stdout: Box::new(stdout),
         stderr: Box::new(stderr),
-        process: SandboxedProcess(Inner::Std(child)),
+        process: SandboxedProcess(inner),
     })
 }
 
@@ -70,6 +88,8 @@ pub struct SandboxedProcess(Inner);
 
 enum Inner {
     Std(Child),
+    #[cfg(target_os = "macos")]
+    Watched(macos::Watched),
     #[cfg(windows)]
     Job(windows::JobProcess),
 }
@@ -78,6 +98,8 @@ impl Process for SandboxedProcess {
     fn id(&self) -> u32 {
         match &self.0 {
             Inner::Std(child) => child.id(),
+            #[cfg(target_os = "macos")]
+            Inner::Watched(process) => process.id(),
             #[cfg(windows)]
             Inner::Job(process) => process.id(),
         }
@@ -87,6 +109,8 @@ impl Process for SandboxedProcess {
         match &mut self.0 {
             // Fails only when it has already exited.
             Inner::Std(child) => drop(child.kill()),
+            #[cfg(target_os = "macos")]
+            Inner::Watched(process) => process.kill(),
             #[cfg(windows)]
             Inner::Job(process) => process.kill(),
         }
@@ -98,6 +122,8 @@ impl Process for SandboxedProcess {
                 Ok(status) => describe(status),
                 Err(error) => format!("unknown ({error})"),
             },
+            #[cfg(target_os = "macos")]
+            Inner::Watched(process) => process.wait(),
             #[cfg(windows)]
             Inner::Job(process) => process.wait(),
         }
@@ -159,7 +185,8 @@ impl Spawner for SandboxSpawner {
         command.args(&self.args);
         let child = spawn_sandboxed(command, &self.config).map_err(|error| match error {
             SandboxError::Spawn(error) => error,
-            other => io::Error::other(other.to_string()),
+            // Kept whole: the supervisor's log shows the step and the OS's error under it.
+            other => io::Error::other(other),
         })?;
         let log = Arc::clone(&self.log);
         let stderr = child.stderr;

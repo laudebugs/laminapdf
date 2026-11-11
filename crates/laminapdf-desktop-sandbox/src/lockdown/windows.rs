@@ -17,7 +17,7 @@ use std::ffi::c_void;
 use std::mem::{size_of, zeroed};
 use std::ptr::null_mut;
 
-use laminapdf_desktop_protocol::SandboxLevel;
+use laminapdf_desktop_protocol::{Layer, SandboxLevel};
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
 use windows_sys::Win32::Security::{
     GetSidSubAuthority, GetSidSubAuthorityCount, GetTokenInformation, IsTokenRestricted, RevertToSelf,
@@ -43,32 +43,44 @@ pub(super) fn apply(_config: SandboxConfig) -> Result<SandboxLevel, SandboxError
         return Err(SandboxError::last_os("RevertToSelf"));
     }
     // Bit 0 of each policy's flags: MicrosoftSignedOnly, ProhibitDynamicCode.
-    let signed = set_policy(ProcessSignaturePolicy, 1);
-    let no_dynamic_code = set_policy(ProcessDynamicCodePolicy, 1);
-    if !signed || !no_dynamic_code {
-        super::log("a post-load mitigation policy was refused");
-    }
+    let signed = set_policy(ProcessSignaturePolicy, 1, "the signed-images-only policy")?;
+    let no_dynamic_code = set_policy(ProcessDynamicCodePolicy, 1, "the no-dynamic-code policy")?;
     // NoChildProcessCreation, set at creation (PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY).
     let no_children = policy(ProcessChildProcessPolicy).is_some_and(|flags| flags & 1 == 1);
     let (job, memory_limit) = our_job();
+    let low = token
+        .integrity()
+        .is_some_and(|rid| rid <= SECURITY_MANDATORY_LOW_RID as u32);
+    let layers = [
+        (job, Layer::Job),
+        (memory_limit, Layer::MemoryLimit),
+        (low, Layer::LowIntegrity),
+        (token.restricted(), Layer::RestrictedToken),
+        (no_children, Layer::NoChildProcesses),
+        (signed, Layer::SignedImagesOnly),
+        (no_dynamic_code, Layer::NoDynamicCode),
+    ];
     Ok(SandboxLevel {
-        job,
-        memory_limit,
-        low_integrity: token
-            .integrity()
-            .is_some_and(|rid| rid <= SECURITY_MANDATORY_LOW_RID as u32),
-        restricted_token: token.restricted(),
-        mitigations: no_children && signed && no_dynamic_code,
-        ..SandboxLevel::default()
+        layers: layers.iter().filter(|(on, _)| *on).map(|(_, layer)| *layer).collect(),
     })
 }
 
-/// Sets one process mitigation policy whose structure is a single `u32` of flags.
-fn set_policy(policy: PROCESS_MITIGATION_POLICY, flags: u32) -> bool {
+/// Sets one process mitigation policy whose structure is a single `u32` of flags. A refusal is
+/// fatal in a release build; a debug build logs it and reports the layer missing, which the main
+/// process then refuses too.
+fn set_policy(policy: PROCESS_MITIGATION_POLICY, flags: u32, step: &'static str) -> Result<bool, SandboxError> {
     // SAFETY: both policies' structures (PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY,
     // PROCESS_MITIGATION_DYNAMIC_CODE_POLICY) are one u32 of flags; the pointer and the length
     // describe `flags`, which outlives the call.
-    unsafe { SetProcessMitigationPolicy(policy, (&raw const flags).cast::<c_void>(), size_of::<u32>()) != 0 }
+    let set = unsafe { SetProcessMitigationPolicy(policy, (&raw const flags).cast::<c_void>(), size_of::<u32>()) != 0 };
+    if set {
+        return Ok(true);
+    }
+    if cfg!(debug_assertions) {
+        super::log(&format!("{step} was refused"));
+        return Ok(false);
+    }
+    Err(SandboxError::last_os(step))
 }
 
 /// Reads a mitigation policy whose structure is a single `u32` of flags.

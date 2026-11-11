@@ -30,10 +30,7 @@ use crate::{SandboxConfig, SandboxError, sandbox_disabled};
 /// refuses to serve.
 pub fn apply_engine_sandbox(config: &SandboxConfig) -> Result<SandboxLevel, SandboxError> {
     if sandbox_disabled() {
-        return Ok(SandboxLevel {
-            off: true,
-            ..SandboxLevel::default()
-        });
+        return Ok(SandboxLevel::off());
     }
     #[cfg(target_os = "linux")]
     return linux::apply(*config);
@@ -50,8 +47,8 @@ pub fn apply_engine_sandbox(config: &SandboxConfig) -> Result<SandboxLevel, Sand
 
 /// One line on the engine's stderr, which the main process logs.
 #[cfg_attr(
-    not(any(target_os = "linux", target_os = "macos", windows)),
-    expect(dead_code, reason = "only the sandboxed OSes log from here")
+    not(any(target_os = "linux", windows)),
+    expect(dead_code, reason = "only Linux and Windows log from here")
 )]
 fn log(message: &str) {
     use std::io::Write as _;

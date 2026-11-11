@@ -26,8 +26,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::{
-    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ReqId, SandboxLevel,
-    ToEngine,
+    DocId, EngineLimits, FailureKind, FontFace, FromEngine, MAX_FRAME, PROTOCOL_VERSION, ProtocolError, ReqId,
+    SandboxLevel, ToEngine,
 };
 use crate::{read_frame, write_frame};
 
@@ -49,6 +49,8 @@ pub struct Config {
     pub max_restarts: usize,
     /// The span [`Config::max_restarts`] counts over.
     pub window: Duration,
+    /// The system fonts the engine may ask for; `None` serves none.
+    pub fonts: Option<Arc<dyn FontServer>>,
 }
 
 impl Default for Config {
@@ -61,6 +63,7 @@ impl Default for Config {
             backoff: Duration::from_millis(250),
             max_restarts: 3,
             window: Duration::from_secs(60),
+            fonts: None,
         }
     }
 }
@@ -86,6 +89,18 @@ pub trait RangeServer: Send + Sync {
     /// # Errors
     /// The document isn't this engine's, or the file can't be read.
     fn read(&self, doc: DocId, offset: u64, len: u32) -> io::Result<Vec<u8>>;
+}
+
+/// Serves the engine the system's fonts (ADR 0008 §5, fonts): the faces it lists, then each
+/// one's bytes by id. The engine never names a path.
+pub trait FontServer: Send + Sync + std::fmt::Debug {
+    /// Every face, by id.
+    fn faces(&self) -> Vec<FontFace>;
+    /// Face `font` as a standalone font file.
+    ///
+    /// # Errors
+    /// No such face, or its file can't be read or is too large.
+    fn read(&self, font: u32) -> io::Result<Vec<u8>>;
 }
 
 /// A started engine: its pipes and its process.
@@ -260,7 +275,7 @@ impl Supervisor {
 
     /// What the running engine's sandbox enforces, from its `Ready`.
     pub fn sandbox(&self) -> Option<SandboxLevel> {
-        self.state().engine.as_ref().map(|engine| engine.sandboxed)
+        self.state().engine.as_ref().map(|engine| engine.sandboxed.clone())
     }
 
     /// Whether the engine crashed too often and stays down.
@@ -387,7 +402,21 @@ impl Supervisor {
                     pid,
                     sandboxed,
                 } if version == PROTOCOL_VERSION => {
+                    if let Err(why) = check_sandbox(&sandboxed) {
+                        self.log(format!("refusing engine {pid}: {why}"));
+                        break;
+                    }
                     self.log(format!("engine {pid} is ready; sandbox: {}", sandboxed.describe()));
+                    let faces = self
+                        .inner
+                        .config
+                        .fonts
+                        .as_ref()
+                        .map(|fonts| fonts.faces())
+                        .unwrap_or_default();
+                    if write_frame(&mut *lock(stdin), &ToEngine::Fonts { faces }, &[]).is_err() {
+                        break;
+                    }
                     let _ = ready.send((pid, sandboxed));
                 }
                 FromEngine::Ready { version, .. } => {
@@ -400,6 +429,11 @@ impl Supervisor {
                         break;
                     }
                 }
+                FromEngine::FontRequest { req, font } => {
+                    if !self.serve_font(stdin, req, font) {
+                        break;
+                    }
+                }
                 FromEngine::Error { req: None, message, .. } => self.log(format!("engine: {message}")),
                 reply => match reply_req(&reply) {
                     Some(req) => self.deliver(req, Ok((reply, payload))),
@@ -407,6 +441,25 @@ impl Supervisor {
                 },
             }
         }
+    }
+
+    /// Answers one `FontRequest`; `false` when the engine's stdin is gone.
+    fn serve_font(&self, stdin: &Mutex<Box<dyn Write + Send>>, req: ReqId, font: u32) -> bool {
+        let read = match &self.inner.config.fonts {
+            Some(fonts) => fonts.read(font),
+            None => Err(io::Error::new(io::ErrorKind::NotFound, "no system fonts")),
+        };
+        let written = match read {
+            Ok(bytes) => write_frame(&mut *lock(stdin), &ToEngine::FontData { req }, &bytes),
+            Err(error) => {
+                let msg = ToEngine::FontFailed {
+                    req,
+                    message: error.to_string(),
+                };
+                write_frame(&mut *lock(stdin), &msg, &[])
+            }
+        };
+        written.is_ok()
     }
 
     /// Answers one `ReadRange`; `false` when the engine's stdin is gone.
@@ -538,7 +591,10 @@ const fn reply_req(msg: &FromEngine) -> Option<ReqId> {
         | FromEngine::PageInfo { req, .. }
         | FromEngine::Tile { req, .. } => Some(*req),
         FromEngine::Error { req, .. } => *req,
-        FromEngine::Ready { .. } | FromEngine::ReadRange { .. } | FromEngine::Heartbeat => None,
+        FromEngine::Ready { .. }
+        | FromEngine::ReadRange { .. }
+        | FromEngine::FontRequest { .. }
+        | FromEngine::Heartbeat => None,
     }
 }
 
@@ -565,6 +621,24 @@ impl Drop for Gate<'_> {
             state.restoring = None;
         }
     }
+}
+
+/// Refuses an engine whose sandbox lacks a layer this OS requires ([`Layer::REQUIRED`]). An
+/// engine with its sandbox off for diagnosis passes only in a debug build of the main process.
+fn check_sandbox(level: &SandboxLevel) -> Result<(), String> {
+    if level.is_off() {
+        return if cfg!(debug_assertions) {
+            Ok(())
+        } else {
+            Err("its sandbox is off, which only a debug build allows".into())
+        };
+    }
+    let missing = level.missing();
+    if missing.is_empty() {
+        return Ok(());
+    }
+    let names: Vec<String> = missing.iter().map(ToString::to_string).collect();
+    Err(format!("its sandbox lacks {} ({})", names.join(", "), level.describe()))
 }
 
 /// Kills an engine process (it may have exited already), waits for it and says how it ended.

@@ -12,15 +12,15 @@
 use std::collections::BTreeMap;
 use std::io;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{Arc, Mutex, OnceLock, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use laminapdf_desktop_protocol::supervisor::{Config, Event, RangeServer, Supervisor, SupervisorError};
+use laminapdf_desktop_protocol::supervisor::{Config, Event, FontServer, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
     DocId, FailureKind, FromEngine, Password, Priority, ReqId, TileFormat, TileRequest, ToEngine,
 };
-use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner};
+use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 use laminapdf_test_fixtures::{fixture, read_at};
 
 /// The test's files, by document, standing in for the main process's open files.
@@ -41,6 +41,12 @@ impl RangeServer for Files {
     }
 }
 
+/// The system's fonts, listed once for every test, as the app lists them once.
+fn system_fonts() -> Arc<SystemFonts> {
+    static FONTS: OnceLock<Arc<SystemFonts>> = OnceLock::new();
+    Arc::clone(FONTS.get_or_init(|| Arc::new(SystemFonts::scan())))
+}
+
 struct Engine {
     supervisor: Supervisor,
     files: Arc<Files>,
@@ -59,10 +65,14 @@ impl Engine {
             SandboxConfig::default(),
             |line| eprintln!("engine: {line}"),
         );
+        let config = Config {
+            fonts: Some(system_fonts() as Arc<dyn FontServer>),
+            ..Config::default()
+        };
         let supervisor = Supervisor::start(
             Box::new(spawner),
             Arc::clone(&files) as Arc<dyn RangeServer>,
-            Config::default(),
+            config,
             move |_, event| match event {
                 Event::Log(line) => eprintln!("supervisor: {line}"),
                 event => {
@@ -342,4 +352,45 @@ fn text_in_a_non_embedded_standard_font_should_still_render_in_the_sandbox() {
     // PDFium's built-in fonts stand in for the system's: the text is drawn, not left out.
     let dark = pixels.as_chunks::<4>().0.iter().filter(|[r, ..]| *r < 128).count();
     assert!(dark > 500, "only {dark} dark pixels");
+}
+
+/// Chinese text in a font the file doesn't embed: the sandboxed engine can't open the system's
+/// fonts, so its glyphs come from a face the main process serves (Windows: PDFium's GDI mapper).
+#[test]
+#[ignore = "needs the PDFium library: cargo xtask render-golden"]
+fn cjk_text_in_a_font_the_file_does_not_embed_should_render_in_the_sandbox() {
+    let has_cjk = system_fonts()
+        .faces()
+        .iter()
+        .any(|face| face.charsets.contains(laminapdf_desktop_protocol::Charsets::GB2312));
+    if !has_cjk && !cfg!(windows) {
+        eprintln!("this system has no Simplified Chinese font: nothing to render with");
+        return;
+    }
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("desktop/cjk-not-embedded.pdf"));
+    engine.open(doc, len);
+    let started = Instant::now();
+    let (reply, pixels) = engine
+        .supervisor
+        .request(|req| {
+            ToEngine::RenderTile(TileRequest {
+                req,
+                doc,
+                page: 0,
+                scale_milli: 1000,
+                x: 0,
+                y: 0,
+                w: 300,
+                h: 100,
+                format: TileFormat::Rgba8,
+                priority: Priority::Visible,
+            })
+        })
+        .unwrap();
+    eprintln!("first CJK tile in {:?}", started.elapsed());
+    assert!(matches!(reply, FromEngine::Tile { .. }), "{reply:?}");
+    // Six glyphs at 40 pt cover thousands of pixels; a missing font leaves the page blank.
+    let dark = pixels.as_chunks::<4>().0.iter().filter(|[r, ..]| *r < 128).count();
+    assert!(dark > 1500, "only {dark} dark pixels: the glyphs didn't render");
 }

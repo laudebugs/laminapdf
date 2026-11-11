@@ -19,15 +19,17 @@
 //! main process logs it. `LAMINA_PDF_ENGINE_SANDBOX=off` turns the sandbox off for diagnosis, in
 //! debug builds only ([`sandbox_disabled`]).
 
+mod fonts;
 mod spawn;
 #[cfg(windows)]
 mod win32;
 
 #[cfg(feature = "engine")]
 mod lockdown;
-#[cfg(feature = "engine")]
+#[cfg(feature = "probe")]
 pub mod probe;
 
+pub use fonts::{BackgroundFonts, SystemFonts};
 pub use laminapdf_desktop_protocol::SandboxLevel;
 #[cfg(feature = "engine")]
 pub use lockdown::apply_engine_sandbox;
@@ -67,26 +69,38 @@ impl Default for SandboxConfig {
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum SandboxError {
-    /// An OS call failed: which step, and the OS's error number.
-    #[error("{step} failed (OS error {code})")]
+    /// An OS call failed.
+    #[error("{step} failed")]
     Os {
         /// What was being set up.
         step: &'static str,
         /// `errno` or `GetLastError()`.
-        code: i32,
+        #[source]
+        source: std::io::Error,
     },
     /// The engine had more than one thread when it locked itself down, so some of them would
     /// escape a per-thread restriction (Landlock).
     #[error("the engine had {0} threads when the sandbox was applied")]
     Threads(usize),
+    /// The engine holds descriptors besides its three pipes: something the main process opened
+    /// leaked into it, and an inherited socket or file would get around the sandbox.
+    #[error("the engine inherited {0} descriptors besides stdin, stdout and stderr")]
+    Inherited(usize),
     /// The seccomp filter couldn't be built or installed.
-    #[error("seccomp: {0}")]
-    Seccomp(String),
-    /// The Landlock ruleset couldn't be built or applied.
-    #[error("landlock: {0}")]
-    Landlock(String),
+    #[cfg(all(target_os = "linux", feature = "engine"))]
+    #[error("the seccomp filter failed")]
+    Seccomp(#[from] seccompiler::Error),
+    /// `sandbox_init` refused the Seatbelt profile, with its own message.
+    #[cfg(target_os = "macos")]
+    #[error("sandbox_init refused the profile ({status}): {message}")]
+    Seatbelt {
+        /// Its return value.
+        status: i32,
+        /// Its error text.
+        message: String,
+    },
     /// The engine couldn't be started.
-    #[error("starting the engine: {0}")]
+    #[error("starting the engine failed")]
     Spawn(#[from] std::io::Error),
 }
 
@@ -96,7 +110,7 @@ impl SandboxError {
     pub(crate) fn last_os(step: &'static str) -> Self {
         Self::Os {
             step,
-            code: std::io::Error::last_os_error().raw_os_error().unwrap_or(0),
+            source: std::io::Error::last_os_error(),
         }
     }
 }

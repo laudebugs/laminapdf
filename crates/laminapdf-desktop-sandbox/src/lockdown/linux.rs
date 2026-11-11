@@ -27,7 +27,7 @@
 
 use std::collections::BTreeMap;
 
-use laminapdf_desktop_protocol::SandboxLevel;
+use laminapdf_desktop_protocol::{Layer, SandboxLevel};
 use landlock::{
     ABI, Access, AccessFs, AccessNet, LandlockStatus, Ruleset, RulesetAttr, RulesetCreated, RulesetStatus, Scope,
 };
@@ -45,16 +45,26 @@ const LANDLOCK_ABI: ABI = ABI::V9;
 
 pub(super) fn apply(config: SandboxConfig) -> Result<SandboxLevel, SandboxError> {
     // Landlock and `RLIMIT_AS` hold for the whole process only if no other thread exists yet.
-    let threads = std::fs::read_dir("/proc/self/task").map_or(1, Iterator::count);
+    // Unreadable /proc means neither can be checked: fail closed.
+    let threads = std::fs::read_dir("/proc/self/task")
+        .map_err(|source| SandboxError::Os {
+            step: "listing /proc/self/task",
+            source,
+        })?
+        .count();
     if threads > 1 {
         return Err(SandboxError::Threads(threads));
+    }
+    let inherited = inherited_descriptors()?;
+    if inherited > 0 {
+        return Err(SandboxError::Inherited(inherited));
     }
     // SAFETY: prctl with PR_SET_NO_NEW_PRIVS takes four further integer arguments, here 1, 0, 0, 0;
     // it reads no memory.
     if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0 {
         return Err(SandboxError::last_os("PR_SET_NO_NEW_PRIVS"));
     }
-    let (landlock_abi, landlock_full) = landlock();
+    let landlock = landlock();
     let limit = libc::rlimit {
         rlim_cur: config.memory_limit.saturating_mul(2),
         rlim_max: config.memory_limit.saturating_mul(2),
@@ -66,22 +76,32 @@ pub(super) fn apply(config: SandboxConfig) -> Result<SandboxLevel, SandboxError>
     #[cfg(feature = "seccomp-trap")]
     trap::install();
     for filter in filters()? {
-        seccompiler::apply_filter_all_threads(&filter).map_err(|e| SandboxError::Seccomp(e.to_string()))?;
+        seccompiler::apply_filter_all_threads(&filter)?;
     }
-    Ok(SandboxLevel {
-        no_new_privs: true,
-        seccomp: true,
-        landlock_abi,
-        landlock_full,
-        memory_limit: true,
-        ..SandboxLevel::default()
-    })
+    let mut layers = vec![Layer::NoNewPrivs];
+    layers.extend(landlock);
+    layers.extend([Layer::MemoryLimit, Layer::Seccomp]);
+    Ok(SandboxLevel { layers })
 }
 
-/// Applies the deny-all Landlock ruleset; returns the ABI the kernel enforced it with (0 for none)
-/// and whether it enforced every right. A failure is logged, not fatal: seccomp still denies
-/// every path.
-fn landlock() -> (u8, bool) {
+/// How many descriptors above 2 the engine holds: the main process starts it with every other
+/// one closed (`spawn.rs`), so any is a leak. Read from /proc before seccomp forbids it.
+fn inherited_descriptors() -> Result<usize, SandboxError> {
+    let entries = std::fs::read_dir("/proc/self/fd").map_err(|source| SandboxError::Os {
+        step: "listing /proc/self/fd",
+        source,
+    })?;
+    let above = entries
+        .filter_map(|entry| entry.ok()?.file_name().to_str()?.parse::<i32>().ok())
+        .filter(|fd| *fd > 2)
+        .count();
+    // The listing itself holds one.
+    Ok(above.saturating_sub(1))
+}
+
+/// Applies the deny-all Landlock ruleset; returns the layer the kernel enforced, if any. Best
+/// effort: a failure or an old kernel is logged, not fatal, since seccomp still denies every path.
+fn landlock() -> Option<Layer> {
     let ruleset = Ruleset::default()
         .handle_access(AccessFs::from_all(LANDLOCK_ABI))
         .and_then(|r| r.handle_access(AccessNet::from_all(LANDLOCK_ABI)))
@@ -95,14 +115,17 @@ fn landlock() -> (u8, bool) {
                 _ => 0,
             };
             match status.ruleset {
-                RulesetStatus::NotEnforced => (0, false),
-                RulesetStatus::PartiallyEnforced => (abi, false),
-                RulesetStatus::FullyEnforced => (abi, true),
+                RulesetStatus::NotEnforced => {
+                    super::log("Landlock is off: the kernel doesn't enforce it");
+                    None
+                }
+                RulesetStatus::PartiallyEnforced => Some(Layer::Landlock { abi, full: false }),
+                RulesetStatus::FullyEnforced => Some(Layer::Landlock { abi, full: true }),
             }
         }
         Err(error) => {
             super::log(&format!("Landlock is off: {error}"));
-            (0, false)
+            None
         }
     }
 }
@@ -180,7 +203,7 @@ const PATHS: &[libc::c_long] = &[
 
 /// The three filters, in the order they are installed. Which filter comes first doesn't change
 /// the answer: the kernel takes the strictest.
-fn filters() -> Result<Vec<BpfProgram>, SandboxError> {
+fn filters() -> Result<Vec<BpfProgram>, seccompiler::Error> {
     let pid = u64::from(std::process::id());
     let mut allow: BTreeMap<i64, Vec<SeccompRule>> = ALLOWED.iter().chain(PATHS).map(|&nr| (nr, Vec::new())).collect();
     let no_exec = || masked(2, libc::PROT_EXEC as u64, 0);
@@ -198,6 +221,8 @@ fn filters() -> Result<Vec<BpfProgram>, SandboxError> {
             rule(vec![equal(0, PR_SET_VMA)?])?,
         ],
     );
+    // The selftest's descriptor probe: whether a descriptor is open, nothing else.
+    allow.insert(libc::SYS_fcntl, vec![rule(vec![equal(1, libc::F_GETFD as u64)?])?]);
     // Reading a limit, never setting one.
     allow.insert(libc::SYS_prlimit64, vec![rule(vec![equal(2, 0)?])?]);
     // `abort` signals the process itself; nothing else.
@@ -217,27 +242,34 @@ fn filters() -> Result<Vec<BpfProgram>, SandboxError> {
     ]
     .into_iter()
     .map(|(rules, mismatch, matched)| {
-        SeccompFilter::new(rules, mismatch, matched, ARCH)
-            .and_then(BpfProgram::try_from)
-            .map_err(|e| SandboxError::Seccomp(e.to_string()))
+        let filter = SeccompFilter::new(rules, mismatch, matched, ARCH)?;
+        Ok(BpfProgram::try_from(filter)?)
     })
     .collect()
 }
 
-fn rule(conditions: Vec<SeccompCondition>) -> Result<SeccompRule, SandboxError> {
-    SeccompRule::new(conditions).map_err(|e| SandboxError::Seccomp(e.to_string()))
+fn rule(conditions: Vec<SeccompCondition>) -> Result<SeccompRule, seccompiler::Error> {
+    Ok(SeccompRule::new(conditions)?)
 }
 
 /// Argument `arg` (all 64 bits) equals `value`.
-fn equal(arg: u8, value: u64) -> Result<SeccompCondition, SandboxError> {
-    SeccompCondition::new(arg, SeccompCmpArgLen::Qword, SeccompCmpOp::Eq, value)
-        .map_err(|e| SandboxError::Seccomp(e.to_string()))
+fn equal(arg: u8, value: u64) -> Result<SeccompCondition, seccompiler::Error> {
+    Ok(SeccompCondition::new(
+        arg,
+        SeccompCmpArgLen::Qword,
+        SeccompCmpOp::Eq,
+        value,
+    )?)
 }
 
 /// Argument `arg` masked with `mask` equals `value`.
-fn masked(arg: u8, mask: u64, value: u64) -> Result<SeccompCondition, SandboxError> {
-    SeccompCondition::new(arg, SeccompCmpArgLen::Qword, SeccompCmpOp::MaskedEq(mask), value)
-        .map_err(|e| SandboxError::Seccomp(e.to_string()))
+fn masked(arg: u8, mask: u64, value: u64) -> Result<SeccompCondition, seccompiler::Error> {
+    Ok(SeccompCondition::new(
+        arg,
+        SeccompCmpArgLen::Qword,
+        SeccompCmpOp::MaskedEq(mask),
+        value,
+    )?)
 }
 
 /// The `seccomp-trap` feature's SIGSYS handler: names the call the filter refused.

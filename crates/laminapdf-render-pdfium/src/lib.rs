@@ -16,6 +16,8 @@
 //!
 //! [ADR 0004]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0004-render-backend.md
 
+mod fonts;
+
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::io::{self, Read, Seek, SeekFrom};
@@ -32,6 +34,8 @@ use pdfium_render::prelude::{
     PdfPageObjectCommon as _, PdfPageObjectType, PdfPageObjectsCommon as _, PdfPageRenderRotation, PdfQuadPoints,
     PdfRenderConfig, Pdfium, PdfiumError, PdfiumInternalError,
 };
+
+pub use fonts::{FontCharset, FontQuery, SystemFont, SystemFontSource};
 
 const NAME: &str = "pdfium";
 
@@ -90,6 +94,28 @@ impl PdfiumBackend {
         let bindings =
             Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path(dir)).map_err(|_| unavailable())?;
         let pdfium = PDFIUM.get_or_init(|| Pdfium::new(bindings));
+        Ok(Self { pdfium })
+    }
+
+    /// [`PdfiumBackend::bind`], with PDFium's system fonts coming from `fonts` instead of its own
+    /// scan of the font folders: for a process that can't open them. Only the first bind of the
+    /// process sets the fonts.
+    ///
+    /// # Errors
+    /// `render-backend-unavailable` when the library can't be loaded.
+    pub fn bind_with_fonts(dir: &Path, fonts: Box<dyn SystemFontSource>) -> Result<Self, RenderError> {
+        if let Some(pdfium) = PDFIUM.get() {
+            return Ok(Self { pdfium });
+        }
+        let _guard = engine();
+        if let Some(pdfium) = PDFIUM.get() {
+            return Ok(Self { pdfium });
+        }
+        let bindings =
+            Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path(dir)).map_err(|_| unavailable())?;
+        let mut pdfium = Pdfium::new(bindings);
+        pdfium.set_custom_font_provider(Box::new(fonts::Provider(fonts)));
+        let pdfium = PDFIUM.get_or_init(|| pdfium);
         Ok(Self { pdfium })
     }
 

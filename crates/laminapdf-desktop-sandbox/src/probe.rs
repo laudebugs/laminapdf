@@ -2,7 +2,7 @@
 //! sandbox must stop, or must still allow, and says what happened. On Linux a forbidden system
 //! call kills the process (SIGSYS) instead of failing, so those probes never return there: the
 //! caller sees the signal.
-#![cfg_attr(unix, expect(unsafe_code, reason = "FFI: fork, execve, clone3 and getrlimit"))]
+#![cfg_attr(unix, expect(unsafe_code, reason = "FFI: fork, execve, clone3, fcntl and getrlimit"))]
 
 use std::fmt;
 use std::io::{self, Write as _};
@@ -78,9 +78,10 @@ pub fn spawn(program: &Path, args: &[&str]) -> Outcome {
     }
 }
 
-/// Allocates and touches up to `bytes` of memory in 64 MiB steps.
+/// Allocates and touches up to `bytes` of memory in 64 MiB steps, then holds it for `hold_for`, so
+/// a limit enforced by watching (macOS) has time to act.
 #[must_use]
-pub fn allocate(bytes: u64) -> Outcome {
+pub fn allocate(bytes: u64, hold_for: Duration) -> Outcome {
     const STEP: usize = 64 << 20;
     let mut held: Vec<Vec<u8>> = Vec::new();
     let mut total = 0u64;
@@ -93,7 +94,50 @@ pub fn allocate(bytes: u64) -> Outcome {
         held.push(chunk);
         total += STEP as u64;
     }
+    std::thread::sleep(hold_for);
     Outcome::Allowed(format!("held {} MiB", total >> 20))
+}
+
+/// Allocates and touches memory until the process dies: what a runaway document does. An
+/// allocation that fails aborts, as it would in the engine's own code.
+pub fn exhaust() -> ! {
+    let mut held: Vec<Vec<u8>> = Vec::new();
+    loop {
+        held.push(vec![1; 64 << 20]);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+
+/// A copy of `fd` that a child process would inherit (no close-on-exec), as a GTK or D-Bus
+/// descriptor in the main process: for testing that the engine still gets none of them.
+///
+/// # Errors
+/// `dup` failed.
+#[cfg(unix)]
+pub fn inheritable_copy(fd: std::os::fd::BorrowedFd<'_>) -> io::Result<std::os::fd::OwnedFd> {
+    use std::os::fd::{AsRawFd as _, FromRawFd as _};
+    // SAFETY: dup of a borrowed, open descriptor; the new descriptor has no close-on-exec flag.
+    let copy = unsafe { libc::dup(fd.as_raw_fd()) };
+    if copy < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    // SAFETY: `copy` is a new descriptor this function owns and hands over once.
+    Ok(unsafe { std::os::fd::OwnedFd::from_raw_fd(copy) })
+}
+
+/// The descriptors above 2 this process holds: the engine should have only its three pipes.
+#[cfg(unix)]
+#[must_use]
+pub fn descriptors() -> Outcome {
+    let open: Vec<libc::c_int> = (3..1024)
+        // SAFETY: F_GETFD on any number only asks whether it is an open descriptor.
+        .filter(|&fd| unsafe { libc::fcntl(fd, libc::F_GETFD) } != -1)
+        .collect();
+    if open.is_empty() {
+        Outcome::Blocked("no descriptor above 2".into())
+    } else {
+        Outcome::Allowed(format!("descriptors {open:?} are open"))
+    }
 }
 
 /// `fork()`: the child exits at once.

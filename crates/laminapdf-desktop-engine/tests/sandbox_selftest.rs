@@ -5,13 +5,17 @@
 //! `LAMINA_PDF_PDFIUM_DIR` the thread probe renders too.
 #![allow(clippy::unwrap_used, clippy::panic, reason = "tests: a panic is a test failure")]
 
+use std::ffi::OsString;
 use std::io::Read as _;
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::{Arc, Mutex, mpsc};
+use std::time::Duration;
 
-use laminapdf_desktop_protocol::supervisor::Process as _;
-use laminapdf_desktop_sandbox::{SandboxConfig, spawn_sandboxed};
+use laminapdf_desktop_protocol::DocId;
+use laminapdf_desktop_protocol::supervisor::{Config, Event, Process as _, RangeServer, Supervisor};
+use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, spawn_sandboxed};
 
 fn engine() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_laminapdf-desktop-engine"))
@@ -156,8 +160,12 @@ fn memory_past_the_limit_should_be_refused_where_the_os_enforces_one() {
     );
     let outcome = run.outcome("memory");
     if cfg!(target_os = "macos") {
-        // macOS enforces no memory limit (ADR 0008 §5's gaps).
-        assert!(outcome.is_some_and(|o| o.starts_with("allowed")), "{outcome:?}");
+        // The main process's watchdog kills it while it holds the memory.
+        assert!(
+            outcome.is_none() && run.exit.contains("memory limit"),
+            "{outcome:?} ({})",
+            run.exit
+        );
     } else {
         // Refused (try_reserve failed) or, for an allocation std can't fail, the process ended.
         assert!(
@@ -220,66 +228,97 @@ fn the_process_limit_should_stay_what_it_was_without_the_sandbox() {
     assert_eq!(Some(limit), plain.outcome("nproc"), "RLIMIT_NPROC changed");
 }
 
+#[cfg(unix)]
+#[test]
+fn the_engine_should_inherit_no_descriptor_but_its_pipes() {
+    // A descriptor without close-on-exec, as GTK or D-Bus leave in the main process.
+    let file = std::fs::File::open(engine()).unwrap();
+    let leaked = laminapdf_desktop_sandbox::probe::inheritable_copy(std::os::fd::AsFd::as_fd(&file)).unwrap();
+    let run = selftest("descriptors");
+    drop(leaked);
+    assert_eq!(
+        run.outcome("descriptors"),
+        Some("blocked (no descriptor above 2)"),
+        "{}",
+        run.exit
+    );
+}
+
+/// No document is served in these tests.
+struct NoFiles;
+
+impl RangeServer for NoFiles {
+    fn read(&self, _: DocId, _: u64, _: u32) -> std::io::Result<Vec<u8>> {
+        Err(std::io::Error::other("no files"))
+    }
+}
+
+/// The engine started with `args` and `sandbox` under a supervisor, as the app runs it, and the
+/// supervisor's events.
+fn supervised(args: &[&str], sandbox: SandboxConfig) -> (Supervisor, mpsc::Receiver<Event>) {
+    let (tx, events) = mpsc::channel();
+    let tx = Mutex::new(tx);
+    let args = args.iter().map(OsString::from).collect();
+    let spawner = SandboxSpawner::new(engine(), args, sandbox, |line| eprintln!("engine: {line}"));
+    let config = Config {
+        backoff: Duration::from_millis(10),
+        ..Config::default()
+    };
+    let supervisor = Supervisor::start(Box::new(spawner), Arc::new(NoFiles), config, move |_, event| {
+        if let Event::Log(line) = &event {
+            eprintln!("supervisor: {line}");
+        }
+        let _ = tx.lock().unwrap().send(event);
+    })
+    .unwrap();
+    (supervisor, events)
+}
+
+/// Waits for the next restart; whether a log line before it contained `logged`.
+fn restart_logging(events: &mpsc::Receiver<Event>, logged: &str) -> (Option<u32>, bool) {
+    let mut seen = false;
+    loop {
+        match events.recv_timeout(Duration::from_secs(20)) {
+            Ok(Event::Log(line)) => seen |= line.contains(logged),
+            Ok(Event::Restarted { pid }) => return (Some(pid), seen),
+            Ok(Event::Failed) | Err(_) => return (None, seen),
+        }
+    }
+}
+
+/// An engine that runs past its memory limit (`exhaust`: `Ready`, then allocation until it dies)
+/// is stopped by the sandbox (Windows: the job; macOS: the main process's watchdog; Linux:
+/// `RLIMIT_AS`, an abort), and the supervisor restarts it.
+#[test]
+fn an_engine_past_its_memory_limit_should_be_stopped_and_restarted() {
+    let sandbox = SandboxConfig {
+        memory_limit: 256 << 20,
+    };
+    let (supervisor, events) = supervised(&["--sandbox-selftest=exhaust"], sandbox);
+    let first = supervisor.pid();
+    let (restarted, named) = restart_logging(&events, "memory limit");
+    supervisor.shutdown();
+    assert!(restarted.is_some() && restarted != first, "no restart");
+    if cfg!(any(windows, target_os = "macos")) {
+        assert!(named, "the exit was not logged as the memory limit");
+    }
+}
+
 /// The supervisor's side of a sandbox kill (Unix: the test sends the signal). Not with
 /// `seccomp-trap`, whose handler catches the signal.
 #[cfg(all(unix, not(feature = "seccomp-trap")))]
-mod violation {
-    use std::process::Command;
-    use std::sync::{Arc, Mutex, mpsc};
-    use std::time::Duration;
-
-    use laminapdf_desktop_protocol::supervisor::{Config, Event, RangeServer, Supervisor};
-    use laminapdf_desktop_protocol::{DocId, SandboxLevel};
-    use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner};
-
-    use super::engine;
-
-    /// No document is served in these tests.
-    struct NoFiles;
-
-    impl RangeServer for NoFiles {
-        fn read(&self, _: DocId, _: u64, _: u32) -> std::io::Result<Vec<u8>> {
-            Err(std::io::Error::other("no files"))
-        }
-    }
-
-    /// An engine that dies of SIGSYS (here sent by the test, as seccomp's kill would) is a crash: the
-    /// supervisor logs it as a sandbox violation and starts a new, sandboxed one.
-    #[test]
-    fn an_engine_killed_by_seccomp_should_be_restarted_and_logged_as_a_violation() {
-        let (tx, events) = mpsc::channel();
-        let tx = Mutex::new(tx);
-        let spawner = SandboxSpawner::new(engine(), Vec::new(), SandboxConfig::default(), |_| {});
-        let supervisor = Supervisor::start(
-            Box::new(spawner),
-            Arc::new(NoFiles),
-            Config {
-                backoff: Duration::from_millis(10),
-                ..Config::default()
-            },
-            move |_, event| {
-                let _ = tx.lock().unwrap().send(event);
-            },
-        )
-        .unwrap();
-        assert_ne!(
-            supervisor.sandbox(),
-            Some(SandboxLevel::default()),
-            "the engine is not sandboxed"
-        );
-        let pid = supervisor.pid().unwrap();
-        let killed = Command::new("kill").args(["-SYS", &pid.to_string()]).status().unwrap();
-        assert!(killed.success());
-        let mut logged = false;
-        let restarted = loop {
-            match events.recv_timeout(Duration::from_secs(10)) {
-                Ok(Event::Log(line)) => logged |= line.contains("sandbox violation"),
-                Ok(Event::Restarted { pid }) => break Some(pid),
-                Ok(Event::Failed) | Err(_) => break None,
-            }
-        };
-        assert!(logged, "the exit was not logged as a sandbox violation");
-        assert!(restarted.is_some_and(|new| new != pid), "no restart");
-        supervisor.shutdown();
-    }
+#[test]
+fn an_engine_killed_by_seccomp_should_be_restarted_and_logged_as_a_violation() {
+    let (supervisor, events) = supervised(&[], SandboxConfig::default());
+    assert!(
+        supervisor.sandbox().is_some_and(|level| level.missing().is_empty()),
+        "the engine is not sandboxed"
+    );
+    let pid = supervisor.pid().unwrap();
+    let killed = Command::new("kill").args(["-SYS", &pid.to_string()]).status().unwrap();
+    assert!(killed.success());
+    let (restarted, named) = restart_logging(&events, "sandbox violation");
+    supervisor.shutdown();
+    assert!(named, "the exit was not logged as a sandbox violation");
+    assert!(restarted.is_some_and(|new| new != pid), "no restart");
 }

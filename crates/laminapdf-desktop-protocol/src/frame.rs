@@ -156,8 +156,8 @@ fn read_exact<R: Read>(r: &mut R, buf: &mut [u8]) -> Result<(), ProtocolError> {
 mod tests {
     use super::*;
     use crate::{
-        DocId, EngineLimits, FailureKind, FromEngine, PageDimensions, Password, Priority, ReqId, SandboxLevel,
-        TileFormat, TileRequest, ToEngine,
+        Charsets, DocId, EngineLimits, FailureKind, FontFace, FromEngine, PageDimensions, Password, Priority, ReqId,
+        SandboxLevel, TileFormat, TileRequest, ToEngine,
     };
 
     fn encode<M: Serialize>(msg: &M, payload: &[u8]) -> Vec<u8> {
@@ -216,6 +216,21 @@ mod tests {
             ToEngine::Cancel { req },
             ToEngine::CloseDocument { doc },
             ToEngine::Shutdown,
+            ToEngine::Fonts {
+                faces: vec![FontFace {
+                    id: 3,
+                    family: "Noto Sans CJK SC".into(),
+                    style: "Bold".into(),
+                    weight: 700,
+                    italic: false,
+                    charsets: Charsets::ANSI.with(Charsets::GB2312),
+                }],
+            },
+            ToEngine::FontData { req },
+            ToEngine::FontFailed {
+                req,
+                message: "too large".into(),
+            },
         ]
     }
 
@@ -226,7 +241,9 @@ mod tests {
             FromEngine::Ready {
                 version: PROTOCOL_VERSION,
                 pid: 4242,
-                sandboxed: SandboxLevel::default(),
+                sandboxed: SandboxLevel {
+                    layers: vec![crate::Layer::Seccomp, crate::Layer::Landlock { abi: 4, full: false }],
+                },
             },
             FromEngine::ReadRange {
                 req,
@@ -275,6 +292,7 @@ mod tests {
                 message: "bad frame".into(),
             },
             FromEngine::Heartbeat,
+            FromEngine::FontRequest { req, font: 3 },
         ]
     }
 

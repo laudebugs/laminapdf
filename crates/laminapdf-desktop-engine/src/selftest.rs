@@ -10,7 +10,9 @@
 //! | `connect` | a TCP connection | an address; default `127.0.0.1:9` |
 //! | `spawn` | starting a process | — (`/bin/sh` or `cmd.exe`) |
 //! | `threads` | 4 threads that each open a page and render it (a font lookup too), then join | — |
-//! | `memory` | allocating twice the memory limit, then a little more | — |
+//! | `memory` | allocating twice the memory limit and a little more, held 3 s | — |
+//! | `descriptors` | descriptors above 2 left open (Unix) | — |
+//! | `exhaust` | answer `Hello` with `Ready`, then allocate until killed: the supervisor's view | — |
 //! | `fork`, `exec` | `fork()`, `execve("/bin/sh")` (Unix) | — |
 //! | `clone3` | a raw `clone3` (Linux): the sandbox answers `ENOSYS` | — |
 //! | `nproc` | prints `RLIMIT_NPROC` (Linux), which must be the parent's | — |
@@ -30,7 +32,17 @@ use laminapdf_render::{ByteSource, CancelToken, RenderBackend, RenderOpenOptions
 
 /// Every probe, in the order a run without a probe name tries them.
 const PROBES: &[&str] = &[
-    "read", "write", "connect", "spawn", "threads", "memory", "fork", "exec", "clone3", "nproc",
+    "read",
+    "write",
+    "connect",
+    "spawn",
+    "threads",
+    "memory",
+    "descriptors",
+    "fork",
+    "exec",
+    "clone3",
+    "nproc",
 ];
 
 /// Runs `probe` (or every probe) and prints the results.
@@ -43,6 +55,11 @@ pub fn run(
     config: &SandboxConfig,
     backend: Option<Box<dyn RenderBackend>>,
 ) -> Result<(), String> {
+    if probe == Some("exhaust") {
+        // Its stdout is the protocol's pipe: no lines on it.
+        let outcome = exhaust(level);
+        return Err(format!("exhaust: {outcome}"));
+    }
     say("sandbox", &level.describe());
     let backend = backend.map(|backend| Arc::new(Mutex::new(backend)));
     let probes: Vec<&str> = match probe {
@@ -65,7 +82,12 @@ pub fn run(
             }
             "spawn" => spawn(),
             "threads" => threads(backend.as_ref()),
-            "memory" => probe::allocate(config.memory_limit.saturating_mul(2) + (256 << 20)),
+            "memory" => probe::allocate(
+                config.memory_limit.saturating_mul(2) + (256 << 20),
+                std::time::Duration::from_secs(3),
+            ),
+            #[cfg(unix)]
+            "descriptors" => probe::descriptors(),
             #[cfg(unix)]
             "fork" => probe::fork(),
             #[cfg(unix)]
@@ -79,7 +101,7 @@ pub fn run(
             },
             // Probes of another OS's mechanisms: nothing to try here.
             #[cfg(not(unix))]
-            "fork" | "exec" => continue,
+            "fork" | "exec" | "descriptors" => continue,
             #[cfg(not(target_os = "linux"))]
             "clone3" | "nproc" => continue,
             other => return Err(format!("unknown probe {other}")),
@@ -87,6 +109,29 @@ pub fn run(
         say(name, &outcome.to_string());
     }
     Ok(())
+}
+
+/// The `exhaust` probe: speaks the protocol's handshake, so the main process's supervisor sees a
+/// running engine, then allocates until the sandbox's memory limit ends it.
+fn exhaust(level: &SandboxLevel) -> Outcome {
+    let mut input = std::io::stdin().lock();
+    match laminapdf_desktop_protocol::read_frame::<_, laminapdf_desktop_protocol::ToEngine>(
+        &mut input,
+        laminapdf_desktop_protocol::MAX_FRAME,
+    ) {
+        Ok((laminapdf_desktop_protocol::ToEngine::Hello { .. }, _)) => {}
+        _ => return Outcome::Blocked("no Hello".into()),
+    }
+    let ready = laminapdf_desktop_protocol::FromEngine::Ready {
+        version: laminapdf_desktop_protocol::PROTOCOL_VERSION,
+        pid: std::process::id(),
+        sandboxed: level.clone(),
+    };
+    let mut out = std::io::stdout().lock();
+    if laminapdf_desktop_protocol::write_frame(&mut out, &ready, &[]).is_err() || out.flush().is_err() {
+        return Outcome::Blocked("no pipe".into());
+    }
+    probe::exhaust()
 }
 
 fn say(name: &str, what: &str) {

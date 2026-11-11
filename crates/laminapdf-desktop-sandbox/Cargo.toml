@@ -10,16 +10,19 @@ repository.workspace = true
 publish = false
 homepage.workspace = true
 
-# Read by `cargo xtask`: an app crate. Both processes link it: the main process its spawning half,
-# the engine its lock-down half (feature `engine`). It reaches neither the parser nor PDFium, so the
-# main process's tree stays free of them (ADR 0008 §3). Its FFI is the OS's sandbox APIs, each
-# `unsafe` block in a module that opts in with `#![expect(unsafe_code)]`.
+# Read by `cargo xtask`: an edge crate, since it calls the OS's sandbox APIs through FFI (rust.md:
+# `unsafe` only in edge crates), each `unsafe` block in a module that opts in with
+# `#![expect(unsafe_code)]`. Both processes link it: the main process its spawning half and the
+# font list, the engine its lock-down half (feature `engine`). It reaches neither the parser nor
+# PDFium, so the main process's tree stays free of them (ADR 0008 §3).
 [package.metadata.laminapdf]
-layer = "app"
+layer = "edge"
 
 [features]
-# The engine's half: `apply_engine_sandbox` and the selftest's probes.
+# The engine's half: `apply_engine_sandbox`.
 engine = ["dep:landlock", "dep:seccompiler"]
+# The engine's selftest probes (`probe`): test code, off in the shipped engine.
+probe = ["engine"]
 # Linux, for finding a missing system call: the seccomp filter traps instead of killing, and a
 # SIGSYS handler prints the call's number on stderr before the process exits.
 seccomp-trap = ["engine"]

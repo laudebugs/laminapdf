@@ -32,7 +32,7 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{Config, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{DocId, FromEngine, Priority, TileFormat, TileRequest, ToEngine};
-use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner};
+use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 
 /// The file, read by position, counting what the engine asked for.
 struct Counted {
@@ -133,11 +133,18 @@ fn run() -> Result<(), String> {
     let spawner = SandboxSpawner::new(args.engine.clone(), Vec::new(), SandboxConfig::default(), |line| {
         eprintln!("engine: {line}");
     });
+    // The app lists the system's fonts once, in the background; here before the clock starts.
+    let fonts = SystemFonts::scan();
+    println!("system fonts: {} faces listed in {:.1} ms", fonts.len(), fonts.took.as_secs_f64() * 1000.0);
+    let config = Config {
+        fonts: Some(Arc::new(fonts)),
+        ..Config::default()
+    };
     let starting = Instant::now();
     let engine = Supervisor::start(
         Box::new(spawner),
         Arc::clone(&files) as Arc<dyn RangeServer>,
-        Config::default(),
+        config,
         |_, _| {},
     )
     .map_err(|e| e.to_string())?;

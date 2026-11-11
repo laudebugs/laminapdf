@@ -7,18 +7,18 @@
 //! apply a stricter Seatbelt profile on top. This profile denies all of that.
 #![expect(unsafe_code, reason = "FFI: sandbox_init from libsystem_sandbox")]
 
-use std::ffi::{CStr, CString, c_char, c_int};
+use std::ffi::{CStr, c_char, c_int};
 
-use laminapdf_desktop_protocol::SandboxLevel;
+use laminapdf_desktop_protocol::{Layer, SandboxLevel};
 
 use crate::{SandboxConfig, SandboxError};
 
 /// Deny everything; the engine's pipes are already open, and reading or writing an open
-/// descriptor is not checked. Nothing else is needed after loading: no files (PDFium falls back
-/// to its built-in fonts, ADR 0008 §5), no Mach services, no sysctl, no network, no
-/// `process-fork` or `process-exec`.
-const PROFILE: &str =
-    "(version 1)\n(deny default)\n(allow signal (target self))\n(allow process-info* (target self))\n";
+/// descriptor is not checked. Nothing else is needed after loading: no files (fonts come from the
+/// main process, ADR 0008 §5), no Mach services, no sysctl, no network, no `process-fork` or
+/// `process-exec`.
+const PROFILE: &CStr =
+    c"(version 1)\n(deny default)\n(allow signal (target self))\n(allow process-info* (target self))\n";
 
 // libsystem_sandbox, part of libSystem: `sandbox_init` is public API, deprecated since macOS 10.8
 // without a public replacement; Chromium uses the same library through its private successors.
@@ -28,14 +28,10 @@ unsafe extern "C" {
 }
 
 pub(super) fn apply(_config: SandboxConfig) -> Result<SandboxLevel, SandboxError> {
-    let profile = CString::new(PROFILE).map_err(|_| SandboxError::Os {
-        step: "the Seatbelt profile",
-        code: 0,
-    })?;
     let mut error: *mut c_char = std::ptr::null_mut();
-    // SAFETY: `profile` is a NUL-terminated string that outlives the call; flags 0 means it is a
-    // profile's text, not a named profile; `error` is a valid out-pointer, set only on failure.
-    let status = unsafe { sandbox_init(profile.as_ptr(), 0, &raw mut error) };
+    // SAFETY: `PROFILE` is a static NUL-terminated string; flags 0 means it is a profile's text,
+    // not a named profile; `error` is a valid out-pointer, set only on failure.
+    let status = unsafe { sandbox_init(PROFILE.as_ptr(), 0, &raw mut error) };
     if status != 0 {
         let message = if error.is_null() {
             String::new()
@@ -47,14 +43,9 @@ pub(super) fn apply(_config: SandboxConfig) -> Result<SandboxLevel, SandboxError
             unsafe { sandbox_free_error(error) };
             text
         };
-        super::log(&format!("sandbox_init: {message}"));
-        return Err(SandboxError::Os {
-            step: "sandbox_init",
-            code: status,
-        });
+        return Err(SandboxError::Seatbelt { status, message });
     }
     Ok(SandboxLevel {
-        seatbelt: true,
-        ..SandboxLevel::default()
+        layers: vec![Layer::Seatbelt],
     })
 }

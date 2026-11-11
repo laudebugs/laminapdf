@@ -163,7 +163,11 @@ pub(super) fn spawn(command: &Command, config: &SandboxConfig) -> Result<Sandbox
     }
     let job = job(config.memory_limit)?;
     let tokens = Tokens::new()?;
-    let (process, thread, pid) = create(command, &tokens, &job, &inherited)?;
+    let created = create(command, &tokens, &job, &inherited);
+    // The child's ends close here, as soon as the engine holds its own copies (or failed to
+    // start), so no other process the main process starts meanwhile can inherit them.
+    drop((stdin_child, stdout_child, stderr_child));
+    let (process, thread, pid) = created?;
     let started = JobProcess {
         process,
         job,
@@ -186,8 +190,6 @@ pub(super) fn spawn(command: &Command, config: &SandboxConfig) -> Result<Sandbox
         unsafe { TerminateProcess(started.process.as_raw_handle(), 1) };
         return Err(error);
     }
-    // The child's ends close here; the engine holds its own copies.
-    drop((stdin_child, stdout_child, stderr_child));
     Ok(SandboxedChild {
         stdin: Box::new(stdin),
         stdout: Box::new(stdout),

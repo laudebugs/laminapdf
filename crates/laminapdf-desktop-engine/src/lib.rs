@@ -14,10 +14,12 @@
 //!   younger than [`STALLED`]. A job that runs longer (a hostile file looping in the parser or
 //!   PDFium) stops the beats, and the main process kills and restarts the engine.
 
+pub mod fonts;
 mod limits;
 mod outbox;
 mod queue;
 mod remote;
+#[cfg(feature = "selftest")]
 pub mod selftest;
 mod worker;
 
@@ -44,20 +46,29 @@ pub const HEARTBEAT: Duration = Duration::from_secs(1);
 /// main process (30 s), far longer than a page or a tile takes.
 pub const STALLED: Duration = Duration::from_secs(45);
 
+/// What the engine serves with, set up before it reads its first frame.
+pub struct Setup {
+    /// Renders tiles; without one, documents open and report their pages but every tile answers
+    /// `RenderUnavailable`.
+    pub backend: Option<Box<dyn RenderBackend>>,
+    /// What the sandbox enforces, which `Ready` reports: the caller locks the engine down before it
+    /// calls [`run`], so no request is read before.
+    pub sandboxed: SandboxLevel,
+    /// The system fonts PDFium asks for, filled by the main process's `Fonts` message.
+    pub fonts: Arc<fonts::Fonts>,
+}
+
 /// Serves the main process on `input` and `output` until it sends `Shutdown` or closes the pipe.
-/// `backend` renders tiles; without one, documents open and report their pages but every tile
-/// answers `RenderUnavailable`. `sandboxed` is what the sandbox enforces, which `Ready` reports:
-/// the caller locks the engine down before it calls this, so no request is read before.
 ///
 /// # Errors
 /// [`ProtocolError`] when the first message isn't a `Hello` of this version, a frame is malformed,
 /// or the pipe fails: the main process then restarts the engine.
-pub fn run<R: Read, W: Write + Send + 'static>(
-    mut input: R,
-    output: W,
-    backend: Option<Box<dyn RenderBackend>>,
-    sandboxed: SandboxLevel,
-) -> Result<(), ProtocolError> {
+pub fn run<R: Read, W: Write + Send + 'static>(mut input: R, output: W, setup: Setup) -> Result<(), ProtocolError> {
+    let Setup {
+        backend,
+        sandboxed,
+        fonts,
+    } = setup;
     let out = Outbox::new(Box::new(output));
     let limits = match read_frame(&mut input, MAX_FRAME)? {
         (ToEngine::Hello { version, limits }, _) if version == PROTOCOL_VERSION => limits,
@@ -80,6 +91,7 @@ pub fn run<R: Read, W: Write + Send + 'static>(
     )?;
 
     let ranges = Ranges::new(out.clone());
+    fonts.connect(Arc::clone(&ranges));
     let queue = Arc::new(Queue::default());
     let worker = {
         let (out, ranges, queue) = (out.clone(), Arc::clone(&ranges), Arc::clone(&queue));
@@ -104,7 +116,7 @@ pub fn run<R: Read, W: Write + Send + 'static>(
         })?;
     }
 
-    let result = route(&mut input, &out, &ranges, &queue);
+    let result = route(&mut input, &out, &ranges, &queue, &fonts);
     alive.store(false, Ordering::SeqCst);
     ranges.close();
     queue.close();
@@ -115,7 +127,13 @@ pub fn run<R: Read, W: Write + Send + 'static>(
 }
 
 /// The router's loop: decodes each frame and hands it on, until `Shutdown` or the pipe closes.
-fn route<R: Read>(input: &mut R, out: &Outbox, ranges: &Ranges, queue: &Queue) -> Result<(), ProtocolError> {
+fn route<R: Read>(
+    input: &mut R,
+    out: &Outbox,
+    ranges: &Ranges,
+    queue: &Queue,
+    fonts: &fonts::Fonts,
+) -> Result<(), ProtocolError> {
     loop {
         let (msg, payload) = match read_frame(input, MAX_FRAME) {
             Ok(frame) => frame,
@@ -126,8 +144,11 @@ fn route<R: Read>(input: &mut R, out: &Outbox, ranges: &Ranges, queue: &Queue) -
             }
         };
         match msg {
-            ToEngine::RangeData { req, .. } => ranges.deliver(req, Ok(payload)),
-            ToEngine::RangeFailed { req, message, .. } => ranges.deliver(req, Err(message)),
+            ToEngine::RangeData { req, .. } | ToEngine::FontData { req } => ranges.deliver(req, Ok(payload)),
+            ToEngine::RangeFailed { req, message, .. } | ToEngine::FontFailed { req, message } => {
+                ranges.deliver(req, Err(message));
+            }
+            ToEngine::Fonts { faces } => fonts.set_faces(faces),
             ToEngine::Cancel { req } => {
                 if matches!(queue.cancel(req), Cancelled::Dequeued) {
                     out.send_or_log(
