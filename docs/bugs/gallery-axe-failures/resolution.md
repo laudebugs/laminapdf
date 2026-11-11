@@ -5,7 +5,7 @@ The find results' page headings are now `h2`, and the gallery checks repeated la
 ## The fixes
 
 - **Find results.** `ResultGroup` in `packages/ui/src/reader/find-results.tsx` heads each page's group with an `h2`, and "No matches" takes `EmptyState`'s default level, 2. The rail's Results tab now reads like Recent: the groups are its top level.
-- **Repeated landmarks.** `apps/gallery/e2e/a11y.spec.ts` turns off `landmark-unique` for a page whose grid has more than one sample, then runs that rule inside each sample and on the rest of the page. A component that repeats a landmark within itself still fails; the gallery's side-by-side samples no longer do.
+- **Repeated landmarks.** `apps/gallery/e2e/a11y.spec.ts` keeps a `landmark-unique` finding only when the landmark it repeats sits in the same sample of the grid, or both sit outside it. A component that repeats a landmark within itself still fails; the gallery's side-by-side samples no longer do. The check filters one axe run per page: a first version ran the rule again inside each sample, and in Docker on a Mac those extra runs took Firefox past the test's 30 s limit.
 - **The sample link.** `apps/gallery/src/gallery.css` gives links in the sample text `--paper-accent-strong`, which `@laminapdf/tokens`' contrast table checks as text on the ground in every theme.
 
 ## Tests
