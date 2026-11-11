@@ -34,7 +34,7 @@ PDFium draws the reader's pages from the bytes it opened, so an edit to Lamina P
 
 **Out of scope**
 
-- The edit session, its history and the interface: [E1d](../ongoing/E1d-edit-session-undo-ui.md).
+- The edit session, its history and the interface: [E1d](../done/E1d-edit-session-undo-ui.md).
 - Rendering from Lamina PDF's own model: decided after these measurements (E2).
 
 ## Tasks
