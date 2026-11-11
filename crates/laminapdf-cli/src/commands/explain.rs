@@ -110,7 +110,7 @@ mod tests {
         let report = explain_code("xref-repaired").unwrap();
         assert_eq!((report.code_type, report.kind.as_str()), (CodeType::Warning, "input"));
         assert!(report.page.starts_with("# `xref-repaired`"));
-        assert!(report.docs_url.ends_with("xref-repaired.md"));
+        assert!(report.docs_url.ends_with("/xref-repaired/"));
     }
 
     #[test]

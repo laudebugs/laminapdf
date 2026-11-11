@@ -1,10 +1,11 @@
 ---
 import { getCollection } from "astro:content";
 // One page per error and warning code: docs/errors/<code>.md (the page each code's docsUrl
-// names in the repository), rendered on the site. plugins/error-pages.mjs points its links to other
-// codes at their pages here and drops links to repository files the site doesn't have.
+// names in the repository), rendered on the site, with "Edit page" opening that file. plugins/error-pages.mjs
+// points its links to other codes at their pages here and drops links to repository files the site doesn't have.
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
 import { errorPageHtml } from "../../../../plugins/error-pages.mjs";
+import { EDIT_BASE } from "../../../../plugins/repository.mjs";
 import { codeEntry } from "../../../lib/codes";
 
 export async function getStaticPaths() {
@@ -18,7 +19,14 @@ const headings = (entry.rendered?.metadata?.headings ?? []).filter((h) => h.dept
 const summary = codeEntry(entry.id);
 ---
 
-<StarlightPage frontmatter={{ title: entry.id, description: summary?.summary ?? `The ${entry.id} code` }} headings={headings}>
+<StarlightPage
+  frontmatter={{
+    title: entry.id,
+    description: summary?.summary ?? `The ${entry.id} code`,
+    editUrl: `${EDIT_BASE}docs/errors/${entry.id}.md`,
+  }}
+  headings={headings}
+>
   <p><a href="/reference/codes/">All codes</a></p>
   <Fragment set:html={html} />
 </StarlightPage>

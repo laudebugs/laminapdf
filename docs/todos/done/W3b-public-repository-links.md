@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `docs/w3b-public-repository-links` |
 | PR title | `docs: the repository is public: GitHub links on the docs, error links on the docs site` |
 | Size | M (a constant, regenerated tables, docs site config, many small prose edits) |
-| PR | — |
+| PR | [#436](https://github.com/laudebugs/laminapdf/pull/436) |
 
 ## Goal
 
@@ -37,23 +37,23 @@ The GitHub repository went public, but the project still describes and builds it
 **Out of scope** (and which todo covers it)
 
 - Package READMEs' own wording and links: [W3c](../done/W3c-package-metadata.md).
-- Linking llms.txt from the README: [W3f](./W3f-agent-discovery.md).
+- Linking llms.txt from the README: [W3f](../ready/W3f-agent-discovery.md).
 
 ## Tasks
 
 - [ ] Ask the owner to set the repository's description and topics (the homepage is already `https://laminapdf.com`) (plan §4 decision 3); record the result in the plan.
-- [ ] `apps/docs/plugins/repository.mjs`: links on unconditionally; remove `LAMINA_PDF_DOCS_GITHUB` from the config, workflows, README and CLAUDE.md. Check the edit links point at `main` and the right path for generated pages (error pages, TypeDoc), or leave those without one.
-- [ ] `fixtures/codes.json`: the docs site's base and suffix; `cargo xtask gen codes`; update ADR 0026 §6's sentence about the move to past tense with the date; update `crates/laminapdf/tests/error_contract.rs` fixtures and `fixtures/errors/contract.json` as generation requires.
-- [ ] A docs-site build check: every code in `codes.json` has a built page at the `docsUrl` path.
-- [ ] `grep -rn "is private\|while it is private\|private repository"` across the repository; fix each that refers to the repository (not to private npm packages, which stay private).
-- [ ] The root README's first screen: what Lamina PDF is, then a line and a link for each part.
+- [x] `apps/docs/plugins/repository.mjs`: links on unconditionally; remove `LAMINA_PDF_DOCS_GITHUB` from the config, workflows, README and CLAUDE.md. Check the edit links point at `main` and the right path for generated pages (error pages, TypeDoc), or leave those without one.
+- [x] `fixtures/codes.json`: the docs site's base and suffix; `cargo xtask gen codes`; update ADR 0026 §6's sentence about the move to past tense with the date; update `crates/laminapdf/tests/error_contract.rs` fixtures and `fixtures/errors/contract.json` as generation requires.
+- [x] A docs-site build check: every code in `codes.json` has a built page at the `docsUrl` path.
+- [x] `grep -rn "is private\|while it is private\|private repository"` across the repository; fix each that refers to the repository (not to private npm packages, which stay private).
+- [x] The root README's first screen: what Lamina PDF is, then a line and a link for each part.
 
 ## Acceptance criteria
 
-- [ ] A docs page shows "Edit page" and a GitHub link in its header in a default build.
-- [ ] `laminapdf explain wrong-password` and an SDK `LaminaPdfError` give a `docsUrl` on `docs.laminapdf.com` that the built site serves.
-- [ ] No current statement says the repository is private (done todos, ADRs and research that record the past stay as they are).
-- [ ] `cargo xtask check docs` and the docs build pass.
+- [x] A docs page shows "Edit page" and a GitHub link in its header in a default build.
+- [x] `laminapdf explain wrong-password` and an SDK `LaminaPdfError` give a `docsUrl` on `docs.laminapdf.com` that the built site serves.
+- [x] No current statement says the repository is private (done todos, ADRs and research that record the past stay as they are).
+- [x] `cargo xtask check docs` and the docs build pass.
 
 ## Post-merge checks
 
@@ -76,8 +76,8 @@ ADR 0026 §6, `apps/docs/README.md`, the [website plan §4](../../plans/website.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

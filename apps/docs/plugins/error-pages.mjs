@@ -2,11 +2,8 @@
 // (src/pages/reference/codes/[code].astro), on the HTML Astro rendered it to: the page's own
 // `<h1>` goes (the page title shows the code), a link to another code's page points at its page
 // on the site, and other relative links (ADRs, todos: repository files the site doesn't have)
-// keep their text without the link, as do links to the repository on GitHub unless
-// LAMINA_PDF_DOCS_GITHUB=1 (`GITHUB` in repository.mjs: the repository is private for now). A page's last
-// section, "For contributors" (decision records and todos), is left out.
-
-import { GITHUB, REPOSITORY } from "./repository.mjs";
+// keep their text without the link; links to the repository on GitHub stay. A page's last section,
+// "For contributors" (decision records and todos), is left out.
 
 /**
  * A page's Markdown without its "For contributors" section, which is always last: everything
@@ -41,7 +38,6 @@ export function readerMarkdown(markdown) {
  * @returns {string | undefined}
  */
 export function siteHref(href) {
-  if (href.startsWith(REPOSITORY) && !GITHUB) return undefined;
   if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#") || href.startsWith("/")) return href;
   const code = /^([a-z0-9-]+)\.md(#.*)?$/.exec(href);
   return code ? `/reference/codes/${code[1]}/${code[2] ?? ""}` : undefined;
