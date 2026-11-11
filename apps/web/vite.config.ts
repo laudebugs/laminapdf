@@ -5,6 +5,7 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 import { appVersion } from "./plugins/app-version.ts";
 import { pwa } from "./plugins/pwa.ts";
+import { searchRules } from "./plugins/search.ts";
 
 /**
  * The website's icons, linked by index.html as the website and the docs site link them. The files
@@ -46,7 +47,7 @@ function websiteIcons(): Plugin {
 // The workspace packages are left out of dependency pre-bundling, which would move their worker
 // and WebAssembly URLs away from the files they name. A default export because Vite reads one.
 export default defineConfig({
-  plugins: [react(), babel({ presets: [reactCompilerPreset()] }), websiteIcons(), pwa()],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] }), websiteIcons(), pwa(), searchRules()],
   optimizeDeps: {
     exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@embedpdf/pdfium", "@laminapdf/viewer", "@laminapdf/render-hayro"],
   },
