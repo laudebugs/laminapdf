@@ -206,6 +206,22 @@ fn an_undefined_entity_in_an_attribute_is_not_expanded() {
 }
 
 #[test]
+fn a_name_xml_does_not_allow_is_malformed() {
+    // A fuzzed packet bound Dublin Core to `?dc`; its edited title then wrote `<?dc:title>`, a
+    // processing instruction, and the packet no longer parsed (fixtures/regressions/xmp_parse).
+    let cases: [&[u8]; 3] = [
+        b"<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xmlns:?dc='http://purl.org/dc/elements/1.1/'/>",
+        b"<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' 1a='x'/>",
+        b"<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><-x/></rdf:RDF>",
+    ];
+    let reasons: Vec<_> = cases
+        .iter()
+        .map(|b| Packet::parse(b).err().map(|e| e.reason()))
+        .collect();
+    assert_eq!(reasons, [Some("syntax"); 3]);
+}
+
+#[test]
 fn malformed_packets_name_their_problem() {
     let cases: [(&[u8], &str); 6] = [
         (
