@@ -4,6 +4,20 @@
 // and loses the link, so the member stays documented without a link that would 404.
 import { Converter } from "typedoc";
 
+/** Where TypeDoc writes the @laminapdf/sdk reference, under the site's pages (astro.config.mjs). */
+export const TYPEDOC_OUTPUT = "reference/sdk";
+
+/**
+ * The git revision "Defined in" links name: the release's tag (`v<version>`) for the released docs,
+ * whose code is that tag's, and `main` for every other build.
+ *
+ * @param {{ version: string, release: boolean }} docs
+ * @returns {string}
+ */
+export function sourceRevision(docs) {
+  return docs.release ? `v${docs.version}` : "main";
+}
+
 /**
  * Whether `fileName` is outside the repository's own files: a dependency's, in node_modules.
  *

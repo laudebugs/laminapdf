@@ -19,10 +19,18 @@ import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 import { agentDocs, packageVersion } from "./plugins/agent-docs.mjs";
 import { cliDownloadChecks } from "./plugins/cli-downloads.mjs";
-import { checkedLinks, codePages, examplePdfs, WEBSITE_ICONS, websiteIcons } from "./plugins/integrations.mjs";
+import {
+  checkedLinks,
+  codePages,
+  examplePdfs,
+  repositoryLinks,
+  WEBSITE_ICONS,
+  websiteIcons,
+} from "./plugins/integrations.mjs";
 import { releaseChecks, versionInPages } from "./plugins/release.mjs";
 import { EDIT_BASE, REPOSITORY } from "./plugins/repository.mjs";
 import { sidebar, sidebarRoutes } from "./plugins/sidebar.mjs";
+import { sourceRevision, TYPEDOC_OUTPUT } from "./plugins/typedoc-sources.mjs";
 
 const ROOT = new URL("../../", import.meta.url);
 /** Production's address, which every error's `docsUrl` starts with (fixtures/codes.json). */
@@ -37,7 +45,7 @@ const typeDoc = starlightTypeDoc({
   // TypeDoc reads entry points as globs, which take only forward slashes (not Windows' `\`).
   entryPoints: [fileURLToPath(new URL("packages/sdk/src/index.ts", ROOT)).replaceAll("\\", "/")],
   tsconfig: fileURLToPath(new URL("packages/sdk/tsconfig.build.json", ROOT)),
-  output: "reference/sdk",
+  output: TYPEDOC_OUTPUT,
   sidebar: { label: "@laminapdf/sdk (TypeDoc)", collapsed: true },
   typeDoc: {
     // The wasm-bindgen types come from @laminapdf/wasm's dist/, which only `cargo xtask wasm`
@@ -45,13 +53,13 @@ const typeDoc = starlightTypeDoc({
     skipErrorChecking: true,
     excludeInternal: true,
     excludePrivate: true,
-    // "Defined in" links to the file on main. disableGit builds them from the template alone, so a
-    // worktree or a shallow CI checkout links the same way.
+    // "Defined in" links to the file at the release's tag (main for unreleased docs). disableGit
+    // builds them from the template alone, so a worktree or a shallow CI checkout links the same way.
     disableGit: true,
     displayBasePath: fileURLToPath(ROOT),
     // Sources in node_modules (TypeScript's own types) keep no link: they aren't on GitHub.
     plugin: [fileURLToPath(new URL("plugins/typedoc-sources.mjs", import.meta.url))],
-    sourceLinkTemplate: `${REPOSITORY}/blob/main/{path}#L{line}`,
+    sourceLinkTemplate: `${REPOSITORY}/blob/${sourceRevision(DOCS_RELEASE)}/{path}#L{line}`,
   },
 });
 
@@ -118,6 +126,7 @@ export default defineConfig({
     }),
     examplePdfs(new URL("fixtures/golden/examples/", ROOT)),
     codePages(new URL("fixtures/codes.json", ROOT), SITE),
+    repositoryLinks("/install/", REPOSITORY, `${EDIT_BASE}apps/docs/src/content/docs/install.mdx`),
     cliDownloadChecks(ROOT),
     websiteIcons(new URL("apps/site/public/", ROOT)),
     checkedLinks,

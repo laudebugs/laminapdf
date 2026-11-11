@@ -6,7 +6,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
-import { codePagePaths, copyWebsiteIcons, WEBSITE_ICON_FILES, WEBSITE_ICONS } from "./integrations.mjs";
+import {
+  codePagePaths,
+  copyWebsiteIcons,
+  missingRepositoryLinks,
+  WEBSITE_ICON_FILES,
+  WEBSITE_ICONS,
+} from "./integrations.mjs";
 
 const WEBSITE = new URL("../../site/", import.meta.url);
 
@@ -48,4 +54,19 @@ test("every code's docsUrl names a page on the docs site, for every group in cod
 test("a docsUrl base off the docs site fails the build", () => {
   const codes = JSON.stringify({ docsUrl: { base: "https://example.com/errors/", suffix: ".md" }, errors: [] });
   assert.throws(() => codePagePaths(codes, SITE), /not on https:\/\/docs\.laminapdf\.com/);
+});
+
+const REPO = "https://github.com/laudebugs/laminapdf";
+const EDIT = `${REPO}/edit/main/apps/docs/src/content/docs/install.mdx`;
+
+test("a page with the header's repository link and Edit page passes", () => {
+  const html = `<a href="${REPO}">GitHub</a> <a href="${EDIT}">Edit page</a>`;
+  assert.deepEqual(missingRepositoryLinks(html, REPO, EDIT), []);
+});
+
+test("a page without them names what it lacks", () => {
+  assert.deepEqual(missingRepositoryLinks("<p>no links</p>", REPO, EDIT), [
+    "the header's link to the repository",
+    '"Edit page"',
+  ]);
 });

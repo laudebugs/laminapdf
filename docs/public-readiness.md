@@ -84,6 +84,11 @@ whether it is configured. Those settings remain owner checks.
 
 ## Change visibility in this order
 
+These steps are done: the repository is public (it was on 2026-11-11, when the discoverability
+audit checked). The docs site now links to it, every error's `docsUrl` opens the docs site's page
+for its code, and the READMEs and plans no longer call it private
+([W3b](todos/ongoing/W3b-public-repository-links.md)). The steps stay as the record of the order.
+
 1. Stop and unregister every self-hosted runner before making the repository public.
    Stop the Linux launchd supervisor with `tools/ci-runner/linux/down.sh`; removing
    its registration alone allows the loop to register another runner. Stop the Mac
@@ -104,10 +109,6 @@ whether it is configured. Those settings remain owner checks.
    Then run a full nightly and a release dry run, including docs deployment, before
    the next publish. Keep the former runner services stopped and remove their
    obsolete Linux heartbeat variables.
-
-The repository is public (it was on 2026-11-11, when the discoverability audit checked). The docs
-site now links to it, every error's `docsUrl` opens the docs site's page for its code, and the
-READMEs and plans no longer call it private ([W3b](todos/ongoing/W3b-public-repository-links.md)).
 
 If visibility changes before the migration merges, main still contains the old
 self-hosted workflows. Keeping those machines offline closes that transition gap;

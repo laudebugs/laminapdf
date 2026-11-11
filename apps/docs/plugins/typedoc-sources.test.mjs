@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isDependencyFile } from "./typedoc-sources.mjs";
+import { isDependencyFile, sourceRevision } from "./typedoc-sources.mjs";
 
 test("a declaration in node_modules is a dependency's, on any platform", () => {
   assert.equal(
@@ -14,4 +14,9 @@ test("a declaration in node_modules is a dependency's, on any platform", () => {
 
 test("the SDK's own files keep their links", () => {
   assert.equal(isDependencyFile("/repo/packages/sdk/src/document.ts"), false);
+});
+
+test("the released docs link to the release's tag, other builds to main", () => {
+  assert.equal(sourceRevision({ version: "0.2.0-alpha.6", release: true }), "v0.2.0-alpha.6");
+  assert.equal(sourceRevision({ version: "0.2.0-alpha.6", release: false }), "main");
 });
