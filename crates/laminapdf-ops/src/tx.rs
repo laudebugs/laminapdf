@@ -10,7 +10,7 @@ use laminapdf_cos::JournalMark;
 use laminapdf_model::PageId;
 
 use crate::error::Result;
-use crate::op::Op;
+use crate::op::{Effect, Op};
 use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
 
@@ -63,6 +63,12 @@ pub struct Applied {
     pub undo: UndoRecord,
     /// The pages whose rendering may have changed (viewers re-render only these).
     pub touched_pages: BTreeSet<PageId>,
+    /// A metadata op rewrote the XMP packet whole (it was UTF-16, or read-only by its
+    /// `end="r"` trailer): its properties are kept, its layout and comments are not.
+    pub packet_rewritten: bool,
+    /// A metadata op removed values that the file's earlier revisions still hold: an
+    /// incremental save keeps them in the file, a full rewrite drops them.
+    pub still_in_earlier_revisions: bool,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -75,6 +81,9 @@ pub(crate) struct TxState {
     /// The classes of the ops applied so far.
     pub(crate) pending: PendingChanges,
     pub(crate) coalesce: Option<String>,
+    /// What the ops applied so far did besides their changes (`Applied`'s flags).
+    pub(crate) packet_rewritten: bool,
+    pub(crate) removed: bool,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -118,9 +127,14 @@ impl Tx<'_> {
     /// reading the document.
     pub fn apply(&mut self, op: impl Into<Op>) -> Result<Applied> {
         let mark = self.doc.journal_mark();
-        let touched_pages = self.run_op(&op.into())?;
+        let effect = self.run_op(&op.into())?;
         let undo = UndoRecord::from_changes(self.doc.changes_since(mark)?);
-        Ok(Applied { undo, touched_pages })
+        Ok(Applied {
+            undo,
+            touched_pages: effect.pages.into_iter().collect(),
+            packet_rewritten: effect.packet_rewritten,
+            still_in_earlier_revisions: effect.removed,
+        })
     }
 
     /// [`Tx::apply`] without the per-op undo record (the transaction's record is built
@@ -129,15 +143,16 @@ impl Tx<'_> {
         self.run_op(op).map(drop)
     }
 
-    /// Runs `op`, rolling back its own changes on error; returns the pages it touched.
-    fn run_op(&mut self, op: &Op) -> Result<BTreeSet<PageId>> {
+    /// Runs `op`, rolling back its own changes on error; returns what it did.
+    fn run_op(&mut self, op: &Op) -> Result<Effect> {
         let mark = self.doc.journal_mark();
         match op.apply_to(self.doc) {
-            Ok(touched) => {
-                let touched: BTreeSet<PageId> = touched.into_iter().collect();
-                self.state.touched.extend(touched.iter().cloned());
-                self.state.pending.record(op);
-                Ok(touched)
+            Ok(effect) => {
+                self.state.touched.extend(effect.pages.iter().cloned());
+                self.state.pending.record(op, effect.packet_rewritten);
+                self.state.packet_rewritten |= effect.packet_rewritten;
+                self.state.removed |= effect.removed;
+                Ok(effect)
             }
             Err(e) => {
                 self.doc.cos_mut().rollback_to(mark)?;
@@ -210,6 +225,8 @@ mod tests {
             touched: BTreeSet::new(),
             pending: PendingChanges::default(),
             coalesce: None,
+            packet_rewritten: false,
+            removed: false,
         }
     }
 

@@ -2,6 +2,10 @@
 //! `fuzz/fuzz_targets/{ops_json,save_roundtrip}.rs` call these through `fuzz/src/lib.rs`,
 //! which includes this file, and `tests/regressions.rs` replays every saved crash input
 //! (`fixtures/regressions/<target>/`) through the same function.
+#![allow(
+    deprecated,
+    reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
+)]
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::Rotation;

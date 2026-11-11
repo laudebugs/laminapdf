@@ -1,0 +1,13 @@
+{
+  "op": "setMetadata",
+  "args": {
+    "patch": {
+      "title": "Quarterly figures",
+      "authors": ["Ada Lovelace", "Charles Babbage"],
+      "subject": null,
+      "keywords": "Привет, 世界",
+      "created": "D:20260312093000+01'00'"
+    },
+    "at": "D:20261110093000Z"
+  }
+}

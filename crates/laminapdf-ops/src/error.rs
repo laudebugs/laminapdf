@@ -48,6 +48,11 @@ pub enum Error {
     /// bytes would not match the undo history, and unsaved changes would be lost.
     #[error("no save is waiting to be rebased onto")]
     NoPendingSave,
+    /// A metadata edit would have to replace the document's XMP packet, which can't be read
+    /// (`xmp-invalid`), losing whatever it holds. The edit is refused unless it says to
+    /// replace the packet ([`SetMetadata::replace_malformed`](crate::SetMetadata::replace_malformed)).
+    #[error("the XMP packet can't be read, and the edit would replace it")]
+    MalformedXmp,
 }
 
 /// A page ID as a message may show it: an object ID in full (lamina-made: a kind and two
@@ -81,6 +86,7 @@ impl Error {
         "invalid-op-log",
         "saved-not-rebased",
         "no-pending-save",
+        "malformed-xmp",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -96,6 +102,7 @@ impl Error {
             Self::InvalidLog(_) => "invalid-op-log",
             Self::SavedNotRebased => "saved-not-rebased",
             Self::NoPendingSave => "no-pending-save",
+            Self::MalformedXmp => "malformed-xmp",
         }
     }
 
@@ -113,7 +120,7 @@ impl Error {
             }
             Self::UnknownPage(_) => ErrorKind::Usage,
             Self::DirectPage(_) | Self::UnsupportedVersion(_) => ErrorKind::Unsupported,
-            Self::InvalidLog(_) => ErrorKind::Input,
+            Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
         }
     }
 
@@ -137,7 +144,8 @@ impl Error {
             | Self::UnsupportedVersion(_)
             | Self::InvalidLog(_)
             | Self::SavedNotRebased
-            | Self::NoPendingSave => Location::NONE,
+            | Self::NoPendingSave
+            | Self::MalformedXmp => Location::NONE,
         }
     }
 }
@@ -163,6 +171,7 @@ mod tests {
             Error::InvalidLog(String::new()),
             Error::SavedNotRebased,
             Error::NoPendingSave,
+            Error::MalformedXmp,
         ]
     }
 

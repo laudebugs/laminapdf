@@ -92,6 +92,8 @@ pub enum ErrorCode {
     SavedNotRebased,
     /// `no-pending-save`: rebase was called without a save waiting for it.
     NoPendingSave,
+    /// `malformed-xmp`: a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds.
+    MalformedXmp,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -284,6 +286,7 @@ impl ErrorCode {
         Self::InvalidOpLog,
         Self::SavedNotRebased,
         Self::NoPendingSave,
+        Self::MalformedXmp,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -410,6 +413,7 @@ impl ErrorCode {
             Self::InvalidOpLog => "invalid-op-log",
             Self::SavedNotRebased => "saved-not-rebased",
             Self::NoPendingSave => "no-pending-save",
+            Self::MalformedXmp => "malformed-xmp",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -524,6 +528,7 @@ impl ErrorCode {
             Self::InvalidOpLog => ErrorKind::Input,
             Self::SavedNotRebased => ErrorKind::State,
             Self::NoPendingSave => ErrorKind::State,
+            Self::MalformedXmp => ErrorKind::Input,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -638,6 +643,7 @@ impl ErrorCode {
             Self::InvalidOpLog => "an op log does not parse: an unknown op or field, a bad value, or not JSON",
             Self::SavedNotRebased => "the document was saved to a sink Lamina PDF cannot read back and waits for rebase",
             Self::NoPendingSave => "rebase was called without a save waiting for it",
+            Self::MalformedXmp => "a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -752,6 +758,7 @@ impl ErrorCode {
             Self::InvalidOpLog => "validate the op log against the op schema; the samples in fixtures/ops show the format",
             Self::SavedNotRebased => "call rebase with the saved bytes before applying ops or saving again",
             Self::NoPendingSave => "call rebase only after a save that returned SavedNotRebased",
+            Self::MalformedXmp => "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",
@@ -932,6 +939,12 @@ pub enum WarningCode {
     ExtractNeedsOcr,
     /// `extract-column-order-uncertain`: the layout rules had to guess how a page's columns are read, so its blocks may be in the wrong order; the blocks concerned have a lower confidence.
     ExtractColumnOrderUncertain,
+    /// `pdfa-one-author`: the file claims PDF/A-1, which allows one author, and its metadata lists more.
+    PdfaOneAuthor,
+    /// `pdfua-title-missing`: the file claims PDF/UA-1, which requires a title in its metadata, and it has none.
+    PdfuaTitleMissing,
+    /// `pdfa-info-mismatch`: the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ.
+    PdfaInfoMismatch,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -996,6 +1009,9 @@ impl WarningCode {
         Self::ExtractUntaggedContent,
         Self::ExtractNeedsOcr,
         Self::ExtractColumnOrderUncertain,
+        Self::PdfaOneAuthor,
+        Self::PdfuaTitleMissing,
+        Self::PdfaInfoMismatch,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1066,6 +1082,9 @@ impl WarningCode {
             Self::ExtractUntaggedContent => "extract-untagged-content",
             Self::ExtractNeedsOcr => "extract-needs-ocr",
             Self::ExtractColumnOrderUncertain => "extract-column-order-uncertain",
+            Self::PdfaOneAuthor => "pdfa-one-author",
+            Self::PdfuaTitleMissing => "pdfua-title-missing",
+            Self::PdfaInfoMismatch => "pdfa-info-mismatch",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1124,6 +1143,9 @@ impl WarningCode {
             Self::ExtractUntaggedContent => ErrorKind::Input,
             Self::ExtractNeedsOcr => ErrorKind::Unsupported,
             Self::ExtractColumnOrderUncertain => ErrorKind::Unsupported,
+            Self::PdfaOneAuthor => ErrorKind::Usage,
+            Self::PdfuaTitleMissing => ErrorKind::Usage,
+            Self::PdfaInfoMismatch => ErrorKind::Input,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1182,6 +1204,9 @@ impl WarningCode {
             Self::ExtractUntaggedContent => "a page read in structure-tree order has visible text that is neither in the tree nor an artifact; it follows the tree's blocks, in layout order",
             Self::ExtractNeedsOcr => "a page has no usable text layer: it is an image (with or without an invisible OCR layer), outlined glyphs, or glyphs without Unicode, so its extracted text is empty or unreliable",
             Self::ExtractColumnOrderUncertain => "the layout rules had to guess how a page's columns are read, so its blocks may be in the wrong order; the blocks concerned have a lower confidence",
+            Self::PdfaOneAuthor => "the file claims PDF/A-1, which allows one author, and its metadata lists more",
+            Self::PdfuaTitleMissing => "the file claims PDF/UA-1, which requires a title in its metadata, and it has none",
+            Self::PdfaInfoMismatch => "the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1240,6 +1265,9 @@ impl WarningCode {
             Self::ExtractUntaggedContent => "nothing to do; tag that text in the file to give it a place in the reading order",
             Self::ExtractNeedsOcr => "run OCR or a vision model on this page; the page's textLayer in the JSON says which case it is",
             Self::ExtractColumnOrderUncertain => "check the page, or send it to a layout model; the warning's reason says which guess was made",
+            Self::PdfaOneAuthor => "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
+            Self::PdfuaTitleMissing => "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
+            Self::PdfaInfoMismatch => "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",

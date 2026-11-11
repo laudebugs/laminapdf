@@ -38,6 +38,7 @@ mod extract;
 mod memory;
 #[cfg(feature = "extract")]
 mod navigation;
+mod plan;
 #[cfg(feature = "extract")]
 mod properties;
 // Reader mode is for the reader, which loads the extract module: the text module (for builders)

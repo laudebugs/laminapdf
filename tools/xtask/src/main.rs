@@ -215,6 +215,10 @@ tasks:
                     nightly: lamina's page text vs live pdf.js and pdftotext over the external
                     corpus (whitespace and bidi controls removed; a page agrees when lamina
                     matches one tool); report in target/nightly/differential-text/
+  differential --live --xmp [--source <name>]… [--sample N]
+                    nightly: the XMP values lamina reads vs ExifTool's (pinned in doctor.rs) over
+                    the external corpus and the committed fixture PDFs, field by field; exceptions
+                    in fixtures/differential/xmp-exceptions.toml; report in target/nightly/differential-xmp/
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
                     (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
