@@ -1,7 +1,7 @@
 ---
 title: "Pages that flow"
 description: "Pour headings, paragraphs, tables and images, or a Markdown file, into as many pages as they need, with footnotes, a contents page and \"Page X of Y\" footers."
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/guides/flowing-pages/"
 ---
 
@@ -282,6 +282,67 @@ You can also write the document in Markdown and let `Builder::markdown` turn it 
 
 The example below builds a short report from a Markdown file. It gives the fonts, the page template and a contents page in `MarkdownBuildOptions`, and it passes the one image the Markdown names. The builder reads no files and fetches nothing, so it leaves out an image you don't pass and adds a `markdown-image-missing` warning. It leaves out raw HTML too, with `markdown-html-ignored`. Both warnings give the position in the Markdown, never its text.
 
+In TypeScript, `builder.markdown(text, options)` takes the same options, with the fonts as `Font`s and the images as `Image`s by the name the Markdown uses. It needs the text module, `init({ text: true })`. Both languages write the same bytes:
+
+**TypeScript**
+
+`packages/sdk/examples/markdown-to-pdf.ts`:
+
+```ts
+// A report written in Markdown, turned into tagged pages that flow: headings, paragraphs with
+// emphasis, code and links, a photo, lists and a task list, a block quote, a table that runs
+// across pages, a code block, footnotes, and paragraphs in Arabic and Hindi.
+//
+// The front matter gives the title and language, a contents page lists the headings, and the
+// output meets PDF/UA-1, so every font is embedded. The builder reads no files: the fonts and the
+// one photo the Markdown names are passed in, and nothing is fetched.
+import { Builder, type BuilderOptions, Font, Image } from "@laminapdf/sdk";
+
+/** The fonts the report is set in: Latin, a bold face, Arabic and Devanagari. */
+export interface ReportFonts {
+  readonly regular: Uint8Array;
+  /** A collection whose second face (index 1) is the bold one. */
+  readonly bold: Uint8Array;
+  readonly arabic: Uint8Array;
+  readonly devanagari: Uint8Array;
+}
+
+/**
+ * The report's bytes. Needs `init({ text: true })`.
+ *
+ * @param markdown - the report's Markdown.
+ * @param fonts - the fonts to set it in.
+ * @param photo - the JPEG the Markdown shows as `photo.jpg`.
+ * @param options - can fix the file ID, the producer and the creation date.
+ */
+export function markdownToPdf(
+  markdown: string,
+  fonts: ReportFonts,
+  photo: Uint8Array,
+  options: BuilderOptions = {},
+): Uint8Array<ArrayBuffer> {
+  using b = new Builder({ ...options, profiles: ["PDF/UA-1"] });
+  const report = b.markdown(markdown, {
+    fonts: {
+      regular: Font.fromBytes(fonts.regular),
+      bold: Font.fromCollection(fonts.bold, 1),
+      fallbacks: [Font.fromBytes(fonts.arabic), Font.fromBytes(fonts.devanagari)],
+    },
+    images: { "photo.jpg": Image.jpeg(photo) },
+    // A5 pages, so the table runs across two of them, with the page number in the footer.
+    page: { size: "A5", footer: { center: "Page {page} of {pages}" }, furnitureSize: 8 },
+    contents: 2,
+  });
+  using doc = b.finish();
+  const [warning] = doc.warnings;
+  if (warning !== undefined) throw new Error(`the Markdown has something the PDF leaves out: ${warning.code}`);
+  if (report.pages.length === 0) throw new Error("the report has no pages");
+  return doc.save();
+}
+```
+
+**Rust**
+
 `crates/laminapdf/examples/markdown_to_pdf.rs`:
 
 ```rust
@@ -343,9 +404,25 @@ pub(crate) fn build(
 }
 ```
 
+**Result:** [markdown_to_pdf.pdf](https://docs.laminapdf.com/examples/pdf/markdown_to_pdf.pdf)
+
 The result is four A5 pages: [open the reference PDF](https://docs.laminapdf.com/examples/pdf/markdown_to_pdf.pdf).
 
+The `laminapdf` command line does the same without code. It reads the images from the Markdown's folder and the fonts from `--font`:
+
+```sh
+laminapdf build report.md -o report.pdf --font regular=NotoSans-Regular.ttf --profile pdf-ua-1
+```
+
 If you pass no fonts, the builder sets the Markdown in Helvetica and Courier, two fonts every PDF reader has. They set only Latin text, and since they aren't embedded, a PDF/UA-1 build refuses them with `font-not-embedded`. Pass your own fonts with `MarkdownFonts` for other scripts or an accessible document.
+
+## Write it as JSON
+
+You can also describe the document as JSON, in the format `laminapdf.document/1`, and lay it out with `Builder::document`. The JSON names what you would build by hand. A `page` sets the size, margins, header and footer, `styles` each name a font and a size, and `blocks` are tagged by `type`, such as `paragraph`, `heading`, `list`, `table`, `figure` and `contents`. Fonts and images are named in the document, and their bytes come beside it in `Resources`, so the JSON holds no files.
+
+A format with a schema suits programs and language models: they write the document, and the schema checks it before anything is drawn. Lamina PDF reads only the keys the format defines. A misspelt one fails with `invalid-document`, whose `data.pointer` names the value and whose `didYouMean` suggests the key it was close to.
+
+A template is the same JSON with placeholders that `fill` replaces from your data. `$data` puts in a value and `$each` repeats a block or table row per item, with `$item` for a value of the current item. `$if` keeps a block only when a value is there. The [Fill an invoice from JSON](../../pages/recipes/invoice-from-json.md) recipe builds a two-page invoice this way.
 
 ## Fields in headers and footers
 

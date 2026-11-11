@@ -1,7 +1,7 @@
 ---
 title: "Stability policy"
 description: "What a Lamina PDF version number promises, and what stays the same in every version."
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/reference/stability/"
 ---
 
@@ -17,7 +17,7 @@ Every crate and every npm package shares one version, and they are released toge
 
 ## What a version number tells you
 
-- **Alphas promise nothing to each other.** Anything can change between `0.2.0-alpha.1` and `0.2.0-alpha.2`. While you try an alpha, pin the exact version: `npm install --save-exact @laminapdf/sdk@0.2.0-alpha.5`, and `laminapdf = "=0.2.0-alpha.5"` in `Cargo.toml`.
+- **Alphas promise nothing to each other.** Anything can change between `0.2.0-alpha.1` and `0.2.0-alpha.2`. While you try an alpha, pin the exact version: `npm install --save-exact @laminapdf/sdk@0.2.0-alpha.6`, and `laminapdf = "=0.2.0-alpha.6"` in `Cargo.toml`.
 - **The `alpha` tag names the newest alpha.** `npm install @laminapdf/sdk@alpha` gets it. A plain `npm install @laminapdf/sdk` gets a `0.0.0` placeholder that only reserves the name.
 - **After the alphas, `0.x` versions follow SemVer as Cargo reads it.** A breaking change raises the minor version (`0.2` to `0.3`), and features and fixes raise the patch (`0.2.0` to `0.2.1`). So an upgrade within one `0.x` line never needs a code change.
 

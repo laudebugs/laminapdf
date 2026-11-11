@@ -1,5 +1,23 @@
 # @laminapdf/viewer
 
+## 0.2.0-alpha.6
+
+### Minor Changes
+
+- 70eb584: An edit session for the open document. `viewer.edits` holds its history: each step with its label, pages and time, how many steps are done, and how many changes are unsaved. It runs `apply(ops, label)`, `undo()`, `redo()` and `goTo(step)` one after another, and each redraws only the pages it touched. An undo that could restore only part of a step says so, and `onFailed` reports a call that failed. The history keeps 500 steps. If the document worker restarts, it opens the file again and replays the session's steps, so nothing is lost; when the replay couldn't reproduce the document, it says the edits were lost. An encrypted document can't be edited yet, and says so when it opens (`encrypted`). When the zoom fits the width or the page, a page you turn is fitted again.
+- 5dca35b: The viewer can put a reader back where they stopped. `client.open()` now answers with `fingerprint`, a hash of the file's first revision (`"fp1:"` and a SHA-256). It stays the same for a renamed copy and after an incremental update, so it can key a saved position. `viewer.viewPosition()` gives the place in view as a page and point, the zoom and the rotation, and `viewer.restore(position)` goes back there as a history jump, so Back returns to page 1. When the position is restored in the task that opened the document, the first frame paints that page and no other. A view opened or restored while its container is hidden now waits until it is shown, then starts at the top or at the restored place. Before, it kept the previous document's scroll.
+- 37b5348: Edits show on screen. `viewer.applyEdit(ops)` applies `@laminapdf/sdk`'s ops to the open document as one transaction and redraws only the pages they touched: a turned page draws turned, at its new size, while every other page keeps what it drew. `ViewerClient.applyEdit(ops)` makes the edit alone, and `viewer.invalidate(pages, sizes?)` redraws any pages you name. A metadata edit redraws nothing, and a failed edit leaves the pages as they were.
+
+### Patch Changes
+
+- Updated dependencies [810d0d4]
+- Updated dependencies [64f7860]
+- Updated dependencies [70eb584]
+  - @laminapdf/sdk@0.2.0-alpha.6
+  - @laminapdf/render-hayro@0.2.0-alpha.6
+  - @laminapdf/render@0.2.0-alpha.6
+  - @laminapdf/render-pdfium@0.2.0-alpha.6
+
 ## 0.2.0-alpha.5
 
 ### Minor Changes

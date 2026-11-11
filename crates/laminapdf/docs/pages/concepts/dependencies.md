@@ -1,7 +1,7 @@
 ---
 title: "What Lamina PDF writes and what it borrows"
 description: "Lamina PDF writes the parts that decide a PDF's bytes, borrows the rest from permissive projects, and pins and checks everything it borrows."
-version: "0.2.0-alpha.5"
+version: "0.2.0-alpha.6"
 url: "https://docs.laminapdf.com/concepts/dependencies/"
 ---
 
