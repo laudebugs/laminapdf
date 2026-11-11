@@ -10,6 +10,7 @@ import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.tt
 import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Regular.ttf";
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
+import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
 import flowReport from "../../../../fixtures/text/element-flow-report.json" with { type: "json" };
@@ -29,6 +30,7 @@ const inputs: Inputs = {
       "fixtures/images/photo-rgb.jpg": photo,
       "fixtures/fonts/NotoSans-RegularBold.ttc": notoSansCollection,
       "fixtures/markdown/report.md": report,
+      "fixtures/golden/metadata.pdf": metadataPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),
   // The element-flow report comes in as a JSON module; the suite reads every input as bytes.

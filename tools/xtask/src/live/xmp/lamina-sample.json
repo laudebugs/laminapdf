@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "reports_repair": false,
   "facts": {
-    "broken.pdf": {"outcome": "failed", "error": "missing-root", "packet": null, "fields": {}},
+    "broken.pdf": { "outcome": "failed", "error": "missing-root", "packet": null, "fields": {} },
     "differs.pdf": {
       "outcome": "opened",
       "packet": "parsed",
@@ -16,9 +16,9 @@
         "pdfua_part": 1
       }
     },
-    "noxmp.pdf": {"outcome": "opened", "packet": "absent", "fields": {}},
-    "panics.pdf": {"outcome": "panic", "packet": null, "fields": {}},
-    "plain.pdf": {"outcome": "opened", "packet": "malformed", "fields": {}},
+    "noxmp.pdf": { "outcome": "opened", "packet": "absent", "fields": {} },
+    "panics.pdf": { "outcome": "panic", "packet": null, "fields": {} },
+    "plain.pdf": { "outcome": "opened", "packet": "malformed", "fields": {} },
     "same.pdf": {
       "outcome": "opened",
       "packet": "parsed",
@@ -33,6 +33,6 @@
         "pdfa_conformance": "B"
       }
     },
-    "unreadable.pdf": {"outcome": "opened", "packet": "absent", "fields": {}}
+    "unreadable.pdf": { "outcome": "opened", "packet": "absent", "fields": {} }
   }
 }

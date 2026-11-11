@@ -1,40 +1,42 @@
-[{
-  "SourceFile": "broken.pdf",
-  "ExifTool:Error": "File format error"
-},
-{
-  "SourceFile": "differs.pdf",
-  "XMP-x:XMPToolkit": "Adobe XMP Core 5.6-c015",
-  "XMP-dc:Title": "Draft",
-  "XMP-dc:Creator": "Grace Hopper",
-  "XMP-pdf:Keywords": 2024,
-  "XMP-xmp:CreatorTool": "Writer",
-  "XMP-xmp:ModifyDate": "2026:10:28 14:30:00Z",
-  "XMP-pdfuaid:Part": 1
-},
-{
-  "SourceFile": "noxmp.pdf"
-},
-{
-  "SourceFile": "panics.pdf"
-},
-{
-  "SourceFile": "plain.pdf"
-},
-{
-  "SourceFile": "same.pdf",
-  "XMP-x:XMPToolkit": "Image::ExifTool 12.76",
-  "XMP-dc:Title": "Quarterly report",
-  "XMP-dc:Title-de": "Quartalsbericht",
-  "XMP-dc:Creator": ["Ada Lovelace","Charles Babbage"],
-  "XMP-pdf:Producer": "Lamina PDF 0.1.0",
-  "XMP-xmp:CreateDate": "2026:10:28 14:30:00.125+01:00",
-  "XMP-xmpMM:DocumentID": "uuid:6b1f7c2e-1d3a-4f6b-9a8e-2c4d5e6f7a8b",
-  "XMP-xmpMM:InstanceID": "uuid:0f9e8d7c-6b5a-4938-8271-605f4e3d2c1b",
-  "XMP-pdfaid:Part": 2,
-  "XMP-pdfaid:Conformance": "B"
-},
-{
-  "SourceFile": "unreadable.pdf",
-  "ExifTool:Error": "File format error"
-}]
+[
+  {
+    "SourceFile": "broken.pdf",
+    "ExifTool:Error": "File format error"
+  },
+  {
+    "SourceFile": "differs.pdf",
+    "XMP-x:XMPToolkit": "Adobe XMP Core 5.6-c015",
+    "XMP-dc:Title": "Draft",
+    "XMP-dc:Creator": "Grace Hopper",
+    "XMP-pdf:Keywords": 2024,
+    "XMP-xmp:CreatorTool": "Writer",
+    "XMP-xmp:ModifyDate": "2026:10:28 14:30:00Z",
+    "XMP-pdfuaid:Part": 1
+  },
+  {
+    "SourceFile": "noxmp.pdf"
+  },
+  {
+    "SourceFile": "panics.pdf"
+  },
+  {
+    "SourceFile": "plain.pdf"
+  },
+  {
+    "SourceFile": "same.pdf",
+    "XMP-x:XMPToolkit": "Image::ExifTool 12.76",
+    "XMP-dc:Title": "Quarterly report",
+    "XMP-dc:Title-de": "Quartalsbericht",
+    "XMP-dc:Creator": ["Ada Lovelace", "Charles Babbage"],
+    "XMP-pdf:Producer": "Lamina PDF 0.1.0",
+    "XMP-xmp:CreateDate": "2026:10:28 14:30:00.125+01:00",
+    "XMP-xmpMM:DocumentID": "uuid:6b1f7c2e-1d3a-4f6b-9a8e-2c4d5e6f7a8b",
+    "XMP-xmpMM:InstanceID": "uuid:0f9e8d7c-6b5a-4938-8271-605f4e3d2c1b",
+    "XMP-pdfaid:Part": 2,
+    "XMP-pdfaid:Conformance": "B"
+  },
+  {
+    "SourceFile": "unreadable.pdf",
+    "ExifTool:Error": "File format error"
+  }
+]
