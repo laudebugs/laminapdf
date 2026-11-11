@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3c](./W3c-package-metadata.md) |
+| Depends on | [W3c](../ongoing/W3c-package-metadata.md) |
 | ADRs | None |
 | Branch | `docs/w3g-choosing-a-pdf-library` |
 | PR title | `docs: choosing a PDF library, with what Lamina PDF does and doesn't do` |
