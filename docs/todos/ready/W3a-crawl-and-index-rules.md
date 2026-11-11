@@ -15,7 +15,7 @@
 
 ## Goal
 
-Each of the project's hosts tells crawlers the same thing: production pages may be crawled and indexed once, on their own host, and nothing else may. Today the reader's staging site and PR previews are open to indexing although ADR 0011 §1 says they must not be, the reader answers `/robots.txt` with its HTML page, the docs site has no robots.txt, and the docs' production pages are probably served a second time on a `workers.dev` address without `noindex`. Any of these can put a staging or duplicate page in a search index above the real one, and every later todo in Round W3 invites crawlers in, so this one goes first.
+Each of the project's hosts tells crawlers the same thing: production pages may be indexed, once, on their own host; every other page may be crawled but never indexed. Today two hosts can put a copy above the real page in a search index: the reader's staging site and PR previews are open to indexing (ADR 0011 §1 forbids it), and the docs' production pages are probably served again on a `workers.dev` address without `noindex`. Two robots files are also wrong: the reader answers `/robots.txt` with its HTML page, and the docs site has none. The todos after this one (W3d–W3h) invite crawlers in, so this one goes first.
 
 ## Context
 

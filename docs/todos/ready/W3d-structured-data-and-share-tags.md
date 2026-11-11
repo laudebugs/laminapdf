@@ -19,7 +19,7 @@ Search and answer engines read structured data to learn what a site is, who publ
 
 ## Context
 
-- [Discoverability research §6](../../research/discoverability/search-and-answer-engines.md#6-structured-data-and-versioned-docs): which schema.org types fit (no `SoftwareApplication` rich result without ratings, and no invented ratings) and §3 on Markdown twins.
+- [Discoverability research §6](../../research/discoverability/search-and-answer-engines.md#6-structured-data-cant-earn-a-rich-result-here-but-still-names-the-project): which schema.org types fit (no `SoftwareApplication` rich result without ratings, and no invented ratings) and §3 on Markdown twins.
 - `apps/site/src/layouts/Base.astro` (the website's head), `apps/docs/astro.config.mjs` (Starlight's `head`), `apps/web/index.html`.
 - `packages/site-kit/src/integrations.mjs`: `inlineScripts` hashes every inline `<script>` into `_headers` whatever its `type`, and the docs site's CSP line has a 1,900-character limit. A JSON-LD data block needs no hash.
 

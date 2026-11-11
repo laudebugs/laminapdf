@@ -11,7 +11,7 @@
 
 ## 1. Goal
 
-A developer who asks a search engine, an AI answer engine or a coding agent for a PDF library for TypeScript or Rust should meet Lamina PDF when it fits their job. Someone who asks for a PDF reader that runs in the browser should meet the web reader. Today they mostly can't. The research found that every engine, AI answer engines included, starts from the same place: pages that are crawlable, indexed once on one host, and plain about what they answer. Lamina PDF's sites do most of that already, but the audit found gaps that cost more than any missing extra:
+A developer who asks a search engine, an AI answer engine or a coding agent for a PDF library for TypeScript or Rust should meet Lamina PDF when it fits their job. Someone who asks for a PDF reader that runs in the browser should meet the web reader. The audit suggests they often won't today; W3i measures it. The research found that every engine, AI answer engines included, starts from the same place: pages that are crawlable, indexed once on one host, and plain about what they answer. Lamina PDF's sites do most of that already, but the audit found gaps that cost more than any missing extra:
 
 - the reader's staging site is open to indexing, and the docs' production pages are probably served on a second host;
 - the repository went public, but the docs, READMEs and error links still treat it as private;
@@ -31,7 +31,7 @@ Round W3 closes those gaps in order of reach, then adds the pages and the measur
 
 - **No llms.txt changes for ranking's sake.** The files stay as L5a built them; W3f only makes them easier to find and lists them with Context7.
 - **No paid placement, link buying or posting campaigns.** Posts off the site stay with the stories skill ([W2a](../todos/ongoing/W2a-story-skill-and-coverage-map.md), [website plan §9](website.md#9-stories-off-the-site)), and the [trust and proof plan](trust-and-proof.md) already ruled out leading with "local and private".
-- **No Worker code.** Content negotiation (`Accept: text/markdown`) would need it or a Cloudflare zone setting; W3f puts the zone setting to the owner as an option.
+- **No Worker code.** Content negotiation (`Accept: text/markdown`) would need Worker code or a Cloudflare zone setting; W3f puts the zone setting to the owner as an option.
 
 ## 4. Decisions for the owner
 
@@ -56,7 +56,7 @@ Round W3 closes those gaps in order of reach, then adds the pages and the measur
 
 ## 6. Sequence
 
-W3a, W3b, W3c and W3i can start at once. W3a goes first: an indexable staging site and a duplicate docs host can rank above the real pages, and every later step invites crawlers in. W3d waits for W3a and for W3i's baseline, so the comparison is fair. W3e follows W3d, whose `lastmod` dates tell the IndexNow pings which pages changed. W3f follows W3b, because a Context7 listing reads the repository; W3g follows W3c, so the comparison links to the packages' improved pages; W3h comes last, once Search Console (W3e) has query data and W3g's page exists.
+W3a, W3b, W3c and W3i depend on nothing and can start at once, but W3a should merge first: an indexable staging site and a duplicate docs host can rank above the real pages, and W3d–W3h invite crawlers in. W3d waits for W3a and for W3i's baseline, so the comparison is fair. W3e follows W3d, whose `lastmod` dates tell the IndexNow pings which pages changed. W3f follows W3b, because a Context7 listing reads the repository. W3g follows W3c, so the comparison links to the packages' improved pages. W3h comes last, once Search Console (W3e) has query data and W3g's page exists.
 
 ## 7. To-dos
 
