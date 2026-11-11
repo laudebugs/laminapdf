@@ -83,10 +83,11 @@ describe("Document edits", () => {
     const id = doc.page(0).id;
     doc.transact((tx) => tx.setInfo({ title: "T" }).rotatePage(id, 90));
     const after = [doc.info.title, doc.pageInfo(0).rotation];
-    doc.undo();
-    expect([after, [doc.info.title, doc.pageInfo(0).rotation]]).toEqual([
+    const undone = doc.undo();
+    expect([after, [doc.info.title, doc.pageInfo(0).rotation], undone]).toEqual([
       ["T", 90],
       [undefined, 0],
+      { outcome: "applied", touchedPages: [id] },
     ]);
   });
 
@@ -153,7 +154,7 @@ describe("Document edits", () => {
     const doc = hello();
     doc.transact((tx) => tx.setInfo({ subject: "S" }));
     doc.undo();
-    expect([doc.redo(), doc.info.subject]).toEqual(["applied", "S"]);
+    expect([doc.redo(), doc.info.subject]).toEqual([{ outcome: "applied", touchedPages: [] }, "S"]);
   });
 });
 

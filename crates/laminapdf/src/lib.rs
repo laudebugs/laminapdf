@@ -141,7 +141,7 @@ mod warning;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
-pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
+pub use document::{Document, DocumentInfo, Edited, PageInfo, Reverted, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
