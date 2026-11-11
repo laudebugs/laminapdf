@@ -27,11 +27,11 @@ describe("FindResults", () => {
   it("groups the matches by page under their headings, as links in page order", () => {
     const { host } = results();
     const groups = [...host.querySelectorAll("section")];
-    expect(groups.map((g) => g.querySelector("h3")?.textContent)).toEqual(["Page 3 · Repairs backlog", "Page 8"]);
+    expect(groups.map((g) => g.querySelector("h2")?.textContent)).toEqual(["Page 3 · Repairs backlog", "Page 8"]);
     // Each group is named by its own heading.
     expect(groups.map((g) => document.getElementById(g.getAttribute("aria-labelledby") ?? "")?.tagName)).toEqual([
-      "H3",
-      "H3",
+      "H2",
+      "H2",
     ]);
     const links = [...host.querySelectorAll(".paper-find-result")];
     expect(links.map((a) => a.getAttribute("role"))).toEqual(["link", "link", "link"]);
@@ -68,7 +68,7 @@ describe("FindResults", () => {
       options: { wholeWords: true, matchCase: true },
     });
     const host = renderIn(<FindResults find={find} heading={heading} />);
-    expect(host.querySelector("h3")?.textContent).toBe("No matches for “backlogs”.");
+    expect(host.querySelector("h2")?.textContent).toBe("No matches for “backlogs”.");
     await userEvent.click(host.querySelector("button") as HTMLElement);
     expect(find.calls).toEqual([{ query: "backlogs", options: { wholeWords: false, matchCase: true } }]);
   });
