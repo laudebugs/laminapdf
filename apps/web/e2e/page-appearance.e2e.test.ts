@@ -75,7 +75,8 @@ describe(`page appearance in ${BROWSER}`, () => {
     await expect.poll(async () => close(await pixel(page, 5, 5), DARK_PAPER)).toBe(true);
     // Above the highlighted words, inside the highlight: still yellow.
     expect(close(await pixel(page, 25, 37.5), HIGHLIGHT)).toBe(true);
-    await page.getByRole("button", { name: "Undo" }).click();
+    // The toast's Undo, not the top bar's, which undoes the document's edits.
+    await page.locator(".paper-toast-action", { hasText: /^Undo$/ }).click();
     await expect.poll(async () => close(await pixel(page, 5, 5), WHITE)).toBe(true);
 
     // Chosen again, it comes back with the document, and another document keeps its colours.

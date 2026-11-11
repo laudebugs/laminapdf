@@ -81,7 +81,7 @@ describe(`the edit session in ${BROWSER}`, () => {
     const watched = await opened();
     const { page } = watched;
     expect([await firstPageTurned(page), await saveState(page)]).toEqual([false, ""]);
-    await expect(page.getByRole("button", { name: "Undo" }).isDisabled()).resolves.toBe(true);
+    await expect(page.getByRole("button", { name: "Undo", exact: true }).isDisabled()).resolves.toBe(true);
 
     await more(page, "Rotate page right");
     await expect.poll(() => firstPageTurned(page)).toBe(true);
