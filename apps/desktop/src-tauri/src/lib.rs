@@ -15,7 +15,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 pub use error::DesktopError;
-use laminapdf_desktop_protocol::supervisor::{CommandSpawner, Config, Spawner};
+use laminapdf_desktop_protocol::supervisor::{Config, FontServer, Spawner};
+use laminapdf_desktop_sandbox::{BackgroundFonts, SandboxConfig, SandboxSpawner};
 use tauri::{Emitter as _, EventTarget, Manager as _, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 use crate::engine::{Engines, FAILED_EVENT, Failed, Launcher, Notify, RESTARTED_EVENT, Restarted};
@@ -91,12 +92,24 @@ impl Notify for WindowEvents {
 fn engines(app: &tauri::AppHandle) -> Arc<Engines> {
     let (program, args) = (engine_program(), engine_args(app));
     let launcher: Launcher = Arc::new(move || {
-        let spawner = CommandSpawner::new(program.clone(), args.clone(), |line| {
+        // Inside its sandbox (ADR 0008 §5); the supervisor logs the layers each engine reports.
+        let spawner = SandboxSpawner::new(program.clone(), args.clone(), SandboxConfig::default(), |line| {
             tracing::info!(target: "laminapdf_desktop::engine", "{line}");
         });
         Box::new(spawner) as Box<dyn Spawner>
     });
-    Engines::new(launcher, Config::default(), Arc::new(WindowEvents(app.clone())))
+    // The sandboxed engine can't open font files: the main process lists the system's faces and
+    // serves them (ADR 0008 §5, fonts). Windows engines keep PDFium's GDI font mapper.
+    let fonts: Option<Arc<dyn FontServer>> = if cfg!(windows) {
+        None
+    } else {
+        Some(Arc::new(BackgroundFonts::start()))
+    };
+    let config = Config {
+        fonts,
+        ..Config::default()
+    };
+    Engines::new(launcher, config, Arc::new(WindowEvents(app.clone())))
 }
 
 /// Builds and runs the app until its last window closes.

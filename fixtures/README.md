@@ -324,6 +324,14 @@ The names an `invalid-argument` or `unknown-option` error suggests in `didYouMea
 | --- | --- | --- |
 | `did-you-mean.json` | hand-written; its `rule` states what the cases pin | Each case gives a `given` name, the `known` names and the `expected` suggestions. The rule: names within two edits, closest first, ties in code-point order of the names as given. An edit is one code point, counted after lowercasing ASCII letters only, so a typed name outside ASCII gets the same answer from both languages. `crates/laminapdf-syntax/src/suggest.rs` (which `laminapdf-wasm` and the CLI use) and `packages/sdk/test/did-you-mean.test.ts` must both suggest exactly `expected` |
 
+### `desktop/`
+
+Inputs for the desktop engine's tests (ADR 0008 §5).
+
+| File | Source | What it tests |
+| --- | --- | --- |
+| `cjk-not-embedded.pdf` | [`tools/fixtures/cjk_not_embedded.py`](../tools/fixtures/cjk_not_embedded.py) (no dependencies) | Six Chinese characters in STSong-Light (Type 0, `UniGB-UCS2-H`, Adobe-GB1), not embedded, and no other ink on the page: the sandboxed engine must get a system font from the main process for any glyph to render. `crates/laminapdf-desktop-engine/tests/engine_process.rs` counts the dark pixels |
+
 ### Generated large files (not committed)
 
 Files too large for the repository are written on demand into `target/fixtures/`, which Git ignores. The same command always writes the same bytes.

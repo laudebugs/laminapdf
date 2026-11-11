@@ -2,6 +2,7 @@
 
 - Status: Accepted when D2a's PR merges (proposed 2026-11-09)
 - Date: 2026-11-09
+- Amended 2026-11-11 ([D2c](../todos/done/D2c-engine-sandbox.md)): §5 records what each OS's sandbox enforces, its gaps and the OS versions it needs. macOS uses a Seatbelt profile instead of App Sandbox, which left system files readable and process creation open, and a main-process watchdog for memory. The main process serves the engine the system's fonts.
 
 ## Context
 
@@ -51,7 +52,7 @@ The owner decided the app's identity on 2026-11-09: product name "Lamina PDF", b
 
 ### 3. The engine is its own binary, and the protocol is its own crate
 
-- **Engine:** a separate bin crate `crates/laminapdf-desktop-engine` (layer `app`, `publish = false`), shipped as a Tauri sidecar (Tauri's term for a helper binary in the bundle) through `bundle.externalBin`. Tauri then names the binary per target and signs it inside the macOS bundle. The main process spawns it with `std::process::Command`; `tauri-plugin-shell` stays unregistered.
+- **Engine:** a separate bin crate `crates/laminapdf-desktop-engine` (layer `app`, `publish = false`), shipped as a Tauri sidecar (Tauri's term for a helper binary in the bundle) through `bundle.externalBin`. Tauri then names the binary per target and signs it inside the macOS bundle. The main process spawns it through `laminapdf-desktop-sandbox` (§5), which on Windows calls `CreateProcessAsUserW` itself; `tauri-plugin-shell` stays unregistered.
 - **Protocol:** the messages between the main process and the engine, and their framing, live in `crates/laminapdf-desktop-protocol` (layer `app`, `publish = false`), which both sides use. It depends only on `serde`, `postcard`, `thiserror` and `zeroize`, so the main process never links `laminapdf-render`, PDFium or the parser. CI's `desktop` job checks that with `cargo tree`, by exact package name. A frame is a length, the protocol version, a `postcard` header and raw bytes (file ranges, tile pixels); a frame over 64 MiB is refused before anything is allocated, and the `engine_protocol_decode` fuzz target reads arbitrary bytes as frames both ways. Every request carries an id its reply repeats, so one table matches replies to waiters.
 - **Supervisor:** the main process's side of an engine (spawning it, the handshake, matching replies, answering its reads, the heartbeat watchdog, the restart policy) is the protocol crate's `supervisor` module, written with `std` only. The engine's integration tests drive the real binary through it without Tauri, and its own tests use an in-process fake engine. The app wraps it with Tauri state and window events.
 - **The engine's threads:** one thread only decodes and routes frames, one worker parses and renders (PDFium serialises every call anyway), and one sends the heartbeat. The router never parses: a parse that waits for bytes would otherwise wait for a frame only the router can deliver.
@@ -84,15 +85,91 @@ A failure answers `{ kind, message }` with a status the client maps back: 404 fo
 
 The app's open (0.45–0.67 s) matches the engine alone in §2 (478–494 ms), so the webview, the IPC and PDFium's own open add little to it.
 
-### 5. Sandboxing intent per OS
+### 5. Sandboxing per OS
 
-The engine needs only its pipes, its loaded libraries and memory, because §2 keeps paths and file handles in the main process. The target is an engine that can't read files, use the network, start processes or touch other processes. D2c builds it and amends this ADR with a table of what each OS actually enforces, its known gaps and the OS versions it needs.
+The engine needs only its pipes, its loaded libraries and memory, because §2 keeps paths and file handles in the main process. So the sandbox takes the rest away: the engine can't read or write files, use the network, start processes or touch other processes. D2c built it in `crates/laminapdf-desktop-sandbox`, an edge crate that holds both halves. The main process starts each engine with `spawn_sandboxed`, and the engine calls `apply_engine_sandbox` once PDFium is loaded and before it reads its first frame. `Ready` then lists the layers that are on (`SandboxLevel`). The main process logs them and refuses an engine that lacks a layer its OS requires (`Layer::REQUIRED`). Every layer is fatal when it fails to apply, with one exception: Landlock is best effort on Linux, since seccomp already denies every path. An engine that can't apply its sandbox exits instead of serving, and its window reports that the engine failed to start.
 
-| OS | Intent |
+**Start-up order.** No document byte reaches the engine before the sandbox is fully on, because the engine locks down before it reads `Hello`.
+
+| OS | Order |
 | --- | --- |
-| macOS | The App Sandbox entitlement on the engine process only, with no file or network entitlements. Fallback: a Seatbelt profile through `sandbox_init`, if App Sandbox breaks the pipes or loading PDFium |
-| Windows | A restricted token at Low integrity, in a job object (memory limit, one process, kill on close) with child processes blocked; AppContainer with no capabilities if pipes and PDFium work there |
-| Linux | `PR_SET_NO_NEW_PRIVS`, then seccomp-bpf and Landlock where the kernel supports them; otherwise no-new-privs and namespaces |
+| macOS | Start with only the three pipes open → load PDFium → apply the Seatbelt profile → read `Hello` → `Ready` → receive the font list |
+| Linux | Start with only the three pipes open → load PDFium → no-new-privs → Landlock → `RLIMIT_AS` → seccomp-bpf → read `Hello` → `Ready` → receive the font list |
+| Windows | Create suspended in the job, with the locked-down Low-integrity primary token and the mitigation policies → the first thread impersonates the start-up token → resume → load PDFium → `RevertToSelf` → post-load mitigation policies → read `Hello` → `Ready` |
+
+**What each OS enforces.** The selftest (`--sandbox-selftest[=<probe>]`, in builds with the engine's `selftest` feature, which the tests and CI turn on) checks each row. `crates/laminapdf-desktop-engine/tests/sandbox_selftest.rs` runs it in CI's native Rust jobs on Linux, macOS and Windows, x64 and Arm64.
+
+| The engine tries to … | macOS | Linux | Windows |
+| --- | --- | --- | --- |
+| Read a file | Denied (EPERM) | Denied: `openat` and the other path calls answer EACCES (seccomp), and Landlock denies every file right where the kernel has it | Denied: the token's only restricting SID is the NULL SID, so no access check succeeds |
+| Write a file | Denied | Denied, as reading | Denied, as reading, and Low integrity forbids writing up |
+| Open a socket | Denied | Killed (SIGSYS): `socket` isn't on the allow-list; Landlock also denies TCP bind and connect (ABI 4+) | Denied: under the token, Winsock can't even start (`WSAStartup` fails) |
+| Start a process | Denied (`process-fork`, `process-exec`) | Killed: `fork`, `vfork`, `execve`, `execveat`, and `clone` without `CLONE_THREAD`; `clone3` answers ENOSYS | Denied: the child-process mitigation policy, and the job's one-process limit |
+| Touch another process | Denied: only signals and `process-info` on itself are allowed | Killed: `kill`, `ptrace` and the rest aren't allowed; `tgkill` only on itself | Denied by the token; the job's UI limits cut other processes' windows, the clipboard and global atoms |
+| Inherit a descriptor or handle | Only its three pipes: the child closes every other descriptor before `exec` | As macOS, and the engine refuses to lock down if it holds one anyway | Only its three pipe ends (`PROC_THREAD_ATTRIBUTE_HANDLE_LIST`) |
+| Use more memory than the limit | Killed: the main process's watchdog reads the engine's physical footprint once a second and kills it above the limit (2 GiB by default) | Refused past `RLIMIT_AS`, twice the limit, since address space counts thread stacks and malloc arenas | Refused past the job's committed-memory limit (2 GiB by default) |
+| Start threads, render | Allowed | Allowed: `clone` with `CLONE_THREAD` | Allowed |
+| Map executable memory | Allowed (the hardened runtime limits it once D6c signs the engine) | Killed (SIGSYS): `mmap` and `mprotect` with `PROT_EXEC` aren't allowed | Denied after loading: the dynamic-code policy |
+
+An allocation the limit refuses aborts the engine, which the supervisor restarts like any crash (§2). The supervisor names how an engine ended: `sandbox violation: SIGSYS` for seccomp's kill, `memory limit` when the Windows job or the macOS watchdog stopped it. `LAMINA_PDF_ENGINE_SANDBOX=off` turns the sandbox off in debug builds only, for diagnosis; a release build ignores it, and a release main process refuses an engine that reports it off.
+
+**macOS: Seatbelt, not App Sandbox.** D2c tried App Sandbox on an ad-hoc signed engine first and dropped it, for two reasons. First, it leaves the engine able to read system files such as `/etc/hosts` and to start `/usr/bin/true`, whose children inherit the sandbox. Second, a process in App Sandbox can't apply a stricter profile: `sandbox_init` fails with EPERM. (App Sandbox itself works once the binary embeds an `Info.plist`, which secinitd needs for a bundle identifier, and PDFium sits in the bundle.) The engine's layers on macOS:
+
+- **Seatbelt:** a deny-by-default profile the engine applies itself with `sandbox_init`, Apple's documented but deprecated call ([man page](https://developer.apple.com/library/archive/documentation/Darwin/Reference/ManPages/man3/sandbox_init.3.html)), as Chromium's renderers do with its private successors ([Mac sandbox](https://chromium.googlesource.com/chromium/src/+/main/sandbox/mac/README.md)). It allows signals and `process-info` on the engine itself and nothing else.
+- **The memory watchdog:** macOS doesn't enforce `RLIMIT_AS`, so the main process reads the engine's `ri_phys_footprint` with `proc_pid_rusage` about once a second and kills it above the limit. If the watchdog's thread can't start, a release build kills the engine and reports that it failed to start; if `proc_pid_rusage` fails later, the main process logs that the engine has lost its limit.
+- **No inherited descriptors:** std offers no way to pass `POSIX_SPAWN_CLOEXEC_DEFAULT`, so the child asks the kernel for its open descriptors (`proc_pidinfo(PROC_PIDLISTFDS)`, into a buffer the parent sized) and closes every one above 2 between `fork` and `exec`, however high; if they don't fit, it closes every number up to the hard `RLIMIT_NOFILE`.
+- **Signing:** `engine.entitlements` is empty on purpose: no App Sandbox and no hardened-runtime exceptions. `cargo xtask desktop-sidecar` signs the engine ad hoc with it, without `--options runtime`, because library validation would refuse PDFium, which has no Team ID until D6c signs both with the Developer ID ([hardened runtime](https://developer.apple.com/documentation/security/hardened-runtime), [App Sandbox](https://developer.apple.com/documentation/security/app-sandbox)).
+
+**Linux: seccomp-bpf and Landlock, no namespaces.** Chromium adds namespaces ([Linux sandboxing](https://chromium.googlesource.com/chromium/src/+/main/sandbox/linux/README.md)), but Ubuntu 24.04 restricts unprivileged user namespaces, so the engine does without them. Its layers:
+
+- **Three seccomp filters**, of which the kernel applies the strictest answer ([seccomp(2)](https://man7.org/linux/man-pages/man2/seccomp.2.html)). An allow-list kills the engine on any other call. A second filter answers EACCES to the path calls and `sysinfo`, so PDFium's font lookup and glibc's `qsort` fail softly. A third answers ENOSYS to `clone3`, whose flags sit behind a pointer the filter can't read, so glibc and Rust's std fall back to `clone`. The `seccomp-trap` feature makes the filter trap and print the refused call's number instead; that is how Ubuntu 22.04's glibc was found to need `sysinfo`.
+- **Landlock** ([kernel docs](https://docs.kernel.org/userspace-api/landlock.html)) handles every file, TCP and scope right the kernel knows and allows none. It is best effort, and the level says which ABI the kernel enforced.
+- **`RLIMIT_AS`**, never `RLIMIT_NPROC`, which counts every process and thread of the user ([setrlimit(2)](https://man7.org/linux/man-pages/man2/setrlimit.2.html)); the selftest checks that limit is unchanged.
+- **No-new-privs**, and no inherited descriptors: `close_range` (5.9+), else a `getdents64` listing of `/proc/self/fd` into a buffer on the stack, else every number up to the hard `RLIMIT_NOFILE`; the engine also refuses to lock down if it holds one.
+
+**Windows: a restricted token, a job and mitigation policies.** The main process follows Chromium's broker and target ([Windows sandbox](https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md)): `CreateProcessAsUserW` starts the engine suspended and detached from any console. Its layers:
+
+- **The primary token** comes from `CreateRestrictedToken` ([docs](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-createrestrictedtoken)). Every group and the user's SID are deny-only, every privilege but one is removed, and the NULL SID is the only restricting SID.
+- **Low integrity** on that token ([Mandatory Integrity Control](https://learn.microsoft.com/en-us/windows/win32/secauthz/mandatory-integrity-control)).
+- **The start-up token:** the first thread impersonates a token with the user's access, restricted to the user's own SIDs, because a restricted process may only impersonate a restricted token. The loader and PDFium read the install folder with it, and the engine reverts to the primary token once PDFium is loaded.
+- **The job** ([job objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)) holds the engine from creation. It limits committed memory, allows one active process, kills the engine when the main process's handle closes, and applies every UI restriction.
+- **Mitigation policies at creation** ([UpdateProcThreadAttribute](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute)): no child processes, no images from remote shares or Low-labelled files, no extension points, no non-system fonts, strict handle checks, heap termination. Only the three pipe ends are inherited; anonymous pipes need no DACL, so the integrity level doesn't affect them.
+- **Mitigation policies after loading** ([SetProcessMitigationPolicy](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setprocessmitigationpolicy)): Microsoft-signed images only and no dynamic code. A refused one is fatal in a release build.
+
+**AppContainer: not run.** An AppContainer ([isolation](https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-isolation)) adds a capability model, chiefly for the network. D2c didn't run it, for two reasons. It needs a per-user profile (`CreateAppContainerProfile` writes the registry and a folder) and read ACLs for `ALL APPLICATION PACKAGES` wherever the engine and PDFium live, which a portable or development build doesn't have. And the restricted token with the NULL restricting SID already fails every access check, sockets included, so AppContainer would add a second wall without closing a gap the token leaves. A later todo may try it if the token proves weaker than measured.
+
+**Fonts.** The pinned PDFium (pdfium-binaries `chromium/7881`, the build without V8 or XFA, so no PDF JavaScript and no JIT) looks for a system font when a PDF names one it doesn't embed. The sandboxed engine can't open font files, so on macOS and Linux the main process serves them:
+
+- **The list:** the main process lists the system's font faces once, in the background at start-up (`SystemFonts`): macOS's three font folders, Windows' system and per-user folders, and on Linux PDFium's own folders plus the `<dir>`s of fontconfig's configuration. It reads each file's headers only: the name table's family and style, and `OS/2`'s weight, style and code pages, as PDFium's own folder scan does. A crafted font file can't stop engines from starting: names are cut to 256 characters, and the list stops at 8,192 faces and 4 MiB of names, far under a frame's 64 MiB, logging how many faces it left out. The main process sends the list in `ToEngine::Fonts` once the scan has finished, from a thread of its own, so a slow first scan never holds up an engine's start; until the list arrives, the engine renders with PDFium's built-in fonts. A relative `<dir>` resolves against the configuration file that names it, as fontconfig does.
+- **The match:** the engine installs a PDFium font provider (`FPDF_SetSystemFontInfo`, through `pdfium-render`'s safe provider API). It matches the PDF's font name like PDFium's folder scan: the base-14 names' stand-ins (Helvetica → Arial or Liberation Sans), weight and style, then any face covering a CJK or symbol script. Latin text with no match falls back to PDFium's built-in fonts, as before.
+- **The bytes:** the engine asks for a face by its index with `FromEngine::FontRequest`, never by path, so it can read only the listed faces. The main process answers `ToEngine::FontData` with that one face copied out as a font file of its own (a collection's face too), at most 48 MiB, read straight into the reply so a face is held once, and the engine keeps the last four. Requests aren't rate-limited: an engine asks one face at a time from its worker thread and waits for each, and an engine stuck asking is restarted by the heartbeat (§2).
+- **Windows** keeps PDFium's own font mapper. It asks GDI, which needs no file access, and the CJK test passes inside the sandbox on Windows Server 2025, so the main process sends no list there.
+
+`fixtures/desktop/cjk-not-embedded.pdf` (Chinese text in STSong-Light, not embedded) renders with over 1,500 dark pixels in the sandboxed engine, and with none when the main process serves no fonts. It passes on macOS 27, on Windows Server 2025 through GDI, and on Ubuntu 22.04 and 24.04 (x64 and Arm64) with Noto Sans SC installed. A Linux machine with no Chinese font has nothing to serve, so the test says so and passes there.
+
+**Requirements and gaps.**
+
+- **macOS:** 13 or later, the app's minimum; `sandbox_init` has been deprecated since 10.8 and still works on macOS 27. CI checks the profile on macOS 15 and the author's macOS 27. The memory limit holds to within the watchdog's second.
+- **Linux:** seccomp-bpf (3.5+) and no-new-privs (3.5+) are required; Landlock needs 5.13 for files, 6.7 (ABI 4) for TCP and 6.12 (ABI 6) for the IPC scopes. Ubuntu 22.04's 6.8 kernel enforced ABI 4, Ubuntu 24.04's 7.0 ABI 8; a kernel without Landlock still runs seccomp and no-new-privs and reports Landlock as off. x86_64 and aarch64 only: the filter is per architecture.
+- **Windows:** 10 1607 or later for the job-list attribute; checked on Windows Server 2025. The token can't stop reads of objects whose DACL grants access without a restricting check (none known).
+- **Windows, a judgement call:** no Win32k lockdown and no alternate desktop. PDFium's Windows build imports GDI and user32, and its font mapper calls GDI, so a Win32k lockdown would stop it loading and its fonts working. An alternate desktop guards against window messages to the user's windows, which Low integrity already blocks (User Interface Privilege Isolation) and the job's UI limits narrow further.
+- **Every OS:** the engine can still burn CPU; the heartbeat (§2) restarts an engine whose request runs longer than 45 s.
+
+**Measured** (D2c; medians):
+
+With and without the sandbox, in the same release build with debug assertions on so the off switch works (the 1 GB fixture opened and every page sized; 400 tiles of 512 px):
+
+| Machine | Spawn → `Ready` | 1 GB open | 400 tiles |
+| --- | --- | --- | --- |
+| M1 Pro, macOS 27 (6 runs each) | 17.1 ms against 9.6 ms off | 516 ms against 528 ms | 275 ms against 269 ms |
+| GitHub `ubuntu-24.04` x64, kernel 7.0 (5 runs each) | 2.1 ms against 1.7 ms | 1,151 ms against 1,146 ms | 561 ms against 562 ms |
+| GitHub `windows-2025` x64 (5 runs each) | 13.5 ms against 24.5 ms | 1,482 ms against 1,526 ms | 836 ms against 846 ms |
+
+Every open and tile figure is within 2 % of the same build with the sandbox off. The Windows engine starts faster sandboxed because it starts without a console.
+
+Against D2b, in plain release builds of this branch and of `main` (`706689a8`), alternating, 12 runs each on the M1 Pro: the 1 GB open took a median of 512 ms against 496 ms, 3.2 % slower and inside the 5 % budget. The middle half of the runs spread over 500–542 ms against 494–501 ms; the extremes were 488–992 ms against 470–609 ms, the slowest of each a cold first run or a busy machine. Spawn → `Ready` took a median of 29.5 ms with the sandbox, the font list and the descriptors closed before `exec` (28.1–47.3 ms, a cold first run 166 ms).
+
+Fonts: listing the system's faces took about 100 ms on the M1 Pro (1,734 faces, 572 ms with a cold disk cache), done once in the background, and 2–3 ms for the 41–57 faces of a GitHub Linux runner. The first tile of the CJK page, which fetches its face from the main process, took 98 ms on the M1 Pro, 29–40 ms on the GitHub Linux runners and 420–514 ms on `windows-2025`, where GDI finds the font.
 
 An engine the sandbox kills is treated as a crash (§2's restart policy).
 

@@ -122,6 +122,7 @@ fn fake_engine(mode: Mode, pid: u32, mut stdin: PipeReader, out: &SharedOut) {
         &FromEngine::Ready {
             version: PROTOCOL_VERSION,
             pid,
+            sandboxed: crate::complete_level(),
         },
     );
     match mode {

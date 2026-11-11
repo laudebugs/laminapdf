@@ -5,7 +5,7 @@
 - **The view** handles layout, virtualisation, canvases and zoom.
 - **The document Web Worker**, one per open document, opens and renders the file away from the page's main thread.
 
-The package is private and ESM-only.
+The package is ESM-only.
 
 ```ts
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";

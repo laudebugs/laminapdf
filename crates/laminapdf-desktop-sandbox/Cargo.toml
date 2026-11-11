@@ -1,0 +1,51 @@
+[package]
+name = "laminapdf-desktop-sandbox"
+description = "The sandbox of Lamina PDF's desktop engine process: how the main process starts it and how it locks itself down, per OS (ADR 0008 §5)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Part of the desktop app, never on crates.io.
+publish = false
+homepage.workspace = true
+
+# Read by `cargo xtask`: an edge crate, since it calls the OS's sandbox APIs through FFI (rust.md:
+# `unsafe` only in edge crates), each `unsafe` block in a module that opts in with
+# `#![expect(unsafe_code)]`. Both processes link it: the main process its spawning half and the
+# font list, the engine its lock-down half (feature `engine`). It reaches neither the parser nor
+# PDFium, so the main process's tree stays free of them (ADR 0008 §3).
+[package.metadata.laminapdf]
+layer = "edge"
+
+[features]
+# The engine's half: `apply_engine_sandbox`.
+engine = ["dep:landlock", "dep:seccompiler"]
+# The engine's selftest probes (`probe`): test code, off in the shipped engine.
+probe = ["engine"]
+# Linux, for finding a missing system call: the seccomp filter traps instead of killing, and a
+# SIGSYS handler prints the call's number on stderr before the process exits.
+seccomp-trap = ["engine"]
+
+[dependencies]
+laminapdf-desktop-protocol = { workspace = true }
+thiserror = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+landlock = { workspace = true, optional = true }
+seccompiler = { workspace = true, optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_JobObjects",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+] }
+
+[lints]
+workspace = true

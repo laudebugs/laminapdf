@@ -1,5 +1,7 @@
 # laminapdf-render
 
+Render PDF pages to RGBA pixels in Rust, a tile at a time, behind one renderer interface with limits on output size and a way to cancel. A pure-Rust backend, hayro, comes behind the `hayro` feature; [`laminapdf-render-pdfium`](../laminapdf-render-pdfium/README.md) adds PDFium.
+
 The render backend contract of [ADR 0004](../../docs/decisions/0004-render-backend.md). Every Lamina PDF surface draws pages through two object-safe traits:
 
 - **`RenderBackend`** opens documents from the same `ByteSource` Lamina PDF reads.

@@ -217,6 +217,55 @@ pub enum FailureKind {
     Protocol,
 }
 
+/// One system font face the main process can serve (ADR 0008 §5, fonts): the engine matches a
+/// PDF's font name against these and asks for the face's bytes by `id`, never by path.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FontFace {
+    /// The main process's number for it.
+    pub id: u32,
+    /// The family name (`name` ID 1), e.g. `Helvetica`.
+    pub family: String,
+    /// The style name (`name` ID 2), e.g. `Bold Italic`.
+    pub style: String,
+    /// `OS/2` `usWeightClass`: 400 regular, 700 bold.
+    pub weight: u16,
+    /// Italic or oblique.
+    pub italic: bool,
+    /// The scripts it covers, from `OS/2` `ulCodePageRange1`.
+    pub charsets: Charsets,
+}
+
+/// A set of the character sets PDFium asks fonts for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct Charsets(pub u8);
+
+impl Charsets {
+    /// Latin 1.
+    pub const ANSI: Self = Self(1);
+    /// Symbol.
+    pub const SYMBOL: Self = Self(1 << 1);
+    /// Japanese (Shift JIS).
+    pub const SHIFT_JIS: Self = Self(1 << 2);
+    /// Simplified Chinese (GB 2312).
+    pub const GB2312: Self = Self(1 << 3);
+    /// Traditional Chinese (Big5).
+    pub const BIG5: Self = Self(1 << 4);
+    /// Korean (Hangul).
+    pub const HANGUL: Self = Self(1 << 5);
+
+    /// Whether every set in `other` is in this one.
+    #[must_use]
+    pub const fn contains(self, other: Self) -> bool {
+        self.0 & other.0 == other.0
+    }
+
+    /// Both sets together.
+    #[must_use]
+    pub const fn with(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+}
+
 /// A message from the main process to the engine.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ToEngine {
@@ -288,6 +337,25 @@ pub enum ToEngine {
     },
     /// Exit. Not answered.
     Shutdown,
+    /// The system's font faces the main process can serve, sent once, right after `Ready` and
+    /// before any document: the engine's PDFium matches fonts a PDF doesn't embed against them.
+    Fonts {
+        /// Every face, by id.
+        faces: Vec<FontFace>,
+    },
+    /// The answer to [`FromEngine::FontRequest`]: the face as a standalone font file follows as
+    /// the frame's payload.
+    FontData {
+        /// The engine's request.
+        req: ReqId,
+    },
+    /// The main process couldn't serve a face (gone, too large, unreadable).
+    FontFailed {
+        /// The engine's request.
+        req: ReqId,
+        /// What went wrong, without the file's path.
+        message: String,
+    },
 }
 
 /// A message from the engine to the main process.
@@ -299,6 +367,8 @@ pub enum FromEngine {
         version: u16,
         /// The engine's process id.
         pid: u32,
+        /// What the sandbox enforces; sent last, once every layer is on (ADR 0008 §5).
+        sandboxed: crate::SandboxLevel,
     },
     /// The engine needs bytes of a document; answered by [`ToEngine::RangeData`] or
     /// [`ToEngine::RangeFailed`].
@@ -378,4 +448,12 @@ pub enum FromEngine {
     },
     /// Sent every second, so the main process can tell a hung engine from a busy one.
     Heartbeat,
+    /// The engine needs a system font face's bytes; answered by [`ToEngine::FontData`] or
+    /// [`ToEngine::FontFailed`].
+    FontRequest {
+        /// The engine's request.
+        req: ReqId,
+        /// The face's [`FontFace::id`].
+        font: u32,
+    },
 }

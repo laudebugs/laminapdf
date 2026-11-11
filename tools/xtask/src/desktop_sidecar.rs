@@ -7,6 +7,8 @@
 //! - `apps/desktop/src-tauri/resources/pdfium/`: the pinned PDFium library (`fetch-pdfium`) with
 //!   its licence notices, which ship with every bundle (ADR 0004 §3).
 //!
+//! On macOS the engine is signed ad hoc with `apps/desktop/src-tauri/engine.entitlements`.
+//!
 //! Both folders are git-ignored. The profile is `--release` or `--debug`, else what the Tauri CLI
 //! asked for, else debug. The CLI's `beforeDevCommand`/`beforeBuildCommand` set
 //! `TAURI_ENV_PLATFORM`, and `TAURI_ENV_DEBUG=true` only for a debug build: a release build leaves
@@ -63,6 +65,9 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     let sidecar = binaries.join(format!("{ENGINE}-{triple}{exe}"));
     fs::copy(&built, &sidecar).with_context(|| format!("copying {} to {}", built.display(), sidecar.display()))?;
     step(&format!("engine ({profile}) → {}", sidecar.display()));
+    if cfg!(target_os = "macos") {
+        sign_ad_hoc(&app, &sidecar)?;
+    }
 
     let lib = pdfium::fetch(ws)?;
     let resources = app.join("resources/pdfium");
@@ -78,6 +83,28 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     }
     step(&format!("PDFium {} → {}", pdfium::TAG, resources.display()));
     Ok(())
+}
+
+/// Signs the engine ad hoc with `engine.entitlements`, so dev builds run the binary the way a
+/// release signs it (D6c then signs with the Developer ID and the hardened runtime, which an ad-hoc
+/// signature can't use: library validation would refuse PDFium, which has no Team ID). The
+/// sandbox itself is the engine's Seatbelt profile and needs no entitlement (ADR 0008 §5).
+fn sign_ad_hoc(app: &Path, sidecar: &Path) -> Result<()> {
+    let entitlements = app.join("engine.entitlements");
+    crate::run(
+        app,
+        "codesign",
+        &[
+            "--force".as_ref(),
+            "--sign".as_ref(),
+            "-".as_ref(),
+            "--identifier".as_ref(),
+            "com.laminapdf.desktop.engine".as_ref(),
+            "--entitlements".as_ref(),
+            entitlements.as_os_str(),
+            sidecar.as_os_str(),
+        ],
+    )
 }
 
 /// The host's target triple, from `rustc -vV`.

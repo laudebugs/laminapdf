@@ -1,6 +1,6 @@
 # @laminapdf/render-hayro
 
-Lamina PDF's second web renderer is hayro, a pure-Rust engine compiled to its own WebAssembly module behind [`@laminapdf/render`](../render/README.md)'s `RenderBackend`. PDFium's output is checked against it, and it is offered in the viewer's debug menu. It is private, and `@laminapdf/sdk` never depends on it.
+Lamina PDF's second web renderer is hayro, a pure-Rust engine compiled to its own WebAssembly module behind [`@laminapdf/render`](../render/README.md)'s `RenderBackend`. PDFium's output is checked against it, and it is offered in the viewer's debug menu. Apps reach it through [`@laminapdf/viewer`](../viewer/README.md); `@laminapdf/sdk` never depends on it.
 
 ```ts
 import { initHayro } from "@laminapdf/render-hayro";

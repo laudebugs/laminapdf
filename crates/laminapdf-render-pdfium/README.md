@@ -1,5 +1,7 @@
 # laminapdf-render-pdfium
 
+Render PDF pages with PDFium from Rust, behind [`laminapdf-render`](../laminapdf-render/README.md)'s renderer interface. PDFium is loaded at runtime from a pinned build, so your program links no C++ at build time.
+
 The PDFium adapter of [`laminapdf-render`](../laminapdf-render/README.md) ([ADR 0004](../../docs/decisions/0004-render-backend.md) §2, §3, §5). It is an **edge** crate: FFI into a C++ library that is loaded at runtime.
 
 - **The library:** `pdfium-render` 0.9.4 (`MIT OR Apache-2.0`), with features `pdfium_7881` and `thread_safe`. It binds `bblanchon/pdfium-binaries` `chromium/7881` **at runtime**, from the folder in `LAMINA_PDF_PDFIUM_DIR`, so building, clippy and the fast lane never need the library.

@@ -54,7 +54,7 @@ Move every byte of untrusted PDF processing out of the Tauri main process. This 
 
 **Out of scope** (and which todo covers it)
 
-- OS-level sandboxing of the engine: [D2c](../ready/D2c-engine-sandbox.md) (this PR runs it unsandboxed but already without any file paths).
+- OS-level sandboxing of the engine: [D2c](../done/D2c-engine-sandbox.md) (this PR runs it unsandboxed but already without any file paths).
 - Delivering tiles to the webview and the viewer integration: [D2d](../ongoing/D2d-tile-transport-and-first-document.md).
 - WebdriverIO e2e: [D2e](../ready/D2e-desktop-e2e-webdriverio.md).
 - File watching (the registry exposes a "reload" entry point used by [D3b](../ready/D3b-recent-files-and-file-watching.md)).

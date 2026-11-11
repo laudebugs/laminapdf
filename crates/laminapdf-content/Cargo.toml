@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-content"
-description = "Read-only content-stream interpreter: tolerant tokenizer, graphics and text state, Form XObjects and marked content, reported to a visitor (pure, bytes in / bytes out)."
+description = "Read what a PDF page draws, operator by operator, with the graphics and text state in effect: a tolerant content-stream interpreter."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = true
 readme = "README.md"
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "content-stream", "interpreter", "graphics"]
+keywords = ["pdf", "content-stream", "parser", "graphics", "interpreter"]
 categories = ["parser-implementations", "graphics"]
 
 # Read by `cargo xtask`: core crates get the portability checks (no I/O, clocks or threads;

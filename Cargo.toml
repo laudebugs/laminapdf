@@ -48,6 +48,7 @@ laminapdf-render-wasm = { version = "0.2.0-alpha.6", path = "crates/laminapdf-re
 # The desktop reader's engine process and its protocol (ADR 0008 §3): app crates, never published.
 laminapdf-desktop-protocol = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-protocol" }
 laminapdf-desktop-engine = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-engine" }
+laminapdf-desktop-sandbox = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-sandbox" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
@@ -131,6 +132,15 @@ region = "4.0.1"
 # Lossless WebP for the desktop reader's tiles (ADR 0008 §4; D1a measured it): pure Rust. MIT OR
 # Apache-2.0 (dependencies byteorder-lite: Unlicense OR MIT; quick-error: MIT OR Apache-2.0).
 image-webp = "=0.2.4"
+# The engine process's sandbox (laminapdf-desktop-sandbox, D2c; ADR 0008 §5). libc: the raw calls
+# (setrlimit, prctl, sandbox_init, the selftest's fork/execve/clone3). MIT OR Apache-2.0
+libc = "0.2.191"
+# Linux: Landlock rulesets (file system, TCP, scopes). MIT OR Apache-2.0 (enumflags2: MIT OR Apache-2.0)
+landlock = "0.4.7"
+# Linux: seccomp-bpf filters, from Firecracker. Apache-2.0
+seccompiler = { version = "0.5.0", default-features = false }
+# Windows: restricted tokens, job objects, process attributes and mitigation policies. MIT OR Apache-2.0
+windows-sys = { version = "0.61.2", default-features = false }
 # Serialisable ops (ADR 0006 §1, §6): derive only. MIT OR Apache-2.0
 serde = { version = "1.0.229", default-features = false, features = ["std", "derive"] }
 # MIT OR Apache-2.0

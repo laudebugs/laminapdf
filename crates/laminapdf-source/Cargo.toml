@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-source"
-description = "Edge byte sources for Lamina PDF: a sparse source filled range by range (remote and lazy inputs), the fetch-and-retry loop over `data-pending`, and native file and memory-mapped sources."
+description = "Read PDFs that aren't in memory with Lamina PDF: files, memory-mapped files, and sources filled range by range, such as HTTP range requests."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = true
 readme = "README.md"
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "range-requests", "streaming", "mmap"]
+keywords = ["pdf", "range-requests", "streaming", "mmap", "lazy-loading"]
 categories = ["filesystem", "encoding"]
 
 # Read by `cargo xtask`: an edge crate. The sparse source and the retry loop are pure and build

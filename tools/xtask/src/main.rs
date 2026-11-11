@@ -32,6 +32,7 @@ mod models;
 mod nightly;
 mod notices;
 mod package_docs;
+mod package_metadata;
 mod pdf_runtimes;
 mod pdfium;
 mod platform_boundary;
@@ -535,6 +536,10 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     capabilities::check_static(&ws.root)?;
     step("renames: docs/renames.json against its schema, every deprecation listed, every new name defined");
     renames::check(&ws.root)?;
+    step(
+        "package metadata: no ADR number, todo ID or \"private\" in a published package's description or README opening",
+    );
+    package_metadata::check(ws)?;
     step("docs previews: the docs' example pictures match the example goldens");
     docs_previews::check(&ws.root)?;
     models::check(&ws.root)?;
