@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4d](../done/L4d-cli-distribution.md), [L4g](../done/L4g-cli-release-targets-and-publishing.md) |
+| Depends on | [L4d](./L4d-cli-distribution.md), [L4g](./L4g-cli-release-targets-and-publishing.md) |
 | Dependency notes | L4g publishes all eight targets to the GitHub release, npm and the Homebrew tap; the first release, `laminapdf-cli-v0.2.0-alpha.5`, exists, so the download links answer. |
 | ADRs | Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (checksums), [0031](../../decisions/0031-cli-and-mcp-contract.md) (the binary, its commands, exit codes, JSON and MCP) |
 | Branch | `docs/l4f-command-line-docs` |
@@ -57,18 +57,18 @@ Rescoped on 2026-11-10 from "a download table on the install page": the owner as
 
 ## Tasks
 
-- [ ] The seven pages and the sidebar group.
-- [ ] The install page's "Command-line tool" section.
-- [ ] The docs-build check of the download table against `dist-workspace.toml`, and its test.
-- [ ] The CLI README's install lines.
+- [x] The seven pages and the sidebar group.
+- [x] The install page's "Command-line tool" section.
+- [x] The docs-build check of the download table against `dist-workspace.toml`, and its test.
+- [x] The CLI README's install lines.
 
 ## Acceptance criteria
 
-- [ ] The install page lists all eight targets, each linking its archive and checksum on the release for the current version.
-- [ ] `curl -fsSIL` on every link in the table answers 200 without GitHub credentials.
-- [ ] The docs build fails if the page's targets differ from `dist-workspace.toml`'s.
-- [ ] Every command example on the pages runs against the current CLI as shown.
-- [ ] `cargo xtask check docs` passes; the pages appear in the sidebar, `llms.txt` and their Markdown twins.
+- [x] The install page lists all eight targets, each linking its archive and checksum on the release for the current version.
+- [x] `curl -fsSIL` on every link in the table answers 200 without GitHub credentials.
+- [x] The docs build fails if the page's targets differ from `dist-workspace.toml`'s.
+- [x] Every command example on the pages runs against the current CLI as shown.
+- [x] `cargo xtask check docs` passes; the pages appear in the sidebar, `llms.txt` and their Markdown twins.
 
 ## Tests
 
@@ -86,8 +86,15 @@ Rescoped on 2026-11-10 from "a download table on the install page": the owner as
 
 ## Definition of done
 
-- [ ] Claimed: the work PR's first commit moves this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moves this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes
+
+- **Seven pages**, every command and output copied from a run of the CLI on `main`; page ranges checked against `extract`. The published 0.2.0-alpha.5 binary predates `build`, which the next CLI release brings.
+- **The download check** (`apps/docs/plugins/cli-downloads.mjs`) runs at config setup and compares the table's archive and checksum links with `dist-workspace.toml`'s targets; all 16 links answered 200 for 0.2.0-alpha.5.
+- **Found on the way:** `laminapdf help exit-codes` left 6 out of its priority order; it now comes from `ExitCode::by_priority`.
+- **The Homebrew formula** installs neither man pages nor completions; the install page says how to read the man pages from the archive and that `laminapdf completions` writes completions.

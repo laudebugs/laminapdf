@@ -7,7 +7,7 @@
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [L4d](./L4d-cli-distribution.md), [X6](./X6-windows-ci.md) |
-| Dependency notes | L4d built three of dist's eight targets and left publishing to the owner; X6 gave CI Windows runners. The repository is public, so the formula this todo publishes, which points at the GitHub release, works for everyone; [L4f](../ongoing/L4f-command-line-docs.md) then adds a download table to the docs site. |
+| Dependency notes | L4d built three of dist's eight targets and left publishing to the owner; X6 gave CI Windows runners. The repository is public, so the formula this todo publishes, which points at the GitHub release, works for everyone; [L4f](../done/L4f-command-line-docs.md) then adds a download table to the docs site. |
 | ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) §7 (npm trusted publishing from a GitHub-hosted runner, no stored registry token), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (checksums, SBOM, notices), [0031](../../decisions/0031-cli-and-mcp-contract.md) (the binary and its packages) |
 | Branch | `ci/cli-release-targets-and-publishing` |
 | PR title | `ci(cli): build every release target and publish the npm packages and the Homebrew formula` |
@@ -37,7 +37,7 @@ Make a `laminapdf-cli-v*` tag release the CLI everywhere it says it runs. CI bui
 
 **Out of scope**
 
-- A download table on the docs site: [L4f](../ongoing/L4f-command-line-docs.md).
+- A download table on the docs site: [L4f](../done/L4f-command-line-docs.md).
 - Build-provenance attestations: the `publish` job already makes them whenever the repository is public, as it now is.
 - Code signing and notarisation: [D6c](../ready/D6c-macos-signing-and-notarisation.md), [D6d](../ready/D6d-windows-signing.md).
 - crates.io: `laminapdf-cli` stays `publish = false` (ADR 0031).

@@ -41,7 +41,7 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 
 - Actually publishing a release, crates.io publishing of `laminapdf-cli`, npm publishing: the owner's decision; publishing mechanics in [P1](./P1-reserve-names-and-trusted-publishing.md), first registry release in [P2](./P2-first-registry-prerelease.md).
 - Code signing and notarisation of the binaries (macOS, Windows): reuse [D6c](../ready/D6c-macos-signing-and-notarisation.md) and [D6d](../ready/D6d-windows-signing.md) when they land; note the gap in the README until then.
-- Downloads from Lamina PDF's own domain, the formula pointed there, and a download table on the docs site: [L4f](../ongoing/L4f-command-line-docs.md). The GitHub release and its URLs answer 404 to anyone outside the private repository.
+- Downloads from Lamina PDF's own domain, the formula pointed there, and a download table on the docs site: [L4f](../done/L4f-command-line-docs.md). The GitHub release and its URLs answer 404 to anyone outside the private repository.
 - winget, Scoop, apt/rpm repositories, homebrew-core: later, on demand.
 - A `wasm32-wasip2` build of the CLI: an open question below.
 
