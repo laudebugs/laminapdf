@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-render-pdfium"
-description = "The PDFium adapter of laminapdf-render's RenderBackend (ADR 0004): native PDFium through pdfium-render, bound at runtime to the pinned pdfium-binaries build, reading Lamina PDF's ByteSource through PDFium's custom file access."
+description = "Render PDF pages with PDFium from Rust, loaded at runtime, behind laminapdf-render's renderer interface."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = true
 readme = "README.md"
 homepage.workspace = true
 documentation.workspace = true
-keywords = ["pdf", "pdfium", "render", "raster"]
+keywords = ["pdf", "pdfium", "render", "rendering", "raster"]
 categories = ["rendering", "graphics"]
 
 # Edge: FFI into a C++ library loaded at runtime from the file system (ADR 0004 §5).

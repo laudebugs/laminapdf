@@ -65,6 +65,8 @@ struct Crate {
     wasm: bool,
     /// Whether `cargo publish` may upload it (`publish` in its manifest, not `false`).
     publishable: bool,
+    /// Its `description`, as cargo resolves it (workspace inheritance applied); empty if none.
+    description: String,
 }
 
 /// A package in a crate's dependency graph ([`crate_graph`]).
@@ -140,6 +142,14 @@ impl Workspace {
     /// The crates `cargo publish --workspace` uploads (ADR 0017 §7).
     pub(crate) fn publishable_crates(&self) -> impl Iterator<Item = &str> {
         self.crates.iter().filter(|c| c.publishable).map(|c| c.name.as_str())
+    }
+
+    /// The crates `cargo publish --workspace` uploads: name, folder and description.
+    pub(crate) fn publishable_crate_details(&self) -> impl Iterator<Item = (&str, &Path, &str)> {
+        self.crates
+            .iter()
+            .filter(|c| c.publishable)
+            .map(|c| (c.name.as_str(), c.dir.as_path(), c.description.as_str()))
     }
 
     /// Names of the core crates.
@@ -257,6 +267,11 @@ impl Crate {
                 && package.pointer("/metadata/laminapdf/wasm").and_then(Value::as_bool) == Some(true),
             layer,
             publishable,
+            description: package
+                .get("description")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned(),
         })
     }
 }
