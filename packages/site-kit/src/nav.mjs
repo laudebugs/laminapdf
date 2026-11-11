@@ -38,6 +38,20 @@ const LINKS = /** @type {const} */ ([
   { label: "Privacy", site: "website", path: "/privacy/" },
 ]);
 
+/** The links a phone keeps in the header bar; the rest go in its menu. */
+const PHONE_BAR = new Set(["Docs"]);
+
+/**
+ * Whether `link` goes in the phone menu rather than staying in the header bar, which on a phone
+ * has room only for the wordmark, Docs, App and the menu button.
+ *
+ * @param {NavLink} link
+ * @returns {boolean}
+ */
+export function inPhoneMenu(link) {
+  return !PHONE_BAR.has(link.label);
+}
+
 /**
  * The path a website page file is served at: `/src/pages/privacy.astro` and
  * `/src/pages/privacy/index.astro` are both `/privacy/`.

@@ -331,6 +331,7 @@ Each icon's markup lives in `packages/icons/svg/<file>.svg` (`@laminapdf/icons`)
 | Zoom out | `zoom-out` | `<path d="M6 12h12"></path>` |
 | Zoom in | `zoom-in` | `<path d="M6 12h12M12 6v12"></path>` |
 | More (⋯) | `more` | `<circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle>` |
+| Menu (☰) | `menu` | `<path d="M4.5 7h15M4.5 12h15M4.5 17h15"></path>` |
 | Close | `close` | `<path d="M6 6l12 12M18 6L6 18"></path>` |
 | Back | `back` | `<path d="M15 5l-7 7 7 7"></path>` |
 | Copy | `copy` | `<rect x="8.5" y="8.5" width="11" height="11" rx="1.5"></rect><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"></path>` |
