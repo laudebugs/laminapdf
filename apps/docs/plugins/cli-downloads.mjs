@@ -21,7 +21,7 @@ export const INSTALL_PAGE = "apps/docs/src/content/docs/cli/install.mdx";
 export function distTargets(toml) {
   const list = /^targets\s*=\s*\[([^\]]*)\]/m.exec(toml);
   if (list === null) throw new Error("dist-workspace.toml: no `targets` list");
-  return [...list[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+  return [...(list[1] ?? "").matchAll(/"([^"]+)"/g)].flatMap(([, target]) => (target === undefined ? [] : [target]));
 }
 
 /**
@@ -51,7 +51,8 @@ export function downloadProblems(page, targets) {
     }
   }
   for (const [, target] of page.matchAll(/\/laminapdf-cli-([\w-]+?)\.(?:tar\.xz|zip)\b/g)) {
-    if (!targets.includes(target)) problems.push(`links ${target}, which the release doesn't build`);
+    if (target !== undefined && !targets.includes(target))
+      problems.push(`links ${target}, which the release doesn't build`);
   }
   return [...new Set(problems)];
 }

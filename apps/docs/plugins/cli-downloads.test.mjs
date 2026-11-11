@@ -16,8 +16,8 @@ test("the install page links every target the release builds, and no other", () 
 test("a target the page lacks fails the check", () => {
   const problems = downloadProblems(page, [...targets, "riscv64gc-unknown-linux-gnu"]);
   assert.equal(problems.length, 2);
-  assert.match(problems[0], /laminapdf-cli-riscv64gc-unknown-linux-gnu\.tar\.xz$/);
-  assert.match(problems[1], /\.tar\.xz\.sha256$/);
+  assert.match(problems[0] ?? "", /laminapdf-cli-riscv64gc-unknown-linux-gnu\.tar\.xz$/);
+  assert.match(problems[1] ?? "", /\.tar\.xz\.sha256$/);
 });
 
 test("a row for a target the release dropped fails the check", () => {
@@ -33,7 +33,7 @@ test("a missing checksum link fails the check", () => {
   assert.ok(page.includes(archive));
   const problems = downloadProblems(page.replace(archive, "elsewhere)"), targets);
   assert.equal(problems.length, 1);
-  assert.match(problems[0], /aarch64-apple-darwin\.tar\.xz\.sha256$/);
+  assert.match(problems[0] ?? "", /aarch64-apple-darwin\.tar\.xz\.sha256$/);
 });
 
 test("Windows archives are zips", () => {
