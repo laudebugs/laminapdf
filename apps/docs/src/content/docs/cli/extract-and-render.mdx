@@ -3,7 +3,7 @@ title: Extract text and render pages
 description: Read a PDF's text, or its blocks in reading order as Markdown, JSON or chunks for an LLM, and draw its pages as PNG images from the command line.
 ---
 
-This page gets a PDF's contents out in the form you need: text for a search index, Markdown or chunks for a language model, or JSON with each block's position. It also draws pages as PNG images, for thumbnails and previews.
+Get a PDF's contents out in the form you need: text for a search index, Markdown or chunks for a language model, or JSON with each block's position. It also draws pages as PNG images, for thumbnails and previews.
 
 ## Text: `extract`
 
@@ -34,7 +34,7 @@ Total € 135.40
 
 The other formats carry the same blocks for programs:
 
-- **`json`** prints a `laminapdf.extract/1` document: every block with its kind, its text, its box on the page and how sure the reader is of it, and the text it dropped and why. `--format md --json` adds the Markdown as `markdown`.
+- **`json`** prints a `laminapdf.extract/1` document: every block with its kind, its text, its box on the page and how sure Lamina PDF is of it, and the text it dropped and why. `--format md --json` adds the Markdown as `markdown`.
 - **`chunks`** cuts the Markdown into pieces for retrieval, one JSON object per line. Each chunk keeps whole blocks and names its heading, its pages and its blocks' boxes, so an answer can point back to the page it came from.
 
 None of them contain hidden text: text under a box, white on white, off the page or too small to read stays out, and the JSON counts what it dropped. `--max-chars N` keeps whole blocks up to N characters of Markdown and marks the report `"truncated": true`.
@@ -45,7 +45,7 @@ A scanned page is a picture of text, with no text to read. Each page in the JSON
 
 ## Images: `render`
 
-`render` draws pages as PNG images, at 150 dots per inch unless `--dpi` or `--scale` (pixels per point) says otherwise. One `-o` names every file it writes, with fields filled in for each page:
+`render` draws pages as PNG images, at 150 dots per inch unless `--dpi` or `--scale` (pixels per point) says otherwise. `-o` takes one file-name pattern for every file `render` writes, and `render` fills in its fields for each page:
 
 ```console
 $ laminapdf render report.pdf --pages 1-3 --dpi 72 -o 'thumbs/{stem}-{n:03}.png'

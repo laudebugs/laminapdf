@@ -3,7 +3,7 @@ title: Scripts and batch jobs
 description: Pipe PDFs through laminapdf, name pages with ranges, check thousands of files in parallel, and read its JSON reports and exit codes from a script.
 ---
 
-This page covers what a script needs from the `laminapdf` command: pipes, page ranges, many files in one run, JSON it can parse and exit codes it can trust. Use it for a build job that checks every PDF it ships, or a folder of uploads to sort.
+A script needs five things from the `laminapdf` tool: pipes, page ranges, many files in one run, JSON it can parse and exit codes it can trust. Use it for a build job that checks every PDF it ships, or a folder of uploads to sort.
 
 ## Pipes
 
@@ -57,7 +57,7 @@ $ find . -name '*.pdf' -print0 | sort -z | laminapdf check --files-from - -0 --j
 
 With `--json`, every command prints one JSON report on standard output. Each report names its format in `schema`, such as `laminapdf.info/1`, and lists its warnings. A new key may appear within a format's version, so read only the keys you need.
 
-When a single file fails, standard output stays empty and standard error gets one line, the same error object every Lamina PDF surface uses:
+When a single file fails, standard output stays empty and standard error gets one line, the same error object Lamina PDF's libraries use:
 
 ```console
 $ laminapdf info notes.pdf --json
@@ -78,7 +78,7 @@ The message and hint never quote the document, so a title or a line of text can'
 | 5 | A password is required, or the one given is wrong |
 | 6 | `reveal --fail-on` found something in a category it names |
 
-When several apply, the first in 2, 5, 4, 1, 6, 3, 0 wins. A batch exits 1 when any file failed, or 5 when every failure was a password's; otherwise 6, 3 or 0 by the same order. `laminapdf help exit-codes` prints the table.
+When several codes apply, the tool exits with the one that comes first in this order: 2, 5, 4, 1, 6, 3, 0. A batch exits 1 if any file failed, or 5 if every failure was a missing or wrong password. Otherwise it follows the same order: 6, then 3, then 0. `laminapdf help exit-codes` prints the table.
 
 ## Passwords and limits
 

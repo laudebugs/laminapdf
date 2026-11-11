@@ -27,7 +27,7 @@ $ laminapdf explain xref-repaired
 
 ## Install
 
-The docs site's [Command line](https://docs.laminapdf.com/cli/) section walks through installing and using the tool; [Install](https://docs.laminapdf.com/cli/install/) has a download link and checksum for each system. Each release offers the same binary three ways that need no Rust toolchain, and Cargo builds it from source:
+The docs site's [Command line](https://docs.laminapdf.com/cli/) section walks through installing and using the tool; [Install](https://docs.laminapdf.com/cli/install/) has a download link and checksum for each system. Each release offers the same binary three ways, none of which needs a Rust toolchain. Cargo can also build it from source:
 
 - **Homebrew** (macOS and Linux): `brew install laudebugs/tap/laminapdf`.
 - **npm**: `npm install -g @laminapdf/cli`, or `npx @laminapdf/cli info report.pdf`. npm installs only the binary for your platform, as an optional dependency; no install script downloads anything ([`packages/cli`](../../packages/cli/README.md)).

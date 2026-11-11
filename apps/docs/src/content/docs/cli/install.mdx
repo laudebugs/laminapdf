@@ -3,7 +3,7 @@ title: Install the command-line tool
 description: Install the laminapdf command with Homebrew or npm, or download it for macOS, Linux or Windows and check it against its checksum.
 ---
 
-This page installs the `laminapdf` command on macOS, Linux or Windows. Homebrew and npm install it in one command and keep it up to date; a direct download suits a machine with neither, such as a build server.
+Install the `laminapdf` tool on macOS, Linux or Windows. Homebrew and npm install and update it with one command; a direct download suits a machine with neither, such as a build server.
 
 ## Homebrew
 
@@ -15,17 +15,17 @@ brew install laudebugs/tap/laminapdf
 
 ## npm
 
-npm installs the same program, with no Rust or WebAssembly involved:
+npm installs the same tool, with no Rust or WebAssembly involved:
 
 ```sh
 npm install -g @laminapdf/cli@{{version}}
 ```
 
-To run it once without installing it, use `npx @laminapdf/cli@{{version}} info report.pdf`. The package holds a small launcher, and npm installs the program for your system as one of its optional dependencies. No install script runs and nothing else is downloaded.
+To run it once without installing it, use `npx @laminapdf/cli@{{version}} info report.pdf`. The package holds a small launcher, and npm installs the build for your system as one of its optional dependencies. No install script runs and nothing else is downloaded.
 
 ## Download it
 
-Each release attaches the program for eight systems to its page on GitHub. Pick your system, download its archive and its checksum, then unpack the archive and put the `laminapdf` program on your `PATH`.
+Each release attaches the tool, built for eight systems, to its page on GitHub. Pick your system, download its archive and its checksum, then unpack the archive and put the `laminapdf` program on your `PATH`.
 
 | System | Archive | Checksum |
 | --- | --- | --- |
@@ -52,7 +52,7 @@ On Windows, `Get-FileHash laminapdf-cli-x86_64-pc-windows-msvc.zip` in PowerShel
 
 ### Allow it to run
 
-The programs aren't signed yet. On macOS, a program downloaded with a browser is quarantined, and Gatekeeper refuses to open it. Remove the quarantine once, from the unpacked folder:
+The tool isn't signed yet. On macOS, a program downloaded with a browser is quarantined, and Gatekeeper refuses to open it. Remove the quarantine once, from the unpacked folder:
 
 ```sh
 xattr -d com.apple.quarantine laminapdf
@@ -62,7 +62,7 @@ On Windows, SmartScreen may warn the first time you run it. Homebrew and npm ins
 
 ### What the archive holds
 
-Besides the program, each archive holds its licences (`LICENSE-MIT` and `LICENSE-APACHE`) and `THIRD_PARTY_NOTICES.md`, the licence of every library inside the program. It also has a manual page per command in `man/` and shell completions in `completions/`.
+Besides the `laminapdf` program, each archive holds its licences (`LICENSE-MIT` and `LICENSE-APACHE`) and `THIRD_PARTY_NOTICES.md`, the licence of every library inside the program. It also has a manual page per command in `man/` and shell completions in `completions/`.
 
 ## Shell completions
 
@@ -85,7 +85,7 @@ laminapdf {{version}}
 
 ## Try a change before it's released
 
-An unreleased change is only in the repository. With Rust installed, Cargo builds the tool from it, with the server for AI agents included:
+To try a change that isn't released yet, build the tool from the repository with Cargo, the MCP server included:
 
 ```sh
 cargo install --git https://github.com/laudebugs/laminapdf laminapdf-cli --features mcp

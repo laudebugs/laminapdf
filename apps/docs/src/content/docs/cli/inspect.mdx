@@ -1,9 +1,9 @@
 ---
 title: Inspect and check PDFs
-description: Describe a PDF with laminapdf info, find what a reader had to repair with check, and list what a file holds beyond its pages with reveal.
+description: Describe a PDF with laminapdf info, find what Lamina PDF had to repair with check, and list what a file holds beyond its pages with reveal.
 ---
 
-This page answers three questions about a PDF before you trust it or send it: what it is, whether it's damaged, and what it holds that its pages don't show. Use them on files people upload to you, and on files you're about to publish.
+This page answers three questions about a PDF before you trust it or send it: what it is, whether it's damaged, and what it holds that its pages don't show. Run these three commands on files people upload to you, and on files you're about to publish.
 
 ## What a file is: `info`
 
@@ -70,9 +70,9 @@ The letter was edited, and its first version still holds a word the final one re
 | Category | What it lists |
 | --- | --- |
 | `history` | Earlier revisions, what each added, changed and freed, the words they hold that the latest doesn't, and objects nothing uses |
-| `metadata` | The document information entries, the XMP metadata packet's size and namespaces, and thumbnails |
+| `metadata` | The document information entries, the XMP metadata (a block of extra metadata in XML) with its size and namespaces, and thumbnails |
 | `attachments` | Embedded files, with their names, sizes and types |
-| `active-content` | Scripts and actions, what runs them, and XFA forms |
+| `active-content` | Scripts and actions, what runs them, and XFA forms (forms described in XML) |
 | `annotations` | Annotations by type, with each comment's author and text |
 | `forms` | Form fields and their values |
 | `hidden-content` | Hidden text by reason (covered, invisible, off the page, tiny, clipped or too faint to read), layers that are off, and unapplied redaction marks |

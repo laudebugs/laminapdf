@@ -3,11 +3,11 @@ title: Make and change PDFs
 description: Turn a Markdown file into a tagged, accessible PDF with laminapdf build, and turn pages with laminapdf pages rotate.
 ---
 
-This page makes a PDF from a Markdown file and turns pages of an existing one. Use `build` for reports, release notes and manuals you already write in Markdown; the PDF it makes flows across as many pages as the text needs, and screen readers can follow it.
+Make a PDF from a Markdown file, or turn pages of an existing one. Use `build` for reports, release notes and manuals you already write in Markdown; the PDF it makes flows across as many pages as the text needs, and screen readers can follow it.
 
 ## A PDF from Markdown: `build`
 
-Here is a short Markdown file with front matter, a heading and a table:
+Take this Markdown file:
 
 ```md
 ---
@@ -68,6 +68,8 @@ built 1 page → notes.pdf (14 KB, PDF/UA-1)
 ### The same input gives the same bytes
 
 The PDF has no creation date unless `--creation-date` gives one, such as `20261110`. Without a date, the same Markdown and fonts give a byte-identical PDF, so a build job can compare it with the last one.
+
+### Page size and reports
 
 `--page-size` takes `a4` (the default), `a0` to `a6`, `letter`, `legal` or `tabloid`. With `--json`, `build` prints a `laminapdf.build/1` report with the page count, size and profiles.
 
