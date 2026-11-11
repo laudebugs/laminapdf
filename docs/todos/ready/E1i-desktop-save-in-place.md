@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E1 editing foundation §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D3b](./D3b-recent-files-and-file-watching.md), [E1e](../ongoing/E1e-save-and-constraint-banner.md), [E1h](./E1h-desktop-edit-session.md) |
+| Depends on | [D3b](./D3b-recent-files-and-file-watching.md), [E1e](../done/E1e-save-and-constraint-banner.md), [E1h](./E1h-desktop-edit-session.md) |
 | ADRs | Follows ADR 0007, 0008 |
 | Branch | `feat/e1i-desktop-save-in-place` |
 | PR title | `feat(desktop): save in place, with conflicts from outside changes` |
@@ -19,7 +19,7 @@ The desktop part of E1e. Save writes the open file in place: it appends an incre
 
 ## Context
 
-- [E1e](../ongoing/E1e-save-and-constraint-banner.md): the save commands, the strip and the planner's options this uses
+- [E1e](../done/E1e-save-and-constraint-banner.md): the save commands, the strip and the planner's options this uses
 - [D3b](./D3b-recent-files-and-file-watching.md): the watcher and reload on outside change
 - Load the `/tauri-v2` skill before any work
 
@@ -33,7 +33,7 @@ The desktop part of E1e. Save writes the open file in place: it appends an incre
 
 **Out of scope**
 
-- The web's save: [E1e](../ongoing/E1e-save-and-constraint-banner.md).
+- The web's save: [E1e](../done/E1e-save-and-constraint-banner.md).
 
 ## Tasks
 

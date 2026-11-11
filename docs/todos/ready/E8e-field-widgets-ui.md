@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E1e](../ongoing/E1e-save-and-constraint-banner.md), [E8d](./E8d-field-appearances.md) |
+| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E8d](./E8d-field-appearances.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e8e-field-widgets-ui` |
 | PR title | `feat(viewer): fillable form widgets as DOM overlays` |

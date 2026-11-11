@@ -39,7 +39,7 @@ Turn the web reader into an editor shell: an edit session per open document that
 
 **Out of scope** (and which todo covers it)
 
-- Saving and the constraint banner → [E1e](../ongoing/E1e-save-and-constraint-banner.md)
+- Saving and the constraint banner → [E1e](../done/E1e-save-and-constraint-banner.md)
 - Metadata editing UI → [E1f](../ready/E1f-metadata-ui-capability-page.md)
 - The desktop session, Edit menu and close guard → [E1h](../ready/E1h-desktop-edit-session.md)
 

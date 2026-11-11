@@ -110,7 +110,7 @@ Command ids use the registry’s `namespace.verb-object` form ([U1b](../../todos
 
 **Artboards:** `O02-save.dc.html` (AppendOnly menu, Save options open), `O02-save-conflict.dc.html` (certified file after Apply anyway: banner + remove-signature confirm, in Organise), `O02-save-external-change.dc.html` (strip + dialog at Save, Comment mode), `O02-save-web.dc.html` (Download menu).
 
-**Todos:** [E1e](../../todos/ongoing/E1e-save-and-constraint-banner.md).
+**Todos:** [E1e](../../todos/done/E1e-save-and-constraint-banner.md).
 
 ## O03 Close with unsaved changes
 

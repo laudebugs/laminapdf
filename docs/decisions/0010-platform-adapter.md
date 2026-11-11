@@ -1,6 +1,6 @@
 # 0010 — Platform adapter: one `Platform` interface, capability flags, no platform checks in UI code
 
-- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), 2026-11-09 by U2a (`canShare`, `shareText`) and by [ADR 0008](0008-desktop-shell.md) (`hasNativePrint` and `crossOriginIsolated` on desktop), and 2026-11-10 by T5b (`positions`, `recent.reopen`'s `{ ask }`, `recent.add` giving the entry's id)
+- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), 2026-11-09 by U2a (`canShare`, `shareText`) and by [ADR 0008](0008-desktop-shell.md) (`hasNativePrint` and `crossOriginIsolated` on desktop), 2026-11-10 by T5b (`positions`, `recent.reopen`'s `{ ask }`, `recent.add` giving the entry's id), and 2026-11-11 by E1e (`SaveResult.file`)
 - Date: 2026-10-31
 
 ## Context
@@ -75,7 +75,7 @@ export interface PlatformFile {
 ```
 
 - **What `PlatformFile` carries:** a file's name and size are shown in the UI, but its contents only ever go to the document worker. `PlatformFile` carries no path on the web; on desktop, paths stay in the Rust process (ADR 0008).
-- **`SaveResult`** is `{ saved: true, name } | { saved: false, reason: "cancelled" }`.
+- **`SaveResult`** is `{ saved: true, name, file? } | { saved: false, reason: "cancelled" }`. `file` (amended 2026-11-11 by E1e) is the file as saved, to read and save to next: read again after a write in place, since the one read before is stale, and the new file after a save dialog; a download gives none.
 - **`PrintJob`:** the page range, a callback that renders pages at the print DPI, and the original bytes for native PDF printing (the desktop doesn't use them: it prints the rendered pages, [ADR 0008 §9](0008-desktop-shell.md#9-printing-the-engines-rasters-through-each-oss-print-api)).
 - **`PlatformStorage`:**
   - `opfs()`, returning a `FileSystemDirectoryHandle` or `undefined`;
