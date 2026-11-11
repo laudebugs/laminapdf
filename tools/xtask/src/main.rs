@@ -226,6 +226,9 @@ tasks:
                     write an image-heavy PDF with the laminapdf builder (default 20,000 pages, about
                     1.1 GB, into target/fixtures/1gb.pdf; never committed): the desktop engine's
                     large-file fixture. Needs about 1.5 GB of RAM
+  desktop-frontend  the packages the desktop app's frontend imports through their built dist/: the
+                    WebAssembly modules without their tests, @laminapdf/sdk, the viewer with its render
+                    backends, @laminapdf/ui with its tokens, icons and fonts
   desktop-sidecar [--release | --debug]
                     build the desktop engine binary into apps/desktop/src-tauri/binaries/ (Tauri's
                     sidecar naming) and the pinned PDFium into src-tauri/resources/pdfium/, which
@@ -429,6 +432,7 @@ fn main() -> Result<()> {
         ("cli-dist", []) => cli_docs::dist_files(&ws),
         ("desktop-notices", []) => notices::desktop(&ws),
         ("desktop-sidecar", args) => desktop_sidecar::run(&ws, args),
+        ("desktop-frontend", []) => web::desktop_frontend(&ws),
         ("fixtures", [what, rest @ ..]) if what == "large-pdf" => fixtures::large_pdf(&ws, rest),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("benchmarks", args) => benchmarks::run(&ws, &benchmarks::parse_args(args)?),

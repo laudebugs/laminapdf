@@ -14,7 +14,7 @@
     "tauri": "tauri",
     "desktop:dev": "tauri dev --config src-tauri/tauri.bundle.conf.json",
     "desktop:build": "tauri build --config src-tauri/tauri.bundle.conf.json",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:wasm": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run -c vitest.config.ts"
   },
   "dependencies": {

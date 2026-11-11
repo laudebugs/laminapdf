@@ -11,6 +11,8 @@
 //   on screen; `engine://failed` and a document that didn't come back become `restart-failed`.
 // - Text, links, search and editing aren't served by the engine yet: their calls answer as for
 //   a document without them (no text runs, no links, untagged), and edits reject.
+// - Only types come from `@laminapdf/viewer` here, so the app's Node tests run without the
+//   viewer's build (which needs the WebAssembly); the app itself imports `createViewer`.
 
 import { DEFAULT_LIMITS, type PixelRect, planTile, type RenderRequest } from "@laminapdf/render";
 import type {
@@ -26,7 +28,6 @@ import type {
   ViewerEvent,
   ViewerEvents,
 } from "@laminapdf/viewer";
-import { EMPTY_HISTORY } from "@laminapdf/viewer";
 import { type TileTransport, tileUrl } from "./tile-url.ts";
 
 /** A page as the main process reports it: displayed size in points and `/Rotate`. */
@@ -326,6 +327,6 @@ export class DesktopEngineClient implements ViewerEngine {
   }
 
   editHistory(): Promise<EditHistory> {
-    return Promise.resolve(EMPTY_HISTORY);
+    return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
   }
 }
