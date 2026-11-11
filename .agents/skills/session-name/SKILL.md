@@ -25,5 +25,3 @@ An agent can't rename its own session, so whenever the name changes, ask the own
 ```
 /rename Yanny - [D2d:#421, E1c:#440]
 ```
-
-PR titles carry the same ID: see [git workflow §5](../../../docs/guidelines/git-workflow.md#5-pull-requests).

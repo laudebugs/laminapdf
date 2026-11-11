@@ -387,7 +387,6 @@ Daily releases: `release-train.yml` runs after a full successful nightly on `mai
 - **Check visual changes in a browser, from the user's side.** Try every change to what a user sees or touches on screen (the reader, the viewer, the sites, the components) in the built app in a real browser, as a person uses it (mouse, keyboard, real files). Judge it by what they can see and do; tests that only call an API don't prove it. Other changes need their own tests, not a browser. See [bug triage §7](docs/guidelines/bug-triage.md#7-prove-the-fix).
 - **Never patch code just to make a test pass.** When a test fails, in CI or locally, find out why. Fix the product if it is wrong. If the test checks something that doesn't make sense, adjust it or remove it, and say why in the commit message. See [bug triage §6](docs/guidelines/bug-triage.md#6-fix-the-cause-not-the-symptom).
 - **Conventional Commits** for commit messages: `type(scope): summary`.
-- **PR titles start with the todo's ID**: `feat(ui): D2d - stream engine tiles to the viewer` ([git workflow §5](docs/guidelines/git-workflow.md#5-pull-requests)).
 - **Name the session after its PRs** with the `session-name` skill: `Yanny - [D2d:#421, E1c:#440]`.
 - **Document as you go.** Plans go in `docs/plans/`, decisions in `docs/decisions/`, research in `docs/research/`. Update the folder's `README.md` index whenever you add a file.
 - **Cite sources.** PDF behavior claims should point to ISO 32000-2 (PDF 2.0) or another primary source. Clearly label recommendations and opinions.
