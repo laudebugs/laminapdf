@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `feat/w3a-crawl-and-index-rules` |
 | PR title | `feat(sites): robots.txt and noindex on every host, one crawler policy` |
 | Size | M (three sites' robots files, the reader's build input, a docs host rule, tests) |
-| PR | — |
+| PR | (opening) |
 
 ## Goal
 
@@ -37,8 +37,8 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 
 **Out of scope** (and which todo covers it)
 
-- Canonical URLs and share tags on the reader: [W3d](./W3d-structured-data-and-share-tags.md).
-- Submitting sitemaps and pinging IndexNow: [W3e](./W3e-search-engine-registration.md).
+- Canonical URLs and share tags on the reader: [W3d](../ready/W3d-structured-data-and-share-tags.md).
+- Submitting sitemaps and pinging IndexNow: [W3e](../ready/W3e-search-engine-registration.md).
 - Soft 404s on unknown reader paths other than `/robots.txt`: the single-page fallback serves the app's own routes; leave it.
 
 ## Tasks
