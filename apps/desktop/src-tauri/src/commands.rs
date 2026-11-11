@@ -60,6 +60,11 @@ pub(crate) async fn open_dialog(
     let engines = Arc::clone(&engines);
     // The dialog and the engine's replies block: off the async runtime's threads.
     tauri::async_runtime::spawn_blocking(move || {
+        // End-to-end builds: a scenario's queued fixture stands in for the dialog (D2e).
+        #[cfg(feature = "e2e")]
+        if let Some(path) = tauri::Manager::state::<crate::e2e::QueuedPick>(&window).take() {
+            return engines.open(window.label(), &path).map(Some);
+        }
         let picked = window
             .dialog()
             .file()
