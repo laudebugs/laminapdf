@@ -26,7 +26,7 @@ const { links, home, menu = true } = Astro.props;
 const menuLinks = menu ? links.filter(inPhoneMenu) : [];
 ---
 
-<div class="site-header-row">
+<div class="site-header-row" data-phone-menu={menuLinks.length > 0 ? "" : undefined}>
   <a class="site-wordmark" href={home}>Lamina PDF</a>
   <SiteNav links={links} />
   {

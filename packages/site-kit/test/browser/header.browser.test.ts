@@ -145,6 +145,16 @@ for (const theme of ["light", "dark"] as const) {
       expect(document.activeElement).toBe(summary);
     });
 
+    it("keeps every link in the bar on a phone when it draws no menu", async () => {
+      await page.viewport(375, 800);
+      const header = mount(HEADERS.docs, theme);
+      expect(header.querySelector("details.site-menu")).toBeNull();
+      const shown = [...header.querySelectorAll<HTMLElement>(".site-nav a")]
+        .filter((link) => link.getClientRects().length > 0)
+        .map((link) => link.textContent?.trim());
+      expect(shown).toEqual(["Download", "Docs", "How we test", "Privacy"]);
+    });
+
     it("has no axe violation on either site", async () => {
       for (const html of [HEADERS.website, HEADERS.docs]) {
         mount(html, theme);
