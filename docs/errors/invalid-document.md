@@ -15,7 +15,7 @@ The same check runs after a template is filled, so a filled template must also b
 
 ## How to fix
 
-`data.pointer` is the JSON Pointer of the value at fault, such as `/blocks/3/style`. Correct that value against the document schema, `laminapdf.document/1`. For a misspelt key, `didYouMean` lists the closest keys the format knows there.
+`data.pointer` is the JSON Pointer of the value at fault, such as `/blocks/3/style`. Correct that value. For a misspelt key, `didYouMean` lists the closest keys the format knows there.
 
 A style, font or image the document names must also be defined: the style in the document's `styles`, the font and image among the files given beside it. `didYouMean` suggests only the format's own keys, never the document's names.
 

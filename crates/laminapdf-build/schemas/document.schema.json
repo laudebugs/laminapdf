@@ -75,7 +75,7 @@
               ]
             },
             "orphans": {
-              "description": "The fewest lines left alone at the foot of a page (2 when left out).",
+              "description": "The fewest lines of the paragraph left at the foot of a page before it breaks (2 when\nleft out).",
               "format": "uint",
               "minimum": 1,
               "type": [
@@ -132,7 +132,7 @@
               "type": "string"
             },
             "widows": {
-              "description": "The fewest lines left alone at the top of a page (2 when left out).",
+              "description": "The fewest lines of the paragraph carried to the top of a new page (2 when left out).",
               "format": "uint",
               "minimum": 1,
               "type": [
@@ -188,7 +188,7 @@
               ]
             },
             "orphans": {
-              "description": "The fewest lines left alone at the foot of a page (2 when left out).",
+              "description": "The fewest lines of the paragraph left at the foot of a page before it breaks (2 when\nleft out).",
               "format": "uint",
               "minimum": 1,
               "type": [
@@ -245,7 +245,7 @@
               "type": "string"
             },
             "widows": {
-              "description": "The fewest lines left alone at the top of a page (2 when left out).",
+              "description": "The fewest lines of the paragraph carried to the top of a new page (2 when left out).",
               "format": "uint",
               "minimum": 1,
               "type": [
@@ -519,7 +519,7 @@
               ]
             },
             "levels": {
-              "description": "The heading levels it lists, 1 to `levels`.",
+              "description": "The deepest heading level it lists, 1 to 6 (2 when left out).",
               "format": "uint8",
               "maximum": 6,
               "minimum": 1,
@@ -879,7 +879,7 @@
               "type": "null"
             }
           ],
-          "description": "A different template for the first page, such as one without a header."
+          "description": "Different settings for the first page, such as no header."
         },
         "footer": {
           "anyOf": [
@@ -912,7 +912,7 @@
               "type": "null"
             }
           ],
-          "description": "The margins: one number for all four, or `[top, right, bottom, left]` (72 points)."
+          "description": "The margins: one number for all four, or `[top, right, bottom, left]` (72 points when left out)."
         },
         "size": {
           "$ref": "#/$defs/PageSizeSpec",
@@ -973,7 +973,7 @@
           ]
         },
         "orphans": {
-          "description": "The fewest lines left alone at the foot of a page (2 when left out).",
+          "description": "The fewest lines of the paragraph left at the foot of a page before it breaks (2 when\nleft out).",
           "format": "uint",
           "minimum": 1,
           "type": [
@@ -1026,7 +1026,7 @@
           "description": "The text, in `style`; give this or `spans`."
         },
         "widows": {
-          "description": "The fewest lines left alone at the top of a page (2 when left out).",
+          "description": "The fewest lines of the paragraph carried to the top of a new page (2 when left out).",
           "format": "uint",
           "minimum": 1,
           "type": [
@@ -1338,7 +1338,7 @@
       "type": "array"
     },
     "schema": {
-      "description": "`laminapdf.document/1`.",
+      "description": "Always `laminapdf.document/1`.",
       "type": "string"
     },
     "sectionLevel": {

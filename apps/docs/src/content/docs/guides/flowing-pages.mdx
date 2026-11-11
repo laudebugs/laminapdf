@@ -91,7 +91,7 @@ If you pass no fonts, the builder sets the Markdown in Helvetica and Courier, tw
 
 ## Write it as JSON
 
-You can also describe the document as JSON, in the format `laminapdf.document/1`, and lay it out with `Builder::document`. The JSON names what you would build by hand: a `page` for the template, `styles` that each name a font and a size, and `blocks` tagged by `type`, such as `paragraph`, `heading`, `list`, `table`, `figure` and `contents`. Fonts and images are named in the document, and their bytes come beside it in `Resources`, so the JSON holds no files.
+You can also describe the document as JSON, in the format `laminapdf.document/1`, and lay it out with `Builder::document`. The JSON names what you would build by hand. A `page` sets the size, margins, header and footer, `styles` each name a font and a size, and `blocks` are tagged by `type`, such as `paragraph`, `heading`, `list`, `table`, `figure` and `contents`. Fonts and images are named in the document, and their bytes come beside it in `Resources`, so the JSON holds no files.
 
 A format with a schema suits programs and language models: they write the document, and the schema checks it before anything is drawn. Lamina PDF reads only the keys the format defines. A misspelt one fails with `invalid-document`, whose `data.pointer` names the value and whose `didYouMean` suggests the key it was close to.
 

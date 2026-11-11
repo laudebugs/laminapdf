@@ -9,16 +9,16 @@ Filling a document template would have made more than 100,000 values, or nested 
 
 ## Why
 
-`$each` repeats its block once per item, and an `$each` inside another repeats it once per item of each. A few levels over long lists multiply into millions of blocks, which no document needs and which would hold a program for a long time. So filling counts what it makes and stops at a limit far beyond a real document.
+`$each` repeats its block once per item, and an `$each` inside another repeats it once per item of each. A few levels over long lists multiply into millions of blocks, which no document needs. So filling counts what it makes and stops at a limit far beyond a real document.
 
 ## How to fix
 
-`data.limit` is the limit the template passed. Repeat fewer items, or nest fewer `$each` placeholders inside each other. For a very long report, split it into several documents.
+`data.limit` is the limit that filling reached. Repeat fewer items, or nest fewer `$each` placeholders inside each other. For a very long report, split it into several documents.
 
 ## Example
 
 ```rust
-let document = fill(&template, &data)?; // fails when nested $each placeholders multiply past the limit
+let document = flow::document::fill(&template, &data)?; // fails when nested $each placeholders multiply past the limit
 ```
 
 ## Data fields

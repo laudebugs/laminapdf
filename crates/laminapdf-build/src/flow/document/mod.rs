@@ -1,4 +1,4 @@
-//! `laminapdf.document/1` (ADR 0032 §6): a flowing document as JSON, so a program or a language
+//! `laminapdf.document/1`: a flowing document as JSON, so a program or a language
 //! model can write it and a schema can check it before anything is drawn.
 //!
 //! The document names its fonts and images; their bytes come beside it in [`Resources`], which
@@ -43,8 +43,7 @@ pub const DOCUMENT_SCHEMA: &str = "laminapdf.document/1";
 pub const DOCUMENT_SCHEMA_URL: &str =
     "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-build/schemas/document.schema.json";
 
-/// The JSON Schema (2020-12) of `laminapdf.document/1`, committed as
-/// `crates/laminapdf-build/schemas/document.schema.json`. It describes a document, not a
+/// The JSON Schema (2020-12) of `laminapdf.document/1`. It describes a document, not a
 /// template: a template's placeholders are filled before the check.
 #[cfg(feature = "schema")]
 #[must_use]
@@ -116,7 +115,7 @@ impl Text {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FlowDocument {
-    /// `laminapdf.document/1`.
+    /// Always `laminapdf.document/1`.
     pub schema: String,
     /// The title: the document's metadata, `{title}` in a header or footer, and the window title.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -155,8 +154,7 @@ pub struct FlowDocument {
 }
 
 impl FlowDocument {
-    /// The document as JSON. Serialising these types can't fail: every key is a string and every
-    /// number finite or written as JSON writes it, so the fallback is never reached.
+    /// The document as JSON.
     #[must_use]
     pub fn to_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap_or_default()
@@ -283,11 +281,12 @@ pub struct ParagraphSpec {
     /// Start it on a new page.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub break_before: bool,
-    /// The fewest lines left alone at the top of a page (2 when left out).
+    /// The fewest lines of the paragraph carried to the top of a new page (2 when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "schema", schemars(range(min = 1)))]
     pub widows: Option<usize>,
-    /// The fewest lines left alone at the foot of a page (2 when left out).
+    /// The fewest lines of the paragraph left at the foot of a page before it breaks (2 when
+    /// left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "schema", schemars(range(min = 1)))]
     pub orphans: Option<usize>,
@@ -566,7 +565,7 @@ pub struct ContentsSpec {
     /// The entries' style (`body` when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style: Option<String>,
-    /// The heading levels it lists, 1 to `levels`.
+    /// The deepest heading level it lists, 1 to 6 (2 when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "schema", schemars(range(min = 1, max = 6)))]
     pub levels: Option<u8>,
@@ -582,7 +581,7 @@ pub struct ContentsSpec {
 pub struct PageSpec {
     /// A size name (`A4`, `A5`, `Letter`, `Legal`, …) or `[width, height]` in points.
     pub size: PageSizeSpec,
-    /// The margins: one number for all four, or `[top, right, bottom, left]` (72 points).
+    /// The margins: one number for all four, or `[top, right, bottom, left]` (72 points when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub margins: Option<MarginsSpec>,
     /// The header: text at its start, centre and end.
@@ -594,7 +593,7 @@ pub struct PageSpec {
     /// The header and footer's style (`body` when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style: Option<String>,
-    /// A different template for the first page, such as one without a header.
+    /// Different settings for the first page, such as no header.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first: Option<Box<PageSpec>>,
 }

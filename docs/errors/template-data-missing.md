@@ -9,7 +9,7 @@ A document template asked its data for a value the data doesn't have. A `{ "$dat
 
 ## Why
 
-A template is a document with placeholders that point into the data with JSON Pointers ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)). Filling it replaces each placeholder with the value it points to. A pointer that finds nothing has no value to put there, and leaving a gap would print a document with something missing, so filling stops instead.
+A template is a document with placeholders that point into the data with JSON Pointers ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)). Filling it replaces each placeholder with the value it points to. Leaving a gap would print a document with something missing, so filling stops instead.
 
 Only `$if` accepts a missing value: it leaves its block out.
 

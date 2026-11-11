@@ -3913,7 +3913,7 @@ The same check runs after a template is filled, so a filled template must also b
 
 ## How to fix
 
-`data.pointer` is the JSON Pointer of the value at fault, such as `/blocks/3/style`. Correct that value against the document schema, `laminapdf.document/1`. For a misspelt key, `didYouMean` lists the closest keys the format knows there.
+`data.pointer` is the JSON Pointer of the value at fault, such as `/blocks/3/style`. Correct that value. For a misspelt key, `didYouMean` lists the closest keys the format knows there.
 
 A style, font or image the document names must also be defined: the style in the document's `styles`, the font and image among the files given beside it. `didYouMean` suggests only the format's own keys, never the document's names.
 
@@ -3940,7 +3940,7 @@ A document template asked its data for a value the data doesn't have. A `{ "$dat
 
 ## Why
 
-A template is a document with placeholders that point into the data with JSON Pointers ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)). Filling it replaces each placeholder with the value it points to. A pointer that finds nothing has no value to put there, and leaving a gap would print a document with something missing, so filling stops instead.
+A template is a document with placeholders that point into the data with JSON Pointers ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)). Filling it replaces each placeholder with the value it points to. Leaving a gap would print a document with something missing, so filling stops instead.
 
 Only `$if` accepts a missing value: it leaves its block out.
 
@@ -3966,7 +3966,7 @@ let document = flow::document::fill(&template, &data)?; // fails when the data l
 
 ## What happened
 
-A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, a `$data` or `$item` put an object or a list where the document needs text or a number, or a placeholder's pointer isn't one. Nothing was laid out.
+A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, a `$data` or `$item` put an object or a list where the document needs text or a number, or a placeholder's pointer isn't a valid JSON Pointer. Nothing was laid out.
 
 ## Why
 
@@ -3999,16 +3999,16 @@ Filling a document template would have made more than 100,000 values, or nested 
 
 ## Why
 
-`$each` repeats its block once per item, and an `$each` inside another repeats it once per item of each. A few levels over long lists multiply into millions of blocks, which no document needs and which would hold a program for a long time. So filling counts what it makes and stops at a limit far beyond a real document.
+`$each` repeats its block once per item, and an `$each` inside another repeats it once per item of each. A few levels over long lists multiply into millions of blocks, which no document needs. So filling counts what it makes and stops at a limit far beyond a real document.
 
 ## How to fix
 
-`data.limit` is the limit the template passed. Repeat fewer items, or nest fewer `$each` placeholders inside each other. For a very long report, split it into several documents.
+`data.limit` is the limit that filling reached. Repeat fewer items, or nest fewer `$each` placeholders inside each other. For a very long report, split it into several documents.
 
 ## Example
 
 ```rust
-let document = fill(&template, &data)?; // fails when nested $each placeholders multiply past the limit
+let document = flow::document::fill(&template, &data)?; // fails when nested $each placeholders multiply past the limit
 ```
 
 ## Data fields

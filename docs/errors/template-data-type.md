@@ -5,7 +5,7 @@
 
 ## What happened
 
-A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, a `$data` or `$item` put an object or a list where the document needs text or a number, or a placeholder's pointer isn't one. Nothing was laid out.
+A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, a `$data` or `$item` put an object or a list where the document needs text or a number, or a placeholder's pointer isn't a valid JSON Pointer. Nothing was laid out.
 
 ## Why
 
