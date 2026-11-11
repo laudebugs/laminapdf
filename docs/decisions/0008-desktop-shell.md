@@ -74,16 +74,16 @@ The engine renders a tile and streams it to the main process; the scheme handler
 
 A failure answers `{ kind, message }` with a status the client maps back: 404 for an unknown document or page, 409 for a cancelled tile, 423 for a locked document, 503 while the engine restarts. When the viewer aborts a render, the client batches its tickets into one `cancel_tiles` call per microtask, and the engine drops tiles it hasn't drawn. A tile that lands after its render was aborted, or after its document was replaced, is closed and never drawn. The scale travels as the single-precision number the viewer's planner sized the page with, so both sides agree on the page's size in pixels.
 
-**Measured (D2d).** On an M1 Pro (macOS 27, release build, one app instance, five runs):
+**Measured (D2d).** On an M1 Pro (macOS 27, release build, one app instance, five runs, the engine in D2c's Seatbelt sandbox):
 
 | What | Target | Measured |
 | --- | --- | --- |
-| First page of the 1 GB fixture, from the open to the first tile answered | ≤ 1.5 s | 0.49–0.71 s (opening and sizing 20,000 pages takes 0.45–0.67 s of it; a tile takes 1–28 ms) |
-| Idle memory, 13-page document (`flowing_report.pdf`), main + engine | ≤ 150 MB | 50 MB (main 39 MB, engine 11 MB; `footprint`) |
-| The webview's content process, same document | recorded | 170 MB |
-| Launch to the window's first command (the empty state accepts input) | < 300 ms | 0.49–0.68 s: **missed**, see [D2g](../todos/ready/D2g-desktop-cold-start.md) |
+| First page of the 1 GB fixture, from the open to the first tile answered | ≤ 1.5 s | 0.53–0.74 s (opening and sizing 20,000 pages takes 0.48–0.68 s of it; a tile takes 1–28 ms) |
+| Idle memory, 13-page document (`flowing_report.pdf`), main + engine | ≤ 150 MB | 54 MB (main 41 MB, engine 13 MB; `footprint`) |
+| The webview's content process, same document | recorded | 170 MB (before the sandbox; the sandbox doesn't touch the webview) |
+| Launch to the window's first command (the empty state accepts input) | < 300 ms | 0.51–0.54 s: **missed**, see [D2g](../todos/ready/D2g-desktop-cold-start.md) |
 
-The app's open (0.45–0.67 s) matches the engine alone in §2 (478–494 ms), so the webview, the IPC and PDFium's own open add little to it.
+The app's open (0.48–0.68 s) matches the engine alone in §2 (478–494 ms), so the webview, the IPC and PDFium's own open add little to it. The sandbox adds about 15 ms to an engine's start: a warm engine is ready in 22–29 ms, against 8 ms before D2c, and the first engine after a build takes about 220 ms while macOS checks the new binary.
 
 ### 5. Sandboxing per OS
 
