@@ -3,10 +3,14 @@
 // its archive and checksum, and a row for a target the release dropped fails it too.
 
 import { readFile } from "node:fs/promises";
+import { VERSION_PLACEHOLDER } from "@laminapdf/site-kit/version";
 import { REPOSITORY } from "./repository.mjs";
 
 /** Where a release's files are, for the version the docs describe. */
-const RELEASE = `${REPOSITORY}/releases/download/laminapdf-cli-v{{version}}/`;
+const RELEASE = `${REPOSITORY}/releases/download/laminapdf-cli-v${VERSION_PLACEHOLDER}/`;
+
+/** The page with the download table, from the repository's root. */
+export const INSTALL_PAGE = "apps/docs/src/content/docs/cli/install.mdx";
 
 /**
  * The `targets` list of dist-workspace.toml.
@@ -24,6 +28,7 @@ export function distTargets(toml) {
  * A target's archive: `.zip` on Windows, `.tar.xz` elsewhere, as dist writes them.
  *
  * @param {string} target
+ * @returns {string}
  */
 export function archiveName(target) {
   return `laminapdf-cli-${target}.${target.includes("-windows-") ? "zip" : "tar.xz"}`;
@@ -54,20 +59,19 @@ export function downloadProblems(page, targets) {
 /**
  * Fails the build when the install page's table and the release's targets differ.
  *
- * @param {URL} page the install page
- * @param {URL} dist dist-workspace.toml
+ * @param {URL} root the repository's root
  * @returns {import("astro").AstroIntegration}
  */
-export function cliDownloadChecks(page, dist) {
+export function cliDownloadChecks(root) {
   return {
     name: "lamina-cli-downloads",
     hooks: {
       "astro:config:setup": async () => {
-        const targets = distTargets(await readFile(dist, "utf8"));
-        const problems = downloadProblems(await readFile(page, "utf8"), targets);
+        const targets = distTargets(await readFile(new URL("dist-workspace.toml", root), "utf8"));
+        const problems = downloadProblems(await readFile(new URL(INSTALL_PAGE, root), "utf8"), targets);
         if (problems.length > 0)
           throw new Error(
-            `cli/install.mdx's download table doesn't match dist-workspace.toml:\n${problems.join("\n")}`,
+            `${INSTALL_PAGE}: the download table doesn't match dist-workspace.toml:\n${problems.join("\n")}`,
           );
       },
     },

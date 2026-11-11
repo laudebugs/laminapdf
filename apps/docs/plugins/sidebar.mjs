@@ -64,7 +64,7 @@ export function sidebar(typeDoc) {
       label: "Command line",
       items: [
         { label: "The command line", slug: "cli" },
-        { label: "Install", slug: "cli/install" },
+        { label: "Install the tool", slug: "cli/install" },
         { label: "Inspect and check PDFs", slug: "cli/inspect" },
         { label: "Extract text and render pages", slug: "cli/extract-and-render" },
         { label: "Make and change PDFs", slug: "cli/build-and-edit" },

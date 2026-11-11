@@ -82,6 +82,6 @@ $ laminapdf pages rotate report.pdf +90:1-3 -o turned.pdf
 rotated 3 pages → turned.pdf (incremental update)
 ```
 
-Where the file allows it, the change is an [incremental save](/reference/glossary/): the original bytes stay first in the new file, unchanged, and the change follows them. `--in-place` replaces the input instead of writing a new file, and needs `--force`.
+Where the file allows it, the tool writes an incremental update, as its output says: the original bytes stay first in the new file, unchanged, and the change follows them. `--in-place` replaces the input instead of writing a new file, and needs `--force`.
 
 Next: [use the tool in scripts and batch jobs](/cli/scripts/).

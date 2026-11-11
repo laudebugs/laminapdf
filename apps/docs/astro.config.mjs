@@ -116,6 +116,7 @@ export default defineConfig({
       sidebar: sidebar(TYPEDOC ? typeDocSidebarGroup : undefined),
     }),
     examplePdfs(new URL("fixtures/golden/examples/", ROOT)),
+    cliDownloadChecks(ROOT),
     websiteIcons(new URL("apps/site/public/", ROOT)),
     checkedLinks,
     inlineScriptHashes,
@@ -123,9 +124,5 @@ export default defineConfig({
     agentDocs(sidebarRoutes),
     // Last, so it also reads the Markdown twins agentDocs writes.
     releaseChecks(DOCS_RELEASE),
-    cliDownloadChecks(
-      new URL("apps/docs/src/content/docs/cli/install.mdx", ROOT),
-      new URL("dist-workspace.toml", ROOT),
-    ),
   ],
 });

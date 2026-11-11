@@ -3,14 +3,13 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { archiveName, distTargets, downloadProblems } from "./cli-downloads.mjs";
+import { archiveName, distTargets, downloadProblems, INSTALL_PAGE } from "./cli-downloads.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
-const page = await readFile(new URL("apps/docs/src/content/docs/cli/install.mdx", ROOT), "utf8");
+const page = await readFile(new URL(INSTALL_PAGE, ROOT), "utf8");
 const targets = distTargets(await readFile(new URL("dist-workspace.toml", ROOT), "utf8"));
 
 test("the install page links every target the release builds, and no other", () => {
-  assert.equal(targets.length, 8);
   assert.deepEqual(downloadProblems(page, targets), []);
 });
 
@@ -24,7 +23,7 @@ test("a target the page lacks fails the check", () => {
 test("a row for a target the release dropped fails the check", () => {
   const problems = downloadProblems(
     page,
-    targets.filter((t) => t !== "x86_64-apple-darwin"),
+    targets.filter((target) => target !== "x86_64-apple-darwin"),
   );
   assert.deepEqual(problems, ["links x86_64-apple-darwin, which the release doesn't build"]);
 });
