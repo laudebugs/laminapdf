@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B6b](../done/B6b-lamina-pdf-package.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1b](../done/E1b-xmp-packet-model.md), [X3a](../done/X3a-nightly-lane.md) |
