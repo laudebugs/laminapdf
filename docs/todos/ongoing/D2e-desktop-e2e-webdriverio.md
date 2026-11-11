@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D2c](../done/D2c-engine-sandbox.md), [D2d](../ongoing/D2d-tile-transport-and-first-document.md) |
+| Depends on | [D2c](../done/D2c-engine-sandbox.md), [D2d](./D2d-tile-transport-and-first-document.md) |
 | ADRs | Completes ADR 0008 §test strategy. Follows [0018](../../decisions/0018-test-strategy.md) (test lanes) |
 | Branch | `test/d2e-desktop-e2e` |
 | PR title | `test(desktop): run reader e2e scenarios with WebdriverIO on macOS, Windows and Linux` |
@@ -47,8 +47,8 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
 
 **Out of scope** (and which todo covers it)
 
-- Open-from-OS tests (double-click, single-instance): [D3a](D3a-open-from-os.md) adds them.
-- Update e2e: [D5b](D5b-updater-in-app.md). Installer tests on clean VMs: [D6b](D6b-release-workflow-and-linux-packages.md)–[D6d](D6d-windows-signing.md).
+- Open-from-OS tests (double-click, single-instance): [D3a](../ready/D3a-open-from-os.md) adds them.
+- Update e2e: [D5b](../ready/D5b-updater-in-app.md). Installer tests on clean VMs: [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md).
 - Visual regression of renders: covered by C2's golden render tests.
 
 ## Tasks

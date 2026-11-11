@@ -44,7 +44,7 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 
 **Out of scope** (and which todo covers it)
 
-- e2e automation of these flows: [D2e](../ready/D2e-desktop-e2e-webdriverio.md) (this PR includes a manual checklist in the PR).
+- e2e automation of these flows: [D2e](../ongoing/D2e-desktop-e2e-webdriverio.md) (this PR includes a manual checklist in the PR).
 - Text layer, search, thumbnails: arrive through shared web rounds C5/C6 and need engine messages for text extraction — a follow-up desktop todo once C5 lands (note in Risks).
 - Opening from argv/OS/drag-drop: [D3a](../ready/D3a-open-from-os.md). Multiple documents/tabs: [D4a](../ready/D4a-windows-tabs-and-session-restore.md).
 
