@@ -569,7 +569,11 @@ export class ViewerClient {
    * Applies the edit session's steps to the document a new worker reopened, which is the file as
    * first opened. When they can't all be applied again, the session starts over.
    */
-  async #restoreEdits(opened: OpenedDocument): Promise<"restored" | "lost" | undefined> {
+  /**
+   * `restored`; `lost` when the steps couldn't be replayed, and nothing was sent; `failed` when the
+   * replay failed half way, leaving edits in the model that aren't drawn.
+   */
+  async #restoreEdits(opened: OpenedDocument): Promise<"restored" | "lost" | "failed" | undefined> {
     if (this.#edits.empty) return undefined;
     const replay = this.#edits.replay();
     // A replay that can't reproduce the document would show something else as restored.
@@ -588,8 +592,39 @@ export class ViewerClient {
       return "restored";
     } catch {
       this.#edits.reset();
-      return "lost";
+      return "failed";
     }
+  }
+
+  /**
+   * Opens the document again in a restarted worker, with its edits: `reopened` when it did,
+   * `edits` what became of the session's steps. An encrypted document waits for its password.
+   */
+  async #reopenAfterRestart(): Promise<{ reopened: boolean; edits: "restored" | "lost" | undefined }> {
+    const reopen = this.#reopen;
+    if (reopen === undefined) return { reopened: false, edits: undefined };
+    if (this.#document?.needsPassword === true) {
+      // The password died with the worker; it is never kept on the page.
+      this.#reopen = undefined;
+      this.#document = undefined;
+      const edits = this.#edits.empty ? undefined : "lost";
+      this.#edits.reset();
+      this.#events.emit("password-required", {});
+      return { reopened: false, edits };
+    }
+    const open = async () => {
+      this.#document = (await this.#pdf.request("openDocument", [reopen.source, reopen.options], {
+        priority: PRIORITY.document,
+      })) as OpenedDocument;
+      // The restarted worker has no extract module yet: its first page goes first again.
+      this.#firstDraw = new FirstDraw(this.#document.id);
+      return this.#document;
+    };
+    const restored = await this.#restoreEdits(await open());
+    // A replay that failed half way left edits in the model that aren't drawn: open the file once
+    // more, as it was. One that never started left the file as opened, so it isn't opened again.
+    if (restored === "failed") await open();
+    return { reopened: true, edits: restored === "failed" ? "lost" : restored };
   }
 
   #recover(reason: RestartReason): Promise<void> {
@@ -597,35 +632,7 @@ export class ViewerClient {
     const recovering = (async () => {
       await this.#pdf.restart();
       await this.#pdf.request("initBackend", [this.#backend], { priority: PRIORITY.document });
-      let reopened = false;
-      let edits: "restored" | "lost" | undefined;
-      const reopen = this.#reopen;
-      if (reopen !== undefined) {
-        if (this.#document?.needsPassword === true) {
-          // The password died with the worker; it is never kept on the page.
-          this.#reopen = undefined;
-          this.#document = undefined;
-          edits = this.#edits.empty ? undefined : "lost";
-          this.#edits.reset();
-          this.#events.emit("password-required", {});
-        } else {
-          this.#document = (await this.#pdf.request("openDocument", [reopen.source, reopen.options], {
-            priority: PRIORITY.document,
-          })) as OpenedDocument;
-          // The restarted worker has no extract module yet: its first page goes first again.
-          this.#firstDraw = new FirstDraw(this.#document.id);
-          reopened = true;
-          edits = await this.#restoreEdits(this.#document);
-          // A replay that failed half way left edits in the model that aren't drawn: open the file
-          // once more, as it was.
-          if (edits === "lost") {
-            this.#document = (await this.#pdf.request("openDocument", [reopen.source, reopen.options], {
-              priority: PRIORITY.document,
-            })) as OpenedDocument;
-            this.#firstDraw = new FirstDraw(this.#document.id);
-          }
-        }
-      }
+      const { reopened, edits } = await this.#reopenAfterRestart();
       this.#events.emit("restarted", { reason, reopened, ...(edits === undefined ? {} : { edits }) });
     })();
     const tracked = recovering.finally(() => {

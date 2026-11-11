@@ -198,8 +198,7 @@ export class EditSession {
         if (result !== undefined && turn === this.#turn) this.#took(result, clears, this.#now() - started);
         return result;
       } catch (error) {
-        await this.#reread(turn);
-        if (turn === this.#turn) for (const listener of [...this.#failed]) listener({ ...what, error });
+        await this.#failedCall(turn, { ...what, error });
         throw error;
       }
     });
@@ -209,6 +208,13 @@ export class EditSession {
     });
     this.#queue = settled.catch(() => undefined);
     return run;
+  }
+
+  /** After a failed call: the worker's history read again, and the failure told to the listeners. */
+  async #failedCall(turn: number, failure: EditFailure): Promise<void> {
+    await this.#reread(turn);
+    if (turn !== this.#turn) return;
+    for (const listener of [...this.#failed]) listener(failure);
   }
 
   /** Reads the worker's history after a failed call; a document that diverged blocks editing. */
