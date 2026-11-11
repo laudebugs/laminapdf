@@ -57,10 +57,10 @@
               "type": "boolean"
             },
             "level": {
-              "description": "The heading's level, 1 to 6 (headings only).",
+              "description": "The heading's level, 1 to 6: needed by a heading, refused on a paragraph.",
               "format": "uint8",
-              "maximum": 255,
-              "minimum": 0,
+              "maximum": 6,
+              "minimum": 1,
               "type": [
                 "integer",
                 "null"
@@ -71,6 +71,15 @@
               "format": "double",
               "type": [
                 "number",
+                "null"
+              ]
+            },
+            "orphans": {
+              "description": "The fewest lines left alone at the foot of a page (2 when left out).",
+              "format": "uint",
+              "minimum": 1,
+              "type": [
+                "integer",
                 "null"
               ]
             },
@@ -121,6 +130,15 @@
             "type": {
               "const": "paragraph",
               "type": "string"
+            },
+            "widows": {
+              "description": "The fewest lines left alone at the top of a page (2 when left out).",
+              "format": "uint",
+              "minimum": 1,
+              "type": [
+                "integer",
+                "null"
+              ]
             }
           },
           "required": [
@@ -152,10 +170,10 @@
               "type": "boolean"
             },
             "level": {
-              "description": "The heading's level, 1 to 6 (headings only).",
+              "description": "The heading's level, 1 to 6: needed by a heading, refused on a paragraph.",
               "format": "uint8",
-              "maximum": 255,
-              "minimum": 0,
+              "maximum": 6,
+              "minimum": 1,
               "type": [
                 "integer",
                 "null"
@@ -166,6 +184,15 @@
               "format": "double",
               "type": [
                 "number",
+                "null"
+              ]
+            },
+            "orphans": {
+              "description": "The fewest lines left alone at the foot of a page (2 when left out).",
+              "format": "uint",
+              "minimum": 1,
+              "type": [
+                "integer",
                 "null"
               ]
             },
@@ -216,6 +243,15 @@
             "type": {
               "const": "heading",
               "type": "string"
+            },
+            "widows": {
+              "description": "The fewest lines left alone at the top of a page (2 when left out).",
+              "format": "uint",
+              "minimum": 1,
+              "type": [
+                "integer",
+                "null"
+              ]
             }
           },
           "required": [
@@ -313,6 +349,7 @@
             "height": {
               "description": "Its height in points.",
               "format": "double",
+              "minimum": 0,
               "type": "number"
             },
             "type": {
@@ -442,6 +479,22 @@
               },
               "type": "array"
             },
+            "spaceAfter": {
+              "description": "Points of space below the table.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "spaceBefore": {
+              "description": "Points of space above the table.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "type": {
               "const": "table",
               "type": "string"
@@ -457,11 +510,19 @@
           "additionalProperties": false,
           "description": "A contents page: the headings and the pages they start on.",
           "properties": {
+            "indent": {
+              "description": "Points each level below the first is indented.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "levels": {
               "description": "The heading levels it lists, 1 to `levels`.",
               "format": "uint8",
-              "maximum": 255,
-              "minimum": 0,
+              "maximum": 6,
+              "minimum": 1,
               "type": [
                 "integer",
                 "null"
@@ -489,7 +550,7 @@
           "description": "A block quotation.",
           "properties": {
             "blocks": {
-              "description": "The blocks quoted.",
+              "description": "The blocks.",
               "items": {
                 "$ref": "#/$defs/BlockSpec"
               },
@@ -566,7 +627,7 @@
         "span": {
           "description": "How many columns it spans (1 when left out).",
           "format": "uint32",
-          "minimum": 0,
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -599,6 +660,17 @@
             }
           ],
           "description": "The text; give this or `spans` (an empty cell has neither)."
+        },
+        "valign": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VAlignSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where its text sits in a row taller than it: `top` (the default), `middle` or `bottom`."
         }
       },
       "type": "object"
@@ -798,6 +870,17 @@
       "additionalProperties": false,
       "description": "The pages a document flows through.",
       "properties": {
+        "first": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PageSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A different template for the first page, such as one without a header."
+        },
         "footer": {
           "anyOf": [
             {
@@ -872,10 +955,10 @@
           "type": "boolean"
         },
         "level": {
-          "description": "The heading's level, 1 to 6 (headings only).",
+          "description": "The heading's level, 1 to 6: needed by a heading, refused on a paragraph.",
           "format": "uint8",
-          "maximum": 255,
-          "minimum": 0,
+          "maximum": 6,
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -886,6 +969,15 @@
           "format": "double",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "orphans": {
+          "description": "The fewest lines left alone at the foot of a page (2 when left out).",
+          "format": "uint",
+          "minimum": 1,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -932,6 +1024,15 @@
             }
           ],
           "description": "The text, in `style`; give this or `spans`."
+        },
+        "widows": {
+          "description": "The fewest lines left alone at the top of a page (2 when left out).",
+          "format": "uint",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
         }
       },
       "type": "object"
@@ -966,25 +1067,37 @@
       "description": "A header or footer: `{page}`, `{pages}`, `{section}` and `{title}` are filled in.",
       "properties": {
         "center": {
-          "description": "Centred.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Text"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Centred."
         },
         "end": {
-          "description": "At the end of the line.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Text"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "At the end of the line."
         },
         "start": {
-          "description": "At the start of the line.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Text"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "At the start of the line."
         }
       },
       "type": "object"
@@ -1106,9 +1219,18 @@
             "null"
           ]
         },
+        "rise": {
+          "description": "Points the text is raised above the baseline (negative lowers it).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "size": {
           "description": "The size in points.",
           "format": "double",
+          "minimum": 0,
           "type": "number"
         },
         "strikethrough": {
@@ -1138,6 +1260,26 @@
         }
       ],
       "description": "Text, or a number or `true`/`false` written as text: what a template's `$data` may put where\nthe document takes text."
+    },
+    "VAlignSpec": {
+      "description": "Where a cell's text sits in its row.",
+      "oneOf": [
+        {
+          "const": "top",
+          "description": "At the top.",
+          "type": "string"
+        },
+        {
+          "const": "middle",
+          "description": "In the middle.",
+          "type": "string"
+        },
+        {
+          "const": "bottom",
+          "description": "At the bottom.",
+          "type": "string"
+        }
+      ]
     }
   },
   "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-build/schemas/document.schema.json",
@@ -1146,11 +1288,15 @@
   "description": "A `laminapdf.document/1` document.",
   "properties": {
     "author": {
-      "description": "The author, in the metadata.",
-      "type": [
-        "string",
-        "null"
-      ]
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Text"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The author, in the metadata."
     },
     "blocks": {
       "description": "The blocks, in reading order.",
@@ -1195,6 +1341,16 @@
       "description": "`laminapdf.document/1`.",
       "type": "string"
     },
+    "sectionLevel": {
+      "description": "The heading level whose text `{section}` shows in a header or footer (1 when left out).",
+      "format": "uint8",
+      "maximum": 6,
+      "minimum": 1,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
     "styles": {
       "additionalProperties": {
         "$ref": "#/$defs/StyleSpec"
@@ -1203,18 +1359,33 @@
       "type": "object"
     },
     "subject": {
-      "description": "The subject, in the metadata.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Text"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The subject, in the metadata."
+    },
+    "tagged": {
+      "description": "Whether the PDF is tagged for screen readers; `true` when left out (PDF/UA-1 needs it).",
       "type": [
-        "string",
+        "boolean",
         "null"
       ]
     },
     "title": {
-      "description": "The title: the document's metadata, `{title}` in a header or footer, and the window title.",
-      "type": [
-        "string",
-        "null"
-      ]
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Text"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The title: the document's metadata, `{title}` in a header or footer, and the window title."
     }
   },
   "required": [

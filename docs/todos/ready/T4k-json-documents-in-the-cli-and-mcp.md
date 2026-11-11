@@ -20,7 +20,7 @@ Build a `laminapdf.document/1` document, or fill a template, without writing cod
 
 ## Context
 
-- [T4e](../ongoing/T4e-json-documents-and-templates.md): `laminapdf::flow::{FlowDocument, Resources, fill}`, `Builder::document`, `FlowDocument::profiles`, the schema `crates/laminapdf-build/schemas/document.schema.json` and `flow::document::json_schema()`, and the fixtures `fixtures/documents/invoice.json` and `invoice-data.json` with the golden `fixtures/golden/examples/invoice_from_json.pdf`.
+- [T4e](../ongoing/T4e-json-documents-and-templates.md): `laminapdf::flow::document::{FlowDocument, Resources, fill}`, `Builder::document`, `FlowDocument::profiles`, the schema `crates/laminapdf-build/schemas/document.schema.json` and `flow::document::json_schema()`, and the fixtures `fixtures/documents/invoice.json` and `invoice-data.json` with the golden `fixtures/golden/examples/invoice_from_json.pdf`.
 - [T4i](../done/T4i-build-command-and-bindings.md): `crates/laminapdf-cli/src/commands/build.rs` (`BuildArgs`, `BuildToolArgs`, `build`, `build_tool`, images read through `Io` only from the input's folder or below it, inline Markdown reading no image file), `laminapdf.build/1` and the `laminapdf_build` tool.
 
 ## Scope

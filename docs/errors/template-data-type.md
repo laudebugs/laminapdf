@@ -5,7 +5,7 @@
 
 ## What happened
 
-A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, or a `$data` or `$item` put an object or a list where the document needs text or a number. Nothing was laid out.
+A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, a `$data` or `$item` put an object or a list where the document needs text or a number, or a placeholder's pointer isn't one. Nothing was laid out.
 
 ## Why
 
@@ -18,11 +18,11 @@ Each placeholder needs one kind of value. `$each` repeats a block once per item,
 ## Example
 
 ```rust
-let document = flow::fill(&template, &data)?; // fails when "/items" isn't a list
+let document = flow::document::fill(&template, &data)?; // fails when "/items" isn't a list
 ```
 
 ## Data fields
 
 - `pointer`: the JSON Pointer the template used.
 - `placeholder`: which placeholder: `$data`, `$each` or `$item`.
-- `expected`: the kind the placeholder needs: `list`, or `text, a number or true/false`.
+- `expected`: the kind the placeholder needs: `list`, `text, a number or true/false`, or `a JSON Pointer such as /items` (a pointer starts with `/`; `""` is the whole value).

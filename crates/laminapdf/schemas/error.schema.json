@@ -88,6 +88,7 @@
             "invalid-document",
             "template-data-missing",
             "template-data-type",
+            "template-too-large",
             "render-too-large",
             "render-failed",
             "render-backend-unavailable",

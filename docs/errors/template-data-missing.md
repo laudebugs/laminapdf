@@ -20,7 +20,7 @@ Only `$if` accepts a missing value: it leaves its block out.
 ## Example
 
 ```rust
-let document = flow::fill(&template, &data)?; // fails when the data lacks a value the template names
+let document = flow::document::fill(&template, &data)?; // fails when the data lacks a value the template names
 ```
 
 ## Data fields

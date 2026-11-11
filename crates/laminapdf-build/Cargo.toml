@@ -27,7 +27,7 @@ text = ["dep:laminapdf-text"]
 # Markdown in, flowing pages out (ADR 0032 §6): `Builder::markdown` over pulldown-cmark.
 markdown = ["text", "dep:pulldown-cmark"]
 # JSON documents in, flowing pages out (ADR 0032 §6): `laminapdf.document/1`, its templates
-# (`flow::fill`) and `Builder::document`.
+# (`flow::document::fill`) and `Builder::document`.
 serde = ["text", "dep:serde", "dep:serde_json", "dep:serde_path_to_error"]
 # The document format's JSON Schema (schemars): tests/document_schema.rs writes and checks
 # schemas/document.schema.json.

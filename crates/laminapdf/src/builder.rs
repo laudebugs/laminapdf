@@ -173,9 +173,9 @@ impl Builder {
     }
 
     /// Lays a `laminapdf.document/1` document out and adds its pages after any already added
-    /// ([`laminapdf::flow::FlowDocument`](crate::flow::FlowDocument), ADR 0032 §6), with its
+    /// ([`laminapdf::flow::document::FlowDocument`](crate::flow::document::FlowDocument), ADR 0032 §6), with its
     /// fonts and images from `resources`; its title, author, subject and language become the
-    /// document's metadata. Pass its [profiles](crate::flow::FlowDocument::profiles) to the
+    /// document's metadata. Pass its [profiles](crate::flow::document::FlowDocument::profiles) to the
     /// builder's options. Its warnings are in the finished document's [`Document::warnings`].
     ///
     /// # Errors
@@ -184,8 +184,8 @@ impl Builder {
     #[cfg(feature = "document")]
     pub fn document(
         &mut self,
-        document: &crate::flow::FlowDocument,
-        resources: &crate::flow::Resources,
+        document: &crate::flow::document::FlowDocument,
+        resources: &crate::flow::document::Resources,
     ) -> Result<crate::flow::FlowReport> {
         let report = self.0.document(document, resources)?;
         self.1.extend(report.warnings.iter().cloned().map(crate::Warning::from));

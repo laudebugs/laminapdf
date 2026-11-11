@@ -3915,7 +3915,7 @@ The same check runs after a template is filled, so a filled template must also b
 
 `data.pointer` is the JSON Pointer of the value at fault, such as `/blocks/3/style`. Correct that value against the document schema, `laminapdf.document/1`. For a misspelt key, `didYouMean` lists the closest keys the format knows there.
 
-A style, font or image the document names must also be defined: the style in the document's `styles`, the font and image among the files given beside it.
+A style, font or image the document names must also be defined: the style in the document's `styles`, the font and image among the files given beside it. `didYouMean` suggests only the format's own keys, never the document's names.
 
 ## Example
 
@@ -3927,7 +3927,7 @@ builder.document(&document, &resources)?;
 ## Data fields
 
 - `pointer`: the JSON Pointer of the value, from the document's root.
-- `reason`: what is wrong there: `unknown-key`, `missing-key`, `wrong-type`, `unknown-style`, `unknown-font`, `unknown-image` or `unsupported-schema`.
+- `reason`: what is wrong there: `unknown-key`, `missing-key`, `wrong-type`, `out-of-range` (a size, width or count below what the layout can use, or a heading level outside 1 to 6), `unknown-style`, `unknown-font`, `unknown-image` or `unsupported-schema`.
 "#,
         "template-data-missing" => r#"# `template-data-missing`
 
@@ -3951,7 +3951,7 @@ Only `$if` accepts a missing value: it leaves its block out.
 ## Example
 
 ```rust
-let document = flow::fill(&template, &data)?; // fails when the data lacks a value the template names
+let document = flow::document::fill(&template, &data)?; // fails when the data lacks a value the template names
 ```
 
 ## Data fields
@@ -3966,7 +3966,7 @@ let document = flow::fill(&template, &data)?; // fails when the data lacks a val
 
 ## What happened
 
-A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, or a `$data` or `$item` put an object or a list where the document needs text or a number. Nothing was laid out.
+A document template found data of the wrong kind where a placeholder pointed. Either an `$each` ran over something that isn't a list, a `$data` or `$item` put an object or a list where the document needs text or a number, or a placeholder's pointer isn't one. Nothing was laid out.
 
 ## Why
 
@@ -3979,15 +3979,42 @@ Each placeholder needs one kind of value. `$each` repeats a block once per item,
 ## Example
 
 ```rust
-let document = flow::fill(&template, &data)?; // fails when "/items" isn't a list
+let document = flow::document::fill(&template, &data)?; // fails when "/items" isn't a list
 ```
 
 ## Data fields
 
 - `pointer`: the JSON Pointer the template used.
 - `placeholder`: which placeholder: `$data`, `$each` or `$item`.
-- `expected`: the kind the placeholder needs: `list`, or `text, a number or true/false`.
+- `expected`: the kind the placeholder needs: `list`, `text, a number or true/false`, or `a JSON Pointer such as /items` (a pointer starts with `/`; `""` is the whole value).
 "#,
+        "template-too-large" => r"# `template-too-large`
+
+- Type: error
+- Kind: `usage` (the caller passed something wrong)
+
+## What happened
+
+Filling a document template would have made more than 100,000 values, or nested more than 64 levels deep. Filling stopped, and nothing was laid out.
+
+## Why
+
+`$each` repeats its block once per item, and an `$each` inside another repeats it once per item of each. A few levels over long lists multiply into millions of blocks, which no document needs and which would hold a program for a long time. So filling counts what it makes and stops at a limit far beyond a real document.
+
+## How to fix
+
+`data.limit` is the limit the template passed. Repeat fewer items, or nest fewer `$each` placeholders inside each other. For a very long report, split it into several documents.
+
+## Example
+
+```rust
+let document = fill(&template, &data)?; // fails when nested $each placeholders multiply past the limit
+```
+
+## Data fields
+
+- `limit`: the limit passed: 100,000 values filled in, or 64 levels of nesting.
+",
         "flow-keep-broken" => r#"# `flow-keep-broken`
 
 - Type: warning

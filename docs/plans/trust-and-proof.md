@@ -101,7 +101,8 @@ The library plan lists flowing layout as a non-goal for now and asks, in its ope
 | [T4h](../todos/done/T4h-flow-notes-contents-outline.md) | Flowing layout: footnotes, a contents page with page numbers, and the outline | L | T4b |
 | [T4d](../todos/done/T4d-markdown-documents.md) | Markdown in Rust, flowing pages out | L | T4c, T4h |
 | [T4i](../todos/done/T4i-build-command-and-bindings.md) | `laminapdf build`, its MCP tool and the TypeScript `markdown` call | L | T4d |
-| [T4e](../todos/ongoing/T4e-json-documents-and-templates.md) | JSON documents and templates in Rust and the CLI | L | T4i |
+| [T4e](../todos/ongoing/T4e-json-documents-and-templates.md) | JSON documents and templates in Rust | L | T4i |
+| [T4k](../todos/ready/T4k-json-documents-in-the-cli-and-mcp.md) | JSON documents and templates from the CLI and MCP | M | T4e |
 | [T4j](../todos/ready/T4j-documents-in-typescript.md) | Typed documents and `builder.flow` in TypeScript | L | T4e, T4i |
 
 ### T5. Long reading

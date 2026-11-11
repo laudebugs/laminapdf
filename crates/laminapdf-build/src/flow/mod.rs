@@ -54,8 +54,6 @@ pub use contents::Contents;
 pub(crate) use contents::destination;
 #[cfg(feature = "markdown")]
 pub(crate) use contents::{headings, plain_text};
-#[cfg(feature = "serde")]
-pub use document::{FlowDocument, Resources, fill};
 pub use model::{
     Figure, Flow, FlowBlock, Inline, List, ListItem, ListKind, Margins, PageRegion, PageTemplate, Paragraph,
     ParagraphStyle, TextStyle,

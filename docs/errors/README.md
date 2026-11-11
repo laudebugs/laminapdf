@@ -175,6 +175,7 @@ A PR that adds a code adds:
 | [`invalid-document`](invalid-document.md) | `usage` | a laminapdf.document/1 document has an unknown key, a missing one or a value of the wrong kind |
 | [`template-data-missing`](template-data-missing.md) | `usage` | a template's $data, $each or $item points to a value the data doesn't have |
 | [`template-data-type`](template-data-type.md) | `usage` | a template's placeholder found data of the wrong kind: $each over something that isn't a list, or text from an object |
+| [`template-too-large`](template-too-large.md) | `usage` | a template would fill in more values, or nest deeper, than a document may hold |
 
 ## Build warnings (`laminapdf-build`)
 

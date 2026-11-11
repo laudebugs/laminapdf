@@ -17,7 +17,6 @@ fn data<const N: usize>(entries: [(&str, Value); N]) -> Data {
     entries.into_iter().map(|(k, v)| (k.to_owned(), v)).collect()
 }
 
-/// The `data` of `error`.
 /// The `didYouMean` candidates of `error`: the closest known keys for a misspelt one in a
 /// document (`invalid-document`); none for every other error.
 pub(crate) fn did_you_mean(error: &Error) -> Vec<String> {
@@ -30,6 +29,7 @@ pub(crate) fn did_you_mean(error: &Error) -> Vec<String> {
     }
 }
 
+/// The `data` of `error`.
 pub(crate) fn of_error(error: &Error) -> Data {
     match error {
         Error::Core(CoreError(inner)) => match inner {
@@ -250,6 +250,7 @@ fn build(e: &laminapdf_build::Error) -> Data {
             ("placeholder", json!(placeholder)),
             ("expected", json!(expected)),
         ]),
+        E::TemplateTooLarge { limit } => data([("limit", json!(limit))]),
         E::GlyphWithoutUnicode { profile, font, gid } => data([
             ("profile", json!(profile.as_str())),
             ("font", json!(font)),

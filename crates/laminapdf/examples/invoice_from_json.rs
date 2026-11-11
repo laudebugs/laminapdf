@@ -8,7 +8,7 @@
 
 use std::error::Error;
 
-use laminapdf::flow::{Resources, fill};
+use laminapdf::flow::document::{Resources, fill};
 use laminapdf::{BuildOptions, Builder, Font, SaveOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {

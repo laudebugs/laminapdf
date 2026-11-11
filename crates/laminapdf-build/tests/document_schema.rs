@@ -7,7 +7,7 @@
 #![expect(clippy::unwrap_used, clippy::panic, reason = "test code: a panic is a test failure")]
 
 use laminapdf_build::flow::document::json_schema;
-use laminapdf_build::flow::{FlowDocument, fill};
+use laminapdf_build::flow::document::{FlowDocument, fill};
 use laminapdf_build::{BuildOptions, Builder, Error};
 use laminapdf_test_fixtures::{fixture, fixtures_dir};
 use serde_json::{Value, json};
@@ -61,9 +61,71 @@ fn every_filled_fixture_document_validates_against_the_schema() {
 }
 
 #[test]
-fn a_document_survives_a_round_trip_through_json() {
-    let document = invoice();
-    assert_eq!(FlowDocument::from_json(&document.to_json()).unwrap(), document);
+fn every_block_kind_survives_a_round_trip_through_json() {
+    for document in [
+        invoice(),
+        FlowDocument::from_json(&read("documents/every-block.json")).unwrap(),
+    ] {
+        assert_eq!(FlowDocument::from_json(&document.to_json()).unwrap(), document);
+    }
+}
+
+#[test]
+fn every_block_kind_lays_out() {
+    let document = FlowDocument::from_json(&read("documents/every-block.json")).unwrap();
+    let square = laminapdf_build::Image::rgba(2, 2, &[128; 16]).unwrap();
+    let resources = laminapdf_build::flow::document::Resources::new().with_image("square", square);
+    let mut b = Builder::new(BuildOptions::new());
+    let report = b.document(&document, &resources).unwrap();
+    assert!(report.pages.len() >= 3, "{} pages", report.pages.len());
+    b.finish().unwrap();
+}
+
+#[test]
+fn a_fault_inside_a_block_is_pointed_at_where_it_is() {
+    let cell = json!({ "type": "table", "columns": ["auto"], "rows": [{ "cells": [{ "spn": 2 }] }] });
+    assert_eq!(invalid(&with_block(&cell)).0, "/blocks/1/rows/0/cells/0/spn");
+    let quoted = json!({ "type": "quote", "blocks": [{ "type": "paragraph", "txt": "x" }] });
+    let (pointer, reason, did_you_mean) = invalid(&with_block(&quoted));
+    assert_eq!(
+        (pointer.as_str(), reason, did_you_mean),
+        ("/blocks/1/blocks/0/txt", "unknown-key", vec!["text".to_owned()])
+    );
+    let span = json!({ "type": "paragraph", "spans": [{ "text": "a" }, { "code": "yes" }] });
+    assert_eq!(invalid(&with_block(&span)).0, "/blocks/1/spans/1/code");
+    let (pointer, _, did_you_mean) = invalid(&with_block(&json!({ "type": "paragraf" })));
+    assert_eq!(
+        (pointer.as_str(), did_you_mean),
+        ("/blocks/1/type", vec!["paragraph".to_owned()])
+    );
+}
+
+#[test]
+fn headings_need_a_level_and_sizes_must_be_usable() {
+    let (pointer, reason, _) = invalid(&with_block(&json!({ "type": "heading", "text": "x" })));
+    assert_eq!((pointer.as_str(), reason), ("/blocks/1/level", "missing-key"));
+    let (pointer, reason, _) = invalid(&with_block(&json!({ "type": "heading", "level": 7, "text": "x" })));
+    assert_eq!((pointer.as_str(), reason), ("/blocks/1/level", "out-of-range"));
+    let (pointer, _, _) = invalid(&with_block(&json!({ "type": "paragraph", "level": 1, "text": "x" })));
+    assert_eq!(pointer, "/blocks/1/level");
+    let mut zero = with_block(&json!({ "type": "rule" }));
+    zero["styles"]["body"]["size"] = json!(0);
+    assert_eq!(
+        invalid(&zero),
+        ("/styles/body/size".to_owned(), "out-of-range", Vec::new())
+    );
+    let span = json!({ "type": "table", "columns": ["auto"], "rows": [{ "cells": [{ "span": 0 }] }] });
+    assert_eq!(invalid(&with_block(&span)).1, "out-of-range");
+}
+
+#[test]
+fn a_key_s_own_text_never_reaches_did_you_mean() {
+    // A key that holds backticks and serde's own words can't pass text into the suggestions.
+    let key = "spaceA`, expected `INJECTED` or `spaceAfter";
+    let (pointer, reason, did_you_mean) = invalid(&with_block(&json!({ "type": "paragraph", key: 1 })));
+    assert_eq!(reason, "unknown-key");
+    assert!(did_you_mean.iter().all(|k| !k.contains("INJECTED")), "{did_you_mean:?}");
+    assert!(pointer.starts_with("/blocks/1/spaceA"), "{pointer}");
 }
 
 fn invalid(json: &Value) -> (String, &'static str, Vec<String>) {
@@ -110,10 +172,10 @@ fn a_style_font_or_image_the_document_lacks_is_refused_where_it_is_named() {
     .unwrap();
     let mut b = Builder::new(BuildOptions::new());
     let error = b
-        .document(&document, &laminapdf_build::flow::Resources::new())
+        .document(&document, &laminapdf_build::flow::document::Resources::new())
         .unwrap_err();
     assert!(
-        matches!(&error, Error::InvalidDocument { pointer, reason: "unknown-style", did_you_mean } if pointer == "/blocks/1/style" && did_you_mean == &["body"]),
+        matches!(&error, Error::InvalidDocument { pointer, reason: "unknown-style", did_you_mean } if pointer == "/blocks/1/style" && did_you_mean.is_empty()),
         "{error:?}"
     );
     let figure = FlowDocument::from_json(&with_block(
@@ -121,7 +183,7 @@ fn a_style_font_or_image_the_document_lacks_is_refused_where_it_is_named() {
     ))
     .unwrap();
     let error = b
-        .document(&figure, &laminapdf_build::flow::Resources::new())
+        .document(&figure, &laminapdf_build::flow::document::Resources::new())
         .unwrap_err();
     assert!(matches!(
         error,

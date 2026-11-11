@@ -5,28 +5,21 @@ use std::collections::BTreeMap;
 
 use laminapdf_text::{Alignment, Standard14};
 
+use super::check::refuse;
 use super::{
-    AlignSpec, BlockSpec, CellSpec, ColumnSpec, ContentsSpec, FlowDocument, ListItemSpec, ListKindSpec, ListSpec,
-    MarginsSpec, PageSizeSpec, PageSpec, ParagraphSpec, RegionSpec, Resources, RuleSpec, SpanSpec, StyleSpec, Text,
+    AlignSpec, BlockSpec, CellSpec, CodeBlockSpec, ColumnSpec, ContentsSpec, FlowDocument, GroupSpec, ListItemSpec,
+    ListKindSpec, ListSpec, MarginsSpec, PageSizeSpec, PageSpec, ParagraphSpec, RegionSpec, Resources, RuleSpec,
+    SpacerSpec, SpanSpec, StyleSpec, Text, VAlignSpec, escape,
 };
 use crate::builder::Builder;
 use crate::error::{Error, Result};
 use crate::flow::{
     ColumnWidth, Contents, Figure, Flow, FlowBlock, List, ListItem, ListKind, Margins, PageRegion, PageTemplate,
-    Paragraph, ParagraphStyle, Table, TableCell, TableRow, TableRule, TextStyle,
+    Paragraph, ParagraphStyle, Table, TableCell, TableRow, TableRule, TextStyle, VerticalAlign,
 };
 use crate::nav::dest::LinkTarget;
 use crate::page::PageSize;
 use crate::surface::color::Color;
-
-/// `invalid-document` at `pointer` for `reason`.
-fn invalid(pointer: &str, reason: &'static str) -> Error {
-    Error::InvalidDocument {
-        pointer: pointer.to_owned(),
-        reason,
-        did_you_mean: Vec::new(),
-    }
-}
 
 /// The resolved styles and the images, while one document is converted.
 struct Ctx<'a> {
@@ -38,14 +31,8 @@ impl Ctx<'_> {
     /// The style `name` names (`body` without one); `pointer` is where the name stands.
     fn style(&self, name: Option<&String>, pointer: &str) -> Result<&TextStyle> {
         let name = name.map_or("body", String::as_str);
-        self.styles.get(name).ok_or_else(|| {
-            let known: Vec<String> = self.styles.keys().map(|k| (*k).to_owned()).collect();
-            Error::InvalidDocument {
-                pointer: pointer.to_owned(),
-                reason: "unknown-style",
-                did_you_mean: laminapdf_syntax::did_you_mean(name, &known),
-            }
-        })
+        // No suggestion: the names are the document's own (ADR 0026 §4).
+        self.styles.get(name).ok_or_else(|| refuse(pointer, "unknown-style"))
     }
 }
 
@@ -65,21 +52,22 @@ impl FlowDocument {
         let ctx = Ctx { styles, resources };
         let mut flow = Flow::new(template(&ctx, self.page.as_ref())?);
         if let Some(title) = &self.title {
-            flow = flow.with_title(title.clone());
+            flow = flow.with_title(title.as_string());
         }
         if let Some(outline) = self.outline {
             flow = flow.with_outline(outline);
+        }
+        if let Some(tagged) = self.tagged {
+            flow = flow.with_tagged(tagged);
+        }
+        if let Some(level) = self.section_level {
+            flow = flow.with_section_level(level);
         }
         for (i, block) in self.blocks.iter().enumerate() {
             flow = flow.block(convert_block(&ctx, block, &format!("/blocks/{i}"))?);
         }
         Ok(flow)
     }
-}
-
-/// `name` as a JSON Pointer segment (RFC 6901 §3).
-fn escape(name: &str) -> String {
-    name.replace('~', "~0").replace('/', "~1")
 }
 
 /// A font given beside the document, else a standard 14 font, by `name`.
@@ -90,16 +78,12 @@ fn font(builder: &mut Builder, resources: &Resources, name: &str, pointer: &str)
     if let Some(standard) = Standard14::from_base_font(name) {
         return builder.standard_font(standard);
     }
-    let known: Vec<String> = resources.fonts.keys().cloned().collect();
-    Err(Error::InvalidDocument {
-        pointer: pointer.to_owned(),
-        reason: "unknown-font",
-        did_you_mean: laminapdf_syntax::did_you_mean(name, &known),
-    })
+    // No suggestion: the names are the document's and the caller's (ADR 0026 §4).
+    Err(refuse(pointer, "unknown-font"))
 }
 
 fn color(text: &str, pointer: &str) -> Result<Color> {
-    Color::hex(text).map_err(|_| invalid(pointer, "wrong-type"))
+    Color::hex(text).map_err(|_| refuse(pointer, "wrong-type"))
 }
 
 fn style(builder: &mut Builder, resources: &Resources, spec: &StyleSpec, pointer: &str) -> Result<TextStyle> {
@@ -115,6 +99,9 @@ fn style(builder: &mut Builder, resources: &Resources, spec: &StyleSpec, pointer
     }
     if let Some(language) = &spec.language {
         style = style.with_language(language.clone());
+    }
+    if let Some(rise) = spec.rise {
+        style = style.with_rise(rise);
     }
     Ok(style.with_strikethrough(spec.strikethrough))
 }
@@ -151,22 +138,26 @@ fn page_size(spec: &PageSizeSpec, pointer: &str) -> Result<PageSize> {
 fn region(spec: &RegionSpec) -> PageRegion {
     let mut region = PageRegion::new();
     if let Some(text) = &spec.start {
-        region = region.with_start(text.clone());
+        region = region.with_start(text.as_string());
     }
     if let Some(text) = &spec.center {
-        region = region.with_center(text.clone());
+        region = region.with_center(text.as_string());
     }
     if let Some(text) = &spec.end {
-        region = region.with_end(text.clone());
+        region = region.with_end(text.as_string());
     }
     region
 }
 
 fn template(ctx: &Ctx<'_>, spec: Option<&PageSpec>) -> Result<PageTemplate> {
-    let Some(spec) = spec else {
-        return Ok(PageTemplate::new(PageSize::A4));
-    };
-    let mut template = PageTemplate::new(page_size(&spec.size, "/page/size")?);
+    spec.map_or_else(
+        || Ok(PageTemplate::new(PageSize::A4)),
+        |spec| page_template(ctx, spec, "/page"),
+    )
+}
+
+fn page_template(ctx: &Ctx<'_>, spec: &PageSpec, pointer: &str) -> Result<PageTemplate> {
+    let mut template = PageTemplate::new(page_size(&spec.size, &format!("{pointer}/size"))?);
     if let Some(margins) = spec.margins {
         template = template.with_margins(match margins {
             MarginsSpec::All(m) => Margins::all(m),
@@ -174,12 +165,15 @@ fn template(ctx: &Ctx<'_>, spec: Option<&PageSpec>) -> Result<PageTemplate> {
         });
     }
     if spec.header.is_some() || spec.footer.is_some() {
-        let style = ctx.style(spec.style.as_ref(), "/page/style")?;
+        let style = ctx.style(spec.style.as_ref(), &format!("{pointer}/style"))?;
         template = template.with_furniture(
             spec.header.as_ref().map(region),
             spec.footer.as_ref().map(region),
             style,
         );
+    }
+    if let Some(first) = &spec.first {
+        template = template.with_first_page(page_template(ctx, first, &format!("{pointer}/first"))?);
     }
     Ok(template)
 }
@@ -215,25 +209,30 @@ fn paragraph(
         if span.line_break {
             paragraph = paragraph.line_break();
         }
+        if let Some(text) = span.text.as_ref().map(Text::as_string) {
+            paragraph = text_span(paragraph, span, text, span_style);
+        }
+        // After the text: the marker follows what it annotates.
         if let Some(note) = &span.note {
             paragraph = paragraph.note(paragraph_spec(ctx, note, &format!("{at}/note"))?);
         }
-        let Some(text) = span.text.as_ref().map(Text::as_string) else {
-            continue;
-        };
-        paragraph = match (&span.href, span.code) {
-            (Some(href), _) => {
-                let target = match href.strip_prefix('#') {
-                    Some(name) => LinkTarget::Named(name.to_owned()),
-                    None => LinkTarget::Uri(href.clone()),
-                };
-                paragraph.link(text, span_style, target)
-            }
-            (None, true) => paragraph.code(text, span_style),
-            (None, false) => paragraph.text(text, span_style),
-        };
     }
     Ok(paragraph)
+}
+
+/// `paragraph` with `span`'s text: a link, code or plain text.
+fn text_span(paragraph: Paragraph, span: &SpanSpec, text: String, style: &TextStyle) -> Paragraph {
+    match (&span.href, span.code) {
+        (Some(href), _) => {
+            let target = match href.strip_prefix('#') {
+                Some(name) => LinkTarget::Named(name.to_owned()),
+                None => LinkTarget::Uri(href.clone()),
+            };
+            paragraph.link(text, style, target)
+        }
+        (None, true) => paragraph.code(text, style),
+        (None, false) => paragraph.text(text, style),
+    }
 }
 
 /// A paragraph with its own style settings.
@@ -249,6 +248,9 @@ fn paragraph_spec(ctx: &Ctx<'_>, spec: &ParagraphSpec, pointer: &str) -> Result<
     }
     if spec.space_before.is_some() || spec.space_after.is_some() {
         settings = settings.with_space(spec.space_before.unwrap_or(0.0), spec.space_after.unwrap_or(0.0));
+    }
+    if spec.widows.is_some() || spec.orphans.is_some() {
+        settings = settings.with_widows_and_orphans(spec.widows.unwrap_or(2), spec.orphans.unwrap_or(2));
     }
     Ok(paragraph.with_style(
         settings
@@ -307,6 +309,13 @@ fn cell(ctx: &Ctx<'_>, spec: &CellSpec, pointer: &str) -> Result<TableCell> {
     if let Some(a) = spec.align {
         cell = cell.with_align(align(a));
     }
+    if let Some(v) = spec.valign {
+        cell = cell.with_vertical_align(match v {
+            VAlignSpec::Top => VerticalAlign::Top,
+            VAlignSpec::Middle => VerticalAlign::Middle,
+            VAlignSpec::Bottom => VerticalAlign::Bottom,
+        });
+    }
     Ok(cell)
 }
 
@@ -343,6 +352,9 @@ fn table(ctx: &Ctx<'_>, spec: &super::TableSpec, pointer: &str) -> Result<Table>
     if let Some(r) = &spec.row_rules {
         table = table.with_row_rules(rule(r, &format!("{pointer}/rowRules"))?);
     }
+    if spec.space_before.is_some() || spec.space_after.is_some() {
+        table = table.with_space(spec.space_before.unwrap_or(0.0), spec.space_after.unwrap_or(0.0));
+    }
     if let Some(text) = &spec.header_background {
         table = table.with_header_background(color(text, &format!("{pointer}/headerBackground"))?);
     }
@@ -360,8 +372,12 @@ fn table(ctx: &Ctx<'_>, spec: &super::TableSpec, pointer: &str) -> Result<Table>
 
 fn contents(ctx: &Ctx<'_>, spec: &ContentsSpec, pointer: &str) -> Result<Contents> {
     let contents = Contents::new(ctx.style(spec.style.as_ref(), &format!("{pointer}/style"))?);
-    Ok(match spec.levels {
+    let contents = match spec.levels {
         Some(levels) => contents.with_levels(levels),
+        None => contents,
+    };
+    Ok(match spec.indent {
+        Some(indent) => contents.with_indent(indent),
         None => contents,
     })
 }
@@ -379,32 +395,26 @@ fn convert_block(ctx: &Ctx<'_>, block: &BlockSpec, pointer: &str) -> Result<Flow
         BlockSpec::Paragraph(spec) => FlowBlock::Paragraph(paragraph_spec(ctx, spec, pointer)?),
         BlockSpec::Heading(spec) => {
             let level = spec.level.filter(|l| (1..=6).contains(l));
-            let level = level.ok_or_else(|| invalid(&format!("{pointer}/level"), "wrong-type"))?;
+            let level = level.ok_or_else(|| refuse(format!("{pointer}/level"), "missing-key"))?;
             FlowBlock::Heading(level, paragraph_spec(ctx, spec, pointer)?)
         }
         BlockSpec::List(spec) => FlowBlock::List(list(ctx, spec, pointer)?),
         BlockSpec::Figure(spec) => {
-            let image = ctx.resources.images.get(&spec.image).ok_or_else(|| {
-                let known: Vec<String> = ctx.resources.images.keys().cloned().collect();
-                Error::InvalidDocument {
-                    pointer: format!("{pointer}/image"),
-                    reason: "unknown-image",
-                    did_you_mean: laminapdf_syntax::did_you_mean(&spec.image, &known),
-                }
-            })?;
+            let image = (ctx.resources.images.get(&spec.image))
+                .ok_or_else(|| refuse(format!("{pointer}/image"), "unknown-image"))?;
             let figure = Figure::new(image.clone(), spec.alt.as_string());
             FlowBlock::Figure(match spec.width {
                 Some(width) => figure.with_width(width),
                 None => figure,
             })
         }
-        BlockSpec::Spacer { height } => FlowBlock::Spacer(*height),
+        BlockSpec::Spacer(SpacerSpec { height }) => FlowBlock::Spacer(*height),
         BlockSpec::PageBreak => FlowBlock::PageBreak,
-        BlockSpec::Keep { blocks: inner } => FlowBlock::Keep(blocks(ctx, inner, pointer)?),
+        BlockSpec::Keep(GroupSpec { blocks: inner }) => FlowBlock::Keep(blocks(ctx, inner, pointer)?),
         BlockSpec::Table(spec) => FlowBlock::Table(table(ctx, spec, pointer)?),
         BlockSpec::Contents(spec) => FlowBlock::Contents(contents(ctx, spec, pointer)?),
-        BlockSpec::Quote { blocks: inner } => FlowBlock::Quote(blocks(ctx, inner, pointer)?),
-        BlockSpec::CodeBlock { text, style } => FlowBlock::CodeBlock(
+        BlockSpec::Quote(GroupSpec { blocks: inner }) => FlowBlock::Quote(blocks(ctx, inner, pointer)?),
+        BlockSpec::CodeBlock(CodeBlockSpec { text, style }) => FlowBlock::CodeBlock(
             text.as_string(),
             ctx.style(style.as_ref(), &format!("{pointer}/style"))?.clone(),
         ),
@@ -427,13 +437,13 @@ impl Builder {
         if document.title.is_some() || document.author.is_some() || document.subject.is_some() {
             let mut metadata = self.metadata_so_far().cloned().unwrap_or_default();
             if let Some(title) = &document.title {
-                metadata = metadata.with_title(title.clone());
+                metadata = metadata.with_title(title.as_string());
             }
             if let Some(author) = &document.author {
-                metadata = metadata.with_author(author.clone());
+                metadata = metadata.with_author(author.as_string());
             }
             if let Some(subject) = &document.subject {
-                metadata = metadata.with_subject(subject.clone());
+                metadata = metadata.with_subject(subject.as_string());
             }
             self.metadata(metadata);
         }

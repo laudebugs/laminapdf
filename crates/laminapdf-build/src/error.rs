@@ -288,8 +288,15 @@ pub enum Error {
         pointer: String,
         /// `$data`, `$each` or `$item` (fixed text).
         placeholder: &'static str,
-        /// The kind it needs: `list`, or `text, a number or true/false` (fixed text).
+        /// The kind it needs: `list`, `text, a number or true/false`, or `a JSON Pointer such as
+        /// /items` (fixed text).
         expected: &'static str,
+    },
+    /// A template would fill in more values, or nest deeper, than a document may hold.
+    #[error("the template would fill in too much")]
+    TemplateTooLarge {
+        /// The limit it passed: the most values filled in, or the deepest nesting.
+        limit: usize,
     },
     /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
     #[cfg(feature = "text")]
@@ -338,6 +345,7 @@ impl Error {
         "invalid-document",
         "template-data-missing",
         "template-data-type",
+        "template-too-large",
     ];
 
     /// A stable kebab-case code for this error.
@@ -378,6 +386,7 @@ impl Error {
             Self::InvalidDocument { .. } => "invalid-document",
             Self::TemplateDataMissing { .. } => "template-data-missing",
             Self::TemplateDataType { .. } => "template-data-type",
+            Self::TemplateTooLarge { .. } => "template-too-large",
             #[cfg(feature = "text")]
             Self::Text(e) => e.code(),
             Self::Cos(e) => e.code(),
@@ -426,7 +435,8 @@ impl Error {
             | Self::FlowContentTooLarge { .. }
             | Self::InvalidDocument { .. }
             | Self::TemplateDataMissing { .. }
-            | Self::TemplateDataType { .. } => ErrorKind::Usage,
+            | Self::TemplateDataType { .. }
+            | Self::TemplateTooLarge { .. } => ErrorKind::Usage,
             Self::FlowLayoutUnstable => ErrorKind::Internal,
         }
     }
@@ -476,7 +486,8 @@ impl Error {
             | Self::FlowLayoutUnstable
             | Self::InvalidDocument { .. }
             | Self::TemplateDataMissing { .. }
-            | Self::TemplateDataType { .. } => Location::NONE,
+            | Self::TemplateDataType { .. }
+            | Self::TemplateTooLarge { .. } => Location::NONE,
         }
     }
 }
@@ -634,6 +645,7 @@ mod tests {
                 placeholder: "$each",
                 expected: "list",
             },
+            Error::TemplateTooLarge { limit: 1 },
         ]
     }
 

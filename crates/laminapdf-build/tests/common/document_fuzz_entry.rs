@@ -2,7 +2,7 @@
 //! calls it (through `fuzz/src/lib.rs`, which includes this file), and
 //! `tests/document_regressions.rs` replays its seeds and any saved crash input through it.
 
-use laminapdf_build::flow::{Resources, fill};
+use laminapdf_build::flow::document::{Resources, fill};
 use laminapdf_build::{BuildOptions, Builder};
 use laminapdf_save::{Save as _, SaveOptions};
 use laminapdf_syntax::ErrorCode;

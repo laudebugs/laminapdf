@@ -98,6 +98,7 @@ export type ErrorCode =
   | "invalid-document"
   | "template-data-missing"
   | "template-data-type"
+  | "template-too-large"
   | "render-too-large"
   | "render-failed"
   | "render-backend-unavailable"
@@ -288,6 +289,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "invalid-document",
   "template-data-missing",
   "template-data-type",
+  "template-too-large",
   "render-too-large",
   "render-failed",
   "render-backend-unavailable",
@@ -510,6 +512,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "invalid-document": "usage",
   "template-data-missing": "usage",
   "template-data-type": "usage",
+  "template-too-large": "usage",
   "flow-keep-broken": "usage",
   "markdown-html-ignored": "unsupported",
   "markdown-image-missing": "usage",
@@ -683,6 +686,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "invalid-document": "data.pointer names the value; correct it against the document schema, and didYouMean lists the closest known keys",
   "template-data-missing": "data.pointer names the value the template asked for; add it to the data or correct the pointer",
   "template-data-type": "data.pointer names the value and data.expected the kind the template needs there",
+  "template-too-large": "data.limit is the limit it passed; repeat fewer items, or split the document",
   "flow-keep-broken": "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
   "markdown-html-ignored": "write the content in Markdown instead of HTML, or remove the HTML",
   "markdown-image-missing": "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",

@@ -9,7 +9,7 @@
 //! are only added.
 //!
 //! ```
-//! # use laminapdf_build::flow::{FlowDocument, Resources};
+//! # use laminapdf_build::flow::document::{FlowDocument, Resources};
 //! # use laminapdf_build::{BuildOptions, Builder};
 //! # fn main() -> Result<(), laminapdf_build::Error> {
 //! let json = serde_json::json!({
@@ -23,6 +23,7 @@
 //! # Ok(()) }
 //! ```
 
+mod check;
 mod convert;
 mod fill;
 
@@ -32,7 +33,6 @@ use serde::{Deserialize, Serialize};
 
 pub use fill::fill;
 
-use crate::error::{Error, Result};
 use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
 
@@ -120,16 +120,16 @@ pub struct FlowDocument {
     pub schema: String,
     /// The title: the document's metadata, `{title}` in a header or footer, and the window title.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
+    pub title: Option<Text>,
     /// The natural language, a BCP 47 tag such as `en-GB`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lang: Option<String>,
     /// The author, in the metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub author: Option<String>,
+    pub author: Option<Text>,
     /// The subject, in the metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub subject: Option<String>,
+    pub subject: Option<Text>,
     /// The profiles the PDF must meet: `PDF/UA-1`, and at most one of `PDF/A-2b`, `PDF/A-2u`
     /// and `PDF/A-3b`. The caller passes them to the builder's options
     /// ([`FlowDocument::profiles`]).
@@ -141,6 +141,13 @@ pub struct FlowDocument {
     /// Whether headings make an outline (bookmarks); `true` when left out.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub outline: Option<bool>,
+    /// Whether the PDF is tagged for screen readers; `true` when left out (PDF/UA-1 needs it).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tagged: Option<bool>,
+    /// The heading level whose text `{section}` shows in a header or footer (1 when left out).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(range(min = 1, max = 6)))]
+    pub section_level: Option<u8>,
     /// The text styles, by name; `body` is the one text takes when it names none.
     pub styles: BTreeMap<String, StyleSpec>,
     /// The blocks, in reading order.
@@ -148,25 +155,8 @@ pub struct FlowDocument {
 }
 
 impl FlowDocument {
-    /// Reads `json` as a document.
-    ///
-    /// # Errors
-    /// `invalid-document`, with the JSON Pointer of the value at fault in its data: an unknown
-    /// key (with the closest known ones), a missing key, a value of the wrong kind, or a
-    /// `schema` other than `laminapdf.document/1`.
-    pub fn from_json(json: &serde_json::Value) -> Result<Self> {
-        let document: Self = serde_path_to_error::deserialize(json).map_err(|e| invalid(&e))?;
-        if document.schema != DOCUMENT_SCHEMA {
-            return Err(Error::InvalidDocument {
-                pointer: "/schema".to_owned(),
-                reason: "unsupported-schema",
-                did_you_mean: vec![DOCUMENT_SCHEMA.to_owned()],
-            });
-        }
-        Ok(document)
-    }
-
-    /// The document as JSON.
+    /// The document as JSON. Serialising these types can't fail: every key is a string and every
+    /// number finite or written as JSON writes it, so the fallback is never reached.
     #[must_use]
     pub fn to_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap_or_default()
@@ -179,58 +169,9 @@ impl FlowDocument {
     }
 }
 
-/// `invalid-document` from a deserialisation error at `path`.
-fn invalid(error: &serde_path_to_error::Error<serde_json::Error>) -> Error {
-    let message = error.inner().to_string();
-    let mut pointer = String::new();
-    for segment in error.path() {
-        use serde_path_to_error::Segment;
-        let part = match segment {
-            Segment::Seq { index } => index.to_string(),
-            Segment::Map { key } | Segment::Enum { variant: key } => key.clone(),
-            Segment::Unknown => continue,
-        };
-        pointer.push('/');
-        pointer.push_str(&part.replace('~', "~0").replace('/', "~1"));
-    }
-    // serde's own words: "unknown field `x`, expected one of `a`, `b`" and "missing field `x`".
-    let ticked = |text: &str| -> Vec<String> { text.split('`').skip(1).step_by(2).map(str::to_owned).collect() };
-    if let Some(rest) = message.strip_prefix("unknown field ") {
-        let names = ticked(rest);
-        let (given, known) = names.split_first().map_or(("", &[][..]), |(g, k)| (g.as_str(), k));
-        pointer.push('/');
-        pointer.push_str(given);
-        return Error::InvalidDocument {
-            pointer,
-            reason: "unknown-key",
-            did_you_mean: laminapdf_syntax::did_you_mean(given, known),
-        };
-    }
-    if let Some(rest) = message.strip_prefix("unknown variant ") {
-        let names = ticked(rest);
-        let (given, known) = names.split_first().map_or(("", &[][..]), |(g, k)| (g.as_str(), k));
-        return Error::InvalidDocument {
-            pointer,
-            reason: "wrong-type",
-            did_you_mean: laminapdf_syntax::did_you_mean(given, known),
-        };
-    }
-    if let Some(rest) = message.strip_prefix("missing field ") {
-        if let Some(name) = ticked(rest).first() {
-            pointer.push('/');
-            pointer.push_str(name);
-        }
-        return Error::InvalidDocument {
-            pointer,
-            reason: "missing-key",
-            did_you_mean: Vec::new(),
-        };
-    }
-    Error::InvalidDocument {
-        pointer,
-        reason: "wrong-type",
-        did_you_mean: Vec::new(),
-    }
+/// `segment` as a JSON Pointer reference token (RFC 6901 §3).
+pub(crate) fn escape(segment: &str) -> String {
+    segment.replace('~', "~0").replace('/', "~1")
 }
 
 /// A conformance profile, by its usual name.
@@ -270,7 +211,11 @@ pub struct StyleSpec {
     /// A font given beside the document, by name, or a standard 14 font (`Helvetica`, …).
     pub font: String,
     /// The size in points.
+    #[cfg_attr(feature = "schema", schemars(range(min = 0)))]
     pub size: f64,
+    /// Points the text is raised above the baseline (negative lowers it).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rise: Option<f64>,
     /// Fonts for characters `font` lacks, tried in order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fallbacks: Vec<String>,
@@ -307,8 +252,9 @@ pub enum AlignSpec {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ParagraphSpec {
-    /// The heading's level, 1 to 6 (headings only).
+    /// The heading's level, 1 to 6: needed by a heading, refused on a paragraph.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(range(min = 1, max = 6)))]
     pub level: Option<u8>,
     /// The text, in `style`; give this or `spans`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -337,6 +283,14 @@ pub struct ParagraphSpec {
     /// Start it on a new page.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub break_before: bool,
+    /// The fewest lines left alone at the top of a page (2 when left out).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(range(min = 1)))]
+    pub widows: Option<usize>,
+    /// The fewest lines left alone at the foot of a page (2 when left out).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(range(min = 1)))]
+    pub orphans: Option<usize>,
 }
 
 /// A piece of a paragraph: text in a style, a link, code, a line break or a footnote.
@@ -378,36 +332,52 @@ pub enum BlockSpec {
     /// An image, with its alternate text.
     Figure(FigureSpec),
     /// Empty space.
-    Spacer {
-        /// Its height in points.
-        height: f64,
-    },
+    Spacer(SpacerSpec),
     /// The next block starts a page.
     PageBreak,
     /// Blocks kept on one page.
-    Keep {
-        /// The blocks.
-        blocks: Vec<BlockSpec>,
-    },
+    Keep(GroupSpec),
     /// A table whose header row repeats on each page it runs onto.
     Table(TableSpec),
     /// A contents page: the headings and the pages they start on.
     Contents(ContentsSpec),
     /// A block quotation.
-    Quote {
-        /// The blocks quoted.
-        blocks: Vec<BlockSpec>,
-    },
+    Quote(GroupSpec),
     /// Code, line by line as written.
-    CodeBlock {
-        /// The code.
-        text: Text,
-        /// Its style (`body` when left out).
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        style: Option<String>,
-    },
+    CodeBlock(CodeBlockSpec),
     /// A horizontal rule.
     Rule,
+}
+
+/// Empty space.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SpacerSpec {
+    /// Its height in points.
+    #[cfg_attr(feature = "schema", schemars(range(min = 0)))]
+    pub height: f64,
+}
+
+/// Blocks kept together on one page, or quoted.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GroupSpec {
+    /// The blocks.
+    pub blocks: Vec<BlockSpec>,
+}
+
+/// Code, line by line as written.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CodeBlockSpec {
+    /// The code.
+    pub text: Text,
+    /// Its style (`body` when left out).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style: Option<String>,
 }
 
 /// A list.
@@ -508,6 +478,12 @@ pub struct TableSpec {
     /// The header rows' background, as `#rrggbb`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub header_background: Option<String>,
+    /// Points of space above the table.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub space_before: Option<f64>,
+    /// Points of space below the table.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub space_after: Option<f64>,
 }
 
 /// A column's width.
@@ -548,10 +524,27 @@ pub struct CellSpec {
     pub style: Option<String>,
     /// How many columns it spans (1 when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(range(min = 1)))]
     pub span: Option<u32>,
     /// Where its lines sit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub align: Option<AlignSpec>,
+    /// Where its text sits in a row taller than it: `top` (the default), `middle` or `bottom`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valign: Option<VAlignSpec>,
+}
+
+/// Where a cell's text sits in its row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum VAlignSpec {
+    /// At the top.
+    Top,
+    /// In the middle.
+    Middle,
+    /// At the bottom.
+    Bottom,
 }
 
 /// A rule: its width in points and its colour.
@@ -575,7 +568,11 @@ pub struct ContentsSpec {
     pub style: Option<String>,
     /// The heading levels it lists, 1 to `levels`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(range(min = 1, max = 6)))]
     pub levels: Option<u8>,
+    /// Points each level below the first is indented.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub indent: Option<f64>,
 }
 
 /// The pages a document flows through.
@@ -597,6 +594,9 @@ pub struct PageSpec {
     /// The header and footer's style (`body` when left out).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style: Option<String>,
+    /// A different template for the first page, such as one without a header.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first: Option<Box<PageSpec>>,
 }
 
 /// A page size.
@@ -628,11 +628,11 @@ pub enum MarginsSpec {
 pub struct RegionSpec {
     /// At the start of the line.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub start: Option<String>,
+    pub start: Option<Text>,
     /// Centred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub center: Option<String>,
+    pub center: Option<Text>,
     /// At the end of the line.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub end: Option<String>,
+    pub end: Option<Text>,
 }
