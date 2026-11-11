@@ -7,7 +7,7 @@ Get a PDF's contents out in the form you need: text for a search index, Markdown
 
 ## Text: `extract`
 
-By default, `extract` prints each page's text, pages separated by a form feed, as `pdftotext` does. `--pages` picks the pages, and `--visible-only` leaves out text no one can see:
+By default, `extract` prints each page's text, pages separated by a form feed, as `pdftotext` does. `--pages` picks the pages, and `--visible-only` leaves out text drawn invisibly, such as the hidden text layer of a scan:
 
 ```sh
 laminapdf extract report.pdf --pages 1-3 --visible-only > report.txt

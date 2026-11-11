@@ -42,7 +42,7 @@ The Linux builds use the system's C library, glibc. The static builds carry thei
 
 ### Check the download
 
-A checksum proves the archive arrived as the release built it. On macOS and Linux, run this in the folder holding both files; it prints `OK` beside the archive's name:
+A checksum proves the archive arrived as the release built it. On macOS and Linux, run this in the folder holding both files. It prints `OK` beside the archive's name, and may also warn about a blank line in the checksum file, which you can ignore:
 
 ```sh
 shasum -a 256 -c laminapdf-cli-aarch64-apple-darwin.tar.xz.sha256
@@ -62,7 +62,7 @@ On Windows, SmartScreen may warn the first time you run it. Homebrew and npm ins
 
 ### What the archive holds
 
-Besides the `laminapdf` program, each archive holds its licences (`LICENSE-MIT` and `LICENSE-APACHE`) and `THIRD_PARTY_NOTICES.md`, the licence of every library inside the program. It also has a manual page per command in `man/` and shell completions in `completions/`.
+Besides the `laminapdf` program, each archive holds its licences (`LICENSE-MIT` and `LICENSE-APACHE`) and `THIRD_PARTY_NOTICES.md`, the licence of every library inside the program. It also has a manual page per command in `man/`, which `man ./man/laminapdf-info.1` reads in place, and shell completions in `completions/`. Homebrew and npm install neither, but the tool writes its completions itself.
 
 ## Shell completions
 
