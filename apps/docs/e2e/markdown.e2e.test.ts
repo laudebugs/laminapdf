@@ -7,6 +7,7 @@
 
 import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
+import { type CspReport, withoutSelectReports } from "@laminapdf/test-utils/webkit-select";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 
@@ -31,7 +32,7 @@ afterAll(async () => {
 interface Recorded {
   copied: string[];
   outsidePress: number;
-  violations: string[];
+  violations: CspReport[];
 }
 
 /** The twin's text, as the server sends it. */
@@ -85,7 +86,12 @@ describe(`each page's Markdown twin in ${BROWSER}`, () => {
             writeText: (text: string) => note(Promise.resolve(text)),
           },
         });
-        document.addEventListener("securitypolicyviolation", (e) => recorded.violations.push(e.violatedDirective));
+        document.addEventListener("securitypolicyviolation", (e) =>
+          recorded.violations.push({
+            directive: e.violatedDirective,
+            target: (e.target as Node | null)?.nodeName ?? "",
+          }),
+        );
       });
       const page = await context.newPage();
       const twins: string[] = [];
@@ -101,7 +107,8 @@ describe(`each page's Markdown twin in ${BROWSER}`, () => {
       const recorded = await page.evaluate(() => (window as unknown as { recorded: Recorded }).recorded);
       const text = await twinText(page, twin);
       expect(text).toMatch(/^---\ntitle: /);
-      expect(recorded).toEqual({ copied: [text], outsidePress: 0, violations: [] });
+      const violations = withoutSelectReports(BROWSER, recorded.violations, await page.locator("select").count());
+      expect({ ...recorded, violations }).toEqual({ copied: [text], outsidePress: 0, violations: [] });
       expect(twins).toEqual([new URL(twin, origin).href]);
       await context.close();
     });

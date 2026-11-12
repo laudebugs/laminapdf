@@ -6,6 +6,7 @@
 
 import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
+import { withoutSelectErrors } from "@laminapdf/test-utils/webkit-select";
 import axe from "axe-core";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -110,7 +111,7 @@ describe(`an example's first page in ${BROWSER}`, () => {
     expect(code.width).toBeGreaterThanOrEqual(576);
     expect(picture.width).toBeGreaterThan(200);
     expect(scrolls).toBe(false);
-    expect(errors).toEqual([]);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await page.context().close();
   });
 
@@ -120,7 +121,7 @@ describe(`an example's first page in ${BROWSER}`, () => {
     expect(picture.top).toBeGreaterThan(code.bottom);
     expect(picture.left).toBeCloseTo(code.left, 0);
     expect(scrolls).toBe(false);
-    expect(errors).toEqual([]);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await page.context().close();
   });
 

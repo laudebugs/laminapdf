@@ -171,9 +171,9 @@ describe(`print, download and properties in ${BROWSER}`, () => {
     // The frame is gone, with its images.
     await expect.poll(() => page.locator("iframe").count()).toBe(0);
     expect(requests).toEqual([]);
-    // Playwright's WebKit reports every native <select> under `style-src 'self'` as an inline style
-    // (the engine's own styles for the control: a page with only a bare <select> does the same), so
-    // there those are left out; everything else, the print frame's included, must be clean.
+    // Playwright's WebKit reports every native <select> as a refused inline style
+    // (@laminapdf/test-utils/webkit-select explains it), so there those are left out; everything
+    // else, the print frame's included, must be clean.
     const targets = await page.evaluate(() => (window as unknown as { violationTargets: string[] }).violationTargets);
     expect(BROWSER === "webkit" ? targets.filter((t) => t !== "SELECT") : targets).toEqual([]);
     expect(watched.foreign).toEqual([]);
