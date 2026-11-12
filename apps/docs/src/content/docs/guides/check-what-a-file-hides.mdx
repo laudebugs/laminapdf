@@ -39,7 +39,7 @@ A black rectangle over a name hides it on screen and in print, but the name is s
 | [`redaction-not-applied`](/reference/codes/redaction-not-applied/) | Redaction marks that were drawn but never applied |
 | [`text-in-earlier-revision`](/reference/codes/text-in-earlier-revision/) | Words an earlier revision holds that the latest doesn't |
 
-Each warning names its page when it has one. Remove the text itself with a tool that deletes what a redaction covers, then save a [full rewrite](/reference/glossary/#full-rewrite), so no earlier revision keeps it.
+Each warning names its page when it has one. The `Reveal` already holds all three findings, so the example reads them from it: `Document::redaction_warnings` would read every page and every earlier revision a second time. Call it alone when you only need the warnings. Remove the text itself with a tool that deletes what a redaction covers, then save a [full rewrite](/reference/glossary/#full-rewrite), so no earlier revision keeps it.
 
 ## From TypeScript and the command line
 
