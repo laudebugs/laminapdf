@@ -11,7 +11,7 @@
 | Branch | `docs/q4c-viewer-render-redaction` |
 | PR title | `docs: guides for the viewer, rendering pages, and checking what a file hides` |
 | Size | M |
-| PR | — |
+| PR | [#463](https://github.com/laudebugs/laminapdf/pull/463) |
 
 ## Goal
 
