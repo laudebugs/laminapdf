@@ -11,7 +11,7 @@
 | Branch | `feat/q4k-one-page-and-pdf-docs` |
 | PR title | `feat(docs): one-page areas and the guide as a PDF built by Lamina PDF` |
 | Size | M |
-| PR | — |
+| PR | [#472](https://github.com/laudebugs/laminapdf/pull/472) |
 
 ## Goal
 
