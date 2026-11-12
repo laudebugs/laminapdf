@@ -5,7 +5,7 @@ import { docsUrl, type ErrorCode, type ErrorKind, RAISED_BY_PACKAGE, type Warnin
 
 export type { ErrorKind };
 
-/** Where a problem is; each field has one meaning, and every value is Lamina PDF's own, never document text. */
+/** Where a problem is; each field has one meaning, and none holds text read from the document. */
 export interface Location {
   /** Byte offset in the input file. */
   readonly offset?: number;
@@ -20,8 +20,8 @@ export interface Location {
 }
 
 /**
- * An error as plain data (the `laminapdf.error/1` object): what `LaminaPdfError.toJSON()` returns
- * and the WebAssembly modules throw.
+ * An error or warning as plain data, in the `laminapdf.error/1` shape: what
+ * `LaminaPdfError.toJSON()` returns and the WebAssembly modules throw.
  */
 export interface Diagnostic<C extends string = ErrorCode> {
   readonly code: C;
@@ -73,7 +73,7 @@ export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
   readonly docsUrl: string;
 
   /**
-   * @param diagnostic - the error as plain data.
+   * @param diagnostic - the {@link Diagnostic} to build the error from.
    * @param options - `cause`, when wrapping another error.
    */
   constructor(diagnostic: Diagnostic<C>, options?: { readonly cause?: unknown }) {
@@ -102,7 +102,7 @@ export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
     );
   }
 
-  /** The error as plain data (for logs, workers and `--json` output); optional fields omitted. */
+  /** This error as a {@link Diagnostic} (for logs, workers and `--json` output); optional fields omitted. */
   toJSON(): Diagnostic<C> {
     return {
       code: this.code,
@@ -128,7 +128,7 @@ export function isLaminaPdfError<C extends ErrorCode>(e: unknown, code?: C): e i
   return e instanceof LaminaPdfError && (code === undefined || e.code === code);
 }
 
-/** Whether `value` is the error object the WebAssembly modules throw. */
+/** Whether `value` is a {@link Diagnostic}, as the WebAssembly modules throw. */
 export function isDiagnostic(value: unknown): value is Diagnostic<ErrorCode> {
   if (typeof value !== "object" || value === null || value instanceof Error) return false;
   const v = value as Record<string, unknown>;
