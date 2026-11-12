@@ -39,7 +39,7 @@ Start with the items that take longest: Apple enrolment and Azure identity valid
 ### 1.1 Bundle identity
 
 - [ ] Confirm the product name `Lamina PDF` and identifier `com.laminapdf.desktop`. The identifier ends up in signed bundles and in every installed copy's settings path, so it must not change after the first release.
-- [ ] Confirm the publisher is your legal name, spelled as on the ID you use for Apple and Azure. Both certificates must show the same name.
+- [x] Confirm the publisher is your legal name, spelled as on the ID you use for Apple and Azure. Both certificates must show the same name.
 
 ### 1.2 Apple Developer Program
 
@@ -64,7 +64,7 @@ Gatekeeper accepts an app from outside the App Store only when a Developer ID Ap
 - [x] In App Store Connect → Users and Access → Integrations → App Store Connect API, request access if asked, then create a **Team key** with the Developer role. Download the `.p8` file: Apple lets you download it once.
 - [x] Store the `.p8`, its Key ID and the Issuer ID in the secret manager.
 - [x] Add the `desktop-release`-environment secrets `APPLE_API_KEY` (the Key ID), `APPLE_API_ISSUER` and `APPLE_API_KEY_P8` (the file's contents). The workflow writes the contents to a file and points `APPLE_API_KEY_PATH` at it, as Tauri expects.
-- [ ] **Fallback** (not needed: the Team key worked), only if an individual account can't create a Team key: an app-specific password, with `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` as `desktop-release` secrets. Reason the API key wasn't possible: `<to fill in if used>`.
+- **Not applicable:** the Team key worked. **Fallback**, only if an individual account can't create a Team key: an app-specific password, with `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` as `desktop-release` secrets. Reason the API key wasn't possible: `<to fill in if used>`.
 
 ### 1.5 Azure Artifact Signing (Windows)
 
@@ -73,18 +73,18 @@ The steps follow Microsoft's [quickstart](https://learn.microsoft.com/azure/arti
 - [x] Create a pay-as-you-go Azure subscription (free, trial and sponsored ones can't use Artifact Signing) on a billing account whose Account Type is **Individual**. Set its legal name and sold-to address to match your government ID exactly.
 - [x] Register the `Microsoft.CodeSigning` resource provider on the subscription.
 - [x] Create an Artifact Signing account, Basic tier (billing starts now, for the whole month), in a US region (for example East US, endpoint `https://eus.codesigning.azure.net`). Give yourself the Artifact Signing Identity Verifier role.
-- [ ] Under Identity validations, choose **Individual → New identity → Public**, then finish the ID check with AU10TIX and Microsoft Authenticator. The certificate shows your name, city, state or province, and country, never your street address.
-- [ ] Create a **Public Trust** certificate profile using that validation. Leave "Include street address" and "Include postal code" unticked.
+- [x] Under Identity validations, choose **Individual → New identity → Public**, then finish the ID check with AU10TIX and Microsoft Authenticator. The certificate shows your name, city, state or province, and country, never your street address.
+- [x] Create a **Public Trust** certificate profile using that validation. Leave "Include street address" and "Include postal code" unticked.
 - [x] In Microsoft Entra ID, register an app (`lamina-pdf-release-signing`). Add a **federated credential** for GitHub Actions: this repository, entity type *Environment*, environment `desktop-release`. Store no client secret ([GitHub OIDC with Azure](https://docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-azure)).
-- [ ] Give the app the **Artifact Signing Certificate Profile Signer** role on the certificate profile only.
+- [x] Give the app the **Artifact Signing Certificate Profile Signer** role on the certificate profile only.
 - [x] Add the `desktop-release`-environment secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`. Record the non-secret names here:
 
 | Name | Value |
 | --- | --- |
 | Endpoint | `https://eus.codesigning.azure.net` (East US) |
 | Account | `LaurenceIninda`, resource group `Laurence_Ininda` |
-| Certificate profile | `<to fill in>` |
-| Identity validation completed | `<date>` |
+| Certificate profile | `LaminaPdfPublicTrust` (Public Trust); subject `CN=Laurence Ininda, O=Laurence Ininda, L=Brooklyn, S=NY, C=US`; Microsoft reissues its certificate every few days |
+| Identity validation completed | 2026-11-12 (ID `62b8833a-2cbf-46c0-8f7c-702606975b2a`) |
 | Entra app (no client secret) | `lamina-pdf-release-signing`, federated credential `github-desktop-release` for `repo:laudebugs/laminapdf:environment:desktop-release` |
 
 **For D6d (recommendation, not yet tested):** sign with `signtool` and Microsoft's Artifact Signing dlib in `bundle.windows.signCommand`, logged in through `azure/login` with the federated credential, so no client secret exists. Tauri's guide uses `artifact-signing-cli` instead, but that tool needs a client secret, `AZURE_CLIENT_SECRET` ([Tauri Windows signing](https://v2.tauri.app/distribute/sign/windows/); [artifact-signing-cli](https://github.com/Levminer/artifact-signing-cli)). Only if `signtool` fails does the owner add a client secret, with a 12-month expiry.
@@ -232,7 +232,7 @@ Fill in each date when the item is created, and add a calendar reminder as far a
 | --- | --- | --- | --- |
 | Apple Developer Program membership | `<enrolment date + 1 year>` | 60 days before | renew in the Apple Developer account; lapsing stops notarisation but existing notarised builds keep working |
 | Developer ID Application certificate | 2027-12-12 (issued 2026-11-12; read the date from each new certificate: this one ran 13 months, not the 5 years older guidance gives) | 60 days before | create a new one (§1.3), replace `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` and `APPLE_SIGNING_IDENTITY`, sign the next release with it |
-| Artifact Signing identity validation | `<expiry date shown in the Azure portal>` | 60 days before (Microsoft also emails reminders from then) | create a new identity validation and attach it to the certificate profile; if it lapses, certificate renewal and signing stop ([FAQ](https://learn.microsoft.com/azure/artifact-signing/faq)) |
+| Artifact Signing identity validation | `<expiry date shown in the Azure portal; validated 2026-11-12>` | 60 days before (Microsoft also emails reminders from then) | create a new identity validation and attach it to the certificate profile; if it lapses, certificate renewal and signing stop ([FAQ](https://learn.microsoft.com/azure/artifact-signing/faq)) |
 | Entra client secret (only if used) | `<creation + 12 months>` | 30 days before | create a new secret, update `AZURE_CLIENT_SECRET`, delete the old one |
 | GPG signing subkey | 2028-11-11 | 60 days before | `gpg --quick-set-expire <PRIMARY FPR> 2y <SUBKEY FPR>` on the offline machine, re-export and republish the public key, replace `LINUX_SIGNING_KEY` |
 | GPG primary key | 2031-11-11 | 90 days before | extend with `gpg --quick-set-expire <PRIMARY FPR> 5y`, republish |
