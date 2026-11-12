@@ -9,7 +9,7 @@ and the medians, in milliseconds.
 
 With a floor build (the app with tools/desktop/floor/ as its frontend), the two are launched in
 turn, so a busy machine slows both alike, and the script checks both gates: launch → window under
-300 ms, and the app's launch → first command within 50 ms of the floor's. It exits 1 when a gate
+300 ms, and the app's launch → first command within 75 ms of the floor's. It exits 1 when a gate
 fails. Standard library only; run by hand, never by tests.
 """
 
@@ -33,7 +33,7 @@ STEPS = (
     "launch → first command",
 )
 WINDOW_GATE_MS = 300
-OVER_FLOOR_GATE_MS = 50
+OVER_FLOOR_GATE_MS = 75
 TIMEOUT_S = 20
 
 

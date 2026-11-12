@@ -32,7 +32,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 
 - **Pre-release checklist** (in the PR, every item ticked with evidence):
   - [ ] All D1–D7b todos are in `done/`.
-  - [ ] Release gates met on the reference machines, with numbers recorded: the cold-start gates on macOS, Windows and Linux: launch → window built and shown < 300 ms, and launch → first command within 50 ms of the floor build (owner decision 2026-11-11, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)), and every installer < 15 MB (owner decision 2026-10-29); a miss blocks the beta.
+  - [ ] Release gates met on the reference machines, with numbers recorded: the cold-start gates on macOS, Windows and Linux: launch → window built and shown < 300 ms, and launch → first command within 75 ms of the floor build (owner decision 2026-11-11, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)), and every installer < 15 MB (owner decision 2026-10-29); a miss blocks the beta.
   - [ ] Pricing status stated: lamina will be priced (owner decision 2026-10-29) and the pricing page (U5a) comes after this beta, so the owner states what the beta is (for example a free preview) and the release notes and download page say lamina will be a paid product.
   - [ ] Other non-functional targets measured on reference machines and recorded (1 GB first page, idle memory) — misses listed as known issues with follow-up todos.
   - [ ] Supported-OS smoke on clean VMs: macOS 13 + latest, Windows 11 (+ Windows 10 22H2 best-effort), Ubuntu 22.04/24.04, Fedora current — install, open via double-click, tabs, print one page, settings, uninstall.

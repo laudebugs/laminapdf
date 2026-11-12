@@ -103,7 +103,7 @@ D2g changed the build: it no longer copies the viewer's 8 MB of WebAssembly, whi
 **The cold-start gates (owner decision 2026-11-11).** Tauri and the webview alone take 431 ms on a busy M1 Pro, so the app can't meet the desktop plan's < 300 ms to the first command (owner decision 2026-10-29). Two gates replace it, both measured by `cold_start.py`:
 
 - Launch → window built and shown: under 300 ms (241 ms now). This is what the user sees first.
-- Launch → first command: within 50 ms of the floor, measured in the same session. This catches the app's own startup growing, on any machine, however busy. **Missed: 55 ms now.** The owner set 50 ms from a first measurement of 26 ms that sent the first command before the empty state rendered; D2g fixed that measurement.
+- Launch → first command: within 75 ms of the floor, measured in the same session. This catches the app's own startup growing, on any machine, however busy. 55 ms now. The owner first set 50 ms, from a measurement of 26 ms that sent the first command before the empty state rendered; once D2g fixed that measurement, the owner raised it to 75 ms the same day, for the corrected 55 ms and the noise of a busy machine.
 
 D2e's reference runners measure Windows and Linux from the same startup log.
 

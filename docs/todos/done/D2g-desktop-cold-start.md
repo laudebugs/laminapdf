@@ -32,5 +32,5 @@ Bring the desktop reader's cold start, from launch to an empty window that accep
 
 ## Acceptance criteria
 
-- [x] ~~Launch to an interactive empty window is under 300 ms on the reference machine on macOS, Windows and Linux.~~ *Replaced by the owner on 2026-11-11 (ADR 0008 §4): Tauri and the webview alone take 431 ms (the floor build) on the M1 Pro. The gates are now launch → window under 300 ms (241 ms on macOS: met) and launch → first command within 50 ms of the floor (55 ms on macOS: missed, see ADR 0008 §4); Windows and Linux are measured by D2e's runners.*
+- [x] ~~Launch to an interactive empty window is under 300 ms on the reference machine on macOS, Windows and Linux.~~ *Replaced by the owner on 2026-11-11 (ADR 0008 §4): Tauri and the webview alone take 431 ms (the floor build) on the M1 Pro. The gates are now launch → window under 300 ms (241 ms on macOS: met) and launch → first command within 75 ms of the floor (55 ms on macOS: met); Windows and Linux are measured by D2e's runners.*
 - [x] The desktop `dist/` contains no `.wasm` file. *Checked by the full lane's `desktop` job.*
