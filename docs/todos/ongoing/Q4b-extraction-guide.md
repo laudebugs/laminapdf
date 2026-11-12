@@ -11,7 +11,7 @@
 | Branch | `docs/q4b-extraction-guide` |
 | PR title | `docs: a guide to extracting text and Markdown in TypeScript and Rust` |
 | Size | M |
-| PR | — |
+| PR | [#461](https://github.com/laudebugs/laminapdf/pull/461) |
 
 ## Goal
 
