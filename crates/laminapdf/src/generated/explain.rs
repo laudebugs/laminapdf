@@ -2345,7 +2345,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E2p](../todos/ongoing/E2p-source-documents-and-copier.md): source documents and the blob store
+- [E2p](../todos/done/E2p-source-documents-and-copier.md): source documents and the blob store
 ",
         "pdfa-one-author" => r#"# `pdfa-one-author`
 

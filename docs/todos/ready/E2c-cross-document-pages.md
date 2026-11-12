@@ -6,16 +6,16 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2k](./E2k-duplicate-pages.md), [E2p](../ongoing/E2p-source-documents-and-copier.md) |
+| Depends on | [E2k](./E2k-duplicate-pages.md), [E2p](../done/E2p-source-documents-and-copier.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2c-cross-document-pages` |
 | PR title | `feat(ops): import, replace and extract pages across documents` |
-| Size | L (400–800): two ops and two functions over [E2p](../ongoing/E2p-source-documents-and-copier.md)'s copier and sources, the rules for what follows a page, and bindings |
+| Size | L (400–800): two ops and two functions over [E2p](../done/E2p-source-documents-and-copier.md)'s copier and sources, the rules for what follows a page, and bindings |
 | PR | — |
 
 ## Goal
 
-Copy pages between documents with [E2p](../ongoing/E2p-source-documents-and-copier.md)'s `ObjectCopier`, from sources added with its `add_source`; replace pages while keeping links and bookmarks pointing at the slot; extract selected pages and export ranges as new documents.
+Copy pages between documents with [E2p](../done/E2p-source-documents-and-copier.md)'s `ObjectCopier`, from sources added with its `add_source`; replace pages while keeping links and bookmarks pointing at the slot; extract selected pages and export ranges as new documents.
 
 ## Context
 
@@ -36,7 +36,7 @@ Copy pages between documents with [E2p](../ongoing/E2p-source-documents-and-copi
 
 **Out of scope** (and which todo covers it)
 
-- The blob store, `add_source` and the `ObjectCopier` → [E2p](../ongoing/E2p-source-documents-and-copier.md)
+- The blob store, `add_source` and the `ObjectCopier` → [E2p](../done/E2p-source-documents-and-copier.md)
 - Merging outlines, AcroForm and struct trees across whole documents; split → [E2d](E2d-merge-and-split.md)
 - The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](./T6a-cli-page-commands.md)
 

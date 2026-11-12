@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2p` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2a](../done/E2a-page-organisation-feature-plan.md) |
+| Depends on | [E2a](./E2a-page-organisation-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2p-source-documents-and-copier` |
 | PR title | `feat(ops,model): source documents, the blob store and the object copier` |
@@ -49,17 +49,17 @@ Give the session the three pieces every cross-document op needs, before any op u
 
 ## Tasks
 
-- [ ] The blob store, keyed by `BlobId`, with `add_source` and the `unknown-source` code
-- [ ] `ObjectCopier` with the object map, the recursion and size limits, and stream-hash deduplication
-- [ ] A fuzz target for the copier over corpus pairs
+- [x] The blob store, keyed by `BlobId`, with `add_source` and the `unknown-source` code
+- [x] `ObjectCopier` with the object map, the recursion and size limits, and stream-hash deduplication
+- [x] A fuzz target for the copier over corpus pairs
 
 ## Acceptance criteria
 
-- [ ] `add_source` on the same bytes twice gives the same `SourceId`, on native and wasm32
-- [ ] Copying a page of each of 10 corpus files into an empty document and saving gives a file that passes `qpdf --check` and renders each page identically to its source in PDFium (pixel diff below threshold)
-- [ ] Resources shared by several copied pages are copied once (an object-count test)
-- [ ] A copy that passes `Limits` stops with `LimitExceeded`, leaving the overlay as it was
-- [ ] An encrypted source opens with its password and its copied objects are written unencrypted
+- [x] `add_source` on the same bytes twice gives the same `SourceId`, on native and wasm32
+- [x] Copying a page of each of 10 corpus files into an empty document and saving gives a file that passes `qpdf --check` and renders each page identically to its source in PDFium (pixel diff below threshold)
+- [x] Resources shared by several copied pages are copied once (an object-count test)
+- [x] A copy that passes `Limits` stops with `LimitExceeded`, leaving the overlay as it was
+- [x] An encrypted source opens with its password and its copied objects are written unencrypted
 
 ## Post-merge checks
 
@@ -81,8 +81,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
