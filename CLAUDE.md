@@ -649,8 +649,8 @@ cargo xtask changes [--base <rev>]    # paths changed since the merge base with 
                                       #   two lanes still count). Each group of jobs runs on its flag, and both gates check it
                                       #   (X9c; CI caching plan §8.1)
 cargo xtask desktop-key               # the key of the desktop's inputs at HEAD: each desktop leg in the full lane saves
-                                      #   desktop-passed-<key>-<build|e2e>-<os> when it passes, and a PR leaves out the
-                                      #   legs its own runs or main already passed on that key (X10b)
+                                      #   desktop-passed-<key>-<build|e2e>-<os> when it passes, and the changes job leaves out
+                                      #   legs that the PR's earlier runs or main already passed on that key (X10b)
 cargo xtask fuzz tmin <target>        # minimise every crash in fuzz/artifacts/<target>/
 cargo xtask corpus fetch     # external corpora (pinned commits, SHA-256 per file in fixtures/corpus-manifest.toml) → target/corpus/
 cargo xtask differential --live [--corpus external|mutants|all] [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample N]

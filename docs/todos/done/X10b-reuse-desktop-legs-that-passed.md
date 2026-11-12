@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X10b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [CI caching §8.2](../../plans/ci-caching.md#82-desktop-legs-and-codeql-by-what-changed-x10) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | [X10a](./X10a-desktop-inputs-from-the-graph.md) |
@@ -58,13 +58,13 @@ The plan's §8.2; ADR 0018 §2; CLAUDE.md; `full.yml`'s header.
 
 ## Risks and open questions
 
-- A missed input reuses a pass it shouldn't. X10a's list guards against this by counting all of `tools/xtask`.
+- If X10a's list leaves out an input, a change to it reuses a pass it shouldn't. X10a's list guards against this by counting all of `tools/xtask`.
 - Each OS must compute the same key: paths are canonicalised before the walk, and if another OS computes a different key, its leg just runs again; nothing is wrongly skipped.
 
 ## Definition of done
 
-- [x] Claimed: the work PR, opened from a fresh worktree, added this file to `ongoing/` in its first commit with `[skip ci]` (the owner asked for the work in progress, so it skipped `ready/`), **PR** field filled in, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, added this file to `ongoing/` in its first commit with `[skip ci]` (the owner asked for this work directly, so it never sat in `ready/`), **PR** field filled in, board regenerated
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

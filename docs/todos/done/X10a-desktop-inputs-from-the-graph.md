@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `X10a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [CI caching §8.2](../../plans/ci-caching.md#82-desktop-legs-and-codeql-by-what-changed-x10) |
 | Round / milestone | Round X (cross-cutting): CI |
-| Depends on | [X9c](../done/X9c-skip-jobs-by-changed-paths.md) |
+| Depends on | [X9c](./X9c-skip-jobs-by-changed-paths.md) |
 | ADRs | [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) |
 | Branch | `ci/x10-desktop-ci-reuse` |
 | PR title | `ci: run the desktop legs and CodeQL only for what changed` |
@@ -61,8 +61,8 @@ The plan's §8.1 table and §8.2; CLAUDE.md's `cargo xtask changes` entry.
 
 ## Definition of done
 
-- [x] Claimed: the work PR, opened from a fresh worktree, added this file to `ongoing/` in its first commit with `[skip ci]` (the owner asked for the work in progress, so it skipped `ready/`), **PR** field filled in, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, added this file to `ongoing/` in its first commit with `[skip ci]` (the owner asked for this work directly, so it never sat in `ready/`), **PR** field filled in, board regenerated
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
