@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X8a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [CI caching §4–§5](../../plans/ci-caching.md#4-design) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `ci/x8a-rust-compile-cache-trial` |
 | PR title | `ci: share compiled Rust between runs through sccache on R2, on two legs first` |
 | Size | S |
-| PR | — |
+| PR | [#507](https://github.com/laudebugs/laminapdf/pull/507) |
 
 ## Goal
 
@@ -37,7 +37,7 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
 
 **Out of scope** (and which todo covers it)
 
-- The other Rust jobs, and dropping the Rust cache: [X8b](X8b-rust-compile-cache-everywhere.md).
+- The other Rust jobs, and dropping the Rust cache: [X8b](../ready/X8b-rust-compile-cache-everywhere.md).
 - The runner waits: the plan's §8, not yet todos.
 
 ## Tasks
