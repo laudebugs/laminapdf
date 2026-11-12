@@ -97,7 +97,7 @@ fn an_edit_applies_undoes_and_saves() {
         .with_preferences(WindowPreferencesPatch::default().with_fit_window(true));
     let edited = d.apply(vec![Op::from(op)]).unwrap();
     assert!(edited.changed);
-    assert!(edited.touched_pages.is_empty());
+    assert_eq!(edited.touched_pages, []);
     let view = d.initial_view().unwrap();
     assert_eq!(opens_at(&view.open), Some((1, PageTargetView::Fit)));
     assert_eq!(
