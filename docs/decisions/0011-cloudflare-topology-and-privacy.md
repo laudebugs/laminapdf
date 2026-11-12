@@ -1,6 +1,6 @@
 # 0011 — Cloudflare topology, privacy guarantees and the hosted service
 
-- Status: Accepted (2026-10-31, when C2a's PR merges). The login stack is added by amendment after the [`auth` spike (H1)](../todos/ready/H1-auth-spike.md).
+- Status: Accepted (2026-10-31, when C2a's PR merges). The login stack is added by amendment after the [`auth` spike (H1)](../todos/ongoing/H1-auth-spike.md).
 - Date: 2026-10-31
 - Amended 2026-11-10 (owner): the reader's releases are automatic but stay apart from the packages'. Once a day, after the full nightly passes on `main`, a release train tags `web-v<next>` on the nightly's commit when what the reader ships changed since its last release; production still deploys only from `web-v*` tags, behind the release gates. The reader keeps its own version (`apps/web/package.json`: the train raises the patch, the owner the minor and major). [C7e](../todos/done/C7e-automated-web-releases.md) implements it.
 - Amended 2026-11-05 (owner; the [releases plan](../plans/releases.md)): `docs.laminapdf.com` deploys from each release instead of from `main`, and `main`'s docs move to `next.docs.laminapdf.com` (the Worker `lamina-pdf-docs-next`). This amendment edits §1's host table; [P4](../todos/done/P4-docs-match-the-release.md) implements it.

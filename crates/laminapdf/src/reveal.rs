@@ -15,8 +15,8 @@ pub use laminapdf_model::{
 
 use crate::extract::{DropReason, Dropped, ExtractOptions};
 use crate::job::CancelToken;
-use crate::redaction::earlier_revisions;
-use crate::{Document, Error, Result};
+use crate::redaction::{RedactionWarning, covered_text, earlier_revisions, redactions_not_applied};
+use crate::{Document, Error, Result, Warning};
 
 /// A kind of finding, in the order a report lists them.
 ///
@@ -126,6 +126,33 @@ impl Reveal {
     #[must_use]
     pub fn found(&self) -> Vec<Category> {
         Category::ALL.into_iter().filter(|c| self.has(*c)).collect()
+    }
+
+    /// What a failed redaction left in the file, as [`Document::redaction_warnings`] reports
+    /// it, read from what this `Reveal` already holds: `covered-text` per page from
+    /// [`hidden`](Self::hidden), `redaction-not-applied` per page from the
+    /// [`disclosure`](Self::disclosure)'s `Redact` annotations, and `text-in-earlier-revision`
+    /// per earlier revision with [`removed_words`](RevisionRecord::removed_words), newest first.
+    /// It reads nothing again: when you need both a `Reveal` and these warnings, call
+    /// [`Document::reveal`] and this, not `reveal` and `redaction_warnings`.
+    #[must_use]
+    pub fn redaction_warnings(&self) -> Vec<Warning> {
+        let earlier = self
+            .revisions
+            .iter()
+            .enumerate()
+            .rev()
+            .filter(|(_, record)| record.removed_words > 0)
+            .map(|(revision, record)| RedactionWarning::TextInEarlierRevision {
+                revision: to_u32(revision),
+                words: record.removed_words,
+                pages: record.removed_on.clone(),
+            });
+        covered_text(&self.hidden)
+            .chain(redactions_not_applied(self.disclosure.redactions()))
+            .chain(earlier)
+            .map(Warning::Redaction)
+            .collect()
     }
 
     /// Whether `category` has a finding.
