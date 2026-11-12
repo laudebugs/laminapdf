@@ -54,6 +54,11 @@ describe("moveInlineStyles", () => {
     expect(moveInlineStyles(page)).toEqual({ html: page, styles: new Map() });
   });
 
+  it("keeps a single-quoted class whole once it is written in double quotes", () => {
+    const { html } = moveInlineStyles(`<p class='a "b"' style="x:1">c</p>`);
+    expect(html).toBe(`<p class="a &quot;b&quot; ${classFor("x:1")}">c</p>`);
+  });
+
   it("keeps a self-closing tag self-closed", () => {
     const { html } = moveInlineStyles(`<svg><rect style="fill:red"/><circle r="1"/></svg>`);
     expect(html).toBe(`<svg><rect class="${classFor("fill:red")}" /><circle r="1"/></svg>`);
@@ -115,7 +120,8 @@ describe("moveInlineStylesIn", () => {
     dir = await mkdtemp(join(tmpdir(), "inline-styles-"));
     await mkdir(join(dir, "_astro"));
     await mkdir(join(dir, "plain"));
-    const head = `<head><link rel="stylesheet" href="/_astro/ec.css"></head>`;
+    // The address in each quoting a page might use.
+    const head = `<head><link rel="stylesheet" href="/_astro/ec.css"><link rel=preload href=/_astro/ec.css><link href='/_astro/ec.css'></head>`;
     await writeFile(join(dir, "index.html"), `<html>${head}<body><span style="--0:#fff">a</span></body></html>`);
     await writeFile(join(dir, "plain", "index.html"), `<html>${head}<body>b</body></html>`);
     await writeFile(join(dir, "_astro", "ec.css"), `.ec-line span[style^='--']:not([class]){color:var(--0)}`);
@@ -133,7 +139,12 @@ describe("moveInlineStylesIn", () => {
       ".ec-line span[class^='lamina-v-']{color:var(--0)}",
     );
     const page = await readFile(join(dir, "index.html"), "utf8");
-    expect(page).toContain(`href="/_astro/${ec}"`);
+    expect([
+      page.includes(`href="/_astro/${ec}"`),
+      page.includes(`href=/_astro/${ec}>`),
+      page.includes(`href='/_astro/${ec}'`),
+    ]).toEqual([true, true, true]);
+    expect(page).not.toContain("/_astro/ec.css");
     expect(page).toContain(`<link rel="stylesheet" href="/_astro/${sheet}"></head>`);
     const plain = await readFile(join(dir, "plain", "index.html"), "utf8");
     expect(plain).toContain(`href="/_astro/${ec}"`);

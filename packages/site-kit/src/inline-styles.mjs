@@ -100,7 +100,8 @@ function withClass(tag, className) {
     if (attribute.name === "style") return [];
     if (attribute.name !== "class") return [attribute.text];
     classed = true;
-    const value = attribute.value.trim();
+    // Written in double quotes now: a `"` a single-quoted value held becomes a reference.
+    const value = attribute.value.trim().replaceAll('"', "&quot;");
     return [` class="${value === "" ? className : `${value} ${className}`}"`];
   });
   if (!classed) attributes.push(` class="${className}"`);
@@ -225,7 +226,11 @@ async function writeStyleSheet(dir, styles) {
  */
 function relinked(html, renamed, link) {
   let out = html;
-  for (const [old, address] of renamed) out = out.replaceAll(`"${old}"`, `"${address}"`);
+  for (const [old, address] of renamed) {
+    // The address as an attribute's whole value, in any quoting.
+    const escaped = old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out = out.replace(new RegExp(`(=\\s*["']?)${escaped}(?=["'\\s>])`, "g"), `$1${address}`);
+  }
   if (link === undefined) return out;
   if (!/<\/head>/i.test(out)) throw new Error("has no </head> to link the style sheet from");
   return out.replace(/<\/head>/i, `${link}</head>`);
