@@ -31,6 +31,13 @@ laminapdf-syntax = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 
+# A name of its own: laminapdf-build, -cli, -save and -text each have an `examples/golden.rs`, and
+# four examples called `golden` would all link to `target/debug/examples/golden(.exe)`, which
+# collides on Windows when two link at once (LNK1104).
+[[example]]
+name = "golden-save"
+path = "examples/golden.rs"
+
 [dev-dependencies]
 # This crate's own tests use `test_support` (Cargo allows the self-dependency for tests).
 laminapdf-save = { path = ".", features = ["test-support"] }

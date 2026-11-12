@@ -155,7 +155,7 @@ fn corpus(ws: &Workspace, example: &str, dir_name: &str, update: bool) -> Result
     Ok(stale)
 }
 
-/// The crates whose `golden` example writes goldens into `fixtures/golden/`.
+/// The crates whose `examples/golden.rs` (example `golden-<crate>`) writes goldens into `fixtures/golden/`.
 const GOLDEN_CRATES: [&str; 4] = ["laminapdf-build", "laminapdf-cli", "laminapdf-save", "laminapdf-text"];
 
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
@@ -170,8 +170,10 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         scratch(ws, "golden")?
     };
     let out_arg = out.to_string_lossy().into_owned();
-    // Every crate with goldens has a `golden` example that writes its files into a directory.
+    // Every crate with goldens has an `examples/golden.rs` that writes its files into a directory,
+    // named `golden-<crate>` in its Cargo.toml so the four binaries don't share one path.
     for krate in GOLDEN_CRATES {
+        let example = format!("golden-{}", krate.trim_start_matches("laminapdf-"));
         ws.cargo(&[
             "run",
             "--locked",
@@ -179,7 +181,7 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
             "-p",
             krate,
             "--example",
-            "golden",
+            &example,
             "--",
             &out_arg,
         ])?;
