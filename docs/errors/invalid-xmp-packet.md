@@ -31,4 +31,4 @@ doc.replaceXmpPacket("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF>");
 
 The decisions and todos behind this code:
 
-- [E3e](../todos/ongoing/E3e-xmp-editor.md): the general XMP editor
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor

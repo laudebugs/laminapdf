@@ -2379,7 +2379,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3e](../todos/ongoing/E3e-xmp-editor.md): the general XMP editor
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
 - [E3 plan §11](../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions): why the identification is read-only
 "#,
         "invalid-xmp-packet" => r#"# `invalid-xmp-packet`
@@ -2415,7 +2415,7 @@ doc.replaceXmpPacket("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF>");
 
 The decisions and todos behind this code:
 
-- [E3e](../todos/ongoing/E3e-xmp-editor.md): the general XMP editor
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
 "#,
         "invalid-xmp-property" => r#"# `invalid-xmp-property`
 
@@ -2454,7 +2454,7 @@ doc.setXmpProperty("http://purl.org/dc/elements/1.1/", "dc", "title", { type: "i
 
 The decisions and todos behind this code:
 
-- [E3e](../todos/ongoing/E3e-xmp-editor.md): the general XMP editor
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
 "#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 

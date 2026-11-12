@@ -35,4 +35,4 @@ doc.setXmpProperty("http://purl.org/dc/elements/1.1/", "dc", "title", { type: "i
 
 The decisions and todos behind this code:
 
-- [E3e](../todos/ongoing/E3e-xmp-editor.md): the general XMP editor
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor

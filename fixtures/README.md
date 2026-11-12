@@ -78,6 +78,7 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 | `ghostscript.xmp` | Ghostscript's `pdfwrite`: single quotes, `rdf:about` set to a UUID, the `xapMM` prefix for the media-management namespace, properties in attribute form on empty descriptions, the `adobe-xap-filters` processing instruction | Attribute form, prefixes that differ from the standard ones |
 | `utf16.xmp` | A UTF-16BE packet with a byte-order mark | Reading UTF-16, the canonical rewrite |
 | `invalid-dtd.xmp` | A packet with a DTD defining a billion-laughs entity and an external one | Refusing a DTD (`xmp-invalid`) |
+| `pdfa-extension.xmp` | A PDF/A-2b packet in three descriptions: the identification and a title, an extension schema declaring `review:status`, and that property beside an undeclared structure (`review:point`) | Custom properties and declarations (todo E3e): the `xmp_parse` fuzz target's seed for the extension schema writer |
 
 The outputs are:
 

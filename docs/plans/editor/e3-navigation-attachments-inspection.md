@@ -80,8 +80,8 @@ Every edit of the open document is an `Op` ([full-editor §5](../full-editor.md#
 | `UpdateLink` | `{ link, rect?, quads?, target?, contents? }` | `Annotation` | E3c |
 | `DeleteLink` | `{ link }` | `Annotation` | E3c |
 | `SetInitialView` | `{ open: Option<OpenView>?, page_mode?, page_layout?, preferences?: ViewerPreferences }`; `OpenView { page: PageId, view: View }` | `Document` | E3d |
-| `SetXmpProperty` | `{ namespace, prefix, path: XmpPath, value: XmpValue }`; `XmpValue` is text, a URI, an integer, a real, a boolean, a date, a language alternative, or an ordered or unordered array of those | `Metadata` | E3e |
-| `RemoveXmpProperty` | `{ namespace, path }` | `Metadata` | E3e |
+| `SetXmpProperty` | `{ namespace, prefix, name, value: XmpValue }`; `XmpValue` is text, a URI, an integer, a real, a boolean, a date, a language alternative, or an ordered or unordered array of simple values (`{ type, value }` on the wire). A property is named by its local name: a structure's fields are written only through the whole packet | `Metadata` | E3e |
+| `RemoveXmpProperty` | `{ namespace, name }` | `Metadata` | E3e |
 | `ReplaceXmpPacket` | `{ xml: String }`: the whole packet, parsed before it applies and refused if it doesn't parse | `Metadata` | E3e |
 | `AttachFile` | `{ name, file: BlobId, mime, description?, created?, modified?, attach_to: AttachTarget, relationship: AfRelationship }`; `AttachTarget` is the `/EmbeddedFiles` tree only, or also the `/AF` of the catalog, a page or an annotation | `Document` | E3f |
 | `UpdateAttachment` | `{ attachment: AttachmentId, name?, description?, mime?, relationship? }` | `Document` | E3f |
@@ -192,7 +192,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E3b](../../todos/ready/E3b-bookmarks-and-destinations.md) | Outline and named-destination ops, the editable Outline tab and the named destinations dialog | E2j |
 | [E3c](../../todos/ready/E3c-links.md) | Link ops, tagged links, the link tool and popover | C5b, E2j |
 | [E3d](../../todos/ready/E3d-initial-view-and-threads.md) | `SetInitialView`, the initial view on open, and threads read | E3a |
-| [E3e](../../todos/ongoing/E3e-xmp-editor.md) | XMP property ops, extension schemas and the XMP editor | E1c, B8b, X3a |
+| [E3e](../../todos/done/E3e-xmp-editor.md) | XMP property ops, extension schemas and the XMP editor | E1c, B8b, X3a |
 | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) | Attachment ops, `/AF`, portfolios read, and the Attachments tab | E2i, E2j, E2p, B8b, X3a |
 | [E3g](../../todos/ready/E3g-inspectors.md) | Conformance, fonts, colour and object inspection, and the inspector | T2c |
 | [E3h](../../todos/ready/E3h-images-to-pdf-and-page-export.md) | Images → PDF and page export with the three encoders | C2b |

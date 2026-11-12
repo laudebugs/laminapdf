@@ -35,7 +35,7 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 
 **Out of scope** (and which todo covers it)
 
-- General XMP editor → [E3e](../ongoing/E3e-xmp-editor.md)
+- General XMP editor → [E3e](../done/E3e-xmp-editor.md)
 
 **Editor facts**
 
