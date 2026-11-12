@@ -11,7 +11,7 @@
 | Branch | `docs/d6a-signing-runbook` |
 | PR title | `docs(release): add the desktop signing runbook and record the owner's signing setup` |
 | Size | S–M (docs only, ~300–500 lines) |
-| PR | — |
+| PR | [#517](https://github.com/laudebugs/laminapdf/pull/517) |
 
 ## Goal
 
