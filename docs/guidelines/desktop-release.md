@@ -129,29 +129,29 @@ Every secret is an **environment** secret; the repository level holds none. "Rea
 
 | Secret | Environment | Purpose | Secret manager entry | Readers | Rotate or renew |
 | --- | --- | --- | --- | --- | --- |
-| `APPLE_CERTIFICATE` | `release` | base64 Developer ID `.p12` | macOS signing jobs (D6c), after approval | with the certificate, 5 years |
-| `APPLE_CERTIFICATE_PASSWORD` | `release` | the `.p12` password | same | with the certificate |
-| `APPLE_SIGNING_IDENTITY` | `release` | `Developer ID Application: <Name> (<TEAMID>)` | same | with the certificate |
-| `KEYCHAIN_PASSWORD` | `release` | CI's temporary keychain | same | yearly |
-| `APPLE_API_KEY` | `release` | App Store Connect Key ID | notarisation step (D6c) | when the key is revoked |
-| `APPLE_API_ISSUER` | `release` | App Store Connect Issuer ID | same | never |
-| `APPLE_API_KEY_P8` | `release` | the `.p8` contents | same | when the key is revoked |
-| `AZURE_CLIENT_ID` | `release` | Entra app for Artifact Signing (federated, no secret) | Windows signing jobs (D6d), after approval | never |
-| `AZURE_TENANT_ID` | `release` | Entra tenant | same | never |
-| `AZURE_SUBSCRIPTION_ID` | `release` | Azure subscription | same | never |
-| `LINUX_SIGNING_KEY` | `release` | armored GPG signing subkey | Linux packaging jobs (D6b), after approval | subkey every 2 years |
-| `LINUX_SIGNING_KEY_PASSPHRASE` | `release` | its passphrase | same | with the subkey |
-| `TAURI_SIGNING_PRIVATE_KEY` | `release` | release updater key (D5a) | bundle jobs (D6b), after approval | only on compromise |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `release` | its password | same | with the key |
-| `CLOUDFLARE_API_TOKEN` | `release` | write to `lamina-pdf-releases` only | publish job (D6b) | yearly |
-| `CLOUDFLARE_ACCOUNT_ID` | `release` | Cloudflare account | same | never |
-| `CLOUDFLARE_STAGING_R2_TOKEN` | `release` | write to `lamina-pdf-staging`, for signed staging dispatch runs | D6b–D6d staging runs | yearly |
-| `TAURI_SIGNING_PRIVATE_KEY` | `nightly` | nightly-only updater key (D5a) | nightly bundle jobs | only on compromise |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `nightly` | its password | same | with the key |
-| `CLOUDFLARE_API_TOKEN` | `nightly` | write to `lamina-pdf-nightly` only | nightly publish job | yearly |
-| `CLOUDFLARE_ACCOUNT_ID` | `nightly` | Cloudflare account | same | never |
-| `CLOUDFLARE_STAGING_R2_TOKEN` | `staging` | write to `lamina-pdf-staging` only (D5b) | updater end-to-end tests on `main` | yearly |
-| `TAURI_TEST_SIGNING_PRIVATE_KEY` | `staging` | throwaway test updater key (D5b), never a production key | same | any time |
+| `APPLE_CERTIFICATE` | `release` | base64 Developer ID `.p12` | `Lamina PDF / Developer ID .p12` | macOS signing jobs (D6c), after approval | with the certificate, 5 years |
+| `APPLE_CERTIFICATE_PASSWORD` | `release` | the `.p12` password | `Lamina PDF / Developer ID .p12` | same | with the certificate |
+| `APPLE_SIGNING_IDENTITY` | `release` | `Developer ID Application: <Name> (<TEAMID>)` | `Lamina PDF / Developer ID .p12` | same | with the certificate |
+| `KEYCHAIN_PASSWORD` | `release` | CI's temporary keychain | `Lamina PDF / CI keychain` | same | any time; no calendar entry |
+| `APPLE_API_KEY` | `release` | App Store Connect Key ID | `Lamina PDF / App Store Connect API key` | notarisation step (D6c) | when the key is revoked |
+| `APPLE_API_ISSUER` | `release` | App Store Connect Issuer ID | `Lamina PDF / App Store Connect API key` | same | never |
+| `APPLE_API_KEY_P8` | `release` | the `.p8` contents | `Lamina PDF / App Store Connect API key` | same | when the key is revoked |
+| `AZURE_CLIENT_ID` | `release` | Entra app for Artifact Signing (federated, no secret) | `Lamina PDF / Azure Artifact Signing` | Windows signing jobs (D6d), after approval | never |
+| `AZURE_TENANT_ID` | `release` | Entra tenant | `Lamina PDF / Azure Artifact Signing` | same | never |
+| `AZURE_SUBSCRIPTION_ID` | `release` | Azure subscription | `Lamina PDF / Azure Artifact Signing` | same | never |
+| `LINUX_SIGNING_KEY` | `release` | armored GPG signing subkey | `Lamina PDF / GPG signing subkey` | Linux packaging jobs (D6b), after approval | subkey every 2 years |
+| `LINUX_SIGNING_KEY_PASSPHRASE` | `release` | its passphrase | `Lamina PDF / GPG signing subkey` | same | with the subkey |
+| `TAURI_SIGNING_PRIVATE_KEY` | `release` | release updater key (D5a) | `Lamina PDF / updater key (release)` | bundle jobs (D6b), after approval | only on compromise |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `release` | its password | `Lamina PDF / updater key (release)` | same | with the key |
+| `CLOUDFLARE_API_TOKEN` | `release` | write to `lamina-pdf-releases` only | `Lamina PDF / Cloudflare R2 release` | publish job (D6b) | yearly |
+| `CLOUDFLARE_ACCOUNT_ID` | `release` | Cloudflare account | `Lamina PDF / Cloudflare R2 release` | same | never |
+| `CLOUDFLARE_STAGING_R2_TOKEN` | `release` | write to `lamina-pdf-staging`, for signed staging dispatch runs | `Lamina PDF / Cloudflare R2 staging` | D6b–D6d staging runs | yearly |
+| `TAURI_SIGNING_PRIVATE_KEY` | `nightly` | nightly-only updater key (D5a) | `Lamina PDF / updater key (nightly)` | nightly bundle jobs | only on compromise |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `nightly` | its password | `Lamina PDF / updater key (nightly)` | same | with the key |
+| `CLOUDFLARE_API_TOKEN` | `nightly` | write to `lamina-pdf-nightly` only | `Lamina PDF / Cloudflare R2 nightly` | nightly publish job | yearly |
+| `CLOUDFLARE_ACCOUNT_ID` | `nightly` | Cloudflare account | `Lamina PDF / Cloudflare R2 nightly` | same | never |
+| `CLOUDFLARE_STAGING_R2_TOKEN` | `staging` | write to `lamina-pdf-staging` only (D5b) | `Lamina PDF / Cloudflare R2 staging` | updater end-to-end tests on `main` | yearly |
+| `TAURI_TEST_SIGNING_PRIVATE_KEY` | `staging` | throwaway test updater key (D5b), never a production key | none (throwaway) | same | any time |
 
 `AZURE_CLIENT_SECRET` is added to `release` only if D6d's federated login fails (§1.5). D6b's workflow fails a build if any job in the `nightly` environment refers to an `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*` secret.
 

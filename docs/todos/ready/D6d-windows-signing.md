@@ -92,7 +92,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 - **Cloud HSM rate limits/latency**: Tauri signs many files; batch or cache sessions where the tool allows; retries.
 - **Artifact Signing region/eligibility changes**: if eligibility lapses, switch to the OV path via `LAMINA_PDF_WIN_SIGN_PATH` (both paths kept working in the script).
 - **Decision: MSI installs disable the in-app updater** (owner to confirm in the PR). The update endpoint gets one URL per `{target}-{arch}` and can't tell an MSI install from an NSIS one, and the manifest ships the NSIS updater artefact (`Lamina_X.Y.Z_x64-setup.exe`) — an MSI install updating itself would gain a second, per-user NSIS copy next to the per-machine one. So MSI is for managed deployments, which update by deploying the next MSI; the app detects the MSI install (registry value above) and shows "Updates are managed by your organisation", like the deb/rpm case in D5b. Alternative not taken: the app sends its install flavour as a header and the manifest gets per-flavour URLs (more Worker/manifest surface, MSI elevation prompts during auto-update). Recorded in ADR 0014.
-- **SmartScreen reputation** with OV takes weeks/thousands of downloads; early beta users will see warnings — acceptable per plan.
+- **SmartScreen reputation** takes weeks and hundreds of clean installs with either path (Microsoft gives no certificate instant reputation); early beta users will see warnings — acceptable per plan.
 - **arm64 signing** with the same tools: verify `signtool`/`jsign` handle ARM64 PE files (they do for Authenticode; confirm).
 
 ## Definition of done
