@@ -1,0 +1,38 @@
+---
+title: Troubleshooting Rust
+description: Fixes for the laminapdf crate when Cargo picks the wrong version, a feature is missing, or your Rust is too old.
+---
+
+These entries cover the `laminapdf` crate: the version Cargo picks, the features that bring each part of the API, and the Rust version it needs. Each entry starts from what you see, then gives the cause and the fix.
+
+## The `laminapdf` crate has nothing in it
+
+**Cause:** a plain `cargo add laminapdf` picked version `0.0.0`, a placeholder that only reserves the name. Lamina PDF's releases are alphas, and Cargo never picks an alpha unless you name it.
+
+**Fix:** add the version these docs describe: `cargo add laminapdf@={{version}}`. See [Install](/install/#rust-laminapdf).
+
+## Cargo finds no version that matches your requirement
+
+**Cause:** Lamina PDF's releases are alphas, whose versions end in `-alpha` and a number, and Cargo treats them as pre-releases. A requirement such as `"0.2"` matches only full releases, so Cargo's error lists the alphas as "candidate versions found which didn't match".
+
+**Fix:** name the alpha exactly, as `cargo add` writes it: `laminapdf = "={{version}}"`. The `=` also keeps `cargo update` from moving you to the next alpha, which may change the API: alphas promise nothing to each other. Move to a new alpha by changing the version yourself, after reading the [changelog](/reference/changelog/). See the [stability policy](/reference/stability/).
+
+## `Builder` or `page_text` is not found in `laminapdf`
+
+**Cause:** the crate compiles only the parts of the API its features turn on, so a missing feature gives `unresolved import` or `no method named`. With `--no-default-features`, it only opens, reads, edits and saves documents.
+
+**Fix:** turn on the feature that brings what you use: `build` for the builder without text, `extract` for text extraction, or `text` for fonts and text, which brings both. The default features include `text`. [Install](/install/#rust-laminapdf) lists every feature.
+
+## `laminapdf::explain` is not found
+
+**Cause:** `explain` returns each code's page from these docs as text, which adds about 80 KB to your program. The function is behind the `explain` feature, which is off by default.
+
+**Fix:** turn the feature on: `cargo add laminapdf@={{version}} --features explain`. Or link to the page instead: every error's `docs_url()` gives its address.
+
+## Cargo says the crate requires a newer rustc
+
+**Cause:** your Rust is older than the oldest release Lamina PDF supports, two behind the newest stable one. The error reads "cannot be built because it requires rustc 1.97 or newer".
+
+**Fix:** update Rust with `rustup update stable`, or pin the project to a newer toolchain in its `rust-toolchain.toml`. See the [stability policy](/reference/stability/).
+
+Next: [opening and saving files](/troubleshooting/files/), for passwords, signed files and limits.

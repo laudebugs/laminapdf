@@ -104,7 +104,18 @@ export function sidebar(typeDoc) {
         { label: "A Cloudflare Worker", slug: "recipes/cloudflare-worker" },
       ],
     },
-    { label: "Troubleshooting", slug: "troubleshooting" },
+    {
+      label: "Troubleshooting",
+      items: [
+        { label: "Find your problem", slug: "troubleshooting" },
+        { label: "JavaScript and TypeScript", slug: "troubleshooting/javascript" },
+        { label: "Rust", slug: "troubleshooting/rust" },
+        { label: "The command line", slug: "troubleshooting/command-line" },
+        { label: "Opening and saving files", slug: "troubleshooting/files" },
+        { label: "Extracting text", slug: "troubleshooting/extraction" },
+        { label: "Rendering pages", slug: "troubleshooting/rendering" },
+      ],
+    },
     {
       label: "Reference",
       items: [
