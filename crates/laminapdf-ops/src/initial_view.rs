@@ -243,7 +243,7 @@ impl WindowPreferencesPatch {
     }
 
     /// The value it gives the entry stored under `key`, one of [`WindowPreferences::KEYS`].
-    fn get(&self, key: &str) -> Option<bool> {
+    fn get(self, key: &str) -> Option<bool> {
         match key {
             "HideToolbar" => self.hide_toolbar,
             "HideMenubar" => self.hide_menubar,
@@ -295,7 +295,7 @@ impl SetInitialView {
 
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<()> {
         let open = match &self.open {
-            Some(open) => Some(self.open_value(doc, open.as_ref())?),
+            Some(open) => Some(Self::open_value(doc, open.as_ref())?),
             None => None,
         };
         let version = self.needed_version(doc)?;
@@ -322,20 +322,19 @@ impl SetInitialView {
         if let Some((major, minor)) = version {
             catalog.insert("Version", Name::from(format!("{major}.{minor}").as_str()));
         }
-        match catalog_ref {
-            Some(r) => cos.set(r, Object::Dict(catalog))?,
-            None => {
-                let mut trailer = cos.trailer().clone();
-                trailer.insert("Root", Object::Dict(catalog));
-                cos.set_trailer(trailer);
-            }
+        if let Some(r) = catalog_ref {
+            cos.set(r, Object::Dict(catalog))?;
+        } else {
+            let mut trailer = cos.trailer().clone();
+            trailer.insert("Root", Object::Dict(catalog));
+            cos.set_trailer(trailer);
         }
         Ok(())
     }
 
     /// The `/OpenAction` value for `open` (`None`: remove it), refusing to replace an action
     /// that isn't a destination.
-    fn open_value(&self, doc: &laminapdf_model::Document, open: Option<&OpenAt>) -> Result<Option<Object>> {
+    fn open_value(doc: &laminapdf_model::Document, open: Option<&OpenAt>) -> Result<Option<Object>> {
         if let OpenAction::Action(_) = doc.initial_view()?.open {
             return Err(Error::OpenActionNotDestination);
         }
@@ -453,11 +452,7 @@ macro_rules! named_patch {
                     .unwrap_or_default()
             }
 
-            #[expect(
-                clippy::ref_option,
-                clippy::option_option,
-                reason = "serde's `with` passes the field by reference; absent, null and a value are three cases"
-            )]
+            #[expect(clippy::ref_option, reason = "serde's `with` passes the field by reference")]
             pub(super) fn serialize<S: Serializer>(value: &Option<Option<$ty>>, s: S) -> Result<S::Ok, S::Error> {
                 match value {
                     Some(Some(v)) => s.serialize_str(name(*v)),
@@ -465,7 +460,6 @@ macro_rules! named_patch {
                 }
             }
 
-            #[expect(clippy::option_option, reason = "absent, null and a value are three cases")]
             pub(super) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Option<$ty>>, D::Error> {
                 let Some(s) = Option::<String>::deserialize(d)? else {
                     return Ok(Some(None));
