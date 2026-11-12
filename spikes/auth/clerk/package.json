@@ -1,0 +1,15 @@
+{
+  "name": "auth-spike-clerk",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --port 8789",
+    "size": "wrangler deploy --dry-run --outdir dist"
+  },
+  "dependencies": {
+    "@clerk/backend": "3.26.4"
+  },
+  "devDependencies": {
+    "wrangler": "4.157.0"
+  }
+}
