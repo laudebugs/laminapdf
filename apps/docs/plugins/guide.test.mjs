@@ -84,13 +84,13 @@ test("a one-page section's ids and headings stand inside the whole page", () => 
     '<section class="one-page-section" aria-labelledby="page-a"><h2 id="page-a" class="one-page-title">A</h2>' +
     '<div class="sl-heading-wrapper level-h2"><h2 id="how">How</h2><a href="#how">#</a></div>' +
     '<button aria-controls="tab-0 tab-1">x</button><section><h2 id="fn">Notes</h2></section>' +
-    '<div data-one-page-end hidden></div></section>';
+    "<div data-one-page-end hidden></div></section>";
   assert.equal(
     onePageSections(html),
     '<section class="one-page-section" aria-labelledby="page-a"><h2 id="page-a" class="one-page-title">A</h2>' +
       '<div class="sl-heading-wrapper level-h3"><h3 id="page-a-how">How</h3><a href="#page-a-how">#</a></div>' +
       '<button aria-controls="page-a-tab-0 page-a-tab-1">x</button><section><h3 id="page-a-fn">Notes</h3></section>' +
-      '<div data-one-page-end hidden></div></section>',
+      "<div data-one-page-end hidden></div></section>",
   );
 });
 

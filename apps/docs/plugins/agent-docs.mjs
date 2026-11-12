@@ -164,7 +164,7 @@ async function twinOf(route, context) {
         sectionMarkdown(context.benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
       guidePdf: () =>
         context.guidePdf
-          ? `[The whole guide as one PDF](${context.site}${GUIDE_PDF}), with a contents page and bookmarks.`
+          ? `Download [the whole guide as one PDF](${context.site}${GUIDE_PDF}): every section above in order, with a contents page and bookmarks.`
           : "This build of the docs has no PDF of the guide; the published site has one.",
     });
     const title = data.title ?? base;

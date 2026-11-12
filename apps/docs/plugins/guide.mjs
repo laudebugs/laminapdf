@@ -158,8 +158,8 @@ export function guideMarkdown({ version, site, areas, twins }) {
     "",
     "# About this guide",
     "",
-    `This is the guide from ${site} for Lamina PDF ${version}, as one file. Lamina PDF made it from the`,
-    "pages' Markdown with its own Markdown builder, the one behind `laminapdf build`. The API",
+    `This file holds the guide from ${site} for Lamina PDF ${version}. Lamina PDF built it from the pages'`,
+    "Markdown with the Markdown builder behind `laminapdf build`. The API",
     `reference is on the site: ${site}/reference/sdk/readme/ and https://docs.rs/laminapdf.`,
   ];
   for (const area of areas) {

@@ -102,7 +102,8 @@ async function writePages(out, version, api) {
     const markdown = mdxToMarkdown(body, {
       snippet: snippetText,
       codeTable: () => "See the [error and warning codes](/reference/codes/).",
-      guidePdf: () => `[The whole guide as one PDF](${SITE}${GUIDE_PDF}), with a contents page and bookmarks.`,
+      guidePdf: () =>
+        `Download [the whole guide as one PDF](${SITE}${GUIDE_PDF}): every section above in order, with a contents page and bookmarks.`,
       changelog: () => changelog,
       benchmarks: (section) =>
         sectionMarkdown(benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
