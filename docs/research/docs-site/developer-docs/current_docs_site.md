@@ -124,7 +124,7 @@ Content is tightly governed. Every TypeScript and Rust code block on guide and r
   - `not-initialized`, `text-module-not-loaded`, `extract-module-not-loaded`, a CSP blocking WebAssembly, `init()` in Vite, `init()` in a Cloudflare Worker, passwords, signed file won't save, memory growth, `out-of-memory`/`wasm-trap`.
   - None covers Rust, the CLI, extraction quality or rendering.
   
-  — [apps/docs/src/content/docs/troubleshooting.mdx](../../../../apps/docs/src/content/docs/troubleshooting.mdx)
+  — [apps/docs/src/content/docs/troubleshooting.mdx](../../../../apps/docs/src/content/docs/troubleshooting/javascript.mdx) (since split by area; these entries are now in `troubleshooting/javascript.mdx`)
 - **Recipe example with real-world framing:** `recipes/invoice-from-json.mdx` shows a JSON template excerpt, then has "How it works", "What to change" (including the failure modes `invalid-document` with `didYouMean`, and `template-data-missing`) and "Build it without code" with the CLI command — [apps/docs/src/content/docs/recipes/invoice-from-json.mdx](../../../../apps/docs/src/content/docs/recipes/invoice-from-json.mdx)
 - **API reference split:**
   - TypeScript: TypeDoc via `starlight-typedoc` into `/reference/sdk/`, a collapsed sidebar group, generated at build time and gitignored.
@@ -258,7 +258,7 @@ What's still open is about discoverability and agents (W3a–W3i, L5b), plus T4j
   - **L5b:** run the agent eval with and without the shipped docs.
   - **T4j:** typed flow documents and `builder.flow` in TypeScript (would let the flowing-pages and invoice-from-json content gain TS twins).
   
-  — [docs/todos/ready/W3h-docs-titles-for-questions.md](../../../../docs/todos/ready/W3h-docs-titles-for-questions.md), [docs/todos/done/W3g-choosing-a-pdf-library.md](../../../../docs/todos/done/W3g-choosing-a-pdf-library.md), [docs/todos/ready/W3f-agent-discovery.md](../../../../docs/todos/ready/W3f-agent-discovery.md), [docs/todos/ready/L5b-agent-eval-baseline.md](../../../../docs/todos/ready/L5b-agent-eval-baseline.md), [docs/todos/done/T4j-documents-in-typescript.md](../../../../docs/todos/done/T4j-documents-in-typescript.md)
+  — [docs/todos/ready/W3h-docs-titles-for-questions.md](../../../../docs/todos/ready/W3h-docs-titles-for-questions.md), [docs/todos/done/W3g-choosing-a-pdf-library.md](../../../../docs/todos/done/W3g-choosing-a-pdf-library.md), [docs/todos/ready/W3f-agent-discovery.md](../../../todos/done/W3f-agent-discovery.md), [docs/todos/ready/L5b-agent-eval-baseline.md](../../../../docs/todos/ready/L5b-agent-eval-baseline.md), [docs/todos/done/T4j-documents-in-typescript.md](../../../../docs/todos/done/T4j-documents-in-typescript.md)
 - **Ongoing:** only W2a, the `lamina-story` social-posts skill, which isn't docs-site work — [docs/todos/ongoing/W2a-story-skill-and-coverage-map.md](../../../../docs/todos/ongoing/W2a-story-skill-and-coverage-map.md)
 - **Recent git history:**
   - `git log origin/main -- apps/docs` shows 35 commits, dated 2026-11-06 to 2026-11-11, 21 of them on 2026-11-08. The repository's visible history appears to start recently, so this may not be the full history.
