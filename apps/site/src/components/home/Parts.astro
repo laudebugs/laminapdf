@@ -1,5 +1,5 @@
 ---
-// Where each part lives: the docs, the packages and the Rust crate; the reader and the desktop
+// Where each part lives: the docs and the docs for coding agents, the packages and the Rust crate; the reader and the desktop
 // app point at their milestones, with each milestone's state from progress.json; How we test last.
 import { DOCS } from "@laminapdf/site-kit/nav";
 import { PARTS, ROADMAP } from "../../data/copy.js";
@@ -25,6 +25,9 @@ if (crate === undefined) throw new Error("install.mdx: no `laminapdf` row in the
   <h2 id="parts-title">{PARTS.heading}</h2>
   <ul class="parts">
     <li><a href={`${DOCS}/`}>{PARTS.docs}</a></li>
+    <li>
+      <a href={`${DOCS}/start/coding-agents/`}>{PARTS.agents}</a>{PARTS.agentsJoin}<a href={`${DOCS}/llms.txt`}>{PARTS.agentsIndex}</a>
+    </li>
     <li><a href="#packages">{PARTS.packages}</a></li>
     <li><a href={crate.url}>{PARTS.crate}</a></li>
     <li><a href="#m2">{PARTS.reader}: {milestone("M2")}</a></li>

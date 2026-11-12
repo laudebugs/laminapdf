@@ -18,6 +18,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── .changeset/          # Changesets (ADR 0017): config.json (fixed group: @laminapdf/wasm, pdf, render, render-hayro, render-pdfium, viewer), pre.json (alpha pre mode)
 ├── CHANGELOG.md         # generated: the fixed group's changelogs merged by `cargo xtask version sync`
 ├── biome.json  tsconfig.base.json  deny.toml  clippy.toml  rustfmt.toml
+├── context7.json        # Context7 (W3f): how it parses the repository's listing (the docs pages, the examples, the error
+│                        #   pages; rules for agents from packages/sdk/examples/AGENTS.md) and that listing's claim (url, public_key)
 ├── dist-workspace.toml  # cargo-dist for the `laminapdf` binary only (L4d): eight targets, `mcp` on, Homebrew formula
 │                        #   (laudebugs/homebrew-tap), archives with licences, notices, man pages and completions
 ├── crates/              # Rust crates, flat: crates/laminapdf-<name>
