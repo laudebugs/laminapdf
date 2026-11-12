@@ -55,7 +55,7 @@ Conventions on this canvas:
 
 **Artboards:** `S01-start.dc.html`, `S01-start-empty.dc.html`.
 
-**Todos:** [D3a](../../todos/done/D3a-open-from-os.md), [D3b](../../todos/ongoing/D3b-recent-files-and-file-watching.md).
+**Todos:** [D3a](../../todos/done/D3a-open-from-os.md), [D3b](../../todos/done/D3b-recent-files-and-file-watching.md).
 
 ## S02 Window with document tabs and session restore
 
@@ -164,7 +164,7 @@ Conventions on this canvas:
 
 **Artboards:** `S04-file-changed.dc.html` (Editor top bar and the full Comment toolbar of §8.1, with its Colour swatches), `S04-file-missing.dc.html` (Reader v0.1 top bar).
 
-**Todos:** [D3b](../../todos/ongoing/D3b-recent-files-and-file-watching.md) (reload, missing, retrying); [E1e](../../todos/done/E1e-save-and-constraint-banner.md) (the conflict with unsaved changes: Compare, Keep mine, Reload from disk).
+**Todos:** [D3b](../../todos/done/D3b-recent-files-and-file-watching.md) (reload, missing, retrying); [E1e](../../todos/done/E1e-save-and-constraint-banner.md) (the conflict with unsaved changes: Compare, Keep mine, Reload from disk).
 
 ## S05 Print
 

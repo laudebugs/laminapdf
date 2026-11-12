@@ -4,7 +4,7 @@
 - Date: 2026-11-09
 - Amended 2026-11-11 ([D2c](../todos/done/D2c-engine-sandbox.md)): §5 records what each OS's sandbox enforces, its gaps and the OS versions it needs. macOS uses a Seatbelt profile instead of App Sandbox, which left system files readable and process creation open, and a main-process watchdog for memory. The main process serves the engine the system's fonts.
 - Amended 2026-11-12 ([D3a](../todos/done/D3a-open-from-os.md)): §10 records how files the OS hands the app reach a window, that the app registers for PDFs without making itself the default (the desktop plan's open question 5), and that Tauri shows dropped files' paths to the webview.
-- Amended 2026-11-12 ([D3b](../todos/ongoing/D3b-recent-files-and-file-watching.md)): §11 records where the recent list is kept and how it reaches the OS's lists, how open files are watched (the folder, matched by path), when a change counts as settled, and that a reload opens the changed file as a new document.
+- Amended 2026-11-12 ([D3b](../todos/done/D3b-recent-files-and-file-watching.md)): §11 records where the recent list is kept and how it reaches the OS's lists, how open files are watched (the folder, matched by path), when a change counts as settled, and that a reload opens the changed file as a new document.
 
 ## Context
 

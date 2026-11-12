@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `D3b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D3](../../plans/desktop-app.md#d3-files) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D3a](../done/D3a-open-from-os.md) |
+| Depends on | [D3a](./D3a-open-from-os.md) |
 | ADRs | Follows ADR 0008 (main process owns file I/O and watching), ADR 0010 (`canWatchFiles`), ADR 0011 (privacy rules, web C2: what may be stored locally) |
 | Branch | `feat/d3b-recent-files-and-watching` |
 | PR title | `feat(desktop): add recent files and reload documents changed on disk` |
 | Size | M–L (500–900 lines) |
-| PR | — |
+| PR | [#480](https://github.com/laudebugs/laminapdf/pull/480) |
 
 ## Goal
 
@@ -50,24 +50,24 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] Add deps (`notify`, `notify-debouncer-full`, `objc2-app-kit`/`objc2-foundation` macOS, `windows` features `Win32_UI_Shell`, `gtk` Linux) with licence comments; `cargo deny check`.
-- [ ] Implement `RecentFiles` with unit tests (ordering, dedupe by canonical path, cap 20, atomic persistence, corrupted JSON → reset with a log warning).
-- [ ] OS recent-documents integration per platform (called from the main thread where the API requires it: `run_on_main_thread`; COM initialised as STA on that thread on Windows). A grep-based test (or clippy `disallowed_methods`) fails the build if `SHAddToRecentDocs` is called with a null `pv`.
-- [ ] Commands + capability entries; UI components and desktop `Platform` methods.
-- [ ] Watcher service: registration on open, unregistration on close, reload flow with the engine protocol message `ReopenDocument { doc, len }` (added to `laminapdf-desktop-protocol` with a protocol version bump; for an unlocked encrypted document the main process follows it with `UnlockDocument` using the held `SessionPassword` from D2b).
-- [ ] UI: preserve position on `document://reloaded`; banner for missing files; retry state.
-- [ ] e2e scenarios: (a) open fixture copy in a temp dir, overwrite it with a different fixture via the test process → UI shows new page count, same page index; (b) atomic replace (write temp + rename) → reload; (c) delete → banner; (d) recent list shows the opened file after restart; "clear" empties it.
-- [ ] Manual check per OS: OS recent list shows the file (Dock right-click / File ▸ Open Recent in Finder apps / Jump List / GNOME Files "Recent").
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
+- [x] Add deps (`notify`, `notify-debouncer-full`, `objc2-app-kit`/`objc2-foundation` macOS, `windows` features `Win32_UI_Shell`, `gtk` Linux) with licence comments; `cargo deny check`. *As built:* `notify` and `file-id` without `notify-debouncer-full` (Notes).
+- [x] Implement `RecentFiles` with unit tests (ordering, dedupe by canonical path, cap 20, atomic persistence, corrupted JSON → reset with a log warning).
+- [x] OS recent-documents integration per platform (called from the main thread where the API requires it: `run_on_main_thread`; COM initialised as STA on that thread on Windows). A grep-based test (or clippy `disallowed_methods`) fails the build if `SHAddToRecentDocs` is called with a null `pv`.
+- [x] Commands + capability entries; UI components and desktop `Platform` methods.
+- [x] Watcher service: registration on open, unregistration on close, reload flow with the engine protocol message `ReopenDocument { doc, len }` (added to `laminapdf-desktop-protocol` with a protocol version bump; for an unlocked encrypted document the main process follows it with `UnlockDocument` using the held `SessionPassword` from D2b). *As built:* a reload is a new document, with no new engine message or protocol bump (Notes, ADR 0008 §11).
+- [x] UI: preserve position on `document://reloaded`; banner for missing files; retry state.
+- [x] e2e scenarios: (a) open fixture copy in a temp dir, overwrite it with a different fixture via the test process → UI shows new page count, same page index; (b) atomic replace (write temp + rename) → reload; (c) delete → banner; (d) recent list shows the opened file after restart; "clear" empties it.
+- [ ] Manual check per OS (**not run**; rows 12–16 of `apps/desktop/e2e/MANUAL-OPEN.md`, see Notes): OS recent list shows the file (Dock right-click / File ▸ Open Recent in Finder apps / Jump List / GNOME Files "Recent").
 
 ## Acceptance criteria
 
-- [ ] Editing (overwriting) an open file externally reloads it within 1 s on each OS while keeping page index and zoom (e2e).
-- [ ] Atomic-save replacements (vim/VS Code style: write temp file, rename over the original — new inode, same path) reload the document like an in-place edit and never show the "missing" banner (e2e).
-- [ ] Deleting the open file shows the banner and the app keeps running (e2e).
-- [ ] Opened files appear in the OS recent list on each OS (manual check recorded) and in the in-app list across restarts (e2e); "clear" empties both. On Windows, "clear" empties lamina's Jump List and leaves another app's recent entries (e.g. a `.txt` opened in Notepad shown in Explorer's Recent) untouched (manual check recorded).
-- [ ] Disabling "Remember recent files" stops recording and clears the list (unit + e2e).
-- [ ] No full paths logged at `info` level or above (log assertion in e2e).
+- [x] Editing (overwriting) an open file externally reloads it within 1 s on each OS while keeping page index and zoom (e2e).
+- [x] Atomic-save replacements (vim/VS Code style: write temp file, rename over the original — new inode, same path) reload the document like an in-place edit and never show the "missing" banner (e2e).
+- [x] Deleting the open file shows the banner and the app keeps running (e2e).
+- [ ] Opened files appear in the OS recent list on each OS (manual check recorded) and in the in-app list across restarts (e2e); "clear" empties both. On Windows, "clear" empties lamina's Jump List and leaves another app's recent entries (e.g. a `.txt` opened in Notepad shown in Explorer's Recent) untouched (manual check recorded). **Partly:** the in-app list across restarts and clearing it are e2e; the OS lists' manual checks weren't run (Notes).
+- [x] Disabling "Remember recent files" stops recording and clears the list (unit + e2e).
+- [x] No full paths logged at `info` level or above (log assertion in e2e).
 
 ## Post-merge checks
 
@@ -110,8 +110,8 @@ What the PR changed from the scope above, and why:
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (the claim PR step is no longer used)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D3b](../ongoing/D3b-recent-files-and-file-watching.md) |
+| Depends on | [D3b](../done/D3b-recent-files-and-file-watching.md) |
 | ADRs | Follows ADR 0008 (one engine per window; revisit pooling with numbers from here), ADR 0010 (`multiWindow: true`) |
 | Branch | `feat/d4a-windows-and-tabs` |
 | PR title | `feat(desktop): add multiple windows, tabs and session restore` |
