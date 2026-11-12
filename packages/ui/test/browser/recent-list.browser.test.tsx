@@ -1,5 +1,6 @@
 // The home screen's Recent list: Clear list has a home whatever the list holds, beside Continue
-// reading when that is the only document, else in the Recent section's heading.
+// reading when that is the only document, else in the Recent section's heading. An entry whose file
+// is gone can't be opened, only removed.
 
 import { afterEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
@@ -39,5 +40,35 @@ describe("Clear list", () => {
     );
     await page.getByRole("heading", { name: "Recent" }).element();
     expect(page.getByRole("button", { name: "Clear list" }).elements()).toHaveLength(1);
+  });
+});
+
+describe("an entry whose file is gone", () => {
+  const GONE = { ...NOTES, missing: true, hasHandle: false };
+
+  it("says the file wasn't found and isn't a button", async () => {
+    renderIn(<RecentList entries={[REPORT, GONE]} onOpen={() => {}} onClear={() => {}} onRemove={() => {}} />);
+    await page.getByText("This device · File not found").element();
+    expect(page.getByRole("button", { name: /^notes\.pdf/ }).query()).toBeNull();
+  });
+
+  it("removes that entry when its Remove is pressed", async () => {
+    const removed: string[] = [];
+    renderIn(
+      <RecentList
+        entries={[REPORT, GONE]}
+        onOpen={() => {}}
+        onClear={() => {}}
+        onRemove={(entry) => removed.push(entry.id)}
+      />,
+    );
+    await page.getByRole("button", { name: "Remove notes.pdf from recent files" }).click();
+    expect(removed).toEqual(["b"]);
+  });
+
+  it("offers no Remove when the app can't remove one entry", async () => {
+    renderIn(<RecentList entries={[GONE]} onOpen={() => {}} onClear={() => {}} />);
+    await page.getByText("This device · File not found").element();
+    expect(page.getByRole("button", { name: /^Remove/ }).query()).toBeNull();
   });
 });

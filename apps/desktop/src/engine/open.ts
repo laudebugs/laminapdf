@@ -34,8 +34,13 @@ export function desktopFile(opened: DesktopDocument): PlatformFile {
 }
 
 /** The document `file` stands for, when the main process opened it. */
-function documentOf(file: PlatformFile): DesktopDocument | undefined {
+export function documentOf(file: PlatformFile): DesktopDocument | undefined {
   return documents.get(file);
+}
+
+/** Makes `file` stand for `opened` from now on: its file changed on disk and reopened, or was located again. */
+export function rebind(file: PlatformFile, opened: DesktopDocument): void {
+  documents.set(file, opened);
 }
 
 /**
@@ -53,7 +58,7 @@ export async function pickDocument(shell: DesktopShell): Promise<PlatformFile[]>
 }
 
 /** A PlatformFile that stands for `failure`, so the reader's opener shows it on its failure page. */
-function failedFile(name: string, failure: DesktopEngineError): PlatformFile {
+export function failedFile(name: string, failure: DesktopEngineError): PlatformFile {
   const file: PlatformFile = { name, size: 0, writable: false, read: () => Promise.reject(failure) };
   failures.set(file, failure);
   return file;
