@@ -56,8 +56,15 @@ fn touches_unless_outside(paths: &[&str], outside: &[&str], anyway: impl Fn(&str
 }
 
 /// Where a change can't affect the native Rust jobs (`check rust`, the MSRV check, the fuzz smoke;
-/// todo X9c): the apps built from TypeScript alone, and the packages, but for [`rust_anyway`].
-const OUTSIDE_RUST: [&str; 5] = ["apps/web/", "apps/docs/", "apps/site/", "apps/gallery/", "packages/"];
+/// todo X9c): the apps built from TypeScript alone (the update Worker among them), and the packages, but for [`rust_anyway`].
+const OUTSIDE_RUST: [&str; 6] = [
+    "apps/web/",
+    "apps/docs/",
+    "apps/site/",
+    "apps/gallery/",
+    "apps/updates/",
+    "packages/",
+];
 
 /// Package paths the Rust jobs read all the same: @laminapdf/sdk, whose schemas and test files
 /// Rust tests read, and every package's `src/`, which `check maintainability`'s todo-id rule scans.
@@ -182,10 +189,11 @@ pub(crate) fn touches_gallery(paths: &[&str]) -> bool {
 /// spikes, the fuzz workspace and the other workflows. [`touches_web`] counts every changed path
 /// outside these and outside the docs ([`is_docs`]), so a root config file or a shared action
 /// nobody thought to list redeploys the reader, as [`touches_code`] does for the suites.
-const OUTSIDE_WEB: [&str; 7] = [
+const OUTSIDE_WEB: [&str; 8] = [
     "apps/docs/",
     "apps/site/",
     "apps/gallery/",
+    "apps/updates/",
     "spikes/",
     "fuzz/",
     "tools/",
@@ -310,6 +318,7 @@ mod tests {
             "apps/docs/src/content/docs/index.mdx",
             "apps/site/package.json",
             "apps/gallery/src/main.tsx",
+            "apps/updates/src/handler.ts",
             "tools/render/Cargo.toml",
             "spikes/pdf-basics/rust/src/lib.rs",
             "fuzz/fuzz_targets/lex.rs",
@@ -380,8 +389,9 @@ mod tests {
             [
                 touches_rust(&["apps/web/src/app.tsx", "apps/docs/src/content/docs/install.mdx"]),
                 touches_rust(&["packages/ui/test/states.tsx", "packages/viewer/README.md"]),
+                touches_rust(&["apps/updates/src/handler.ts", "apps/updates/wrangler.jsonc"]),
             ],
-            [false, false]
+            [false, false, false]
         );
     }
 
