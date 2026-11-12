@@ -59,11 +59,14 @@ pub(crate) fn render(schema: &Value, root: &str, header: &str, source: &str) -> 
 fn doc(node: &Value, indent: &str) -> String {
     match node.get("description").and_then(Value::as_str) {
         Some(d) => {
-            let since = since_tag(d);
-            let lines: Vec<&str> = d
+            let tags: Vec<String> = d
                 .lines()
-                .map(|line| since.as_deref().filter(|_| is_added_in(line)).unwrap_or(line))
+                .map(|line| match crate::since::added_in(line) {
+                    Some(version) => format!("@since {version}"),
+                    None => line.to_owned(),
+                })
                 .collect();
+            let lines: Vec<&str> = tags.iter().map(String::as_str).collect();
             if let [line] = lines.as_slice() {
                 format!("/** {} */\n{indent}", line.replace("*/", "*\\/"))
             } else {
@@ -80,21 +83,6 @@ fn doc(node: &Value, indent: &str) -> String {
         }
         None => String::new(),
     }
-}
-
-/// Whether `line` is the Rust docs' `Added in X.Y.Z.` line.
-fn is_added_in(line: &str) -> bool {
-    line.trim()
-        .strip_prefix("Added in ")
-        .is_some_and(|rest| rest.ends_with('.'))
-}
-
-/// The `@since X.Y.Z` tag for a description's `Added in X.Y.Z.` line, if it has one.
-fn since_tag(description: &str) -> Option<String> {
-    description.lines().find(|line| is_added_in(line)).and_then(|line| {
-        let version = line.trim().strip_prefix("Added in ")?.strip_suffix('.')?;
-        Some(format!("@since {version}"))
-    })
 }
 
 /// The TypeScript type of `node` at `path`, its nested objects indented past `indent`.
@@ -244,6 +232,26 @@ mod tests {
         assert!(out.contains("  box: [number, number, number, number];"), "{out}");
         assert!(out.contains("  kind: Kind;"), "{out}");
         assert!(out.contains("  label?: string | null;"), "{out}");
+    }
+
+    #[test]
+    fn render_should_turn_the_added_in_line_into_since_and_leave_other_prose() {
+        let schema = json!({
+            "$defs": {
+                "Cell": { "description": "One cell.\n\nAdded in 0.2.0.", "type": "string" },
+                "Note": { "description": "Added in an incremental update.", "type": "string" }
+            },
+            "type": "string"
+        });
+        let out = render(&schema, "Root", "", "test").unwrap();
+        assert!(
+            out.contains("/**\n * One cell.\n *\n * @since 0.2.0\n */\nexport type Cell"),
+            "{out}"
+        );
+        assert!(
+            out.contains("/** Added in an incremental update. */\nexport type Note"),
+            "{out}"
+        );
     }
 
     #[test]

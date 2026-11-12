@@ -44,12 +44,16 @@ pub(crate) struct Missing {
 
 /// Whether `docs` has an `Added in X.Y.Z.` line.
 pub(crate) fn has_added_in(docs: &str) -> bool {
-    docs.lines().any(|line| {
-        line.trim()
-            .strip_prefix("Added in ")
-            .and_then(|rest| rest.strip_suffix('.'))
-            .is_some_and(is_version)
-    })
+    docs.lines().any(|line| added_in(line).is_some())
+}
+
+/// The version of an `Added in X.Y.Z.` line, or `None` for any other line (the schema
+/// generator turns it into the TypeScript `@since` tag).
+pub(crate) fn added_in(line: &str) -> Option<&str> {
+    line.trim()
+        .strip_prefix("Added in ")
+        .and_then(|rest| rest.strip_suffix('.'))
+        .filter(|version| is_version(version))
 }
 
 /// `X.Y.Z`, three dot-separated numbers.
@@ -90,7 +94,12 @@ pub(crate) fn missing(doc: &Value) -> Vec<Missing> {
                     checked.insert(key);
                 }
                 if kind == "trait" && public(it) {
-                    checked.extend(array(inner, "items").iter().map(id_key));
+                    checked.extend(
+                        array(inner, "items")
+                            .iter()
+                            .filter(|m| item(m).is_some_and(|m| !hidden(m)))
+                            .map(id_key),
+                    );
                 }
                 if matches!(kind.as_str(), "struct" | "enum" | "union") {
                     for imp in array(inner, "impls").iter().filter_map(item) {
@@ -152,35 +161,39 @@ fn hidden(item: &Value) -> bool {
 }
 
 /// `cargo xtask check since`: rustdoc JSON for every published crate, then every public item
-/// checked for its `Added in` line.
+/// checked for its `Added in` line. One `cargo doc` documents every crate at once, in a target
+/// directory of its own: `RUSTC_BOOTSTRAP` and the JSON flags would otherwise invalidate the
+/// main target directory's build and docs each time the check runs.
 pub(crate) fn check(ws: &Workspace) -> Result<()> {
     step("since: every public item of a published crate has an `Added in X.Y.Z.` line");
+    let target = ws.target_dir.join("since");
+    let target_arg = target.to_string_lossy().into_owned();
+    let crates: Vec<&str> = ws.publishable_crates().collect();
+    let mut args = vec![
+        "doc",
+        "--locked",
+        "--quiet",
+        "--no-deps",
+        "--all-features",
+        "--target-dir",
+        &target_arg,
+    ];
+    for name in &crates {
+        args.extend(["-p", name]);
+    }
+    crate::run_env(
+        &ws.root,
+        "cargo",
+        &args,
+        &[
+            ("RUSTC_BOOTSTRAP", "1"),
+            ("RUSTDOCFLAGS", "-Z unstable-options --output-format json"),
+        ],
+    )?;
     let mut report = String::new();
     let mut count = 0;
-    for name in ws.publishable_crates() {
-        crate::run_env(
-            &ws.root,
-            "cargo",
-            &[
-                "rustdoc",
-                "--locked",
-                "--quiet",
-                "-p",
-                name,
-                "--all-features",
-                "--lib",
-                "--",
-                "-Z",
-                "unstable-options",
-                "--output-format",
-                "json",
-            ],
-            &[("RUSTC_BOOTSTRAP", "1")],
-        )?;
-        let path = ws
-            .target_dir
-            .join("doc")
-            .join(format!("{}.json", name.replace('-', "_")));
+    for name in crates {
+        let path = target.join("doc").join(format!("{}.json", name.replace('-', "_")));
         let text = std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
         let doc: Value = serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
         for m in missing(&doc) {
@@ -209,6 +222,8 @@ mod tests {
         assert!(!has_added_in("Added in 0.2.0"));
         assert!(!has_added_in("It was added in 0.2.0."));
         assert!(!has_added_in(""));
+        assert_eq!(added_in("  Added in 1.4.0."), Some("1.4.0"));
+        assert_eq!(added_in("Added in a later revision."), None);
     }
 
     /// A root module with a documented struct, an undocumented function, a re-export, a hidden
