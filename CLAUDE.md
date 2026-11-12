@@ -301,7 +301,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   assets: docs.laminapdf.com, no workers.dev address, and next.docs.laminapdf.com as [env.next]); robots.txt from the site kit
 │                        #   (the sitemap only on the released docs, checked by plugins/release.mjs); deployed by .github/workflows/docs.yml; README.md has the owner's setup;
 │                        #   for agents (L5a): a Markdown twin of every page, llms.txt and llms-full.txt (plugins/agent-docs.mjs,
-│                        #   plugins/markdown.mjs), and scripts/package-docs.mjs, which writes the docs/ folder the packages ship
+│                        #   plugins/markdown.mjs), and scripts/package-docs.mjs, which writes the docs/ folder the packages ship;
+│                        #   offline (Q4k): src/pages/one-page/[area].astro (each sidebar area on one page) and /pdf/lamina-pdf-guide.pdf
+│                        #   (plugins/guide.mjs, scripts/guide-pdf.mjs: the twins through @laminapdf/sdk's Markdown builder, PDF/UA-1)
 ├── apps/site/           # the website at laminapdf.com (Astro, static, W1b; website plan §4) in the Paper look: src/layouts/Base.astro (head,
 │                        #   font preload, the shared header from @laminapdf/site-kit), src/pages/ (the home page, for now the roadmap (W1c):
 │                        #   src/components/home/, how-we-test.astro (T1b: src/components/how-we-test/, the latest full night's figures,

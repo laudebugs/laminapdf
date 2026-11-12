@@ -56,7 +56,11 @@ const config: KnipConfig = {
     "apps/site": { entry: ["test/**/*.test.ts", "vitest.config.ts"], vitest: false },
     // The docs' example runner: scripts/build-runner.mjs builds runner/worker.ts by its path.
     // src/routeData.ts is Starlight's route middleware, which astro.config.mjs names by path.
-    "apps/docs": { entry: ["runner/worker.ts", "src/routeData.ts"] },
+    // The guide PDF's fonts (scripts/guide-pdf.mjs) are read as files from node_modules, not imported.
+    "apps/docs": {
+      entry: ["runner/worker.ts", "src/routeData.ts"],
+      ignoreDependencies: ["source-sans", "source-code-pro"],
+    },
     // The desktop reader's e2e scenarios. WebdriverIO's config sits in e2e/, not the package root
     // where knip's plugin looks, and it builds the specs' paths, which knip can't follow.
     "apps/desktop": {
@@ -86,7 +90,8 @@ const config: KnipConfig = {
     "@microsoft/api-extractor",
   ],
   // apps/web's e2e remote host makes its certificate with the system's openssl (e2e/remote-host.ts).
-  ignoreBinaries: ["openssl"],
+  // qpdf: scripts/guide-pdf.mjs runs it only where it is installed (apps/docs/README.md).
+  ignoreBinaries: ["openssl", "qpdf"],
 };
 
 export default config;
