@@ -625,7 +625,10 @@ cargo xtask changes [--base <rev>]    # paths changed since the merge base with 
                                       #   desktop=true when they touch apps/desktop, packages/, crates/, the manifests,
                                       #   lockfiles, toolchain or the full lane (DESKTOP_INPUTS: the `desktop` job's filter);
                                       #   render=true when they touch crates/, the example and render goldens, the corpus,
-                                      #   tools/render, tools/xtask, the manifests or full.yml (RENDER_INPUTS: render-golden, X9b)
+                                      #   tools/render, tools/xtask, the manifests or full.yml (RENDER_INPUTS: render-golden, X9b);
+                                      #   rust=true unless all are docs or in the TypeScript apps and packages (but the sdk and
+                                      #   packages' src/), ts=true unless all are docs or in fuzz/, spikes/, Rust tools or other
+                                      #   workflows (X9c: each group of jobs on its flag, both gates hold it; CI caching plan §8.1)
 cargo xtask fuzz tmin <target>        # minimise every crash in fuzz/artifacts/<target>/
 cargo xtask corpus fetch     # external corpora (pinned commits, SHA-256 per file in fixtures/corpus-manifest.toml) → target/corpus/
 cargo xtask differential --live [--corpus external|mutants|all] [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample N]

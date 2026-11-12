@@ -1,10 +1,11 @@
 # CI fast lane (docs/research/architecture/notes/repo-and-packaging.md §6, ADR 0018 §2): every PR
 # and every push to main. Jobs call the same `cargo xtask …` entry points developers run locally.
 # The full lane (full.yml) runs alongside it. Branch protection requires `fast-gate` (the last
-# job in this file) and full.yml's `gate` (todo X7). A new job here uses exactly
-#     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-# (so it is skipped on docs-only PRs: a job that runs there fails `fast-gate`) and joins
-# `fast-gate`'s `needs`.
+# job in this file) and full.yml's `gate` (todo X7). A new job here runs on its group's flag from
+# `cargo xtask changes` (todo X9c), the native Rust jobs on
+#     if: ${{ !cancelled() && needs.changes.outputs.rust == 'true' }}
+# and the TypeScript and WebAssembly ones on `ts`, so a PR that can't affect it skips it (both are
+# false on docs-only PRs); it joins `fast-gate`'s `needs`, and fast-gate's `case` names its flag.
 # Native Rust checks cover Linux, macOS and Windows on x64 and Arm64 (macOS x64 on pushes to main
 # and in the nightly only, todo X9a). Everything else runs on
 # Linux x64, except WebKit, which runs on macOS Arm64 (closest to Safari). Each job gets a
@@ -51,6 +52,8 @@ jobs:
     timeout-minutes: 10
     outputs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
+      rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
+      ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
       rust-legs: ${{ steps.legs.outputs.rust-legs }}
     steps:
       # The native Rust legs, read by the `rust` job's matrix. Pull requests leave out macOS x64
@@ -77,7 +80,12 @@ jobs:
       - name: Pushes to main run every job
         id: push
         if: github.event_name != 'pull_request'
-        run: echo "code=true" >> "$GITHUB_OUTPUT"
+        run: |
+          {
+            echo "code=true"
+            echo "rust=true"
+            echo "ts=true"
+          } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -100,7 +108,7 @@ jobs:
   rust:
     name: Rust (${{ matrix.platform }})
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.rust == 'true' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     # The compile cache's trial (todo X8a) runs on the legs marked compile-cache. On a push to
@@ -185,7 +193,7 @@ jobs:
   wasm:
     name: WASM (lamina_pdf_base + lamina_pdf_text, Node tests, size budgets)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.ts == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
@@ -244,7 +252,7 @@ jobs:
   pdf-runtimes:
     name: "@laminapdf/sdk in ${{ matrix.name }}"
     needs: [changes, wasm]
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.ts == 'true' && needs.wasm.outputs.dist == 'true' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
@@ -322,7 +330,7 @@ jobs:
   semver:
     name: Semver against the published version
     needs: [changes, wasm]
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.ts == 'true' && needs.wasm.outputs.dist == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -352,7 +360,7 @@ jobs:
   msrv-and-spike:
     name: MSRV (rust-version) and the pdf-basics spike (Rust + TS)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -416,7 +424,7 @@ jobs:
   typescript:
     name: TypeScript (biome, typecheck, tests, npm licences)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.ts == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -433,8 +441,9 @@ jobs:
       - run: cargo xtask check ts
 
   # The fast lane's required check (todo X7): every job above passed, or was skipped on a
-  # docs-only PR. Rules for new jobs: see the header (tools/xtask/src/workflows.rs checks
-  # `needs`). The shell is full.yml gate's without the Linux skip; change both together.
+  # PR its paths can't affect (its flag false). Rules for new jobs: see the header
+  # (tools/xtask/src/workflows.rs checks `needs` and each job's flag). The shell follows full.yml's
+  # gate; change both together.
   fast-gate:
     name: fast-gate
     if: always()
@@ -446,6 +455,8 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           CODE: ${{ needs.changes.outputs.code }}
+          RUST: ${{ needs.changes.outputs.rust }}
+          TS: ${{ needs.changes.outputs.ts }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -453,21 +464,29 @@ jobs:
             echo "::error::the changes job ended with '$changes'"
             exit 1
           fi
-          case "$CODE" in
-            true|false) echo "Jobs needed: $CODE" ;;
-            *)
-              echo "::error::the changes job's code output is '$CODE', not true or false"
-              exit 1
-              ;;
-          esac
+          for flag in "code=$CODE" "rust=$RUST" "ts=$TS"; do
+            case "${flag#*=}" in
+              true|false) echo "Needed: $flag" ;;
+              *)
+                echo "::error::the changes job's ${flag%%=*} output is '${flag#*=}', not true or false"
+                exit 1
+                ;;
+            esac
+          done
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
+            # Each job follows its group's flag (todo X9c): the native Rust jobs `rust`, the
+            # TypeScript and WebAssembly ones `ts`.
+            case "$job" in
+              rust | msrv-and-spike) needed=$RUST ;;
+              *) needed=$TS ;;
+            esac
             echo "$job: $result"
-            case "$CODE/$result" in
+            case "$needed/$result" in
               true/success | false/skipped) ;;
               *)
-                echo "::error::$job ended with '$result' (jobs needed: $CODE)"
+                echo "::error::$job ended with '$result' (needed: $needed)"
                 failed=1
                 ;;
             esac

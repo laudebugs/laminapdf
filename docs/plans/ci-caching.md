@@ -116,11 +116,26 @@ Each todo's PR carries its workflow edits with the action, the pin, the tests an
 
 ## 8. The waits
 
-The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 minutes for a runner in §2.1's baseline, against about 13 minutes of compiling, and pushes to `main` waited up to 43 minutes for the run before them. Four todos take them, each in its own PR:
+The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 minutes for a runner in §2.1's baseline, against about 13 minutes of compiling, and pushes to `main` waited up to 43 minutes for the run before them. Four todos take them, in one PR at the owner's request:
 
-- [ ] Rust on macOS x64 only on pushes to `main` and in the nightly, not on PRs: the leg that waits longest for a runner and finishes last. A break only macOS x64 shows then appears after the merge, and the macOS Arm64 leg still runs on every PR, so the owner accepted the risk (2026-11-12). X8b's PR measurements move to macOS Arm64 first ([X9a](../todos/ongoing/X9a-macos-x64-rust-off-prs.md))
-- [ ] The render goldens, which need a Mac, only when a PR changes what they draw ([X9b](../todos/ongoing/X9b-render-goldens-when-rendering-changes.md))
-- [ ] More of `cargo xtask changes`'s path flags, to skip whole groups of jobs a PR can't affect ([X9c](../todos/ongoing/X9c-skip-jobs-by-changed-paths.md))
-- [ ] A newer push to `main` cancels the older CI run on `main` ([X9d](../todos/ongoing/X9d-cancel-superseded-main-runs.md))
+- [x] Rust on macOS x64 only on pushes to `main` and in the nightly, not on PRs: the leg that waits longest for a runner and finishes last. A break only macOS x64 shows then appears after the merge, and the macOS Arm64 leg still runs on every PR, so the owner accepted the risk (2026-11-12). X8b's PR measurements move to macOS Arm64 first ([X9a](../todos/ongoing/X9a-macos-x64-rust-off-prs.md))
+- [x] The render goldens, which need a Mac, only when a PR changes what they draw ([X9b](../todos/ongoing/X9b-render-goldens-when-rendering-changes.md))
+- [x] More of `cargo xtask changes`'s path flags, to skip whole groups of jobs a PR can't affect ([X9c](../todos/ongoing/X9c-skip-jobs-by-changed-paths.md))
+- [x] A newer push to `main` cancels the older CI run on `main` ([X9d](../todos/ongoing/X9d-cancel-superseded-main-runs.md))
+
+### 8.1 Which jobs a pull request's paths reach (X9c)
+
+`cargo xtask changes` gives each group of jobs a flag, and a pull request skips a group when no changed path can affect it; pushes to `main` run everything. Each flag is false on a docs-only change, and when unsure a path counts.
+
+| Jobs | Flag | A path counts unless it is under | Why the exceptions count |
+| --- | --- | --- | --- |
+| `ci.yml`'s `rust` legs and `msrv-and-spike`; `full.yml`'s `fuzz` | `rust` | `apps/web/`, `apps/docs/`, `apps/site/`, `apps/gallery/`, `packages/`, but `packages/sdk/` and any package's `src/` count | Rust tests read the SDK's schemas and test files; `check maintainability` scans package sources for todo IDs |
+| `ci.yml`'s `wasm`, `pdf-runtimes`, `semver`, `typescript` | `ts` | `fuzz/`, `spikes/`, `tools/`, `.github/workflows/`, but `tools/xtask/`, `tools/cli-release/`, `tools/fonts/`, any file Biome lints, and the two lanes' workflows count | The crates and fixtures always count: the WebAssembly, the docs site and the examples' goldens come from them |
+| `full.yml`'s `suites` | `rust` or `ts` | | It runs Rust suites and reads the TypeScript tests' capability tags |
+| `full.yml`'s `render-golden` | `render` (X9b) | anything outside the crates, the goldens, the corpus, `tools/render/`, `tools/xtask/`, the manifests and `full.yml` | |
+| `full.yml`'s `desktop`, `desktop-e2e` | `desktop` | (as before) | |
+| `full.yml`'s `check-linux`, `check-windows` | `code` | docs only | They run the whole `cargo xtask check` |
+
+A change only to `apps/web/` runs no native Rust job; a change only to a crate runs both groups. `fast-gate` and `gate` hold each job to its flag, and `tools/xtask/src/workflows.rs` checks that each job's `if` names the flag its gate expects. The risk is a Rust test that starts reading a file under `apps/` or `packages/`: the flag would miss it until the next push to `main`.
 
 Turborepo for the TypeScript packages stays as ADR 0015 left it, to revisit once TypeScript time shows on the critical path.

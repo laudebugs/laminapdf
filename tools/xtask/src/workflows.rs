@@ -785,6 +785,46 @@ mod tests {
         assert_eq!(rust_legs("jobs:\n  a:\n    steps: []\n"), Vec::<String>::new());
     }
 
+    /// The `changes` output a job's `if` runs it on (`code`, `rust`, `ts`, …), each one it names.
+    fn flags_of(workflow: &str, job: &str) -> Vec<String> {
+        let lines = jobs(workflow)
+            .into_iter()
+            .find(|(id, _)| *id == job)
+            .map(|(_, l)| l)
+            .unwrap_or_default();
+        lines
+            .iter()
+            .filter(|l| l.trim_start().starts_with("if:"))
+            .take(1)
+            .flat_map(|l| l.split("needs.changes.outputs.").skip(1))
+            .filter_map(|rest| rest.split_whitespace().next())
+            .map(str::to_owned)
+            .collect()
+    }
+
+    /// Todo X9c: each job runs on the flag its gate holds it to.
+    #[test]
+    fn every_job_should_run_on_the_flag_its_gate_expects() {
+        let expected = [
+            (CI, "rust", vec!["rust"]),
+            (CI, "msrv-and-spike", vec!["rust"]),
+            (CI, "wasm", vec!["ts"]),
+            (CI, "pdf-runtimes", vec!["ts"]),
+            (CI, "semver", vec!["ts"]),
+            (CI, "typescript", vec!["ts"]),
+            (FULL, "fuzz", vec!["rust"]),
+            (FULL, "suites", vec!["rust", "ts"]),
+            (FULL, "render-golden", vec!["render"]),
+            (FULL, "check-linux", vec!["code"]),
+            (FULL, "check-windows", vec!["code"]),
+            (FULL, "desktop", vec!["desktop"]),
+            (FULL, "desktop-e2e", vec!["desktop"]),
+        ];
+        for (workflow, job, flags) in expected {
+            assert_eq!(flags_of(workflow, job), flags, "{job}");
+        }
+    }
+
     #[test]
     fn keys_under_should_stop_at_the_next_top_level_key() {
         let workflow = "name: x\non: # triggers\n  push:\n    branches: [main]\n  # a comment\n  schedule:\n    - cron: \"0 1 * * *\"\npermissions:\n  contents: read\n";

@@ -56,6 +56,8 @@ jobs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
       desktop: ${{ steps.pr.outputs.desktop || steps.push.outputs.desktop }}
       render: ${{ steps.pr.outputs.render || steps.push.outputs.render }}
+      rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
+      ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
     steps:
       - name: Pushes to main run every suite
         id: push
@@ -65,6 +67,8 @@ jobs:
             echo "code=true"
             echo "desktop=true"
             echo "render=true"
+            echo "rust=true"
+            echo "ts=true"
           } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -99,7 +103,7 @@ jobs:
   fuzz:
     name: Fuzz smoke (${{ github.event_name == 'pull_request' && '30 s' || '2 min' }} per target)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -429,7 +433,7 @@ jobs:
   suites:
     name: Suites (differential, capability matrix, round trip, examples)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.ts == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -542,6 +546,8 @@ jobs:
           CODE: ${{ needs.changes.outputs.code }}
           DESKTOP: ${{ needs.changes.outputs.desktop }}
           RENDER: ${{ needs.changes.outputs.render }}
+          RUST: ${{ needs.changes.outputs.rust }}
+          TS: ${{ needs.changes.outputs.ts }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -549,22 +555,28 @@ jobs:
             echo "::error::the changes job ended with '$changes'"
             exit 1
           fi
-          case "$CODE" in
-            true|false) echo "Suites needed: $CODE" ;;
-            *)
-              echo "::error::the changes job's code output is '$CODE', not true or false"
-              exit 1
-              ;;
-          esac
+          for flag in "code=$CODE" "desktop=$DESKTOP" "render=$RENDER" "rust=$RUST" "ts=$TS"; do
+            case "${flag#*=}" in
+              true|false) echo "Needed: $flag" ;;
+              *)
+                echo "::error::the changes job's ${flag%%=*} output is '${flag#*=}', not true or false"
+                exit 1
+                ;;
+            esac
+          done
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
             # The desktop build and its e2e suite follow their own paths (`desktop`), the render
-            # goldens theirs (`render`), every other suite `code`.
+            # goldens theirs (`render`), the fuzz smoke the Rust jobs' (`rust`), the suites either
+            # group's (they read Rust and the TypeScript tests' capability tags; todo X9c), and the
+            # whole checks on Linux Arm64 and Windows `code`.
             needed=$CODE
             case "$job" in
               desktop | desktop-e2e) needed=$DESKTOP ;;
               render-golden) needed=$RENDER ;;
+              fuzz) needed=$RUST ;;
+              suites) needed=$([ "$RUST" = true ] || [ "$TS" = true ] && echo true || echo false) ;;
             esac
             echo "$job: $result"
             case "$needed/$result" in

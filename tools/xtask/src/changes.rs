@@ -33,16 +33,72 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
     let web = touches_web(&paths);
     let desktop = touches_desktop(&paths);
     let render = touches_render(&paths);
+    let rust = touches_rust(&paths);
+    let ts = touches_ts(&paths);
     println!("code={code}");
     println!("gallery={gallery}");
     println!("web={web}");
     println!("desktop={desktop}");
     println!("render={render}");
+    println!("rust={rust}");
+    println!("ts={ts}");
     crate::util::github_output("code", &code.to_string())?;
     crate::util::github_output("gallery", &gallery.to_string())?;
     crate::util::github_output("web", &web.to_string())?;
     crate::util::github_output("desktop", &desktop.to_string())?;
-    crate::util::github_output("render", &render.to_string())
+    crate::util::github_output("render", &render.to_string())?;
+    crate::util::github_output("rust", &rust.to_string())?;
+    crate::util::github_output("ts", &ts.to_string())
+}
+
+/// Where a change can't affect the native Rust jobs (`check rust`, the MSRV check, the fuzz smoke;
+/// todo X9c): the apps built from TypeScript alone, and the packages, but for [`RUST_ANYWAY`].
+const OUTSIDE_RUST: [&str; 5] = ["apps/web/", "apps/docs/", "apps/site/", "apps/gallery/", "packages/"];
+
+/// Package paths the Rust jobs read all the same: @laminapdf/sdk, whose schemas and test files
+/// Rust tests read, and every package's `src/`, which `check maintainability`'s todo-id rule scans.
+fn rust_anyway(path: &str) -> bool {
+    path.starts_with("packages/sdk/")
+        || path
+            .strip_prefix("packages/")
+            .and_then(|rest| rest.split_once('/'))
+            .is_some_and(|(_, inside)| inside.starts_with("src/"))
+}
+
+/// Whether any of `paths` can change a native Rust job's result. Everything counts but docs and
+/// the paths in [`OUTSIDE_RUST`]: when unsure, a path counts.
+pub(crate) fn touches_rust(paths: &[&str]) -> bool {
+    paths
+        .iter()
+        .any(|path| !is_docs(path) && (rust_anyway(path) || !OUTSIDE_RUST.iter().any(|o| path.starts_with(o))))
+}
+
+/// Where a change can't affect the TypeScript and WebAssembly jobs (`check ts`, `wasm`, the
+/// runtimes, semver; todo X9c): fuzzing, the spikes, the tools and the other workflows, but for
+/// [`ts_anyway`]. The crates and fixtures count: the WebAssembly, the docs site and the examples'
+/// goldens are built from them.
+const OUTSIDE_TS: [&str; 4] = ["fuzz/", "spikes/", "tools/", ".github/workflows/"];
+
+/// Paths under [`OUTSIDE_TS`] the TypeScript jobs read all the same: the task runner, the tools the
+/// packages' tests read, the two lanes, and any file Biome lints (`biome ci .` covers the repository).
+fn ts_anyway(path: &str) -> bool {
+    const TOOLS: [&str; 3] = ["tools/xtask/", "tools/cli-release/", "tools/fonts/"];
+    const LANES: [&str; 2] = [".github/workflows/ci.yml", ".github/workflows/full.yml"];
+    const LINTED: [&str; 9] = ["ts", "tsx", "mts", "cts", "js", "mjs", "cjs", "json", "jsonc"];
+    TOOLS.iter().any(|t| path.starts_with(t))
+        || LANES.contains(&path)
+        || Path::new(path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| LINTED.contains(&e))
+}
+
+/// Whether any of `paths` can change a TypeScript or WebAssembly job's result. Everything counts
+/// but docs and the paths in [`OUTSIDE_TS`]: when unsure, a path counts.
+pub(crate) fn touches_ts(paths: &[&str]) -> bool {
+    paths
+        .iter()
+        .any(|path| !is_docs(path) && (ts_anyway(path) || !OUTSIDE_TS.iter().any(|o| path.starts_with(o))))
 }
 
 /// What the desktop app's three-OS build depends on (apps/desktop, ADR 0008): the app, the
@@ -220,7 +276,10 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_docs, pick_base, touches_code, touches_desktop, touches_gallery, touches_render, touches_web};
+    use super::{
+        is_docs, pick_base, touches_code, touches_desktop, touches_gallery, touches_render, touches_rust, touches_ts,
+        touches_web,
+    };
 
     #[test]
     fn touches_web_should_follow_the_app_its_sources_build_tasks_and_root_config() {
@@ -313,6 +372,82 @@ mod tests {
             ".github/workflows/ci.yml",
             "pnpm-lock.yaml",
         ]));
+    }
+
+    #[test]
+    fn touches_rust_should_skip_a_change_to_the_web_apps_and_package_tests_only() {
+        assert_eq!(
+            [
+                touches_rust(&["apps/web/src/app.tsx", "apps/docs/src/content/docs/install.mdx"]),
+                touches_rust(&["packages/ui/test/states.tsx", "packages/viewer/README.md"]),
+            ],
+            [false, false]
+        );
+    }
+
+    #[test]
+    fn touches_rust_should_follow_the_crates_tools_workflows_and_what_rust_tests_read() {
+        assert_eq!(
+            [
+                "crates/laminapdf/src/lib.rs",
+                "fixtures/corpus/hello.pdf",
+                "tools/xtask/src/main.rs",
+                "apps/desktop/src-tauri/src/lib.rs",
+                ".github/workflows/nightly.yml",
+                "packages/sdk/schemas/error.schema.json",
+                "packages/ui/src/index.ts",
+                "deny.toml",
+                "a-new-root-file",
+            ]
+            .map(|path| touches_rust(&[path])),
+            [true; 9]
+        );
+    }
+
+    #[test]
+    fn touches_ts_should_skip_fuzzing_spikes_rust_tools_and_other_workflows() {
+        assert!(!touches_ts(&[
+            "fuzz/fuzz_targets/lex.rs",
+            "spikes/flow-layout/src/main.rs",
+            "tools/render/src/main.rs",
+            "tools/bench/olmocr_score.py",
+            ".github/workflows/nightly.yml",
+        ]));
+    }
+
+    #[test]
+    fn touches_ts_should_follow_the_crates_packages_and_what_biome_or_the_lanes_read() {
+        assert_eq!(
+            [
+                "crates/laminapdf-wasm/src/lib.rs",
+                "fixtures/codes.json",
+                "packages/ui/test/states.tsx",
+                "apps/web/src/app.tsx",
+                "tools/xtask/src/web.rs",
+                "tools/differential/text.mjs",
+                ".github/workflows/ci.yml",
+                "pnpm-lock.yaml",
+            ]
+            .map(|path| touches_ts(&[path])),
+            [true; 8]
+        );
+    }
+
+    #[test]
+    fn a_web_only_change_should_skip_rust_but_a_crate_change_should_run_both() {
+        assert_eq!(
+            [
+                (
+                    touches_rust(&["apps/web/src/app.tsx"]),
+                    touches_ts(&["apps/web/src/app.tsx"])
+                ),
+                (
+                    touches_rust(&["crates/laminapdf/src/lib.rs"]),
+                    touches_ts(&["crates/laminapdf/src/lib.rs"])
+                ),
+            ],
+            [(false, true), (true, true)]
+        );
     }
 
     /// One example per allowlist pattern.
