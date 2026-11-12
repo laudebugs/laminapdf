@@ -6,11 +6,12 @@
 
 import { Button, Dialog, message, type Platform, type ToastQueue } from "@laminapdf/ui";
 import type * as Dialogs from "@laminapdf/ui/dialogs";
-import type { MetadataState, PrintChoice, PropertiesEditing, PropertiesState } from "@laminapdf/ui/dialogs";
+import type { PrintChoice, PropertiesState } from "@laminapdf/ui/dialogs";
 import type { Viewer } from "@laminapdf/viewer";
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
 import { downloadName } from "./download-name.ts";
 import type { PageInfo } from "./outline.ts";
+import type { EditablePropertiesDialog } from "./properties-editing.tsx";
 import type { DocumentProperties, Engine } from "./session.ts";
 
 /** The commands this module handles. */
@@ -61,8 +62,8 @@ const PrintDialog = lazy<typeof Dialogs.PrintDialog>(() =>
 const PrintProgressDialog = lazy<typeof Dialogs.PrintProgressDialog>(() =>
   loadDialogs().then((m) => ({ default: m.PrintProgressDialog }), nothing),
 );
-const PropertiesDialog = lazy<typeof Dialogs.PropertiesDialog>(() =>
-  loadDialogs().then((m) => ({ default: m.PropertiesDialog }), nothing),
+const PropertiesDialog = lazy<typeof EditablePropertiesDialog>(() =>
+  loadDialogs().then((m) => ({ default: m.EditablePropertiesDialog }), nothing),
 );
 
 /** Whether `error` is a stopped print, which needs no message. */
@@ -144,17 +145,14 @@ function usePrint(engine: Engine, platform: Platform, onProblem: (problem: Probl
 }
 
 /**
- * Document properties: the facts read when the dialog opens, once per document; and, when the
- * document can be edited, its metadata as the edits leave it, read each time, for the form (O04).
+ * Document properties: the facts read when the dialog opens, once per document; the dialog itself
+ * reads what its form edits (properties-editing.tsx).
  */
 function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<PropertiesState>({ status: "loading" });
-  // Undefined until the session says whether the document can be edited, and when it can't.
-  const [editing, setEditing] = useState<{ metadata: MetadataState; rewritesWhole: boolean }>();
   const start = () => {
     setState({ status: "loading" });
-    setEditing(undefined);
     setOpen(true);
     void engine.properties().then(
       (properties) => setState({ status: "ready", properties }),
@@ -163,22 +161,7 @@ function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
         reportError(error);
       },
     );
-    void engine
-      .editableMetadata()
-      .then(
-        (editable) =>
-          setEditing(
-            editable === undefined
-              ? undefined
-              : { metadata: { status: "ready", metadata: editable.metadata }, rewritesWhole: editable.rewritesWhole },
-          ),
-        reportError,
-      );
   };
-  const edit: PropertiesEditing | undefined =
-    editing === undefined
-      ? undefined
-      : { ...editing, onApply: (change, options) => engine.editMetadata(change, options) };
   const copy = (text: string) =>
     void platform.copyText(text).then(() => toasts.add({ message: message("properties.copied") }), reportError);
   return {
@@ -193,7 +176,7 @@ function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
             context={{ pages: document.pages, labels: document.labels }}
             onCopy={copy}
             onClose={() => setOpen(false)}
-            editing={edit}
+            engine={engine}
           />
         </Suspense>
       ),

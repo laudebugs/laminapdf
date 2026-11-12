@@ -1,5 +1,6 @@
-// The reader's words, kept in one catalogue so that components and the platform never hold text
-// of their own: a translation is a second catalogue of the same shape. English only in v0.1.
+// The reader's words, kept in catalogues so that components and the platform never hold text of
+// their own: a translation is a second catalogue of the same shape. English only in v0.1. This one
+// loads at startup; later-messages.ts holds the words of parts that load after it (#380).
 
 const EN = {
   "platform.enable.savePicker": "Use a browser that can save to your files, such as Chrome or Edge.",
@@ -451,81 +452,9 @@ const EN = {
   "properties.signatures.none": "None",
   "properties.signatures.one": "1 signature present, not verified",
   "properties.signatures.many": "{count} signatures present, not verified",
-  "capabilities.title": "What Lamina PDF can read, write and round-trip",
-  "capabilities.lede":
-    "Each operation shows the best status a passing test proves on each part of Lamina PDF: the Rust core, the TypeScript library, the web reader and the desktop app. A status appears only when a test proves it, so this page grows as the work does.",
   "capabilities.back": "Back to {name}",
   "capabilities.back.reader": "Back to the reader",
-  "capabilities.status.roundTrip": "Round-trip",
-  "capabilities.status.roundTrip.means": "Open, change, save and reopen keeps the feature and everything else.",
-  "capabilities.status.write": "Write",
-  "capabilities.status.write.means": "Created or changed, and the file passes qpdf, pdf.js and PDFium.",
-  "capabilities.status.read": "Read",
-  "capabilities.status.read.means": "Shown or extracted faithfully.",
-  "capabilities.status.unsupported": "Unsupported",
-  "capabilities.status.unsupported.means": "Found and reported, never dropped without a word.",
-  "capabilities.status.none": "No evidence yet",
-  "capabilities.status.notTargeted": "n/a",
-  "capabilities.filters": "Filter operations",
-  "capabilities.search": "Search operations",
-  "capabilities.group": "Group",
-  "capabilities.group.all": "All groups",
-  "capabilities.show": "Show",
-  "capabilities.surface.core": "Core",
-  "capabilities.surface.pdf": "Library",
-  "capabilities.surface.web": "Web",
-  "capabilities.surface.desktop": "Desktop",
-  "capabilities.caption": "{shown} of {total} operations in {groups}",
-  "capabilities.groups.one": "1 group",
-  "capabilities.groups.many": "{count} groups",
-  "capabilities.empty": "No operations match “{query}”",
-  "capabilities.clear": "Clear filters",
-  "capabilities.column.id": "ID",
-  "capabilities.column.operation": "Operation",
-  "capabilities.column.target": "Target",
-  "capabilities.target": "{status} in {round}",
-  "capabilities.provenance":
-    "Built from the capability manifest when this version of Lamina PDF was made · {version} ·",
-  "capabilities.howTested": "How statuses are tested",
-  "properties.tab.description": "Description",
-  "properties.tab.file": "File",
-  "properties.creator": "Creator",
-  "properties.producer": "Producer",
-  "properties.edit.authors.help": "Separate several authors with semicolons.",
-  "properties.edit.creator.help": "The app the content came from.",
-  "properties.edit.producer.help": "The app that wrote the PDF.",
-  "properties.edit.keywords.help": "Press Enter or comma to add.",
-  "properties.edit.keyword.remove": "Remove keyword {keyword}",
-  "properties.edit.keywords.one": "1 keyword",
-  "properties.edit.keywords.many": "{count} keywords",
-  "properties.edit.modified.help": "Each save sets this to the time it saves.",
-  "properties.edit.modified.none": "Not set",
-  "properties.edit.willRemove": "Will be removed",
-  "properties.edit.keep": "Keep",
-  "properties.edit.keep.label": "Keep {field}",
-  "properties.edit.removeMetadata": "Remove metadata…",
-  "properties.edit.remove.title": "Remove metadata",
-  "properties.edit.remove.body":
-    "Choose the values to remove. Apply removes them from the document, and Save from the file.",
-  "properties.edit.remove.confirm": "Mark for removal",
-  "properties.edit.cancel": "Cancel",
-  "properties.edit.apply": "Apply",
   "properties.edit.step": "Document properties changed",
-  "properties.edit.failed": "Lamina PDF couldn't change the properties.",
-  "properties.edit.notice.earlier": "Removed values stay in earlier versions.",
-  "properties.edit.notice.earlier.body":
-    "Save adds your changes after the original, so the old values can still be read from the file. Save as optimised drops them.",
-  "properties.edit.notice.pdfa": "{level} file.",
-  "properties.edit.notice.pdfa.body":
-    "Lamina PDF writes these values to both the Info dictionary and XMP, and keeps the PDF/A identification.",
-  "properties.edit.notice.mismatch":
-    "The Info dictionary and XMP disagree on {fields}. Apply writes the values shown here to both.",
-  "properties.edit.notice.malformed": "This file's XMP metadata can't be read.",
-  "properties.edit.notice.malformed.body": "Apply replaces it with new XMP metadata, losing whatever the old one held.",
-  "properties.edit.warning.oneAuthor":
-    "{level} allows one author. With {count}, the file no longer meets the standard it claims.",
-  "properties.edit.warning.title":
-    "PDF/UA needs a title. Without one, the file no longer meets the standard it claims.",
   "print.title": "Print",
   "print.close": "Close",
   "print.pages": "Pages",
@@ -816,11 +745,22 @@ export const ENGLISH: Catalogue = EN;
  */
 export function countMessage(
   count: number,
-  ids: { readonly zero?: MessageId; readonly one: MessageId; readonly many: MessageId },
+  ids: CountIds<MessageId>,
   values: Readonly<Record<string, string | number>> = {},
 ): string {
-  const id = count === 0 && ids.zero !== undefined ? ids.zero : count === 1 ? ids.one : ids.many;
-  return message(id, { count, ...values });
+  return message(countId(count, ids), { count, ...values });
+}
+
+/** The ids of a counted message's forms: `zero` (optional), `one` and `many`. */
+export interface CountIds<Id> {
+  readonly zero?: Id;
+  readonly one: Id;
+  readonly many: Id;
+}
+
+/** The form of `ids` for `count`. */
+export function countId<Id>(count: number, ids: CountIds<Id>): Id {
+  return count === 0 && ids.zero !== undefined ? ids.zero : count === 1 ? ids.one : ids.many;
 }
 
 /**
@@ -832,5 +772,10 @@ export function message(
   values: Readonly<Record<string, string | number>> = {},
   catalogue = ENGLISH,
 ): string {
-  return catalogue[id].replace(/\{(\w+)\}/g, (whole, name: string) => (name in values ? String(values[name]) : whole));
+  return fill(catalogue[id], values);
+}
+
+/** `text` with each `{name}` replaced by `values[name]`, as `message` does. */
+export function fill(text: string, values: Readonly<Record<string, string | number>>): string {
+  return text.replace(/\{(\w+)\}/g, (whole, name: string) => (name in values ? String(values[name]) : whole));
 }

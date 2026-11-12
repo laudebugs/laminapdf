@@ -10,7 +10,7 @@ import { Button, IconButton } from "../components/button.js";
 import { Checkbox } from "../components/choice.js";
 import { TextArea, TextInput } from "../components/field.js";
 import { Notice } from "../components/notice.js";
-import { countMessage, type MessageId, message } from "../messages.js";
+import { type LaterMessageId, laterCountMessage, laterMessage } from "../later-messages.js";
 import { Dialog } from "../overlays/dialog.js";
 import {
   type DocumentMetadataData,
@@ -25,7 +25,7 @@ import {
 } from "./properties-form.js";
 
 /** Each field's label. */
-const FIELD_LABEL: Readonly<Record<EditableField, MessageId>> = {
+const FIELD_LABEL: Readonly<Record<EditableField, LaterMessageId>> = {
   title: "properties.title",
   authors: "properties.author",
   subject: "properties.subject",
@@ -48,25 +48,25 @@ function pdfaLevel(pdfa: string): string {
 function warningText(warning: FieldWarning, metadata: DocumentMetadataData): string {
   const values = { ...warning.values };
   if (metadata.pdfa !== undefined) values.level = pdfaLevel(metadata.pdfa);
-  return message(warning.id, values);
+  return laterMessage(warning.id, values);
 }
 
 /** A field marked for removal: its old value struck through, the badge, and Keep. */
 function Removed({ field, value, onKeep }: { field: EditableField; value: string; onKeep: () => void }): ReactNode {
-  const label = message(FIELD_LABEL[field]);
+  const label = laterMessage(FIELD_LABEL[field]);
   return (
     <div className="paper-field paper-properties-removed">
       <span className="paper-field-label">{label}</span>
       <div className="paper-properties-removed-row">
         <del className="paper-properties-removed-value">{value}</del>
-        <Badge tone="danger">{message("properties.edit.willRemove")}</Badge>
+        <Badge tone="danger">{laterMessage("properties.edit.willRemove")}</Badge>
         <Button
           variant="ghost"
           size={26}
-          aria-label={message("properties.edit.keep.label", { field: label })}
+          aria-label={laterMessage("properties.edit.keep.label", { field: label })}
           onPress={onKeep}
         >
-          {message("properties.edit.keep")}
+          {laterMessage("properties.edit.keep")}
         </Button>
       </div>
     </div>
@@ -91,14 +91,14 @@ function Keywords({
   return (
     <div className="paper-field">
       <label className="paper-field-label" htmlFor={`${id}-input`}>
-        {message("properties.keywords")}
+        {laterMessage("properties.keywords")}
       </label>
       <div className="paper-properties-keywords">
         {keywords.length === 0 ? null : (
           // biome-ignore lint/a11y/useSemanticElements: the chips are a group of buttons, not form controls of one value.
           <div
             role="group"
-            aria-label={countMessage(keywords.length, {
+            aria-label={laterCountMessage(keywords.length, {
               one: "properties.edit.keywords.one",
               many: "properties.edit.keywords.many",
             })}
@@ -110,7 +110,7 @@ function Keywords({
                 <IconButton
                   icon="close"
                   size={26}
-                  label={message("properties.edit.keyword.remove", { keyword })}
+                  label={laterMessage("properties.edit.keyword.remove", { keyword })}
                   onPress={() => onChange(keywords.filter((k) => k !== keyword))}
                 />
               </span>
@@ -141,7 +141,7 @@ function Keywords({
         />
       </div>
       <span id={`${id}-help`} className="paper-field-help">
-        {message("properties.edit.keywords.help")}
+        {laterMessage("properties.edit.keywords.help")}
       </span>
     </div>
   );
@@ -153,7 +153,7 @@ function Created({ value, onChange }: { value: string; onChange: (value: string)
   return (
     <div className="paper-field">
       <label className="paper-field-label" htmlFor={id}>
-        {message("properties.created")}
+        {laterMessage("properties.created")}
       </label>
       <input
         id={id}
@@ -211,13 +211,13 @@ export function PropertiesEditor({ metadata, form, onForm, removalStays }: Prope
         return (
           <TextArea
             key={name}
-            label={message("properties.subject")}
+            label={laterMessage("properties.subject")}
             value={form.subject}
             onChange={(subject) => set({ subject })}
           />
         );
       default: {
-        const help: Partial<Record<EditableField, MessageId>> = {
+        const help: Partial<Record<EditableField, LaterMessageId>> = {
           authors: "properties.edit.authors.help",
           creator: "properties.edit.creator.help",
           producer: "properties.edit.producer.help",
@@ -226,10 +226,10 @@ export function PropertiesEditor({ metadata, form, onForm, removalStays }: Prope
         return (
           <div key={name} className="paper-properties-field">
             <TextInput
-              label={message(FIELD_LABEL[name])}
+              label={laterMessage(FIELD_LABEL[name])}
               value={form[name]}
               onChange={(value) => set({ [name]: value })}
-              {...(helpId === undefined ? {} : { description: message(helpId) })}
+              {...(helpId === undefined ? {} : { description: laterMessage(helpId) })}
             />
             {warningOf(name)}
           </div>
@@ -241,33 +241,33 @@ export function PropertiesEditor({ metadata, form, onForm, removalStays }: Prope
   return (
     <div className="paper-properties-body paper-properties-form">
       {metadata.packet === "malformed" ? (
-        <Notice tone="warning" title={message("properties.edit.notice.malformed")}>
-          {message("properties.edit.notice.malformed.body")}
+        <Notice tone="warning" title={laterMessage("properties.edit.notice.malformed")}>
+          {laterMessage("properties.edit.notice.malformed.body")}
         </Notice>
       ) : null}
       {BEFORE_MODIFIED.map(field)}
       <div className="paper-field">
-        <span className="paper-field-label">{message("properties.modified")}</span>
+        <span className="paper-field-label">{laterMessage("properties.modified")}</span>
         <span className="paper-properties-value">
           {metadata.modified === undefined
-            ? message("properties.edit.modified.none")
+            ? laterMessage("properties.edit.modified.none")
             : formatPdfDate(metadata.modified)}
         </span>
-        <span className="paper-field-help">{message("properties.edit.modified.help")}</span>
+        <span className="paper-field-help">{laterMessage("properties.edit.modified.help")}</span>
       </div>
       {AFTER_MODIFIED.map(field)}
       {removalStays ? (
-        <Notice tone="warning" title={message("properties.edit.notice.earlier")}>
-          {message("properties.edit.notice.earlier.body")}
+        <Notice tone="warning" title={laterMessage("properties.edit.notice.earlier")}>
+          {laterMessage("properties.edit.notice.earlier.body")}
         </Notice>
       ) : null}
       {metadata.pdfa === undefined ? null : (
-        <Notice title={message("properties.edit.notice.pdfa", { level: pdfaLevel(metadata.pdfa) })}>
-          {message("properties.edit.notice.pdfa.body")}
+        <Notice title={laterMessage("properties.edit.notice.pdfa", { level: pdfaLevel(metadata.pdfa) })}>
+          {laterMessage("properties.edit.notice.pdfa.body")}
           {mismatch.length === 0
             ? null
-            : ` ${message("properties.edit.notice.mismatch", {
-                fields: mismatch.map((f) => message(FIELD_LABEL[f as EditableField]).toLowerCase()).join(", "),
+            : ` ${laterMessage("properties.edit.notice.mismatch", {
+                fields: mismatch.map((f) => laterMessage(FIELD_LABEL[f as EditableField]).toLowerCase()).join(", "),
               })}`}
         </Notice>
       )}
@@ -301,12 +301,12 @@ export function RemoveMetadataDialog({
       onOpenChange={(open) => {
         if (!open) close();
       }}
-      title={message("properties.edit.remove.title")}
-      description={message("properties.edit.remove.body")}
-      closeLabel={message("properties.edit.cancel")}
+      title={laterMessage("properties.edit.remove.title")}
+      description={laterMessage("properties.edit.remove.body")}
+      closeLabel={laterMessage("properties.edit.cancel")}
       actions={
         <>
-          <Button onPress={close}>{message("properties.edit.cancel")}</Button>
+          <Button onPress={close}>{laterMessage("properties.edit.cancel")}</Button>
           <Button
             variant="danger"
             isDisabled={checked.length === 0}
@@ -315,7 +315,7 @@ export function RemoveMetadataDialog({
               close();
             }}
           >
-            {message("properties.edit.remove.confirm")}
+            {laterMessage("properties.edit.remove.confirm")}
           </Button>
         </>
       }
@@ -327,7 +327,7 @@ export function RemoveMetadataDialog({
             isSelected={checked.includes(f)}
             onChange={(on) => setChecked(on ? [...checked, f] : checked.filter((c) => c !== f))}
           >
-            <span className="paper-properties-checklist-label">{message(FIELD_LABEL[f])}</span>
+            <span className="paper-properties-checklist-label">{laterMessage(FIELD_LABEL[f])}</span>
             <span className="paper-properties-checklist-value">{shownValue(metadata, f)}</span>
           </Checkbox>
         ))}

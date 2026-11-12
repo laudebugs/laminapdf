@@ -4,7 +4,7 @@
 // date field reads and writes. The metadata is a shape here, as the properties are: @laminapdf/ui
 // depends on neither @laminapdf/sdk nor @laminapdf/viewer.
 
-import type { MessageId } from "../messages.js";
+import type { LaterMessageId } from "../later-messages.js";
 
 /** A metadata field, as `@laminapdf/sdk`'s `MetadataKey` names it. */
 export type MetadataField =
@@ -242,7 +242,7 @@ function fieldChange(
 
 /** A warning under a field: the message and its values. */
 export interface FieldWarning {
-  readonly id: MessageId;
+  readonly id: LaterMessageId;
   readonly values?: Readonly<Record<string, string | number>>;
 }
 

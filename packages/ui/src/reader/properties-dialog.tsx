@@ -9,7 +9,7 @@ import { type ReactNode, useState } from "react";
 import { Button, IconButton } from "../components/button.js";
 import { Notice } from "../components/notice.js";
 import { SegmentedTabs, TabPanel } from "../components/tabs.js";
-import { message } from "../messages.js";
+import { laterMessage } from "../later-messages.js";
 import { Dialog } from "../overlays/dialog.js";
 import {
   type DocumentPropertiesData,
@@ -84,7 +84,7 @@ function Rows({ section, onCopy }: { section: PropertySection; onCopy: (text: st
             <IconButton
               icon="copy"
               size={26}
-              label={message("properties.copy", { label: row.label.toLowerCase() })}
+              label={laterMessage("properties.copy", { label: row.label.toLowerCase() })}
               onPress={() => onCopy(row.value)}
             />
           </dd>
@@ -107,14 +107,14 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 function Fonts({ properties }: { properties: DocumentPropertiesData }): ReactNode {
   if (properties.fonts.length === 0)
-    return <p className="paper-properties-empty">{message("properties.fonts.none")}</p>;
+    return <p className="paper-properties-empty">{laterMessage("properties.fonts.none")}</p>;
   return (
     <table className="paper-properties-fonts">
       <thead>
         <tr>
-          <th scope="col">{message("properties.fonts.name")}</th>
-          <th scope="col">{message("properties.fonts.type")}</th>
-          <th scope="col">{message("properties.fonts.storage")}</th>
+          <th scope="col">{laterMessage("properties.fonts.name")}</th>
+          <th scope="col">{laterMessage("properties.fonts.type")}</th>
+          <th scope="col">{laterMessage("properties.fonts.storage")}</th>
         </tr>
       </thead>
       <tbody>
@@ -122,7 +122,7 @@ function Fonts({ properties }: { properties: DocumentPropertiesData }): ReactNod
           // Two fonts may share a name (a subset of each weight): the index keeps the rows apart.
           // biome-ignore lint/suspicious/noArrayIndexKey: the list is fixed while the dialog is open.
           <tr key={i}>
-            <td>{font.name ?? message("properties.font.unnamed")}</td>
+            <td>{font.name ?? laterMessage("properties.font.unnamed")}</td>
             <td>{font.kind ?? ""}</td>
             <td>{fontStorage(font)}</td>
           </tr>
@@ -156,12 +156,12 @@ function Body({
       <Section id="paper-properties-document" title={document.title}>
         <Rows section={document} onCopy={onCopy} />
       </Section>
-      <Section id="paper-properties-fonts" title={message("properties.section.fonts")}>
+      <Section id="paper-properties-fonts" title={laterMessage("properties.section.fonts")}>
         <Fonts properties={properties} />
       </Section>
       <Section id="paper-properties-security" title={security.title}>
         <Rows section={security} onCopy={onCopy} />
-        {restricted ? <p className="paper-properties-note">{message("properties.permissions.note")}</p> : null}
+        {restricted ? <p className="paper-properties-note">{laterMessage("properties.permissions.note")}</p> : null}
       </Section>
     </div>
   );
@@ -179,7 +179,7 @@ function Facts({
   }
   return (
     <p className="paper-properties-empty">
-      {message(state.status === "loading" ? "properties.loading" : "properties.failed")}
+      {laterMessage(state.status === "loading" ? "properties.loading" : "properties.failed")}
     </p>
   );
 }
@@ -241,9 +241,9 @@ function EditFooter({
   return (
     <>
       {start === null ? null : <span className="paper-properties-actions-start">{start}</span>}
-      <Button onPress={onCancel}>{message("properties.edit.cancel")}</Button>
+      <Button onPress={onCancel}>{laterMessage("properties.edit.cancel")}</Button>
       <Button variant="primary" isDisabled={!canApply} onPress={onApply}>
-        {message("properties.edit.apply")}
+        {laterMessage("properties.edit.apply")}
       </Button>
     </>
   );
@@ -262,11 +262,11 @@ function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEdit
   const start =
     edit.tab === "description" ? (
       <Button variant="danger" isDisabled={!removable} onPress={() => setRemoving(true)}>
-        {message("properties.edit.removeMetadata")}
+        {laterMessage("properties.edit.removeMetadata")}
       </Button>
     ) : state.status === "ready" ? (
       <Button variant="ghost" onPress={() => onCopy(propertiesText(state.properties, context))}>
-        {message("properties.copyAll")}
+        {laterMessage("properties.copyAll")}
       </Button>
     ) : null;
   return (
@@ -276,9 +276,9 @@ function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEdit
         if (!open) edit.close();
       }}
       size="form"
-      title={message("properties.dialog.title")}
+      title={laterMessage("properties.dialog.title")}
       description={fileName}
-      closeLabel={message("properties.close")}
+      closeLabel={laterMessage("properties.close")}
       actions={
         <EditFooter
           start={start}
@@ -289,16 +289,16 @@ function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEdit
       }
     >
       <SegmentedTabs
-        aria-label={message("properties.dialog.title")}
+        aria-label={laterMessage("properties.dialog.title")}
         tabs={[
-          { id: "description", label: message("properties.tab.description") },
-          { id: "file", label: message("properties.tab.file") },
+          { id: "description", label: laterMessage("properties.tab.description") },
+          { id: "file", label: laterMessage("properties.tab.file") },
         ]}
         selectedKey={edit.tab}
         onSelectionChange={edit.setTab}
       >
         <TabPanel id="description">
-          {edit.failed ? <Notice tone="danger" title={message("properties.edit.failed")} /> : null}
+          {edit.failed ? <Notice tone="danger" title={laterMessage("properties.edit.failed")} /> : null}
           {metadata !== undefined && form !== undefined ? (
             <PropertiesEditor
               metadata={metadata}
@@ -308,7 +308,7 @@ function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEdit
             />
           ) : (
             <p className="paper-properties-empty">
-              {message(editing.metadata.status === "failed" ? "properties.failed" : "properties.loading")}
+              {laterMessage(editing.metadata.status === "failed" ? "properties.failed" : "properties.loading")}
             </p>
           )}
         </TabPanel>
@@ -340,18 +340,18 @@ export function PropertiesDialog(props: PropertiesDialogProps): ReactNode {
         if (!open) onClose();
       }}
       size="form"
-      title={message("properties.dialog.title")}
+      title={laterMessage("properties.dialog.title")}
       description={fileName}
-      closeLabel={message("properties.close")}
+      closeLabel={laterMessage("properties.close")}
       actions={
         <>
           {state.status === "ready" ? (
             <Button variant="ghost" onPress={() => onCopy(propertiesText(state.properties, context))}>
-              {message("properties.copyAll")}
+              {laterMessage("properties.copyAll")}
             </Button>
           ) : null}
           <Button variant="primary" onPress={onClose}>
-            {message("properties.close")}
+            {laterMessage("properties.close")}
           </Button>
         </>
       }

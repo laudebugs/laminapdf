@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { LATER_ENGLISH, laterMessage } from "../src/later-messages.ts";
 import { type Catalogue, ENGLISH, message } from "../src/messages.ts";
 
 describe("message", () => {
@@ -13,5 +14,17 @@ describe("message", () => {
 
   it("has no empty message", () => {
     expect(Object.entries(ENGLISH).filter(([, text]) => text.trim() === "")).toEqual([]);
+  });
+});
+
+describe("laterMessage", () => {
+  it("finds a message in either catalogue", () => {
+    expect(laterMessage("properties.edit.apply")).toBe("Apply");
+    expect(laterMessage("platform.picker.pdf")).toBe("PDF documents");
+  });
+
+  it("has no empty message, and no key the reader's catalogue also has", () => {
+    expect(Object.entries(LATER_ENGLISH).filter(([, text]) => text.trim() === "")).toEqual([]);
+    expect(Object.keys(LATER_ENGLISH).filter((id) => id in ENGLISH)).toEqual([]);
   });
 });
