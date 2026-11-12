@@ -1,0 +1,132 @@
+{
+  "page": "/start/first-pdf/",
+  "html": {
+    "styleAttributes": 278,
+    "inlineStyleBlocks": 3,
+    "inlineScriptBlocks": 13,
+    "htmlBytes": 97503,
+    "htmlGzip": 16038
+  },
+  "assets": {
+    "js": {
+      "files": 6,
+      "bytes": 8829,
+      "gzip": 4360
+    },
+    "css": {
+      "files": 3,
+      "bytes": 119741,
+      "gzip": 22413
+    }
+  },
+  "browsers": {
+    "chromium": {
+      "current-light": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      },
+      "current-dark": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      },
+      "target-light": {
+        "violations": [
+          "style-src-attr inline",
+          "style-src-elem inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      },
+      "target-dark": {
+        "violations": [
+          "style-src-attr inline",
+          "style-src-elem inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      }
+    },
+    "firefox": {
+      "current-light": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      },
+      "current-dark": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      },
+      "target-light": {
+        "violations": [
+          "style-src-elem inline",
+          "style-src-attr inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      },
+      "target-dark": {
+        "violations": [
+          "style-src-elem inline",
+          "style-src-attr inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      }
+    },
+    "webkit": {
+      "current-light": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      },
+      "current-dark": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      },
+      "target-light": {
+        "violations": [
+          "style-src-elem inline",
+          "style-src-attr inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      },
+      "target-dark": {
+        "violations": [
+          "style-src-elem inline",
+          "style-src-attr inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 0
+        }
+      }
+    }
+  }
+}
