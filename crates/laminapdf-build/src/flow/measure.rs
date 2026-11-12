@@ -152,7 +152,9 @@ impl Source {
         self.last_style = Some(style.clone());
         let fonts: Vec<usize> = style.fonts.iter().map(|f| self.font_index(f)).collect();
         let start = self.text.len();
-        self.text.push_str(text);
+        // A tab outside a code block (whose tabs are expanded to tab stops first) is a space: it
+        // is drawn as one, and a font with CFF outlines can't give the space glyph a second text.
+        self.text.extend(text.chars().map(|c| if c == '\t' { ' ' } else { c }));
         let mut span = StyledSpan::new(start..self.text.len())
             .with_fonts(fonts)
             .with_size(f32_of(style.size))

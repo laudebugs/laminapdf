@@ -403,7 +403,8 @@ pub enum FlowBlock {
     /// A block quotation (`BlockQuote`): its blocks indented 18 points.
     Quote(Vec<FlowBlock>),
     /// A block of computer code: its text in `style`, a line per line of the text, indented 12
-    /// points and wrapped at the body's width (a `P` holding a `Code` element).
+    /// points and wrapped at the body's width (a `P` holding a `Code` element). A tab becomes
+    /// spaces up to the next multiple of four columns; elsewhere in a flow a tab is one space.
     CodeBlock(String, TextStyle),
     /// A horizontal rule across the body (a `Layout` artifact), with 6 points above and below.
     Rule,
