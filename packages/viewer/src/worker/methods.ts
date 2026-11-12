@@ -15,7 +15,17 @@ import {
   textModel,
   workerMemory,
 } from "./document.js";
-import { adoptEdits, applyEdit, copyEdits, editHistory, goToStep, planSave, restoreEdits, stepEdit } from "./edit.js";
+import {
+  adoptEdits,
+  applyEdit,
+  copyEdits,
+  editHistory,
+  goToStep,
+  planSave,
+  readMetadata,
+  restoreEdits,
+  stepEdit,
+} from "./edit.js";
 import { find, forgetSearch } from "./find.js";
 import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
 import { networkLog } from "./network.js";
@@ -55,6 +65,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   editHistory: {
     run: ([id]) => editHistory(id as number),
   },
+  metadata: { run: ([id], { signal }) => readMetadata(id as number, signal) },
   planSave: {
     run: ([options, id], { signal }) => planSave(options as SaveOptions, id as number, signal),
   },

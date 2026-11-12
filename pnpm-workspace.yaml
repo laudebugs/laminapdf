@@ -15,7 +15,9 @@ shellEmulator: true
 allowBuilds:
   bun: true
   deno: false
+  edgedriver: false
   esbuild: false
+  geckodriver: false
   workerd: false
 
 # Shared third-party versions; packages depend on them with "catalog:" (typescript.md).
@@ -62,6 +64,17 @@ catalog:
   # Apache-2.0. Each pinned to a release at least two weeks old when added.
   "@tauri-apps/api": 2.12.4
   "@tauri-apps/cli": 2.12.4
+  # The desktop reader's end-to-end tests (D2e): WebdriverIO with the Tauri service and its
+  # frontend plugin, pinned to the WebdriverIO versions @wdio/tauri-service 1.5.1 depends on, so
+  # one copy is installed. MIT. Dev-only; the plugin is bundled only into e2e builds.
+  "@wdio/cli": 9.31.9
+  "@wdio/globals": 9.31.3
+  "@wdio/local-runner": 9.31.9
+  "@wdio/mocha-framework": 9.31.9
+  "@wdio/spec-reporter": 9.31.2
+  "@wdio/tauri-plugin": 1.5.1
+  "@wdio/tauri-service": 1.5.1
+  webdriverio: 9.31.9
   deno: 2.9.6
   # Maintainability checks in `cargo xtask check ts` (Q2u): import cycles and cross-package
   # imports, duplicated blocks, unused exports and files. Dev-only. dependency-cruiser and jscpd:
@@ -71,6 +84,9 @@ catalog:
   jscpd: 5.4.2
   knip: 6.44.1
   playwright: 1.64.1
+  # pdf.js, which the reader's save e2e tests reopen saved files with (todo E1f), at the version the
+  # round-trip and differential tools pin. Apache-2.0. Dev-only.
+  pdfjs-dist: 6.4.299
   publint: 0.3.25
   # @laminapdf/ui's accessible primitives (ADR 0009: React Aria Components). Apache-2.0, as are its
   # @react-aria/* and @internationalized/* packages. Pinned to a release at least two weeks old.

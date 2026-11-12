@@ -82,8 +82,10 @@ export function websiteIcons(websitePublic) {
 
 /**
  * Fails the build on a link from any page to a file the build didn't write, for the paths the
- * links validator leaves out: the example PDFs (`/examples/pdf/…`, not pages) and the code pages
- * (`/reference/codes/<code>/`, written by src/pages/, which the validator doesn't read).
+ * links validator leaves out: the example PDFs (`/examples/pdf/…`, not pages), the guide PDF
+ * (`/pdf/…`), the one-page views (`/one-page/<area>/`) and the code pages
+ * (`/reference/codes/<code>/`, written by src/pages/, which the validator doesn't read). Each
+ * page's link to its Markdown twin (`….md`) is checked by agent-docs.mjs, which writes the twins.
  *
  * @type {import("astro").AstroIntegration}
  */
@@ -94,7 +96,10 @@ export const checkedLinks = {
       const broken = new Set();
       for (const file of await filesIn(dir, ".html")) {
         const html = await readFile(file, "utf8");
-        for (const [, path = ""] of html.matchAll(/href="(\/(?:examples\/pdf|reference\/codes)\/[^"#?]+)/g)) {
+        for (const [, path = ""] of html.matchAll(
+          /href="(\/(?:examples\/pdf|pdf|one-page|reference\/codes)\/[^"#?]+)/g,
+        )) {
+          if (path.endsWith(".md")) continue;
           if (!(await pageExists(dir, path))) broken.add(path);
         }
       }

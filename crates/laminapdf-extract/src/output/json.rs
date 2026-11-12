@@ -41,7 +41,7 @@ impl JsonOptions {
     }
 }
 
-/// Who made the extraction (ADR 0030 §1's `generator`).
+/// Who made the extraction: the library, its version, and the models it ran, if any.
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub(crate) struct Generator<'a> {

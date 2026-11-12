@@ -30,4 +30,6 @@ The two readers can still disagree on where a glyph sits, since each reads the f
 
 PDFium, the engine behind Chrome's PDF viewer, draws the pages in the viewer. It runs in a Web Worker, away from your page, and only draws: it never changes the document. hayro is a renderer written in Rust. It's the lighter choice on a server or in a Cloudflare Worker, and it draws in the tests that compare pages. [What Lamina PDF writes and what it borrows](/concepts/dependencies/) explains why each one is there.
 
+When a page draws wrong or a renderer fails, see [Troubleshooting rendering](/troubleshooting/rendering/).
+
 Next, see [how to compare pages in tests](/guides/test-generated-pdfs/), which draws two PDFs and counts the pixels that differ.
