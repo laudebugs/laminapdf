@@ -82,6 +82,27 @@ test("a quick start that writes its file instead shows what it wrote", async () 
   assert.equal(outcome.ok && new TextDecoder().decode(outcome.bytes), "Hello");
 });
 
+test("another member of node:fs/promises is refused by name", async () => {
+  const source =
+    'import { readFile } from "node:fs/promises";\nexport async function hello() { return readFile("x"); }';
+  const outcome = await runExample(source, "hello", [], sdk);
+  assert.equal(
+    !outcome.ok && outcome.message,
+    "the example may import only @laminapdf/sdk and writeFile from node:fs/promises, not readFile from node:fs/promises",
+  );
+});
+
+test("a saved PDF counts whatever the function returns", async () => {
+  const source = `import { make } from "@laminapdf/sdk";
+export function hello(save: (pdf: Uint8Array) => void): boolean {
+  save(make("Saved"));
+  return true;
+}
+`;
+  const outcome = await runExample(source, "hello", [SAVE], sdk);
+  assert.equal(outcome.ok && new TextDecoder().decode(outcome.bytes), "Saved");
+});
+
 test("a quick start that saves nothing is not a PDF", async () => {
   const source = QUICK_START.replace("await save(", "void (");
   const outcome = await runExample(source, "hello", [SAVE], sdk);

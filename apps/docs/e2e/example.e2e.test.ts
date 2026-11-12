@@ -57,8 +57,8 @@ async function open(
 
 /** Where the first example's code and first page sit, and whether the page is wider than the window. */
 async function layout(page: Page) {
-  // The picture is shown as the page loads; it has arrived once it has its pixels.
-  await page.locator(".example-first img").first().waitFor();
+  // The picture loads as it nears the window (loading="lazy"); it has arrived once it has its pixels.
+  await page.locator(".example-first img").first().scrollIntoViewIfNeeded();
   await page.waitForFunction(() => {
     const img = document.querySelector<HTMLImageElement>(".example-first img");
     return img?.complete === true && img.naturalWidth > 0;

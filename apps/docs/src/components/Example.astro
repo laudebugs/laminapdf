@@ -16,7 +16,6 @@ import resetIcon from "@laminapdf/icons/svg/reset.svg?raw";
 import { decorativeIcon } from "@laminapdf/site-kit/icon";
 import manifest from "../../public/examples/preview/manifest.json";
 import { RUNNABLE } from "../../runner/examples.ts";
-import ExampleCode from "./ExampleCode.astro";
 import Snippet from "./Snippet.astro";
 
 interface Props {
@@ -63,6 +62,8 @@ if (output !== undefined && text === undefined) {
 const first = pictures[0];
 /** Whether the Result tab has more to show than that first page. */
 const more = pictures.length > 1 || (first !== undefined && first.pages.length > 1);
+/** Tabs for two languages, or for the code and what the tabs alone show (every page, the output). */
+const tabs = (ts !== undefined && rust !== undefined) || more || text !== undefined;
 /** An icon beside a button's label: decorative, so hidden from assistive technology. */
 const icon = (svg: string) => decorativeIcon(svg, "run-icon");
 const size = (bytes: number) => (bytes < 1024 ? `${bytes} bytes` : `${Math.round(bytes / 1024)} KB`);
@@ -75,13 +76,16 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
      picked, so no page opens on its pictures. */}
 <div class:list={["example", { "example-with-page": first !== undefined }]}>
   <div class="example-code">
-    <div class="example-source">
     {
-      more || text !== undefined ? (
+      tabs ? (
         <Tabs syncKey="lang">
           {ts !== undefined && (
             <TabItem label="TypeScript">
-              <Snippet file={ts} />
+              <div class="example-ts">
+                <div class="example-source">
+                  <Snippet file={ts} />
+                </div>
+              </div>
             </TabItem>
           )}
           {rust !== undefined && (
@@ -119,11 +123,16 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
             </TabItem>
           )}
         </Tabs>
+      ) : ts !== undefined ? (
+        <div class="example-ts">
+          <div class="example-source">
+            <Snippet file={ts} />
+          </div>
+        </div>
       ) : (
-        <ExampleCode ts={ts} rust={rust} />
+        rust !== undefined && <Snippet file={rust} />
       )
     }
-    </div>
   </div>
   {
     first !== undefined && (
@@ -134,6 +143,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
             alt={`Page 1 of ${first.stem}.pdf`}
             width={Math.round((first.pages[0]?.width ?? 0) / 2)}
             height={Math.round((first.pages[0]?.height ?? 0) / 2)}
+            loading="lazy"
             decoding="async"
           />
           <figcaption>
@@ -204,11 +214,11 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       const { file, source, name } = this.dataset;
       if (button === null || bar === null || run === null || reset === null || download === null) return;
       if (file === undefined || source === undefined || name === undefined) return;
-      // The code's column, where the editor takes the place of the code; the page's own column,
-      // where a run's pages take the place of the first page's picture.
+      // The TypeScript code, which the editor replaces; the page's own column, where a run's pages
+      // take the place of the first page's picture.
       const example = this.closest(".example");
-      const code = example?.querySelector<HTMLElement>(".example-code");
-      const shown = example?.querySelector<HTMLElement>(".example-source");
+      const code = example?.querySelector<HTMLElement>(".example-ts");
+      const shown = code?.querySelector<HTMLElement>(".example-source");
       const picture = example?.querySelector<HTMLElement>(".example-first");
       const side = this.parentElement;
       if (code == null || shown == null || picture == null || side === null) return;
@@ -229,6 +239,10 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
         // The bar moves under the editor, so this element is left empty.
         this.hidden = true;
         shown.hidden = true;
+        // The editor is TypeScript: a reader on the Rust tab is taken to the TypeScript one.
+        const panel = code.closest<HTMLElement>("[role=tabpanel]");
+        const tab = panel?.getAttribute("aria-labelledby");
+        if (panel?.hidden === true && tab != null) document.getElementById(tab)?.click();
         editor.openRunner({ bar, run, reset, download }, { file, source, name }, { code, picture, pages: side });
       };
       button.addEventListener("click", open);
@@ -273,6 +287,10 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       align-self: start;
       width: auto;
     }
+    /* A run's pages can be taller than the window: they scroll with the page. */
+    .example-page:has(:global(.run-page)) {
+      position: static;
+    }
   }
   .example-first {
     margin: 0;
@@ -302,7 +320,9 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     display: block;
     margin-top: var(--paper-space-12);
   }
-  .example-run[hidden] {
+  /* Until its script defines it, and with JavaScript off, the button would do nothing. */
+  .example-run[hidden],
+  .example-run:not(:defined) {
     display: none;
   }
   .example :global(.run-editor) {

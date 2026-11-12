@@ -73,6 +73,17 @@ function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: strin
   return node;
 }
 
+/** Page `index` of a run's PDF, drawn from its bitmap. */
+function pageCanvas(bitmap: ImageBitmap, index: number): HTMLCanvasElement {
+  const canvas = element("canvas", "run-page");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", `Page ${index + 1} of the PDF your code made`);
+  canvas.getContext("bitmaprenderer")?.transferFromImageBitmap(bitmap);
+  return canvas;
+}
+
 /** The bar's buttons, which the page renders with their icons (Example.astro), hidden until now. */
 export interface RunButtons {
   readonly bar: HTMLElement;
@@ -93,7 +104,7 @@ export interface RunExample {
 
 /** Where the runner goes on the page (Example.astro). */
 export interface RunPlaces {
-  /** The code's column: the editor, the bar and the run's status and errors go at its end. */
+  /** The TypeScript code's place: the editor, the bar and the run's status and errors go at its end. */
   readonly code: HTMLElement;
   /** The first page's picture, hidden once a run has drawn its own pages. */
   readonly picture: HTMLElement;
@@ -102,12 +113,12 @@ export interface RunPlaces {
 }
 
 /**
- * Opens the example's editor in the code's column, with the bar under it; a run's pages go where
- * the first page's picture was.
+ * Opens the example's editor in place of its TypeScript code, with the bar under it; a run's pages
+ * go where the first page's picture was.
  *
  * @param buttons the bar with Run, Reset and Download
  * @param example the example's file, code and PDF name
- * @param places the code's column, the picture and its column
+ * @param places the code's place, the picture and its column
  */
 export function openRunner(buttons: RunButtons, example: RunExample, places: RunPlaces): void {
   const { file, source, name } = example;
@@ -117,7 +128,8 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   problem.setAttribute("role", "alert");
   problem.hidden = true;
   const pages = element("div", "run-pages");
-  const editorHost = element("div", "run-editor");
+  // Outside Starlight's content spacing, which would push CodeMirror's lines apart.
+  const editorHost = element("div", "run-editor not-content");
   places.code.append(editorHost, buttons.bar, status, problem);
   places.pages.append(pages);
   buttons.bar.hidden = false;
@@ -134,8 +146,15 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
    * the page's CSP, which lists no blob: (ADR 0011), and reports a violation though the file arrives. */
   let pdf = "";
 
+  // Reset puts back the code and the picture of what it makes.
   buttons.reset.addEventListener("click", () => {
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: source } });
+    pages.replaceChildren();
+    places.picture.hidden = false;
+    problem.hidden = true;
+    status.textContent = "";
+    buttons.download.hidden = true;
+    pdf = "";
   });
   buttons.download.addEventListener("click", () => {
     const link = element("a", "");
@@ -157,17 +176,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
     }
     problem.hidden = true;
     places.picture.hidden = true;
-    pages.replaceChildren(
-      ...reply.pages.map((bitmap, index) => {
-        const canvas = element("canvas", "run-page");
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        canvas.setAttribute("role", "img");
-        canvas.setAttribute("aria-label", `Page ${index + 1} of the PDF your code made`);
-        canvas.getContext("bitmaprenderer")?.transferFromImageBitmap(bitmap);
-        return canvas;
-      }),
-    );
+    pages.replaceChildren(...reply.pages.map(pageCanvas));
     pdf = await dataUrl(reply.bytes);
     buttons.download.hidden = false;
     const count = reply.pageCount === 1 ? "1 page" : `${reply.pageCount} pages`;

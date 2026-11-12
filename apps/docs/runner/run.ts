@@ -48,12 +48,23 @@ export async function runExample(
   const keep = (pdf: unknown): void => {
     saved = pdf;
   };
-  const fs = { writeFile: async (_path: unknown, data: unknown) => keep(data) };
+  const writeFile = async (_path: unknown, data: unknown) => keep(data);
+  // Any other member of node:fs/promises fails as an import of another module would.
+  const fs = new Proxy(
+    {},
+    {
+      get: (_target, member) => {
+        if (member === "writeFile") return writeFile;
+        if (typeof member !== "string" || member === "__esModule" || member === "then") return undefined;
+        throw refused(`${member} from node:fs/promises`);
+      },
+    },
+  );
   const exports: Record<string, unknown> = {};
   const require = (specifier: string): object => {
     if (specifier === "@laminapdf/sdk") return sdk;
     if (specifier === "node:fs/promises") return fs;
-    throw new Error(`the example may import only @laminapdf/sdk and writeFile from node:fs/promises, not ${specifier}`);
+    throw refused(specifier);
   };
   try {
     // Sucrase keeps `import.meta`, which only a module may name: here it is an object whose `main`
@@ -66,7 +77,7 @@ export async function runExample(
       return { ok: false, code: "missing-export", message: `the example no longer exports ${name}` };
     }
     const returned: unknown = await run(...args.map((arg) => (arg === SAVE ? keep : arg)));
-    const bytes = returned === undefined ? saved : returned;
+    const bytes = returned instanceof Uint8Array ? returned : saved;
     if (!(bytes instanceof Uint8Array)) {
       return { ok: false, code: "not-a-pdf", message: `${name} made no PDF bytes` };
     }
@@ -74,6 +85,11 @@ export async function runExample(
   } catch (e) {
     return describe(e);
   }
+}
+
+/** The error for an import the runner lacks. */
+function refused(what: string): Error {
+  return new Error(`the example may import only @laminapdf/sdk and writeFile from node:fs/promises, not ${what}`);
 }
 
 /** A thrown value as a reader should see it: a `LaminaPdfError`'s code and hint, or the message. */
