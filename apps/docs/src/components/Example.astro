@@ -1,10 +1,12 @@
 ---
-// An example in its languages, with what it makes beside the code, in one row of tabs: TypeScript
-// and Rust, then a Result tab with a picture of every page and a link to the PDF, for an example that
-// builds one, or an Output tab with the text it prints, for one that reads a PDF. The pictures and the manifest come from `cargo xtask
-// docs-previews`, which renders the example goldens; `cargo xtask check docs` keeps them in step.
-// The six examples in runner/examples.ts also get "Edit and run" on their Result tab (todo B7e),
-// when the runner was built (scripts/build-runner.mjs); it loads nothing until it is pressed.
+// An example in its languages, with what it makes: TypeScript and Rust in one row of tabs, and,
+// for an example that builds a PDF, a picture of its first page with a link to the PDF, beside the
+// code on wide screens and below it on narrow ones, with no click and no script (todo Q4d). A
+// Result tab shows every page when there is more than that first one; an example that reads a PDF
+// has an Output tab with the text it prints instead. The pictures and the manifest come from
+// `cargo xtask docs-previews`, which renders the example goldens; `cargo xtask check docs` keeps them
+// in step. The examples in runner/examples.ts also get "Edit and run" under the picture (todo
+// B7e), when the runner was built (scripts/build-runner.mjs); it loads nothing until it is pressed.
 import { existsSync } from "node:fs";
 import { TabItem, Tabs } from "@astrojs/starlight/components";
 // @laminapdf/icons' own files, inlined at build time.
@@ -14,7 +16,6 @@ import resetIcon from "@laminapdf/icons/svg/reset.svg?raw";
 import { decorativeIcon } from "@laminapdf/site-kit/icon";
 import manifest from "../../public/examples/preview/manifest.json";
 import { RUNNABLE } from "../../runner/examples.ts";
-import ExampleCode from "./ExampleCode.astro";
 import Snippet from "./Snippet.astro";
 
 interface Props {
@@ -29,18 +30,16 @@ interface Props {
 }
 
 // The outputs a page may show: the reading examples' goldens, which their tests check.
-const OUTPUTS: Record<string, string> = import.meta.glob(["../../../../fixtures/extract/examples/*.{md,txt}"], {
-  query: "?raw",
-  import: "default",
-  eager: true,
-});
+const OUTPUTS: Record<string, string> = import.meta.glob(
+  ["../../../../fixtures/extract/examples/*.{md,txt}", "../../../../fixtures/reveal/examples/*.txt"],
+  { query: "?raw", import: "default", eager: true },
+);
 
 // The TypeScript examples, for the editor's first text: the file as the Code tab shows it.
-const SOURCES: Record<string, string> = import.meta.glob(["../../../../packages/sdk/examples/*.ts"], {
-  query: "?raw",
-  import: "default",
-  eager: true,
-});
+const SOURCES: Record<string, string> = import.meta.glob(
+  ["../../../../packages/sdk/examples/*.ts", "../../../../packages/sdk/examples/quick-start/*.ts"],
+  { query: "?raw", import: "default", eager: true },
+);
 /** Whether the runner was built: the docs build runs scripts/build-runner.mjs first, from apps/docs. */
 const RUNNER = existsSync("public/run/worker.js");
 
@@ -58,86 +57,125 @@ const text = output === undefined ? undefined : OUTPUTS[`../../../../${output}`]
 if (output !== undefined && text === undefined) {
   throw new Error(`Example: ${output} is not one of the outputs apps/docs may show`);
 }
-const outcome = pictures.length > 0 || text !== undefined;
+/** The first page of the first PDF, shown beside the code. */
+const first = pictures[0];
+/** Whether the Result tab has more to show than that first page. */
+const more = pictures.length > 1 || (first !== undefined && first.pages.length > 1);
+/** Tabs for two languages, or for the code and what the tabs alone show (every page, the output). */
+const tabs = (ts !== undefined && rust !== undefined) || more || text !== undefined;
 /** An icon beside a button's label: decorative, so hidden from assistive technology. */
 const icon = (svg: string) => decorativeIcon(svg, "run-icon");
 const size = (bytes: number) => (bytes < 1024 ? `${bytes} bytes` : `${Math.round(bytes / 1024)} KB`);
 const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
 ---
 
-{/* One row: the code first, then what it makes. The row shares the site's remembered TypeScript
-     or Rust choice (`syncKey`), so a reader who picks Rust sees Rust on every example. Only the
-     language is remembered: the script below puts it back when Result or Output is picked, so no
-     page opens on its pictures. */}
-{
-  outcome ? (
-    <Tabs syncKey="lang">
-      {ts !== undefined && (
-        <TabItem label="TypeScript">
-          <Snippet file={ts} />
-        </TabItem>
-      )}
-      {rust !== undefined && (
-        <TabItem label="Rust">
-          <Snippet file={rust} />
-        </TabItem>
-      )}
-      {pictures.length > 0 && (
-        <TabItem label="Result">
-          {source !== undefined && (
-            <lamina-run class="example-run not-content" data-file={ts} data-source={source}>
-              <button type="button" class="run-open">
-                <Fragment set:html={icon(playIcon)} />
-                Edit and run
-              </button>
-              <div class="run-bar" hidden>
-                <button type="button" class="run-run">
-                  <Fragment set:html={icon(playIcon)} />
-                  Run
-                </button>
-                <button type="button" class="run-reset">
-                  <Fragment set:html={icon(resetIcon)} />
-                  Reset
-                </button>
-                <button type="button" class="run-download" hidden>
-                  <Fragment set:html={icon(downloadIcon)} />
-                  Download PDF
-                </button>
+{/* The code, and beside or below it the first page. The code's row shares the site's remembered
+     TypeScript or Rust choice (`syncKey`), so a reader who picks Rust sees Rust on every example.
+     Only the language is remembered: the script below puts it back when Result or Output is
+     picked, so no page opens on its pictures. */}
+<div class:list={["example", { "example-with-page": first !== undefined }]}>
+  <div class="example-code">
+    {
+      tabs ? (
+        <Tabs syncKey="lang">
+          {ts !== undefined && (
+            <TabItem label="TypeScript">
+              <div class="example-ts">
+                <div class="example-source">
+                  <Snippet file={ts} />
+                </div>
               </div>
-            </lamina-run>
+            </TabItem>
           )}
-          {pictures.map((example) => (
-            <figure class="example-result">
-              <div class:list={["example-pages", { "example-pages-many": example.pages.length > 1 }]}>
-                {example.pages.map((page, index) => (
-                  <img
-                    src={`/examples/preview/${example.stem}-${index}.png`}
-                    alt={`Page ${index + 1} of ${example.stem}.pdf`}
-                    width={Math.round(page.width / 2)}
-                    height={Math.round(page.height / 2)}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ))}
-              </div>
-              <figcaption>
-                <a href={`/examples/pdf/${example.stem}.pdf`}>Open {example.stem}.pdf</a> (
-                {pageCount(example.pages.length)}, {size(example.bytes)})
-              </figcaption>
-            </figure>
-          ))}
-        </TabItem>
-      )}
-      {text !== undefined && (
-        <TabItem label="Output">
-          <pre class="example-output">{text}</pre>
-        </TabItem>
-      )}
-    </Tabs>
-  ) : (
-    <ExampleCode ts={ts} rust={rust} />
-  )
-}
+          {rust !== undefined && (
+            <TabItem label="Rust">
+              <Snippet file={rust} />
+            </TabItem>
+          )}
+          {more && (
+            <TabItem label="Result">
+              {pictures.map((example) => (
+                <figure class="example-result">
+                  <div class:list={["example-pages", { "example-pages-many": example.pages.length > 1 }]}>
+                    {example.pages.map((page, index) => (
+                      <img
+                        src={`/examples/preview/${example.stem}-${index}.png`}
+                        alt={`Page ${index + 1} of ${example.stem}.pdf`}
+                        width={Math.round(page.width / 2)}
+                        height={Math.round(page.height / 2)}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ))}
+                  </div>
+                  <figcaption>
+                    <a href={`/examples/pdf/${example.stem}.pdf`}>Open {example.stem}.pdf</a> (
+                    {pageCount(example.pages.length)}, {size(example.bytes)})
+                  </figcaption>
+                </figure>
+              ))}
+            </TabItem>
+          )}
+          {text !== undefined && (
+            <TabItem label="Output">
+              <pre class="example-output">{text}</pre>
+            </TabItem>
+          )}
+        </Tabs>
+      ) : ts !== undefined ? (
+        <div class="example-ts">
+          <div class="example-source">
+            <Snippet file={ts} />
+          </div>
+        </div>
+      ) : (
+        rust !== undefined && <Snippet file={rust} />
+      )
+    }
+  </div>
+  {
+    first !== undefined && (
+      <div class="example-page not-content">
+        <figure class="example-first">
+          <img
+            src={`/examples/preview/${first.stem}-0.png`}
+            alt={`Page 1 of ${first.stem}.pdf`}
+            width={Math.round((first.pages[0]?.width ?? 0) / 2)}
+            height={Math.round((first.pages[0]?.height ?? 0) / 2)}
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>
+            <a href={`/examples/pdf/${first.stem}.pdf`}>Open {first.stem}.pdf</a> (
+            {pageCount(first.pages.length)}, {size(first.bytes)})
+          </figcaption>
+        </figure>
+        {source !== undefined && (
+          <lamina-run class="example-run" data-file={ts} data-source={source} data-name={`${first.stem}.pdf`}>
+            <button type="button" class="run-open">
+              <Fragment set:html={icon(playIcon)} />
+              Edit and run
+            </button>
+            <div class="run-bar" hidden>
+              <button type="button" class="run-run">
+                <Fragment set:html={icon(playIcon)} />
+                Run
+              </button>
+              <button type="button" class="run-reset">
+                <Fragment set:html={icon(resetIcon)} />
+                Reset
+              </button>
+              <button type="button" class="run-download" hidden>
+                <Fragment set:html={icon(downloadIcon)} />
+                Download PDF
+              </button>
+            </div>
+          </lamina-run>
+        )}
+      </div>
+    )
+  }
+</div>
 
 <script>
   // Starlight remembers a synced row's last tab in localStorage. Here only TypeScript or Rust may be
@@ -172,9 +210,17 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       const run = this.querySelector<HTMLButtonElement>(".run-run");
       const reset = this.querySelector<HTMLButtonElement>(".run-reset");
       const download = this.querySelector<HTMLButtonElement>(".run-download");
-      const { file, source } = this.dataset;
+      const { file, source, name } = this.dataset;
       if (button === null || bar === null || run === null || reset === null || download === null) return;
-      if (file === undefined || source === undefined) return;
+      if (file === undefined || source === undefined || name === undefined) return;
+      // The TypeScript code, which the editor replaces; the page's own column, where a run's pages
+      // take the place of the first page's picture.
+      const example = this.closest(".example");
+      const code = example?.querySelector<HTMLElement>(".example-ts");
+      const shown = code?.querySelector<HTMLElement>(".example-source");
+      const picture = example?.querySelector<HTMLElement>(".example-first");
+      const side = this.parentElement;
+      if (code == null || shown == null || picture == null || side === null) return;
       const open = async () => {
         button.disabled = true;
         button.lastChild?.replaceWith(" Loading the editor…");
@@ -188,12 +234,15 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
           return;
         }
         button.removeEventListener("click", open);
-        const pictures = document.createElement("div");
-        // The Result tab's pictures stay until a run draws its own pages.
-        for (const figure of this.parentElement?.querySelectorAll(".example-result") ?? []) pictures.append(figure);
-        this.after(pictures);
         button.remove();
-        editor.openRunner({ bar, run, reset, download }, file, source, pictures);
+        // The bar moves under the editor, so this element is left empty.
+        this.hidden = true;
+        shown.hidden = true;
+        // The editor is TypeScript: a reader on the Rust tab is taken to the TypeScript one.
+        const panel = code.closest<HTMLElement>("[role=tabpanel]");
+        const tab = panel?.getAttribute("aria-labelledby");
+        if (panel?.hidden === true && tab != null) document.getElementById(tab)?.click();
+        editor.openRunner({ bar, run, reset, download }, { file, source, name }, { code, picture, pages: side });
       };
       button.addEventListener("click", open);
     }
@@ -202,73 +251,144 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
 </script>
 
 <style>
+  /* Narrow screens: the first page below the code, small enough not to push the prose away. */
+  .example-with-page {
+    --example-page-width: 15rem;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--paper-space-24);
+  }
+  .example-page {
+    margin-top: 0;
+    width: min(100%, var(--example-page-width));
+  }
+  /* Wide screens: the page beside the code. The example grows into the margins the content column
+     leaves (it stays centred on the column, as the column is in its pane), up to the column's own
+     45rem of code plus the page. 90rem (1440 px) is the narrowest viewport where that still leaves
+     36rem of code, about 66 characters: the left sidebar, the table of contents, the content's
+     padding and a scroll bar's 1rem take the rest. Narrower, the code would wrap or scroll too
+     often to read, so the page goes below it. */
+  @media (min-width: 90rem) {
+    .example-with-page {
+      --example-width: min(
+        100vw - var(--sl-sidebar-width) - var(--docs-toc-width, 0rem) - 2 * var(--sl-content-pad-x) - 1rem,
+        45rem + var(--paper-space-24) + var(--example-page-width)
+      );
+
+      grid-template-columns: minmax(0, 1fr) var(--example-page-width);
+      width: var(--example-width);
+      margin-inline: calc((100% - var(--example-width)) / 2);
+    }
+    .example-page {
+      position: sticky;
+      top: calc(var(--sl-nav-height) + var(--paper-space-16));
+      align-self: start;
+      width: auto;
+    }
+    /* A run's pages can be taller than the window: they scroll with the page. */
+    .example-page:has(:global(.run-page)) {
+      position: static;
+    }
+  }
+  .example-first {
+    margin: 0;
+  }
+  .example-first img,
+  .example-pages img,
+  .example :global(.run-page) {
+    /* Starlight spaces sibling elements in page content; in the grid, the gap does that. */
+    display: block;
+    margin: 0;
+    width: 100%;
+    height: auto;
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    box-shadow: var(--paper-shadow-thumbnail);
+  }
+  .example-first figcaption,
+  .example-result figcaption {
+    margin-top: var(--paper-space-8);
+    font-size: var(--sl-text-sm);
+    color: var(--paper-text-2);
+  }
+  /* The page's column is outside Starlight's content styles (not-content), so its link is styled here. */
+  .example-first a {
+    color: var(--paper-accent);
+  }
   .example-run {
     display: block;
-    margin-bottom: 1rem;
+    margin-top: var(--paper-space-12);
   }
-  .example-run :global(.run-editor) {
-    border: 1px solid var(--sl-color-gray-5);
+  /* Until its script defines it, and with JavaScript off, the button would do nothing. */
+  .example-run[hidden],
+  .example-run:not(:defined) {
+    display: none;
+  }
+  .example :global(.run-editor) {
+    margin-top: 0;
+    border: var(--paper-border-width) solid var(--paper-chip-border);
     max-height: 32rem;
     overflow: auto;
     font-size: var(--sl-text-sm);
   }
-  .example-run .run-bar {
+  .run-bar {
     display: flex;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
     align-items: center;
-    margin-top: 0.5rem;
+    margin-top: var(--paper-space-8);
   }
-  .example-run button {
+  .run-open,
+  .run-bar button {
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: var(--paper-space-6);
     margin: 0;
+    min-height: var(--paper-button-height);
     font: inherit;
-    padding: 0.25rem 0.75rem;
-    border: 1px solid var(--sl-color-gray-4);
-    border-radius: 0.25rem;
-    background: var(--sl-color-gray-6);
-    color: var(--sl-color-white);
+    padding: var(--paper-space-4) var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-raised);
+    color: var(--paper-text);
     cursor: pointer;
   }
-  .example-run button[hidden],
-  .example-run .run-bar[hidden] {
+  .run-bar button[hidden],
+  .run-bar[hidden] {
     display: none;
   }
-  .example-run :global(.run-icon) {
+  .example :global(.run-icon) {
     flex: none;
   }
-  .example-run button:disabled {
+  .run-open:disabled,
+  .run-bar button:disabled {
     cursor: progress;
   }
-  .example-run :global(.run-status:empty) {
+  .example :global(.run-status) {
+    margin: var(--paper-space-8) 0 0;
+  }
+  .example :global(.run-status:empty) {
     display: none;
   }
-  .example-run :global(.run-error) {
-    margin-top: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-left: 3px solid var(--sl-color-red);
-    background: var(--sl-color-red-low);
+  .example :global(.run-error) {
+    margin-top: var(--paper-space-8);
+    padding: var(--paper-space-8) var(--paper-space-12);
+    border-left: 3px solid var(--paper-danger);
+    background: var(--paper-danger-tint);
     white-space: pre-wrap;
   }
-  .example-run :global(.run-hint) {
-    margin-top: 0.25rem;
+  .example :global(.run-error[hidden]) {
+    display: none;
   }
-  .example-run :global(.run-pages) {
+  .example :global(.run-hint) {
+    margin: var(--paper-space-4) 0 0;
+  }
+  .example :global(.run-pages) {
     display: grid;
-    grid-template-columns: minmax(0, 26rem);
-    gap: 1rem;
-    margin-top: 0.5rem;
+    gap: var(--paper-space-16);
   }
-  .example-run :global(.run-pages-many) {
-    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-  }
-  .example-run :global(.run-page) {
-    margin: 0;
-    width: 100%;
-    height: auto;
-    border: 1px solid var(--sl-color-gray-5);
-    background: #fff;
+  .example :global(.run-pages:empty) {
+    display: none;
   }
   .example-result {
     margin: 0;
@@ -276,23 +396,10 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   .example-pages {
     display: grid;
     grid-template-columns: minmax(0, 26rem);
-    gap: 1rem;
+    gap: var(--paper-space-16);
   }
   .example-pages-many {
     grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-  }
-  .example-pages img {
-    /* Starlight spaces sibling elements in page content; in the grid, the gap does that. */
-    margin: 0;
-    width: 100%;
-    height: auto;
-    border: 1px solid var(--sl-color-gray-5);
-    box-shadow: var(--sl-shadow-sm);
-    background: #fff;
-  }
-  .example-result figcaption {
-    margin-top: 0.5rem;
-    font-size: var(--sl-text-sm);
   }
   .example-output {
     white-space: pre-wrap;

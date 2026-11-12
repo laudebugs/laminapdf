@@ -3,7 +3,7 @@
 //! and compares, so no command or output on the docs' pages is typed by hand.
 //!
 //! `transcripts.json` gives each transcript's commands and the files it needs, under the names the
-//! page uses. Each runs in a folder of its own with those files and the built `laminapdf` first on
+//! page uses, and any setup commands that run first and aren't shown. Each runs in a folder of its own with those files and the built `laminapdf` first on
 //! `PATH`, and with no `LAMINA_PDF_*` variable from the caller's environment. Its commands run in
 //! one `sh`, so `echo $?` and pipes work as they do in a terminal, with standard error merged into
 //! standard output. The version is written `{{version}}` (the docs fill it in), and timings
@@ -35,8 +35,34 @@ fn transcripts_dir() -> PathBuf {
     laminapdf_test_fixtures::fixtures_dir().join("cli/transcripts")
 }
 
+/// The programs a transcript may run, `laminapdf` and the few a page pipes it through. Every
+/// command in `transcripts.json` becomes shell the test runs, so an edit there that reaches for
+/// anything else (the network, `rm`) fails the test before any shell starts.
+const PROGRAMS: &[&str] = &["cat", "echo", "find", "head", "laminapdf", "mkdir", "sort"];
+
+/// Why `command` isn't one a transcript may run, or `None` when it is: each stage of a pipeline
+/// must start with one of [`PROGRAMS`], and nothing may start another command some other way
+/// (`;`, `&`, a redirection, a substitution, an expansion other than `$?`, a second line, or
+/// `find`'s actions that run or delete).
+fn refusal(command: &str) -> Option<String> {
+    let bad = ["`", ";", "&", "<", ">", "\n", "-exec", "-ok", "-delete"];
+    if let Some(bad) = bad.iter().find(|bad| command.contains(**bad)) {
+        return Some(format!("it uses `{bad}`"));
+    }
+    if command.replace("$?", "").contains('$') {
+        return Some("it expands a variable or a command; only `$?` may be shown".to_owned());
+    }
+    command.split('|').find_map(|stage| {
+        let program = stage.split_whitespace().next().unwrap_or_default();
+        (!PROGRAMS.contains(&program)).then(|| format!("`{program}` isn't one of {PROGRAMS:?}"))
+    })
+}
+
 /// What `transcripts.json` gives one transcript.
 struct Entry {
+    /// Commands run first and not shown, such as the build that makes the PDF a later step of a
+    /// tutorial reads (optional).
+    setup: Vec<String>,
     /// The commands, as the reader types them.
     commands: Vec<String>,
     /// The name in its folder → the path from the repository root.
@@ -61,24 +87,37 @@ fn manifest() -> BTreeMap<String, Entry> {
                     })
                     .collect()
             });
-            let commands = entry["commands"]
-                .as_array()
-                .unwrap_or_else(|| panic!("{name}: no commands"))
-                .iter()
-                .map(|command| {
-                    let command = command.as_str();
-                    command
-                        .unwrap_or_else(|| panic!("{name}: a command isn't a string"))
-                        .to_owned()
+            let list = |key: &str| -> Vec<String> {
+                entry[key].as_array().map_or_else(Vec::new, |commands| {
+                    commands
+                        .iter()
+                        .map(|command| {
+                            let command = command.as_str();
+                            command
+                                .unwrap_or_else(|| panic!("{name}: a {key} command isn't a string"))
+                                .to_owned()
+                        })
+                        .collect()
                 })
-                .collect();
-            (name.clone(), Entry { commands, files })
+            };
+            let entry = Entry {
+                setup: list("setup"),
+                commands: list("commands"),
+                files,
+            };
+            assert!(!entry.commands.is_empty(), "{name}: no commands");
+            for command in entry.setup.iter().chain(&entry.commands) {
+                if let Some(why) = refusal(command) {
+                    panic!("{name}: `{command}` can't run in a transcript: {why}");
+                }
+            }
+            (name.clone(), entry)
         })
         .collect()
 }
 
 /// Runs `commands` in `dir` and writes the session as a terminal shows it.
-fn run(dir: &Path, commands: &[String]) -> String {
+fn run(dir: &Path, setup: &[String], commands: &[String]) -> String {
     let binary = PathBuf::from(env!("CARGO_BIN_EXE_laminapdf"));
     let path = format!(
         "{}:{}",
@@ -87,6 +126,12 @@ fn run(dir: &Path, commands: &[String]) -> String {
     );
     // Each command starts with the exit status of the one before (`echo $?`), after the mark.
     let mut script = String::from("exec 2>&1\n");
+    // The setup must work: a failure stops the session before the first mark, and the assertion
+    // below names it.
+    for command in setup {
+        script.push_str(command);
+        script.push_str(" >/dev/null || exit 1\n");
+    }
     for command in commands {
         script.push_str("s=$?; printf '");
         script.push_str(MARK);
@@ -154,7 +199,7 @@ fn every_transcript_is_what_the_commands_print() {
         for (to, from) in &entry.files {
             fs::copy(root().join(from), dir.join(to)).unwrap_or_else(|e| panic!("{name}: {from}: {e}"));
         }
-        let actual = run(&dir, &entry.commands);
+        let actual = run(&dir, &entry.setup, &entry.commands);
         if masked(&actual) == masked(&expected) {
             continue;
         }
@@ -186,6 +231,32 @@ fn every_transcript_file_is_in_the_manifest() {
         missing.is_empty(),
         "transcripts without a transcripts.json entry: {missing:?}"
     );
+}
+
+#[test]
+fn a_transcript_runs_only_the_listed_programs() {
+    for allowed in [
+        "laminapdf explain xref-repaired | head -n 8",
+        "echo $?",
+        "find . -name '*.pdf' -print0 | sort -z | laminapdf check --files-from - -0 --json",
+    ] {
+        assert_eq!(refusal(allowed), None, "{allowed}");
+    }
+    for refused in [
+        "curl https://example.com",
+        "laminapdf info a.pdf | sh",
+        "laminapdf info a.pdf; rm -rf .",
+        "laminapdf info a.pdf && rm x",
+        "laminapdf info $(cat names)",
+        "laminapdf info `cat names`",
+        "laminapdf info a.pdf > ~/.profile",
+        "laminapdf info a.pdf\nrm x",
+        "find . -exec rm {} +",
+        "find . -delete",
+        "laminapdf info ${HOME}",
+    ] {
+        assert!(refusal(refused).is_some(), "{refused}");
+    }
 }
 
 #[test]
