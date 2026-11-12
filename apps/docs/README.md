@@ -85,8 +85,8 @@ Every build lets crawlers in (`@laminapdf/site-kit/robots`), so they can read th
 Starlight is still at 0.x, and any minor release can change the markup or the components the site overrides. Astro, which it runs on, shipped two majors in 2026. Small upgrades keep each break easy to find:
 
 - **Exact pins.** `package.json` pins `astro`, `@astrojs/starlight`, `starlight-links-validator` and `starlight-typedoc` to exact versions, never ranges. The website (`apps/site`) and `@laminapdf/site-kit` pin the same `astro`, and an upgrade moves all three.
-- **One minor per PR.** Each PR moves Starlight or Astro by one minor, and the two plugins only as far as that minor needs. Dependabot groups them (the `starlight` group in `.github/dependabot.yml`), and when its PR skips a minor, step through the skipped ones one PR at a time.
-- **The changelog, read.** For every version the PR skips over, read Starlight's changelog (and Astro's upgrade guide for a major), and note in the PR each change that touches a row of the table below.
+- **One minor per PR.** Each PR moves Starlight or Astro by one minor, and moves `starlight-links-validator` and `starlight-typedoc` only as far as that minor needs. Dependabot groups them (the `starlight` group in `.github/dependabot.yml`), and when its PR skips a minor, step through the skipped ones one PR at a time.
+- **The changelog, read.** For every version between the old pin and the new one, read Starlight's changelog (and Astro's upgrade guide for a major), and note in the PR each change that touches a row of the table below.
 - **The site, tried.** After `pnpm --filter @laminapdf/docs build` and the e2e tests, open the built site and use what the table lists: the header at desktop and phone widths, the phone menu, the theme switch, the unreleased banner, the code tabs, a code page and an "Edit page" link.
 
 What depends on Starlight's internals, and why each exists:
