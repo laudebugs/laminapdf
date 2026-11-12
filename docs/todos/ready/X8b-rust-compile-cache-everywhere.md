@@ -6,16 +6,16 @@
 | Status | `ready` |
 | Plan | [CI caching §5](../../plans/ci-caching.md#5-rollout) |
 | Round / milestone | Round X (cross-cutting): CI |
-| Depends on | [X8a](../ongoing/X8a-rust-compile-cache-trial.md) |
+| Depends on | [X8a](./X8a-rust-compile-cache-trial.md) |
 | ADRs | [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) |
 | Branch | `ci/x8b-rust-compile-cache-everywhere` |
-| PR title | `ci: compile Rust through the shared cache in every lane that may use it` |
+| PR title | `ci: compile Rust through the compile cache in the fast and full lanes` |
 | Size | S |
 | PR | — |
 
 ## Goal
 
-X8a's trial shows how much sccache saves on the Linux x64 and macOS x64 Rust legs. This todo acts on those numbers. If warm compiling on macOS x64 fell by a third or more, every Rust job in `ci.yml`, `full.yml` and `nightly.yml` uses the cache. Otherwise the action, the pin and the secrets go, and the plan records why.
+X8a's trial shows how much sccache saves on the Linux x64 and macOS x64 Rust legs. This todo acts on those numbers. If the compile minutes of `cargo xtask check rust` on macOS x64 PR runs with a Rust-cache hit fell by a third or more, every Rust job in `ci.yml` and `full.yml` uses the compile cache. Otherwise the action, the pin and the secrets go, and the plan records why.
 
 ## Context
 
@@ -27,23 +27,24 @@ X8a's trial shows how much sccache saves on the Linux x64 and macOS x64 Rust leg
 **In scope**
 
 - The trial's numbers, in the plan's §2.
-- The action in every Rust job of the three lanes (keep), or its removal (remove).
+- The action in every Rust job of the fast and full lanes (keep), or its removal (remove).
 - One leg without the Rust cache, measured (keep only).
 
 **Out of scope** (and which todo covers it)
 
-- The publishing and deploying workflows, which never use the cache (plan §4.3).
+- The publishing, deploying and nightly workflows, which never use the compile cache (plan §4.3).
 
 ## Tasks
 
 - [ ] Record the trial's hit rates and step times in the plan's §2.
 - [ ] Apply the rule: the patch for every Rust job, or the removal.
-- [ ] If kept: one leg without the Rust cache for five pushes to `main`; keep whichever is faster, and record R2's request counts against §4.4.
+- [ ] If kept: check install-action has sccache for `aarch64-pc-windows-msvc` before that leg.
+- [ ] If kept: one leg without the Rust cache for five pushes to `main`; keep the faster setup unless its R2 reads exceed §4.4's estimate.
 
 ## Acceptance criteria
 
 - [ ] The plan's §2 holds the trial's numbers and §5 the decision.
-- [ ] If kept, every Rust job of the three lanes uses the action, and the workflow checks still pass.
+- [ ] If kept, every Rust job of the fast and full lanes uses the action, and the workflow checks still pass.
 
 ## Post-merge checks
 

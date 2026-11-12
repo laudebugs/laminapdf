@@ -157,7 +157,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/done/X5-linux-ci-container.md))
 - [x] Windows CI coverage: the full check on hosted Windows ([X6](../todos/done/X6-windows-ci.md))
 - [x] A required check for the fast lane ([X7](../todos/done/X7-fast-lane-gate.md))
-- [ ] Compiled Rust shared between CI runs, through sccache on Cloudflare R2 ([CI caching plan](ci-caching.md): [X8a](../todos/ongoing/X8a-rust-compile-cache-trial.md), [X8b](../todos/ready/X8b-rust-compile-cache-everywhere.md))
+- [ ] Compiled Rust shared between CI runs, through sccache on Cloudflare R2 ([CI caching plan](ci-caching.md): [X8a](../todos/ready/X8a-rust-compile-cache-trial.md), [X8b](../todos/ready/X8b-rust-compile-cache-everywhere.md))
 - [x] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md): every crate and both packages at `0.1.0-alpha.0`, `cargo xtask version sync`, the release lane and `verify-install`; the `v0.1.0-alpha.0` tag is the owner's post-merge step; docs site [B7a](../todos/done/B7a-docs-site.md))
 
 ### Round C — Web reader
