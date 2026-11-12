@@ -1,9 +1,9 @@
 //! [`DocumentRegistry`]: every open document, its file, its window and its kept password.
 //!
-//! Paths enter only from trusted places in the main process (a dialog opened from Rust; later
-//! the OS's open-file events, the recent list and session restore). The webview names documents
-//! by [`DocId`] and never sends a path, and a path never leaves this module for the webview or an
-//! engine.
+//! Paths enter only from trusted places in the main process (a dialog opened from Rust, the OS's
+//! open-file events, the recent list, a watched file that changed; later session restore). The
+//! webview names documents by [`DocId`] and never sends a path, and a path never leaves this
+//! module for the webview or an engine.
 
 use std::collections::BTreeMap;
 use std::io;
@@ -83,6 +83,13 @@ impl DocumentRegistry {
         if let Some(entry) = self.lock().get_mut(&doc) {
             entry.password = Some(password);
         }
+    }
+
+    /// A copy of `doc`'s kept password, for reopening it from a changed file; wiped when dropped.
+    pub(crate) fn password_of(&self, doc: DocId) -> Option<laminapdf_desktop_protocol::Password> {
+        self.lock()
+            .get(&doc)
+            .and_then(|entry| entry.password.as_ref().map(SessionPassword::to_password))
     }
 
     /// Wipes `doc`'s kept password (a restarted engine refused it).

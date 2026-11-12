@@ -19,6 +19,12 @@ export const appBinary = join(
 export const output = join(root, "target", "desktop-e2e");
 
 /**
+ * Copies that scenarios change, replace or delete. They sit under `target/fixtures`, because the
+ * e2e build's file pick (`e2e_queue_pick`) opens only files under the repository's fixtures.
+ */
+export const workingCopies = join(root, "target", "fixtures", "desktop-e2e");
+
+/**
  * A copy of the two-page invoice fixture named with a space and non-ASCII letters, as a user's
  * files are, in the run's output folder.
  */

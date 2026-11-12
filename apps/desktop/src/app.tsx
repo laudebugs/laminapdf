@@ -3,9 +3,10 @@
 // runs the main process's file dialog; a locked document asks for its password; a restarted
 // engine shows "Document process restarted" and the view redraws by itself. Files the OS asks the
 // app to open (the command line, a second launch, Finder, the Dock, a drop on the window) replace
-// what the window shows, until it has tabs (D4a).
+// what the window shows, until it has tabs (D4a). The start window lists recent files; a document
+// whose file changes on disk reloads in place (file-changes.tsx); Settings holds the Files choices.
 
-import type { KeyPlatform, Platform, ReaderError } from "@laminapdf/ui";
+import type { KeyPlatform, Platform, ReaderError, ReaderState } from "@laminapdf/ui";
 import {
   type CommandContext,
   CommandRegistry,
@@ -20,6 +21,7 @@ import {
   ReaderController,
   ReaderShell,
   ReaderTopBar,
+  RegistryPalette,
   RepairedNotice,
   registerReaderCommands,
   StatusBarItem,
@@ -28,11 +30,15 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
 import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
+import { stopper } from "./engine/stopper.ts";
+import { useFileChanges } from "./file-changes.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
+import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
+import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
 
 /** Outside Tauri (`pnpm dev` in a browser) there is no engine to open with. */
 const openLater: Opener = () => Promise.reject(new NotYetSupportedError("open"));
@@ -90,19 +96,12 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const [toasts] = useState(() => new ToastQueue());
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
   const dragging = useOsOpens(engine, reader, toasts);
-  // The reader's commands (open, the shortcuts); the shell adds its own handlers as it grows.
-  const [registry] = useState(() => {
-    const commands = new CommandRegistry();
-    registerReaderCommands(commands);
-    return commands;
-  });
+  const fileProblem = useFileChanges(engine, reader, toasts);
+  const { settings, recent, actions } = useHome(engine, platform, reader, state, toasts);
   const open = state.phase === "open";
   // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
-  const context = useMemo<CommandContext>(
-    () => ({ platform, reader, ...(viewer === undefined ? {} : { viewer }) }),
-    [platform, reader, viewer],
-  );
+  const { registry, context, palette } = useCommands(platform, reader, actions, viewer);
   const repaired = open && engine?.client.current?.repaired === true;
   return (
     <CommandsProvider registry={registry} context={context} keys={keys}>
@@ -113,7 +112,10 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             {...(viewer === undefined ? {} : { viewer })}
             keys={keys}
             home={<span className="desktop-wordmark">Lamina PDF</span>}
-            more={{ items: [], onAction: () => undefined }}
+            more={{
+              items: [{ id: "settings", label: message("command.app.settings"), icon: "settings" }],
+              onAction: settings.open,
+            }}
           />
         }
         status={
@@ -135,8 +137,11 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         }
       >
         {state.phase === "empty" || state.phase === "opening" || state.phase === "needs-password" ? (
-          <OpenDropZone reader={reader} keys={keys} />
+          <OpenDropZone reader={reader} keys={keys}>
+            {recent.home}
+          </OpenDropZone>
         ) : null}
+        {open && lost === undefined ? fileProblem : null}
         {state.phase === "error" ? <Failure error={state.error} reader={reader} platform={platform} /> : null}
         {open && lost !== undefined ? (
           <Notice title={LOST_TEXT[lost].title} tone="warning">
@@ -150,9 +155,68 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
       </ReaderShell>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
+      {settings.dialog}
+      {palette}
       <ToastRegion queue={toasts} aria-label="Notifications" />
     </CommandsProvider>
   );
+}
+
+/**
+ * The reader's commands (open, the shortcuts) and the context they run in, with the command palette
+ * (⌘K or Ctrl+K) as in the web reader: it reaches every command with a handler here, among them
+ * Open recent and Clear recent while a document is open.
+ */
+function useCommands(
+  platform: Platform,
+  reader: ReaderController,
+  actions: CommandContext["actions"],
+  viewer: Viewer | undefined,
+): { registry: CommandRegistry; context: CommandContext; palette: ReactNode } {
+  const [registry] = useState(() => {
+    const commands = new CommandRegistry();
+    registerReaderCommands(commands);
+    return commands;
+  });
+  const [isOpen, setOpen] = useState(false);
+  const context = useMemo<CommandContext>(
+    () => ({
+      platform,
+      reader,
+      actions: { ...actions, "palette.open": () => setOpen(true) },
+      ...(viewer === undefined ? {} : { viewer }),
+    }),
+    [platform, reader, actions, viewer],
+  );
+  return { registry, context, palette: <RegistryPalette isOpen={isOpen} onOpenChange={setOpen} /> };
+}
+
+/**
+ * The start window's recent files and the Settings dialog, which share the "Remember recent
+ * files" choice, and the handlers of their commands (`file.open-recent`, `file.clear-recent`,
+ * `app.settings`).
+ */
+function useHome(
+  engine: DesktopEngine | undefined,
+  platform: Platform,
+  reader: ReaderController,
+  state: ReaderState,
+  toasts: ToastQueue,
+): { settings: DesktopSettings; recent: DesktopRecent; actions: NonNullable<CommandContext["actions"]> } {
+  // The recent list reads again once a preference change has reached the main process.
+  const [preferencesChanged, setPreferencesChanged] = useState(0);
+  const settings = useDesktopSettings(
+    engine?.shell,
+    useCallback(() => setPreferencesChanged((n) => n + 1), []),
+  );
+  const recent = useDesktopRecent(platform, reader, state, toasts, settings.preferences.rememberRecent);
+  const { refresh, actions: recentActions } = recent;
+  useEffect(() => {
+    if (preferencesChanged > 0) refresh();
+  }, [preferencesChanged, refresh]);
+  const openSettings = settings.open;
+  const actions = useMemo(() => ({ ...recentActions, "app.settings": openSettings }), [recentActions, openSettings]);
+  return { settings, recent, actions };
 }
 
 /** What a drop of the dragged files will do. */
@@ -173,24 +237,15 @@ function useOsOpens(
   const [dragging, setDragging] = useState<Dragging>();
   useEffect(() => {
     if (engine === undefined) return;
-    let stop: (() => void) | undefined;
-    let gone = false;
-    listenForOsOpens(engine.shell, {
-      open: (file) => reader.open(file),
-      unreadable: (name) => toasts.add({ message: message("reader.open.missing", { name }) }),
-      dragging: setDragging,
-      refused: (names) => toasts.add({ message: `${message("reader.open.droppingNone")}: ${names.join(", ")}` }),
-    }).then(
-      (unsubscribe) => {
-        if (gone) unsubscribe();
-        else stop = unsubscribe;
-      },
-      (error: unknown) => console.error("listening for the OS's open requests failed", error),
+    return stopper(
+      listenForOsOpens(engine.shell, {
+        open: (file) => reader.open(file),
+        unreadable: (name) => toasts.add({ message: message("reader.open.missing", { name }) }),
+        dragging: setDragging,
+        refused: (names) => toasts.add({ message: `${message("reader.open.droppingNone")}: ${names.join(", ")}` }),
+      }),
+      "listening for the OS's open requests",
     );
-    return () => {
-      gone = true;
-      stop?.();
-    };
   }, [engine, reader, toasts]);
   return dragging;
 }

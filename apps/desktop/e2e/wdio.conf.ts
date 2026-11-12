@@ -49,6 +49,8 @@ export const config = e2eConfig([
   "start",
   "open",
   "forward",
+  "watch",
+  "recent",
   "scroll",
   "zoom",
   "password",

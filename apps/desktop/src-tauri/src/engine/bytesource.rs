@@ -162,6 +162,22 @@ mod tests {
         assert_eq!(src.read(0, 4096).unwrap_err().kind(), io::ErrorKind::UnexpectedEof);
     }
 
+    /// Another app saving over an open document (an atomic save renames its file over ours), then
+    /// deleting it: neither is refused, and the open handle keeps reading what it opened. On
+    /// Windows that needs the share mode `FileSource` opens with.
+    #[test]
+    fn another_app_should_replace_and_delete_an_open_file() {
+        let (temp, src) = source("replaced", b"the first version");
+        let saved = Temp::new("replaced-new", b"the second version, longer");
+        std::fs::rename(&saved.0, &temp.0).unwrap();
+        let after_replace = src.read(0, 9).unwrap();
+        std::fs::remove_file(&temp.0).unwrap();
+        assert_eq!(
+            (after_replace, src.read(4, 5).unwrap()),
+            (b"the first".to_vec(), b"first".to_vec())
+        );
+    }
+
     #[test]
     fn the_length_should_be_the_files_when_it_opened() {
         let (_t, src) = source("len", &[1; 1234]);

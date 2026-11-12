@@ -93,6 +93,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     no-new-privs, Landlock, RLIMIT_AS, seccomp; Windows RevertToSelf + post-load policies);
 │   │                    #     `probe` (the selftest's, test only); `seccomp-trap`; LAMINA_PDF_ENGINE_SANDBOX=off in debug
 │   │                    #     builds only (D2c)
+│   ├── laminapdf-desktop-os/  # edge, unpublished: the desktop main process's calls into the OS's shell (D3b): the recent
+│   │                    #     documents (macOS NSDocumentController, Windows SHAddToRecentDocs and the Jump List of the
+│   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread
 │   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
 │   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers that crates share (fixtures_dir, fixture, corpus,
@@ -278,14 +281,19 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   open.rs (D3a: the OS's opens (argv, single-instance, macOS RunEvent::Opened, drops) through
 │                        #   route_open, queued in PendingOpens until the webview's take_pending_opens; open://document,
 │                        #   open://drag-enter|leave, open://refused), linux/laminapdf.desktop (Exec with %F),
+│                        #   opened.rs (D3b: every open from a path: engine, recent lists, watcher; the fingerprint),
+│                        #   recent.rs (recent.json, 20 entries by canonical path, ids for the webview), prefs.rs
+│                        #   (preferences.json), store.rs (atomic JSON), watch/ (notify on each open file's folder,
+│                        #   stamp.rs's settle rule, app.rs's reload as a new document; document://reloaded|missing|
+│                        #   unreadable); src/recent.tsx, settings.tsx (Settings › Files), file-changes.tsx,
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
 │                        #   capabilities ["main"]; no externalBin), tauri.bundle.conf.json (the engine sidecar and PDFium, merged
 │                        #   by desktop:dev/desktop:build), capabilities/main.json (the four commands' allow-*),
 │                        #   tests/capabilities.rs (the capability guard; the e2e CSP is the base one plus 'unsafe-eval'),
 │                        #   e2e/ (D2e: WebdriverIO through the app's embedded WebDriver server, feature `e2e` +
-│                        #   tauri.e2e.conf.json: wdio.conf.ts, app.ts helpers, specs/ (nine scenarios in one app, in
-│                        #   order; cold-open in its own run, wdio.cold-open.conf.ts), MANUAL-OPEN.md, probe/ (imported only in Vite's e2e mode), cold-start.ts; src-tauri/src/e2e.rs's
+│                        #   tauri.e2e.conf.json: wdio.conf.ts, app.ts helpers, specs/ (eleven scenarios in one app, in
+│                        #   order; cold-open in its own run, wdio.cold-open.conf.ts, with the recent list after a restart), MANUAL-OPEN.md, probe/ (imported only in Vite's e2e mode), cold-start.ts; src-tauri/src/e2e.rs's
 │                        #   e2e_queue_pick and e2e_interactive), test/app-info.json
 │                        #   (the app_info sample both languages' tests read), about/
 │                        #   (cargo-about, MPL-2.0 accepted for Tauri's dependencies); Linux builds need WebKitGTK 4.1 and D-Bus
@@ -592,7 +600,7 @@ pnpm --filter @laminapdf/desktop run desktop:dev  # the desktop reader with its 
                              #   `cargo xtask changes` says desktop=true, then checks the engine and PDFium sit beside the app,
                              #   the main process links no parser or PDFium, and the build has no e2e command, plugin or probe
 pnpm --filter @laminapdf/desktop run desktop:build:e2e  # the e2e build: debug, feature `e2e`, tauri.e2e.conf.json; then
-                             #   `run e2e` runs the nine WebdriverIO scenarios and the cold start with a path (Linux: under
+                             #   `run e2e` runs the eleven WebdriverIO scenarios and the cold start with a path (Linux: under
                              #   dbus-run-session and xvfb-run; needs
                              #   target/fixtures/1000-pages.pdf and 1gb.pdf from `cargo xtask fixtures large-pdf`) and
                              #   `run cold-start` reports five launches' median to the empty state; the full lane's

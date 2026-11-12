@@ -37,9 +37,16 @@ image-webp = { workspace = true }
 laminapdf-desktop-protocol = { workspace = true }
 # Starts each engine inside its sandbox; its lock-down half (feature `engine`) is the engine's.
 laminapdf-desktop-sandbox = { workspace = true }
+# The OS's recent-documents lists and Windows' app ID: the FFI lives there, not here.
+laminapdf-desktop-os = { workspace = true }
+# Watching open files for changes on disk, and telling a replaced file from the one opened.
+file-id = { workspace = true }
+notify = { workspace = true }
 region = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+# A document's fingerprint, the key its reading position is kept under (the viewer's own scheme).
+sha2 = { workspace = true }
 tauri = { workspace = true }
 tauri-plugin-dialog = { workspace = true }
 tauri-plugin-log = { workspace = true }
