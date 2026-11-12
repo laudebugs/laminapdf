@@ -55,6 +55,9 @@ mod pdf_a_archive;
 #[path = "../examples/pdf_ua_report.rs"]
 mod pdf_ua_report;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/react_to_error_codes.rs"]
+mod react_to_error_codes;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/snapshot_test.rs"]
 mod snapshot_test;
 
@@ -290,7 +293,25 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
 }
 
 /// The examples that read a PDF instead of building one.
-const READERS: [&str; 2] = ["extract_markdown", "snapshot_test"];
+const READERS: [&str; 3] = ["extract_markdown", "react_to_error_codes", "snapshot_test"];
+
+#[test]
+fn react_to_error_codes_asks_for_a_password_then_again_and_refuses_a_non_pdf() {
+    use react_to_error_codes::{NextStep, open_or_ask};
+    let file = fixture("encrypted/r6-aes-256-user.pdf");
+    let next = |password: Option<&str>| open_or_ask(file.clone(), password).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(next(None), NextStep::AskForPassword);
+    assert_eq!(next(Some("nope")), NextStep::AskAgain);
+    assert_eq!(
+        next(Some("Pässwört-6")),
+        NextStep::Show {
+            pages: 2,
+            warnings: Vec::new()
+        }
+    );
+    let not_pdf = open_or_ask(b"not a PDF".to_vec(), None).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(not_pdf, NextStep::NotAPdf);
+}
 
 #[test]
 fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {

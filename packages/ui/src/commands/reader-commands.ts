@@ -605,6 +605,14 @@ function appCommands(): AnyCommand[] {
       home: ["help-menu"],
     }),
     delegated({
+      id: "help.capabilities",
+      title: title("help.capabilities"),
+      keywords: ["features", "supported", "matrix", "status"],
+      group: "help",
+      icon: "info",
+      home: ["help-menu"],
+    }),
+    delegated({
       id: "layer.close",
       title: title("layer.close"),
       keywords: ["dismiss", "escape"],

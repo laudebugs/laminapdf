@@ -106,14 +106,14 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D2. Shell and native core
 
-**Todos:** [D2a](../todos/done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/done/D2b-engine-process.md), [D2c](../todos/done/D2c-engine-sandbox.md), [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md)
+**Todos:** [D2a](../todos/done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/done/D2b-engine-process.md), [D2c](../todos/done/D2c-engine-sandbox.md), [D2d](../todos/done/D2d-tile-transport-and-first-document.md), [D2e](../todos/done/D2e-desktop-e2e-webdriverio.md)
 
 **Deliverable:** ADR 0008; `apps/desktop` with Tauri 2, desktop `Platform` adapter, engine child process, tile transport, single window opening one file.
-**Accepted when:** the reader end-to-end scenarios run against the desktop build with WebdriverIO and `@wdio/tauri-service` on Windows and Linux (`tauri-driver`) and on macOS (the service's embedded WebDriver server via `tauri-plugin-wdio-webdriver`, compiled into test builds only behind a Cargo feature) ([Tauri WebDriver docs](https://v2.tauri.app/develop/tests/webdriver/)); the C-round Playwright suite keeps running against the web build on all three OSes (Playwright drives browsers, not Tauri webviews); killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target. If the macOS embedded driver proves unreliable, macOS falls back to the web-build Playwright run plus a recorded manual smoke checklist, and ADR 0008 records the gap.
+**Accepted when:** the reader end-to-end scenarios run against the desktop build with WebdriverIO and `@wdio/tauri-service` on Windows, Linux and macOS, through the service's embedded WebDriver server (`tauri-plugin-wdio-webdriver`, compiled into test builds only behind a Cargo feature; D2e chose it over `tauri-driver` on Windows and Linux once the service embedded it everywhere) ([Tauri WebDriver docs](https://v2.tauri.app/develop/tests/webdriver/)); the C-round Playwright suite keeps running against the web build on all three OSes (Playwright drives browsers, not Tauri webviews); killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target. If the macOS embedded driver proves unreliable, macOS falls back to the web-build Playwright run plus a recorded manual smoke checklist, and ADR 0008 records the gap.
 
 ### D3. Files
 
-**Todos:** [D3a](../todos/ready/D3a-open-from-os.md), [D3b](../todos/ready/D3b-recent-files-and-file-watching.md)
+**Todos:** [D3a](../todos/done/D3a-open-from-os.md), [D3b](../todos/ready/D3b-recent-files-and-file-watching.md)
 
 **Deliverable:** file associations, argv and `RunEvent::Opened`, single-instance forwarding, recent files (OS and in-app), file watching with reload, drag-drop onto window and icon.
 **Accepted when:** double-clicking a PDF opens it in the running instance on each OS; editing the file externally reloads it keeping the page position.
@@ -163,7 +163,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)?
 3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
 4. Default channel for new installs: stable only, or beta during 0.x?
-5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user?
+5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user? *Answered by D3a:* the installers register Lamina PDF as able to open PDFs and leave the default to the user ([ADR 0008 §10](../decisions/0008-desktop-shell.md#10-opening-files-from-the-os)); an opt-in prompt, if wanted, comes with the settings (D7b).
 
 ## 9. To-dos
 
@@ -186,17 +186,17 @@ Ticked by the PR that completes them.
 - [x] Implement the desktop `Platform` adapter and capability flags
 - [x] Implement the engine child process with restart on crash, sandboxed on each OS ([D2c](../todos/done/D2c-engine-sandbox.md): Seatbelt and a memory watchdog, a job with a restricted Low-integrity token, seccomp-bpf and Landlock; system fonts served by the main process; ADR 0008 §5)
 - [x] Implement a positioned-read `ByteSource` (no mmap in the main process; see [D2b](../todos/done/D2b-engine-process.md) and ADR 0008 §2)
-- [ ] Implement the chosen tile transport
-- [ ] Port the reader end-to-end scenarios to WebdriverIO (`@wdio/tauri-service`): `tauri-driver` on Windows and Linux, embedded WebDriver plugin (test builds only) on macOS; run in CI on three OSes
-- [ ] Record the per-OS test strategy and any macOS gap in ADR 0008
+- [x] Implement the chosen tile transport ([D2d](../todos/done/D2d-tile-transport-and-first-document.md))
+- [x] Port the reader end-to-end scenarios to WebdriverIO (`@wdio/tauri-service`) with the embedded WebDriver plugin (test builds only) on all three OSes; run in CI on three OSes ([D2e](../todos/done/D2e-desktop-e2e-webdriverio.md))
+- [x] Record the per-OS test strategy and any macOS gap in ADR 0008 (§8: no gap; macOS passed 50 runs in a row)
 
 ### D3. Files
 
-- [ ] Register `.pdf` file associations in the bundle config for all three OSes
-- [ ] Handle argv, `RunEvent::Opened` and single-instance forwarding
+- [x] Register `.pdf` file associations in the bundle config for all three OSes ([D3a](../todos/done/D3a-open-from-os.md): an alternate handler, never the default; ADR 0008 §10)
+- [x] Handle argv, `RunEvent::Opened` and single-instance forwarding ([D3a](../todos/done/D3a-open-from-os.md), with drops on the window)
 - [ ] Recent files: OS recent documents and an in-app list with "clear"
 - [ ] Watch open files and reload preserving position
-- [ ] Integration tests for open-from-OS on each platform
+- [ ] Integration tests for open-from-OS on each platform (open from the OS done in [D3a](../todos/done/D3a-open-from-os.md): a second launch and a cold start with a path, on all three OSes; file watching's come with [D3b](../todos/ready/D3b-recent-files-and-file-watching.md))
 
 ### D4. Windows, tabs, menus and printing
 

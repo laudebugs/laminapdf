@@ -1,0 +1,147 @@
+diff --git a/apps/docs/package.json b/apps/docs/package.json
+index 719c6488..a1381f6d 100644
+--- a/apps/docs/package.json
++++ b/apps/docs/package.json
+@@ -36,6 +36,7 @@
+     "@vitest/browser-playwright": "catalog:",
+     "astro": "7.4.5",
+     "codemirror": "6.0.2",
++    "expressive-code-twoslash": "0.6.1",
+     "playwright": "catalog:",
+     "starlight-links-validator": "0.27.0",
+     "starlight-typedoc": "0.23.2",
+diff --git a/apps/docs/src/components/Example.astro b/apps/docs/src/components/Example.astro
+index ca43c098..f058a8eb 100644
+--- a/apps/docs/src/components/Example.astro
++++ b/apps/docs/src/components/Example.astro
+@@ -26,6 +26,8 @@ interface Props {
+   readonly result?: string | readonly string[];
+   /** A text file it prints, from the repository root, shown in an Output tab. */
+   readonly output?: string;
++  /** Spike Q4p: Twoslash hover types on the TypeScript tab. */
++  readonly twoslash?: boolean;
+ }
+ 
+ // The outputs a page may show: the reading examples' goldens, which their tests check.
+@@ -44,7 +46,7 @@ const SOURCES: Record<string, string> = import.meta.glob(["../../../../packages/
+ /** Whether the runner was built: the docs build runs scripts/build-runner.mjs first, from apps/docs. */
+ const RUNNER = existsSync("public/run/worker.js");
+ 
+-const { ts, rust, result, output } = Astro.props;
++const { ts, rust, result, output, twoslash } = Astro.props;
+ const source = ts !== undefined && RUNNER && RUNNABLE[ts] !== undefined ? SOURCES[`../../../../${ts}`] : undefined;
+ const examples = result === undefined ? [] : typeof result === "string" ? [result] : result;
+ const pictures = examples.map((stem) => {
+@@ -74,7 +76,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
+     <Tabs syncKey="lang">
+       {ts !== undefined && (
+         <TabItem label="TypeScript">
+-          <Snippet file={ts} />
++          <Snippet file={ts} twoslash={twoslash} />
+         </TabItem>
+       )}
+       {rust !== undefined && (
+@@ -135,7 +137,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
+       )}
+     </Tabs>
+   ) : (
+-    <ExampleCode ts={ts} rust={rust} />
++    <ExampleCode ts={ts} rust={rust} twoslash={twoslash} />
+   )
+ }
+ 
+diff --git a/apps/docs/src/components/ExampleCode.astro b/apps/docs/src/components/ExampleCode.astro
+index 3df5fa07..b144d962 100644
+--- a/apps/docs/src/components/ExampleCode.astro
++++ b/apps/docs/src/components/ExampleCode.astro
+@@ -9,9 +9,10 @@ interface Props {
+   readonly ts?: string;
+   /** The Rust file, from the repository root. */
+   readonly rust?: string;
++  readonly twoslash?: boolean;
+ }
+ 
+-const { ts, rust } = Astro.props;
++const { ts, rust, twoslash } = Astro.props;
+ const only = ts ?? rust;
+ ---
+ 
+@@ -19,13 +20,13 @@ const only = ts ?? rust;
+   ts !== undefined && rust !== undefined ? (
+     <Tabs syncKey="lang">
+       <TabItem label="TypeScript">
+-        <Snippet file={ts} />
++        <Snippet file={ts} twoslash={twoslash} />
+       </TabItem>
+       <TabItem label="Rust">
+         <Snippet file={rust} />
+       </TabItem>
+     </Tabs>
+   ) : (
+-    only !== undefined && <Snippet file={only} />
++    only !== undefined && <Snippet file={only} twoslash={twoslash} />
+   )
+ }
+diff --git a/apps/docs/src/components/Snippet.astro b/apps/docs/src/components/Snippet.astro
+index de3002cc..9d37b92a 100644
+--- a/apps/docs/src/components/Snippet.astro
++++ b/apps/docs/src/components/Snippet.astro
+@@ -9,6 +9,8 @@ interface Props {
+   readonly file: string;
+   /** The title above the block (default: the path). */
+   readonly title?: string;
++  /** Spike Q4p: Twoslash hover types on this block. */
++  readonly twoslash?: boolean;
+ }
+ 
+ // The files a page may show: the TS examples (the quick-start apps and the Worker's included), the
+@@ -19,7 +21,7 @@ const FILES: Record<string, string> = import.meta.glob(
+ );
+ const PREFIX = "../../../../";
+ 
+-const { file, title } = Astro.props;
++const { file, title, twoslash } = Astro.props;
+ const code = FILES[PREFIX + file];
+ if (code === undefined) {
+   throw new Error(`Snippet: ${file} is not one of the example files apps/docs may show`);
+@@ -28,4 +30,4 @@ const extension = file.slice(file.lastIndexOf(".") + 1);
+ const lang = ({ ts: "ts", rs: "rust", toml: "toml", md: "md" } as Record<string, string>)[extension] ?? "text";
+ ---
+ 
+-<Code code={code} lang={lang} title={title ?? file} />
++<Code code={code} lang={lang} title={title ?? file} meta={twoslash && lang === "ts" ? "twoslash" : undefined} />
+diff --git a/apps/docs/src/content/docs/start/first-pdf.mdx b/apps/docs/src/content/docs/start/first-pdf.mdx
+index 7e220e22..5f1f46bf 100644
+--- a/apps/docs/src/content/docs/start/first-pdf.mdx
++++ b/apps/docs/src/content/docs/start/first-pdf.mdx
+@@ -23,7 +23,7 @@ Lamina PDF is in alpha, so the install names the version these docs describe. `@
+ 
+ Save this app as `hello.ts`. It loads Lamina PDF, builds the page and writes it to `hello.pdf`:
+ 
+-<Example ts="packages/sdk/examples/quick-start/node.ts" result="hello" />
++<Example ts="packages/sdk/examples/quick-start/node.ts" result="hello" twoslash />
+ 
+ ## Run it
+ 
+diff --git a/apps/docs/ec.config.mjs b/apps/docs/ec.config.mjs
+new file mode 100644
+index 00000000..b3057245
+--- /dev/null
++++ b/apps/docs/ec.config.mjs
+@@ -0,0 +1,16 @@
++// Spike Q4p: Expressive Code's options, here because <Code> needs them in their own file.
++// Twoslash hover types only when LAMINA_PDF_TWOSLASH=1.
++import { defineEcConfig } from "@astrojs/starlight/expressive-code";
++import ecTwoSlash from "expressive-code-twoslash";
++
++export default defineEcConfig(process.env.LAMINA_PDF_TWOSLASH === "1" ? {
++        plugins: [
++          ecTwoSlash({
++            // The examples run in Node 24 (`node:` imports, `import.meta.main`), like the tsconfig
++            // the SDK's examples are checked with.
++            twoslashOptions: {
++              compilerOptions: { types: ["node"], module: 99, moduleResolution: 100, target: 99, lib: ["lib.esnext.d.ts", "lib.dom.d.ts"] },
++            },
++          }),
++        ],
++      } : {});

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "url": "https://context7.com/laudebugs/laminapdf",
+  "public_key": "pk_hA415awZ9FucG36S5gNXn",
+  "projectTitle": "Lamina PDF",
+  "description": "Create, read, edit and save PDF files from TypeScript (@laminapdf/sdk, WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers) and Rust (the laminapdf crate): generation with shaped text and tagged PDF, text extraction in reading order, incremental saves.",
+  "folders": ["apps/docs/src/content/docs", "packages/sdk/examples", "crates/laminapdf/examples", "docs/errors"],
+  "excludeFolders": ["apps/docs/src/content/docs/reference/sdk", "crates/laminapdf/examples/differential"],
+  "excludeFiles": ["CHANGELOG.md"],
+  "rules": [
+    "Call `await init()` once before using @laminapdf/sdk; every call after it is synchronous. Fonts and text need `init({ text: true })`, reading text needs `init({ extract: true })` or `{ text: true }`. Rust needs no setup.",
+    "Positions are points from the top-left corner of the page as displayed, with y going down. A text position is its baseline. Page indexes start at 0.",
+    "Branch on an error's `code`, never its message: every error is a LaminaPdfError with a stable code and a hint, explained at its docsUrl.",
+    "Free what you open: a Document or Builder holds WebAssembly memory, so declare it with `using` or call `free()`.",
+    "Prefer the docs in the installed package (node_modules/@laminapdf/sdk/docs/, or the laminapdf crate's docs/ folder): they match the installed version.",
+    "When a name from older code doesn't exist, look it up in docs/renames.json, which says what each renamed item is called now.",
+    "Turn prose into tagged pages with `builder.markdown(text, { fonts, images })` (Rust: Builder::markdown). Pass embedded fonts for text beyond Latin and for PDF/UA-1.",
+    "Lay out data-driven documents with `builder.flow(document, { data, fonts, images })` over the laminapdf.document/1 JSON format; put totals and dates in the data already formatted."
+  ]
+}

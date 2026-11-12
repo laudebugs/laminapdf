@@ -1,0 +1,9 @@
+---
+// Starlight's `Hero` override: Starlight draws the hero instead of the page title on a hero page
+// (the home page), so "Copy as Markdown" (CopyMarkdown.astro) follows the hero there.
+import Default from "@astrojs/starlight/components/Hero.astro";
+import CopyMarkdown from "./CopyMarkdown.astro";
+---
+
+<Default />
+<CopyMarkdown />

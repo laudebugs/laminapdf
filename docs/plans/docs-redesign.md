@@ -30,7 +30,7 @@ The work goes in four steps, so the cheap, well-evidenced fixes ship first and t
 1. **Make the promise true, and close the gaps:** Q4a (command-line output from real runs), Q4b and Q4c (the reading path), Q4d (results beside the code), Q4e (first-run tutorials), Q4f (the sidebar), Q4h (troubleshooting), Q4i (the CSP), Q4j (the upgrade policy), Q4l (Markdown for agents).
 2. **Measure:** Q4m watches developers follow the quick starts and the reading path, and reads the agent eval's results (L5b).
 3. **Change the structure, if the measurements call for it:** Q4g groups the sidebar by task, with W3h's question titles.
-4. **Add when there's time:** Q4k, Q4n and Q4o add one-page and PDF versions, version markers and usage pages for the two main API types. They depend on nothing else and rest on weaker evidence, so they can go in any order. Q4p, a spike, measures Twoslash hover types once Q4i has removed inline styles.
+4. **Add when there's time:** Q4k, Q4n and Q4o add one-page and PDF versions, version markers and usage pages for the two main API types. They depend on nothing else and rest on weaker evidence, so they can go in any order. Q4p, a spike, measured Twoslash hover types and recommends keeping them out.
 
 ## 4. Todos
 
@@ -43,22 +43,22 @@ The work goes in four steps, so the cheap, well-evidenced fixes ship first and t
 | [Q4e](../todos/done/Q4e-rust-and-cli-first-runs.md) | First-run tutorials for Rust and the command line | 4 |
 | [Q4f](../todos/done/Q4f-every-page-in-the-sidebar.md) | The two recipes back in the sidebar, and a check that keeps every page there | 5 |
 | [Q4g](../todos/ready/Q4g-sidebar-by-task.md) | The sidebar grouped by task, with question titles | 5 |
-| [Q4h](../todos/ready/Q4h-troubleshooting-by-area.md) | Troubleshooting for Rust, the command line, extraction and rendering | 6 |
+| [Q4h](../todos/done/Q4h-troubleshooting-by-area.md) | Troubleshooting for Rust, the command line, extraction and rendering | 6 |
 | [Q4i](../todos/ready/Q4i-code-colours-by-class.md) | Code colours by class, and no inline styles in the CSP | 7 |
 | [Q4j](../todos/ready/Q4j-starlight-upgrade-policy.md) | Starlight upgrades one minor at a time, overrides listed | 8 |
-| [Q4k](../todos/ready/Q4k-one-page-and-pdf-docs.md) | Each area on one page, and the whole guide as a PDF | 9 |
-| [Q4l](../todos/ready/Q4l-markdown-for-agents-per-page.md) | A Markdown alternate link and "Copy as Markdown" on every page | 10 |
+| [Q4k](../todos/done/Q4k-one-page-and-pdf-docs.md) | Each area on one page, and the whole guide as a PDF | 9 |
+| [Q4l](../todos/done/Q4l-markdown-for-agents-per-page.md) | A Markdown alternate link and "Copy as Markdown" on every page | 10 |
 | [Q4m](../todos/ready/Q4m-watch-readers-use-the-docs.md) | Watch developers follow the docs, and read the agent eval | 13 |
 | [Q4n](../todos/ready/Q4n-since-markers-and-versions.md) | "Added in" markers on API items, and stable URLs per release from 1.0 | 11 |
-| [Q4o](../todos/ready/Q4o-usage-pages-for-document-and-builder.md) | Usage pages for `Document` and `Builder` beside their reference | 12 |
-| [Q4p](../todos/ready/Q4p-twoslash-spike.md) | A spike: Twoslash hover types on one page, measured against Q4i's CSP | — |
+| [Q4o](../todos/done/Q4o-usage-pages-for-document-and-builder.md) | Usage pages for `Document` and `Builder` beside their reference | 12 |
+| [Q4p](../todos/done/Q4p-twoslash-spike.md) | A spike: Twoslash hover types on one page, measured against Q4i's CSP | — |
 
 The recommendation numbers are the report's. Two of them are too large for one pull request, so the reading path is Q4b and Q4c, and the sidebar is Q4f now and Q4g after Q4m.
 
 ## 5. Out of scope
 
 - **A move off Starlight**, a hosted docs platform, or a chat assistant on the site. The research found each costs more than it gives, and the hosted options break ADR 0011.
-- **Twoslash hover types**, which the research expects to add script and probably inline styles to every code block. Nobody has measured that cost, so the Q4p spike measures it, and this item stands until its results are in.
+- **Twoslash hover types.** The [Q4p spike](../../spikes/docs-twoslash/README.md) measured them on one page. The plugin supports only older Expressive Code and TypeScript versions than Starlight ships. It adds 24.5 KB of script and 15.5 KB of CSS to every page, and on the page with hovers, 953 `style=` attributes that Q4i's CSP would block. Its hovers open by mouse but never by keyboard, and screen readers don't get them. It adds no type safety either: the docs show only example files, which CI already type-checks.
 - **Personalised samples** in Stripe's style, which have nothing to personalise in a library without accounts.
 - **Analytics.** ADR 0011 rules them out; Q4m measures by watching readers instead.
 
@@ -77,12 +77,12 @@ The recommendation numbers are the report's. Two of them are too large for one p
 - [x] Q4e: first runs in Rust and on the command line
 - [x] Q4f: every page in the sidebar
 - [ ] Q4g: the sidebar by task
-- [ ] Q4h: troubleshooting by area
+- [x] Q4h: troubleshooting by area
 - [ ] Q4i: code colours by class
 - [ ] Q4j: the Starlight upgrade policy
-- [ ] Q4k: one-page and PDF docs
-- [ ] Q4l: Markdown for agents on every page
+- [x] Q4k: one-page and PDF docs
+- [x] Q4l: Markdown for agents on every page
 - [ ] Q4m: watch readers use the docs
 - [ ] Q4n: "added in" markers and versions
-- [ ] Q4o: usage pages for `Document` and `Builder`
-- [ ] Q4p: the Twoslash spike
+- [x] Q4o: usage pages for `Document` and `Builder`
+- [x] Q4p: the Twoslash spike

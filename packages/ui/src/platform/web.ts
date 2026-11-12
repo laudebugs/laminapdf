@@ -76,6 +76,7 @@ export function detectCapabilities(scope: WebScope): Capabilities {
     crossOriginIsolated: scope.crossOriginIsolated === true,
     ownsKeyboard: false,
     canShare: typeof scope.navigator?.share === "function",
+    shellTakesDrops: false,
   };
 }
 

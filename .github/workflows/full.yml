@@ -218,9 +218,15 @@ jobs:
           cache-bin: false
       - uses: ./.github/actions/node-pnpm
       - uses: ./.github/actions/linux-webkit
-      # The frontend imports the built @laminapdf/ui, tokens, fonts and icons.
+      - uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      # The frontend imports the built @laminapdf/ui, tokens, fonts and icons, and the viewer over
+      # @laminapdf/sdk and its WebAssembly (D2d).
       - name: Build the packages the frontend imports
-        run: pnpm --filter "@laminapdf/desktop^..." run build
+        run: cargo xtask desktop-frontend
+      - name: Typecheck the frontend against them
+        run: pnpm --filter @laminapdf/desktop run typecheck:wasm
       # desktop:build merges tauri.bundle.conf.json, whose beforeBuildCommand runs
       # `cargo xtask desktop-sidecar` (the engine, and PDFium from its pinned, hash-checked release).
       - name: Build the app with its engine and PDFium (tauri build --debug --no-bundle)
@@ -247,17 +253,118 @@ jobs:
             echo "::error::laminapdf-desktop depends on $found"
             exit 1
           fi
-      # ADR 0008 §8: only builds with the `e2e` feature have the end-to-end tests' commands.
-      - name: Check the build has no end-to-end command
+      # ADR 0008 §8: only builds with the `e2e` feature have the end-to-end tests' commands, the
+      # WebdriverIO plugins and the frontend's probe (D2e).
+      - name: Check the build has no end-to-end command, plugin or probe
         shell: bash
         run: |
           set -euo pipefail
           exe=""
           if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
-          if grep -aq debug_kill_engine "target/debug/laminapdf-desktop$exe"; then
-            echo "::error::the app holds debug_kill_engine without the e2e feature"
+          for name in debug_kill_engine e2e_queue_pick e2e_interactive tauri-plugin-wdio TAURI_WEBDRIVER_PORT; do
+            if grep -aq "$name" "target/debug/laminapdf-desktop$exe"; then
+              echo "::error::the app holds $name without the e2e feature"
+              exit 1
+            fi
+          done
+          if grep -rlq -e __laminaE2e -e __wdio apps/desktop/dist; then
+            echo "::error::the frontend bundle holds the e2e probe or WebdriverIO's plugin"
             exit 1
           fi
+
+  # The reader's end-to-end scenarios (D2e) against the desktop app's e2e build on each OS:
+  # WebdriverIO drives the app through the WebDriver server it embeds (tauri-plugin-wdio-webdriver,
+  # feature `e2e`), so no driver is installed. Linux runs it on a virtual display. Screenshots and
+  # logs of failed scenarios are uploaded.
+  desktop-e2e:
+    name: Desktop e2e (${{ matrix.os }})
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.desktop == 'true' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: linux, runner: ubuntu-22.04 }
+          - { os: macos, runner: macos-15 }
+          - { os: windows, runner: windows-2025 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        with:
+          cache: true
+          cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          cache-shared-key: desktop-e2e
+          cache-bin: false
+      - uses: ./.github/actions/node-pnpm
+      - uses: ./.github/actions/linux-webkit
+      - uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      - name: Build the packages the frontend imports
+        run: cargo xtask desktop-frontend
+      - name: Typecheck the frontend and the scenarios
+        run: pnpm --filter @laminapdf/desktop run typecheck:wasm
+      # The 1,000-page and 1 GB fixtures, generated (never committed) and cached by what writes them:
+      # the example and the crates its bytes come from (path crates aren't in Cargo.lock).
+      # The builder's output is the same bytes on every OS, so the three legs share one entry;
+      # like the other caches, it is saved only from main.
+      - name: Restore the large fixtures
+        id: fixtures
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/fixtures
+          key: desktop-e2e-fixtures-${{ hashFiles('crates/laminapdf-desktop-engine/examples/large_pdf.rs', 'crates/laminapdf/src/**', 'crates/laminapdf-build/src/**', 'crates/laminapdf-cos/src/**', 'crates/laminapdf-model/src/**', 'crates/laminapdf-ops/src/**', 'crates/laminapdf-save/src/**', 'crates/laminapdf-syntax/src/**', 'crates/laminapdf-text/src/**', 'crates/laminapdf-test-fixtures/src/**', 'tools/xtask/src/fixtures.rs', 'Cargo.lock') }}
+          enableCrossOsArchive: true
+      - name: Generate the large fixtures
+        if: steps.fixtures.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo xtask fixtures large-pdf --pages 1000 --out target/fixtures/1000-pages.pdf
+          cargo xtask fixtures large-pdf
+      - name: Save the large fixtures
+        if: steps.fixtures.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'linux'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/fixtures
+          key: ${{ steps.fixtures.outputs.cache-primary-key }}
+          enableCrossOsArchive: true
+      - name: Build the e2e app (feature e2e, tauri.e2e.conf.json)
+        run: pnpm --filter @laminapdf/desktop run desktop:build:e2e
+      - name: Run the scenarios
+        if: runner.os != 'Linux'
+        run: pnpm --filter @laminapdf/desktop run e2e
+      # xvfb-run and dbus-run-session come with GitHub's Ubuntu images, not from linux-webkit. The
+      # session bus is how a second launch finds the running app (the single-instance plugin);
+      # without one, it starts a second app.
+      - name: Run the scenarios on a virtual display
+        if: runner.os == 'Linux'
+        run: >-
+          dbus-run-session --
+          xvfb-run --auto-servernum --server-args="-screen 0 1440x900x24"
+          pnpm --filter @laminapdf/desktop run e2e
+      # Five launches of the e2e build, timed by the app to the empty state accepting input, into the
+      # job summary. Recorded, not asserted: the 300 ms gate belongs to the reference machine (D2g).
+      - name: Measure the cold start
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run --auto-servernum pnpm --filter @laminapdf/desktop run cold-start
+          else
+            pnpm --filter @laminapdf/desktop run cold-start
+          fi
+      - name: Upload the failed scenarios' screenshots and logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-e2e-${{ matrix.os }}
+          path: target/desktop-e2e/
+          if-no-files-found: ignore
 
   # The whole `cargo xtask check` on Windows x64 (todo X6): the docs, Rust and TypeScript checks,
   # where the fast lane's Windows legs run only `check rust`. It catches what only Windows breaks:
@@ -417,7 +524,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, suites, render-golden, fuzz, check-linux, check-windows, desktop]
+    needs: [changes, suites, render-golden, fuzz, check-linux, check-windows, desktop, desktop-e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -443,9 +550,10 @@ jobs:
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
-            # The desktop build follows its own paths (`desktop`), every other suite `code`.
+            # The desktop build and its e2e suite follow their own paths (`desktop`), every other
+            # suite `code`.
             needed=$CODE
-            if [ "$job" = desktop ]; then needed=$DESKTOP; fi
+            case "$job" in desktop | desktop-e2e) needed=$DESKTOP ;; esac
             echo "$job: $result"
             case "$needed/$result" in
               true/success | false/skipped) ;;

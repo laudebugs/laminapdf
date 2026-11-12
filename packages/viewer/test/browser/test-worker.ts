@@ -13,6 +13,8 @@ let nextRenderDocument = 1;
 
 /** Every render's scale, in the order the renders started (the priority tests read it). */
 const renderLog: number[] = [];
+/** ms the next render holds the worker after drawing, still the render running (`__holdNextRender`). */
+let holdNextRender = 0;
 const { render } = viewerMethods;
 if (render === undefined) throw new Error("the viewer has no render method");
 
@@ -21,9 +23,16 @@ serve({
     ...viewerMethods,
     render: {
       ...render,
-      run: (params, context) => {
+      run: async (params, context) => {
         renderLog.push((params[0] as RenderRequest).scale);
-        return render.run(params, context);
+        const drawn = await render.run(params, context);
+        const hold = holdNextRender;
+        holdNextRender = 0;
+        const until = performance.now() + hold;
+        while (performance.now() < until) {
+          // Busy: the page has had this render's render-start, so it is the one running.
+        }
+        return drawn;
       },
     },
     // Blocks the worker synchronously for `ms`, as a long render does, and answers with the wall
@@ -38,6 +47,13 @@ serve({
       },
     },
     __renderLog: { run: () => [...renderLog] },
+    // The next render holds the worker for `ms` once drawn, as a render that hangs does.
+    __holdNextRender: {
+      run: ([ms]) => {
+        holdNextRender = ms as number;
+        return undefined;
+      },
+    },
     // Which render document draws the open document's pages: a new number after an edit reopened it.
     __renderDocument: {
       run: () => {

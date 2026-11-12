@@ -13,10 +13,10 @@ You need Rust 1.97 or newer. Create a project and add the `laminapdf` crate:
 
 ```sh
 cargo new hello-pdf && cd hello-pdf
-cargo add laminapdf@={{version}}
+cargo add laminapdf@{{version}}
 ```
 
-Lamina PDF is in alpha, so `=` pins the exact version these docs describe; a later alpha may change the API. [Install](/install/#rust-laminapdf) covers the crate's features.
+This adds the version these docs describe. Cargo reads it as this release or a later one in the same `0.x` line, which the [stability policy](/reference/stability/) promises needs no change to your code. [Install](/install/#rust-laminapdf) covers the crate's features.
 
 ## Write the page
 

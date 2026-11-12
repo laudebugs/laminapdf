@@ -14,19 +14,25 @@
     "tauri": "tauri",
     "desktop:dev": "tauri dev --config src-tauri/tauri.bundle.conf.json",
     "desktop:build": "tauri build --config src-tauri/tauri.bundle.conf.json",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run -c vitest.config.ts"
+    "typecheck:wasm": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p e2e/tsconfig.json",
+    "test": "vitest run -c vitest.config.ts",
+    "desktop:build:e2e": "tauri build --debug --no-bundle --features e2e --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.e2e.conf.json",
+    "e2e": "wdio run e2e/wdio.conf.ts && wdio run e2e/wdio.cold-open.conf.ts",
+    "cold-start": "node e2e/cold-start.ts"
   },
   "dependencies": {
     "@laminapdf/fonts": "workspace:*",
+    "@laminapdf/render": "workspace:*",
     "@laminapdf/tokens": "workspace:*",
     "@laminapdf/ui": "workspace:*",
+    "@laminapdf/viewer": "workspace:*",
     "@tauri-apps/api": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
     "@babel/core": "catalog:",
+    "@laminapdf/test-utils": "workspace:*",
     "@rolldown/plugin-babel": "catalog:",
     "@tauri-apps/cli": "catalog:",
     "@types/babel__core": "catalog:",
@@ -34,9 +40,17 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "@wdio/cli": "catalog:",
+    "@wdio/globals": "catalog:",
+    "@wdio/local-runner": "catalog:",
+    "@wdio/mocha-framework": "catalog:",
+    "@wdio/spec-reporter": "catalog:",
+    "@wdio/tauri-plugin": "catalog:",
+    "@wdio/tauri-service": "catalog:",
     "babel-plugin-react-compiler": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "webdriverio": "catalog:"
   }
 }

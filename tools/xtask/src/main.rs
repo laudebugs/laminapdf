@@ -47,6 +47,7 @@ mod render_diff;
 mod reports;
 mod roundtrip;
 mod runner;
+mod sdk_doc_comments;
 mod semver;
 mod todos;
 mod tracked;
@@ -231,11 +232,14 @@ tasks:
                     write an image-heavy PDF with the laminapdf builder (default 20,000 pages, about
                     1.1 GB, into target/fixtures/1gb.pdf; never committed): the desktop engine's
                     large-file fixture. Needs about 1.5 GB of RAM
+  desktop-frontend  the packages the desktop app's frontend imports through their built dist/: the
+                    WebAssembly modules without their tests, @laminapdf/sdk, the viewer with its render
+                    backends, @laminapdf/ui with its tokens, icons and fonts
   desktop-sidecar [--release | --debug]
                     build the desktop engine binary into apps/desktop/src-tauri/binaries/ (Tauri's
                     sidecar naming) and the pinned PDFium into src-tauri/resources/pdfium/, which
                     tauri.bundle.conf.json bundles; the profile defaults to the Tauri CLI's
-                    (TAURI_ENV_DEBUG), else debug
+                    (release unless its hook sets TAURI_ENV_DEBUG=true), else debug
   extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
                     score lamina's extraction on the pinned public benchmark of
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
@@ -434,6 +438,7 @@ fn main() -> Result<()> {
         ("cli-dist", []) => cli_docs::dist_files(&ws),
         ("desktop-notices", []) => notices::desktop(&ws),
         ("desktop-sidecar", args) => desktop_sidecar::run(&ws, args),
+        ("desktop-frontend", []) => web::desktop_frontend(&ws),
         ("fixtures", [what, rest @ ..]) if what == "large-pdf" => fixtures::large_pdf(&ws, rest),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("benchmarks", args) => benchmarks::run(&ws, &benchmarks::parse_args(args)?),
@@ -540,6 +545,8 @@ fn check_docs(ws: &Workspace) -> Result<()> {
         "package metadata: no ADR number, todo ID or \"private\" in a published package's description or README opening",
     );
     package_metadata::check(ws)?;
+    step("sdk doc comments: no ADR number or todo ID in @laminapdf/sdk's API reference");
+    sdk_doc_comments::check(&ws.root)?;
     step("docs previews: the docs' example pictures match the example goldens");
     docs_previews::check(&ws.root)?;
     models::check(&ws.root)?;

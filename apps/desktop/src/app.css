@@ -17,3 +17,25 @@ body {
   font-size: 18px;
   font-weight: 500;
 }
+
+/* The document's view fills the canvas; a page's paper before it is drawn follows the page appearance. */
+.desktop-viewer {
+  position: absolute;
+  inset: 0;
+  --lamina-page-paper: var(--paper-page-paper);
+}
+
+:root[data-page-appearance="high-contrast"] .desktop-viewer {
+  --lamina-page-paper: Canvas;
+}
+
+/* A button inside a notice that reads as a link: "Reopen". */
+.desktop-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--paper-accent-strong);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -57,6 +57,16 @@ pub(crate) fn docs_runner(ws: &Workspace) -> Result<()> {
     ws.pnpm(&["--filter", "@laminapdf/render-hayro", "run", "build:wasm"])
 }
 
+/// `cargo xtask desktop-frontend`: what the desktop app's frontend imports through built `dist/`s:
+/// the WebAssembly modules without their tests, `@laminapdf/sdk`, then [`packages`],
+/// since its view is `@laminapdf/viewer`'s. The full lane's `desktop` job runs it before the app's
+/// `typecheck:wasm` and `desktop:build`.
+pub(crate) fn desktop_frontend(ws: &Workspace) -> Result<()> {
+    wasm::modules(ws)?;
+    ws.pnpm(&["--filter", "@laminapdf/sdk", "run", "build:wasm"])?;
+    packages(ws)
+}
+
 /// Every package the reader imports through its built `dist/`, over the WebAssembly modules and
 /// `@laminapdf/sdk` already built: the viewer with its render backends (`@laminapdf/render`,
 /// `-pdfium`, `-hayro`), and `@laminapdf/ui` with the tokens, icons and fonts it imports. The

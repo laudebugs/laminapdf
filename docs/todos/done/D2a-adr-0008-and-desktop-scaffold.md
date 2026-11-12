@@ -55,9 +55,9 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 **Out of scope** (and which todo covers it)
 
 - Engine process and its protocol: [D2b](../done/D2b-engine-process.md); OS sandboxing: [D2c](../done/D2c-engine-sandbox.md).
-- Tile transport and opening a document: [D2d](../ready/D2d-tile-transport-and-first-document.md).
-- WebdriverIO e2e suite: [D2e](../ready/D2e-desktop-e2e-webdriverio.md) (this PR adds only a build job).
-- File associations, single-instance: [D3a](../ready/D3a-open-from-os.md). Menus: [D4b](../ready/D4b-native-menus.md). Updater: [D5b](../ready/D5b-updater-in-app.md). Bundling/signing: [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md).
+- Tile transport and opening a document: [D2d](../done/D2d-tile-transport-and-first-document.md).
+- WebdriverIO e2e suite: [D2e](../done/D2e-desktop-e2e-webdriverio.md) (this PR adds only a build job).
+- File associations, single-instance: [D3a](./D3a-open-from-os.md). Menus: [D4b](../ready/D4b-native-menus.md). Updater: [D5b](../ready/D5b-updater-in-app.md). Bundling/signing: [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md).
 
 ## Tasks
 

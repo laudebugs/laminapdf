@@ -1,6 +1,6 @@
 # Lamina PDF
 
-[![npm](https://img.shields.io/npm/v/@laminapdf/sdk/alpha)](https://www.npmjs.com/package/@laminapdf/sdk) [![crates.io](https://img.shields.io/crates/v/laminapdf)](https://crates.io/crates/laminapdf)
+[![npm](https://img.shields.io/npm/v/@laminapdf/sdk)](https://www.npmjs.com/package/@laminapdf/sdk) [![crates.io](https://img.shields.io/crates/v/laminapdf)](https://crates.io/crates/laminapdf)
 
 Lamina PDF creates, reads, edits and saves PDFs from code, in Rust and in TypeScript on every JavaScript runtime. It has six parts, and the first three share one Rust core:
 
@@ -8,7 +8,7 @@ Lamina PDF creates, reads, edits and saves PDFs from code, in Rust and in TypeSc
 - **The command line and MCP server:** the `laminapdf` command describes, checks, extracts, renders and builds PDFs from a terminal or a script, and `laminapdf mcp` offers the same commands to AI agents. [Install it](https://docs.laminapdf.com/cli/install/) with Homebrew, npm or a download.
 - **The web reader:** [app.laminapdf.com](https://app.laminapdf.com) opens PDFs inside your browser, and nothing you open is uploaded. It is free, and [laminapdf.com/privacy](https://laminapdf.com/privacy/) explains how it keeps your files private.
 - **The documentation:** [docs.laminapdf.com](https://docs.laminapdf.com) has quick starts for each runtime, guides, recipes and the API reference.
-- **Docs for coding agents:** each package carries its documentation as Markdown for the version you install, and [the coding-agents page](https://docs.laminapdf.com/start/coding-agents/) shows how to point an agent at it.
+- **Docs for coding agents:** each package carries its documentation as Markdown for the version you install, and [the coding-agents page](https://docs.laminapdf.com/start/coding-agents/) shows how to point an agent at it. Online, [llms.txt](https://docs.laminapdf.com/llms.txt) lists every page of the docs as Markdown.
 - **The website:** [laminapdf.com](https://laminapdf.com) has the roadmap and [how Lamina PDF is tested](https://laminapdf.com/how-we-test/).
 
 ```ts
@@ -22,7 +22,7 @@ page.finish();
 const bytes = builder.finish().save(); // a Uint8Array holding the PDF
 ```
 
-> **Status:** alpha, published on npm as `@laminapdf/sdk` (the `alpha` tag) and on crates.io as `laminapdf`. Anything can change between alphas, so pin the exact version you use; the [stability policy](https://docs.laminapdf.com/reference/stability/) shows how and says what each version promises.
+> **Status:** `0.x`, published on npm as `@laminapdf/sdk` and on crates.io as `laminapdf`. From `0.2.0` on, releases follow SemVer: a breaking change raises the minor version (`0.2` to `0.3`). The [stability policy](https://docs.laminapdf.com/reference/stability/) says what each version promises.
 
 ## What's here
 

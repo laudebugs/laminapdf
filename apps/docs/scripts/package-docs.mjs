@@ -26,6 +26,7 @@ import {
 } from "../plugins/agent-docs.mjs";
 import { releaseNotes } from "../plugins/changelog.mjs";
 import { readerMarkdown } from "../plugins/error-pages.mjs";
+import { GUIDE_PDF, onePageList } from "../plugins/guide.mjs";
 import { frontMatter, mdxToMarkdown, rewriteLinks, twin } from "../plugins/markdown.mjs";
 import { sidebarRoutes } from "../plugins/sidebar.mjs";
 import { sectionMarkdown } from "../src/lib/benchmarks.ts";
@@ -37,7 +38,7 @@ const SITE = "https://docs.laminapdf.com";
 /**
  * A site link as a link inside the package folder, from a file `depth` folders below its root:
  * `/guides/x/#a` → `../pages/guides/x.md#a`, a code page → `../errors/<code>.md`. Links outside
- * the site stay; other site links point at the site. The API reference's start page is
+ * the site stay; other site links point at the site, as do the one-page views. The API reference's start page is
  * `api/README.md` when the folder has one (`api`); its other pages, named differently by the
  * Markdown TypeDoc, point at the site.
  *
@@ -56,6 +57,8 @@ export function packageHref(href, depth, api = false) {
   if (path === "reference/codes") return `${up}errors/README.md${anchor}`;
   if (path === "reference/sdk/readme" && api) return `${up}api/README.md`;
   if (path.startsWith("reference/sdk/")) return `${SITE}/${path}/${anchor}`;
+  // The one-page views repeat pages the folder already has, so they stay on the site.
+  if (path.startsWith("one-page/")) return `${SITE}/${path}/${anchor}`;
   if (/\.[a-z0-9]+$/i.test(path)) return `${SITE}/${path}${anchor}`;
   return `${up}pages/${path === "" ? "index" : path}.md${anchor}`;
 }
@@ -99,6 +102,9 @@ async function writePages(out, version, api) {
     const markdown = mdxToMarkdown(body, {
       snippet: snippetText,
       codeTable: () => "See the [error and warning codes](/reference/codes/).",
+      onePageLinks: onePageList,
+      guidePdf: () =>
+        `Download [the whole guide as one PDF](${SITE}${GUIDE_PDF}): every section above in order, with a contents page and bookmarks.`,
       changelog: () => changelog,
       benchmarks: (section) =>
         sectionMarkdown(benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
