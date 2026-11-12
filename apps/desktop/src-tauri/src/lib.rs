@@ -9,6 +9,8 @@
 mod commands;
 mod engine;
 mod error;
+#[cfg(feature = "e2e")]
+mod startup;
 
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -121,6 +123,8 @@ fn engines(app: &tauri::AppHandle) -> Arc<Engines> {
     reason = "tauri::generate_context! builds a HashMap of the bundled assets"
 )]
 pub fn run() -> Result<(), DesktopError> {
+    #[cfg(feature = "e2e")]
+    startup::start();
     // `debug_kill_engine` exists only in e2e builds; generate_handler! takes no cfg per command.
     #[cfg(not(feature = "e2e"))]
     let builder = tauri::Builder::default().invoke_handler(tauri::generate_handler![
@@ -170,6 +174,8 @@ pub fn run() -> Result<(), DesktopError> {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            #[cfg(feature = "e2e")]
+            startup::setup();
             app.manage(engines(app.handle()));
             // Windows are made here, not in tauri.conf.json, so the app chooses every label.
             let (width, height) = first_window_size(app.primary_monitor().ok().flatten());
@@ -179,6 +185,8 @@ pub fn run() -> Result<(), DesktopError> {
                 .min_inner_size(640.0, 480.0)
                 .center()
                 .build()?;
+            #[cfg(feature = "e2e")]
+            startup::window();
             tracing::info!(version = %app.package_info().version, "Lamina PDF started");
             Ok(())
         })

@@ -63,7 +63,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 
 | Metric | Target |
 | --- | --- |
-| Cold start to interactive window, mid-range machine | < 300 ms (macOS, Windows, Linux; owner decision 2026-10-29, from the [product research](../research/product/pdf-app-product-and-ux.md#a-phased-roadmap-that-fits-the-existing-rounds); was ≤ 1 s, ≤ 1.5 s on Linux) |
+| Cold start to interactive window, mid-range machine | < 300 ms (macOS, Windows, Linux; owner decision 2026-10-29, from the [product research](../research/product/pdf-app-product-and-ux.md#a-phased-roadmap-that-fits-the-existing-rounds); was ≤ 1 s, ≤ 1.5 s on Linux). D2g found Tauri and the webview alone take longer on macOS and proposes a replacement: [ADR 0008 §4](../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded) |
 | First page of a 1 GB PDF | ≤ 1.5 s after open |
 | Idle memory with one 10-page document | ≤ 150 MB |
 | Installer size | < 15 MB per platform, PDFium native included (owner decision 2026-10-29; was ≤ 40 MB) |

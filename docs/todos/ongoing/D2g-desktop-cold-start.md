@@ -15,7 +15,7 @@
 
 ## Goal
 
-Bring the desktop reader's cold start, from launch to an empty window that accepts input, under the plan's **300 ms** release gate. D2d measured 0.51–0.54 s on an M1 Pro (macOS 27, release build, five runs, the engine sandboxed), so the gate blocks the beta ([D7c](./D7c-desktop-beta-release.md)) until this todo lands.
+Bring the desktop reader's cold start, from launch to an empty window that accepts input, under the plan's **300 ms** release gate. D2d measured 0.51–0.54 s on an M1 Pro (macOS 27, release build, five runs, the engine sandboxed), so the gate blocks the beta ([D7c](../ready/D7c-desktop-beta-release.md)) until this todo lands.
 
 ## Context
 
@@ -25,12 +25,12 @@ Bring the desktop reader's cold start, from launch to an empty window that accep
 
 ## Tasks
 
-- [ ] Measure where the time goes on all three OSes: launch to `setup`, `setup` to the window's first paint, first paint to the first command. Add a dev-only timing log (not in release builds) or an `e2e` command that D2e's reference runner can assert.
-- [ ] Shrink the main process's time to `setup`: plugin initialisation, logging setup, and anything else run before the window exists.
-- [ ] Shrink the frontend's startup: split code the empty state doesn't need (the viewer, the password dialog) out of the first chunk, and keep the WebAssembly out of the desktop build.
-- [ ] Record the numbers in ADR 0008 §4 and the PR; from D2e on, the reference runner fails a PR that regresses them.
+- [x] Measure where the time goes on all three OSes: launch to `setup`, `setup` to the window's first paint, first paint to the first command. Add a dev-only timing log (not in release builds) or an `e2e` command that D2e's reference runner can assert. *`src-tauri/src/startup.rs`: in `e2e` builds the first command logs `run`, `setup`, the window and the command; `tools/desktop/cold_start.py` adds launch → `run` and compares two builds in turn. Measured on macOS; Windows and Linux are D2e's, whose runners read the same log.*
+- [x] Shrink the main process's time to `setup`: plugin initialisation, logging setup, and anything else run before the window exists. *Nothing to shrink: the app's code before `setup` takes about 1 ms and the log plugin made no measurable difference; the rest is Tauri building the app and starting its event loop, as long in the floor build.*
+- [x] Shrink the frontend's startup: split code the empty state doesn't need (the viewer, the password dialog) out of the first chunk, and keep the WebAssembly out of the desktop build. *WebAssembly dropped from the build (`vite.config.ts`'s `dropUnusedWasm`). Not split: a build without the viewer at all was 13 ms faster to the first command, which doesn't pay for loading it on open.*
+- [x] Record the numbers in ADR 0008 §4 and the PR; from D2e on, the reference runner fails a PR that regresses them. *ADR 0008 §4, "Cold start (D2g)"; the assertion lands with D2e.*
 
 ## Acceptance criteria
 
-- [ ] Launch to an interactive empty window is under 300 ms on the reference machine on macOS, Windows and Linux.
-- [ ] The desktop `dist/` contains no `.wasm` file.
+- [ ] Launch to an interactive empty window is under 300 ms on the reference machine on macOS, Windows and Linux. *Not met, and can't be by the app: Tauri and the webview alone take 410 ms (the floor build) on the M1 Pro. ADR 0008 §4 proposes the gates that replace it, for the owner to decide.*
+- [x] The desktop `dist/` contains no `.wasm` file. *Checked by the full lane's `desktop` job.*

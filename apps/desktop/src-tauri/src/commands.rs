@@ -47,6 +47,8 @@ impl AppInfo {
     reason = "Tauri hands a command its AppHandle by value"
 )]
 pub(crate) fn app_info(app: tauri::AppHandle) -> AppInfo {
+    #[cfg(feature = "e2e")]
+    crate::startup::command();
     AppInfo::current(&app.package_info().version.to_string())
 }
 
