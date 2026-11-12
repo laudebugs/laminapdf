@@ -4,8 +4,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 
+use serde::Serialize;
+
 use super::manifest::{Manifest, Row, Status, Surface, split_cells};
-use super::tags::{Tag, TestRef};
+use super::tags::{Runner, Tag, TestRef};
 use crate::util::md_cell;
 
 /// Best status per (ID, surface), and the tags behind each row.
@@ -84,10 +86,16 @@ extracted faithfully), 🔵 `write` (created or changed; output passes qpdf `--c
 
 **Evidence.** A Rust test claims a status with a doc-comment line above it, `/// capability: C.08 core round-trip` \
 (ID, surface, status; several lines for several claims), on a `#[test]` function in a crate's `src/` or \
-`tests/<name>.rs`. TypeScript tests will use their name, `test(\"[cap C.04 pdf round-trip] …\")`. `cargo xtask capabilities` \
-runs every tagged test and rewrites this page; `cargo xtask capabilities --check` (full lane) fails when this page differs \
-from what the passing tests prove or a tagged test fails, and `cargo xtask check docs` (every PR, no test run) fails when \
-this page claims more than any tagged test could prove or differs from what the manifest and the tags generate. Core \
+`tests/<name>.rs`. A TypeScript test claims one at the start of its title, \
+`it(\"[cap J.01 web round-trip] edits the title, …\")` (several tags in a row for several claims), on a plain `it(` \
+or `test(` call (not `.skip`, `.only`, `.todo`, `.skipIf` or `.runIf`), only in the reader's end-to-end tests \
+(`apps/web/e2e/*.e2e.test.ts`, the `web` column). `cargo xtask capabilities` runs every tagged Rust test and rewrites \
+this page and [`matrix.json`](matrix.json) (the same matrix as data, which the reader's capability page shows); it \
+doesn't run the TypeScript tests, which need the built reader and a browser: `cargo xtask pdf-runtimes` runs them in \
+Chromium, Firefox and WebKit in the fast lane, whose gate a pull request must pass to merge. \
+`cargo xtask capabilities --check` (full lane) fails when this page or `matrix.json` differs from what the passing \
+tests prove or a tagged Rust test fails, and `cargo xtask check docs` (every PR, no test run) fails when this page \
+claims more than any tagged test could prove or either file differs from what the manifest and the tags generate. Core \
 `write` and `round-trip` may be claimed only by tests in the round-trip suite \
 ([`roundtrip_suite.rs`](../../crates/laminapdf-save/tests/roundtrip_suite.rs)), whose saves the full lane's \
 `cargo xtask roundtrip` also checks with qpdf `--check`, pdf.js and PDFium.
@@ -157,15 +165,96 @@ pub(crate) fn render(manifest: &Manifest, matrix: &Matrix<'_>) -> String {
     out
 }
 
-/// `[fn](path) core read` for each tag of the row, joined with `<br>`.
+/// `[fn](path) core read` for each tag of the row (a TypeScript test by its title), joined
+/// with `<br>`.
 fn evidence(matrix: &Matrix<'_>, id: &str) -> String {
     let Some(tags) = matrix.evidence.get(id) else {
         return String::new();
     };
     tags.iter()
-        .map(|(test, surface, status)| format!("[`{}`](../../{}) {surface} {status}", test.function, test.file))
+        .map(|(test, surface, status)| {
+            let name = match test.runner {
+                Runner::Cargo { .. } => format!("`{}`", test.function),
+                Runner::Suite(_) => md_cell(&test.function).replace('[', "\\[").replace(']', "\\]"),
+            };
+            format!("[{name}](../../{}) {surface} {status}", test.file)
+        })
         .collect::<Vec<_>>()
         .join("<br>")
+}
+
+/// `docs/capabilities/matrix.json`: the same matrix as data, for the web reader's capability
+/// page, which bundles it when it is built.
+#[derive(Serialize)]
+struct JsonMatrix<'a> {
+    version: u32,
+    groups: Vec<JsonGroup<'a>>,
+}
+
+#[derive(Serialize)]
+struct JsonGroup<'a> {
+    id: String,
+    name: &'a str,
+    ops: Vec<JsonOp<'a>>,
+}
+
+#[derive(Serialize)]
+struct JsonOp<'a> {
+    id: &'a str,
+    name: &'a str,
+    round: &'a str,
+    target: &'static str,
+    /// Per surface: the best proven status, `null` for no evidence, `"n/a"` when the row
+    /// doesn't target it.
+    surfaces: JsonSurfaces,
+}
+
+#[derive(Serialize)]
+struct JsonSurfaces {
+    core: Option<&'static str>,
+    pdf: Option<&'static str>,
+    web: Option<&'static str>,
+    desktop: Option<&'static str>,
+}
+
+/// The matrix as `matrix.json` (version 1): groups in the manifest's order, each with its
+/// rows; pretty-printed with a trailing newline.
+pub(crate) fn render_json(manifest: &Manifest, matrix: &Matrix<'_>) -> anyhow::Result<String> {
+    let cell = |row: &Row, surface: Surface| {
+        if row.surfaces.contains(&surface) {
+            matrix.status(&row.id, surface).map(Status::name)
+        } else {
+            Some("n/a")
+        }
+    };
+    let groups = manifest
+        .groups
+        .iter()
+        .map(|group| JsonGroup {
+            id: group.letter.to_string(),
+            name: &group.name,
+            ops: manifest
+                .rows
+                .iter()
+                .filter(|r| r.group() == group.letter)
+                .map(|row| JsonOp {
+                    id: &row.id,
+                    name: &row.name,
+                    round: &row.round,
+                    target: row.target.name(),
+                    surfaces: JsonSurfaces {
+                        core: cell(row, Surface::Core),
+                        pdf: cell(row, Surface::Pdf),
+                        web: cell(row, Surface::Web),
+                        desktop: cell(row, Surface::Desktop),
+                    },
+                })
+                .collect(),
+        })
+        .collect();
+    let mut json = serde_json::to_string_pretty(&JsonMatrix { version: 1, groups })?;
+    json.push('\n');
+    Ok(json)
 }
 
 /// The statuses a README claims: `(ID, surface) → status` for every non-empty cell, and the
@@ -261,6 +350,49 @@ fn round_trips() {}
         let manifest = Manifest::parse(MANIFEST).unwrap();
         let tags = scan_rust(Path::new("crates/lamina-x/tests/t.rs"), SOURCE, &BTreeSet::new()).unwrap();
         (manifest, tags)
+    }
+
+    #[test]
+    fn render_json_should_give_each_surface_its_status_null_or_n_a() {
+        let (manifest, tags) = fixture();
+        let json: serde_json::Value =
+            serde_json::from_str(&render_json(&manifest, &Matrix::from_tags(&tags)).unwrap()).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "version": 1,
+                "groups": [{
+                    "id": "C",
+                    "name": "Pages",
+                    "ops": [
+                        { "id": "C.01", "name": "Rotate | flip", "round": "E2", "target": "round-trip",
+                          "surfaces": { "core": "round-trip", "pdf": null, "web": null, "desktop": null } },
+                        { "id": "C.02", "name": "Crop", "round": "E2", "target": "read",
+                          "surfaces": { "core": null, "pdf": null, "web": "n/a", "desktop": "n/a" } }
+                    ]
+                }]
+            })
+        );
+    }
+
+    #[test]
+    fn render_json_should_end_with_a_newline_and_keep_the_fields_in_order() {
+        let (manifest, tags) = fixture();
+        let json = render_json(&manifest, &Matrix::from_tags(&tags)).unwrap();
+        assert!(json.ends_with("}\n"));
+        assert!(json.find("\"version\"") < json.find("\"groups\""));
+    }
+
+    #[test]
+    fn render_should_name_a_typescript_test_by_its_title() {
+        let manifest = Manifest::parse(&MANIFEST.replace("surfaces = [\"core\", \"pdf\"]", "")).unwrap();
+        let tags = crate::capabilities::tags::scan_ts(
+            Path::new("apps/web/e2e/pages.e2e.test.ts"),
+            "it(\"[cap C.02 web read] shows the [crop] box\", () => {});",
+        )
+        .unwrap();
+        let readme = render(&manifest, &Matrix::from_tags(&tags));
+        assert!(readme.contains("[shows the \\[crop\\] box](../../apps/web/e2e/pages.e2e.test.ts) web read"));
     }
 
     #[test]

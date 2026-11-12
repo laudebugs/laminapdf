@@ -4,8 +4,11 @@
 //! (`docs/research/pdf/06-feature-inventory.md` §3; the two must agree). Tests claim a status
 //! for a row and surface with a tag ([`tags`]); this task builds every test target that holds
 //! a tag with one `cargo test --no-run`, runs each tagged test, and rewrites
-//! `docs/capabilities/README.md` from what they prove. `--check` writes nothing and fails when
-//! the README differs (the full lane). Any tagged test that fails or isn't found fails both.
+//! `docs/capabilities/README.md` and `docs/capabilities/matrix.json` (the same matrix as data,
+//! which the web reader's capability page bundles) from what they prove. `--check` writes
+//! nothing and fails when either differs (the full lane). Any tagged Rust test that fails or
+//! isn't found fails both. TypeScript tags ([`tags`]) are counted, not run: their suites run in
+//! a CI job the merge waits on.
 //!
 //! The README is a function of the manifest and the tags alone once every tagged test passes,
 //! so [`check_static`] (`check docs`, every PR) compares it exactly with what they generate,
@@ -26,12 +29,14 @@ use serde_json::Value;
 
 use self::manifest::Manifest;
 use self::matrix::Matrix;
-use self::tags::{Tag, Target};
+use self::tags::{Runner, Tag, Target};
 use crate::step;
 use crate::tracked::Tracked;
 
 const MANIFEST: &str = "docs/capabilities/manifest.toml";
 const README: &str = "docs/capabilities/README.md";
+/// The matrix as data, beside the README: what the web reader's capability page shows.
+const MATRIX_JSON: &str = "docs/capabilities/matrix.json";
 const INVENTORY: &str = "docs/research/pdf/06-feature-inventory.md";
 
 /// The manifest and every tag, validated against each other and the inventory.
@@ -54,7 +59,7 @@ fn inputs<'a>(
     let mut tags = Vec::new();
     for (path, text) in sources {
         if tags::is_ts_test(path) {
-            tags::scan_ts(path, text)?;
+            tags.extend(tags::scan_ts(path, text)?);
         } else {
             tags.extend(tags::scan_rust(path, text, &files)?);
         }
@@ -89,7 +94,11 @@ fn evaluate(inputs: &Inputs, results: &BTreeMap<(String, Target), BTreeMap<Strin
     let mut problems = Vec::new();
     for tag in &inputs.tags {
         let test = &tag.test;
-        let run = results.get(&(test.krate.clone(), test.target.clone()));
+        // A TypeScript suite runs in its own CI job, which the merge waits on.
+        let Runner::Cargo { krate, target } = &test.runner else {
+            continue;
+        };
+        let run = results.get(&(krate.clone(), target.clone()));
         let at = format!("{}:{} ({} {} {})", test.file, tag.line, tag.id, tag.surface, tag.status);
         match run.and_then(|r| tags::passed(r, &test.function)) {
             Some(true) => {}
@@ -102,6 +111,34 @@ fn evaluate(inputs: &Inputs, results: &BTreeMap<(String, Target), BTreeMap<Strin
         "tagged tests did not pass, so their capability claims are not proven",
     )?;
     Ok(matrix::render(&inputs.manifest, &Matrix::from_tags(&inputs.tags)))
+}
+
+/// The JSON the tags prove: every Rust tag passed once [`evaluate`] returns, and every
+/// TypeScript tag is counted, so it is the matrix of all the tags.
+fn matrix_json(inputs: &Inputs) -> Result<String> {
+    matrix::render_json(&inputs.manifest, &Matrix::from_tags(&inputs.tags))
+}
+
+/// How many tags are TypeScript ones, which this task counts but doesn't run.
+fn ts_tags(inputs: &Inputs) -> usize {
+    inputs
+        .tags
+        .iter()
+        .filter(|t| matches!(t.test.runner, Runner::Suite(_)))
+        .count()
+}
+
+/// What runs the TypeScript tags: each suite's CI job, once.
+fn ts_runners(inputs: &Inputs) -> String {
+    let runners: BTreeSet<&str> = inputs
+        .tags
+        .iter()
+        .filter_map(|t| match t.test.runner {
+            Runner::Suite(suite) => Some(suite.runner),
+            Runner::Cargo { .. } => None,
+        })
+        .collect();
+    runners.into_iter().collect::<Vec<_>>().join(", ")
 }
 
 /// `cargo xtask capabilities [--check]`.
@@ -117,17 +154,32 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<()> {
         let output = run_tests(root, &krate, binary, &names)?;
         results.insert((krate, target), tags::parse_libtest(&output));
     }
-    let readme = evaluate(&inputs, &results)?;
-    let path = root.join(README);
-    if check {
-        let committed = fs::read_to_string(&path).with_context(|| format!("reading {README}"))?;
-        if committed != readme {
-            bail!("{README} is not what the tagged tests prove; run `cargo xtask capabilities` and commit it");
-        }
-        println!("capabilities: {README} matches {} passing tag(s)", inputs.tags.len());
+    let pages = [
+        (README, evaluate(&inputs, &results)?),
+        (MATRIX_JSON, matrix_json(&inputs)?),
+    ];
+    let ts = ts_tags(&inputs);
+    let counted = if ts == 0 {
+        format!("{} passing tag(s)", inputs.tags.len())
     } else {
-        fs::write(&path, readme).with_context(|| format!("writing {README}"))?;
-        println!("capabilities: wrote {README} from {} passing tag(s)", inputs.tags.len());
+        format!(
+            "{} passing Rust tag(s) and {ts} TypeScript tag(s), counted, not run here: run by {}",
+            inputs.tags.len() - ts,
+            ts_runners(&inputs)
+        )
+    };
+    for (file, generated) in pages {
+        let path = root.join(file);
+        if check {
+            let committed = fs::read_to_string(&path).with_context(|| format!("reading {file}"))?;
+            if committed != generated {
+                bail!("{file} is not what the tagged tests prove; run `cargo xtask capabilities` and commit it");
+            }
+            println!("capabilities: {file} matches {counted}");
+        } else {
+            fs::write(&path, generated).with_context(|| format!("writing {file}"))?;
+            println!("capabilities: wrote {file} from {counted}");
+        }
     }
     Ok(())
 }
@@ -153,14 +205,22 @@ fn static_problems(inputs: &Inputs, readme: &str) -> Vec<String> {
 pub(crate) fn check_static(root: &Path) -> Result<()> {
     let inputs = load(root)?;
     let readme = fs::read_to_string(root.join(README)).with_context(|| format!("reading {README}"))?;
+    let json = fs::read_to_string(root.join(MATRIX_JSON)).with_context(|| format!("reading {MATRIX_JSON}"))?;
+    let mut problems = static_problems(&inputs, &readme);
+    if json != matrix_json(&inputs)? {
+        problems.push(format!("{MATRIX_JSON} is not what {MANIFEST} and the tags generate"));
+    }
     fail_on(
-        &static_problems(&inputs, &readme),
-        &format!("{README} is stale or claims more than the tagged tests (run `cargo xtask capabilities`)"),
+        &problems,
+        &format!(
+            "{README} or {MATRIX_JSON} is stale or claims more than the tagged tests (run `cargo xtask capabilities`)"
+        ),
     )?;
     println!(
-        "capabilities: {} rows, {} tag(s), README up to date",
+        "capabilities: {} rows, {} tag(s) ({} TypeScript), README and matrix.json up to date",
         inputs.manifest.rows.len(),
-        inputs.tags.len()
+        inputs.tags.len(),
+        ts_tags(&inputs)
     );
     Ok(())
 }
@@ -352,6 +412,43 @@ fn suite_round_trips() {}
                 tags::parse_libtest(&format!("test tests::suite_round_trips ... {suite}\n")),
             ),
         ])
+    }
+
+    const E2E: &str =
+        "describe(\"rotation\", () => {\n  it(\"[cap C.02 web round-trip] turns page 1\", async () => {});\n});\n";
+
+    fn with_e2e() -> Inputs {
+        inputs(
+            MANIFEST,
+            INVENTORY,
+            [
+                (Path::new("crates/laminapdf-model/tests/views.rs"), VIEWS),
+                (Path::new(matrix::ROUND_TRIP_SUITE), SUITE),
+                (Path::new("apps/web/e2e/rotate.e2e.test.ts"), E2E),
+            ],
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn evaluate_should_count_a_typescript_tag_without_running_it() {
+        let readme = evaluate(&with_e2e(), &results("ok")).unwrap();
+        assert!(readme.contains("| C.02 | Rotate pages | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip |"));
+    }
+
+    #[test]
+    fn matrix_json_should_carry_a_typescript_tag() {
+        let json: Value = serde_json::from_str(&matrix_json(&with_e2e()).unwrap()).unwrap();
+        assert_eq!(
+            json.pointer("/groups/0/ops/1/surfaces/web"),
+            Some(&Value::from("round-trip"))
+        );
+    }
+
+    #[test]
+    fn inputs_should_reject_a_typescript_tag_for_an_unknown_row() {
+        let text = "it(\"[cap C.09 web round-trip] t\", () => {});";
+        assert!(inputs(MANIFEST, INVENTORY, [(Path::new("apps/web/e2e/x.e2e.test.ts"), text)]).is_err());
     }
 
     #[test]
