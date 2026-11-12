@@ -22,7 +22,10 @@ const lines = createInterface({ input: app.stdout });
 const out = [];
 for await (const line of lines) {
   out.push(line);
-  if (line.startsWith("http://")) page.goto(line).catch(() => {});
+  if (line.startsWith("http://")) {
+    // The user approves on the page the app opened.
+    page.goto(line).then(() => page.getByRole("button", { name: "Sign in" }).click()).catch(() => {});
+  }
 }
 const session = JSON.parse(out.find((l) => l.startsWith("SESSION ")).slice(8));
 const ok = session?.user?.email === email;

@@ -50,25 +50,32 @@ fn main() -> Result<()> {
     // Lamina PDF would hand this to tauri-plugin-opener from Rust (ADR 0008 §5): the system browser.
     println!("http://{base}/api/desktop/authorize?redirect_uri={redirect}&code_challenge={challenge}&state={state}");
 
+    // Take connections until one asks for /cb: a browser may open a speculative socket first and
+    // send nothing on it, and another local program may connect too. Each gets two seconds to
+    // send its request line; the whole wait ends after two minutes.
     let started = Instant::now();
     listener.set_nonblocking(true)?;
-    let (mut stream, _) = loop {
-        match listener.accept() {
-            Ok(pair) => break pair,
+    let line = loop {
+        if started.elapsed() > Duration::from_secs(120) {
+            return Err("no sign-in within two minutes".into());
+        }
+        let mut stream = match listener.accept() {
+            Ok((stream, _)) => stream,
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                if started.elapsed() > Duration::from_secs(120) {
-                    return Err("no sign-in within two minutes".into());
-                }
                 std::thread::sleep(Duration::from_millis(20));
+                continue;
             }
             Err(e) => return Err(e.into()),
+        };
+        stream.set_nonblocking(false)?;
+        stream.set_read_timeout(Some(Duration::from_secs(2)))?;
+        let mut line = String::new();
+        if BufReader::new(&stream).read_line(&mut line).is_err() || !line.starts_with("GET /cb?") {
+            continue;
         }
+        stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nYou're signed in. You can close this tab and go back to Lamina PDF.")?;
+        break line;
     };
-    stream.set_nonblocking(false)?;
-    let mut line = String::new();
-    BufReader::new(&stream).read_line(&mut line)?;
-    stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nYou're signed in. You can close this tab and go back to Lamina PDF.")?;
-    drop(stream);
     drop(listener);
 
     let target = line.split_whitespace().nth(1).ok_or("bad request line")?;

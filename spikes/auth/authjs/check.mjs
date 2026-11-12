@@ -44,18 +44,7 @@ const options = await page.evaluate(() => fetch("/api/auth/webauthn-options/pass
 check("passkey registration options", options.status === 200, `${options.status}: ${options.body.slice(0, 80)}`);
 
 // 3. OAuth state and SameSite, as in the Better Auth check.
-const csrf2 = await (await fetch(`${BASE}/api/auth/csrf`)).json();
-const csrfCookie = (await (await fetch(`${BASE}/api/auth/csrf`))).headers.getSetCookie();
-const start = await page.evaluate(async () => {
-  const { csrfToken } = await fetch("/api/auth/csrf").then((r) => r.json());
-  const r = await fetch("/api/auth/signin/github", { method: "POST", body: new URLSearchParams({ csrfToken }), redirect: "manual" });
-  return r.status;
-});
-void csrf2; void csrfCookie; void start;
-const all = await context.cookies();
-const stateCookie = all.find((c) => c.name.includes("state") || c.name.includes("pkce"));
-// Playwright's fetch from the page follows the redirect to github.com (blocked here), so read the
-// provider URL from a server-side request instead.
+// A server-side request, so the redirect to github.com isn't followed.
 const signin = await fetch(`${BASE}/api/auth/signin/github`, {
   method: "POST",
   redirect: "manual",
@@ -73,7 +62,7 @@ const callback = await fetch(`${BASE}/api/auth/callback/github?code=fake${state 
   redirect: "manual",
   headers: strict ? {} : { cookie: setCookies.map((c) => c.split(";")[0]).join("; ") },
 });
-check(`OAuth check cookies are ${strict ? "Strict" : "Lax"}`, true, `${stateCookie?.name ?? "none"}: ${setCookies.map((c) => c.split(";")[0].split("=")[0]).join(", ")}`);
+console.log(`note OAuth check cookies (${setCookies.map((c) => c.split(";")[0].split("=")[0]).join(", ")}) are ${strict ? "Strict" : "Lax"}`);
 // Auth.js sends every callback failure to ?error=Configuration, so the server's log (LOG, the
 // file `wrangler dev` writes to) tells a failed state or PKCE check from GitHub refusing the fake code.
 await new Promise((r) => setTimeout(r, 500));

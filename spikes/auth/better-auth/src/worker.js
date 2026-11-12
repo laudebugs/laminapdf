@@ -8,7 +8,6 @@ import { getMigrations } from "better-auth/db/migration";
 import { bearer } from "better-auth/plugins/bearer";
 import { deviceAuthorization } from "better-auth/plugins/device-authorization";
 import { magicLink } from "better-auth/plugins/magic-link";
-import { oneTimeToken } from "better-auth/plugins/one-time-token";
 import { desktopRoutes } from "./desktop.js";
 import { PAGE } from "./page.js";
 
@@ -24,8 +23,9 @@ export function options(env) {
     secret: env.BETTER_AUTH_SECRET,
     database: env.DB,
     telemetry: { enabled: false },
-    // Sessions live in D1; a signed copy in a short-lived cookie saves a D1 read per request.
-    session: { expiresIn: 60 * 60 * 24 * 30, cookieCache: { enabled: true, maxAge: 300 } },
+    // Sessions live in D1 and every check reads them there. Better Auth's cookie cache would save
+    // that read, but a cached session outlives its deletion by up to its maxAge (README).
+    session: { expiresIn: 60 * 60 * 24 * 30 },
     user: { deleteUser: { enabled: true } },
     socialProviders: {
       github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET },
@@ -49,7 +49,6 @@ export function options(env) {
       }),
       passkey({ rpID: env.RP_ID, rpName: "Lamina PDF", origin: env.BASE_URL }),
       bearer(),
-      oneTimeToken({ expiresIn: 2 }),
       deviceAuthorization({ expiresIn: "10m", interval: "1s" }),
     ],
   };
@@ -64,8 +63,9 @@ export default {
     if (url.pathname === "/_spike/migrate" && request.method === "POST") {
       const { runMigrations, toBeCreated } = await getMigrations(opts);
       await runMigrations();
+      await env.DB.exec("DROP TABLE IF EXISTS desktop_code");
       await env.DB.exec(
-        "CREATE TABLE IF NOT EXISTS desktop_code (code TEXT PRIMARY KEY, challenge TEXT NOT NULL, expires INTEGER NOT NULL)",
+        "CREATE TABLE desktop_code (code TEXT PRIMARY KEY, challenge TEXT NOT NULL, user_id TEXT NOT NULL, expires INTEGER NOT NULL)",
       );
       return Response.json({ created: toBeCreated.map((t) => t.table) });
     }
@@ -79,7 +79,10 @@ export default {
   },
 };
 
-/** Everything D1 holds about the signed-in user, as one JSON file (GDPR art. 20). */
+/**
+ * The rows D1 keeps for the signed-in user, as one JSON file (GDPR art. 20). Left out: pending
+ * magic links and desktop codes, which expire within minutes and are deleted when used.
+ */
 async function exportAccount(request, env, auth) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (session === null) return new Response("sign in first", { status: 401 });
@@ -92,5 +95,6 @@ async function exportAccount(request, env, auth) {
     ),
     sessions: await rows("SELECT id, createdAt, expiresAt, userAgent FROM session WHERE userId = ?"),
     passkeys: await rows("SELECT id, name, deviceType, createdAt FROM passkey WHERE userId = ?"),
+    devices: await rows('SELECT id, clientId, status, expiresAt FROM deviceCode WHERE userId = ?'),
   });
 }
