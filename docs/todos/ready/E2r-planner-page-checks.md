@@ -27,7 +27,7 @@ Let the save planner judge page ops field by field before any page op ships, so 
 
 **In scope**
 
-- `PendingChanges` gains, per transaction, the fields whose widgets an op deleted, rotated, moved on the page or copied, which ops report through a new `Applied` field
+- `PendingChanges` gains, per transaction, the fields whose widgets an op deleted, rotated or moved on the page, which ops report through a new `Applied` field
 - The planner's index of the pages that hold widgets of signed `/FT /Sig` fields and of the fields each lock covers (`/Action` with `/Fields`)
 - `Restriction::SignedWidget { field }` and a per-field `Restriction::FieldMdp`, applied by the [E2 plan §6](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint) rules, and the same verdict from `would_violate(&op)` before an op applies
 

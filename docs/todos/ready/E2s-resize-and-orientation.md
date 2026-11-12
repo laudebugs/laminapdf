@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2e](./E2e-content-append-api.md), [E2f](./E2f-page-geometry.md) |
+| Depends on | [E2e](./E2e-content-append-api.md), [E2f](./E2f-page-geometry.md), [E2r](./E2r-planner-page-checks.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2s-resize-and-orientation` |
 | PR title | `feat(ops): resize pages and change orientation` |
