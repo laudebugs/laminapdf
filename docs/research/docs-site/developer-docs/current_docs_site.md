@@ -124,7 +124,7 @@ Content is tightly governed. Every TypeScript and Rust code block on guide and r
   - `not-initialized`, `text-module-not-loaded`, `extract-module-not-loaded`, a CSP blocking WebAssembly, `init()` in Vite, `init()` in a Cloudflare Worker, passwords, signed file won't save, memory growth, `out-of-memory`/`wasm-trap`.
   - None covers Rust, the CLI, extraction quality or rendering.
   
-  — [apps/docs/src/content/docs/troubleshooting.mdx](../../../../apps/docs/src/content/docs/troubleshooting.mdx)
+  — [apps/docs/src/content/docs/troubleshooting.mdx](../../../../apps/docs/src/content/docs/troubleshooting/javascript.mdx) (since split by area; these entries are now in `troubleshooting/javascript.mdx`)
 - **Recipe example with real-world framing:** `recipes/invoice-from-json.mdx` shows a JSON template excerpt, then has "How it works", "What to change" (including the failure modes `invalid-document` with `didYouMean`, and `template-data-missing`) and "Build it without code" with the CLI command — [apps/docs/src/content/docs/recipes/invoice-from-json.mdx](../../../../apps/docs/src/content/docs/recipes/invoice-from-json.mdx)
 - **API reference split:**
   - TypeScript: TypeDoc via `starlight-typedoc` into `/reference/sdk/`, a collapsed sidebar group, generated at build time and gitignored.
