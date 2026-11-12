@@ -44,6 +44,8 @@ laminapdf-save = { path = ".", features = ["test-support"] }
 # The test helpers every crate shares, by path only so `cargo publish` drops it
 # (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
+# Images to PDF, for the round-trip suite's image cases (todo E3h).
+laminapdf-build = { path = "../laminapdf-build" }
 criterion = { workspace = true }
 proptest = { workspace = true }
 serde_json = { workspace = true }

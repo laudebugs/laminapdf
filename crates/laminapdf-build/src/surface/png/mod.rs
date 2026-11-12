@@ -35,6 +35,8 @@ pub(crate) struct Png {
     /// 8 or 16.
     pub(crate) bits: u8,
     pub(crate) pixels: Vec<u8>,
+    /// What `pHYs` and `eXIf` say about showing it.
+    pub(crate) shown: super::Shown,
 }
 
 fn invalid(reason: &'static str) -> Error {
@@ -56,6 +58,8 @@ pub(crate) fn decode(bytes: &[u8], strip_16: bool) -> Result<Png> {
         header: h,
         palette,
         trns,
+        phys,
+        exif,
         idat,
     } = read_chunks(bytes)?;
     let palette = match (h.color, palette) {
@@ -132,6 +136,7 @@ pub(crate) fn decode(bytes: &[u8], strip_16: bool) -> Result<Png> {
         alpha: out.alpha,
         bits: out.bits,
         pixels,
+        shown: super::exif::from_png_chunks(phys, exif),
     })
 }
 

@@ -64,7 +64,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md) |
 | O05 | Capability page: what lamina can read, write and round-trip | W | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) |
 | O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/ready/E2b-page-structure-ops.md) |
-| O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/ready/E2c-cross-document-pages.md), [E2d](../../todos/ready/E2d-merge-and-split.md), [E3h](../../todos/ready/E3h-images-to-pdf-and-page-export.md) |
+| O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/ready/E2c-cross-document-pages.md), [E2d](../../todos/ready/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) |
 | O08 | Split document (by count, ranges, bookmarks) | D | [E2d](../../todos/ready/E2d-merge-and-split.md) |
 | O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/ready/E2f-page-geometry.md), [E2s](../../todos/ready/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md) |
 | O10 | Page labels editor (roman front matter, numbering ranges) | D | [E2q](../../todos/ready/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md) |
@@ -73,7 +73,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O13 | Initial view and article threads | D | [E3d](../../todos/ready/E3d-initial-view-and-threads.md) |
 | O14 | Attachments panel (add, extract, associated files) | D | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) |
 | O15 | Object inspector (object tree / COS inspector, advanced) | D | [E3g](../../todos/ready/E3g-inspectors.md) |
-| O16 | Export and extraction: pages as images, text/Markdown/JSON, pictures out | D, W | [E3h](../../todos/ready/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/ready/E3i-extraction.md) |
+| O16 | Export and extraction: pages as images, text/Markdown/JSON, pictures out | D, W | [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/ready/E3i-extraction.md) |
 | O17 | Phone: organise pages (grid, select, reorder by "Move to"), bottom action bar | M | [E2h](../../todos/ready/E2h-page-organiser-ui.md) |
 
 ## C. Comment and review (E4–E5)

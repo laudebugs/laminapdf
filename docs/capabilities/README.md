@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 6 | 7 | 15 | 0 | 141 | 9 |
+| core | 169 | 6 | 8 | 17 | 0 | 138 | 12 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -156,16 +156,16 @@ Rows per surface by best proven status (of the rows that target the surface).
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | H.01 | Word / Excel / PowerPoint → PDF | — | — | — | — | E13 round-trip |  |
-| H.02 | Images → PDF | — | — | — | — | E3 write |  |
+| H.02 | Images → PDF | 🔵 write | — | — | — | E3 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | H.03 | HTML / webpages → PDF | — | — | — | — | E13 round-trip |  |
 | H.04 | PDF → Word | — | — | — | — | E13 read |  |
 | H.05 | PDF tables → Excel | — | — | — | — | E13 read |  |
-| H.06 | Pages → PNG/JPEG/TIFF | — | — | — | — | E3 read |  |
+| H.06 | Pages → PNG/JPEG/TIFF | 🟡 read | — | — | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read |
 | H.07 | Extract text & images | — | — | — | — | E3 read |  |
 | H.08 | Extract hyperlinks & bookmarks | — | — | — | — | E3 read |  |
 | H.09 | Extract attachments | — | — | — | — | E3 read |  |
 | H.10 | Export pages/ranges | — | — | — | — | E2 write |  |
-| H.11 | Render pages to images | — | — | — | — | E3 read |  |
+| H.11 | Render pages to images | 🟡 read | — | — | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read |
 | H.12 | Convert to PDF/A, PDF/X, PDF/UA | — | — | — | — | E16 round-trip |  |
 | H.13 | Scanned → searchable PDF | — | — | — | — | E13 round-trip |  |
 
