@@ -1,0 +1,4 @@
+page 1 heading 1 [56 63 116 22] Invoice 42
+page 1 paragraph [56 88 237 15] Acme Widgets Ltd · 1 Example Street · London
+page 1 table [56 148 483 87] Widgets, blue (W-100) 3 € 36.00 Gadget with fine-tuned dials 1 € 79.90 Café-grade sprockets 12 € 15.00 Delivery 1 € 4.50
+page 1 paragraph [468 244 71 15] Total € 135.40

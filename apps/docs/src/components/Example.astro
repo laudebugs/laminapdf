@@ -29,7 +29,7 @@ interface Props {
 }
 
 // The outputs a page may show: the reading examples' goldens, which their tests check.
-const OUTPUTS: Record<string, string> = import.meta.glob(["../../../../fixtures/extract/examples/*.md"], {
+const OUTPUTS: Record<string, string> = import.meta.glob(["../../../../fixtures/extract/examples/*.{md,txt}"], {
   query: "?raw",
   import: "default",
   eager: true,

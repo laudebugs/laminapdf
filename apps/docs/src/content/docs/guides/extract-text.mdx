@@ -1,0 +1,97 @@
+---
+title: Extract text and Markdown
+description: Get a PDF's text out in reading order as plain text, Markdown, JSON with a box for every block, or chunks for retrieval, in TypeScript and Rust.
+---
+
+import Diagram from "../../../components/Diagram.astro";
+import Example from "../../../components/Example.astro";
+
+You'll get a PDF's text out in the form your program needs: plain text to search, Markdown for a language model, JSON with each paragraph's page and box, or chunks for a search index. Each form writes out the same reading of the document.
+
+In TypeScript, extraction needs the extract module, so call `init({ extract: true })` once before you open the document. In Rust, it needs the crate's `extract` feature, which the default features include.
+
+## Get the text
+
+`extract` with the `text` format gives the page's words in the order a person reads them. Paragraphs and headings are separated by a blank line, and a table's cells by tabs:
+
+<Example ts="packages/sdk/examples/extract-text.ts" rust="crates/laminapdf/examples/extract_text.rs" output="fixtures/extract/examples/invoice.txt" />
+
+A PDF stores where each piece of text is drawn, not the order to read it in. Extraction works the order out, so the text comes back the way the page reads, even when the file drew it in another order:
+
+<Diagram name="extract-pipeline" />
+
+## Get Markdown
+
+Markdown keeps what plain text loses: headings stay headings, lists stay lists, and a table drawn with lines becomes a Markdown table. That structure helps a language model tell a title from a footnote. The `pageMarkers` option (`with_page_markers` in Rust) writes a `<!-- page N -->` comment before each page, so an answer can cite its page:
+
+<Example ts="packages/sdk/examples/extract-markdown.ts" rust="crates/laminapdf/examples/extract_markdown.rs" output="fixtures/extract/examples/invoice.md" />
+
+The example also writes the JSON and the chunks, which the next sections describe. The [Extract text for an LLM](/recipes/extract-markdown/) recipe runs it on any file.
+
+## Get each block with its box
+
+The `json` format returns the whole result as data: every block with its kind, its page and its box: left, top, width and height, in points from the page's top-left corner. Use it to highlight a passage on the page, to keep a table's cells apart, or to check what extraction left out. Here each block prints as one line:
+
+<Example ts="packages/sdk/examples/extract-blocks.ts" rust="crates/laminapdf/examples/extract_blocks.rs" output="fixtures/extract/examples/invoice-blocks.txt" />
+
+A block is a heading, a paragraph, a list item, a caption, a footnote or a table. A table block also holds its cells, row by row. In Rust, `doc.extract` returns the same data as Rust types, and `doc.extract_json` writes the JSON document, `laminapdf.extract/1`.
+
+Each block also has a `confidence` from 0 to 1. A block read from the file's structure tree, the tags that give a tagged PDF its reading order, has 1. A block placed by the layout has 0.75, and 0.5 when its page's columns could be read in more than one order.
+
+## Get chunks for retrieval
+
+A search index or a retrieval pipeline wants pieces of a set size. Chunks are whole paragraphs and tables, grouped up to a token budget, with a new chunk at each heading. Each chunk records the headings above it, the pages and boxes it came from, and where its text sits in the Markdown:
+
+<Example ts="packages/sdk/examples/extract-chunks.ts" rust="crates/laminapdf/examples/extract_chunks.rs" output="fixtures/extract/examples/invoice-chunks.txt" />
+
+A token here is about four characters. That count runs low for code, numbers and scripts other than Latin, so leave room under your model's limit. `overlap` repeats whole paragraphs from the end of the previous chunk, and `splitOn` (`with_split_on`) chooses where else a chunk starts: at each heading (`"headings"`, the default), at each page (`"pages"`), or only when the budget runs out (`"blocks"`).
+
+## Reading order
+
+Extraction reads a two-column page down the left column, then down the right, and puts a title that spans both columns first:
+
+<Diagram name="reading-order" />
+
+The `readingOrder` option (`with_reading_order` in Rust) chooses where the order comes from:
+
+| `readingOrder` | Where the order comes from |
+| --- | --- |
+| `"auto"` (the default) | The structure tree of a tagged file when it covers the page and looks right, otherwise the layout |
+| `"tagged"` | The structure tree wherever there is one |
+| `"layout"` | The layout alone, columns then rows |
+| `"content-stream"` | The order the page draws its text |
+
+When the layout leaves the order in doubt, such as two columns set very close together, the page raises the `extract-column-order-uncertain` warning. [Troubleshooting text extraction](/troubleshooting/extraction/) says what to do about it and about the other surprises.
+
+## What extraction leaves out
+
+Extraction gives you only the text a reader can see. It leaves out:
+
+- invisible text, such as the hidden text layer of a scanned page;
+- text off the page, too small to read, or cut away by a clipping path;
+- near-white text with nothing behind it, and text painted over by a later shape, image or comment;
+- page furniture: running headers and footers, page numbers, and text the file marks as an artifact.
+
+The JSON lists each run it left out under `dropped`, with the reason and the number of characters, but not the text. To keep the text in that list, set `drop: { keepSpans: true }` (`DropOptions::keep_spans` in Rust). To keep page furniture in the blocks, set `drop: { furniture: false }`.
+
+## Tables
+
+A table drawn with lines becomes a table block, and Markdown writes it as a table. A cell that spans columns or rows makes the table HTML, since Markdown tables can't span. A table that goes on over a page break comes out as one table in the Markdown, the text and the chunks. The JSON keeps one block per page, linked by `continues` and `continuedBy`.
+
+A table drawn without lines is only text lined up in columns. To find those too, set `tables: "lattice-and-stream"` (`with_tables(TableMode::LatticeAndStream)` in Rust). It finds more tables, and now and then a pair of columns that isn't one.
+
+## Warnings to expect
+
+Extraction never fails on a page it reads badly. It returns what it could read and adds a warning, which the JSON lists under `warnings`:
+
+| Warning | What it means |
+| --- | --- |
+| `extract-needs-ocr` | A page has no text to use, such as a scan; send it to OCR (optical character recognition) |
+| `extract-column-order-uncertain` | The page's columns could be read in more than one order |
+| `extract-struct-tree-ignored` | A tagged page's structure tree failed the checks, so the layout gave the order |
+| `unmapped-glyph` | A font drew glyphs that map to no character; they come out as `�` |
+| `extract-table-ambiguous` | A table's cells merge in a shape a grid can't hold |
+
+Each page in the JSON also has a `textLayer` whose `status` says whether its text is usable: `native` for text the file draws, `needs-ocr` for a scan, `ocr-layer` for a scan with an invisible OCR layer. Pages that need OCR can go to a layout or OCR model through `extractWithModels` (`ExtractOptions::with_models` in Rust); without one, extraction uses its own rules alone.
+
+Next: [Troubleshooting text extraction](/troubleshooting/extraction/), for empty pages, columns read across and missing characters.

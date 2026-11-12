@@ -97,6 +97,18 @@ name = "extract_markdown"
 required-features = ["extract"]
 
 [[example]]
+name = "extract_text"
+required-features = ["extract"]
+
+[[example]]
+name = "extract_blocks"
+required-features = ["extract"]
+
+[[example]]
+name = "extract_chunks"
+required-features = ["extract"]
+
+[[example]]
 name = "react_to_error_codes"
 
 [[example]]

@@ -56,6 +56,7 @@ export function sidebar(typeDoc) {
       items: [
         { label: "Edit a PDF", slug: "guides/edit-a-pdf" },
         { label: "Save a PDF", slug: "guides/save-a-pdf" },
+        { label: "Extract text and Markdown", slug: "guides/extract-text" },
         { label: "Open password-protected files", slug: "guides/password-protected-files" },
         { label: "Open files you don't trust", slug: "guides/untrusted-files" },
         { label: "Open large files by ranges", slug: "guides/open-large-files" },

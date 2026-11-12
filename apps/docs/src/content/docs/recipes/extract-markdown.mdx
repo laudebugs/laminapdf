@@ -6,7 +6,7 @@ description: Turn a PDF into Markdown in reading order, JSON with a box for ever
 import Diagram from "../../../components/Diagram.astro";
 import Example from "../../../components/Example.astro";
 
-You'll turn a PDF into three outputs an LLM or a search index can use: Markdown in reading order, JSON giving every paragraph and table its page and box, and 400-token chunks.
+The [Extract text and Markdown](/guides/extract-text/) guide explains each output and its options. Here you'll turn a PDF into three outputs an LLM or a search index can use: Markdown in reading order, JSON giving every paragraph and table its page and box, and 400-token chunks.
 
 In TypeScript the function returns the three outputs and needs the extract module, `init({ extract: true })`. In Rust, the program instead extracts once and writes the three files. Both give the same JSON:
 
