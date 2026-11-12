@@ -150,8 +150,8 @@ export type JsonBlock = {
   /** The structure element the block comes from, when it comes from one. */
   structRef?: StructRef | null;
   /**
-   * The visible text, lines joined by a space after the text fixes (hyphenated words
-   * joined again, ligatures expanded).
+   * The visible text, lines joined by a space after the text fixes (Latin ligatures spelled out
+   * and, unless `dehyphenate` is off, words hyphenated at a line break joined again).
    */
   text: string;
   textRange: TextRange;

@@ -598,7 +598,7 @@
           "description": "The structure element the block comes from, when it comes from one."
         },
         "text": {
-          "description": "The visible text, lines joined by a space after the text fixes (hyphenated words\njoined again, ligatures expanded).",
+          "description": "The visible text, lines joined by a space after the text fixes (Latin ligatures spelled out\nand, unless `dehyphenate` is off, words hyphenated at a line break joined again).",
           "type": "string"
         },
         "textRange": {

@@ -196,8 +196,8 @@ pub struct Block {
     /// What the block is.
     #[cfg_attr(feature = "serde", serde(flatten))]
     pub kind: BlockKind,
-    /// The visible text, lines joined by a space after the text fixes (hyphenated words
-    /// joined again, ligatures expanded).
+    /// The visible text, lines joined by a space after the text fixes (Latin ligatures spelled out
+    /// and, unless `dehyphenate` is off, words hyphenated at a line break joined again).
     pub text: String,
     /// The page index.
     pub page: usize,

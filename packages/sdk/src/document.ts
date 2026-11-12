@@ -603,8 +603,9 @@ export class Document extends Handle<BaseGlue> {
 
   /**
    * Runs `edit` with a transaction handle and applies what it collected as one transaction,
-   * undone and redone as one step. When `edit` throws, nothing is applied and the error propagates. The ops are
-   * applied when `edit` returns: reads inside `edit` see the document before the transaction.
+   * undone and redone as one step. When `edit` throws, nothing is applied and the error
+   * propagates. The ops are applied when `edit` returns: reads inside `edit` see the document
+   * before the transaction.
    *
    * @param edit - collects ops on `tx`; synchronous only (a callback returning a promise is
    *   refused with `invalid-argument` and nothing is applied).

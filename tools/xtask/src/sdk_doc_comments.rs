@@ -10,7 +10,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result, bail};
 
-use crate::docs_prose::{is_adr_number, is_todo_id};
+use crate::docs_prose::{id_words, internal_reference};
 use crate::tracked::git;
 
 /// The sources `TypeDoc` documents, as a git pathspec (`*` matches across directories).
@@ -39,40 +39,95 @@ pub(crate) fn check(root: &Path) -> Result<()> {
     Ok(())
 }
 
-/// The ADR numbers and todo IDs in `source`'s `/** … */` comments, each with its 1-based line.
+/// The ADR numbers and todo IDs in `source`'s `/** … */` comments, each with its 1-based line. A
+/// reference wrapped over two lines (`(ADR` then `0016 §7)`) counts.
 fn problems(source: &str) -> Vec<(usize, String)> {
     let mut found = Vec::new();
-    let mut rest = source;
-    let mut offset = 0;
-    while let Some(start) = rest.find("/**") {
-        let body = rest.get(start..).unwrap_or_default();
-        let len = body.find("*/").map_or(body.len(), |end| end + 2);
-        let comment = body.get(..len).unwrap_or_default();
-        let first_line = source.get(..offset + start).unwrap_or_default().matches('\n').count() + 1;
-        for (index, line) in comment.lines().enumerate() {
-            found.extend(internal_words(line).into_iter().map(|word| (first_line + index, word)));
+    for (first_line, comment) in doc_comments(source) {
+        let words: Vec<(usize, &str)> = comment
+            .lines()
+            .enumerate()
+            .flat_map(|(index, line)| id_words(line).into_iter().map(move |word| (first_line + index, word)))
+            .collect();
+        for (index, (line, word)) in words.iter().enumerate() {
+            let next = words.get(index + 1).map(|(_, next)| *next);
+            found.extend(internal_reference(word, next).map(|reference| (*line, reference)));
         }
-        offset += start + len;
-        rest = body.get(len..).unwrap_or_default();
     }
     found
 }
 
-/// The ADR numbers (`ADR 0026`, `ADR-0026`) and todo IDs (`B5a`) in one line of a comment.
-fn internal_words(line: &str) -> Vec<String> {
-    let words: Vec<&str> = line
-        .split(|c: char| !(c.is_ascii_alphanumeric() || c == '-'))
-        .filter(|w| !w.is_empty())
-        .collect();
+/// Where a scan of a TypeScript file is.
+#[derive(Clone, Copy)]
+enum State {
+    Code,
+    LineComment,
+    /// A `/* … */` comment from byte `start` on line `line`; `doc` for `/** … */`.
+    Block {
+        doc: bool,
+        start: usize,
+        line: usize,
+    },
+    /// A string or template literal opened by this quote.
+    Literal {
+        quote: char,
+        escaped: bool,
+    },
+}
+
+/// Every `/** … */` comment in `source` with the line it starts on, skipping `//` comments and
+/// string and template literals, where `/**` is text (a glob such as `"src/**/*.ts"`). An unclosed
+/// comment runs to the end. Good enough for the SDK's sources: regex literals and template
+/// literals nested inside `${…}` aren't told apart.
+fn doc_comments(source: &str) -> Vec<(usize, &str)> {
     let mut found = Vec::new();
-    for (index, word) in words.iter().enumerate() {
-        let next = words.get(index + 1).copied();
-        if is_adr_number(word, next) {
-            let number = word.strip_prefix("ADR-").or(next).unwrap_or_default();
-            found.push(format!("ADR {number}"));
-        } else if is_todo_id(word) {
-            found.push(format!("the todo ID {word}"));
+    let mut chars = source.char_indices().peekable();
+    let (mut state, mut line) = (State::Code, 1);
+    while let Some((at, c)) = chars.next() {
+        let next = chars.peek().map(|(_, next)| *next);
+        state = match state {
+            State::Code => match (c, next) {
+                ('/', Some('/')) => {
+                    chars.next();
+                    State::LineComment
+                }
+                ('/', Some('*')) => {
+                    chars.next();
+                    let after = source.get(at + 2..).unwrap_or_default();
+                    let doc = after.starts_with('*') && !after.starts_with("*/");
+                    State::Block { doc, start: at, line }
+                }
+                ('"' | '\'' | '`', _) => State::Literal {
+                    quote: c,
+                    escaped: false,
+                },
+                _ => State::Code,
+            },
+            State::LineComment if c == '\n' => State::Code,
+            State::Block {
+                doc,
+                start,
+                line: first,
+            } if c == '*' && next == Some('/') => {
+                chars.next();
+                if doc {
+                    found.push((first, source.get(start..at + 2).unwrap_or_default()));
+                }
+                State::Code
+            }
+            State::Literal { quote, escaped: false } if c == quote || (c == '\n' && quote != '`') => State::Code,
+            State::Literal { quote, escaped } => State::Literal {
+                quote,
+                escaped: !escaped && c == '\\',
+            },
+            other => other,
+        };
+        if c == '\n' {
+            line += 1;
         }
+    }
+    if let State::Block { doc: true, start, line } = state {
+        found.push((line, source.get(start..).unwrap_or_default()));
     }
     found
 }
@@ -111,5 +166,32 @@ mod tests {
     #[test]
     fn problems_should_check_an_unclosed_comment_to_the_end() {
         assert_eq!(problems("/** ADRs 0001"), [(1, "ADR 0001".to_owned())]);
+    }
+
+    #[test]
+    fn problems_should_report_an_adr_wrapped_over_two_lines() {
+        let source = "/**\n * Opens a file, normalised as in (ADR\n * 0016 §7).\n */\n";
+        assert_eq!(problems(source), [(2, "ADR 0016".to_owned())]);
+    }
+
+    #[test]
+    fn problems_should_report_todo_ids_joined_by_a_hyphen() {
+        let source = "/** Added in B5a-B5c. */\n";
+        assert_eq!(
+            problems(source),
+            [(1, "the todo ID B5a".to_owned()), (1, "the todo ID B5c".to_owned())]
+        );
+    }
+
+    #[test]
+    fn problems_should_skip_doc_comment_openers_in_strings_and_line_comments() {
+        let source = "const glob = \"src/**/*.ts\"; // see /** ADR 0001 */\nconst t = `a/**b`;\n/** Plain. */\n";
+        assert_eq!(problems(source), []);
+    }
+
+    #[test]
+    fn problems_should_find_a_doc_comment_after_an_escaped_quote() {
+        let source = "const q = \"say \\\"hi\\\"\";\n/** B5a */\n";
+        assert_eq!(problems(source), [(2, "the todo ID B5a".to_owned())]);
     }
 }
