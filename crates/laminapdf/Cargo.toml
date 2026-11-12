@@ -93,11 +93,23 @@ name = "element_flow"
 required-features = ["text"]
 
 [[example]]
+name = "check_what_a_file_hides"
+required-features = ["extract"]
+
+[[example]]
 name = "extract_markdown"
 required-features = ["extract"]
 
 [[example]]
-name = "check_what_a_file_hides"
+name = "extract_text"
+required-features = ["extract"]
+
+[[example]]
+name = "extract_blocks"
+required-features = ["extract"]
+
+[[example]]
+name = "extract_chunks"
 required-features = ["extract"]
 
 [[example]]
