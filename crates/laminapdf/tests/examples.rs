@@ -339,18 +339,7 @@ fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     // The whole Markdown is a golden: the docs' Extract Markdown recipe shows it as the example's
     // output. `UPDATE_GOLDEN=1` rewrites it.
     let markdown = read("invoice.md");
-    let golden = fixtures_dir().join("extract/examples/invoice.md");
-    if std::env::var_os("UPDATE_GOLDEN").is_some() {
-        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
-            .unwrap_or_else(|e| panic!("{e}"));
-        std::fs::write(&golden, &markdown).unwrap_or_else(|e| panic!("{e}"));
-    }
-    let want = std::fs::read_to_string(&golden).unwrap_or_default();
-    assert!(
-        markdown == want,
-        "{} is stale: run with UPDATE_GOLDEN=1",
-        golden.display()
-    );
+    check_extract_golden("invoice.md", &markdown);
     assert!(markdown.starts_with("<!-- page 1 -->\n\n# Invoice 42\n"));
     assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
     assert!(read("invoice.chunks.jsonl").lines().count() >= 1);
@@ -368,14 +357,21 @@ fn extract_text_blocks_and_chunks_print_their_goldens_for_the_invoice() {
         ("invoice-chunks.txt", extract_chunks::chunks_of(invoice())),
     ];
     for (name, out) in outputs {
-        let out = out.unwrap_or_else(|e| panic!("{name}: {e}"));
-        let golden = fixtures_dir().join("extract/examples").join(name);
-        if std::env::var_os("UPDATE_GOLDEN").is_some() {
-            std::fs::write(&golden, &out).unwrap_or_else(|e| panic!("{e}"));
-        }
-        let want = std::fs::read_to_string(&golden).unwrap_or_default();
-        assert!(out == want, "{} is stale: run with UPDATE_GOLDEN=1", golden.display());
+        check_extract_golden(name, &out.unwrap_or_else(|e| panic!("{name}: {e}")));
     }
+}
+
+/// Compares `out` with `fixtures/extract/examples/<name>`, the output a docs page shows for a
+/// reading example; `UPDATE_GOLDEN=1` rewrites it.
+fn check_extract_golden(name: &str, out: &str) {
+    let golden = fixtures_dir().join("extract/examples").join(name);
+    if std::env::var_os("UPDATE_GOLDEN").is_some() {
+        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
+            .unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(&golden, out).unwrap_or_else(|e| panic!("{e}"));
+    }
+    let want = std::fs::read_to_string(&golden).unwrap_or_default();
+    assert!(out == want, "{} is stale: run with UPDATE_GOLDEN=1", golden.display());
 }
 
 /// `SNAPSHOT_HELLO_SHA256` in `packages/sdk/test/snapshot-test.test.ts`: `hello` built with the

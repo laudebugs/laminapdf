@@ -9,7 +9,7 @@ use std::error::Error;
 use std::fmt::Write as _;
 
 use laminapdf::extract::{Block, BlockKind, ExtractOptions};
-use laminapdf::{Document, OpenOptions};
+use laminapdf::{Document, OpenOptions, Pt};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = std::env::args().nth(1).ok_or("usage: extract_blocks <file.pdf>")?;
@@ -24,7 +24,7 @@ pub(crate) fn blocks_of(bytes: Vec<u8>) -> Result<String, Box<dyn Error>> {
     let mut out = String::new();
     for block in &extraction.blocks {
         let bbox = block.bbox;
-        let place = [bbox.x0, bbox.y0, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0].map(|v| v.get().round().to_string());
+        let place = [bbox.x0, bbox.y0, bbox.width(), bbox.height()].map(|v| whole_points(v).to_string());
         let text = block.text.replace(['\t', '\n'], " ");
         writeln!(
             out,
@@ -46,6 +46,13 @@ fn kind(block: &Block) -> String {
         BlockKind::Caption => "caption".into(),
         BlockKind::Footnote => "footnote".into(),
         BlockKind::Table { .. } => "table".into(),
+        // `Other`, and any kind a later version adds.
         _ => "other".into(),
     }
+}
+
+/// `v` in whole points, rounded as the JSON rounds it (to a thousandth), then halves up.
+fn whole_points(v: Pt) -> f64 {
+    let json = (v.get() * 1000.0).round() / 1000.0;
+    (json + 0.5).floor()
 }

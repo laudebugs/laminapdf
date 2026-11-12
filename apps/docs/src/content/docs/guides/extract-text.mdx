@@ -8,7 +8,7 @@ import Example from "../../../components/Example.astro";
 
 You'll get a PDF's text out in the form your program needs: plain text to search, Markdown for a language model, JSON with each paragraph's page and box, or chunks for a search index. Each form writes out the same reading of the document.
 
-In TypeScript, extraction needs the extract module, so call `init({ extract: true })` once before you open the document. In Rust, it needs the crate's `extract` feature, which the default features include.
+In TypeScript, extraction needs the extract module or the text module, so call `init({ extract: true })` once before you open the document, unless you already load the text module. In Rust, it needs the crate's `extract` feature, which the default features include.
 
 ## Get the text
 
@@ -36,7 +36,7 @@ The `json` format returns the whole result as data: every block with its kind, i
 
 A block is a heading, a paragraph, a list item, a caption, a footnote or a table. A table block also holds its cells, row by row. In Rust, `doc.extract` returns the same data as Rust types, and `doc.extract_json` writes the JSON document, `laminapdf.extract/1`.
 
-Each block also has a `confidence` from 0 to 1. A block read from the file's structure tree, the tags that give a tagged PDF its reading order, has 1. A block placed by the layout has 0.75, and 0.5 when its page's columns could be read in more than one order.
+Each block also has a `confidence` from 0 to 1. A block read from the file's structure tree, the tags that give a tagged PDF its reading order, has 1. A block placed by the layout has 0.75, and 0.5 when its page's columns could be read in more than one order. With `readingOrder: "content-stream"`, every block has 0.5, since the drawing order may not be the reading order.
 
 ## Get chunks for retrieval
 
@@ -72,7 +72,7 @@ Extraction gives you only the text a reader can see. It leaves out:
 - near-white text with nothing behind it, and text painted over by a later shape, image or comment;
 - page furniture: running headers and footers, page numbers, and text the file marks as an artifact.
 
-The JSON lists each run it left out under `dropped`, with the reason and the number of characters, but not the text. To keep the text in that list, set `drop: { keepSpans: true }` (`DropOptions::keep_spans` in Rust). To keep page furniture in the blocks, set `drop: { furniture: false }`.
+The JSON lists each run it left out under `dropped`, with the reason and the number of characters, but not the text. To keep the text in that list, set `drop: { keepSpans: true }`; in Rust, set the options' `drop.keep_spans` field to `true`. To keep page furniture in the blocks, set `drop: { furniture: false }` (`drop.furniture` in Rust).
 
 ## Tables
 
@@ -92,6 +92,16 @@ Extraction never fails on a page it reads badly. It returns what it could read a
 | `unmapped-glyph` | A font drew glyphs that map to no character; they come out as `�` |
 | `extract-table-ambiguous` | A table's cells merge in a shape a grid can't hold |
 
-Each page in the JSON also has a `textLayer` whose `status` says whether its text is usable: `native` for text the file draws, `needs-ocr` for a scan, `ocr-layer` for a scan with an invisible OCR layer. Pages that need OCR can go to a layout or OCR model through `extractWithModels` (`ExtractOptions::with_models` in Rust); without one, extraction uses its own rules alone.
+Each page in the JSON also has a `textLayer` whose `status` says whether its text is usable:
+
+| `status` | The page |
+| --- | --- |
+| `native` | Text the file draws |
+| `mixed` | Usable text, though some glyphs map to no character or images cover part of the page |
+| `needs-ocr` | No text to use, such as a scan |
+| `ocr-layer` | A scan with an invisible OCR layer, which extraction leaves out |
+| `empty` | Nothing on it |
+
+Pages that need OCR can go to a layout or OCR model through `extractWithModels` (`ExtractOptions::with_models` in Rust); without one, extraction uses its own rules alone.
 
 Next: [Troubleshooting text extraction](/troubleshooting/extraction/), for empty pages, columns read across and missing characters.

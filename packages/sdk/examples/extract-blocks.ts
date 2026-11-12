@@ -20,5 +20,5 @@ export function blocksOf(bytes: Uint8Array): string {
 
 /** The block's kind as the JSON names it, with a heading's level. */
 function kind(block: ExtractedBlock): string {
-  return block.type === "heading" ? `heading ${block.level}` : block.type.replace("-", " ");
+  return block.type === "heading" ? `heading ${block.level}` : block.type.replaceAll("-", " ");
 }
