@@ -11,7 +11,7 @@ export interface Paint {
 }
 
 /** What the scenarios read through `browser.execute`. */
-export interface E2eProbe {
+interface E2eProbe {
   /** `performance.now()` in the app's window, to compare with paints' times. */
   readonly now: () => number;
   /** The view's page, zoom and scroll, or undefined outside the shell. */

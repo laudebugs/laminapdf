@@ -71,7 +71,7 @@ export async function killEngine(): Promise<void> {
 }
 
 /** `performance.now()` in the app's window. */
-export async function now(): Promise<number> {
+async function now(): Promise<number> {
   return browser.execute(() => performance.now());
 }
 
