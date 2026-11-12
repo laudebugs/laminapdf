@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D3](../../plans/desktop-app.md#d3-files) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D2e](../done/D2e-desktop-e2e-webdriverio.md) |
@@ -43,9 +43,9 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 
 **Out of scope** (and which todo covers it)
 
-- Recent files, OS recent documents, file watching: [D3b](D3b-recent-files-and-file-watching.md).
-- Tabs and multi-window routing: [D4a](D4a-windows-tabs-and-session-restore.md).
-- Installer-level verification of associations (MSI/NSIS/deb registration on clean VMs): [D6b](D6b-release-workflow-and-linux-packages.md)–[D6d](D6d-windows-signing.md) (this PR verifies with dev bundles).
+- Recent files, OS recent documents, file watching: [D3b](../ready/D3b-recent-files-and-file-watching.md).
+- Tabs and multi-window routing: [D4a](../ready/D4a-windows-tabs-and-session-restore.md).
+- Installer-level verification of associations (MSI/NSIS/deb registration on clean VMs): [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md) (this PR verifies with dev bundles).
 - Custom URL scheme deep links (`lamina://` for the web ↔ desktop handoff): not planned for D-rounds.
 
 ## Tasks

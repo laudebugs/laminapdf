@@ -41,7 +41,7 @@ Conventions on this canvas:
 - **Recent files** (S01-start): six entries, one missing.
 - **First run** (S01-start-empty): empty state “No recent files yet / Files you open appear here, with the page you were reading.” and a quiet notice “lamina is not your default PDF app.” with **Not now** and **Open system settings…** (plan open question 5: lamina never makes itself the default silently). “Not now” hides the notice for good; Settings › General keeps the button.
 - **Remember recent files off:** the Recent section is replaced by one line: “lamina is not keeping recent files. Turn this on in Settings › General.”
-- **Dragging files over the window** (not drawn): a full-window overlay on `scrim` with a centred `surface` card, the drop icon and “Drop to open 2 PDFs”; non-PDF files say “Only PDF files open in lamina” and dropping them shows a toast with the file name only ([D3a](../../todos/ready/D3a-open-from-os.md)). The same overlay appears over a document window (drop opens new tabs).
+- **Dragging files over the window** (not drawn): a full-window overlay on `scrim` with a centred `surface` card, the drop icon and “Drop to open 2 PDFs”; non-PDF files say “Only PDF files open in lamina” and dropping them shows a toast with the file name only ([D3a](../../todos/ongoing/D3a-open-from-os.md)). The same overlay appears over a document window (drop opens new tabs).
 - **Unreadable file** from the list or a drop: toast “Couldn’t open Annual-accounts-2025.pdf. It may have been moved.” plus the missing state on its card.
 
 **Behaviour.** Opening routes through `route_open` like every OS open: a file already open focuses its tab instead (unless duplicates are allowed). Double-clicking a PDF in Finder/Explorer/Files while lamina runs opens it in the front window as a new tab; the start window becomes that tab. Nothing in this window changes a file.
@@ -52,7 +52,7 @@ Conventions on this canvas:
 
 **Artboards:** `S01-start.dc.html`, `S01-start-empty.dc.html`.
 
-**Todos:** [D3a](../../todos/ready/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md).
+**Todos:** [D3a](../../todos/ongoing/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md).
 
 ## S02 Window with document tabs and session restore
 

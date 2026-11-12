@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D3](../../plans/desktop-app.md#d3-files) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D3a](./D3a-open-from-os.md) |
+| Depends on | [D3a](../ongoing/D3a-open-from-os.md) |
 | ADRs | Follows ADR 0008 (main process owns file I/O and watching), ADR 0010 (`canWatchFiles`), ADR 0011 (privacy rules, web C2: what may be stored locally) |
 | Branch | `feat/d3b-recent-files-and-watching` |
 | PR title | `feat(desktop): add recent files and reload documents changed on disk` |

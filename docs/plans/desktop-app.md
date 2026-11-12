@@ -113,7 +113,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D3. Files
 
-**Todos:** [D3a](../todos/ready/D3a-open-from-os.md), [D3b](../todos/ready/D3b-recent-files-and-file-watching.md)
+**Todos:** [D3a](../todos/ongoing/D3a-open-from-os.md), [D3b](../todos/ready/D3b-recent-files-and-file-watching.md)
 
 **Deliverable:** file associations, argv and `RunEvent::Opened`, single-instance forwarding, recent files (OS and in-app), file watching with reload, drag-drop onto window and icon.
 **Accepted when:** double-clicking a PDF opens it in the running instance on each OS; editing the file externally reloads it keeping the page position.
