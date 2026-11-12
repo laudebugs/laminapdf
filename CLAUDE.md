@@ -269,7 +269,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
 │                        #   capabilities ["main"]; no externalBin), tauri.bundle.conf.json (the engine sidecar and PDFium, merged
 │                        #   by desktop:dev/desktop:build), capabilities/main.json (the four commands' allow-*),
-│                        #   tests/capabilities.rs (the capability guard), test/app-info.json
+│                        #   tests/capabilities.rs (the capability guard; the e2e CSP is the base one plus 'unsafe-eval'),
+│                        #   e2e/ (D2e: WebdriverIO through the app's embedded WebDriver server, feature `e2e` +
+│                        #   tauri.e2e.conf.json: wdio.conf.ts, app.ts helpers, specs/ (eight scenarios in one app, in
+│                        #   order), probe/ (imported only in Vite's e2e mode), cold-start.ts; src-tauri/src/e2e.rs's
+│                        #   e2e_queue_pick and e2e_interactive), test/app-info.json
 │                        #   (the app_info sample both languages' tests read), about/
 │                        #   (cargo-about, MPL-2.0 accepted for Tauri's dependencies); Linux builds need WebKitGTK 4.1 and D-Bus
 │                        #   (.github/actions/linux-webkit); README.md
@@ -562,7 +566,12 @@ pnpm --filter @laminapdf/desktop run desktop:dev  # the desktop reader with its 
                              #   "@laminapdf/desktop^..." run build`; Linux: libwebkit2gtk-4.1-dev libdbus-1-dev); `desktop:build
                              #   --debug --no-bundle` is what the full lane's `desktop` job builds on Linux, macOS and Windows when
                              #   `cargo xtask changes` says desktop=true, then checks the engine and PDFium sit beside the app,
-                             #   the main process links no parser or PDFium, and the build has no e2e command
+                             #   the main process links no parser or PDFium, and the build has no e2e command, plugin or probe
+pnpm --filter @laminapdf/desktop run desktop:build:e2e  # the e2e build: debug, feature `e2e`, tauri.e2e.conf.json; then
+                             #   `run e2e` runs the eight WebdriverIO scenarios (Linux: under xvfb-run; needs
+                             #   target/fixtures/1000-pages.pdf and 1gb.pdf from `cargo xtask fixtures large-pdf`) and
+                             #   `run cold-start` reports five launches' median to the empty state; the full lane's
+                             #   `desktop-e2e` job runs both on Linux, macOS and Windows
 cargo xtask desktop-notices  # the desktop app's THIRD_PARTY_NOTICES.md (cargo-about, MPL-2.0 text included) into target/desktop/
 cargo xtask desktop-sidecar [--release|--debug]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
                              #   pinned PDFium into src-tauri/resources/pdfium/ (both git-ignored); the profile defaults to the

@@ -7,6 +7,8 @@
 //! mobile entry point.
 
 mod commands;
+#[cfg(feature = "e2e")]
+mod e2e;
 mod engine;
 mod error;
 
@@ -121,7 +123,10 @@ fn engines(app: &tauri::AppHandle) -> Arc<Engines> {
     reason = "tauri::generate_context! builds a HashMap of the bundled assets"
 )]
 pub fn run() -> Result<(), DesktopError> {
-    // `debug_kill_engine` exists only in e2e builds; generate_handler! takes no cfg per command.
+    #[cfg(feature = "e2e")]
+    e2e::start_clock();
+    // The test commands and WebdriverIO's plugins exist only in e2e builds; generate_handler!
+    // takes no cfg per command.
     #[cfg(not(feature = "e2e"))]
     let builder = tauri::Builder::default().invoke_handler(tauri::generate_handler![
         commands::app_info,
@@ -132,22 +137,32 @@ pub fn run() -> Result<(), DesktopError> {
         commands::cancel_tiles,
     ]);
     #[cfg(feature = "e2e")]
-    let builder = tauri::Builder::default().invoke_handler(tauri::generate_handler![
-        commands::app_info,
-        commands::open_dialog,
-        commands::page_info,
-        commands::close_document,
-        commands::unlock_document,
-        commands::cancel_tiles,
-        commands::debug_kill_engine,
-    ]);
+    let builder = tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            commands::app_info,
+            commands::open_dialog,
+            commands::page_info,
+            commands::close_document,
+            commands::unlock_document,
+            commands::cancel_tiles,
+            commands::debug_kill_engine,
+            e2e::e2e_queue_pick,
+            e2e::e2e_interactive,
+        ])
+        .manage(e2e::QueuedPick::default());
+    let builder = builder.plugin(
+        tauri_plugin_log::Builder::new()
+            // Stdout and the OS log folder. Document paths are logged at `debug`, never `info`.
+            .level(tauri_plugin_log::log::LevelFilter::Info)
+            .build(),
+    );
+    // WebdriverIO's test API (scripts, logs) and the WebDriver server inside the app, after
+    // the log plugin: tauri-plugin-wdio installs its own logger when none is set yet.
+    #[cfg(feature = "e2e")]
+    let builder = builder
+        .plugin(tauri_plugin_wdio::init())
+        .plugin(tauri_plugin_wdio_webdriver::init());
     let app = builder
-        .plugin(
-            tauri_plugin_log::Builder::new()
-                // Stdout and the OS log folder. Document paths are logged at `debug`, never `info`.
-                .level(tauri_plugin_log::log::LevelFilter::Info)
-                .build(),
-        )
         // Tiles for the viewer (ADR 0008 §4). The window is the webview that asked, never part of
         // the address, so a window reads only its own documents; the engine's wait and the WebP
         // encoding run off the main thread.
