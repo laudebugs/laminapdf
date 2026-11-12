@@ -6,7 +6,7 @@ description: The tasks a Document is for, from reading pages to editing and savi
 import Example from "../../../components/Example.astro";
 import Snippet from "../../../components/Snippet.astro";
 
-A `Document` is an open PDF: you read it, edit it and save it. This page shows the tasks you'll use it for most, each with a short example and a link to the guide that goes further. The [`Document` reference](/reference/sdk/classes/document/) lists every method and option.
+A `Document` is an open PDF: you read it, edit it and save it. Each task below has a short example and a link to the guide that goes further. The [`Document` reference](/reference/sdk/classes/document/) lists every method and option.
 
 ## Open a file and read it
 
@@ -23,7 +23,7 @@ A file that needs a password, or that comes from someone you don't trust, takes 
 
 ## Read a page's text, or the whole document's
 
-`doc.page(i).text()` returns a page's text by line, with each glyph's position for search highlights and selection. `doc.extract({ format: "markdown" })` reads the whole document in reading order, as Markdown, plain text, JSON or chunks for retrieval. Both need the text or extract module loaded before the file is opened, as do `outline`, `namedDestination`, `pageLinks`, `properties`, `isTagged` and `structureTree`. Pages, metadata, warnings, edits and saves work in every module. [Extract text for an LLM](/recipes/extract-markdown/) shows the four formats.
+`doc.page(i).text()` returns a page's text by line, with each glyph's position for search highlights and selection. `doc.extract({ format: "markdown" })` reads the whole document in reading order, as Markdown, plain text, JSON or chunks for retrieval. Both need the text or extract module loaded before the file is opened; pages, metadata, warnings, edits and saves work in every module. [Extract text for an LLM](/recipes/extract-markdown/) shows the four formats.
 
 ## Edit it in a transaction
 
@@ -51,9 +51,9 @@ A signed, repaired or encrypted file limits how it can be saved. `doc.plan(optio
 - **A document stays in the module it opened in.** A file opened before `init({ text: true })` or `loadExtract()` can't read text, the outline, links, properties or the structure tree: those calls fail with `extract-module-not-loaded`. Load the module first; `doc.canExtractText` says whether a document can.
 - **A page index can change; its ID doesn't.** Ops name pages by `id`, as in `tx.rotatePage(page.id, 90)`. `doc.page(i)` returns a handle that follows its page by ID, so it still points at the right page after pages move.
 - **A transaction's callback is synchronous.** `transact` applies the ops when the callback returns, so reads inside it see the document before the edit. An `async` callback is refused, and editing or saving the same document inside it fails with `nested-transaction`.
-- **A save counts as saved.** After `doc.save()`, later edits and saves build on its output, and `hasUnsavedChanges` is false. For a download that shouldn't count, use `doc.saveCopy()`, which leaves the edits unsaved.
-- **Removed metadata stays in earlier revisions.** An [incremental save](/reference/glossary/#incremental-save) keeps the original bytes, old values included. To remove them from the file, save with `mode: "fullRewrite"`. The result of `removeMetadata` has `stillInEarlierRevisions` set when you need to.
-- **An edited encrypted file needs a decision.** This covers every encrypted file, including one that opens without a password (`doc.isEncrypted`). It saves only as a [full rewrite](/reference/glossary/#full-rewrite) without its encryption, and only with `removeEncryption: true`. Without it, every mode fails with `encrypted-base`.
-- **The file's text is the file's.** Titles, authors and page text come from whoever made the file. Escape them before you put them in a web page. Lamina PDF's own error messages never contain the file's text.
+- **Saving marks the document saved.** After `doc.save()`, later edits and saves build on its output, and `hasUnsavedChanges` is false. For a download that shouldn't count, use `doc.saveCopy()`, which leaves the edits unsaved.
+- **Removed metadata stays in earlier revisions.** An [incremental save](/reference/glossary/#incremental-save) keeps the original bytes, old values included. To remove them from the file, save with `mode: "fullRewrite"`. `removeMetadata`'s result sets `stillInEarlierRevisions` when old values remain in earlier revisions.
+- **An edited encrypted file needs a decision.** Every encrypted file counts, including one that opens without a password (`doc.isEncrypted`). It saves only as a [full rewrite](/reference/glossary/#full-rewrite) without its encryption, and only with `removeEncryption: true`. Without it, every mode fails with `encrypted-base`.
+- **Treat the file's text as untrusted.** Titles, authors and page text come from whoever made the file. Escape them before you put them in a web page. Lamina PDF's own error messages never contain the file's text.
 
 Next: [using Builder](/reference/builder-usage/).
