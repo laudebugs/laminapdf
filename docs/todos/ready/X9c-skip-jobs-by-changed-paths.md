@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [CI caching §8](../../plans/ci-caching.md#8-the-waits) |
 | Round / milestone | Round X (cross-cutting): CI |
-| Depends on | [X9b](X9b-render-goldens-when-rendering-changes.md) |
+| Depends on | [X9b](./X9b-render-goldens-when-rendering-changes.md) |
 | ADRs | [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) |
 | Branch | `ci/x9c-skip-jobs-by-changed-paths` |
 | PR title | `ci: skip the jobs a PR's changed paths can't affect` |
