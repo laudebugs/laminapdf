@@ -6,13 +6,13 @@ import { describe, expect, it } from "vitest";
 import progress from "../src/data/progress.json";
 import { roundName } from "../src/data/rounds.js";
 import {
-  alphaNote,
   cliCommands,
   installLines,
   packages,
   rustFirstPdf,
   typescriptFirstPdf,
   VERSION,
+  versionNote,
 } from "../src/data/sources.js";
 
 const read = (path: string) => readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
@@ -89,14 +89,14 @@ describe("the packages", () => {
     expect(packages().map((item) => item.name)).toEqual(expect.arrayContaining(["@laminapdf/sdk", "laminapdf"]));
   });
 
-  it("repeats the install page's note on alpha releases word for word", () => {
-    expect(alphaNote()).toMatch(/^Both are alpha releases/);
-    expect(page).toContain(alphaNote());
-    expect(() => alphaNote("no note")).toThrow('no "Both are alpha releases" note');
+  it("repeats the install page's note on versions word for word", () => {
+    expect(versionNote()).toMatch(/^Both follow SemVer/);
+    expect(page).toContain(versionNote());
+    expect(() => versionNote("no note")).toThrow('no "Both follow SemVer" note');
   });
 
   it("shows the install page's two install lines at the published version", () => {
-    expect(installLines()).toEqual([`npm install @laminapdf/sdk@${VERSION}`, `cargo add laminapdf@=${VERSION}`]);
+    expect(installLines()).toEqual([`npm install @laminapdf/sdk@${VERSION}`, `cargo add laminapdf@${VERSION}`]);
     expect(VERSION).toBe(JSON.parse(read("packages/wasm/package.json")).version);
   });
 });

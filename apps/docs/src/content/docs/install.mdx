@@ -5,7 +5,7 @@ description: Install Lamina PDF from npm or crates.io, and find every published 
 
 import Diagram from "../../components/Diagram.astro";
 
-Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both are alpha releases, so name the version when you install them. A plain `npm install` or `cargo add` picks a `0.0.0` placeholder that only reserves the name.
+Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both follow SemVer from `0.2.0` on: a breaking change raises the minor version (`0.2` to `0.3`), so an upgrade within one `0.x` line, such as `0.2.0` to `0.2.1`, needs no change to your code.
 
 ## TypeScript: `@laminapdf/sdk`
 
@@ -15,7 +15,7 @@ Install the version these docs describe:
 npm install @laminapdf/sdk@{{version}}
 ```
 
-`npm install @laminapdf/sdk@alpha` installs the newest alpha, whichever version that is. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@{{version}}`), and Deno takes `npm:@laminapdf/sdk@{{version}}`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
+Without a version, `npm install @laminapdf/sdk` installs the newest release. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@{{version}}`), and Deno takes `npm:@laminapdf/sdk@{{version}}`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
 
 The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](/quick-start/browser/) show each one.
 
@@ -24,10 +24,12 @@ The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `b
 Add the crate at the version these docs describe:
 
 ```sh
-cargo add laminapdf@={{version}}
+cargo add laminapdf@{{version}}
 ```
 
-The command writes `laminapdf = "={{version}}"` to `Cargo.toml`, which keeps your project on this release until you change it: alphas promise nothing to each other (see the [stability policy](/reference/stability/)). The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
+The command writes `laminapdf = "{{version}}"` to `Cargo.toml`, and Cargo reads it as this release or a later one in the same `0.x` line, which the [stability policy](/reference/stability/) promises needs no change to your code.
+
+The default features start with `text`: fonts and text, which includes the builder and text extraction. Four more are on by default: `markdown` (Markdown in, flowing pages out), `document` (JSON documents in, flowing pages out), `reflow` (a tagged document's text in reading order, for reader mode) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`, then turn on what you need: `build` for the builder without text, `extract` for text extraction alone. `explain`, off by default, gives each code's page as text.
 
 ## The command-line tool
 

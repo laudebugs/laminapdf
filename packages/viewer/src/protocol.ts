@@ -12,6 +12,7 @@ import {
   type RenderRequest,
 } from "@laminapdf/render";
 import type {
+  DocumentMetadata,
   DocumentProperties,
   Limits,
   Op,
@@ -212,6 +213,8 @@ export interface Methods {
   goToStep: { params: [position: number, document: number]; result: EditResult };
   /** The edit session's history. */
   editHistory: { params: [document: number]; result: EditHistory };
+  /** Document `document`'s metadata as its edits leave it. */
+  metadata: { params: [document: number]; result: DocumentMetadata };
   planSave: { params: [options: SaveOptions, document: number]; result: PlannedSave };
   copyEdits: { params: [options: SaveOptions, document: number]; result: SavedCopy };
   adoptEdits: { params: [token: number, document: number]; result: EditHistory };

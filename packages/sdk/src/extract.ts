@@ -33,7 +33,7 @@ export type {
 
 /**
  * The `laminapdf.extract/1` document: the schema's type, with the file's warnings as the
- * {@link LaminaPdfWarning}s they are (the schema leaves their shape to ADR 0026's).
+ * {@link LaminaPdfWarning}s they are (the schema leaves their shape open).
  */
 export type Extraction = Omit<ExtractionJson, "warnings"> & { warnings: LaminaPdfWarning[] };
 
