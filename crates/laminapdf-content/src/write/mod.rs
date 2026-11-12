@@ -243,6 +243,17 @@ impl<'d> PageContentWriter<'d> {
             });
         }
 
+        // Checked before anything is written: only a stream object can be replaced by a copy, and
+        // skipping one would leave its `Q` to end the wrap early.
+        if changed
+            .iter()
+            .any(|&i| !matches!(self.contents.get(i), Some(Object::Ref(_))))
+        {
+            return Err(Error::InvalidStructure {
+                kind: "content stream",
+                message: "a /Contents entry holding an unmatched Q is not a stream object",
+            });
+        }
         for i in changed {
             let (Some(Object::Ref(old)), Some(bytes)) = (self.contents.get(i), streams.get(i)) else {
                 continue;
