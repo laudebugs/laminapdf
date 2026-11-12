@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4j` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `docs/q4j-starlight-policy` |
 | PR title | `docs: a policy for upgrading Starlight and Astro` |
 | Size | S |
-| PR | — |
+| PR | [#464](https://github.com/laudebugs/laminapdf/pull/464) |
 
 ## Goal
 
@@ -35,12 +35,12 @@ The research recommends staying on Starlight, and names its main cost: each 0.x 
 
 ## Tasks
 
-- [ ] List the overrides and the custom CSS that depends on Starlight's markup.
-- [ ] Write the policy; adjust Dependabot.
+- [x] List the overrides and the custom CSS that depends on Starlight's markup. *Eight rows in `apps/docs/README.md`: the four component overrides, the route middleware, the synced tabs, the content schema and code pages, and `paper.css` (46 `--sl-*` properties, 11 classes and attributes).*
+- [x] Write the policy; adjust Dependabot. *A `starlight` npm group: `astro`, `@astrojs/*`, `starlight-*`.*
 
 ## Acceptance criteria
 
-- [ ] The README lists every override and the upgrade steps.
+- [x] The README lists every override and the upgrade steps.
 
 ## Post-merge checks
 

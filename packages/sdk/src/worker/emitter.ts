@@ -4,11 +4,17 @@
 /**
  * Listeners by event, for the events in `E` (event name → the data a listener gets). A listener
  * that throws is reported asynchronously and doesn't stop the others.
+ *
+ * @since 0.2.0
  */
 export class Emitter<E extends object> {
   readonly #listeners = new Map<keyof E, Set<(data: never) => void>>();
 
-  /** Listens for `event`; returns a function that stops listening. */
+  /**
+   * Listens for `event`; returns a function that stops listening.
+   *
+   * @since 0.2.0
+   */
   on<K extends keyof E>(event: K, listener: (data: E[K]) => void): () => void {
     let set = this.#listeners.get(event);
     if (set === undefined) {
@@ -20,7 +26,11 @@ export class Emitter<E extends object> {
     return () => set.delete(l);
   }
 
-  /** Calls every listener of `event` with `data`. */
+  /**
+   * Calls every listener of `event` with `data`.
+   *
+   * @since 0.2.0
+   */
   emit<K extends keyof E>(event: K, data: E[K]): void {
     for (const listener of this.#listeners.get(event) ?? []) {
       try {

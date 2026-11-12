@@ -12,6 +12,8 @@ use crate::job::CancelToken;
 use crate::{Document, Error, Result, Warning};
 
 /// One finding of [`Document::redaction_warnings`]; [`Warning::Redaction`] carries it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum RedactionWarning {
@@ -45,9 +47,13 @@ pub enum RedactionWarning {
 
 impl RedactionWarning {
     /// Every code, in the order `fixtures/codes.json`'s `facadeWarnings` lists them.
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &["covered-text", "redaction-not-applied", "text-in-earlier-revision"];
 
     /// The stable kebab-case code.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -58,6 +64,8 @@ impl RedactionWarning {
     }
 
     /// The page, for the two page findings.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
@@ -224,6 +232,8 @@ impl Document {
     /// `cancelled`; the reading errors.
     ///
     /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+    ///
+    /// Added in 0.2.0.
     pub fn hidden_text(&self, cancel: &CancelToken) -> Result<Vec<Dropped>> {
         Ok(laminapdf_extract::hidden_text(
             self.ops(),
@@ -242,6 +252,8 @@ impl Document {
     /// # Errors
     /// `cancelled` (checked between pages and revisions); the reading errors of the latest
     /// revision.
+    ///
+    /// Added in 0.2.0.
     pub fn redaction_warnings(&self, options: &OpenOptions, cancel: &CancelToken) -> Result<Vec<Warning>> {
         let mut out: Vec<RedactionWarning> = covered_text(&self.hidden_text(cancel)?).collect();
         let model = self.ops();

@@ -3,6 +3,8 @@
 use std::fmt;
 
 /// A reference to an indirect object: `num gen R`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ObjRef {
     /// Object number.
@@ -13,6 +15,8 @@ pub struct ObjRef {
 
 impl ObjRef {
     /// Creates a reference to object `num` with generation `gen_nr`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(num: u32, gen_nr: u16) -> Self {
         Self { num, gen_nr }
@@ -26,6 +30,8 @@ impl fmt::Display for ObjRef {
 }
 
 /// How a string was (or should be) written: `(literal)` or `<hex>`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StringFormat {
     /// `( … )` with backslash escapes.
@@ -36,6 +42,8 @@ pub enum StringFormat {
 }
 
 /// A PDF string: raw bytes plus the syntax it was written in.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PdfString {
     /// The decoded string bytes.
@@ -46,6 +54,8 @@ pub struct PdfString {
 
 impl PdfString {
     /// A literal string `( … )`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn literal(bytes: impl Into<Vec<u8>>) -> Self {
         Self {
@@ -55,6 +65,8 @@ impl PdfString {
     }
 
     /// A hex string `< … >`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn hex(bytes: impl Into<Vec<u8>>) -> Self {
         Self {
@@ -65,17 +77,23 @@ impl PdfString {
 }
 
 /// A PDF name, stored as its decoded bytes without the leading `/`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 pub struct Name(pub Vec<u8>);
 
 impl Name {
     /// Creates a name from its decoded bytes (no leading `/`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(bytes: impl Into<Vec<u8>>) -> Self {
         Self(bytes.into())
     }
 
     /// The decoded bytes of the name.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
@@ -90,6 +108,8 @@ impl From<&str> for Name {
 
 /// An insertion-ordered dictionary. Lookups are linear, which is faster than hashing
 /// for the handful of keys real PDF dictionaries carry.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Dict {
     entries: Vec<(Name, Object)>,
@@ -97,18 +117,24 @@ pub struct Dict {
 
 impl Dict {
     /// An empty dictionary.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Looks up `key` (without the leading `/`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn get(&self, key: &str) -> Option<&Object> {
         self.entries.iter().find(|(k, _)| k.0 == key.as_bytes()).map(|(_, v)| v)
     }
 
     /// Mutable lookup of `key`.
+    ///
+    /// Added in 0.2.0.
     pub fn get_mut(&mut self, key: &str) -> Option<&mut Object> {
         self.entries
             .iter_mut()
@@ -117,12 +143,16 @@ impl Dict {
     }
 
     /// True when `key` is present.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn contains_key(&self, key: &str) -> bool {
         self.get(key).is_some()
     }
 
     /// Sets `key` to `value`. An existing key keeps its position; a new key is appended.
+    ///
+    /// Added in 0.2.0.
     pub fn insert(&mut self, key: impl Into<Name>, value: impl Into<Object>) {
         let key = key.into();
         let value = value.into();
@@ -133,34 +163,46 @@ impl Dict {
     }
 
     /// Removes `key`, returning its value.
+    ///
+    /// Added in 0.2.0.
     pub fn remove(&mut self, key: &str) -> Option<Object> {
         let pos = self.entries.iter().position(|(k, _)| k.0 == key.as_bytes())?;
         Some(self.entries.remove(pos).1)
     }
 
     /// Entries in insertion order.
+    ///
+    /// Added in 0.2.0.
     pub fn iter(&self) -> impl Iterator<Item = (&Name, &Object)> {
         self.entries.iter().map(|(k, v)| (k, v))
     }
 
     /// Entries in insertion order, with mutable values.
+    ///
+    /// Added in 0.2.0.
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Name, &mut Object)> {
         self.entries.iter_mut().map(|(k, v)| (&*k, v))
     }
 
     /// Number of entries.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
     /// True when the dictionary has no entries.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
     /// `key` as a name, if present and a name.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn get_name(&self, key: &str) -> Option<&[u8]> {
         match self.get(key) {
@@ -170,6 +212,8 @@ impl Dict {
     }
 
     /// `key` as an integer, if present and an integer.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn get_int(&self, key: &str) -> Option<i64> {
         self.get(key).and_then(Object::as_int)
@@ -187,6 +231,8 @@ impl<K: Into<Name>, V: Into<Object>> FromIterator<(K, V)> for Dict {
 }
 
 /// A stream: its dictionary plus the raw (still encoded) bytes between `stream` and `endstream`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Stream {
     /// The stream dictionary. `/Length` is managed by the writer.
@@ -197,6 +243,8 @@ pub struct Stream {
 
 impl Stream {
     /// A stream whose bytes are stored as-is.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(dict: Dict, data: impl Into<Vec<u8>>) -> Self {
         Self {
@@ -207,6 +255,8 @@ impl Stream {
 
     /// A Flate-compressed stream: compresses `decoded` and sets `/Filter /FlateDecode`
     /// (keeping the key's position if the caller already placed it).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn flate(mut dict: Dict, decoded: &[u8]) -> Self {
         dict.insert("Filter", Name::from("FlateDecode"));
@@ -218,6 +268,8 @@ impl Stream {
 }
 
 /// A PDF object.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub enum Object {
     /// `null`.
@@ -246,6 +298,8 @@ pub enum Object {
 impl Object {
     /// `v` as a number: an integer when it is integral and below 10¹⁵ in magnitude (`612`,
     /// not `612.0`), else a real. PDF has no NaN or infinity, so a non-finite `v` is 0.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn number(v: f64) -> Self {
         if !v.is_finite() {
@@ -264,6 +318,8 @@ impl Object {
 
     /// `v` rounded to `decimals` decimal places (at most 15; more count as 15), then written
     /// as [`Object::number`] writes it: `rounded(v, 0)` is the nearest integer.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn rounded(v: f64, decimals: u8) -> Self {
         // Past 10¹⁵ every f64 is already whole, and scaling it could overflow to infinity.
@@ -275,12 +331,16 @@ impl Object {
     }
 
     /// A name object.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn name(s: &str) -> Self {
         Self::Name(Name::from(s))
     }
 
     /// The integer value, if this is an integer.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn as_int(&self) -> Option<i64> {
         match self {
@@ -290,6 +350,8 @@ impl Object {
     }
 
     /// The numeric value of an integer or real.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     #[expect(clippy::cast_precision_loss, reason = "PDF numbers are approximate by definition")]
     pub fn as_f64(&self) -> Option<f64> {
@@ -301,6 +363,8 @@ impl Object {
     }
 
     /// The dictionary, if this is a dictionary (or a stream's dictionary).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn as_dict(&self) -> Option<&Dict> {
         match self {
@@ -311,6 +375,8 @@ impl Object {
     }
 
     /// The array, if this is an array.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn as_array(&self) -> Option<&[Object]> {
         match self {
@@ -320,6 +386,8 @@ impl Object {
     }
 
     /// The reference, if this is a reference.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn as_ref(&self) -> Option<ObjRef> {
         match self {
@@ -329,6 +397,8 @@ impl Object {
     }
 
     /// Serializes this object to a fresh buffer using the crate's exact formatting rules.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut out = Vec::new();
@@ -340,6 +410,8 @@ impl Object {
     ///
     /// Streams are written as `<<dict>>\nstream\n…\nendstream` with `/Length` set to the
     /// data length (kept in place if present, appended last otherwise).
+    ///
+    /// Added in 0.2.0.
     pub fn write_to(&self, out: &mut Vec<u8>) {
         match self {
             Self::Null => out.extend_from_slice(b"null"),
@@ -391,6 +463,8 @@ impl_from! {
 /// Formats a real: never an exponent, at most 6 fractional digits, trailing zeros and a
 /// trailing `.` trimmed, `-0` becomes `0`. Non-finite values (which PDF cannot express)
 /// are written as `0`.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn format_real(value: f64) -> String {
     if !value.is_finite() {

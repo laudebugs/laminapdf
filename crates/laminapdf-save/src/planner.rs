@@ -38,6 +38,8 @@ use crate::resolve::resolve;
 /// ```
 ///
 /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct SavePlanner {
     signatures: Signatures,
@@ -56,6 +58,8 @@ impl SavePlanner {
     /// (its changes are in the overlay but not yet in the pending classes);
     /// [`SaveError::Cos`](crate::SaveError::Cos) when the catalog, the form or a signature
     /// dictionary can't be read: a signature that can't be read is not assumed absent.
+    ///
+    /// Added in 0.2.0.
     pub fn new(doc: &laminapdf_ops::Document) -> Result<Self> {
         if doc.in_transaction() {
             return Err(SaveError::Ops(laminapdf_ops::Error::NestedTransaction));
@@ -112,12 +116,16 @@ impl SavePlanner {
     /// The PDF/A and PDF/UA claims the document's metadata, as edited, no longer meets (E1 plan
     /// §3): for the UI to warn before the save. They never block it, since the user may mean to
     /// drop the claim. Empty for a document with no changes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn conformance_warnings(&self) -> &[ConformanceWarning] {
         &self.conformance
     }
 
     /// Everything that restricts saving the document.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn constraint(&self) -> &SaveConstraint {
         &self.constraint
@@ -135,6 +143,8 @@ impl SavePlanner {
     /// and [`SaveError::RequiresRewrite`](crate::SaveError::RequiresRewrite) as the table says.
     ///
     /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+    ///
+    /// Added in 0.2.0.
     pub fn plan(&self, options: &SaveOptions) -> Result<SavePlan> {
         let mut plan = SavePlan::resolve(self.constraint.clone(), options)?;
         if plan.mode == SaveMode::Incremental && !plan.would_invalidate.is_empty() {
@@ -187,6 +197,8 @@ impl SavePlanner {
     /// The planner stays the authority at save time.
     ///
     /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn would_violate(&self, op: &Op) -> Vec<Violation> {
         let mut out = self.would_violate_class(op.class());
@@ -202,6 +214,8 @@ impl SavePlanner {
     }
 
     /// [`SavePlanner::would_violate`] for any change of `class`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn would_violate_class(&self, class: ModificationClass) -> Vec<Violation> {
         self.signatures.violations(class).collect()
@@ -209,6 +223,8 @@ impl SavePlanner {
 }
 
 /// What a save does with the save-time metadata ([`SaveOptions::with_metadata_date`]).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum MetadataUpdate {
@@ -226,6 +242,8 @@ pub enum MetadataUpdate {
 }
 
 /// A resolved save: the constraint, the mode and the signatures it would invalidate.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SavePlan {
     constraint: SaveConstraint,
@@ -257,6 +275,8 @@ impl SavePlan {
     /// As [`SavePlanner::plan`].
     ///
     /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+    ///
+    /// Added in 0.2.0.
     pub fn resolve(constraint: SaveConstraint, options: &SaveOptions) -> Result<Self> {
         let (mode, would_invalidate) = resolve(&constraint, *options)?;
         let removes_encryption =
@@ -272,36 +292,48 @@ impl SavePlan {
     }
 
     /// Everything that restricts the save.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn constraint(&self) -> &SaveConstraint {
         &self.constraint
     }
 
     /// The resolved mode: [`SaveMode::Incremental`] or [`SaveMode::FullRewrite`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn mode(&self) -> SaveMode {
         self.mode
     }
 
     /// The signatures this save would invalidate: empty unless the options override.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn would_invalidate(&self) -> &[SignatureInfo] {
         &self.would_invalidate
     }
 
     /// Whether the save writes the encrypted document as plaintext.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn removes_encryption(&self) -> bool {
         self.removes_encryption
     }
 
     /// What the save does with the save-time metadata ([`SavePlanner::plan`] fills it in).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn metadata_update(&self) -> &MetadataUpdate {
         &self.metadata
     }
 
     /// Whether an edit to save rewrote the XMP packet whole (UTF-16, or `end="r"`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn packet_rewritten(&self) -> bool {
         self.packet_rewritten

@@ -17,6 +17,8 @@ use crate::op::Op;
 /// break a signature without saying so.
 ///
 /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PendingChanges {
     classes: BTreeSet<ModificationClass>,
@@ -29,6 +31,8 @@ impl PendingChanges {
     /// Changes of unknown kind (an overlay changed without ops, such as a model document
     /// wrapped while dirty): every class, and a full rewrite needed, since nothing tells
     /// otherwise.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn unknown() -> Self {
         Self {
@@ -50,18 +54,24 @@ impl PendingChanges {
     }
 
     /// Whether the changes are of unknown kind ([`PendingChanges::unknown`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_unknown(&self) -> bool {
         self.unknown
     }
 
     /// The op classes of the changes not yet saved.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn classes(&self) -> &BTreeSet<ModificationClass> {
         &self.classes
     }
 
     /// Whether any of them needs a full rewrite ([`Op::requires_rewrite`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn requires_rewrite(&self) -> bool {
         self.requires_rewrite
@@ -69,12 +79,16 @@ impl PendingChanges {
 
     /// Whether a metadata op rewrote the XMP packet whole (UTF-16, or read-only by its
     /// `end="r"` trailer), so the save can say the packet lost its layout and comments.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn packet_rewritten(&self) -> bool {
         self.packet_rewritten
     }
 
     /// Whether there are none.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.classes.is_empty() && !self.requires_rewrite

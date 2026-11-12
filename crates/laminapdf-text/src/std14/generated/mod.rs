@@ -21,6 +21,8 @@ pub(crate) const NONE: u16 = u16::MAX;
 /// advance width of every glyph.
 ///
 /// Read it with [`Standard14::metrics`](crate::Standard14::metrics).
+///
+/// Added in 0.2.0.
 pub struct AfmMetrics {
     /// `FontName`, the `/BaseFont` (`Helvetica-Bold`).
     pub font_name: &'static str,

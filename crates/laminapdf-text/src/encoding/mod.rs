@@ -23,6 +23,8 @@ use crate::std14::generated::encodings::{
 /// assert_eq!(Encoding::MacRoman.to_unicode(0x8E).as_deref(), Some("é"));
 /// assert_eq!(Encoding::WinAnsi.glyph_name(0x81), None);
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Encoding {
@@ -46,6 +48,8 @@ pub enum Encoding {
 impl Encoding {
     /// The name of a predefined encoding as `/Encoding` or `/BaseEncoding` writes it
     /// (§9.6.5.1, Table 112): only `WinAnsiEncoding` and `MacRomanEncoding` of these.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn pdf_name(self) -> Option<&'static str> {
         match self {
@@ -61,6 +65,8 @@ impl Encoding {
     /// [`UnsupportedEncoding::MacExpert`] for `MacExpertEncoding`, a predefined encoding
     /// (§9.6.5.1, Table 112) Lamina PDF has no table for, so a reader can warn rather than guess;
     /// [`UnsupportedEncoding::Unknown`] for any other name.
+    ///
+    /// Added in 0.2.0.
     pub fn from_pdf_name(name: &[u8]) -> Result<Self, UnsupportedEncoding> {
         match name {
             b"WinAnsiEncoding" => Ok(Self::WinAnsi),
@@ -88,6 +94,8 @@ impl Encoding {
     }
 
     /// The glyph `code` names; `None` when the code is undefined.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn glyph_name(self, code: u8) -> Option<&'static str> {
         let Some((table, _, names)) = self.tables() else {
@@ -102,6 +110,8 @@ impl Encoding {
 
     /// The code for glyph `name`; the lowest when there are two (`WinAnsiEncoding` has `space`
     /// at 0x20 and 0xA0, `hyphen` at 0x2D and 0xAD).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn code(self, name: &str) -> Option<u8> {
         let Some((_, codes, names)) = self.tables() else {
@@ -130,6 +140,8 @@ impl Encoding {
     /// block: `Omega` → U+03A9, `Delta` → U+0394, `mu` → U+03BC (the AGL's `Omegagreek`, …),
     /// not the AGL's U+2126 OHM SIGN, U+2206 INCREMENT and U+00B5 MICRO SIGN, which are for the
     /// Latin fonts' glyphs of those names; so Greek text written in Symbol reads back as Greek.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_unicode(self, code: u8) -> Option<String> {
         self.glyph_to_unicode(self.glyph_name(code)?)
@@ -149,6 +161,8 @@ impl Encoding {
 }
 
 /// A predefined encoding name Lamina PDF has no table for ([`Encoding::from_pdf_name`]).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum UnsupportedEncoding {

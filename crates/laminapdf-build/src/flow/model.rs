@@ -11,6 +11,8 @@ use crate::surface::text::FontHandle;
 
 /// How a stretch of text looks: its fonts (the first, then fallbacks for characters it lacks),
 /// size, colour, baseline rise, language, and whether it is struck through.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct TextStyle {
@@ -24,6 +26,8 @@ pub struct TextStyle {
 
 impl TextStyle {
     /// Text in `font` at `size` points, in the default colour, on the baseline.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(font: &FontHandle, size: f64) -> Self {
         Self {
@@ -37,6 +41,8 @@ impl TextStyle {
     }
 
     /// With `font` as a fallback for characters the fonts before it lack.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_fallback(mut self, font: &FontHandle) -> Self {
         self.fonts.push(font.clone());
@@ -44,6 +50,8 @@ impl TextStyle {
     }
 
     /// With the size set, in points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_size(mut self, size: f64) -> Self {
         self.size = size;
@@ -51,6 +59,8 @@ impl TextStyle {
     }
 
     /// With the fill colour set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_color(mut self, color: Color) -> Self {
         self.color = Some(color);
@@ -58,6 +68,8 @@ impl TextStyle {
     }
 
     /// With the baseline raised by `rise` points (negative: lowered), for a superscript.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_rise(mut self, rise: f64) -> Self {
         self.rise = rise;
@@ -65,6 +77,8 @@ impl TextStyle {
     }
 
     /// With the language set (BCP 47): used for shaping and tagged as the span's `/Lang`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_language(mut self, language: impl Into<String>) -> Self {
         self.language = Some(language.into());
@@ -72,6 +86,8 @@ impl TextStyle {
     }
 
     /// With a line through the text (deleted text), drawn as decoration in its colour.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_strikethrough(mut self, strike: bool) -> Self {
         self.strike = strike;
@@ -79,6 +95,8 @@ impl TextStyle {
     }
 
     /// The size in points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn size(&self) -> f64 {
         self.size
@@ -86,6 +104,8 @@ impl TextStyle {
 }
 
 /// A piece of a paragraph.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum Inline {
@@ -103,6 +123,8 @@ pub enum Inline {
 }
 
 /// How a paragraph sits in the flow.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct ParagraphStyle {
@@ -134,12 +156,16 @@ impl Default for ParagraphStyle {
 impl ParagraphStyle {
     /// The defaults: start-aligned, lines 1.2 × the size apart, 6 points after, two lines at
     /// least at the foot and the head of a page.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// With the alignment set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_align(mut self, align: Alignment) -> Self {
         self.align = align;
@@ -147,6 +173,8 @@ impl ParagraphStyle {
     }
 
     /// With the distance between baselines set, as a multiple of a line's largest size.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_line_height(mut self, factor: f64) -> Self {
         self.line_height = factor;
@@ -155,6 +183,8 @@ impl ParagraphStyle {
 
     /// With the space above and below set, in points (the larger of two neighbours' spaces
     /// apply, never both).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_space(mut self, before: f64, after: f64) -> Self {
         self.space_before = before;
@@ -163,6 +193,8 @@ impl ParagraphStyle {
     }
 
     /// Kept on the same page as the block after it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_keep_with_next(mut self, keep: bool) -> Self {
         self.keep_with_next = keep;
@@ -171,6 +203,8 @@ impl ParagraphStyle {
 
     /// With the fewest lines left at the head of a page (`widows`) and at its foot (`orphans`)
     /// when the paragraph splits; at least 1 each.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_widows_and_orphans(mut self, widows: usize, orphans: usize) -> Self {
         self.widows = widows.max(1);
@@ -179,6 +213,8 @@ impl ParagraphStyle {
     }
 
     /// Starts on a new page.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_break_before(mut self, brk: bool) -> Self {
         self.break_before = brk;
@@ -187,6 +223,8 @@ impl ParagraphStyle {
 }
 
 /// A paragraph: inline pieces in a paragraph style.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct Paragraph {
@@ -196,6 +234,8 @@ pub struct Paragraph {
 
 impl Paragraph {
     /// An empty paragraph in `style`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(style: ParagraphStyle) -> Self {
         Self {
@@ -205,12 +245,16 @@ impl Paragraph {
     }
 
     /// One stretch of `text` in `style`, in the default paragraph style.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn plain(text: impl Into<String>, style: &TextStyle) -> Self {
         Self::new(ParagraphStyle::default()).text(text, style)
     }
 
     /// With `text` in `style` added.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn text(mut self, text: impl Into<String>, style: &TextStyle) -> Self {
         self.inlines.push(Inline::Text(text.into(), style.clone()));
@@ -218,6 +262,8 @@ impl Paragraph {
     }
 
     /// With `text` in `style` added as a link to `target`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn link(mut self, text: impl Into<String>, style: &TextStyle, target: LinkTarget) -> Self {
         self.inlines.push(Inline::Link(text.into(), style.clone(), target));
@@ -227,6 +273,8 @@ impl Paragraph {
     /// With a footnote added here: notes are numbered from 1 through the flow, the number is
     /// drawn raised in the style of the text before it, and `body` goes at the foot of the
     /// page that holds the number, after the number again.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn note(mut self, body: Paragraph) -> Self {
         self.inlines.push(Inline::Note(Box::new(body)));
@@ -234,6 +282,8 @@ impl Paragraph {
     }
 
     /// With `text` in `style` added as computer code (a `Code` element).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn code(mut self, text: impl Into<String>, style: &TextStyle) -> Self {
         self.inlines.push(Inline::Code(text.into(), style.clone()));
@@ -241,6 +291,8 @@ impl Paragraph {
     }
 
     /// With a line break added.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn line_break(mut self) -> Self {
         self.inlines.push(Inline::LineBreak);
@@ -248,6 +300,8 @@ impl Paragraph {
     }
 
     /// With the paragraph style set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_style(mut self, style: ParagraphStyle) -> Self {
         self.style = style;
@@ -256,6 +310,8 @@ impl Paragraph {
 }
 
 /// How a list numbers its items.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum ListKind {
@@ -267,6 +323,8 @@ pub enum ListKind {
 }
 
 /// One item of a list: a paragraph, and optionally a list nested under it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct ListItem {
@@ -277,6 +335,8 @@ pub struct ListItem {
 
 impl ListItem {
     /// An item of one paragraph.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(paragraph: Paragraph) -> Self {
         Self {
@@ -287,6 +347,8 @@ impl ListItem {
     }
 
     /// With its own marker instead of the list's bullet or number, such as a task list's ☐.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_marker(mut self, marker: impl Into<String>) -> Self {
         self.marker = Some(marker.into());
@@ -294,6 +356,8 @@ impl ListItem {
     }
 
     /// With `list` nested under the item.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_nested(mut self, list: List) -> Self {
         self.nested = Some(list);
@@ -302,6 +366,8 @@ impl ListItem {
 }
 
 /// A bulleted or numbered list, its items indented with their markers in the hanging indent.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct List {
@@ -314,6 +380,8 @@ pub struct List {
 
 impl List {
     /// An empty list of `kind`, its markers in `marker`, items indented 18 points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(kind: ListKind, marker: &TextStyle) -> Self {
         Self {
@@ -326,6 +394,8 @@ impl List {
     }
 
     /// Numbered from `start` (1 by default).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_start(mut self, start: usize) -> Self {
         self.start = start;
@@ -333,6 +403,8 @@ impl List {
     }
 
     /// With `item` added.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn item(mut self, item: ListItem) -> Self {
         self.items.push(item);
@@ -340,6 +412,8 @@ impl List {
     }
 
     /// With the indent set, in points: where the items' text starts, the markers before it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_indent(mut self, indent: f64) -> Self {
         self.indent = indent;
@@ -349,6 +423,8 @@ impl List {
 
 /// An image with its alternate text, at a width (default: the frame's) and the height its
 /// aspect ratio gives.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Figure {
@@ -360,6 +436,8 @@ pub struct Figure {
 
 impl Figure {
     /// `image` described by `alt`, as wide as the frame.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(image: Image, alt: impl Into<String>) -> Self {
         Self {
@@ -371,6 +449,8 @@ impl Figure {
     }
 
     /// With the width set, in points (at most the frame's).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_width(mut self, width: f64) -> Self {
         self.width = Some(width);
@@ -379,6 +459,8 @@ impl Figure {
 }
 
 /// A block of a flow.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum FlowBlock {
@@ -411,6 +493,8 @@ pub enum FlowBlock {
 
 /// What a header or footer slot holds: text with fields `{page}`, `{pages}`, `{section}` and
 /// `{title}` (`{{` and `}}` for braces).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct PageRegion {
@@ -421,12 +505,16 @@ pub struct PageRegion {
 
 impl PageRegion {
     /// An empty region.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// With the slot at the start side (left in left-to-right text).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_start(mut self, text: impl Into<String>) -> Self {
         self.start = Some(text.into());
@@ -434,6 +522,8 @@ impl PageRegion {
     }
 
     /// With the centre slot.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_center(mut self, text: impl Into<String>) -> Self {
         self.center = Some(text.into());
@@ -441,6 +531,8 @@ impl PageRegion {
     }
 
     /// With the slot at the end side.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_end(mut self, text: impl Into<String>) -> Self {
         self.end = Some(text.into());
@@ -449,6 +541,8 @@ impl PageRegion {
 }
 
 /// A page's margins, in points.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct Margins {
@@ -460,6 +554,8 @@ pub struct Margins {
 
 impl Margins {
     /// Margins of `top`, `right`, `bottom` and `left` points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(top: f64, right: f64, bottom: f64, left: f64) -> Self {
         Self {
@@ -471,6 +567,8 @@ impl Margins {
     }
 
     /// The same margin on every side.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn all(margin: f64) -> Self {
         Self::new(margin, margin, margin, margin)
@@ -479,6 +577,8 @@ impl Margins {
 
 /// The pages a flow fills: their size and margins, a header and a footer (drawn in the top and
 /// bottom margins), and a variant for the first page.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct PageTemplate {
@@ -492,6 +592,8 @@ pub struct PageTemplate {
 
 impl PageTemplate {
     /// Pages of `size` with 72-point margins, no header and no footer.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(size: PageSize) -> Self {
         Self {
@@ -505,6 +607,8 @@ impl PageTemplate {
     }
 
     /// With the margins set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_margins(mut self, margins: Margins) -> Self {
         self.margins = margins;
@@ -512,6 +616,8 @@ impl PageTemplate {
     }
 
     /// With a header and a footer, drawn in `style`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_furniture(mut self, header: Option<PageRegion>, footer: Option<PageRegion>, style: &TextStyle) -> Self {
         self.header = header;
@@ -521,6 +627,8 @@ impl PageTemplate {
     }
 
     /// With `first` used for the first page instead (a cover without a header, other margins).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_first_page(mut self, first: Self) -> Self {
         self.first = Some(Box::new(first));
@@ -547,6 +655,8 @@ impl PageTemplate {
 }
 
 /// Blocks and the template they flow through (ADR 0032 §3). Tagged by default (§4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Flow {
@@ -560,6 +670,8 @@ pub struct Flow {
 
 impl Flow {
     /// An empty flow through `template`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(template: PageTemplate) -> Self {
         Self {
@@ -573,6 +685,8 @@ impl Flow {
     }
 
     /// With `block` added.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn block(mut self, block: FlowBlock) -> Self {
         self.blocks.push(block);
@@ -580,6 +694,8 @@ impl Flow {
     }
 
     /// With tagging turned on or off (on by default).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_tagged(mut self, tagged: bool) -> Self {
         self.tagged = tagged;
@@ -587,6 +703,8 @@ impl Flow {
     }
 
     /// With the heading level `{section}` names (default 1).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_section_level(mut self, level: u8) -> Self {
         self.section_level = level;
@@ -595,6 +713,8 @@ impl Flow {
 
     /// With the document outline (bookmarks) made from the flow's headings turned on or off
     /// (on by default): one item per heading, nested as the headings are.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_outline(mut self, outline: bool) -> Self {
         self.outline = outline;
@@ -602,6 +722,8 @@ impl Flow {
     }
 
     /// With the title `{title}` names.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_title(mut self, title: impl Into<String>) -> Self {
         self.title = Some(title.into());

@@ -20,6 +20,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (Info, the catalog, the packet's stream).
+    ///
+    /// Added in 0.2.0.
     pub fn metadata(&self) -> Result<DocumentMetadata> {
         Ok(laminapdf_ops::read_metadata(self.ops())?)
     }

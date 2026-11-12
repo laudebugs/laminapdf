@@ -25,6 +25,8 @@ pub(crate) mod pdfa;
 /// let options = BuildOptions::default().with_profile(Profile::PdfA2u).with_profile(Profile::PdfUa1);
 /// assert_eq!(options.profiles().collect::<Vec<_>>(), [Profile::PdfUa1, Profile::PdfA2u]);
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum Profile {
@@ -43,6 +45,8 @@ pub enum Profile {
 
 impl Profile {
     /// The profile's usual name: `"PDF/UA-1"`, `"PDF/A-2b"` and so on (`"none"`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {

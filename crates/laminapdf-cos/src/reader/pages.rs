@@ -10,6 +10,8 @@ use crate::error::{Error, Result, absent_if_malformed};
 
 /// A page with its inheritable attributes (§7.7.3.4): `/Resources` resolved, the others as
 /// stored. `laminapdf-model`'s page view reads the boxes and `/Rotate` from them.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Page {
@@ -29,6 +31,8 @@ pub struct Page {
 /// The location of a direct (inline) object: its nearest indirect ancestor and the keys and
 /// array indices that lead from there to it, e.g. `5 0 R` → `/Kids` → `3` (ADR 0005 §5).
 /// The same bytes always give the same path.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub struct DirectPath {
@@ -40,6 +44,8 @@ pub struct DirectPath {
 }
 
 /// One step of a [`DirectPath`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PathSegment {
     /// A dictionary key, e.g. `Kids`.
@@ -50,6 +56,8 @@ pub enum PathSegment {
 
 impl DirectPath {
     /// The path `segments` from `anchor` (`None`: from the trailer).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(anchor: Option<ObjRef>, segments: Vec<PathSegment>) -> Self {
         Self { anchor, segments }
@@ -68,6 +76,8 @@ impl DirectPath {
 
 impl Page {
     /// The resolved `/Resources` dictionary, if any.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn resources_dict(&self) -> Option<&Dict> {
         match self.resources.as_deref() {
@@ -80,6 +90,8 @@ impl Page {
 /// Inheritable page attributes (§7.7.3.4) as stored, own or inherited and unresolved (a
 /// value may be a reference). Carried down the page tree and shared via [`Arc`], so passing
 /// them to every kid (and every page) never copies a dictionary.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct Inherited {
@@ -149,6 +161,8 @@ impl Document {
     /// when reading a page attribute exceeds a hard limit; errors from [`Document::catalog`].
     ///
     /// [`Limits::max_page_tree_depth`]: laminapdf_syntax::Limits::max_page_tree_depth
+    ///
+    /// Added in 0.2.0.
     pub fn pages(&self) -> Result<Vec<Page>> {
         let _call = self.call();
         let catalog = self.catalog()?;
@@ -296,6 +310,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::pages`].
+    ///
+    /// Added in 0.2.0.
     pub fn page_count(&self) -> Result<usize> {
         self.pages().map(|p| p.len())
     }
@@ -309,6 +325,8 @@ impl Document {
     /// stream or array of streams.
     ///
     /// [`Limits::max_decoded_total`]: laminapdf_syntax::Limits::max_decoded_total
+    ///
+    /// Added in 0.2.0.
     pub fn page_content(&self, page: &Page) -> Result<Vec<u8>> {
         let _call = self.call();
         let Some(contents) = page.dict.get("Contents") else {

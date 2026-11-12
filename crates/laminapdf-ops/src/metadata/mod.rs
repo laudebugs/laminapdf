@@ -52,6 +52,8 @@ pub(crate) use write::{Policy, write};
 /// | `producer` | `/Producer` | `pdf:Producer` |
 /// | `created` | `/CreationDate` | `xmp:CreateDate` |
 /// | `modified` | `/ModDate` | `xmp:ModifyDate` |
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -77,6 +79,8 @@ pub enum MetadataKey {
 
 impl MetadataKey {
     /// Every key, in the table's order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 8] = [
         Self::Title,
         Self::Authors,
@@ -89,6 +93,8 @@ impl MetadataKey {
     ];
 
     /// The key's row of the shared Info ↔ XMP table.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn field(self) -> MappedField {
         match self {
@@ -107,6 +113,8 @@ impl MetadataKey {
     /// `creator`, `CreatorTool`, …), one per field. Consecutive
     /// [`transact_coalescing`](crate::Document::transact_coalescing) edits with it merge into
     /// one undo step (typing into one field of a properties dialog, ADR 0006 §4).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn coalescing_key(self) -> &'static str {
         self.field().mapping().name
@@ -128,6 +136,8 @@ impl MetadataKey {
 /// assert_eq!(serde_json::to_string(&patch)?, r#"{"title":"Quarterly figures","authors":["Ada Lovelace","Charles Babbage"]}"#);
 /// # Ok::<(), serde_json::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -193,12 +203,16 @@ pub struct MetadataPatch {
 
 impl MetadataPatch {
     /// A patch that changes nothing.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Sets the title, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn title(mut self, title: Option<&str>) -> Self {
         self.title = Some(title.map(str::to_owned));
@@ -206,6 +220,8 @@ impl MetadataPatch {
     }
 
     /// Sets the authors, in order; an empty list removes them.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn authors<S: AsRef<str>>(mut self, authors: &[S]) -> Self {
         let authors: Vec<String> = authors.iter().map(|a| a.as_ref().to_owned()).collect();
@@ -214,6 +230,8 @@ impl MetadataPatch {
     }
 
     /// Sets the subject, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn subject(mut self, subject: Option<&str>) -> Self {
         self.subject = Some(subject.map(str::to_owned));
@@ -221,6 +239,8 @@ impl MetadataPatch {
     }
 
     /// Sets the keywords, or removes them for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn keywords(mut self, keywords: Option<&str>) -> Self {
         self.keywords = Some(keywords.map(str::to_owned));
@@ -228,6 +248,8 @@ impl MetadataPatch {
     }
 
     /// Sets the creator tool, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn creator(mut self, creator: Option<&str>) -> Self {
         self.creator = Some(creator.map(str::to_owned));
@@ -235,6 +257,8 @@ impl MetadataPatch {
     }
 
     /// Sets the producer, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn producer(mut self, producer: Option<&str>) -> Self {
         self.producer = Some(producer.map(str::to_owned));
@@ -242,6 +266,8 @@ impl MetadataPatch {
     }
 
     /// Sets the creation date, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn created(mut self, created: Option<PdfDate>) -> Self {
         self.created = Some(created);
@@ -249,6 +275,8 @@ impl MetadataPatch {
     }
 
     /// Sets the modification date, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn modified(mut self, modified: Option<PdfDate>) -> Self {
         self.modified = Some(modified);
@@ -309,6 +337,8 @@ fn xml_text(s: &str) -> String {
 /// );
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -331,6 +361,8 @@ pub struct SetMetadata {
 
 impl SetMetadata {
     /// The op that applies `patch`, recording `at` as the modification date when given.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(patch: MetadataPatch, at: Option<PdfDate>) -> Self {
         Self {
@@ -342,6 +374,8 @@ impl SetMetadata {
 
     /// The same op, replacing an XMP packet that can't be read
     /// ([`SetMetadata::replace_malformed`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn replacing_malformed(mut self) -> Self {
         self.replace_malformed = true;
@@ -376,6 +410,8 @@ impl SetMetadata {
 /// assert_eq!(serde_json::to_string(&op)?, r#"{"op":"removeMetadata","args":{"keys":["authors","creator"]}}"#);
 /// # Ok::<(), serde_json::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -391,6 +427,8 @@ pub struct RemoveMetadata {
 
 impl RemoveMetadata {
     /// The op that removes `keys`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(keys: Vec<MetadataKey>) -> Self {
         Self {
@@ -401,6 +439,8 @@ impl RemoveMetadata {
 
     /// The same op, replacing an XMP packet that can't be read
     /// ([`SetMetadata::replace_malformed`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn replacing_malformed(mut self) -> Self {
         self.replace_malformed = true;
@@ -431,6 +471,8 @@ impl RemoveMetadata {
 /// packet that can't be read is left alone.
 ///
 /// [E1 plan §2]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e1-editing-foundation.md#2-the-operations
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct UpdateSaveMetadata {
@@ -442,6 +484,8 @@ pub struct UpdateSaveMetadata {
 
 impl UpdateSaveMetadata {
     /// The stamp of a save at `metadata_date` with `instance_id`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(metadata_date: Option<PdfDate>, instance_id: String) -> Self {
         Self {

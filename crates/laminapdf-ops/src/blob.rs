@@ -15,17 +15,23 @@ use std::str::FromStr;
 /// let id = BlobId::from_bytes([0xAB; 32]);
 /// assert_eq!(id.to_string().parse::<BlobId>(), Ok(id));
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BlobId([u8; 32]);
 
 impl BlobId {
     /// The ID with this SHA-256 digest.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_bytes(digest: [u8; 32]) -> Self {
         Self(digest)
     }
 
     /// The SHA-256 digest.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.0
@@ -39,6 +45,8 @@ impl fmt::Display for BlobId {
 }
 
 /// The string is not 64 lowercase hex digits.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("not a blob id (64 lowercase hex digits)")]
 #[non_exhaustive]
