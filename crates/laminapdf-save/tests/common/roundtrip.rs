@@ -29,9 +29,10 @@ use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::Rotation;
+use laminapdf_model::xmp::{RdfValue, XmpValue};
 use laminapdf_ops::{
     Document, InfoPatch, MetadataKey, MetadataPatch, Op, Origin, RemoveMetadata, RotatePage, SetInfo, SetMetadata,
-    read_metadata,
+    SetXmpProperty, read_metadata,
 };
 use laminapdf_save::{Save, SaveError, SaveMode, SaveOptions, SaveReport};
 use serde_json::{Value, json};
@@ -206,8 +207,18 @@ fn facts(doc: &laminapdf_model::Document) -> (usize, Vec<u16>, Vec<Option<String
 }
 
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
-/// and the metadata ops (J.01–J.03, J.10).
-const OPS: [&str; 4] = ["setInfo", "rotatePage", "setMetadata", "removeMetadata"];
+/// the metadata ops (J.01–J.03, J.10), and the XMP property op (J.04: the title, mirrored in
+/// Info, and a custom property, [`CUSTOM`]).
+const OPS: [&str; 5] = [
+    "setInfo",
+    "rotatePage",
+    "setMetadata",
+    "removeMetadata",
+    "setXmpProperty",
+];
+
+/// The custom XMP property the `setXmpProperty` cases add: namespace and name.
+const CUSTOM: (&str, &str) = ("http://example.com/roundtrip/", "batch");
 
 /// The save-time date the metadata cases stamp (J.02).
 const STAMP: &str = "D:20261110093000Z";
@@ -234,6 +245,13 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
             None,
         )
         .into(),
+        "setXmpProperty" => SetXmpProperty::new(
+            "http://purl.org/dc/elements/1.1/",
+            "dc",
+            "title",
+            XmpValue::Text(INFO[0].1.to_owned()),
+        )
+        .into(),
         "removeMetadata" => RemoveMetadata::new(vec![
             MetadataKey::Title,
             MetadataKey::Authors,
@@ -246,6 +264,31 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
             RotatePage::new(page, rotation).into()
         }
     }
+}
+
+/// The ops a case applies: `op`, after the edit a removal removes, or with the custom XMP
+/// property beside the title. A removal from a file with nothing to remove would change
+/// nothing, so it follows the metadata edit, in the same transaction.
+fn case_ops(doc: &Document, op_name: &str, op: Op, rotation: Rotation) -> Vec<Op> {
+    match op_name {
+        "removeMetadata" => vec![self::op(doc, "setMetadata", rotation), op],
+        "setXmpProperty" => vec![
+            op,
+            SetXmpProperty::new(CUSTOM.0, "rt", CUSTOM.1, XmpValue::Integer(7)).into(),
+        ],
+        _ => vec![op],
+    }
+}
+
+/// What is wrong with the custom XMP property a `setXmpProperty` case added, as reopened.
+fn custom_property_problem(id: &str, reopened: &laminapdf_model::Document) -> Option<String> {
+    let custom = reopened
+        .xmp()
+        .unwrap()
+        .packet()
+        .and_then(|p| p.property(CUSTOM.0, CUSTOM.1).cloned());
+    (custom != Some(RdfValue::Text("7".to_owned())))
+        .then(|| format!("{id}: the custom XMP property reads back as {custom:?}"))
 }
 
 /// What a run produced.
@@ -281,21 +324,16 @@ pub fn run(root: &Path) -> Suite {
                     let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
                     let (pages, mut rotations, mut info) = facts(&doc);
                     let op = op(&doc, op_name, rotation);
-                    let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_));
+                    let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_) | Op::SetXmpProperty(_));
                     match op {
                         Op::SetInfo(_) | Op::SetMetadata(_) => {
                             info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect();
                         }
+                        Op::SetXmpProperty(_) => info[0] = Some(INFO[0].1.to_owned()),
                         Op::RemoveMetadata(_) => info = vec![None; INFO.len()],
                         _ => rotations[0] = rotation.degrees(),
                     }
-                    // A removal from a file with nothing to remove would change nothing: it
-                    // follows the metadata edit, in the same transaction.
-                    let ops = if op_name == "removeMetadata" {
-                        vec![self::op(&doc, "setMetadata", rotation), op]
-                    } else {
-                        vec![op]
-                    };
+                    let ops = case_ops(&doc, op_name, op, rotation);
                     doc.apply_all(Origin::Local, ops).unwrap();
                     let mut options = SaveOptions::new()
                         .with_mode(mode)
@@ -340,6 +378,9 @@ pub fn run(root: &Path) -> Suite {
                                 .failures
                                 .push(format!("{id}: Info and XMP disagree on {:?}", meta.disagreements));
                         }
+                    }
+                    if op_name == "setXmpProperty" {
+                        suite.failures.extend(custom_property_problem(&id, &reopened));
                     }
                     let file = format!("{id}.pdf");
 

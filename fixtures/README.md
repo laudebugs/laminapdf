@@ -161,6 +161,9 @@ Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf
 | `envelope.json` | The `{ "v": 1, "ops": [ … ] }` envelope with both ops (`p4.0`, `/Producer` cleared, `at` with a UTC offset), applied to `corpus/outline.pdf` as one transaction |
 | `set-metadata.json` | One `setMetadata` op (E1c): a title, two authors, a cleared subject, a UTF-16-only value, a creation date and `at`; applied to `golden/metadata.pdf`, whose Info and XMP it writes together |
 | `remove-metadata.json` | One `removeMetadata` op removing three fields, applied to `golden/metadata.pdf` |
+| `set-xmp-property.json` | One `setXmpProperty` op (E3e): a custom `rdf:Seq` of two names in a namespace the packet doesn't declare; applied to `golden/metadata.pdf` |
+| `remove-xmp-property.json` | One `removeXmpProperty` op removing that property |
+| `replace-xmp-packet.json` | One `replaceXmpPacket` op: a packet without the `xpacket` wrapper holding only a title, which Info's `/Title` then follows |
 | `mixed-log.json` | A v1 log mixing the deprecated `setInfo` with `setMetadata` and `removeMetadata`, applied as one transaction (adding ops kept `v` at 1, ADR 0006 §6) |
 
 ### `signed/`
