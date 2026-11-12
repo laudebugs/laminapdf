@@ -18,6 +18,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── .changeset/          # Changesets (ADR 0017): config.json (fixed group: @laminapdf/wasm, pdf, render, render-hayro, render-pdfium, viewer), pre.json (alpha pre mode)
 ├── CHANGELOG.md         # generated: the fixed group's changelogs merged by `cargo xtask version sync`
 ├── biome.json  tsconfig.base.json  deny.toml  clippy.toml  rustfmt.toml
+├── context7.json        # Context7 (W3f): how it parses the repository's listing (the docs pages, the examples, the error
+│                        #   pages; rules for agents from packages/sdk/examples/AGENTS.md) and that listing's claim (url, public_key)
 ├── dist-workspace.toml  # cargo-dist for the `laminapdf` binary only (L4d): eight targets, `mcp` on, Homebrew formula
 │                        #   (laudebugs/homebrew-tap), archives with licences, notices, man pages and completions
 ├── crates/              # Rust crates, flat: crates/laminapdf-<name>
@@ -419,7 +421,8 @@ cargo xtask check docs       # docs-links + docs-prose + docs-snippets + todos -
                              #   + renames (docs/renames.json against laminapdf.renames/1, an entry per #[deprecated]/@deprecated item,
                              #   every new name in the sources) + package metadata (every published package, the CLI's npm wrapper
                              #   included, has a description; no ADR number, todo ID or "is private" in it or its README's
-                             #   first paragraph) + gen codes --check + gen boundary --check + version sync --check
+                             #   first paragraph) + sdk doc comments (no ADR number or todo ID in a /** */ comment of
+                             #   packages/sdk/src, generated files included: TypeDoc's API reference) + gen codes --check + gen boundary --check + version sync --check
                              #   (fast; no network, no build, no node_modules)
 cargo xtask check docs-prose [--all-strict] [--warnings] [--json]  # reader-facing text (docs site, docs/errors, package
                              #   READMEs) vs docs/guidelines/docs-writing.md (word lists: tools/xtask/docs-prose.toml); errors on
