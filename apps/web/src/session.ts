@@ -6,7 +6,7 @@
 // it, so its bytes never reach this page.
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import type { SaveOptions, SaveReport } from "@laminapdf/sdk";
+import type { DocumentMetadata, SaveOptions, SaveReport } from "@laminapdf/sdk";
 import type {
   DebugBackend,
   ExternalStore,
@@ -451,6 +451,36 @@ export class Engine implements ExternalStore<EngineState> {
     const ops = [{ op: "rotatePage", args: { page: page.id, rotate } }] as unknown as Ops;
     const label = message("edit.rotate.label", { page: pageLabel(this.#state.pages, index) });
     await session.viewer.edits.apply(ops, label);
+  }
+
+  /**
+   * What the properties dialog edits (O04): the open document's metadata as its edits leave it,
+   * and whether a save rewrites the whole file (so a removed value keeps no earlier version).
+   * Undefined when the document can't be edited (encrypted, or its edits diverged).
+   */
+  async editableMetadata(): Promise<{ metadata: DocumentMetadata; rewritesWhole: boolean } | undefined> {
+    const { client, viewer } = await this.#session;
+    if (viewer.edits.getState().blocked !== undefined) return undefined;
+    const [metadata, plan] = await Promise.all([client.metadata(), viewer.edits.plan({})]);
+    return { metadata, rewritesWhole: plan.mode === "fullRewrite" || plan.constraint === "requiresRewrite" };
+  }
+
+  /**
+   * Changes the open document's metadata as one step of the edit session (O04's Apply): `patch`
+   * set and `remove` removed, Info and XMP together. Nothing reaches the file until a save.
+   */
+  async editMetadata(
+    change: { readonly patch: object; readonly remove: readonly string[] },
+    options: { readonly replaceMalformed: boolean },
+  ): Promise<void> {
+    const session = await this.#session;
+    const replace = options.replaceMalformed ? { replaceMalformed: true } : {};
+    const ops: unknown[] = [];
+    if (Object.keys(change.patch).length > 0)
+      ops.push({ op: "setMetadata", args: { patch: change.patch, ...replace } });
+    if (change.remove.length > 0) ops.push({ op: "removeMetadata", args: { keys: change.remove, ...replace } });
+    if (ops.length === 0) return;
+    await session.viewer.edits.apply(ops as unknown as Ops, message("properties.edit.step"));
   }
 
   /** Moves to `backend`: a new document worker, and the open file reopened in it. */

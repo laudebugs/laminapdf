@@ -32,6 +32,10 @@
       "types": "./dist/reader-mode.d.ts",
       "default": "./dist/reader-mode.js"
     },
+    "./capabilities": {
+      "types": "./dist/capabilities.d.ts",
+      "default": "./dist/capabilities.js"
+    },
     "./testing": "./test/testing.ts",
     "./styles.css": "./src/styles/index.css",
     "./package.json": "./package.json"

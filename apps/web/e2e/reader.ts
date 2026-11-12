@@ -4,8 +4,10 @@
 // other origins, and the checks that a file opened cleanly.
 
 import { readFileSync } from "node:fs";
+import axe from "axe-core";
 import type { Browser, Page } from "playwright";
 import { expect } from "vitest";
+import { BROWSER } from "./browser.ts";
 
 /** The test corpus, whose hello.pdf both suites open. */
 const CORPUS = new URL("../../../fixtures/corpus/", import.meta.url);
@@ -74,9 +76,15 @@ export async function load(
     if (url.protocol.startsWith("http") && url.origin !== new URL(origin).origin) foreign.push(url.href);
   });
   await page.addInitScript(() => {
-    const seen: string[] = [];
+    const seen: { text: string; target: string; at: string }[] = [];
     Object.assign(window, { cspViolations: seen });
-    document.addEventListener("securitypolicyviolation", (e) => seen.push(`${e.violatedDirective} ${e.blockedURI}`));
+    document.addEventListener("securitypolicyviolation", (e) =>
+      seen.push({
+        text: `${e.violatedDirective} ${e.blockedURI}`,
+        target: e.target instanceof Element ? e.target.tagName : "",
+        at: `${e.sourceFile}:${e.lineNumber}:${e.columnNumber}`,
+      }),
+    );
   });
   if (init !== undefined) await page.addInitScript(init.script, init.arg);
   await page.goto(new URL(path, origin).href);
@@ -85,7 +93,19 @@ export async function load(
   return {
     page,
     foreign,
-    violations: () => page.evaluate(() => (window as unknown as { cspViolations: string[] }).cspViolations),
+    violations: async () => {
+      const seen = await page.evaluate(
+        () => (window as unknown as { cspViolations: { text: string; target: string; at: string }[] }).cspViolations,
+      );
+      if (BROWSER !== "webkit") return seen.map((v) => v.text);
+      // Playwright's WebKit reports every native <select> as an inline style under `style-src
+      // 'self'`: the engine's own styles for the control (a page with a bare <select> does the
+      // same). It reports at the script's `createElement("select")`, aimed at the select or, once
+      // that is detached, at the document; those are left out, and everything else must be clean.
+      const sources = new Map<string, boolean>();
+      for (const { at } of seen) if (!sources.has(at)) sources.set(at, await createsSelect(page, at));
+      return seen.filter((v) => !sources.get(v.at)).map((v) => v.text);
+    },
   };
 }
 
@@ -117,3 +137,29 @@ export async function clean(watched: Watched): Promise<void> {
 
 /** Corpus file `name`'s bytes, as an array a page can take. */
 export const bytes = (name: string): number[] => [...readFileSync(new URL(name, CORPUS))];
+
+/** axe's serious and critical violations on the page now, as `id: targets`, without the rules `off`. */
+export async function serious(page: Page, off: readonly string[] = []): Promise<string[]> {
+  await page.evaluate(axe.source);
+  return page.evaluate(async (off) => {
+    const run = (window as unknown as { axe: typeof axe }).axe;
+    const result = await run.run(document, {
+      runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
+      rules: Object.fromEntries(off.map((id) => [id, { enabled: false }])),
+    });
+    return result.violations
+      .filter((v) => v.impact === "serious" || v.impact === "critical")
+      .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
+  }, off);
+}
+
+/** Whether script position `at` (`url:line:column`) is a `createElement("select")` call. */
+async function createsSelect(page: Page, at: string): Promise<boolean> {
+  const m = /^(.*):(\d+):(\d+)$/.exec(at);
+  if (m === null || !(m[1] ?? "").startsWith("http")) return false;
+  const [, url = "", line, column] = m;
+  const source = await page.evaluate(async (u) => (await fetch(u)).text(), url);
+  const text = source.split("\n")[Number(line) - 1] ?? "";
+  const col = Number(column) - 1;
+  return text.slice(0, col).endsWith("createElement") && /^\(\s*[`'"]select[`'"]/.test(text.slice(col));
+}

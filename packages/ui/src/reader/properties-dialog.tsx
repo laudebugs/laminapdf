@@ -1,10 +1,14 @@
 // The document properties dialog (R08): everything Lamina PDF's own parser knows about the file,
 // in four sections (Description, Document, Fonts, Security), at form width. Each value has a copy
 // button named by what it copies, shown on hover or focus; Copy all writes every section as plain
-// text. Read-only: nothing here changes the file.
+// text. When the document can be edited (O04), the Description section becomes a form on its own
+// tab, the rest moves to a File tab, and Apply makes the form's changes one edit; nothing reaches
+// the file until it is saved.
 
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Button, IconButton } from "../components/button.js";
+import { Notice } from "../components/notice.js";
+import { SegmentedTabs, TabPanel } from "../components/tabs.js";
 import { message } from "../messages.js";
 import { Dialog } from "../overlays/dialog.js";
 import {
@@ -15,12 +19,42 @@ import {
   propertiesText,
   propertySections,
 } from "./properties.js";
+import { PropertiesEditor, RemoveMetadataDialog } from "./properties-editor.js";
+import {
+  changeOf,
+  type DocumentMetadataData,
+  EDITABLE_FIELDS,
+  formFrom,
+  hasValue,
+  type MetadataChange,
+  type MetadataForm,
+  removalStaysInEarlierVersions,
+} from "./properties-form.js";
 
 /** What the dialog shows: the properties once read, or that they are being read or couldn't be. */
 export type PropertiesState =
   | { readonly status: "loading" }
   | { readonly status: "ready"; readonly properties: DocumentPropertiesData }
   | { readonly status: "failed" };
+
+/** The metadata the Description form edits: once read, or that it is being read or couldn't be. */
+export type MetadataState =
+  | { readonly status: "loading" }
+  | { readonly status: "ready"; readonly metadata: DocumentMetadataData }
+  | { readonly status: "failed" };
+
+/** What the dialog needs to edit the document (O04). */
+export interface PropertiesEditing {
+  /** The metadata as the edits so far leave it. */
+  readonly metadata: MetadataState;
+  /** Whether a save rewrites the whole file, so a removed value leaves no earlier version behind. */
+  readonly rewritesWhole: boolean;
+  /**
+   * Apply: `change` as one edit (`replaceMalformed` when the XMP metadata can't be read). Resolves
+   * once applied, and the dialog closes; rejects when it couldn't be, and the dialog says so.
+   */
+  readonly onApply: (change: MetadataChange, options: { readonly replaceMalformed: boolean }) => Promise<void>;
+}
 
 /** Props of `PropertiesDialog`. */
 export interface PropertiesDialogProps {
@@ -35,6 +69,8 @@ export interface PropertiesDialogProps {
   onCopy: (text: string) => void;
   /** Close, Escape or the scrim. */
   onClose: () => void;
+  /** Given when the document can be edited: the Description tab becomes a form. */
+  editing?: PropertiesEditing | undefined;
 }
 
 function Rows({ section, onCopy }: { section: PropertySection; onCopy: (text: string) => void }): ReactNode {
@@ -100,16 +136,19 @@ function Body({
   properties,
   context,
   onCopy,
+  withDescription = true,
 }: {
   properties: DocumentPropertiesData;
   context: PropertiesContext;
   onCopy: (text: string) => void;
+  /** Whether to show the Description section: the File tab leaves it to the form. */
+  withDescription?: boolean;
 }): ReactNode {
   const { description, document, security } = propertySections(properties, context);
   const restricted = properties.encryption?.permissions !== undefined;
   return (
     <div className="paper-properties-body">
-      {description.rows.length > 0 ? (
+      {withDescription && description.rows.length > 0 ? (
         <Section id="paper-properties-description" title={description.title}>
           <Rows section={description} onCopy={onCopy} />
         </Section>
@@ -128,15 +167,172 @@ function Body({
   );
 }
 
-/** Shows a document's properties. */
-export function PropertiesDialog({
-  isOpen,
-  fileName,
+/** The read-only facts, or that they are being read or couldn't be. */
+function Facts({
   state,
   context,
   onCopy,
-  onClose,
-}: PropertiesDialogProps): ReactNode {
+  withDescription,
+}: Pick<PropertiesDialogProps, "state" | "context" | "onCopy"> & { withDescription: boolean }): ReactNode {
+  if (state.status === "ready") {
+    return <Body properties={state.properties} context={context} onCopy={onCopy} withDescription={withDescription} />;
+  }
+  return (
+    <p className="paper-properties-empty">
+      {message(state.status === "loading" ? "properties.loading" : "properties.failed")}
+    </p>
+  );
+}
+
+type Tab = "description" | "file";
+
+/**
+ * The editable dialog's state: the form, with the metadata it started from (new metadata, when
+ * the dialog opens again or an undo changed it, starts a new form), what Apply would change,
+ * and Apply itself, which closes the dialog once the edit is made.
+ */
+function useMetadataForm(editing: PropertiesEditing, onClose: () => void) {
+  const metadata = editing.metadata.status === "ready" ? editing.metadata.metadata : undefined;
+  const [tab, setTab] = useState<Tab>("description");
+  const [held, setHeld] = useState<{ from: DocumentMetadataData; form: MetadataForm } | undefined>();
+  const [applying, setApplying] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const form = metadata === undefined ? undefined : held?.from === metadata ? held.form : formFrom(metadata);
+  const change = metadata === undefined || form === undefined ? undefined : changeOf(metadata, form);
+  const close = () => {
+    setHeld(undefined);
+    setFailed(false);
+    setTab("description");
+    onClose();
+  };
+  const apply = () => {
+    if (metadata === undefined || change === undefined) return;
+    setApplying(true);
+    setFailed(false);
+    editing.onApply(change, { replaceMalformed: metadata.packet === "malformed" }).then(
+      () => {
+        setApplying(false);
+        close();
+      },
+      () => {
+        setApplying(false);
+        setFailed(true);
+      },
+    );
+  };
+  const setForm = (next: MetadataForm) => {
+    if (metadata !== undefined) setHeld({ from: metadata, form: next });
+  };
+  return { metadata, form, change, tab, setTab, applying, failed, close, apply, setForm };
+}
+
+/** The editable dialog's footer: Remove metadata… (or Copy all on the File tab), Cancel and Apply. */
+function EditFooter({
+  start,
+  canApply,
+  onCancel,
+  onApply,
+}: {
+  start: ReactNode;
+  canApply: boolean;
+  onCancel: () => void;
+  onApply: () => void;
+}): ReactNode {
+  return (
+    <>
+      {start === null ? null : <span className="paper-properties-actions-start">{start}</span>}
+      <Button onPress={onCancel}>{message("properties.edit.cancel")}</Button>
+      <Button variant="primary" isDisabled={!canApply} onPress={onApply}>
+        {message("properties.edit.apply")}
+      </Button>
+    </>
+  );
+}
+
+/** The editable dialog (O04): its form starts from the metadata each time the dialog opens. */
+function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEditing }): ReactNode {
+  const { isOpen, fileName, state, context, onCopy, editing } = props;
+  const edit = useMetadataForm(editing, props.onClose);
+  const { metadata, form } = edit;
+  const [removing, setRemoving] = useState(false);
+  const removable =
+    metadata !== undefined &&
+    form !== undefined &&
+    EDITABLE_FIELDS.some((f) => hasValue(metadata, f) && !form.removed.includes(f));
+  const start =
+    edit.tab === "description" ? (
+      <Button variant="danger" isDisabled={!removable} onPress={() => setRemoving(true)}>
+        {message("properties.edit.removeMetadata")}
+      </Button>
+    ) : state.status === "ready" ? (
+      <Button variant="ghost" onPress={() => onCopy(propertiesText(state.properties, context))}>
+        {message("properties.copyAll")}
+      </Button>
+    ) : null;
+  return (
+    <Dialog
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) edit.close();
+      }}
+      size="form"
+      title={message("properties.dialog.title")}
+      description={fileName}
+      closeLabel={message("properties.close")}
+      actions={
+        <EditFooter
+          start={start}
+          canApply={edit.change !== undefined && !edit.applying}
+          onCancel={edit.close}
+          onApply={edit.apply}
+        />
+      }
+    >
+      <SegmentedTabs
+        aria-label={message("properties.dialog.title")}
+        tabs={[
+          { id: "description", label: message("properties.tab.description") },
+          { id: "file", label: message("properties.tab.file") },
+        ]}
+        selectedKey={edit.tab}
+        onSelectionChange={edit.setTab}
+      >
+        <TabPanel id="description">
+          {edit.failed ? <Notice tone="danger" title={message("properties.edit.failed")} /> : null}
+          {metadata !== undefined && form !== undefined ? (
+            <PropertiesEditor
+              metadata={metadata}
+              form={form}
+              onForm={edit.setForm}
+              removalStays={removalStaysInEarlierVersions(edit.change, editing.rewritesWhole)}
+            />
+          ) : (
+            <p className="paper-properties-empty">
+              {message(editing.metadata.status === "failed" ? "properties.failed" : "properties.loading")}
+            </p>
+          )}
+        </TabPanel>
+        <TabPanel id="file">
+          <Facts state={state} context={context} onCopy={onCopy} withDescription={false} />
+        </TabPanel>
+      </SegmentedTabs>
+      {metadata !== undefined && form !== undefined ? (
+        <RemoveMetadataDialog
+          isOpen={removing}
+          metadata={metadata}
+          form={form}
+          onRemove={(fields) => edit.setForm({ ...form, removed: [...form.removed, ...fields] })}
+          onClose={() => setRemoving(false)}
+        />
+      ) : null}
+    </Dialog>
+  );
+}
+
+/** Shows a document's properties; with `editing`, lets the reader change its description. */
+export function PropertiesDialog(props: PropertiesDialogProps): ReactNode {
+  if (props.editing !== undefined) return <EditableDialog {...props} editing={props.editing} />;
+  const { isOpen, fileName, state, context, onCopy, onClose } = props;
   return (
     <Dialog
       isOpen={isOpen}
@@ -160,9 +356,7 @@ export function PropertiesDialog({
         </>
       }
     >
-      {state.status === "ready" ? <Body properties={state.properties} context={context} onCopy={onCopy} /> : null}
-      {state.status === "loading" ? <p className="paper-properties-empty">{message("properties.loading")}</p> : null}
-      {state.status === "failed" ? <p className="paper-properties-empty">{message("properties.failed")}</p> : null}
+      <Facts state={state} context={context} onCopy={onCopy} withDescription />
     </Dialog>
   );
 }

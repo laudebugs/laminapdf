@@ -50,6 +50,7 @@ import {
 import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAnnouncements } from "./announce.tsx";
+import { type CapabilityRoute, useCapabilityRoute } from "./capabilities.tsx";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type EditActions, type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
@@ -86,6 +87,7 @@ type ReaderMoreId =
   | "rotate"
   | "settings"
   | "shortcuts"
+  | "capabilities"
   | "privacy";
 
 /** The More menu's commands, by item. */
@@ -94,7 +96,7 @@ const MORE_COMMANDS = {
   print: "file.print",
   properties: "file.properties",
 } as const satisfies Record<
-  Exclude<ReaderMoreId, "install" | "open" | "rotate" | "settings" | "shortcuts" | "privacy">,
+  Exclude<ReaderMoreId, "install" | "open" | "rotate" | "settings" | "shortcuts" | "capabilities" | "privacy">,
   OutputCommand
 >;
 
@@ -126,6 +128,7 @@ function moreEntries(open: boolean, installable: boolean): GatedEntry<ReaderMore
     { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
     { id: "settings", label: message("command.app.settings"), icon: "settings" },
     { id: "shortcuts", label: message("command.help.shortcuts"), icon: "keyboard" },
+    { id: "capabilities", label: message("command.help.capabilities"), icon: "info" },
     { id: "privacy", label: message("reader.privacy"), icon: "network-shield" },
   ];
 }
@@ -452,6 +455,8 @@ function useDocumentMenu(
   output: Output;
   moreItems: { items: ReturnType<typeof useGatedEntries<ReaderMoreId>>; onAction: (id: ReaderMoreId) => void };
   recent: Recent;
+  /** The capability page (O05), over the reader at /capabilities. */
+  capabilities: CapabilityRoute;
   /** The handlers that work with or without a document: the settings', recent files', install and update. */
   appActions: Settings["actions"];
 } {
@@ -471,26 +476,35 @@ function useDocumentMenu(
     clearDocumentCache(platform.storage),
   );
   const install = useInstall();
+  const capabilities = useCapabilityRoute(window);
   const items = useGatedEntries<ReaderMoreId>(moreEntries(document !== undefined, install.available));
+  // The items that aren't one of the output's commands, each with what it does.
+  const own: Record<Exclude<ReaderMoreId, keyof typeof MORE_COMMANDS>, () => void> = {
+    open: () => void engine.reader.requestClose(),
+    rotate: () => engine.getState().viewer?.rotate(90),
+    settings: () => appActions["app.settings"]?.(undefined),
+    shortcuts: () => appActions["help.shortcuts"]?.(undefined),
+    capabilities: capabilities.show,
+    install: () => install.actions["app.install"]?.(),
+    privacy: () => void platform.openExternal(PRIVACY_URL).catch(() => undefined),
+  };
   const onAction = (id: ReaderMoreId) => {
-    if (id === "open") void engine.reader.requestClose();
-    else if (id === "rotate") engine.getState().viewer?.rotate(90);
-    else if (id === "settings") appActions["app.settings"]?.(undefined);
-    else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
-    else if (id === "install") install.actions["app.install"]?.();
-    else if (id === "privacy") void platform.openExternal(PRIVACY_URL).catch(() => undefined);
-    else {
-      const command = MORE_COMMANDS[id];
-      (editActions[command as keyof EditActions] ?? output.actions[command])();
+    if (id in own) {
+      own[id as keyof typeof own]();
+      return;
     }
+    const command = MORE_COMMANDS[id as keyof typeof MORE_COMMANDS];
+    (editActions[command as keyof EditActions] ?? output.actions[command])();
   };
   return {
     labels,
     output: { ...output, dialogs: [output.dialogs, install.dialog] },
     moreItems: { items, onAction },
     recent,
+    capabilities,
     appActions: {
       ...appActions,
+      "help.capabilities": capabilities.show,
       ...recent.actions,
       ...install.actions,
       ...(updates.getState().ready ? { "app.reload-update": () => updates.reload() } : {}),
@@ -725,6 +739,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
       <ToastRegion queue={toasts} aria-label={message("shell.toasts")} />
       <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
       {settings.dialogs}
+      {menu.capabilities.render(fileName)}
       {liveRegions}
       {selection.toolbar}
     </CommandsProvider>

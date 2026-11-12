@@ -71,6 +71,9 @@ catalog:
   jscpd: 5.4.2
   knip: 6.44.1
   playwright: 1.64.1
+  # pdf.js, which the reader's save e2e tests reopen saved files with (todo E1f), at the version the
+  # round-trip and differential tools pin. Apache-2.0. Dev-only.
+  pdfjs-dist: 6.4.299
   publint: 0.3.25
   # @laminapdf/ui's accessible primitives (ADR 0009: React Aria Components). Apache-2.0, as are its
   # @react-aria/* and @internationalized/* packages. Pinned to a release at least two weeks old.
