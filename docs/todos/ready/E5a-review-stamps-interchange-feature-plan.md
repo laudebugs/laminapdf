@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4a](../ongoing/E4a-markup-and-drawing-annotations-feature-plan.md) |
+| Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e5a-review-stamps-interchange-feature-plan` |
 | PR title | `docs(editor): E5 feature plan (review, stamps and interchange)` |

@@ -124,10 +124,11 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 #### E4. Markup and drawing annotations
 
 - **Ships (group D):** highlight/underline/strike-through, sticky notes and text comments, text-correction (caret) annotations, freehand ink, shapes/lines/arrows, callouts and text boxes, appearance-stream generation (cross-cutting). Group B "arrows, paths, freehand drawing" as annotations.
-- **Crates:** `laminapdf-model` annotations with `/NM` as `LaminaPdfId`; appearance generator in `laminapdf-build`; overlay rendering from lamina's model until save.
-- **Save:** incremental. Signed files: annotations allowed only when DocMDP P3 or no certification signature; otherwise warn.
+- **Plan:** [E4 markup and drawing annotations](editor/e4-markup-and-drawing-annotations.md).
+- **Crates:** `laminapdf-model` annotations (`AnnotId`, with `/NM` as a hint); the appearance generator in `laminapdf-build`, which the ops reach through a trait; an annotation layer in the viewer that draws only while a mark is being made, with PDFium drawing every committed annotation from the revision E1g keeps ([E4 plan §5](editor/e4-markup-and-drawing-annotations.md#5-the-viewer-while-drawing)).
+- **Save:** incremental. Signed files: annotations are allowed under DocMDP P3, approval signatures and FieldMDP locks; P1 and P2 forbid them, and Comment mode shows the banner when it opens.
 - **Web vs desktop:** identical; pen/stylus pressure for ink where the platform reports it.
-- **Todos:** [E4a](../todos/ongoing/E4a-markup-and-drawing-annotations-feature-plan.md) feature plan · [E4b](../todos/ready/E4b-annotation-model-and-overlay.md) Annotation model with `/NM` IDs, annotation ops and overlay rendering · [E4c](../todos/ready/E4c-appearances-markup-notes-caret.md) Appearances and creation: text markup, notes and caret · [E4d](../todos/ready/E4d-appearances-ink-and-shapes.md) Appearances and creation: ink, shapes, lines and arrows · [E4e](../todos/ready/E4e-freetext-callouts.md) FreeText text boxes and callouts with `/DA` and rich text · [E4f](../todos/ready/E4f-annotation-tools-ui.md) Annotation tools and properties panel · [E4g](../todos/ready/E4g-appearance-parity-suite.md) Cross-viewer appearance parity suite and E4 round close.
+- **Todos:** [E4a](../todos/done/E4a-markup-and-drawing-annotations-feature-plan.md) feature plan · [E4b](../todos/ready/E4b-annotation-model-and-overlay.md) Annotation model, the annotation ops' core and the appearance trait · [E4c](../todos/ready/E4c-appearances-markup-notes-caret.md) Text markup, notes and caret with their appearances · [E4d](../todos/ready/E4d-appearances-ink-and-shapes.md) Ink, shapes, lines and arrows with their appearances · [E4e](../todos/ready/E4e-freetext-callouts.md) FreeText text boxes and callouts with `/DA` and rich text · [E4i](../todos/ready/E4i-viewer-annotation-layer.md) The viewer's annotation layer · [E4f](../todos/ready/E4f-annotation-tools-ui.md) Comment mode: tools and the annotation inspector · [E4j](../todos/ready/E4j-text-box-tools.md) Text boxes and callouts in the interface · [E4k](../todos/ready/E4k-touch-and-stylus-annotating.md) Annotating on phones and tablets · [E4g](../todos/ready/E4g-appearance-parity-suite.md) Cross-viewer appearance parity suite · [E4h](../todos/ready/E4h-desktop-annotations.md) Desktop: markup and drawing annotations, and the round's close.
 
 #### E5. Review, stamps and interchange
 
@@ -330,7 +331,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Images → PDF; page export to PNG/JPEG/TIFF; text, image, link and attachment extraction
 
 ### E4. Markup and drawing annotations
-- [ ] Feature-plan PR for E4
+- [x] Feature-plan PR for E4
 - [ ] Annotation model with `/NM` IDs and overlay rendering
 - [ ] Appearance-stream generator for every subtype shipped
 - [ ] Tools: highlight, underline, strike-through, note, caret, ink, shapes, lines, arrows, callouts, text boxes
