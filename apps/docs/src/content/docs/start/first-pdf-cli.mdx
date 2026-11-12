@@ -1,0 +1,72 @@
+---
+title: Your first PDF on the command line
+description: Install the laminapdf command, turn a Markdown file into a PDF, then inspect it and read it back.
+---
+
+import Transcript from "../../../components/Transcript.astro";
+
+You'll turn a short Markdown file into a tagged PDF with the `laminapdf` command, then check the PDF, read its text back and draw its page as an image. It takes about five minutes, and you need no Node or Rust project.
+
+## Install the tool
+
+On macOS and Linux, install it with Homebrew; anywhere npm runs, install it with npm:
+
+```sh
+brew install laudebugs/tap/laminapdf
+```
+
+```sh
+npm install -g @laminapdf/cli@{{version}}
+```
+
+[Install the tool](/cli/install/) has downloads for every system and how to check them. Check that it runs:
+
+<Transcript name="version" />
+
+## Make a PDF
+
+Save this Markdown as `notes.md`:
+
+```md title="notes.md"
+---
+title: Release notes
+lang: en
+---
+
+# Release notes
+
+The new version opens **twice as fast** and reads files with broken cross-references.
+
+| Change | Pages |
+| --- | --- |
+| Faster open | 1 to 3 |
+| Repairs | 4 |
+```
+
+Then build it. `build` lays it out on A4 pages:
+
+<Transcript name="build-markdown" />
+
+## Look at what you made
+
+`info` describes the PDF, and `check` reads all of it and reports anything wrong. The front matter's title became the document's title, and the PDF is tagged, so screen readers can follow its headings and table:
+
+<Transcript name="first-run-inspect" />
+
+## Read it back
+
+`extract` reads the text back in reading order, here as Markdown, with the table as a table:
+
+<Transcript name="first-run-extract" />
+
+## See the page
+
+`render` draws the page as a PNG image, at 150 dots per inch. Open `notes.png`, or `notes.pdf` in any PDF viewer:
+
+<Transcript name="first-run-render" />
+
+## What happened
+
+`build` read the Markdown and set it in Helvetica, one of the [standard 14 fonts](/reference/glossary/) that PDF viewers have; code would use Courier. It wrote a tagged PDF with no creation date, so the same file always gives the same bytes. `info`, `check`, `extract` and `render` each opened that PDF and printed what they found.
+
+Next, see what else the tool does in [the command line](/cli/), or make the same PDF [with your own fonts and an accessibility profile](/cli/build-and-edit/#accessible-and-archival-pdfs).

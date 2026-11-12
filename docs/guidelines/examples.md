@@ -3,6 +3,7 @@
 An example is code a reader will paste into their own app, so it must be code we would merge. These rules apply to:
 
 - `packages/sdk/examples/**`;
+- `packages/viewer/examples/**` (the viewer's, which the SDK can't hold, since the viewer depends on it);
 - `crates/laminapdf/examples/**`;
 - every file the docs site's `Snippet` component may show;
 - the command-line transcripts in `fixtures/cli/transcripts/`, which the `Transcript` component shows.
@@ -22,7 +23,7 @@ An example is code a reader will paste into their own app, so it must be code we
 
 - **MUST:** the file opens with a comment that says what it shows. That comment mentions no ADR or todo IDs, no repository paths and no test vocabulary such as "golden" or "twin".
 - **MUST:** an example imports only public entry points:
-  - in TypeScript, `@laminapdf/sdk` and `@laminapdf/sdk/worker`, and for drawing pages `@laminapdf/render` and `@laminapdf/render-hayro`;
+  - in TypeScript, `@laminapdf/sdk` and `@laminapdf/sdk/worker`, for drawing pages `@laminapdf/render` and `@laminapdf/render-hayro`, and in the viewer's examples `@laminapdf/viewer`;
   - in Rust, `laminapdf::…`.
 
   It never imports from `src/`, `test/`, `fixtures/` or another package's path, and never from `laminapdf_<crate>` directly.
@@ -44,7 +45,7 @@ An example is code a reader will paste into their own app, so it must be code we
 
 ## Command-line transcripts
 
-A page shows a terminal session as a transcript, never as a `console` block typed into the page. A transcript is a `.console` file in `fixtures/cli/transcripts/`: the `$ ` lines a reader types and what they print. `transcripts.json` gives each one's commands and the files it needs, under the names the page uses, and the page shows it with `<Transcript name="…" />`. `crates/laminapdf-cli/tests/transcripts.rs` runs every transcript and fails when its output changes; `UPDATE_GOLDEN=1` rewrites the transcripts. Pick inputs that give short, readable output, and narrow JSON with `--fields` where the page allows; never cut output by hand. To add a transcript, give its commands and files in `transcripts.json`, then run the test with `UPDATE_GOLDEN=1` to write it.
+A page shows a terminal session as a transcript, never as a `console` block typed into the page. A transcript is a `.console` file in `fixtures/cli/transcripts/`: the `$ ` lines a reader types and what they print. `transcripts.json` gives each one's commands and the files it needs, under the names the page uses, and the page shows it with `<Transcript name="…" />`. `crates/laminapdf-cli/tests/transcripts.rs` runs every transcript and fails when its output changes; `UPDATE_GOLDEN=1` rewrites the transcripts. Pick inputs that give short, readable output, and narrow JSON with `--fields` where the page allows; never cut output by hand. To add a transcript, give its commands and files in `transcripts.json`, then run the test with `UPDATE_GOLDEN=1` to write it. The test runs those commands in a shell, so it accepts only `laminapdf` and the few programs a page pipes it through (`PROGRAMS` in the test), and refuses `;`, `&`, redirections, substitutions and any expansion but `$?`. A page that needs another program adds it to that list in a reviewed change.
 
 ## How it's checked
 
@@ -53,7 +54,7 @@ Three checks enforce these rules:
 | Check | Runs in | Rules |
 | --- | --- | --- |
 | `cargo xtask check docs-snippets` | `cargo xtask check docs` (every PR, docs-only ones included) | `examples/` only; every example shown; matching pairs; header comment; Rust public imports; no test scaffolding (outside the listed test examples); file length |
-| A Biome override on `packages/sdk/examples/**`, and `cargo xtask biome-examples` with warnings as errors | `cargo xtask check ts` | TypeScript public imports; no non-null assertions or `any`; function length and complexity |
+| A Biome override on `packages/sdk/examples/**` and `packages/viewer/examples/**`, and `cargo xtask biome-examples` with warnings as errors | `cargo xtask check ts` | TypeScript public imports; no non-null assertions or `any`; function length and complexity |
 | `cargo xtask clippy-examples`: clippy on `crates/laminapdf/examples/` with an examples-only `clippy.toml` (function length 40) and `let_underscore_must_use` turned on | `cargo xtask check rust` | Rust function length; no discarded results |
 
 `cargo xtask check` runs all three strict on every example, so any report fails a PR. Biome's override reports errors, and `check ts` lints every example again with Biome's warnings as errors. Run on their own, `docs-snippets` and `clippy-examples` are strict on the examples a PR adds or changes and count the reports elsewhere; `--all-strict` makes every report an error. The checks skip `crates/laminapdf/examples/differential/`, which holds a developer tool (the text differential's `text-facts`), as `cargo xtask examples` does. The TypeScript and Rust pairs are listed in `tools/xtask/docs-snippets.toml`. The docs site's tests (`pnpm --filter @laminapdf/docs test`) fail on a `console` block typed into a page, or a shell block with a `$ ` prompt, and on a transcript a page names that doesn't exist. The reviewer checklist covers what the tools can't judge.

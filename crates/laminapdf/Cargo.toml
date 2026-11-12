@@ -97,6 +97,10 @@ name = "extract_markdown"
 required-features = ["extract"]
 
 [[example]]
+name = "check_what_a_file_hides"
+required-features = ["extract"]
+
+[[example]]
 name = "react_to_error_codes"
 
 [[example]]

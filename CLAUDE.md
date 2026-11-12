@@ -142,7 +142,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   step's ops, replayed into a restarted worker), edit/session.ts (EditSession, viewer.edits: calls in order, busy,
 │                        #   blocked, the partial undo's notice), client `edit` event, OpenedDocument.encrypted, fit modes refit after a resize;
 │                        #   C3b: createViewer (src/layout/, view/, canvas/,
-│                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
+│                        #   render/, zoom/), demo/viewer-demo.html, examples/show-a-pdf.ts (the docs site's example); test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios (T5a's link-previews: 20 citations hovered, reported), report.ts against
 │                        #   web-app §4, serve.ts gzip server; `pnpm … perf`)
@@ -330,7 +330,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   ops/v1/ (op JSON samples), fonts/ (OFL Noto subsets), images/ (JPEG, ICC), text/ (pypdf extraction facts),
 │                        #   build/ (pypdf + pdf.js facts for laminapdf-build's goldens), signed/ (pyHanko), codes.json + codes.schema.json,
 │                        #   errors/ (contract.json: shared error objects; marker-text.pdf),
-│                        #   golden/examples/ and render-golden/ (the Lamina PDF examples), reading-order/ (U2b's generated
+│                        #   golden/examples/ and render-golden/ (the Lamina PDF examples), reveal/examples/ (the reveal example's report), reading-order/ (U2b's generated
 │                        #   corpus, expected block order, ratchet threshold), reflow/ (U4b's tagged copies of those layouts, broken trees and
 │                        #   mixed.pdf, with what reader mode should make of each); README.md has provenance
 ├── fuzz/                # cargo-fuzz targets (OSS-Fuzz layout), its own nightly workspace outside the root one
