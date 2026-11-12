@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `X9a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [CI caching §8](../../plans/ci-caching.md#8-the-waits) |
 | Round / milestone | Round X (cross-cutting): CI |
-| Depends on | [X8a](../done/X8a-rust-compile-cache-trial.md) |
+| Depends on | [X8a](./X8a-rust-compile-cache-trial.md) |
 | ADRs | [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) (the lanes: what runs on PRs, on `main` and nightly) |
 | Branch | `ci/x9a-macos-x64-rust-off-prs` |
 | PR title | `ci: run Rust on macOS x64 on pushes to main and in the nightly, not on PRs` |
 | Size | S |
-| PR | — |
+| PR | [#514](https://github.com/laudebugs/laminapdf/pull/514) |
 
 ## Goal
 
@@ -35,21 +35,21 @@ Pull requests stop waiting for a macOS x64 runner. In the plan's baseline, the m
 
 **Out of scope** (and which todo covers it)
 
-- Moving X8b's PR measurements from macOS x64 to macOS Arm64 → [X8b](X8b-rust-compile-cache-everywhere.md) and its owner's small PR before this one (agreed 2026-11-12).
+- Moving X8b's PR measurements from macOS x64 to macOS Arm64 → [X8b](../ready/X8b-rust-compile-cache-everywhere.md) and its owner's small PR before this one (agreed 2026-11-12).
 - Render goldens on Mac runners → [X9b](X9b-render-goldens-when-rendering-changes.md).
 - Other macOS jobs (WebKit, the desktop builds) stay as they are.
 
 ## Tasks
 
-- [ ] `ci.yml`: exclude the `macos-x64` leg when `github.event_name == 'pull_request'`; keep its flags.
-- [ ] `nightly.yml`: add the macOS x64 Rust job (`cargo xtask check rust`, the pinned toolchain and Rust cache, no compile cache) and list it where the nightly gathers its results.
-- [ ] `tools/xtask/src/workflows.rs`: test both.
-- [ ] ADR 0018 §2 and the comments in both workflows.
+- [x] `ci.yml`: exclude the `macos-x64` leg when `github.event_name == 'pull_request'`; keep its flags.
+- [x] `nightly.yml`: add the macOS x64 Rust job (`cargo xtask check rust`, the pinned toolchain and Rust cache, no compile cache) and list it where the nightly gathers its results.
+- [x] `tools/xtask/src/workflows.rs`: test both.
+- [x] ADR 0018 §2 and the comments in both workflows.
 
 ## Acceptance criteria
 
-- [ ] A PR run of `ci.yml` has no `Rust (macos-x64)` job, and `fast-gate` passes without it.
-- [ ] The workflow tests fail if the leg is dropped from pushes to `main` or the nightly loses its job.
+- [x] A PR run of `ci.yml` has no `Rust (macos-x64)` job, and `fast-gate` passes without it.
+- [x] The workflow tests fail if the leg is dropped from pushes to `main` or the nightly loses its job.
 
 ## Post-merge checks
 
@@ -71,8 +71,15 @@ ADR 0018 §2; the CI caching plan's §8 (tick X9a); `ci.yml`'s and `nightly.yml`
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes
+
+- **One PR.** X9a–X9d went in one PR, #514, at the owner's request.
+- **A leg list, not a matrix `exclude`.** GitHub applies a matrix `exclude` before `include`, and the `rust` matrix is only `include` entries, so an `exclude` can't drop a leg. ci.yml's `changes` job builds the list of legs as JSON, drops macOS x64 on pull requests with `jq`, and the matrix reads it (`fromJSON(needs.changes.outputs.rust-legs)`). The macOS x64 leg keeps `compile-cache: true`, and a test holds it.
+- **The nightly job runs after `bench`,** so the benchmarks never wait for an Intel Mac, and not when the release lane calls the nightly (`record: false`), which runs its own checks.
+- **Merge order.** #514 merges after #513, which moves X8b's trial measurements to macOS Arm64.

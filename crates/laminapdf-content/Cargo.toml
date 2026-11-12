@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-content"
-description = "Read what a PDF page draws, operator by operator, with the graphics and text state in effect: a tolerant content-stream interpreter."
+description = "Read what a PDF page draws, operator by operator, with the graphics and text state in effect, and append content to a page: a tolerant content-stream interpreter and writer."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
