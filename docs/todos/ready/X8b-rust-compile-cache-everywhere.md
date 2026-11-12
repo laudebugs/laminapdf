@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [CI caching §5](../../plans/ci-caching.md#5-rollout) |
 | Round / milestone | Round X (cross-cutting): CI |
-| Depends on | [X8a](./X8a-rust-compile-cache-trial.md) |
+| Depends on | [X8a](../done/X8a-rust-compile-cache-trial.md) |
 | ADRs | [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) |
 | Branch | `ci/x8b-rust-compile-cache-everywhere` |
 | PR title | `ci: compile Rust through the compile cache in the fast and full lanes` |
