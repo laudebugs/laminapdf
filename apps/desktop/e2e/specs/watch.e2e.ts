@@ -6,9 +6,9 @@ import { copyFileSync, mkdirSync, renameSync, rmSync, unlinkSync } from "node:fs
 import { join } from "node:path";
 import { $, browser, expect } from "@wdio/globals";
 import { fixture, goToPage, openAndWait, view, withText, zoomOnce } from "../app.ts";
-import { output } from "../paths.ts";
+import { workingCopies } from "../paths.ts";
 
-const dir = join(output, "watched");
+const dir = join(workingCopies, "watched");
 const watched = join(dir, "watched.pdf");
 const example = (name: string) => fixture("fixtures", "golden", "examples", name);
 
