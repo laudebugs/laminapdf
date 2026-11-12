@@ -309,9 +309,28 @@ mod rejects {
             r#"{ "open": { "page": "p3.0", "zoom": "fitBox" } }"#,
             r#"{ "open": { "page": "p3.0", "zoom": 0 } }"#,
             r#"{ "open": { "page": "p3.0", "zoom": 6401 } }"#,
+            r#"{ "open": { "zoom": "fitPage" } }"#,
+            r#"{ "open": { "page": 3 } }"#,
+            r#"{ "open": "p3.0" }"#,
+            r#"{ "preferences": { "fitWindow": "yes" } }"#,
+            r#"{ "pageMode": 1 }"#,
+            "[]",
         ] {
             assert!(parse(args).is_err(), "{args}");
         }
+    }
+
+    #[test]
+    fn an_unknown_field_by_name() {
+        let error = parse(r#"{ "colour": "red" }"#).unwrap_err().to_string();
+        assert!(error.contains("unknown field `colour`"), "{error}");
+    }
+
+    #[test]
+    fn the_same_op_whichever_key_comes_first() {
+        let args = r#"{ "open": { "page": "p3.0", "zoom": 125 }, "preferences": { "centerWindow": true } }"#;
+        let before: Op = serde_json::from_str(&format!(r#"{{ "args": {args}, "op": "setInitialView" }}"#)).unwrap();
+        assert_eq!(before, parse(args).unwrap());
     }
 
     #[test]

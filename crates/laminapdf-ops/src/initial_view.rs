@@ -3,8 +3,9 @@
 //! yes-or-no window entries of `/ViewerPreferences`.
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object};
-use laminapdf_model::{OpenAction, PageId, PageLayout, PageMode, WindowPreferences};
-use serde::{Deserialize, Serialize};
+use laminapdf_model::{PageId, PageLayout, PageMode, WindowPreferences};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value;
 
 use crate::error::{Error, Result};
 use crate::wire;
@@ -47,21 +48,21 @@ use crate::wire;
 /// ```
 ///
 /// Added in 0.2.0.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub struct SetInitialView {
     /// The page and zoom to open at.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "wire::double_option::deserialize"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional, type = "OpenAt | null"))]
     pub open: Option<Option<OpenAt>>,
     /// The panel to show (`/PageMode`).
-    #[serde(default, skip_serializing_if = "Option::is_none", with = "page_mode")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "page_mode::serialize"
+    )]
     #[cfg_attr(
         feature = "tsify",
         tsify(
@@ -71,7 +72,11 @@ pub struct SetInitialView {
     )]
     pub page_mode: Option<Option<PageMode>>,
     /// How to lay the pages out (`/PageLayout`).
-    #[serde(default, skip_serializing_if = "Option::is_none", with = "page_layout")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "page_layout::serialize"
+    )]
     #[cfg_attr(
         feature = "tsify",
         tsify(
@@ -89,17 +94,17 @@ pub struct SetInitialView {
 /// The page and zoom a document opens at.
 ///
 /// Added in 0.2.0.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub struct OpenAt {
     /// The page.
-    #[serde(with = "wire::page_id")]
+    #[serde(serialize_with = "wire::page_id::serialize")]
     #[cfg_attr(feature = "tsify", tsify(type = "string"))]
     pub page: PageId,
     /// The zoom.
-    #[serde(default, with = "zoom")]
+    #[serde(serialize_with = "zoom::serialize")]
     #[cfg_attr(
         feature = "tsify",
         tsify(optional, type = "\"default\" | \"fitPage\" | \"fitWidth\" | number")
@@ -164,8 +169,8 @@ impl OpenZoom {
 /// left out keeps what the file has, `true` sets the entry, `false` removes it.
 ///
 /// Added in 0.2.0.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub struct WindowPreferencesPatch {
@@ -335,7 +340,7 @@ impl SetInitialView {
     /// The `/OpenAction` value for `open` (`None`: remove it), refusing to replace an action
     /// that isn't a destination.
     fn open_value(doc: &laminapdf_model::Document, open: Option<&OpenAt>) -> Result<Option<Object>> {
-        if let OpenAction::Action(_) = doc.initial_view()?.open {
+        if doc.open_action_kind()?.is_some() {
             return Err(Error::OpenActionNotDestination);
         }
         let Some(open) = open else {
@@ -436,15 +441,15 @@ fn set_name(dict: &mut Dict, key: &'static str, value: Option<Option<&'static st
 /// A name table for a patch field: the wire's camelCase names, in the type's `ALL` order.
 macro_rules! named_patch {
     ($module:ident, $ty:ident, [$($name:literal),* $(,)?]) => {
-        /// The patch field's wire form: absent keeps it, `null` removes it, a camelCase name sets it.
+        /// The patch field's wire names: absent keeps it, `null` removes it, a camelCase name sets it.
         mod $module {
-            use serde::{Deserialize, Deserializer, Serializer, de};
+            use serde::Serializer;
 
             use super::$ty;
 
-            const NAMES: [&str; <$ty>::ALL.len()] = [$($name),*];
+            pub(super) const NAMES: [&str; <$ty>::ALL.len()] = [$($name),*];
 
-            fn name(value: $ty) -> &'static str {
+            pub(super) fn name(value: $ty) -> &'static str {
                 <$ty>::ALL
                     .iter()
                     .zip(NAMES)
@@ -458,18 +463,6 @@ macro_rules! named_patch {
                     Some(Some(v)) => s.serialize_str(name(*v)),
                     Some(None) | None => s.serialize_none(),
                 }
-            }
-
-            pub(super) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Option<$ty>>, D::Error> {
-                let Some(s) = Option::<String>::deserialize(d)? else {
-                    return Ok(Some(None));
-                };
-                NAMES
-                    .iter()
-                    .position(|n| *n == s)
-                    .and_then(|i| <$ty>::ALL.get(i).copied())
-                    .map(|v| Some(Some(v)))
-                    .ok_or_else(|| de::Error::unknown_variant(&s, &NAMES))
             }
         }
     };
@@ -503,7 +496,6 @@ named_patch!(
 /// An [`OpenZoom`] as `"default"`, `"fitPage"`, `"fitWidth"` or a percentage, 1 to
 /// [`OpenZoom::MAX_PERCENT`].
 mod zoom {
-    use serde::de::{self, Deserializer, Visitor};
     use serde::ser::Serializer;
 
     use super::OpenZoom;
@@ -520,41 +512,161 @@ mod zoom {
             OpenZoom::Percent(p) => s.serialize_u16(*p),
         }
     }
+}
 
-    pub(super) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<OpenZoom, D::Error> {
-        d.deserialize_any(ZoomVisitor)
+// Reading the wire form. Each type reads its JSON value through one non-generic function, so the
+// WebAssembly modules hold one copy of the parsing code rather than one per serde deserializer
+// that reaches an op (the JSON reader, a `Value`, serde's buffered content).
+
+impl<'de> Deserialize<'de> for SetInitialView {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
+        Self::from_value(Value::deserialize(d)?).map_err(serde::de::Error::custom)
     }
+}
 
-    struct ZoomVisitor;
+impl<'de> Deserialize<'de> for OpenAt {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
+        Self::from_value(Value::deserialize(d)?).map_err(serde::de::Error::custom)
+    }
+}
 
-    impl Visitor<'_> for ZoomVisitor {
-        type Value = OpenZoom;
+impl<'de> Deserialize<'de> for WindowPreferencesPatch {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
+        Self::from_value(Value::deserialize(d)?).map_err(serde::de::Error::custom)
+    }
+}
 
-        fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.write_str("\"default\", \"fitPage\", \"fitWidth\" or a percentage from 1 to 6400")
+/// An object's entries, refusing any key outside `fields` (ADR 0006 §1: unknown fields are
+/// rejected), as serde's `deny_unknown_fields` words it.
+fn entries(value: Value, what: &str, fields: &[&str]) -> std::result::Result<serde_json::Map<String, Value>, String> {
+    let Value::Object(map) = value else {
+        return Err(format!("invalid type: {}, expected {what}", kind_of(&value)));
+    };
+    if let Some(key) = map.keys().find(|k| !fields.contains(&k.as_str())) {
+        return Err(format!("unknown field `{key}`, expected one of {}", quoted(fields)));
+    }
+    Ok(map)
+}
+
+/// A JSON value's kind, in serde's words.
+const fn kind_of(value: &Value) -> &'static str {
+    match value {
+        Value::Null => "null",
+        Value::Bool(_) => "boolean",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Array(_) => "sequence",
+        Value::Object(_) => "map",
+    }
+}
+
+/// `names` as serde lists expected names: `` `a`, `b` ``.
+fn quoted(names: &[&str]) -> String {
+    names.iter().map(|n| format!("`{n}`")).collect::<Vec<_>>().join(", ")
+}
+
+/// A patch field naming one of `names`: `None` when absent, `Some(None)` for `null`.
+#[expect(clippy::option_option, reason = "absent, null and a value are three cases")]
+fn named<T: Copy>(value: Option<Value>, all: &[T], names: &[&str]) -> std::result::Result<Option<Option<T>>, String> {
+    match value {
+        None => Ok(None),
+        Some(Value::Null) => Ok(Some(None)),
+        Some(Value::String(s)) => names
+            .iter()
+            .position(|n| *n == s)
+            .and_then(|i| all.get(i).copied())
+            .map(|v| Some(Some(v)))
+            .ok_or_else(|| format!("unknown variant `{s}`, expected one of {}", quoted(names))),
+        Some(other) => Err(format!("invalid type: {}, expected a string or null", kind_of(&other))),
+    }
+}
+
+impl SetInitialView {
+    const FIELDS: [&'static str; 4] = ["open", "pageMode", "pageLayout", "preferences"];
+
+    fn from_value(value: Value) -> std::result::Result<Self, String> {
+        let mut map = entries(value, "the arguments of setInitialView", &Self::FIELDS)?;
+        let open = match map.remove("open") {
+            None => None,
+            Some(Value::Null) => Some(None),
+            Some(open) => Some(Some(OpenAt::from_value(open)?)),
+        };
+        Ok(Self {
+            open,
+            page_mode: named(map.remove("pageMode"), &PageMode::ALL, &page_mode::NAMES)?,
+            page_layout: named(map.remove("pageLayout"), &PageLayout::ALL, &page_layout::NAMES)?,
+            preferences: match map.remove("preferences") {
+                Some(p) => WindowPreferencesPatch::from_value(p)?,
+                None => WindowPreferencesPatch::default(),
+            },
+        })
+    }
+}
+
+impl OpenAt {
+    const FIELDS: [&'static str; 2] = ["page", "zoom"];
+
+    fn from_value(value: Value) -> std::result::Result<Self, String> {
+        let mut map = entries(value, "an open page and zoom", &Self::FIELDS)?;
+        let page = match map.remove("page") {
+            Some(Value::String(id)) => id.parse::<PageId>().map_err(|e| e.to_string())?,
+            Some(other) => return Err(format!("invalid type: {}, expected a page ID", kind_of(&other))),
+            None => return Err("missing field `page`".to_owned()),
+        };
+        let zoom = match map.remove("zoom") {
+            None => OpenZoom::default(),
+            Some(zoom) => OpenZoom::from_value(&zoom)?,
+        };
+        Ok(Self { page, zoom })
+    }
+}
+
+impl OpenZoom {
+    fn from_value(value: &Value) -> std::result::Result<Self, String> {
+        const EXPECTED: &str = "\"default\", \"fitPage\", \"fitWidth\" or a percentage from 1 to 6400";
+        match value {
+            Value::String(s) => match s.as_str() {
+                "default" => Ok(Self::ReaderDefault),
+                "fitPage" => Ok(Self::FitPage),
+                "fitWidth" => Ok(Self::FitWidth),
+                _ => Err(format!("unknown variant `{s}`, expected {EXPECTED}")),
+            },
+            Value::Number(n) => n
+                .as_u64()
+                .and_then(|n| u16::try_from(n).ok())
+                .filter(|p| (1..=Self::MAX_PERCENT).contains(p))
+                .map(Self::Percent)
+                .ok_or_else(|| format!("invalid value: {n}, expected {EXPECTED}")),
+            other => Err(format!("invalid type: {}, expected {EXPECTED}", kind_of(other))),
         }
+    }
+}
 
-        fn visit_str<E: de::Error>(self, s: &str) -> Result<OpenZoom, E> {
-            match s {
-                "default" => Ok(OpenZoom::ReaderDefault),
-                "fitPage" => Ok(OpenZoom::FitPage),
-                "fitWidth" => Ok(OpenZoom::FitWidth),
-                _ => Err(E::unknown_variant(s, &["default", "fitPage", "fitWidth"])),
-            }
-        }
+impl WindowPreferencesPatch {
+    /// The wire names, in [`WindowPreferences::KEYS`]' order.
+    const FIELDS: [&'static str; 6] = [
+        "hideToolbar",
+        "hideMenubar",
+        "hideWindowUi",
+        "fitWindow",
+        "centerWindow",
+        "displayDocTitle",
+    ];
 
-        fn visit_u64<E: de::Error>(self, n: u64) -> Result<OpenZoom, E> {
-            u16::try_from(n)
-                .ok()
-                .filter(|p| (1..=OpenZoom::MAX_PERCENT).contains(p))
-                .map(OpenZoom::Percent)
-                .ok_or_else(|| E::invalid_value(de::Unexpected::Unsigned(n), &self))
-        }
-
-        fn visit_i64<E: de::Error>(self, n: i64) -> Result<OpenZoom, E> {
-            u64::try_from(n)
-                .map_err(|_| E::invalid_value(de::Unexpected::Signed(n), &self))
-                .and_then(|n| self.visit_u64(n))
-        }
+    fn from_value(value: Value) -> std::result::Result<Self, String> {
+        let mut map = entries(value, "window preferences", &Self::FIELDS)?;
+        let mut flag = |key: &str| match map.remove(key) {
+            None | Some(Value::Null) => Ok(None),
+            Some(Value::Bool(b)) => Ok(Some(b)),
+            Some(other) => Err(format!("invalid type: {}, expected a boolean", kind_of(&other))),
+        };
+        Ok(Self {
+            hide_toolbar: flag("hideToolbar")?,
+            hide_menubar: flag("hideMenubar")?,
+            hide_window_ui: flag("hideWindowUi")?,
+            fit_window: flag("fitWindow")?,
+            center_window: flag("centerWindow")?,
+            display_doc_title: flag("displayDocTitle")?,
+        })
     }
 }

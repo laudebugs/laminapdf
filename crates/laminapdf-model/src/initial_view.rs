@@ -272,40 +272,66 @@ impl Document {
     }
 
     fn open_action(&self, catalog: &Dict) -> Result<OpenAction> {
-        let Some(value) = catalog.get("OpenAction") else {
-            return Ok(OpenAction::None);
-        };
-        let Some(resolved) = self.read(value)? else {
+        let Some(resolved) = self.open_action_value(catalog)? else {
             return Ok(OpenAction::None);
         };
         let outline = crate::outline::Outline::destinations_only(self);
-        let action = match &*resolved {
-            Object::Array(_) => {
-                return Ok(outline
-                    .destination(&resolved)?
-                    .map_or(OpenAction::None, OpenAction::Destination));
-            }
-            Object::Dict(action) => action,
+        let destination = match &*resolved {
+            Object::Array(_) => &*resolved,
+            Object::Dict(action) => match self.action_kind(action)? {
+                Some(ActionKind::GoTo) => match action.get("D") {
+                    Some(d) => d,
+                    None => return Ok(OpenAction::None),
+                },
+                Some(kind) => return Ok(OpenAction::Action(kind)),
+                None => return Ok(OpenAction::None),
+            },
             _ => {
                 self.warn_catalog("OpenAction")?;
                 return Ok(OpenAction::None);
             }
         };
-        let kind = match action.get("S") {
-            Some(s) => match self.read(s)?.as_deref() {
-                Some(Object::Name(n)) => ActionKind::from_name(n.as_bytes()),
-                _ => return Ok(OpenAction::None),
-            },
-            None => return Ok(OpenAction::None),
+        Ok(outline
+            .destination(destination)?
+            .map_or(OpenAction::None, OpenAction::Destination))
+    }
+
+    /// The kind of the action the document runs when it opens, when `/OpenAction` is an action
+    /// other than going to a page; `None` for a destination, a `GoTo` action or no open action.
+    /// It reads only the catalog's entry, never a destination or a name tree, so an edit can
+    /// check it without the reading code [`Document::initial_view`] needs.
+    ///
+    /// # Errors
+    /// Reading errors (the catalog).
+    ///
+    /// Added in 0.2.0.
+    pub fn open_action_kind(&self) -> Result<Option<ActionKind>> {
+        let catalog = self.catalog()?;
+        let Some(resolved) = self.open_action_value(&catalog)? else {
+            return Ok(None);
         };
-        if kind != ActionKind::GoTo {
-            return Ok(OpenAction::Action(kind));
+        Ok(match &*resolved {
+            Object::Dict(action) => self.action_kind(action)?.filter(|k| *k != ActionKind::GoTo),
+            _ => None,
+        })
+    }
+
+    /// The catalog's `/OpenAction`, resolved.
+    fn open_action_value(&self, catalog: &Dict) -> Result<Option<std::sync::Arc<Object>>> {
+        match catalog.get("OpenAction") {
+            Some(value) => self.read(value),
+            None => Ok(None),
         }
-        Ok(match action.get("D") {
-            Some(d) => outline
-                .destination(d)?
-                .map_or(OpenAction::None, OpenAction::Destination),
-            None => OpenAction::None,
+    }
+
+    /// An action dictionary's `/S`, when it is a name.
+    fn action_kind(&self, action: &Dict) -> Result<Option<ActionKind>> {
+        Ok(match action.get("S") {
+            Some(s) => match self.read(s)?.as_deref() {
+                Some(Object::Name(n)) => Some(ActionKind::from_name(n.as_bytes())),
+                _ => None,
+            },
+            None => None,
         })
     }
 
