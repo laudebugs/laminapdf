@@ -26,7 +26,7 @@ if (crate === undefined) throw new Error("install.mdx: no `laminapdf` row in the
   <ul class="parts">
     <li><a href={`${DOCS}/`}>{PARTS.docs}</a></li>
     <li>
-      <a href={`${DOCS}/start/coding-agents/`}>{PARTS.agents}</a>, and <a href={`${DOCS}/llms.txt`}>{PARTS.agentsIndex}</a>
+      <a href={`${DOCS}/start/coding-agents/`}>{PARTS.agents}</a>{PARTS.agentsJoin}<a href={`${DOCS}/llms.txt`}>{PARTS.agentsIndex}</a>
     </li>
     <li><a href="#packages">{PARTS.packages}</a></li>
     <li><a href={crate.url}>{PARTS.crate}</a></li>

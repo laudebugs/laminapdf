@@ -66,6 +66,7 @@ export const PARTS = {
   docs: "The docs: guides, recipes and the API reference",
   // Then a link to llms.txt; the owner approved this line and the footer's on 2026-11-12.
   agents: "Docs for coding agents: how to point one at the docs for your version",
+  agentsJoin: ", and ",
   agentsIndex: "every page as Markdown in llms.txt",
   packages: "The packages on npm and crates.io",
   crate: "The Rust crate on crates.io",
