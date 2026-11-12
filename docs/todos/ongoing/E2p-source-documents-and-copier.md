@@ -11,7 +11,7 @@
 | Branch | `feat/e2p-source-documents-and-copier` |
 | PR title | `feat(ops,model): source documents, the blob store and the object copier` |
 | Size | L (400–800): the blob store and `add_source` in `laminapdf-ops`, and the `ObjectCopier` in `laminapdf-model`, with their tests and a fuzz target; no op and no binding, which [E2c](../ready/E2c-cross-document-pages.md) adds |
-| PR | — |
+| PR | [#509](https://github.com/laudebugs/laminapdf/pull/509) |
 
 ## Goal
 
