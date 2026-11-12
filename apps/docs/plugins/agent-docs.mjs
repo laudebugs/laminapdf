@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { parseBenchmarks, sectionMarkdown } from "../src/lib/benchmarks.ts";
 import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
-import { frontMatter, mdxToMarkdown, rewriteLinks, shownFiles, twin, twinHref } from "./markdown.mjs";
+import { frontMatter, mdxToMarkdown, pageTwin, rewriteLinks, shownFiles, twin, twinHref } from "./markdown.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
 const CONTENT = new URL("src/content/docs/", new URL("../", import.meta.url));
@@ -89,20 +89,25 @@ function slashes(name) {
 
 /**
  * Every HTML page the build wrote, as routes (`guides/save-a-pdf/`, `` for the home page):
- * not the 404 page, nor the redirect pages Astro writes for moved URLs.
+ * not the 404 page, nor the redirect pages Astro writes for moved URLs. Read in the same pass:
+ * the routes whose page doesn't link its Markdown twin (`/` for the home page).
  *
  * @param {URL} dir
- * @returns {Promise<string[]>}
+ * @returns {Promise<{ routes: string[], unlinked: string[] }>}
  */
 async function pageRoutes(dir) {
   const routes = [];
+  const unlinked = [];
   for (const name of (await readdir(dir, { recursive: true })).map(slashes)) {
     if (!name.endsWith(".html") || name === "404.html") continue;
     const html = await readFile(new URL(name, dir), "utf8");
     if (/<meta\s+http-equiv="refresh"/i.test(html)) continue;
-    routes.push(name.replace(/index\.html$/, "").replace(/\.html$/, "/"));
+    const route = name.replace(/index\.html$/, "").replace(/\.html$/, "/");
+    routes.push(route);
+    const twin = pageTwin(`/${route}`);
+    if (twin === undefined || !linksTwin(html, twin)) unlinked.push(route || "/");
   }
-  return routes.sort();
+  return { routes: routes.sort(), unlinked: unlinked.sort() };
 }
 
 /**
@@ -339,7 +344,8 @@ export function agentDocs(groups) {
         /** @type {Map<string, { title: string, description?: string | undefined, markdown: string }>} */
         const twins = new Map();
         const missing = [];
-        for (const route of await pageRoutes(dir)) {
+        const pages = await pageRoutes(dir);
+        for (const route of pages.routes) {
           const page = await twinOf(route, context);
           if (page === undefined) {
             missing.push(route || "/");
@@ -351,8 +357,9 @@ export function agentDocs(groups) {
           await writeFile(out, page.markdown);
         }
         if (missing.length > 0) throw new Error(`agent docs: no Markdown source for ${missing.join(", ")}`);
-        const unlinked = await unlinkedPages(dir, [...twins.keys()]);
-        if (unlinked.length > 0) throw new Error(`agent docs: no link to the Markdown twin on ${unlinked.join(", ")}`);
+        if (pages.unlinked.length > 0) {
+          throw new Error(`agent docs: no link to the Markdown twin on ${pages.unlinked.join(", ")}`);
+        }
         const sidebar = groups();
         const listed = new Set(sidebar.flatMap((g) => g.slugs));
         const routes = [...twins.keys()];
@@ -379,22 +386,6 @@ export function agentDocs(groups) {
       },
     },
   };
-}
-
-/**
- * The routes among `routes` whose built page doesn't link its Markdown twin (`/` for the home page).
- *
- * @param {URL} dir the build's output folder
- * @param {string[]} routes
- * @returns {Promise<string[]>}
- */
-async function unlinkedPages(dir, routes) {
-  const unlinked = [];
-  for (const route of routes) {
-    const html = await readFile(new URL(`${route}index.html`, dir), "utf8");
-    if (!linksTwin(html, `/${twinPath(route)}`)) unlinked.push(route || "/");
-  }
-  return unlinked;
 }
 
 /**
