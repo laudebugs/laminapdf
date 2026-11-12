@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
+import { withoutSelectErrors } from "@laminapdf/test-utils/webkit-select";
 import { getLocal } from "@laminapdf/test-utils/wrangler-dev";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -118,7 +119,7 @@ describe(`edit and run in ${BROWSER}`, () => {
     expect(download.suggestedFilename()).toBe(`${golden}.pdf`);
     const bytes = readFileSync(await download.path());
     expect(bytes.equals(readFileSync(new URL(`fixtures/golden/examples/${golden}.pdf`, ROOT)))).toBe(true);
-    expect(errors).toEqual([]);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     expect(foreign).toEqual([]);
     await page.context().close();
   });
@@ -151,7 +152,7 @@ describe(`edit and run in ${BROWSER}`, () => {
     await page.getByRole("button", { name: "Reset" }).click();
     await run(page);
     expect((await downloaded(page)).equals(golden)).toBe(true);
-    expect(errors).toEqual([]);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await page.context().close();
   });
 });
