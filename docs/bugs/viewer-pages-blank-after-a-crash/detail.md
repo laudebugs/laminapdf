@@ -10,7 +10,7 @@ The test opens a viewer and a thumbnail strip, then crashes the document worker 
 
 ## How to reproduce
 
-It needs a render to be waiting when the worker crashes, so the test above fails only now and then. Holding the worker makes it certain:
+It needs a render to be waiting when the worker crashes, so the test above fails only now and then. Holding the worker makes the failure certain:
 
 1. Open a long document in a viewer and a thumbnail strip on the test worker (`testViewer()`).
 2. Hold the worker (`__busy`), then scroll the strip and the main view, so new pages queue their renders behind the hold.
@@ -20,11 +20,11 @@ After the client restarts the worker, the thumbnails and pages that were waiting
 
 ## Cause
 
-When the worker crashes, the SDK's worker client rejects every call still waiting on it with `worker-crashed` ("the worker stopped"). `ViewerClient` then restarts the worker and reopens the document. Neither view knew that a crash isn't a failed render.
+ADR 0009 §3.6 says that after a crash, the viewer re-requests its tiles "except the request that was running when the worker died". That request's page shows an error with Retry, so a page that crashes the engine can't loop. The client re-sent nothing, and neither view knew that a crash isn't a failed render.
+
+When the worker crashes, the SDK's worker client rejects every call still waiting on it with `worker-crashed` ("the worker stopped"). `ViewerClient` then restarts the worker and reopens the document, and each view handled the rejection its own way:
 
 - **The thumbnail strip** (`thumbnails/strip.ts`) treated the rejection like any failed render: it marked the thumbnail done, so it is never asked for again while mounted, and passed the error to `reportError`. That browser function reports the error to the window as unhandled, which is what Vitest counted.
 - **The main view** (`view/viewer.ts`) set the page to `error`, and `#scheduleView` skips a page in `error`. After the restart, `#reopened` redraws only the edited pages, so a page interrupted by the crash stayed blank until the zoom changed.
 
-So a reader whose worker crashes sees the document reopen with some pages and thumbnails missing. The flaky test showed the bug only because it crashes the worker while the strip is drawing.
-
-ADR 0009 §3.6 already says what should happen: after a crash, the viewer re-requests its tiles "except the request that was running when the worker died", which shows an error with Retry so a page that crashes the engine can't loop. The client never re-sent anything, and the views showed every lost render as failed.
+So when the worker crashes, the reader sees the document reopen with some pages and thumbnails missing. The flaky test showed the bug only because it crashes the worker while the strip is drawing.

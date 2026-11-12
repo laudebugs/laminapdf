@@ -180,7 +180,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
   - At the hard cap the client calls `stop("hard-timeout")`. For a document that needed a password, it emits `render-stuck` instead and waits for the user's `stop()`.
 - **Crashes:** a crash is the Web Worker's `error` or `messageerror`, or a WebAssembly trap it reports, never silence.
   - Pending calls reject with `worker-crashed`, and a new Web Worker reopens the document from the same source.
-  - `render()` sends a render that was waiting again, once, in the new Web Worker. The render that was drawing when the Web Worker was lost isn't re-sent: its page shows an error the UI offers Retry for, so a page that crashes the engine can't loop.
+  - `render()` sends again, once, in the new Web Worker, each render that was waiting when the old one was lost. The render that was drawing then isn't re-sent: its page shows an error the UI offers Retry for, so a page that crashes the engine can't loop.
   - When the restart can't reopen the document (an encrypted one waits for its password), a waiting render rejects with an `AbortError`.
   - `stop()` takes the same path with `reason: "cancelled"`.
 - **Secrets:** the password crosses to the Web Worker once, when the document opens, and is kept only there. The page keeps the source and the other options.
