@@ -24,7 +24,7 @@ Start with the items that take longest: Apple enrolment and Azure identity valid
 | --- | --- | --- | --- | --- |
 | 1.1 Bundle identity | none | minutes | this page | never |
 | 1.2 Apple Developer Program (individual) | US$99 a year | 1–3 days, sometimes weeks | Apple account; Team ID on this page | yearly membership |
-| 1.3 Developer ID Application certificate | included | an hour | secret manager `Lamina PDF / Developer ID .p12`; `release` secrets | 5 years |
+| 1.3 Developer ID Application certificate | included | an hour | secret manager `Lamina PDF / Developer ID .p12`; `release` secrets | the date on the certificate (the first, issued 2026-11-12, expires 2027-12-12) |
 | 1.4 Notarisation API key | included | minutes | secret manager `Lamina PDF / App Store Connect API key`; `release` secrets | when rotated |
 | 1.5 Artifact Signing | Basic tier from US$9.99 a month, billed in full from the day the account is created; needs a paid subscription | 1–20 business days of identity validation | Azure subscription; non-secret names on this page; `release` secrets | identity validation before its expiry date (shown in the portal) |
 | 1.6 Linux GPG key | none | an hour | offline primary key on two encrypted drives; subkey in secret manager and `release` secrets; public key on the website | subkey every 2 years |
@@ -50,6 +50,7 @@ Gatekeeper accepts an app from outside the App Store only when a Developer ID Ap
 
 - [ ] In Xcode (Settings → Accounts → Manage Certificates → + → Developer ID Application), or from a certificate signing request made in Keychain Access, create the certificate. Only the Account Holder can create one.
 - [ ] In Keychain Access, export the certificate **with its private key** as a `.p12` protected by a long random password. Store the `.p12` and the password in the secret manager.
+- [ ] If Keychain Access says the certificate "is not trusted" and `security find-identity -v -p codesigning` finds 0 valid identities, install Apple's [Developer ID G2 intermediate](https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer) (`security import DeveloperIDG2CA.cer -k ~/Library/Keychains/login.keychain-db`). CI's keychain needs it too.
 - [ ] Run `security find-identity -v -p codesigning` and copy the identity, `Developer ID Application: <Legal Name> (<TEAMID>)`.
 - [ ] Add the `release`-environment secrets `APPLE_CERTIFICATE` (`base64 -i cert.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` and `KEYCHAIN_PASSWORD` (a new random value for CI's temporary keychain).
 - [ ] Delete the exported `.p12` file from disk once it is in the secret manager.
@@ -147,7 +148,7 @@ Every secret is an **environment** secret; the repository level holds none. "Rea
 
 | Secret | Environment | Purpose | Secret manager entry | Readers | Rotate or renew |
 | --- | --- | --- | --- | --- | --- |
-| `APPLE_CERTIFICATE` | `release` | base64 Developer ID `.p12` | `Lamina PDF / Developer ID .p12` | macOS signing jobs (D6c), after approval | with the certificate, 5 years |
+| `APPLE_CERTIFICATE` | `release` | base64 Developer ID `.p12` | `Lamina PDF / Developer ID .p12` | macOS signing jobs (D6c), after approval | with the certificate (§4) |
 | `APPLE_CERTIFICATE_PASSWORD` | `release` | the `.p12` password | `Lamina PDF / Developer ID .p12` | same | with the certificate |
 | `APPLE_SIGNING_IDENTITY` | `release` | `Developer ID Application: <Name> (<TEAMID>)` | `Lamina PDF / Developer ID .p12` | same | with the certificate |
 | `KEYCHAIN_PASSWORD` | `release` | CI's temporary keychain | `Lamina PDF / CI keychain` | same | any time; no calendar entry |
@@ -224,7 +225,7 @@ Fill in each date when the item is created, and add a calendar reminder as far a
 | What | Expires | Reminder | How to renew |
 | --- | --- | --- | --- |
 | Apple Developer Program membership | `<enrolment date + 1 year>` | 60 days before | renew in the Apple Developer account; lapsing stops notarisation but existing notarised builds keep working |
-| Developer ID Application certificate | `<issue date + 5 years>` | 60 days before | create a new one (§1.3), replace `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` and `APPLE_SIGNING_IDENTITY`, sign the next release with it |
+| Developer ID Application certificate | 2027-12-12 (issued 2026-11-12; read the date from each new certificate: this one ran 13 months, not the 5 years older guidance gives) | 60 days before | create a new one (§1.3), replace `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` and `APPLE_SIGNING_IDENTITY`, sign the next release with it |
 | Artifact Signing identity validation | `<expiry date shown in the Azure portal>` | 60 days before (Microsoft also emails reminders from then) | create a new identity validation and attach it to the certificate profile; if it lapses, certificate renewal and signing stop ([FAQ](https://learn.microsoft.com/azure/artifact-signing/faq)) |
 | Entra client secret (only if used) | `<creation + 12 months>` | 30 days before | create a new secret, update `AZURE_CLIENT_SECRET`, delete the old one |
 | GPG signing subkey | `<creation + 2 years>` | 60 days before | `gpg --quick-set-expire <PRIMARY FPR> 2y <SUBKEY FPR>` on the offline machine, re-export and republish the public key, replace `LINUX_SIGNING_KEY` |
