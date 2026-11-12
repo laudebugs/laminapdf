@@ -13,6 +13,7 @@ export function sidebar(typeDoc) {
       label: "Start here",
       items: [
         { label: "What is Lamina PDF", link: "/" },
+        { label: "Choosing a PDF library", slug: "start/choosing-a-pdf-library" },
         { label: "Install", slug: "install" },
         { label: "Your first PDF", slug: "start/first-pdf" },
         { label: "Your first PDF in Rust", slug: "start/first-pdf-rust" },
