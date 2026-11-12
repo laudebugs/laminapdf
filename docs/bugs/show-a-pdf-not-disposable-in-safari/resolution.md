@@ -1,6 +1,6 @@
 # Resolution
 
-The example now picks its dispose key the way the compiled `using` code does: `Symbol.dispose` where the browser has it, else `Symbol.for("Symbol.dispose")`. It puts its close method under that key, and it also returns it as `close()`. The guide shows `using` for a viewer that lives inside one block and recommends `close()` for one that outlives it; a second `close()` does nothing.
+The example now picks its dispose key the way the compiled `using` code does: `Symbol.dispose` where the browser has it, else `Symbol.for("Symbol.dispose")`. Its close method sits under that key and is also returned as `close()`. The guide shows `using` for a viewer that lives inside one block and recommends `close()` for one that outlives it; a second `close()` does nothing.
 
 ## Proof
 
