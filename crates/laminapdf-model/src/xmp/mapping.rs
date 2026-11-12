@@ -3,26 +3,46 @@
 //! the same values, and by the editor, which keeps them in step.
 
 /// The RDF namespace (ISO 16684-1 §7.4).
+///
+/// Added in 0.2.0.
 pub const RDF: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 /// The namespace of the `xml:` prefix (`xml:lang`), bound in every XML document.
+///
+/// Added in 0.2.0.
 pub const XML: &str = "http://www.w3.org/XML/1998/namespace";
 /// The `x:xmpmeta` wrapper's namespace.
+///
+/// Added in 0.2.0.
 pub const ADOBE_META: &str = "adobe:ns:meta/";
 /// Dublin Core (`dc:`).
+///
+/// Added in 0.2.0.
 pub const DC: &str = "http://purl.org/dc/elements/1.1/";
 /// The XMP basic schema (`xmp:`).
+///
+/// Added in 0.2.0.
 pub const XMP: &str = "http://ns.adobe.com/xap/1.0/";
 /// The Adobe PDF schema (`pdf:`).
+///
+/// Added in 0.2.0.
 pub const PDF: &str = "http://ns.adobe.com/pdf/1.3/";
 /// The XMP media management schema (`xmpMM:`).
+///
+/// Added in 0.2.0.
 pub const XMP_MM: &str = "http://ns.adobe.com/xap/1.0/mm/";
 /// PDF/A identification (`pdfaid:`, ISO 19005-2 §6.6.4).
+///
+/// Added in 0.2.0.
 pub const PDFA_ID: &str = "http://www.aiim.org/pdfa/ns/id/";
 /// PDF/UA identification (`pdfuaid:`, ISO 14289-1 §5).
+///
+/// Added in 0.2.0.
 pub const PDFUA_ID: &str = "http://www.aiim.org/pdfua/ns/id/";
 
 /// The prefixes ISO 16684-1 and the schemas' own documents give their namespaces, which a new
 /// packet declares and an edit uses when the packet hasn't bound the namespace already.
+///
+/// Added in 0.2.0.
 pub const STANDARD_PREFIXES: [(&str, &str); 6] = [
     ("dc", DC),
     ("xmp", XMP),
@@ -34,6 +54,8 @@ pub const STANDARD_PREFIXES: [(&str, &str); 6] = [
 
 /// A metadata field Lamina PDF reads and writes in both the Info dictionary and XMP, or in
 /// XMP alone (the dates and IDs XMP keeps for itself).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum MappedField {
@@ -62,6 +84,8 @@ pub enum MappedField {
 }
 
 /// The shape of a mapped property's value in XMP.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ValueKind {
@@ -77,6 +101,8 @@ pub enum ValueKind {
 }
 
 /// One row of [`MAPPINGS`]: where a [`MappedField`] lives in Info and in XMP.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Mapping {
@@ -125,6 +151,8 @@ const MM_NS: (&str, &str) = ("xmpMM", XMP_MM);
 /// assert_eq!((title.info_key, title.prefix, title.name, title.kind), (Some("Title"), "dc", "title", ValueKind::LangAlt));
 /// assert_eq!(MAPPINGS.iter().filter(|m| m.info_key.is_some()).count(), 8);
 /// ```
+///
+/// Added in 0.2.0.
 pub const MAPPINGS: [Mapping; 11] = [
     row(MappedField::Title, Some("Title"), DC_NS, "title", ValueKind::LangAlt),
     row(MappedField::Authors, Some("Author"), DC_NS, "creator", ValueKind::Seq),
@@ -177,6 +205,8 @@ pub const MAPPINGS: [Mapping; 11] = [
 
 impl MappedField {
     /// The field's row of [`MAPPINGS`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn mapping(self) -> &'static Mapping {
         // MAPPINGS lists the fields in declaration order, so the discriminant is the row.
@@ -196,6 +226,8 @@ impl MappedField {
     }
 
     /// The field whose Info key is `key`, e.g. `Title`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_info_key(key: &str) -> Option<Self> {
         MAPPINGS.iter().find(|m| m.info_key == Some(key)).map(|m| m.field)

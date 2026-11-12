@@ -20,6 +20,8 @@ use crate::linebreak::{grapheme_boundaries, is_hard_break};
 use crate::shape::Script;
 
 /// A run of text to shape with one font, script and direction.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct Item {
@@ -49,6 +51,8 @@ pub struct Item {
 /// [`Error::MissingGlyph`] for the first character of a cluster no font covers (naming the
 /// primary font, or no font when the list is empty); [`Error::InvalidFont`] when a font's
 /// tables can't be read.
+///
+/// Added in 0.2.0.
 pub fn itemize(para: &BidiParagraph<'_>, fonts: &[Font]) -> Result<Vec<Item>> {
     let charmaps = charmaps(fonts)?;
     let order: Vec<usize> = (0..fonts.len()).collect();

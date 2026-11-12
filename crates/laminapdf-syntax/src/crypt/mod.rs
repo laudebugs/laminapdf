@@ -32,6 +32,8 @@ use std::fmt;
 pub use perms::Permissions;
 
 /// A crypt filter method (`/CFM`, ISO 32000-2 Table 25) or the pre-V4 implicit cipher.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Cipher {
@@ -47,6 +49,8 @@ pub enum Cipher {
 
 impl Cipher {
     /// A short stable name: `"identity"`, `"rc4"`, `"aes-128"` or `"aes-256"`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn name(&self) -> &'static str {
         match self {
@@ -59,6 +63,8 @@ impl Cipher {
 }
 
 /// Which password authenticated the document.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PasswordKind {
     /// The user ("open") password, possibly the empty one.
@@ -69,6 +75,8 @@ pub enum PasswordKind {
 
 /// The values of a standard security handler's `/Encrypt` dictionary that authentication needs
 /// (ISO 32000-2 Table 21). The caller extracts them; byte strings are taken as stored.
+///
+/// Added in 0.2.0.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct StandardSecurity<'a> {
     /// `/R`, 2–6.
@@ -117,17 +125,23 @@ impl fmt::Debug for StandardSecurity<'_> {
 }
 
 /// The file encryption key. Its bytes are never printed.
+///
+/// Added in 0.2.0.
 #[derive(Clone, PartialEq, Eq)]
 pub struct FileKey(Vec<u8>);
 
 impl FileKey {
     /// A key from raw bytes (5–16 for RC4/AES-128 handlers, 32 for AES-256).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_bytes(bytes: Vec<u8>) -> Self {
         Self(bytes)
     }
 
     /// The key length in bits.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn bits(&self) -> usize {
         self.0.len().saturating_mul(8)
@@ -141,6 +155,8 @@ impl fmt::Debug for FileKey {
 }
 
 /// A successful [`authenticate`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Authenticated {
@@ -239,6 +255,8 @@ fn candidates(password: &[u8], revision: u8) -> Vec<Vec<u8>> {
 ///
 /// Returns `None` when neither matches, or for a revision outside 2–6 or byte strings too
 /// short for it.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn authenticate(sec: &StandardSecurity<'_>, password: &[u8]) -> Option<Authenticated> {
     let modern = match sec.revision {
@@ -291,6 +309,8 @@ pub fn authenticate(sec: &StandardSecurity<'_>, password: &[u8]) -> Option<Authe
 }
 
 /// Decrypted data and whether the input was well-formed for its cipher.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Decrypted {
@@ -303,6 +323,8 @@ pub struct Decrypted {
 
 /// Decrypts the string or stream data of object `num gen` (ISO 32000-1 §7.6.2 Algorithm 1 for
 /// the per-object keys of RC4 and AES-128; AES-256 uses the file key itself).
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn decrypt(cipher: Cipher, key: &FileKey, num: u32, gen_nr: u16, data: &[u8]) -> Decrypted {
     let plain = match cipher {

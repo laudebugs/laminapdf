@@ -58,6 +58,8 @@ fn is_textless_slot(cid: u16) -> bool {
 /// `/CIDToGIDMap`, so there each glyph keeps one CID and its first text; a later different
 /// text is a [`Warning::ToUnicodeConflict`] (the builder marks that occurrence with
 /// `/ActualText`, as [`crate::pdf_run`] does).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct FontUse {
     mapping: Mapping,
@@ -90,6 +92,8 @@ enum Mapping {
 
 impl FontUse {
     /// Usage of `font`; subset unless its `fsType` forbids subsetting.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(font: &Font) -> Self {
         let info = font.info();
@@ -134,6 +138,8 @@ impl FontUse {
     ///
     /// # Errors
     /// [`Error::GlyphOutOfRange`] for a glyph past the font's glyph count.
+    ///
+    /// Added in 0.2.0.
     pub fn use_glyph(&mut self, gid: GlyphId, text: &str) -> Result<(u16, Option<Warning>)> {
         self.use_glyph_exact(gid, text).map(|(cid, warning, _)| (cid, warning))
     }
@@ -207,6 +213,8 @@ impl FontUse {
 
     /// Whether a glyph drawn with a second text gets a CID of its own ([`FontUse::use_glyph`]):
     /// `false` for CFF outlines.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn splits_texts(&self) -> bool {
         self.per_text
@@ -309,6 +317,8 @@ impl FontUse {
     }
 
     /// CID → text, in CID order: what the ToUnicode CMap maps.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn text(&self) -> &BTreeMap<u16, String> {
         &self.text
@@ -317,6 +327,8 @@ impl FontUse {
     /// The CIDs used, as (CID, original glyph ID) in CID order, `.notdef` first. A glyph
     /// drawn with several texts appears once per CID. For a font embedded whole, only the
     /// glyphs drawn (and `.notdef`) are listed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn glyphs(&self) -> Vec<(u16, GlyphId)> {
         self.cids.iter().map(|(&cid, &gid)| (cid, gid)).collect()
@@ -328,6 +340,8 @@ impl FontUse {
     }
 
     /// Whether the font is embedded whole (its `fsType` forbids subsetting).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_whole(&self) -> bool {
         matches!(self.mapping, Mapping::Whole)

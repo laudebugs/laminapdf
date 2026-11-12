@@ -14,12 +14,16 @@ import type { Document, PageRef } from "../document.js";
  *   model in the worker's own context, or extract on the main thread;
  * - `ensure` fetches a range document's bytes: the worker does that for every call;
  * - `free` and `Symbol.dispose`: the remote handle's `close()` and `Symbol.asyncDispose`.
+ *
+ * @since 0.2.0
  */
 export type ExcludedDocumentMembers = "transact" | "saveJob" | "extractJob" | "ensure" | "free" | typeof Symbol.dispose;
 
 /**
  * PageRef members with no remote twin: `free` and `Symbol.dispose`, since the worker frees a page
  * with its document.
+ *
+ * @since 0.2.0
  */
 export type ExcludedPageMembers = "free" | typeof Symbol.dispose;
 

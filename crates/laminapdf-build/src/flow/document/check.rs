@@ -32,6 +32,8 @@ impl FlowDocument {
     /// data: an unknown key (with the closest keys the format knows in `didYouMean`), a missing
     /// key, a value of the wrong kind, a number out of range, a heading without a level from 1
     /// to 6, or a `schema` other than `laminapdf.document/1`.
+    ///
+    /// Added in 0.2.0.
     pub fn from_json(json: &Value) -> Result<Self> {
         if json
             .get("schema")

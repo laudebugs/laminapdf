@@ -37,6 +37,8 @@ use crate::tx::{Applied, Origin, Tx, TxState};
 /// Like the documents below it, it is `Send` but `!Sync`.
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct Document {
     model: laminapdf_model::Document,
@@ -50,6 +52,8 @@ pub struct Document {
 
 /// What a save that wrote its bytes means for the rebase onto them
 /// ([`Document::saved_not_rebased`]).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PendingRebase {
@@ -66,6 +70,8 @@ pub enum PendingRebase {
 /// Where a document stands relative to its last save ([ADR 0005] §3).
 ///
 /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum SaveState {
@@ -117,17 +123,23 @@ impl Document {
     ///
     /// # Errors
     /// As [`laminapdf_cos::Document::open`].
+    ///
+    /// Added in 0.2.0.
     pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
         Ok(laminapdf_model::Document::open(source, options)?.into())
     }
 
     /// The undo and redo stacks.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn history(&self) -> &History {
         &self.history
     }
 
     /// Keeps at most `depth` undo entries (default [`History::DEFAULT_DEPTH`]).
+    ///
+    /// Added in 0.2.0.
     pub fn set_undo_depth(&mut self, depth: usize) {
         self.history.set_depth(depth);
     }
@@ -135,24 +147,32 @@ impl Document {
     /// Whether local transactions were committed (or undone) since the document was opened
     /// or last [`marked saved`](Document::mark_saved): the UI's "unsaved" dot (ADR 0006 §7).
     /// Remote and system transactions don't count.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn has_unsaved_changes(&self) -> bool {
         self.history.is_modified()
     }
 
     /// Records that the current state was saved (called by `laminapdf-save`).
+    ///
+    /// Added in 0.2.0.
     pub fn mark_saved(&mut self) {
         self.history.mark_saved();
     }
 
     /// The kinds of change not yet saved (ADR 0007 §2): what the save planner checks against
     /// the document's signatures. Empty when the overlay is.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn pending_changes(&self) -> &PendingChanges {
         &self.pending
     }
 
     /// Where the document stands relative to its last save.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn save_state(&self) -> SaveState {
         if self.unrebased.is_some() {
@@ -172,6 +192,8 @@ impl Document {
     /// # Errors
     /// [`Error::NestedTransaction`] while a transaction is open (its changes would be lost by
     /// the rebase); [`Error::SavedNotRebased`] when a save is already waiting for its rebase.
+    ///
+    /// Added in 0.2.0.
     pub fn saved_not_rebased(&mut self, pending: PendingRebase) -> Result<()> {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);
@@ -198,6 +220,8 @@ impl Document {
     /// then unchanged and still waiting).
     ///
     /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+    ///
+    /// Added in 0.2.0.
     pub fn rebase(&mut self, source: impl Into<Source>) -> Result<()> {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);
@@ -234,6 +258,8 @@ impl Document {
     }
 
     /// Whether a transaction is open (handle form).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn in_transaction(&self) -> bool {
         self.open.is_some()
@@ -269,6 +295,8 @@ impl Document {
     /// [`Error::SavedNotRebased`]; what `f` returns.
     ///
     /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+    ///
+    /// Added in 0.2.0.
     pub fn transact<T>(&mut self, origin: Origin, f: impl FnOnce(&mut Tx<'_>) -> Result<T>) -> Result<(T, Applied)> {
         self.run(origin, None, f)
     }
@@ -278,6 +306,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::transact`].
+    ///
+    /// Added in 0.2.0.
     pub fn transact_coalescing<T>(
         &mut self,
         key: &str,
@@ -290,6 +320,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::transact`]; the first op that fails rolls back the whole list.
+    ///
+    /// Added in 0.2.0.
     pub fn apply_all(&mut self, origin: Origin, ops: impl IntoIterator<Item = Op>) -> Result<Applied> {
         self.transact(origin, |tx| ops.into_iter().try_for_each(|op| tx.apply_quietly(&op)))
             .map(|((), applied)| applied)
@@ -323,6 +355,8 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::NestedTransaction`] when one is already open; [`Error::SavedNotRebased`].
+    ///
+    /// Added in 0.2.0.
     pub fn begin(&mut self, origin: Origin) -> Result<()> {
         self.begin_with(origin, None)
     }
@@ -357,6 +391,8 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::NoTransaction`]; as [`Tx::apply`].
+    ///
+    /// Added in 0.2.0.
     pub fn apply(&mut self, op: impl Into<Op>) -> Result<Applied> {
         self.tx()?.apply(op)
     }
@@ -365,6 +401,8 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::NoTransaction`].
+    ///
+    /// Added in 0.2.0.
     pub fn commit(&mut self) -> Result<Applied> {
         let mark = self.open.as_ref().ok_or(Error::NoTransaction)?.mark;
         // Close the transaction only once its changes are taken, so a failure leaves it
@@ -397,6 +435,8 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::NoTransaction`].
+    ///
+    /// Added in 0.2.0.
     pub fn rollback(&mut self) -> Result<()> {
         let state = self.open.take().ok_or(Error::NoTransaction)?;
         self.model.cos_mut().rollback_to(state.mark)?;
@@ -414,6 +454,8 @@ impl Document {
     /// COS errors reading the document (the entry stays on the stack).
     ///
     /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+    ///
+    /// Added in 0.2.0.
     pub fn undo(&mut self) -> Result<Option<Reverted>> {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);
@@ -441,6 +483,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::undo`].
+    ///
+    /// Added in 0.2.0.
     pub fn redo(&mut self) -> Result<Option<Reverted>> {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);

@@ -11,6 +11,8 @@ use laminapdf_cos::{ByteSource, SourceError};
 /// a file that shrinks afterwards answers [`SourceError::Failed`] for the missing bytes, never
 /// a crash. The default for large local files, since a mapping (`MmapSource`) of a file
 /// truncated underneath kills the process with `SIGBUS`.
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct FileSource {
     file: File,
@@ -22,6 +24,8 @@ impl FileSource {
     ///
     /// # Errors
     /// The file can't be opened or its length read.
+    ///
+    /// Added in 0.2.0.
     pub fn open(path: impl AsRef<Path>) -> io::Result<Self> {
         Self::from_file(File::open(path)?)
     }
@@ -30,6 +34,8 @@ impl FileSource {
     ///
     /// # Errors
     /// The length can't be read.
+    ///
+    /// Added in 0.2.0.
     pub fn from_file(file: File) -> io::Result<Self> {
         let len = file.metadata()?.len();
         Ok(Self { file, len })

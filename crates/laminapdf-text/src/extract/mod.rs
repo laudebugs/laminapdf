@@ -25,13 +25,19 @@ use font::FontCache;
 
 /// A vector `(dx, dy)` in raw user space (y up; ADR 0027 keeps raw user space in
 /// `UserSpace…` types).
+///
+/// Added in 0.2.0.
 pub type UserSpaceVector = (f64, f64);
 
 /// A glyph's box in page space: the baseline's start and end, then the top's end and start.
 /// For unrotated horizontal text that is bottom-left, bottom-right, top-right, top-left.
+///
+/// Added in 0.2.0.
 pub type Quad = [PointPt; 4];
 
 /// One shown glyph.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 #[expect(
@@ -88,6 +94,8 @@ pub struct Glyph {
 }
 
 /// The text a page shows, in content order.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PageText {
@@ -108,6 +116,8 @@ impl PageText {
     /// line where the baseline moves by more than half the size or the direction turns, a
     /// space between runs over a quarter of it apart without overlapping (after the previous
     /// one, or wholly behind it) when neither has one. Each line is trimmed; empty lines are dropped.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn lines(&self) -> Vec<String> {
         runs::lines(&self.glyphs, &self.runs)
@@ -115,6 +125,8 @@ impl PageText {
 
     /// The same text without invisible glyphs (`Tr` 3 and 7): the drawn text only (runs
     /// regrouped, `unmapped` recounted).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn visible(self) -> Self {
         let glyphs: Vec<Glyph> = self.glyphs.into_iter().filter(|g| !g.invisible).collect();
@@ -178,6 +190,8 @@ impl PageText {
 /// unsupported predefined CMap, a `/UseCMap` chain too deep to follow) and
 /// `unmapped-glyph` (a font with glyphs no rule maps; they extract as U+FFFD). Strict mode
 /// turns each into an error; the content limits of `laminapdf-content` bound the work.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Default)]
 pub struct TextExtractor {
     fonts: FontCache,
@@ -186,6 +200,8 @@ pub struct TextExtractor {
 impl TextExtractor {
     /// An extractor with an empty font cache. Use one per document: fonts are cached by
     /// object number.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -198,6 +214,8 @@ impl TextExtractor {
     /// undecodable content stream), and, while reading a font, `/ActualText` or the page's
     /// boxes, the errors [`laminapdf_cos::absent_if_malformed`] returns: a reference cycle,
     /// [`Error::LimitExceeded`], [`Error::Strict`], [`Error::DataPending`] and [`Error::Source`].
+    ///
+    /// Added in 0.2.0.
     pub fn page(&mut self, doc: &laminapdf_model::Document, page: &laminapdf_model::Page<'_>) -> Result<PageText> {
         self.read(doc, page, None)
     }
@@ -214,6 +232,8 @@ impl TextExtractor {
     ///
     /// # Errors
     /// As [`TextExtractor::page`].
+    ///
+    /// Added in 0.2.0.
     pub fn page_with(
         &mut self,
         doc: &laminapdf_model::Document,

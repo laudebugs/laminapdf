@@ -67,6 +67,8 @@ use crate::error::{Result, Warning};
 use crate::nav::{Fit, LinkTarget};
 
 /// What [`Builder::flow`] did.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct FlowReport {
@@ -92,6 +94,8 @@ impl Builder {
     /// for a contents page whose numbers don't settle; shaping errors (`missing-glyph`);
     /// the errors of finishing a page. Pages drawn before a failure stay
     /// in the document, and the flow's structure elements are closed.
+    ///
+    /// Added in 0.2.0.
     pub fn flow(&mut self, flow: &Flow) -> Result<FlowReport> {
         let first = self.page_count();
         let mut items = items::Items::new(&flow.blocks, first);

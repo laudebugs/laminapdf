@@ -15,10 +15,12 @@ pub use laminapdf_model::{
 
 use crate::extract::{DropReason, Dropped, ExtractOptions};
 use crate::job::CancelToken;
-use crate::redaction::earlier_revisions;
-use crate::{Document, Error, Result};
+use crate::redaction::{RedactionWarning, covered_text, earlier_revisions, redactions_not_applied};
+use crate::{Document, Error, Result, Warning};
 
 /// A kind of finding, in the order a report lists them.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum Category {
@@ -40,6 +42,8 @@ pub enum Category {
 
 impl Category {
     /// Every category, in report order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 7] = [
         Self::History,
         Self::Metadata,
@@ -51,6 +55,8 @@ impl Category {
     ];
 
     /// The kebab-case name (`history`, `active-content`, …).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -66,6 +72,8 @@ impl Category {
 }
 
 /// One revision of the file, oldest first.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct RevisionRecord {
@@ -86,6 +94,8 @@ pub struct RevisionRecord {
 }
 
 /// What [`Document::reveal`] finds.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Reveal {
@@ -111,12 +121,45 @@ pub struct Reveal {
 
 impl Reveal {
     /// The categories with findings, in report order.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn found(&self) -> Vec<Category> {
         Category::ALL.into_iter().filter(|c| self.has(*c)).collect()
     }
 
+    /// What a failed redaction left in the file, as [`Document::redaction_warnings`] reports
+    /// it, read from what this `Reveal` already holds: `covered-text` per page from
+    /// [`hidden`](Self::hidden), `redaction-not-applied` per page from the
+    /// [`disclosure`](Self::disclosure)'s `Redact` annotations, and `text-in-earlier-revision`
+    /// per earlier revision with [`removed_words`](RevisionRecord::removed_words), newest first.
+    /// It reads nothing again: when you need both a `Reveal` and these warnings, call
+    /// [`Document::reveal`] and this, not `reveal` and `redaction_warnings`.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn redaction_warnings(&self) -> Vec<Warning> {
+        let earlier = self
+            .revisions
+            .iter()
+            .enumerate()
+            .rev()
+            .filter(|(_, record)| record.removed_words > 0)
+            .map(|(revision, record)| RedactionWarning::TextInEarlierRevision {
+                revision: to_u32(revision),
+                words: record.removed_words,
+                pages: record.removed_on.clone(),
+            });
+        covered_text(&self.hidden)
+            .chain(redactions_not_applied(self.disclosure.redactions()))
+            .chain(earlier)
+            .map(Warning::Redaction)
+            .collect()
+    }
+
     /// Whether `category` has a finding.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn has(&self, category: Category) -> bool {
         let d = &self.disclosure;
@@ -183,6 +226,8 @@ impl Document {
     ///
     /// # Errors
     /// `cancelled` (checked between categories and revisions); the reading errors.
+    ///
+    /// Added in 0.2.0.
     pub fn reveal(&self, options: &OpenOptions, cancel: &CancelToken) -> Result<Reveal> {
         let check = || {
             if cancel.is_cancelled() {

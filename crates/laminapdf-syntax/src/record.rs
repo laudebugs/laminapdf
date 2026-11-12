@@ -24,6 +24,8 @@ use crate::{ErrorKind, Location};
 /// marks *untrusted*.
 ///
 /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Diagnostic {
@@ -51,6 +53,8 @@ impl Diagnostic {
     /// never quotes the document or the caller ([ADR 0026] §4).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn error(code: ErrorCode, message: impl Into<String>) -> Self {
         Self::of(code.as_str(), code.kind(), message.into(), code.hint(), code.docs_url())
@@ -58,6 +62,8 @@ impl Diagnostic {
 
     /// The warning `code`: its kind, hint and `docsUrl` from the generated table, and its
     /// fixed summary as the message.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn warning(code: WarningCode) -> Self {
         Self::of(
@@ -83,6 +89,8 @@ impl Diagnostic {
     }
 
     /// With `hint` in place of the code's (a hint with its parameter filled in).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_hint(mut self, hint: Option<String>) -> Self {
         self.hint = hint;
@@ -90,6 +98,8 @@ impl Diagnostic {
     }
 
     /// With the candidates for `didYouMean` (errors of kind `usage` only).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_did_you_mean(mut self, did_you_mean: Vec<String>) -> Self {
         self.did_you_mean = did_you_mean;
@@ -97,6 +107,8 @@ impl Diagnostic {
     }
 
     /// With where the problem was found.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_location(mut self, location: Location) -> Self {
         self.location = location;
@@ -104,6 +116,8 @@ impl Diagnostic {
     }
 
     /// With the code-specific fields its explain page lists.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_data(mut self, data: Map<String, Value>) -> Self {
         self.data = data;
@@ -111,6 +125,8 @@ impl Diagnostic {
     }
 
     /// The record as a JSON value (the §1 object).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_json(&self) -> Value {
         serde_json::to_value(self).unwrap_or(Value::Null)

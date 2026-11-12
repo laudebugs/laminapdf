@@ -18,6 +18,8 @@ pub(crate) const MAX_PASSES: usize = 4;
 ///
 /// The numbers are the document's page numbers, as `{page}` counts them. Entries are laid out
 /// left to right, the numbers at the right edge.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Contents {
@@ -29,6 +31,8 @@ pub struct Contents {
 impl Contents {
     /// A contents page in `style` listing headings of levels 1 and 2, each level indented 12
     /// points more than the one above it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(style: &TextStyle) -> Self {
         Self {
@@ -39,6 +43,8 @@ impl Contents {
     }
 
     /// Listing headings of levels 1 to `levels` (1 to 6).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_levels(mut self, levels: u8) -> Self {
         self.levels = levels.clamp(1, 6);
@@ -46,6 +52,8 @@ impl Contents {
     }
 
     /// Indenting each level `indent` points more than the one above it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_indent(mut self, indent: f64) -> Self {
         self.indent = indent;

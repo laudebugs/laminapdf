@@ -16,6 +16,8 @@ const CHUNK: usize = 64 * 1024;
 /// # Errors
 /// `render-too-large` when the source is longer than `max_bytes`; `data-pending` with the
 /// merged missing ranges; `source` when a read fails.
+///
+/// Added in 0.2.0.
 pub fn read_all(source: &dyn ByteSource, max_bytes: u64) -> Result<Vec<u8>, RenderError> {
     let len = source.len();
     if len > max_bytes {

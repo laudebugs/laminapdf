@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use laminapdf_cos::{ByteSource, SourceError};
 
 /// Why [`SparseSource::supply`] refused a chunk.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum SupplyError {
@@ -45,6 +47,8 @@ pub enum SupplyError {
 /// Supplied bytes are never evicted: the document may already have read them. No I/O, clocks
 /// or threads; the chunk map is behind a lock because `supply` runs while the document shares
 /// the source, which is why this lives in an edge crate (ADR 0005 §2, §7).
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct SparseSource {
     len: u64,
@@ -61,11 +65,15 @@ struct Chunks {
 
 impl SparseSource {
     /// An empty source of `len` bytes with no budget (it may come to hold the whole file).
+    ///
+    /// Added in 0.2.0.
     pub fn new(len: u64) -> Self {
         Self::with_budget(len, u64::MAX)
     }
 
     /// An empty source of `len` bytes that holds at most `budget` bytes.
+    ///
+    /// Added in 0.2.0.
     pub fn with_budget(len: u64, budget: u64) -> Self {
         Self {
             len,
@@ -75,6 +83,8 @@ impl SparseSource {
     }
 
     /// The byte budget.
+    ///
+    /// Added in 0.2.0.
     pub fn budget(&self) -> u64 {
         self.budget
     }
@@ -83,6 +93,8 @@ impl SparseSource {
     ///
     /// # Errors
     /// [`SupplyError::Poisoned`] after a panic while the map was locked.
+    ///
+    /// Added in 0.2.0.
     pub fn held(&self) -> Result<u64, SupplyError> {
         Ok(self.lock()?.held)
     }
@@ -94,6 +106,8 @@ impl SparseSource {
     /// # Errors
     /// [`SupplyError::OutOfRange`] past the end, [`SupplyError::Budget`] over the budget
     /// (nothing is added then).
+    ///
+    /// Added in 0.2.0.
     pub fn supply(&self, offset: u64, bytes: &[u8]) -> Result<(), SupplyError> {
         let len = bytes.len() as u64;
         let end = offset
@@ -132,6 +146,8 @@ impl SparseSource {
     ///
     /// # Errors
     /// [`SupplyError::Poisoned`] after a panic while the map was locked.
+    ///
+    /// Added in 0.2.0.
     pub fn to_fetch(&self, asked: &[Range<u64>], block: u64, readahead: u64) -> Result<Vec<Range<u64>>, SupplyError> {
         let widened: Vec<Range<u64>> = asked
             .iter()
@@ -151,6 +167,8 @@ impl SparseSource {
     ///
     /// # Errors
     /// [`SupplyError::Poisoned`] after a panic while the map was locked.
+    ///
+    /// Added in 0.2.0.
     pub fn missing(&self, ranges: &[Range<u64>]) -> Result<Vec<Range<u64>>, SupplyError> {
         let chunks = self.lock()?;
         let mut wanted: Vec<Range<u64>> = ranges

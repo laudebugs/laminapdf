@@ -14,6 +14,8 @@ import { locate } from "../loader/workerd.js";
  * ```ts
  * await init(); // or: await init({ text: true })
  * ```
+ *
+ * @since 0.2.0
  */
 export function init(input?: WasmSource | InitOptions): Promise<void> {
   return initWith(locate, input);
@@ -24,6 +26,8 @@ export function init(input?: WasmSource | InitOptions): Promise<void> {
  * created afterwards can draw text. Idempotent.
  *
  * @param source - where it comes from; omitted, the file next to the package.
+ *
+ * @since 0.2.0
  */
 export function loadText(source?: WasmSource): Promise<void> {
   return loadTextWith(locate, source);
@@ -34,6 +38,8 @@ export function loadText(source?: WasmSource): Promise<void> {
  * extract text with `page.text()`. Idempotent; not needed when the text module is loaded.
  *
  * @param source - where it comes from; omitted, the file next to the package.
+ *
+ * @since 0.2.0
  */
 export function loadExtract(source?: WasmSource): Promise<void> {
   return loadExtractWith(locate, source);

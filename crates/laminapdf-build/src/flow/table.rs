@@ -15,6 +15,8 @@ use crate::error::Result;
 use crate::surface::color::Color;
 
 /// How wide a column is.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub enum ColumnWidth {
@@ -28,6 +30,8 @@ pub enum ColumnWidth {
 }
 
 /// Where a cell's text sits between the row's top and bottom.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum VerticalAlign {
@@ -41,6 +45,8 @@ pub enum VerticalAlign {
 }
 
 /// A table cell: paragraphs, across one column or more.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct TableCell {
@@ -52,6 +58,8 @@ pub struct TableCell {
 
 impl TableCell {
     /// A cell holding `paragraph`, one column wide, aligned as the paragraph is.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(paragraph: Paragraph) -> Self {
         Self {
@@ -63,12 +71,16 @@ impl TableCell {
     }
 
     /// A cell holding `text` in `style`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn plain(text: impl Into<String>, style: &TextStyle) -> Self {
         Self::new(Paragraph::plain(text, style))
     }
 
     /// An empty cell.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn empty() -> Self {
         Self {
@@ -78,6 +90,8 @@ impl TableCell {
     }
 
     /// With another paragraph after the ones it has.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn paragraph(mut self, paragraph: Paragraph) -> Self {
         self.paragraphs.push(paragraph);
@@ -85,6 +99,8 @@ impl TableCell {
     }
 
     /// Across `columns` columns (`/ColSpan`; at least 1, at most those left in the row).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_span(mut self, columns: u32) -> Self {
         self.span = columns.max(1);
@@ -92,6 +108,8 @@ impl TableCell {
     }
 
     /// With every paragraph aligned to `align` (numbers: [`Alignment::End`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_align(mut self, align: Alignment) -> Self {
         self.align = Some(align);
@@ -99,6 +117,8 @@ impl TableCell {
     }
 
     /// With its text placed `valign` in the row.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_vertical_align(mut self, valign: VerticalAlign) -> Self {
         self.valign = valign;
@@ -108,6 +128,8 @@ impl TableCell {
 
 /// A row of cells. A row with fewer cells than the table has columns ends in empty cells; cells
 /// past the last column are left out.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct TableRow {
@@ -116,12 +138,16 @@ pub struct TableRow {
 
 impl TableRow {
     /// A row with no cells yet.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// A row of one plain cell per text, all in `style`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn plain<S: Into<String>>(texts: impl IntoIterator<Item = S>, style: &TextStyle) -> Self {
         Self {
@@ -130,6 +156,8 @@ impl TableRow {
     }
 
     /// With `cell` after the cells it has.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn cell(mut self, cell: TableCell) -> Self {
         self.cells.push(cell);
@@ -138,6 +166,8 @@ impl TableRow {
 }
 
 /// A line drawn by a table: its width in points and its colour.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct TableRule {
@@ -147,6 +177,8 @@ pub struct TableRule {
 
 impl TableRule {
     /// A rule `width` points wide in `color`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(width: f64, color: Color) -> Self {
         Self { width, color }
@@ -159,6 +191,8 @@ impl TableRule {
 /// on; those copies are `Pagination` artifacts, so the structure tree holds the header once.
 /// A body row never splits: one that doesn't fit starts the next page. The footer rows end the
 /// table, on the page of the last body row. Header cells are `TH` with `/Scope /Column`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Table {
@@ -178,6 +212,8 @@ pub struct Table {
 impl Table {
     /// A table with these columns (a table with none draws no cells), no rows, 4 points of padding in each cell, no rules, and
     /// 6 points of space after it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(columns: impl IntoIterator<Item = ColumnWidth>) -> Self {
         Self {
@@ -196,6 +232,8 @@ impl Table {
     }
 
     /// With a header row after the header rows it has.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn header(mut self, row: TableRow) -> Self {
         self.header.push(row);
@@ -203,6 +241,8 @@ impl Table {
     }
 
     /// With a body row after the body rows it has.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn row(mut self, row: TableRow) -> Self {
         self.body.push(row);
@@ -210,6 +250,8 @@ impl Table {
     }
 
     /// With a footer row after the footer rows it has.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn footer(mut self, row: TableRow) -> Self {
         self.footer.push(row);
@@ -217,6 +259,8 @@ impl Table {
     }
 
     /// With `padding` points between each cell's edges and its text.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_padding(mut self, padding: f64) -> Self {
         self.padding = padding;
@@ -224,6 +268,8 @@ impl Table {
     }
 
     /// With a frame around the table's part on each page.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_frame(mut self, rule: TableRule) -> Self {
         self.frame = Some(rule);
@@ -231,6 +277,8 @@ impl Table {
     }
 
     /// With a rule under the header rows (on every page).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_header_rule(mut self, rule: TableRule) -> Self {
         self.header_rule = Some(rule);
@@ -238,6 +286,8 @@ impl Table {
     }
 
     /// With a rule between rows.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_row_rules(mut self, rule: TableRule) -> Self {
         self.row_rule = Some(rule);
@@ -245,6 +295,8 @@ impl Table {
     }
 
     /// With the header rows on a background of `color`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_header_background(mut self, color: Color) -> Self {
         self.header_background = Some(color);
@@ -269,6 +321,8 @@ impl Table {
     }
 
     /// With `before` and `after` points of space around the table.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_space(mut self, before: f64, after: f64) -> Self {
         self.space_before = before;

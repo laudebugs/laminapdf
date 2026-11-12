@@ -13,6 +13,8 @@ use crate::error::{Error, Result};
 /// byte offset or object number where one exists. With
 /// [`OpenOptions::with_strict`](crate::OpenOptions::with_strict), every warning is an
 /// [`Error::Strict`] instead.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Warning {
@@ -330,6 +332,8 @@ pub enum Warning {
 
 impl Warning {
     /// Every code [`Warning::code`] can return (listed in `fixtures/codes.json`).
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &[
         "missing-header",
         "xref-repaired",
@@ -377,6 +381,8 @@ impl Warning {
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -427,6 +433,8 @@ impl Warning {
     }
 
     /// The object number the warning is about, if any.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn object(&self) -> Option<u32> {
         match *self {
@@ -480,6 +488,8 @@ impl Warning {
     /// [`Warning::code`] (a test checks every variant).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -531,6 +541,8 @@ impl Warning {
     /// Where the problem is (ADR 0026 §1.1): the object, a file offset, a page index, or for
     /// content warnings the content's object and the offset in its decoded data (no offset
     /// when the content has no object: content interpreted on its own or a direct page).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         let page_index = match *self {

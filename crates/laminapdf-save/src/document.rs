@@ -67,11 +67,15 @@ use crate::sink::{ReadableSink, WriteSink};
 /// ```
 ///
 /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+///
+/// Added in 0.2.0.
 pub trait Save {
     /// How a save with `options` would go ([`SavePlanner::plan`]).
     ///
     /// # Errors
     /// As [`SavePlanner::new`] and [`SavePlanner::plan`].
+    ///
+    /// Added in 0.2.0.
     fn plan(&self, options: &SaveOptions) -> Result<SavePlan>;
 
     /// Plans and writes to `sink`. An incremental save rebases onto old base ‖ appended
@@ -83,6 +87,8 @@ pub trait Save {
     /// # Errors
     /// The plan's refusals ([`Save::plan`]); as [`IncrementalWriter::write`] and
     /// [`FullWriter::write`]; the refusals above; [`SaveError::NotRebased`].
+    ///
+    /// Added in 0.2.0.
     fn save<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport>;
 
     /// [`Save::save`] into a sink that gives the bytes back ([`ReadableSink::into_source`]),
@@ -93,6 +99,8 @@ pub trait Save {
     /// As [`Save::save`]. When the sink can't give the bytes back ([`SaveError::Sink`]) the
     /// document is unchanged; when the rebase onto them fails, it is `SavedNotRebased` and
     /// [`SaveError::NotRebased`] carries the output.
+    ///
+    /// Added in 0.2.0.
     fn save_and_rebase<S: ReadableSink>(&mut self, sink: S, options: &SaveOptions) -> Result<SaveReport>;
 
     /// Writes to `sink` what [`Save::save`] would, and leaves the document as it was: not
@@ -104,6 +112,8 @@ pub trait Save {
     ///
     /// # Errors
     /// As [`Save::save`], less [`SaveError::NotRebased`]; the document is unchanged either way.
+    ///
+    /// Added in 0.2.0.
     fn save_copy<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport>;
 
     /// Makes `copy`, the whole output of [`Save::save_copy`] ([`IncrementalOutput::Whole`]),
@@ -119,6 +129,8 @@ pub trait Save {
     /// [`SaveError::Ops`] while a transaction is open or another save waits for its rebase;
     /// [`SaveError::NotRebased`] when `copy` can't be read (the document then waits for a
     /// rebase, as after a full rewrite to a sink it couldn't read back).
+    ///
+    /// Added in 0.2.0.
     fn adopt_copy(&mut self, copy: Source, history_cleared: bool) -> Result<()>;
 }
 

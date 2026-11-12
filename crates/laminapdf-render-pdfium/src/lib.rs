@@ -40,9 +40,13 @@ pub use fonts::{FontCharset, FontQuery, SystemFont, SystemFontSource};
 const NAME: &str = "pdfium";
 
 /// The pinned PDFium build (ADR 0004 §3): part of every golden's key.
+///
+/// Added in 0.2.0.
 pub const PDFIUM_BUILD: &str = "chromium/7881";
 
 /// The environment variable naming the folder that holds the PDFium library.
+///
+/// Added in 0.2.0.
 pub const PDFIUM_DIR_ENV: &str = "LAMINA_PDF_PDFIUM_DIR";
 
 /// The bindings, created once per process: every document borrows them for `'static`.
@@ -65,6 +69,8 @@ const fn failed(stage: &'static str) -> RenderError {
 }
 
 /// Native PDFium.
+///
+/// Added in 0.2.0.
 #[derive(Clone, Copy)]
 pub struct PdfiumBackend {
     pdfium: &'static Pdfium,
@@ -83,6 +89,8 @@ impl PdfiumBackend {
     ///
     /// # Errors
     /// `render-backend-unavailable` when the library can't be loaded.
+    ///
+    /// Added in 0.2.0.
     pub fn bind(dir: &Path) -> Result<Self, RenderError> {
         if let Some(pdfium) = PDFIUM.get() {
             return Ok(Self { pdfium });
@@ -103,6 +111,8 @@ impl PdfiumBackend {
     ///
     /// # Errors
     /// `render-backend-unavailable` when the library can't be loaded.
+    ///
+    /// Added in 0.2.0.
     pub fn bind_with_fonts(dir: &Path, fonts: Box<dyn SystemFontSource>) -> Result<Self, RenderError> {
         if let Some(pdfium) = PDFIUM.get() {
             return Ok(Self { pdfium });
@@ -124,6 +134,8 @@ impl PdfiumBackend {
     ///
     /// # Errors
     /// `render-backend-unavailable` when the variable is unset or the library can't be loaded.
+    ///
+    /// Added in 0.2.0.
     pub fn from_env() -> Result<Self, RenderError> {
         let dir = std::env::var_os(PDFIUM_DIR_ENV).ok_or_else(unavailable)?;
         Self::bind(Path::new(&dir))

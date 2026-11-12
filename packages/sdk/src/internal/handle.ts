@@ -12,7 +12,11 @@ import type { Glue, Instance } from "./instance.js";
  */
 const DISPOSE: symbol = typeof Symbol.dispose === "symbol" ? Symbol.dispose : Symbol.for("Symbol.dispose");
 
-/** A handle the garbage collector reclaimed without a `free()`. */
+/**
+ * A handle the garbage collector reclaimed without a `free()`.
+ *
+ * @since 0.2.0
+ */
 export interface Leak {
   /** The handle's class: `Document`, `Builder` or `Image`. */
   readonly handle: string;
@@ -30,6 +34,8 @@ const leaks =
  * makes. Reclaimed handles are freed anyway, only later. `onLeak()` turns the reports off.
  *
  * @param hook - called once per leaked handle, some time after the collection.
+ *
+ * @since 0.2.0
  */
 export function onLeak(hook?: (leak: Leak) => void): void {
   leakHook = hook;

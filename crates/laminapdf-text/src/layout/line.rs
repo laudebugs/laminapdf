@@ -5,6 +5,8 @@ use std::ops::Range;
 use crate::shape::ShapedRun;
 
 /// One shaped run of a line.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct LineRun {
@@ -30,6 +32,8 @@ pub struct LineRun {
 }
 
 /// One line of a paragraph.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Line {
@@ -79,6 +83,8 @@ impl Line {
     /// assert_eq!(line.runs[order[0]].run.text_range.start, 0);
     /// # Ok::<(), laminapdf_text::Error>(())
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn drawing_order(&self) -> Vec<usize> {
         let mut order: Vec<usize> = (0..self.runs.len()).collect();

@@ -30,6 +30,8 @@ use crate::data;
 ///
 /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 /// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -71,11 +73,15 @@ pub enum Error {
 }
 
 /// Shorthand for `Result<T, laminapdf::Error>`.
+///
+/// Added in 0.2.0.
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 /// An error raised by a crate below the façade, kept whole but opaque: its type is no part
 /// of the façade's API, so those crates' error enums can change without breaking callers.
 /// [`Error`]'s accessors read everything a caller needs from it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[error(transparent)]
 pub struct CoreError(pub(crate) Inner);
@@ -118,6 +124,8 @@ impl Error {
 impl Error {
     /// The codes only the façade raises (listed in `fixtures/codes.json` under
     /// `facadeErrors`; `page-index-out-of-range` is `laminapdf-build`'s code, reused).
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &[
         "cancelled",
         "job-finished",
@@ -128,6 +136,8 @@ impl Error {
     /// The stable kebab-case code ([ADR 0026] §3).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         self.error_code().as_str()
@@ -137,6 +147,8 @@ impl Error {
     /// from which [`code`](Error::code), [`kind`](Error::kind), [`hint`](Error::hint) and
     /// [`docs_url`](Error::docs_url) are read. A wrapped crate's code is looked up in the
     /// table; the build fails if any code a crate declares is missing from it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn error_code(&self) -> ErrorCode {
         match self {
@@ -163,6 +175,8 @@ impl Error {
     /// [`ErrorCode`] table.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         self.error_code().kind()
@@ -171,6 +185,8 @@ impl Error {
     /// Where the error was found ([ADR 0026] §1.1); empty when nothing is known.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
@@ -197,6 +213,8 @@ impl Error {
     /// `{limit}` filled in for `limit-exceeded`. Fixed text: never document text.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn hint(&self) -> Option<String> {
         codes::fill_hint(self.error_code().hint(), self.limit_name())
@@ -205,6 +223,8 @@ impl Error {
     /// The code's explain page (`docsUrl`, [ADR 0026] §6).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn docs_url(&self) -> String {
         self.error_code().docs_url()
@@ -216,6 +236,8 @@ impl Error {
     /// only in [`Diagnostic::data`].
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn diagnostic(&self) -> Diagnostic {
         Diagnostic::error(self.error_code(), self.to_string())
@@ -228,6 +250,8 @@ impl Error {
     /// The output of a save whose rebase failed (`not-rebased`): the file was written in
     /// full. Rebase the document onto it with [`Document::rebase`](crate::Document::rebase),
     /// or keep it and reopen.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn saved_output(&self) -> Option<Vec<u8>> {
         let Self::Core(CoreError(Inner::Save(laminapdf_save::SaveError::NotRebased { saved, .. }))) = self else {
@@ -248,6 +272,8 @@ impl Error {
     /// `None` for every other error.
     ///
     /// [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn pending_ranges(&self) -> Option<Vec<core::ops::Range<u64>>> {
         let laminapdf_cos::Error::DataPending { ranges } = self.as_cos()? else {

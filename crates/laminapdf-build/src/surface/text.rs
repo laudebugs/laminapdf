@@ -23,6 +23,8 @@ use crate::tag::Tag;
 /// [`Builder::standard_font`](crate::Builder::standard_font) or the [`Appender`](crate::Appender)'s):
 /// what [`Surface::text`] and [`Surface::text_box`] draw with. Cheap to clone. A font from
 /// another builder fails with `unknown-font` when its page is finished.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct FontHandle {
     pub(crate) key: FontKey,
@@ -31,12 +33,16 @@ pub struct FontHandle {
 
 impl FontHandle {
     /// The font's names and metrics.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn info(&self) -> &FontInfo {
         self.font.info()
     }
 
     /// The `laminapdf-text` font it was registered from.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn font(&self) -> &laminapdf_text::Font {
         &self.font
@@ -44,6 +50,8 @@ impl FontHandle {
 
     /// Whether this is one of the standard 14 fonts: drawn unshaped (one glyph per character,
     /// left to right, AFM widths without kerning) and not embedded.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_standard(&self) -> bool {
         self.font.standard14().is_some()
@@ -67,6 +75,8 @@ impl FontHandle {
 
 /// How glyphs are painted (`Tr`, §9.3.6). The clipping modes are left out: they would leave
 /// a clip behind the text object that the surface can't track.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum TextRenderMode {
@@ -452,6 +462,8 @@ pub(crate) fn draws(text: &str, content: &Range<usize>) -> bool {
 /// page.finish()?;
 /// # Ok::<(), laminapdf_build::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct TextRun<'s> {
     surface: &'s mut Surface,
@@ -489,17 +501,23 @@ impl<'s> TextRun<'s> {
     }
 
     /// Fills this run with `color` (the surface's fill colour is unchanged after it).
+    ///
+    /// Added in 0.2.0.
     pub fn fill(self, color: Color) -> Self {
         self.edit(|c| c.fill = Some(color))
     }
 
     /// How the glyphs are painted (`Tr`).
+    ///
+    /// Added in 0.2.0.
     pub fn render_mode(self, mode: TextRenderMode) -> Self {
         self.edit(|c| c.mode = mode)
     }
 
     /// Makes the run a link: a link annotation over its bounding box (after the surface's
     /// transform, as an axis-aligned box), with `contents` as its `/Contents`.
+    ///
+    /// Added in 0.2.0.
     pub fn link(self, target: LinkTarget, contents: Option<String>) -> Self {
         self.edit(|c| c.link = Some(LinkSpec { target, contents }))
     }
@@ -507,6 +525,8 @@ impl<'s> TextRun<'s> {
     /// Makes the run the structure element `tag` (§14.7.2), a child of the surface's
     /// innermost open element: the same as drawing it inside [`Surface::tag`]. A run that is
     /// also a link holds a `Link` element with the text and the annotation.
+    ///
+    /// Added in 0.2.0.
     pub fn tag(self, tag: impl Into<Tag>) -> Self {
         let tag = Box::new(tag.into());
         self.surface.mark_tagged();
@@ -518,6 +538,8 @@ impl<'s> TextRun<'s> {
     ///
     /// # Errors
     /// As [`Surface::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn features(self, features: &[Feature]) -> Result<Self> {
         self.relayout(|s| s.features = features.to_vec())
     }
@@ -526,6 +548,8 @@ impl<'s> TextRun<'s> {
     ///
     /// # Errors
     /// As [`Surface::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn language(self, language: &str) -> Result<Self> {
         self.relayout(|s| s.language = Some(language.to_owned()))
     }
@@ -534,11 +558,15 @@ impl<'s> TextRun<'s> {
     ///
     /// # Errors
     /// As [`Surface::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn direction(self, direction: Direction) -> Result<Self> {
         self.relayout(|s| s.direction = Some(direction))
     }
 
     /// The width of the widest line, points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn width(&self) -> Pt {
         Pt::new(
@@ -550,6 +578,8 @@ impl<'s> TextRun<'s> {
     /// The box the run covers on the page (before the surface's transform): from the top of
     /// the font's ascent above the first baseline to the bottom of its descent below the last.
     /// Empty text has an empty box at the origin.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn bounds(&self) -> RectPt {
         match self.command() {
@@ -586,12 +616,16 @@ impl<'s> TextRun<'s> {
     /// assert!(surface.text(" \u{a0}\n", &font, size, PointPt::from_points(72.0, 300.0))?.bottom().is_none());
     /// # Ok::<(), laminapdf_build::Error>(())
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn bottom(&self) -> Option<Pt> {
         self.command().and_then(TextCommand::bottom)
     }
 
     /// The number of lines (more than one only when the text has hard line breaks).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn lines(&self) -> usize {
         self.command().map_or(0, |c| c.lines.len())

@@ -15,6 +15,8 @@ use core::fmt;
 /// A closed set: bindings and the CLI match on it exhaustively, so adding a kind amends
 /// ADR 0026 and is a breaking change. That is why, unlike the error enums, it is not
 /// `#[non_exhaustive]`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ErrorKind {
     /// The input (PDF bytes, an op log, JSON) is malformed beyond what tolerance repairs.
@@ -42,12 +44,16 @@ impl ErrorKind {
     /// something unsupported (`input`, `unsupported`): what a pass over many parts, such as
     /// every page or every revision, skips. Any other kind (a password, a limit, data not yet
     /// fetched, cancellation) stops the pass, since the part it couldn't read might matter.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_skippable(self) -> bool {
         matches!(self, Self::Input | Self::Unsupported)
     }
 
     /// Every kind, in ADR 0026 §2 order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 9] = [
         Self::Input,
         Self::Io,
@@ -61,6 +67,8 @@ impl ErrorKind {
     ];
 
     /// The kind's name as it appears in `codes.json` and in serialized diagnostics.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -89,6 +97,8 @@ impl fmt::Display for ErrorKind {
 /// [`Position::FileOffset`]. A layer that hands it something other than the whole file
 /// re-tags them when it wraps the error: [`Position::shifted`] for a window of the file,
 /// [`Position::in_stream`] for an object stream's decoded data. `laminapdf-cos` does both.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Position {
@@ -107,6 +117,8 @@ pub enum Position {
 
 impl Position {
     /// A [`Position::FileOffset`] from a buffer offset (saturating; offsets fit in `u64`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn offset(offset: usize) -> Self {
         Self::FileOffset(u64::try_from(offset).unwrap_or(u64::MAX))
@@ -114,6 +126,8 @@ impl Position {
 
     /// The position moved by `base` bytes when it is a file offset: for an offset in a
     /// window of the file that starts at `base`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn shifted(self, base: u64) -> Self {
         match self {
@@ -124,6 +138,8 @@ impl Position {
 
     /// The position re-tagged as an offset in the decoded data of stream `object`, when it is
     /// a file offset: for a parse of that data.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn in_stream(self, object: u32) -> Self {
         match self {
@@ -145,6 +161,8 @@ impl fmt::Display for Position {
 
 /// The `location` of a serialized diagnostic (ADR 0026 §1.1): each field names one kind of
 /// position, and all of them are lamina-made values, never document text.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Location {
     /// Byte offset in the input file.
@@ -161,6 +179,8 @@ pub struct Location {
 
 impl Location {
     /// No location.
+    ///
+    /// Added in 0.2.0.
     pub const NONE: Self = Self {
         offset: None,
         object: None,
@@ -170,12 +190,16 @@ impl Location {
     };
 
     /// A location naming only `object`, when there is one.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn object(object: Option<u32>) -> Self {
         Self { object, ..Self::NONE }
     }
 
     /// Whether no field is set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.offset.is_none()

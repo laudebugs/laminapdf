@@ -11,6 +11,8 @@ use super::read::info_without_equal_xmp;
 use crate::error::Result;
 
 /// A conformance claim the document's metadata no longer meets.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(tag = "code", rename_all = "kebab-case")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -35,9 +37,13 @@ pub enum ConformanceWarning {
 
 impl ConformanceWarning {
     /// Every code, in the order `fixtures/codes.json`'s `opWarnings` lists them.
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &["pdfa-one-author", "pdfua-title-missing", "pdfa-info-mismatch"];
 
     /// The stable kebab-case code.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -53,6 +59,8 @@ impl ConformanceWarning {
     /// edits write both.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -62,6 +70,8 @@ impl ConformanceWarning {
     }
 
     /// Where the problem is: the document as a whole.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn location(&self) -> Location {
         Location::NONE
@@ -73,6 +83,8 @@ impl ConformanceWarning {
 ///
 /// # Errors
 /// Reading errors (Info, the catalog, the packet's stream).
+///
+/// Added in 0.2.0.
 pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<ConformanceWarning>> {
     let PacketState::Parsed(packet) = doc.xmp()? else {
         return Ok(Vec::new());

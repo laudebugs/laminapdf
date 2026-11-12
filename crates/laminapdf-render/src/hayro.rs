@@ -50,11 +50,15 @@ use crate::source::read_all;
 const NAME: &str = "hayro";
 
 /// The pure-Rust renderer: hayro 0.8 with its standard 14 fonts and predefined CMaps built in.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct HayroBackend;
 
 impl HayroBackend {
     /// The backend.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new() -> Self {
         Self

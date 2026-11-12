@@ -1,5 +1,6 @@
 // The docs site's "Show a PDF" example (examples/show-a-pdf.ts) in Chromium, Firefox and WebKit:
-// a PDF opens, its first page paints, and disposing of it empties the container.
+// a PDF opens, its first page paints, and disposing of it or closing it empties the container. Where
+// the browser has no `Symbol.dispose`: show-a-pdf-without-symbol-dispose.browser.test.ts.
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 import { expect, it, vi } from "vitest";
 import { showPdf } from "../../examples/show-a-pdf.js";
@@ -29,6 +30,19 @@ it("shows a PDF and takes it down", async () => {
     });
   }
   expect(container.querySelector("canvas")).toBeNull();
+  container.remove();
+});
+
+it("takes the PDF down on close(), and closing again does nothing", async () => {
+  const container = document.createElement("div");
+  Object.assign(container.style, { width: "600px", height: "400px" });
+  document.body.append(container);
+  const bytes = new Uint8Array(await read("fixtures/golden/examples/hello.pdf"));
+  const shown = await showPdf(container, new Blob([bytes], { type: "application/pdf" }), pdfiumWasm);
+  expect(container.childElementCount).toBe(1);
+  shown.close();
+  expect(container.childElementCount).toBe(0);
+  shown.close();
   container.remove();
 });
 

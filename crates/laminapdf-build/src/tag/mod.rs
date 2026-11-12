@@ -23,6 +23,8 @@ pub use open::ElementId;
 
 /// A standard structure type (ISO 32000-1 §14.8.4, the PDF 1.7 set every PDF 2.0 reader
 /// knows; research 03 §9.2).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum TagKind {
@@ -94,6 +96,8 @@ pub enum TagKind {
 
 impl TagKind {
     /// Every kind, in declaration order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 32] = [
         Self::Document,
         Self::Part,
@@ -130,6 +134,8 @@ impl TagKind {
     ];
 
     /// The structure type's name (`/S`), such as `"H1"`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -169,6 +175,8 @@ impl TagKind {
     }
 
     /// The kind named `name` (exactly, as [`TagKind::as_str`] spells it).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_name(name: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|k| k.as_str() == name)
@@ -176,6 +184,8 @@ impl TagKind {
 }
 
 /// Which header cells a `TH` heads (the `/Scope` attribute, §14.8.5.7).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum TableScope {
@@ -189,6 +199,8 @@ pub enum TableScope {
 
 impl TableScope {
     /// Every table scope, in declaration order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 3] = [Self::Row, Self::Column, Self::Both];
 
     pub(crate) const fn as_str(self) -> &'static str {
@@ -213,6 +225,8 @@ impl TableScope {
 /// assert_eq!(logo.alt(), Some("The Acme logo"));
 /// # let _ = (heading, header);
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
     kind: TagKind,
@@ -233,6 +247,8 @@ impl From<TagKind> for Tag {
 
 impl Tag {
     /// An element of a standard type.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(kind: TagKind) -> Self {
         Self {
@@ -252,6 +268,8 @@ impl Tag {
     /// and any other standard type of PDF 1.7 or 2.0 (`Div`, `Art`, `Index`, `BibEntry`,
     /// `Formula`, `H7`, …) is written as `/S` unmapped, with `role` only saying how the builder
     /// treats it (a `Formula` written with the role `Figure` needs alternate text).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn custom(name: impl Into<String>, role: TagKind) -> Self {
         let name = name.into();
@@ -265,6 +283,8 @@ impl Tag {
     }
 
     /// `/Alt`: the alternate description (§14.9.3), required for a `Figure` by PDF/UA.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_alt(mut self, alt: impl Into<String>) -> Self {
         self.alt = Some(alt.into());
@@ -272,6 +292,8 @@ impl Tag {
     }
 
     /// `/ActualText`: the exact text the content stands for (§14.9.4).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_actual_text(mut self, text: impl Into<String>) -> Self {
         self.actual_text = Some(text.into());
@@ -279,6 +301,8 @@ impl Tag {
     }
 
     /// `/E`: the expansion of an abbreviation (§14.9.5).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_expansion(mut self, expansion: impl Into<String>) -> Self {
         self.expansion = Some(expansion.into());
@@ -286,6 +310,8 @@ impl Tag {
     }
 
     /// `/Lang`: the element's natural language, a BCP 47 tag (§14.9.2).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_lang(mut self, lang: impl Into<String>) -> Self {
         self.lang = Some(lang.into());
@@ -293,6 +319,8 @@ impl Tag {
     }
 
     /// The `/Scope` table attribute (for a `TH`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_scope(mut self, scope: TableScope) -> Self {
         self.scope = Some(scope);
@@ -301,6 +329,8 @@ impl Tag {
 
     /// The `/ColSpan` table attribute (for a `TH` or `TD` across more than one column; 1 is
     /// the default and isn't written).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_col_span(mut self, span: u32) -> Self {
         self.col_span = if span > 1 { Some(span) } else { None };
@@ -308,54 +338,72 @@ impl Tag {
     }
 
     /// The standard type: the element's own, or the one a custom name maps to.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> TagKind {
         self.kind
     }
 
     /// The name written as `/S` and in the content stream: the custom name, else the type's.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn name(&self) -> &str {
         self.custom.as_deref().unwrap_or(self.kind.as_str())
     }
 
     /// The custom name, if any.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn custom_name(&self) -> Option<&str> {
         self.custom.as_deref()
     }
 
     /// `/Alt`, if set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn alt(&self) -> Option<&str> {
         self.alt.as_deref()
     }
 
     /// `/ActualText`, if set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn actual_text(&self) -> Option<&str> {
         self.actual_text.as_deref()
     }
 
     /// `/E`, if set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn expansion(&self) -> Option<&str> {
         self.expansion.as_deref()
     }
 
     /// `/Lang`, if set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn lang(&self) -> Option<&str> {
         self.lang.as_deref()
     }
 
     /// `/Scope`, if set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn scope(&self) -> Option<TableScope> {
         self.scope
     }
 
     /// `/ColSpan`, if more than 1.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn col_span(&self) -> Option<u32> {
         self.col_span
@@ -371,6 +419,8 @@ impl Tag {
 }
 
 /// What was drawn outside every structure element and artifact.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum ContentKind {
@@ -390,6 +440,8 @@ impl ContentKind {
     pub(crate) const ALL: [Self; 4] = [Self::Path, Self::Image, Self::Text, Self::Link];
 
     /// `"path"`, `"image"`, `"text"` or `"link"`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -410,6 +462,8 @@ impl ContentKind {
 /// that becomes tagged only when a later page uses an element still reports everything its
 /// earlier pages drew and linked as [`TagDiagnostic::Untagged`]: the list is empty only when
 /// every drawing and every link annotation has structure (or is an artifact's drawing).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum TagDiagnostic {

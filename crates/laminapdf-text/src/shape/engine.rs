@@ -28,6 +28,8 @@ use crate::font::{Font, GlyphId};
 /// assert_eq!(run.glyphs.len(), 2);
 /// # Ok::<(), laminapdf_text::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct HarfRust;
 

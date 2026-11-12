@@ -8,6 +8,8 @@ use pdf_writer::types::{ArtifactAttachment, ArtifactSubtype, ArtifactType};
 use pdf_writer::{Content, Name, Rect};
 
 /// What kind of artifact (§14.8.2.2.2, Table 363 `/Type`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ArtifactKind {
@@ -25,9 +27,13 @@ pub enum ArtifactKind {
 
 impl ArtifactKind {
     /// Every artifact kind, in declaration order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 4] = [Self::Layout, Self::Page, Self::Pagination, Self::Background];
 
     /// The kind named `name` (`"Layout"`, `"Page"`, `"Pagination"`, `"Background"`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_name(name: &str) -> Option<Self> {
         match name {
@@ -58,6 +64,8 @@ enum Pagination {
 }
 
 /// A page edge an artifact is attached to (Table 363 `/Attached`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PageEdge {
@@ -73,6 +81,8 @@ pub enum PageEdge {
 
 impl PageEdge {
     /// Every edge, in the order `/Attached` lists them.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 4] = [Self::Top, Self::Bottom, Self::Left, Self::Right];
 
     const fn bit(self) -> u8 {
@@ -104,6 +114,8 @@ impl PageEdge {
 /// let rule = Artifact::from(ArtifactKind::Layout);
 /// # let _ = (footer, side, rule);
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Artifact {
     kind: ArtifactKind,
@@ -114,6 +126,8 @@ pub struct Artifact {
 
 impl Artifact {
     /// An artifact of `kind`, with no subtype or edges (the same as `Artifact::from(kind)`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(kind: ArtifactKind) -> Self {
         Self {
@@ -135,18 +149,24 @@ impl Artifact {
     }
 
     /// A running head: `/Subtype /Header`, attached to the top edge.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn header() -> Self {
         Self::pagination(Pagination::Header, Some(PageEdge::Top))
     }
 
     /// A running footer: `/Subtype /Footer`, attached to the bottom edge.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn footer() -> Self {
         Self::pagination(Pagination::Footer, Some(PageEdge::Bottom))
     }
 
     /// A watermark: `/Subtype /Watermark`, attached to no edge.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn watermark() -> Self {
         Self::pagination(Pagination::Watermark, None)
@@ -155,6 +175,8 @@ impl Artifact {
     /// The same artifact attached to `edges` instead (none: no `/Attached`). Only pagination and
     /// background artifacts write the edges (Table 363): all four on a background say it covers
     /// the whole page.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_attached(mut self, edges: &[PageEdge]) -> Self {
         self.attached = edges.iter().fold(0, |bits, e| bits | e.bit());
@@ -162,6 +184,8 @@ impl Artifact {
     }
 
     /// Its kind (`/Type`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(self) -> ArtifactKind {
         self.kind

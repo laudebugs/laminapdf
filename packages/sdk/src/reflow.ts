@@ -4,16 +4,30 @@
 /**
  * Why reader mode doesn't use a document's structure tree (it reads the page layout instead), or,
  * as `"nothing"`, why it shows nothing.
+ *
+ * @since 0.2.0
  */
 export type ReflowRefusal = "untagged" | "empty" | "generic" | "coverage" | "order" | "nothing";
 
-/** Where the reading order comes from: the structure tree, or the page layout (approximate). */
+/**
+ * Where the reading order comes from: the structure tree, or the page layout (approximate).
+ *
+ * @since 0.2.0
+ */
 export type ReflowSource = "tags" | "approximate";
 
-/** Why the approximate reading view shows a page as its image. */
+/**
+ * Why the approximate reading view shows a page as its image.
+ *
+ * @since 0.2.0
+ */
 export type PageImageReason = "scanned" | "uncertain";
 
-/** A block's kind and what goes with it. */
+/**
+ * A block's kind and what goes with it.
+ *
+ * @since 0.2.0
+ */
 export type ReflowKind =
   | { readonly kind: "heading"; readonly level: number }
   | { readonly kind: "paragraph" }
@@ -27,7 +41,11 @@ export type ReflowKind =
   | { readonly kind: "page-image"; readonly why: PageImageReason }
   | { readonly kind: "other" };
 
-/** One block of the reading view. */
+/**
+ * One block of the reading view.
+ *
+ * @since 0.2.0
+ */
 export type ReflowBlock = ReflowKind & {
   /**
    * The text; empty for a figure, formula or table, which are shown as crops of their page, but
@@ -46,7 +64,11 @@ export type ReflowBlock = ReflowKind & {
   readonly alt?: string;
 };
 
-/** The measures behind reader mode's verdict. */
+/**
+ * The measures behind reader mode's verdict.
+ *
+ * @since 0.2.0
+ */
 export interface ReflowChecks {
   /** Marked-content sequences in the structure tree. */
   readonly content: number;
@@ -64,7 +86,11 @@ export interface ReflowChecks {
   readonly pageImages: number;
 }
 
-/** What `doc.reflow()` makes of a document. */
+/**
+ * What `doc.reflow()` makes of a document.
+ *
+ * @since 0.2.0
+ */
 export interface Reflow {
   /** Whether reader mode can show it: false only when no page has text or a picture. */
   readonly available: boolean;

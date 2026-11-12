@@ -37,14 +37,20 @@ use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
 
 /// The format's name, the value of a document's `schema`.
+///
+/// Added in 0.2.0.
 pub const DOCUMENT_SCHEMA: &str = "laminapdf.document/1";
 
 /// Where the committed JSON Schema of `laminapdf.document/1` is published: its `$id`.
+///
+/// Added in 0.2.0.
 pub const DOCUMENT_SCHEMA_URL: &str =
     "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-build/schemas/document.schema.json";
 
 /// The JSON Schema (2020-12) of `laminapdf.document/1`. It describes a document, not a
 /// template: a template's placeholders are filled before the check.
+///
+/// Added in 0.2.0.
 #[cfg(feature = "schema")]
 #[must_use]
 pub fn json_schema() -> serde_json::Value {
@@ -57,6 +63,8 @@ pub fn json_schema() -> serde_json::Value {
 }
 
 /// The fonts and images a document names, by name: the document holds no bytes.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default)]
 pub struct Resources {
     pub(crate) fonts: BTreeMap<String, FontHandle>,
@@ -66,12 +74,16 @@ pub struct Resources {
 impl Resources {
     /// No fonts and no images: styles can name only the standard 14 fonts (`Helvetica`,
     /// `Times-Roman`, `Courier`, …).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// With `font` for the styles whose `font` is `name`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_font(mut self, name: impl Into<String>, font: &FontHandle) -> Self {
         self.fonts.insert(name.into(), font.clone());
@@ -79,6 +91,8 @@ impl Resources {
     }
 
     /// With `image` for the figures whose `image` is `name`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_image(mut self, name: impl Into<String>, image: Image) -> Self {
         self.images.insert(name.into(), image);
@@ -88,6 +102,8 @@ impl Resources {
 
 /// Text, or a number or `true`/`false` written as text: what a template's `$data` may put where
 /// the document takes text.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
@@ -111,6 +127,8 @@ impl Text {
 }
 
 /// A `laminapdf.document/1` document.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -155,12 +173,16 @@ pub struct FlowDocument {
 
 impl FlowDocument {
     /// The document as JSON.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap_or_default()
     }
 
     /// The profiles it asks for, for [`BuildOptions::with_profile`](crate::BuildOptions::with_profile).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn profiles(&self) -> Vec<crate::Profile> {
         self.profiles.iter().map(|p| p.profile()).collect()
@@ -168,6 +190,8 @@ impl FlowDocument {
 
     /// The fonts its styles name, each once, sorted: what a caller gives in [`Resources`],
     /// apart from standard 14 names, which need nothing.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn font_names(&self) -> BTreeSet<&str> {
         self.styles
@@ -178,6 +202,8 @@ impl FlowDocument {
     }
 
     /// The images its figures name, each once, sorted: what a caller gives in [`Resources`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn image_names(&self) -> BTreeSet<&str> {
         fn walk<'a>(blocks: &'a [BlockSpec], out: &mut BTreeSet<&'a str>) {
@@ -203,6 +229,8 @@ pub(crate) fn escape(segment: &str) -> String {
 }
 
 /// A conformance profile, by its usual name.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ProfileName {
@@ -232,6 +260,8 @@ impl ProfileName {
 }
 
 /// A text style: a font and a size, and what else the text takes.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -259,6 +289,8 @@ pub struct StyleSpec {
 }
 
 /// Where a line's text sits.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
@@ -276,6 +308,8 @@ pub enum AlignSpec {
 }
 
 /// A paragraph or a heading: its text as one string, or as spans of different styles.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -323,6 +357,8 @@ pub struct ParagraphSpec {
 }
 
 /// A piece of a paragraph: text in a style, a link, code, a line break or a footnote.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -348,6 +384,8 @@ pub struct SpanSpec {
 }
 
 /// One block of the flow, tagged by `type`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
@@ -379,6 +417,8 @@ pub enum BlockSpec {
 }
 
 /// Empty space.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -389,6 +429,8 @@ pub struct SpacerSpec {
 }
 
 /// Blocks kept together on one page, or quoted.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -398,6 +440,8 @@ pub struct GroupSpec {
 }
 
 /// Code, line by line as written, a tab as spaces to the next multiple of four columns.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -410,6 +454,8 @@ pub struct CodeBlockSpec {
 }
 
 /// A list.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -430,6 +476,8 @@ pub struct ListSpec {
 }
 
 /// A list's kind.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
@@ -441,6 +489,8 @@ pub enum ListKindSpec {
 }
 
 /// A list item: a paragraph, and a list nested under it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -463,6 +513,8 @@ pub struct ListItemSpec {
 }
 
 /// An image.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -477,6 +529,8 @@ pub struct FigureSpec {
 }
 
 /// A table.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -516,6 +570,8 @@ pub struct TableSpec {
 }
 
 /// A column's width.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -529,6 +585,8 @@ pub enum ColumnSpec {
 }
 
 /// A table row.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -538,6 +596,8 @@ pub struct RowSpec {
 }
 
 /// A table cell.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -564,6 +624,8 @@ pub struct CellSpec {
 }
 
 /// Where a cell's text sits in its row.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
@@ -577,6 +639,8 @@ pub enum VAlignSpec {
 }
 
 /// A rule: its width in points and its colour.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -588,6 +652,8 @@ pub struct RuleSpec {
 }
 
 /// A contents page.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -605,6 +671,8 @@ pub struct ContentsSpec {
 }
 
 /// The pages a document flows through.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -629,6 +697,8 @@ pub struct PageSpec {
 }
 
 /// A page size.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
@@ -640,6 +710,8 @@ pub enum PageSizeSpec {
 }
 
 /// Margins.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
@@ -651,6 +723,8 @@ pub enum MarginsSpec {
 }
 
 /// A header or footer: `{page}`, `{pages}`, `{section}` and `{title}` are filled in.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
