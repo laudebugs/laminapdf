@@ -32,6 +32,8 @@ use crate::layout::LineRun;
 use crate::shape::{ShapedGlyph, ShapedRun, sub};
 
 /// One element of a `TJ` array.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TjElement {
     /// Glyph codes to show: two bytes per glyph (the CID, Identity-H).
@@ -42,6 +44,8 @@ pub enum TjElement {
 }
 
 /// Glyphs drawn at one text rise.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PdfSegment {
@@ -54,6 +58,8 @@ pub struct PdfSegment {
 
 /// A stretch of the run that is either extracted through ToUnicode (`actual_text: None`) or
 /// must be wrapped in `/Span << /ActualText (…) >> BDC … EMC` (ISO 32000-2 §14.9.4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PdfPiece {
@@ -64,6 +70,8 @@ pub struct PdfPiece {
 }
 
 /// A shaped run ready to be written: pieces in drawing order and the run's total advance.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PdfRun {
@@ -76,6 +84,8 @@ pub struct PdfRun {
 
 impl PdfRun {
     /// Whether some piece needs `/ActualText`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn needs_actual_text(&self) -> bool {
         self.pieces.iter().any(|p| p.actual_text.is_some())
@@ -120,6 +130,8 @@ impl PdfRun {
 /// [`Error::MissingGlyph`] for a `.notdef` glyph, naming the character the font lacks;
 /// [`Error::UnknownFont`]; [`Error::InvalidTextRange`] when the run's range or a cluster is
 /// not in `text`; [`Error::GlyphOutOfRange`].
+///
+/// Added in 0.2.0.
 pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontKey) -> Result<PdfRun> {
     let run_text = sub(text, run.text_range.clone())?;
     let font = fonts.try_font(key)?.clone();
@@ -238,6 +250,8 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
 ///
 /// # Errors
 /// As [`pdf_run`].
+///
+/// Added in 0.2.0.
 pub fn pdf_line_run(run: &LineRun, text: &str, fonts: &mut FontRegistry, key: FontKey) -> Result<PdfRun> {
     let mut pdf = pdf_run(&run.run, text, fonts, key)?;
     if run.rise != 0.0 && run.size > 0.0 {

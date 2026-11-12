@@ -4,22 +4,38 @@
 // are, to post to a worker or the main thread without copying.
 import type { PageTextJs, TextRunJs } from "@laminapdf/wasm/extract";
 
-/** Options for {@link PageRef.text}. */
+/**
+ * Options for {@link PageRef.text}.
+ *
+ * @since 0.2.0
+ */
 export interface TextOptions {
   /** Leave out text drawn invisibly (rendering modes 3 and 7: OCR layers, hidden text). */
   readonly skipInvisible?: boolean;
 }
 
-/** A point in page space: points from the top-left of the displayed CropBox, y down. */
+/**
+ * A point in page space: points from the top-left of the displayed CropBox, y down.
+ *
+ * @since 0.2.0
+ */
 export interface QuadPoint {
   readonly x: number;
   readonly y: number;
 }
 
-/** A glyph's quad: its four corners, in drawing order (bottom-left, bottom-right, top-right, top-left of the glyph box). */
+/**
+ * A glyph's quad: its four corners, in drawing order (bottom-left, bottom-right, top-right, top-left of the glyph box).
+ *
+ * @since 0.2.0
+ */
 export type GlyphQuad = readonly [QuadPoint, QuadPoint, QuadPoint, QuadPoint];
 
-/** One glyph of a run. */
+/**
+ * One glyph of a run.
+ *
+ * @since 0.2.0
+ */
 export interface TextGlyph {
   /** The glyph's text (document text; U+FFFD when its Unicode is unknown). */
   readonly text: string;
@@ -27,7 +43,11 @@ export interface TextGlyph {
   readonly quad: GlyphQuad;
 }
 
-/** A run: glyphs of one font, size, direction and marked content on one baseline, in logical order. */
+/**
+ * A run: glyphs of one font, size, direction and marked content on one baseline, in logical order.
+ *
+ * @since 0.2.0
+ */
 export class PageTextRun {
   readonly #page: PageText;
   readonly #run: TextRunJs;
@@ -41,53 +61,93 @@ export class PageTextRun {
     this.#range = Object.freeze([run.glyphs[0], run.glyphs[1]] as const);
   }
 
-  /** The run's text in logical order (document text). */
+  /**
+   * The run's text in logical order (document text).
+   *
+   * @since 0.2.0
+   */
   get text(): string {
     return this.#run.text;
   }
 
-  /** The font's `/BaseFont` (document text). */
+  /**
+   * The font's `/BaseFont` (document text).
+   *
+   * @since 0.2.0
+   */
   get font(): string {
     return this.#run.font;
   }
 
-  /** Font size, the text matrix applied. */
+  /**
+   * Font size, the text matrix applied.
+   *
+   * @since 0.2.0
+   */
   get size(): number {
     return this.#run.size;
   }
 
-  /** Vertical writing. */
+  /**
+   * Vertical writing.
+   *
+   * @since 0.2.0
+   */
   get vertical(): boolean {
     return this.#run.vertical;
   }
 
-  /** The marked-content ID the run is in, if any (structure tree links). */
+  /**
+   * The marked-content ID the run is in, if any (structure tree links).
+   *
+   * @since 0.2.0
+   */
   get mcid(): number | undefined {
     return this.#run.mcid;
   }
 
-  /** The text comes from an `/ActualText` span. */
+  /**
+   * The text comes from an `/ActualText` span.
+   *
+   * @since 0.2.0
+   */
   get actualText(): boolean {
     return this.#run.actualText;
   }
 
-  /** Drawn invisibly (`Tr` 3 or 7: an OCR layer, hidden text). */
+  /**
+   * Drawn invisibly (`Tr` 3 or 7: an OCR layer, hidden text).
+   *
+   * @since 0.2.0
+   */
   get invisible(): boolean {
     return this.#run.invisible;
   }
 
-  /** The bounds of its glyph quads in page space: `{ x, y, width, height }`. */
+  /**
+   * The bounds of its glyph quads in page space: `{ x, y, width, height }`.
+   *
+   * @since 0.2.0
+   */
   get bounds(): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } {
     const [x, y, width, height] = this.#run.bounds;
     return { x, y, width, height };
   }
 
-  /** The `[start, end)` range of its glyphs in the page's glyph arrays ({@link PageText.buffers}). */
+  /**
+   * The `[start, end)` range of its glyphs in the page's glyph arrays ({@link PageText.buffers}).
+   *
+   * @since 0.2.0
+   */
   get glyphRange(): readonly [number, number] {
     return this.#range;
   }
 
-  /** Its glyphs, with their quads (built on each call). */
+  /**
+   * Its glyphs, with their quads (built on each call).
+   *
+   * @since 0.2.0
+   */
   glyphs(): TextGlyph[] {
     const [start, end] = this.#run.glyphs;
     const out: TextGlyph[] = [];
@@ -99,7 +159,11 @@ export class PageTextRun {
 /** @internal The raw arrays of a PageText (the worker client sends them). */
 export let rawOf: (text: PageText) => PageTextJs;
 
-/** A page's extracted text: lines in reading order, and runs with their glyphs' quads. */
+/**
+ * A page's extracted text: lines in reading order, and runs with their glyphs' quads.
+ *
+ * @since 0.2.0
+ */
 export class PageText {
   readonly #raw: PageTextJs;
   #runs: readonly PageTextRun[] | undefined;
@@ -118,23 +182,39 @@ export class PageText {
     this.glyphCount = Math.max(0, raw.glyphOffsets.length - 1);
   }
 
-  /** The text by line (runs on one baseline joined, trimmed), in content order. */
+  /**
+   * The text by line (runs on one baseline joined, trimmed), in content order.
+   *
+   * @since 0.2.0
+   */
   get lines(): readonly string[] {
     return this.#lines;
   }
 
-  /** The page's text: its lines joined with `\n`. */
+  /**
+   * The page's text: its lines joined with `\n`.
+   *
+   * @since 0.2.0
+   */
   text(): string {
     return this.#lines.join("\n");
   }
 
-  /** The runs, in content order (made on first use). */
+  /**
+   * The runs, in content order (made on first use).
+   *
+   * @since 0.2.0
+   */
   get runs(): readonly PageTextRun[] {
     this.#runs ??= this.#raw.runs.map((r) => new PageTextRun(this, r));
     return this.#runs;
   }
 
-  /** Glyphs whose Unicode is unknown (shown as U+FFFD). */
+  /**
+   * Glyphs whose Unicode is unknown (shown as U+FFFD).
+   *
+   * @since 0.2.0
+   */
   get unmapped(): number {
     return this.#raw.unmapped;
   }
@@ -147,6 +227,8 @@ export class PageText {
    *
    * @throws `RangeError` for an index outside `0 … glyphCount - 1`; `TypeError` once
    *   {@link PageText.buffers}' arrays were transferred to another thread.
+   *
+   * @since 0.2.0
    */
   glyph(i: number): TextGlyph {
     if (!Number.isInteger(i) || i < 0 || i >= this.glyphCount) {
@@ -171,6 +253,8 @@ export class PageText {
    * that detaches them here, and this PageText's `glyph()` and `glyphs()` then throw (`lines`
    * and `runs` keep working). They are this PageText's own arrays, not copies: writing to them
    * changes what `glyph()` returns.
+   *
+   * @since 0.2.0
    */
   get buffers(): { readonly quads: Float32Array; readonly glyphText: string; readonly glyphOffsets: Uint32Array } {
     return { quads: this.#raw.quads, glyphText: this.#raw.glyphText, glyphOffsets: this.#raw.glyphOffsets };

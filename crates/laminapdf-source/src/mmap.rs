@@ -19,6 +19,8 @@ use memmap2::Mmap;
 /// not an error Lamina PDF can catch), and changed bytes change under the parser. Prefer
 /// [`FileSource`](crate::FileSource) unless the file is known to be immutable (a read-only
 /// volume, a file the app wrote and keeps locked). An empty file maps as empty.
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct MmapSource {
     map: Option<Mmap>,
@@ -29,6 +31,8 @@ impl MmapSource {
     ///
     /// # Errors
     /// The file can't be opened or mapped.
+    ///
+    /// Added in 0.2.0.
     pub fn open(path: impl AsRef<Path>) -> io::Result<Self> {
         Self::from_file(&File::open(path)?)
     }
@@ -37,6 +41,8 @@ impl MmapSource {
     ///
     /// # Errors
     /// The file can't be mapped.
+    ///
+    /// Added in 0.2.0.
     pub fn from_file(file: &File) -> io::Result<Self> {
         if file.metadata()?.len() == 0 {
             return Ok(Self { map: None });

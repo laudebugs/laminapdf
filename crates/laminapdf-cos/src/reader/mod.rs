@@ -81,6 +81,8 @@ const PROBE_GAP: usize = 256;
 /// ([`Document::warnings`]), or refused with [`Error::Strict`] in strict mode.
 ///
 /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+///
+/// Added in 0.2.0.
 #[expect(
     clippy::struct_excessive_bools,
     reason = "independent facts about the opened file, not states of one machine"
@@ -298,6 +300,8 @@ impl Document {
     /// source cannot deliver its bytes. For encrypted files: [`Error::PasswordRequired`],
     /// [`Error::WrongPassword`], [`Error::UnsupportedSecurityHandler`], or
     /// [`Error::InvalidStructure`] for a malformed `/Encrypt` dictionary.
+    ///
+    /// Added in 0.2.0.
     #[expect(
         clippy::needless_pass_by_value,
         reason = "ADR 0005's signature: the options are moved in (they may carry a password)"
@@ -394,6 +398,8 @@ impl Document {
     /// that is not `major.minor`). The builder (`laminapdf-build`) creates every object in the
     /// overlay; saving it is always a full rewrite (`laminapdf-save`'s `NoBase`). Reads behave as
     /// for a file whose objects are all free until the overlay sets a `/Root`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn empty(version: Option<&str>, options: &OpenOptions) -> Self {
         let base = Base {
@@ -529,6 +535,8 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::Strict`] in strict mode.
+    ///
+    /// Added in 0.2.0.
     pub fn report(&self, warning: Warning) -> Result<()> {
         self.warn(warning)
     }
@@ -536,12 +544,16 @@ impl Document {
     /// The trailer as it is now: the overlay's when this session changed it
     /// ([`CosMut::set_trailer`](crate::CosMut::set_trailer)), else the newest trailer
     /// dictionary of the file (for xref-stream files, the stream dictionary).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn trailer(&self) -> &Dict {
         self.overlay.trailer().unwrap_or(&self.trailer)
     }
 
     /// The newest trailer dictionary of the file, ignoring the overlay.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn base_trailer(&self) -> &Dict {
         &self.trailer
@@ -549,6 +561,8 @@ impl Document {
 
     /// Number of xref sections reached via `/Prev` (1 for a file never updated).
     /// For repaired files: the number of trailers found by scanning (at least 1).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn revisions(&self) -> usize {
         self.revisions
@@ -557,6 +571,8 @@ impl Document {
     /// The offsets of the xref sections reached via `/Prev` from the newest one, newest first
     /// (hybrid `/XRefStm` sections not included); empty for a repaired file. A signature's
     /// `/ByteRange` end, compared with them, tells which revision it closes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn xref_section_offsets(&self) -> &[usize] {
         &self.section_offsets
@@ -566,6 +582,8 @@ impl Document {
     /// is `null` counts as absent). [`Document::open`] only returns such a document once a
     /// password (possibly the empty user password) authenticated it; it is decrypted as it is
     /// read, and [`Document::matched_password`] says which password worked.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_encrypted(&self) -> bool {
         self.security.is_some()
@@ -582,6 +600,8 @@ impl Document {
     /// assert_eq!((doc.encryption(), doc.permissions(), doc.matched_password()), (None, None, None));
     /// # Ok::<(), laminapdf_cos::Error>(())
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn encryption(&self) -> Option<&Encryption> {
         self.security.as_ref().map(Security::info)
@@ -591,6 +611,8 @@ impl Document {
     /// one. They are what the file asks for, not access control (research ch. 04 §7.5):
     /// whether to honour them, and whether opening with the owner password lifts them, is the
     /// caller's decision.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn permissions(&self) -> Option<Permissions> {
         self.security.as_ref().map(Security::permissions)
@@ -598,18 +620,24 @@ impl Document {
 
     /// Which password opened an encrypted document (the empty user password counts as
     /// [`PasswordKind::User`]); `None` for an unencrypted one.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn matched_password(&self) -> Option<PasswordKind> {
         self.security.as_ref().map(Security::matched)
     }
 
     /// True when the xref was rebuilt by scanning because the stored one was unusable.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn was_repaired(&self) -> bool {
         self.repaired
     }
 
     /// True when any xref section read was an xref stream.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn has_xref_stream(&self) -> bool {
         self.has_xref_stream
@@ -618,30 +646,40 @@ impl Document {
     /// The warnings raised so far: at open, and lazily as objects are resolved and streams
     /// decoded (so the list can grow after `open`). Deduplicated by code and object, and
     /// capped at [`Limits::max_warnings`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn warnings(&self) -> Vec<Warning> {
         self.warnings.borrow().list().to_vec()
     }
 
     /// The limits this document was opened with.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn limits(&self) -> &Limits {
         &self.limits
     }
 
     /// Whether the document was opened in strict mode.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_strict(&self) -> bool {
         self.strict
     }
 
     /// The version in the `%PDF-x.y` header, e.g. `"1.7"` (`None` when the header is missing).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn header_version(&self) -> Option<&str> {
         self.header_version.as_deref()
     }
 
     /// Offset of the newest xref section (`None` for repaired files).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn startxref(&self) -> Option<usize> {
         self.startxref
@@ -649,6 +687,8 @@ impl Document {
 
     /// The input bytes, when the source holds them in memory ([`ByteSource::as_slice`]);
     /// `None` for a source read in windows, which is never read whole.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn data(&self) -> Option<&[u8]> {
         self.source.in_memory()
@@ -660,11 +700,15 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::DataPending`] with every missing window; [`Error::Source`].
+    ///
+    /// Added in 0.2.0.
     pub fn whole_input(&self) -> Result<Cow<'_, [u8]>> {
         self.source.whole()
     }
 
     /// The input source, shareable with other documents (one per thread).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn source(&self) -> &Arc<dyn ByteSource> {
         self.source.get()
@@ -672,6 +716,8 @@ impl Document {
 
     /// Whether the newest xref section is an xref stream (the incremental writer appends the
     /// same kind).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn newest_section_is_stream(&self) -> bool {
         self.newest_is_stream
@@ -681,12 +727,16 @@ impl Document {
     /// exceeding [`Limits::max_object_number`] included. This describes the base (the
     /// file's xref), not objects created in this session ([`Document::object_numbers`] lists
     /// those too).
+    ///
+    /// Added in 0.2.0.
     pub const fn max_object_number(&self) -> Option<u32> {
         self.max_object_number
     }
 
     /// Numbers of all objects that exist now, ascending: the base's in-use objects not
     /// deleted in this session, then the ones created in it (always numbered above the base's).
+    ///
+    /// Added in 0.2.0.
     pub fn object_numbers(&self) -> impl Iterator<Item = u32> + '_ {
         let base = self
             .entries
@@ -707,6 +757,8 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::Type`] when `/Root` is not a dictionary; errors from [`Document::resolve`].
+    ///
+    /// Added in 0.2.0.
     pub fn catalog(&self) -> Result<Dict> {
         let _call = self.call();
         let root = self.trailer().get("Root").ok_or(Error::MissingRoot)?;
@@ -755,6 +807,8 @@ impl Document {
     /// overlay (objects in object streams have generation 0). The writers use it for
     /// modified objects (same generation) and deleted ones (a free entry with the next
     /// generation, §7.5.4).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn base_generation(&self, num: u32) -> Option<u16> {
         self.entries
@@ -766,6 +820,8 @@ impl Document {
     /// The head of the base's free list (§7.5.4): the next-free number of object 0 in the
     /// newest xref section that lists it, 0 when none does (or the xref was repaired). An
     /// incremental update links its own free entries in front of it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn free_list_head(&self) -> u32 {
         self.free_head

@@ -1,23 +1,59 @@
 // Paths in the flat encoding laminapdf-wasm reads (ADR 0016 §7): a verb, then its numbers.
 import type { Point, Rect } from "./types.js";
 
-/** Builds a path in page space; every method returns the builder, so calls chain. */
+/**
+ * Builds a path in page space; every method returns the builder, so calls chain.
+ *
+ * @since 0.2.0
+ */
 export interface PathBuilder {
-  /** Starts a subpath at (x, y). */
+  /**
+   * Starts a subpath at (x, y).
+   *
+   * @since 0.2.0
+   */
   moveTo(x: number, y: number): PathBuilder;
-  /** A straight line to (x, y). */
+  /**
+   * A straight line to (x, y).
+   *
+   * @since 0.2.0
+   */
   lineTo(x: number, y: number): PathBuilder;
-  /** A cubic Bézier curve through two control points to (x, y). */
+  /**
+   * A cubic Bézier curve through two control points to (x, y).
+   *
+   * @since 0.2.0
+   */
   cubicTo(x1: number, y1: number, x2: number, y2: number, x: number, y: number): PathBuilder;
-  /** A quadratic Bézier curve through one control point to (x, y). */
+  /**
+   * A quadratic Bézier curve through one control point to (x, y).
+   *
+   * @since 0.2.0
+   */
   quadTo(x1: number, y1: number, x: number, y: number): PathBuilder;
-  /** Closes the subpath. */
+  /**
+   * Closes the subpath.
+   *
+   * @since 0.2.0
+   */
   close(): PathBuilder;
-  /** A rectangle: left, top, width, height. */
+  /**
+   * A rectangle: left, top, width, height.
+   *
+   * @since 0.2.0
+   */
   rect(rect: Rect): PathBuilder;
-  /** The ellipse inscribed in a rectangle. */
+  /**
+   * The ellipse inscribed in a rectangle.
+   *
+   * @since 0.2.0
+   */
   ellipse(rect: Rect): PathBuilder;
-  /** A circle around `center`. */
+  /**
+   * A circle around `center`.
+   *
+   * @since 0.2.0
+   */
   circle(center: Point, radius: number): PathBuilder;
 }
 

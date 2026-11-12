@@ -3,6 +3,8 @@
 use laminapdf_cos::{Dict, Name};
 
 /// Which panel a viewer shows when the document opens (`/PageMode`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PageMode {
@@ -42,6 +44,8 @@ impl PageMode {
 }
 
 /// How a viewer lays pages out when the document opens (`/PageLayout`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PageLayout {
@@ -90,6 +94,8 @@ impl PageLayout {
 ///     .with_page_layout(PageLayout::OneColumn);
 /// assert!(prefs.display_doc_title());
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub struct ViewerPreferences {
@@ -101,6 +107,8 @@ pub struct ViewerPreferences {
 impl ViewerPreferences {
     /// Show the Info title in the window's title bar instead of the file name
     /// (`/DisplayDocTitle`, PDF 1.4).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_display_doc_title(mut self, display: bool) -> Self {
         self.display_doc_title = display;
@@ -108,6 +116,8 @@ impl ViewerPreferences {
     }
 
     /// The panel shown on opening.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_page_mode(mut self, mode: PageMode) -> Self {
         self.page_mode = Some(mode);
@@ -115,6 +125,8 @@ impl ViewerPreferences {
     }
 
     /// The page layout on opening.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_page_layout(mut self, layout: PageLayout) -> Self {
         self.page_layout = Some(layout);
@@ -122,18 +134,24 @@ impl ViewerPreferences {
     }
 
     /// Whether the title bar shows the document title.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn display_doc_title(&self) -> bool {
         self.display_doc_title
     }
 
     /// The page mode, if set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn page_mode(&self) -> Option<PageMode> {
         self.page_mode
     }
 
     /// The page layout, if set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn page_layout(&self) -> Option<PageLayout> {
         self.page_layout

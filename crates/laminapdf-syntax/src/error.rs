@@ -12,6 +12,8 @@ use crate::limits::Limit;
 /// with [`Error::map_position`] (`laminapdf-cos` does, for windows and object streams).
 /// `Display` formats only fixed text and numbers, never bytes or names read from the input
 /// (ADR 0026 §4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -65,6 +67,8 @@ pub enum Error {
 
 impl Error {
     /// Every code [`Error::code`] can return.
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &[
         "unexpected-eof",
         "syntax",
@@ -77,6 +81,8 @@ impl Error {
 
     /// A stable kebab-case code for this error, part of the public API in Rust, WASM and
     /// TypeScript (listed in `fixtures/codes.json`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -94,6 +100,8 @@ impl Error {
     /// [`Error::code`] (a test checks every variant).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -108,12 +116,16 @@ impl Error {
     }
 
     /// Where the error was found (ADR 0026 §1.1); empty when there is no position.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         Location::from(self.position())
     }
 
     /// The tagged position this error carries, if any.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn position(&self) -> Option<Position> {
         match *self {
@@ -128,6 +140,8 @@ impl Error {
     /// This error with its position passed through `f`: how a caller re-tags an offset in
     /// the buffer it parsed ([`Position::shifted`] for a window of the file,
     /// [`Position::in_stream`] for a stream's decoded data).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn map_position(self, f: impl FnOnce(Position) -> Position) -> Self {
         match self {
@@ -148,6 +162,8 @@ impl Error {
 }
 
 /// Shorthand for `Result<T, laminapdf_syntax::Error>`.
+///
+/// Added in 0.2.0.
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[cfg(test)]

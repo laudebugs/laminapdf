@@ -450,7 +450,7 @@ cargo xtask clippy-examples [--all-strict] [--warnings] [--json]  # clippy on La
                              #   tools/xtask/clippy-examples/clippy.toml (functions ≤ 40 lines) and let_underscore_must_use;
                              #   strict on changed examples, warnings elsewhere (`check rust` runs it with --all-strict)
 cargo xtask check rust       # fmt --check, maintainability, portability, clippy native + wasm32 (-D warnings), clippy-examples,
-                             #   tests, rustdoc, cargo-deny
+                             #   tests, rustdoc, check since, cargo-deny
 cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust rules, no build: ≤ 800 non-test lines per module
                              #   and no new size-lint #[expect] (tools/xtask/maintainability-baseline.toml), no pub type name in
                              #   two crates and no façade name re-exported twice (maintainability-duplicates.toml); both only shrink;
@@ -459,6 +459,9 @@ cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust r
                              #   laminapdf-test-fixtures (baseline `test-helpers`); no PDF lexer or PNG row filter outside
                              #   laminapdf-syntax (`one-lexer`); no todo ID with a letter suffix (read from docs/todos/'s file
                              #   names) in crates/*/src or packages/*/src, TypeScript included (`todo-id`)
+cargo xtask check since      # every public item of a published crate ends its docs with `Added in X.Y.Z.` (rustdoc's JSON
+                             #   with RUSTC_BOOTSTRAP=1, into target/since/; tools/xtask/src/since.rs); part of `check rust` (in CI on the Linux x64 leg only). @laminapdf/sdk's
+                             #   exports carry `@since X.Y.Z`, which `check ts`'s apps/docs/scripts/check-api-docs.mjs checks
 cargo xtask check ts         # the platform boundary (ADR 0010 rule 1: no `@tauri-apps/*`, `isTauri`, Tauri globals or user agent in
                              #   packages/*/src, comments aside), biome ci (packages/sdk/biome.json's examples override reports errors; every example is linted
                              #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build

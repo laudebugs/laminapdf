@@ -4,6 +4,8 @@
 use std::fmt;
 
 /// A font's `OS/2.fsType` bits. A font without an `OS/2` table has `0` (installable).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct FsType(u16);
 
@@ -20,12 +22,16 @@ impl FsType {
     const BITMAP_ONLY: u16 = 0x0200;
 
     /// Wraps the raw bits.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(bits: u16) -> Self {
         Self(bits)
     }
 
     /// The raw bits.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn bits(self) -> u16 {
         self.0
@@ -34,24 +40,32 @@ impl FsType {
     /// Restricted licence embedding. The OpenType spec says the least restrictive of the
     /// usage bits (0–3) wins when several are set, so a font that also allows preview & print
     /// or editable embedding is not restricted.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_restricted(self) -> bool {
         self.0 & Self::RESTRICTED != 0 && self.0 & (Self::PREVIEW_PRINT | Self::EDITABLE) == 0
     }
 
     /// Only bitmaps may be embedded; Lamina PDF embeds outlines, so this forbids embedding too.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_bitmap_only(self) -> bool {
         self.0 & Self::BITMAP_ONLY != 0
     }
 
     /// The font must be embedded whole (all glyphs, original glyph IDs).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn forbids_subsetting(self) -> bool {
         self.0 & Self::NO_SUBSETTING != 0
     }
 
     /// Whether the font may be embedded at all.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn allows_embedding(self) -> bool {
         !self.is_restricted() && !self.is_bitmap_only()
@@ -65,6 +79,8 @@ impl fmt::Display for FsType {
 }
 
 /// Whether to honour a font's `fsType` embedding restrictions.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum EmbedPolicy {

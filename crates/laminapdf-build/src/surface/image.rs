@@ -9,6 +9,8 @@ use crate::error::{Error, ImageFormat, Result};
 
 /// The most decoded bytes a PNG may need (256 MiB): larger images fail with
 /// [`Error::ImageTooLarge`] before the samples are allocated.
+///
+/// Added in 0.2.0.
 pub const MAX_DECODED_IMAGE_BYTES: usize = 256 << 20;
 
 /// An image's colour space.
@@ -62,6 +64,8 @@ pub(crate) struct ImageData {
 }
 
 /// Options for [`Image::png_with`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct PngOptions {
@@ -72,12 +76,16 @@ pub struct PngOptions {
 
 impl PngOptions {
     /// The defaults, as [`PngOptions::default`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// With [`PngOptions::downconvert_16`] set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_downconvert_16(mut self, on: bool) -> Self {
         self.downconvert_16 = on;
@@ -95,6 +103,8 @@ impl PngOptions {
 /// assert_eq!((img.width(), img.height(), img.has_alpha()), (2, 1, true));
 /// # Ok::<(), laminapdf_build::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Image {
     pub(crate) data: Arc<ImageData>,
@@ -145,18 +155,24 @@ impl Image {
     }
 
     /// Width in pixels.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn width(&self) -> u32 {
         self.data.width
     }
 
     /// Height in pixels.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn height(&self) -> u32 {
         self.data.height
     }
 
     /// Whether the image has an alpha channel that isn't fully opaque (written as `/SMask`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn has_alpha(&self) -> bool {
         self.data.alpha.is_some()
@@ -171,6 +187,8 @@ impl Image {
     /// [`Error::InvalidImage`] when there is no SOI or no frame header before the scan, or a
     /// segment runs past the end; [`Error::UnsupportedImage`] for arithmetic coding, lossless
     /// or hierarchical JPEG, a precision other than 8 bits, or 2 or more than 4 components.
+    ///
+    /// Added in 0.2.0.
     pub fn jpeg(bytes: Vec<u8>) -> Result<Self> {
         let header = jpeg_header(&bytes)?;
         let color = match header.components {
@@ -200,6 +218,8 @@ impl Image {
     ///
     /// # Errors
     /// As [`Image::png_with`].
+    ///
+    /// Added in 0.2.0.
     pub fn png(bytes: &[u8]) -> Result<Self> {
         Self::png_with(bytes, PngOptions::default())
     }
@@ -212,6 +232,8 @@ impl Image {
     /// # Errors
     /// [`Error::InvalidImage`] for bytes the decoder rejects; [`Error::ImageTooLarge`] when
     /// the decoded image would exceed [`MAX_DECODED_IMAGE_BYTES`].
+    ///
+    /// Added in 0.2.0.
     pub fn png_with(bytes: &[u8], options: PngOptions) -> Result<Self> {
         let png = super::png::decode(bytes, options.downconvert_16)?;
         let color = if png.gray { ImageColor::Gray } else { ImageColor::Rgb };
@@ -238,6 +260,8 @@ impl Image {
     /// [`Error::ImageTooLarge`] when `width × height × 4` doesn't fit in memory's address
     /// space; [`Error::ImageDataLength`] when `rgba` is not that many bytes;
     /// [`Error::InvalidGeometry`] for a zero width or height.
+    ///
+    /// Added in 0.2.0.
     pub fn rgba(width: u32, height: u32, rgba: &[u8]) -> Result<Self> {
         if width == 0 || height == 0 {
             return Err(Error::InvalidGeometry {

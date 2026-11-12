@@ -17,6 +17,8 @@ use laminapdf_syntax::Limits;
 /// assert!(options.strict());
 /// assert_eq!(options.limits().max_stream_decoded(), 1 << 20);
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct OpenOptions {
     limits: Limits,
@@ -26,12 +28,16 @@ pub struct OpenOptions {
 
 impl OpenOptions {
     /// The defaults, as [`OpenOptions::default`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Sets the resource [`Limits`] (default: [`Limits::default`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_limits(mut self, limits: Limits) -> Self {
         self.limits = limits;
@@ -41,6 +47,8 @@ impl OpenOptions {
     /// Strict mode (default off): every [`Warning`](crate::Warning) becomes an
     /// [`Error::Strict`](crate::Error::Strict), so a file that needs repair is reported
     /// instead of silently mended (validators, signature verification).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_strict(mut self, strict: bool) -> Self {
         self.strict = strict;
@@ -54,6 +62,8 @@ impl OpenOptions {
     /// as Latin-1); R5/R6 passwords are UTF-8, prepared with SASLprep. A wrong password makes
     /// [`Document::open`](crate::Document::open) fail with
     /// [`Error::WrongPassword`](crate::Error::WrongPassword); it is never printed by `Debug`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_password(mut self, password: impl Into<Vec<u8>>) -> Self {
         self.password = Some(password.into());
@@ -61,18 +71,24 @@ impl OpenOptions {
     }
 
     /// The resource limits.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn limits(&self) -> &Limits {
         &self.limits
     }
 
     /// Whether strict mode is on.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn strict(&self) -> bool {
         self.strict
     }
 
     /// The password, if one was given.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn password(&self) -> Option<&[u8]> {
         self.password.as_deref()

@@ -12,6 +12,8 @@ use crate::error::{Error, Result};
 
 /// What happens to lines that don't fit a text box's height (or a single grapheme cluster
 /// wider than the box).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum Overflow {
@@ -33,6 +35,8 @@ pub enum Overflow {
 ///     .with_overflow(Overflow::Error);
 /// assert_eq!(options.line_height(), 1.4);
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct TextBoxOptions {
@@ -59,12 +63,16 @@ impl Default for TextBoxOptions {
 
 impl TextBoxOptions {
     /// The defaults, as [`TextBoxOptions::default`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Line alignment (default: the paragraph's start side).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_align(mut self, align: Alignment) -> Self {
         self.align = align;
@@ -72,6 +80,8 @@ impl TextBoxOptions {
     }
 
     /// The distance between baselines as a multiple of the font size (default 1.2).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_line_height(mut self, factor: f64) -> Self {
         self.line_height = factor;
@@ -79,6 +89,8 @@ impl TextBoxOptions {
     }
 
     /// What happens to lines that don't fit (default [`Overflow::Clip`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_overflow(mut self, overflow: Overflow) -> Self {
         self.overflow = overflow;
@@ -86,6 +98,8 @@ impl TextBoxOptions {
     }
 
     /// The paragraph direction (default: from the first strong character).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_direction(mut self, direction: Direction) -> Self {
         self.direction = Some(direction);
@@ -93,6 +107,8 @@ impl TextBoxOptions {
     }
 
     /// The text's language (BCP 47), for the shaper.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_language(mut self, language: impl Into<String>) -> Self {
         self.language = Some(language.into());
@@ -100,6 +116,8 @@ impl TextBoxOptions {
     }
 
     /// An OpenType feature for every run.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_feature(mut self, feature: Feature) -> Self {
         self.features.push(feature);
@@ -107,18 +125,24 @@ impl TextBoxOptions {
     }
 
     /// The alignment.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn align(&self) -> Alignment {
         self.align
     }
 
     /// The line height factor.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn line_height(&self) -> f64 {
         self.line_height
     }
 
     /// The overflow behaviour.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn overflow(&self) -> Overflow {
         self.overflow
@@ -126,6 +150,8 @@ impl TextBoxOptions {
 }
 
 /// One drawn line of a text box, page space.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct LineBox {
@@ -141,6 +167,8 @@ pub struct LineBox {
 }
 
 /// How [`Surface::text_box`](crate::Surface::text_box) laid its text out.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct TextLayout {
@@ -155,6 +183,8 @@ pub struct TextLayout {
 
 impl TextLayout {
     /// Whether some text didn't fit.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn overflowed(&self) -> bool {
         self.overflow.is_some()
@@ -166,6 +196,8 @@ impl TextLayout {
     /// space and control characters, or a box too short for one line. Blank lines after the last
     /// drawn one don't count. A clipped box gives its last drawn line; check
     /// [`overflow`](Self::overflow) before treating the text as placed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn bottom(&self) -> Option<Pt> {
         self.bottom

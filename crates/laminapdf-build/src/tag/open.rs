@@ -26,6 +26,8 @@ pub(crate) fn next_builder() -> u32 {
 /// A structure element that can continue on later pages, from
 /// [`Surface::open_element`](crate::Surface::open_element). It belongs to the builder whose page
 /// opened it, and stays open until [`Builder::close_element`](crate::Builder::close_element).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ElementId {
     builder: u32,
