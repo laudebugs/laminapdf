@@ -1,65 +1,70 @@
-# E4f — Annotation tools and properties panel
+# E4f — Comment mode: tools and the annotation inspector
 
 | Field | Value |
 | --- | --- |
 | ID | `E4f` |
 | Status | `ready` |
-| Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
+| Plan | [E4 plan §4](../../plans/editor/e4-markup-and-drawing-annotations.md#4-crate-and-package-changes) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4e](./E4e-freetext-callouts.md) |
-| ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
+| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4i](./E4i-viewer-annotation-layer.md) |
+| ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e4f-annotation-tools-ui` |
-| PR title | `feat(ui): annotation tools and properties panel` |
-| Size | L (600–1,500) |
+| PR title | `feat(ui): Comment mode with its tools and the annotation inspector` |
+| Size | L (400–800): the mode, nine tools over the annotation layer, the inspector and the covered-text notice; text boxes and touch are E4j and E4k |
 | PR | — |
 
 ## Goal
 
-Annotate mode in both apps: toolbar tools (highlight, underline, strike-through, note, caret, ink, rectangle, ellipse, line, arrow, polygon, polyline, text box, callout), selection/move/resize, and a properties panel (colour, opacity, border width/style, line endings, font), with stylus pressure for ink where the platform reports it.
+Comment mode in the web reader: its secondary toolbar, the Select, Highlight, Underline, Strike, Caret, Note, Ink and Shapes tools, the colour and width controls, and the inspector for a selected annotation (colour, fill, width, opacity, border, line endings, smoothing, note), with the banner on files certified at P1 or P2.
 
 ## Context
 
-- **Design (Paper):** [F02](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [C01 Comment tools](../../design/paper/comment-review.md#c01-comment-tools), [C08 Phone annotate](../../design/paper/comment-review.md#c08-phone-annotate), [C09 Tablet stylus](../../design/paper/comment-review.md#c09-tablet-stylus). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) web vs desktop
-- [full-editor §6](../../plans/full-editor.md#6-design-summary) interaction modes
+- **Design (Paper):** [F02](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [C01 Comment tools](../../design/paper/comment-review.md#c01-comment-tools), [C02 Ink and shapes](../../design/paper/comment-review.md#c02-ink-and-shapes). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
+- [E4 plan §5](../../plans/editor/e4-markup-and-drawing-annotations.md#5-the-viewer-while-drawing) and [§6](../../plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint)
+- [ADR 0024](../../decisions/0024-app-shell-ux.md) §2: `mode.comment` owns one secondary toolbar
 - [Hacker News research R2](../../research/hacker-news/pdf-users-on-hacker-news.md#r2-ship-real-redaction-and-catch-fake-redaction-in-any-file): a box drawn over text is the classic failed redaction, and users ask editors to warn about it ([trust and proof plan §7](../../plans/trust-and-proof.md#7-changes-to-existing-todos-and-plans))
 
 ## Scope
 
 **In scope**
 
-- `annotate` mode and one tool module per subtype
-- Properties panel with recent colours and defaults per tool (stored per-viewer in local settings)
-- Pointer Events pressure → ink width variation (stored as multiple paths or per E4a)
-- Keyboard creation and editing paths; ARIA labels; focus order
-- A covered-text notice: when a filled rectangle, ellipse or polygon at full opacity covers text from the page's text layer, a dismissible notice says the text stays in the file and can be copied, and offers the redaction tool once it exists ([E12b](./E12b-mark-and-review.md)); it never blocks the annotation
+- `mode.comment` in the mode registry and its toolbar; the `comment.*` tool commands and the `annot.*` inspector commands of C01 and C02, each in the command registry
+- One tool module per mark over [E4i](E4i-viewer-annotation-layer.md)'s layer; text tools snap to text runs through the text layer's quads
+- The inspector, with colours and widths remembered per tool on this device; the author name from Settings, asked the first time
+- Keyboard creation and editing (C01, C02), single-key shortcuts that Settings can turn off, ARIA names and focus order
+- The banner from the moment Comment mode opens on a P1 or P2 file (C01); tools disabled with the reason on a file whose permissions forbid annotating
+- The covered-text notice: a filled rectangle, ellipse or polygon at full opacity over text from the text layer gets a dismissible notice that the text stays in the file and can be copied, offering the redaction tool once [E12b](E12b-mark-and-review.md) exists; it never blocks the annotation
 
 **Out of scope** (and which todo covers it)
 
-- None
+- Text boxes and callouts → [E4j](E4j-text-box-tools.md)
+- The phone annotate bar and the tablet tool shelf → [E4k](E4k-touch-and-stylus-annotating.md)
+- Stamp and Attach file → [E5c](E5c-stamps-and-attachments.md); the Comments panel → [E5b](E5b-comment-threads-and-review.md)
+- The desktop → [E4h](E4h-desktop-annotations.md)
 
 **Editor facts**
 
-- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `D.01` highlight / underline / strike through; `D.02` sticky notes and text comments; `D.03` text-correction annotations; `D.04` freehand ink; `D.05` shapes, lines, arrows; `D.06` callouts and text boxes; `B.06` arrows, paths, freehand drawing
-- **Crates and packages:** `@laminapdf/ui`, `@laminapdf/viewer`
-- **`SaveConstraint`:** banner and gating from E1e on signed files
-- **Web vs desktop:** identical; pressure only where `PointerEvent.pressure` is meaningful
-- **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `D.01` → `round-trip` (web, desktop); `D.02` → `round-trip` (web, desktop); `D.03` → `round-trip` (web, desktop); `D.04` → `round-trip` (web, desktop); `D.05` → `round-trip` (web, desktop); `D.06` → `round-trip` (web, desktop); `B.06` → `round-trip` (web, desktop)
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `D.01`, `D.02`, `D.03`, `D.04`, `D.05`, `B.06` in the interface
+- **Crates and packages:** `@laminapdf/ui`, `apps/web`
+- **`SaveConstraint`:** the banner and gating from E1e
+- **Web vs desktop:** this todo is the web side
+- **Server features:** none
+- **Capability-matrix rows to flip:** `D.01`, `D.02`, `D.03`, `D.04`, `D.05`, `B.06` → `round-trip` (web)
 
 ## Tasks
 
+- [ ] The mode and its toolbar
 - [ ] Tools
-- [ ] Selection handles
-- [ ] Properties panel
-- [ ] Covered-text notice for opaque shapes drawn over text
-- [ ] e2e per tool tagged with IDs
+- [ ] The inspector
+- [ ] The covered-text notice
+- [ ] Playwright specs per tool, tagged with capability IDs
 
 ## Acceptance criteria
 
-- [ ] e2e on both shells: create each annotation type, save, reopen in pdf.js; appearance and properties preserved
-- [ ] axe zero serious violations in annotate mode
-- [ ] e2e: an opaque filled rectangle drawn over text shows the covered-text notice; a shape with a transparent fill, or one over empty space, shows none
+- [ ] Playwright in Chromium, Firefox and WebKit: each tool makes its annotation with mouse and keyboard, saves, and the file reopened in pdf.js shows the same appearance and properties
+- [ ] axe reports no serious violation in Comment mode, in three themes
+- [ ] On the certified-P2 fixture the banner shows when the mode opens; on the P3 fixture there is none and a highlight saves incrementally
+- [ ] An opaque filled rectangle drawn over text shows the covered-text notice; a shape with a transparent fill, or one over empty space, shows none
 
 ## Post-merge checks
 
@@ -67,23 +72,23 @@ None.
 
 ## Tests
 
-- Playwright and WebdriverIO specs
-- Vitest for tool state machines
+- Playwright specs in `apps/web/e2e/`
+- Vitest for the tool state machines
 
 ## Docs to update
 
 - User help: annotating
-- [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) and the [E4 plan §8](../../plans/editor/e4-markup-and-drawing-annotations.md#8-todos): point this todo's link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
 ## Risks and open questions
 
-- None known beyond the round's risks in the plan
+- Gallery screenshots aren't refreshed by any workflow; say so in the PR if a shared component changes
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
