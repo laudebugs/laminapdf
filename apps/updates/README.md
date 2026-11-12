@@ -13,7 +13,7 @@ This Cloudflare Worker tells each installed copy of the Lamina PDF desktop app w
 | Nightly | bucket `lamina-pdf-nightly`, files at `nightly-downloads.laminapdf.com` |
 | Staging channel | bucket `lamina-pdf-staging`, files at `staging-downloads.laminapdf.com` |
 | Manifest format | `src/manifest.ts`, and `schemas/manifest.schema.json` for other tools |
-| Deploys | `.github/workflows/updates-deploy.yml`: every push to `main` that touches the Worker deploys staging and smoke-tests it (`scripts/smoke.sh`), then deploys production in the `production` environment, smoke-tests it, and rolls it back if that fails |
+| Deploys | `.github/workflows/updates-deploy.yml`: every push to `main` that touches the Worker deploys staging and smoke-tests it (`scripts/smoke.sh`), then deploys production in the `updates-production` environment, smoke-tests it, and rolls it back if that fails |
 | Channels and buckets | `src/channels.ts`, the one map; a test holds `wrangler.jsonc`'s bindings to it |
 
 The Worker only reads the buckets. A release is a set of files plus a manifest change, never a Worker deploy: the desktop release workflow uploads the bundles, and the manifest tool below edits the manifest.
@@ -96,4 +96,4 @@ This is done once, in the Cloudflare dashboard. Until the deploy secrets exist, 
 4. **Deploy token.** The workflow uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, the same ones the web reader deploys with. The token needs **Workers Scripts: Edit** on the account and **Workers Routes: Edit** on the `laminapdf.com` zone, and **no R2 access at all**: deploying a Worker with R2 bindings needs none, and only the per-bucket tokens above may write releases. The first deploy creates the `updates.` and `staging-updates.` custom domains and their certificates.
 5. **Check it.** `https://updates.laminapdf.com/healthz` answers `ok`. A channel with no manifest answers 204.
 
-The GitHub environments themselves (reviewers, branch rules, the signing secrets) are set up in the desktop release runbook, `docs/guidelines/desktop-release.md`.
+The GitHub environments themselves (reviewers, branch rules, the signing secrets) are set up in the desktop release runbook, `docs/guidelines/desktop-release.md` (added by the desktop signing runbook, PR #517). The `updates-production` environment the deploy uses needs no setup: GitHub creates it on the first deploy, and it is the update Worker's own, apart from the web reader's `production`.

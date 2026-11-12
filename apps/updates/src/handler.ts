@@ -1,5 +1,7 @@
 // The update endpoint (ADR 0014 §4): `GET|HEAD /{channel}/{target}/{arch}/{current_version}` answers
-// 204 (no update) or 200 with Tauri's dynamic JSON; `/healthz` answers 200; anything else 404.
+// 204 (no update) or 200 with Tauri's dynamic JSON; `/healthz` answers 200. A known channel with
+// segments the updater never sends is 400, any other path 404, another method 405, and an R2 failure
+// 503.
 // The `Lamina-Install-Id` header is read here and nowhere else: it is checked, lower-cased, hashed
 // for the rollout and dropped. It never goes into a log, an error or a subrequest (the Worker makes
 // none: R2 is read through its binding).

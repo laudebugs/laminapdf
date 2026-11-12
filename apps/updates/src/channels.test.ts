@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { wranglerConfig } from "../test/helpers.ts";
+import { wranglerConfig } from "../test/wrangler-config.ts";
 import { CHANNEL_BUCKETS, CHANNELS, isChannel } from "./channels.ts";
 
 describe("CHANNEL_BUCKETS", () => {

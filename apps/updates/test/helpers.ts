@@ -6,6 +6,7 @@ import type { HandlerDeps, LogEvent } from "../src/handler.ts";
 import type { Manifest } from "../src/manifest.ts";
 import { bucketFor } from "../src/rollout.ts";
 
+/** A manifest from test/fixtures/, by file name without `.json`. */
 export function fixture(name: string): Manifest {
   return JSON.parse(readFileSync(new URL(`fixtures/${name}.json`, import.meta.url), "utf8")) as Manifest;
 }
@@ -35,6 +36,7 @@ class MemoryCache implements ManifestCache {
   }
 }
 
+/** The handler's dependencies as test doubles, with the handles a test needs to drive them. */
 export interface Harness {
   readonly deps: HandlerDeps;
   readonly store: MemoryStore;
@@ -46,6 +48,7 @@ export interface Harness {
   settle(): Promise<void>;
 }
 
+/** A fresh {@link Harness}: an empty bucket and cache, no logs, and a clock at 2027-01-20 12:00 UTC. */
 export function harness(): Harness {
   const store = new MemoryStore();
   const cache = new MemoryCache();
@@ -72,6 +75,7 @@ export function harness(): Harness {
   };
 }
 
+/** A request to the production host, with the install-ID header when `installId` is given. */
 export function request(path: string, init: { installId?: string; method?: string } = {}): Request {
   const headers = new Headers();
   if (init.installId !== undefined) headers.set("Lamina-Install-Id", init.installId);
@@ -105,20 +109,4 @@ export async function cohortIds(version: string, percent: number): Promise<{ ins
   }
   if (!inside || !outside) throw new Error("no install IDs on both sides of the rollout");
   return { inside, outside };
-}
-
-/** The R2 bindings and the compatibility date of one of wrangler.jsonc's Workers. */
-export interface WorkerConfig {
-  readonly compatibility_date: string;
-  readonly r2_buckets: readonly { readonly binding: string; readonly bucket_name: string }[];
-}
-
-/** wrangler.jsonc: its top-level Worker (production) and each `env`. Its comments take whole lines. */
-export function wranglerConfig(): WorkerConfig & { readonly env: Readonly<Record<string, Partial<WorkerConfig>>> } {
-  const text = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
-  const json = text
-    .split("\n")
-    .filter((line) => !line.trimStart().startsWith("//"))
-    .join("\n");
-  return JSON.parse(json);
 }

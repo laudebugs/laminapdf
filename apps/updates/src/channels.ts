@@ -2,6 +2,8 @@
 // the manifest tool and the tests read. wrangler.jsonc binds the same buckets, and channels.test.ts
 // holds the two together.
 
+import { isOneOf } from "./one-of.ts";
+
 /** The channels an install can follow, plus `staging`, which only tests use and the app never offers. */
 export const CHANNELS = ["stable", "beta", "nightly", "staging"] as const;
 
@@ -27,11 +29,6 @@ export const CHANNEL_BUCKETS: Readonly<Record<Channel, ChannelBucket>> = {
   nightly: { binding: "NIGHTLY", bucket: "lamina-pdf-nightly" },
   staging: { binding: "STAGING", bucket: "lamina-pdf-staging" },
 };
-
-/** Whether `value` is one of `list`'s strings, narrowing it to that list's type. */
-export function isOneOf<T extends string>(list: readonly T[], value: unknown): value is T {
-  return typeof value === "string" && (list as readonly string[]).includes(value);
-}
 
 /** Whether `value` names a channel. */
 export function isChannel(value: unknown): value is Channel {

@@ -298,8 +298,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/channels.ts (the channels and their buckets, the one map; a test holds wrangler.jsonc to it);
 │                        #   unit tests beside their sources (src/*.test.ts, scripts/edits.test.ts), test/ (handle in Node, the
 │                        #   bundled Worker in workerd through Miniflare, a log-leak test); invocation logs and traces off;
-│                        #   deployed by .github/workflows/updates-deploy.yml (staging, then production in the `production`
-│                        #   environment with a rollback on a failed smoke test, from main); README.md has the updater
+│                        #   deployed by .github/workflows/updates-deploy.yml (staging, then production in the
+│                        #   `updates-production` environment with a rollback on a failed smoke test, from main); README.md has the updater
 │                        #   public keys and the owner's setup
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc

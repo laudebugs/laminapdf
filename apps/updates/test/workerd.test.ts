@@ -5,7 +5,8 @@
 import { build } from "esbuild";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cohortIds, fixture, wranglerConfig } from "./helpers.ts";
+import { cohortIds, fixture } from "./helpers.ts";
+import { wranglerConfig } from "./wrangler-config.ts";
 
 let mf: Miniflare;
 const logged: string[] = [];
@@ -27,7 +28,7 @@ beforeAll(async () => {
       modules: true,
       script,
       compatibilityDate: wranglerConfig().compatibility_date,
-      r2Buckets: ["RELEASES", "STAGING", "NIGHTLY"],
+      r2Buckets: wranglerConfig().r2_buckets.map((bucket) => bucket.binding),
       handleStructuredLogs: (log) => logged.push(JSON.stringify(log)),
     }),
   );

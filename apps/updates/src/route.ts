@@ -1,6 +1,7 @@
 // The update endpoint's path: `/{channel}/{target}/{arch}/{current_version}`, the variables Tauri's
 // updater fills in (https://v2.tauri.app/plugin/updater/). Anything else is `/healthz` or 404.
-import { type Channel, isChannel, isOneOf } from "./channels.ts";
+import { type Channel, isChannel } from "./channels.ts";
+import { isOneOf } from "./one-of.ts";
 import { isVersion } from "./semver.ts";
 
 /** Tauri's `{{target}}` values. */
