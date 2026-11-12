@@ -11,7 +11,7 @@
 | Branch | `docs/q4h-troubleshooting` |
 | PR title | `docs: troubleshooting for Rust, the command line, extraction and rendering` |
 | Size | S–M |
-| PR | — |
+| PR | [#457](https://github.com/laudebugs/laminapdf/pull/457) |
 
 ## Goal
 
