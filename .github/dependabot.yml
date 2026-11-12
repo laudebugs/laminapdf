@@ -31,8 +31,9 @@ updates:
       # The desktop app's @tauri-apps/api and cli, in step with the tauri crate (ADR 0008).
       tauri:
         patterns: ["@tauri-apps/*"]
-      # The docs site's Starlight, Astro and Starlight's plugins, which move together; the site
-      # upgrades them one minor per PR (apps/docs/README.md, "Upgrading Starlight and Astro").
+      # The docs site's Starlight, Astro and Starlight's plugins, which move together, majors
+      # included; the site upgrades them one minor per PR (apps/docs/README.md, "Upgrading Starlight
+      # and Astro"). Any later @astrojs/* package joins this group too.
       starlight:
         patterns: ["astro", "@astrojs/*", "starlight-*"]
       npm-minor-patch:

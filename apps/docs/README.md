@@ -98,11 +98,12 @@ What depends on Starlight's internals, and why each exists:
 | `src/components/ThemeSelect.astro` | The `ThemeSelect` override; the `<starlight-theme-select>` element, the `starlight-theme` storage key and the theme provider's `updatePickers` | The theme switch on the sites' Paper select; its script is Starlight's, under Starlight's names, so the two diff easily: diff it with each upgrade |
 | `src/components/Banner.astro` | The `Banner` override, wrapping Starlight's own | The notice on docs that describe unreleased changes |
 | `src/routeData.ts` | `defineRouteMiddleware` and the `starlightRoute` local | Generated reference pages get no "Edit page" link |
-| `src/components/Example.astro` | The `<starlight-tabs>` element and its `starlight-synced-tabs__lang` storage key | A language chosen in one example's tabs holds in every example |
+| `src/components/Example.astro` | The `<starlight-tabs>` element and its `starlight-synced-tabs__lang` storage key; eight `--sl-*` properties in its styles, among them `--sl-shadow-sm`, which `paper.css` doesn't set | A language chosen in one example's tabs holds in every example; the example's frame in Starlight's colours |
+| `src/styles/diagrams.css` | `--sl-text-sm` | The diagrams' labels at Starlight's small text size |
 | `src/content.config.ts`, `src/pages/reference/codes/[code].astro` | Starlight's loaders and schema, and `StarlightPage` | The docs collection, and the code pages built outside it |
 | `src/styles/paper.css` | 46 of Starlight's `--sl-*` properties, and Starlight's classes and attributes: `.sl-markdown-content`, `.sl-container`, `.header`, `.sidebar-content`, `.right-sidebar`, `.right-sidebar-container`, `.right-sidebar-panel`, `.pagination-links`, `.main-pane`, `[data-has-sidebar]`, `[data-has-toc]` | The Paper look ([Look](#look)); a renamed class or property fails silently, so compare the pages by eye |
 
-Add a row when a change adds an override, imports from `@astrojs/starlight/` or `virtual:starlight/`, or styles Starlight's markup, and remove it when the dependency goes.
+Starlight's documented components (`Code`, `Tabs`, `TabItem` from `@astrojs/starlight/components`) are its public API and need no row. Add a row when a change adds an override, imports any other part of `@astrojs/starlight/` or `virtual:starlight/`, styles Starlight's markup or uses an `--sl-*` property, and remove it when the dependency goes.
 
 ## Deploying
 
