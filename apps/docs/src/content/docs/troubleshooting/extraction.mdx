@@ -19,7 +19,7 @@ These entries cover text extraction, in TypeScript, Rust and `laminapdf extract`
 
 ## The text runs across two columns, with `extract-column-order-uncertain`
 
-**Cause:** extraction works the reading order out from the layout, and this page left it in doubt. Two columns set closer than a font size apart read as one, for example. The blocks in doubt have a `confidence` of 0.5.
+**Cause:** extraction works the reading order out from the layout, and this page left it in doubt. For example, two columns set closer than a font size apart read as one. The blocks in doubt have a `confidence` of 0.5.
 
 **Fix:** check those pages by hand, or send them to a layout model, which reads columns from the page's image. If the file is tagged, its structure tree gives the order, and a page read in the tree's order never raises this warning. See [`extract-column-order-uncertain`](/reference/codes/extract-column-order-uncertain/).
 
@@ -33,7 +33,7 @@ These entries cover text extraction, in TypeScript, Rust and `laminapdf extract`
 
 **Cause:** the font has no map from its glyphs to characters, so extraction can't tell which letter each glyph draws. Most of these are subset fonts without a [ToUnicode](/reference/glossary/#tounicode) map: the table in a font that says which character each glyph draws. Extraction writes U+FFFD, the replacement character, for each glyph.
 
-**Fix:** no option recovers the text, because the file doesn't hold it. OCR is the only way. A page with many such glyphs is also `needs-ocr`. See [`unmapped-glyph`](/reference/codes/unmapped-glyph/).
+**Fix:** only OCR can recover the text, because the file doesn't hold it. A page with many such glyphs is also `needs-ocr`. See [`unmapped-glyph`](/reference/codes/unmapped-glyph/).
 
 ## Headers, footers and page numbers are missing
 

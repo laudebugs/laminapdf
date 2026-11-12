@@ -13,7 +13,7 @@ These entries cover drawing pages as pixels: `laminapdf render`, and the hayro a
 
 ## A large page or a high resolution fails with `render-too-large`
 
-**Cause:** an image may hold at most 16,777,216 pixels (4096 × 4096) and 16,384 pixels on a side, so a hostile file can't ask for a bitmap of any size. A US Letter page passes that size at about 420 dots per inch, so `laminapdf render --dpi 600` fails on it.
+**Cause:** an image may hold at most 16,777,216 pixels (4096 × 4096) and 16,384 pixels on a side, so a hostile file can't ask for a bitmap of any size. A US Letter page goes over that size above about 420 dots per inch, so `laminapdf render --dpi 600` fails on it.
 
 **Fix:** on the command line, lower `--dpi` or `--scale`. In code, draw the visible part of the page as tiles of 256 to 512 pixels, by giving each request a clip, instead of the whole page at once. Raise the limits only when you mean to make the larger image. See [`render-too-large`](/reference/codes/render-too-large/).
 

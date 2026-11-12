@@ -13,7 +13,7 @@ These entries cover the `laminapdf` tool. Most start from an exit code, because 
 
 ## The command exits 4 with `overwrite-refused`
 
-**Cause:** the output file already exists, and `laminapdf` never replaces a file unless you ask. It checks every output before it writes any, so nothing was written.
+**Cause:** the output file already exists, and `laminapdf` replaces a file only when you pass `--force`. It checks every output before it writes any, so nothing was written.
 
 **Fix:** pass `--force` to replace the file, or write to a new name. `--dry-run` shows what a command would write without writing it. See [`overwrite-refused`](/reference/codes/overwrite-refused/).
 

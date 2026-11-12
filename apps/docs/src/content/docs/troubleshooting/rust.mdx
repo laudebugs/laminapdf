@@ -13,13 +13,13 @@ These entries cover the `laminapdf` crate: the version Cargo picks, the features
 
 ## Cargo finds no version that matches your requirement
 
-**Cause:** Cargo's error lists the alphas as "candidate versions found which didn't match". A requirement such as `"0.2"` matches only full releases, and an alpha is a pre-release: its version ends in `-alpha` and a number.
+**Cause:** Lamina PDF's releases are alphas, whose versions end in `-alpha` and a number, and Cargo treats them as pre-releases. A requirement such as `"0.2"` matches only full releases, so Cargo's error lists the alphas as "candidate versions found which didn't match".
 
 **Fix:** name the alpha exactly, as `cargo add` writes it: `laminapdf = "={{version}}"`. The `=` also keeps `cargo update` from moving you to the next alpha, which may change the API: alphas promise nothing to each other. Move to a new alpha by changing the version yourself, after reading the [changelog](/reference/changelog/). See the [stability policy](/reference/stability/).
 
 ## `Builder` or `page_text` is not found in `laminapdf`
 
-**Cause:** the crate's features decide which parts of the API it compiles, and the error is `unresolved import` or `no method named`. With `--no-default-features`, it only opens, reads, edits and saves documents.
+**Cause:** the crate compiles only the parts of the API its features turn on, so a missing feature gives `unresolved import` or `no method named`. With `--no-default-features`, it only opens, reads, edits and saves documents.
 
 **Fix:** turn on the feature that brings what you use: `build` for the builder without text, `extract` for text extraction, or `text` for fonts and text, which brings both. The default features include `text`. [Install](/install/#rust-laminapdf) lists every feature.
 
@@ -31,7 +31,7 @@ These entries cover the `laminapdf` crate: the version Cargo picks, the features
 
 ## Cargo says the crate requires a newer rustc
 
-**Cause:** the error reads "cannot be built because it requires rustc 1.97 or newer". Lamina PDF supports Rust releases from two behind the newest stable one.
+**Cause:** your Rust is older than the oldest release Lamina PDF supports, two behind the newest stable one. The error reads "cannot be built because it requires rustc 1.97 or newer".
 
 **Fix:** update Rust with `rustup update stable`, or pin the project to a newer toolchain in its `rust-toolchain.toml`. See the [stability policy](/reference/stability/).
 
