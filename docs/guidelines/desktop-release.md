@@ -70,21 +70,22 @@ Gatekeeper accepts an app from outside the App Store only when a Developer ID Ap
 
 The steps follow Microsoft's [quickstart](https://learn.microsoft.com/azure/artifact-signing/quickstart). Identity validation for an individual takes its name and address from the Azure **billing account**, so fix those before you start.
 
-- [ ] Create a pay-as-you-go Azure subscription (free, trial and sponsored ones can't use Artifact Signing) on a billing account whose Account Type is **Individual**. Set its legal name and sold-to address to match your government ID exactly.
-- [ ] Register the `Microsoft.CodeSigning` resource provider on the subscription.
-- [ ] Create an Artifact Signing account, Basic tier (billing starts now, for the whole month), in a US region (for example East US, endpoint `https://eus.codesigning.azure.net`). Give yourself the Artifact Signing Identity Verifier role.
+- [x] Create a pay-as-you-go Azure subscription (free, trial and sponsored ones can't use Artifact Signing) on a billing account whose Account Type is **Individual**. Set its legal name and sold-to address to match your government ID exactly.
+- [x] Register the `Microsoft.CodeSigning` resource provider on the subscription.
+- [x] Create an Artifact Signing account, Basic tier (billing starts now, for the whole month), in a US region (for example East US, endpoint `https://eus.codesigning.azure.net`). Give yourself the Artifact Signing Identity Verifier role.
 - [ ] Under Identity validations, choose **Individual → New identity → Public**, then finish the ID check with AU10TIX and Microsoft Authenticator. The certificate shows your name, city, state or province, and country, never your street address.
 - [ ] Create a **Public Trust** certificate profile using that validation. Leave "Include street address" and "Include postal code" unticked.
-- [ ] In Microsoft Entra ID, register an app (`lamina-pdf-release-signing`). Add a **federated credential** for GitHub Actions: this repository, entity type *Environment*, environment `desktop-release`. Store no client secret ([GitHub OIDC with Azure](https://docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-azure)).
+- [x] In Microsoft Entra ID, register an app (`lamina-pdf-release-signing`). Add a **federated credential** for GitHub Actions: this repository, entity type *Environment*, environment `desktop-release`. Store no client secret ([GitHub OIDC with Azure](https://docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-azure)).
 - [ ] Give the app the **Artifact Signing Certificate Profile Signer** role on the certificate profile only.
-- [ ] Add the `desktop-release`-environment secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`. Record the non-secret names here:
+- [x] Add the `desktop-release`-environment secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`. Record the non-secret names here:
 
 | Name | Value |
 | --- | --- |
-| Endpoint | `<to fill in>` |
-| Account | `<to fill in>` |
+| Endpoint | `https://eus.codesigning.azure.net` (East US) |
+| Account | `LaurenceIninda`, resource group `Laurence_Ininda` |
 | Certificate profile | `<to fill in>` |
 | Identity validation completed | `<date>` |
+| Entra app (no client secret) | `lamina-pdf-release-signing`, federated credential `github-desktop-release` for `repo:laudebugs/laminapdf:environment:desktop-release` |
 
 **For D6d (recommendation, not yet tested):** sign with `signtool` and Microsoft's Artifact Signing dlib in `bundle.windows.signCommand`, logged in through `azure/login` with the federated credential, so no client secret exists. Tauri's guide uses `artifact-signing-cli` instead, but that tool needs a client secret, `AZURE_CLIENT_SECRET` ([Tauri Windows signing](https://v2.tauri.app/distribute/sign/windows/); [artifact-signing-cli](https://github.com/Levminer/artifact-signing-cli)). Only if `signtool` fails does the owner add a client secret, with a 12-month expiry.
 
