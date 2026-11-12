@@ -10,24 +10,24 @@ A `Document` is an open PDF: you read it, edit it and save it. This page shows t
 
 ## Open a file and read it
 
-`Document.open(bytes)` reads a file into memory and returns at once; everything after it is synchronous. This example opens a file and reads what an app's file list would show: each page's size, the title and authors, the first page's text and the warnings the file raised:
+`Document.open(bytes)` reads a file from bytes you already hold, and every read, edit and save on the document it returns is synchronous. This example opens a file and reads what an app's file list would show: each page's size, the title and authors, the first page's text and the warnings the file raised:
 
 <Snippet file="packages/sdk/examples/read-document.ts" />
 
 - `doc.pages` reads every page's facts in one pass, and `doc.pageInfo(i)` reads one. Sizes are in points (1/72 inch), as the page is displayed.
 - `doc.metadata()` reads the title, authors, subject, keywords and dates. A PDF keeps these twice, and the result also lists the fields where the two copies disagree.
-- `doc.outline()`, `doc.pageLinks(i)` and `doc.properties()` read the bookmarks, a page's links, and what a properties dialog shows.
+- `doc.outline()`, `doc.pageLinks(i)` and `doc.properties()` read the bookmarks, a page's links, and what a properties dialog shows. Like the text reads below, they need the text or extract module.
 - `doc.warnings` lists what the file needed repaired as it was read. A warning means the file opened, but not exactly as written; [errors and warnings](/concepts/errors-and-warnings/) explains each kind.
 
 A file that needs a password, or that comes from someone you don't trust, takes options: `Document.open(bytes, { password, limits })`. [Open files you don't trust](/guides/untrusted-files/) has an example that turns each failure into a value your app can show.
 
 ## Read a page's text, or the whole document's
 
-`doc.page(i).text()` returns a page's text by line, with each glyph's position for search highlights and selection. `doc.extract({ format: "markdown" })` reads the whole document in reading order, as Markdown, plain text, JSON or chunks for retrieval. Both need the text or extract module loaded before the file is opened. [Extract text for an LLM](/recipes/extract-markdown/) shows the four formats.
+`doc.page(i).text()` returns a page's text by line, with each glyph's position for search highlights and selection. `doc.extract({ format: "markdown" })` reads the whole document in reading order, as Markdown, plain text, JSON or chunks for retrieval. Both need the text or extract module loaded before the file is opened, as do `outline`, `namedDestination`, `pageLinks`, `properties`, `isTagged` and `structureTree`. Pages, metadata, warnings, edits and saves work in every module. [Extract text for an LLM](/recipes/extract-markdown/) shows the four formats.
 
 ## Edit it in a transaction
 
-An edit is an op, such as `rotatePage` or `setMetadata`, and `doc.transact(tx => …)` applies a group of them together: all of them, or none. This example turns a scan's landscape pages upright and saves the edit after the original bytes:
+An edit is an op, such as `rotatePage` or `setMetadata`, and `doc.transact(tx => …)` applies a group of them together: all of them, or none. This example turns a scan's landscape pages upright and saves the edit:
 
 <Snippet file="packages/sdk/examples/rotate-pages.ts" />
 
@@ -37,23 +37,23 @@ An edit is an op, such as `rotatePage` or `setMetadata`, and `doc.transact(tx =>
 
 `doc.save()` returns the file's bytes. The `mode` option chooses between a revision appended to the original bytes (`incremental`), the whole file written again (`fullRewrite`), and the first of the two the file allows (`auto`, the default). This example generates a draft, edits it and saves the edit incrementally:
 
-<Example ts="packages/sdk/examples/generate-then-edit.ts" result="generate_then_edit" />
+<Example ts="packages/sdk/examples/generate-then-edit.ts" rust="crates/laminapdf/examples/generate_then_edit.rs" result="generate_then_edit" />
 
-A signed, repaired or password-protected file limits how it can be saved. `doc.plan(options)` says how a save would go, or why it would be refused, before anything is written. [Save a PDF](/guides/save-a-pdf/) explains each case.
+A signed, repaired or encrypted file limits how it can be saved. `doc.plan(options)` says how a save would go, or why it would be refused, before anything is written. [Save a PDF](/guides/save-a-pdf/) explains each case.
 
 ## Open a large file from a server
 
-`Document.openRange(httpRangeSource(url))` downloads only the parts of a file it reads. A read that needs bytes that haven't arrived throws `data-pending`, so wrap each read in `doc.ensure(() => …)`, which fetches them and runs the read again. [Open large files by ranges](/guides/open-large-files/) has the example.
+`await Document.openRange(httpRangeSource(url))` downloads only the parts of a file it reads. A read that needs bytes that haven't arrived throws `data-pending`, so wrap each read in `await doc.ensure(() => …)`, which fetches them and runs the read again. [Open large files by ranges](/guides/open-large-files/) has the example.
 
 ## Mistakes to avoid
 
 - **A document you don't free holds its memory.** A document lives in WebAssembly memory, which the garbage collector frees late. Open it with `using doc = …` so it is freed at the end of the block, or call `doc.free()`.
-- **A document stays in the module it opened in.** A file opened before `init({ text: true })` or `loadExtract()` can't read text: `doc.page(i).text()` fails with `extract-module-not-loaded`. Load the module first; `doc.canExtractText` says whether a document can.
+- **A document stays in the module it opened in.** A file opened before `init({ text: true })` or `loadExtract()` can't read text, the outline, links, properties or the structure tree: those calls fail with `extract-module-not-loaded`. Load the module first; `doc.canExtractText` says whether a document can.
 - **A page index can change; its ID doesn't.** Ops name pages by `id`, as in `tx.rotatePage(page.id, 90)`. `doc.page(i)` returns a handle that follows its page by ID, so it still points at the right page after pages move.
 - **A transaction's callback is synchronous.** `transact` applies the ops when the callback returns, so reads inside it see the document before the edit. An `async` callback is refused, and editing or saving the same document inside it fails with `nested-transaction`.
 - **A save counts as saved.** After `doc.save()`, later edits and saves build on its output, and `hasUnsavedChanges` is false. For a download that shouldn't count, use `doc.saveCopy()`, which leaves the edits unsaved.
 - **Removed metadata stays in earlier revisions.** An [incremental save](/reference/glossary/#incremental-save) keeps the original bytes, old values included. To remove them from the file, save with `mode: "fullRewrite"`. The result of `removeMetadata` has `stillInEarlierRevisions` set when you need to.
-- **An edited password-protected file needs a decision.** It saves only as a [full rewrite](/reference/glossary/#full-rewrite) without its password, and only with `removeEncryption: true`. Without it, every mode fails with `encrypted-base`.
+- **An edited encrypted file needs a decision.** This covers every encrypted file, including one that opens without a password (`doc.isEncrypted`). It saves only as a [full rewrite](/reference/glossary/#full-rewrite) without its encryption, and only with `removeEncryption: true`. Without it, every mode fails with `encrypted-base`.
 - **The file's text is the file's.** Titles, authors and page text come from whoever made the file. Escape them before you put them in a web page. Lamina PDF's own error messages never contain the file's text.
 
 Next: [using Builder](/reference/builder-usage/).

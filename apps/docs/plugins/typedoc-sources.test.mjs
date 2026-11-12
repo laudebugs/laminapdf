@@ -2,13 +2,13 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { USAGE_PAGES } from "./sidebar.mjs";
 import {
   addUsageLinks,
   isDependencyFile,
   removeSummarisedMembers,
   SUMMARISED,
   sourceRevision,
-  USAGE_PAGES,
 } from "./typedoc-sources.mjs";
 
 test("a declaration in node_modules is a dependency's, on any platform", () => {
@@ -76,10 +76,10 @@ test("each class with a usage page ends its summary with a link to it", () => {
     Object.keys(USAGE_PAGES).map((name) => [name, [{ kind: "text", text: `The ${name} class.` }]]),
   );
   addUsageLinks(projectWith(summaries));
-  for (const [name, href] of Object.entries(USAGE_PAGES)) {
+  for (const [name, slug] of Object.entries(USAGE_PAGES)) {
     const text = (summaries[name] ?? []).map((part) => part.text).join("");
     assert.ok(text.startsWith(`The ${name} class.\n\n`), text);
-    assert.ok(text.endsWith(`[using ${name}](${href}).`), text);
+    assert.ok(text.endsWith(`[using ${name}](/${slug}/).`), text);
   }
 });
 

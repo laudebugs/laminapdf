@@ -6,10 +6,11 @@ import { Builder, type BuilderOptions, Font, PAGE_SIZES } from "@laminapdf/sdk";
 const MARGIN = 72;
 const HEADING_SIZE = 20;
 const FOOTER_SIZE = 10;
-const [, PAGE_HEIGHT] = PAGE_SIZES.A4;
+const PAGE_SIZE = "A4";
+const [, PAGE_HEIGHT] = PAGE_SIZES[PAGE_SIZE];
 
 /**
- * One A4 page per heading in `headings`. Needs `init({ text: true })`.
+ * One page per heading in `headings`. Needs `init({ text: true })`.
  *
  * @param options - can fix the file ID, the producer and the creation date.
  */
@@ -17,7 +18,7 @@ export function pageNumbers(headings: readonly string[], options: BuilderOptions
   using b = new Builder(options);
   const font = Font.standard("Helvetica");
   headings.forEach((heading, index) => {
-    const page = b.page("A4");
+    const page = b.page(PAGE_SIZE);
     const s = page.surface();
     // `at` is the baseline's start, in points from the page's top-left corner.
     s.text(heading, { font, size: HEADING_SIZE, at: [MARGIN, MARGIN + HEADING_SIZE] });

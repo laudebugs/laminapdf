@@ -26,7 +26,7 @@ When you don't know how many pages the content needs, let the builder decide: [p
 
 ## Draw text, shapes and images
 
-- `surface.text(str, { font, size, at })` draws one line, and `surface.textBox(str, { font, size, box })` wraps a paragraph to fit a box. [Text and fonts](/guides/fonts-and-text/) covers fonts, scripts and text that doesn't fit.
+- `surface.text(str, { font, size, at })` draws text as it is, starting a new line only at each line break in it, and `surface.textBox(str, { font, size, box })` wraps a paragraph to fit a box. [Text and fonts](/guides/fonts-and-text/) covers fonts, scripts and text that doesn't fit.
 - `surface.path(p => …)` draws a shape you then fill, stroke or clip to, and `surface.image(image, rect)` places a JPEG, a PNG or raw pixels. [Shapes, colour and images](/guides/images-and-vectors/) covers colour, opacity and transforms.
 
 ## Add links, bookmarks and metadata
@@ -46,6 +46,6 @@ When you don't know how many pages the content needs, let the builder decide: [p
 - **Some mistakes show up late.** A shape with invalid values fails at `page.finish()` with `invalid-geometry`. A link to a page or destination that doesn't exist fails at `b.finish()`, as does a profile's broken rule.
 - **The [standard 14 fonts](/reference/glossary/#standard-14-fonts) are Latin only.** `Font.standard("Helvetica")` needs no font file, but it covers Western European text and isn't embedded, so PDF/UA and PDF/A refuse it with `font-not-embedded`. Load your own font with `Font.fromBytes(bytes)` for other scripts and for those profiles.
 - **Dates come from you.** Lamina PDF never reads the clock, so a document has a creation date only when you pass `creationDate`. The same content and options give the same bytes on every run; [test the PDFs you generate](/guides/test-generated-pdfs/) builds on that.
-- **Free the document too.** `b.finish()` frees the builder, but the document it returns holds its own memory. Write `using doc = b.finish()`, as the examples do.
+- **Free the builder and the document.** `b.finish()` frees the builder, but a builder that throws before it finishes, such as on a missing glyph, holds its memory until the garbage collector reaches it. Declare it with `using b = new Builder()`, as the examples do, so it is freed either way. The document `b.finish()` returns holds its own memory, so write `using doc = b.finish()` too.
 
 Next: [the `Builder` reference](/reference/sdk/classes/builder/).

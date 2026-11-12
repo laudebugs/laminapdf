@@ -1,17 +1,15 @@
-// A TypeDoc plugin for the @laminapdf/sdk reference (astro.config.mjs): "Defined in" links to the file
-// on GitHub, but members inherited from TypeScript's own types (Error's `message`, `cause`, `stack`)
-// are declared in node_modules, which isn't in the repository. Their source keeps its file and line
-// and loses the link, so the member stays documented without a link that would 404.
+// A TypeDoc plugin for the @laminapdf/sdk reference (astro.config.mjs). It does three things:
+// - "Defined in" links to the file on GitHub, but members inherited from TypeScript's own types
+//   (Error's `message`, `cause`, `stack`) are declared in node_modules, which isn't in the
+//   repository. Their source keeps its file and line and loses the link, so the member stays
+//   documented without a link that would 404.
+// - The types in SUMMARISED lose their members, since their description explains them.
+// - The classes with a usage page (sidebar.mjs's USAGE_PAGES) end their summary with a link to it.
 import { Converter } from "typedoc";
+import { USAGE_PAGES } from "./sidebar.mjs";
 
 /** Types whose members the reference leaves out, since their description explains them. */
 export const SUMMARISED = ["FlowTemplate"];
-
-/** The classes with a usage page (common tasks and mistakes), which their reference page links to. */
-export const USAGE_PAGES = {
-  Document: "/reference/document-usage/",
-  Builder: "/reference/builder-usage/",
-};
 
 /** Where TypeDoc writes the @laminapdf/sdk reference, under the site's pages (astro.config.mjs). */
 export const TYPEDOC_OUTPUT = "reference/sdk";
@@ -58,7 +56,8 @@ export function removeSummarisedMembers(project) {
  * @param {Pick<import("typedoc").ProjectReflection, "getChildByName">} project
  */
 export function addUsageLinks(project) {
-  for (const [name, href] of Object.entries(USAGE_PAGES)) {
+  for (const [name, slug] of Object.entries(USAGE_PAGES)) {
+    const href = `/${slug}/`;
     const reflection = project.getChildByName(name);
     if (reflection?.comment === undefined) {
       throw new Error(`typedoc-sources: ${name} has a usage page (${href}) but no documented class to link it from`);

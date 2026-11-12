@@ -1,5 +1,5 @@
-// Turn a scan's landscape pages upright, in one transaction, and save the edit after the original
-// bytes. A page is named by its ID, which stays the same when other pages move.
+// Turn a scan's landscape pages upright, in one transaction, and save the edit. A page is named by
+// its ID, which stays the same when other pages move.
 import { Document, type Rotation } from "@laminapdf/sdk";
 
 /** A quarter turn clockwise from `degrees`. */
@@ -16,6 +16,8 @@ export function rotateLandscapePages(bytes: Uint8Array): Uint8Array<ArrayBuffer>
   doc.transact((tx) => {
     for (const page of landscape) tx.rotatePage(page.id, quarterTurn(page.rotation));
   });
-  // An incremental save keeps the original bytes and appends the edit.
-  return doc.save({ mode: "incremental" });
+  // The default save mode appends the edit after the original bytes when the file allows it, and
+  // writes the whole file again when it doesn't, as for a file that needed repair. An edited
+  // encrypted file is refused (`encrypted-base`) unless you pass `removeEncryption: true`.
+  return doc.save();
 }
