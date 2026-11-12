@@ -116,6 +116,9 @@ required-features = ["extract"]
 name = "react_to_error_codes"
 
 [[example]]
+name = "set_initial_view"
+
+[[example]]
 name = "snapshot_test"
 required-features = ["text"]
 
