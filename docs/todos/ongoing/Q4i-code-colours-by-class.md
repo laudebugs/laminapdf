@@ -11,7 +11,7 @@
 | Branch | `fix/q4i-docs-csp-styles` |
 | PR title | `fix(docs): colour code by class and drop 'unsafe-inline' from style-src` |
 | Size | M |
-| PR | — |
+| PR | [laudebugs/lamina#470](https://github.com/laudebugs/lamina/pull/470) |
 
 ## Goal
 
