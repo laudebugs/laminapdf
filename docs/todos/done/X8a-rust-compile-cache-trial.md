@@ -74,7 +74,7 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
 ## Post-merge checks
 
 - [x] The bucket, its 30-day rule, both tokens, the variables and the environment set up through Cloudflare's API and `gh` on 2026-11-12.
-- [ ] The owner writes the six `SCCACHE_R2_*` secrets (the script from the session; auto mode refuses secret-store writes).
+- [x] The six `SCCACHE_R2_*` secrets written by the owner on 2026-11-12.
 - [ ] After that: five PR runs and five pushes to `main` on the two legs, with each job summary's stats, recorded in X8b.
 - [ ] A PR run reads in `READ_ONLY` and writes nothing; a push to `main` writes.
 - [ ] The two legs' Rust-cache key, in the toolchain step's log, is the same as before the patch for the same `Cargo.lock`, so the compile cache, which comes after that step, leaves it alone.
