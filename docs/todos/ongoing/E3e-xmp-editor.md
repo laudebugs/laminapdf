@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1c](../done/E1c-metadata-ops.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
@@ -35,7 +35,7 @@ Edit any XMP property, including custom and PDF/A extension schemas (`pdfaExtens
 **Out of scope** (and which todo covers it)
 
 - Converting a file to PDF/A → E16 (`H.12`)
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 

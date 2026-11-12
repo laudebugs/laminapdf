@@ -178,7 +178,7 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 
 **Platform differences.** Web identical (opened from More). Phone: the dialog becomes a full-height sheet; XMP shows the tree, and selecting a property pushes the detail view with a Back button.
 
-**As built (E1f).** The web reader's dialog has the Description tab and a File tab (R08's read-only facts, with Copy all); the XMP tab waits for [E3e](../../todos/ready/E3e-xmp-editor.md). Differences from the boards:
+**As built (E1f).** The web reader's dialog has the Description tab and a File tab (R08's read-only facts, with Copy all); the XMP tab waits for [E3e](../../todos/ongoing/E3e-xmp-editor.md). Differences from the boards:
 
 - **Modified** is read-only, with "Saving sets this to the time you save" and no checkbox: every save stamps the modification date ([E1e](../../todos/done/E1e-save-and-constraint-banner.md)), so the checkbox could only ever be on.
 - **Keyword chips** have 26 px remove buttons, the smallest icon button; they still meet the 24 px minimum.
@@ -188,7 +188,7 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 
 **Artboards:** `O04-document-info.dc.html`, `O04-xmp-editor.dc.html`.
 
-**Todos:** [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md).
+**Todos:** [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ongoing/E3e-xmp-editor.md).
 
 ## O05 Capability page
 
