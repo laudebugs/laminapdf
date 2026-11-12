@@ -12,7 +12,7 @@
 // edit unsaved.
 
 import type { RenderSource } from "@laminapdf/render";
-import type { Document, Op, PageInfo, PlannedSave, Reverted, SaveOptions } from "@laminapdf/sdk";
+import type { Document, DocumentMetadata, Op, PageInfo, PlannedSave, Reverted, SaveOptions } from "@laminapdf/sdk";
 import type { EditHistory, EditResult, ReplayedStep, RevertedStep, SavedCopy } from "../protocol.js";
 import { current, currentBackend, type EditState, filling, followEdit, type Open } from "./document.js";
 import { forgetSearch } from "./find.js";
@@ -324,6 +324,15 @@ async function reopen(opened: Open): Promise<void> {
 export function planSave(options: SaveOptions, id: number, signal: AbortSignal): Promise<PlannedSave> {
   const opened = current(id);
   return serial(opened, () => opened.model.ensure(() => opened.model.plan(options), { signal }));
+}
+
+/**
+ * Document `id`'s metadata as its edits leave it (Info and XMP read together), for the properties
+ * dialog's form. Read from the edited document, never the text copy, which has none of the edits.
+ */
+export function readMetadata(id: number, signal: AbortSignal): Promise<DocumentMetadata> {
+  const opened = current(id);
+  return serial(opened, () => opened.model.ensure(() => opened.model.metadata(), { signal }));
 }
 
 /** The token of the next copy a save writes. */

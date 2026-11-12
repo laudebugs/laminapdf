@@ -310,10 +310,13 @@ describe(`print, download and properties in ${BROWSER}`, () => {
     await choose(watched, "outline.pdf", readFileSync(new URL("outline.pdf", CORPUS)));
     await more(page, "Document properties…");
     const dialog = page.getByRole("dialog", { name: "Document properties" });
+    // The description is a form on its own tab (O04); the file's other facts are on File.
+    await dialog.getByLabel("Title").waitFor();
+    expect(await dialog.getByLabel("Title").inputValue()).toContain(fact?.properties.title);
+    expect(await dialog.getByLabel("Producer").inputValue()).toContain(fact?.properties.producer);
+    await dialog.getByRole("tab", { name: "File" }).click();
     await dialog.getByRole("heading", { name: "Fonts" }).waitFor();
     const value = (label: string) => dialog.locator("dt", { hasText: new RegExp(`^${label}$`) }).locator("+ dd");
-    expect(await value("Title").textContent()).toContain(fact?.properties.title);
-    expect(await value("Made with").textContent()).toContain(fact?.properties.producer);
     expect(await value("PDF version").textContent()).toContain(fact?.header_version);
     for (const font of fact?.properties.fonts ?? []) {
       expect(await dialog.getByRole("cell", { name: font }).count()).toBeGreaterThan(0);

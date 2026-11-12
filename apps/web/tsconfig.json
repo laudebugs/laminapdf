@@ -5,6 +5,7 @@
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
     "allowJs": true,
+    "resolveJsonModule": true,
     "types": ["node", "vite/client"]
   },
   "include": [

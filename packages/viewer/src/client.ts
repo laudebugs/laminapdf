@@ -16,7 +16,7 @@
 //   fires and the caller opens again with the password.
 
 import type { RenderRequest } from "@laminapdf/render";
-import { isLaminaPdfError, type Op, type PlannedSave, type SaveOptions } from "@laminapdf/sdk";
+import { type DocumentMetadata, isLaminaPdfError, type Op, type PlannedSave, type SaveOptions } from "@laminapdf/sdk";
 import {
   connect,
   Emitter,
@@ -384,6 +384,12 @@ export class ViewerClient {
     // A failed edit clears the steps undone: what a restart would replay follows.
     if (opened !== undefined && this.#document === opened) this.#edits.take({ pages: [], history });
     return history;
+  }
+
+  /** The open document's metadata as its edits leave it: Info and XMP read together. */
+  async metadata(call?: ViewerCallOptions): Promise<DocumentMetadata> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("metadata", [this.#document?.id ?? 0], call);
   }
 
   /** How saving the open document with `options` would go: its constraint, signatures, mode and warnings. */
