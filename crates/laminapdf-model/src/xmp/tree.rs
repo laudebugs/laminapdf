@@ -252,6 +252,18 @@ fn position(p: u64) -> usize {
     usize::try_from(p).unwrap_or(usize::MAX / 2)
 }
 
+/// The namespace of a prefix XMP writers use without declaring it, as `ExifTool` and `pdf.js` read
+/// them: the standard prefixes (ISO 16684-1) and the old `xap`/`xapMM` of the XMP basic and
+/// media-management schemas. Only an undeclared prefix falls back here; a declaration wins.
+fn well_known(prefix: &str) -> Option<&'static str> {
+    use super::mapping::{STANDARD_PREFIXES, XMP, XMP_MM};
+    match prefix {
+        "xap" => Some(XMP),
+        "xapMM" => Some(XMP_MM),
+        _ => STANDARD_PREFIXES.iter().find(|(p, _)| *p == prefix).map(|(_, ns)| *ns),
+    }
+}
+
 /// The five entities XML predefines (XML 1.0 §4.6).
 fn predefined(name: &str) -> Option<char> {
     match name {
@@ -385,7 +397,10 @@ impl Builder {
         let namespace = if attribute && prefix.is_empty() {
             ""
         } else {
-            self.scope.resolve(prefix).ok_or(ParseError::UnboundPrefix { offset })?
+            self.scope
+                .resolve(prefix)
+                .or_else(|| well_known(prefix))
+                .ok_or(ParseError::UnboundPrefix { offset })?
         };
         Ok(Name {
             prefix: prefix.to_owned(),

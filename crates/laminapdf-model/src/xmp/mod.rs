@@ -282,7 +282,7 @@ impl Packet {
         let utf16 = utf16(bytes)?;
         let text = match &utf16 {
             Some(decoded) => decoded.clone(),
-            None => std::str::from_utf8(bytes).map_err(|_| ParseError::Encoding)?.to_owned(),
+            None => utf8(bytes)?,
         };
         let back = |offset: u64| match utf16 {
             Some(_) => utf16_offset(bytes, &text, offset),
@@ -681,6 +681,23 @@ fn text_of(value: &RdfValue) -> Option<String> {
         }
         RdfValue::Other(_) => None,
     }
+}
+
+/// The packet as UTF-8 text. Bytes that aren't UTF-8 are refused, except inside the leading
+/// `<?xpacket … ?>` header, whose content XML doesn't read: some writers mangle its byte-order
+/// mark (`begin="\xEF\xBB?"`), and the header is read with U+FFFD in its place.
+fn utf8(bytes: &[u8]) -> Result<String, ParseError> {
+    if let Ok(text) = std::str::from_utf8(bytes) {
+        return Ok(text.to_owned());
+    }
+    let header_end = bytes
+        .starts_with(b"<?xpacket")
+        .then(|| bytes.windows(2).position(|w| w == b"?>"))
+        .flatten()
+        .ok_or(ParseError::Encoding)?;
+    let (header, rest) = bytes.split_at(header_end);
+    let rest = std::str::from_utf8(rest).map_err(|_| ParseError::Encoding)?;
+    Ok(format!("{}{rest}", String::from_utf8_lossy(header)))
 }
 
 /// The packet decoded, when it is UTF-16: by its byte-order mark, or by a first `<` with a

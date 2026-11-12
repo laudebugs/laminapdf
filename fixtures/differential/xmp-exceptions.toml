@@ -4,4 +4,49 @@
 # [[known]]: `file` (a glob over the input's name, `<source>/<path>` for the external corpus or
 # the fixture path), `fields` (default every field), `issue` (a link, or "PENDING", which the
 # report warns about) and `reason`. Unknown keys or field names are errors, and entries that
-# excused nothing in a run are listed as stale. None yet: the first nightly run fills this in.
+# excused nothing in a run are listed as stale. The first full run (2026-11-12) filled this in; the
+# files where lamina refused the packet were fixed instead (docs/bugs/xmp-packets-other-readers-accept/).
+
+[[known]]
+file = "pdfium/testing/resources/linearized_bug_1055.pdf"
+issue = "https://github.com/laudebugs/laminapdf/issues/527"
+reason = "ExifTool reads no XMP from this file, whose startxref is wrong (lamina and pypdf repair it); pypdf reads lamina's dates"
+
+[[known]]
+file = "pdfjs/test/pdfs/highlights.pdf"
+issue = "https://github.com/laudebugs/laminapdf/issues/527"
+reason = "ExifTool reads no XMP from this file (object streams over four revisions); pypdf reads lamina's dates, creator tool and producer"
+
+[[known]]
+file = "pdfjs/test/pdfs/issue17147.pdf"
+issue = "https://github.com/laudebugs/laminapdf/issues/527"
+reason = "ExifTool reads no XMP from this file (object streams over two revisions); pypdf reads lamina's dates, creator tool and producer"
+
+[[known]]
+file = "qpdf/qpdf/qtest/qpdf/metadata-crypt-filter.pdf"
+issue = "https://github.com/laudebugs/laminapdf/issues/527"
+reason = "an encrypted file whose metadata stream has its own /Crypt filter (Identity): ExifTool reads no XMP, lamina decrypts the file and reads the packet"
+
+[[known]]
+file = "pdfjs/test/pdfs/bug854315.pdf"
+fields = ["producer"]
+issue = "https://github.com/laudebugs/laminapdf/issues/527"
+reason = "pdf:Producer is written twice (iText appended a second description): lamina reads the first, ExifTool the last"
+
+[[known]]
+file = "pdfjs/test/pdfs/issue10900.pdf"
+fields = ["authors"]
+issue = "https://github.com/laudebugs/laminapdf/issues/527"
+reason = "dc:creator is an empty rdf:Seq: no authors to lamina, an empty string to ExifTool"
+
+[[known]]
+file = "pdfjs/test/pdfs/issue8702.pdf"
+fields = ["create_date", "modify_date", "metadata_date"]
+issue = "https://github.com/laudebugs/laminapdf/issues/527"
+reason = "the dates aren't ISO 8601 (2017-07-26T14:02:0300:00, the offset's colon missing): lamina reads none, ExifTool prints the text"
+
+[[known]]
+file = "pdfjs/test/pdfs/issue9949.pdf"
+fields = ["create_date", "modify_date", "metadata_date"]
+issue = "https://github.com/laudebugs/laminapdf/issues/527"
+reason = "the dates are PDF date strings (D:2018-08-02T16:06:22+02'00'), not ISO 8601: lamina reads none, ExifTool prints the text"
