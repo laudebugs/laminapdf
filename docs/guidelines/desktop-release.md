@@ -94,12 +94,15 @@ The steps follow Microsoft's [quickstart](https://learn.microsoft.com/azure/arti
 
 One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA256SUMS`.
 
-- [ ] On a trusted machine, preferably offline, create an ed25519 **primary key** for certification only: `gpg --quick-gen-key "<Legal Name> (Lamina PDF releases) <releases@laminapdf.com>" ed25519 cert 5y`. The email address is a suggestion.
-- [ ] Add a **signing subkey** that expires in two years: `gpg --quick-add-key <PRIMARY FPR> ed25519 sign 2y`.
+- [x] On a trusted machine, preferably offline, create an ed25519 **primary key** for certification only: `gpg --quick-gen-key "<Legal Name> (Lamina PDF releases) <releases@laminapdf.com>" ed25519 cert 5y`. The email address is a suggestion.
+- [x] Add a **signing subkey** that expires in two years: `gpg --quick-add-key <PRIMARY FPR> ed25519 sign 2y`.
 - [ ] Back up the primary key (`gpg --export-secret-keys --armor`) and a revocation certificate to two encrypted drives kept in different places, then remove the primary secret key from the machine CI's key comes from.
-- [ ] Export **only the subkey** (`gpg --export-secret-subkeys --armor <SUBKEY FPR>!`), protected by a passphrase. Add the `desktop-release` secrets `LINUX_SIGNING_KEY` (the armored export) and `LINUX_SIGNING_KEY_PASSPHRASE`.
-- [ ] Publish the public key at `https://laminapdf.com/keys/lamina-release.asc` (the file `apps/site/public/keys/lamina-release.asc`) and on [keys.openpgp.org](https://keys.openpgp.org/).
-- [ ] Record the primary key's fingerprint here and in ADR 0014: `<FINGERPRINT — to fill in>`.
+- [ ] Export **only the subkey** (`gpg --export-secret-subkeys --armor '<SUBKEY FPR>!'`, single-quoted so zsh leaves the `!` alone), protected by a passphrase. Add the `desktop-release` secrets `LINUX_SIGNING_KEY` (the armored export) and `LINUX_SIGNING_KEY_PASSPHRASE`.
+- [x] Publish the public key at `https://laminapdf.com/keys/lamina-release.asc` (the file `apps/site/public/keys/lamina-release.asc`, added by D6a; live once the website deploys it).
+- [ ] Upload it to [keys.openpgp.org](https://keys.openpgp.org/upload) and click the link it sends to `releases@laminapdf.com`, so the key is found by its email address.
+- [x] Record the fingerprints here (and in ADR 0014 once D5a writes it):
+  - primary (certify only, expires 2031-11-11): `FA00 7EB8 6046 1729 9F59  6FC5 B9FC 925D 5E53 7171`
+  - signing subkey (expires 2028-11-11): `DD4D 8CE5 7C00 8BF6 05D4  73B6 7C7B 196F 2CB0 87F5`
 
 **For D6b:** the workflow maps the two secrets to what each packaging tool reads.
 
@@ -230,8 +233,8 @@ Fill in each date when the item is created, and add a calendar reminder as far a
 | Developer ID Application certificate | 2027-12-12 (issued 2026-11-12; read the date from each new certificate: this one ran 13 months, not the 5 years older guidance gives) | 60 days before | create a new one (§1.3), replace `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` and `APPLE_SIGNING_IDENTITY`, sign the next release with it |
 | Artifact Signing identity validation | `<expiry date shown in the Azure portal>` | 60 days before (Microsoft also emails reminders from then) | create a new identity validation and attach it to the certificate profile; if it lapses, certificate renewal and signing stop ([FAQ](https://learn.microsoft.com/azure/artifact-signing/faq)) |
 | Entra client secret (only if used) | `<creation + 12 months>` | 30 days before | create a new secret, update `AZURE_CLIENT_SECRET`, delete the old one |
-| GPG signing subkey | `<creation + 2 years>` | 60 days before | `gpg --quick-set-expire <PRIMARY FPR> 2y <SUBKEY FPR>` on the offline machine, re-export and republish the public key, replace `LINUX_SIGNING_KEY` |
-| GPG primary key | `<creation + 5 years>` | 90 days before | extend with `gpg --quick-set-expire <PRIMARY FPR> 5y`, republish |
+| GPG signing subkey | 2028-11-11 | 60 days before | `gpg --quick-set-expire <PRIMARY FPR> 2y <SUBKEY FPR>` on the offline machine, re-export and republish the public key, replace `LINUX_SIGNING_KEY` |
+| GPG primary key | 2031-11-11 | 90 days before | extend with `gpg --quick-set-expire <PRIMARY FPR> 5y`, republish |
 | Cloudflare API tokens | `<creation + 1 year>` | 30 days before | create a new scoped token, replace the secret, revoke the old token |
 | Environment review | every November | — | check reviewers, branch rules and that no secret sits at repository level |
 
