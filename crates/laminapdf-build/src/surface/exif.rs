@@ -26,7 +26,7 @@ pub enum Orientation {
     /// 6: turned a quarter turn clockwise.
     Clockwise,
     /// 7: mirrored along the other diagonal.
-    Transversed,
+    Transverse,
     /// 8: turned a quarter turn anticlockwise.
     Anticlockwise,
 }
@@ -44,7 +44,7 @@ impl Orientation {
             4 => Self::MirroredUpsideDown,
             5 => Self::Transposed,
             6 => Self::Clockwise,
-            7 => Self::Transversed,
+            7 => Self::Transverse,
             8 => Self::Anticlockwise,
             _ => return None,
         })
@@ -57,7 +57,7 @@ impl Orientation {
     pub const fn swaps_sides(self) -> bool {
         matches!(
             self,
-            Self::Transposed | Self::Clockwise | Self::Transversed | Self::Anticlockwise
+            Self::Transposed | Self::Clockwise | Self::Transverse | Self::Anticlockwise
         )
     }
 
@@ -71,7 +71,7 @@ impl Orientation {
             Self::MirroredUpsideDown => [1.0, 0.0, 0.0, -1.0, 0.0, h],
             Self::Transposed => [0.0, 1.0, 1.0, 0.0, 0.0, 0.0],
             Self::Clockwise => [0.0, 1.0, -1.0, 0.0, h, 0.0],
-            Self::Transversed => [0.0, -1.0, -1.0, 0.0, h, w],
+            Self::Transverse => [0.0, -1.0, -1.0, 0.0, h, w],
             Self::Anticlockwise => [0.0, -1.0, 1.0, 0.0, 0.0, w],
         }
     }
@@ -99,7 +99,8 @@ impl Shown {
     }
 }
 
-const METRES_PER_INCH: f64 = 0.0254;
+/// The metres in an inch: resolutions convert between dots per inch and dots per metre.
+pub(crate) const METRES_PER_INCH: f64 = 0.0254;
 
 /// Dots per metre from a density in `unit`s: 1 per inch, 2 per centimetre (JFIF's units, and
 /// EXIF's `ResolutionUnit` minus one). `None` for a zero density or another unit.
@@ -219,7 +220,8 @@ fn from_tiff(data: &[u8]) -> Shown {
         return Shown::default();
     };
     let count = tiff.u16(ifd).unwrap_or(0);
-    let (mut orientation, mut x, mut y, mut per_cm) = (None, None, None, false);
+    // ResolutionUnit: 2 (inches, the default), 3 (centimetres) or 1 (no unit: an aspect ratio).
+    let (mut orientation, mut x, mut y, mut unit) = (None, None, None, Some(2));
     for i in 0..usize::from(count) {
         let Some(entry) = ifd.checked_add(2 + i * 12) else {
             break;
@@ -232,13 +234,17 @@ fn from_tiff(data: &[u8]) -> Shown {
             (0x0112, SHORT) => orientation = tiff.u16(value).and_then(Orientation::from_exif),
             (0x011A, RATIONAL) => x = tiff.rational(value),
             (0x011B, RATIONAL) => y = tiff.rational(value),
-            (0x0128, SHORT) => per_cm = tiff.u16(value) == Some(3),
+            (0x0128, SHORT) => unit = tiff.u16(value),
             _ => {}
         }
     }
     Shown {
         orientation: orientation.unwrap_or_default(),
-        dots_per_metre: x.zip(y).and_then(|(x, y)| per_metre(x, y, per_cm)),
+        dots_per_metre: match unit {
+            Some(2) => x.zip(y).and_then(|(x, y)| per_metre(x, y, false)),
+            Some(3) => x.zip(y).and_then(|(x, y)| per_metre(x, y, true)),
+            _ => None,
+        },
     }
 }
 
@@ -289,6 +295,32 @@ mod tests {
             assert_eq!(shown.orientation, Orientation::Clockwise);
             assert_eq!(shown.dots_per_metre, Some((11_811, 11_811)));
         }
+    }
+
+    #[test]
+    fn a_resolution_without_a_unit_is_only_an_aspect_ratio() {
+        // ResolutionUnit (0x0128) is the TIFF's last 12-byte entry, before the next-IFD offset:
+        // add it, as SHORT 1, and count it.
+        let mut data = exif(false, 1, Some(300));
+        let entries = 8 + 2 + 3 * 12;
+        let mut unit = Vec::new();
+        unit.extend(0x0128u16.to_le_bytes());
+        unit.extend(SHORT.to_le_bytes());
+        unit.extend(1u32.to_le_bytes());
+        unit.extend([1, 0, 0, 0]);
+        data.splice(entries..entries, unit);
+        data[8] = 4;
+        // The rationals moved 12 bytes along: point the two resolution entries at them again.
+        for entry in [8 + 2 + 12, 8 + 2 + 24] {
+            let at = entry + 8;
+            let offset = u32::from_le_bytes(data[at..at + 4].try_into().unwrap()) + 12;
+            data[at..at + 4].copy_from_slice(&offset.to_le_bytes());
+        }
+        assert_eq!(from_tiff(&data).dots_per_metre, None);
+        assert_eq!(
+            from_tiff(&exif(false, 1, Some(300))).dots_per_metre,
+            Some((11_811, 11_811))
+        );
     }
 
     #[test]

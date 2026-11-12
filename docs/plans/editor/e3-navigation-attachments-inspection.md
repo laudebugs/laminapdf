@@ -200,7 +200,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E3i](../../todos/ready/E3i-extraction.md) | Image extraction, and links and bookmarks as JSON and CSV | B9c |
 | [E3j](../../todos/ready/E3j-export-dialog.md) | The export dialog (O16): pages, text, images, links and bookmarks; images → PDF in the interface | E2m, E3i, E3m |
 | [E3l](../../todos/ready/E3l-contents-page.md) | The contents page: `create_contents_page` and its dialog | E2c, E2o, E3b, E3c |
-| [E3k](../../todos/ready/E3k-desktop-navigation-and-export.md) | Desktop: the round's panels and dialogs in the engine, exports to a folder, attachments to disk; the round's close | E3b–E3j, E3l, E3m, E1i, E2i, E2n |
+| [E3k](../../todos/ready/E3k-desktop-navigation-and-export.md) | Desktop: the round's panels and dialogs in the engine, exports to a folder, attachments to disk; the round's close | E3b–E3j, E3l, E1i, E2i, E2n |
 
 Every todo also depends on this plan (E3a). E3d, E3e, E3g, E3h and E3i can start as soon as it merges; E3b, E3c and E3f wait on E2's tree writers and blob store, E3j on E2's dialogs, and E3l on E2's cross-document pages. E3k completes the desktop column when the desktop track is ready.
 

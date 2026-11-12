@@ -13,15 +13,16 @@ use std::path::PathBuf;
 
 use laminapdf::{BuildOptions, Image, ImagePages, ImagesOptions, PageSize, Pt, SaveOptions, images_to_pdf};
 
+/// The space around each photo, in millimetres.
+const MARGIN_MM: f64 = 15.0;
+const USAGE: &str = "usage: images_to_pdf <out-dir> <photo.jpg> [more.jpg …]";
+
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
-    let out = PathBuf::from(
-        args.next()
-            .ok_or("usage: images_to_pdf <out-dir> <photo.jpg> [more.jpg …]")?,
-    );
+    let out = PathBuf::from(args.next().ok_or(USAGE)?);
     let photos = args.map(std::fs::read).collect::<Result<Vec<_>, _>>()?;
     if photos.is_empty() {
-        return Err("usage: images_to_pdf <out-dir> <photo.jpg> [more.jpg …]".into());
+        return Err(USAGE.into());
     }
     std::fs::create_dir_all(&out)?;
     std::fs::write(out.join("images_to_pdf.pdf"), build(BuildOptions::new(), photos)?)?;
@@ -34,7 +35,7 @@ pub(crate) fn build(options: BuildOptions, photos: Vec<Vec<u8>>) -> Result<Vec<u
     let images = photos.into_iter().map(Image::jpeg).collect::<Result<Vec<_>, _>>()?;
     let options = ImagesOptions::new()
         .with_pages(ImagePages::Fit(PageSize::A4))
-        .with_margin(Pt::from_mm(15.0))
+        .with_margin(Pt::from_mm(MARGIN_MM))
         .with_build(options);
     let mut doc = images_to_pdf(&images, &options)?;
     Ok(doc.save(&SaveOptions::new())?.bytes)

@@ -25,7 +25,7 @@ fn decode(png_bytes: &[u8]) -> Bitmap {
 }
 
 /// Every corpus file PDFium renders, its first page exported as PNG at `dpi`.
-fn exported(dpi: f32) -> Vec<(String, Bitmap)> {
+fn exported(dpi: f64) -> Vec<(String, Bitmap)> {
     let skip = common::skipped("pdfium");
     common::corpus()
         .into_iter()
@@ -42,7 +42,7 @@ fn exported(dpi: f32) -> Vec<(String, Bitmap)> {
 #[test]
 #[ignore = "needs the PDFium library: cargo xtask render-golden"]
 fn a_page_exported_at_96_dpi_matches_its_pdfium_golden() {
-    let pages = exported(common::DPI);
+    let pages = exported(f64::from(common::DPI));
     assert!(!pages.is_empty());
     for (file, page) in pages {
         let golden = read_png(&golden_dir("pdfium").join(golden_name(&file, 0)));

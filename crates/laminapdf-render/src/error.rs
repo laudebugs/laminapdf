@@ -80,13 +80,20 @@ pub enum RenderError {
         len: u64,
     },
     /// The engine couldn't open the document or render the page: a damaged or unsupported
-    /// file, or an engine failure; or an export's encoder failed (`render-failed`).
+    /// file, or an engine failure (`render-failed`).
     #[error("the {backend} backend could not {stage} the document")]
     Failed {
-        /// `pdfium` or `hayro`; for an export, the encoder: `png`, `jpeg` or `tiff`.
+        /// `pdfium` or `hayro`.
         backend: &'static str,
-        /// `open` or `render`; `encode` for an export.
+        /// `open` or `render`.
         stage: &'static str,
+    },
+    /// An export's encoder failed on a page that was drawn (`export-failed`): it writes into
+    /// memory, so this is a bug, never the document's fault.
+    #[error("the {format} encoder failed")]
+    ExportFailed {
+        /// `png`, `jpeg` or `tiff`.
+        format: &'static str,
     },
     /// The engine isn't available: the PDFium library couldn't be found or bound
     /// (`render-backend-unavailable`).
@@ -105,7 +112,12 @@ impl RenderError {
     /// variants reuse codes defined by other groups.
     ///
     /// Added in 0.2.0.
-    pub const CODES: &'static [&'static str] = &["render-too-large", "render-failed", "render-backend-unavailable"];
+    pub const CODES: &'static [&'static str] = &[
+        "render-too-large",
+        "render-failed",
+        "render-backend-unavailable",
+        "export-failed",
+    ];
 
     /// The variant's entry in the generated [`ErrorCode`] table (one per entry of
     /// `fixtures/codes.json`), which holds its code string, kind, hint and `docsUrl`.
@@ -123,6 +135,7 @@ impl RenderError {
             Self::Source { .. } => ErrorCode::Source,
             Self::Failed { .. } => ErrorCode::RenderFailed,
             Self::Unavailable { .. } => ErrorCode::RenderBackendUnavailable,
+            Self::ExportFailed { .. } => ErrorCode::ExportFailed,
             Self::Cancelled => ErrorCode::Cancelled,
         }
     }
@@ -182,6 +195,7 @@ impl RenderError {
             Self::DataPending { ranges } => fields([("ranges", json!(ranges))]),
             Self::Failed { backend, stage } => fields([("backend", json!(backend)), ("stage", json!(stage))]),
             Self::Unavailable { backend } => fields([("backend", json!(backend))]),
+            Self::ExportFailed { format } => fields([("format", json!(format))]),
             Self::PasswordRequired | Self::WrongPassword | Self::Source { .. } | Self::Cancelled => Map::new(),
         }
     }
@@ -203,6 +217,7 @@ impl RenderError {
             | Self::WrongPassword
             | Self::DataPending { .. }
             | Self::Failed { .. }
+            | Self::ExportFailed { .. }
             | Self::Unavailable { .. }
             | Self::Cancelled => Location::NONE,
         }
@@ -254,6 +269,7 @@ mod tests {
                 stage: "open",
             },
             RenderError::Unavailable { backend: "pdfium" },
+            RenderError::ExportFailed { format: "png" },
             RenderError::Cancelled,
         ]
     }

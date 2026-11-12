@@ -99,7 +99,8 @@ Inputs for `laminapdf-build`'s image and colour tests (todo B5a), written by [`t
 | `photo-rgb.jpg` | The krilla-fit spike's generated 192×192 baseline JPEG (`spikes/krilla-fit/assets/photo.jpg`), APP1, APP2 and APP13 segments removed (as for every JPEG here) |
 | `photo-cmyk.jpg` | The same photo converted by `sips` with the Generic CMYK profile: inverted samples and an Adobe `APP14` marker, as Photoshop writes; APP1, APP2 (Apple's ICC profile) and APP13 removed |
 | `photo-gray.jpg` | The same with the Generic Gray profile, one component |
-| `photo-rgb-exif6.jpg` | `photo-rgb.jpg` with an APP1 Exif segment holding only Orientation 6 (turned a quarter clockwise to be shown upright), for images to PDF (todo E3h) |
+| `photo-wide.jpg` | `photo-rgb.jpg` cropped by `sips` to 192×96 around its centre, so a quarter turn shows, for images to PDF (todo E3h) |
+| `photo-wide-exif2.jpg` … `photo-wide-exif8.jpg` | `photo-wide.jpg` with an APP1 Exif segment holding only IFD0's Orientation, 2 to 8 |
 | `gray-gamma22.icc`, `srgb-like.icc` | Minimal ICC v2 profiles written by the script (a gamma 2.2 gray TRC; sRGB primaries adapted to D50 with gamma 2.2 TRCs), `MIT OR Apache-2.0` (their `cprt` tag says so) |
 
 The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a fixture: it ships in the crate, as `crates/laminapdf-build/data/sRGB-v4.icc` (480 bytes, from Clinton Ingram's Compact ICC Profiles, CC0-1.0), with its source, commit and SHA-256 in [`crates/laminapdf-build/data/README.md`](../crates/laminapdf-build/data/README.md).

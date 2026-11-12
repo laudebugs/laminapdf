@@ -382,7 +382,7 @@ fn images(root: &Path, suite: &mut Suite) {
         "photo-rgb.jpg",
         "photo-gray.jpg",
         "photo-cmyk.jpg",
-        "photo-rgb-exif6.jpg",
+        "photo-wide-exif6.jpg",
     ]
     .map(photo);
     let fitted = ImagesOptions::new()

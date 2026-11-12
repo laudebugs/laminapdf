@@ -45,7 +45,7 @@ pub enum ExportFormat {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ExportOptions {
     format: ExportFormat,
-    dpi: f32,
+    dpi: f64,
     background: Option<Rgba8>,
     flags: RenderFlags,
 }
@@ -68,7 +68,7 @@ impl ExportOptions {
     ///
     /// Added in 0.2.0.
     #[must_use]
-    pub const fn with_dpi(mut self, dpi: f32) -> Self {
+    pub const fn with_dpi(mut self, dpi: f64) -> Self {
         self.dpi = dpi;
         self
     }
@@ -104,7 +104,7 @@ impl ExportOptions {
     ///
     /// Added in 0.2.0.
     #[must_use]
-    pub const fn dpi(&self) -> f32 {
+    pub const fn dpi(&self) -> f64 {
         self.dpi
     }
 
@@ -124,8 +124,8 @@ impl ExportOptions {
 /// Pixels per point for `dpi`, never below the exact ratio. A render's size is the page's
 /// size times the scale, rounded down, so an `f32` that lands a hair under `dpi / 72` would cost
 /// a page that is a whole number of pixels its last column (Letter at 150 dpi: 1,274, not 1,275).
-fn scale(dpi: f32) -> f32 {
-    let exact = f64::from(dpi) / 72.0;
+fn scale(dpi: f64) -> f32 {
+    let exact = dpi / 72.0;
     #[expect(clippy::cast_possible_truncation, reason = "the nearest f32, nudged up below")]
     let scale = exact as f32;
     if f64::from(scale) < exact {
@@ -159,7 +159,8 @@ fn scale(dpi: f32) -> f32 {
 /// [`RenderDocument::render`] returns for a page (an index out of range, a page past
 /// [`RenderLimits`](crate::RenderLimits), [`RenderError::Cancelled`]);
 /// [`RenderError::TooLarge`] for a page wider or taller than JPEG's 65,535 pixels;
-/// [`RenderError::Failed`] if an encoder fails (stage `encode`).
+/// [`RenderError::InvalidRequest`] for no pages; [`RenderError::ExportFailed`] if an encoder
+/// fails.
 ///
 /// Added in 0.2.0.
 pub fn export_pages(
@@ -168,6 +169,11 @@ pub fn export_pages(
     options: &ExportOptions,
     cancel: &CancelToken,
 ) -> Result<Vec<Vec<u8>>, RenderError> {
+    if pages.is_empty() {
+        return Err(RenderError::InvalidRequest {
+            what: "an export needs at least one page",
+        });
+    }
     if !options.dpi.is_finite() || options.dpi <= 0.0 {
         return Err(RenderError::InvalidRequest {
             what: "the export resolution must be a positive number of pixels per inch",
@@ -218,16 +224,16 @@ fn encode(width: u32, height: u32, rgba: &[u8], options: &ExportOptions) -> Resu
     }
 }
 
-fn encode_failed(encoder: &'static str) -> RenderError {
-    RenderError::Failed {
-        backend: encoder,
-        stage: "encode",
-    }
+fn encode_failed(format: &'static str) -> RenderError {
+    RenderError::ExportFailed { format }
 }
 
+/// The metres in an inch.
+const METRES_PER_INCH: f64 = 0.0254;
+
 /// `dpi` as a whole number of dots per metre (PNG's unit).
-fn dots_per_metre(dpi: f32) -> u32 {
-    let dpm = (f64::from(dpi) / 0.0254).round();
+fn dots_per_metre(dpi: f64) -> u32 {
+    let dpm = (dpi / METRES_PER_INCH).round();
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
@@ -237,7 +243,7 @@ fn dots_per_metre(dpi: f32) -> u32 {
     dpm
 }
 
-fn encode_png(width: u32, height: u32, rgba: &[u8], dpi: f32) -> Result<Vec<u8>, RenderError> {
+fn encode_png(width: u32, height: u32, rgba: &[u8], dpi: f64) -> Result<Vec<u8>, RenderError> {
     let mut out = Vec::new();
     let mut encoder = png::Encoder::new(&mut out, width, height);
     encoder.set_color(png::ColorType::Rgba);
@@ -254,7 +260,7 @@ fn encode_png(width: u32, height: u32, rgba: &[u8], dpi: f32) -> Result<Vec<u8>,
     Ok(out)
 }
 
-fn encode_jpeg(width: u32, height: u32, rgba: &[u8], dpi: f32, quality: u8) -> Result<Vec<u8>, RenderError> {
+fn encode_jpeg(width: u32, height: u32, rgba: &[u8], dpi: f64, quality: u8) -> Result<Vec<u8>, RenderError> {
     const MAX_SIDE: u32 = 65_535;
     let (Ok(w), Ok(h)) = (u16::try_from(width), u16::try_from(height)) else {
         return Err(RenderError::TooLarge {
@@ -271,7 +277,7 @@ fn encode_jpeg(width: u32, height: u32, rgba: &[u8], dpi: f32, quality: u8) -> R
         clippy::cast_sign_loss,
         reason = "clamped to u16's range first"
     )]
-    let density = dpi.round().clamp(1.0, f32::from(u16::MAX)) as u16;
+    let density = dpi.round().clamp(1.0, f64::from(u16::MAX)) as u16;
     encoder.set_density(jpeg_encoder::PixelDensity {
         density: (density, density),
         unit: jpeg_encoder::PixelDensityUnit::Inches,
@@ -294,7 +300,7 @@ fn tiff_encoder(out: &mut Cursor<Vec<u8>>) -> Result<Tiff<'_>, RenderError> {
         )))
 }
 
-fn write_tiff_page(tiff: &mut Tiff<'_>, width: u32, height: u32, rgba: &[u8], dpi: f32) -> Result<(), RenderError> {
+fn write_tiff_page(tiff: &mut Tiff<'_>, width: u32, height: u32, rgba: &[u8], dpi: f64) -> Result<(), RenderError> {
     let mut image = tiff
         .new_image::<tiff::encoder::colortype::RGBA8>(width, height)
         .map_err(|_| encode_failed("tiff"))?;
@@ -304,7 +310,7 @@ fn write_tiff_page(tiff: &mut Tiff<'_>, width: u32, height: u32, rgba: &[u8], dp
         clippy::cast_sign_loss,
         reason = "clamped to u32's range first"
     )]
-    let hundredths = (f64::from(dpi) * 100.0).round().clamp(1.0, f64::from(u32::MAX)) as u32;
+    let hundredths = (dpi * 100.0).round().clamp(1.0, f64::from(u32::MAX)) as u32;
     image.resolution(
         tiff::tags::ResolutionUnit::Inch,
         tiff::encoder::Rational { n: hundredths, d: 100 },

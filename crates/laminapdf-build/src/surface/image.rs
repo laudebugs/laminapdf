@@ -114,15 +114,23 @@ pub struct Image {
     pub(crate) data: Arc<ImageData>,
 }
 
+/// How an image's samples are to be read: their colour space, bit depth, and whether they are
+/// stored inverted (an Adobe CMYK JPEG).
+#[derive(Clone, Copy)]
+struct Encoding {
+    color: ImageColor,
+    bits: u8,
+    inverted: bool,
+}
+
 impl Image {
     fn new(
         width: u32,
         height: u32,
-        color: ImageColor,
-        bits: u8,
+        Encoding { color, bits, inverted }: Encoding,
         samples: Samples,
         alpha: Option<Vec<u8>>,
-        inverted: bool,
+        shown: Shown,
     ) -> Self {
         let mut h = Sha256::new();
         h.update(width.to_be_bytes());
@@ -154,17 +162,9 @@ impl Image {
                 alpha,
                 inverted,
                 hash: h.finalize().into(),
-                shown: Shown::default(),
+                shown,
             }),
         }
-    }
-
-    /// `self` with what its file says about showing it (a new image's data isn't shared yet).
-    fn shown(mut self, shown: Shown) -> Self {
-        if let Some(data) = Arc::get_mut(&mut self.data) {
-            data.shown = shown;
-        }
-        self
     }
 
     /// Width in pixels.
@@ -191,6 +191,12 @@ impl Image {
     #[must_use]
     pub fn orientation(&self) -> Orientation {
         self.data.shown.orientation
+    }
+
+    /// The horizontal and vertical resolution, in dots per inch, that the file gives.
+    pub(crate) fn dpi(&self) -> Option<(f64, f64)> {
+        let to_dpi = |dpm: u32| f64::from(dpm) * super::exif::METRES_PER_INCH;
+        self.data.shown.dots_per_metre.map(|(x, y)| (to_dpi(x), to_dpi(y)))
     }
 
     /// Whether the image has an alpha channel that isn't fully opaque (written as `/SMask`).
@@ -229,13 +235,15 @@ impl Image {
         Ok(Self::new(
             header.width,
             header.height,
-            color,
-            8,
+            Encoding {
+                color,
+                bits: 8,
+                inverted,
+            },
             Samples::Jpeg(bytes),
             None,
-            inverted,
-        )
-        .shown(header.shown))
+            header.shown,
+        ))
     }
 
     /// A PNG, decoded with [`PngOptions::default`].
@@ -269,13 +277,15 @@ impl Image {
         Ok(Self::new(
             png.width,
             png.height,
-            color,
-            png.bits,
+            Encoding {
+                color,
+                bits: png.bits,
+                inverted: false,
+            },
             Samples::Raw(samples),
             alpha,
-            false,
-        )
-        .shown(png.shown))
+            png.shown,
+        ))
     }
 
     /// Raw 8-bit RGBA samples, row by row from the top, not premultiplied. The alpha channel
@@ -310,11 +320,14 @@ impl Image {
         Ok(Self::new(
             width,
             height,
-            ImageColor::Rgb,
-            8,
+            Encoding {
+                color: ImageColor::Rgb,
+                bits: 8,
+                inverted: false,
+            },
             Samples::Raw(samples),
             alpha,
-            false,
+            Shown::default(),
         ))
     }
 }

@@ -25,8 +25,9 @@ fn open(path: &str) -> Box<dyn RenderDocument> {
 }
 
 /// What the renderer draws for `page` at `dpi` on white: width, height, RGBA.
-fn drawn(doc: &dyn RenderDocument, page: u32, dpi: f32) -> (u32, u32, Vec<u8>) {
-    let request = RenderRequest::page(page, dpi / 72.0);
+fn drawn(doc: &dyn RenderDocument, page: u32, dpi: f64) -> (u32, u32, Vec<u8>) {
+    #[expect(clippy::cast_possible_truncation, reason = "the test resolutions are exact in f32")]
+    let request = RenderRequest::page(page, (dpi / 72.0) as f32);
     let plan = doc.plan(&request).unwrap();
     let mut rgba = vec![0; plan.byte_len()];
     doc.render(&request, &mut rgba, &CancelToken::new()).unwrap();
@@ -141,7 +142,7 @@ fn a_jpeg_is_one_file_per_page_with_its_size_and_density_in_the_headers() {
 fn bad_requests_are_typed_errors() {
     let doc = open("corpus/hello.pdf");
     let png = ExportOptions::new(ExportFormat::Png);
-    for dpi in [0.0, -1.0, f32::NAN] {
+    for dpi in [0.0, -1.0, f64::NAN] {
         let err = export(doc.as_ref(), &[0], png.with_dpi(dpi)).unwrap_err();
         assert_eq!(err.code(), "invalid-argument", "{dpi}");
     }
@@ -149,6 +150,8 @@ fn bad_requests_are_typed_errors() {
         export(doc.as_ref(), &[7], png).unwrap_err().code(),
         "page-index-out-of-range"
     );
+    let multi = ExportOptions::new(ExportFormat::Tiff { multi_page: true });
+    assert_eq!(export(doc.as_ref(), &[], multi).unwrap_err().code(), "invalid-argument");
     let cancel = CancelToken::new();
     cancel.cancel();
     let err = export_pages(doc.as_ref(), &[0], &png, &cancel).unwrap_err();

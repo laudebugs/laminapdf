@@ -9,9 +9,9 @@ only, plus macOS `sips` for the JPEG conversions.
   CMYK and Generic Gray profiles. `sips` writes CMYK as Photoshop does: inverted samples and an
   Adobe APP14 marker. APP1, APP2 (the embedded Apple ICC profile) and APP13 are removed, so no
   third-party profile data is committed.
-* `photo-rgb-exif6.jpg`: `photo-rgb.jpg` with an APP1 Exif segment after its SOI holding only
-  IFD0's Orientation, 6 (turned a quarter clockwise to be shown upright), for images-to-PDF's
-  orientation tests (todo E3h).
+* `photo-wide.jpg`: `photo-rgb.jpg` cropped by `sips` to 192x96, so a quarter turn shows; and
+  `photo-wide-exif2.jpg` to `photo-wide-exif8.jpg`, the same bytes with an APP1 Exif segment
+  after the SOI holding only IFD0's Orientation, 2 to 8, for images to PDF's orientation tests.
 * `gray-gamma22.icc`, `srgb-like.icc`: minimal ICC v2 profiles written here from first principles
   (a gamma 2.2 gray TRC; sRGB primaries adapted to D50 with gamma 2.2 TRCs), licensed
   `MIT OR Apache-2.0` like the rest of lamina (their copyright tag says so).
@@ -116,6 +116,19 @@ def rgb_profile() -> bytes:
     ])
 
 
+def crop(height: int, width: int, out: Path):
+    """`photo-rgb.jpg` cropped to `width` x `height` around its centre by `sips`, APP segments
+    removed."""
+    with tempfile.TemporaryDirectory() as tmp:
+        dst = Path(tmp) / "out.jpg"
+        subprocess.run(
+            ["sips", "-c", str(height), str(width), str(OUT / "photo-rgb.jpg"), "--out", str(dst)],
+            check=True,
+            capture_output=True,
+        )
+        out.write_bytes(strip_app_segments(dst.read_bytes()))
+
+
 def convert(profile_name: str, out: Path):
     with tempfile.TemporaryDirectory() as tmp:
         dst = Path(tmp) / "out.jpg"
@@ -136,12 +149,15 @@ def with_orientation(jpeg: bytes, orientation: int) -> bytes:
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "photo-rgb.jpg").write_bytes(strip_app_segments(PHOTO.read_bytes()))
-    (OUT / "photo-rgb-exif6.jpg").write_bytes(with_orientation((OUT / "photo-rgb.jpg").read_bytes(), 6))
     if shutil.which("sips"):
+        crop(96, 192, OUT / "photo-wide.jpg")
         convert("Generic CMYK Profile.icc", OUT / "photo-cmyk.jpg")
         convert("Generic Gray Profile.icc", OUT / "photo-gray.jpg")
     else:
-        print("sips not found (macOS only): photo-cmyk.jpg and photo-gray.jpg left as they are")
+        print("sips not found (macOS only): photo-cmyk.jpg, photo-gray.jpg and photo-wide.jpg left as they are")
+    wide = (OUT / "photo-wide.jpg").read_bytes()
+    for orientation in range(2, 9):
+        (OUT / f"photo-wide-exif{orientation}.jpg").write_bytes(with_orientation(wide, orientation))
     (OUT / "gray-gamma22.icc").write_bytes(gray_profile())
     (OUT / "srgb-like.icc").write_bytes(rgb_profile())
     for f in sorted(OUT.iterdir()):

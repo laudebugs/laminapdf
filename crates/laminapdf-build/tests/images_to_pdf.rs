@@ -91,19 +91,42 @@ fn every_image_gets_its_own_page_in_order() {
     assert_eq!(size(&doc, 0), size(&doc, 2));
 }
 
+/// Where EXIF's orientations 1 to 8 show the stored image's bottom-left and top-right corners,
+/// as fractions of the shown image's width and height (y down): its meaning, not our matrices.
+const CORNERS: [((f64, f64), (f64, f64)); 8] = [
+    ((0.0, 1.0), (1.0, 0.0)), // 1: as stored
+    ((1.0, 1.0), (0.0, 0.0)), // 2: mirrored left to right
+    ((1.0, 0.0), (0.0, 1.0)), // 3: half a turn
+    ((0.0, 0.0), (1.0, 1.0)), // 4: mirrored top to bottom
+    ((1.0, 0.0), (0.0, 1.0)), // 5: mirrored on the main diagonal
+    ((0.0, 0.0), (1.0, 1.0)), // 6: a quarter turn clockwise
+    ((0.0, 1.0), (1.0, 0.0)), // 7: mirrored on the other diagonal
+    ((1.0, 1.0), (0.0, 0.0)), // 8: a quarter turn anticlockwise
+];
+
 #[test]
-fn a_sideways_photo_gets_a_page_turned_its_way_and_is_drawn_upright() {
-    let upright = Image::jpeg(fixture("images/photo-rgb.jpg")).unwrap();
-    let turned = Image::jpeg(fixture("images/photo-rgb-exif6.jpg")).unwrap();
-    assert_eq!(turned.orientation(), Orientation::Clockwise);
-    let options = ImagesOptions::new().with_default_dpi(72.0);
-    let doc = build(&[upright, turned], &options);
+fn each_orientation_shows_the_wide_photo_its_way_up_on_a_page_its_shape() {
+    let wide = |o: usize| {
+        let name = if o == 1 {
+            "images/photo-wide.jpg".to_owned()
+        } else {
+            format!("images/photo-wide-exif{o}.jpg")
+        };
+        Image::jpeg(fixture(&name)).unwrap()
+    };
+    let images: Vec<Image> = (1..=8).map(wide).collect();
+    assert_eq!(images[5].orientation(), Orientation::Clockwise);
+    let doc = build(&images, &ImagesOptions::new());
     let (w, h) = size(&doc, 0);
-    assert_eq!(size(&doc, 1), (h, w));
-    // Turned a quarter clockwise: the stored image's bottom-left corner (image space (0, 0))
-    // is shown at the page's top left, and its top-right corner (1, 1) at the bottom right.
-    let corners = record(&doc, 1).images[0].corners;
-    assert_eq!(corners, [(0.0, w), (h, 0.0)]);
+    assert!(w > h, "the stored photo is wide");
+    for (i, ((bl_x, bl_y), (tr_x, tr_y))) in CORNERS.into_iter().enumerate() {
+        let (pw, ph) = size(&doc, i);
+        assert_eq!((pw, ph), if i >= 4 { (h, w) } else { (w, h) }, "orientation {}", i + 1);
+        // Image space (0, 0) is the stored bottom-left corner, (1, 1) the top-right; the page's
+        // user space has y up.
+        let expected = [(bl_x * pw, (1.0 - bl_y) * ph), (tr_x * pw, (1.0 - tr_y) * ph)];
+        assert_eq!(record(&doc, i).images[0].corners, expected, "orientation {}", i + 1);
+    }
 }
 
 #[test]
@@ -139,4 +162,18 @@ fn a_fitted_photo_sits_centred_inside_the_margins() {
         ((x0 - (pw - x1)).abs() < 0.01) && ((y0 - (ph - y1)).abs() < 0.01),
         "not centred"
     );
+}
+
+#[test]
+fn a_page_past_14400_points_gets_a_user_unit_and_keeps_its_size() {
+    // 30,000 × 1 pixels at 72 dpi: a page 30,000 points wide, past what readers must support.
+    let long = Image::rgba(30_000, 1, &vec![90; 120_000]).unwrap();
+    let doc = build(&[long], &ImagesOptions::new());
+    let page = doc.pages().unwrap();
+    let page = page.get(0).unwrap();
+    assert_eq!(page.user_unit().unwrap(), 3.0);
+    // The MediaBox is in user-space units: a third of the points, written to six places.
+    let media = page.media_box().unwrap().unwrap();
+    assert_eq!(media.width(), 10_000.0);
+    assert!((media.height() - 1.0 / 3.0).abs() < 1e-5);
 }

@@ -17,8 +17,9 @@ pub enum ImagePages {
     /// EXIF), or at [`ImagesOptions::with_default_dpi`] when the file gives none, plus the
     /// margins.
     ImageSize,
-    /// Each page is this paper size, turned to landscape for an image wider than it is tall, and
-    /// the image is scaled to fit inside the margins, centred.
+    /// Each page is this paper size, turned the image's way (landscape for an image wider than
+    /// it is tall, portrait otherwise), and the image is scaled to fit inside the margins,
+    /// centred.
     Fit(PageSize),
 }
 
@@ -142,7 +143,13 @@ pub fn images_to_pdf(images: &[Image], options: &ImagesOptions) -> Result<lamina
     let mut builder = Builder::new(options.build.clone());
     for image in images {
         let placed = place(image, options)?;
+        let longest = placed.page.width.get().max(placed.page.height.get());
         let mut page = builder.page(placed.page);
+        // A page side past 14,400 user-space units is beyond what readers must support
+        // (ISO 32000-1 Annex C); a larger user unit keeps a big photo's page within it.
+        if longest > MAX_PAGE_SIDE {
+            page.user_unit((longest / MAX_PAGE_SIDE).ceil());
+        }
         page.surface().save().transform(placed.matrix).image(
             image,
             RectPt::new(
@@ -158,6 +165,9 @@ pub fn images_to_pdf(images: &[Image], options: &ImagesOptions) -> Result<lamina
     builder.finish()
 }
 
+/// The longest page side, in user-space units, that readers must support (ISO 32000-1 Annex C).
+const MAX_PAGE_SIDE: f64 = 14_400.0;
+
 /// Where one image goes: its page, and the matrix that takes the stored image, in pixels with
 /// y down, to its place on that page.
 struct Placed {
@@ -169,22 +179,12 @@ fn place(image: &Image, options: &ImagesOptions) -> Result<Placed> {
     let orientation = image.orientation();
     let (width, height) = (f64::from(image.width()), f64::from(image.height()));
     // The image as shown: its sides swap for a quarter turn, and so do its resolutions.
-    let (shown_w, shown_h) = if orientation.swaps_sides() {
-        (height, width)
-    } else {
-        (width, height)
-    };
+    let shown = |(x, y): (f64, f64)| if orientation.swaps_sides() { (y, x) } else { (x, y) };
+    let (shown_w, shown_h) = shown((width, height));
     let margin = options.margin.get();
     let (page, scale_x, scale_y) = match options.pages {
         ImagePages::ImageSize => {
-            let dpm = image.data.shown.dots_per_metre;
-            let dpi = |pick: fn((u32, u32)) -> u32| dpm.map_or(options.default_dpi, |d| f64::from(pick(d)) * 0.0254);
-            let (dpi_x, dpi_y) = (dpi(|d| d.0), dpi(|d| d.1));
-            let (dpi_x, dpi_y) = if orientation.swaps_sides() {
-                (dpi_y, dpi_x)
-            } else {
-                (dpi_x, dpi_y)
-            };
+            let (dpi_x, dpi_y) = shown(image.dpi().unwrap_or((options.default_dpi, options.default_dpi)));
             let (sx, sy) = (72.0 / dpi_x, 72.0 / dpi_y);
             let size = PageSize::new(
                 Pt::new(shown_w.mul_add(sx, 2.0 * margin)),
