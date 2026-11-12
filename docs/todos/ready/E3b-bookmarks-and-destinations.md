@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2j](./E2j-page-tree-and-tree-writers.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
+| Depends on | [E2j](../done/E2j-page-tree-and-tree-writers.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3b-bookmarks-and-destinations` |
 | PR title | `feat(ops): outline editing, named destinations and TOC generation` |
@@ -44,7 +44,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour and 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.01` create/edit bookmarks; nested trees; `I.04` named destinations
-- **Crates and packages:** `laminapdf-model` (outline write; name-tree writer from [E2j](E2j-page-tree-and-tree-writers.md)), `laminapdf-ops`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-model` (outline write; name-tree writer from [E2j](../done/E2j-page-tree-and-tree-writers.md)), `laminapdf-ops`, `@laminapdf/ui`
 - **`Op` variants:** the outline and destination ops (class `Document`)
 - **`SaveConstraint`:** `Free` → incremental; signed: outline and destination changes are class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
@@ -54,7 +54,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour and 
 ## Tasks
 
 - [ ] Outline writer with `/Count` sign semantics
-- [ ] Named-destination ops over [E2j](E2j-page-tree-and-tree-writers.md)'s name-tree writer (E3b does not write its own; E3f uses the same writer)
+- [ ] Named-destination ops over [E2j](../done/E2j-page-tree-and-tree-writers.md)'s name-tree writer (E3b does not write its own; E3f uses the same writer)
 - [ ] Ops with undo
 - [ ] Bookmark panel with DnD and keyboard
 

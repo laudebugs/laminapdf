@@ -197,6 +197,25 @@ python3 fixtures/metadata/make.py
 | --- | --- |
 | `pdf20-xmp-only.pdf` | A one-page `%PDF-2.0` file whose metadata lives in the XMP packet, as ISO 32000-2 §14.3.3 recommends: the Info dictionary holds only `/CreationDate` and `/ModDate`, and the catalog's `/Metadata` is an unfiltered XMP stream with `dc:title`, `dc:creator` (two authors in a `rdf:Seq`), `dc:description`, `pdf:Keywords`, `pdf:Producer`, `xmp:CreatorTool`, `xmp:CreateDate`, `xmp:ModifyDate`, `xmp:MetadataDate`, `xmpMM:DocumentID` and `xmpMM:InstanceID`, in an `<?xpacket?>` wrapper with about 2 KB of padding and `end="w"`. A metadata op must add no deprecated Info key to it. `qpdf --check` is clean |
 
+### `pages/`
+
+Page-organisation fixtures for the page-tree editor, the tree writers, `PageLabels::remap` and `PageReferences` (and the page ops built on them), written for Lamina PDF by [`pages/make.py`](pages/make.py) (no dependencies) and licensed `MIT OR Apache-2.0`. The script writes the same bytes on every run: every value, the trailer `/ID` included, is fixed. Every page draws its marker, `Page N` in Helvetica, so tests can tell pages apart by their text after they move. `qpdf --check` is clean on each, except `unbalanced.pdf`, where qpdf warns about the page listed twice and copies it, as Lamina PDF's editor does.
+
+```sh
+python3 fixtures/pages/make.py
+```
+
+| File | Exercises |
+| --- | --- |
+| `inherited.pdf` | Eight pages in a three-level tree: the root gives `/MediaBox` and `/Resources`, node A `/Rotate 90` and a `/CropBox`, node B its own `/MediaBox` and indirect `/Resources` with node C under it (`/Rotate 180`), node D a `/CropBox` and `/Rotate null`; page 5 has its own `/CropBox`, page 7 its own `/Rotate 270` and page 8 its own `/Resources` |
+| `unbalanced.pdf` | Twelve pages: six under the root, then a one-kid chain 40 levels deep (`/Rotate 90` at level 10, a 420 × 595 `/MediaBox` at level 20) with a page at levels 5, 15, 25, 35 and 40; page 3's dictionary, which has a text annotation and `/StructParents`, is listed again as page 12 |
+| `references.pdf` | Five pages; at page 3: an outline item with `/Dest`, one with a `GoTo` action, a link with `/Dest` (page 1), a link with an indirect `GoTo` action (page 2), a link through the named destination `chap3` (page 4), `chap3` in the `/Names /Dests` tree, `old3` in the PDF 1.1 `/Dests` dictionary, `/OpenAction`, a structure element's `/Pg`, an `MCR` and an indirect `OBJR` with their own `/Pg` in page 2's paragraph, a merged field and widget with `/P`, a kid widget without `/P` in the page's `/Annots`, and a field `addr` whose kids are a widget and a field `street` whose kid is a field without `/T` holding a widget; elsewhere: an outline item, a link and a structure element at page 2, `chap4` and a widget at page 4, `old5` at page 5 |
+| `labels.pdf` | Ten pages labelled i–iii, 1–4, A-1 and A-2, then `Back cover` (a prefix without numbers) |
+| `boxes.pdf` | Four pages with all five boxes, one per `/Rotate` value; page 2 has `/UserUnit 2` |
+| `forms.pdf` | Two pages: a merged text field and widget (`name`), a checkbox field (`agree`) with kid widgets on both pages, and an unsigned signature field; a second copy's field names clash with these |
+| `layers.pdf` | Two pages, each drawing a square in each of two optional content groups, `Draft` (on) and `Notes` (off) |
+| `chapters.pdf` | Twelve pages in three chapters of two sections each; the outline's three top-level items go to pages 1, 5 and 9, chapter 2's through the named destination `chapter-2` |
+
 ### `fonts/`
 
 Font fixtures for `laminapdf-text` (todo B4a) and later text work (B4b shapes with them: layout tables and hinting are kept). Each is a subset of an upstream [Noto](https://notofonts.github.io/) font, made by [`tools/fixtures/fonts.py`](../tools/fixtures/fonts.py) with fontTools 4.68.0 (pinned in `tools/fixtures/requirements.txt`) from downloads whose SHA-256 the script checks (URLs and hashes in the script). **Licence:** SIL Open Font License 1.1 ([`fonts/OFL.txt`](fonts/OFL.txt), copyright The Noto Project Authors). The Noto fonts declare no Reserved Font Name, so modified (subset) versions may keep their names (OFL §3); the licence travels with them (OFL §2), and the fonts are not sold on their own. Total size about 0.65 MB.

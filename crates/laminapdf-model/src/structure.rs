@@ -244,7 +244,7 @@ impl Walk<'_> {
 
 /// The items of a `/K`: an array (direct or indirect), else the one value (a reference to an
 /// element stays a reference, so the element keeps its object).
-fn kids_of(doc: &Document, k: &Object) -> Result<Vec<Object>> {
+pub(crate) fn kids_of(doc: &Document, k: &Object) -> Result<Vec<Object>> {
     Ok(match k {
         Object::Array(items) => items.clone(),
         Object::Ref(_) => match doc.read(k)?.as_deref() {
