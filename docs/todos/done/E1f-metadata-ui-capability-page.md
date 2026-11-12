@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E1 editing foundation §2](../../plans/editor/e1-editing-foundation.md#2-the-operations) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E1c](../done/E1c-metadata-ops.md), [E1e](../done/E1e-save-and-constraint-banner.md), [X2](../done/X2-capability-matrix.md) |
+| Depends on | [E1c](./E1c-metadata-ops.md), [E1e](./E1e-save-and-constraint-banner.md), [X2](./X2-capability-matrix.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1f-metadata-ui-capability-page` |
 | PR title | `feat(ui): editable document properties and capability matrix page` |
 | Size | M (200–600) |
-| PR | — |
+| PR | [#455](https://github.com/laudebugs/laminapdf/pull/455) |
 
 ## Goal
 
@@ -49,16 +49,16 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 
 ## Tasks
 
-- [ ] Convert the properties dialog to a form with dirty tracking and coalesced transactions
-- [ ] Wire conformance warnings and the incremental-history notice
-- [ ] Emit matrix JSON from `cargo xtask capabilities --json` (coordinate with `X2`) and render the page with filters
-- [ ] Tag e2e tests with capability IDs so the CI gate counts them
+- [x] Convert the properties dialog to a form with dirty tracking and coalesced transactions
+- [x] Wire conformance warnings and the incremental-history notice
+- [x] Emit matrix JSON from `cargo xtask capabilities --json` (coordinate with `X2`) and render the page with filters
+- [x] Tag e2e tests with capability IDs so the CI gate counts them
 
 ## Acceptance criteria
 
-- [ ] e2e on the web: edit each field, save, reopen in the app and pdf.js; values match in Info and XMP
-- [ ] The capability page lists every manifest row with four status columns and matches `docs/capabilities/README.md`
-- [ ] axe: zero serious violations on the dialog and the page
+- [x] e2e on the web: edit each field, save, reopen in the app and pdf.js; values match in Info and XMP
+- [x] The capability page lists every manifest row with four status columns and matches `docs/capabilities/README.md`
+- [x] axe: zero serious violations on the dialog and the page
 
 ## Post-merge checks
 
@@ -82,8 +82,19 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes
+
+- **The dialog** (`@laminapdf/ui`'s `PropertiesDialog` with `editing`): a Description tab with the form and a File tab with R08's facts. Apply makes one edit step, "Document properties changed", of a `setMetadata` op for the changed fields and a `removeMetadata` op for the emptied or removed ones; a file whose XMP can't be read is replaced with `replaceMalformed`. The form reads `@laminapdf/viewer`'s new `client.metadata()`, the metadata as the edits leave it. Encrypted documents and documents whose edits diverged keep the read-only dialog.
+- **Coalesced transactions:** each Apply is one transaction. Typing doesn't reach the document until Apply, so there is nothing to coalesce per keystroke.
+- **The warnings under a field** are the dialog's own copy of the save planner's two rules (`pdfa-one-author`, `pdfua-title-missing`), since the SDK reports conformance warnings only from a save plan, after an edit. `apps/web/test/properties-warnings.test.ts` holds them to the SDK's on the same edits. `pdfa-info-mismatch` is shown in the PDF/A notice instead, and Apply writes the value shown to both sides.
+- **The matrix JSON** is written by `cargo xtask capabilities` on every run, as `docs/capabilities/matrix.json` beside the README, with no `--json` flag; `check docs` and `--check` compare it like the README.
+- **TypeScript tags** are collected from the reader's e2e test titles only (`apps/web/e2e/*.e2e.test.ts`, surface `web`, plain `it(`/`test(`). `cargo xtask capabilities` counts them without running them: the reader's e2e suite runs them in Chromium, Firefox and WebKit in the fast lane, whose gate a merge needs.
+- **The capability page** is at `/capabilities`, over the open document, and opens from More and the palette (`help.capabilities`). The deviations from O04 and O05 are in their "As built (E1f)" notes.
+- **The `pdf` column** of J.01–J.03 and J.10 still shows no evidence: E1c's SDK tests aren't tagged, since TypeScript tags outside the reader's e2e tests aren't collected yet. Adding `packages/sdk` to the tag table would flip it.
+

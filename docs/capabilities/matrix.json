@@ -1519,7 +1519,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -1531,7 +1531,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -1543,7 +1543,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -1627,7 +1627,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         }

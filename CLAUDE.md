@@ -134,7 +134,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   swapped in once open; a failure undoes the transaction), viewer.invalidate(pages, sizes?) (bitmaps dropped by a per-page
 │                        #   revision in the view key (viewKey), late answers of an older revision dropped, keptTop's layout, layers remounted,
 │                        #   find.refresh, a restarted worker's sizes taken back, the strip laid out from viewer.pageSizes(id) on its `invalidate`
-│                        #   event), viewer.applyEdit and client.applyEdit; E1d: worker/session.ts (the edit session's history: steps with
+│                        #   event), viewer.applyEdit and client.applyEdit; E1f: client.metadata() (worker `metadata`: the edited document's, never the text copy's); E1d: worker/session.ts (the edit session's history: steps with
 │                        #   label, pages, time; position, 500 deep, the saved position for the unsaved count), edit.ts's undoEdit/redoEdit/
 │                        #   goToStep (one redraw, taken back on failure)/editHistory/restoreEdits, src/edit-log.ts (the page's copy of each
 │                        #   step's ops, replayed into a restarted worker), edit/session.ts (EditSession, viewer.edits: calls in order, busy,
@@ -180,7 +180,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Thumbnail, OutlineRow, ShortcutChip), src/overlays/ (the layer stack behind Escape, Dialog, Popover and
 │                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue, BottomSheet, SelectionToolbar,
 │                        #   LinkPreview (T5a: a tooltip under its link, or a sheet on touch), CommandPalette; z-order from --paper-z-*), src/dialogs.ts (the ./dialogs entry: PrintDialog, PrintProgressDialog,
-│                        #   PropertiesDialog, which the web reader loads once a document opens, issue #380), src/platform/ (ADR 0010: the Platform interface and capability
+│                        #   PropertiesDialog, which the web reader loads once a document opens, issue #380; E1f: with `editing`, a Description tab whose form
+│                        #   (reader/properties-editor.tsx, properties-form.ts: changeOf → one setMetadata patch and a removeMetadata list,
+│                        #   fieldWarnings, PDF dates) Apply turns into one edit, and a File tab), src/capabilities.ts (the ./capabilities entry: CapabilityPage,
+│                        #   help/: the O05 page over docs/capabilities/matrix.json, filters kept in platform storage), src/platform/ (ADR 0010: the Platform interface and capability
 │                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files;
 │                        #   T5b: Platform.positions, positions.ts: the `positions` store of `lamina-pdf` v2, 500 by `readAt`; idb.ts opens
 │                        #   the database once; recent.reopen(id, { ask: false })),
@@ -239,7 +242,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   U4c: reader-origin.ts outlines a block on its page for View original page, reader-crop.ts a crop's clip);
 │                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
 │                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),
-│                        #   src/later.ts (the one chunk loaded once a document is open: dialogs, reader mode's column, the editor's parts);
+│                        #   src/later.ts (the one chunk loaded once a document is open: dialogs, reader mode's column, the editor's parts, the capability page);
+│                        #   src/capabilities.tsx (E1f: the /capabilities route over the reader, More › What Lamina PDF can do; capability-page.tsx bundles the matrix);
 │                        #   src/reading/ (T5b: positions.ts parses, records and restores reading positions by fingerprint; resume.ts
 │                        #   reopens the document open at the last close; recent.tsx's Continue reading and the session record);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
@@ -520,7 +524,9 @@ cargo xtask progress [--offline]  # write apps/site/src/data/progress.json, the 
                              #   numbers) and the todos open PRs claim, which move from next up to in progress (gh api; --offline
                              #   or a gh failure keeps the last list); the website's production deploy runs it before every
                              #   build, so the committed file only feeds previews and local builds; refreshing it is an exempt PR
-cargo xtask capabilities     # run the tests tagged `/// capability: <ID> <surface> <status>`, regenerate docs/capabilities/README.md
+cargo xtask capabilities     # run the tests tagged `/// capability: <ID> <surface> <status>`, regenerate docs/capabilities/README.md and
+                             #   matrix.json (the reader's capability page); count `[cap J.01 web round-trip]` titles in apps/web/e2e,
+                             #   which the reader's e2e suite runs
 cargo xtask capabilities --check  # full lane: fail if that page differs from what the passing tagged tests prove
 cargo xtask golden --update  # regenerate every golden in fixtures/golden/ (and fixtures/reading-order/) from its source, print the list
                              #   (and fixtures/shaping/ with hb-shape when HarfBuzz is installed)
