@@ -1,10 +1,10 @@
 // What the handler tests share: fixtures, an in-memory bucket, a Cache API double and a fake clock.
 import { readFileSync } from "node:fs";
 import type { ManifestCache, ManifestStore } from "../src/cache.ts";
+import type { Channel } from "../src/channels.ts";
 import type { HandlerDeps, LogEvent } from "../src/handler.ts";
 import type { Manifest } from "../src/manifest.ts";
 import { bucketFor } from "../src/rollout.ts";
-import type { Channel } from "../src/route.ts";
 
 export function fixture(name: string): Manifest {
   return JSON.parse(readFileSync(new URL(`fixtures/${name}.json`, import.meta.url), "utf8")) as Manifest;
@@ -105,4 +105,20 @@ export async function cohortIds(version: string, percent: number): Promise<{ ins
   }
   if (!inside || !outside) throw new Error("no install IDs on both sides of the rollout");
   return { inside, outside };
+}
+
+/** The R2 bindings and the compatibility date of one of wrangler.jsonc's Workers. */
+export interface WorkerConfig {
+  readonly compatibility_date: string;
+  readonly r2_buckets: readonly { readonly binding: string; readonly bucket_name: string }[];
+}
+
+/** wrangler.jsonc: its top-level Worker (production) and each `env`. Its comments take whole lines. */
+export function wranglerConfig(): WorkerConfig & { readonly env: Readonly<Record<string, Partial<WorkerConfig>>> } {
+  const text = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
+  const json = text
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("//"))
+    .join("\n");
+  return JSON.parse(json);
 }

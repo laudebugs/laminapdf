@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
-import { checkManifest, parseManifest } from "../src/manifest.ts";
-import { fixture } from "./helpers.ts";
+import { fixture } from "../test/helpers.ts";
+import { checkManifest, parseManifest } from "./manifest.ts";
 
 const schema: object = JSON.parse(readFileSync(new URL("../schemas/manifest.schema.json", import.meta.url), "utf8"));
 const validate = new Ajv2020({ allErrors: true, multipleOfPrecision: 9 }).compile(schema);
@@ -98,7 +98,7 @@ describe("checkManifest", () => {
   });
 });
 
-describe("schemas/manifest.schema.json", () => {
+describe("manifest.schema.json", () => {
   it.each(["beta", "staging", "nightly"])("accepts the %s fixture", (name) => {
     expect(validate(fixture(name)), JSON.stringify(validate.errors)).toBe(true);
   });

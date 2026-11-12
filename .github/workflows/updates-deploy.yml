@@ -1,10 +1,13 @@
-# The desktop update Worker's deploys (todo D5a; ADR 0014; apps/updates/README.md).
-# Pushes to main that touch the Worker (and manual runs on main): check it, deploy staging
-# (staging-updates.laminapdf.com, wrangler.jsonc's env.staging), smoke-test it, then deploy
-# production (updates.laminapdf.com) and smoke-test that. Pull requests get the Worker's typecheck
-# and tests from the fast lane's `cargo xtask check ts`, so nothing here runs on them.
-# The Worker only reads R2: releasing is writing manifests (apps/updates/scripts/manifest.ts), not a
-# deploy. Without the Cloudflare secrets the deploy steps skip with a notice and the job passes.
+# The desktop update Worker's deploys (ADR 0014; apps/updates/README.md).
+# Pushes to main that touch the Worker (and manual runs on main): `staging` checks it, deploys
+# staging-updates.laminapdf.com (wrangler.jsonc's env.staging) and smoke-tests it; then `production`
+# deploys updates.laminapdf.com in the `production` environment, smoke-tests it, and rolls back to
+# the previous deployment when the smoke test fails. Pull requests get the Worker's typecheck and
+# tests from the fast lane's `cargo xtask check ts`, so nothing here runs on them.
+# Production deploys from main without the reader's tag gate: the Worker holds no release data, so a
+# deploy changes how manifests are read, never what users are offered. That comes from the manifests
+# in R2 (apps/updates/scripts/manifest.ts). Without the Cloudflare secrets the deploy steps skip
+# with a notice and the jobs pass.
 name: Update Worker
 
 on:
@@ -24,12 +27,18 @@ concurrency:
   group: updates-deploy
   cancel-in-progress: false
 
+env:
+  # Wrangler's usage metrics off (ADR 0011: no telemetry).
+  WRANGLER_SEND_METRICS: "false"
+
 jobs:
-  deploy:
-    name: Update Worker (staging, then production)
+  staging:
+    name: Update Worker staging
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      deployed: ${{ steps.secrets.outputs.enabled }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -58,8 +67,23 @@ jobs:
       - name: Smoke-test staging
         if: steps.secrets.outputs.enabled == 'true'
         run: apps/updates/scripts/smoke.sh https://staging-updates.laminapdf.com
+
+  production:
+    name: Update Worker production
+    needs: staging
+    if: ${{ needs.staging.outputs.deployed == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    env:
+      URL: https://updates.laminapdf.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/node-pnpm
       - name: Deploy production
-        if: steps.secrets.outputs.enabled == 'true'
+        id: deploy
         working-directory: apps/updates
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -67,7 +91,20 @@ jobs:
           SHA: ${{ github.sha }}
         run: pnpm exec wrangler deploy --env "" --message "main at $SHA"
       - name: Smoke-test production
-        if: steps.secrets.outputs.enabled == 'true'
+        id: smoke
         run: |
-          apps/updates/scripts/smoke.sh https://updates.laminapdf.com
-          echo "Update Worker: https://updates.laminapdf.com and https://staging-updates.laminapdf.com at $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          apps/updates/scripts/smoke.sh "$URL"
+          echo "Update Worker: $URL at $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      # Whenever the deploy went out and its smoke test didn't pass. The job still fails. The first
+      # deploy has no deployment to go back to, so its rollback fails too.
+      - name: Roll back a deploy that didn't pass its smoke test
+        if: always() && steps.deploy.outcome == 'success' && steps.smoke.outcome != 'success'
+        working-directory: apps/updates
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SHA: ${{ github.sha }}
+        run: |
+          pnpm exec wrangler rollback --env="" --yes --message "main at $SHA didn't pass its smoke test"
+          echo "::error::main at $SHA didn't pass its smoke test on $URL and was rolled back to the previous deployment"
+          exit 1

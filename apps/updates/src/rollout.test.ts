@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { BUCKETS, bucketFor, inRollout, installIdOf } from "../src/rollout.ts";
-import { INSTALL_IDS } from "./helpers.ts";
+import { INSTALL_IDS } from "../test/helpers.ts";
+import { BUCKETS, bucketFor, inRollout, installIdOf } from "./rollout.ts";
 
 describe("installIdOf", () => {
   it("lower-cases a UUID v4", () => {

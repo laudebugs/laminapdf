@@ -1,8 +1,9 @@
 // The manifest tool's changes, as functions from one manifest to the next (scripts/manifest.ts reads
 // and writes R2 around them). Each result is checked with the Worker's own validator before it is
 // written, so the tool can't publish a manifest the Worker would refuse.
+
+import type { Channel } from "../src/channels.ts";
 import { checkManifest, type Manifest, type Release } from "../src/manifest.ts";
-import type { Channel } from "../src/route.ts";
 import { compare } from "../src/semver.ts";
 
 /** The manifest a channel starts with: nothing to serve, not paused. */

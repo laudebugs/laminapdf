@@ -55,8 +55,9 @@ and the install gets the release when `bucket < rollout_percent × 100`. Hashing
   - **204** otherwise, including for a channel with no manifest yet.
   - **400** for an unknown target or arch, or a version that isn't SemVer.
   - **404** for an unknown channel or any other path. `/healthz` answers 200.
-  - Every answer is `Cache-Control: no-store`, because it depends on the header. The app reaches the endpoint with native HTTP, so CORS doesn't apply.
+  - Every answer carries `Cache-Control: no-store`, because it depends on the header, and `X-Content-Type-Options: nosniff`, with a `Content-Type` on any answer that has a body. The Tauri updater reaches the endpoint with native HTTP, not from a page, so CORS and [ADR 0011 §4](0011-cloudflare-topology-and-privacy.md)'s page headers (CSP, frame and permissions policies) don't apply.
 - **Selection order:** bridges, then (unless paused) `release` for installs in its rollout, then `previous`.
+- **Deploys.** Every change to the Worker that reaches `main` deploys to staging, then to production in the `production` environment, which rolls back automatically when its smoke test fails. There is no release tag as the web reader has, because a deploy changes only how manifests are read: what any install is offered comes from the manifests in R2. The deploy token can edit Workers scripts and routes and has no R2 access; only each bucket's own token, held by the GitHub environment that publishes to it, can write releases.
 
 ### 6. Signing identities
 
@@ -102,7 +103,7 @@ Every release artefact carries a GitHub artifact attestation (ADR 0017's practic
 ### 9. Privacy
 
 - **What the endpoint sees:** the IP address, the user agent, the channel, target, arch and current version (in the path) and the install ID header. Nothing else is sent, and the response depends only on these.
-- **What is kept:** nothing about a request. The Worker's [`wrangler.jsonc`](../../apps/updates/wrangler.jsonc) sets `observability.logs.invocation_logs: false`, so Workers Logs record only what the Worker writes with `console`. That is two events, `manifest-invalid` and `manifest-unavailable`, each naming only the channel. `observability.traces.enabled: false` keeps traces off. Cloudflare's traces record the user agent, the full URL and some request headers on every request ([spans and attributes](https://developers.cloudflare.com/workers/observability/traces/spans-and-attributes/), checked 2026-11-12). No Tail Worker is attached, and Tail Workers receive request headers ([Tail Workers](https://developers.cloudflare.com/workers/observability/logs/tail-workers/)). No Logpush job reads this Worker.
+- **What is kept:** nothing about a request. The Worker's [`wrangler.jsonc`](../../apps/updates/wrangler.jsonc) sets `observability.logs.invocation_logs: false`, so Workers Logs record only what the Worker writes with `console`. That is two events, each naming the channel: `manifest-invalid` with the validator's reasons, and `manifest-unavailable` with R2's error name and message. Neither can hold a request header. `observability.traces.enabled: false` keeps traces off. Cloudflare's traces record the user agent, the full URL and some request headers on every request ([spans and attributes](https://developers.cloudflare.com/workers/observability/traces/spans-and-attributes/), checked 2026-11-12). No Tail Worker is attached, and Tail Workers receive request headers ([Tail Workers](https://developers.cloudflare.com/workers/observability/logs/tail-workers/)). No Logpush job reads this Worker.
 - **Verified 2026-11-12** against [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/): invocation logs hold the request's metadata, and `invocation_logs = false` turns them off. Anyone adding tracing, a Tail Worker or Logpush must first show that the install ID can't reach it, and must amend this section.
 - **The privacy page** (D7b) says the same in plain words.
 

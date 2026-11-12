@@ -5,7 +5,7 @@
 import { build } from "esbuild";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cohortIds, fixture } from "./helpers.ts";
+import { cohortIds, fixture, wranglerConfig } from "./helpers.ts";
 
 let mf: Miniflare;
 const logged: string[] = [];
@@ -26,8 +26,7 @@ beforeAll(async () => {
     convertV4MiniflareOptions({
       modules: true,
       script,
-      // wrangler.jsonc's date.
-      compatibilityDate: "2026-11-01",
+      compatibilityDate: wranglerConfig().compatibility_date,
       r2Buckets: ["RELEASES", "STAGING", "NIGHTLY"],
       handleStructuredLogs: (log) => logged.push(JSON.stringify(log)),
     }),
@@ -57,7 +56,8 @@ function get(path: string, installId?: string, method = "GET") {
   });
 }
 
-describe("the Worker in workerd", () => {
+// The unit is the Worker's default export, as workerd calls it.
+describe("fetch", () => {
   it("answers /healthz", async () => {
     const response = await get("/healthz");
     expect(response.status).toBe(200);

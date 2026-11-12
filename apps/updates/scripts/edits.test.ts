@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { emptyManifest, promote, setPaused, setRollout } from "../scripts/edits.ts";
 import type { Manifest } from "../src/manifest.ts";
-import { fixture } from "./helpers.ts";
+import { fixture } from "../test/helpers.ts";
+import { emptyManifest, promote, setPaused, setRollout } from "./edits.ts";
 
 const beta = fixture("beta");
 
-describe("the manifest tool's edits", () => {
+describe("setPaused", () => {
   it("pauses and resumes a channel", () => {
     expect(setPaused(beta, true).paused).toBe(true);
     expect(setPaused(setPaused(beta, true), false)).toEqual(beta);
   });
+});
 
+describe("setRollout", () => {
   it("moves the rollout", () => {
     expect(setRollout(beta, 50).release?.rollout_percent).toBe(50);
   });
@@ -23,7 +25,9 @@ describe("the manifest tool's edits", () => {
   it("refuses to roll out a channel with no release", () => {
     expect(() => setRollout(emptyManifest("stable"), 10)).toThrow(/no release/);
   });
+});
 
+describe("promote", () => {
   it("promotes a beta release into an empty stable channel", () => {
     const stable = promote(beta, emptyManifest("stable"), "0.2.0", 1);
     expect(stable.channel).toBe("stable");

@@ -1,10 +1,10 @@
 // ADR 0014 §3 and §9: the install ID never reaches a log. Every console method is watched across
 // requests that take each path through the handler (served, not served, bridges, pause, a broken
-// manifest, R2 failing, bad paths), with the Worker's own logger writing to the console as
-// src/index.ts does. test/workerd.test.ts checks workerd's output the same way.
+// manifest, R2 failing, bad paths), with the Worker's own logger, `logEvent`, which src/index.ts
+// passes too. test/workerd.test.ts checks workerd's output the same way.
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type HandlerDeps, handle } from "../src/handler.ts";
+import { type HandlerDeps, handle, logEvent } from "../src/handler.ts";
 import { cohortIds, fixture, type Harness, harness, INSTALL_IDS, request } from "./helpers.ts";
 
 const METHODS = ["log", "info", "warn", "error", "debug", "trace", "dir", "table"] as const;
@@ -54,12 +54,11 @@ async function sendAll(h: Harness, deps: HandlerDeps, ids: readonly string[]): P
   await h.settle();
 }
 
-describe("the install ID", () => {
-  it("never appears in anything written to the console", async () => {
+describe("handle", () => {
+  it("never writes the install ID, or a hash of it, to the console", async () => {
     const written = watchConsole();
     const h = harness();
-    // The Worker's logger, as src/index.ts sets it up.
-    const deps: HandlerDeps = { ...h.deps, log: (entry) => console.error(JSON.stringify(entry)) };
+    const deps: HandlerDeps = { ...h.deps, log: logEvent };
     const { inside, outside } = await cohortIds("0.2.0", 10);
     const ids = [inside, outside, ...INSTALL_IDS, inside.toUpperCase()];
     const beta = fixture("beta");

@@ -1,6 +1,6 @@
 // The channel manifests' operations (ADR 0014; apps/updates/README.md): read, check, pause, resume,
 // roll out, promote and upload a hand-edited file. It reads and writes R2 with the package's own
-// Wrangler, so it uses the caller's Wrangler login or CLOUDFLARE_API_TOKEN, and D6b's release
+// Wrangler, so it uses the caller's Wrangler login or CLOUDFLARE_API_TOKEN, and the desktop release
 // workflow calls it the same way. Every write is checked with the Worker's validator first, and
 // nothing is written when the manifest wouldn't change.
 //
@@ -18,17 +18,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
+import { CHANNEL_BUCKETS, CHANNELS, type Channel, isChannel } from "../src/channels.ts";
 import { type Manifest, parseManifest } from "../src/manifest.ts";
-import { CHANNELS, type Channel } from "../src/route.ts";
 import { emptyManifest, promote, setPaused, setRollout } from "./edits.ts";
-
-/** Each channel's bucket, as wrangler.jsonc binds them. */
-const BUCKETS: Record<Channel, string> = {
-  stable: "lamina-pdf-releases",
-  beta: "lamina-pdf-releases",
-  nightly: "lamina-pdf-nightly",
-  staging: "lamina-pdf-staging",
-};
 
 const where = process.argv.includes("--local") ? "--local" : "--remote";
 const args = process.argv.slice(2).filter((a) => a !== "--local");
@@ -39,8 +31,8 @@ function fail(message: string): never {
 }
 
 function channelOf(value: string | undefined): Channel {
-  if (!value || !(CHANNELS as readonly string[]).includes(value)) fail(`expected a channel: ${CHANNELS.join(", ")}`);
-  return value as Channel;
+  if (!isChannel(value)) fail(`expected a channel: ${CHANNELS.join(", ")}`);
+  return value;
 }
 
 function percentOf(value: string | undefined): number {
@@ -63,7 +55,7 @@ function wrangler(argv: string[]): { status: number; stdout: string; stderr: str
 }
 
 function objectPath(channel: Channel): string {
-  return `${BUCKETS[channel]}/channels/${channel}.json`;
+  return `${CHANNEL_BUCKETS[channel].bucket}/channels/${channel}.json`;
 }
 
 /** The channel's manifest in R2, or the empty one when the channel has none yet. */

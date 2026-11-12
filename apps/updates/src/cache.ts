@@ -2,8 +2,9 @@
 // strongly consistent, so a `paused` change reaches every data centre within 30 s plus one read,
 // inside the kill switch's 60 s. Never add a second layer (an in-isolate memo, a KV copy) without
 // taking its time out of this TTL: two stacked layers can serve a stale manifest for their sum.
+
+import type { Channel } from "./channels.ts";
 import { type Checked, parseManifest } from "./manifest.ts";
-import type { Channel } from "./route.ts";
 
 /** How long a cached manifest is used, in milliseconds. */
 export const MANIFEST_TTL_MS = 30_000;
@@ -19,7 +20,9 @@ export interface ManifestCache {
   put(request: Request, response: Response): Promise<void>;
 }
 
+/** What {@link loadManifest} needs from its runtime. */
 export interface CacheDeps {
+  /** The Cache API, or a double in tests. */
   readonly cache: ManifestCache;
   /** The current time in milliseconds (`Date.now`); tests pass a fake clock. */
   readonly now: () => number;
@@ -27,6 +30,7 @@ export interface CacheDeps {
   readonly waitUntil: (work: Promise<unknown>) => void;
 }
 
+/** A channel's manifest as read: absent (no file yet), or read and then checked. */
 export type Loaded = { readonly state: "absent" } | (Checked & { readonly state: "read" });
 
 // When the copy was read from R2. The Worker checks it itself, so the 30 s holds even where the

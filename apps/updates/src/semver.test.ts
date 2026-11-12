@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compare, isVersion, parseVersion } from "../src/semver.ts";
+import { compare, isVersion, parseVersion } from "./semver.ts";
 
 describe("parseVersion", () => {
   it.each(["0.0.1", "1.2.3", "0.1.1-nightly.20261028.42", "1.0.0-alpha", "1.0.0+build.7", "10.20.30-rc.1+meta"])(

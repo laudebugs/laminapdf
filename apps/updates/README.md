@@ -13,9 +13,14 @@ This Cloudflare Worker tells each installed copy of the Lamina PDF desktop app w
 | Nightly | bucket `lamina-pdf-nightly`, files at `nightly-downloads.laminapdf.com` |
 | Staging channel | bucket `lamina-pdf-staging`, files at `staging-downloads.laminapdf.com` |
 | Manifest format | `src/manifest.ts`, and `schemas/manifest.schema.json` for other tools |
-| Deploys | `.github/workflows/updates-deploy.yml`: every push to `main` that touches the Worker deploys staging, smoke-tests it (`scripts/smoke.sh`), then deploys production |
+| Deploys | `.github/workflows/updates-deploy.yml`: every push to `main` that touches the Worker deploys staging and smoke-tests it (`scripts/smoke.sh`), then deploys production in the `production` environment, smoke-tests it, and rolls it back if that fails |
+| Channels and buckets | `src/channels.ts`, the one map; a test holds `wrangler.jsonc`'s bindings to it |
 
-The Worker only reads the buckets. A release is a set of files plus a manifest change, never a Worker deploy: D6b's release workflow uploads the bundles, and the manifest tool below edits the manifest.
+The Worker only reads the buckets. A release is a set of files plus a manifest change, never a Worker deploy: the desktop release workflow uploads the bundles, and the manifest tool below edits the manifest.
+
+**Why production deploys from `main` on every change.** The web reader reaches production only through a release tag, because a deploy changes what users run. Here, a deploy changes only how manifests are read: the Worker holds no release data, and what any install is offered comes from the manifests in R2, which only the release workflow and the manifest tool write. Every deploy is tested first, passes through staging, and is rolled back automatically if production's smoke test fails.
+
+**Why the hosts aren't `vars`.** The Worker never builds a download URL: each manifest holds its bundles' full addresses, so moving `downloads.laminapdf.com` is a manifest change. The update endpoint's address lives in the app's updater configuration, not in the Worker, so changing it needs a bridge release whatever the Worker's settings say. The only hosts in `wrangler.jsonc` are the Worker's own routes.
 
 ## Updater public keys
 
@@ -70,25 +75,25 @@ curl -i -H "Lamina-Install-Id: $(uuidgen)" https://updates.laminapdf.com/beta/da
 ## Development
 
 ```sh
-pnpm --filter @laminapdf/updates test        # Vitest: the handler in Node, the bundled Worker in workerd
+pnpm --filter @laminapdf/updates test        # Vitest: unit tests beside their sources, handle in Node, the bundled Worker in workerd
 pnpm --filter @laminapdf/updates typecheck   # Node and workerd types, and the generated binding types are current
 pnpm --filter @laminapdf/updates run types   # regenerate src/generated/worker-configuration.d.ts after editing wrangler.jsonc
 pnpm --filter @laminapdf/updates dev         # the Worker on wrangler dev with local R2
 ```
 
-`cargo xtask check ts` runs the typecheck and the tests with every other package's. The tests cover every branch in ADR 0014: 204 and 200, the rollout with the install ID present, absent and malformed, `previous`, bridges, the pause, the 30-second cache bound, bad paths, and a log-leak test that fails if an install ID reaches any log.
+`cargo xtask check ts` runs the typecheck and the tests with every other package's. Unit tests sit beside their sources (`src/*.test.ts`, `scripts/edits.test.ts`); `test/` holds the integration tests. The workerd tests run through Miniflare `5.20261103.0-beta`, pinned exactly: it is the Miniflare that the workspace's Wrangler 4.157.0 depends on, and Miniflare 5 has so far been published only as betas. `@cloudflare/vitest-pool-workers` would run every test in workerd, but its current release needs Vitest 4, and the workspace is on Vitest 5. The tests cover every branch in ADR 0014: 204 and 200, the rollout with the install ID present, absent and malformed, `previous`, bridges, the pause, the 30-second cache bound, bad paths, and a log-leak test that fails if an install ID reaches any log.
 
 ## Owner setup
 
 This is done once, in the Cloudflare dashboard. Until the deploy secrets exist, the deploy workflow skips with a notice.
 
-1. **Buckets.** In R2, create `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging`.
-2. **Download domains.** Under each bucket's **Settings → Custom Domains**, connect `downloads.laminapdf.com`, `nightly-downloads.laminapdf.com` and `staging-downloads.laminapdf.com` respectively. Leave the `r2.dev` address off.
+1. **Buckets** (done 2026-11-12). In R2, create `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging`.
+2. **Download domains** (done 2026-11-12, minimum TLS 1.2). Under each bucket's **Settings → Custom Domains**, connect `downloads.laminapdf.com`, `nightly-downloads.laminapdf.com` and `staging-downloads.laminapdf.com` respectively. Leave the `r2.dev` address off.
 3. **Write tokens, one per bucket.** Create an R2 API token with **Object Read & Write** on that bucket only, and store it in a GitHub environment as `CLOUDFLARE_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID` beside it:
    - `lamina-pdf-releases` in `desktop-release`
    - `lamina-pdf-nightly` in `desktop-nightly`
-   - `lamina-pdf-staging` in `desktop-staging` as `CLOUDFLARE_STAGING_R2_TOKEN`, and again in `desktop-release` for D6b–D6d's signed trial runs
-4. **Deploy token.** The workflow uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, the same ones the web reader deploys with. The token needs **Workers Scripts: Edit** on the account and **Workers Routes: Edit** on the `laminapdf.com` zone. The first deploy creates the `updates.` and `staging-updates.` custom domains and their certificates.
+   - `lamina-pdf-staging` in `desktop-staging` as `CLOUDFLARE_STAGING_R2_TOKEN`, and again in `desktop-release` for the signed trial runs of the desktop release workflow
+4. **Deploy token.** The workflow uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, the same ones the web reader deploys with. The token needs **Workers Scripts: Edit** on the account and **Workers Routes: Edit** on the `laminapdf.com` zone, and **no R2 access at all**: deploying a Worker with R2 bindings needs none, and only the per-bucket tokens above may write releases. The first deploy creates the `updates.` and `staging-updates.` custom domains and their certificates.
 5. **Check it.** `https://updates.laminapdf.com/healthz` answers `ok`. A channel with no manifest answers 204.
 
-The GitHub environments themselves (reviewers, branch rules, the signing secrets) are set up in D6a's runbook.
+The GitHub environments themselves (reviewers, branch rules, the signing secrets) are set up in the desktop release runbook, `docs/guidelines/desktop-release.md`.

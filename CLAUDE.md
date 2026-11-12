@@ -295,9 +295,12 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   previous), cache.ts (one Cache API layer, 30 s, checked against the copy's read time), handler.ts,
 │                        #   index.ts (the only file on workerd's types, src/generated/ from `pnpm run types`); scripts/manifest.ts
 │                        #   (show, validate, put, pause, resume, set-rollout, promote over `wrangler r2 object`), smoke.sh;
-│                        #   test/ (Vitest in Node, the bundled Worker in workerd through Miniflare, a log-leak test, 100 000-UUID
-│                        #   rollout); invocation logs and traces off; deployed by .github/workflows/updates-deploy.yml (staging,
-│                        #   then production, from main); README.md has the updater public keys and the owner's setup
+│                        #   src/channels.ts (the channels and their buckets, the one map; a test holds wrangler.jsonc to it);
+│                        #   unit tests beside their sources (src/*.test.ts, scripts/edits.test.ts), test/ (handle in Node, the
+│                        #   bundled Worker in workerd through Miniflare, a log-leak test); invocation logs and traces off;
+│                        #   deployed by .github/workflows/updates-deploy.yml (staging, then production in the `production`
+│                        #   environment with a rollback on a failed smoke test, from main); README.md has the updater
+│                        #   public keys and the owner's setup
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
@@ -637,12 +640,13 @@ cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane doe
 cargo xtask changes [--base <rev>]    # paths changed since the merge base with <rev> (default origin/main, else main);
                                       #   code=true unless all are on the docs allowlist; gallery=true when they touch
                                       #   apps/gallery, packages/{ui,tokens,icons,fonts} or pnpm-lock.yaml; web=true unless all
-                                      #   are docs or outside what the reader is built from (OUTSIDE_WEB: web-deploy.yml's filter);
+                                      #   are docs or outside what the reader is built from (OUTSIDE_WEB: web-deploy.yml's filter;
+                                      #   apps/{docs,site,gallery,updates}, spikes/, fuzz/, tools/ but xtask, other workflows);
                                       #   desktop=true when they touch apps/desktop, packages/, crates/, the manifests,
                                       #   lockfiles, toolchain or the full lane (DESKTOP_INPUTS: the `desktop` job's filter);
                                       #   render=true when they touch crates/, the example and render goldens, the corpus,
                                       #   tools/render, tools/xtask, the manifests and toolchain, or full.yml (RENDER_INPUTS, X9b);
-                                      #   rust=true unless all are docs, apps/{web,docs,site,gallery} or packages/ (packages/sdk
+                                      #   rust=true unless all are docs, apps/{web,docs,site,gallery,updates} or packages/ (packages/sdk
                                       #   and any package's src/ still count); ts=true unless all are docs or in fuzz/, spikes/,
                                       #   tools/ or other workflows (tools/xtask, cli-release, fonts, Biome-linted files and the
                                       #   two lanes still count). Each group of jobs runs on its flag, and both gates check it

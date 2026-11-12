@@ -1,7 +1,8 @@
 // A channel's manifest, `channels/{channel}.json` in its bucket (ADR 0014 §5). The Worker and the
 // manifest tooling (scripts/manifest.ts) both validate with this module; schemas/manifest.schema.json
 // describes the same shape for other tools, and a test holds the two together.
-import { CHANNELS, type Channel, isPlatformKey, type PlatformKey } from "./route.ts";
+import { CHANNELS, type Channel, isChannel } from "./channels.ts";
+import { isPlatformKey, type PlatformKey } from "./route.ts";
 import { compare, isVersion } from "./semver.ts";
 
 /** One platform's update: the bundle's address and the contents of its `.sig` file. */
@@ -27,6 +28,7 @@ interface Bridge {
   readonly release: Release;
 }
 
+/** A channel's manifest: what the Worker serves from, `channels/{channel}.json` in its bucket. */
 export interface Manifest {
   readonly schema: 1;
   readonly channel: Channel;
@@ -37,6 +39,7 @@ export interface Manifest {
   readonly bridges?: readonly Bridge[];
 }
 
+/** The result of checking a manifest: the manifest, or every problem found, each with its JSON path. */
 export type Checked =
   | { readonly ok: true; readonly manifest: Manifest }
   | { readonly ok: false; readonly errors: string[] };
@@ -148,7 +151,7 @@ function checkBridge(bridge: unknown, at: string, errors: string[]): void {
 function checkHeader(value: Json, channel: Channel | undefined, errors: string[]): void {
   unknownKeys(value, TOP_KEYS, "", errors);
   if (value.schema !== 1) errors.push("/schema: must be 1");
-  if (typeof value.channel !== "string" || !(CHANNELS as readonly string[]).includes(value.channel)) {
+  if (!isChannel(value.channel)) {
     errors.push(`/channel: must be one of ${CHANNELS.join(", ")}`);
   } else if (channel !== undefined && value.channel !== channel) {
     errors.push(`/channel: is ${value.channel}, but the file is ${channel}'s`);
@@ -180,7 +183,8 @@ export function checkManifest(value: unknown, channel?: Channel): Checked {
   const errors: string[] = [];
   checkHeader(value, channel, errors);
   checkReleases(value, errors);
-  // Every field the type names was checked above, so the value is a Manifest.
+  // Every field the type names was checked above, so the value is a Manifest; src/manifest.test.ts
+  // holds this validator to schemas/manifest.schema.json, case by case.
   return errors.length === 0 ? { ok: true, manifest: value as unknown as Manifest } : { ok: false, errors };
 }
 

@@ -1,6 +1,6 @@
 // The desktop update service (ADR 0014): one Worker that answers the Tauri updater's
 // `GET /{channel}/{target}/{arch}/{current_version}` from the channel manifests in R2. It only
-// reads the buckets: D6b's release workflow and apps/updates/scripts/manifest.ts write them.
+// reads the buckets: the desktop release workflow and apps/updates/scripts/manifest.ts write them.
 // Production is updates.laminapdf.com and staging (env.staging) staging-updates.laminapdf.com,
 // both deployed from main by .github/workflows/updates-deploy.yml (apps/updates/README.md).
 // Comments here take whole lines.
@@ -8,9 +8,11 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "lamina-pdf-updates",
   "main": "src/index.ts",
-  "compatibility_date": "2026-11-01",
+  // The newest date the pinned workerd (wrangler 4.157.0's, 1.20261103.1) supports, so the tests and
+  // `wrangler dev` run the same behaviour as production; move it forward with Wrangler.
+  "compatibility_date": "2026-11-10",
   // A Workers custom domain on the laminapdf.com zone: `wrangler deploy` creates its DNS record and
-  // certificate. The updater URL is compiled into every installed app (D5b), so it never moves
+  // certificate. The updater URL is compiled into every installed app's updater configuration, so it never moves
   // without a bridge release.
   "routes": [{ "pattern": "updates.laminapdf.com", "custom_domain": true }],
   "workers_dev": false,
@@ -33,7 +35,7 @@
   },
   "env": {
     // Staging: main's Worker before production, as lamina-pdf-updates-staging. It reads the same
-    // buckets (it never writes), so D5b's end-to-end test can use its `staging` channel. Each key is
+    // buckets (it never writes), so the app's end-to-end update test can use its `staging` channel. Each key is
     // set here, not inherited, so the two Workers can't drift into sharing a route.
     "staging": {
       "name": "lamina-pdf-updates-staging",

@@ -56,7 +56,8 @@ fn touches_unless_outside(paths: &[&str], outside: &[&str], anyway: impl Fn(&str
 }
 
 /// Where a change can't affect the native Rust jobs (`check rust`, the MSRV check, the fuzz smoke;
-/// todo X9c): the apps built from TypeScript alone (the update Worker among them), and the packages, but for [`rust_anyway`].
+/// todo X9c): the apps built from TypeScript alone (the update Worker among them), and the packages,
+/// but for [`rust_anyway`].
 const OUTSIDE_RUST: [&str; 6] = [
     "apps/web/",
     "apps/docs/",

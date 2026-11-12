@@ -71,7 +71,7 @@ const config: KnipConfig = {
     },
     // The desktop update Worker (its entry, the manifest tool and the Vitest config knip finds itself).
     "apps/updates": {
-      entry: ["test/**/*.test.ts"],
+      entry: ["src/**/*.test.ts", "scripts/**/*.test.ts", "test/**/*.test.ts"],
       project: ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"],
     },
     // A command, not a library: no `exports`. bin/laminapdf.js runs the built src/launcher.ts.
