@@ -26,7 +26,7 @@ path = "src/main.rs"
 [features]
 # The end-to-end tests' commands (`debug_kill_engine`) and, from D2e, the WebDriver plugin. Off in
 # every release build; CI checks the release binary holds none of them (ADR 0008 §8).
-e2e = []
+e2e = ["dep:tauri-plugin-wdio", "dep:tauri-plugin-wdio-webdriver"]
 
 [build-dependencies]
 tauri-build = { workspace = true }
@@ -44,6 +44,8 @@ tauri = { workspace = true }
 tauri-plugin-dialog = { workspace = true }
 tauri-plugin-log = { workspace = true }
 tauri-plugin-opener = { workspace = true }
+tauri-plugin-wdio = { workspace = true, optional = true }
+tauri-plugin-wdio-webdriver = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 zeroize = { workspace = true }

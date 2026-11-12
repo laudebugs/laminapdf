@@ -57,6 +57,14 @@ const config: KnipConfig = {
     // The docs' example runner: scripts/build-runner.mjs builds runner/worker.ts by its path.
     // src/routeData.ts is Starlight's route middleware, which astro.config.mjs names by path.
     "apps/docs": { entry: ["runner/worker.ts", "src/routeData.ts"] },
+    // The desktop reader's e2e scenarios. WebdriverIO's config sits in e2e/, not the package root
+    // where knip's plugin looks, and it builds the specs' paths, which knip can't follow.
+    "apps/desktop": {
+      entry: ["e2e/specs/*.e2e.ts"],
+      "webdriver-io": { config: ["e2e/wdio.conf.ts"] },
+      // The config's `runner: "local"` loads it; knip's plugin doesn't map the name to the package.
+      ignoreDependencies: ["@wdio/local-runner"],
+    },
     // A command, not a library: no `exports`. bin/laminapdf.js runs the built src/launcher.ts.
     "packages/cli": { entry: ["src/launcher.ts"] },
     // Its browser tests' config loads Astro, which knip can't, so its test entries are named here.
