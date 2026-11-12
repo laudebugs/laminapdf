@@ -12,6 +12,8 @@ mod e2e;
 mod engine;
 mod error;
 mod open;
+#[cfg(feature = "e2e")]
+mod startup;
 
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -200,6 +202,8 @@ pub fn run() -> Result<(), DesktopError> {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            #[cfg(feature = "e2e")]
+            startup::setup();
             app.manage(engines(app.handle()));
             app.manage(open::OpenWorker::start(app.handle().clone())?);
             // Windows are made here, not in tauri.conf.json, so the app chooses every label.
@@ -210,6 +214,8 @@ pub fn run() -> Result<(), DesktopError> {
                 .min_inner_size(640.0, 480.0)
                 .center()
                 .build()?;
+            #[cfg(feature = "e2e")]
+            startup::window();
             tracing::info!(version = %app.package_info().version, "Lamina PDF started");
             // A cold start's PDFs (Windows, Linux, a macOS terminal): queued until the webview takes them.
             let cwd = std::env::current_dir().unwrap_or_default();

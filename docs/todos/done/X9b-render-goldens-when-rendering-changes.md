@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X9b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [CI caching §8](../../plans/ci-caching.md#8-the-waits) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `ci/x9b-render-goldens-when-rendering-changes` |
 | PR title | `ci: run the render goldens only when a PR changes what they draw` |
 | Size | S |
-| PR | — |
+| PR | [#514](https://github.com/laudebugs/laminapdf/pull/514) |
 
 ## Goal
 
@@ -37,14 +37,14 @@
 
 ## Tasks
 
-- [ ] `touches_render` and its input list in `changes.rs`, with the output.
-- [ ] `full.yml`: the job's `if`, and `gate`.
-- [ ] Tests, and the comments in `full.yml`.
+- [x] `touches_render` and its input list in `changes.rs`, with the output.
+- [x] `full.yml`: the job's `if`, and `gate`.
+- [x] Tests, and the comments in `full.yml`.
 
 ## Acceptance criteria
 
-- [ ] A PR that changes only `apps/web/` or `docs/` skips `render-golden` and `gate` passes.
-- [ ] A PR that changes `crates/laminapdf-render/` or `fixtures/golden/render/` runs it.
+- [x] A PR that changes only `apps/web/` or `docs/` skips `render-golden` and `gate` passes.
+- [x] A PR that changes `crates/laminapdf-render/` or `fixtures/golden/render/` runs it.
 
 ## Post-merge checks
 
@@ -64,8 +64,8 @@ The CI caching plan's §8 (tick X9b); ADR 0018 §2 if it lists the full lane's j
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

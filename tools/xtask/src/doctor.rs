@@ -13,9 +13,9 @@ use anyhow::{Context, Result, bail};
 use crate::workspace::Workspace;
 
 /// cargo-deny release (`cargo xtask deny`, `check rust`).
-const CARGO_DENY_VERSION: &str = "0.20.2";
+pub(crate) const CARGO_DENY_VERSION: &str = "0.20.2";
 /// cargo-nextest release (`cargo xtask test`; plain `cargo test` is the fallback).
-const CARGO_NEXTEST_VERSION: &str = "0.9.150";
+pub(crate) const CARGO_NEXTEST_VERSION: &str = "0.9.150";
 /// cargo-cyclonedx release (`cargo xtask sbom`, the release lane; Apache-2.0).
 const CARGO_CYCLONEDX_VERSION: &str = "0.5.9";
 /// cargo-dist release, the `dist` binary (the `laminapdf` release archives and Homebrew formula,
