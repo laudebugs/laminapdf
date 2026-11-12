@@ -32,6 +32,12 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 - **`previewNoindex(env)`** adds `X-Robots-Tag: noindex` to every build except production's (`LAMINA_PDF_ENV=production`).
 - **`pageFiles(dir)`** lists a pages folder for the header, and **`pageExists(dir, path)`** says whether a build serves a path. The docs site's link check uses `pageExists` too.
 
+`src/inline-styles.mjs` (`@laminapdf/site-kit/inline-styles`) lets the docs site's CSP refuse inline styles:
+
+- **`inlineStylesToClasses({ scripted })`** turns every style attribute in the built pages into a class in one style sheet, its declarations `!important` so they win as the attribute did. It gives a style sheet it changes a new name, since the old content-hashed one stays cached for a year. It rewrites Expressive Code's selector on the style attribute to the classes, and fails the build on any other such selector or on a page left with an inline style. `scripted` names the styles a page's own script removes; each gets a class that the site's CSS styles instead.
+
+`src/markup.mjs` (`@laminapdf/site-kit/markup`) reads built HTML for `inline-styles.mjs` and the checks in `integrations.mjs`. **`tokens(html)`** splits a page as a browser does, so text that looks like a tag inside an attribute, a script or a comment is never read as one. **`startTags(html)`** gives each start tag's attributes, which the website's checks read.
+
 `src/robots.mjs` (`@laminapdf/site-kit/robots`) holds the one robots.txt policy of the website, the docs site and the web reader:
 
 - **`robotsTxt({ production, sitemap })`** lets every crawler in, training crawlers included (the owner's choice, 2026-11-11), and names the sitemap in production. Other builds don't block crawlers either: they rely on `noindex`, which a crawler reads only on a page it may fetch.
