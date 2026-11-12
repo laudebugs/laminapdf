@@ -24,7 +24,9 @@ async function toggleRememberRecent(): Promise<void> {
   await input.waitForExist();
   const was = await input.isSelected();
   await browser.execute(() => {
-    const label = [...document.querySelectorAll("label")].find((l) => l.textContent?.includes("Remember recent files"));
+    const label = [...globalThis.document.querySelectorAll("label")].find((l) =>
+      l.textContent?.includes("Remember recent files"),
+    );
     label?.querySelector<HTMLInputElement>('input[role="switch"]')?.click();
   });
   await browser.waitUntil(async () => (await input.isSelected()) !== was, { timeoutMsg: "the switch didn't flip" });
