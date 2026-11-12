@@ -7,7 +7,7 @@ tableOfContents: false
 import CodeTable from "../../../components/CodeTable.astro";
 import Example from "../../../components/Example.astro";
 
-Every error and warning Lamina PDF raises has a code, such as `wrong-password`, and the code is the same in Rust, WebAssembly and `@laminapdf/sdk`. Match on the code, not the message: messages can change, but a code keeps its meaning in every version. [Errors and warnings](/concepts/errors-and-warnings/) shows how to catch them in your code.
+Every error and warning Lamina PDF raises has a code, such as `wrong-password`, and the code is the same in Rust, WebAssembly and `@laminapdf/sdk`. Match on its `code`, not its `message`: a message can change, but a code keeps its meaning in every version. [Errors and warnings](/concepts/errors-and-warnings/) shows how to catch them in your code.
 
 ## React to a code
 
@@ -19,6 +19,6 @@ Any other code goes back to the caller as the error. New codes can appear in any
 
 ## Every code
 
-The tables group the codes by the part of Lamina PDF that raises them. Each row gives the code's kind, one of nine broad groups such as `input`, `limit` or `security`, which you can match on when you don't need the exact code. Then it says what happened and what to do. Each code links to its own page, which says when the code happens, why, how to fix it, and what its `data` holds.
+The tables group the codes by the part of Lamina PDF that raises them. Each row gives the code's `kind`, one of nine broad groups such as `input`, `limit` or `security`, which you can match on when you don't need the exact code. Then it says what happened and what to do. Each code links to its own page, which says when the code happens, why, how to fix it, and what its `data` holds.
 
 <CodeTable />

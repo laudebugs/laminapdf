@@ -22,7 +22,7 @@ A change breaks your code when it does one of these:
 - removes or renames a public Rust item or an export of `@laminapdf/sdk`, such as renaming `doc.pageCount`;
 - changes one so that code using it stops compiling or behaves differently from its documentation, such as making an optional argument required;
 - raises the minimum Rust version, the minimum Node version or the Cloudflare Workers `compatibility_date`;
-- adds an error kind, since code that matches on the nine kinds has to handle the new one;
+- adds an error `kind`, since code that matches on the nine `kind` values has to handle the new one;
 - changes the bytes written for the same input and options, so a PDF your tests compare against no longer matches.
 
 Everything else keeps your code working:
