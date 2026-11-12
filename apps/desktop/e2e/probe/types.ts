@@ -1,8 +1,9 @@
-// What an end-to-end test build puts on `globalThis` for the WebdriverIO scenarios (src/e2e.ts
-// fills it in; e2e/ reads it). Types only, so the scenarios typecheck without the app.
+// What the e2e build puts on `globalThis` for the scenarios: probe.ts fills it in inside the app,
+// and the scenarios read it through `browser.execute`. Types only, so the scenarios typecheck
+// without the app.
 import type { PageRenderState, ViewState } from "@laminapdf/viewer";
 
-/** A page's render state changing, at `performance.now()` in this window. */
+/** A page's render state changing, at `performance.now()` in the app's window. */
 export interface Paint {
   readonly page: number;
   readonly state: PageRenderState;
@@ -11,7 +12,7 @@ export interface Paint {
 
 /** What the scenarios read through `browser.execute`. */
 export interface E2eProbe {
-  /** `performance.now()` in this window, to compare with paints' times. */
+  /** `performance.now()` in the app's window, to compare with paints' times. */
   readonly now: () => number;
   /** The view's page, zoom and scroll, or undefined outside the shell. */
   readonly view: () => ViewState | undefined;
@@ -23,8 +24,10 @@ export interface E2eProbe {
   readonly tilesDrawn: () => number;
   /** Restarts of this window's engine that reopened its document. */
   readonly restarts: () => number;
-  /** The tile requests that failed, other than ones the view cancelled, as `name: message`. */
-  readonly tileFailures: () => readonly string[];
+  /** Pixels of page `index`'s canvases that aren't blank paper, on a sample grid. */
+  readonly inkedPixels: (index: number) => number;
+  /** Scrolls the view to its end, as a scroll bar dragged to the bottom would. */
+  readonly scrollToEnd: () => void;
 }
 
 declare global {

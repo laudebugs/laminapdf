@@ -1,13 +1,14 @@
 // The desktop reader as the scenarios see it: open a fixture, read the view, wait for paint.
 import { join } from "node:path";
 import { platform } from "node:process";
-import { fileURLToPath } from "node:url";
+import type { ViewState } from "@laminapdf/viewer";
 import { $, browser } from "@wdio/globals";
 import { type ChainablePromiseElement, Key } from "webdriverio";
+import { root } from "./paths.ts";
+import type { Paint } from "./probe/types.ts";
 
-const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
-
-import type { Paint } from "../src/e2e-probe.ts";
+/** What the scenarios check of the view. */
+export type View = Pick<ViewState, "pageCount" | "currentPage" | "percent" | "scrollTop">;
 
 /** A file under the repository (`fixtures/`, or `target/fixtures/` for generated ones). */
 export function fixture(...parts: string[]): string {
@@ -33,6 +34,7 @@ async function invoke(command: string, args: object = {}): Promise<unknown> {
 /**
  * Opens `path` as a user does: Choose a file on the home screen, else the open shortcut (⌘O or
  * Ctrl+O). The e2e build opens the queued path instead of showing the dialog.
+ * @returns When the open began, on the app's clock.
  */
 export async function open(path: string): Promise<number> {
   await invoke("e2e_queue_pick", { path });
@@ -60,9 +62,9 @@ export async function openAndWait(path: string, timeout = 15_000): Promise<numbe
  * on the toast alone.)
  */
 export async function killEngine(): Promise<void> {
-  const before = await browser.execute(() => globalThis.__laminaE2e?.restarts() ?? 0);
+  const before = await restarts();
   await invoke("debug_kill_engine");
-  await browser.waitUntil(async () => (await browser.execute(() => globalThis.__laminaE2e?.restarts() ?? 0)) > before, {
+  await browser.waitUntil(async () => (await restarts()) > before, {
     timeout: 20_000,
     timeoutMsg: "the engine didn't restart and reopen the document",
   });
@@ -76,6 +78,16 @@ export async function now(): Promise<number> {
 /** Every change of a page's render state since `since`. */
 export async function paintsSince(since: number): Promise<readonly Paint[]> {
   return browser.execute((from) => globalThis.__laminaE2e?.paintsSince(from) ?? [], since);
+}
+
+/** Pixels of page `index` (0-based) that aren't blank paper, on the probe's sample grid. */
+export async function inkedPixels(index: number): Promise<number> {
+  return browser.execute((page) => globalThis.__laminaE2e?.inkedPixels(page) ?? 0, index);
+}
+
+/** Scrolls the view to its end. */
+export async function scrollToEnd(): Promise<void> {
+  await browser.execute(() => globalThis.__laminaE2e?.scrollToEnd());
 }
 
 /** Waits until page `index` (0-based) is drawn sharp. */
@@ -100,9 +112,11 @@ export async function waitForSharpSince(index: number, since: number, timeout = 
   return at;
 }
 
-/** Tiles the engine has answered since the window opened. */
-async function tilesDrawn(): Promise<number> {
-  return browser.execute(() => globalThis.__laminaE2e?.tilesDrawn() ?? 0);
+/** Clicks the top bar's `label` zoom button and waits until the view's zoom changes. */
+export async function zoomOnce(label: "Zoom in" | "Zoom out"): Promise<void> {
+  const { percent } = await view();
+  await $(`button[aria-label="${label}"]`).click();
+  await browser.waitUntil(async () => (await view()).percent !== percent, { timeoutMsg: `${label} didn't zoom` });
 }
 
 /**
@@ -111,17 +125,16 @@ async function tilesDrawn(): Promise<number> {
  * viewer keeps the pictures it has, so a page already drawn isn't drawn again by itself.)
  */
 export async function drawsAfterZoomOut(): Promise<void> {
-  const { currentPage, percent } = await view();
+  const { currentPage } = await view();
   const before = await tilesDrawn();
-  await $('button[aria-label="Zoom out"]').click();
-  await browser.waitUntil(async () => (await view()).percent < percent, { timeoutMsg: "Zoom out didn't zoom" });
+  await zoomOnce("Zoom out");
   await browser.waitUntil(async () => (await tilesDrawn()) > before, { timeoutMsg: "the engine drew no tile" });
   await waitForSharp(currentPage);
 }
 
-/** The view's page count, current page (0-based) and zoom, as the viewer reports them. */
-export async function view(): Promise<{ pageCount: number; currentPage: number; percent: number; scrollTop: number }> {
-  const state = await browser.execute(() => {
+/** The view's page count, current page (0-based), zoom and scroll, as the viewer reports them. */
+export async function view(): Promise<View> {
+  const state = await browser.execute((): View | undefined => {
     const v = globalThis.__laminaE2e?.view();
     return v === undefined
       ? undefined
@@ -137,6 +150,14 @@ export async function goToPage(number: number): Promise<void> {
   await field.click();
   await field.setValue(String(number));
   await browser.keys("Enter");
+}
+
+async function tilesDrawn(): Promise<number> {
+  return browser.execute(() => globalThis.__laminaE2e?.tilesDrawn() ?? 0);
+}
+
+async function restarts(): Promise<number> {
+  return browser.execute(() => globalThis.__laminaE2e?.restarts() ?? 0);
 }
 
 interface TauriGlobal {

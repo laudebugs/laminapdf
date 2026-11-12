@@ -5,5 +5,6 @@
     "allowImportingTsExtensions": true,
     "types": ["node", "@wdio/globals/types", "@wdio/mocha-framework", "@wdio/tauri-service"]
   },
-  "include": ["**/*.ts", "../src/e2e-probe.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["probe/probe.ts"]
 }

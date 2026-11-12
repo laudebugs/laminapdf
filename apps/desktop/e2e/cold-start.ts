@@ -6,12 +6,9 @@
 // Run with `pnpm --filter @laminapdf/desktop cold-start` after `desktop:build:e2e`.
 import { spawn } from "node:child_process";
 import { appendFileSync } from "node:fs";
-import { join } from "node:path";
 import { env, platform } from "node:process";
-import { fileURLToPath } from "node:url";
+import { appBinary } from "./paths.ts";
 
-const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
-const binary = join(root, "target", "debug", platform === "win32" ? "laminapdf-desktop.exe" : "laminapdf-desktop");
 const RUNS = 5;
 /** How long a launch may take before the run gives up on it. */
 const LIMIT_MS = 30_000;
@@ -20,7 +17,7 @@ const TARGET_MS = 300;
 /** Launches the app once and resolves with the milliseconds it reported, then stops it. */
 function launch(): Promise<number> {
   return new Promise((resolve, reject) => {
-    const app = spawn(binary, [], { stdio: ["ignore", "pipe", "inherit"] });
+    const app = spawn(appBinary, [], { stdio: ["ignore", "pipe", "inherit"] });
     const timer = setTimeout(() => {
       app.kill();
       reject(new Error(`the app didn't report within ${LIMIT_MS} ms`));

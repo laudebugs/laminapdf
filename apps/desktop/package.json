@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@babel/core": "catalog:",
+    "@laminapdf/test-utils": "workspace:*",
     "@rolldown/plugin-babel": "catalog:",
     "@tauri-apps/cli": "catalog:",
     "@types/babel__core": "catalog:",
