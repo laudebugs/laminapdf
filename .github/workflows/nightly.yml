@@ -322,12 +322,42 @@ jobs:
       - id: scaling
         run: cargo xtask scaling
 
+  # Rust on macOS x64 (todo X9a): ci.yml runs this leg on pushes to main only, since its runners
+  # are the slowest to come, so the nightly checks it too. No compile cache: nothing here may be
+  # built from it (CI caching plan §4.3). It restores the fast lane's macOS x64 Rust cache and saves
+  # none.
+  rust-macos-x64:
+    name: Rust (macos-x64)
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    env:
+      # As in the fast lane: no retries (.config/nextest.toml, ADR 0018 §4).
+      NEXTEST_PROFILE: ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # `check maintainability` compares its record files with main's merge base.
+          fetch-depth: 0
+      # No `toolchain` input: installs exactly what rust-toolchain.toml pins.
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        with:
+          cache: true
+          cache-save-if: false
+          cache-shared-key: rust
+          cache-bin: false
+      # Same versions as ci.yml's rust job and tools/xtask/src/doctor.rs.
+      - uses: ./.github/actions/install-tools
+        with:
+          tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
+      - run: cargo xtask check rust
+
   bench:
     name: Benchmarks
     # A new label starts a hosted baseline, separate from the old private Macs. GitHub's
     # physical hosts vary, so timing regressions remain advisory. Preserve the job graph:
     # tools/xtask/src/workflows.rs checks these dependencies stay complete.
-    needs: [differential, fuzz, scaling, links, render-diff, verapdf, roundtrip, forced-failure]
+    needs: [differential, fuzz, scaling, links, render-diff, verapdf, roundtrip, rust-macos-x64, forced-failure]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the
@@ -782,7 +812,7 @@ jobs:
   report:
     name: Open an issue on failure
     needs:
-      [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, verapdf, roundtrip, proof, forced-failure]
+      [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, verapdf, roundtrip, proof, rust-macos-x64, forced-failure]
     # Never for a caller that passed `record: false` (the release lane fails on its own result),
     # nor for a run someone cancelled. A job that hit its timeout-minutes ends `cancelled`, not
     # `failure`, but fails the run all the same: 2026-11-02's Benchmarks job landed on a hung

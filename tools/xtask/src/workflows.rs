@@ -711,6 +711,80 @@ mod tests {
         );
     }
 
+    /// The platforms of ci.yml's native Rust legs, from the `changes` job's list.
+    fn rust_legs(workflow: &str) -> Vec<String> {
+        let lines: Vec<&str> = workflow.lines().collect();
+        let start = lines.iter().position(|l| l.trim() == "legs='[").unwrap_or(lines.len());
+        let end = lines
+            .iter()
+            .skip(start)
+            .position(|l| l.trim() == "]'")
+            .map_or(start, |n| start + n);
+        let json = format!("[{}]", lines.get(start + 1..end).unwrap_or_default().join("\n"));
+        let legs: Vec<serde_json::Value> = serde_json::from_str(&json).unwrap_or_default();
+        legs.iter()
+            .filter_map(|leg| leg.get("platform").and_then(serde_json::Value::as_str))
+            .map(str::to_owned)
+            .collect()
+    }
+
+    /// Todo X9a: every native Rust leg on pushes to main; pull requests leave out only macOS x64.
+    #[test]
+    fn ci_should_run_macos_x64_rust_on_main_only() {
+        assert_eq!(
+            rust_legs(CI),
+            [
+                "linux-x64",
+                "linux-arm64",
+                "macos-x64",
+                "macos-arm64",
+                "windows-x64",
+                "windows-arm64"
+            ]
+        );
+        let changes = jobs(CI)
+            .into_iter()
+            .find(|(id, _)| *id == "changes")
+            .map(|(_, l)| l)
+            .unwrap_or_default();
+        let filter = changes
+            .iter()
+            .position(|l| l.contains(r#"select(.platform != "macos-x64")"#));
+        let guarded = filter.is_some_and(|at| {
+            changes
+                .get(at.saturating_sub(1))
+                .is_some_and(|l| l.contains(r#"if [ "$EVENT" = pull_request ]"#))
+        });
+        assert!(guarded, "only a pull request may drop the macOS x64 leg");
+        let rust = jobs(CI)
+            .into_iter()
+            .find(|(id, _)| *id == "rust")
+            .map(|(_, l)| l)
+            .unwrap_or_default();
+        assert!(
+            rust.iter()
+                .any(|l| l.contains("include: ${{ fromJSON(needs.changes.outputs.rust-legs) }}"))
+        );
+    }
+
+    /// Todo X9a: the nightly checks Rust on macOS x64, and its report covers the job.
+    #[test]
+    fn nightly_should_check_rust_on_macos_x64() {
+        let job = jobs(NIGHTLY)
+            .into_iter()
+            .find(|(id, _)| *id == "rust-macos-x64")
+            .map(|(_, l)| l)
+            .unwrap_or_default();
+        assert!(job.iter().any(|l| l.trim() == "runs-on: macos-15-intel"));
+        assert!(job.iter().any(|l| l.trim() == "- run: cargo xtask check rust"));
+        assert!(needs(NIGHTLY, "report").contains(&"rust-macos-x64"));
+    }
+
+    #[test]
+    fn rust_legs_should_read_nothing_from_a_workflow_without_the_list() {
+        assert_eq!(rust_legs("jobs:\n  a:\n    steps: []\n"), Vec::<String>::new());
+    }
+
     #[test]
     fn keys_under_should_stop_at_the_next_top_level_key() {
         let workflow = "name: x\non: # triggers\n  push:\n    branches: [main]\n  # a comment\n  schedule:\n    - cron: \"0 1 * * *\"\npermissions:\n  contents: read\n";
