@@ -16,6 +16,9 @@ In `crates/laminapdf-build/tests/markdown.rs`, with Noto Sans SC (CFF outlines):
 - `a_tab_in_a_code_block_should_raise_no_tounicode_conflict_in_a_cff_font`: a fenced and an indented code block with tabs, one at the start of a line. Before the fix it raised `tounicode-conflict` for the tabs.
 - `a_tab_in_a_code_block_should_extract_as_spaces_to_the_next_tab_stop`: `name\tqty`, `ab\t1` and `abcd\tx` extract as `name    qty`, `ab  1` and `abcd    x`. Before the fix they extracted with tabs.
 - `a_tab_outside_a_code_block_should_be_a_space`: a tab in a paragraph and in inline code. Before the fix it raised five warnings.
+- `a_tab_in_a_code_block_in_a_list_item_should_extract_as_spaces_to_the_next_tab_stop`: a list item holds its code block as paragraph text (`block_text` in `markdown/convert.rs`), so that text is expanded too.
+
+In `crates/laminapdf-build/tests/document_schema.rs`, `a_tab_in_a_code_block_should_raise_no_tounicode_conflict_in_a_cff_font` builds a JSON document's `codeBlock` and paragraph with tabs.
 
 The unit tests in `items.rs` check the tab stops, a combining mark and a line without tabs.
 

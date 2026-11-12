@@ -397,7 +397,7 @@ pub struct GroupSpec {
     pub blocks: Vec<BlockSpec>,
 }
 
-/// Code, line by line as written.
+/// Code, line by line as written, a tab as spaces to the next multiple of four columns.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

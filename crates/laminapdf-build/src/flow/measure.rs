@@ -154,7 +154,11 @@ impl Source {
         let start = self.text.len();
         // A tab outside a code block (whose tabs are expanded to tab stops first) is a space: it
         // is drawn as one, and a font with CFF outlines can't give the space glyph a second text.
-        self.text.extend(text.chars().map(|c| if c == '\t' { ' ' } else { c }));
+        if text.contains('\t') {
+            self.text.extend(text.chars().map(|c| if c == '\t' { ' ' } else { c }));
+        } else {
+            self.text.push_str(text);
+        }
         let mut span = StyledSpan::new(start..self.text.len())
             .with_fonts(fonts)
             .with_size(f32_of(style.size))

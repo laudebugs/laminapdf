@@ -455,7 +455,7 @@ const TAB_STOP: usize = 4;
 /// grapheme cluster. A font has no tab glyph: the shaper draws a tab as a space, and a font with
 /// CFF outlines can't give the space glyph a second text, so the code's text and what it draws
 /// must agree.
-fn expand_tabs(line: &str) -> Cow<'_, str> {
+pub(crate) fn expand_tabs(line: &str) -> Cow<'_, str> {
     if !line.contains('\t') {
         return Cow::Borrowed(line);
     }

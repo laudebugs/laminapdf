@@ -396,3 +396,12 @@ fn a_tab_outside_a_code_block_should_be_a_space() {
     assert_eq!(warnings, []);
     assert!(text(&bytes).contains("Before after and in code."), "{}", text(&bytes));
 }
+
+#[test]
+fn a_tab_in_a_code_block_in_a_list_item_should_extract_as_spaces_to_the_next_tab_stop() {
+    // An ordered list: Noto Sans SC has no bullet.
+    let md = "1. item\n\n   ```\n   ab\tc\n   ```\n";
+    let (bytes, warnings) = build_cff(md);
+    assert_eq!(warnings, []);
+    assert!(text(&bytes).contains("ab  c"), "{}", text(&bytes));
+}
