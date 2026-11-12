@@ -3046,6 +3046,7 @@ dependencies = [
  "laminapdf-save",
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
+ "proptest",
  "quick-xml",
  "serde_json",
  "thiserror 2.0.21",

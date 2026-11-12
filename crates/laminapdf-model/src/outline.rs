@@ -560,7 +560,12 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     }
 
     fn get(&self, key: &str) -> Option<&'o Object> {
-        self.item().and_then(|i| i.node.as_dict()).and_then(|d| d.get(key))
+        self.dict().and_then(|d| d.get(key))
+    }
+
+    /// The item dictionary.
+    pub(crate) fn dict(&self) -> Option<&'o laminapdf_cos::Dict> {
+        self.item().and_then(|i| i.node.as_dict())
     }
 
     /// The item's stable ID.
