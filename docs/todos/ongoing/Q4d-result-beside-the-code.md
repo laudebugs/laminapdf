@@ -11,7 +11,7 @@
 | Branch | `docs/q4d-result-beside-code` |
 | PR title | `docs: show each example's first page beside its code` |
 | Size | S–M |
-| PR | — |
+| PR | [laudebugs/lamina#469](https://github.com/laudebugs/lamina/pull/469) |
 
 ## Goal
 
