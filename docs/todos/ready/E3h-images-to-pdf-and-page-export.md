@@ -15,7 +15,7 @@
 
 ## Goal
 
-Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + SMask, EXIF orientation) and export pages or ranges as PNG/JPEG/TIFF at a chosen DPI through `laminapdf-render`; desktop exports to a folder, web zips.
+Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + SMask, EXIF orientation) and export pages or ranges as PNG/JPEG/TIFF at a chosen resolution through `laminapdf-render`, one page at a time. The dialog and where the files go are [E3j](E3j-export-dialog.md)'s and [E3k](E3k-desktop-navigation-and-export.md)'s.
 
 ## Context
 
@@ -29,7 +29,7 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 **In scope**
 
 - `laminapdf_build::images_to_pdf(images, options)`
-- `render::export_pages(doc, pages, format, dpi)` via `RenderBackend` (PDFium default)
+- `export_pages(&render_doc, pages, &ExportOptions)` via `RenderBackend` (PDFium by default): format, resolution, one page at a time
 - Encoders: PNG through `png`, JPEG through `jpeg-encoder` (MIT OR Apache-2.0), TIFF through `tiff` (MIT), multi-page included ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions)); on the web, PNG and JPEG through the canvas and TIFF in a small WebAssembly module loaded on first use
 - EXIF orientation applied by the drawing transform; page size from the image's resolution or fitted to a paper size
 
@@ -41,9 +41,9 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `H.02` images → PDF; `H.06` pages → PNG/JPEG/TIFF; `H.11` render pages to images
-- **Crates and packages:** `laminapdf-build`, `laminapdf-render`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-build`, `laminapdf-render`, the worker's export call in `@laminapdf/viewer`
 - **`SaveConstraint`:** new document (full write) for images → PDF
-- **Web vs desktop:** desktop writes files to a folder (native render, multi-threaded); web zips and streams; web memory capped by `Limits`
+- **Web vs desktop:** the same functions; the web encodes PNG and JPEG with the canvas and TIFF in its own small WebAssembly module, the desktop natively ([E3 plan §7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells))
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `H.02` → `write` (core, pdf); `H.06` → `read` (core, pdf); `H.11` → `read` (core, pdf)
 

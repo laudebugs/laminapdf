@@ -29,7 +29,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour and 
 **In scope**
 
 - Ops: `AddOutlineItem`, `UpdateOutlineItem` (title, target, colour `/C`, flags `/F`, open or closed), `MoveOutlineItem`, `DeleteOutlineItem`; `SetNamedDestination`, `RenameNamedDestination`, `DeleteNamedDestination`
-- The outline view reads `/C` and `/F`; a name only in the PDF 1.1 `/Dests` dictionary moves into the name tree when an op changes it
+- The outline view reads `/C` and `/F`; a name stays in the form it was found in (a string in the name tree, or a name object in the catalog's `/Dests`), and new names go into the tree
 - Doubly linked list maintenance (`/First /Last /Next /Prev /Parent /Count`) with tolerant reading of broken links
 - Bookmark panel: inline rename, drag to reorder/nest, "set destination to current view"
 

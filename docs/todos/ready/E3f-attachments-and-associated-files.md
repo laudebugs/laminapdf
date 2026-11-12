@@ -28,7 +28,9 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 **In scope**
 
 - Ops: `AttachFile { name, file: BlobId, mime, description, created, modified, attach_to, relationship }`, `UpdateAttachment`, `DeleteAttachment` ([E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops)); the bytes live in [E2p](E2p-source-documents-and-copier.md)'s blob store, and the dates come in the op
-- PDF/A warnings `pdfa-attachment-forbidden` (PDF/A-1, PDF/A-2) and `pdfa-attachment-not-associated` (PDF/A-3 without `/AF`); an `/AF` target raises `/Version` to 2.0 unless the file claims PDF/A-3
+- PDF/A warnings `pdfa-attachment-forbidden` (PDF/A-1, PDF/A-2) and `pdfa-attachment-incomplete` (PDF/A-3 without `/AF` or a modification date); `/Version` is never raised
+- `DeleteAttachment` reports `AttachmentStillHeld` when a FileAttachment annotation keeps the file
+- UR3 `/EF` rights mapped to the attachment ops in `would_violate`, by op ([E3 plan §6](../../plans/editor/e3-navigation-attachments-inspection.md#6-saving-and-the-save-constraint))
 - `doc.attachments()` and `attachment_bytes(id)` (size checked against `Limits`, checksum compared), listing FileAttachment annotations too (read)
 - PDF/A-3 helper: MIME `/Subtype`, `/Params` (size, dates, checksum), `/AFRelationship`
 - Portfolio view (collection schema, files) read-only

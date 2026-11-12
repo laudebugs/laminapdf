@@ -15,7 +15,7 @@
 
 ## Goal
 
-Export extracted content: text (plain, with positions as JSON), original embedded images (DCT/JPX passthrough, others decoded with `/Decode`, masks and colour spaces honoured), and links and bookmarks (JSON/CSV), from the library and both apps.
+Give the library what it lacks for the round's extraction rows: the original embedded images (DCT and JPX passed through, others decoded with `/Decode`, masks and colour spaces honoured), and links and bookmarks as JSON and CSV. Text already comes from `laminapdf-extract` and its `@laminapdf/sdk` binding; this todo tags their tests for `A.10` and the text half of `H.07`. The dialog is [E3j](E3j-export-dialog.md)'s.
 
 ## Context
 
@@ -40,9 +40,9 @@ Export extracted content: text (plain, with positions as JSON), original embedde
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `H.07` extract text and images; `H.08` extract hyperlinks and bookmarks; `B.03` extract original embedded images; `A.10` extract text with position and formatting
-- **Crates and packages:** `laminapdf-text`, `laminapdf-content` (XObject walk), image decoders (licence-checked)
+- **Crates and packages:** `laminapdf-content` (the XObject walk), `laminapdf-extract`, image decoders (licence-checked), `laminapdf`, `@laminapdf/sdk`
 - **`SaveConstraint`:** read-only
-- **Web vs desktop:** desktop writes to a folder; web zips
+- **Web vs desktop:** the same functions in both; where the output goes is E3j's and E3k's
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `H.07` → `read` (core, pdf); `H.08` → `read` (core, pdf); `B.03` → `read` (core, pdf); `A.10` → `read` (pdf)
 

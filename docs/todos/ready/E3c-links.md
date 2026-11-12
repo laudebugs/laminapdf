@@ -63,6 +63,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 - [ ] Links created in lamina navigate correctly in pdf.js and PDFium (e2e clicks in pdf.js viewer harness)
 - [ ] veraPDF reports nothing new on `golden/tagged-report.pdf` after adding a link on its text
 - [ ] A certified-P3 file saves a new link incrementally; P1 and P2 refuse it before it applies
+- [ ] On a tagged certified-P3 file, pyHanko's DocMDP check accepts the saved link with its structure entries; if it doesn't, links on certified files are added untagged with `link-not-tagged` ([E3 plan §6](../../plans/editor/e3-navigation-attachments-inspection.md#6-saving-and-the-save-constraint))
 
 ## Post-merge checks
 
