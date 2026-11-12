@@ -13,23 +13,34 @@ import type { Instance } from "./internal/instance.js";
 import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
-import { Transaction } from "./transaction.js";
+import {
+  type MetadataEditOptions,
+  type MetadataRemoveOptions,
+  removeMetadataOp,
+  setMetadataOp,
+  Transaction,
+} from "./transaction.js";
 import type {
   DocumentInfo,
+  DocumentMetadata,
   DocumentProperties,
   Edited,
+  MetadataKey,
+  MetadataPatch,
   Op,
   OpenOptions,
   OpLog,
   OutlineNode,
   PageInfo,
   PageLink,
+  PlannedSave,
   Progress,
   Reverted,
   SaveOptions,
   SaveReport,
   StructureNode,
   Target,
+  Violation,
 } from "./types.js";
 
 function isThenable(value: unknown): boolean {
@@ -639,6 +650,63 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * The document's metadata (title, authors, subject, keywords, creator and producer tools,
+   * dates), read from its Info dictionary and its XMP metadata together, with the fields where
+   * they disagree and the PDF/A and PDF/UA levels it claims.
+   *
+   * @throws {@link LaminaPdfError} reading errors.
+   */
+  metadata(): DocumentMetadata {
+    return this.call(() => this.#doc.metadata());
+  }
+
+  /**
+   * Edits the document's metadata in one transaction, writing its Info dictionary and its XMP
+   * metadata together (`setMetadata`). A document without XMP metadata gets it.
+   *
+   * @param patch - the fields to set (a value) or remove (`null`); authors are a list.
+   * @param options - `at`: the modification date to record (a PDF date, from your clock);
+   *   `replaceMalformed`: replace XMP metadata that can't be read, losing what it held.
+   * @throws {@link LaminaPdfError} `malformed-xmp` when the XMP metadata can't be read and
+   *   `replaceMalformed` isn't set; as {@link Document.apply}.
+   */
+  setMetadata(patch: MetadataPatch, options?: MetadataEditOptions): Edited {
+    return this.apply([setMetadataOp(patch, options)]);
+  }
+
+  /**
+   * Removes metadata fields from the Info dictionary and the XMP metadata (`removeMetadata`).
+   * The file's earlier revisions keep the old values until a full rewrite
+   * (`save({ mode: "fullRewrite" })`); the result's `stillInEarlierRevisions` says when.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.setMetadata}.
+   */
+  removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Edited {
+    return this.apply([removeMetadataOp(keys, options)]);
+  }
+
+  /**
+   * How a save with `options` would go, without saving: the save strip's constraint, the
+   * signatures and the edits they forbid, the mode or the refusal code, and the
+   * conformance warnings. A save that would be refused is a plan with a `refusal`, not an error.
+   *
+   * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for bad options; reading errors.
+   */
+  plan(options?: SaveOptions): PlannedSave {
+    return this.call(() => this.#doc.plan(options));
+  }
+
+  /**
+   * The signature restrictions `op` would break if it were applied and saved: for warning
+   * before an edit (a metadata change on a certified file, for example).
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for a value that isn't an op; reading errors.
+   */
+  wouldViolate(op: Op): Violation[] {
+    return this.call(() => this.#doc.wouldViolate(op));
+  }
+
+  /**
    * Undoes the newest transaction.
    *
    * @returns how it went (`outcome`) and the pages it touched (`touchedPages`, to draw again), or
@@ -681,6 +749,31 @@ export class Document extends Handle<BaseGlue> {
   saveWithReport(options?: SaveOptions): { readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
     this.#notInTransaction("save");
     return this.call(() => this.#doc.save(options));
+  }
+
+  /**
+   * Writes what {@link Document.save} would, and leaves the document as it was: not rebased, its
+   * changes still unsaved ({@link Document.hasUnsavedChanges}), the save-time stamp in the copy
+   * only. For Save a copy, and for a copy to draw the pages from while edits stay unsaved.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.save}; the document is unchanged either way.
+   */
+  saveCopy(options?: SaveOptions): { readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
+    this.#notInTransaction("saveCopy");
+    return this.call(() => this.#doc.saveCopy(options));
+  }
+
+  /**
+   * Makes `bytes`, the whole output of {@link Document.saveCopy}, the document's saved file (it
+   * rebases onto them), once they are written where the document lives, so a failed write leaves
+   * the document unsaved. `historyCleared` is the copy's report's. Nothing may change the document
+   * in between.
+   *
+   * @throws {@link LaminaPdfError} `saved-not-rebased`; `not-rebased` when `bytes` can't be read.
+   */
+  adoptCopy(bytes: Uint8Array, historyCleared: boolean): void {
+    this.#notInTransaction("adoptCopy");
+    this.call(() => this.#doc.adoptCopy(bytes, historyCleared));
   }
 
   /**

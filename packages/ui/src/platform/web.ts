@@ -102,14 +102,14 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
     },
     filesFromDataTransfer: (data) => filesFromDataTransfer(data, capabilities),
     onOpenRequest: launches.subscribe,
-    saveAs: (bytes, name) => saveAs(scope, bytes, name),
+    saveAs: (bytes, name) => saveAs(scope, bytes, name, capabilities),
     async saveInPlace(file, bytes) {
       const handle = file.handle;
       if (!capabilities.canWriteInPlace || !file.writable || !isFileHandle(handle)) {
         throw new Error(message("platform.error.notWritable"));
       }
       await write(handle, bytes);
-      return { saved: true, name: file.name };
+      return { saved: true, name: file.name, file: await fromHandle(handle, capabilities) };
     },
     print: (job) => printPages(scope, job),
     copyText: (text) => scope.navigator.clipboard.writeText(text),
@@ -216,7 +216,12 @@ function pickWithInput(doc: Document, multiple: boolean): Promise<File[]> {
   });
 }
 
-async function saveAs(scope: WebScope, bytes: Uint8Array, suggestedName: string): Promise<SaveResult> {
+async function saveAs(
+  scope: WebScope,
+  bytes: Uint8Array,
+  suggestedName: string,
+  capabilities: Capabilities,
+): Promise<SaveResult> {
   if (scope.showSaveFilePicker === undefined) {
     // No dialog: the browser downloads it, under the suggested name.
     const url = scope.URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
@@ -233,7 +238,7 @@ async function saveAs(scope: WebScope, bytes: Uint8Array, suggestedName: string)
   try {
     const handle = await scope.showSaveFilePicker({ suggestedName, types: PDF_TYPES });
     await write(handle, bytes);
-    return { saved: true, name: handle.name };
+    return { saved: true, name: handle.name, file: await fromHandle(handle, capabilities) };
   } catch (error) {
     if (isAbort(error)) return { saved: false, reason: "cancelled" };
     throw error;

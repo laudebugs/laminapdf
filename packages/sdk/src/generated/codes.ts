@@ -42,6 +42,7 @@ export type ErrorCode =
   | "invalid-op-log"
   | "saved-not-rebased"
   | "no-pending-save"
+  | "malformed-xmp"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -180,6 +181,9 @@ export type WarningCode =
   | "extract-untagged-content"
   | "extract-needs-ocr"
   | "extract-column-order-uncertain"
+  | "pdfa-one-author"
+  | "pdfua-title-missing"
+  | "pdfa-info-mismatch"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -233,6 +237,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "invalid-op-log",
   "saved-not-rebased",
   "no-pending-save",
+  "malformed-xmp",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -372,6 +377,9 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "extract-untagged-content",
   "extract-needs-ocr",
   "extract-column-order-uncertain",
+  "pdfa-one-author",
+  "pdfua-title-missing",
+  "pdfa-info-mismatch",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -454,6 +462,10 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "invalid-op-log": "input",
   "saved-not-rebased": "state",
   "no-pending-save": "state",
+  "malformed-xmp": "input",
+  "pdfa-one-author": "usage",
+  "pdfua-title-missing": "usage",
+  "pdfa-info-mismatch": "input",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -628,6 +640,10 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "invalid-op-log": "validate the op log against the op schema; the samples in fixtures/ops show the format",
   "saved-not-rebased": "call rebase with the saved bytes before applying ops or saving again",
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
+  "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
+  "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
+  "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
+  "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",
@@ -731,7 +747,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
 };
 
 /** `docsUrl` = base + code + suffix (ADR 0026 §6). */
-export const DOCS_URL = { base: "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/", suffix: ".md" } as const;
+export const DOCS_URL = { base: "https://docs.laminapdf.com/reference/codes/", suffix: "/" } as const;
 
 /** The explain page of `code` (`docsUrl`, ADR 0026 §6). */
 export function docsUrl(code: ErrorCode | WarningCode): string {
@@ -756,6 +772,7 @@ export const ERROR_GROUPS: readonly string[] = [
 /** The groups of `codes.json` that list warnings. */
 export const WARNING_GROUPS: readonly string[] = [
   "warnings",
+  "opWarnings",
   "textWarnings",
   "buildWarnings",
   "facadeWarnings",

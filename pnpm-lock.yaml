@@ -149,12 +149,18 @@ importers:
       '@laminapdf/fonts':
         specifier: workspace:*
         version: link:../../packages/fonts
+      '@laminapdf/render':
+        specifier: workspace:*
+        version: link:../../packages/render
       '@laminapdf/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
       '@laminapdf/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@laminapdf/viewer':
+        specifier: workspace:*
+        version: link:../../packages/viewer
       '@tauri-apps/api':
         specifier: 'catalog:'
         version: 2.12.4
@@ -404,6 +410,9 @@ importers:
       '@laminapdf/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@laminapdf/site-kit':
+        specifier: workspace:*
+        version: link:../../packages/site-kit
       '@laminapdf/test-utils':
         specifier: workspace:*
         version: link:../../packages/test-utils

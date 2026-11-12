@@ -35,8 +35,8 @@ Round W3 closes those gaps in order of reach, then adds the pages and the measur
 
 ## 4. Decisions for the owner
 
-1. **Training crawlers** (`GPTBot`, `ClaudeBot`, `Google-Extended`, `CCBot`): allow or block? Search crawlers are allowed either way. Recommendation: allow. The code and docs are public and permissively licensed, and a model that learned the API writes correct code for it without a search. W3a writes whichever the owner chooses into every robots.txt.
-2. **Index the reader?** Recommendation: index `app.laminapdf.com/` only, as the page that answers "open a PDF in the browser", with a canonical URL and share tags; the reader has no other pages to index.
+1. **Training crawlers** (`GPTBot`, `ClaudeBot`, `Google-Extended`, `CCBot`): allow or block? Search crawlers are allowed either way. Recommendation: allow. The code and docs are public and permissively licensed, and a model that learned the API writes correct code for it without a search. W3a writes whichever the owner chooses into every robots.txt. **Decided (owner, 2026-11-11): allow.**
+2. **Index the reader?** Recommendation: index `app.laminapdf.com/` only, as the page that answers "open a PDF in the browser", with a canonical URL and share tags; the reader has no other pages to index. **Decided (owner, 2026-11-11): index `/` only.**
 3. **Repository description and topics** (a GitHub setting only the owner can change; the homepage is already `https://laminapdf.com`). Recommendation: "Create, read, edit and render PDFs from Rust and TypeScript, and a PDF reader for the browser", with the topics `pdf`, `pdf-generation`, `pdf-parser`, `pdf-editor`, `pdf-viewer`, `rust`, `typescript`, `webassembly`, `pdf-extraction`, `mcp`.
 4. **Cloudflare's Markdown for Agents** on the docs zone: optional, since the docs already publish Markdown twins (W3f).
 
@@ -44,13 +44,13 @@ Round W3 closes those gaps in order of reach, then adds the pages and the measur
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [W3a](../todos/ready/W3a-crawl-and-index-rules.md) | Crawl and index rules on every host: robots.txt for the docs site and the reader, `noindex` on the reader's staging and previews and on the docs' `workers.dev` copy, one robots policy, a test that holds the hosts to it | — |
-| [W3b](../todos/ready/W3b-public-repository-links.md) | The repository is public: GitHub links on the docs site, `docsUrl` on the docs site's code pages (ADR 0026 §6), no "private" left in READMEs and plans, a README that names every part | — |
+| [W3a](../todos/done/W3a-crawl-and-index-rules.md) | Crawl and index rules on every host: robots.txt for the docs site and the reader, `noindex` on the reader's staging and previews and on the docs' `workers.dev` copy, one robots policy, a test that holds the hosts to it | — |
+| [W3b](../todos/done/W3b-public-repository-links.md) | The repository is public: GitHub links on the docs site, `docsUrl` on the docs site's code pages (ADR 0026 §6), no "private" left in READMEs and plans, a README that names every part | — |
 | [W3c](../todos/done/W3c-package-metadata.md) | Package metadata written for users: npm and crates.io descriptions without internal IDs, keywords for the jobs people search for, `bugs` fields, READMEs that open with what the package does, and a check that keeps internal IDs out | — |
 | [W3d](../todos/ready/W3d-structured-data-and-share-tags.md) | Structured data and share tags: JSON-LD on the website and the docs, share tags on the docs and the reader, links to the Markdown twins, `lastmod` in the sitemaps | W3a, W3i |
 | [W3e](../todos/ready/W3e-search-engine-registration.md) | Search engines told about every change: Search Console and Bing Webmaster by DNS, sitemaps submitted, IndexNow pinged from the production deploys | W3d |
 | [W3f](../todos/ready/W3f-agent-discovery.md) | Coding agents find the docs: a Context7 listing claimed with `context7.json`, llms.txt linked from the website and the README, L5a's production check ticked | W3b |
-| [W3g](../todos/ready/W3g-choosing-a-pdf-library.md) | A page that answers "which PDF library should I use?": what Lamina PDF does and doesn't do beside the common libraries, with sources, approved by the owner | W3c |
+| [W3g](../todos/done/W3g-choosing-a-pdf-library.md) | A page that answers "which PDF library should I use?": what Lamina PDF does and doesn't do beside the common libraries, with sources, approved by the owner | W3c |
 | [W3h](../todos/ready/W3h-docs-titles-for-questions.md) | Docs titles and descriptions that match the questions people ask, checked against the page each one leads to | W3e, W3g |
 | [W3i](../todos/ongoing/W3i-answer-engine-check.md) | The answer-engine check: a fixed set of questions asked to answer engines by hand, with Lamina PDF's mentions and citations recorded, a baseline now and a run after each step | — |
 
@@ -60,13 +60,13 @@ W3a, W3b, W3c and W3i depend on nothing and can start at once, but W3a should me
 
 ## 7. To-dos
 
-- [ ] Set crawl and index rules on every host ([W3a](../todos/ready/W3a-crawl-and-index-rules.md))
-- [ ] Treat the repository as public everywhere a reader or engine looks ([W3b](../todos/ready/W3b-public-repository-links.md))
+- [x] Set crawl and index rules on every host ([W3a](../todos/done/W3a-crawl-and-index-rules.md))
+- [x] Treat the repository as public everywhere a reader or engine looks ([W3b](../todos/done/W3b-public-repository-links.md))
 - [x] Write package metadata for users, and check it ([W3c](../todos/done/W3c-package-metadata.md))
 - [ ] Add structured data and share tags ([W3d](../todos/ready/W3d-structured-data-and-share-tags.md))
 - [ ] Register with Google and Bing, and ping IndexNow from the deploys ([W3e](../todos/ready/W3e-search-engine-registration.md))
 - [ ] List the docs with Context7 and link llms.txt where agents look ([W3f](../todos/ready/W3f-agent-discovery.md))
-- [ ] Publish a page that helps a developer choose a PDF library ([W3g](../todos/ready/W3g-choosing-a-pdf-library.md))
+- [x] Publish a page that helps a developer choose a PDF library ([W3g](../todos/done/W3g-choosing-a-pdf-library.md))
 - [ ] Title the docs pages for the questions people ask ([W3h](../todos/ready/W3h-docs-titles-for-questions.md))
 - [ ] Ask answer engines a fixed set of questions, and record what they say ([W3i](../todos/ongoing/W3i-answer-engine-check.md))
 

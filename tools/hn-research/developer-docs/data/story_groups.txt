@@ -1,0 +1,8 @@
+Writing and structuring docs             threads  49 (2023+:  14)  comments  4829 (22.5%)
+Other (single projects, platforms)       threads  33 (2023+:  15)  comments  3567 (16.6%)
+AI, LLMs, agents, llms.txt               threads  29 (2023+:  29)  comments  3466 (16.1%)
+MDN                                      threads  22 (2023+:   4)  comments  3179 (14.8%)
+Docs tooling and formats                 threads  33 (2023+:  15)  comments  2780 (12.9%)
+Man pages, tldr, info                    threads  11 (2023+:   6)  comments  1276 ( 5.9%)
+Apple developer docs                     threads   6 (2023+:   3)  comments  1258 ( 5.9%)
+Best/worst docs (Ask HN and rants)       threads  14 (2023+:   4)  comments  1144 ( 5.3%)

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3a](./W3a-crawl-and-index-rules.md), [W3i](../ongoing/W3i-answer-engine-check.md) |
+| Depends on | [W3a](../done/W3a-crawl-and-index-rules.md), [W3i](../ongoing/W3i-answer-engine-check.md) |
 | ADRs | Follows [0011 §4](../../decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-) (JSON-LD is a data block the browser never runs, so the CSP doesn't apply to it) |
 | Branch | `feat/w3d-structured-data` |
 | PR title | `feat(sites): structured data, share tags and links to the Markdown twins` |
@@ -30,7 +30,7 @@ Search and answer engines read structured data to learn what a site is, who publ
 - One module in `@laminapdf/site-kit` that writes the JSON-LD: `Organization` (name, URL, logo, `sameAs` the GitHub repository and the registries), `WebSite`, and `SoftwareSourceCode` (repository, licence, languages, runtime platforms). Website home page and docs home page.
 - `inlineScripts` skips data blocks (a `type` that isn't JavaScript or a module), so JSON-LD adds nothing to the CSP.
 - The docs site: `og:image` (the website's share image or one of its own) and `twitter:card` image.
-- The reader: canonical URL, description, Open Graph and X card tags on `/` in production (per plan §4 decision 2).
+- The reader: canonical URL, description, Open Graph and X card tags on `/` in production (per plan §4 decision 2). The single-page fallback serves the same `index.html` on every path, so its canonical link to `https://app.laminapdf.com/` also keeps stray paths from being indexed as copies of `/` (found in W3a's review).
 - `<link rel="alternate" type="text/markdown" href="….md">` on every docs page that has a twin.
 - `lastmod` in both sitemaps from each page's last commit (the docs' through `@astrojs/sitemap`'s `serialize` option, or a sitemap of the docs' own if Starlight's can't take it). W3e's IndexNow pings read these dates to tell which pages changed.
 

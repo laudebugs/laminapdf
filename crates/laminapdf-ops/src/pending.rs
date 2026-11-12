@@ -22,6 +22,7 @@ pub struct PendingChanges {
     classes: BTreeSet<ModificationClass>,
     requires_rewrite: bool,
     unknown: bool,
+    packet_rewritten: bool,
 }
 
 impl PendingChanges {
@@ -44,6 +45,7 @@ impl PendingChanges {
             .collect(),
             requires_rewrite: true,
             unknown: true,
+            packet_rewritten: false,
         }
     }
 
@@ -65,16 +67,24 @@ impl PendingChanges {
         self.requires_rewrite
     }
 
+    /// Whether a metadata op rewrote the XMP packet whole (UTF-16, or read-only by its
+    /// `end="r"` trailer), so the save can say the packet lost its layout and comments.
+    #[must_use]
+    pub const fn packet_rewritten(&self) -> bool {
+        self.packet_rewritten
+    }
+
     /// Whether there are none.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.classes.is_empty() && !self.requires_rewrite
     }
 
-    /// Adds `op`'s class and rewrite need.
-    pub(crate) fn record(&mut self, op: &Op) {
+    /// Adds `op`'s class and rewrite need, and whether it rewrote the packet whole.
+    pub(crate) fn record(&mut self, op: &Op, packet_rewritten: bool) {
         self.classes.insert(op.class());
         self.requires_rewrite |= op.requires_rewrite();
+        self.packet_rewritten |= packet_rewritten;
     }
 
     /// Adds everything `other` holds.
@@ -82,6 +92,7 @@ impl PendingChanges {
         self.classes.extend(other.classes.iter().copied());
         self.requires_rewrite |= other.requires_rewrite;
         self.unknown |= other.unknown;
+        self.packet_rewritten |= other.packet_rewritten;
     }
 
     /// Forgets everything (after a rebase, or when the overlay is empty again).

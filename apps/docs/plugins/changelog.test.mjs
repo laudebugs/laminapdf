@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { releaseNotes } from "./changelog.mjs";
 
-test("the releases start at the first release heading, without the commit hashes", () => {
+test("the releases start at the first release heading, each commit hash a link to the commit", () => {
   const changelog = [
     "# Changelog",
     "",
@@ -23,7 +23,10 @@ test("the releases start at the first release heading, without the commit hashes
   ].join("\n");
   assert.equal(
     releaseNotes(changelog),
-    "## 1.0.0\n\n### Minor Changes\n\n- A breaking change.\n  - An entry nested under it.\n- A line that names abcdef0: in its text.\n",
+    "## 1.0.0\n\n### Minor Changes\n\n" +
+      "- [`2107764`](https://github.com/laudebugs/laminapdf/commit/2107764): A breaking change.\n" +
+      "  - [`a1b2c3d`](https://github.com/laudebugs/laminapdf/commit/a1b2c3d): An entry nested under it.\n" +
+      "- A line that names abcdef0: in its text.\n",
   );
 });
 

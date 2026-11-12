@@ -117,6 +117,35 @@
     border-inline-start: var(--paper-border-width) solid var(--paper-hairline);
   }
 
+  /* Save and its options (O02): a split button after Undo and Redo. */
+  .paper-top-bar-save {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-2);
+    padding-inline-start: var(--paper-space-10);
+  }
+
+  /* The strip under the top bar that says how the file saves (O02). */
+  .paper-save-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    gap: var(--paper-space-8);
+    padding-block: var(--paper-space-8);
+    padding-inline: var(--paper-space-16);
+  }
+
+  .paper-save-strip > .paper-notice {
+    flex: 1;
+  }
+
+  .paper-save-strip-signatures,
+  .paper-save-signatures {
+    flex-basis: 100%;
+    margin: 0;
+    padding-inline-start: var(--paper-space-20);
+  }
+
   @media (forced-colors: active) {
     .paper-history-row[data-current] {
       forced-color-adjust: none;

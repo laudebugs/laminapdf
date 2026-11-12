@@ -1,4 +1,8 @@
 //! The proving ops, `SetInfo` and `RotatePage`, and transactions (ADR 0006 §1–§3).
+#![expect(
+    deprecated,
+    reason = "these tests check that SetInfo, deprecated but still on the wire, keeps working"
+)]
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;

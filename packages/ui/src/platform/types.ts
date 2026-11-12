@@ -54,7 +54,15 @@ export interface PlatformFile {
 
 /** How a save ended. */
 export type SaveResult =
-  | { readonly saved: true; readonly name: string }
+  | {
+      readonly saved: true;
+      readonly name: string;
+      /**
+       * The file as saved, to read and to save to next: read again after a write in place (the
+       * file read before is stale), the new file after a save dialog; none after a download.
+       */
+      readonly file?: PlatformFile;
+    }
   | { readonly saved: false; readonly reason: "cancelled" };
 
 /** One page drawn for printing: an image, and the size it prints at in points. */

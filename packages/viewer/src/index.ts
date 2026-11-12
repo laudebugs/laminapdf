@@ -4,7 +4,14 @@
 // them, and their unit tests import them by path within the package.
 
 export type { CanvasPoolOptions } from "./canvas/pool.js";
-export type { RestartReason, ViewerCallOptions, ViewerEvent, ViewerEvents, ViewerOptions } from "./client.js";
+export type {
+  RestartReason,
+  ViewerCallOptions,
+  ViewerEngine,
+  ViewerEvent,
+  ViewerEvents,
+  ViewerOptions,
+} from "./client.js";
 export { ViewerClient } from "./client.js";
 export {
   CLOSED_SESSION,
@@ -57,6 +64,7 @@ export type {
   ReplayedStep,
   Result,
   RevertedStep,
+  SavedCopy,
   SourceInit,
   StructureData,
   TextRunData,

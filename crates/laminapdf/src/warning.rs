@@ -26,6 +26,9 @@ pub enum Warning {
     /// Raised while building (`laminapdf-build`'s flows: `flow-keep-broken`).
     #[cfg(feature = "text")]
     Build(laminapdf_build::Warning),
+    /// A PDF/A or PDF/UA claim the edited metadata breaks
+    /// ([`PlannedSave::conformance_warnings`](crate::PlannedSave::conformance_warnings)).
+    Conformance(laminapdf_ops::ConformanceWarning),
 }
 
 impl Warning {
@@ -49,6 +52,7 @@ impl Warning {
             Self::Redaction(w) => codes::warning_code(w.code()),
             #[cfg(feature = "text")]
             Self::Build(w) => codes::warning_code(w.code()),
+            Self::Conformance(w) => codes::warning_code(w.code()),
         }
     }
 
@@ -73,6 +77,7 @@ impl Warning {
             Self::Redaction(w) => w.location(),
             #[cfg(feature = "text")]
             Self::Build(w) => w.location(),
+            Self::Conformance(w) => w.location(),
         }
     }
 

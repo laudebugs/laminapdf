@@ -1,7 +1,8 @@
 // What the page keeps of an edit session so a restarted worker can take it back (ViewerClient's
 // restart): the ops of every step still in the document, with their labels and times, and the
 // history the worker last answered. The worker holds the session itself; this copy only ever
-// replays it into a new worker, which applies the steps again and undoes the undone ones.
+// replays it into a new worker, which applies the steps again and undoes the undone ones. After a
+// save, the new worker opens the saved file, so only the steps since the save are replayed.
 
 import type { Op } from "@laminapdf/sdk";
 import { type EditHistory, type EditResult, EMPTY_HISTORY, type ReplayedStep } from "./protocol.js";
@@ -24,6 +25,11 @@ export class EditLog {
    * recreate the change that made it so.
    */
   #replayable = true;
+  /**
+   * The absolute position of the last save this log saw (`saved`), whose file a new worker opens:
+   * the steps before it are in that file. Undefined while the file is the one opened.
+   */
+  #savedAt: number | undefined;
 
   /** The history the worker last answered. */
   get history(): EditHistory {
@@ -41,6 +47,17 @@ export class EditLog {
     this.#steps = [];
     this.#history = EMPTY_HISTORY;
     this.#replayable = true;
+    this.#savedAt = undefined;
+  }
+
+  /**
+   * A save wrote the document as `history` has it, and a new worker opens that file: every step
+   * so far is in it, so the log starts over from here.
+   */
+  saved(history: EditHistory): void {
+    this.reset();
+    this.#history = history;
+    this.#savedAt = history.dropped + history.position;
   }
 
   /**
@@ -55,10 +72,16 @@ export class EditLog {
     if (edit !== undefined && newest !== undefined && !this.#steps.some((s) => s.id === newest.id)) {
       this.#steps.push({ id: newest.id, ops: edit.ops, label: newest.label, at: newest.at });
     }
+    // The depth limit dropped the oldest steps of the last answer, as many as `dropped` grew by:
+    // still part of the document, so a replay needs those this log holds (since a save, the older
+    // ones are in the saved file). A step gone otherwise was cleared by a new edit.
     const newlyDropped = Math.max(0, dropped - this.#history.dropped);
-    for (const { ops, label, at } of this.#steps.splice(0, newlyDropped)) this.#dropped.push({ ops, label, at });
+    const droppedIds = new Set(this.#history.steps.slice(0, newlyDropped).map((s) => s.id));
+    for (const { id, ops, label, at } of this.#steps) if (droppedIds.has(id)) this.#dropped.push({ ops, label, at });
     const kept = new Set(steps.map((s) => s.id));
     this.#steps = this.#steps.filter((s) => kept.has(s.id));
+    // Undone past the save: the steps it would take apply to a file the new worker never opens.
+    if (this.#savedAt !== undefined && dropped + result.history.position < this.#savedAt) this.#replayable = false;
     this.#history = result.history;
   }
 
@@ -68,11 +91,12 @@ export class EditLog {
    */
   replay(): { readonly steps: readonly ReplayedStep[]; readonly undone: number } | undefined {
     if (!this.#replayable) return undefined;
-    const { steps, position } = this.#history;
-    return {
-      steps: [...this.#dropped, ...this.#steps.map(({ ops, label, at }) => ({ ops, label, at }))],
-      undone: steps.length - position,
-    };
+    const { steps, position, dropped } = this.#history;
+    const logged = [...this.#dropped, ...this.#steps.map(({ ops, label, at }) => ({ ops, label, at }))];
+    // Since a save, the steps done are those past its position.
+    const undone =
+      this.#savedAt === undefined ? steps.length - position : logged.length - (dropped + position - this.#savedAt);
+    return { steps: logged, undone };
   }
 
   /** Takes a new worker's answer to the replay: its steps have new IDs, in the same order. */

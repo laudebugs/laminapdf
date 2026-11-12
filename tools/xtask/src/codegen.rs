@@ -62,10 +62,11 @@ const README_MARKER: &str = "<!-- @generated below by cargo xtask gen codes. DO 
 
 /// The code groups of `codes.json`, in the order every output lists them, with the heading of
 /// their table. A group missing here fails the generator, so a new group gets a title.
-const GROUPS: [(&str, &str); 15] = [
+const GROUPS: [(&str, &str); 16] = [
     ("warnings", "Warnings"),
     ("errors", "Errors"),
     ("opErrors", "Op errors"),
+    ("opWarnings", "Op warnings"),
     ("saveErrors", "Save errors"),
     ("textErrors", "Text errors (`laminapdf-text`)"),
     ("textWarnings", "Text warnings (`laminapdf-text`)"),

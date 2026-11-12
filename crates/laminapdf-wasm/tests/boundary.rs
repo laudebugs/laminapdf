@@ -47,6 +47,66 @@ fn the_set_info_sample_applies() {
 }
 
 #[wasm_bindgen_test]
+fn the_set_metadata_sample_applies_and_reads_back_from_metadata() {
+    let mut doc = hello();
+    doc.apply(&js(&format!(
+        "[{}]",
+        include_str!("../../../fixtures/ops/v1/set-metadata.json")
+    )))
+    .unwrap();
+    let meta = doc.metadata().unwrap();
+    assert_eq!(
+        (
+            string(&meta, "title").as_deref(),
+            get(&meta, "authors").dyn_into::<js_sys::Array>().unwrap().length(),
+            string(&meta, "packet").as_deref(),
+        ),
+        (Some("Quarterly figures"), 2, Some("parsed"))
+    );
+}
+
+#[wasm_bindgen_test]
+fn a_plan_crosses_as_a_record_and_a_stamped_save_says_so() {
+    let mut doc = hello();
+    doc.apply(&js(&format!(
+        "[{}]",
+        include_str!("../../../fixtures/ops/v1/remove-metadata.json")
+    )))
+    .unwrap();
+    doc.apply(&js(
+        r#"[{ "op": "setMetadata", "args": { "patch": { "title": "T" } } }]"#,
+    ))
+    .unwrap();
+    let options =
+        js(r#"{ "metadataDate": "2026-11-10T09:30:00Z", "instanceId": "abababab-abab-abab-abab-abababababab" }"#);
+    let plan = doc.plan(&options).unwrap();
+    assert_eq!(
+        (
+            string(&plan, "constraint").as_deref(),
+            string(&plan, "metadata").as_deref()
+        ),
+        (Some("free"), Some("stamp"))
+    );
+    let report = get(&doc.save(&options).unwrap(), "report");
+    assert_eq!(get(&report, "metadataUpdated").as_bool(), Some(true));
+}
+
+#[wasm_bindgen_test]
+fn a_bad_metadata_date_is_an_invalid_argument() {
+    let doc = hello();
+    let err = doc.plan(&js(r#"{ "metadataDate": "yesterday" }"#)).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("invalid-argument"));
+}
+
+#[wasm_bindgen_test]
+fn would_violate_answers_with_no_violation_on_an_unsigned_file() {
+    let doc = hello();
+    let op = js(r#"{ "op": "setMetadata", "args": { "patch": { "title": "T" } } }"#);
+    let violations = doc.would_violate(&op).unwrap();
+    assert_eq!(violations.dyn_into::<js_sys::Array>().unwrap().length(), 0);
+}
+
+#[wasm_bindgen_test]
 fn the_rotate_page_sample_applies_to_this_documents_page() {
     let mut doc = hello();
     let id = doc.page(0).unwrap().id();
@@ -109,7 +169,7 @@ fn a_core_error_is_the_adr_0026_object() {
         (
             Some("not-pdf"),
             Some("input"),
-            Some("https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md")
+            Some("https://docs.laminapdf.com/reference/codes/not-pdf/")
         )
     );
 }
@@ -387,4 +447,35 @@ fn markdown_options_refuse_unknown_keys_and_a_latin_document_builds() {
     let pages: js_sys::Array = get(&report, "pages").dyn_into().unwrap();
     assert!(pages.length() >= 1);
     assert_eq!(builder.finish().unwrap().page_count().unwrap(), pages.length());
+}
+
+/// `WasmBuilder.flow` (the text module): an unknown option is `unknown-option`, a misspelt key in
+/// the document is `invalid-document` with the closest key, a template's missing value names its
+/// pointer, and a plain document builds in the standard 14 fonts.
+#[cfg(feature = "text")]
+#[wasm_bindgen_test]
+fn flow_refuses_unknown_keys_and_missing_data_and_a_plain_document_builds() {
+    use laminapdf_wasm::WasmFlowResources;
+    let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
+    let resources = WasmFlowResources::new();
+    let plain = js(
+        r#"{"schema":"laminapdf.document/1","styles":{"body":{"font":"Helvetica","size":10}},"blocks":[{"type":"paragraph","text":"Hi"}]}"#,
+    );
+    let err = builder.flow(&plain, &resources, &js(r#"{"dat":{}}"#)).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("unknown-option"));
+    let misspelt =
+        js(r#"{"schema":"laminapdf.document/1","styles":{"body":{"font":"Helvetica","size":10}},"blokcs":[]}"#);
+    let err = builder.flow(&misspelt, &resources, &JsValue::UNDEFINED).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("invalid-document"));
+    let suggestions: js_sys::Array = get(&err, "didYouMean").dyn_into().unwrap();
+    assert!(suggestions.includes(&JsValue::from_str("blocks"), 0), "{suggestions:?}");
+    let template = js(
+        r#"{"schema":"laminapdf.document/1","styles":{"body":{"font":"Helvetica","size":10}},"blocks":[{"type":"paragraph","text":{"$data":"/name"}}]}"#,
+    );
+    let err = builder.flow(&template, &resources, &js(r#"{"data":{}}"#)).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("template-data-missing"));
+    let report = builder.flow(&plain, &resources, &JsValue::UNDEFINED).unwrap();
+    let pages: js_sys::Array = get(&report, "pages").dyn_into().unwrap();
+    assert_eq!(pages.length(), 1);
+    assert_eq!(builder.finish().unwrap().page_count().unwrap(), 1);
 }

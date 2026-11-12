@@ -1,0 +1,2 @@
+$ laminapdf info notes.pdf --json
+{"error":{"code":"not-pdf","docsUrl":"https://docs.laminapdf.com/reference/codes/not-pdf/","exitCode":1,"hint":"check that the bytes passed to open are a PDF file","input":"notes.pdf","kind":"input","message":"not a PDF: no objects found"},"schema":"laminapdf.error/1"}

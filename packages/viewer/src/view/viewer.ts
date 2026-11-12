@@ -13,7 +13,7 @@ import { type PageAppearance, type PixelRect, pagePixels } from "@laminapdf/rend
 import type { Op, Target } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
-import type { ViewerCallOptions, ViewerClient } from "../client.js";
+import type { ViewerCallOptions, ViewerClient, ViewerEngine } from "../client.js";
 import { EditSession } from "../edit/session.js";
 import { FindController } from "../find/controller.js";
 import {
@@ -138,7 +138,7 @@ export interface PageLayer {
 
 /** `createViewer`'s options: the client, and the tuning the perf harness measures. */
 export interface CreateViewerOptions {
-  readonly client: ViewerClient;
+  readonly client: ViewerEngine;
   /** Pages mounted past each edge of the viewport (default 2; at least one viewport's worth). */
   readonly margin?: number;
   /** CSS px between pages (default 16). */
@@ -316,7 +316,7 @@ function isClosed(bitmap: ImageBitmap): boolean {
  * `mount` it, then `open` a document from the client.
  */
 export class Viewer {
-  readonly #client: ViewerClient;
+  readonly #client: ViewerEngine;
   readonly #margin: number;
   readonly #gap: number;
   readonly #settleMs: number;
@@ -458,6 +458,9 @@ export class Viewer {
       redoEdit: () => this.#editCall(() => this.#client.redoEdit()),
       goToStep: (position) => this.#editCall(() => this.#client.goToStep(position)),
       editHistory: () => this.#client.editHistory(),
+      planSave: (options) => this.#client.planSave(options),
+      copyEdits: (options) => this.#client.copyEdits(options),
+      adoptEdits: (token) => this.#client.adoptEdits(token),
     });
     this.#cleanup.push(
       this.#client.on("restarted", ({ reopened, edits: replay }) => {

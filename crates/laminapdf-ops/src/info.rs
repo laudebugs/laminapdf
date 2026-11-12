@@ -1,12 +1,15 @@
 //! `SetInfo`: edit the document information dictionary (ISO 32000-2 §14.3.3).
+#![expect(
+    deprecated,
+    reason = "SetInfo is defined and dispatched here; it stays, deprecated, so v1 op logs still apply"
+)]
 
-use std::sync::Arc;
-
-use laminapdf_cos::{Dict, Object, PdfString};
-use laminapdf_model::{PageId, PdfDate};
-use laminapdf_syntax::text::encode_text_string;
+use laminapdf_model::PdfDate;
+use laminapdf_model::xmp::{MappedField, Value};
 
 use crate::error::Result;
+use crate::metadata::{Policy, write};
+use crate::op::Effect;
 use crate::wire;
 
 /// Changes to the Info dictionary's text entries. For each field, `None` leaves the entry
@@ -118,24 +121,15 @@ impl InfoPatch {
         self.producer = Some(producer.map(str::to_owned));
         self
     }
-
-    #[expect(
-        clippy::option_option,
-        reason = "InfoPatch's set / clear / leave fields, as the todo and ADR 0006 specify"
-    )]
-    fn fields(&self) -> [(&'static str, &Option<Option<String>>); 6] {
-        [
-            ("Title", &self.title),
-            ("Author", &self.author),
-            ("Subject", &self.subject),
-            ("Keywords", &self.keywords),
-            ("Creator", &self.creator),
-            ("Producer", &self.producer),
-        ]
-    }
 }
 
 /// Edits the Info dictionary: applies `patch` and, when `at` is given, sets `/ModDate` to it.
+///
+/// **Deprecated:** use [`SetMetadata`](crate::SetMetadata), which writes authors as a list and
+/// the dates, and edits files whose metadata is in XMP alone. `SetInfo` stays, with its v1 wire
+/// form (`setInfo`) and meaning, so op logs already written still apply (ADR 0006 §6). It now
+/// goes through the same writer, so a document's XMP packet, when it has one, changes with it.
+/// It adds a packet only to a PDF 2.0 file, where the fields other than the dates belong in XMP.
 /// The date is part of the op, never read from a clock, so the same op gives the same bytes
 /// everywhere (ADR 0006 §1).
 ///
@@ -145,6 +139,10 @@ impl InfoPatch {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
+#[deprecated(
+    since = "0.2.0",
+    note = "use SetMetadata, which writes Info and XMP together; SetInfo stays so op logs already written still apply"
+)]
 pub struct SetInfo {
     /// The entries to set or clear.
     #[serde(default)]
@@ -175,54 +173,29 @@ impl SetInfo {
         Self { patch, at: None }
     }
 
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Vec<PageId>> {
-        let mut cos = doc.cos_mut().edit();
-        // The current Info dictionary: shared with the overlay or base when indirect (a
-        // corrupt or missing object reads as absent, like a missing /Info), else the
-        // trailer's direct one.
-        let (target, current) = match cos.trailer().get("Info") {
-            Some(Object::Ref(r)) => {
-                let r = *r;
-                match cos.get(r)? {
-                    Some(info) if matches!(*info, Object::Dict(_)) => (Some(r), info),
-                    _ => (None, Arc::new(Object::Dict(Dict::new()))),
-                }
-            }
-            Some(direct @ Object::Dict(_)) => (None, Arc::new(direct.clone())),
-            _ => (None, Arc::new(Object::Dict(Dict::new()))),
-        };
-        let empty = Dict::new();
-        let current = current.as_dict().unwrap_or(&empty);
-        let patched = self.patched(current);
-        if patched == *current {
-            return Ok(Vec::new());
-        }
-        if let Some(r) = target {
-            cos.set(r, Object::Dict(patched))?;
-        } else {
-            let r = cos.create(Object::Dict(patched))?;
-            let mut trailer = cos.trailer().clone();
-            trailer.insert("Info", r);
-            cos.set_trailer(trailer);
-        }
-        Ok(Vec::new())
-    }
-
-    fn patched(&self, current: &Dict) -> Dict {
-        let mut dict = current.clone();
-        for (key, field) in self.patch.fields() {
-            if let Some(value) = field {
-                match value {
-                    None => {
-                        dict.remove(key);
-                    }
-                    Some(text) => dict.insert(key, PdfString::literal(encode_text_string(text))),
-                }
-            }
-        }
+    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
+        let text =
+            |value: &Option<Option<String>>| value.as_ref().map(|v| v.as_deref().map(|s| Value::Text(s.to_owned())));
+        let p = &self.patch;
+        let mut changes: Vec<(MappedField, Option<Value>)> = [
+            (MappedField::Title, text(&p.title)),
+            (
+                MappedField::Authors,
+                p.author
+                    .as_ref()
+                    .map(|v| v.as_ref().map(|a| Value::List(vec![a.clone()]))),
+            ),
+            (MappedField::Subject, text(&p.subject)),
+            (MappedField::Keywords, text(&p.keywords)),
+            (MappedField::Creator, text(&p.creator)),
+            (MappedField::Producer, text(&p.producer)),
+        ]
+        .into_iter()
+        .filter_map(|(field, value)| value.map(|v| (field, v)))
+        .collect();
         if let Some(at) = self.at {
-            dict.insert("ModDate", PdfString::literal(at.to_string()));
+            changes.push((MappedField::Modified, Some(Value::Date(at))));
         }
-        dict
+        write(doc, &changes, Policy::info())
     }
 }

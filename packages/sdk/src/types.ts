@@ -8,12 +8,15 @@ import type {
   BuildOptionsInit,
   DirectionInit,
   DocumentInfoJs,
+  DocumentMetadata as DocumentMetadataJs,
   EditedJs,
   FitInit,
   LimitsInit,
   LineBoxJs,
   LinkTargetInit,
   MetadataInit,
+  MetadataKey as MetadataKeyJs,
+  MetadataPatch as MetadataPatchJs,
   Op as OpJs,
   OutlineEntryInit,
   OutlineNodeJs,
@@ -21,6 +24,7 @@ import type {
   PageInfoJs,
   PageLabelInit,
   PageLinkJs,
+  PlannedSaveJs,
   ProfileInit,
   ProgressJs,
   PropertiesJs,
@@ -37,10 +41,36 @@ import type {
   TextRunJs,
   UndoOutcomeJs,
   ViewerPreferencesInit,
+  ViolationJs,
 } from "@laminapdf/wasm/text";
 
-/** An edit (ADR 0006 §6: `{ op: "setInfo" | "rotatePage", args }`), as in `fixtures/ops/v1`. */
+/**
+ * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `rotatePage`, or the deprecated
+ * `setInfo` (use `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
+ */
 export type Op = OpJs;
+/**
+ * Changes to the document's metadata, written to its Info dictionary and its XMP metadata
+ * together: a value sets the field, `null` removes it, a missing key leaves it alone. Dates are
+ * PDF dates (`D:20261110093000Z`).
+ */
+export type MetadataPatch = MetadataPatchJs;
+/** A metadata field: `title`, `authors`, `subject`, `keywords`, `creator`, `producer`, `created`, `modified`. */
+export type MetadataKey = MetadataKeyJs;
+/**
+ * A document's metadata, read from its Info dictionary and its XMP metadata together. When they
+ * disagree, the values come from XMP in a PDF 2.0 or PDF/A file and otherwise from the side
+ * modified last; `disagreements` names the fields that differ.
+ */
+export type DocumentMetadata = DocumentMetadataJs;
+/**
+ * How a save would go, before it happens: what restricts it (`constraint`, the signatures and
+ * the edits they forbid), the mode it resolves to or the code it would be refused with,
+ * what it does with the save-time metadata, and the PDF/A and PDF/UA claims the edits break.
+ */
+export type PlannedSave = PlannedSaveJs;
+/** A change a signature's restriction forbids. */
+export type Violation = ViolationJs;
 /** An op log: `{ v: 1, ops }`. */
 export interface OpLog {
   readonly v: 1;

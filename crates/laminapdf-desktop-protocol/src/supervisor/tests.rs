@@ -76,7 +76,9 @@ fn concurrent_requests_should_each_get_their_reply() {
                         req,
                         doc: DocId(1),
                         page: 0,
-                        scale_milli: 1000,
+                        scale: 1.0,
+                        rotation: crate::ViewRotation::None,
+                        appearance: crate::TileAppearance::Original,
                         x: 0,
                         y: 0,
                         w,
@@ -167,8 +169,11 @@ fn a_failed_engine_should_refuse_requests() {
 
 #[test]
 fn backoff_should_double_with_each_recent_crash() {
-    let (_supervisor, _, events) = start(Mode::CrashAfterReady);
+    // The clock starts before the first engine does: `start` returns once that engine is ready,
+    // and its 30 ms of life has already begun, so starting the clock after `start` would miss
+    // however long the return took on a busy machine.
     let started = Instant::now();
+    let (_supervisor, _, events) = start(Mode::CrashAfterReady);
     while next_event(&events).is_some_and(|e| e != Event::Failed) {}
     // 10 + 20 + 40 ms of backoff, plus 30 ms of life for each of the four engines.
     assert!(started.elapsed() >= Duration::from_millis(190));

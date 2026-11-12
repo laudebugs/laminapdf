@@ -97,4 +97,4 @@ The agent builds `lamina-ci-runner-linux:local` from `main`'s copies of this dir
 - The container is capped with `--cpus 3 --memory 6g`, so the macOS runners and local work keep most of the 8-core, 16 GB Mac. If the macOS jobs slow down by more than about 20%, lower the cap in `loop.sh` and rerun `up.sh`, or take one macOS runner offline while this one runs.
 - The runner takes one job at a time.
 - ARM64 only: x86_64-specific code paths aren't covered (see todo X5's risks).
-- Self-hosted runners must never run fork PRs. That holds while the repository is private.
+- Self-hosted runners must never run fork PRs. The repository is public, so no workflow uses this runner ([hosted runners and the public transition](../../../docs/public-readiness.md)).
