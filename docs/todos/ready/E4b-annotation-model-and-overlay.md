@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E1d](../done/E1d-edit-session-undo-ui.md), [E3c](./E3c-links.md), [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md) |
+| Depends on | [E1d](../done/E1d-edit-session-undo-ui.md), [E3c](./E3c-links.md), [E4a](../ongoing/E4a-markup-and-drawing-annotations-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4b-annotation-model-and-overlay` |
 | PR title | `feat(model): typed annotations, annotation ops and overlay layer` |

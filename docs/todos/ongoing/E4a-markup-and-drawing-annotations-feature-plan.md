@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E2e](../done/E2e-content-append-api.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
