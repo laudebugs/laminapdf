@@ -11,12 +11,14 @@ import type {
   DocumentMetadata as DocumentMetadataJs,
   EditedJs,
   FitInit,
+  InitialViewJs,
   LimitsInit,
   LineBoxJs,
   LinkTargetInit,
   MetadataInit,
   MetadataKey as MetadataKeyJs,
   MetadataPatch as MetadataPatchJs,
+  OpenAt as OpenAtJs,
   Op as OpJs,
   OutlineEntryInit,
   OutlineNodeJs,
@@ -33,20 +35,23 @@ import type {
   RevertedJs,
   SaveOptionsInit,
   SaveReportJs,
+  SetInitialView as SetInitialViewJs,
   StructureKidJs,
   StructureNodeJs,
   TargetJs,
   TargetViewJs,
   TextLayoutJs,
   TextRunJs,
+  ThreadJs,
   UndoOutcomeJs,
   ViewerPreferencesInit,
   ViolationJs,
 } from "@laminapdf/wasm/text";
 
 /**
- * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `rotatePage`, or the deprecated
- * `setInfo` (use `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
+ * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `rotatePage`, `setInitialView`, or
+ * the deprecated `setInfo` (use `setMetadata`, which keeps the Info dictionary and the XMP
+ * metadata in step).
  *
  * @since 0.2.0
  */
@@ -264,6 +269,42 @@ export type Target = TargetJs;
  * @since 0.2.0
  */
 export type TargetView = TargetViewJs;
+
+/**
+ * How a document asks to be shown when it opens: where it `open`s by `kind` (`"default"`: its
+ * first page at the reader's zoom; `"page"`: a {@link Target}; `"action"`: an `action` a reader
+ * runs, by its type, which Lamina PDF never runs), the panel to show (`pageMode`), how to lay the
+ * pages out (`pageLayout`), absent when the file leaves them to the reader, and the window's
+ * `preferences`.
+ *
+ * @since 0.2.0
+ */
+export type InitialView = InitialViewJs;
+
+/**
+ * Changes to how a document opens, for {@link Document.setInitialView}: a value sets the field,
+ * `null` removes it, a missing key leaves it alone. `open` names a page by its ID
+ * ({@link PageInfo.id}) and a `zoom`: `"default"`, `"fitPage"`, `"fitWidth"` or a percentage.
+ *
+ * @since 0.2.0
+ */
+export type InitialViewPatch = SetInitialViewJs;
+
+/**
+ * The page and zoom a document opens at, in an {@link InitialViewPatch}.
+ *
+ * @since 0.2.0
+ */
+export type OpenAt = OpenAtJs;
+
+/**
+ * An article thread: its `title` (document text) and its `parts` in reading order, each a `page`
+ * (0-based) and a `rect` (`[x0, y0, x1, y1]` in page space), absent when the part names a page
+ * the document lacks.
+ *
+ * @since 0.2.0
+ */
+export type ArticleThread = ThreadJs;
 /**
  * A page-label range, by its first page.
  *
