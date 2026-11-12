@@ -138,6 +138,9 @@ export function siteLinks(markdown, site, route) {
  * each area as a level-1 heading with its pages as level-2 headings, their own headings below.
  * U+FFFD, the replacement character the extraction pages show, is written as its code point:
  * none of the guide's fonts has a glyph for it, and the builder refuses a character it can't draw.
+ * Tabs, which the extraction examples print between a table's cells, become spaces to the next
+ * multiple of four columns: a font has no tab glyph, and the builder gives a tab the space's
+ * glyph, which then has two texts (`tounicode-conflict`).
  *
  * @param {{ version: string, site: string, areas: { label: string, routes: string[] }[], twins: Map<string, string> }} input
  *   `twins`: route → the twin's Markdown
@@ -167,7 +170,21 @@ export function guideMarkdown({ version, site, areas, twins }) {
       parts.push("", `## ${title}`, "", siteLinks(deeperHeadings(body.trim(), 1), site, route));
     }
   }
-  return `${parts.join("\n")}\n`.replaceAll("\uFFFD", "U+FFFD");
+  return expandTabs(`${parts.join("\n")}\n`.replaceAll("\uFFFD", "U+FFFD"));
+}
+
+/**
+ * `text` with each tab replaced by spaces up to the next multiple of four columns, line by line.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+function expandTabs(text) {
+  return text.replace(/^.*\t.*$/gm, (line) => {
+    let out = "";
+    for (const ch of line) out += ch === "\t" ? " ".repeat(4 - (out.length % 4)) : ch;
+    return out;
+  });
 }
 
 /**

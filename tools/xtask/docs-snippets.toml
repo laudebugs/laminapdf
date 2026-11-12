@@ -55,6 +55,18 @@ ts = "packages/sdk/examples/extract-markdown.ts"
 rust = "crates/laminapdf/examples/extract_markdown.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/extract-text.ts"
+rust = "crates/laminapdf/examples/extract_text.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/extract-blocks.ts"
+rust = "crates/laminapdf/examples/extract_blocks.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/extract-chunks.ts"
+rust = "crates/laminapdf/examples/extract_chunks.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/react-to-error-codes.ts"
 rust = "crates/laminapdf/examples/react_to_error_codes.rs"
 
