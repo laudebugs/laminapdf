@@ -1,6 +1,6 @@
 // "Edit and run" against `wrangler dev` (e2e/server.ts), in one browser per run
-// (LAMINA_PDF_E2E_BROWSER): the runner's own headers and the pages' unchanged ones; each of the six
-// examples run unchanged gives its golden's bytes; an edit changes the PDF; a mistake shows its code
+// (LAMINA_PDF_E2E_BROWSER): the runner's own headers and the pages' unchanged ones; each runnable
+// example (the six recipes and "Your first PDF"'s Node app) run unchanged gives its golden's bytes; an edit changes the PDF; a mistake shows its code
 // and hint. Nothing loads before the button is pressed, nothing from another origin, and no CSP
 // violation is reported.
 
@@ -18,14 +18,15 @@ const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
 const ca = inject("ca");
 
-/** The six runnable examples: their recipe page and their golden. */
+/** The runnable examples: a page that shows each, and its golden. */
 const EXAMPLES = [
-  ["hello", "hello"],
-  ["invoice", "invoice"],
-  ["images-and-vectors", "images_and_vectors"],
-  ["links-and-outlines", "links_and_outlines"],
-  ["element-flow", "element_flow"],
-  ["pdf-ua-report", "pdf_ua_report"],
+  ["/recipes/hello/", "hello"],
+  ["/recipes/invoice/", "invoice"],
+  ["/recipes/images-and-vectors/", "images_and_vectors"],
+  ["/recipes/links-and-outlines/", "links_and_outlines"],
+  ["/recipes/element-flow/", "element_flow"],
+  ["/recipes/pdf-ua-report/", "pdf_ua_report"],
+  ["/start/first-pdf/", "hello"],
 ] as const;
 
 /** A page with what it reported recorded: console errors (CSP violations among them) and other origins. */
@@ -49,8 +50,8 @@ afterAll(async () => {
   await browser?.close();
 });
 
-/** Opens a recipe page on its Result tab, before "Edit and run" is pressed. */
-async function recipe(slug: string): Promise<Watched> {
+/** Opens a page with an example, before "Edit and run" (under the example's first page) is pressed. */
+async function recipe(path: string): Promise<Watched> {
   // The server's certificate is self-signed (@laminapdf/test-utils/wrangler-dev).
   const context = await browser.newContext({ acceptDownloads: true, ignoreHTTPSErrors: true });
   const page = await context.newPage();
@@ -63,8 +64,7 @@ async function recipe(slug: string): Promise<Watched> {
     if (new URL(request.url()).origin !== origin && !request.url().startsWith("data:"))
       watched.foreign.push(request.url());
   });
-  await page.goto(new URL(`/recipes/${slug}/`, origin).href);
-  await page.getByRole("tab", { name: "Result" }).click();
+  await page.goto(new URL(path, origin).href);
   return watched;
 }
 
@@ -105,14 +105,18 @@ describe("headers", () => {
 });
 
 describe(`edit and run in ${BROWSER}`, () => {
-  it.each(EXAMPLES)("%s run unchanged gives its golden's bytes", async (slug, golden) => {
-    const { page, errors, foreign, requests } = await recipe(slug);
+  it.each(EXAMPLES)("%s run unchanged gives its golden's bytes", async (path, golden) => {
+    const { page, errors, foreign, requests } = await recipe(path);
     expect(requests.filter((url) => new URL(url).pathname.startsWith("/run/"))).toEqual([]);
     await page.getByRole("button", { name: "Edit and run" }).click();
     await run(page);
     expect(await page.locator(".run-error:not([hidden])").count()).toBe(0);
     expect(await page.locator("canvas.run-page").count()).toBeGreaterThan(0);
-    const bytes = await downloaded(page);
+    // The run's page takes the place of the first page's picture.
+    expect(await page.locator(".example-first").isHidden()).toBe(true);
+    const [download] = await Promise.all([page.waitForEvent("download"), page.locator(".run-download").click()]);
+    expect(download.suggestedFilename()).toBe(`${golden}.pdf`);
+    const bytes = readFileSync(await download.path());
     expect(bytes.equals(readFileSync(new URL(`fixtures/golden/examples/${golden}.pdf`, ROOT)))).toBe(true);
     expect(errors).toEqual([]);
     expect(foreign).toEqual([]);
@@ -120,7 +124,7 @@ describe(`edit and run in ${BROWSER}`, () => {
   });
 
   it("an edit makes a new PDF, and a mistake shows its code and hint", async () => {
-    const { page, errors } = await recipe("hello");
+    const { page, errors } = await recipe("/recipes/hello/");
     await page.getByRole("button", { name: "Edit and run" }).click();
     const source = (await page.locator("lamina-run").getAttribute("data-source")) ?? "";
     expect(source).toContain('"Hello, world!"');
