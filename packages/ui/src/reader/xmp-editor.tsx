@@ -98,6 +98,12 @@ function edited(schemas: readonly XmpSchema[], changes: readonly XmpChange[]): X
   return out;
 }
 
+/** A property's value in its tree row: the first line, without a language's `lang: `. */
+function preview(p: XmpProperty): string {
+  const first = p.text.split("\n")[0] ?? "";
+  return p.type === "langAlt" ? first.replace(/^[^:]*:\s?/, "") : first;
+}
+
 /** The tree of schemas and properties; a removed property is struck through. */
 function PropertyTree({
   schemas,
@@ -118,6 +124,8 @@ function PropertyTree({
       selectionMode="single"
       selectionBehavior="replace"
       disallowEmptySelection
+      // Escape closes the dialog, as everywhere else in it, rather than clearing the selection.
+      escapeKeyBehavior="none"
       selectedKeys={selected === undefined ? [] : [selected]}
       onSelectionChange={(keys) => {
         const key = keys === "all" ? undefined : [...keys][0];
@@ -153,7 +161,7 @@ function PropertyTree({
                   <div className="paper-outline-row" data-level={2}>
                     <span className="paper-outline-link">
                       <span className="paper-outline-title">{removed.has(key) ? <del>{p.name}</del> : p.name}</span>
-                      <span className="paper-outline-page paper-xmp-value">{p.text.split("\n")[0]}</span>
+                      <span className="paper-outline-page paper-xmp-value">{preview(p)}</span>
                     </span>
                   </div>
                 </TreeItemContent>
@@ -317,6 +325,17 @@ function AddProperty({ onAdd, onCancel }: { onAdd: (change: XmpChange) => void; 
 function RawXml({ packet, edits, onEdits }: Pick<XmpEditorProps, "packet" | "edits" | "onEdits">): ReactNode {
   const replaced = edits.changes.find((c) => c.kind === "replace");
   const [text, setText] = useState(replaced?.xml ?? packet.xml ?? "");
+  // The XML shown is the packet before the property edits: replacing it would drop them.
+  if (edits.changes.some((c) => c.kind !== "replace")) {
+    return (
+      <>
+        <Notice tone="warning" title={laterMessage("properties.xmp.raw.locked")}>
+          {laterMessage("properties.xmp.raw.locked.body")}
+        </Notice>
+        <TextArea label={laterMessage("properties.xmp.raw")} value={text} isReadOnly />
+      </>
+    );
+  }
   const read = readXmpPacket(text);
   const error = read.ok
     ? undefined

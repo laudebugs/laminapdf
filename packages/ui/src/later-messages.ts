@@ -95,6 +95,8 @@ const EN = {
   "properties.xmp.raw": "XMP metadata",
   "properties.xmp.raw.help": "Apply replaces the XMP metadata with this XML.",
   "properties.xmp.raw.error": "Line {line}: {message}",
+  "properties.xmp.raw.locked": "Apply your property changes first.",
+  "properties.xmp.raw.locked.body": "Raw XML shows the metadata before them, and replacing it would drop them.",
   "properties.xmp.pdfa": "{level} file.",
   "properties.xmp.pdfa.body":
     "Lamina PDF declares each property you add in the extension schema, so the file keeps meeting PDF/A.",

@@ -141,7 +141,15 @@ describe("the XMP tab", () => {
     await userEvent.click(button("Apply"));
     await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(xmp).toEqual([
-      [{ kind: "set", namespace: REVIEW, prefix: "review", name: "status", value: { type: "text", value: "Approved" } }],
+      [
+        {
+          kind: "set",
+          namespace: REVIEW,
+          prefix: "review",
+          name: "status",
+          value: { type: "text", value: "Approved" },
+        },
+      ],
     ]);
   });
 
@@ -164,6 +172,14 @@ describe("the XMP tab", () => {
     await userEvent.click(item("title"));
     await userEvent.click(button("Edit on the Description tab"));
     await expect.element(page.getByLabelText("Title")).toHaveValue("Q3 Board Report");
+  });
+
+  it("closes on Escape from the tree, as from anywhere in the dialog", async () => {
+    const { onClose } = dialog(META, { xmp: { status: "parsed", xml: PACKET } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await userEvent.click(item("status"));
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
   it("removes a property, and Keep takes it back", async () => {
@@ -192,6 +208,16 @@ describe("the XMP tab", () => {
     expect(xmp[0]).toEqual([
       { kind: "set", namespace: REVIEW, prefix: "review", name: "round", value: { type: "integer", value: 2 } },
     ]);
+  });
+
+  it("keeps raw XML read-only while property changes wait to be applied", async () => {
+    dialog(META, { xmp: { status: "parsed", xml: PACKET } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await userEvent.click(item("status"));
+    await userEvent.fill(page.getByLabelText("Value"), "Approved");
+    await userEvent.click(button("Raw XML"));
+    await expect.element(page.getByText("Apply your property changes first.")).toBeVisible();
+    await expect.element(page.getByLabelText("XMP metadata")).toHaveAttribute("readonly");
   });
 
   it("checks raw XML as it is typed and replaces the packet once it parses", async () => {
