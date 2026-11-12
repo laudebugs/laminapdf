@@ -29,9 +29,9 @@ The first call comes after the toolchain step, because the Rust cache puts every
 The first call:
 
 1. installs sccache through `.github/actions/install-tools`;
-2. starts sccache's server with the R2 credentials, which only that step's environment holds. The server starts each `rustc` with the job's environment rather than its own, so no build script or proc-macro can read them;
+2. starts sccache's server with the R2 credentials, which only that step's environment holds. The server starts each `rustc` with the job's environment rather than its own, so later steps, build scripts and proc-macros don't get the credentials in their environment. A process of the same user could still read the server's environment from the operating system; on a pull request that would give it only the read-only token;
 3. sets the mode: `READ_WRITE` on a push to `main`, `READ_ONLY` everywhere else;
-4. exports `RUSTC_WRAPPER=sccache` and `SCCACHE_IGNORE_SERVER_IO_ERROR=1`, so a build falls back to plain `rustc` if the server fails.
+4. exports `RUSTC_WRAPPER=sccache` and `SCCACHE_IGNORE_SERVER_IO_ERROR=1`. If the server fails partway through, the build goes on: sccache starts a new server without the credentials, which caches only on the runner's disk, or runs `rustc` directly.
 
 Without the variables or secrets, the first call prints a notice and exports nothing, and the job builds as it would without the action. The second call writes `sccache --show-stats` into the job summary: hits, misses, and why some calls weren't cacheable.
 

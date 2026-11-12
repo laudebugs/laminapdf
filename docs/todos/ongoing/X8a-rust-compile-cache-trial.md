@@ -75,6 +75,7 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
 
 - [ ] After the owner commits the patch: five PR runs and five pushes to `main` on the two legs, with each job summary's stats, recorded in X8b.
 - [ ] A PR run reads in `READ_ONLY` and writes nothing; a push to `main` writes.
+- [ ] The two legs' Rust-cache key, in the toolchain step's log, is the same as before the patch for the same `Cargo.lock`, so the compile cache, which comes after that step, leaves it alone.
 - [ ] A PR job runs with the empty environment expression (plan §6); if GitHub rejects it, switch to the `rust-compile-cache-read` fallback.
 
 ## Tests

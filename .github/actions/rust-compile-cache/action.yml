@@ -5,11 +5,12 @@
 #     variable into its key, so a RUSTC_WRAPPER set before it would change the key);
 #   - as its last step with `stats: true` and `if: ${{ !cancelled() }}`, which writes
 #     `sccache --show-stats` into the job summary.
-# The stats call needs no other input. Only a push to main writes to the bucket; everything else reads. Without the credentials (a fork
-# PR, a repository without the bucket) it prints a notice and exports nothing, so the job builds as
-# it would without it. The secrets come in as inputs because a composite action can't read the
-# `secrets` context. tools/xtask/src/workflows/compile_cache.rs checks the sccache pin, the order
-# of the steps and that nothing published or released uses it.
+# The stats call needs no other input. Only a push to main writes to the bucket; everything else
+# reads. Without the credentials (a fork PR, a repository without the bucket) it prints a notice
+# and exports nothing, so the job builds as it would without it. The secrets come in as inputs
+# because a composite action can't read the `secrets` context. tools/xtask/src/workflows/
+# compile_cache.rs checks the sccache pin, the order of the steps and that nothing published or
+# released uses it.
 name: Rust compile cache
 description: Compile Rust through sccache over Cloudflare R2, or print the compile cache's statistics.
 inputs:
@@ -39,13 +40,11 @@ runs:
     - id: check
       if: inputs.stats != 'true'
       shell: bash
+      # Only whether the inputs are set: the credentials stay out of this step.
       env:
-        ENDPOINT: ${{ inputs.endpoint }}
-        BUCKET: ${{ inputs.bucket }}
-        KEY_ID: ${{ inputs.access-key-id }}
-        SECRET: ${{ inputs.secret-access-key }}
+        SET: ${{ inputs.endpoint != '' && inputs.bucket != '' && inputs.access-key-id != '' && inputs.secret-access-key != '' }}
       run: |
-        if [ -n "$ENDPOINT" ] && [ -n "$BUCKET" ] && [ -n "$KEY_ID" ] && [ -n "$SECRET" ]; then
+        if [ "$SET" = true ]; then
           echo "enabled=true" >> "$GITHUB_OUTPUT"
         else
           echo "::notice title=Compile cache off::The SCCACHE_R2_* variables or secrets are not set (.github/actions/rust-compile-cache/README.md); this job compiles without the compile cache."
@@ -56,9 +55,10 @@ runs:
       uses: ./.github/actions/install-tools
       with:
         tool: sccache@0.19.0
-    # The credentials live in this step's environment only. The server keeps them, and it starts
-    # every rustc with the client's environment, not its own, so no later step, build script or
-    # proc-macro can read them.
+    # The credentials live in this step's environment only. The server keeps them and starts each
+    # rustc with the client's environment, not its own, so later steps, build scripts and
+    # proc-macros don't get them in their environment. (A process of the same user could still
+    # read the server's environment from the OS; on a pull request that is the read-only token.)
     - name: Start the sccache server
       if: steps.check.outputs.enabled == 'true'
       shell: bash
@@ -78,7 +78,8 @@ runs:
         sccache --start-server
         {
           echo "RUSTC_WRAPPER=sccache"
-          # A server that fails mid-job leaves rustc to compile without it.
+          # If the server fails mid-job, the build goes on: sccache starts a new server without
+          # the credentials, which caches only on the runner's disk, or rustc runs directly.
           echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
         } >> "$GITHUB_ENV"
     - name: Compile cache statistics

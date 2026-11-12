@@ -19,6 +19,8 @@
 
 mod compile_cache;
 
+use std::path::Path;
+
 /// The `<id>` of a two-space-indented `<id>:` line (a trailing comment allowed), else `None`.
 pub(crate) fn job_id(line: &str) -> Option<&str> {
     if !line.starts_with("  ") || line.starts_with("   ") || line.trim_start().starts_with('#') {
@@ -142,6 +144,41 @@ fn missing_from<'a>(workflow: &'a str, gate: &str) -> Vec<&'a str> {
     job_ids(workflow)
         .into_iter()
         .filter(|id| *id != gate && !needed.contains(id))
+        .collect()
+}
+
+/// A file's text, by its path from the repository root; `None` when it can't be read.
+pub(crate) fn repository_file(path: &str) -> Option<String> {
+    std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").join(path)).ok()
+}
+
+/// The entries of the repository's directory `dir`, as paths from the root, sorted.
+fn entries(dir: &str) -> Vec<String> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let mut found: Vec<String> = std::fs::read_dir(root.join(dir))
+        .map(|read| read.filter_map(Result::ok).collect::<Vec<_>>())
+        .unwrap_or_default()
+        .into_iter()
+        .map(|entry| format!("{dir}/{}", entry.file_name().to_string_lossy()))
+        .collect();
+    found.sort();
+    found
+}
+
+/// Every workflow file, as a path from the repository root.
+pub(crate) fn workflow_files() -> Vec<String> {
+    entries(".github/workflows")
+        .into_iter()
+        .filter(|p| Path::new(p).extension().is_some_and(|e| e == "yml" || e == "yaml"))
+        .collect()
+}
+
+/// Every local action's `action.yml`, as a path from the repository root.
+pub(crate) fn action_files() -> Vec<String> {
+    entries(".github/actions")
+        .into_iter()
+        .map(|dir| format!("{dir}/action.yml"))
+        .filter(|p| repository_file(p).is_some())
         .collect()
 }
 
@@ -593,8 +630,7 @@ mod tests {
     /// The owner installs the train from tools/release: never merge a partial installation.
     #[test]
     fn installed_cli_release_train_should_match_the_reviewed_file() {
-        let path =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github/workflows/cli-release-train.yml");
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github/workflows/cli-release-train.yml");
         assert!(
             std::fs::read_to_string(&path).is_ok_and(|installed| installed == CLI_TRAIN),
             "the owner must install tools/release/cli-release-train.yml as .github/workflows/cli-release-train.yml before merge"
@@ -685,23 +721,16 @@ mod tests {
     /// One pin for install-action, in `.github/actions/install-tools`.
     #[test]
     fn install_action_should_run_only_through_install_tools() {
-        let github = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github");
-        let read = |dir: &str| std::fs::read_dir(github.join(dir)).unwrap().map(|e| e.unwrap().path());
-        let workflows = read("workflows").filter(|p| p.extension().is_some_and(|e| e == "yml" || e == "yaml"));
-        let actions = read("actions")
-            .filter(|p| !p.ends_with("install-tools"))
-            .map(|p| p.join("action.yml"));
+        let actions = action_files().into_iter().filter(|p| !p.contains("/install-tools/"));
         let mut direct: Vec<String> = Vec::new();
-        for path in workflows.chain(actions) {
-            let text = std::fs::read_to_string(&path).unwrap();
+        for path in workflow_files().into_iter().chain(actions) {
+            let text = repository_file(&path).unwrap_or_default();
             for (i, line) in text.lines().enumerate() {
                 if !line.trim_start().starts_with('#') && line.contains("taiki-e/install-action") {
-                    let name = path.strip_prefix(&github).unwrap_or(&path).display();
-                    direct.push(format!(".github/{name}:{}", i + 1));
+                    direct.push(format!("{path}:{}", i + 1));
                 }
             }
         }
-        direct.sort();
         assert_eq!(
             direct,
             Vec::<String>::new(),
