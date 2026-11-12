@@ -17,19 +17,26 @@ const PAGE_PIXELS = 832;
 const TIME_LIMIT_MS = 30_000;
 
 /**
- * Typing over a selection that spans lines: CodeMirror replaces it itself. Left to the browser,
- * Chromium merges the lines' elements and writes inline styles to keep their look, which the docs'
- * CSP blocks and reports (`style-src 'self'`); CodeMirror redraws the lines either way.
+ * Typing over a selection that spans lines: CodeMirror replaces it itself, as it would typed text,
+ * its input handlers first (closeBrackets wraps the selection in a typed bracket). Left to the
+ * browser, Chromium merges the lines' elements and writes inline styles to keep their look, which
+ * the docs' CSP blocks and reports (`style-src 'self'`). Composition (an IME, a dead key) can't be
+ * cancelled, so it still goes to the browser; its blocked styles change nothing a reader sees, since
+ * CodeMirror redraws the lines.
  */
 const typeOverLines = EditorView.domEventHandlers({
   beforeinput(event, view) {
     const { state } = view;
+    const text = event.data;
     const acrossLines = state.selection.ranges.some(
       (range) => state.doc.lineAt(range.from).number !== state.doc.lineAt(range.to).number,
     );
-    if (event.inputType !== "insertText" || event.data === null || !acrossLines) return false;
+    if (event.inputType !== "insertText" || text === null || !acrossLines) return false;
     event.preventDefault();
-    view.dispatch({ ...state.replaceSelection(event.data), scrollIntoView: true, userEvent: "input.type" });
+    const { from, to } = state.selection.main;
+    const insert = () => state.update(state.replaceSelection(text), { scrollIntoView: true, userEvent: "input.type" });
+    if (state.facet(EditorView.inputHandler).some((handler) => handler(view, from, to, text, insert))) return true;
+    view.dispatch(insert());
     return true;
   },
 });

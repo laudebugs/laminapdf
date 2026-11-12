@@ -103,4 +103,26 @@ describe(`the docs under a CSP without inline styles in ${BROWSER}`, () => {
     expect(problems).toEqual([]);
     await close();
   });
+
+  it("types over the editor's lines with no CSP violation, and a bracket wraps them", async () => {
+    const { page, problems, close } = await open("/recipes/hello/", "light");
+    await page.getByRole("tab", { name: "Result" }).click();
+    await page
+      .getByRole("button", { name: /Edit and run/ })
+      .first()
+      .click();
+    const content = page.locator(".cm-content");
+    const before = await content.innerText();
+    await content.click();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.type("(");
+    const after = await content.innerText();
+    // The whole code, wrapped (innerText counts the last line break its own way: whitespace aside).
+    expect(after.replace(/\s/g, "")).toBe(`(${before.replace(/\s/g, "")})`);
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.type("x");
+    expect(await content.innerText()).toBe("x");
+    expect(problems).toEqual([]);
+    await close();
+  });
 });

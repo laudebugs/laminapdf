@@ -7,8 +7,9 @@
 // the built style sheets' one such selector, Expressive Code's for a token's colour, is rewritten
 // to the class, and any other fails the build. Node-only: it runs at build time, never in a page.
 import { createHash } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { filesIn } from "./integrations.mjs";
+import { decodeReferences, tokens } from "./markup.mjs";
 
 /**
  * An inline style a page's own script removes later. A class rule can't be removed that way, so
@@ -17,15 +18,6 @@ import { filesIn } from "./integrations.mjs";
  *
  * @typedef {{ tag: string, style: string, className: string }} ScriptedStyle
  */
-
-/** Comments and scripts, which the rewrite leaves as they are: their text isn't markup. */
-const VERBATIM = /(<!--[\s\S]*?-->|<script\b[\s\S]*?<\/script\s*>)/gi;
-
-/** A start tag with a style attribute in double or single quotes: name, the rest, the value. */
-const STYLED = /<([a-z][a-z0-9-]*)\b([^>]*?)\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')([^>]*)>/gi;
-
-/** An inline `<style>` element: Astro writes these unless `build.inlineStylesheets` is "never". */
-const STYLE_ELEMENT = /<style[\s>]/i;
 
 /** The prefix of a class for a style that starts with a custom property, and of any other. */
 const VARIABLES = "lamina-v-";
@@ -66,43 +58,59 @@ export function translateStyleSelectors(css) {
   return out;
 }
 
+/** A quoted string, with escapes. */
+const QUOTED = String.raw`"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'`;
+
+/** A declaration: anything but a semicolon, with quoted strings and parentheses (two deep) whole. */
+const DECLARATION = new RegExp(String.raw`(?:[^;"'()]|${QUOTED}|\((?:[^()"']|${QUOTED}|\([^()]*\))*\))+`, "g");
+
+/**
+ * The declarations of `style`, split at the semicolons outside quotes and parentheses (a
+ * `data:` URL holds one).
+ *
+ * @param {string} style
+ * @returns {string[]}
+ */
+function declarationsOf(style) {
+  return [...style.matchAll(DECLARATION)].map(([declaration]) => declaration.trim()).filter((d) => d !== "");
+}
+
 /**
  * The rule that gives `className` what `style` declares, each declaration !important.
  *
  * @param {string} className
- * @param {string} style
+ * @param {string} style the attribute's value, its character references decoded
  * @returns {string}
  */
 export function ruleFor(className, style) {
-  const declarations = style
-    .split(";")
-    .map((declaration) => declaration.trim().replace(/\s*!important$/i, ""))
-    .filter((declaration) => declaration !== "")
-    .map((declaration) => `${declaration} !important`);
+  const declarations = declarationsOf(style).map((d) => `${d.replace(/\s*!\s*important$/i, "")} !important`);
   return `.${className}{${declarations.join(";")}}`;
 }
 
 /**
- * The attributes of a start tag (without its name) with `className` added to its class.
+ * A start tag rewritten: its style attribute dropped and `className` added to its class.
  *
- * @param {string} attributes
+ * @param {import("./markup.mjs").StartTag} tag
  * @param {string} className
  * @returns {string}
  */
-function withClass(attributes, className) {
-  const existing = /(\sclass\s*=\s*)(?:"([^"]*)"|'([^']*)')/i.exec(attributes);
-  if (existing === null) return `${attributes} class="${className}"`;
-  const [whole, prefix = "", double, single] = existing;
-  const value = (double ?? single ?? "").trim();
-  const quote = double === undefined ? "'" : '"';
-  const merged = `${prefix}${quote}${value === "" ? className : `${value} ${className}`}${quote}`;
-  return attributes.replace(whole, merged);
+function withClass(tag, className) {
+  let classed = false;
+  const attributes = tag.attributes.flatMap((attribute) => {
+    if (attribute.name === "style") return [];
+    if (attribute.name !== "class") return [attribute.text];
+    classed = true;
+    const value = attribute.value.trim();
+    return [` class="${value === "" ? className : `${value} ${className}`}"`];
+  });
+  if (!classed) attributes.push(` class="${className}"`);
+  return `<${tag.written}${attributes.join("")}${tag.selfClosing ? " /" : ""}>`;
 }
 
 /**
  * `html` with each style attribute replaced by a class, and the styles those classes stand for.
- * Text in comments and scripts is left alone. Throws on an inline `<style>` element, which
- * the CSP would block too.
+ * Text in comments, scripts and other attributes' values is left alone. Throws on an inline
+ * `<style>` element, which the CSP would block too.
  *
  * @param {string} html
  * @param {readonly ScriptedStyle[]} [scripted]
@@ -111,27 +119,39 @@ function withClass(attributes, className) {
 export function moveInlineStyles(html, scripted = []) {
   /** @type {Map<string, string>} */
   const styles = new Map();
-  const parts = html.split(VERBATIM).map((part, index) => {
-    // split() puts the captured comments and scripts at the odd indices.
-    if (index % 2 === 1) return part;
-    if (STYLE_ELEMENT.test(part)) {
+  const parts = tokens(html).map((token) => {
+    if (token.kind === "raw" && token.tag.name === "style") {
       throw new Error(
         "has an inline <style> element, which style-src 'self' blocks: set build.inlineStylesheets to \"never\"",
       );
     }
-    return part.replace(STYLED, (_whole, name, before, double, single, after) => {
-      const style = String(double ?? single ?? "");
-      const tag = String(name).toLowerCase();
-      const known = scripted.find((s) => s.tag === tag && s.style.trim() === style.trim());
-      let className = known?.className;
-      if (className === undefined) {
-        className = classFor(style);
-        styles.set(className, style);
-      }
-      return `<${name}${withClass(`${before}${after}`, className)}>`;
-    });
+    if (token.kind !== "start") return token.text;
+    const attribute = token.attributes.find((a) => a.name === "style");
+    if (attribute === undefined) return token.text;
+    const style = decodeReferences(attribute.value).trim();
+    const known = scripted.find((s) => s.tag === token.name && s.style.trim() === style);
+    let className = known?.className;
+    if (className === undefined) {
+      className = classFor(style);
+      styles.set(className, style);
+    }
+    return withClass(token, className);
   });
   return { html: parts.join(""), styles };
+}
+
+/**
+ * Whether `html` still has an inline style: a style attribute or a `<style>` element.
+ *
+ * @param {string} html
+ * @returns {boolean}
+ */
+export function hasInlineStyle(html) {
+  return tokens(html).some(
+    (token) =>
+      (token.kind === "raw" && token.tag.name === "style") ||
+      (token.kind === "start" && token.attributes.some((a) => a.name === "style")),
+  );
 }
 
 /**
@@ -153,18 +173,29 @@ async function inFile(dir, file, step) {
 
 /**
  * Translates the selectors on the style attribute in every style sheet under `dir`'s `_astro/`.
+ * A sheet that changes gets a new name: the old one is content-hashed, and a reader's browser keeps
+ * it for a year (public/_headers), so a sheet changed under the same name would never reach them.
  *
  * @param {URL} dir the build's output folder
- * @returns {Promise<void>}
+ * @returns {Promise<Map<string, string>>} each renamed sheet's old address and its new one
  */
 async function translateStyleSheetsIn(dir) {
+  /** @type {Map<string, string>} */
+  const renamed = new Map();
   for (const file of await filesIn(new URL("_astro/", dir), ".css")) {
     await inFile(dir, file, async () => {
       const css = await readFile(file, "utf8");
       const translated = translateStyleSelectors(css);
-      if (translated !== css) await writeFile(file, translated);
+      if (translated === css) return;
+      const old = file.pathname.slice(dir.pathname.length - 1);
+      const hash = createHash("sha256").update(translated).digest("hex").slice(0, 8);
+      const address = old.replace(/\.css$/, `.${hash}.css`);
+      await writeFile(new URL(address.slice(1), dir), translated);
+      await rm(file);
+      renamed.set(old, address);
     });
   }
+  return renamed;
 }
 
 /**
@@ -185,9 +216,25 @@ async function writeStyleSheet(dir, styles) {
 }
 
 /**
+ * `html` with the renamed style sheets' addresses replaced, and `link` at the end of its head.
+ *
+ * @param {string} html
+ * @param {Map<string, string>} renamed
+ * @param {string | undefined} link
+ * @returns {string}
+ */
+function relinked(html, renamed, link) {
+  let out = html;
+  for (const [old, address] of renamed) out = out.replaceAll(`"${old}"`, `"${address}"`);
+  if (link === undefined) return out;
+  if (!/<\/head>/i.test(out)) throw new Error("has no </head> to link the style sheet from");
+  return out.replace(/<\/head>/i, `${link}</head>`);
+}
+
+/**
  * Moves the inline styles of every page under `dir` into one style sheet, `_astro/inline-styles.
  * <hash>.css`, which each page that had one links at the end of its head, and translates the
- * built style sheets' selectors on the style attribute.
+ * built style sheets' selectors on the style attribute. Throws if a page still has an inline style.
  *
  * @param {URL} dir the build's output folder
  * @param {readonly ScriptedStyle[]} [scripted]
@@ -196,23 +243,24 @@ async function writeStyleSheet(dir, styles) {
 export async function moveInlineStylesIn(dir, scripted = []) {
   /** @type {Map<string, string>} */
   const all = new Map();
-  /** @type {{ file: URL, html: string }[]} */
-  const styled = [];
+  /** @type {{ file: URL, before: string, html: string, styled: boolean }[]} */
+  const pages = [];
   for (const file of await filesIn(dir, ".html")) {
-    const moved = await inFile(dir, file, async () => moveInlineStyles(await readFile(file, "utf8"), scripted));
+    const before = await readFile(file, "utf8");
+    const moved = await inFile(dir, file, async () => moveInlineStyles(before, scripted));
     for (const [className, style] of moved.styles) all.set(className, style);
-    if (moved.styles.size > 0) styled.push({ file, html: moved.html });
+    pages.push({ file, before, html: moved.html, styled: moved.styles.size > 0 });
   }
-  await translateStyleSheetsIn(dir);
-  if (all.size === 0) return { pages: 0, classes: 0 };
-  const link = `<link rel="stylesheet" href="${await writeStyleSheet(dir, all)}">`;
-  for (const { file, html } of styled) {
+  const renamed = await translateStyleSheetsIn(dir);
+  const link = all.size > 0 ? `<link rel="stylesheet" href="${await writeStyleSheet(dir, all)}">` : undefined;
+  for (const { file, before, html, styled } of pages) {
     await inFile(dir, file, async () => {
-      if (!/<\/head>/i.test(html)) throw new Error("has no </head> to link the style sheet from");
-      await writeFile(file, html.replace(/<\/head>/i, `${link}</head>`));
+      const after = relinked(html, renamed, styled ? link : undefined);
+      if (hasInlineStyle(after)) throw new Error("still has an inline style, which style-src 'self' blocks");
+      if (after !== before) await writeFile(file, after);
     });
   }
-  return { pages: styled.length, classes: all.size };
+  return { pages: pages.filter((page) => page.styled).length, classes: all.size };
 }
 
 /**
