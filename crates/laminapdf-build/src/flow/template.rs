@@ -3,6 +3,8 @@
 //! same syntax.
 
 /// What the fields stand for on one page.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 pub struct Fields<'a> {
     /// The 1-based page number.
@@ -25,6 +27,8 @@ pub struct Fields<'a> {
 /// assert_eq!(fill_fields("Page {page} of {pages}", &fields), "Page 3 of 12");
 /// assert_eq!(fill_fields("{section} · {title} {{x}}", &fields), "Results ·  {x}");
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn fill_fields(text: &str, fields: &Fields<'_>) -> String {
     let mut out = String::with_capacity(text.len());

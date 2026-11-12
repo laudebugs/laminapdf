@@ -3,13 +3,13 @@
 // the page and resolution; the host renders that page, runs its model and hands the result to
 // `provide`. `extractWithModels` loops a job for hosts whose models are async.
 import type {
-  RegionInit as LayoutRegion,
-  ModelInfoInit as ModelInfo,
-  ModelRequestJs as ModelRequest,
-  ModelsInit as Models,
-  WordInit as OcrWord,
-  RegionLabelName as RegionLabel,
+  ModelInfoInit,
+  ModelRequestJs,
+  ModelsInit,
+  RegionInit,
+  RegionLabelName,
   WasmExtractJob,
+  WordInit,
 } from "@laminapdf/wasm/extract";
 import type { Document } from "./document.js";
 import { packageError } from "./errors.js";
@@ -21,9 +21,56 @@ import type { Instance } from "./internal/instance.js";
 
 // The model types come from the extract module's own declarations (tsify, from
 // crates/laminapdf-wasm/src/extract.rs), so they can't drift from what the binding accepts.
-export type { LayoutRegion, ModelInfo, ModelRequest, Models, OcrWord, RegionLabel };
+// Named again here so each carries its own docs and `@since`.
 
-/** Options for {@link Document.extractJob}: {@link ExtractOptions} and the models the host runs. */
+/**
+ * A layout region a model found, its box `[x, y, width, height]` in top-left points, as the
+ * output's boxes are.
+ *
+ * @since 0.2.0
+ */
+export type LayoutRegion = RegionInit;
+
+/**
+ * A model the host runs, as the output's `generator.models` names it.
+ *
+ * @since 0.2.0
+ */
+export type ModelInfo = ModelInfoInit;
+
+/**
+ * A model result the job waits for: which model, which page, at what resolution.
+ *
+ * @since 0.2.0
+ */
+export type ModelRequest = ModelRequestJs;
+
+/**
+ * The models the host runs for an extraction job.
+ *
+ * @since 0.2.0
+ */
+export type Models = ModelsInit;
+
+/**
+ * A word an OCR engine read, its box as a region's.
+ *
+ * @since 0.2.0
+ */
+export type OcrWord = WordInit;
+
+/**
+ * A layout region's kind.
+ *
+ * @since 0.2.0
+ */
+export type RegionLabel = RegionLabelName;
+
+/**
+ * Options for {@link Document.extractJob}: {@link ExtractOptions} and the models the host runs.
+ *
+ * @since 0.2.0
+ */
 export type ExtractJobOptions<F extends ExtractFormat = ExtractFormat> = ExtractOptions<F> & {
   /**
    * The models the host runs, each named as the output's `generator.models` records it: a
@@ -33,7 +80,11 @@ export type ExtractJobOptions<F extends ExtractFormat = ExtractFormat> = Extract
   readonly models?: Models;
 };
 
-/** What {@link ExtractJob.step} returns. */
+/**
+ * What {@link ExtractJob.step} returns.
+ *
+ * @since 0.2.0
+ */
 export type ExtractStep<F extends ExtractFormat> =
   | {
       readonly state: "progress";
@@ -48,7 +99,11 @@ export type ExtractStep<F extends ExtractFormat> =
     }
   | { readonly state: "done"; readonly output: ExtractResult[F] };
 
-/** A model's result for {@link ExtractJob.provide}, boxes as `[x, y, width, height]` in top-left points. */
+/**
+ * A model's result for {@link ExtractJob.provide}, boxes as `[x, y, width, height]` in top-left points.
+ *
+ * @since 0.2.0
+ */
 export type ModelResult =
   | { readonly kind: "layout"; readonly regions: readonly LayoutRegion[] }
   | { readonly kind: "ocr"; readonly words: readonly OcrWord[] };
@@ -56,6 +111,8 @@ export type ModelResult =
 /**
  * An extraction in progress, from {@link Document.extractJob}. It holds WebAssembly memory and is
  * freed with its document, or earlier with `free()` or `using`.
+ *
+ * @since 0.2.0
  */
 export class ExtractJob<F extends ExtractFormat = ExtractFormat> extends Handle<BaseGlue> {
   readonly #job: WasmExtractJob;
@@ -75,6 +132,8 @@ export class ExtractJob<F extends ExtractFormat = ExtractFormat> extends Handle<
    *
    * @returns progress, or `{ state: "done", output }` with the output in the job's format.
    * @throws {@link LaminaPdfError} `cancelled`, `document-changed`, `job-finished`, the reading errors.
+   *
+   * @since 0.2.0
    */
   step(budget = 1): ExtractStep<F> {
     const out = this.call(() => this.#job.step(budget)) as
@@ -88,12 +147,18 @@ export class ExtractJob<F extends ExtractFormat = ExtractFormat> extends Handle<
    *
    * @throws {@link LaminaPdfError} `model-result-unexpected` when nothing was asked for or `result`
    *   is the other model's; `invalid-argument` / `unknown-option` for a malformed result.
+   *
+   * @since 0.2.0
    */
   provide(result: ModelResult): void {
     this.call(() => this.#job.provide(result as Parameters<WasmExtractJob["provide"]>[0]));
   }
 
-  /** Stops the job: its next step fails with `cancelled`. */
+  /**
+   * Stops the job: its next step fails with `cancelled`.
+   *
+   * @since 0.2.0
+   */
   cancel(): void {
     this.call(() => this.#job.cancel());
   }
@@ -103,7 +168,11 @@ export class ExtractJob<F extends ExtractFormat = ExtractFormat> extends Handle<
   }
 }
 
-/** The host's models for {@link extractWithModels}: each renders the page it is asked for and runs. */
+/**
+ * The host's models for {@link extractWithModels}: each renders the page it is asked for and runs.
+ *
+ * @since 0.2.0
+ */
 export interface HostModels {
   /** A layout model's regions on `request.page`, rendered at `request.dpi`. */
   readonly layout?: (request: ModelRequest, signal: AbortSignal | undefined) => Promise<readonly LayoutRegion[]>;
@@ -146,6 +215,8 @@ async function answer(
  * @throws {@link LaminaPdfError} as {@link ExtractJob.step}; `invalid-argument` when
  *   `options.models` names a model `models` has no function for; `cancelled` once `signal`
  *   aborts, also when the model rejects because of it (the model's error is the `cause`).
+ *
+ * @since 0.2.0
  */
 export async function extractWithModels<F extends ExtractFormat>(
   doc: Document,

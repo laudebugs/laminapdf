@@ -3,13 +3,25 @@
 import { packageError } from "./errors.js";
 import type { DocumentInfo, MetadataKey, MetadataPatch, Op } from "./types.js";
 
-/** The rotations `/Rotate` allows. */
+/**
+ * The rotations `/Rotate` allows.
+ *
+ * @since 0.2.0
+ */
 export type Rotation = 0 | 90 | 180 | 270;
 
-/** An Info patch: a string sets the entry, `null` removes it, a missing key leaves it alone. */
+/**
+ * An Info patch: a string sets the entry, `null` removes it, a missing key leaves it alone.
+ *
+ * @since 0.2.0
+ */
 export type InfoPatch = { readonly [K in keyof DocumentInfo]?: string | null };
 
-/** Options for `setMetadata`. */
+/**
+ * Options for `setMetadata`.
+ *
+ * @since 0.2.0
+ */
 export interface MetadataEditOptions {
   /** The modification date to record, a PDF date from your clock (`D:20261110093000Z`). */
   readonly at?: string;
@@ -17,7 +29,11 @@ export interface MetadataEditOptions {
   readonly replaceMalformed?: boolean;
 }
 
-/** Options for `removeMetadata`. */
+/**
+ * Options for `removeMetadata`.
+ *
+ * @since 0.2.0
+ */
 export interface MetadataRemoveOptions {
   /** As {@link MetadataEditOptions.replaceMalformed}. */
   readonly replaceMalformed?: boolean;
@@ -31,12 +47,20 @@ export const setMetadataOp = (patch: MetadataPatch, options?: MetadataEditOption
 export const removeMetadataOp = (keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Op =>
   ({ op: "removeMetadata", args: { keys, ...options } }) as Op;
 
-/** Collects the ops of one {@link Document.transact} call. */
+/**
+ * Collects the ops of one {@link Document.transact} call.
+ *
+ * @since 0.2.0
+ */
 export class Transaction {
   readonly #ops: Op[] = [];
   #open = true;
 
-  /** The ops collected so far. */
+  /**
+   * The ops collected so far.
+   *
+   * @since 0.2.0
+   */
   get ops(): readonly Op[] {
     return this.#ops;
   }
@@ -50,6 +74,8 @@ export class Transaction {
    * Adds `op` to the transaction.
    *
    * @throws {@link LaminaPdfError} `no-transaction` after `transact` returned.
+   *
+   * @since 0.2.0
    */
   apply(op: Op): this {
     if (!this.#open) {
@@ -65,6 +91,8 @@ export class Transaction {
    * @param patch - the fields to set (a value) or remove (`null`); authors are a list.
    * @param options - as {@link Document.setMetadata}: `at`, the modification date to write
    *   (`D:20261110093000Z`; omitted, none is written), and `replaceMalformed`.
+   *
+   * @since 0.2.0
    */
   setMetadata(patch: MetadataPatch, options?: MetadataEditOptions): this {
     return this.apply(setMetadataOp(patch, options));
@@ -74,6 +102,8 @@ export class Transaction {
    * Removes metadata fields from the Info dictionary and the XMP metadata (`removeMetadata`).
    *
    * @param options - as {@link Document.removeMetadata}: `replaceMalformed`.
+   *
+   * @since 0.2.0
    */
   removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): this {
     return this.apply(removeMetadataOp(keys, options));
@@ -87,6 +117,8 @@ export class Transaction {
    *   dates, and edits documents whose metadata is in XMP alone.
    * @param patch - the entries to set (a string) or remove (`null`).
    * @param at - the modification date to write (`D:20261030120000Z`); omitted, none is written.
+   *
+   * @since 0.2.0
    */
   setInfo(patch: InfoPatch, at?: string): this {
     return this.apply({ op: "setInfo", args: at === undefined ? { patch } : { patch, at } } as Op);
@@ -97,6 +129,8 @@ export class Transaction {
    *
    * @param page - the page's ID (`doc.page(0).id`).
    * @param rotate - 0, 90, 180 or 270 degrees.
+   *
+   * @since 0.2.0
    */
   rotatePage(page: string, rotate: Rotation): this {
     return this.apply({ op: "rotatePage", args: { page, rotate } } as Op);

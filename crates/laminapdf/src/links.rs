@@ -10,6 +10,8 @@ use crate::error::{Error, Result};
 use crate::navigation::{PageTarget, target};
 
 /// One link on a page.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PageLink {
@@ -25,6 +27,8 @@ pub struct PageLink {
 }
 
 /// What following a link does.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum LinkTo {
@@ -53,6 +57,8 @@ impl Document {
     /// # Errors
     /// `page-index-out-of-range`; reading errors (the annotations, named destinations, the
     /// page tree).
+    ///
+    /// Added in 0.2.0.
     pub fn page_links(&self, index: u32) -> Result<Vec<PageLink>> {
         let pages = self.ops().pages()?;
         let page = usize::try_from(index)

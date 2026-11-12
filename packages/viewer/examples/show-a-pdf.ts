@@ -8,9 +8,15 @@
 
 import { createViewer, ViewerClient } from "@laminapdf/viewer";
 
-/** A PDF on screen; dispose of it to take it down and end its Web Worker. */
+// Some Safari releases have no Symbol.dispose. The code TypeScript and esbuild compile from `using`
+// then looks for Symbol.for("Symbol.dispose"), so the shown PDF answers to that key there.
+const dispose: typeof Symbol.dispose = (Symbol.dispose ?? Symbol.for("Symbol.dispose")) as typeof Symbol.dispose;
+
+/** A PDF on screen. Close it, or declare it with `using`, to take it down and end its Web Worker. */
 export interface ShownPdf extends Disposable {
   readonly pageCount: number;
+  /** Takes the PDF down and ends its Web Worker; closing it again does nothing. */
+  close(): void;
 }
 
 /** Shows `file` in `container`, which must have a height, drawn by PDFium from `pdfiumWasm`. */
@@ -27,7 +33,7 @@ export async function showPdf(container: HTMLElement, file: Blob, pdfiumWasm: st
     // The file goes to the Web Worker by reference; the web page never reads its bytes.
     const opened = await client.open(file);
     viewer.open(opened);
-    return { pageCount: opened.pages.length, [Symbol.dispose]: close };
+    return { pageCount: opened.pages.length, close, [dispose]: close };
   } catch (error) {
     // A file that won't open, a damaged one or a locked one, still ends the Web Worker.
     close();

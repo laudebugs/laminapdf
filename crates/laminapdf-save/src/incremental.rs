@@ -44,6 +44,8 @@ const CHUNK: usize = 64 * 1024;
 ///
 /// Everything that can fail on input happens before the first byte is written. The output is
 /// byte-deterministic (ADR 0001).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 pub struct IncrementalWriter<'d> {
     doc: &'d Document,
@@ -53,6 +55,8 @@ pub struct IncrementalWriter<'d> {
 
 /// What [`IncrementalWriter::write`] produced: the report and the appended revision, which
 /// the document needs to rebuild its base (old base ‖ revision, ADR 0005 §3).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IncrementalSave {
     report: SaveReport,
@@ -62,24 +66,32 @@ pub struct IncrementalSave {
 
 impl IncrementalSave {
     /// What was written.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn report(&self) -> &SaveReport {
         &self.report
     }
 
     /// The appended revision (empty when the overlay was).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn appended(&self) -> &[u8] {
         &self.appended
     }
 
     /// Whether the revision freed objects (deleted base objects).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn freed_objects(&self) -> bool {
         self.freed
     }
 
     /// The report and the appended revision.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn into_parts(self) -> (SaveReport, Vec<u8>) {
         (self.report, self.appended)
@@ -88,6 +100,8 @@ impl IncrementalSave {
 
 impl<'d> IncrementalWriter<'d> {
     /// A writer for `doc`'s overlay; of the options, `output` and `eol` apply.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(doc: &'d Document, options: SaveOptions) -> Self {
         Self {
@@ -112,6 +126,8 @@ impl<'d> IncrementalWriter<'d> {
     /// [`laminapdf_cos::Error::Source`] for base bytes or objects that can't be read;
     /// [`laminapdf_cos::Error::InvalidStructure`] when object numbers run out. While writing:
     /// [`SaveError::Sink`], and source errors from the copy pass.
+    ///
+    /// Added in 0.2.0.
     pub fn write<S: WriteSink + ?Sized>(&self, sink: &mut S) -> Result<IncrementalSave> {
         let doc = self.doc;
         let source = doc.source().as_ref();

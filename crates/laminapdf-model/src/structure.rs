@@ -15,6 +15,8 @@ use crate::document::{Document, object_number};
 use crate::id::PageId;
 
 /// A kid of a structure element, in the element's (reading) order.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum StructKid {
@@ -37,6 +39,8 @@ pub enum StructKid {
 }
 
 /// A structure element (`/Type /StructElem`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[non_exhaustive]
 pub struct StructElem {
@@ -60,6 +64,8 @@ pub struct StructElem {
 
 impl StructElem {
     /// The child elements, in order.
+    ///
+    /// Added in 0.2.0.
     pub fn children(&self) -> impl Iterator<Item = &StructElem> {
         self.kids.iter().filter_map(|k| match k {
             StructKid::Elem(e) => Some(e),
@@ -68,6 +74,8 @@ impl StructElem {
     }
 
     /// This element and every element below it, depth-first (reading order).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn descendants(&self) -> Vec<&StructElem> {
         let mut out = Vec::new();
@@ -85,6 +93,8 @@ impl StructElem {
 }
 
 /// The structure tree (`/StructTreeRoot`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[non_exhaustive]
 pub struct StructTree {
@@ -101,6 +111,8 @@ pub struct StructTree {
 impl StructTree {
     /// The standard type `kind` stands for: followed through the `RoleMap` (at most as many
     /// steps as it has entries, so a cycle ends), else `kind` itself.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn standard_kind<'a>(&'a self, kind: &'a [u8]) -> &'a [u8] {
         let mut current = kind;
@@ -114,6 +126,8 @@ impl StructTree {
     }
 
     /// Every element, depth-first (reading order).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn elements(&self) -> Vec<&StructElem> {
         self.roots.iter().flat_map(StructElem::descendants).collect()

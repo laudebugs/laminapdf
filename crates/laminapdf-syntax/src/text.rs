@@ -15,6 +15,8 @@
 //! ```
 
 /// The Unicode replacement character, produced for undefined codes and invalid sequences.
+///
+/// Added in 0.2.0.
 pub const REPLACEMENT: char = '\u{FFFD}';
 
 /// Codes 0x80–0xA0 of `PDFDocEncoding` (Table D.2); `None` marks an undefined code (0x9F).
@@ -79,6 +81,8 @@ const ACCENTS: [char; 8] = [
 /// assert_eq!(pdf_doc_decode(0x92), Some('™'));
 /// assert_eq!(pdf_doc_decode(0x9F), None);
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn pdf_doc_decode(code: u8) -> Option<char> {
     match code {
@@ -99,6 +103,8 @@ pub fn pdf_doc_decode(code: u8) -> Option<char> {
 /// assert_eq!(pdf_doc_encode('é'), Some(0xE9));
 /// assert_eq!(pdf_doc_encode('中'), None);
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn pdf_doc_encode(c: char) -> Option<u8> {
     let scalar = u32::from(c);
@@ -128,6 +134,8 @@ pub fn pdf_doc_encode(c: char) -> Option<u8> {
 /// * Anything else is `PDFDocEncoding`; undefined codes become U+FFFD.
 ///
 /// Never fails: text strings are display data, and a damaged one is still worth showing.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn decode_text_string(bytes: &[u8]) -> String {
     if let Some(utf16) = bytes.strip_prefix(b"\xFE\xFF") {
@@ -156,6 +164,8 @@ pub fn decode_text_string(bytes: &[u8]) -> String {
 /// assert_eq!(encode_text_string("中"), b"\xFE\xFF\x4E\x2D");
 /// assert_eq!(decode_text_string(&encode_text_string("Grüße, 世界")), "Grüße, 世界");
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn encode_text_string(text: &str) -> Vec<u8> {
     if text.contains(ESCAPE) {

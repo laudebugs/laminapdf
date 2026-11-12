@@ -14,6 +14,8 @@ use core::fmt;
 /// Which hard limit was exceeded (the `limit` of [`Error::LimitExceeded`](crate::Error::LimitExceeded)).
 ///
 /// Soft limits never produce an error, so they have no variant here.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum Limit {
@@ -50,6 +52,8 @@ pub enum Limit {
 
 impl Limit {
     /// Every hard limit, in declaration order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 12] = [
         Self::NestingDepth,
         Self::StreamDecoded,
@@ -67,6 +71,8 @@ impl Limit {
 
     /// The name of the [`Limits`] field, e.g. `"max_nesting_depth"`. Stable: part of the
     /// public API in Rust, WASM and TypeScript (listed in `fixtures/codes.json`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn name(self) -> &'static str {
         match self {
@@ -86,6 +92,8 @@ impl Limit {
     }
 
     /// The configured value of this limit in `limits`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn value_in(self, limits: &Limits) -> u64 {
         // `usize` is at most 64 bits on every supported target, so the casts are lossless.
@@ -148,6 +156,8 @@ impl fmt::Display for Limit {
 /// enforces them until the feature they bound lands (image decoding).
 ///
 /// [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[expect(
     clippy::struct_field_names,
@@ -181,12 +191,16 @@ macro_rules! limit_accessors {
     ($( $(#[$doc:meta])* $field:ident, $with:ident: $ty:ty; )*) => {
         $(
             $(#[$doc])*
+            #[doc = ""]
+            #[doc = "Added in 0.2.0."]
             #[must_use]
             pub const fn $field(&self) -> $ty {
                 self.$field
             }
 
             #[doc = concat!("Sets [`", stringify!($field), "`](Self::", stringify!($field), ").")]
+            #[doc = ""]
+            #[doc = "Added in 0.2.0."]
             #[must_use]
             pub const fn $with(mut self, value: $ty) -> Self {
                 self.$field = value;
@@ -198,6 +212,8 @@ macro_rules! limit_accessors {
 
 impl Limits {
     /// The defaults from ADR 0003 (the same as [`Limits::default`], usable in `const`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -224,6 +240,8 @@ impl Limits {
     ///
     /// Nesting is parsed recursively, so hostile input with unlimited nesting depth can
     /// exhaust the stack: never use this for files from outside.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn unlimited() -> Self {
         Self {
@@ -300,6 +318,8 @@ impl Limits {
 ///
 /// Create one per call ([`DecodeBudget::new`]) and pass it to every
 /// [`filters::decode`](crate::filters::decode) the call makes.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DecodeBudget {
     remaining: usize,
@@ -307,6 +327,8 @@ pub struct DecodeBudget {
 
 impl DecodeBudget {
     /// A fresh budget of `limits.max_decoded_total()` bytes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(limits: &Limits) -> Self {
         Self {
@@ -315,6 +337,8 @@ impl DecodeBudget {
     }
 
     /// Bytes that may still be decoded.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn remaining(&self) -> usize {
         self.remaining

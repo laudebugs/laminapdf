@@ -3,10 +3,10 @@
 // names the options and parses the string into the type each `format` promises. The JSON's
 // types are generated from its schema (generated/extract.ts).
 import type {
-  ExtractFormat,
-  ReadingOrderName as ReadingOrder,
-  SplitOnName as SplitOn,
-  TableModeName as TableMode,
+  ReadingOrderName,
+  SplitOnName,
+  TableModeName,
+  ExtractFormat as WasmExtractFormat,
 } from "@laminapdf/wasm/extract";
 import type { LaminaPdfWarning } from "./errors.js";
 import type { Chunk, Extraction as ExtractionJson } from "./generated/extract.js";
@@ -34,14 +34,52 @@ export type {
 /**
  * The `laminapdf.extract/1` document: the schema's type, with the file's warnings as the
  * {@link LaminaPdfWarning}s they are (the schema leaves their shape open).
+ *
+ * @since 0.2.0
  */
 export type Extraction = Omit<ExtractionJson, "warnings"> & { warnings: LaminaPdfWarning[] };
 
 // The format and option names come from the extract module's own declarations (tsify, from
 // crates/laminapdf-wasm/src/extract.rs), so they can't drift from what the binding accepts.
-export type { ExtractFormat, ReadingOrder, SplitOn, TableMode };
+// Named again here so each carries its own docs and `@since`.
 
-/** How the Markdown is cut into chunks. */
+/**
+ * What {@link Document.extract} returns: `"markdown"` (tables as pipe tables), `"text"`,
+ * `"json"` (the `laminapdf.extract/1` document) or `"chunks"` (the Markdown cut for retrieval).
+ *
+ * @since 0.2.0
+ */
+export type ExtractFormat = WasmExtractFormat;
+
+/**
+ * Where the reading order comes from: `"auto"` (a plausible structure tree, else the layout),
+ * `"tagged"` (the structure tree wherever there is one), `"layout"` or `"content-stream"`.
+ *
+ * @since 0.2.0
+ */
+export type ReadingOrder = ReadingOrderName;
+
+/**
+ * Where chunks may start: `"headings"` (at every heading), `"blocks"` (only where the budget
+ * runs out) or `"pages"` (at every page).
+ *
+ * @since 0.2.0
+ */
+export type SplitOn = SplitOnName;
+
+/**
+ * Which table detectors run: `"off"`, `"lattice"` (tables drawn with lines, the default) or
+ * `"lattice-and-stream"` (then text lined up in columns too).
+ *
+ * @since 0.2.0
+ */
+export type TableMode = TableModeName;
+
+/**
+ * How the Markdown is cut into chunks.
+ *
+ * @since 0.2.0
+ */
 export interface ChunkOptions {
   /** A chunk's budget in approximate tokens (characters / 4); 512 by default. Blocks are never cut. */
   readonly maxTokens?: number;
@@ -51,7 +89,11 @@ export interface ChunkOptions {
   readonly splitOn?: SplitOn;
 }
 
-/** Options for {@link Document.extract}. */
+/**
+ * Options for {@link Document.extract}.
+ *
+ * @since 0.2.0
+ */
 export interface ExtractOptions<F extends ExtractFormat = ExtractFormat> {
   /** What to return: Markdown or plain text as a string, the JSON as an {@link Extraction}, or {@link Chunk}s. */
   readonly format: F;
@@ -74,7 +116,11 @@ export interface ExtractOptions<F extends ExtractFormat = ExtractFormat> {
   readonly chunk?: ChunkOptions;
 }
 
-/** The result of {@link Document.extract} for each format. */
+/**
+ * The result of {@link Document.extract} for each format.
+ *
+ * @since 0.2.0
+ */
 export interface ExtractResult {
   readonly markdown: string;
   readonly text: string;

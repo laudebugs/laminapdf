@@ -20,6 +20,8 @@ use crate::object::{Dict, Name, ObjRef, Object, Stream};
 /// assert_eq!(obj.as_dict().and_then(|d| d.get_int("Count")), Some(1));
 /// # Ok::<(), laminapdf_syntax::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 pub fn parse_object(input: &[u8]) -> Result<Object> {
     parse_object_with(input, &Limits::default())
 }
@@ -39,6 +41,8 @@ pub fn parse_object(input: &[u8]) -> Result<Object> {
 ///     Err(Error::LimitExceeded { limit: Limit::NestingDepth, .. })
 /// ));
 /// ```
+///
+/// Added in 0.2.0.
 pub fn parse_object_with(input: &[u8], limits: &Limits) -> Result<Object> {
     let mut parser = Parser::new(input, 0).with_limits(limits);
     let obj = parser.object()?;
@@ -55,6 +59,8 @@ pub fn parse_object_with(input: &[u8], limits: &Limits) -> Result<Object> {
 ///
 /// Used for single objects ([`Parser::object`]) and for the file-structure layer
 /// ([`Parser::object_header`], [`Parser::indirect_object`]).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct Parser<'a> {
     lex: Lexer<'a>,
@@ -65,6 +71,8 @@ pub struct Parser<'a> {
 }
 
 /// The result of [`Parser::indirect_object`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct IndirectObject {
@@ -78,6 +86,8 @@ pub struct IndirectObject {
 }
 
 /// What [`Parser::indirect_head`] read.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 pub enum IndirectHead {
     /// An object that is not a stream: complete.
@@ -87,6 +97,8 @@ pub enum IndirectHead {
 }
 
 /// A stream's header and dictionary, before its data is read ([`Parser::indirect_head`]).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct StreamHead {
@@ -103,6 +115,8 @@ pub struct StreamHead {
 impl StreamHead {
     /// Where the data ends if `/Length` is right (`None` when it is missing, negative or
     /// overflows).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn declared_end(&self) -> Option<usize> {
         self.declared_length
@@ -112,6 +126,8 @@ impl StreamHead {
 
     /// The finished object: this stream with `data`; `length_recovered` when the extent was
     /// found by scanning for `endstream` rather than from `/Length`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn into_object(self, data: Vec<u8>, length_recovered: bool) -> IndirectObject {
         IndirectObject {
@@ -124,6 +140,8 @@ impl StreamHead {
 
 impl<'a> Parser<'a> {
     /// A parser over `data`, starting at byte offset `pos`, with the default [`Limits`].
+    ///
+    /// Added in 0.2.0.
     pub const fn new(data: &'a [u8], pos: usize) -> Self {
         Self {
             lex: Lexer::new(data, pos),
@@ -133,6 +151,8 @@ impl<'a> Parser<'a> {
     }
 
     /// Applies `limits` ([`Limits::max_nesting_depth`] and [`Limits::max_string_length`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_limits(mut self, limits: &Limits) -> Self {
         self.lex = self.lex.with_limits(limits);
@@ -141,6 +161,8 @@ impl<'a> Parser<'a> {
     }
 
     /// The current byte offset.
+    ///
+    /// Added in 0.2.0.
     pub const fn pos(&self) -> usize {
         self.lex.pos()
     }
@@ -151,6 +173,8 @@ impl<'a> Parser<'a> {
     /// When it has not, the result (value or error) depends only on bytes before the end, so
     /// parsing a window of a larger input gave the same result as parsing the whole input.
     /// `laminapdf-cos` relies on this to read sources without an in-memory slice in windows.
+    ///
+    /// Added in 0.2.0.
     pub const fn reached_end(&self) -> bool {
         self.reached_end || self.lex.reached_end()
     }
@@ -160,6 +184,8 @@ impl<'a> Parser<'a> {
     /// # Errors
     /// Malformed syntax, truncation, or a hard limit exceeded ([`Limits::max_nesting_depth`],
     /// [`Limits::max_string_length`]).
+    ///
+    /// Added in 0.2.0.
     pub fn object(&mut self) -> Result<Object> {
         let tok = self.lex.next_token()?;
         self.object_from(tok, 0)
@@ -244,6 +270,8 @@ impl<'a> Parser<'a> {
     ///
     /// # Errors
     /// [`Error::Syntax`] when the next tokens are not an object header.
+    ///
+    /// Added in 0.2.0.
     pub fn object_header(&mut self) -> Result<ObjRef> {
         let offset = self.lex.pos();
         let bad = || Error::Syntax {
@@ -271,6 +299,8 @@ impl<'a> Parser<'a> {
     ///
     /// # Errors
     /// A malformed header or object, or a stream without any `endstream`.
+    ///
+    /// Added in 0.2.0.
     pub fn indirect_object(&mut self, resolve_length: &mut dyn FnMut(ObjRef) -> Option<i64>) -> Result<IndirectObject> {
         let head = match self.indirect_head(resolve_length)? {
             IndirectHead::Object(object) => return Ok(object),
@@ -310,6 +340,8 @@ impl<'a> Parser<'a> {
     ///
     /// # Errors
     /// A malformed header or object.
+    ///
+    /// Added in 0.2.0.
     pub fn indirect_head(&mut self, resolve_length: &mut dyn FnMut(ObjRef) -> Option<i64>) -> Result<IndirectHead> {
         let id = self.object_header()?;
         let obj = self.object()?;
@@ -345,6 +377,8 @@ impl<'a> Parser<'a> {
     /// The lexer this parser reads tokens from, for callers that mix tokens and objects (an
     /// xref table followed by its trailer). Reads through it count for
     /// [`Parser::reached_end`].
+    ///
+    /// Added in 0.2.0.
     pub const fn lexer(&mut self) -> &mut Lexer<'a> {
         &mut self.lex
     }
@@ -379,6 +413,8 @@ fn skip_stream_eol(data: &[u8], mut pos: usize, reached_end: &mut bool) -> usize
 /// Whether `endstream` follows `end` after optional white-space: the check that a stream's
 /// declared `/Length` is right. Sets `reached_end` when the answer depends on bytes past the
 /// end of `data`.
+///
+/// Added in 0.2.0.
 pub fn endstream_at(data: &[u8], end: usize, reached_end: &mut bool) -> bool {
     let mut pos = end;
     while data.get(pos).copied().is_some_and(is_whitespace) {
@@ -393,6 +429,8 @@ pub fn endstream_at(data: &[u8], end: usize, reached_end: &mut bool) -> bool {
 
 /// The end of stream data that starts at `from` when its `endstream` keyword is at `idx`: the
 /// EOL before the keyword (CRLF, LF or CR) is not data. Reads only `data[idx - 2..idx]`.
+///
+/// Added in 0.2.0.
 pub fn stream_data_end(data: &[u8], from: usize, idx: usize) -> usize {
     let mut end = idx;
     if end > from && data.get(end - 1) == Some(&b'\n') {
@@ -412,6 +450,8 @@ pub fn stream_data_end(data: &[u8], from: usize, idx: usize) -> usize {
 /// assert_eq!(laminapdf_syntax::find(b"stream\nabc\nendstream", b"endstream", 0), Some(11));
 /// assert_eq!(laminapdf_syntax::find(b"abc", b"b", 2), None);
 /// ```
+///
+/// Added in 0.2.0.
 pub fn find(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
     let tail = hay.get(from..)?;
     tail.windows(needle.len()).position(|w| w == needle).map(|p| p + from)

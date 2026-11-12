@@ -13,6 +13,8 @@ use std::sync::Arc;
 use laminapdf_cos::ByteSource;
 
 /// Why a sink could not take (or give back) the bytes.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum SinkError {
@@ -49,17 +51,23 @@ impl From<std::io::Error> for SinkError {
 }
 
 /// An append-only destination for saved bytes.
+///
+/// Added in 0.2.0.
 pub trait WriteSink {
     /// Appends all of `bytes`.
     ///
     /// # Errors
     /// Whatever the destination reports; the save then fails with
     /// [`SaveError::Sink`](crate::SaveError::Sink).
+    ///
+    /// Added in 0.2.0.
     fn write_all(&mut self, bytes: &[u8]) -> Result<(), SinkError>;
 
     /// How many bytes the sink already holds, when it knows (`Vec<u8>`: its length); `None`
     /// (the default) when it can't tell. Writers refuse a sink that holds bytes
     /// ([`SinkError::NotEmpty`]), because their offsets count from the output's first byte.
+    ///
+    /// Added in 0.2.0.
     fn held(&self) -> Option<u64> {
         None
     }
@@ -67,11 +75,15 @@ pub trait WriteSink {
 
 /// A sink that can give back what was written as a [`ByteSource`], so a full rewrite can
 /// rebase the document onto it (and, in E10, sign on top of it).
+///
+/// Added in 0.2.0.
 pub trait ReadableSink: WriteSink {
     /// What was written, as a source.
     ///
     /// # Errors
     /// When the bytes can't be read back.
+    ///
+    /// Added in 0.2.0.
     fn into_source(self) -> Result<Arc<dyn ByteSource>, SinkError>;
 }
 
@@ -113,16 +125,22 @@ impl<S: WriteSink + ?Sized> WriteSink for &mut S {
 /// assert_eq!(sink.into_inner().into_inner(), b"%PDF-");
 /// # Ok::<(), laminapdf_save::SinkError>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct IoWrite<W>(W);
 
 impl<W: std::io::Write> IoWrite<W> {
     /// Wraps `writer`.
+    ///
+    /// Added in 0.2.0.
     pub const fn new(writer: W) -> Self {
         Self(writer)
     }
 
     /// The writer back (flush it yourself).
+    ///
+    /// Added in 0.2.0.
     pub fn into_inner(self) -> W {
         self.0
     }
@@ -146,6 +164,8 @@ impl<W: std::io::Write> WriteSink for IoWrite<W> {
 /// assert_eq!(sink.position(), 3);
 /// # Ok::<(), laminapdf_save::SinkError>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct CountingSink<S> {
     inner: S,
@@ -154,16 +174,22 @@ pub struct CountingSink<S> {
 
 impl<S: WriteSink> CountingSink<S> {
     /// Wraps `inner`, starting at position 0.
+    ///
+    /// Added in 0.2.0.
     pub const fn new(inner: S) -> Self {
         Self { inner, position: 0 }
     }
 
     /// Bytes written so far.
+    ///
+    /// Added in 0.2.0.
     pub const fn position(&self) -> u64 {
         self.position
     }
 
     /// The wrapped sink.
+    ///
+    /// Added in 0.2.0.
     pub fn into_inner(self) -> S {
         self.inner
     }

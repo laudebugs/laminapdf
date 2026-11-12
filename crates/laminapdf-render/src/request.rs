@@ -9,9 +9,13 @@ use crate::error::RenderError;
 
 /// The output pixel format of every backend: RGBA8, **straight (not premultiplied) alpha**,
 /// sRGB, rows packed at `width × 4` bytes. What `ImageData` and `createImageBitmap` take.
+///
+/// Added in 0.2.0.
 pub const BYTES_PER_PIXEL: usize = 4;
 
 /// Bounds on one render, checked before anything is allocated (`render-too-large`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RenderLimits {
     /// Most pixels in one tile. Default 16,777,216 (4096 × 4096), iOS Safari's per-canvas cap.
@@ -34,6 +38,8 @@ impl Default for RenderLimits {
 }
 
 /// How a backend opens a document.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default)]
 pub struct RenderOpenOptions {
     password: Option<String>,
@@ -42,6 +48,8 @@ pub struct RenderOpenOptions {
 
 impl RenderOpenOptions {
     /// No password, default limits.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -49,6 +57,8 @@ impl RenderOpenOptions {
 
     /// The password for an encrypted document. The backend uses it in `open` and keeps no
     /// copy (ADR 0004 §1): a shell that must reopen the document keeps it itself.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_password(mut self, password: &str) -> Self {
         self.password = Some(password.to_owned());
@@ -56,6 +66,8 @@ impl RenderOpenOptions {
     }
 
     /// Render limits for this document.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_limits(mut self, limits: RenderLimits) -> Self {
         self.limits = limits;
@@ -63,12 +75,16 @@ impl RenderOpenOptions {
     }
 
     /// The password, if one was given.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn password(&self) -> Option<&str> {
         self.password.as_deref()
     }
 
     /// The render limits.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn limits(&self) -> &RenderLimits {
         &self.limits
@@ -77,6 +93,8 @@ impl RenderOpenOptions {
 
 /// A rectangle in the output pixel space of the whole page at the request's scale and
 /// rotation, top-left origin, y down.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PixelRect {
     /// Left edge.
@@ -90,6 +108,8 @@ pub struct PixelRect {
 }
 
 /// What to draw besides the page content.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[expect(
     clippy::struct_excessive_bools,
@@ -119,6 +139,8 @@ impl Default for RenderFlags {
 }
 
 /// A straight-alpha sRGB colour.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Rgba8 {
     /// Red.
@@ -133,6 +155,8 @@ pub struct Rgba8 {
 
 impl Rgba8 {
     /// Opaque white, the reader's page background.
+    ///
+    /// Added in 0.2.0.
     pub const WHITE: Self = Self {
         r: 255,
         g: 255,
@@ -143,6 +167,8 @@ impl Rgba8 {
 
 /// One render: a page, a scale, an optional tile, a view rotation, flags, a background and the
 /// page appearance.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderRequest {
     /// The page, 0-based (ADR 0027).
@@ -163,6 +189,8 @@ pub struct RenderRequest {
 
 impl RenderRequest {
     /// The whole of page `page` at `scale`, upright, default flags, on white.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn page(page: u32, scale: f32) -> Self {
         Self {
@@ -177,6 +205,8 @@ impl RenderRequest {
     }
 
     /// Only the tile `clip`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_clip(mut self, clip: PixelRect) -> Self {
         self.clip = Some(clip);
@@ -184,6 +214,8 @@ impl RenderRequest {
     }
 
     /// The view rotation.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_rotation(mut self, rotation: Rotation) -> Self {
         self.rotation = rotation;
@@ -191,6 +223,8 @@ impl RenderRequest {
     }
 
     /// The flags.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_flags(mut self, flags: RenderFlags) -> Self {
         self.flags = flags;
@@ -198,6 +232,8 @@ impl RenderRequest {
     }
 
     /// The background (`None`: transparent).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_background(mut self, background: Option<Rgba8>) -> Self {
         self.background = background;
@@ -205,6 +241,8 @@ impl RenderRequest {
     }
 
     /// The page appearance.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_appearance(mut self, appearance: PageAppearance) -> Self {
         self.appearance = appearance;
@@ -213,6 +251,8 @@ impl RenderRequest {
 }
 
 /// A page as a backend reports it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderPage {
     /// Displayed width in points: the visible page box with `/Rotate` applied.
@@ -225,6 +265,8 @@ pub struct RenderPage {
 
 /// The geometry of one validated request: the whole page's pixel size at the scale and view
 /// rotation, and the tile inside it. Both backends render from this, so they agree on sizes.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TilePlan {
     /// The whole page's width in pixels, after the view rotation.
@@ -244,6 +286,8 @@ impl TilePlan {
     /// `invalid-argument` for a non-finite or non-positive scale, an empty tile or one outside
     /// the page, or a page too large to address at this scale; `render-too-large` above
     /// `limits`.
+    ///
+    /// Added in 0.2.0.
     pub fn new(page: &RenderPage, request: &RenderRequest, limits: &RenderLimits) -> Result<Self, RenderError> {
         let scale = f64::from(request.scale);
         if !scale.is_finite() || scale <= 0.0 {
@@ -307,6 +351,8 @@ impl TilePlan {
     }
 
     /// The bytes the tile needs: `width × height × 4`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn byte_len(&self) -> usize {
         // Bounded by RenderLimits (u32 sides, at most max_render_pixels): fits usize on every
@@ -319,6 +365,8 @@ impl TilePlan {
     /// ADR 0027's page space) to this tile's pixels: scale to the page's integer pixel size,
     /// apply the view `rotation`, shift the tile to the origin. Both adapters draw with it, so
     /// their tiles agree.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn page_to_tile(&self, page: &RenderPage, rotation: Rotation) -> Matrix {
         // The page's pixel size before the view rotation.
@@ -342,6 +390,8 @@ impl TilePlan {
     ///
     /// # Errors
     /// `invalid-argument` (`BufferSize`) otherwise.
+    ///
+    /// Added in 0.2.0.
     pub fn check_buffer(&self, out: &[u8]) -> Result<(), RenderError> {
         let expected = self.byte_len();
         if out.len() == expected {

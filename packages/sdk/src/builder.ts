@@ -46,12 +46,20 @@ import type {
   ViewerPreferences,
 } from "./types.js";
 
-/** Named page sizes (ISO 216 sizes from millimetres, as the Rust `PageSize` computes them). */
+/**
+ * Named page sizes (ISO 216 sizes from millimetres, as the Rust `PageSize` computes them).
+ *
+ * @since 0.2.0
+ */
 export type PageSizeName = "A0" | "A1" | "A2" | "A3" | "A4" | "A5" | "A6" | "Letter" | "Legal" | "Tabloid";
 
 const mm = (w: number, h: number): readonly [number, number] => [(w * 72) / 25.4, (h * 72) / 25.4];
 
-/** Each named size in points, width × height. */
+/**
+ * Each named size in points, width × height.
+ *
+ * @since 0.2.0
+ */
 export const PAGE_SIZES: Readonly<Record<PageSizeName, readonly [width: number, height: number]>> = {
   A0: mm(841, 1189),
   A1: mm(594, 841),
@@ -65,7 +73,11 @@ export const PAGE_SIZES: Readonly<Record<PageSizeName, readonly [width: number, 
   Tabloid: [792, 1224],
 };
 
-/** Options for a new {@link Builder}. */
+/**
+ * Options for a new {@link Builder}.
+ *
+ * @since 0.2.0
+ */
 export interface BuilderOptions extends Omit<BuildOptions, "id"> {
   /** `/ID[0]`: 16 bytes, as 32 hex digits or a `Uint8Array` (default: derived from the content). */
   readonly id?: string | Uint8Array;
@@ -76,7 +88,11 @@ export interface BuilderOptions extends Omit<BuildOptions, "id"> {
   readonly text?: boolean;
 }
 
-/** How strokes are drawn. */
+/**
+ * How strokes are drawn.
+ *
+ * @since 0.2.0
+ */
 export interface StrokeStyle {
   /** Line width in points (default 1). */
   readonly width?: number;
@@ -109,7 +125,11 @@ function checked(names: readonly string[], name: string, argument: string, detai
   throw packageError("invalid-argument", detail, { didYouMean: didYouMean(name, names), data: { argument, detail } });
 }
 
-/** A structure element with attributes; `type` may be a custom name when `role` is given. */
+/**
+ * A structure element with attributes; `type` may be a custom name when `role` is given.
+ *
+ * @since 0.2.0
+ */
 export interface TagSpec {
   /** A standard type, or a custom name written with a `RoleMap` entry to `role`. */
   readonly type: TagName | (string & {});
@@ -127,10 +147,18 @@ export interface TagSpec {
   readonly scope?: TableScope;
 }
 
-/** A structure element: a type, or a type with attributes. */
+/**
+ * A structure element: a type, or a type with attributes.
+ *
+ * @since 0.2.0
+ */
 export type Tag = TagName | TagSpec;
 
-/** Options of {@link Surface.text}. */
+/**
+ * Options of {@link Surface.text}.
+ *
+ * @since 0.2.0
+ */
 export interface TextOptions {
   /** The font (needs the text module). */
   readonly font: Font;
@@ -154,7 +182,11 @@ export interface TextOptions {
   readonly tag?: Tag;
 }
 
-/** Options of {@link Surface.textBox}. */
+/**
+ * Options of {@link Surface.textBox}.
+ *
+ * @since 0.2.0
+ */
 export interface TextBoxOptions {
   /** The font (needs the text module). */
   readonly font: Font;
@@ -178,7 +210,11 @@ export interface TextBoxOptions {
   readonly tag?: Tag;
 }
 
-/** The fonts {@link Builder.markdown} sets each kind of text in. */
+/**
+ * The fonts {@link Builder.markdown} sets each kind of text in.
+ *
+ * @since 0.2.0
+ */
 export interface MarkdownFonts {
   /** Body text; the other roles fall back to it. */
   readonly regular: Font;
@@ -194,14 +230,22 @@ export interface MarkdownFonts {
   readonly fallbacks?: readonly Font[];
 }
 
-/** A header or footer: text at the start, centre and end, with `{page}`, `{pages}`, `{section}` and `{title}` filled in. */
+/**
+ * A header or footer: text at the start, centre and end, with `{page}`, `{pages}`, `{section}` and `{title}` filled in.
+ *
+ * @since 0.2.0
+ */
 export interface PageRegion {
   readonly start?: string;
   readonly center?: string;
   readonly end?: string;
 }
 
-/** The pages a {@link Builder.markdown} document flows through. */
+/**
+ * The pages a {@link Builder.markdown} document flows through.
+ *
+ * @since 0.2.0
+ */
 export interface PageTemplate {
   /** A page size name or `[width, height]` in points. */
   readonly size: PageSizeName | readonly [width: number, height: number];
@@ -213,7 +257,11 @@ export interface PageTemplate {
   readonly furnitureSize?: number;
 }
 
-/** Options of {@link Builder.markdown}. */
+/**
+ * Options of {@link Builder.markdown}.
+ *
+ * @since 0.2.0
+ */
 export interface MarkdownOptions {
   /** The fonts by role; without them, Helvetica and Courier: Latin only, which PDF/UA-1 refuses (`font-not-embedded`). */
   readonly fonts?: MarkdownFonts;
@@ -248,7 +296,11 @@ type ListPlaceholder<T> =
  */
 type AsWritten = "type" | "schema" | "profiles";
 
-/** `T` with a template's placeholders allowed where `fill` takes them: a value for text, numbers and `true`/`false`, a list placeholder among a list's items. `type`, `schema` and `profiles` are written as they are, with no placeholder. */
+/**
+ * `T` with a template's placeholders allowed where `fill` takes them: a value for text, numbers and `true`/`false`, a list placeholder among a list's items. `type`, `schema` and `profiles` are written as they are, with no placeholder.
+ *
+ * @since 0.2.0
+ */
 export type Templated<T> = T extends readonly (infer U)[]
   ? readonly (Templated<U> | ListPlaceholder<U>)[]
   : T extends object
@@ -281,12 +333,18 @@ export type Templated<T> = T extends readonly (infer U)[]
  * const data = { title: "Invoice 42", lines: [{ text: "Paper, 2 reams" }] };
  * builder.flow(template, { data });
  * ```
+ *
+ * @since 0.2.0
  */
 // An interface, not an alias of `Templated<FlowDocument>`, so that TypeDoc names it where it is
 // used rather than spelling out every key of every block.
 export interface FlowTemplate extends Templated<FlowDocument> {}
 
-/** Options of {@link Builder.flow}. */
+/**
+ * Options of {@link Builder.flow}.
+ *
+ * @since 0.2.0
+ */
 export interface FlowOptions {
   /** The data a template's placeholders read; without it, the document is read as it is. */
   readonly data?: unknown;
@@ -296,13 +354,21 @@ export interface FlowOptions {
   readonly images?: Readonly<Record<string, Image>>;
 }
 
-/** What {@link Builder.flow} added. */
+/**
+ * What {@link Builder.flow} added.
+ *
+ * @since 0.2.0
+ */
 export interface FlowReport {
   /** The pages it added, in order, by ID. */
   readonly pages: readonly string[];
 }
 
-/** What {@link Builder.markdown} added. */
+/**
+ * What {@link Builder.markdown} added.
+ *
+ * @since 0.2.0
+ */
 export interface MarkdownReport {
   /** The pages it added, in order, by ID. */
   readonly pages: readonly string[];
@@ -387,7 +453,11 @@ class LivePage extends Handle<BaseGlue> {
   }
 }
 
-/** A path waiting to be painted: fill it, stroke it, both, or clip to it. */
+/**
+ * A path waiting to be painted: fill it, stroke it, both, or clip to it.
+ *
+ * @since 0.2.0
+ */
 export class PendingPath {
   readonly #surface: Surface;
   readonly #page: LivePage;
@@ -400,27 +470,43 @@ export class PendingPath {
     this.#path = path;
   }
 
-  /** Fills the path with the fill colour. @returns the surface. */
+  /**
+   * Fills the path with the fill colour. @returns the surface.
+   *
+   * @since 0.2.0
+   */
   fill(rule: FillRule = "nonZero"): Surface {
     this.#page.run((page) => page.fillPath(this.#path, rule));
     return this.#surface;
   }
 
-  /** Strokes the path with the stroke colour and `style`. @returns the surface. */
+  /**
+   * Strokes the path with the stroke colour and `style`. @returns the surface.
+   *
+   * @since 0.2.0
+   */
   stroke(style: StrokeStyle = {}): Surface {
     this.#surface.strokeStyle(style);
     this.#page.run((page) => page.strokePath(this.#path));
     return this.#surface;
   }
 
-  /** Fills, then strokes the path. @returns the surface. */
+  /**
+   * Fills, then strokes the path. @returns the surface.
+   *
+   * @since 0.2.0
+   */
   fillStroke(rule: FillRule = "nonZero", style: StrokeStyle = {}): Surface {
     this.#surface.strokeStyle(style);
     this.#page.run((page) => page.fillStrokePath(this.#path, rule));
     return this.#surface;
   }
 
-  /** Clips what is drawn next to the path, until the next `restore`. @returns the surface. */
+  /**
+   * Clips what is drawn next to the path, until the next `restore`. @returns the surface.
+   *
+   * @since 0.2.0
+   */
   clip(rule: FillRule = "nonZero"): Surface {
     this.#page.run((page) => page.clipPath(this.#path, rule));
     return this.#surface;
@@ -430,6 +516,8 @@ export class PendingPath {
 /**
  * What a page is drawn with. Methods that set state return the surface, so calls chain; invalid
  * geometry is reported by {@link Page.finish} (`invalid-geometry`).
+ *
+ * @since 0.2.0
  */
 export class Surface {
   readonly #builder: Builder;
@@ -441,25 +529,41 @@ export class Surface {
     this.#page = page;
   }
 
-  /** Saves the graphics state (`q`). */
+  /**
+   * Saves the graphics state (`q`).
+   *
+   * @since 0.2.0
+   */
   save(): this {
     this.#page.run((page) => page.save());
     return this;
   }
 
-  /** Restores the graphics state (`Q`). */
+  /**
+   * Restores the graphics state (`Q`).
+   *
+   * @since 0.2.0
+   */
   restore(): this {
     this.#page.run((page) => page.restore());
     return this;
   }
 
-  /** Applies `matrix` (page space) to what is drawn next. See {@link Matrix}. */
+  /**
+   * Applies `matrix` (page space) to what is drawn next. See {@link Matrix}.
+   *
+   * @since 0.2.0
+   */
   transform(matrix: Transform): this {
     this.#page.run((page) => page.transform(new Float64Array(matrix)));
     return this;
   }
 
-  /** The colour fills (and text) use. */
+  /**
+   * The colour fills (and text) use.
+   *
+   * @since 0.2.0
+   */
   fillColor(color: Color): this {
     this.#page.run((page) =>
       typeof color === "string" ? page.fillColorHex(color) : page.fillColor(new Float64Array(color)),
@@ -467,7 +571,11 @@ export class Surface {
     return this;
   }
 
-  /** The colour strokes use. */
+  /**
+   * The colour strokes use.
+   *
+   * @since 0.2.0
+   */
   strokeColor(color: Color): this {
     this.#page.run((page) =>
       typeof color === "string" ? page.strokeColorHex(color) : page.strokeColor(new Float64Array(color)),
@@ -475,13 +583,21 @@ export class Surface {
     return this;
   }
 
-  /** Fill and stroke opacity, 0 to 1. */
+  /**
+   * Fill and stroke opacity, 0 to 1.
+   *
+   * @since 0.2.0
+   */
   opacity(fill: number, stroke: number): this {
     this.#page.run((page) => page.opacity(fill, stroke));
     return this;
   }
 
-  /** The blend mode. */
+  /**
+   * The blend mode.
+   *
+   * @since 0.2.0
+   */
   blendMode(mode: BlendMode): this {
     this.#page.run((page) => page.blendMode(mode));
     return this;
@@ -508,6 +624,8 @@ export class Surface {
    * ```ts
    * surface.path((p) => p.moveTo(56, 590).lineTo(539, 590)).stroke({ width: 0.5 });
    * ```
+   *
+   * @since 0.2.0
    */
   path(build: (p: PathBuilder) => void): PendingPath {
     const encoder = new PathEncoder();
@@ -518,6 +636,8 @@ export class Surface {
   /**
    * Draws `image` scaled into `rect`; with `alt`, as a `Figure` structure element with that
    * alternate text.
+   *
+   * @since 0.2.0
    */
   image(image: Image, rect: Rect, alt?: string): this {
     const raw = this.#builder.wasmImage(image);
@@ -541,6 +661,8 @@ export class Surface {
    * });
    * ```
    * @throws {@link LaminaPdfError} `invalid-argument` for an unknown type without a `role`.
+   *
+   * @since 0.2.0
    */
   tag(tag: Tag, draw: (s: this) => void): this {
     this.#begin(tag);
@@ -553,6 +675,8 @@ export class Surface {
    * content outside the structure tree. `"header"`, `"footer"` and `"watermark"` are pagination
    * artifacts that also say which (`/Subtype`), a header attached to the page's top edge and a
    * footer to its bottom (`/Attached`).
+   *
+   * @since 0.2.0
    */
   artifact(kind: ArtifactKind, draw: (s: this) => void): this {
     const name = checked(ARTIFACT_KINDS, kind, "kind", "not an artifact kind");
@@ -605,7 +729,11 @@ export class Surface {
     return this.#ended(draw);
   }
 
-  /** A link annotation over `rect`, with `contents` as its alternate text. */
+  /**
+   * A link annotation over `rect`, with `contents` as its alternate text.
+   *
+   * @since 0.2.0
+   */
   link(rect: Rect, target: LinkTarget, contents?: string): this {
     this.#page.run((page) => page.link(rect[0], rect[1], rect[2], rect[3], target, contents));
     return this;
@@ -617,6 +745,8 @@ export class Surface {
    * @returns what the run measures, with `bottom`: where the next element can start (the next text box's top), the
    *   descent below the last line that draws something, before the surface's transform; left out when nothing is.
    * @throws {@link LaminaPdfError} `text-module-not-loaded`, `missing-glyph`, `font-not-shapable`, …
+   *
+   * @since 0.2.0
    */
   text(text: string, options: TextOptions): TextRunInfo {
     const font = this.#builder.wasmFont(options.font);
@@ -633,6 +763,8 @@ export class Surface {
    *   line fitted) and `bottom`: the last line that draws something, before the surface's transform; left out when none
    *   does.
    * @throws {@link LaminaPdfError} as {@link Surface.text}; `text-overflow` with `overflow: "error"`.
+   *
+   * @since 0.2.0
    */
   textBox(text: string, options: TextBoxOptions): TextLayout {
     const font = this.#builder.wasmFont(options.font);
@@ -647,6 +779,8 @@ export class Surface {
 /**
  * A page being drawn: its boxes and rotation, its {@link Surface}, then {@link Page.finish}. Freed
  * with its builder; `using` or {@link Page.free} drops it without writing it.
+ *
+ * @since 0.2.0
  */
 export class Page {
   readonly #page: LivePage;
@@ -658,39 +792,67 @@ export class Page {
     this.#surface = new Surface(builder, this.#page);
   }
 
-  /** What the page is drawn with (the same object on every call). */
+  /**
+   * What the page is drawn with (the same object on every call).
+   *
+   * @since 0.2.0
+   */
   surface(): Surface {
     return this.#surface;
   }
 
-  /** `/Rotate`: 0, 90, 180 or 270 degrees. */
+  /**
+   * `/Rotate`: 0, 90, 180 or 270 degrees.
+   *
+   * @since 0.2.0
+   */
   rotate(degrees: 0 | 90 | 180 | 270): this {
     this.#page.run((page) => page.rotate(degrees));
     return this;
   }
 
-  /** `/UserUnit`, for pages larger than 14,400 units. */
+  /**
+   * `/UserUnit`, for pages larger than 14,400 units.
+   *
+   * @since 0.2.0
+   */
   userUnit(unit: number): this {
     this.#page.run((page) => page.userUnit(unit));
     return this;
   }
 
-  /** `/CropBox` (the visible region), in the media box's page space. */
+  /**
+   * `/CropBox` (the visible region), in the media box's page space.
+   *
+   * @since 0.2.0
+   */
   cropBox(rect: Rect): this {
     return this.#box("crop", rect);
   }
 
-  /** `/BleedBox`. */
+  /**
+   * `/BleedBox`.
+   *
+   * @since 0.2.0
+   */
   bleedBox(rect: Rect): this {
     return this.#box("bleed", rect);
   }
 
-  /** `/TrimBox`. */
+  /**
+   * `/TrimBox`.
+   *
+   * @since 0.2.0
+   */
   trimBox(rect: Rect): this {
     return this.#box("trim", rect);
   }
 
-  /** `/ArtBox`. */
+  /**
+   * `/ArtBox`.
+   *
+   * @since 0.2.0
+   */
   artBox(rect: Rect): this {
     return this.#box("art", rect);
   }
@@ -706,6 +868,8 @@ export class Page {
    *
    * @returns the page's ID.
    * @throws {@link LaminaPdfError} `invalid-geometry`, `builder-finished`.
+   *
+   * @since 0.2.0
    */
   finish(): string {
     try {
@@ -719,12 +883,18 @@ export class Page {
   /**
    * Drops the page without writing it and frees its WASM side; a second call does nothing, and
    * any other call afterwards throws `disposed`.
+   *
+   * @since 0.2.0
    */
   free(): void {
     this.#page.free();
   }
 
-  /** Drops the page at the end of a `using` block (an alias of `free()`). */
+  /**
+   * Drops the page at the end of a `using` block (an alias of `free()`).
+   *
+   * @since 0.2.0
+   */
   [Symbol.dispose](): void {
     this.free();
   }
@@ -747,6 +917,8 @@ disposable(Page);
  * page.finish();
  * const bytes = b.finish().save();
  * ```
+ *
+ * @since 0.2.0
  */
 export class Builder extends Handle<BaseGlue> {
   #raw: TextBuilder | undefined;
@@ -792,17 +964,29 @@ export class Builder extends Handle<BaseGlue> {
     return image.in(this.instance);
   }
 
-  /** As `new Builder(options)`. */
+  /**
+   * As `new Builder(options)`.
+   *
+   * @since 0.2.0
+   */
   static create(options?: BuilderOptions): Builder {
     return new Builder(options);
   }
 
-  /** Whether this builder draws in the text module (fonts and text). */
+  /**
+   * Whether this builder draws in the text module (fonts and text).
+   *
+   * @since 0.2.0
+   */
   get hasText(): boolean {
     return this.#text;
   }
 
-  /** A new page of a named size or `[width, height]` in points. */
+  /**
+   * A new page of a named size or `[width, height]` in points.
+   *
+   * @since 0.2.0
+   */
   page(size: PageSizeName | readonly [width: number, height: number] = "A4"): Page {
     const [w, h] = typeof size === "string" ? namedSize(size) : size;
     const raw = this.call(() => this.#builder.page(w, h)) as TextPageBuilder;
@@ -815,6 +999,8 @@ export class Builder extends Handle<BaseGlue> {
    * Registers `font` with this builder (otherwise it is registered at first use).
    *
    * @throws {@link LaminaPdfError} `text-module-not-loaded`, `invalid-font`, `font-not-embeddable`.
+   *
+   * @since 0.2.0
    */
   font(font: Font): FontInfo {
     const raw = this.wasmFont(font);
@@ -851,18 +1037,30 @@ export class Builder extends Handle<BaseGlue> {
     return bytes;
   }
 
-  /** Defines the named destination `name`: page `index`, shown as `fit` (default: the page). */
+  /**
+   * Defines the named destination `name`: page `index`, shown as `fit` (default: the page).
+   *
+   * @since 0.2.0
+   */
   destination(name: string, index: number, fit?: Fit): this {
     this.call(() => this.#builder.destination(name, index, fit));
     return this;
   }
 
-  /** Adds outline (bookmark) items with their children. @returns their IDs, in pre-order. */
+  /**
+   * Adds outline (bookmark) items with their children. @returns their IDs, in pre-order.
+   *
+   * @since 0.2.0
+   */
   outline(entries: readonly OutlineEntry[]): string[] {
     return this.call(() => this.#builder.outline(entries as OutlineEntry[]));
   }
 
-  /** The page labels (`i, ii, 1, 2…`), ranges by first page; checked at finish. */
+  /**
+   * The page labels (`i, ii, 1, 2…`), ranges by first page; checked at finish.
+   *
+   * @since 0.2.0
+   */
   pageLabels(ranges: readonly PageLabel[]): this {
     this.call(() => this.#builder.pageLabels(ranges as PageLabel[]));
     return this;
@@ -877,6 +1075,8 @@ export class Builder extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} `text-module-not-loaded`; `unknown-option`, `invalid-argument`;
    *   `missing-glyph` for a character the fonts lack; `flow-content-too-large`; `builder-finished`.
+   *
+   * @since 0.2.0
    */
   markdown(markdown: string, options: MarkdownOptions = {}): MarkdownReport {
     if (!this.#text) {
@@ -927,6 +1127,8 @@ export class Builder extends Handle<BaseGlue> {
    *   keys in `didYouMean`; `template-data-missing`, `template-data-type` and
    *   `template-too-large` with the pointer in `data`; `unknown-font` and `unknown-image` for a
    *   name `options` lacks; `missing-glyph`; `flow-content-too-large`; `builder-finished`.
+   *
+   * @since 0.2.0
    */
   flow(document: FlowTemplate, options: FlowOptions = {}): FlowReport {
     if (!this.#text) {
@@ -948,13 +1150,21 @@ export class Builder extends Handle<BaseGlue> {
     });
   }
 
-  /** The metadata, written as the Info dictionary and an XMP packet. */
+  /**
+   * The metadata, written as the Info dictionary and an XMP packet.
+   *
+   * @since 0.2.0
+   */
   metadata(metadata: Metadata): this {
     this.call(() => this.#builder.metadata(metadata));
     return this;
   }
 
-  /** The natural language (`/Lang`), a BCP 47 tag. */
+  /**
+   * The natural language (`/Lang`), a BCP 47 tag.
+   *
+   * @since 0.2.0
+   */
   lang(tag: string): this {
     this.call(() => this.#builder.lang(tag));
     return this;
@@ -972,13 +1182,19 @@ export class Builder extends Handle<BaseGlue> {
    *   `unspecified`), its `description` and `modDate`.
    * @throws {@link LaminaPdfError} `invalid-argument` for a `modDate` that isn't a PDF date,
    *   `unknown-option` for an unknown key, `builder-finished` after {@link Builder.finish}.
+   *
+   * @since 0.2.0
    */
   attach(name: string, bytes: Uint8Array, mime: string, options?: AttachmentOptions): this {
     this.call(() => this.#builder.attach(name, bytes, mime, options));
     return this;
   }
 
-  /** How viewers present the document when it opens. */
+  /**
+   * How viewers present the document when it opens.
+   *
+   * @since 0.2.0
+   */
   viewerPreferences(preferences: ViewerPreferences): this {
     this.call(() => this.#builder.viewerPreferences(preferences));
     return this;
@@ -993,6 +1209,8 @@ export class Builder extends Handle<BaseGlue> {
    *   `invalid-page-labels`, `invalid-geometry`, `subset-failed`, `builder-finished`; under a
    *   profile (`profiles` in the options), the first rule the document breaks, with that rule's
    *   code (the error reference lists them, from `profile-version-conflict` on).
+   *
+   * @since 0.2.0
    */
   finish(): Document {
     const builder = this.#builder;

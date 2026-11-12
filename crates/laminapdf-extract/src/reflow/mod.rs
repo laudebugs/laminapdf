@@ -56,6 +56,8 @@ const MAX_IGNORED: f64 = 0.25;
 pub(crate) const MIN_AGREEMENT: f64 = 0.5;
 
 /// What reader mode makes of a document.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[non_exhaustive]
@@ -79,6 +81,8 @@ pub struct Reflow {
 }
 
 /// Where reader mode's order comes from.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[non_exhaustive]
@@ -91,6 +95,8 @@ pub enum ReflowSource {
 }
 
 /// Why reader mode doesn't use a document's structure tree.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[non_exhaustive]
@@ -111,6 +117,8 @@ pub enum ReflowRefusal {
 
 impl ReflowRefusal {
     /// The name the JSON uses.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -125,6 +133,8 @@ impl ReflowRefusal {
 }
 
 /// The measures behind the verdict.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[non_exhaustive]
@@ -148,6 +158,8 @@ pub struct ReflowChecks {
 }
 
 /// What a block is.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
@@ -194,6 +206,8 @@ pub enum ReflowKind {
 
 impl ReflowKind {
     /// Whether the block is shown as a crop of its page.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_crop(&self) -> bool {
         matches!(
@@ -204,6 +218,8 @@ impl ReflowKind {
 }
 
 /// Why the approximate reading view shows a page as its image.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[non_exhaustive]
@@ -215,6 +231,8 @@ pub enum PageImageReason {
 }
 
 /// One block of the reading view.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[non_exhaustive]
@@ -250,6 +268,8 @@ fn ser_box<S: serde::Serializer>(bbox: &Option<RectPt>, serializer: S) -> Result
 /// # Errors
 /// `cancelled`; reading errors (the catalog, the page tree, the structure tree, a page's
 /// content).
+///
+/// Added in 0.2.0.
 pub fn reflow(doc: &Document, cancel: &CancelToken) -> Result<Reflow, ExtractError> {
     let lang = catalog_lang(doc)?;
     let tree = if doc.is_tagged()? { doc.structure()? } else { None };

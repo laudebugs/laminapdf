@@ -63,6 +63,8 @@ use rdf::Rdf;
 use tree::Node;
 
 /// A mapped field's value.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Value {
@@ -88,6 +90,8 @@ impl Value {
 
 /// Why a packet couldn't be read. Offsets count bytes of the packet as given (of its UTF-16
 /// bytes for a UTF-16 packet).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ParseError {
@@ -138,6 +142,8 @@ pub enum ParseError {
 
 impl ParseError {
     /// Where in the packet the problem is, when there is one place.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn offset(&self) -> Option<u64> {
         match *self {
@@ -166,6 +172,8 @@ impl ParseError {
 
     /// A short stable name for the problem, the `reason` of the `xmp-invalid` warning:
     /// `encoding`, `dtd`, `entity`, `prefix`, `depth`, `limit`, `syntax` or `no-rdf`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn reason(&self) -> &'static str {
         match self {
@@ -182,6 +190,8 @@ impl ParseError {
 }
 
 /// A value of the wrong shape for its field, such as a list for the title.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("the value's shape doesn't match the field's")]
 #[non_exhaustive]
@@ -191,6 +201,8 @@ pub struct KindMismatch {
 }
 
 /// What the document's `/Metadata` holds ([`Document::xmp`](crate::Document::xmp)).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum PacketState {
@@ -210,6 +222,8 @@ pub enum PacketState {
 
 impl PacketState {
     /// The packet, when one parsed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn packet(&self) -> Option<&Packet> {
         match self {
@@ -219,6 +233,8 @@ impl PacketState {
     }
 
     /// Whether the document has a packet that couldn't be read.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_malformed(&self) -> bool {
         matches!(self, Self::Malformed { .. })
@@ -226,6 +242,8 @@ impl PacketState {
 }
 
 /// A packet as [`Packet::write`] gives it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Written {
@@ -238,6 +256,8 @@ pub struct Written {
 }
 
 /// A parsed XMP packet and the changes made to it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct Packet {
     original: Vec<u8>,
@@ -256,6 +276,8 @@ impl Packet {
     ///
     /// # Errors
     /// A [`ParseError`] when the bytes aren't such a packet.
+    ///
+    /// Added in 0.2.0.
     pub fn parse(bytes: &[u8]) -> Result<Self, ParseError> {
         let utf16 = utf16(bytes)?;
         let text = match &utf16 {
@@ -290,6 +312,8 @@ impl Packet {
     /// let bytes = packet.write().bytes;
     /// assert!(bytes.starts_with("<?xpacket begin=\"\u{FEFF}\"".as_bytes()));
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new_minimal() -> Self {
         let text = write::minimal();
@@ -306,12 +330,16 @@ impl Packet {
     }
 
     /// The bytes the packet was parsed from.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn original(&self) -> &[u8] {
         &self.original
     }
 
     /// Whether a setter changed a value since the packet was parsed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_changed(&self) -> bool {
         !self.changes.is_empty()
@@ -319,11 +347,15 @@ impl Packet {
 
     /// Every property of the packet as parsed (before changes), in document order: attribute
     /// forms first within each description.
+    ///
+    /// Added in 0.2.0.
     pub fn properties(&self) -> impl Iterator<Item = &RdfProperty> {
         self.rdf.properties.iter().map(|p| &p.property)
     }
 
     /// The first value of the property `name` in `namespace`, as parsed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn property(&self, namespace: &str, name: &str) -> Option<&RdfValue> {
         self.properties()
@@ -333,6 +365,8 @@ impl Packet {
 
     /// A mapped field's value, with the changes made so far. Language alternatives read the
     /// `x-default` entry, else the first; a date that isn't ISO 8601 reads as `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn get(&self, field: MappedField) -> Option<Value> {
         match self.changes.get(&field) {
@@ -371,6 +405,8 @@ impl Packet {
     ///
     /// # Errors
     /// [`KindMismatch`] when `value`'s shape isn't the field's [`ValueKind`].
+    ///
+    /// Added in 0.2.0.
     pub fn set(&mut self, field: MappedField, value: Option<Value>) -> Result<(), KindMismatch> {
         if value.as_ref().is_some_and(|v| !v.fits(field.mapping().kind)) {
             return Err(KindMismatch { field });
@@ -395,6 +431,8 @@ impl Packet {
 
     /// The packet with its changes: the parsed bytes when nothing changed, otherwise edited
     /// in place or, when it can't be, rewritten canonically (see the module docs).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn write(&self) -> Written {
         if self.changes.is_empty() {
@@ -437,6 +475,8 @@ impl Packet {
     }
 
     /// `dc:title`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn title(&self) -> Option<String> {
         self.text(MappedField::Title)
@@ -447,11 +487,15 @@ impl Packet {
     /// The other languages' entries are kept. One that read the same as the old `x-default`
     /// entry is the document's own language written twice, as XMP toolkits do, and takes the
     /// new value too.
+    ///
+    /// Added in 0.2.0.
     pub fn set_title(&mut self, title: Option<&str>) {
         self.store(MappedField::Title, title.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `dc:creator`: the authors, in order (empty without any).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn authors(&self) -> Vec<String> {
         match self.get(MappedField::Authors) {
@@ -461,12 +505,16 @@ impl Packet {
     }
 
     /// Sets `dc:creator`; an empty list removes it.
+    ///
+    /// Added in 0.2.0.
     pub fn set_authors<S: AsRef<str>>(&mut self, authors: &[S]) {
         let items = authors.iter().map(|a| a.as_ref().to_owned()).collect();
         self.store(MappedField::Authors, Some(Value::List(items)));
     }
 
     /// `dc:description`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn subject(&self) -> Option<String> {
         self.text(MappedField::Subject)
@@ -477,101 +525,137 @@ impl Packet {
     /// The other languages' entries are kept. One that read the same as the old `x-default`
     /// entry is the document's own language written twice, as XMP toolkits do, and takes the
     /// new value too.
+    ///
+    /// Added in 0.2.0.
     pub fn set_subject(&mut self, subject: Option<&str>) {
         self.store(MappedField::Subject, subject.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `pdf:Keywords`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn keywords(&self) -> Option<String> {
         self.text(MappedField::Keywords)
     }
 
     /// Sets `pdf:Keywords`; `None` removes it.
+    ///
+    /// Added in 0.2.0.
     pub fn set_keywords(&mut self, keywords: Option<&str>) {
         self.store(MappedField::Keywords, keywords.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `xmp:CreatorTool`: the application the content came from (Info's `/Creator`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn creator_tool(&self) -> Option<String> {
         self.text(MappedField::Creator)
     }
 
     /// Sets `xmp:CreatorTool`; `None` removes it.
+    ///
+    /// Added in 0.2.0.
     pub fn set_creator_tool(&mut self, tool: Option<&str>) {
         self.store(MappedField::Creator, tool.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `pdf:Producer`: the application that wrote the PDF.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn producer(&self) -> Option<String> {
         self.text(MappedField::Producer)
     }
 
     /// Sets `pdf:Producer`; `None` removes it.
+    ///
+    /// Added in 0.2.0.
     pub fn set_producer(&mut self, producer: Option<&str>) {
         self.store(MappedField::Producer, producer.map(|s| Value::Text(s.to_owned())));
     }
 
     /// `xmp:CreateDate`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn create_date(&self) -> Option<PdfDate> {
         self.date(MappedField::Created)
     }
 
     /// Sets `xmp:CreateDate`; `None` removes it.
+    ///
+    /// Added in 0.2.0.
     pub fn set_create_date(&mut self, date: Option<PdfDate>) {
         self.store(MappedField::Created, date.map(Value::Date));
     }
 
     /// `xmp:ModifyDate`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn modify_date(&self) -> Option<PdfDate> {
         self.date(MappedField::Modified)
     }
 
     /// Sets `xmp:ModifyDate`; `None` removes it.
+    ///
+    /// Added in 0.2.0.
     pub fn set_modify_date(&mut self, date: Option<PdfDate>) {
         self.store(MappedField::Modified, date.map(Value::Date));
     }
 
     /// `xmp:MetadataDate`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn metadata_date(&self) -> Option<PdfDate> {
         self.date(MappedField::MetadataDate)
     }
 
     /// Sets `xmp:MetadataDate`; `None` removes it.
+    ///
+    /// Added in 0.2.0.
     pub fn set_metadata_date(&mut self, date: Option<PdfDate>) {
         self.store(MappedField::MetadataDate, date.map(Value::Date));
     }
 
     /// `xmpMM:DocumentID`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn document_id(&self) -> Option<String> {
         self.text(MappedField::DocumentId)
     }
 
     /// `xmpMM:InstanceID`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn instance_id(&self) -> Option<String> {
         self.text(MappedField::InstanceId)
     }
 
     /// `pdfaid:part`: the part of ISO 19005 (PDF/A) the file claims.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn pdfa_part(&self) -> Option<u8> {
         self.simple(PDFA_ID, "part")?.trim().parse().ok()
     }
 
     /// `pdfaid:conformance`: the PDF/A conformance level the file claims (`A`, `B` or `U`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn pdfa_conformance(&self) -> Option<String> {
         self.simple(PDFA_ID, "conformance").map(|s| s.trim().to_owned())
     }
 
     /// `pdfuaid:part`: the part of ISO 14289 (PDF/UA) the file claims.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn pdfua_part(&self) -> Option<u8> {
         self.simple(PDFUA_ID, "part")?.trim().parse().ok()

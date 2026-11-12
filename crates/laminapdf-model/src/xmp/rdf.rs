@@ -9,6 +9,8 @@ use super::mapping::{ADOBE_META, RDF, XML};
 use super::tree::{Binding, Element, Node, Scope};
 
 /// A property's value as the packet writes it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum RdfValue {
@@ -27,6 +29,8 @@ pub enum RdfValue {
 }
 
 /// The three RDF containers XMP uses (ISO 16684-1 §7.7).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ArrayKind {
@@ -39,6 +43,8 @@ pub enum ArrayKind {
 }
 
 /// One `rdf:li` of an array.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ArrayItem {
@@ -49,6 +55,8 @@ pub struct ArrayItem {
 }
 
 /// A property of the packet: its namespace, local name and value.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct RdfProperty {

@@ -9,6 +9,8 @@ use crate::limits::{Limit, Limits};
 use crate::object::{Name, Object, PdfString, StringFormat};
 
 /// One lexical token. Keywords borrow from the input; decoded values are owned.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token<'a> {
     /// An integer that fits in `i64` (§7.3.3).
@@ -39,6 +41,8 @@ impl Token<'_> {
     /// The object this token is by itself: a number, name, string, `true`, `false` or `null`
     /// (`None` for delimiters, other keywords and the end). An integer stays an integer: only
     /// the parser looks ahead for `gen R`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn into_scalar(self) -> Option<Object> {
         Some(match self {
@@ -64,16 +68,22 @@ impl Token<'_> {
 }
 
 /// PDF white-space characters (Table 1).
+///
+/// Added in 0.2.0.
 pub const fn is_whitespace(b: u8) -> bool {
     matches!(b, b'\0' | b'\t' | b'\n' | b'\x0C' | b'\r' | b' ')
 }
 
 /// PDF delimiter characters (Table 2).
+///
+/// Added in 0.2.0.
 pub const fn is_delimiter(b: u8) -> bool {
     matches!(b, b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'/' | b'%')
 }
 
 /// Neither white-space nor delimiter.
+///
+/// Added in 0.2.0.
 pub const fn is_regular(b: u8) -> bool {
     !is_whitespace(b) && !is_delimiter(b)
 }
@@ -88,6 +98,8 @@ const fn hex_value(b: u8) -> Option<u8> {
 }
 
 /// A cursor over PDF bytes that yields [`Token`]s.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct Lexer<'a> {
     data: &'a [u8],
@@ -99,6 +111,8 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     /// A lexer over `data`, starting at byte offset `pos`, with the default [`Limits`].
+    ///
+    /// Added in 0.2.0.
     pub const fn new(data: &'a [u8], pos: usize) -> Self {
         Self {
             data,
@@ -109,6 +123,8 @@ impl<'a> Lexer<'a> {
     }
 
     /// Applies `limits` ([`Limits::max_string_length`] bounds every string and name token).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_limits(mut self, limits: &Limits) -> Self {
         self.max_string_length = limits.max_string_length();
@@ -125,16 +141,22 @@ impl<'a> Lexer<'a> {
     }
 
     /// The current byte offset.
+    ///
+    /// Added in 0.2.0.
     pub const fn pos(&self) -> usize {
         self.pos
     }
 
     /// Moves the cursor to byte offset `pos` (past the end is fine: the next token is [`Token::Eof`]).
+    ///
+    /// Added in 0.2.0.
     pub const fn set_pos(&mut self, pos: usize) {
         self.pos = pos;
     }
 
     /// The whole input.
+    ///
+    /// Added in 0.2.0.
     pub const fn data(&self) -> &'a [u8] {
         self.data
     }
@@ -146,6 +168,8 @@ impl<'a> Lexer<'a> {
     /// lexing a window of a larger input gave the same tokens as lexing the whole input would.
     /// A caller reading a window (`laminapdf-cos` over a source without an in-memory slice)
     /// retries with a larger one when this is `true` and the window does not end the input.
+    ///
+    /// Added in 0.2.0.
     pub const fn reached_end(&self) -> bool {
         self.reached_end
     }
@@ -163,6 +187,8 @@ impl<'a> Lexer<'a> {
     }
 
     /// Skips white-space and `%` comments.
+    ///
+    /// Added in 0.2.0.
     pub fn skip_whitespace(&mut self) {
         while let Some(b) = self.peek() {
             if is_whitespace(b) {
@@ -193,6 +219,8 @@ impl<'a> Lexer<'a> {
     /// [`Error::UnexpectedEof`] for an unterminated string, [`Error::Syntax`] for an unbalanced
     /// `)` or `>` or an invalid hex digit, [`Error::LimitExceeded`] for a string or name longer
     /// than [`Limits::max_string_length`].
+    ///
+    /// Added in 0.2.0.
     pub fn next_token(&mut self) -> Result<Token<'a>> {
         self.skip_whitespace();
         let Some(b) = self.peek() else {

@@ -29,6 +29,8 @@ fn end_of_eof_line(bytes: &[u8], from: usize, to: usize) -> Option<usize> {
 /// `sections` (newest first, as `/Prev` reaches them). A section starts a revision only when it
 /// sits past every older section: a linearized file's first-page section comes before the
 /// section its `/Prev` names (Annex F), so it belongs to the first revision.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn revision_starts(sections: &[usize]) -> Vec<usize> {
     let mut starts: Vec<usize> = Vec::new();
@@ -70,6 +72,8 @@ pub(crate) fn ends(bytes: &[u8], sections: &[usize]) -> Vec<u64> {
 
 /// One revision of a file ([`Document::revision_index`]): the cross-reference section that
 /// starts it, where it ends, and the objects its sections list.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Revision {
@@ -93,6 +97,8 @@ impl Document {
     ///
     /// # Errors
     /// What [`Document::whole_input`] returns for a source that isn't in memory.
+    ///
+    /// Added in 0.2.0.
     pub fn revision_index(&self) -> Result<Vec<Revision>> {
         if self.was_repaired() || self.section_offsets.is_empty() {
             return Ok(Vec::new());
@@ -133,6 +139,8 @@ impl Document {
     ///
     /// # Errors
     /// What [`Document::whole_input`] returns for a source that isn't in memory.
+    ///
+    /// Added in 0.2.0.
     pub fn revision_ends(&self) -> Result<Vec<u64>> {
         let bytes = self.whole_input()?;
         if self.was_repaired() || self.xref_section_offsets().is_empty() {

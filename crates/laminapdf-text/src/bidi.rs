@@ -19,6 +19,8 @@ use crate::error::{Error, Result};
 use crate::shape::Direction;
 
 /// A run of text at one embedding level.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct BidiRun {
@@ -30,6 +32,8 @@ pub struct BidiRun {
 
 impl BidiRun {
     /// The run's direction.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn direction(&self) -> Direction {
         Direction::from_level(self.level)
@@ -54,6 +58,8 @@ impl BidiRun {
 /// assert_eq!(levels, [0, 1, 0]);
 /// # Ok::<(), laminapdf_text::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct BidiParagraph<'t> {
     info: ParagraphBidiInfo<'t>,
@@ -62,6 +68,8 @@ pub struct BidiParagraph<'t> {
 impl<'t> BidiParagraph<'t> {
     /// Resolves `text`'s levels. `base` sets the paragraph direction; `None` takes it from the
     /// first strong character (rules P2–P3), left to right when there is none.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(text: &'t str, base: Option<Direction>) -> Self {
         let level = base.map(|d| match d {
@@ -75,18 +83,24 @@ impl<'t> BidiParagraph<'t> {
     }
 
     /// The paragraph's text.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn text(&self) -> &'t str {
         self.info.text
     }
 
     /// The paragraph direction (level 0 or 1).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn base_direction(&self) -> Direction {
         Direction::from_level(self.info.paragraph_level.number())
     }
 
     /// Whether every character resolved to level 0: nothing to reorder.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_pure_ltr(&self) -> bool {
         self.info.is_pure_ltr && self.info.paragraph_level.is_ltr()
@@ -94,6 +108,8 @@ impl<'t> BidiParagraph<'t> {
 
     /// The resolved level of the character at byte `at` (before the per-line rule L1);
     /// `None` past the end.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn level_at(&self, at: usize) -> Option<u8> {
         self.info.levels.get(at).map(Level::number)
@@ -101,6 +117,8 @@ impl<'t> BidiParagraph<'t> {
 
     /// Maximal runs of one resolved level, in logical order (before rule L1): what text is
     /// itemised and shaped by.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn level_runs(&self) -> Vec<BidiRun> {
         runs_of(&self.info.levels, 0..self.info.levels.len())
@@ -113,6 +131,8 @@ impl<'t> BidiParagraph<'t> {
     /// # Errors
     /// [`Error::InvalidTextRange`] when `line` is out of bounds or not on character
     /// boundaries.
+    ///
+    /// Added in 0.2.0.
     pub fn visual_runs(&self, line: Range<usize>) -> Result<Vec<BidiRun>> {
         let levels = self.l1(line.clone())?;
         let mut runs: Vec<BidiRun> = Vec::new();
@@ -134,6 +154,8 @@ impl<'t> BidiParagraph<'t> {
     ///
     /// # Errors
     /// As [`BidiParagraph::visual_runs`].
+    ///
+    /// Added in 0.2.0.
     pub fn line_levels(&self, line: Range<usize>) -> Result<Vec<u8>> {
         let levels = self.l1(line.clone())?;
         let text = self.info.text.get(line).unwrap_or_default();

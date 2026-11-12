@@ -13,6 +13,8 @@ use crate::error::Result;
 use crate::text_string;
 
 /// How an attached file relates to the document (`/AFRelationship`, ISO 32000-2 Table 43).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum AfRelationship {
@@ -31,6 +33,8 @@ pub enum AfRelationship {
 
 impl AfRelationship {
     /// The name written as `/AFRelationship`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -53,6 +57,8 @@ impl AfRelationship {
 ///     .with_description("The invoice as Factur-X XML");
 /// assert_eq!(xml.name(), "factur-x.xml");
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attachment {
     name: String,
@@ -66,6 +72,8 @@ pub struct Attachment {
 impl Attachment {
     /// The file `name` (its key in the attachments list and its `/F` and `/UF`), its bytes and
     /// its MIME type (`/Subtype`, such as `text/xml`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(name: impl Into<String>, bytes: Vec<u8>, mime: impl Into<String>) -> Self {
         Self {
@@ -79,6 +87,8 @@ impl Attachment {
     }
 
     /// How the file relates to the document (default [`AfRelationship::Unspecified`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_relationship(mut self, relationship: AfRelationship) -> Self {
         self.relationship = relationship;
@@ -86,6 +96,8 @@ impl Attachment {
     }
 
     /// `/Desc`: a description viewers show next to the file.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_description(mut self, description: impl Into<String>) -> Self {
         self.description = Some(description.into());
@@ -94,6 +106,8 @@ impl Attachment {
 
     /// `/Params /ModDate`: when the file last changed (default: the document's creation
     /// date, [`BuildOptions::with_creation_date`](crate::BuildOptions::with_creation_date)).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_mod_date(mut self, date: PdfDate) -> Self {
         self.mod_date = Some(date);
@@ -101,24 +115,32 @@ impl Attachment {
     }
 
     /// The file name.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// The file's bytes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
     }
 
     /// The MIME type.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn mime(&self) -> &str {
         &self.mime
     }
 
     /// The relationship.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn relationship(&self) -> AfRelationship {
         self.relationship

@@ -16,6 +16,7 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 | [Paper design](paper-design.md): the chosen visual design, every screen designed and documented, Round U6 design system | Draft |
 | [Website](website.md): the website at `laminapdf.com` and the reader at `app.laminapdf.com` (Round W) | Draft |
 | [Discoverability](discoverability.md): search engines, AI answer engines, coding agents and registries find Lamina PDF: crawl rules, the public repository, package metadata, structured data, engine registration, a Context7 listing, pages for developers' questions, an answer-engine check (Round W3) | Draft |
+| [CI caching](ci-caching.md): compiled Rust shared between CI runs through sccache on Cloudflare R2, filled by `main` and read by pull requests (Round X) | Draft |
 | [Releases](releases.md): a daily automatic release after the nightly, npm trusted publishing, docs that match the released version (Round P) | Draft |
 | [Quality](quality.md): docs that tell a story in plain English, examples readers can copy, maintainable code with checks that keep it so (Round Q) | Draft |
 | [Trust and proof](trust-and-proof.md): what ten years of Hacker News say users lack, turned into work: published proof, checks for what files hide, extraction users can check, flowing layout, long reading, chained CLI jobs (Round T) | Draft |
@@ -23,4 +24,5 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 | [Docs examples](docs-examples.md): a Result tab with pictures of each page beside every example that makes a PDF, then "Edit and run" for six TypeScript examples (B7d, B7e) | Draft |
 | [Docs redesign](docs-redesign.md): docs readers can trust from the first page to the last: command-line output from real runs, a reading path, results beside the code, first runs in Rust and on the command line, a sidebar by task after watching readers (Round Q4) | Draft |
 | [E1 editing foundation](editor/e1-editing-foundation.md): the editor's first round: the edit session, undo, save and the save constraint, metadata in Info and XMP (E1b–E1i) | Draft |
+| [E2 page organisation](editor/e2-page-organisation.md): insert, delete, duplicate, move, rotate and reverse pages, import, merge and split, page geometry and labels; what follows a page, the save constraint per op, the viewer across page edits (E2b–E2o) | Draft |
 | [Element flow](element-flow.md): measured text bottoms and an optional vertical cursor for placing subsequent content | Draft |

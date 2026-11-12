@@ -9,6 +9,8 @@ use crate::document::Document;
 use crate::error::Result;
 
 /// One outline item.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct OutlineNode {
@@ -23,6 +25,8 @@ pub struct OutlineNode {
 }
 
 /// A place in the document: a page, and how to show it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct PageTarget {
@@ -34,6 +38,8 @@ pub struct PageTarget {
 
 /// How a target shows its page, in page space (points from the displayed page's top-left, y
 /// down). A coordinate the file leaves unset is `None`: the viewer keeps its own.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub enum PageTargetView {
@@ -80,6 +86,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (the outline, its destinations, the page tree).
+    ///
+    /// Added in 0.2.0.
     pub fn outline(&self) -> Result<Vec<OutlineNode>> {
         let outline = self.ops().outline()?;
         let frames = self.frames()?;
@@ -91,6 +99,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (the names, the page tree).
+    ///
+    /// Added in 0.2.0.
     pub fn named_destination(&self, name: &str) -> Result<Option<PageTarget>> {
         let outline = self.ops().outline()?;
         let Some(dest) = outline.named_destination(name.as_bytes())? else {

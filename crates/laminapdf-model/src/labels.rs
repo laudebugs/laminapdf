@@ -8,6 +8,8 @@ use crate::document::Document;
 use crate::tree::NumberTree;
 
 /// The numbering style of a label range (`/S`, Table 161).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LabelStyle {
     /// `D`: decimal arabic numerals.
@@ -94,6 +96,8 @@ fn letters(value: u64, base: u8) -> String {
 }
 
 /// One label range: the pages from `start` up to the next range's start.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct LabelRange {
@@ -126,6 +130,8 @@ impl LabelRange {
 /// let labels = PageLabels::default();
 /// assert_eq!(labels.label(0), None); // no /PageLabels: no labels
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PageLabels {
     ranges: Vec<LabelRange>,
@@ -152,12 +158,16 @@ impl PageLabels {
     }
 
     /// The ranges, sorted by first page.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn ranges(&self) -> &[LabelRange] {
         &self.ranges
     }
 
     /// True when the document has no page labels.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.ranges.is_empty()
@@ -165,6 +175,8 @@ impl PageLabels {
 
     /// The label of the page at `index`; `None` without page labels or before the first
     /// range.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn label(&self, index: usize) -> Option<String> {
         let index = u64::try_from(index).ok()?;

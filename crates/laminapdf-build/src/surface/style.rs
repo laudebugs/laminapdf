@@ -3,6 +3,8 @@
 use laminapdf_model::{Dash, Pt};
 
 /// How open subpath ends are drawn (§8.4.3.3).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum LineCap {
@@ -17,10 +19,14 @@ pub enum LineCap {
 
 impl LineCap {
     /// Every line cap, in declaration order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 3] = [Self::Butt, Self::Round, Self::Square];
 }
 
 /// How corners are drawn (§8.4.3.4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum LineJoin {
@@ -35,6 +41,8 @@ pub enum LineJoin {
 
 impl LineJoin {
     /// Every line join, in declaration order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 3] = [Self::Miter, Self::Round, Self::Bevel];
 }
 
@@ -52,6 +60,8 @@ impl LineJoin {
 /// };
 /// assert_eq!(style.miter_limit, 10.0);
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 pub struct StrokeStyle {
     /// Line width (default 1 pt).

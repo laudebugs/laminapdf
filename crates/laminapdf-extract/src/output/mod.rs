@@ -54,6 +54,8 @@ fn joins(blocks: &[Block]) -> Vec<Join> {
 /// Where a piece of text sits in a rendering, in Unicode scalar values (`char`s), `start`
 /// inclusive and `end` exclusive. Code points, not bytes or UTF-16 units, so Python slices a
 /// rendering with them as they are; [`Rendered::slice`] does it in Rust.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -66,6 +68,8 @@ pub struct TextRange {
 }
 
 /// A rendering and each block's place in it, block by block as the extraction lists them.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct Rendered {
@@ -79,6 +83,8 @@ pub struct Rendered {
 
 impl Rendered {
     /// The text in `range` (empty when it lies outside the rendering).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn slice(&self, range: TextRange) -> &str {
         let byte = |chars: usize| self.text.char_indices().nth(chars).map_or(self.text.len(), |(b, _)| b);
@@ -86,6 +92,8 @@ impl Rendered {
     }
 
     /// Block `i`'s text in the rendering.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn block(&self, i: usize) -> &str {
         self.bytes
@@ -133,6 +141,8 @@ impl Extraction {
     /// The blocks as Markdown: headings as `#` lines, list items as `-` or numbered items,
     /// tables as GitHub pipe tables (or HTML when a cell spans rows or columns), the rest as
     /// paragraphs, a blank line between blocks. Hidden text is never in it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_markdown(&self, options: &MarkdownOptions) -> Rendered {
         markdown::render(self, *options)
@@ -142,6 +152,8 @@ impl Extraction {
     /// its marker, and a table is its rows, a tab between cells. A table that goes on over a
     /// page break is one table: each later part's rows follow on the next line, without the
     /// header rows it repeats.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_text(&self) -> Rendered {
         let mut w = Writer::default();
@@ -169,6 +181,8 @@ impl Extraction {
 
     /// The Markdown cut into chunks for retrieval, each a contiguous piece of `markdown` (which
     /// must be [`Extraction::to_markdown`]'s output for this extraction).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn chunks(&self, markdown: &Rendered, options: &ChunkOptions) -> Vec<Chunk> {
         chunks::split(self, markdown, options)

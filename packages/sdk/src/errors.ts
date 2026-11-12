@@ -5,7 +5,11 @@ import { docsUrl, type ErrorCode, type ErrorKind, RAISED_BY_PACKAGE, type Warnin
 
 export type { ErrorKind };
 
-/** Where a problem is; each field has one meaning, and none holds text read from the document. */
+/**
+ * Where a problem is; each field has one meaning, and none holds text read from the document.
+ *
+ * @since 0.2.0
+ */
 export interface Location {
   /** Byte offset in the input file. */
   readonly offset?: number;
@@ -22,6 +26,8 @@ export interface Location {
 /**
  * An error or warning as plain data, in the `laminapdf.error/1` shape: what
  * `LaminaPdfError.toJSON()` returns and the WebAssembly modules throw.
+ *
+ * @since 0.2.0
  */
 export interface Diagnostic<C extends string = ErrorCode> {
   readonly code: C;
@@ -37,6 +43,8 @@ export interface Diagnostic<C extends string = ErrorCode> {
 /**
  * A warning: something Lamina PDF repaired or skipped while reading. A {@link Diagnostic} without
  * `didYouMean`; document text appears only in `data`.
+ *
+ * @since 0.2.0
  */
 export type LaminaPdfWarning = Omit<Diagnostic<WarningCode>, "didYouMean">;
 
@@ -54,6 +62,8 @@ export type LaminaPdfWarning = Omit<Diagnostic<WarningCode>, "didYouMean">;
  *   else throw e;
  * }
  * ```
+ *
+ * @since 0.2.0
  */
 export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
   override readonly name = "LaminaPdfError";
@@ -92,6 +102,8 @@ export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
   /**
    * For `data-pending`: the byte ranges a range document needs fetched before the call can
    * succeed (`data.ranges`); `undefined` for other codes. {@link Document.ensure} fetches them.
+   *
+   * @since 0.2.0
    */
   get ranges(): readonly { readonly offset: number; readonly length: number }[] | undefined {
     if (this.code !== "data-pending") return undefined;
@@ -102,7 +114,11 @@ export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
     );
   }
 
-  /** This error as a {@link Diagnostic} (for logs, workers and `--json` output); optional fields omitted. */
+  /**
+   * This error as a {@link Diagnostic} (for logs, workers and `--json` output); optional fields omitted.
+   *
+   * @since 0.2.0
+   */
   toJSON(): Diagnostic<C> {
     return {
       code: this.code,
@@ -123,6 +139,8 @@ export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
  * @param e - anything caught.
  * @param code - the code to match.
  * @returns true for a LaminaPdfError (with that code).
+ *
+ * @since 0.2.0
  */
 export function isLaminaPdfError<C extends ErrorCode>(e: unknown, code?: C): e is LaminaPdfError<C> {
   return e instanceof LaminaPdfError && (code === undefined || e.code === code);

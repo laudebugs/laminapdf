@@ -15,7 +15,10 @@ import {
 } from "@laminapdf/sdk";
 import * as glue from "@laminapdf/wasm/extract";
 import { afterAll, beforeAll, describe, expect, expectTypeOf, it } from "vitest";
+import { blocksOf } from "../examples/extract-blocks.js";
+import { chunksOf } from "../examples/extract-chunks.js";
 import { extractForAnLlm } from "../examples/extract-markdown.js";
+import { textOf } from "../examples/extract-text.js";
 import { read, readText, thrown } from "./helpers.js";
 
 beforeAll(() => init());
@@ -71,6 +74,13 @@ describe("doc.extract() with the extract module", () => {
       expect(withoutVersion(raw.at(-1) ?? ""), rel).toBe(golden);
       expect({ ...extraction, generator: { ...extraction.generator, version: "*" } }, rel).toEqual(JSON.parse(golden));
     }
+  });
+
+  it("runs the extraction guide's examples: the output their Rust twins print", () => {
+    const invoice = read("fixtures/golden/examples/invoice.pdf");
+    expect(textOf(invoice)).toBe(readText("fixtures/extract/examples/invoice.txt"));
+    expect(blocksOf(invoice)).toBe(readText("fixtures/extract/examples/invoice-blocks.txt"));
+    expect(chunksOf(invoice)).toBe(readText("fixtures/extract/examples/invoice-chunks.txt"));
   });
 
   it("runs the recipe's example: the same JSON as the Rust example's options", () => {

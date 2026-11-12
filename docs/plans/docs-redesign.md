@@ -37,7 +37,7 @@ The work goes in four steps, so the cheap, well-evidenced fixes ship first and t
 | Todo | What it does | Recommendation |
 | --- | --- | --- |
 | [Q4a](../todos/done/Q4a-cli-output-from-real-runs.md) | Command-line transcripts and shell blocks generated from real runs, checked for drift | 1 |
-| [Q4b](../todos/ready/Q4b-extraction-guide.md) | An extraction guide in TypeScript and Rust, and extraction on the home page | 2 |
+| [Q4b](../todos/done/Q4b-extraction-guide.md) | An extraction guide in TypeScript and Rust, and extraction on the home page | 2 |
 | [Q4c](../todos/done/Q4c-viewer-render-and-redaction-guides.md) | Guides for the viewer, rendering pages, and reveal and redaction from code | 2 |
 | [Q4d](../todos/done/Q4d-result-beside-the-code.md) | The first page picture beside the code; "Your first PDF" runnable | 3 |
 | [Q4e](../todos/done/Q4e-rust-and-cli-first-runs.md) | First-run tutorials for Rust and the command line | 4 |
@@ -45,11 +45,11 @@ The work goes in four steps, so the cheap, well-evidenced fixes ship first and t
 | [Q4g](../todos/ready/Q4g-sidebar-by-task.md) | The sidebar grouped by task, with question titles | 5 |
 | [Q4h](../todos/done/Q4h-troubleshooting-by-area.md) | Troubleshooting for Rust, the command line, extraction and rendering | 6 |
 | [Q4i](../todos/done/Q4i-code-colours-by-class.md) | Code colours by class, and no inline styles in the CSP | 7 |
-| [Q4j](../todos/ready/Q4j-starlight-upgrade-policy.md) | Starlight upgrades one minor at a time, overrides listed | 8 |
+| [Q4j](../todos/done/Q4j-starlight-upgrade-policy.md) | Starlight upgrades one minor at a time, overrides listed | 8 |
 | [Q4k](../todos/done/Q4k-one-page-and-pdf-docs.md) | Each area on one page, and the whole guide as a PDF | 9 |
 | [Q4l](../todos/done/Q4l-markdown-for-agents-per-page.md) | A Markdown alternate link and "Copy as Markdown" on every page | 10 |
 | [Q4m](../todos/ready/Q4m-watch-readers-use-the-docs.md) | Watch developers follow the docs, and read the agent eval | 13 |
-| [Q4n](../todos/ready/Q4n-since-markers-and-versions.md) | "Added in" markers on API items, and stable URLs per release from 1.0 | 11 |
+| [Q4n](../todos/done/Q4n-since-markers-and-versions.md) | "Added in" markers on API items, and stable URLs per release from 1.0 | 11 |
 | [Q4o](../todos/done/Q4o-usage-pages-for-document-and-builder.md) | Usage pages for `Document` and `Builder` beside their reference | 12 |
 | [Q4p](../todos/done/Q4p-twoslash-spike.md) | A spike: Twoslash hover types on one page, measured against Q4i's CSP | — |
 
@@ -71,7 +71,7 @@ The recommendation numbers are the report's. Two of them are too large for one p
 ## 7. To-dos
 
 - [x] Q4a: command-line output from real runs
-- [ ] Q4b: the extraction guide
+- [x] Q4b: the extraction guide
 - [x] Q4c: viewer, rendering, and reveal and redaction guides
 - [x] Q4d: the result beside the code
 - [x] Q4e: first runs in Rust and on the command line
@@ -79,10 +79,10 @@ The recommendation numbers are the report's. Two of them are too large for one p
 - [ ] Q4g: the sidebar by task
 - [x] Q4h: troubleshooting by area
 - [x] Q4i: code colours by class
-- [ ] Q4j: the Starlight upgrade policy
+- [x] Q4j: the Starlight upgrade policy
 - [x] Q4k: one-page and PDF docs
 - [x] Q4l: Markdown for agents on every page
 - [ ] Q4m: watch readers use the docs
-- [ ] Q4n: "added in" markers and versions
+- [x] Q4n: "added in" markers and versions
 - [x] Q4o: usage pages for `Document` and `Builder`
 - [x] Q4p: the Twoslash spike

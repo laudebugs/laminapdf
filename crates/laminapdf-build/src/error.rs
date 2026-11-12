@@ -6,9 +6,13 @@ use crate::profile::Profile;
 use crate::tag::ContentKind;
 
 /// A `Result` with this crate's [`Error`].
+///
+/// Added in 0.2.0.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// The image formats the builder reads.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ImageFormat {
@@ -25,6 +29,8 @@ pub enum ImageFormat {
 /// `docs/errors/<code>.md`.
 ///
 /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -310,6 +316,8 @@ pub enum Error {
 impl Error {
     /// Every code [`Error::code`] can return besides those of [`laminapdf_cos::Error`] (listed in
     /// `fixtures/codes.json` under `buildErrors`).
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &[
         "invalid-image",
         "unsupported-image",
@@ -349,6 +357,8 @@ impl Error {
     ];
 
     /// A stable kebab-case code for this error.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -398,6 +408,8 @@ impl Error {
     /// [`laminapdf_cos::Error::kind`].
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -444,6 +456,8 @@ impl Error {
     /// Where the error was found (ADR 0026 §1.1): a COS or text error's position; the page of
     /// a profile rule broken on one page; no position for the builder's other errors, which
     /// are about the caller's inputs.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match *self {
@@ -494,6 +508,8 @@ impl Error {
 
 /// Something the builder worked around; the output is still valid (listed in
 /// `fixtures/codes.json` under `buildWarnings`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, thiserror::Error)]
 #[non_exhaustive]
 pub enum Warning {
@@ -521,9 +537,13 @@ pub enum Warning {
 
 impl Warning {
     /// Every code [`Warning::code`] can return.
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &["flow-keep-broken", "markdown-html-ignored", "markdown-image-missing"];
 
     /// A stable kebab-case code for this warning.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -536,6 +556,8 @@ impl Warning {
     /// Its kind ([ADR 0026] §2).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -546,6 +568,8 @@ impl Warning {
 
     /// Where it happened: the page, for a flow's warning; a Markdown warning's byte offset is
     /// in its data instead (an offset into the Markdown, not the PDF).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match *self {

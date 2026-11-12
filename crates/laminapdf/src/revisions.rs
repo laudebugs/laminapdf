@@ -15,6 +15,8 @@ impl Document {
     ///
     /// # Errors
     /// `data-pending` for a source read in windows, which has to be read whole.
+    ///
+    /// Added in 0.2.0.
     pub fn revision_count(&self) -> Result<u32> {
         Ok(to_u32(self.ops().revision_ends()?.len()))
     }
@@ -26,6 +28,8 @@ impl Document {
     /// # Errors
     /// `revision-index-out-of-range` past the last revision; what [`Document::open_bytes`]
     /// returns for the prefix.
+    ///
+    /// Added in 0.2.0.
     pub fn open_revision(&self, index: u32, options: OpenOptions) -> Result<Self> {
         let ends = self.ops().revision_ends()?;
         let count = to_u32(ends.len());

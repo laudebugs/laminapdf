@@ -153,6 +153,8 @@ fn transformed_bounds(m: &Matrix, r: &RectPt) -> RectPt {
 /// ```
 ///
 /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Default)]
 pub struct Surface {
     commands: Vec<Command>,
@@ -196,6 +198,8 @@ impl Surface {
 
     /// Saves the graphics state (`q`): transformations, colours, opacity and clipping until
     /// the matching [`Surface::restore`].
+    ///
+    /// Added in 0.2.0.
     pub fn save(&mut self) -> &mut Self {
         self.depth += 1;
         self.saved_ctm.push(self.ctm);
@@ -205,6 +209,8 @@ impl Surface {
 
     /// Restores the state saved by the last open [`Surface::save`] (`Q`); ignored when none
     /// is open.
+    ///
+    /// Added in 0.2.0.
     pub fn restore(&mut self) -> &mut Self {
         if self.depth > 0 {
             self.depth -= 1;
@@ -216,6 +222,8 @@ impl Surface {
 
     /// Transforms what is drawn next (`cm`), in page space: points are mapped by `m` before
     /// they are placed on the page.
+    ///
+    /// Added in 0.2.0.
     pub fn transform(&mut self, m: Matrix) -> &mut Self {
         if m.to_array().iter().all(|v| v.is_finite()) {
             self.ctm = self.ctm.after(&m);
@@ -227,12 +235,16 @@ impl Surface {
     }
 
     /// The colour for fills.
+    ///
+    /// Added in 0.2.0.
     pub fn fill_color(&mut self, color: Color) -> &mut Self {
         self.commands.push(Command::FillColor(color));
         self
     }
 
     /// The colour for strokes.
+    ///
+    /// Added in 0.2.0.
     pub fn stroke_color(&mut self, color: Color) -> &mut Self {
         self.commands.push(Command::StrokeColor(color));
         self
@@ -241,18 +253,24 @@ impl Surface {
     /// Constant opacity for fills and strokes (`/ca`, `/CA` in an `ExtGState`, §11.6.4.4),
     /// each clamped to `[0, 1]` (NaN is opaque). Equal settings share one `ExtGState` per
     /// document.
+    ///
+    /// Added in 0.2.0.
     pub fn opacity(&mut self, fill: f64, stroke: f64) -> &mut Self {
         self.commands.push(Command::State(GsKey::alpha(fill, stroke)));
         self
     }
 
     /// The blend mode (`/BM` in an `ExtGState`, §11.3.5).
+    ///
+    /// Added in 0.2.0.
     pub fn blend_mode(&mut self, mode: BlendMode) -> &mut Self {
         self.commands.push(Command::State(GsKey::Blend(mode)));
         self
     }
 
     /// Builds a path; paint it with the returned [`PendingPath`].
+    ///
+    /// Added in 0.2.0.
     pub fn path(&mut self, build: impl FnOnce(&mut PathBuilder)) -> PendingPath<'_> {
         let mut path = PathBuilder::default();
         build(&mut path);
@@ -260,6 +278,8 @@ impl Surface {
     }
 
     /// Draws `image` stretched over `rect` (`Do`, §8.9.5), upright as displayed.
+    ///
+    /// Added in 0.2.0.
     pub fn image(&mut self, image: &Image, rect: RectPt) -> &mut Self {
         if rect.is_finite() {
             self.commands.push(Command::Image(image.clone(), rect));
@@ -273,6 +293,8 @@ impl Surface {
     /// (alternate description, §14.9.3). A figure without one (`None`) is drawn too, and
     /// reported by [`Builder::tagging_diagnostics`](crate::Builder::tagging_diagnostics).
     /// Inside an artifact it is part of the artifact.
+    ///
+    /// Added in 0.2.0.
     pub fn figure(&mut self, image: &Image, rect: RectPt, alt: Option<&str>) -> &mut Self {
         let tag = Tag::new(TagKind::Figure);
         self.begin_tag(match alt {
@@ -311,6 +333,8 @@ impl Surface {
     ///
     /// # Errors
     /// What `draw` returns (the element is ended either way).
+    ///
+    /// Added in 0.2.0.
     pub fn tag<T>(&mut self, tag: impl Into<Tag>, draw: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
         let depth = self.marks_open;
         self.begin_tag(tag);
@@ -328,6 +352,8 @@ impl Surface {
     ///
     /// # Errors
     /// What `draw` returns.
+    ///
+    /// Added in 0.2.0.
     pub fn artifact<T>(
         &mut self,
         artifact: impl Into<Artifact>,
@@ -343,6 +369,8 @@ impl Surface {
     /// Opens the structure element `tag` until the matching [`Surface::end_tag`]: the
     /// begin/end form of [`Surface::tag`], for bindings that can't pass a closure. One left
     /// open is ended at the end of the page.
+    ///
+    /// Added in 0.2.0.
     pub fn begin_tag(&mut self, tag: impl Into<Tag>) -> &mut Self {
         self.marks_open += 1;
         self.tagged = true;
@@ -351,6 +379,8 @@ impl Surface {
     }
 
     /// Opens an artifact until the matching [`Surface::end_tag`] (see [`Surface::artifact`]).
+    ///
+    /// Added in 0.2.0.
     pub fn begin_artifact(&mut self, artifact: impl Into<Artifact>) -> &mut Self {
         self.marks_open += 1;
         self.tagged = true;
@@ -359,6 +389,8 @@ impl Surface {
     }
 
     /// Ends the innermost open element or artifact; ignored when none is open.
+    ///
+    /// Added in 0.2.0.
     pub fn end_tag(&mut self) -> &mut Self {
         if self.marks_open > 0 {
             self.marks_open -= 1;
@@ -399,6 +431,8 @@ impl Surface {
     /// b.finish()?;
     /// # Ok::<(), laminapdf_build::Error>(())
     /// ```
+    ///
+    /// Added in 0.2.0.
     pub fn open_element(&mut self, tag: impl Into<Tag>) -> ElementId {
         let id = self.ids.next();
         self.tagged = true;
@@ -412,6 +446,8 @@ impl Surface {
     /// # Errors
     /// What `draw` returns. An element that isn't open fails the page's
     /// [`PageBuilder::finish`](crate::PageBuilder::finish) with [`Error::TagElementNotOpen`].
+    ///
+    /// Added in 0.2.0.
     pub fn resume<T>(&mut self, element: ElementId, draw: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
         let depth = self.marks_open;
         self.marks_open += 1;
@@ -454,6 +490,8 @@ impl Surface {
     /// that draws a run and then fails to change it ([`TextRun::features`],
     /// [`TextRun::language`], [`TextRun::direction`] lay it out again) can leave nothing
     /// behind, as the bindings do.
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn discard_last_text(&mut self) -> bool {
         let last = matches!(self.commands.last(), Some(Command::Text(_)));
@@ -503,6 +541,8 @@ impl Surface {
     /// (`missing-glyph`) or can't be read.
     ///
     /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn text(&mut self, text: &str, font: &FontHandle, size: Pt, at: PointPt) -> Result<TextRun<'_>> {
         check_size(size)?;
@@ -587,6 +627,8 @@ impl Surface {
     /// As [`Surface::text`]; [`Error::InvalidGeometry`] for a rectangle that isn't finite or
     /// has no width, or a line height that isn't finite and positive;
     /// [`Error::TextOverflow`] with [`Overflow::Error`](crate::Overflow::Error).
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn text_box(
         &mut self,
@@ -620,6 +662,8 @@ impl Surface {
     ///
     /// # Errors
     /// As [`Surface::text_box`].
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn measure_text_box(
         &self,
@@ -650,6 +694,8 @@ impl Surface {
     /// A link annotation over `rect` (page space, through the current transform as an
     /// axis-aligned box): a URI, a page of this document or a named destination, with
     /// `contents` as its `/Contents` (alternate text). No border; printed with the page.
+    ///
+    /// Added in 0.2.0.
     pub fn link(&mut self, rect: RectPt, target: LinkTarget, contents: Option<String>) -> &mut Self {
         let finite = match &target {
             LinkTarget::Page { fit, .. } => fit_is_valid(fit),

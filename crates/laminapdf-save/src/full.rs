@@ -49,6 +49,8 @@ const OBJSTM_CAPACITY: usize = 100;
 /// empty. The one failure that can only show while writing is a classic table entry past ten
 /// digits (an output over 10 GB): use the xref-stream layout for that. The output is
 /// byte-deterministic (ADR 0001).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 pub struct FullWriter<'d> {
     doc: &'d Document,
@@ -79,6 +81,8 @@ impl<'d> FullWriter<'d> {
     /// `xref`, `eol` and `remove_encryption` apply. With `remove_encryption`, an encrypted
     /// document is written as plaintext: the objects as the reader decrypted them, streams
     /// without a leading `/Crypt` filter, and no `/Encrypt` in the trailer (`/ID[0]` kept).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(doc: &'d Document, options: SaveOptions) -> Self {
         Self {
@@ -105,6 +109,8 @@ impl<'d> FullWriter<'d> {
     /// [`laminapdf_cos::Error::InvalidStructure`] when object numbers run out. While writing:
     /// [`SaveError::Sink`]; [`laminapdf_cos::Error::InvalidStructure`] for a classic offset over
     /// ten digits.
+    ///
+    /// Added in 0.2.0.
     pub fn write<S: WriteSink + ?Sized>(&self, sink: &mut S) -> Result<SaveReport> {
         let doc = self.doc;
         require_empty(sink, None)?;
