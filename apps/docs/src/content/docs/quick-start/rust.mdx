@@ -16,3 +16,4 @@ To run it, save it as `src/main.rs` in a project that depends on `laminapdf`, th
 - **Same input, same bytes:** `build` takes `BuildOptions`: fix the file ID, the producer and the creation date in them, and the output never changes; see [how Lamina PDF thinks about a PDF](/concepts/how-lamina-thinks/#same-input-same-bytes).
 - **Stopping a save:** `save` runs to the end. To let another thread stop it, pass a `CancelToken` to `save_with`, or call `save_job` for a job that you step through with a work budget.
 - The [Rust API reference](/reference/rust/) documents every public item.
+- When Cargo picks the wrong version or a feature is missing, [Troubleshooting Rust](/troubleshooting/rust/) has the fix.
