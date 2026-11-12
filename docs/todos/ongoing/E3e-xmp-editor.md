@@ -11,7 +11,7 @@
 | Branch | `feat/e3e-xmp-editor` |
 | PR title | `feat(ops): general XMP editing with extension schemas` |
 | Size | M (200–400): three ops over the packet E1b reads, the extension schemas, and the editor |
-| PR | — |
+| PR | [#518](https://github.com/laudebugs/laminapdf/pull/518) |
 
 ## Goal
 
