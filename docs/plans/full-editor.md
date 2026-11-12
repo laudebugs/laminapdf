@@ -80,7 +80,7 @@ The editing architecture (lazy COS overlay, typed model, op log, save planner, o
 | HTML → PDF | Browser Run, then lamina post-processing (tags, PDF/A) | 0013 | E13 |
 | Batch jobs (optimise, convert, stamp many files) | Workflows + Queues, Worker running `laminapdf-wasm` for small files, Containers for large | 0013 | E14, E16 |
 | Timestamp authority proxy (TSAs rarely allow CORS) | Worker, no document bytes (hash only) | 0020 | E10 |
-| Accounts and user login (hosted service, decided 2026-10-28) | Auth on D1 or a hosted vendor (`auth` spike) | 0011 | first round that needs it ([H1](../todos/ready/H1-auth-spike.md) spike, [H2](../todos/ready/H2-accounts-and-login.md)) |
+| Accounts and user login (hosted service, decided 2026-10-28) | Auth on D1 or a hosted vendor (`auth` spike) | 0011 | first round that needs it ([H1](../todos/ongoing/H1-auth-spike.md) spike, [H2](../todos/ready/H2-accounts-and-login.md)) |
 | Cloud storage and sync of the user's documents (opt-in per document) | R2 for blobs, D1 index, per-user access | 0011 | first round that needs it ([H3](../todos/ready/H3-cloud-document-storage.md), [H4](../todos/ready/H4-document-sync.md)) |
 
 ## 7. Phases and rounds
@@ -439,7 +439,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E18. Collaboration
 - [ ] Write ADR 0012 (Durable Object per document, LWW records, leases)
-- [ ] Run the `auth` spike ([H1](../todos/ready/H1-auth-spike.md)) and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
+- [ ] Run the `auth` spike ([H1](../todos/ongoing/H1-auth-spike.md)) and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
 - [ ] Feature-plan PR for E18
 - [ ] Layer-document schema for annotations, field values and page order
 - [ ] Durable Object with SQLite storage and WebSocket hibernation; R2 base revisions; D1 index
@@ -447,8 +447,8 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Load test: 50 concurrent reviewers on one document
 
 ### Hosted service: accounts, cloud storage and sync
-Todos: [H1](../todos/ready/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md), [H3](../todos/ready/H3-cloud-document-storage.md), [H4](../todos/ready/H4-document-sync.md)
-- [ ] `auth` spike: login stack recorded in ADR 0011 ([H1](../todos/ready/H1-auth-spike.md))
+Todos: [H1](../todos/ongoing/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md), [H3](../todos/ready/H3-cloud-document-storage.md), [H4](../todos/ready/H4-document-sync.md)
+- [ ] `auth` spike: login stack recorded in ADR 0011 ([H1](../todos/ongoing/H1-auth-spike.md))
 - [ ] Opt-in accounts and sign-in on web and desktop ([H2](../todos/ready/H2-accounts-and-login.md))
 - [ ] Opt-in cloud storage of documents: R2 blobs, D1 index, per-user access ([H3](../todos/ready/H3-cloud-document-storage.md))
 - [ ] Sync of cloud documents across devices ([H4](../todos/ready/H4-document-sync.md))

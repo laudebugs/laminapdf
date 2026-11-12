@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `H1` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [architecture §4 Spikes](../../plans/architecture.md#4-spikes-to-close-open-questions) (`auth`) |
 | Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
 | Depends on | [C2b](../done/C2b-lamina-render-crate.md), [C4d](../done/C4d-deploy-previews-and-production.md), [D2e](../done/D2e-desktop-e2e-webdriverio.md) |
