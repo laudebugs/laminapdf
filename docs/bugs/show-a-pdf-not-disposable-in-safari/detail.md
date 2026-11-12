@@ -8,17 +8,20 @@ The example's browser test passed in WebKit all the same, so nothing caught the 
 
 ## How to reproduce it
 
-Remove `Symbol.dispose` before the example loads, then dispose of what `showPdf` returns the way compiled `using` does:
+Hide `Symbol.dispose` before the example loads, then dispose of what `showPdf` returns the way compiled `using` does. `Symbol.dispose` is non-configurable, so it can't be deleted, and a proxy of `Symbol` must report its real value; a stand-in global `Symbol` built on another target can hide it:
 
 ```ts
-Reflect.deleteProperty(Symbol, "dispose");
+const real = Symbol;
+globalThis.Symbol = new Proxy((d?: string) => real(d), {
+  get: (_, key) => (key === "dispose" ? undefined : Reflect.get(real, key)),
+}) as SymbolConstructor;
 const { showPdf } = await import("./examples/show-a-pdf.js");
 const shown = await showPdf(container, file, pdfiumWasm);
 const key = Symbol.dispose ?? Symbol.for("Symbol.dispose"); // what the compiled code looks up
-shown[key](); // TypeError: shown[key] is not a function
+Reflect.get(shown, key)(); // TypeError: not a function
 ```
 
-`packages/viewer/test/browser/show-a-pdf-without-symbol-dispose.browser.test.ts` runs these steps in Chromium, Firefox and WebKit. Against the example before the fix it fails in all three.
+`packages/viewer/test/browser/show-a-pdf-without-symbol-dispose.browser.test.ts` runs these steps in Chromium, Firefox and WebKit. Against the example before the fix it fails in all three with "Object not disposable".
 
 ## Cause
 

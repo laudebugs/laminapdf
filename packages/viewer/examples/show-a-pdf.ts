@@ -10,7 +10,7 @@ import { createViewer, ViewerClient } from "@laminapdf/viewer";
 
 // Some Safari releases have no Symbol.dispose. The code TypeScript and esbuild compile from `using`
 // then looks for Symbol.for("Symbol.dispose"), so the shown PDF answers to that key there.
-const dispose = (Symbol.dispose ?? Symbol.for("Symbol.dispose")) as typeof Symbol.dispose;
+const dispose: typeof Symbol.dispose = (Symbol.dispose ?? Symbol.for("Symbol.dispose")) as typeof Symbol.dispose;
 
 /** A PDF on screen. Close it, or declare it with `using`, to take it down and end its Web Worker. */
 export interface ShownPdf extends Disposable {
