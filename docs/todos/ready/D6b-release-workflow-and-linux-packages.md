@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D5b](./D5b-updater-in-app.md), [D6a](./D6a-signing-runbook-and-owner-setup.md) |
+| Depends on | [D5b](./D5b-updater-in-app.md), [D6a](../ongoing/D6a-signing-runbook-and-owner-setup.md) |
 | ADRs | Implements ADR 0014 (R2 layout, manifests, attestations). Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned actions, SBOMs, third-party notices), ADR 0017 (attestations, library plan) |
 | Branch | `ci/d6b-desktop-release-workflow` |
 | PR title | `ci(desktop): add the tauri-action release matrix with Linux signing and R2 publishing` |

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D6a](./D6a-signing-runbook-and-owner-setup.md), [D6b](./D6b-release-workflow-and-linux-packages.md) |
+| Depends on | [D6a](../ongoing/D6a-signing-runbook-and-owner-setup.md), [D6b](./D6b-release-workflow-and-linux-packages.md) |
 | ADRs | Implements ADR 0014 (Windows identity, path recorded by D6a) |
 | Branch | `ci/d6d-windows-signing` |
 | PR title | `ci(desktop): Authenticode-sign Windows MSI and NSIS builds with the owner's identity` |

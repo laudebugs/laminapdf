@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Browser extension §5 K4](../../plans/browser-extension.md#k4-safari) |
 | Round / milestone | Round K (browser extension) — after M2b |
-| Depends on | [D6a](./D6a-signing-runbook-and-owner-setup.md), [K2c](./K2c-chromium-release.md) |
+| Depends on | [D6a](../ongoing/D6a-signing-runbook-and-owner-setup.md), [K2c](./K2c-chromium-release.md) |
 | Dependency notes | D6a sets up the Apple Developer Program account that the Safari app wrapper is signed with. |
 | ADRs | Implements 0033's Safari section |
 | Branch | `feat/k4a-safari-extension` |
@@ -22,7 +22,7 @@ Bring the extension to Safari users, button first. Safari can't recognise a PDF 
 
 - [Platform note §2 and §3](../../research/browser-extension/notes/platform-and-pdf-interception.md#3-firefox-built-in-pdfjs-and-safari-pdf-handling): what Safari can and can't intercept, the redirect bugs (WECG #381, WebKit 303800).
 - [Distribution note](../../research/browser-extension/notes/distribution-and-tooling.md): the packager, the browser-based App Store Connect packager, TestFlight, Developer ID outside the store.
-- [D6a](./D6a-signing-runbook-and-owner-setup.md) and [D6c](./D6c-macos-signing-and-notarisation.md): the desktop app's Apple signing, which this todo reuses.
+- [D6a](../ongoing/D6a-signing-runbook-and-owner-setup.md) and [D6c](./D6c-macos-signing-and-notarisation.md): the desktop app's Apple signing, which this todo reuses.
 - K1a's README: whether Safari's `.pdf` redirect worked in the spike.
 
 ## Scope

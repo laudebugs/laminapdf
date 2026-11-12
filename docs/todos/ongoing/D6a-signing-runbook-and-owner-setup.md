@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D6a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md), [D5a](./D5a-update-worker-and-adr-0014.md) |
+| Depends on | [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md), [D5a](../ready/D5a-update-worker-and-adr-0014.md) |
 | ADRs | Amends ADR 0014 (records the Windows path actually taken and the identities' details). Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `docs/d6a-signing-runbook` |
 | PR title | `docs(release): add the desktop signing runbook and record the owner's signing setup` |
@@ -54,7 +54,7 @@ The project owner signs the desktop app **personally, as the publisher**, on Win
 
 **Out of scope** (and which todo covers it)
 
-- Wiring the secrets into workflows: [D6b](D6b-release-workflow-and-linux-packages.md) (pipeline + Linux), [D6c](D6c-macos-signing-and-notarisation.md) (macOS), [D6d](D6d-windows-signing.md) (Windows).
+- Wiring the secrets into workflows: [D6b](../ready/D6b-release-workflow-and-linux-packages.md) (pipeline + Linux), [D6c](../ready/D6c-macos-signing-and-notarisation.md) (macOS), [D6d](../ready/D6d-windows-signing.md) (Windows).
 - Mac App Store / Microsoft Store identities (non-goals).
 
 ## Tasks
