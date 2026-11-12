@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4n` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `docs/q4n-since-markers` |
 | PR title | `docs: mark when each API item was added or changed` |
 | Size | M |
-| PR | — |
+| PR | [#473](https://github.com/laudebugs/laminapdf/pull/473) |
 
 ## Goal
 
@@ -35,14 +35,14 @@ Developers praise Django for saying in which version something changed, and Post
 
 ## Tasks
 
-- [ ] Choose the tag (TSDoc `@since`, rustdoc text) and fill it from the changelog for the public API.
-- [ ] Show it in the TypeDoc pages; add a check that new public items carry one.
-- [ ] Write the 1.0 decision.
+- [x] Choose the tag (TSDoc `@since`, rustdoc text) and fill it from the changelog for the public API. The owner chose (#474) the first release after the alphas, `0.2.0`, for every item that exists today, in each doc comment, in both languages.
+- [x] Show it in the TypeDoc pages; add a check that new public items carry one.
+- [x] Write the 1.0 decision ([releases plan §4](../../plans/releases.md#4-docs-that-match-a-version)).
 
 ## Acceptance criteria
 
-- [ ] Every public TypeScript and Rust item has an "Added in" version.
-- [ ] A new public item without one fails a check.
+- [x] Every public TypeScript and Rust item has an "Added in" version.
+- [x] A new public item without one fails a check.
 
 ## Post-merge checks
 
@@ -62,8 +62,8 @@ The releases plan; the docs README.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

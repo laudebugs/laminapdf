@@ -13,6 +13,8 @@ use crate::record::{Skipped, UndoRecord};
 /// The result of an undo or redo ([ADR 0006] §4).
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum UndoOutcome {
@@ -33,6 +35,8 @@ pub enum UndoOutcome {
 
 /// What [`Document::undo`](crate::Document::undo) or
 /// [`redo`](crate::Document::redo) did.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Reverted {
@@ -60,6 +64,8 @@ pub(crate) struct Entry {
 /// the oldest entries are dropped beyond [`History::depth`] (500 by default).
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct History {
     pub(crate) undo: VecDeque<Entry>,
@@ -94,9 +100,13 @@ impl Default for History {
 
 impl History {
     /// The default undo depth: 500 transactions.
+    ///
+    /// Added in 0.2.0.
     pub const DEFAULT_DEPTH: usize = 500;
 
     /// Empty stacks keeping at most `depth` undo entries.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(depth: usize) -> Self {
         Self {
@@ -110,36 +120,48 @@ impl History {
     }
 
     /// The most undo entries kept.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn depth(&self) -> usize {
         self.depth
     }
 
     /// Keeps at most `depth` undo entries, dropping the oldest now if there are more.
+    ///
+    /// Added in 0.2.0.
     pub fn set_depth(&mut self, depth: usize) {
         self.depth = depth;
         self.trim();
     }
 
     /// The number of transactions that can be undone.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn undo_len(&self) -> usize {
         self.undo.len()
     }
 
     /// The number of transactions that can be redone.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn redo_len(&self) -> usize {
         self.redo.len()
     }
 
     /// Whether there is something to undo.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn can_undo(&self) -> bool {
         !self.undo.is_empty()
     }
 
     /// Whether there is something to redo.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn can_redo(&self) -> bool {
         !self.redo.is_empty()

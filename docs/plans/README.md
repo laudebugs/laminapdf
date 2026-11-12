@@ -23,4 +23,5 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 | [Docs examples](docs-examples.md): a Result tab with pictures of each page beside every example that makes a PDF, then "Edit and run" for six TypeScript examples (B7d, B7e) | Draft |
 | [Docs redesign](docs-redesign.md): docs readers can trust from the first page to the last: command-line output from real runs, a reading path, results beside the code, first runs in Rust and on the command line, a sidebar by task after watching readers (Round Q4) | Draft |
 | [E1 editing foundation](editor/e1-editing-foundation.md): the editor's first round: the edit session, undo, save and the save constraint, metadata in Info and XMP (E1b–E1i) | Draft |
+| [E2 page organisation](editor/e2-page-organisation.md): insert, delete, duplicate, move, rotate and reverse pages, import, merge and split, page geometry and labels; what follows a page, the save constraint per op, the viewer across page edits (E2b–E2o) | Draft |
 | [Element flow](element-flow.md): measured text bottoms and an optional vertical cursor for placing subsequent content | Draft |

@@ -40,6 +40,8 @@ use crate::reader::{Document, OpenOptions};
 use crate::source::Source;
 
 /// An overlay entry for one object number.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum OverlayEntry {
@@ -53,6 +55,8 @@ pub enum OverlayEntry {
 
 impl OverlayEntry {
     /// The object's value, `None` for [`OverlayEntry::Deleted`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn object(&self) -> Option<&Arc<Object>> {
         match self {
@@ -64,6 +68,8 @@ impl OverlayEntry {
 
 /// One change made through [`CosMut`], with the effective values (overlay, then base)
 /// before and after it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum CosChange {
@@ -103,6 +109,8 @@ pub enum CosChange {
 /// A position in the journal: [`Document::rollback_to`] undoes every change recorded after
 /// it, [`Document::take_changes`] returns them. It stays valid while the journal still has
 /// the records it was taken after.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct JournalMark {
     /// Records in the journal when the mark was taken.
@@ -132,6 +140,8 @@ struct Record {
 /// through [`CosMut`].
 ///
 /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Default)]
 pub struct Overlay {
     objects: BTreeMap<u32, OverlayEntry>,
@@ -148,6 +158,8 @@ pub struct Overlay {
 
 impl Overlay {
     /// True when nothing differs from the base.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.objects.is_empty() && self.trailer.is_none()
@@ -155,23 +167,31 @@ impl Overlay {
 
     /// The number of differences from the base: object entries, plus one for a changed
     /// trailer (so `len() == 0` exactly when [`Overlay::is_empty`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn len(&self) -> usize {
         self.objects.len() + usize::from(self.trailer.is_some())
     }
 
     /// The entry for object `num`, if the overlay has one.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn get(&self, num: u32) -> Option<&OverlayEntry> {
         self.objects.get(&num)
     }
 
     /// Every object entry, by ascending number.
+    ///
+    /// Added in 0.2.0.
     pub fn iter(&self) -> impl Iterator<Item = (u32, &OverlayEntry)> + '_ {
         self.objects.iter().map(|(&n, e)| (n, e))
     }
 
     /// The changed trailer, when it differs from the base's.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn trailer(&self) -> Option<&Dict> {
         self.trailer.as_deref()
@@ -192,6 +212,8 @@ impl Overlay {
 
 impl Document {
     /// The overlay: what this session changed relative to the base.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn overlay(&self) -> &Overlay {
         self.overlay_ref()
@@ -199,6 +221,8 @@ impl Document {
 
     /// True when the overlay is non-empty: a save would write something (ADR 0006 §7's COS
     /// dirty level).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_dirty(&self) -> bool {
         !self.overlay_ref().is_empty()
@@ -208,11 +232,15 @@ impl Document {
     /// overlay and its journal. `laminapdf-ops` wraps it in transactions; code that edits at
     /// the COS level directly should take a [`Document::journal_mark`] first and
     /// [`Document::rollback_to`] it on failure.
+    ///
+    /// Added in 0.2.0.
     pub fn edit(&mut self) -> CosMut<'_> {
         CosMut { doc: self }
     }
 
     /// The current end of the journal.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn journal_mark(&self) -> JournalMark {
         let journal = &self.overlay_ref().journal;
@@ -227,6 +255,8 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::InvalidStructure`] for a stale mark (nothing is changed).
+    ///
+    /// Added in 0.2.0.
     pub fn rollback_to(&mut self, mark: JournalMark) -> Result<()> {
         self.overlay_ref().after(mark)?;
         let overlay = self.overlay_mut();
@@ -249,6 +279,8 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::InvalidStructure`] for a stale mark.
+    ///
+    /// Added in 0.2.0.
     pub fn changes_since(&self, mark: JournalMark) -> Result<impl Iterator<Item = &CosChange> + '_> {
         Ok(self.overlay_ref().after(mark)?.iter().map(|r| &r.change))
     }
@@ -259,6 +291,8 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::InvalidStructure`] for a stale mark (nothing is changed).
+    ///
+    /// Added in 0.2.0.
     pub fn take_changes(&mut self, mark: JournalMark) -> Result<Vec<CosChange>> {
         self.overlay_ref().after(mark)?;
         let journal = &mut self.overlay_mut().journal;
@@ -273,6 +307,8 @@ impl Document {
     /// # Errors
     /// [`Error::InvalidStructure`] once the next number would exceed
     /// [`Limits::max_object_number`](crate::Limits::max_object_number).
+    ///
+    /// Added in 0.2.0.
     pub fn reserve_number(&self) -> Result<ObjRef> {
         let first = self.first_new_number();
         let cell = &self.overlay_ref().next_number;
@@ -289,6 +325,8 @@ impl Document {
     }
 
     /// Whether `num` was handed out by [`Document::reserve_number`] (or [`CosMut::create`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_reserved_number(&self, num: u32) -> bool {
         let first = self.first_new_number();
@@ -300,6 +338,8 @@ impl Document {
 
     /// The lowest `/Size` an update may write: the base trailer's `/Size`, and above every
     /// xref entry (the writers in `laminapdf-save` and the number allocator share this rule).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn size_floor(&self) -> i64 {
         let above_entries = self.max_object_number().map_or(0, |n| i64::from(n) + 1);
@@ -310,6 +350,8 @@ impl Document {
     /// least [`Document::size_floor`], and above every number reserved in this session (up to
     /// `u32::MAX + 1` once every number is taken). A writer's `/Size` is never below it, so a
     /// reserved number never names another object after a save.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn next_number(&self) -> u64 {
         self.overlay_ref()
@@ -338,6 +380,8 @@ impl Document {
     /// As [`Document::open`]; on error the document is unchanged.
     ///
     /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+    ///
+    /// Added in 0.2.0.
     pub fn rebase(&mut self, source: impl Into<Source>, reserved: Reserved) -> Result<()> {
         let options = OpenOptions::default()
             .with_limits(*self.limits())
@@ -363,6 +407,8 @@ impl Document {
     }
 
     /// One past the highest number reserved in this session, `None` when none was.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn reserved_end(&self) -> Option<u64> {
         self.overlay_ref().next_number.get()
@@ -405,6 +451,8 @@ impl Document {
 }
 
 /// What [`Document::rebase`] does with the numbers reserved in the session.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Reserved {
@@ -431,6 +479,8 @@ pub(crate) enum InOverlay<'a> {
 /// back to its base value drops the overlay entry.
 ///
 /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct CosMut<'d> {
     doc: &'d mut Document,
@@ -438,6 +488,8 @@ pub struct CosMut<'d> {
 
 impl CosMut<'_> {
     /// The document as it is now (overlay over base), for reading.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn document(&self) -> &Document {
         self.doc
@@ -450,6 +502,8 @@ impl CosMut<'_> {
     /// # Errors
     /// Strict-mode refusals and unavailable input ([`Error::DataPending`],
     /// [`Error::Source`]) while loading a base object.
+    ///
+    /// Added in 0.2.0.
     pub fn get(&self, r: ObjRef) -> Result<Option<Arc<Object>>> {
         match self.doc.overlay_value(r.num, Some(r.gen_nr)) {
             InOverlay::Value(value) => Ok(Some(Arc::clone(value))),
@@ -462,6 +516,8 @@ impl CosMut<'_> {
     ///
     /// # Errors
     /// As [`Document::reserve_number`].
+    ///
+    /// Added in 0.2.0.
     pub fn create(&mut self, object: Object) -> Result<ObjRef> {
         let r = self.doc.reserve_number()?;
         self.set(r, object)?;
@@ -475,6 +531,8 @@ impl CosMut<'_> {
     /// # Errors
     /// [`Error::InvalidStructure`] when `r` is none of those (or its generation does not
     /// match); as [`CosMut::get`].
+    ///
+    /// Added in 0.2.0.
     pub fn set(&mut self, r: ObjRef, object: Object) -> Result<()> {
         let before = self.get(r)?;
         if before.as_deref() == Some(&object) {
@@ -513,6 +571,8 @@ impl CosMut<'_> {
     ///
     /// # Errors
     /// [`Error::InvalidStructure`] when `r` does not exist; as [`CosMut::get`].
+    ///
+    /// Added in 0.2.0.
     pub fn delete(&mut self, r: ObjRef) -> Result<()> {
         let before = self.get(r)?.ok_or_else(unknown_object)?;
         let prior = self.doc.overlay_ref().objects.get(&r.num).cloned();
@@ -528,6 +588,8 @@ impl CosMut<'_> {
     }
 
     /// The trailer as it is now (overlay, then base).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn trailer(&self) -> &Dict {
         self.doc.trailer()
@@ -535,6 +597,8 @@ impl CosMut<'_> {
 
     /// Replaces the trailer (for example to point `/Info` at a new object). A trailer equal
     /// to the base's drops the overlay's.
+    ///
+    /// Added in 0.2.0.
     pub fn set_trailer(&mut self, trailer: Dict) {
         if *self.doc.trailer() == trailer {
             return;

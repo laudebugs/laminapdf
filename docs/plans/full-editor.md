@@ -80,7 +80,7 @@ The editing architecture (lazy COS overlay, typed model, op log, save planner, o
 | HTML → PDF | Browser Run, then lamina post-processing (tags, PDF/A) | 0013 | E13 |
 | Batch jobs (optimise, convert, stamp many files) | Workflows + Queues, Worker running `laminapdf-wasm` for small files, Containers for large | 0013 | E14, E16 |
 | Timestamp authority proxy (TSAs rarely allow CORS) | Worker, no document bytes (hash only) | 0020 | E10 |
-| Accounts and user login (hosted service, decided 2026-10-28) | Auth on D1 or a hosted vendor (`auth` spike) | 0011 | first round that needs it ([H1](../todos/ready/H1-auth-spike.md) spike, [H2](../todos/ready/H2-accounts-and-login.md)) |
+| Accounts and user login (hosted service, decided 2026-10-28) | Auth on D1 or a hosted vendor (`auth` spike) | 0011 | first round that needs it ([H1](../todos/ongoing/H1-auth-spike.md) spike, [H2](../todos/ready/H2-accounts-and-login.md)) |
 | Cloud storage and sync of the user's documents (opt-in per document) | R2 for blobs, D1 index, per-user access | 0011 | first round that needs it ([H3](../todos/ready/H3-cloud-document-storage.md), [H4](../todos/ready/H4-document-sync.md)) |
 
 ## 7. Phases and rounds
@@ -106,9 +106,10 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 - **Ships (group C):** insert blank pages, insert pages from other PDFs, delete and duplicate, reorder (drag in thumbnails), extract selected pages, merge documents, split by count/ranges/bookmarks, rotate, crop display area (with a warning that cropped content remains), resize page, margins and page boxes, portrait ↔ landscape, reverse order, page labels, replace pages. From H: export pages/ranges.
 - **Crates:** `laminapdf-content` append API (introduced here, see §6): resizing that scales content wraps the existing streams in `q <scale cm> … Q` without parsing them; `laminapdf-ops` page ops (view-level mapping of `LaminaPdfId`s, no re-parse); merge remaps outlines, named destinations, AcroForm fields and the structure tree ([05 §3.1](../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)).
-- **Save:** `Free` → incremental. On signed files, page insertion/deletion is blocked by DocMDP P1/P2 and allowed with warning only when it invalidates signatures.
-- **Web vs desktop:** identical; desktop allows multi-file merge from Finder/Explorer selection.
-- **Todos:** [E2a](../todos/ready/E2a-page-organisation-feature-plan.md) feature plan · [E2b](../todos/ready/E2b-page-structure-ops.md) Page-structure ops: insert blank, delete, duplicate, reorder, rotate, reverse · [E2c](../todos/ready/E2c-cross-document-pages.md) Insert pages from other PDFs, replace pages, extract and export ranges · [E2d](../todos/ready/E2d-merge-and-split.md) Merge documents and split by count, ranges and bookmarks · [E2e](../todos/ready/E2e-content-append-api.md) `laminapdf-content` append API · [E2f](../todos/ready/E2f-page-geometry.md) Crop, resize, page boxes and orientation · [E2g](../todos/ready/E2g-page-labels.md) Page labels editor · [E2h](../todos/ready/E2h-page-organiser-ui.md) Page organiser UI: thumbnails drag-and-drop, multi-select and page dialogs · [E2i](../todos/ready/E2i-signed-gating-and-close.md) DocMDP gating tests on signed fixtures and E2 round close.
+- **Save:** `Free` → incremental. On certified files every page change is a DocMDP violation at every level (P1, P2 and P3), and on usage-rights files too; it is allowed, after a warning, only with the override that invalidates the signatures. Approval-signed files save page changes as incremental updates, except changes to a signed signature's widget or a locked field's ([E2 plan §6](editor/e2-page-organisation.md#6-saving-and-the-save-constraint)).
+- **Web vs desktop:** identical through capability flags; several files opened together from the OS (desktop, or the installed web app) can be merged, and split parts go to a folder where the platform can write one, else to a zip ([E2 plan §7](editor/e2-page-organisation.md#7-differences-between-the-shells)). Page labels ship here; headers, footers and page numbers stamped as content (the rest of C.14) are E6.
+- **Plan:** [E2 page organisation](editor/e2-page-organisation.md).
+- **Todos:** [E2a](../todos/done/E2a-page-organisation-feature-plan.md) feature plan · [E2j](../todos/ready/E2j-page-tree-and-tree-writers.md) Page-tree editing, tree writers, page-label remapping and the page reference index · [E2r](../todos/ready/E2r-planner-page-checks.md) The save planner's field-level checks for page ops · [E2b](../todos/ready/E2b-page-structure-ops.md) Page-structure ops: insert blank, delete, reorder, rotate, reverse · [E2k](../todos/ready/E2k-duplicate-pages.md) Duplicate pages, with their annotations, form fields and tags · [E2p](../todos/ready/E2p-source-documents-and-copier.md) Source documents, the blob store and the object copier · [E2c](../todos/ready/E2c-cross-document-pages.md) Insert pages from other PDFs, replace pages, extract and export ranges · [E2d](../todos/ready/E2d-merge-and-split.md) Merge documents and split by count, ranges and bookmarks · [E2o](../todos/ready/E2o-structure-tree-merge.md) Merge structure trees, for merged and imported pages · [E2e](../todos/ready/E2e-content-append-api.md) `laminapdf-content` append API · [E2f](../todos/ready/E2f-page-geometry.md) Crop pages and set their boxes · [E2s](../todos/ready/E2s-resize-and-orientation.md) Resize pages and change their orientation · [E2q](../todos/ready/E2q-page-labels-op.md) The `SetPageLabels` op · [E2l](../todos/ready/E2l-viewer-across-page-edits.md) The viewer and edit session across edits that change the page list · [E2h](../todos/ready/E2h-page-organiser-ui.md) Page organiser UI: the Organise mode, thumbnails drag-and-drop and multi-select · [E2m](../todos/ready/E2m-document-dialogs.md) Insert from a file, replace, extract, export, merge and split in the interface · [E2g](../todos/ready/E2g-page-labels.md) The page-setup dialogs: page labels, crop, resize, boxes and orientation · [E2i](../todos/ready/E2i-signed-gating-and-close.md) DocMDP gating tests on signed fixtures and E2 round close · [E2n](../todos/ready/E2n-desktop-organise.md) Desktop: Organise in the engine, merging files opened together, writing parts to a folder.
 
 #### E3. Navigation, attachments, inspection and extraction
 
@@ -439,7 +440,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E18. Collaboration
 - [ ] Write ADR 0012 (Durable Object per document, LWW records, leases)
-- [ ] Run the `auth` spike ([H1](../todos/ready/H1-auth-spike.md)) and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
+- [ ] Run the `auth` spike ([H1](../todos/ongoing/H1-auth-spike.md)) and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
 - [ ] Feature-plan PR for E18
 - [ ] Layer-document schema for annotations, field values and page order
 - [ ] Durable Object with SQLite storage and WebSocket hibernation; R2 base revisions; D1 index
@@ -447,8 +448,8 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Load test: 50 concurrent reviewers on one document
 
 ### Hosted service: accounts, cloud storage and sync
-Todos: [H1](../todos/ready/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md), [H3](../todos/ready/H3-cloud-document-storage.md), [H4](../todos/ready/H4-document-sync.md)
-- [ ] `auth` spike: login stack recorded in ADR 0011 ([H1](../todos/ready/H1-auth-spike.md))
+Todos: [H1](../todos/ongoing/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md), [H3](../todos/ready/H3-cloud-document-storage.md), [H4](../todos/ready/H4-document-sync.md)
+- [ ] `auth` spike: login stack recorded in ADR 0011 ([H1](../todos/ongoing/H1-auth-spike.md))
 - [ ] Opt-in accounts and sign-in on web and desktop ([H2](../todos/ready/H2-accounts-and-login.md))
 - [ ] Opt-in cloud storage of documents: R2 blobs, D1 index, per-user access ([H3](../todos/ready/H3-cloud-document-storage.md))
 - [ ] Sync of cloud documents across devices ([H4](../todos/ready/H4-document-sync.md))

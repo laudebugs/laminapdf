@@ -16,6 +16,8 @@ use crate::{BidiParagraph, grapheme_boundaries};
 /// visibility, artifact marking, clip box and colour, one after the other on one baseline. A
 /// word in another colour, or text crossing a clip's edge, starts a run of its own, so each run
 /// is either all hidden or all visible.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 #[expect(
@@ -338,6 +340,8 @@ fn has_right_to_left(text: &str) -> bool {
 /// Whether `c` belongs to a script written right to left: Hebrew, Arabic, Syriac, Thaana, N'Ko
 /// and the scripts up to U+08FF, and the Hebrew and Arabic presentation forms (not the BOM,
 /// U+FEFF, at the end of the last block).
+///
+/// Added in 0.2.0.
 #[must_use]
 pub const fn is_right_to_left(c: char) -> bool {
     matches!(c, '\u{0590}'..='\u{08FF}' | '\u{FB1D}'..='\u{FDFF}' | '\u{FE70}'..='\u{FEFC}')

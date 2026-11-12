@@ -357,7 +357,7 @@
           "id": "C.05",
           "name": "Extract selected pages",
           "round": "E2",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -381,7 +381,7 @@
           "id": "C.07",
           "name": "Split by count, ranges, bookmarks",
           "round": "E2",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -464,7 +464,7 @@
         {
           "id": "C.14",
           "name": "Labels, page numbers, headers/footers",
-          "round": "E2",
+          "round": "E6",
           "target": "round-trip",
           "surfaces": {
             "core": "read",
@@ -1323,7 +1323,7 @@
           "id": "H.10",
           "name": "Export pages/ranges",
           "round": "E2",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,

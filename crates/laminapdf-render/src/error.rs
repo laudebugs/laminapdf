@@ -9,6 +9,8 @@ use serde_json::{Map, Value, json};
 /// ones under `renderErrors`, the rest reused from the groups that already define them
 /// (`page-index-out-of-range`, `password-required`, `wrong-password`, `data-pending`, `source`,
 /// `cancelled`, `invalid-argument`). Messages never contain text read from the document.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum RenderError {
@@ -101,10 +103,14 @@ pub enum RenderError {
 impl RenderError {
     /// The codes this crate adds to `fixtures/codes.json` (under `renderErrors`). The other
     /// variants reuse codes defined by other groups.
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &["render-too-large", "render-failed", "render-backend-unavailable"];
 
     /// The variant's entry in the generated [`ErrorCode`] table (one per entry of
     /// `fixtures/codes.json`), which holds its code string, kind, hint and `docsUrl`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn error_code(&self) -> ErrorCode {
         match self {
@@ -122,6 +128,8 @@ impl RenderError {
     }
 
     /// A stable kebab-case code for this error (ADR 0026 §1).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         self.error_code().as_str()
@@ -130,6 +138,8 @@ impl RenderError {
     /// The kind of this error ([ADR 0026] §2), from the generated [`ErrorCode`] table.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         self.error_code().kind()
@@ -139,6 +149,8 @@ impl RenderError {
     /// fields each code's `docs/errors` page lists; nothing in it is read from the document.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn diagnostic(&self) -> Diagnostic {
         Diagnostic::error(self.error_code(), self.to_string())
@@ -176,6 +188,8 @@ impl RenderError {
 
     /// Where the error was found (ADR 0026 §1.1): the failed byte range for a source error;
     /// nothing else has a position in the document.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {

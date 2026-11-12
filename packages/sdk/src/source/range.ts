@@ -6,7 +6,11 @@ import { isLaminaPdfError, type LaminaPdfError, packageError } from "../errors.j
 import type { BaseGlue } from "../init.js";
 import type { Instance } from "../internal/instance.js";
 
-/** A byte range of the input. */
+/**
+ * A byte range of the input.
+ *
+ * @since 0.2.0
+ */
 export interface ByteRange {
   /** First byte. */
   readonly offset: number;
@@ -17,6 +21,8 @@ export interface ByteRange {
 /**
  * Random access to a file whose bytes are fetched on demand (a remote file, a `Blob`, a file
  * handle). `@laminapdf/viewer`'s document worker reads a `Blob` through it too.
+ *
+ * @since 0.2.0
  */
 export interface RangeSource {
   /** The file's size in bytes. */
@@ -24,13 +30,19 @@ export interface RangeSource {
   /**
    * The `length` bytes at `offset` (exactly that many: the file is at least `offset + length`
    * long). Rejects when `signal` aborts.
+   *
+   * @since 0.2.0
    */
   read(offset: number, length: number, options?: { readonly signal?: AbortSignal }): Promise<Uint8Array>;
   /** The block size this source prefers fetches aligned to (HTTP: fewer, larger requests). */
   readonly blockSize?: number;
 }
 
-/** How a range document fetches. */
+/**
+ * How a range document fetches.
+ *
+ * @since 0.2.0
+ */
 export interface RangeOptions {
   /** Aborts the open's fetches: it rejects with the signal's reason. Later calls take their own
    * signal ({@link Document.ensure}). */
@@ -50,6 +62,8 @@ export interface RangeOptions {
  *
  * @param size - the file's size in bytes.
  * @param read - returns the `length` bytes at `offset`.
+ *
+ * @since 0.2.0
  */
 export function callbackSource(
   size: number,

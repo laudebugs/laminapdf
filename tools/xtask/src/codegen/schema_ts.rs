@@ -53,17 +53,30 @@ pub(crate) fn render(schema: &Value, root: &str, header: &str, source: &str) -> 
     Ok(out)
 }
 
-/// A `JSDoc` comment from `node`'s description, or nothing.
+/// A `JSDoc` comment from `node`'s description, or nothing. The Rust docs' `Added in X.Y.Z.` line,
+/// which reaches the schema with the rest of the doc comment, becomes the `@since X.Y.Z` tag
+/// `@laminapdf/sdk`'s exports carry.
 fn doc(node: &Value, indent: &str) -> String {
     match node.get("description").and_then(Value::as_str) {
         Some(d) => {
-            let lines: Vec<&str> = d.lines().collect();
+            let tags: Vec<String> = d
+                .lines()
+                .map(|line| match crate::since::added_in(line) {
+                    Some(version) => format!("@since {version}"),
+                    None => line.to_owned(),
+                })
+                .collect();
+            let lines: Vec<&str> = tags.iter().map(String::as_str).collect();
             if let [line] = lines.as_slice() {
                 format!("/** {} */\n{indent}", line.replace("*/", "*\\/"))
             } else {
                 let mut s = String::from("/**\n");
                 for line in lines {
-                    let _ = writeln!(s, "{indent} * {}", line.replace("*/", "*\\/"));
+                    if line.is_empty() {
+                        let _ = writeln!(s, "{indent} *");
+                    } else {
+                        let _ = writeln!(s, "{indent} * {}", line.replace("*/", "*\\/"));
+                    }
                 }
                 format!("{s}{indent} */\n{indent}")
             }
@@ -219,6 +232,26 @@ mod tests {
         assert!(out.contains("  box: [number, number, number, number];"), "{out}");
         assert!(out.contains("  kind: Kind;"), "{out}");
         assert!(out.contains("  label?: string | null;"), "{out}");
+    }
+
+    #[test]
+    fn render_should_turn_the_added_in_line_into_since_and_leave_other_prose() {
+        let schema = json!({
+            "$defs": {
+                "Cell": { "description": "One cell.\n\nAdded in 0.2.0.", "type": "string" },
+                "Note": { "description": "Added in an incremental update.", "type": "string" }
+            },
+            "type": "string"
+        });
+        let out = render(&schema, "Root", "", "test").unwrap();
+        assert!(
+            out.contains("/**\n * One cell.\n *\n * @since 0.2.0\n */\nexport type Cell"),
+            "{out}"
+        );
+        assert!(
+            out.contains("/** Added in an incremental update. */\nexport type Note"),
+            "{out}"
+        );
     }
 
     #[test]

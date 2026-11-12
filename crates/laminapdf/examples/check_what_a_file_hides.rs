@@ -8,6 +8,7 @@
 
 use std::error::Error;
 
+use laminapdf::reveal::Category;
 use laminapdf::{CancelToken, Document, OpenOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -44,18 +45,14 @@ pub(crate) struct FailedRedaction {
 pub(crate) fn what_it_hides(bytes: Vec<u8>) -> Result<Hidden, laminapdf::Error> {
     let options = OpenOptions::new();
     let doc = Document::open_bytes(bytes, options.clone())?;
-    // Both calls read every page and every earlier revision; a server would cancel them on a
+    // `reveal` reads every page and every earlier revision; a server would cancel it on a
     // deadline through this token.
-    let cancel = CancelToken::new();
-    let reveal = doc.reveal(&options, &cancel)?;
-    let redactions = doc.redaction_warnings(&options, &cancel)?;
+    let reveal = doc.reveal(&options, &CancelToken::new())?;
     Ok(Hidden {
-        categories: reveal
-            .found()
-            .into_iter()
-            .map(laminapdf::reveal::Category::as_str)
-            .collect(),
-        redactions: redactions
+        categories: reveal.found().into_iter().map(Category::as_str).collect(),
+        // The same warnings `Document::redaction_warnings` gives, read from what `reveal` found.
+        redactions: reveal
+            .redaction_warnings()
             .iter()
             .map(|warning| FailedRedaction {
                 code: warning.code(),

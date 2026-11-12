@@ -19,6 +19,8 @@ use laminapdf_syntax::text::encode_text_string;
 /// assert_eq!(meta.title.as_deref(), Some("Annual report"));
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct Metadata {
@@ -42,6 +44,8 @@ pub struct Metadata {
 
 impl Metadata {
     /// With the title.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_title(mut self, title: impl Into<String>) -> Self {
         self.title = Some(title.into());
@@ -49,6 +53,8 @@ impl Metadata {
     }
 
     /// With the author.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_author(mut self, author: impl Into<String>) -> Self {
         self.author = Some(author.into());
@@ -56,6 +62,8 @@ impl Metadata {
     }
 
     /// With the subject.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_subject(mut self, subject: impl Into<String>) -> Self {
         self.subject = Some(subject.into());
@@ -63,6 +71,8 @@ impl Metadata {
     }
 
     /// With the keywords.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_keywords(mut self, keywords: impl Into<String>) -> Self {
         self.keywords = Some(keywords.into());
@@ -70,6 +80,8 @@ impl Metadata {
     }
 
     /// With the creator.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_creator(mut self, creator: impl Into<String>) -> Self {
         self.creator = Some(creator.into());
@@ -77,6 +89,8 @@ impl Metadata {
     }
 
     /// With the producer.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_producer(mut self, producer: impl Into<String>) -> Self {
         self.producer = Some(producer.into());
@@ -84,6 +98,8 @@ impl Metadata {
     }
 
     /// With the creation date.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_creation_date(mut self, date: PdfDate) -> Self {
         self.creation_date = Some(date);
@@ -91,6 +107,8 @@ impl Metadata {
     }
 
     /// With the modification date.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_mod_date(mut self, date: PdfDate) -> Self {
         self.mod_date = Some(date);

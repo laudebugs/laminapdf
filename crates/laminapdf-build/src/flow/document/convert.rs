@@ -431,6 +431,8 @@ impl Builder {
     /// # Errors
     /// `invalid-document` for a style, font or image the document names but doesn't have, a
     /// page size name it doesn't know, or a colour that isn't `#rrggbb`; as [`Builder::flow`].
+    ///
+    /// Added in 0.2.0.
     pub fn document(&mut self, document: &FlowDocument, resources: &Resources) -> Result<crate::flow::FlowReport> {
         let flow = document.to_flow(self, resources)?;
         let report = self.flow(&flow)?;

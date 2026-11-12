@@ -7,6 +7,8 @@
 /// in `codes.json` (including the ones only `@laminapdf/sdk` raises); `None` for an unknown
 /// code. Behind the `explain` feature, so the text never reaches a build without it
 /// (the WASM modules).
+///
+/// Added in 0.2.0.
 #[cfg(feature = "explain")]
 #[must_use]
 pub fn explain(code: &str) -> Option<&'static str> {

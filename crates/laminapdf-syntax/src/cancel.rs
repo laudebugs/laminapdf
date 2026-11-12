@@ -15,23 +15,31 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// inside long loops; a tripped token makes the call fail with `cancelled`.
 ///
 /// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default)]
 pub struct CancelToken(Arc<AtomicBool>);
 
 impl CancelToken {
     /// A token that is not cancelled.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Cancels every job and call holding this token (or a clone).
+    ///
+    /// Added in 0.2.0.
     pub fn cancel(&self) {
         // Relaxed is enough: a flag, no data is published through it.
         self.0.store(true, Ordering::Relaxed);
     }
 
     /// Whether [`CancelToken::cancel`] was called.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_cancelled(&self) -> bool {
         self.0.load(Ordering::Relaxed)

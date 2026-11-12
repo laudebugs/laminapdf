@@ -16,6 +16,8 @@ use icu_segmenter::options::LineBreakOptions;
 use icu_segmenter::{GraphemeClusterSegmenter, LineSegmenter};
 
 /// A position in a text where a line may (or must) end.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct BreakOpportunity {
@@ -36,6 +38,8 @@ pub struct BreakOpportunity {
 /// let offsets: Vec<usize> = line_breaks("Hello, world!").iter().map(|b| b.offset).collect();
 /// assert_eq!(offsets, [7, 13]); // after "Hello, " and at the end
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn line_breaks(text: &str) -> Vec<BreakOpportunity> {
     LineSegmenter::new_17_for_non_complex_scripts(LineBreakOptions::default())
@@ -55,6 +59,8 @@ pub fn line_breaks(text: &str) -> Vec<BreakOpportunity> {
 /// The grapheme-cluster boundaries of `text` (extended grapheme clusters, UAX #29): byte
 /// offsets from 0 to `text.len()` inclusive (only 0 for the empty text). User-perceived
 /// characters: a base and its combining marks, an emoji ZWJ sequence, a Hangul syllable.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn grapheme_boundaries(text: &str) -> Vec<usize> {
     GraphemeClusterSegmenter::new().segment_str(text).collect()
@@ -65,6 +71,8 @@ pub fn grapheme_boundaries(text: &str) -> Vec<usize> {
 /// ```
 /// assert!(laminapdf_text::is_hard_break('\n') && !laminapdf_text::is_hard_break(' '));
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn is_hard_break(ch: char) -> bool {
     matches!(
@@ -80,6 +88,8 @@ pub fn is_hard_break(ch: char) -> bool {
 /// ```
 /// assert!(laminapdf_text::is_trailing_space(' ') && !laminapdf_text::is_trailing_space('a'));
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn is_trailing_space(ch: char) -> bool {
     matches!(

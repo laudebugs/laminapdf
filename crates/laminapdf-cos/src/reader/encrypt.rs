@@ -12,6 +12,8 @@ use crate::error::{Error, Result};
 
 /// What a document's encryption is, from its `/Encrypt` dictionary
 /// ([`Document::encryption`](crate::Document::encryption)).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Encryption {
@@ -395,6 +397,8 @@ pub(crate) fn decrypt_for_repair(security: &Security, stream: &mut Object, num: 
 /// stream's resolved `/Filter` and `/DecodeParms`. Only for streams of an encrypted document,
 /// which the reader decrypted when it loaded them (ISO 32000-2 §7.4.10: `/Crypt` comes first):
 /// the decoder uses it, and `laminapdf-save` when it writes such a stream as plaintext.
+///
+/// Added in 0.2.0.
 pub fn strip_crypt_filter(params: &mut Dict) {
     let is_crypt = |o: &Object| matches!(o, Object::Name(n) if n.as_bytes() == b"Crypt");
     match params.get_mut("Filter") {

@@ -43,6 +43,8 @@ pub(crate) struct Table {
 }
 
 /// Which detectors run.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum TableMode {
