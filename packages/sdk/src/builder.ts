@@ -255,8 +255,36 @@ export type Templated<T> = T extends readonly (infer U)[]
     ? { readonly [K in keyof T]: K extends AsWritten ? T[K] : Templated<T[K]> }
     : T | ValuePlaceholder;
 
-/** A `laminapdf.document/1` template: a {@link FlowDocument} whose values may be placeholders that {@link Builder.flow} fills from data. Its `type`, `schema` and `profiles` take none: `profiles` is read before filling, for `new Builder({ profiles })`. */
-export type FlowTemplate = Templated<FlowDocument>;
+/**
+ * A `laminapdf.document/1` template: a {@link FlowDocument}, with the same keys, in which a value
+ * can be a placeholder that {@link Builder.flow} fills from `options.data`.
+ *
+ * - `{ $data: "/invoice/number" }` takes a value from the data, by JSON Pointer.
+ * - `{ $each: "/items", do: … }`, in a list, adds `do` once per item of a list in the data;
+ *   inside it, `{ $item: "/name" }` takes a value from the current item.
+ * - `{ $if: "/paid", do: … }`, in a list, adds `do` only when the value is there and isn't
+ *   `false` or `null`.
+ *
+ * Placeholders nest. `type`, `schema` and `profiles` take none: `profiles` is read before filling,
+ * for `new Builder({ profiles })`.
+ *
+ * @example
+ * ```ts
+ * const template: FlowTemplate = {
+ *   schema: "laminapdf.document/1",
+ *   styles: { body: { font: "Helvetica", size: 11 } },
+ *   blocks: [
+ *     { type: "heading", level: 1, text: { $data: "/title" } },
+ *     { $each: "/lines", do: { type: "paragraph", text: { $item: "/text" } } },
+ *   ],
+ * };
+ * const data = { title: "Invoice 42", lines: [{ text: "Paper, 2 reams" }] };
+ * builder.flow(template, { data });
+ * ```
+ */
+// An interface, not an alias of `Templated<FlowDocument>`, so that TypeDoc names it where it is
+// used rather than spelling out every key of every block.
+export interface FlowTemplate extends Templated<FlowDocument> {}
 
 /** Options of {@link Builder.flow}. */
 export interface FlowOptions {

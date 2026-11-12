@@ -39,7 +39,7 @@ pub(crate) fn names(root: &Path) -> Result<Vec<String>> {
 
 /// The examples that write no PDF (the same list as `READERS` in
 /// `crates/laminapdf/tests/examples.rs`).
-const READERS: [&str; 2] = ["extract_markdown", "snapshot_test"];
+const READERS: [&str; 3] = ["extract_markdown", "react_to_error_codes", "snapshot_test"];
 
 /// Where `cargo xtask examples` writes the outputs.
 pub(crate) const OUT_DIR: &str = "target/examples-out";
