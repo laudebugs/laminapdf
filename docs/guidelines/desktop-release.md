@@ -10,15 +10,15 @@ This runbook tells the owner how to set up and look after the identities that si
 | --- | --- |
 | Product name and identifier | `Lamina PDF`, `com.laminapdf.desktop` (`apps/desktop/src-tauri/tauri.conf.json`) |
 | Publisher shown on every OS | The owner's legal name, as on their government ID |
-| Windows signing path | **Azure Artifact Signing**, Public Trust, individual developer. The owner lives in the US or Canada, the only places Microsoft accepts individuals. Checked 2026-11-12 against the [quickstart](https://learn.microsoft.com/azure/artifact-signing/quickstart), last updated 2026-10-08. |
+| Windows signing path | **Azure Artifact Signing**, Public Trust, individual developer. The owner lives in the US or Canada, the only places Microsoft accepts individuals. |
 | Apple account | Apple Developer Program, **individual** membership |
 | Updater keys, R2 buckets, ADR 0014 | Wait on [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), which hasn't started |
 
-ADR 0014 will record these answers, the Team ID and the GPG fingerprint when D5a writes it; D6a amends it then.
+D5a writes ADR 0014. Once it exists, these answers, the Apple Team ID and the GPG fingerprint go into it, before D6a merges.
 
 ## 1. Owner setup checklist
 
-Start with the items that take longest: Apple enrolment and Azure identity validation both wait on someone else's checks. "Secret manager" below means the owner's password manager; each entry name in the table is a suggestion that keeps them easy to find.
+Start with the items that take longest: Apple enrolment and Azure identity validation both wait on someone else's checks. "Secret manager" below means the owner's password manager; the entry names are suggestions.
 
 | Item | Cost | Lead time | Result kept in | Renew |
 | --- | --- | --- | --- | --- |
@@ -31,7 +31,8 @@ Start with the items that take longest: Apple enrolment and Azure identity valid
 | 1.7 Updater keys (D5a) | none | an hour | secret manager plus two offline backups; `release` and `nightly` secrets | only on compromise |
 | 1.8 GitHub `release` environment | none | minutes | repository settings | review yearly |
 | 1.9 GitHub `nightly` environment | none | minutes | repository settings | review yearly |
-| 1.10 Cloudflare buckets and tokens (D5a) | R2 usage, a few US$ a month | minutes | Cloudflare account; `release`, `nightly` and `staging` secrets | yearly token rotation |
+| 1.10 GitHub `staging` environment | none | minutes | repository settings | review yearly |
+| 1.11 Cloudflare buckets and tokens (D5a) | R2 usage, a few US$ a month | minutes | Cloudflare account; `release`, `nightly` and `staging` secrets | yearly token rotation |
 
 ### 1.1 Bundle identity
 
@@ -50,15 +51,17 @@ Gatekeeper accepts an app from outside the App Store only when a Developer ID Ap
 - [ ] In Xcode (Settings → Accounts → Manage Certificates → + → Developer ID Application), or from a certificate signing request made in Keychain Access, create the certificate. Only the Account Holder can create one.
 - [ ] In Keychain Access, export the certificate **with its private key** as a `.p12` protected by a long random password. Store the `.p12` and the password in the secret manager.
 - [ ] Run `security find-identity -v -p codesigning` and copy the identity, `Developer ID Application: <Legal Name> (<TEAMID>)`.
-- [ ] Add the `release`-environment secrets `APPLE_CERTIFICATE` (`base64 -i cert.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` and `KEYCHAIN_PASSWORD` (a new random value for CI's temporary keychain). Tauri's guide passes the first two to its build step and uses the fourth only in the workflow's `security create-keychain` step; Tauri signs with the identity named by `APPLE_SIGNING_IDENTITY` ([Tauri macOS signing](https://v2.tauri.app/distribute/sign/macos/)).
+- [ ] Add the `release`-environment secrets `APPLE_CERTIFICATE` (`base64 -i cert.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` and `KEYCHAIN_PASSWORD` (a new random value for CI's temporary keychain).
 - [ ] Delete the exported `.p12` file from disk once it is in the secret manager.
+
+**For D6c:** the build step gets `APPLE_CERTIFICATE` and `APPLE_CERTIFICATE_PASSWORD`, and Tauri signs with the identity in `APPLE_SIGNING_IDENTITY`. `KEYCHAIN_PASSWORD` is used only by the workflow's `security create-keychain` step ([Tauri macOS signing](https://v2.tauri.app/distribute/sign/macos/)).
 
 ### 1.4 Notarisation credentials
 
 - [ ] In App Store Connect → Users and Access → Integrations → App Store Connect API, request access if asked, then create a **Team key** with the Developer role. Download the `.p8` file: Apple lets you download it once.
 - [ ] Store the `.p8`, its Key ID and the Issuer ID in the secret manager.
 - [ ] Add the `release`-environment secrets `APPLE_API_KEY` (the Key ID), `APPLE_API_ISSUER` and `APPLE_API_KEY_P8` (the file's contents). The workflow writes the contents to a file and points `APPLE_API_KEY_PATH` at it, as Tauri expects.
-- [ ] **Fallback**, only if an individual account can't create a Team key: an app-specific password, with `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` as `release` secrets. Record here why the API key wasn't possible.
+- [ ] **Fallback**, only if an individual account can't create a Team key: an app-specific password, with `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` as `release` secrets. Reason the API key wasn't possible: `<to fill in if used>`.
 
 ### 1.5 Azure Artifact Signing (Windows)
 
@@ -80,7 +83,7 @@ The steps follow Microsoft's [quickstart](https://learn.microsoft.com/azure/arti
 | Certificate profile | `<to fill in>` |
 | Identity validation completed | `<date>` |
 
-**For D6d (recommendation, not yet tested):** Tauri's Windows guide calls `artifact-signing-cli` from `bundle.windows.signCommand`, and that tool reads a client secret (`AZURE_CLIENT_SECRET`) ([Tauri Windows signing](https://v2.tauri.app/distribute/sign/windows/); [artifact-signing-cli](https://github.com/Levminer/artifact-signing-cli)). A federated credential needs a signer that takes its login from `azure/login`, such as `signtool` with Microsoft's Artifact Signing dlib in the `signCommand`. D6d tries that first. Only if it fails does the owner add a client secret, with a 12-month expiry, as `AZURE_CLIENT_SECRET`.
+**For D6d (recommendation, not yet tested):** sign with `signtool` and Microsoft's Artifact Signing dlib in `bundle.windows.signCommand`, logged in through `azure/login` with the federated credential, so no client secret exists. Tauri's guide uses `artifact-signing-cli` instead, but that tool needs a client secret, `AZURE_CLIENT_SECRET` ([Tauri Windows signing](https://v2.tauri.app/distribute/sign/windows/); [artifact-signing-cli](https://github.com/Levminer/artifact-signing-cli)). Only if `signtool` fails does the owner add a client secret, with a 12-month expiry.
 
 **OV certificate: not applicable**, because the owner qualifies for Artifact Signing. If Microsoft's rules change or validation fails, the fallback is the OV certificate in a cloud HSM that the D6a todo describes, and this section and ADR 0014 then record the CA and signing tool.
 
@@ -91,9 +94,17 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 - [ ] On a trusted machine, preferably offline, create an ed25519 **primary key** for certification only: `gpg --quick-gen-key "<Legal Name> (Lamina PDF releases) <releases@laminapdf.com>" ed25519 cert 5y`. The email address is a suggestion.
 - [ ] Add a **signing subkey** that expires in two years: `gpg --quick-add-key <PRIMARY FPR> ed25519 sign 2y`.
 - [ ] Back up the primary key (`gpg --export-secret-keys --armor`) and a revocation certificate to two encrypted drives kept in different places, then remove the primary secret key from the machine CI's key comes from.
-- [ ] Export **only the subkey** (`gpg --export-secret-subkeys --armor <SUBKEY FPR>!`), protected by a passphrase. Add the `release` secrets `LINUX_SIGNING_KEY` (the armored export) and `LINUX_SIGNING_KEY_PASSPHRASE`. D6b maps them to what Tauri reads: `SIGN=1`, `SIGN_KEY` and `APPIMAGETOOL_SIGN_PASSPHRASE` for the AppImage ([Tauri Linux signing](https://v2.tauri.app/distribute/sign/linux/)), and `TAURI_SIGNING_RPM_KEY` and `TAURI_SIGNING_RPM_KEY_PASSPHRASE` for the `.rpm` ([Tauri RPM](https://v2.tauri.app/distribute/rpm/)). Tauri doesn't sign `.deb` files, so D6b signs them with `debsigs`.
+- [ ] Export **only the subkey** (`gpg --export-secret-subkeys --armor <SUBKEY FPR>!`), protected by a passphrase. Add the `release` secrets `LINUX_SIGNING_KEY` (the armored export) and `LINUX_SIGNING_KEY_PASSPHRASE`.
 - [ ] Publish the public key at `https://laminapdf.com/keys/lamina-release.asc` (the file `apps/site/public/keys/lamina-release.asc`) and on [keys.openpgp.org](https://keys.openpgp.org/).
 - [ ] Record the primary key's fingerprint here and in ADR 0014: `<FINGERPRINT — to fill in>`.
+
+**For D6b:** the workflow maps the two secrets to what each packaging tool reads.
+
+| Package | Variables | Source |
+| --- | --- | --- |
+| AppImage | `SIGN=1`, `SIGN_KEY`, `APPIMAGETOOL_SIGN_PASSPHRASE` | [Tauri Linux signing](https://v2.tauri.app/distribute/sign/linux/) |
+| `.rpm` | `TAURI_SIGNING_RPM_KEY`, `TAURI_SIGNING_RPM_KEY_PASSPHRASE` | [Tauri RPM](https://v2.tauri.app/distribute/rpm/) |
+| `.deb` | none: Tauri doesn't sign it, so D6b signs it with `debsigs` | — |
 
 ### 1.7 Updater keys (waits on D5a)
 
@@ -118,10 +129,17 @@ Scheduled nightlies run in `nightly`, which has **no required reviewer** so the 
 - [ ] Create it with no reviewer, and limit deployment branches to `main`.
 - [ ] Add only the nightly updater key and the Cloudflare token for the nightly bucket (§2). It gets no Apple, Azure or GPG secret and no Azure federated credential. Nightlies are ad-hoc signed on macOS, unsigned on Windows, and come with only `SHA256SUMS` on Linux (decided in D6b).
 
-### 1.10 Cloudflare (waits on D5a)
+### 1.10 GitHub `staging` environment
+
+D5b's updater tests run in `staging` on every push to `main` and every night, so it has no required reviewer either. It holds only a throwaway test updater key and a token for the staging bucket, so nothing in it can reach a user's install.
+
+- [ ] Create it with no reviewer, and limit deployment branches to `main`.
+- [ ] Add only the two `staging` secrets in §2 (from D5a and D5b).
+
+### 1.11 Cloudflare (waits on D5a)
 
 - [ ] Confirm the R2 buckets `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging` and their download domains exist (D5a). The staging bucket and the `staging` environment in §2 serve D5b's updater tests and D6b–D6d's trial runs; they hold only a throwaway updater key and that bucket's token, so nothing in them can reach a user's install.
-- [ ] Confirm one API token per bucket, each scoped to its bucket only, stored as in §2.
+- [ ] Confirm each token is scoped to one bucket only, stored as in §2. The staging bucket has two separate tokens: one in `release`, for D6b–D6d's signed trial runs, and one in `staging`, for D5b's tests.
 
 ## 2. Secrets inventory
 
@@ -157,7 +175,7 @@ Every secret is an **environment** secret; the repository level holds none. "Rea
 
 ## 3. Verification commands
 
-Run these on every release candidate, on a clean virtual machine for the first release of each signing path, and paste the results (not the files) into the release pull request.
+Run these on every release candidate and paste the output (not the files) into the release pull request. For the first release of each signing path, run them on a clean virtual machine.
 
 **macOS** ([Apple](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)):
 
@@ -216,12 +234,12 @@ Fill in each date when the item is created, and add a calendar reminder as far a
 
 ### When a key or account is compromised
 
-1. **Stop new updates.** Pause the affected channels in the update Worker's manifests (ADR 0014's kill switch, effective within 60 seconds). A paused channel still serves bridge releases.
+1. **Stop new updates.** Pause the affected channels in the update Worker's manifests (ADR 0014's kill switch, once D5a writes it; effective within 60 seconds). A paused channel still serves bridge releases.
 2. **Revoke the identity.**
    - Apple: revoke the Developer ID certificate in the developer account, revoke the API key, and contact Apple Developer Support about the compromise so it can act on builds already signed.
    - Azure: remove the Signer role and the federated credential, then open an Azure support request to revoke the certificate profile's certificates (deleting the profile doesn't revoke them; [FAQ](https://learn.microsoft.com/azure/artifact-signing/faq)).
    - GPG: publish the revocation certificate for the subkey (or the primary key) to the website and keys.openpgp.org.
-   - Updater key: follow ADR 0014's rotation procedure: a bridge release signed with the old key that carries the new public key.
+   - Updater key: follow ADR 0014's rotation procedure (once D5a writes it): a bridge release signed with the old key that carries the new public key.
    - Cloudflare or GitHub: revoke the token and delete the environment secret.
 3. **Make the new identity** with this runbook and replace the secrets.
 4. **Re-sign and republish** the current release with the new identity, verify it with §3, and lift the pause.
@@ -233,7 +251,7 @@ The publisher identities move to the company: a new Apple organisation membershi
 
 ## 5. SmartScreen policy
 
-Expect a SmartScreen warning on the first downloads. Microsoft's guidance (updated 2026-08-17) is that a newly signed file shows "unrecognized" until it has download history, whatever the certificate: OV, EV and Artifact Signing alike, with the verified publisher name shown in the prompt. Reputation builds over several weeks and hundreds of clean installs, and later builds signed with the same identity can inherit some of it, so every release keeps the same signing identity ([SmartScreen reputation](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation)). D6d records what a clean Windows virtual machine shows for the first signed build. A warning is acceptable for early releases; an unsigned-looking prompt (no publisher name) is a failure.
+A SmartScreen warning that names the publisher is acceptable for early releases; a prompt with no publisher name is a failure. Expect the warning on the first downloads: Microsoft's guidance is that a newly signed file shows "unrecognized" until it has download history, whatever the certificate: OV, EV and Artifact Signing alike, with the verified publisher name shown in the prompt. Reputation builds over several weeks and hundreds of clean installs, and later builds signed with the same identity can inherit some of it, so every release keeps the same signing identity ([SmartScreen reputation](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation)). D6d records what a clean Windows virtual machine shows for the first signed build.
 
 Until releases install without a warning, the release notes carry this text:
 
