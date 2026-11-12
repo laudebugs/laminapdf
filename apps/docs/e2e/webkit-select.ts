@@ -10,7 +10,7 @@ import type { Page } from "playwright";
 const BROWSER = process.env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 
 /** WebKit's console message for a stylesheet or style attribute the CSP refused. */
-export const REFUSED_STYLE =
+const REFUSED_STYLE =
   "Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline' does not appear in the style-src directive of the Content Security Policy.";
 
 /**
