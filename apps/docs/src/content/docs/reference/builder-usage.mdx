@@ -1,0 +1,51 @@
+---
+title: Using Builder
+description: The tasks a Builder is for, from a first page of text to accessible and archival PDFs, each with a short example, and the mistakes to avoid.
+---
+
+import Example from "../../../components/Example.astro";
+import Snippet from "../../../components/Snippet.astro";
+
+A `Builder` makes a new PDF: you add pages, draw on them, and finish into a `Document` you save. Each task below has a short example and a link to the guide that goes further. The [`Builder` reference](/reference/sdk/classes/builder/) lists every method and option.
+
+## Draw a page
+
+`b.page("A4")` adds a page, `page.surface()` is what you draw on, and `page.finish()` writes the page into the document. `b.finish()` then returns the new document, and `doc.save()` its bytes:
+
+<Example ts="packages/sdk/examples/hello.ts" rust="crates/laminapdf/examples/hello.rs" result="hello" />
+
+Positions are in points (1/72 inch) from the page's top-left corner, with y going down. [Pages and coordinates](/concepts/pages-and-coordinates/) has the details, rotated pages included.
+
+## Make several pages
+
+Call `b.page()` once per page, and finish each page before the builder. This example gives each page a heading and a "Page 2 of 3" footer:
+
+<Snippet file="packages/sdk/examples/page-numbers.ts" />
+
+When you don't know how many pages the content needs, let the builder decide: [pages that flow](/guides/flowing-pages/) breaks headings, paragraphs and tables across pages, with headers and footers, and `b.markdown(text)` does the same for a Markdown file.
+
+## Draw text, shapes and images
+
+- `surface.text(str, { font, size, at })` draws text as it is, starting a new line only at each line break in it, and `surface.textBox(str, { font, size, box })` wraps a paragraph to fit a box. [Text and fonts](/guides/fonts-and-text/) covers fonts, scripts and text that doesn't fit.
+- `surface.path(p => …)` draws a shape you then fill, stroke or clip to, and `surface.image(image, rect)` places a JPEG, a PNG or raw pixels. [Shapes, colour and images](/guides/images-and-vectors/) covers colour, opacity and transforms.
+
+## Add links, bookmarks and metadata
+
+`surface.link(rect, target)` makes a region of a page link to another page or a web address. On the builder, `b.outline(entries)` adds bookmarks, `b.pageLabels(ranges)` numbers pages `i, ii, 1, 2`, and `b.metadata({ title })` and `b.lang("en")` describe the document. [Links, outlines and metadata](/guides/links-outlines-and-metadata/) has the example.
+
+## Build to a standard
+
+`new Builder({ profiles: ["PDF/UA-1"] })` makes a document for screen readers, and `"PDF/A-2b"` one for archives. Under a profile, `b.finish()` checks the rules a program can check and fails with the code of the first one the document breaks. [Accessible PDFs](/guides/accessible-pdfs/) and [archival PDFs](/guides/archival-pdfs/) list the rules.
+
+## Mistakes to avoid
+
+- **Text needs the text module.** Load it with `init({ text: true })` before you create the builder. Without it, a builder draws shapes and images only, and `text` fails with `text-module-not-loaded`.
+- **`at` is the baseline.** `at: [x, y]` places the start of the line the letters sit on, so the letters rise above `y`. Text at `y: 0` is drawn above the page's top edge, out of sight.
+- **An unfinished page is left out.** A page joins the document only when you call `page.finish()`. Pages still open when the builder finishes are dropped.
+- **A finished page takes no more drawing.** Draw everything a page needs, such as a footer with the page count, before you finish it. Drawing after that fails with `builder-finished`.
+- **Some mistakes show up late.** A shape with invalid values fails at `page.finish()` with `invalid-geometry`. A link to a page or destination that doesn't exist fails at `b.finish()`, as does a profile's broken rule.
+- **The [standard 14 fonts](/reference/glossary/#standard-14-fonts) are Latin only.** `Font.standard("Helvetica")` needs no font file, but it covers Western European text and isn't embedded, so PDF/UA and PDF/A refuse it with `font-not-embedded`. Load your own font with `Font.fromBytes(bytes)` for other scripts and for those profiles.
+- **Dates come from you.** Lamina PDF never reads the clock, so a document has a creation date only when you pass `creationDate`. The same content and options give the same bytes on every run; [test the PDFs you generate](/guides/test-generated-pdfs/) builds on that.
+- **Free the builder and the document.** `b.finish()` frees the builder, but a builder that throws before it finishes, such as on a missing glyph, holds its memory until the garbage collector reaches it. Declare it with `using b = new Builder()`, as the examples do, so it is freed either way. The document `b.finish()` returns holds its own memory, so write `using doc = b.finish()` too.
+
+Next: [the `Builder` reference](/reference/sdk/classes/builder/).

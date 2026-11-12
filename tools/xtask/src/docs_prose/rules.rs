@@ -288,6 +288,34 @@ pub(crate) fn is_adr_number(word: &str, next: Option<&str>) -> bool {
     adr_then_number || word.strip_prefix("ADR-").is_some_and(is_number)
 }
 
+/// The words of `text` as the ADR and todo checks of `check docs` read them: split at anything but
+/// ASCII letters and digits, and at hyphens too (so `B5a-B5c` is two IDs), except in `ADR-0004`.
+pub(crate) fn id_words(text: &str) -> Vec<&str> {
+    text.split(|c: char| !(c.is_ascii_alphanumeric() || c == '-'))
+        .flat_map(|word| {
+            if word.starts_with("ADR-") {
+                vec![word]
+            } else {
+                word.split('-').collect()
+            }
+        })
+        .filter(|w| !w.is_empty())
+        .collect()
+}
+
+/// What `word`, followed by `next` (both from [`id_words`]), names of the project's internal record,
+/// as a check reports it: `ADR 0004` or `the todo ID B5a`.
+pub(crate) fn internal_reference(word: &str, next: Option<&str>) -> Option<String> {
+    if is_adr_number(word, next) {
+        let number = word.strip_prefix("ADR-").or(next).unwrap_or_default();
+        Some(format!("ADR {number}"))
+    } else if is_todo_id(word) {
+        Some(format!("the todo ID {word}"))
+    } else {
+        None
+    }
+}
+
 fn internal_ids(block: &Block, config: &Config) -> Vec<Finding> {
     let text = block.text();
     let words: Vec<&str> = words(&text).collect();

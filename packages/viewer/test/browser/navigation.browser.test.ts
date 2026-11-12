@@ -5,7 +5,7 @@
 import { Builder, init } from "@laminapdf/sdk";
 import { createViewer, ThumbnailStrip, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { hook, read, testViewer } from "./helpers.js";
+import { hook, next, read, testViewer } from "./helpers.js";
 
 /** A 1,000-page document of letter pages, each with one box. */
 function thousandPages(): Uint8Array {
@@ -329,6 +329,55 @@ describe("a restore while hidden after another document", () => {
     } finally {
       viewer.destroy();
       host.remove();
+    }
+  });
+});
+
+describe("the thumbnails strip after a crash", () => {
+  it("draws the thumbnails a crash interrupted once the worker restarts, and reports no error", async () => {
+    // Its own client: the crash restarts the worker the other tests share.
+    const client = await testViewer();
+    const errors: unknown[] = [];
+    const reported = (e: ErrorEvent) => {
+      errors.push(e.error ?? e.message);
+      e.preventDefault();
+    };
+    window.addEventListener("error", reported);
+    const doc = await client.open(thousand);
+    const viewer = createViewer({ client });
+    viewer.mount(main);
+    viewer.open(doc);
+    const strip = new ThumbnailStrip(client, viewer);
+    strip.element.style.flex = "1";
+    strip.mount(side);
+    strip.open(doc);
+    const list = strip.element;
+    const painted = () => list.querySelectorAll("canvas").length === list.querySelectorAll("[role=option]").length;
+    try {
+      await until(painted);
+      // The worker is held while the thumbnails scrolled to queue their renders; the crash runs
+      // first when the hold ends (document calls go before background renders) and rejects them.
+      const held = hook(client, "__busy", [1500]).catch(() => undefined);
+      list.scrollTop = 6000;
+      await until(() => !painted());
+      // Thumbnails still waiting for their render when the worker crashed: the ones it interrupted.
+      let waiting = 0;
+      const off = client.on("crashed", () => {
+        waiting = list.querySelectorAll("[role=option]").length - list.querySelectorAll("canvas").length;
+      });
+      const restarted = next(client, "restarted");
+      void hook(client, "__crash").catch(() => undefined);
+      await held;
+      expect(await restarted).toMatchObject({ reopened: true });
+      off();
+      expect(waiting).toBeGreaterThan(0);
+      await until(painted);
+      expect(errors).toEqual([]);
+    } finally {
+      window.removeEventListener("error", reported);
+      strip.destroy();
+      viewer.destroy();
+      client.terminate();
     }
   });
 });

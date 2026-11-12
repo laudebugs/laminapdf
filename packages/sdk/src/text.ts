@@ -10,7 +10,7 @@ export interface TextOptions {
   readonly skipInvisible?: boolean;
 }
 
-/** A point in page space (ADR 0027: top-left of the displayed CropBox, y down, points). */
+/** A point in page space: points from the top-left of the displayed CropBox, y down. */
 export interface QuadPoint {
   readonly x: number;
   readonly y: number;

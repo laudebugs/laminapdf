@@ -51,6 +51,40 @@
       "invoice.pdf": "fixtures/golden/examples/invoice.pdf"
     }
   },
+  "first-run-extract": {
+    "setup": [
+      "laminapdf build notes.md -o notes.pdf"
+    ],
+    "commands": [
+      "laminapdf extract notes.pdf --format md"
+    ],
+    "files": {
+      "notes.md": "fixtures/cli/notes.md"
+    }
+  },
+  "first-run-inspect": {
+    "setup": [
+      "laminapdf build notes.md -o notes.pdf"
+    ],
+    "commands": [
+      "laminapdf info notes.pdf",
+      "laminapdf check notes.pdf"
+    ],
+    "files": {
+      "notes.md": "fixtures/cli/notes.md"
+    }
+  },
+  "first-run-render": {
+    "setup": [
+      "laminapdf build notes.md -o notes.pdf"
+    ],
+    "commands": [
+      "laminapdf render notes.pdf -o notes.png"
+    ],
+    "files": {
+      "notes.md": "fixtures/cli/notes.md"
+    }
+  },
   "info": {
     "commands": [
       "laminapdf info invoice.pdf"
