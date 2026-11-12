@@ -1,0 +1,56 @@
+// The desktop update service (ADR 0014): one Worker that answers the Tauri updater's
+// `GET /{channel}/{target}/{arch}/{current_version}` from the channel manifests in R2. It only
+// reads the buckets: D6b's release workflow and apps/updates/scripts/manifest.ts write them.
+// Production is updates.laminapdf.com and staging (env.staging) staging-updates.laminapdf.com,
+// both deployed from main by .github/workflows/updates-deploy.yml (apps/updates/README.md).
+// Comments here take whole lines.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "lamina-pdf-updates",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  // A Workers custom domain on the laminapdf.com zone: `wrangler deploy` creates its DNS record and
+  // certificate. The updater URL is compiled into every installed app (D5b), so it never moves
+  // without a bridge release.
+  "routes": [{ "pattern": "updates.laminapdf.com", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+  // Each channel's bucket (ADR 0014 §5): stable and beta in the releases bucket, the staging and
+  // nightly channels in their own, so a token that writes one can't touch the others.
+  "r2_buckets": [
+    { "binding": "RELEASES", "bucket_name": "lamina-pdf-releases" },
+    { "binding": "STAGING", "bucket_name": "lamina-pdf-staging" },
+    { "binding": "NIGHTLY", "bucket_name": "lamina-pdf-nightly" }
+  ],
+  // ADR 0014 §9: Workers Logs keep only what the Worker writes with console (errors, never a
+  // request header). Invocation logs (the request's metadata) and traces (which record the user
+  // agent and the full URL) stay off; no Tail Worker and no Logpush job read this Worker.
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": { "enabled": true, "invocation_logs": false },
+    "traces": { "enabled": false }
+  },
+  "env": {
+    // Staging: main's Worker before production, as lamina-pdf-updates-staging. It reads the same
+    // buckets (it never writes), so D5b's end-to-end test can use its `staging` channel. Each key is
+    // set here, not inherited, so the two Workers can't drift into sharing a route.
+    "staging": {
+      "name": "lamina-pdf-updates-staging",
+      "routes": [{ "pattern": "staging-updates.laminapdf.com", "custom_domain": true }],
+      "workers_dev": false,
+      "preview_urls": false,
+      "r2_buckets": [
+        { "binding": "RELEASES", "bucket_name": "lamina-pdf-releases" },
+        { "binding": "STAGING", "bucket_name": "lamina-pdf-staging" },
+        { "binding": "NIGHTLY", "bucket_name": "lamina-pdf-nightly" }
+      ],
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": { "enabled": true, "invocation_logs": false },
+        "traces": { "enabled": false }
+      }
+    }
+  }
+}

@@ -83,6 +83,9 @@ catalog:
   esbuild: 0.28.2
   jscpd: 5.4.2
   knip: 6.44.1
+  # The update Worker's workerd tests (apps/updates, todo D5a): the Miniflare that wrangler 4.157.0
+  # itself depends on, so one copy installs. MIT. Dev-only.
+  miniflare: 5.20261103.0-beta
   playwright: 1.64.1
   # pdf.js, which the reader's save e2e tests reopen saved files with (todo E1f), at the version the
   # round-trip and differential tools pin. Apache-2.0. Dev-only.

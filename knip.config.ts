@@ -69,6 +69,11 @@ const config: KnipConfig = {
       // The config's `runner: "local"` loads it; knip's plugin doesn't map the name to the package.
       ignoreDependencies: ["@wdio/local-runner"],
     },
+    // The desktop update Worker (its entry, the manifest tool and the Vitest config knip finds itself).
+    "apps/updates": {
+      entry: ["test/**/*.test.ts"],
+      project: ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"],
+    },
     // A command, not a library: no `exports`. bin/laminapdf.js runs the built src/launcher.ts.
     "packages/cli": { entry: ["src/launcher.ts"] },
     // Its browser tests' config loads Astro, which knip can't, so its test entries are named here.
