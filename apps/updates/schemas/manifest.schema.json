@@ -11,10 +11,12 @@
     "channel": { "enum": ["stable", "beta", "nightly", "staging"] },
     "paused": { "type": "boolean", "description": "The kill switch: no release or previous is served; bridges still are." },
     "release": {
+      "type": "object",
       "allOf": [{ "$ref": "#/$defs/release" }],
       "required": ["rollout_percent"]
     },
     "previous": {
+      "type": "object",
       "allOf": [{ "$ref": "#/$defs/release" }],
       "properties": { "rollout_percent": { "const": 100 } }
     },
@@ -27,8 +29,9 @@
         "properties": {
           "below": { "$ref": "#/$defs/version" },
           "release": {
+            "type": "object",
             "allOf": [{ "$ref": "#/$defs/release" }],
-            "not": { "required": ["rollout_percent"] }
+            "not": { "type": "object", "required": ["rollout_percent"] }
           }
         }
       }

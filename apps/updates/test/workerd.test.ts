@@ -2,6 +2,7 @@
 // Miniflare, with the three R2 buckets bound and the real Cache API. The handler's branches are
 // tested in Node (handler.test.ts); this checks the entry's wiring, the runtime's types, and that
 // nothing workerd writes carries the install ID.
+import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -13,7 +14,7 @@ const logged: string[] = [];
 
 beforeAll(async () => {
   const bundle = await build({
-    entryPoints: [new URL("../src/index.ts", import.meta.url).pathname],
+    entryPoints: [fileURLToPath(new URL("../src/index.ts", import.meta.url))],
     bundle: true,
     format: "esm",
     platform: "neutral",
