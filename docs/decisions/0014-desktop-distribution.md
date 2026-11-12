@@ -5,9 +5,11 @@
 
 ## Context
 
-The desktop reader ([ADR 0008](0008-desktop-shell.md)) installs outside any app store. Once it does, only one path can change an installed copy: Tauri's updater, which installs a bundle only if the updater key signed it ([Tauri updater plugin](https://v2.tauri.app/plugin/updater/)). That path needs four things: a service that tells each install whether an update exists; a way to release to a few installs first and stop a bad release fast; operating-system signatures so Gatekeeper, SmartScreen and Linux package tools accept the files; and custody of the keys behind all of them. Losing the updater key strands every installed copy, and leaking it lets anyone push code to them. The [desktop plan §5](../plans/desktop-app.md#5-design-summary) sketches the design, and the owner decided on 2026-10-28 to sign as the publisher personally ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team)). This ADR records the service, its rules and the keys. The update Worker in `apps/updates` implements §1–§5 and §9.
+The desktop reader ([ADR 0008](0008-desktop-shell.md)) installs outside any app store. After installation, only one path can change an installed copy: Tauri's updater, which installs a bundle only if the updater key signed it ([Tauri updater plugin](https://v2.tauri.app/plugin/updater/)). That path needs a service that answers each install, a staged release with a way to stop it fast, operating-system signatures, and safe custody of the keys behind them. Losing the updater key strands every installed copy, and leaking it lets anyone push code to them. The [desktop plan §5](../plans/desktop-app.md#5-design-summary) sketches the design, and the owner decided on 2026-10-28 to sign as the publisher personally ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team)). This ADR records the service, its rules and the keys. The update Worker in `apps/updates` implements the service side (§2, §4, §5 and §9, and §3's handling of the ID); the desktop app creates the install ID and reads the managed policies of §1.
 
 ## Decision
+
+In short: one Worker reads a manifest per channel from R2 and answers the updater. The channels are stable, beta and nightly. Releases roll out in stages by a hashed anonymous install ID, and a pause or a bridge release reaches every install within 60 seconds. The owner is the publisher on every operating system. Releases and nightlies have separate updater keys, and no request header reaches any log.
 
 ### 1. Channels
 
@@ -24,7 +26,7 @@ Each release in a manifest carries `rollout_percent`, from 0 to 100 in steps of 
 bucket = u32_be(SHA-256(install_id_lowercase ‖ ":" ‖ release_version)[0..4]) mod 10 000
 ```
 
-and the install gets the release when `bucket < rollout_percent × 100`. Hashing with the version gives each release its own cohorts, so the same installs aren't always first. A request without a valid install ID (§3) gets only releases at 100 %. The usual steps for stable are 1 %, 10 %, 50 % and 100 %. A test of 100 000 random IDs at 10 % lands within 0.5 % of 10 %.
+and the install gets the release when `bucket < rollout_percent × 100`. Hashing with the version gives each release its own cohorts, so the same installs aren't always first. A request without a valid install ID (§3) gets only releases at 100 %. The usual steps for stable are 1 %, 10 %, 50 % and 100 %. A test of 100 000 random IDs at 10 % lands between 9.5 % and 10.5 %.
 
 ### 3. The install ID
 
@@ -36,8 +38,8 @@ and the install gets the release when `bucket < rollout_percent × 100`. Hashing
 ### 4. The kill switch and bridges
 
 - **Pause.** A manifest's `paused: true` makes the Worker answer 204 to every install that no bridge covers. `rollout_percent: 0` stops one release the same way.
-- **Bridges.** A bridge is `{ "below": "X.Y.Z", "release": { … } }`, served to every install below `below` before anything else, with no rollout and **whatever the pause**. A bridge must list at least one platform, each with a `url` and a `signature`, and its version must be at least `below`. An install several bridges behind takes the one with the lowest bound first. Bridges carry key rotations (§7) and breaking migrations, and rolling back a bad release means publishing a bridge with a higher version. Tauri's `version_comparator` could allow downgrades, but it needs support in the app, so bridges are the route this ADR takes.
-- **How fast.** Every change reaches every data centre within 60 seconds. The Worker keeps one cache layer: the Cache API, holding a manifest for 30 seconds. It checks the copy's age itself, so the bound holds even where the cache keeps an entry longer. R2 reads are strongly consistent. Worst case: 30 s of cache plus one read. **No second layer** (an in-isolate memo, a KV copy) may be added unless the two times together stay within 60 s.
+- **Bridges.** A bridge is `{ "below": "X.Y.Z", "release": { … } }`, served first to every install older than `below`, to all of them at once, **even while the channel is paused**. A bridge must list at least one platform, each with a `url` and a `signature`, and its version must be at least `below`. An install several bridges behind takes the one with the lowest bound first. Bridges carry key rotations (§7) and breaking migrations, and rolling back a bad release means publishing a bridge with a higher version.
+- **How fast.** Every change reaches every data centre within 60 seconds. The Worker keeps one cache layer: the Cache API, holding a manifest for 30 seconds. It checks the copy's age itself, so the bound holds even where the cache keeps an entry longer. R2 reads are strongly consistent. Worst case: 30 s of cache plus one read, well inside the 60 s budget. The margin is spare, not room for a second layer: **no second layer** (in-isolate memo, KV copy) may be added unless both layers together stay within 60 s.
 
 ### 5. The R2 layout, the manifest and the endpoint
 
@@ -75,14 +77,14 @@ The owner, **Laurence Ininda**, is the publisher on every operating system. The 
 
 ### 7. The updater keys: custody and rotation
 
-The updater key is the one key whose loss can't be repaired with a new certificate. The owner generated both on 2026-11-12 with `pnpm tauri signer generate`, each with a strong password:
+An updater key is the one key whose loss a new certificate can't repair. The owner generated two on 2026-11-12, a release key and a nightly key, with `pnpm tauri signer generate`, each with a strong password:
 
 | Key | minisign key ID | Signs | GitHub environment |
 | --- | --- | --- | --- |
 | Release | `AF48D217C8FBC9BB` | stable and beta | `desktop-release` (the owner approves every run) |
 | Nightly | `D8B5180692ABC3EF` | nightly only | `desktop-nightly` (no reviewer, `main` only) |
 
-Their Tauri `pubkey` values, which D5b compiles into the apps' updater configuration, are in [`apps/updates/README.md`](../../apps/updates/README.md#updater-public-keys). The public keys aren't secret.
+Their Tauri `pubkey` values, which D5b compiles into the apps' updater configuration, are in [`apps/updates/README.md`](../../apps/updates/README.md#updater-public-keys).
 
 - **Custody.** Each private key and its password are in the owner's password manager. The release key also has an encrypted offline backup in two physical places. The nightly key has one backup, since losing it strands only nightly installs, which can reinstall. CI gets each key only as that environment's `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, never as a repository secret. The nightly environment holds no release key, so a leaked nightly key can't push an update to beta or stable installs.
 - **Planned rotation.**
@@ -91,7 +93,7 @@ Their Tauri `pubkey` values, which D5b compiles into the apps' updater configura
   3. Keep N in each channel's manifest as a bridge with `below: N`, indefinitely, so an install that skipped N still takes it first. The nightly key rotates the same way.
 - **Compromise.**
   1. Pause the affected channels (§4). That stops normal releases signed with the leaked key; bridges still flow.
-  2. Publish a bridge covering every `current_version` below it. Installed copies trust only the old key, so the bridge is signed with the old key and embeds the new public key; later releases use the new key.
+  2. Publish a bridge whose `below` is above every version in the field, so every install takes it. Installed copies trust only the old key, so the bridge is signed with the old key and embeds the new public key; later releases use the new key.
   3. Revoke the leaked key: delete it from the environment and the backups.
   4. Tell users in the release notes, on the download page and in a GitHub security advisory.
 - **The risk the owner accepts:** until every install has taken the bridge, whoever holds the leaked key can also sign updates those installs accept. No updater design avoids this without a second key the app already trusts. Tauri accepts only one updater public key per build.
@@ -103,8 +105,8 @@ Every release artefact carries a GitHub artifact attestation (ADR 0017's practic
 ### 9. Privacy
 
 - **What the endpoint sees:** the IP address, the user agent, the channel, target, arch and current version (in the path) and the install ID header. Nothing else is sent, and the response depends only on these.
-- **What is kept:** nothing about a request. The Worker's [`wrangler.jsonc`](../../apps/updates/wrangler.jsonc) sets `observability.logs.invocation_logs: false`, so Workers Logs record only what the Worker writes with `console`. That is two events, each naming the channel: `manifest-invalid` with the validator's reasons, and `manifest-unavailable` with R2's error name and message. Neither can hold a request header. `observability.traces.enabled: false` keeps traces off. Cloudflare's traces record the user agent, the full URL and some request headers on every request ([spans and attributes](https://developers.cloudflare.com/workers/observability/traces/spans-and-attributes/), checked 2026-11-12). No Tail Worker is attached, and Tail Workers receive request headers ([Tail Workers](https://developers.cloudflare.com/workers/observability/logs/tail-workers/)). No Logpush job reads this Worker.
-- **Verified 2026-11-12** against [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/): invocation logs hold the request's metadata, and `invocation_logs = false` turns them off. Anyone adding tracing, a Tail Worker or Logpush must first show that the install ID can't reach it, and must amend this section.
+- **What is kept:** nothing about a request. The Worker's [`wrangler.jsonc`](../../apps/updates/wrangler.jsonc) sets `observability.logs.invocation_logs: false`, so Workers Logs record only what the Worker writes with `console`. That is two events, each naming the channel: `manifest-invalid` with the validator's reasons, and `manifest-unavailable` with R2's error name and message. Neither can hold a request header. `observability.traces.enabled: false` keeps traces off. Cloudflare's traces record the user agent, the full URL and some request headers on every request ([spans and attributes](https://developers.cloudflare.com/workers/observability/traces/spans-and-attributes/), checked 2026-11-12). No Tail Worker is attached; Tail Workers receive request headers ([Tail Workers](https://developers.cloudflare.com/workers/observability/logs/tail-workers/)). No Logpush job reads this Worker.
+- **Verified 2026-11-12** against [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/): invocation logs hold the request's metadata, and `observability.logs.invocation_logs: false` turns them off. Anyone adding tracing, a Tail Worker or Logpush must first show that the install ID can't reach it, and must amend this section.
 - **The privacy page** (D7b) says the same in plain words.
 
 ## Consequences
@@ -112,7 +114,7 @@ Every release artefact carries a GitHub artifact attestation (ADR 0017's practic
 - One Worker and three buckets serve every desktop update. Costs are R2 storage and reads; the Worker reads each channel's manifest at most once per data centre every 30 s.
 - Releasing becomes data rather than a deploy: D6b's workflow uploads bundles and edits a manifest with `apps/updates/scripts/manifest.ts`, and the owner moves a rollout or pauses a channel with the same tool.
 - The updater URL and the release public key are compiled into every installed copy. Moving `updates.laminapdf.com`, or replacing the key, needs a bridge release.
-- An install ID exists, even though it is random, resettable and never stored server-side. The privacy page must describe it.
+- Every install now carries an ID. It is random, resettable and never stored server-side, but the privacy page must still describe it.
 - The owner's legal name appears on every signed file and in every installer prompt. If the project incorporates, the publisher identities move to the company: a new Apple organisation membership, a new Artifact Signing organisation validation and a new GPG key. The updater keys stay, so installed copies keep updating.
 
 ## Alternatives considered
