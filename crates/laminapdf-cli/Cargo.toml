@@ -59,6 +59,13 @@ schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+# A name of its own: laminapdf-build, -cli, -save and -text each have an `examples/golden.rs`, and
+# four examples called `golden` would all link to `target/debug/examples/golden(.exe)`, which
+# collides on Windows when two link at once (LNK1104).
+[[example]]
+name = "golden-cli"
+path = "examples/golden.rs"
+
 [dev-dependencies]
 # The test helpers every crate shares, by path only (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }

@@ -32,6 +32,13 @@ subsetter = { workspace = true }
 thiserror = { workspace = true }
 unicode-bidi = { workspace = true }
 
+# A name of its own: laminapdf-build, -cli, -save and -text each have an `examples/golden.rs`, and
+# four examples called `golden` would all link to `target/debug/examples/golden(.exe)`, which
+# collides on Windows when two link at once (LNK1104).
+[[example]]
+name = "golden-text"
+path = "examples/golden.rs"
+
 [dev-dependencies]
 # Workspace crates by path only, without a version: `cargo publish` drops such dev-dependencies,
 # so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
