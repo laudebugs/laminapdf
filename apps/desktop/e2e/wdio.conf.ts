@@ -17,7 +17,7 @@ export const config: WebdriverIO.Config = {
   // The service starts the app once for the whole run, so the scenarios share it and run in this
   // order: the empty state while nothing is open, then each scenario opens its own file, which
   // replaces the one before.
-  specs: [["start", "open"].map((name) => join(here, "specs", `${name}.e2e.ts`))],
+  specs: [["start", "open", "scroll", "zoom", "password", "repaired", "restart", "large"].map((name) => join(here, "specs", `${name}.e2e.ts`))],
   maxInstances: 1,
   capabilities: [{ browserName: "tauri", "tauri:options": { application: binary } }],
   services: [["@wdio/tauri-service", { driverProvider: "embedded", captureBackendLogs: true, logDir: output }]],
