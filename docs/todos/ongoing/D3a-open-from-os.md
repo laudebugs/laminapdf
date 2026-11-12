@@ -98,10 +98,10 @@ None.
 
 What the PR changed from the scope above, and why:
 
-- **Missing files are reported, not filtered out.** `paths_from_args` doesn't check that files exist, so a missing one reaches the window as a toast with its name (the Error handling item), not silently dropped. A flag-like argument is kept only when it is an existing file (`-scan.pdf`).
+- **Missing files are reported, not filtered out.** `paths_from_args` doesn't check that files exist, so a missing one reaches the window as a toast with its name (the Error handling item), not silently dropped. The one exception: a flag-like argument is kept only when it is an existing file (`-scan.pdf`).
 - **Several files at once open the last**, since a window shows one document until tabs (D4a). The OS's requests open one at a time, in the order they came, on one worker thread.
 - **Windows' default handler moved to D6d.** Tauri's NSIS and WiX templates register an open command with `"%1"` quoted (read in the templates at the CLI's version, 2.12.4) and also write their class as `.pdf`'s default value. Windows 10 and 11 ignore that value when the user has chosen a default, so it decides only on a machine where nobody chose one. Changing the templates to register through `OpenWithProgids` alone is installer work, so [D6d](../ready/D6d-windows-signing.md) has it, with this todo's check that both installers register "Open with".
-- **Manual per-OS checks with installed bundles** are listed in `apps/desktop/e2e/MANUAL-OPEN.md`. The macOS bundle's `Info.plist` was read (`com.adobe.pdf`, Viewer, `LSHandlerRank` `Alternate`). The installed-bundle runs on Windows and Linux need those machines, and D6b–D6d's clean-VM checks already cover the installers' registration.
+- **Manual per-OS checks with installed bundles** are listed in `apps/desktop/e2e/MANUAL-OPEN.md`. The macOS bundle's `Info.plist` was read (`com.adobe.pdf`, Viewer, `LSHandlerRank` `Alternate`). The installed-bundle runs on Windows and Linux were not done: they need those machines, and D6b–D6d's clean-VM checks already cover the installers' registration.
 - **The cold start with a file reports, never asserts, its time** to the first sharp page (ADR 0018 keeps wall-clock checks out of the PR lanes).
 
 ## Definition of done

@@ -1,6 +1,6 @@
 # Opening from the OS: manual checks
 
-The e2e runs cover a second launch with a path and a cold start with a path, on all three OSes. What WebDriver can't do (Finder, Explorer, a file manager, the Dock, a real drag) is checked here by hand, once per OS, with a dev bundle. Record each run in the PR that changes how files open: the OS and version, the bundle, and each row's result.
+The e2e runs cover a second launch with a path and a cold start with a path, on all three OSes. Check by hand, once per OS with a dev bundle, what WebDriver can't drive: Finder, Explorer, a file manager, the Dock and a real drag. Record each run in the PR that changes how files open: the OS and version, the bundle, and each row's result.
 
 ## Build a dev bundle
 
@@ -19,10 +19,10 @@ Use three files: one plain (`fixtures/golden/examples/invoice.pdf`), one whose n
 
 | # | Do | Expect |
 | --- | --- | --- |
-| 1 | With the app closed, double-click the plain PDF after choosing Lamina PDF in "Open with". | The app starts and shows the file. |
-| 2 | With the app running, "Open with" → Lamina PDF on the oddly named PDF. | The running window comes to the front and shows it. The process list holds one Lamina PDF (plus its engine). |
+| 1 | With the app closed, choose Lamina PDF in "Open with" for the plain PDF. | The app starts and shows the file. |
+| 2 | With the app running, open `Relevé de compte 2026.pdf` with "Open with" → Lamina PDF. | The running window comes to the front and shows it. The process list holds one Lamina PDF (plus its engine). |
 | 3 | Drop the plain PDF onto the window, on the home screen and over an open document. | "Drop to open the PDF" shows while dragging; the drop opens the file. |
-| 4 | Drop `notes.txt` onto the window. | "Only PDF files open in Lamina PDF" while dragging; a toast names `notes.txt`; nothing opens. |
+| 4 | Drop `notes.txt` onto the window. | "Only PDF files open in Lamina PDF" shows while dragging; a toast names `notes.txt`; nothing opens. |
 | 5 | Drop two PDFs at once. | The overlay says it opens the last of them, and it does. |
 | 6 | macOS: drop the PDF onto the Dock icon, with the app running and with it closed. | The file opens. |
 | 7 | macOS: `open -a "Lamina PDF" "Relevé de compte 2026.pdf"` with the app running. | The running window shows it. |
