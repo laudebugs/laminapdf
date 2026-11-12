@@ -19,7 +19,7 @@ These entries cover drawing pages as pixels: `laminapdf render`, and the hayro a
 
 ## A page draws differently than in a browser
 
-**Cause:** `laminapdf render` draws with hayro, a renderer written in Rust, unless you choose another. hayro draws most pages the same as PDFium, the renderer in Chrome, and the pages it gets wrong are mostly ones with unusual fonts or annotations: text in the wrong font, or a comment that doesn't appear.
+**Cause:** `laminapdf render` draws with hayro, a renderer written in Rust, unless you choose another. hayro draws most pages the same as PDFium, the renderer in Chrome, and most of the pages it gets wrong go wrong on fonts or annotations.
 
 **Fix:** draw the page with PDFium: `laminapdf render --backend pdfium`, with PDFium installed as above. In Rust, use `laminapdf-render-pdfium`, and on the web `@laminapdf/render-pdfium`. See [How a page is drawn](/concepts/drawing-pages/).
 
@@ -27,7 +27,7 @@ These entries cover drawing pages as pixels: `laminapdf render`, and the hayro a
 
 **Cause:** `-o` takes one file-name pattern for every image, and the pattern gives two pages, or two input files, the same name. A pattern without `{n}` names every page of a document alike. `render` works out every name before it draws anything, so nothing was written.
 
-**Fix:** put the page number in the pattern, as in `-o 'page-{n}.png'`, and the input's name too when you render several files: `-o '{stem}-{n:03}.png'`. See [Images: `render`](/cli/extract-and-render/#images-render).
+**Fix:** put the page number in the pattern, as in `-o 'page-{n}.png'`, and the input's name too when you render several files: `-o '{stem}-{n:03}.png'`. See [Images: `render`](/cli/extract-and-render/#images-render) and [`invalid-command-line`](/reference/codes/invalid-command-line/).
 
 ## `laminapdf render` fails with `output-unwritable`
 
