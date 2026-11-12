@@ -235,7 +235,8 @@ impl MappedField {
 }
 
 /// The prefix ISO 16684-1 gives `namespace`, when it is one of [`STANDARD_PREFIXES`].
-pub(super) fn standard_prefix(namespace: &str) -> Option<&'static str> {
+#[cfg(test)]
+fn standard_prefix(namespace: &str) -> Option<&'static str> {
     STANDARD_PREFIXES
         .iter()
         .find(|(_, ns)| *ns == namespace)
