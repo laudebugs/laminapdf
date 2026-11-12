@@ -35,6 +35,29 @@ fn transcripts_dir() -> PathBuf {
     laminapdf_test_fixtures::fixtures_dir().join("cli/transcripts")
 }
 
+/// The programs a transcript may run, `laminapdf` and the few a page pipes it through. Every
+/// command in `transcripts.json` becomes shell the test runs, so an edit there that reaches for
+/// anything else (the network, `rm`) fails the test before any shell starts.
+const PROGRAMS: &[&str] = &["cat", "echo", "find", "head", "laminapdf", "mkdir", "sort"];
+
+/// Why `command` isn't one a transcript may run, or `None` when it is: each stage of a pipeline
+/// must start with one of [`PROGRAMS`], and nothing may start another command some other way
+/// (`;`, `&`, a redirection, a substitution, an expansion other than `$?`, a second line, or
+/// `find`'s actions that run or delete).
+fn refusal(command: &str) -> Option<String> {
+    let bad = ["`", ";", "&", "<", ">", "\n", "-exec", "-ok", "-delete"];
+    if let Some(bad) = bad.iter().find(|bad| command.contains(**bad)) {
+        return Some(format!("it uses `{bad}`"));
+    }
+    if command.replace("$?", "").contains('$') {
+        return Some("it expands a variable or a command; only `$?` may be shown".to_owned());
+    }
+    command.split('|').find_map(|stage| {
+        let program = stage.split_whitespace().next().unwrap_or_default();
+        (!PROGRAMS.contains(&program)).then(|| format!("`{program}` isn't one of {PROGRAMS:?}"))
+    })
+}
+
 /// What `transcripts.json` gives one transcript.
 struct Entry {
     /// Commands run first and not shown, such as the build that makes the PDF a later step of a
@@ -83,6 +106,11 @@ fn manifest() -> BTreeMap<String, Entry> {
                 files,
             };
             assert!(!entry.commands.is_empty(), "{name}: no commands");
+            for command in entry.setup.iter().chain(&entry.commands) {
+                if let Some(why) = refusal(command) {
+                    panic!("{name}: `{command}` can't run in a transcript: {why}");
+                }
+            }
             (name.clone(), entry)
         })
         .collect()
@@ -203,6 +231,32 @@ fn every_transcript_file_is_in_the_manifest() {
         missing.is_empty(),
         "transcripts without a transcripts.json entry: {missing:?}"
     );
+}
+
+#[test]
+fn a_transcript_runs_only_the_listed_programs() {
+    for allowed in [
+        "laminapdf explain xref-repaired | head -n 8",
+        "echo $?",
+        "find . -name '*.pdf' -print0 | sort -z | laminapdf check --files-from - -0 --json",
+    ] {
+        assert_eq!(refusal(allowed), None, "{allowed}");
+    }
+    for refused in [
+        "curl https://example.com",
+        "laminapdf info a.pdf | sh",
+        "laminapdf info a.pdf; rm -rf .",
+        "laminapdf info a.pdf && rm x",
+        "laminapdf info $(cat names)",
+        "laminapdf info `cat names`",
+        "laminapdf info a.pdf > ~/.profile",
+        "laminapdf info a.pdf\nrm x",
+        "find . -exec rm {} +",
+        "find . -delete",
+        "laminapdf info ${HOME}",
+    ] {
+        assert!(refusal(refused).is_some(), "{refused}");
+    }
 }
 
 #[test]
