@@ -1,21 +1,24 @@
 // The desktop reader as the scenarios see it: open a fixture, read the view, wait for paint.
 import { join } from "node:path";
+import { platform } from "node:process";
 import { fileURLToPath } from "node:url";
 import { $, browser } from "@wdio/globals";
-import { Key } from "webdriverio";
+import { type ChainablePromiseElement, Key } from "webdriverio";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 
-/** A page's render state changing, at `performance.now()` in the app's window. */
-export interface Paint {
-  readonly page: number;
-  readonly state: "placeholder" | "low" | "sharp" | "error";
-  readonly at: number;
-}
+import type { Paint } from "../src/e2e-probe.ts";
 
 /** A file under the repository (`fixtures/`, or `target/fixtures/` for generated ones). */
 export function fixture(...parts: string[]): string {
   return join(root, ...parts);
+}
+
+/**
+ * The innermost element whose text contains `text`. (WebdriverIO's `*=` matches link text only.)
+ */
+export function withText(text: string): ChainablePromiseElement {
+  return $(`//*[contains(text(), ${JSON.stringify(text)})]`);
 }
 
 /** Runs one of the app's commands as the webview would. */
@@ -36,7 +39,7 @@ export async function open(path: string): Promise<number> {
   const since = await now();
   const choose = $("button=Choose a file");
   if (await choose.isExisting()) await choose.click();
-  else await browser.keys([process.platform === "darwin" ? Key.Command : Key.Ctrl, "o"]);
+  else await browser.keys([platform === "darwin" ? Key.Command : Key.Ctrl, "o"]);
   return since;
 }
 
@@ -51,9 +54,18 @@ export async function openAndWait(path: string, timeout = 15_000): Promise<numbe
   return since;
 }
 
-/** Kills this window's engine as a crash would. */
+/**
+ * Kills this window's engine as a crash would, and waits until a new one has reopened the
+ * document. (A toast from an earlier restart may still be showing, so the scenarios can't wait
+ * on the toast alone.)
+ */
 export async function killEngine(): Promise<void> {
+  const before = await browser.execute(() => globalThis.__laminaE2e?.restarts() ?? 0);
   await invoke("debug_kill_engine");
+  await browser.waitUntil(async () => (await browser.execute(() => globalThis.__laminaE2e?.restarts() ?? 0)) > before, {
+    timeout: 20_000,
+    timeoutMsg: "the engine didn't restart and reopen the document",
+  });
 }
 
 /** `performance.now()` in the app's window. */
@@ -86,6 +98,25 @@ export async function waitForSharpSince(index: number, since: number, timeout = 
     { timeout, timeoutMsg: `page ${index + 1} wasn't drawn again` },
   );
   return at;
+}
+
+/** Tiles the engine has answered since the window opened. */
+async function tilesDrawn(): Promise<number> {
+  return browser.execute(() => globalThis.__laminaE2e?.tilesDrawn() ?? 0);
+}
+
+/**
+ * Zooms out once and waits for the engine to answer new tiles and the current page to be sharp:
+ * after a kill, only a restarted engine can. (After a restart that reopened the same file the
+ * viewer keeps the pictures it has, so a page already drawn isn't drawn again by itself.)
+ */
+export async function drawsAfterZoomOut(): Promise<void> {
+  const { currentPage, percent } = await view();
+  const before = await tilesDrawn();
+  await $('button[aria-label="Zoom out"]').click();
+  await browser.waitUntil(async () => (await view()).percent < percent, { timeoutMsg: "Zoom out didn't zoom" });
+  await browser.waitUntil(async () => (await tilesDrawn()) > before, { timeoutMsg: "the engine drew no tile" });
+  await waitForSharp(currentPage);
 }
 
 /** The view's page count, current page (0-based) and zoom, as the viewer reports them. */

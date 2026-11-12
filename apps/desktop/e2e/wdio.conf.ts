@@ -3,23 +3,31 @@
 // inside the app (tauri-plugin-wdio-webdriver), on every OS, so no driver is installed.
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { platform } from "node:process";
 import { fileURLToPath } from "node:url";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const root = join(here, "..", "..", "..");
-const binary = join(root, "target", "debug", process.platform === "win32" ? "laminapdf-desktop.exe" : "laminapdf-desktop");
+const binary = join(root, "target", "debug", platform === "win32" ? "laminapdf-desktop.exe" : "laminapdf-desktop");
 /** Screenshots and logs of failed scenarios, which CI uploads. */
 const output = join(root, "target", "desktop-e2e");
 mkdirSync(output, { recursive: true });
+
+// @wdio/tauri-service reads `tauri:options` but doesn't declare it in WebdriverIO's types.
+const app = { browserName: "tauri", "tauri:options": { application: binary } };
 
 export const config: WebdriverIO.Config = {
   runner: "local",
   // The service starts the app once for the whole run, so the scenarios share it and run in this
   // order: the empty state while nothing is open, then each scenario opens its own file, which
   // replaces the one before.
-  specs: [["start", "open", "scroll", "zoom", "password", "repaired", "restart", "large"].map((name) => join(here, "specs", `${name}.e2e.ts`))],
+  specs: [
+    ["start", "open", "scroll", "zoom", "password", "repaired", "restart", "large"].map((name) =>
+      join(here, "specs", `${name}.e2e.ts`),
+    ),
+  ],
   maxInstances: 1,
-  capabilities: [{ browserName: "tauri", "tauri:options": { application: binary } }],
+  capabilities: [app],
   services: [["@wdio/tauri-service", { driverProvider: "embedded", captureBackendLogs: true, logDir: output }]],
   framework: "mocha",
   reporters: ["spec"],

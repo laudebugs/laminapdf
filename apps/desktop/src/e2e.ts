@@ -2,32 +2,9 @@
 // frontend plugin, and what the scenarios read instead of sleeping. A release build never
 // imports this file; CI checks its bundle has none of it (D2e).
 import "@wdio/tauri-plugin";
-import type { PageRenderState, ViewState } from "@laminapdf/viewer";
+import type { PageRenderState } from "@laminapdf/viewer";
 import type { DesktopEngine } from "./app.tsx";
-
-/** A page's render state changing, at `performance.now()` in this window. */
-export interface Paint {
-  readonly page: number;
-  readonly state: PageRenderState;
-  readonly at: number;
-}
-
-/** What the scenarios read through `browser.execute`. */
-export interface E2eProbe {
-  /** `performance.now()` in this window, to compare with paints' times. */
-  readonly now: () => number;
-  /** The view's page, zoom and scroll, or undefined outside the shell. */
-  readonly view: () => ViewState | undefined;
-  /** Each mounted page's render state. */
-  readonly pages: () => Readonly<Record<number, PageRenderState>>;
-  /** Every change of a page's state since `since` (a `now()`), oldest first. */
-  readonly paintsSince: (since: number) => readonly Paint[];
-}
-
-declare global {
-  // `var` is how a global property is declared in TypeScript.
-  var __laminaE2e: E2eProbe | undefined;
-}
+import type { Paint } from "./e2e-probe.ts";
 
 /** The changes kept: enough for any scenario, bounded for a long run. */
 const KEPT = 2_000;
@@ -48,10 +25,36 @@ export function exposeProbe(engine: DesktopEngine | undefined): void {
     if (paints.length > KEPT) paints.splice(0, paints.length - KEPT);
     last = pages;
   });
+  // Counts the engine's answers at the client, the one door every tile comes through.
+  let tilesDrawn = 0;
+  const tileFailures: string[] = [];
+  const client = engine?.client;
+  if (client !== undefined) {
+    const render = client.render.bind(client);
+    client.render = async (request, options) => {
+      try {
+        const tile = await render(request, options);
+        tilesDrawn++;
+        return tile;
+      } catch (error) {
+        if (!(error instanceof Error && error.name === "AbortError")) {
+          tileFailures.push(error instanceof Error ? `${error.name}: ${error.message}` : String(error));
+        }
+        throw error;
+      }
+    };
+  }
+  let restarts = 0;
+  engine?.client.on("restarted", ({ reopened }) => {
+    if (reopened) restarts++;
+  });
   globalThis.__laminaE2e = {
     now: () => performance.now(),
     view: () => engine?.viewer.getState(),
     pages: () => engine?.viewer.stats().pages ?? {},
     paintsSince: (since) => paints.filter((paint) => paint.at >= since),
+    tilesDrawn: () => tilesDrawn,
+    restarts: () => restarts,
+    tileFailures: () => tileFailures,
   };
 }
