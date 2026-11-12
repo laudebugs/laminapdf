@@ -5,7 +5,8 @@
 //
 // node measure.mjs <dist-dir> [page-path]   (default page: /start/first-pdf/)
 //
-// Run from the repository root, so `playwright` resolves to the workspace's copy.
+// Copy it into apps/docs and run it there, so `playwright` resolves to the workspace's copy.
+// The script and stylesheet sizes count the files the page's HTML references.
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
