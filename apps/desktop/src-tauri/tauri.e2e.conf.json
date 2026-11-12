@@ -1,5 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "com.laminapdf.desktop.e2e",
   "build": {
     "beforeBuildCommand": "cargo xtask desktop-sidecar && pnpm build --mode e2e"
   },

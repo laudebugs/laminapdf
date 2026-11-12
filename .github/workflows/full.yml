@@ -338,10 +338,15 @@ jobs:
       - name: Run the scenarios
         if: runner.os != 'Linux'
         run: pnpm --filter @laminapdf/desktop run e2e
-      # xvfb-run comes with GitHub's Ubuntu images, not from linux-webkit.
+      # xvfb-run and dbus-run-session come with GitHub's Ubuntu images, not from linux-webkit. The
+      # session bus is how a second launch finds the running app (the single-instance plugin);
+      # without one, it starts a second app.
       - name: Run the scenarios on a virtual display
         if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1440x900x24" pnpm --filter @laminapdf/desktop run e2e
+        run: >-
+          dbus-run-session --
+          xvfb-run --auto-servernum --server-args="-screen 0 1440x900x24"
+          pnpm --filter @laminapdf/desktop run e2e
       # Five launches of the e2e build, timed by the app to the empty state accepting input, into the
       # job summary. Recorded, not asserted: the 300 ms gate belongs to the reference machine (D2g).
       - name: Measure the cold start

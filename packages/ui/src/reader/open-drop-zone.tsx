@@ -74,12 +74,20 @@ export function OpenDropZone({ reader, keys, children }: OpenDropZoneProps): Rea
         )}
       </div>
       {children}
-      {dragging ? (
-        <div className="paper-open-overlay" aria-hidden="true">
-          {message("reader.open.dropping")}
-        </div>
-      ) : null}
+      {dragging ? <DropOverlay>{message("reader.open.dropping")}</DropOverlay> : null}
     </section>
+  );
+}
+
+/**
+ * The overlay over the whole window while files are dragged over it, saying what a drop will do.
+ * A shell whose OS reports drags itself (the desktop reader) shows it over any screen.
+ */
+export function DropOverlay({ children }: { children: ReactNode }): ReactNode {
+  return (
+    <div className="paper-open-overlay" aria-hidden="true">
+      {children}
+    </div>
   );
 }
 

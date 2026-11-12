@@ -163,7 +163,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)?
 3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
 4. Default channel for new installs: stable only, or beta during 0.x?
-5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user?
+5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user? *Answered by D3a:* the installers register Lamina PDF as able to open PDFs and leave the default to the user ([ADR 0008 §10](../decisions/0008-desktop-shell.md#10-opening-files-from-the-os)); an opt-in prompt, if wanted, comes with the settings (D7b).
 
 ## 9. To-dos
 
@@ -192,11 +192,11 @@ Ticked by the PR that completes them.
 
 ### D3. Files
 
-- [ ] Register `.pdf` file associations in the bundle config for all three OSes
-- [ ] Handle argv, `RunEvent::Opened` and single-instance forwarding
+- [x] Register `.pdf` file associations in the bundle config for all three OSes ([D3a](../todos/ongoing/D3a-open-from-os.md): an alternate handler, never the default; ADR 0008 §10)
+- [x] Handle argv, `RunEvent::Opened` and single-instance forwarding ([D3a](../todos/ongoing/D3a-open-from-os.md), with drops on the window)
 - [ ] Recent files: OS recent documents and an in-app list with "clear"
 - [ ] Watch open files and reload preserving position
-- [ ] Integration tests for open-from-OS on each platform
+- [ ] Integration tests for open-from-OS on each platform (open from the OS done in [D3a](../todos/ongoing/D3a-open-from-os.md): a second launch and a cold start with a path, on all three OSes; file watching's come with [D3b](../todos/ready/D3b-recent-files-and-file-watching.md))
 
 ### D4. Windows, tabs, menus and printing
 
