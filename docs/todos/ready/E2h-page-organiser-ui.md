@@ -4,13 +4,13 @@
 | --- | --- |
 | ID | `E2h` |
 | Status | `ready` |
-| Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
+| Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E2k](./E2k-duplicate-pages.md), [E2l](./E2l-viewer-across-page-edits.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2h-page-organiser-ui` |
 | PR title | `feat(ui): page organiser with drag-and-drop thumbnails` |
-| Size | L (600–1,500) |
+| Size | L (400–800): the Organise mode's page grid, selection, drag and its commands in `@laminapdf/ui`, with Playwright tests; the viewer's part is [E2l](E2l-viewer-across-page-edits.md)'s and the dialogs [E2g](E2g-page-labels.md)'s and [E2m](E2m-document-dialogs.md)'s |
 | PR | — |
 
 ## Goal

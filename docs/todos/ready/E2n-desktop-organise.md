@@ -10,7 +10,7 @@
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e2n-desktop-organise` |
 | PR title | `feat(desktop): organise pages, merge from Finder and Explorer, split to a folder` |
-| Size | M (200–400) |
+| Size | M (200–400): Organise in the engine, the OS merge and folder outputs, over the web's dialogs |
 | PR | — |
 
 ## Goal

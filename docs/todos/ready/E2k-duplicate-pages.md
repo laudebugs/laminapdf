@@ -10,7 +10,7 @@
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2k-duplicate-pages` |
 | PR title | `feat(ops): duplicate pages with fresh fields and structure` |
-| Size | L (400–800) |
+| Size | L (400–800): one op whose work is cloning annotations, widgets and structure elements, with bindings |
 | PR | — |
 
 ## Goal
@@ -30,7 +30,7 @@
 
 - Copy the page dictionary and its annotations (new objects, new IDs, new `/NM`), sharing content streams and resources
 - **Tagged files:** the copy gets a fresh `/StructParents` key (from `/ParentTreeNextKey`, which advances), and so does every copied annotation with `/StructParent`. Elements whose marked content lies only on the source page are cloned as siblings after the originals with `/Pg` set to the copy, and the new `/ParentTree` entries point at the clones (the shared stream keeps its MCIDs, so the mapping is one-to-one). MCIDs owned by elements that span pages map to null, and the report carries `DuplicateTagsIncomplete`; on a file that claims PDF/UA, the planner adds a `ConformanceWarning`. The source page's key is never reused
-- **Widgets:** a duplicated widget becomes a new field, never a second widget of the original. A widget merged with its field is copied with a unique `/T` (`<name>#<n>`, `n` the smallest number from 2 that makes the fully qualified name unique); a kid widget gets a new terminal field (`/FT`, `/V`, `/DV`, `/Ff`, `/DA`, `/Opt` copied) named `<partial>#<n>` in the original parent's `/Kids` (or `/AcroForm /Fields` for a top-level field). Signature widgets (`/FT /Sig`) are not copied; the report lists them. The naming helper is public for E2c and E2d
+- **Widgets:** a duplicated widget becomes a new field, never a second widget of the original. A widget merged with its field is copied with a unique `/T` (`<partial>#<n>`, `n` the smallest number from 2 that makes the fully qualified name unique); a kid widget gets a new terminal field (`/FT`, `/V`, `/DV`, `/Ff`, `/DA`, `/Opt` copied) named `<partial>#<n>` in the original parent's `/Kids` (or `/AcroForm /Fields` for a top-level field). Signature widgets (`/FT /Sig`) are not copied; the report lists them. The naming helper is public for E2c and E2d
 - `PageLabels::remap` (E2j) for the copies; `Edited::fields` lists renamed and skipped fields
 
 **Out of scope** (and which todo covers it)

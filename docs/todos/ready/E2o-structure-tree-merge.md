@@ -10,7 +10,7 @@
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md) |
 | Branch | `feat/e2o-structure-tree-merge` |
 | PR title | `feat(model): merge structure trees with ParentTree renumbering` |
-| Size | L (400–800) |
+| Size | L (400–800): the structure-tree merge in `laminapdf-model`, `/ClassMap` and `/IDTree`, with veraPDF checks |
 | PR | — |
 
 ## Goal

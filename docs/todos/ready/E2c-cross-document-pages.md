@@ -4,18 +4,18 @@
 | --- | --- |
 | ID | `E2c` |
 | Status | `ready` |
-| Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
+| Plan | [E2 page organisation §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2k](./E2k-duplicate-pages.md) |
+| Depends on | [E2k](./E2k-duplicate-pages.md), [E2p](./E2p-source-documents-and-copier.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2c-cross-document-pages` |
 | PR title | `feat(ops): import, replace and extract pages across documents` |
-| Size | L (600–1,500) |
+| Size | L (400–800): two ops and two functions over [E2p](E2p-source-documents-and-copier.md)'s copier and sources, the rules for what follows a page, and bindings |
 | PR | — |
 
 ## Goal
 
-Copy pages between documents: deep-copy a page and everything reachable from it into the target's overlay, renumbered with fresh object numbers and deduplicated resources; replace pages while keeping links and bookmarks pointing at the slot; extract selected pages and export ranges as new documents.
+Copy pages between documents with [E2p](E2p-source-documents-and-copier.md)'s `ObjectCopier`, from sources added with its `add_source`; replace pages while keeping links and bookmarks pointing at the slot; extract selected pages and export ranges as new documents.
 
 ## Context
 
@@ -28,35 +28,33 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 
 **In scope**
 
-- `ObjectCopier` in `laminapdf-model`: deep copy across documents with cycle handling, `Limits`, and resource dedupe by stream hash
 - Rules for what follows a page ([E2 plan §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page)): annotations (fix `/P`, new `/NM`), links to pages that didn't come removed and reported, widget annotations carried per `Carry::fields` (renamed with [E2k](E2k-duplicate-pages.md)'s `<partial>#<n>` helper by default, or linked; [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions)), struct-tree elements dropped with `TagsDropped` until [E2o](E2o-structure-tree-merge.md) merges them
-- Ops: `InsertPagesFrom { source: SourceId, pages, at: PagePosition, carry: Carry }`, `ReplacePages { targets, source, pages, carry }` ([E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions)); `extract_pages` and `export_ranges` run as jobs with run-to-completion forms (ADR 0028 F10)
+- Ops, with the payloads of [E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions): `InsertPagesFrom` and `ReplacePages`; `extract_pages` and `export_ranges` run as jobs with run-to-completion forms (ADR 0028 F10)
 - `extract_pages(doc, pages) -> Document` (new document whose base is empty, built in the overlay) and `export_ranges(doc, ranges) -> Vec<Document>`
 - Page labels and named destinations through [E2j](E2j-page-tree-and-tree-writers.md)'s shared writers: `InsertPagesFrom` and `ReplacePages` call `PageLabels::remap` (target pages keep their labels; inserted pages continue the range they land in), and `extract_pages`/`export_ranges` write the source's labels for the extracted pages with the number-tree writer; named destinations used by imported links are copied with the name-tree writer
-- `ReplacePages` reuses E2b's signed-widget check: replacing a page that holds a signed signature widget is `Violation::SignedWidgetPage`
-- **The blob store and source documents.** No blob store exists yet (`BlobId` is declared, unused). This todo adds it to `laminapdf_ops::Document` (ADR 0006 §1) and `Document::add_source(bytes, password) -> SourceId`, where `SourceId` is the `BlobId` (SHA-256) of the bytes; a log naming an unknown source fails with `unknown-source` (a new code); a password never enters an op
+- `ReplacePages` reports its touched widgets to [E2r](E2r-planner-page-checks.md)'s checks: replacing a page that holds a signed signature widget is `Restriction::SignedWidget { field }`
 
 **Out of scope** (and which todo covers it)
 
+- The blob store, `add_source` and the `ObjectCopier` → [E2p](E2p-source-documents-and-copier.md)
 - Merging outlines, AcroForm and struct trees across whole documents; split → [E2d](E2d-merge-and-split.md)
 - The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](./T6a-cli-page-commands.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.02` insert pages from other PDFs; `C.05` extract selected pages; `C.16` replace pages, preserving the rest; `H.10` export pages/ranges
-- **Crates and packages:** `laminapdf-model` (copier), `laminapdf-ops`, `laminapdf-save` (new-document save), bindings
+- **Crates and packages:** `laminapdf-ops`, `laminapdf-save` (new-document save), bindings; the copier is E2p's
 - **`Op` variants:** `InsertPagesFrom`, `ReplacePages` (class `PageStructure`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`. Under a certification signature it is a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked by default and allowed only by the explicit invalidation override (the warning names the signatures, ADR 0007 §3). With approval signatures only (no certification) it is `AppendOnly`: saved as an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the later page change); it is a violation only when it changes a field locked by FieldMDP/`/Lock` (deleting, replacing, rotating, cropping or resizing a page that carries a locked field's widget; see the [E2 plan §6](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint)). Extraction writes a new document (full write, `Free`)
+- **`SaveConstraint`:** class `PageStructure`; the verdicts per constraint are the [E2 plan §6 table](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint). Extraction writes a new document (a full write, `Free`)
 - **Web vs desktop:** identical; desktop accepts files dropped from Finder/Explorer as sources, web from the file picker
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.02` → `round-trip` (core, pdf); `C.05` → `write` (core, pdf); `C.16` → `round-trip` (core, pdf); `H.10` → `write` (core, pdf)
 
 ## Tasks
 
-- [ ] Implement `ObjectCopier` with an old→new number map, recursion limit and stream-hash dedupe
 - [ ] Annotation and widget handling rules; tests for `/P` fix-up
 - [ ] `InsertPagesFrom`/`ReplacePages` with undo (removal of created objects; reserved numbers stay reserved)
-- [ ] `extract_pages` and `export_ranges` producing deterministic output, with page labels written through E2b's number-tree writer
+- [ ] `extract_pages` and `export_ranges` producing deterministic output, with page labels written through E2j's number-tree writer
 - [ ] Encrypted sources: decrypt on read (B2) and write unencrypted into an unencrypted target; encrypted targets wait for E11
 - [ ] Bindings and examples (`examples/extract-pages.*`)
 
@@ -67,7 +65,6 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Inserting pages from 10 corpus files into a fixture renders each imported page identically to its source in PDFium (pixel diff below threshold)
-- [ ] Resources shared by several imported pages are copied once (object count test)
 - [ ] Replace keeps outline items and links that pointed at the replaced slot pointing at the new page
 - [ ] Extracted documents pass `qpdf --check` and keep page labels for the extracted range
 
@@ -79,7 +76,7 @@ None.
 
 - Integration tests in `crates/laminapdf/tests/pages_cross_doc.rs`
 - Render diff (PDFium) per imported page
-- Fuzz target for the copier over corpus pairs
+- The copier's fuzz target is E2p's
 
 ## Docs to update
 
@@ -89,7 +86,7 @@ None.
 
 ## Risks and open questions
 
-- Huge shared resources (fonts) duplicated across many imports: dedupe by hash may be slow; cache hashes per source
+- None known beyond the round's risks in the plan
 
 ## Definition of done
 

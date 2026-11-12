@@ -10,7 +10,7 @@
 | ADRs | Follows [0009](../../decisions/0009-web-client-architecture.md), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/e2l-viewer-across-page-edits` |
 | PR title | `feat(viewer): follow inserted, deleted and moved pages by ID` |
-| Size | L (400–800) |
+| Size | L (400–800): the viewer's state mapped by page ID instead of index, the worker's guard and the history steps, with browser and performance tests |
 | PR | — |
 
 ## Goal
@@ -31,7 +31,7 @@ Let the reader show edits that insert, delete or move pages. Today the document 
 - The viewer remaps by ID: layout, bitmap cache (moved pages keep their bitmaps), text, link and find caches, keep-top position, the thumbnail strip, the navigation history and the reading position; entries for a deleted page go to the nearest surviving page
 - The worker's count guard is replaced by a check that the model's order after the edit matches what it reports
 - The edit session's steps keep page IDs, not indices
-- Three cases in the viewer's performance harness on the 1,000-page file: delete one page, move 200 pages, insert 10 blank pages; each held to E1's 150 ms budget from the edit to the first new pixels
+- Three cases in the viewer's performance harness on the 1,000-page file: delete one page, move 200 pages, insert 10 blank pages; each held to the [E2 plan §5](../../plans/editor/e2-page-organisation.md#5-the-viewer-across-page-structure-edits) budget
 
 **Out of scope** (and which todo covers it)
 
@@ -60,7 +60,7 @@ Let the reader show edits that insert, delete or move pages. Today the document 
 
 - [ ] Browser tests in Chromium, Firefox and WebKit: after `DeletePages`, `MovePages`, `InsertBlankPages` and `ReversePages`, then undo and redo of each, every page shows its own content, size and text layer, find results land on the right pages, Back and Forward reach the right pages, and the history panel names the right pages
 - [ ] A reorder that keeps the count redraws correctly (the case the old guard missed)
-- [ ] The three performance cases are reported, and each meets the 150 ms budget or the report says by how much it misses
+- [ ] The three performance cases are reported, and each meets the plan's budget or the report says by how much it misses
 - [ ] Driven in the built reader in a real browser, as a user would, before merge (CLAUDE.md working agreements)
 
 ## Post-merge checks

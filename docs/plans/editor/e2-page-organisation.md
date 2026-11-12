@@ -2,7 +2,7 @@
 
 **Status:** Draft
 
-The second editor round lets people reorganise a document's pages: insert, delete, duplicate, move, rotate and reverse them, bring pages in from other files, merge and split documents, crop and resize pages, set their boxes and orientation, and edit page labels. Changing the page tree is easy; the work is in everything that points at a page. Outline items, links, named destinations, form fields, the structure tree and signatures all name pages, and so does the viewer, which finds pages by index. This plan fixes the ops, how each one treats those references, how the save planner gates them, and the 15 pull requests that build the round.
+The second editor round lets people reorganise a document's pages: insert, delete, duplicate, move, rotate and reverse them, bring pages in from other files, merge and split documents, crop and resize pages, set their boxes and orientation, and edit page labels. Changing the page tree is easy; the work is in everything that points at a page. Outline items, links, named destinations, form fields, the structure tree and signatures all name pages, and so does the viewer, which finds pages by index. This plan fixes the ops, how each one treats those references, how the save planner gates them, and the 18 pull requests that build the round.
 
 - **Round:** [full-editor §E2](../full-editor.md#e2-page-organisation), phase 2, milestone M5 Organiser
 - **Feature-plan todo:** [E2a](../../todos/ongoing/E2a-page-organisation-feature-plan.md)
@@ -18,9 +18,9 @@ The library reads every page-level structure E2 edits, but writes almost none of
 - **Model.** `laminapdf-model` reads the page tree (`Pages`, `Page`, inherited boxes and rotation, `page_by_parents`), the outline and destinations, name and number trees, page labels (`PageLabels`, ranges and `label(index)`), the structure tree (`StructTree` with `/RoleMap`, the raw `/ParentTree` and `/ParentTreeNextKey`; no `/ClassMap` or `/IDTree`) and links. All of it is read-only. There is no AcroForm view: only the disclosure scan and the save planner walk the field tree. `LaminaPdfId` kinds are page, outline item, annotation and field.
 - **Building.** `Builder::on(&mut doc, &options)` appends pages at the end of an open document's root `/Kids` through the overlay, outside the op log. Its pages write `/Rotate` and `/CropBox` themselves. It is prior art for inserting blank pages, but `laminapdf-build` depends on `laminapdf-ops`, so an op can't call it.
 - **Content.** `laminapdf-content` only reads: a tokenizer (`ContentIter`) and an interpreter that reports to a `Visitor`. It has no write API.
-- **Saving.** The planner checks each pending op class against DocMDP (§12.8.2.2), FieldMDP (§12.8.2.4) and UR3 (§12.8.2.3). Checks are per class, never per field: a FieldMDP lock is broken only by `FormFill` (`Rule::allows` in `detect.rs`). A page op that deletes a locked field's widget, or a signed signature's widget, would therefore pass as `AppendOnly`.
+- **Saving.** The planner checks each pending op class against DocMDP (§12.8.2.2), FieldMDP (§12.8.2.4) and UR3 (§12.8.2.3). Checks are per class, never per field: a FieldMDP lock is broken only by `FormFill` (`Rule::allows` in `crates/laminapdf-save/src/detect.rs`). A page op that deletes a locked field's widget, or a signed signature's widget, would therefore pass as `AppendOnly`.
 - **The CLI.** `laminapdf pages rotate` turns pages through the façade and saves incrementally where it can. The qpdf range grammar with pdftk handles (ADR 0031 §3) lives in `crates/laminapdf-cli/src/ranges.rs`, and resolves to 1-based page numbers.
-- **The viewer.** The document worker applies ops, writes the appended revision and reopens PDFium (E1g, E1e). Its guard refuses an edit that changes the page **count** (`samePages` in `packages/viewer/src/worker/edit.ts`), but a reorder keeps the count and would get through. The view, the thumbnails, the text, link and find caches, the history steps and reading positions all name pages by index (`viewer.invalidate(pages, sizes)` takes indices).
+- **The viewer.** The document worker applies ops, writes the appended revision and reopens PDFium (E1g, E1e). Its guard refuses an edit that changes the page **count** (`samePages` in `packages/viewer/src/worker/edit.ts`, checked only for an edit that touched pages), but a reorder keeps the count and would get through. The view, the thumbnails, the text, link and find caches, the history steps and reading positions all name pages by index (`viewer.invalidate(pages, sizes)` takes indices).
 - **The matrix.** Every row in scope is in `docs/capabilities/manifest.toml` with `round = "E2"`. Besides `C.08`, tagged tests already prove `C.04`, `C.09`, `C.11` and `C.14` at core `read`, and `I.10` at core `write` (the builder's page labels).
 
 ## 2. The operations
@@ -38,14 +38,14 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 | C.07 | Split by count, ranges, bookmarks | write | E2d · E2m · E2n |
 | C.08 | Rotate pages 90/180/270 | round-trip | E2b (`pdf`; core is proved) · E2h · E2n |
 | C.09 | Crop display area | round-trip | E2f · E2g · E2n |
-| C.10 | Resize page dimensions | round-trip | E2f · E2g · E2n |
+| C.10 | Resize page dimensions | round-trip | E2s · E2g · E2n |
 | C.11 | Modify margins and page boxes | round-trip | E2f · E2g · E2n |
-| C.12 | Portrait ↔ landscape | round-trip | E2f · E2g · E2n |
+| C.12 | Portrait ↔ landscape | round-trip | E2s · E2g · E2n |
 | C.13 | Reverse page order | round-trip | E2b · E2h · E2n |
 | C.14 | Labels, page numbers, headers/footers | round-trip in **E6** | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) |
 | C.16 | Replace pages, preserving the rest | round-trip | E2c · E2m · E2n |
 | H.10 | Export pages/ranges | write | E2c · E2m · E2n |
-| I.10 | Page labels | round-trip | E2g · E2g · E2n |
+| I.10 | Page labels | round-trip | E2q · E2g · E2n |
 
 Extract, split and export write new documents, so `write` is their target: the output passes qpdf `--check` and opens in pdf.js and PDFium, and the source is never changed. `C.05`, `C.07` and `H.10` targeted `round-trip` by default in the manifest; this plan sets them to `write`, as their todos already said.
 
@@ -66,9 +66,9 @@ Every edit of the open document is an `Op` ([full-editor §5](../full-editor.md#
 | `MergeDocuments` | `{ sources: Vec<MergeSource>, at: PagePosition, options: MergeOptions }`; `MergeSource { source, pages: Option<Vec<PageId>>, title: Option<String> }`; `MergeOptions { outline: perFile \| keep \| none, fields: FieldClash }` | `PageStructure` | E2d |
 | `SetPageBoxes` | `{ pages, boxes: PageBoxes }`: each of `media`, `crop`, `bleed`, `trim`, `art` absent (left alone), `null` (removed; not `media`) or a `UserSpaceRect` | `PageStructure` | E2f |
 | `CropPages` | `{ pages, margins: Margins }`: top, right, bottom and left in points of the displayed page (ADR 0027 page space), so one value fits a selection of mixed sizes and rotations | `PageStructure` | E2f |
-| `ResizePages` | `{ pages, size: PageSize, mode: scale \| extend { anchor: Anchor } }` | `PageStructure` | E2f |
-| `SetOrientation` | `{ pages, orientation: portrait \| landscape, method: rotate \| swapBox }` | `PageStructure` | E2f |
-| `SetPageLabels` | `{ ranges: Vec<LabelRange> }`: the whole `/PageLabels` tree; each range has its first page, style, prefix and first number (ISO 32000-2 §12.4.2) | `Document` | E2g |
+| `ResizePages` | `{ pages, size: PageSize, mode: scale \| extend { anchor: Anchor } }` | `PageStructure` | E2s |
+| `SetOrientation` | `{ pages, orientation: portrait \| landscape, method: rotate \| swapBox }` | `PageStructure` | E2s |
+| `SetPageLabels` | `{ ranges: Vec<LabelRange> }`: the whole `/PageLabels` tree; each range has its first page, style, prefix and first number (ISO 32000-2 §12.4.2) | `Document` | E2q |
 
 `RotatePage` stays on the wire and in the API: `RotatePages` generalises it, and E1's rotate commands keep using it. `MergeDocuments` is one op so that a merge is one undo step; its outline, name, form and structure merges are covered by its one class, which every DocMDP level forbids anyway (ADR 0006 §1: exactly one class per op).
 
@@ -79,7 +79,7 @@ These work on new documents and are functions, not ops; long ones are jobs with 
 
 They take resolved page lists. Range text stays at the edges: the CLI keeps its qpdf parser (T6a reuses it for `pages split` and `pages extract`), and the interface reuses its print dialog's parser (`packages/ui/src/reader/print-pages.ts`, numbers and labels), so the app has one range grammar.
 
-**Source documents.** `Document::add_source(bytes, password)` opens another file and returns a `SourceId`: the `BlobId` (SHA-256) of its bytes, so the same file gets the same ID on every device. The session holds the bytes in the blob store that ADR 0006 §1 describes, which E2c builds. An op log names sources only by ID, and applying a log that names a source the session lacks fails with `unknown-source`. A password is given to `add_source` and never enters an op. An encrypted source is decrypted on read and its pages are written unencrypted.
+**Source documents.** `Document::add_source(bytes, password)` opens another file and returns a `SourceId`: the `BlobId` (SHA-256) of its bytes, so the same file gets the same ID on every device. The session holds the bytes in the blob store that ADR 0006 §1 describes, which [E2p](../../todos/ready/E2p-source-documents-and-copier.md) builds. An op log names sources only by ID, and applying a log that names a source the session lacks fails with `unknown-source`. A password is given to `add_source` and never enters an op. An encrypted source is decrypted on read and its pages are written unencrypted.
 
 ### 2.2 What follows a page
 
@@ -88,8 +88,8 @@ Each op that removes, copies or moves pages reports what it changed to things th
 - **Deleted pages** follow the decision in §11: references are retargeted to the nearest surviving page, or removed with `references: remove`.
 - **Moved pages** need nothing: references name page objects, which a move keeps.
 - **Page labels** follow pages: `PageLabels::remap` rebuilds `/PageLabels` from page IDs after every op, so each surviving page keeps its label and new pages continue the range they land in. E2j writes it; every page op calls it.
-- **Duplicated pages** share content streams and resources with their source, and get new annotation objects with new `/NM`. A widget becomes a new field named `<partial>#<n>`, signature widgets are not copied, and tagged content gets cloned structure elements with fresh `/StructParents` keys (E2k, which keeps E2b's rules for this).
-- **Imported pages** (`InsertPagesFrom`, `ReplacePages`, `MergeDocuments`) are deep-copied with fresh object numbers and new IDs; shared resources are copied once per source, matched by stream hash. Their links to pages that came with them are remapped, links to pages that didn't are removed and reported, and the named destinations their links use come with them, renamed on a clash. Fields come per `Carry::fields` (§11). Structure: until E2o, imported pages lose their tags, the elements are dropped and `TagsDropped` is reported; E2o merges the trees.
+- **Duplicated pages** share content streams and resources with their source, and get new annotation objects with new `/NM`. A widget becomes a new field named `<partial>#<n>`, signature widgets are not copied, and tagged content gets cloned structure elements with fresh `/StructParents` keys and `/ParentTree` entries (ISO 32000-2 §14.7.5.4; E2k, which keeps E2b's rules for this).
+- **Imported pages** (`InsertPagesFrom`, `ReplacePages`, `MergeDocuments`) are deep-copied with fresh object numbers and new IDs; shared resources are copied once per source, matched by stream hash. Their links to pages that came with them are remapped, links to pages that didn't are removed and reported, and the named destinations their links use come with them, renamed on a clash. Fields come per `Carry::fields` (§11). Structure (the logical structure of §14.7): until E2o, imported pages lose their tags, the elements are dropped and `TagsDropped` is reported; E2o merges the trees.
 
 ## 3. Conformance the edits must keep
 
@@ -98,15 +98,15 @@ Each op that removes, copies or moves pages reports what it changed to things th
 - **Cropping hides, it doesn't remove.** Content outside a new CropBox stays in the file and stays extractable. `CropPages` and `SetPageBoxes` report `CroppedContentRemains`, and a test proves the text is still there ([06 §10](../../research/pdf/06-feature-inventory.md#10-implications-for-lamina)).
 - **New documents carry only what they use.** Extract, export and split write only objects reachable from the new trailer, so a part doesn't carry the whole original's fonts and images ([05 §3.1](../../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)).
 - **PDF/A.** Pages imported or merged from a file that claims no PDF/A level (or another one) may break the target's claim: fonts not embedded, a different output intent. The op raises a `ConformanceWarning`; it warns and never blocks, as E1's do. Resizing and cropping don't affect a claim.
-- **PDF/UA-1.** Imported pages without tags, a duplicate whose tags couldn't be cloned (`DuplicateTagsIncomplete`) and deleted pages whose elements other pages share each raise a `ConformanceWarning` on a file that claims PDF/UA-1. veraPDF must report nothing new on the tagged fixtures after each op.
+- **PDF/UA-1.** Imported pages without tags, a duplicate whose tags couldn't be cloned (`DuplicateTagsIncomplete`) and deleted pages whose elements other pages share each raise a `ConformanceWarning` on a file that claims PDF/UA-1. veraPDF must report nothing new on the tagged fixtures after each op (Tagged PDF, ISO 32000-2 §14.8).
 - **Version.** A merge or import raises the catalog's `/Version` to the newest of its sources (§7.7.2), as `Builder::on` does for new features.
 
 ## 4. Crate and package changes
 
-- **`laminapdf-model`** ([E2j](../../todos/ready/E2j-page-tree-and-tree-writers.md)): a page-tree editor over `CosMut` (insert, remove and move kids, inherited attributes materialised, `/Count` kept, the tree rebalanced only when it passes a depth or fan-out threshold, a page dictionary listed twice copied on first change); writers for number trees and name trees; `PageLabels::remap`; and `PageReferences`, an index of what points at each page (outline items, links, named destinations in the name tree and in the PDF 1.1 `/Dests` dictionary, `GoTo` actions, `/OpenAction`, structure elements by `/Pg`, widgets of fields by `/P` or `/Annots`). E2c adds the `ObjectCopier` (deep copy across documents, cycles and `Limits` bounded, resources matched by hash) and E2d the document-level merges (outline, names, AcroForm, `/OCProperties`). E2o adds the structure-tree merge and the read of `/ClassMap` and `/IDTree`.
-- **`laminapdf-content`** ([E2e](../../todos/ready/E2e-content-append-api.md)): the append API, step 2 of [full-editor §6](../full-editor.md#6-design-summary). `PageContentWriter` wraps a page's content in `q … Q` by adding streams to its `/Contents` array, appends and prepends streams, registers Form XObjects, graphics states and fonts under unused names (copying a shared `/Resources` first), and balances `q`/`Q` by a token scan over the lexer it already has. It changes an existing stream only to blank an unmatched `Q`. `ResizePages` and `SetOrientation { swapBox }` (E2f), flattening (E5e, E8g) and adding content (E6) use it. The crate now writes, so ADR 0023 gets a note.
-- **`laminapdf-ops`**: the ops of §2.1, `Applied`'s new reports, and the blob store with `add_source` (E2c). `PendingChanges` also records, per transaction, the fields whose widgets an op deleted, rotated, moved on the page or copied (E2b), which the planner checks (§6).
-- **`laminapdf-save`**: field-level checks for page ops: the planner indexes the pages that hold widgets of signed signature fields and of locked fields, and reports `Restriction::SignedWidget { field }` and `Restriction::FieldMdp` for the ops of §6 that touch them (E2b). Extract, split and merge write new documents with the full writer, keeping only reachable objects.
+- **`laminapdf-model`** ([E2j](../../todos/ready/E2j-page-tree-and-tree-writers.md)): a page-tree editor over `CosMut` (insert, remove and move kids, inherited attributes materialised, `/Count` kept, the tree rebalanced only when it passes a depth or fan-out threshold, a page dictionary listed twice copied on first change); writers for number trees and name trees; `PageLabels::remap`; and `PageReferences`, an index of what points at each page (outline items, links, named destinations in the name tree and in the PDF 1.1 `/Dests` dictionary, `GoTo` actions, `/OpenAction`, structure elements by `/Pg`, widgets of fields by `/P` or `/Annots`). [E2p](../../todos/ready/E2p-source-documents-and-copier.md) adds the `ObjectCopier` (deep copy across documents, cycles and `Limits` bounded, resources matched by hash) and E2d the document-level merges (outline, names, AcroForm, `/OCProperties`). E2o adds the structure-tree merge and the read of `/ClassMap` and `/IDTree`.
+- **`laminapdf-content`** ([E2e](../../todos/ready/E2e-content-append-api.md)): the append API, step 2 of [full-editor §6](../full-editor.md#6-design-summary). `PageContentWriter` wraps a page's content in `q … Q` by adding streams to its `/Contents` array, appends and prepends streams, registers Form XObjects, graphics states and fonts under unused names (copying a shared `/Resources` first), and balances `q`/`Q` by a token scan over the lexer it already has. It changes an existing stream only to blank an unmatched `Q`. `ResizePages` and `SetOrientation { swapBox }` (E2s), flattening (E5e, E8g) and adding content (E6) use it. The crate now writes, so ADR 0023 gets a note.
+- **`laminapdf-ops`**: the ops of §2.1, `Applied`'s new reports, and the blob store with `add_source` (E2p). `PendingChanges` also records, per transaction, the fields whose widgets an op deleted, rotated, moved on the page or copied ([E2r](../../todos/ready/E2r-planner-page-checks.md)), which the planner checks (§6).
+- **`laminapdf-save`**: field-level checks for page ops: the planner indexes the pages that hold widgets of signed signature fields and of locked fields, and reports `Restriction::SignedWidget { field }` and `Restriction::FieldMdp` for the ops of §6 that touch them (E2r). Extract, split and merge write new documents with the full writer, keeping only reachable objects.
 - **The façade and bindings.** Each op is a method on `laminapdf::Document` and on `@laminapdf/sdk`'s `Document`, with docs, a runnable example in Rust and TypeScript, tsify types and a frozen sample (requirement 7). In TypeScript the page ops sit together under `doc.pages`: `insertBlank`, `delete`, `move`, `rotate`, `reverse`, `duplicate`, `insertFrom`, `replace`, `setBoxes`, `crop`, `resize`, `setOrientation`, `setLabels`; and on the document: `addSource`, `extractPages`, `exportRanges`, `merge`, `split`. `Edited` carries `pageOrder`, `references`, `fields` and `stillInEarlierRevisions`. The CLI's page commands are [T6a](../../todos/ready/T6a-cli-page-commands.md), which waits for E2d.
 - **`@laminapdf/viewer`** ([E2l](../../todos/ready/E2l-viewer-across-page-edits.md)): edits that change the page list (§5).
 - **`@laminapdf/ui`**: the Organise mode (`mode.organise`, ADR 0024 §2) with its page grid, selection, drag with an insertion bar, Move to page…, and the single-document commands (E2h); the documents dialogs: insert from a file, replace, extract, export, merge and split (E2m); the page-setup dialogs: crop, resize, page boxes, orientation and page labels (E2g). Every command is in the command registry with its `pages.*` or `document.*` ID from O06, so the palette, the toolbar and the context menu share it. The new interaction is all in the Organise mode; no new interaction mode is needed.
@@ -129,17 +129,19 @@ Every save plans first, and the strip says what saving will do ([E1 plan §7](e1
 | --- | --- | --- | --- |
 | `Free` | No signature, a sound base | An incremental update; Save as optimised rewrites, dropping deleted pages from the file | Nothing; after a delete or replace, the same note as E1's metadata removal: the old pages stay in the file's earlier versions until Save as optimised |
 | `AppendOnly`: approval signatures | Signed, not certified | An incremental update: the signatures stay valid, and the signature panel (E10h) shows the page change as made after signing | The accent strip "Signed: your changes are added after the signatures" |
-| `AppendOnly` → `Conflict`: a signed signature's widget | `DeletePages`, `ReplacePages`, `RotatePages`, `CropPages`, `SetPageBoxes`, `ResizePages` or `SetOrientation` on a page that holds the widget of a signed `/FT /Sig` field | The op removes or changes the signature's visible appearance, so the planner reports `Restriction::SignedWidget`; the save is refused without the override | Before the op applies, O06's dialog names the signature and offers to change only the other pages, or to remove the signature (the O02 confirm) |
-| `AppendOnly` with a FieldMDP lock | Locked form fields (§12.8.2.4, or a signature field's `/Lock`) | Moving, reversing, inserting and duplicating keep the locked fields and their appearance, so they save incrementally. Deleting, replacing, rotating, cropping or resizing a page that holds a locked field's widget changes that field and is a violation | The accent strip; the same named-signature dialog before a violating op |
+| `AppendOnly` → `Conflict`: a signed signature's widget (recommended rule, below) | `DeletePages`, `ReplacePages`, `RotatePages`, `CropPages`, `SetPageBoxes`, `ResizePages` or `SetOrientation` on a page that holds the widget of a signed `/FT /Sig` field | The op removes or changes the signature's visible appearance, so the planner reports `Restriction::SignedWidget`; the save is refused without the override | Before the op applies, O06's dialog names the signature and offers to change only the other pages, or to remove the signature (the O02 confirm) |
+| `AppendOnly` with a FieldMDP lock (recommended rule, below) | Locked form fields (§12.8.2.4, or a signature field's `/Lock`) | Moving, reversing, inserting and duplicating keep the locked fields and their appearance, so they save incrementally. Deleting, replacing, rotating, cropping or resizing a page that holds a locked field's widget changes that field and is a violation | The accent strip; the same named-signature dialog before a violating op |
 | Usage rights (UR3) | Extended by Adobe Reader rights | UR3 grants form filling, annotations and signing only (§12.8.2.3), so every E2 op is a violation and the constraint becomes `Conflict` | The same warning and confirmation as a certified file |
 | `AppendOnly` with DocMDP P1, P2 or P3 | Certified | Every E2 op violates every level. The op applies only through Apply anyway…, which makes the constraint `Conflict`; it saves only through the override that removes the signatures | Before the op applies, `would_violate`'s verdict refuses it: a dropped drag animates back, and the banner names the certification with Save a copy · Apply anyway… · Details (O06). Saving then asks, naming the signatures that will be removed |
 | `RequiresRewrite` | A repaired file, or a new document (extract, export, split, merge into a new file) | A full rewrite; new documents keep only reachable objects | A neutral strip saying the file will be rewritten and why; none for new documents, which have no older file |
 | `RequiresRewrite`: encrypted base | Password-protected | Save is refused (`encrypted-base`) until E11, as in E1; extract, export and split write unencrypted files | The warning strip; the export and split dialogs say the new files won't have a password |
 | `Conflict` | Ops in the session the constraint forbids | Save is refused; Save as invalidating the signatures, after a confirmation | The danger strip with the conflicting changes and a way to undo them |
 
+**A rule stricter than the standard (a recommendation).** ISO 32000-2 §12.8 lets approval signatures alone forbid no change, and a FieldMDP lock covers the values of the fields it names, not the keys of the page their widgets sit on; ADR 0007 §2's class rules follow that. This plan still treats deleting, replacing, rotating, cropping or resizing a page that holds a signed signature's widget as a conflict, and the same ops on a locked field's page as a FieldMDP violation. The reason: each of these changes how the signed appearance or the locked field is shown, and someone reading the saved file can't tell from a still-valid signature that the page no longer looks as it did when signed. Moving, reversing, inserting and duplicating leave that appearance as it was, so they stay `AppendOnly`. [E2r](../../todos/ready/E2r-planner-page-checks.md) records the rule in ADR 0007 when it builds the checks.
+
 New documents carry no signature: a signature covers the whole original file ([05 §3.1](../../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)), so extracted, split and merged files keep their signature fields unsigned, and the dialogs say so on a signed source (O08).
 
-**The planner's new checks.** Today a FieldMDP lock is broken only by form filling, because op classes don't name fields (ADR 0007 §9). E2b gives page ops field-level checks. `PendingChanges` records the fields whose widgets each op deleted, rotated, moved on the page or copied, and the planner compares them with the signed signature fields and the fields each lock covers (`/Action` with `/Fields`). `would_violate(&op)` gives the same verdict before the op applies, from the planner's index of which pages hold which widgets. This table corrects [full-editor §E2](../full-editor.md#e2-page-organisation), which said only P1 and P2 block page changes: P3 does too, and so does UR3.
+**The planner's new checks.** Today a FieldMDP lock is broken only by form filling, because op classes don't name fields (ADR 0007 §9). [E2r](../../todos/ready/E2r-planner-page-checks.md) gives page ops field-level checks, before any page op ships. `PendingChanges` records the fields whose widgets each op deleted, rotated, moved on the page or copied, and the planner compares them with the signed signature fields and the fields each lock covers (`/Action` with `/Fields`). `would_violate(&op)` gives the same verdict before the op applies, from the planner's index of which pages hold which widgets. This table corrects [full-editor §E2](../full-editor.md#e2-page-organisation), which said only P1 and P2 block page changes: P3 does too, and so does UR3.
 
 ## 7. Differences between the shells
 
@@ -159,35 +161,30 @@ No server feature: every page edit, merge and split happens on the device, and n
 
 ## 8. Todos
 
+Each todo is one reviewable pull request of at most L (400–800 changed lines) on the [todo template](../../todos/TEMPLATE.md)'s scale, and each says why its size fits.
+
 | ID | Todo | Depends on |
 | --- | --- | --- |
 | [E2j](../../todos/ready/E2j-page-tree-and-tree-writers.md) | Page-tree editing, the number- and name-tree writers, `PageLabels::remap` and the page reference index | E2a |
-| [E2b](../../todos/ready/E2b-page-structure-ops.md) | Insert blank, delete, move, rotate and reverse pages, reference cleanup, the planner's field-level checks, bindings | E2j |
+| [E2r](../../todos/ready/E2r-planner-page-checks.md) | The save planner's field-level checks for page ops | E2j |
+| [E2b](../../todos/ready/E2b-page-structure-ops.md) | Insert blank, delete, move, rotate and reverse pages, reference cleanup, bindings | E2j, E2r |
 | [E2k](../../todos/ready/E2k-duplicate-pages.md) | Duplicate pages, with their annotations, form fields and tags | E2b |
+| [E2q](../../todos/ready/E2q-page-labels-op.md) | The `SetPageLabels` op | E2j |
 | [E2e](../../todos/ready/E2e-content-append-api.md) | The `laminapdf-content` append API | E2a |
-| [E2c](../../todos/ready/E2c-cross-document-pages.md) | Source documents and the blob store, the object copier, insert and replace from other files, extract and export | E2k |
+| [E2p](../../todos/ready/E2p-source-documents-and-copier.md) | Source documents, the blob store and the object copier | E2a |
+| [E2c](../../todos/ready/E2c-cross-document-pages.md) | Insert and replace from other files, extract and export | E2k, E2p |
 | [E2d](../../todos/ready/E2d-merge-and-split.md) | Merge with outlines, destinations, fields and layers; split by count, ranges and bookmarks | E2c |
 | [E2o](../../todos/ready/E2o-structure-tree-merge.md) | Merge structure trees, for merged and imported pages | E2d |
-| [E2f](../../todos/ready/E2f-page-geometry.md) | Crop, resize, page boxes and orientation | E2b, E2e |
+| [E2f](../../todos/ready/E2f-page-geometry.md) | Crop pages and set their boxes | E2r |
+| [E2s](../../todos/ready/E2s-resize-and-orientation.md) | Resize pages and change their orientation | E2e, E2f |
 | [E2l](../../todos/ready/E2l-viewer-across-page-edits.md) | The viewer and edit session across edits that change the page list | E2b |
 | [E2h](../../todos/ready/E2h-page-organiser-ui.md) | The Organise mode: page grid, selection, drag, Move to page… and the single-document commands | E2k, E2l |
 | [E2m](../../todos/ready/E2m-document-dialogs.md) | Insert from a file, replace, extract, export, merge and split in the interface | E2d, E2h |
-| [E2g](../../todos/ready/E2g-page-labels.md) | The page-setup dialogs: page labels, crop, resize, page boxes and orientation | E2d, E2f, E2h |
-| [E2i](../../todos/ready/E2i-signed-gating-and-close.md) | The signed-document gating suite for every op, and the round's close | E2g, E2m, E2o |
+| [E2g](../../todos/ready/E2g-page-labels.md) | The page-setup dialogs: page labels, crop, resize, page boxes and orientation | E2h, E2q, E2s |
+| [E2i](../../todos/ready/E2i-signed-gating-and-close.md) | The signed-document gating suite for every op, the cross-op labels test, and the round's close | E2g, E2m, E2o |
 | [E2n](../../todos/ready/E2n-desktop-organise.md) | Desktop: Organise in the engine, merging files opened together, writing parts to a folder | E2g, E2m, E1i, D3a |
 
-E2j and E2e can start as soon as this plan merges, in parallel. The web and shared work, E2b to E2m, waits on no desktop todo; E2i closes the round's web and shared columns, and E2n completes the desktop column when the desktop track is ready.
-
-**Adjustments to the todos.** Each keeps one reviewable pull request of at most about 1,500 lines:
-
-- **E2b was split three ways.** Its model work (page-tree editing, the tree writers, `PageLabels::remap`, the reference index) is the new E2j. `DuplicatePages`, with its tag and widget cloning, is the new E2k, which also flips `C.03`, since that row covers delete and duplicate. E2b keeps the five ops, the cleanup and the planner's checks, and reports a signed widget as `Restriction::SignedWidget` (a `Violation` is a struct, so `Violation::SignedWidgetPage` doesn't fit the type).
-- **E2c** depends on E2k (for the field-rename rule), owns the blob store and `add_source`, and drops tags of imported pages until E2o.
-- **E2d's structure-tree merge** is the new E2o; E2d keeps the outline, names, form, layers, labels, the report and split, sets its merge budget from §10 and runs as a job.
-- **E2e** keeps the writer and drops the `AppendContent` op. No E2 op appends arbitrary content: E2f's ops call the writer directly, and so do E5e's and E8g's flattening. The op's payload depends on how E6 carries images and fonts, so it moves to [E6a](../../todos/ready/E6a-adding-content-feature-plan.md).
-- **E2f** takes crop margins in page space (`CropPages { margins }`) and `ResizePages`' anchor inside `extend`; its size is L.
-- **E2h was split.** E2h keeps the Organise mode and the single-document commands. The new E2l takes the viewer's page-list work. The new E2m takes the documents dialogs and their outputs. The page-setup dialogs (O09) join E2g's labels dialog (O10), since both open from Page setup ▾. Desktop outputs and OS merge are the new E2n.
-- **E2g** depends on E2f and E2h, flips the web column of `C.09`–`C.12`, and no longer flips `I.10`'s desktop column, which E2n does.
-- **E2i** depends on E2g, E2m and E2o; its desktop banner test moves to E2n.
+E2j, E2e and E2p can start as soon as this plan merges, in parallel; E2r and E2q follow E2j. The web and shared work, E2b to E2m, waits on no desktop todo; E2i closes the round's web and shared columns, and E2n completes the desktop column when the desktop track is ready.
 
 ## 9. Fixtures
 
@@ -209,11 +206,13 @@ Each op gets the tests its todo lists; the table says which tiers apply ([ADR 00
 | Tree writers, `PageLabels::remap` (E2j) | property: random edits give valid trees | — | qpdf and pdf.js read the same entries | — | — | — |
 | `InsertBlankPages`, `DeletePages`, `MovePages`, `RotatePages`, `ReversePages` (E2b) | each op, its undo, its references report | an incremental save of each on `inherited.pdf` | page count, order (by each page's marker text), rotation, labels, outline targets | page facts vs pypdf on 20 corpus files | `ops_json` gains the ops | Playwright (E2h), WebdriverIO (E2n) |
 | `DuplicatePages` (E2k) | tags and widget cloning | — | fields filled apart in pdf.js and PDFium; veraPDF no worse | — | `ops_json` | Playwright (E2h) |
-| `InsertPagesFrom`, `ReplacePages`, `extract_pages`, `export_ranges` (E2c) | copier map, dedupe, `/P` fix-up | `extract-pages` example output | imported pages drawn as their source in PDFium | — | new `object_copy` over corpus pairs | Playwright (E2m) |
+| `ObjectCopier`, `add_source` (E2p) | copier map, dedupe, limits | — | copied pages drawn as their source in PDFium | — | new `object_copy` over corpus pairs | — |
+| `InsertPagesFrom`, `ReplacePages`, `extract_pages`, `export_ranges` (E2c) | `/P` fix-up, links and fields that come along | `extract-pages` example output | imported pages drawn as their source in PDFium | — | `ops_json` | Playwright (E2m) |
 | `MergeDocuments`, `merge`, `split` (E2d, E2o) | outline, names, field clash, layers, ParentTree renumbering | the split of `chapters.pdf` | merged forms fillable; split parts' outlines are the chapters | — | `ops_json` | Playwright (E2m) |
 | `PageContentWriter` (E2e) | the scan's depth and unmatched `Q`s | wrapped streams byte for byte | 30 corpus files with a rectangle appended | PDFium and pdf.js pixels unchanged | new `content_append_scan` | — |
-| `SetPageBoxes`, `CropPages`, `ResizePages`, `SetOrientation` (E2f) | the destination transform for every destination kind | — | boxes and destinations in pdf.js; cropped text still extracted by pdftotext | — | `ops_json` | Playwright (E2g) |
-| `SetPageLabels` (E2g) | ranges rebuilt after each op | — | labels in pdf.js and PDFium match the preview | — | `ops_json` | Playwright (E2g) |
+| `SetPageBoxes`, `CropPages` (E2f) | box validation in all four rotations | — | boxes in pdf.js; cropped text still extracted by pdftotext | — | `ops_json` | Playwright (E2g) |
+| `ResizePages`, `SetOrientation` (E2s) | the destination transform for every destination kind | — | destinations in pdf.js land on the same content | — | `ops_json` | Playwright (E2g) |
+| `SetPageLabels` (E2q) | range validation; labels kept after each op (E2i) | — | labels in pdf.js and PDFium match the preview | — | `ops_json` | Playwright (E2g) |
 
 Across every op:
 
@@ -223,7 +222,7 @@ Across every op:
 - **Merge budget** (a recommendation for E2d to confirm): merging 100 files of 10 pages takes at most 1 s native and 4 s in wasm32 on the CI runner, measured in `crates/laminapdf/benches/merge.rs`. E2d records what it measures and adjusts the budget, as E1g did for the redraw.
 - **e2e:** Playwright in Chromium, Firefox and WebKit drives each command as a user does and checks what the page shows, then saves, reopens and checks the page facts; WebdriverIO on three systems repeats the Organise suite and the OS merge in `apps/desktop/e2e/specs/` (E2n). Each test carries its capability tag.
 
-A new fuzz target's `fixtures/regressions/<target>` folder must also join `laminapdf-model`'s regression guard list. No E2 op draws an annotation or a field, so the appearance-stream requirement waits for E4; E2f moves widget rectangles but keeps their appearance streams.
+A new fuzz target's `fixtures/regressions/<target>` folder must also join `laminapdf-model`'s regression guard list. No E2 op draws an annotation or a field, so the appearance-stream requirement waits for E4; E2s moves widget rectangles but keeps their appearance streams.
 
 ## 11. Decisions on the open questions
 

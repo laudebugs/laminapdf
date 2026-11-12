@@ -49,7 +49,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `O09-page-geometry.dc.html` (crop with warning), `O09-page-geometry-resize.dc.html` (resize dialog), `O09-page-geometry-signed.dc.html` (certified file: banner and Apply anyway confirm).
 
-**Todos.** [E2f](../../todos/ready/E2f-page-geometry.md), [E2h](../../todos/ready/E2h-page-organiser-ui.md).
+**Todos.** [E2f](../../todos/ready/E2f-page-geometry.md), [E2s](../../todos/ready/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md).
 
 ## O10 Page labels editor
 
@@ -77,7 +77,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `O10-page-labels.dc.html`.
 
-**Todos.** [E2g](../../todos/ready/E2g-page-labels.md).
+**Todos.** [E2q](../../todos/ready/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md).
 
 ## O11 Bookmarks editor
 

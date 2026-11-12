@@ -4,14 +4,14 @@
 | --- | --- |
 | ID | `E2e` |
 | Status | `ready` |
-| Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
+| Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E2a](../ongoing/E2a-page-organisation-feature-plan.md) |
 | Dependency notes | [E2a](../ongoing/E2a-page-organisation-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); extends the crate created by ADR 0023 (B9) |
 | Branch | `feat/e2e-content-append-api` |
 | PR title | `feat(content): append API that wraps and appends page content streams` |
-| Size | M (200–600) |
+| Size | M (200–400): one writer in `laminapdf-content` over the lexer it already has, and its fixtures; no op |
 | PR | — |
 
 ## Goal
@@ -40,7 +40,7 @@ Add the minimal write API to `laminapdf-content` that never interprets existing 
 **Out of scope** (and which todo covers it)
 
 - Parsing/editing existing operators → [E7c](E7c-content-ir.md)
-- The `AppendContent` op and its payload → [E6a](E6a-adding-content-feature-plan.md) (the writer's callers in E2f, E5e and E8g call it from their own ops)
+- The `AppendContent` op and its payload → [E6a](E6a-adding-content-feature-plan.md) (the writer's callers in E2s, E5e and E8g call it from their own ops)
 
 **Editor facts**
 
@@ -49,7 +49,7 @@ Add the minimal write API to `laminapdf-content` that never interprets existing 
 - **`SaveConstraint`:** no op of its own; for the ops that call it: `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the content change); a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical (core)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** none directly; enables C.10 (E2f), D.14 (E5e), E.14 (E8g), group B/A additions (E6)
+- **Capability-matrix rows to flip:** none directly; enables C.10 and C.12 (E2s), D.14 (E5e), E.14 (E8g), group B/A additions (E6)
 
 ## Tasks
 

@@ -10,7 +10,7 @@
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0005](../../decisions/0005-document-model.md) |
 | Branch | `feat/e2j-page-tree-and-tree-writers` |
 | PR title | `feat(model): page-tree editor, name and number tree writers, page reference index` |
-| Size | L (400–800) |
+| Size | L (400–800): the page-tree editor, two tree writers, `PageLabels::remap` and the reference index in `laminapdf-model`, with fixtures; no op |
 | PR | — |
 
 ## Goal

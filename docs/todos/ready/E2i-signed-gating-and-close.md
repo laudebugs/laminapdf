@@ -4,13 +4,13 @@
 | --- | --- |
 | ID | `E2i` |
 | Status | `ready` |
-| Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
+| Plan | [E2 page organisation §6](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2g](./E2g-page-labels.md), [E2m](./E2m-document-dialogs.md), [E2o](./E2o-structure-tree-merge.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `test/e2i-signed-gating-and-close` |
 | PR title | `test(editor): signed-document gating suite for page operations` |
-| Size | M (200–600) |
+| Size | M (200–400): a table-driven test over every op and signed fixture, the cross-op labels test, one e2e test and the fixture script; no product code |
 | PR | — |
 
 ## Goal
@@ -50,6 +50,7 @@ Prove, across all E2 ops, that signed documents are protected exactly as ADR 000
 
 - [ ] Extend the fixture generation script and README provenance
 - [ ] Table-driven Rust test
+- [ ] Cross-op labels test: after `SetPageLabels` (roman front matter, arabic body, a prefixed appendix), each of `InsertBlankPages`, `DeletePages`, `DuplicatePages`, `MovePages`, `ReversePages`, `InsertPagesFrom`, `ReplacePages`, extract and merge keeps every surviving page's label, read back in pdf.js and PDFium (moved here from E2g, the first todo after every one of those ops)
 - [ ] One Playwright e2e for the banner
 - [ ] Run `cargo xtask capabilities` and fix gaps
 - [ ] Tick E2 to-dos in the plan
@@ -59,6 +60,7 @@ Prove, across all E2 ops, that signed documents are protected exactly as ADR 000
 - [ ] Every E2 op × signed fixture case has an asserted verdict: violation under P1, P2, P3 and UR3 (`SetPageLabels` and the `PageStructure` ops alike); `AppendOnly` with no violation on the approval-only fixture, except `Restriction::SignedWidget` for the ops the plan's §6 lists on the signed widget's page; violation on the FieldMDP-lock fixture only for the ops §6 lists on a page holding a locked field's widget
 - [ ] Approval-only fixture: each E2 op's incremental save validates in pyHanko with the original signature intact (its `/ByteRange` unchanged) and the later revision reported as a modification
 - [ ] Overridden saves validate as unsigned (no "broken" signatures) in pyHanko and `pdfsig`
+- [ ] Labels match `PageLabels::remap`'s expectation after every op in the cross-op test (no page relabelled except new ones)
 - [ ] All E2 rows at target status in the core, pdf and web columns
 
 ## Post-merge checks
