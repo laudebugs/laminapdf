@@ -70,8 +70,8 @@ catalogs:
       specifier: 9.31.9
       version: 9.31.9
     '@wdio/spec-reporter':
-      specifier: 9.31.2
-      version: 9.31.2
+      specifier: 10.1.0
+      version: 10.1.0
     '@wdio/tauri-plugin':
       specifier: 1.5.1
       version: 1.5.1
@@ -239,7 +239,7 @@ importers:
         version: 9.31.9(bare-buffer@3.7.1)(supports-color@8.1.1)
       '@wdio/spec-reporter':
         specifier: 'catalog:'
-        version: 9.31.2
+        version: 10.1.0
       '@wdio/tauri-plugin':
         specifier: 'catalog:'
         version: 1.5.1(supports-color@8.1.1)(tsx@4.23.15)
@@ -3180,6 +3180,9 @@ packages:
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
 
+  '@types/node@22.20.5':
+    resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==}
+
   '@types/node@24.19.2':
     resolution: {integrity: sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==}
 
@@ -3477,6 +3480,10 @@ packages:
     resolution: {integrity: sha512-FLTF0VL6+o5BSTCO7yLSXocm3kUnu31zYwzdsz4n9s5YWt83sCtzGZlZpt7TaTzb3jVUfxuHNQDTb8UMkCu0lQ==}
     engines: {node: '>=18.20.0'}
 
+  '@wdio/reporter@10.1.0':
+    resolution: {integrity: sha512-VijtnGZHgwKFRzWwfGQSTF5WCxtwZLMstTQurKgXFUUh6rJi5ORkfL2515q5/7hbHm9ziMbAeBrfUdiDJCk1dQ==}
+    engines: {node: '>=22.19.0'}
+
   '@wdio/reporter@9.31.2':
     resolution: {integrity: sha512-3cKE6vCOsro/Ep9dGTIbo3FBn3WNvJ++BIn32lFd9m19pFdjuwlVgLtPXHb9jWNCJs740h5AIUcVkcscqUYhAA==}
     engines: {node: '>=18.20.0'}
@@ -3487,6 +3494,10 @@ packages:
     peerDependencies:
       expect-webdriverio: ^6.0.9
       webdriverio: ^9.28.0
+
+  '@wdio/spec-reporter@10.1.0':
+    resolution: {integrity: sha512-3Ei+XqpJIsZ2tOwHZDtEw9e5T68X9jqnJ29WDPEUym8sB/XxRYAOUsxOV4EKtxy9LrDZ7yG1vNW/RKa5iNZAOg==}
+    engines: {node: '>=22.19.0'}
 
   '@wdio/spec-reporter@9.31.2':
     resolution: {integrity: sha512-lNLLPUk4y1Yp5pWwBFF+tjZIy7bOv0TPTk4HDWV4LnnHnkc24abI0nN+kb2y5/JV8ZgwLCCVKUFRdRUxfKsAaQ==}
@@ -3501,6 +3512,10 @@ packages:
     engines: {node: '>=18.20.0'}
     peerDependencies:
       webdriverio: ^9.0.0
+
+  '@wdio/types@10.1.0':
+    resolution: {integrity: sha512-MxGhIjP74w2xaIhqtzBfrtzDc41qyb9cMqvHgdIDC7MbaREJxpUd/paAg8qmouIph7hBp8MruXap/BPKlVXmVA==}
+    engines: {node: '>=22.19.0'}
 
   '@wdio/types@9.31.2':
     resolution: {integrity: sha512-lQKaiQDCJJ6VC1K/cKzaAxCpwB9pL1U0VbmX2uGksMxO4EDbNuLvIxWryuUDJ7OaSYTjxILTKYFErdbT/xEikg==}
@@ -3875,6 +3890,10 @@ packages:
   chalk@5.6.2:
     resolution: {integrity: sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
+
+  chalk@6.0.1:
+    resolution: {integrity: sha512-/Ce6KNm3vIbWdMlNna6RVIZ/ICQxnJxCicet5LBKK9ZffBkqzDw0xh9EiKSljdRtiIQ1S1z4YgcscUUGzNCWrA==}
+    engines: {node: '>=22'}
 
   char-regex@1.0.2:
     resolution: {integrity: sha512-kWWXztvZ5SBQV+eRgKFeh8q5sLuZY2+8WUIzlxWVTg+oGwY14qylx1KbKzHd8P6ZYkAg0xyIDU9JMHhyJMZ1jw==}
@@ -9200,6 +9219,10 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/node@22.20.5':
+    dependencies:
+      undici-types: 6.21.0
+
   '@types/node@24.19.2':
     dependencies:
       undici-types: 7.24.6
@@ -9553,6 +9576,13 @@ snapshots:
     dependencies:
       '@types/node': 20.19.43
 
+  '@wdio/reporter@10.1.0':
+    dependencies:
+      '@types/node': 22.20.5
+      '@wdio/types': 10.1.0
+      diff: 9.0.0
+      object-inspect: 1.13.4
+
   '@wdio/reporter@9.31.2':
     dependencies:
       '@types/node': 20.19.43
@@ -9581,6 +9611,14 @@ snapshots:
       - react-native-b4a
       - supports-color
       - utf-8-validate
+
+  '@wdio/spec-reporter@10.1.0':
+    dependencies:
+      '@wdio/reporter': 10.1.0
+      '@wdio/types': 10.1.0
+      chalk: 6.0.1
+      easy-table: 1.2.0
+      pretty-ms: 9.3.1
 
   '@wdio/spec-reporter@9.31.2':
     dependencies:
@@ -9618,6 +9656,10 @@ snapshots:
       - expect-webdriverio
       - supports-color
       - tsx
+
+  '@wdio/types@10.1.0':
+    dependencies:
+      '@types/node': 22.20.5
 
   '@wdio/types@9.31.2':
     dependencies:
@@ -10071,6 +10113,8 @@ snapshots:
       supports-color: 7.2.0
 
   chalk@5.6.2: {}
+
+  chalk@6.0.1: {}
 
   char-regex@1.0.2: {}
 
