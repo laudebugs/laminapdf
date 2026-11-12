@@ -27,6 +27,8 @@ Call it with an element that has a height, the file from an `<input type="file">
 using shown = await showPdf(container, file, pdfiumWasm);
 ```
 
+`using` takes the PDF down when the block it's declared in ends. When the viewer should stay on the page longer, keep what `showPdf` returns and call `close()` later, as described in [Take it down](#take-it-down).
+
 ## What runs where
 
 The viewer splits the work between your page and a Web Worker, one per document:
@@ -42,7 +44,9 @@ The viewer fills its container and scrolls inside it, so the container needs a h
 
 ## Take it down
 
-Dispose of what `showPdf` returns, with `using` or by calling `[Symbol.dispose]()`, when the PDF leaves the page. That stops its renders, frees its canvases and ends its Web Worker. If the file won't open, because it's damaged or locked with a password, `showPdf` ends its Web Worker before it throws.
+When the PDF leaves the page, call `close()` on what `showPdf` returns, or let a `using` declaration close it at the end of its block. Closing stops the PDF's renders, frees its canvases and ends its Web Worker; a second `close()` does nothing. If the file won't open, because it's damaged or locked with a password, `showPdf` ends its Web Worker before it throws.
+
+`using` works in Safari too. Where a browser has no `Symbol.dispose`, TypeScript and esbuild compile `using` to look for `Symbol.for("Symbol.dispose")`, and the example puts its close method under whichever key the browser uses.
 
 ## Next
 
