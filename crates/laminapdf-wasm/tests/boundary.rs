@@ -32,6 +32,21 @@ fn hello() -> WasmDocument {
     WasmDocument::open_bytes(HELLO.to_vec(), &JsValue::UNDEFINED).unwrap()
 }
 
+/// A source document's ID is the SHA-256 of its bytes on wasm32 as natively
+/// (`laminapdf-ops`' `tests/sources.rs` checks the same value), so an op log names the same
+/// source on every device.
+#[wasm_bindgen_test]
+fn a_source_document_has_the_id_it_has_natively() {
+    let source = include_bytes!("../../../fixtures/corpus/hello.pdf");
+    let mut doc = laminapdf_ops::Document::open(HELLO.to_vec(), laminapdf::OpenOptions::default()).unwrap();
+    let id = doc.add_source(source.to_vec(), None).unwrap();
+    assert_eq!(
+        id.to_string(),
+        "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d"
+    );
+    assert_eq!(doc.add_source(source.to_vec(), None).unwrap(), id);
+}
+
 #[wasm_bindgen_test]
 fn the_set_info_sample_applies() {
     let mut doc = hello();

@@ -15,7 +15,7 @@
 
 ## Goal
 
-X8a's trial shows how much sccache saves on the Linux x64 and macOS x64 Rust legs. This todo acts on those numbers. If the compile minutes of `cargo xtask check rust` on macOS x64 PR runs with a Rust-cache hit fell by a third or more, every Rust job in `ci.yml` and `full.yml` uses the compile cache. Otherwise the action, the pin and the secrets go, and the plan records why.
+X8a's trial shows how much sccache saves on the Linux x64, macOS x64 and macOS Arm64 Rust legs. This todo acts on those numbers. If the compile minutes of `cargo xtask check rust` on macOS Arm64 PR runs fell by a third or more in at least one Rust-cache state, compared within that state, and grew in neither (plan §5), every Rust job in `ci.yml` and `full.yml` uses the compile cache. Otherwise the action, the pin and the secrets go, and the plan records why.
 
 ## Context
 
@@ -36,7 +36,7 @@ X8a's trial shows how much sccache saves on the Linux x64 and macOS x64 Rust leg
 
 ## Tasks
 
-- [ ] Record the trial's hit rates and step times in the plan's §2.
+- [ ] Record the trial's hit rates and step times in the plan's §2: on macOS Arm64, five PR runs in each Rust-cache state (a state with fewer than five doesn't count toward the rule).
 - [ ] Apply the rule: the patch for every Rust job, or the removal.
 - [ ] If kept: check install-action has sccache for `aarch64-pc-windows-msvc` before that leg.
 - [ ] If kept: one leg without the Rust cache for five pushes to `main`; keep the faster setup unless its R2 reads exceed §4.4's estimate.

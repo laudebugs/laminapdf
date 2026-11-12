@@ -1772,6 +1772,8 @@ version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-syntax",
+ "quick-xml",
+ "sha2 0.11.1",
  "thiserror 2.0.21",
 ]
 

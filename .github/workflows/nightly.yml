@@ -229,6 +229,7 @@ jobs:
             content,
             ops_json,
             save_roundtrip,
+            copy_pages,
             extract_text,
             extract,
             markdown,

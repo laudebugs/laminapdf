@@ -98,6 +98,7 @@ A PR that adds a code adds:
 | [`saved-not-rebased`](saved-not-rebased.md) | `state` | the document was saved to a sink Lamina PDF cannot read back and waits for rebase |
 | [`no-pending-save`](no-pending-save.md) | `state` | rebase was called without a save waiting for it |
 | [`malformed-xmp`](malformed-xmp.md) | `input` | a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds |
+| [`unknown-source`](unknown-source.md) | `usage` | an op or a call names a source document that was not added to the session |
 
 ## Op warnings
 

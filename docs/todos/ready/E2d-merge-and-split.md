@@ -10,7 +10,7 @@
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2d-merge-and-split` |
 | PR title | `feat(ops): merge documents with outline, destination and field remapping; split` |
-| Size | L (400–800): merge of the outline, the name trees, the AcroForm and the layers over [E2p](E2p-source-documents-and-copier.md)'s copier, and split; the structure-tree merge is [E2o](E2o-structure-tree-merge.md)'s |
+| Size | L (400–800): merge of the outline, the name trees, the AcroForm and the layers over [E2p](../done/E2p-source-documents-and-copier.md)'s copier, and split; the structure-tree merge is [E2o](E2o-structure-tree-merge.md)'s |
 | PR | — |
 
 ## Goal

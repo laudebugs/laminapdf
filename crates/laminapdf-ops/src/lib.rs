@@ -91,7 +91,7 @@ mod wire;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
-pub use blob::{BlobId, ParseBlobIdError};
+pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};

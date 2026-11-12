@@ -15,6 +15,8 @@
     reason = "a developer tool: failing loudly is the right behaviour"
 )]
 
+#[path = "../tests/common/copy.rs"]
+mod copy;
 #[path = "../tests/common/roundtrip.rs"]
 mod roundtrip;
 
