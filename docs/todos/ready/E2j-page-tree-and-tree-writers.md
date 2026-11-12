@@ -15,7 +15,7 @@
 
 ## Goal
 
-Give `laminapdf-model` the write side that every E2 page op needs, so the ops themselves stay small: a page-tree editor, writers for number trees and name trees, `PageLabels::remap`, and an index of everything that points at a page. Split out of [E2b](E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) to keep each PR reviewable; [E2b](E2b-page-structure-ops.md), [E2c](E2c-cross-document-pages.md), [E2d](E2d-merge-and-split.md), [E2f](E2f-page-geometry.md), [E2g](E2g-page-labels.md), [E3b](E3b-bookmarks-and-destinations.md) and [E3f](E3f-attachments-and-associated-files.md) build on it instead of writing their own.
+Give `laminapdf-model` the write side that every E2 page op needs, so the ops themselves stay small: a page-tree editor, writers for number trees and name trees, `PageLabels::remap`, and an index of everything that points at a page. Split out of [E2b](E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) to keep each PR reviewable; [E2b](E2b-page-structure-ops.md), [E2c](E2c-cross-document-pages.md), [E2d](E2d-merge-and-split.md), [E2f](E2f-page-geometry.md), [E2g](E2g-page-labels.md), [E3b](E3b-bookmarks-and-destinations.md), [E3c](E3c-links.md) and [E3f](E3f-attachments-and-associated-files.md) build on it instead of writing their own.
 
 ## Context
 
