@@ -5,7 +5,7 @@
 - **Asked for by:** the project owner (2026-11-12): "look at caching for our tests, so as to speed up the pipeline", then "cache the rust builds without turborepo", with the cache on Cloudflare R2.
 - **Changes:** [ADR 0018 §2](../decisions/0018-test-strategy.md#2-ci-lanes) (a CI compile cache, and what may never use it)
 - **Builds on:** the fast and full lanes ([X4](../todos/done/X4-full-lane-gate.md), [X7](../todos/done/X7-fast-lane-gate.md)), the hosted runners ([X6](../todos/done/X6-windows-ci.md)), and the shared setup actions in `.github/actions/`
-- **Todos:** [§7](#7-todos)
+- **Todos:** [§7](#7-todos) (the compile cache) and [§8](#8-the-waits) (the waits)
 
 ## 1. Goal
 
@@ -25,7 +25,7 @@ Wall-clock time in CI goes to waiting first and compiling second. A survey of re
 | Saving the Rust cache on `main` | 1–3 min per leg |
 | TypeScript typecheck and tests | 2–4 min, never on the critical path |
 
-The waits need their own work (§8). This plan takes the compiling. The Rust cache (`Swatinem/rust-cache`, through `actions-rust-lang/setup-rust-toolchain`) saves `~/.cargo` and the dependencies in `target/`, never the workspace's crates. Its key hashes `Cargo.lock`, and it falls back to an older lockfile's entry when the lockfile changes, so a PR always recompiles our crates and sometimes some dependencies too.
+The waits have their own todos (§8). The rest of this plan takes the compiling. The Rust cache (`Swatinem/rust-cache`, through `actions-rust-lang/setup-rust-toolchain`) saves `~/.cargo` and the dependencies in `target/`, never the workspace's crates. Its key hashes `Cargo.lock`, and it falls back to an older lockfile's entry when the lockfile changes, so a PR always recompiles our crates and sometimes some dependencies too.
 
 ### 2.1 The trial's baseline (X8a)
 
@@ -114,6 +114,13 @@ Each todo's PR carries its workflow edits with the action, the pin, the tests an
 - [x] The setup action, the sccache pin, the workflow checks, ADR 0018's amendment and a trial on two legs ([X8a](../todos/done/X8a-rust-compile-cache-trial.md))
 - [ ] Spread it to every Rust job of the fast and full lanes, or remove it, from the trial's numbers ([X8b](../todos/ready/X8b-rust-compile-cache-everywhere.md))
 
-## 8. Not in this plan
+## 8. The waits
 
-The waits in §2 cost more than compiling and need their own todos: Rust on macOS x64 only on `main` and in the nightly, render goldens only when rendering changes, more of `cargo xtask changes`'s path flags to skip whole jobs, and newer pushes to `main` cancelling an older CI run. Turborepo for the TypeScript packages stays as ADR 0015 left it, to revisit once TypeScript time shows on the critical path.
+The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 minutes for a runner in §2.1's baseline, against about 13 minutes of compiling, and pushes to `main` waited up to 43 minutes for the run before them. Four todos take them, each in its own PR:
+
+- [ ] Rust on macOS x64 only on pushes to `main` and in the nightly, not on PRs: the leg that waits longest for a runner and finishes last. A break only macOS x64 shows then appears after the merge, and the macOS Arm64 leg still runs on every PR, so the owner accepted the risk (2026-11-12). X8b's PR measurements move to macOS Arm64 first ([X9a](../todos/ready/X9a-macos-x64-rust-off-prs.md))
+- [ ] The render goldens, which need a Mac, only when a PR changes what they draw ([X9b](../todos/ready/X9b-render-goldens-when-rendering-changes.md))
+- [ ] More of `cargo xtask changes`'s path flags, to skip whole groups of jobs a PR can't affect ([X9c](../todos/ready/X9c-skip-jobs-by-changed-paths.md))
+- [ ] A newer push to `main` cancels the older CI run on `main` ([X9d](../todos/ready/X9d-cancel-superseded-main-runs.md))
+
+Turborepo for the TypeScript packages stays as ADR 0015 left it, to revisit once TypeScript time shows on the critical path.
