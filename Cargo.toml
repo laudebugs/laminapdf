@@ -32,7 +32,7 @@ publish = false
 # for by the crates and builds that want it (laminapdf-cos and the façade by default; ADR 0016 §5).
 laminapdf-syntax = { version = "0.2.0-alpha.6", path = "crates/laminapdf-syntax", default-features = false }
 laminapdf-cos = { version = "0.2.0-alpha.6", path = "crates/laminapdf-cos", default-features = false }
-laminapdf-model = { version = "0.2.0-alpha.6", path = "crates/laminapdf-model" }
+laminapdf-model = { version = "0.2.0-alpha.6", path = "crates/laminapdf-model", default-features = false }
 laminapdf-ops = { version = "0.2.0-alpha.6", path = "crates/laminapdf-ops" }
 laminapdf-source = { version = "0.2.0-alpha.6", path = "crates/laminapdf-source" }
 laminapdf-save = { version = "0.2.0-alpha.6", path = "crates/laminapdf-save" }
@@ -78,11 +78,15 @@ subsetter = { version = "=0.2.6" }
 # Content-stream operators: laminapdf-build's content streams (ADR 0005 §6), laminapdf-text's tests and
 # goldens. MIT OR Apache-2.0
 pdf-writer = { version = "=0.15.0", default-features = false }
-# PNG encoding for laminapdf-build's tests, and the reference its own decoder (surface/png/, B6a)
-# is compared with: a dev-dependency only. No default features. MIT OR Apache-2.0 (bitflags,
+# PNG encoding: laminapdf-render's page export (feature `export`, E3h), laminapdf-build's tests,
+# and the reference its own decoder (surface/png/, B6a) is compared with. No default features. MIT OR Apache-2.0 (bitflags,
 # crc32fast, fdeflate, flate2, miniz_oxide 0.8 [a second copy, deny.toml warns], simd-adler32:
 # MIT OR Apache-2.0 / Zlib)
 png = { version = "0.18.1", default-features = false }
+# Page export (laminapdf-render's `export` feature, todo E3h): JPEG through jpeg-encoder
+# ((MIT OR Apache-2.0) AND IJG: deny.toml's exception) and TIFF through tiff (MIT), Deflate only.
+jpeg-encoder = { version = "0.7.1", default-features = false, features = ["std"] }
+tiff = { version = "0.11.3", default-features = false, features = ["deflate"] }
 # The pure-Rust renderer behind laminapdf-render's `hayro` feature (ADR 0004): the same pin as
 # tools/render and the hayro-parity spike. MIT OR Apache-2.0 (dependencies: kurbo, vello_cpu,
 # skrifa-family crates, moxcms, pic-scale, …: MIT/Apache/BSD/Zlib; cargo-deny checks them).

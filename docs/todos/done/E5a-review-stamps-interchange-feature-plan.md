@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md) |
@@ -11,7 +11,7 @@
 | Branch | `docs/e5a-review-stamps-interchange-feature-plan` |
 | PR title | `docs(editor): E5 feature plan (review, stamps and interchange)` |
 | Size | S (< 200 lines) |
-| PR | — |
+| PR | [#523](https://github.com/laudebugs/laminapdf/pull/523) |
 
 ## Goal
 
@@ -51,23 +51,23 @@ The short feature-plan PR that opens round E5 ([full-editor §E5](../../plans/fu
 
 ## Tasks
 
-- [ ] Create `docs/plans/editor/e5-review-stamps-interchange.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`D.07`, `D.08`, `D.09`, `D.10`, `D.11`, `D.12`, `D.13`, `D.14`, `D.15`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
-- [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
-- [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
-- [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
-- [ ] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E5"` and status `unsupported` until each implementation PR flips them
-- [ ] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E5b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
-- [ ] Answer or assign an owner to each open question below; record decisions in the feature plan
-- [ ] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)
+- [x] Create `docs/plans/editor/e5-review-stamps-interchange.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`D.07`, `D.08`, `D.09`, `D.10`, `D.11`, `D.12`, `D.13`, `D.14`, `D.15`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
+- [x] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [x] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
+- [x] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
+- [x] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
+- [x] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E5"` and status `unsupported` until each implementation PR flips them
+- [x] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E5b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
+- [x] Answer or assign an owner to each open question below; record decisions in the feature plan
+- [x] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)
 
 ## Acceptance criteria
 
-- [ ] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
-- [ ] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
-- [ ] Every implementation todo of the round is linked from the plan and each has explicit dependencies
-- [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E5"`; `cargo xtask capabilities` regenerates without error
-- [ ] Each open question below is answered or has a named owner and a deadline round
+- [x] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
+- [x] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
+- [x] Every implementation todo of the round is linked from the plan and each has explicit dependencies
+- [x] `docs/capabilities/manifest.toml` has a row per op with `target round = "E5"`; `cargo xtask capabilities` regenerates without error
+- [x] Each open question below is answered or has a named owner and a deadline round
 
 ## Post-merge checks
 
@@ -84,14 +84,14 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Risks and open questions
 
-- Open question: Deleting a parent annotation: delete replies too, or re-parent them?
-- Open question: Comment summary layout (Acrobat-like side-by-side vs list) and whether it is tagged PDF
+- Answered in [E5 plan §10](../../plans/editor/e5-review-stamps-interchange.md#10-decisions-on-the-open-questions): Deleting a parent annotation: delete replies too, or re-parent them?
+- Answered in §10: Comment summary layout (Acrobat-like side-by-side vs list) and whether it is tagged PDF
 - The plan location `docs/plans/editor/` is a recommendation; if the plans README prescribes another place, use it and update this todo's links
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

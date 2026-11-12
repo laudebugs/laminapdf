@@ -71,6 +71,11 @@ exceptions = [
     # (L1b): never in a library build. Every 2020-12 validator in Rust (boon, jsonschema) uses
     # fluent-uri.
     { name = "borrow-or-share", allow = ["MIT-0"] },
+    # IJG (the Independent JPEG Group's licence: permissive, with a credit in the documentation),
+    # beside MIT OR Apache-2.0, for jpeg-encoder only (owner decision 2026-11-12, todo E3h): its
+    # code derives from libjpeg. laminapdf-render's `export` feature encodes JPEG pages with it,
+    # and the crate's README carries the credit the licence asks for.
+    { name = "jpeg-encoder", allow = ["IJG"] },
 ]
 
 [licenses.private]

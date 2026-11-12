@@ -1016,6 +1016,13 @@
       "summary": "the render engine is not available: its library or module could not be loaded",
       "hint": "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
       "since": "0.1.0"
+    },
+    {
+      "code": "export-failed",
+      "kind": "internal",
+      "summary": "an export's PNG, JPEG or TIFF encoder failed on a page that was drawn",
+      "hint": "report it with the format and the page: the encoder writes into memory, so this is a bug in Lamina PDF",
+      "since": "0.2.0"
     }
   ],
   "extractErrors": [

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2i](./E2i-signed-gating-and-close.md), [E2j](./E2j-page-tree-and-tree-writers.md), [E2p](../done/E2p-source-documents-and-copier.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2i](./E2i-signed-gating-and-close.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E2p](../done/E2p-source-documents-and-copier.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3f-attachments-and-associated-files` |
 | PR title | `feat(ops): embedded files, associated files and portfolio reading` |
@@ -44,7 +44,7 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.05` attach / extract / delete embedded files; `J.06` portfolios / collections; `H.09` extract attachments; `M.09` associated files and structured metadata
-- **Crates and packages:** `laminapdf-model` (file specs, name-tree writer from [E2j](E2j-page-tree-and-tree-writers.md)), `laminapdf-ops`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-model` (file specs, name-tree writer from [E2j](../done/E2j-page-tree-and-tree-writers.md)), `laminapdf-ops`, `@laminapdf/ui`
 - **`Op` variants:** `AttachFile`, `UpdateAttachment`, `DeleteAttachment` (class `Document`)
 - **`SaveConstraint`:** `Free` → incremental; signed: adding or changing attachments is class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`. Deleting an attachment leaves it in earlier revisions: notice offers full rewrite
 - **Web vs desktop:** identical; desktop saves extracted files to disk via dialog, web downloads

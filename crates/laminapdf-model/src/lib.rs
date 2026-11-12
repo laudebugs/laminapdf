@@ -72,6 +72,8 @@ mod copy;
 mod date;
 mod disclosure;
 mod document;
+#[cfg(feature = "edit")]
+mod edit;
 mod fonts;
 mod geometry;
 mod graphics;
@@ -82,8 +84,14 @@ mod link;
 mod locate;
 mod outline;
 mod page;
+#[cfg(feature = "edit")]
+mod page_tree;
+#[cfg(feature = "edit")]
+mod references;
 mod structure;
 mod tree;
+#[cfg(feature = "edit")]
+mod tree_writer;
 mod values;
 pub mod xmp;
 
@@ -103,8 +111,14 @@ pub use link::{Link, LinkAction};
 pub use locate::ParentedPage;
 pub use outline::{ActionKind, Destination, Outline, OutlineItem, View};
 pub use page::{Page, Pages, Rotation};
+#[cfg(feature = "edit")]
+pub use page_tree::{PagePosition, PageTreeEditor, PageTreeError};
+#[cfg(feature = "edit")]
+pub use references::{NameStore, PageReference, PageReferences, ReferenceKind, Via, WidgetLink};
 pub use structure::{StructElem, StructKid, StructTree};
 pub use tree::{NameTree, NumberTree};
+#[cfg(feature = "edit")]
+pub use tree_writer::TreeWriter;
 
 // The layers below, in façade order (ADR 0005 §1): what callers of the model need without
 // naming `laminapdf-cos`.
