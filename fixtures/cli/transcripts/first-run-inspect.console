@@ -1,0 +1,6 @@
+$ laminapdf info notes.pdf
+notes.pdf  PDF 1.7 · 1 page · 3 KB · not encrypted · tagged
+Title: Release notes
+Pages: 595.28 × 841.89 pt
+$ laminapdf check notes.pdf
+notes.pdf: ok · 1 page · 33 objects

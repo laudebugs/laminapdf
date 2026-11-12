@@ -23,6 +23,8 @@ export function sidebar(typeDoc) {
         { label: "Choosing a PDF library", slug: "start/choosing-a-pdf-library" },
         { label: "Install", slug: "install" },
         { label: "Your first PDF", slug: "start/first-pdf" },
+        { label: "Your first PDF in Rust", slug: "start/first-pdf-rust" },
+        { label: "Your first PDF on the command line", slug: "start/first-pdf-cli" },
         { label: "Use with coding agents", slug: "start/coding-agents" },
         { label: "Read offline", slug: "start/offline" },
       ],
@@ -67,6 +69,14 @@ export function sidebar(typeDoc) {
         { label: "Open password-protected files", slug: "guides/password-protected-files" },
         { label: "Open files you don't trust", slug: "guides/untrusted-files" },
         { label: "Open large files by ranges", slug: "guides/open-large-files" },
+        { label: "Check what a file hides", slug: "guides/check-what-a-file-hides" },
+      ],
+    },
+    {
+      label: "Show PDFs",
+      items: [
+        { label: "Show a PDF in a web page", slug: "guides/show-a-pdf" },
+        { label: "Render pages to images", slug: "guides/render-pages" },
       ],
     },
     {
