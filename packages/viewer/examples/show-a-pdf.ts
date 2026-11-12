@@ -13,11 +13,17 @@ export type AskPassword = (wrong: boolean) => Promise<string | undefined>;
 export class PdfView {
   readonly client: ViewerClient;
   readonly viewer: Viewer;
-  #stopReopening = () => {};
+  #shown: { file: Blob; askPassword: AskPassword } | undefined;
+  #opening = false;
+  readonly #stopReopening: () => void;
 
   private constructor(client: ViewerClient, viewer: Viewer) {
     this.client = client;
     this.viewer = viewer;
+    // A Web Worker that crashed starts again, but a password died with it, so ask again.
+    this.#stopReopening = client.on("password-required", () => {
+      if (this.#shown !== undefined && !this.#opening) void this.show(this.#shown.file, this.#shown.askPassword);
+    });
   }
 
   /** Starts a viewer in `container`, which gives it its size. Start it before the reader picks a file. */
@@ -34,22 +40,24 @@ export class PdfView {
    * resolves `false` when the reader cancels, and the file shown before stays.
    */
   async show(file: Blob, askPassword: AskPassword): Promise<boolean> {
-    let password: string | undefined;
-    for (;;) {
-      try {
-        this.viewer.open(await this.client.open(file, password === undefined ? {} : { password }));
-        break;
-      } catch (e) {
-        if (!isLaminaPdfError(e, "wrong-password") && !isLaminaPdfError(e, "password-required")) throw e;
-        // Any password that failed was wrong, an empty one included.
-        password = await askPassword(password !== undefined);
-        if (password === undefined) return false;
+    this.#opening = true;
+    try {
+      let password: string | undefined;
+      for (;;) {
+        try {
+          this.viewer.open(await this.client.open(file, password === undefined ? {} : { password }));
+          this.#shown = { file, askPassword };
+          return true;
+        } catch (e) {
+          if (!isLaminaPdfError(e, "wrong-password") && !isLaminaPdfError(e, "password-required")) throw e;
+          // Any password that failed was wrong, an empty one included.
+          password = await askPassword(password !== undefined);
+          if (password === undefined) return false;
+        }
       }
+    } finally {
+      this.#opening = false;
     }
-    // A Web Worker that crashed starts again, but the password died with it, so ask again.
-    this.#stopReopening();
-    this.#stopReopening = this.client.on("password-required", () => void this.show(file, askPassword));
-    return true;
   }
 
   /** Takes the viewer off the page and ends its Web Worker. */
