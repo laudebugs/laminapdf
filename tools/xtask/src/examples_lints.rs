@@ -9,7 +9,7 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
-use crate::docs_snippets::{RUST_EXAMPLES, TS_EXAMPLES, is_tool};
+use crate::docs_snippets::{RUST_EXAMPLES, TS_EXAMPLE_DIRS, is_tool};
 use crate::reports::{Options, Ratchet, finding};
 use crate::tracked::Tracked;
 use crate::workspace::Workspace;
@@ -32,7 +32,7 @@ pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
         .map(|path| path.to_string_lossy().replace('\\', "/"))
         .chain(untracked)
         .filter(|path| {
-            TS_EXAMPLES.iter().any(|dir| path.starts_with(dir))
+            TS_EXAMPLE_DIRS.iter().any(|dir| path.starts_with(dir))
                 && crate::util::has_extension(path, &["ts"])
                 && ws.root.join(path).is_file()
         })

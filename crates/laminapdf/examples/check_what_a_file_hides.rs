@@ -40,7 +40,11 @@ pub(crate) fn what_it_hides(bytes: Vec<u8>) -> Result<Hidden, laminapdf::Error> 
     let reveal = doc.reveal(&options, &cancel)?;
     let redactions = doc.redaction_warnings(&options, &cancel)?;
     Ok(Hidden {
-        categories: reveal.found().into_iter().map(laminapdf::reveal::Category::as_str).collect(),
+        categories: reveal
+            .found()
+            .into_iter()
+            .map(laminapdf::reveal::Category::as_str)
+            .collect(),
         redactions: redactions
             .iter()
             .map(|warning| (warning.code(), warning.location().page_index))

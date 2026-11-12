@@ -17,10 +17,10 @@ const SNIPPET: &str = "apps/docs/src/components/Snippet.astro";
 const PAGES: &str = "apps/docs/src/content/docs/";
 /// The TypeScript examples' folders: `@laminapdf/sdk`'s, and `@laminapdf/viewer`'s, which the SDK
 /// can't hold since the viewer depends on it.
-pub(crate) const TS_EXAMPLES: [&str; 2] = ["packages/sdk/examples/", "packages/viewer/examples/"];
+pub(crate) const TS_EXAMPLE_DIRS: [&str; 2] = ["packages/sdk/examples/", "packages/viewer/examples/"];
 /// The Rust examples' folder (the `laminapdf` façade's).
 pub(crate) const RUST_EXAMPLES: &str = "crates/laminapdf/examples/";
-const EXAMPLE_DIRS: [&str; 3] = [TS_EXAMPLES[0], TS_EXAMPLES[1], RUST_EXAMPLES];
+const EXAMPLE_DIRS: [&str; 3] = [TS_EXAMPLE_DIRS[0], TS_EXAMPLE_DIRS[1], RUST_EXAMPLES];
 const MAX_LINES: usize = 100;
 
 /// Folders under [`EXAMPLE_DIRS`] that hold developer tools rather than examples for readers:

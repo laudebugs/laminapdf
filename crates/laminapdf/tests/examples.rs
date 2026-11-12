@@ -295,6 +295,19 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
     assert_eq!((&here, &in_manifest), (&files, &files));
 }
 
+/// Compares `text` with the golden at `path` under `fixtures/`; `UPDATE_GOLDEN=1` rewrites it. The
+/// docs site shows these goldens as the reading examples' output.
+fn check_text_golden(path: &str, text: &str) {
+    let golden = fixtures_dir().join(path);
+    if std::env::var_os("UPDATE_GOLDEN").is_some() {
+        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
+            .unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(&golden, text).unwrap_or_else(|e| panic!("{e}"));
+    }
+    let want = std::fs::read_to_string(&golden).unwrap_or_default();
+    assert!(text == want, "{} is stale: run with UPDATE_GOLDEN=1", golden.display());
+}
+
 /// The examples that read a PDF instead of building one.
 const READERS: [&str; 4] = [
     "check_what_a_file_hides",
@@ -332,22 +345,11 @@ fn check_what_a_file_hides_finds_an_old_revision_hidden_text_and_metadata() {
     // Invisible text on its first page, and metadata.
     let brochure = hides("corpus/text-example.pdf");
     assert_eq!(brochure.categories, ["metadata", "hidden-content"]);
-    assert!(brochure.redactions.is_empty());
+    assert_eq!(brochure.redactions, []);
     // The report is a golden: the docs' guide shows it as the example's output, for the two
     // files under the names the guide gives them. `UPDATE_GOLDEN=1` rewrites it.
     let printed = report("letter.pdf", &letter) + &report("brochure.pdf", &brochure);
-    let golden = fixtures_dir().join("reveal/examples/check_what_a_file_hides.txt");
-    if std::env::var_os("UPDATE_GOLDEN").is_some() {
-        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
-            .unwrap_or_else(|e| panic!("{e}"));
-        std::fs::write(&golden, &printed).unwrap_or_else(|e| panic!("{e}"));
-    }
-    let want = std::fs::read_to_string(&golden).unwrap_or_default();
-    assert!(
-        printed == want,
-        "{} is stale: run with UPDATE_GOLDEN=1",
-        golden.display()
-    );
+    check_text_golden("reveal/examples/check_what_a_file_hides.txt", &printed);
 }
 
 #[test]
@@ -370,18 +372,7 @@ fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     // The whole Markdown is a golden: the docs' Extract Markdown recipe shows it as the example's
     // output. `UPDATE_GOLDEN=1` rewrites it.
     let markdown = read("invoice.md");
-    let golden = fixtures_dir().join("extract/examples/invoice.md");
-    if std::env::var_os("UPDATE_GOLDEN").is_some() {
-        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
-            .unwrap_or_else(|e| panic!("{e}"));
-        std::fs::write(&golden, &markdown).unwrap_or_else(|e| panic!("{e}"));
-    }
-    let want = std::fs::read_to_string(&golden).unwrap_or_default();
-    assert!(
-        markdown == want,
-        "{} is stale: run with UPDATE_GOLDEN=1",
-        golden.display()
-    );
+    check_text_golden("extract/examples/invoice.md", &markdown);
     assert!(markdown.starts_with("<!-- page 1 -->\n\n# Invoice 42\n"));
     assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
     assert!(read("invoice.chunks.jsonl").lines().count() >= 1);
