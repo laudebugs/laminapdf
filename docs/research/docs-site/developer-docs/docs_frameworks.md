@@ -169,7 +169,7 @@ Astro islands are the best fit for a light page with a few heavy widgets, such a
 ### Inferences
 - A live PDF playground fits Starlight now: an MDX page imports a framework component and renders it with `client:visible`. The component loads `@laminapdf/sdk` and the WASM from `'self'`. That needs `'wasm-unsafe-eval'`, which the docs CSP already allows for Pagefind, and `worker-src 'self'`.
 - Sandpack, StackBlitz and CodeSandbox load from their own origins in iframes. That breaks "no third-party origins", so a self-built island is needed whatever the framework.
-- Twoslash: Expressive Code has a Twoslash plugin (`expressive-code-twoslash`, community). I did not verify it this session. Its hover popups would add JS and, likely, inline styles.
+- Twoslash: Expressive Code has a Twoslash plugin (`expressive-code-twoslash`, community). I did not verify it this session. Its hover popups would add JS and, likely, inline styles. *Since measured by the [Q4p spike](../../../../spikes/docs-twoslash/README.md) (2026-11-12): 0.6.1 supports Expressive Code 0.41 and TypeScript 5 only; on Lamina PDF's docs it adds 24.5 KB of script and 15.5 KB of CSS to every page and 953 `style=` attributes to the page with hovers, and its hovers work by mouse only.*
 
 ### Gaps
 - I did not verify the status of the Twoslash plugins for Expressive Code, Fumadocs (`fumadocs-twoslash`) or VitePress (`@shikijs/vitepress-twoslash`) this session.
