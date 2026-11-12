@@ -209,7 +209,8 @@ struct JsonOp<'a> {
     surfaces: JsonSurfaces,
 }
 
-/// A row's cell per surface, in [`Surface::ALL`]'s order, as a JSON object.
+/// A row's cell per surface, in [`Surface::ALL`]'s order, as a JSON object. Built from `ALL`
+/// rather than one field per surface, so a new surface can't be left out of the JSON.
 struct JsonSurfaces(Vec<(&'static str, Option<&'static str>)>);
 
 impl Serialize for JsonSurfaces {

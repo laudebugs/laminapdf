@@ -7,7 +7,6 @@ import { readFileSync } from "node:fs";
 import { Document, init, type MetadataKey } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
-  EDITABLE_FIELDS,
   type EditableField,
   fieldWarnings,
   formFrom,
@@ -22,13 +21,15 @@ const CODE = {
   "properties.edit.warning.oneAuthor": "pdfa-one-author",
 } as const;
 
-// The form's field names are the SDK's metadata keys, both ways (a compile-time check).
-const keys: readonly MetadataKey[] = [...EDITABLE_FIELDS, "modified"] satisfies readonly MetadataField[];
-const fields: readonly MetadataField[] = keys;
+// The form's field names are the SDK's metadata keys, both ways: a compile-time check.
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+const fieldsAreKeys: Same<MetadataField, MetadataKey> = true;
+
+const example = (name: string) => new Uint8Array(readFileSync(new URL(name, EXAMPLES)));
 
 /** The PDF/A-2b example claiming PDF/A-1b instead: the part's digit swapped, its XMP unfiltered, the offsets kept. */
 function pdfa1(): Uint8Array {
-  const bytes = new Uint8Array(readFileSync(new URL("pdf_a_archive-2b.pdf", EXAMPLES)));
+  const bytes = example("pdf_a_archive-2b.pdf");
   const text = new TextDecoder("latin1").decode(bytes);
   const at = text.indexOf("pdfaid:part>2<");
   if (at < 0) throw new Error("the example's XMP no longer names its PDF/A part as an element");
@@ -58,24 +59,13 @@ function both(bytes: Uint8Array, edit: { authors?: string[]; remove?: EditableFi
   return { planned, shown };
 }
 
-const example = (name: string) => new Uint8Array(readFileSync(new URL(name, EXAMPLES)));
-
 describe("the dialog's conformance warnings", () => {
   beforeAll(async () => {
     await init();
   });
 
   it("cover every metadata key the SDK has", () => {
-    expect([...fields].sort()).toEqual([
-      "authors",
-      "created",
-      "creator",
-      "keywords",
-      "modified",
-      "producer",
-      "subject",
-      "title",
-    ]);
+    expect(fieldsAreKeys).toBe(true);
   });
 
   it("match the SDK's when a PDF/UA file loses its title", () => {

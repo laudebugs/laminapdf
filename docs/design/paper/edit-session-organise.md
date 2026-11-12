@@ -182,7 +182,7 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 
 - **Modified** is read-only, with "Saving sets this to the time you save" and no checkbox: every save stamps the modification date ([E1e](../../todos/done/E1e-save-and-constraint-banner.md)), so the checkbox could only ever be on.
 - **Keyword chips** have 26 px remove buttons, the smallest icon button; they still meet the 24 px minimum.
-- **The two conformance warnings** (more than one author in PDF/A-1, no title in PDF/UA-1) appear under the field before Apply. The dialog applies the save planner's two rules itself, since the SDK reports conformance warnings only from a save plan; `apps/web/test/properties-warnings.test.ts` holds them to the SDK's. In a PDF/A file whose Info and XMP disagree, Apply writes the value shown to both, and the PDF/A notice names those fields.
+- **The two conformance warnings** (more than one author in PDF/A-1, no title in PDF/UA-1) appear under the field before Apply. The dialog applies the save planner's two rules itself, since the SDK reports conformance warnings only from a save plan; `packages/ui/test/properties-warnings.test.ts` holds them to the SDK's. In a PDF/A file whose Info and XMP disagree, Apply writes the value shown to both, and the PDF/A notice names those fields.
 - **XMP metadata that can't be read** gets a warning notice: Apply replaces it.
 - **The dialog opens from** More › Document properties… and the palette; the top bar's file name doesn't open it yet.
 

@@ -2,7 +2,14 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { type CapabilityMatrix, filterMatrix, NO_FILTER, SURFACES, storedFilter } from "../src/help/capabilities.ts";
+import {
+  type CapabilityMatrix,
+  type CapabilityStatus,
+  filterMatrix,
+  NO_FILTER,
+  SURFACES,
+  storedFilter,
+} from "../src/help/capabilities.ts";
 
 const op = (id: string, name: string) => ({
   id,
@@ -58,7 +65,9 @@ describe("docs/capabilities/matrix.json", () => {
     version: number;
     groups: { id: string; name: string; ops: Record<string, unknown>[] }[];
   };
-  const STATUSES = ["unsupported", "read", "write", "round-trip"];
+  const STATUSES = ["unsupported", "read", "write", "round-trip"] as const satisfies readonly CapabilityStatus[];
+  // Every status the page knows is in the list: a compile-time check.
+  const complete: [Exclude<CapabilityStatus, (typeof STATUSES)[number]>] extends [never] ? true : false = true;
 
   it("is version 1, with groups of operations", () => {
     expect([json.version, json.groups.length > 0, json.groups.every((g) => g.ops.length > 0)]).toEqual([1, true, true]);
@@ -71,8 +80,11 @@ describe("docs/capabilities/matrix.json", () => {
         return (
           JSON.stringify(Object.keys(op)) !== JSON.stringify(["id", "name", "round", "target", "surfaces"]) ||
           JSON.stringify(Object.keys(surfaces)) !== JSON.stringify(SURFACES) ||
-          !STATUSES.includes(op.target as string) ||
-          !Object.values(surfaces).every((v) => v === null || v === "n/a" || STATUSES.includes(v as string))
+          !complete ||
+          !(STATUSES as readonly string[]).includes(op.target as string) ||
+          !Object.values(surfaces).every(
+            (v) => v === null || v === "n/a" || (STATUSES as readonly string[]).includes(v as string),
+          )
         );
       }),
     );

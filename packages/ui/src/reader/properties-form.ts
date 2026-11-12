@@ -224,11 +224,10 @@ export function changeOf(metadata: DocumentMetadataData, form: MetadataForm): Me
     }
     const value = formValue(form, field);
     const touched = JSON.stringify(form[field]) !== JSON.stringify(start[field]);
-    if (!touched) {
-      if (value !== undefined && resync && metadata.disagreements.includes(field)) patch[field] = value;
-    } else if (value === undefined) {
-      if (hasValue(metadata, field)) remove.push(field);
-    } else if (!same(metadata, field, value)) {
+    const outOfStep = resync && metadata.disagreements.includes(field);
+    if (value === undefined) {
+      if (touched && hasValue(metadata, field)) remove.push(field);
+    } else if (outOfStep || (touched && !same(metadata, field, value))) {
       patch[field] = value;
     }
   }

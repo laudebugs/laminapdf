@@ -77,6 +77,11 @@ describe("the metadata form", () => {
     const pdfa = { ...META, pdfa: "2B", disagreements: ["title" as const] };
     expect(changeOf(pdfa, formFrom(pdfa))?.patch).toEqual({ title: "Q3 Board Report" });
     expect(changeOf({ ...pdfa, pdfa: undefined }, formFrom(pdfa))).toBeUndefined();
+    // Touched but the same value (spacing the form drops), it still writes both sides.
+    const authors = { ...pdfa, disagreements: ["authors" as const] };
+    expect(changeOf(authors, { ...formFrom(authors), authors: "Ada Lovelace " })?.patch).toEqual({
+      authors: ["Ada Lovelace"],
+    });
   });
 
   it("leaves alone what the reader didn't touch, even when the form can't show it exactly", () => {
