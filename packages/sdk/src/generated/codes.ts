@@ -51,6 +51,7 @@ export type ErrorCode =
   | "saved-not-rebased"
   | "no-pending-save"
   | "malformed-xmp"
+  | "unknown-source"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -258,6 +259,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "saved-not-rebased",
   "no-pending-save",
   "malformed-xmp",
+  "unknown-source",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -491,6 +493,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "saved-not-rebased": "state",
   "no-pending-save": "state",
   "malformed-xmp": "input",
+  "unknown-source": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -673,6 +676,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "saved-not-rebased": "call rebase with the saved bytes before applying ops or saving again",
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
   "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
+  "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
