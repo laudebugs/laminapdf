@@ -11,11 +11,23 @@ import { $, browser, expect } from "@wdio/globals";
 import { fixture, inkedPixels, launchAgain, paintsSince, recentNames, runCommand, waitForDocument } from "../app.ts";
 import { output, root } from "../paths.ts";
 
-/** Opens Settings from the More menu and flips "Remember recent files", then closes it. */
+/**
+ * Opens Settings from the More menu and flips "Remember recent files", then closes it. The switch is
+ * flipped with its input's own `click()`: the embedded WebDriver's clicks and keys are synthetic
+ * events, which reach React's handlers (so buttons work) but never run a checkbox's built-in
+ * toggle, which a person's click or Space does; `click()` runs it.
+ */
 async function toggleRememberRecent(): Promise<void> {
   await $('button[aria-label="More"]').click();
   await $('//*[@role="menuitem"][contains(., "Settings")]').click();
-  await $("label=Remember recent files").click();
+  const input = $('//label[contains(., "Remember recent files")]//input[@role="switch"]');
+  await input.waitForExist();
+  const was = await input.isSelected();
+  await browser.execute(() => {
+    const label = [...document.querySelectorAll("label")].find((l) => l.textContent?.includes("Remember recent files"));
+    label?.querySelector<HTMLInputElement>('input[role="switch"]')?.click();
+  });
+  await browser.waitUntil(async () => (await input.isSelected()) !== was, { timeoutMsg: "the switch didn't flip" });
   await browser.keys("Escape");
 }
 

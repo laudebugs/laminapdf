@@ -21,6 +21,7 @@ import {
   ReaderController,
   ReaderShell,
   ReaderTopBar,
+  RegistryPalette,
   RepairedNotice,
   registerReaderCommands,
   StatusBarItem,
@@ -97,19 +98,10 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const dragging = useOsOpens(engine, reader, toasts);
   const fileProblem = useFileChanges(engine, reader, toasts);
   const { settings, recent, actions } = useHome(engine, platform, reader, state, toasts);
-  // The reader's commands (open, the shortcuts); the shell adds its own handlers as it grows.
-  const [registry] = useState(() => {
-    const commands = new CommandRegistry();
-    registerReaderCommands(commands);
-    return commands;
-  });
   const open = state.phase === "open";
   // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
-  const context = useMemo<CommandContext>(
-    () => ({ platform, reader, actions, ...(viewer === undefined ? {} : { viewer }) }),
-    [platform, reader, actions, viewer],
-  );
+  const { registry, context, palette } = useCommands(platform, reader, actions, viewer);
   const repaired = open && engine?.client.current?.repaired === true;
   return (
     <CommandsProvider registry={registry} context={context} keys={keys}>
@@ -164,9 +156,39 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
       {settings.dialog}
+      {palette}
       <ToastRegion queue={toasts} aria-label="Notifications" />
     </CommandsProvider>
   );
+}
+
+/**
+ * The reader's commands (open, the shortcuts) and the context they run in, with the command palette
+ * (⌘K or Ctrl+K) as in the web reader: it reaches every command with a handler here, among them
+ * Open recent and Clear recent while a document is open.
+ */
+function useCommands(
+  platform: Platform,
+  reader: ReaderController,
+  actions: CommandContext["actions"],
+  viewer: Viewer | undefined,
+): { registry: CommandRegistry; context: CommandContext; palette: ReactNode } {
+  const [registry] = useState(() => {
+    const commands = new CommandRegistry();
+    registerReaderCommands(commands);
+    return commands;
+  });
+  const [isOpen, setOpen] = useState(false);
+  const context = useMemo<CommandContext>(
+    () => ({
+      platform,
+      reader,
+      actions: { ...actions, "palette.open": () => setOpen(true) },
+      ...(viewer === undefined ? {} : { viewer }),
+    }),
+    [platform, reader, actions, viewer],
+  );
+  return { registry, context, palette: <RegistryPalette isOpen={isOpen} onOpenChange={setOpen} /> };
 }
 
 /**

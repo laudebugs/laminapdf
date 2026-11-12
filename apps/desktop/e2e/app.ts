@@ -201,13 +201,14 @@ export async function recentNames(): Promise<string[]> {
   return entries.map((entry) => entry.name);
 }
 
-/** Runs the command palette's command named `title`: ⌘K or Ctrl+K, its title, Enter. */
+/** Runs the command palette's command named `title`: ⌘K or Ctrl+K, its title, its row. */
 export async function runCommand(title: string): Promise<void> {
   await browser.keys([platform === "darwin" ? Key.Command : Key.Ctrl, "k"]);
   const input = $('input[role="combobox"]');
   await input.waitForExist();
   await input.setValue(title);
-  await browser.keys("Enter");
+  // Enter runs the active row, which typing doesn't choose (↓ does), so click the command's row.
+  await $(`//*[@role="option"][normalize-space(.) = "${title}" or .//*[normalize-space(.) = "${title}"]]`).click();
 }
 
 /**
