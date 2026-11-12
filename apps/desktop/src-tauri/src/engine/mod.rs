@@ -195,7 +195,10 @@ impl Engines {
                 }
             }
         }
-        self.close(window, old)?;
+        if let Err(error) = self.close(window, old) {
+            let _ = self.close(window, DocId(opened.doc));
+            return Err(error);
+        }
         Ok(opened)
     }
 

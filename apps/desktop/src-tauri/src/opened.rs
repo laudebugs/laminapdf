@@ -27,7 +27,7 @@ pub(crate) fn open_path(app: &tauri::AppHandle, window: &str, path: &Path) -> Re
 }
 
 /// `window`'s document `doc` closed: its file is no longer watched for it.
-pub(crate) fn closed(app: &tauri::AppHandle, window: &str, doc: DocId) {
+pub(crate) fn stop_watching(app: &tauri::AppHandle, window: &str, doc: DocId) {
     app.state::<Watcher>().unwatch(window, doc);
 }
 

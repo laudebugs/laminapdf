@@ -9,6 +9,7 @@ import { type Capabilities, createWebPlatform, type Platform, type PlatformFile,
 import type { DesktopShell } from "../engine/desktop-engine-client.ts";
 import { RELOADED_EVENT, type Reloaded } from "../engine/file-changes.ts";
 import { documentOf, pickDocument } from "../engine/open.ts";
+import { stopper } from "../engine/stopper.ts";
 import { desktopRecent } from "./recent.ts";
 
 /** What this build of the desktop app can't do yet: opening a dropped document, and the Platform methods the desktop flags promise. */
@@ -86,23 +87,14 @@ export function createDesktopPlatform(web: Platform = createWebPlatform(), shell
  * itself: `onChange` runs each time the document `file` stands for reloads from its changed file.
  */
 function watchOver(shell: DesktopShell): NonNullable<Platform["watch"]> {
-  return (file, onChange) => {
-    let stop: (() => void) | undefined;
-    let stopped = false;
-    void shell
-      .listen<Reloaded>(RELOADED_EVENT, ({ previous, document }) => {
+  return (file, onChange) =>
+    stopper(
+      shell.listen<Reloaded>(RELOADED_EVENT, ({ previous, document }) => {
         // The window rebinds the file to the new document as it shows it, before or after this
         // runs, so either id is this file's.
         const doc = documentOf(file)?.doc;
         if (doc !== undefined && (doc === previous || doc === document.doc)) onChange();
-      })
-      .then((unlisten) => {
-        if (stopped) unlisten();
-        else stop = unlisten;
-      });
-    return () => {
-      stopped = true;
-      stop?.();
-    };
-  };
+      }),
+      "watching a file",
+    );
 }

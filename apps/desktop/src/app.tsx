@@ -33,6 +33,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 import type { AppInfo } from "./app-info.ts";
 import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
+import { stopper } from "./engine/stopper.ts";
 import { useFileChanges } from "./file-changes.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
@@ -214,24 +215,15 @@ function useOsOpens(
   const [dragging, setDragging] = useState<Dragging>();
   useEffect(() => {
     if (engine === undefined) return;
-    let stop: (() => void) | undefined;
-    let gone = false;
-    listenForOsOpens(engine.shell, {
-      open: (file) => reader.open(file),
-      unreadable: (name) => toasts.add({ message: message("reader.open.missing", { name }) }),
-      dragging: setDragging,
-      refused: (names) => toasts.add({ message: `${message("reader.open.droppingNone")}: ${names.join(", ")}` }),
-    }).then(
-      (unsubscribe) => {
-        if (gone) unsubscribe();
-        else stop = unsubscribe;
-      },
-      (error: unknown) => console.error("listening for the OS's open requests failed", error),
+    return stopper(
+      listenForOsOpens(engine.shell, {
+        open: (file) => reader.open(file),
+        unreadable: (name) => toasts.add({ message: message("reader.open.missing", { name }) }),
+        dragging: setDragging,
+        refused: (names) => toasts.add({ message: `${message("reader.open.droppingNone")}: ${names.join(", ")}` }),
+      }),
+      "listening for the OS's open requests",
     );
-    return () => {
-      gone = true;
-      stop?.();
-    };
   }, [engine, reader, toasts]);
   return dragging;
 }

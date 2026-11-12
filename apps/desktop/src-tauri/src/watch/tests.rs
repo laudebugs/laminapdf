@@ -1,11 +1,62 @@
-//! The watcher against the real file system and the OS's events, with a fake app: an in-place
-//! write, an atomic save, a deletion and a file that comes back. Each waits for what it expects, up
-//! to a few seconds, since the OS reports changes late (`FSEvents` by about a second).
+//! Which events touch a watched file, with synthetic events; then the watcher against the real
+//! file system and the OS's events, with a fake app: an in-place write, an atomic save, a deletion
+//! and a file that comes back. Those wait for what they expect, up to a few seconds, since the OS
+//! reports changes late (`FSEvents` by about a second).
 
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
+use notify::event::{CreateKind, EventKind, Flag, ModifyKind, RemoveKind, RenameMode};
+
 use super::*;
+
+const WATCHED: &str = "/docs/report.pdf";
+
+fn event(kind: EventKind, paths: &[&str]) -> notify::Event {
+    paths.iter().fold(notify::Event::new(kind), |event, path| {
+        event.add_path(PathBuf::from(path))
+    })
+}
+
+#[test]
+fn a_write_to_the_file_should_touch_it() {
+    let write = event(EventKind::Modify(ModifyKind::Any), &[WATCHED]);
+    assert!(touches(&write, Path::new(WATCHED)));
+}
+
+#[test]
+fn a_rename_onto_the_file_should_touch_it() {
+    let rename = event(
+        EventKind::Modify(ModifyKind::Name(RenameMode::Both)),
+        &["/docs/.report.pdf.swp", WATCHED],
+    );
+    assert!(touches(&rename, Path::new(WATCHED)));
+}
+
+#[test]
+fn a_rename_onto_the_file_reported_in_two_halves_should_touch_it() {
+    let to = event(EventKind::Modify(ModifyKind::Name(RenameMode::To)), &[WATCHED]);
+    assert!(touches(&to, Path::new(WATCHED)));
+}
+
+#[test]
+fn removing_and_creating_the_file_should_touch_it() {
+    let removed = event(EventKind::Remove(RemoveKind::File), &[WATCHED]);
+    let created = event(EventKind::Create(CreateKind::File), &[WATCHED]);
+    assert!(touches(&removed, Path::new(WATCHED)) && touches(&created, Path::new(WATCHED)));
+}
+
+#[test]
+fn another_file_in_the_folder_should_not_touch_it() {
+    let other = event(EventKind::Modify(ModifyKind::Any), &["/docs/notes.pdf"]);
+    assert!(!touches(&other, Path::new(WATCHED)));
+}
+
+#[test]
+fn a_rescan_should_touch_every_file() {
+    let rescan = event(EventKind::Other, &["/docs"]).set_flag(Flag::Rescan);
+    assert!(touches(&rescan, Path::new(WATCHED)));
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Heard {

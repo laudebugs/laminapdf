@@ -11,8 +11,9 @@
 //! - **Linux:** GTK's `RecentManager` (`recently-used.xbel`), which file managers show; clearing
 //!   removes only the entries this app added.
 //!
-//! Every call must run on the app's main thread (`AppKit`'s and GTK's rule; COM is already set up
-//! there by the window system). Elsewhere the calls do nothing on macOS and fail on Linux.
+//! Every call must run on the app's main thread (`AppKit`'s and GTK's rule; on Windows the
+//! calls join that thread's COM apartment). Elsewhere the calls do nothing on macOS and fail on
+//! Linux.
 
 use std::path::{Path, PathBuf};
 
@@ -32,6 +33,7 @@ use windows as os;
 
 /// Why the OS refused a call. Never carries a path.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum OsError {
     /// The call ran off the main thread.
     #[error("the OS's recent list can only be changed from the main thread")]

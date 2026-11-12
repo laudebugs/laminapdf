@@ -166,9 +166,8 @@ impl Worker {
             Command::UnwatchWindow(window) => self.unwatch(|w, _| w == window),
             Command::Event(Ok(event)) => {
                 let due = Instant::now() + DEBOUNCE;
-                let everything = event.paths.is_empty() || event.need_rescan();
                 for (path, file) in &mut self.files {
-                    if everything || event.paths.iter().any(|p| p == path) {
+                    if touches(&event, path) {
                         file.due = Some(due);
                     }
                 }
@@ -180,7 +179,9 @@ impl Worker {
     fn watch(&mut self, path: &Path, window: String, doc: DocId) {
         let path = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_owned());
         if let Some(file) = self.files.get_mut(&path) {
-            file.docs.push((window, doc));
+            if !file.docs.iter().any(|(w, d)| *w == window && *d == doc) {
+                file.docs.push((window, doc));
+            }
             return;
         }
         let Ok(opened) = FileStamp::read(&path) else {
@@ -291,6 +292,14 @@ impl Worker {
             file.missing = false;
         }
     }
+}
+
+/// Whether `event` may have changed the watched file `path`: it names the path (as written to,
+/// created, removed, or either end of a rename), or the OS lost track and names nothing or asks
+/// for a rescan. What happened is read from the disk afterwards, never from the event's kind, so
+/// a rename onto the path and a write to it count the same.
+fn touches(event: &notify::Event, path: &Path) -> bool {
+    event.paths.is_empty() || event.need_rescan() || event.paths.iter().any(|p| p == path)
 }
 
 #[cfg(test)]

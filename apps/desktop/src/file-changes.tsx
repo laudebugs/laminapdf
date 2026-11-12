@@ -10,6 +10,7 @@ import type { DesktopEngine } from "./app.tsx";
 import { type DesktopDocument, engineError } from "./engine/desktop-engine-client.ts";
 import { listenForFileChanges, showInPlace } from "./engine/file-changes.ts";
 import { desktopFile } from "./engine/open.ts";
+import { stopper } from "./engine/stopper.ts";
 
 /** What is wrong with the open document's file, if anything. */
 type FileProblem = "missing" | "unreadable";
@@ -27,32 +28,28 @@ export function useFileChanges(
   useEffect(() => {
     if (engine === undefined) return;
     const shown = () => engine.client.current?.doc;
-    let stop: (() => void) | undefined;
-    let gone = false;
-    listenForFileChanges(engine.shell, {
-      reloaded: (previous, document) => {
-        if (shown() !== previous) return;
-        show(engine, reader, document);
-        setProblem(undefined);
-        toasts.add({ message: message("reader.file.reloaded", { name: document.name }) });
-      },
-      missing: (doc) => {
-        if (shown() === doc) setProblem({ doc, kind: "missing" });
-      },
-      unreadable: (doc) => {
-        if (shown() === doc) setProblem({ doc, kind: "unreadable" });
-      },
-    }).then(
-      (unsubscribe) => {
-        if (gone) unsubscribe();
-        else stop = unsubscribe;
-      },
-      (error: unknown) => console.error("listening for file changes failed", error),
+    return stopper(
+      listenForFileChanges(engine.shell, {
+        reloaded: (previous, document) => {
+          if (shown() !== previous) {
+            // The window moved on (closed it, opened another) while it reloaded: nothing shows the
+            // new document, so it closes, and its file stops being watched for this window.
+            void engine.shell.invoke("close_document", { doc: document.doc }).catch(() => undefined);
+            return;
+          }
+          show(engine, reader, document);
+          setProblem(undefined);
+          toasts.add({ message: message("reader.file.reloaded", { name: document.name }) });
+        },
+        missing: (doc) => {
+          if (shown() === doc) setProblem({ doc, kind: "missing" });
+        },
+        unreadable: (doc) => {
+          if (shown() === doc) setProblem({ doc, kind: "unreadable" });
+        },
+      }),
+      "listening for file changes",
     );
-    return () => {
-      gone = true;
-      stop?.();
-    };
   }, [engine, reader, toasts]);
   // Another document on screen: the strip was about the old one.
   const doc = engine?.client.current?.doc;

@@ -5,7 +5,7 @@
 import { copyFileSync, mkdirSync, renameSync, rmSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { $, browser, expect } from "@wdio/globals";
-import { fixture, goToPage, openAndWait, view, withText } from "../app.ts";
+import { fixture, goToPage, openAndWait, view, withText, zoomOnce } from "../app.ts";
 import { output } from "../paths.ts";
 
 const dir = join(output, "watched");
@@ -27,16 +27,18 @@ describe("a file that changes on disk", () => {
     copyFileSync(example("links_and_outlines.pdf"), watched);
   });
 
-  it("should reload when written in place, at the same page", async () => {
+  it("should reload when written in place, at the same page and zoom", async () => {
     await openAndWait(watched);
+    await zoomOnce("Zoom in");
     await goToPage(3);
     await browser.waitUntil(async () => (await view()).currentPage === 2, { timeoutMsg: "not on page 3" });
+    const { percent } = await view();
     const written = Date.now();
     copyFileSync(example("flowing_report.pdf"), watched);
     await waitForPageCount(13);
     // The 1 s target (desktop plan §4) is reported, never asserted (ADR 0018).
     console.log(`File written in place: reloaded within ${Date.now() - written} ms`);
-    expect((await view()).currentPage).toBe(2);
+    expect([(await view()).currentPage, (await view()).percent]).toEqual([2, percent]);
     await expect(withText("Reloaded: watched.pdf changed on disk")).toExist();
   });
 

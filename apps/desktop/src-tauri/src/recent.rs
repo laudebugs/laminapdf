@@ -127,9 +127,11 @@ impl RecentFiles {
         id
     }
 
-    /// Newest first, each marked missing when its file is gone.
+    /// Newest first, each marked missing when its file is gone. The disk is checked after the list
+    /// is copied, so a slow drive never holds up `add` or `recent_open`.
     pub(crate) fn list(&self) -> Vec<Listed> {
-        self.lock()
+        let entries = self.lock().clone();
+        entries
             .iter()
             .map(|entry| {
                 let missing = !entry.path.is_file();

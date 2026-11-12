@@ -28,6 +28,14 @@ impl Default for Preferences {
     }
 }
 
+impl Preferences {
+    /// Whether going from these to `next` turns "Remember recent files" off, which clears the
+    /// app's and the OS's recent lists.
+    pub(crate) const fn stops_remembering(self, next: Self) -> bool {
+        self.remember_recent && !next.remember_recent
+    }
+}
+
 /// The preferences and where they are saved.
 pub(crate) struct Prefs {
     file: PathBuf,
@@ -74,6 +82,23 @@ mod tests {
                 remember_recent: true,
                 reload_on_change: false
             }
+        );
+    }
+
+    #[test]
+    fn turning_remember_off_should_clear_the_lists() {
+        let on = Preferences::default();
+        let off = Preferences {
+            remember_recent: false,
+            ..on
+        };
+        assert_eq!(
+            [
+                on.stops_remembering(off),
+                off.stops_remembering(off),
+                off.stops_remembering(on)
+            ],
+            [true, false, false]
         );
     }
 

@@ -1,9 +1,10 @@
 //! Windows: the Shell's recent documents and the Jump List of this app's `AppUserModelID`.
 #![expect(unsafe_code, reason = "the Shell's C and COM functions")]
 
+use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
-use windows::Win32::System::Com::{CLSCTX_INPROC_SERVER, CoCreateInstance};
+use windows::Win32::System::Com::{CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx};
 use windows::Win32::UI::Shell::{
     ApplicationDestinations, IApplicationDestinations, IShellItem, SHARD_PATHW, SHAddToRecentDocs,
     SHCreateItemFromParsingName, SetCurrentProcessExplicitAppUserModelID,
@@ -32,10 +33,29 @@ pub(crate) fn note_recent(path: &Path) -> Result<(), OsError> {
     Ok(())
 }
 
+thread_local! {
+    /// Whether this thread has joined COM's single-threaded apartment.
+    static COM: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Joins COM's single-threaded apartment on this thread, once. The window system usually has
+/// already (OLE drag and drop), which answers `S_FALSE`; a thread already in the multithreaded
+/// apartment answers `RPC_E_CHANGED_MODE`, and the Shell's objects work from there too. The
+/// apartment lasts as long as the thread, which is the app's main thread.
+fn join_com() {
+    if COM.get() {
+        return;
+    }
+    // SAFETY: no reserved pointer; called on the thread that uses the objects, never torn down
+    // while it runs.
+    let _ = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
+    COM.set(true);
+}
+
 /// This app's Jump List lists: `IApplicationDestinations` scoped to `app_id`.
 fn destinations(app_id: &str) -> Result<IApplicationDestinations, OsError> {
-    // SAFETY: the class ID is the Shell's, and COM is initialised on the calling (main) thread by
-    // the window system before any window opens.
+    join_com();
+    // SAFETY: the class ID is the Shell's, and this thread is in a COM apartment (`join_com`).
     let destinations: IApplicationDestinations =
         unsafe { CoCreateInstance(&ApplicationDestinations, None, CLSCTX_INPROC_SERVER) }.map_err(|e| refused(&e))?;
     let id = HSTRING::from(app_id);
@@ -46,6 +66,7 @@ fn destinations(app_id: &str) -> Result<IApplicationDestinations, OsError> {
 
 pub(crate) fn forget_recent(app_id: &str, path: &Path) -> Result<(), OsError> {
     let destinations = destinations(app_id)?;
+    // The Shell item below needs COM too; `destinations` joined it.
     let path = HSTRING::from(path.as_os_str());
     // SAFETY: `path` is a NUL-terminated wide string that outlives the call; no bind context.
     let Ok(item) = (unsafe { SHCreateItemFromParsingName::<_, _, IShellItem>(&path, None) }) else {

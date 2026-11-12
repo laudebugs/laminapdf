@@ -139,7 +139,7 @@ pub(crate) fn close_document(
     doc: u32,
 ) -> Result<(), DesktopError> {
     engines.close(window.label(), DocId(doc))?;
-    opened::closed(window.app_handle(), window.label(), DocId(doc));
+    opened::stop_watching(window.app_handle(), window.label(), DocId(doc));
     Ok(())
 }
 
@@ -208,7 +208,7 @@ pub(crate) fn set_preferences(
 ) {
     let was = prefs.get();
     prefs.set(value);
-    if was.remember_recent && !value.remember_recent {
+    if was.stops_remembering(value) {
         opened::forget(&app, recent.clear(), true);
     }
 }

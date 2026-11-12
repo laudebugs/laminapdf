@@ -35,18 +35,24 @@ describe("recent files across a restart", () => {
     expect(await recentNames()).toEqual(expect.arrayContaining(["Relevé de compte 2026.pdf", "1000-pages.pdf"]));
   });
 
-  it("should empty the list with the palette's Clear recent", async () => {
-    await runCommand("Clear recent");
-    await browser.waitUntil(async () => (await recentNames()).length === 0, { timeoutMsg: "the list wasn't cleared" });
-  });
-
-  it("should record nothing while Remember recent files is off", async () => {
+  it("should clear the list, and record nothing, while Remember recent files is off", async () => {
     await toggleRememberRecent();
+    await browser.waitUntil(async () => (await recentNames()).length === 0, {
+      timeoutMsg: "turning Remember recent files off didn't clear the list",
+    });
     // Another file than the one on screen, so the window visibly opens it.
     expect(await launchAgain([fixture("fixtures", "golden", "examples", "hello.pdf")])).toBe(0);
     await waitForDocument(1);
     expect(await recentNames()).toEqual([]);
     await toggleRememberRecent();
+  });
+
+  it("should empty the list with the palette's Clear recent", async () => {
+    expect(await launchAgain([fixture("fixtures", "golden", "examples", "invoice_from_json.pdf")])).toBe(0);
+    await waitForDocument(2);
+    await browser.waitUntil(async () => (await recentNames()).length > 0, { timeoutMsg: "the open wasn't recorded" });
+    await runCommand("Clear recent");
+    await browser.waitUntil(async () => (await recentNames()).length === 0, { timeoutMsg: "the list wasn't cleared" });
   });
 });
 
@@ -58,6 +64,9 @@ describe("the logs", () => {
       .flatMap((name) => readFileSync(join(output, name), "utf8").split("\n"))
       .filter((line) => line.includes("[Tauri:Backend"));
     expect(lines.length).toBeGreaterThan(0);
-    expect(lines.filter((line) => line.includes(root))).toEqual([]);
+    // The repository's path as it would be written: as is, with Windows' backslashes doubled by
+    // Debug formatting, or with forward slashes.
+    const forms = [root, root.replaceAll("\\", "\\\\"), root.replaceAll("\\", "/")];
+    expect(lines.filter((line) => forms.some((form) => line.includes(form)))).toEqual([]);
   });
 });

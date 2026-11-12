@@ -81,31 +81,30 @@ pub(crate) enum Verdict {
 }
 
 /// A change waiting to settle. The first look comes a debounce period after the last event, and a
-/// changed file is reloaded only once a second look, one period later, finds the same stamp: still
-/// for two periods, so a build writing in chunks is never read half-written. Deletion settles at once: an atomic save's rename
-/// lands within the debounce, so a file still missing after it is gone.
+/// change counts only once a second look, one period later, finds the same: the same new stamp,
+/// so a build writing in chunks is never read half-written, or nothing again, so a file deleted
+/// and written back a little late (a slow editor's save) reloads instead of showing as missing.
+/// An event between the looks puts the second one off by a period.
 #[derive(Debug, Default)]
 pub(crate) struct Settle {
-    last: Option<FileStamp>,
+    /// The last look's change, when it was one that must be seen twice.
+    last: Option<Change>,
 }
 
 impl Settle {
     /// One look at the file (`now`, `None` when nothing is at the path) against `opened`.
     pub(crate) fn look(&mut self, opened: &FileStamp, now: Option<&FileStamp>) -> Verdict {
-        match classify(opened, now) {
-            Change::Modified(now) => {
-                if self.last.as_ref() == Some(&now) {
-                    self.last = None;
-                    Verdict::Settled(Change::Modified(now))
-                } else {
-                    self.last = Some(now);
-                    Verdict::Wait
-                }
-            }
-            settled => {
-                self.last = None;
-                Verdict::Settled(settled)
-            }
+        let change = classify(opened, now);
+        if change == Change::Unchanged {
+            self.last = None;
+            return Verdict::Settled(change);
+        }
+        if self.last.as_ref() == Some(&change) {
+            self.last = None;
+            Verdict::Settled(change)
+        } else {
+            self.last = Some(change);
+            Verdict::Wait
         }
     }
 }
@@ -170,10 +169,29 @@ mod tests {
     }
 
     #[test]
-    fn a_deletion_should_settle_at_once() {
+    fn a_deletion_should_settle_once_two_looks_find_nothing() {
+        let mut settle = Settle::default();
+        let opened = stamp(10, 1);
+        let looks = [settle.look(&opened, None), settle.look(&opened, None)];
+        assert_eq!(looks, [Verdict::Wait, Verdict::Settled(Change::Missing)]);
+    }
+
+    #[test]
+    fn a_file_written_back_after_a_deletion_should_settle_modified() {
+        let mut settle = Settle::default();
+        let opened = stamp(10, 1);
+        let looks = [
+            settle.look(&opened, None),
+            settle.look(&opened, Some(&stamp(20, 2))),
+            settle.look(&opened, Some(&stamp(20, 2))),
+        ];
         assert_eq!(
-            Settle::default().look(&stamp(10, 1), None),
-            Verdict::Settled(Change::Missing)
+            looks,
+            [
+                Verdict::Wait,
+                Verdict::Wait,
+                Verdict::Settled(Change::Modified(stamp(20, 2)))
+            ]
         );
     }
 
