@@ -85,7 +85,7 @@ png = { version = "0.18.1", default-features = false }
 # The pure-Rust renderer behind laminapdf-render's `hayro` feature (ADR 0004): the same pin as
 # tools/render and the hayro-parity spike. MIT OR Apache-2.0 (dependencies: kurbo, vello_cpu,
 # skrifa-family crates, moxcms, pic-scale, …: MIT/Apache/BSD/Zlib; cargo-deny checks them).
-hayro = { version = "=0.8.0" }
+hayro = { version = "=0.9.0" }
 # ONNX Runtime bindings for laminapdf-layout-onnx only (edge, native): no default features, so
 # nothing is downloaded at build time; the app loads ONNX Runtime from a path (load-dynamic).
 ort = { version = "=2.0.0-rc.15", default-features = false, features = ["load-dynamic"] }
