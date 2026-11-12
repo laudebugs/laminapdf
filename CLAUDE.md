@@ -265,14 +265,17 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   feature `e2e`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
 │                        #   engine://failed to that window; documents.rs DocumentRegistry, a window reads only its own docs;
 │                        #   bytesource.rs FileSource, positioned reads, no mmap; secret.rs SessionPassword, locked and wiped),
+│                        #   open.rs (D3a: the OS's opens (argv, single-instance, macOS RunEvent::Opened, drops) through
+│                        #   route_open, queued in PendingOpens until the webview's take_pending_opens; open://document,
+│                        #   open://drag-enter|leave, open://refused), linux/laminapdf.desktop (Exec with %F),
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
 │                        #   capabilities ["main"]; no externalBin), tauri.bundle.conf.json (the engine sidecar and PDFium, merged
 │                        #   by desktop:dev/desktop:build), capabilities/main.json (the four commands' allow-*),
 │                        #   tests/capabilities.rs (the capability guard; the e2e CSP is the base one plus 'unsafe-eval'),
 │                        #   e2e/ (D2e: WebdriverIO through the app's embedded WebDriver server, feature `e2e` +
-│                        #   tauri.e2e.conf.json: wdio.conf.ts, app.ts helpers, specs/ (eight scenarios in one app, in
-│                        #   order), probe/ (imported only in Vite's e2e mode), cold-start.ts; src-tauri/src/e2e.rs's
+│                        #   tauri.e2e.conf.json: wdio.conf.ts, app.ts helpers, specs/ (nine scenarios in one app, in
+│                        #   order; cold-open in its own run, wdio.cold-open.conf.ts), MANUAL-OPEN.md, probe/ (imported only in Vite's e2e mode), cold-start.ts; src-tauri/src/e2e.rs's
 │                        #   e2e_queue_pick and e2e_interactive), test/app-info.json
 │                        #   (the app_info sample both languages' tests read), about/
 │                        #   (cargo-about, MPL-2.0 accepted for Tauri's dependencies); Linux builds need WebKitGTK 4.1 and D-Bus
@@ -568,7 +571,8 @@ pnpm --filter @laminapdf/desktop run desktop:dev  # the desktop reader with its 
                              #   `cargo xtask changes` says desktop=true, then checks the engine and PDFium sit beside the app,
                              #   the main process links no parser or PDFium, and the build has no e2e command, plugin or probe
 pnpm --filter @laminapdf/desktop run desktop:build:e2e  # the e2e build: debug, feature `e2e`, tauri.e2e.conf.json; then
-                             #   `run e2e` runs the eight WebdriverIO scenarios (Linux: under xvfb-run; needs
+                             #   `run e2e` runs the nine WebdriverIO scenarios and the cold start with a path (Linux: under
+                             #   dbus-run-session and xvfb-run; needs
                              #   target/fixtures/1000-pages.pdf and 1gb.pdf from `cargo xtask fixtures large-pdf`) and
                              #   `run cold-start` reports five launches' median to the empty state; the full lane's
                              #   `desktop-e2e` job runs both on Linux, macOS and Windows

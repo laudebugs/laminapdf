@@ -47,7 +47,7 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
 
 **Out of scope** (and which todo covers it)
 
-- Open-from-OS tests (double-click, single-instance): [D3a](../ready/D3a-open-from-os.md) adds them.
+- Open-from-OS tests (double-click, single-instance): [D3a](./D3a-open-from-os.md) adds them.
 - Update e2e: [D5b](../ready/D5b-updater-in-app.md). Installer tests on clean VMs: [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md).
 - Visual regression of renders: covered by C2's golden render tests.
 

@@ -1,10 +1,11 @@
 // The desktop reader as the scenarios see it: open a fixture, read the view, wait for paint.
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { platform } from "node:process";
 import type { ViewState } from "@laminapdf/viewer";
 import { $, browser } from "@wdio/globals";
 import { type ChainablePromiseElement, Key } from "webdriverio";
-import { root } from "./paths.ts";
+import { appBinary, root } from "./paths.ts";
 import type { Paint } from "./probe/types.ts";
 
 /** What the scenarios check of the view. */
@@ -162,4 +163,33 @@ async function restarts(): Promise<number> {
 
 interface TauriGlobal {
   readonly __TAURI__: { readonly core: { invoke(command: string, args: object): Promise<unknown> } };
+}
+
+/**
+ * Starts the app's binary a second time with `args`, as a double-click or "Open with" does on
+ * Windows and Linux, and resolves with its exit code: the single-instance plugin hands the
+ * arguments to the running app, and the second process exits at once.
+ */
+export function launchAgain(args: readonly string[]): Promise<number | null> {
+  return new Promise((resolve, reject) => {
+    const second = spawn(appBinary, args, { stdio: "ignore" });
+    const timer = setTimeout(() => {
+      second.kill();
+      reject(new Error("the second launch didn't exit within 20 s: it may have opened a second app"));
+    }, 20_000);
+    second.once("error", reject);
+    second.once("exit", (code) => {
+      clearTimeout(timer);
+      resolve(code);
+    });
+  });
+}
+
+/** Waits until the window shows a document of `pages` pages with its first page drawn sharp. */
+export async function waitForDocument(pages: number, timeout = 20_000): Promise<void> {
+  await browser.waitUntil(async () => (await view()).pageCount === pages, {
+    timeout,
+    timeoutMsg: `no ${pages}-page document opened`,
+  });
+  await waitForSharp(0, timeout);
 }

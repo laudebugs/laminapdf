@@ -11,6 +11,7 @@ mod commands;
 mod e2e;
 mod engine;
 mod error;
+mod open;
 
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -28,7 +29,7 @@ use crate::engine::{Engines, FAILED_EVENT, Failed, Launcher, Notify, RESTARTED_E
 const TILE_SCHEME: &str = "lamina";
 
 /// The main window's label; a document's own windows will be `doc-*` (`capabilities/main.json`).
-const MAIN_WINDOW: &str = "main";
+pub(crate) const MAIN_WINDOW: &str = "main";
 
 /// The first window's size in logical pixels: 1200 × 800, shrunk to fit a smaller screen (a
 /// 1366 × 768 laptop would otherwise lose the status bar under its taskbar), never below the
@@ -135,6 +136,7 @@ pub fn run() -> Result<(), DesktopError> {
         commands::close_document,
         commands::unlock_document,
         commands::cancel_tiles,
+        open::take_pending_opens,
     ]);
     #[cfg(feature = "e2e")]
     let builder = tauri::Builder::default()
@@ -145,11 +147,24 @@ pub fn run() -> Result<(), DesktopError> {
             commands::close_document,
             commands::unlock_document,
             commands::cancel_tiles,
+            open::take_pending_opens,
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
             e2e::e2e_interactive,
         ])
         .manage(e2e::QueuedPick::default());
+    // First of all plugins: a second launch hands its paths to the running app and exits before
+    // anything else starts (the plugin's own rule). Its callback queues them like any OS request.
+    let builder = builder
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            // A launch with no file still brings the running app to the front; with files, opening does.
+            let paths = open::paths_from_args(&args, std::path::Path::new(&cwd));
+            if paths.is_empty() {
+                open::bring_forward(app, MAIN_WINDOW);
+            }
+            open::route_open(app, MAIN_WINDOW, paths);
+        }))
+        .manage(open::PendingOpens::default());
     let builder = builder.plugin(
         tauri_plugin_log::Builder::new()
             // Stdout and the OS log folder. Document paths are logged at `debug`, never `info`.
@@ -186,6 +201,7 @@ pub fn run() -> Result<(), DesktopError> {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             app.manage(engines(app.handle()));
+            app.manage(open::OpenWorker::start(app.handle().clone())?);
             // Windows are made here, not in tauri.conf.json, so the app chooses every label.
             let (width, height) = first_window_size(app.primary_monitor().ok().flatten());
             WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::default())
@@ -195,19 +211,28 @@ pub fn run() -> Result<(), DesktopError> {
                 .center()
                 .build()?;
             tracing::info!(version = %app.package_info().version, "Lamina PDF started");
+            // A cold start's PDFs (Windows, Linux, a macOS terminal): queued until the webview takes them.
+            let cwd = std::env::current_dir().unwrap_or_default();
+            let args: Vec<OsString> = std::env::args_os().collect();
+            open::route_open(app.handle(), MAIN_WINDOW, open::paths_from_args(&args, &cwd));
             Ok(())
         })
         .on_window_event(|window, event| {
-            // A closed window's documents close, their passwords are wiped, its engine stops.
-            if matches!(event, WindowEvent::Destroyed) {
-                window.state::<Arc<Engines>>().close_window(window.label());
+            match event {
+                // A closed window's documents close, their passwords are wiped, its engine stops.
+                WindowEvent::Destroyed => window.state::<Arc<Engines>>().close_window(window.label()),
+                // Files dragged over or dropped on the window: Rust opens them, never the webview.
+                WindowEvent::DragDrop(drag) => open::on_drag_drop(window, drag),
+                _ => {}
             }
         })
         .build(tauri::generate_context!())?;
-    app.run(|app, event| {
-        if matches!(event, RunEvent::Exit) {
-            app.state::<Arc<Engines>>().shutdown();
-        }
+    app.run(|app, event| match event {
+        RunEvent::Exit => app.state::<Arc<Engines>>().shutdown(),
+        // macOS hands Finder's, the Dock's and `open`'s files to the running app, cold or warm.
+        #[cfg(target_os = "macos")]
+        RunEvent::Opened { urls } => open::route_open(app, MAIN_WINDOW, open::paths_from_urls(&urls)),
+        _ => {}
     });
     Ok(())
 }

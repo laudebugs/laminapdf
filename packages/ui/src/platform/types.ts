@@ -32,6 +32,8 @@ export interface Capabilities {
   readonly ownsKeyboard: boolean;
   /** `shareText` hands text to the system's share sheet. */
   readonly canShare: boolean;
+  /** The shell takes files dropped on the window and opens them itself; the UI's drop zone leaves drops alone. */
+  readonly shellTakesDrops: boolean;
 }
 
 /** One of the capability flags. */
