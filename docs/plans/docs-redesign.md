@@ -46,7 +46,7 @@ The work goes in four steps, so the cheap, well-evidenced fixes ship first and t
 | [Q4h](../todos/ready/Q4h-troubleshooting-by-area.md) | Troubleshooting for Rust, the command line, extraction and rendering | 6 |
 | [Q4i](../todos/ready/Q4i-code-colours-by-class.md) | Code colours by class, and no inline styles in the CSP | 7 |
 | [Q4j](../todos/ready/Q4j-starlight-upgrade-policy.md) | Starlight upgrades one minor at a time, overrides listed | 8 |
-| [Q4k](../todos/ready/Q4k-one-page-and-pdf-docs.md) | Each area on one page, and the whole guide as a PDF | 9 |
+| [Q4k](../todos/ongoing/Q4k-one-page-and-pdf-docs.md) | Each area on one page, and the whole guide as a PDF | 9 |
 | [Q4l](../todos/ready/Q4l-markdown-for-agents-per-page.md) | A Markdown alternate link and "Copy as Markdown" on every page | 10 |
 | [Q4m](../todos/ready/Q4m-watch-readers-use-the-docs.md) | Watch developers follow the docs, and read the agent eval | 13 |
 | [Q4n](../todos/ready/Q4n-since-markers-and-versions.md) | "Added in" markers on API items, and stable URLs per release from 1.0 | 11 |
