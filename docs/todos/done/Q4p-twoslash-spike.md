@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4p` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
-| Depends on | [Q4i](./Q4i-code-colours-by-class.md) |
+| Depends on | None |
 | ADRs | [ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the headers, no third-party loads) |
 | Branch | `spike/q4p-twoslash` |
 | PR title | `spike(docs): measure twoslash hover types on one docs page` |
 | Size | S (throwaway spike code outside the workspaces; README with measurements) |
-| PR | — |
+| PR | [#453](https://github.com/laudebugs/laminapdf/pull/453) |
 
 ## Goal
 
@@ -46,18 +46,18 @@ The docs plan left Twoslash out on a cost nobody measured. The research guessed 
 
 ## Tasks
 
-- [ ] Claim via the work PR (see Definition of done) from a fresh worktree off `main`, after Q4i has merged.
-- [ ] Check the plugin's maintenance and licence; pick it or the alternative, and say why in the README.
-- [ ] Build the page with and without Twoslash, and record each measurement in Scope.
-- [ ] Try the hovers as a reader would, by mouse, keyboard and touch, in Chromium, Firefox and WebKit, and record what works.
-- [ ] Rename a type in the SDK and check whether the docs build fails.
-- [ ] Write the recommendation, and update the plan's §5 with the result (and its §4 if a todo follows).
+- [x] Claim via the work PR (see Definition of done) from a fresh worktree off `main`, after Q4i has merged.
+- [x] Check the plugin's maintenance and licence; pick it or the alternative, and say why in the README.
+- [x] Build the page with and without Twoslash, and record each measurement in Scope.
+- [x] Try the hovers as a reader would, by mouse, keyboard and touch, in Chromium, Firefox and WebKit, and record what works.
+- [x] Rename a type in the SDK and check whether the docs build fails.
+- [x] Write the recommendation, and update the plan's §5 with the result (and its §4 if a todo follows).
 
 ## Acceptance criteria
 
-- [ ] The README answers, with numbers, how much script and style the page gains, whether the page passes the CSP Q4i sets, and whether a stale type fails the build.
-- [ ] The README records what keyboard, touch and screen-reader users get from the hovers.
-- [ ] The plan's §5 states the measured result instead of the research's guess.
+- [x] The README answers, with numbers, how much script and style the page gains, whether the page passes the CSP Q4i sets, and whether a stale type fails the build.
+- [x] The README records what keyboard, touch and screen-reader users get from the hovers.
+- [x] The plan's §5 states the measured result instead of the research's guess.
 
 ## Post-merge checks
 
@@ -76,10 +76,19 @@ None beyond the spike's own measurements; nothing ships.
 - The plugin may fit only an older Expressive Code than Starlight's; the README then says which versions and what an upgrade would take.
 - Hovers that need a mouse leave keyboard and touch readers with nothing; a fallback (the type shown inline with `// ^?`) may be the only part worth keeping.
 
+## As built
+
+- **Q4i first?** Q4i hadn't started when the owner asked for this spike, so its dependency on [Q4i](../ready/Q4i-code-colours-by-class.md) was dropped and the spike measures against both CSPs: the current one, and the same policy without `'unsafe-inline'` in `style-src`, which is what Q4i will set.
+- **The plugin:** `expressive-code-twoslash` 0.6.1, the only Twoslash plugin for Expressive Code. It supports Expressive Code 0.41 and TypeScript 5 only, while the site runs 0.44.3 and 6.0.3. npm refuses it and pnpm installs it with peer warnings. It works once Expressive Code's options move to `ec.config.mjs`, which Starlight's `<Code>` needs for plugins.
+- **Where the code lives:** `spikes/docs-twoslash/` holds a patch for `apps/docs` (a `twoslash` prop through `Example`, `ExampleCode` and `Snippet`, set on "Your first PDF"; the plugin behind `LAMINA_PDF_TWOSLASH=1`), `measure.mjs`, the two JSON reports and two screenshots. The site itself is unchanged.
+- **Result:** keep it out. It adds 24.5 KB of script and 15.5 KB of CSS to every page. On the one page with hovers it adds 953 `style=` attributes, nearly doubles the HTML, and adds 1.7 s (10%) to the build. Hovers open by mouse only (touch too in Firefox and WebKit), and screen readers get nothing. A renamed type fails the build with it, but `cargo xtask check ts` already catches that, since the docs show only tested example files.
+- **Screen readers:** judged from the popup's attributes (`role="tooltip"`, `aria-hidden="true"`, no focusable token), not tested with a screen reader.
+- **Plan:** §5 states the measured result, and the frameworks note marks the plugin as measured. No todo follows.
+
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

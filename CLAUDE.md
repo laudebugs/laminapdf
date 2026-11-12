@@ -568,7 +568,7 @@ pnpm --filter @laminapdf/desktop run desktop:dev  # the desktop reader with its 
 cargo xtask desktop-notices  # the desktop app's THIRD_PARTY_NOTICES.md (cargo-about, MPL-2.0 text included) into target/desktop/
 cargo xtask desktop-sidecar [--release|--debug]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
                              #   pinned PDFium into src-tauri/resources/pdfium/ (both git-ignored); the profile defaults to the
-                             #   Tauri CLI's (TAURI_ENV_DEBUG); desktop:dev/desktop:build run it first
+                             #   Tauri CLI's (release unless its hook sets TAURI_ENV_DEBUG=true); desktop:dev/desktop:build run it first
 cargo xtask fixtures large-pdf [--pages N] [--out PATH]  # the engine's 1 GB fixture (20,000 image pages, ~1.1 GB, never
                              #   committed) into target/fixtures/1gb.pdf; needs ~1.5 GB of RAM
 cargo run -p laminapdf-cli --features mcp -- mcp --root <dir> [--allow-write [--allow-in-place]]  # the MCP server on stdio (L4c)
@@ -736,6 +736,8 @@ Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions,
 `spikes/desktop-ipc/` — a Tauri 2.12 app that moves PDFium tiles into the webview four ways and checks cross-origin isolation (D1a, ADR 0008); standalone, not in CI: `cargo xtask fetch-pdfium`, then `scripts/run-all.sh <label> [full|quick]` (Windows: `scripts\run-all.ps1`) and `python3 scripts/summarise.py results/` (see its README).
 
 `spikes/desktop-print/` — a Tauri 2.12 app that prints three generated fixtures through the webview, through PDFium rasters and the OS print API, and through each OS's vector path, then scores the PDFs against the fixtures (D1b); standalone, not in CI: `cargo xtask fetch-pdfium`, then `scripts/run-all.sh <label>` (Windows: `scripts\run-all.ps1`; Linux under `xvfb-run` with CUPS and `cups-pdf`) and `python3 scripts/summarise.py results/` (see its README).
+
+`spikes/docs-twoslash/` — Twoslash hover types (`expressive-code-twoslash` 0.6.1) on one docs page, measured in Chromium, Firefox and WebKit against the docs' CSP and Q4i's (Q4p); throwaway, not in CI: a patch for `apps/docs` and `measure.mjs` (see its README, which recommends keeping Twoslash out).
 
 `spikes/flow-layout/` — our own paginator over `Surface`, Typst 0.15.1 embedded, and Typst's frames drawn through `Surface` (T4a, ADR 0032); standalone, not in CI. Typst needs `skrifa` 0.42.1 where the workspace pins `=0.42.0`, so `scripts/run.sh <command>` moves the pin for one command and restores the root `Cargo.toml`: `scripts/run.sh cargo run --release` (the PDFs in `target/flow-layout/`), `scripts/run.sh scripts/wasm.sh` (WebAssembly sizes), then `node scripts/node-time.mjs target/wasm/own.wasm` (see its README).
 

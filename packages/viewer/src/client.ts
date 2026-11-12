@@ -119,6 +119,29 @@ export interface ViewerCallOptions {
   readonly priority?: Priority;
 }
 
+/**
+ * What a `Viewer` needs of the engine it draws from: the open document, its events, renders,
+ * and the text, link, find and edit calls of the layers and the edit session it builds. A
+ * `ViewerClient` over its document worker is one; the desktop app's client over its engine
+ * process is another, so the same viewer runs on both.
+ */
+export type ViewerEngine = Pick<
+  ViewerClient,
+  | "document"
+  | "on"
+  | "render"
+  | "pageText"
+  | "readingOrder"
+  | "structure"
+  | "pageLinks"
+  | "find"
+  | "applyEdit"
+  | "undoEdit"
+  | "redoEdit"
+  | "goToStep"
+  | "editHistory"
+>;
+
 /** One pending render's soft and hard timers. */
 interface RenderTimers {
   readonly start: () => void;

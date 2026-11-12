@@ -21,6 +21,10 @@ use tauri::{Emitter as _, EventTarget, Manager as _, RunEvent, WebviewUrl, Webvi
 
 use crate::engine::{Engines, FAILED_EVENT, Failed, Launcher, Notify, RESTARTED_EVENT, Restarted};
 
+/// The scheme the viewer fetches tiles from: `lamina://localhost/tile/…`, and
+/// `http://lamina.localhost/tile/…` on Windows (the CSP allows both).
+const TILE_SCHEME: &str = "lamina";
+
 /// The main window's label; a document's own windows will be `doc-*` (`capabilities/main.json`).
 const MAIN_WINDOW: &str = "main";
 
@@ -124,6 +128,8 @@ pub fn run() -> Result<(), DesktopError> {
         commands::open_dialog,
         commands::page_info,
         commands::close_document,
+        commands::unlock_document,
+        commands::cancel_tiles,
     ]);
     #[cfg(feature = "e2e")]
     let builder = tauri::Builder::default().invoke_handler(tauri::generate_handler![
@@ -131,6 +137,8 @@ pub fn run() -> Result<(), DesktopError> {
         commands::open_dialog,
         commands::page_info,
         commands::close_document,
+        commands::unlock_document,
+        commands::cancel_tiles,
         commands::debug_kill_engine,
     ]);
     let app = builder
@@ -140,6 +148,25 @@ pub fn run() -> Result<(), DesktopError> {
                 .level(tauri_plugin_log::log::LevelFilter::Info)
                 .build(),
         )
+        // Tiles for the viewer (ADR 0008 §4). The window is the webview that asked, never part of
+        // the address, so a window reads only its own documents; the engine's wait and the WebP
+        // encoding run off the main thread.
+        .register_asynchronous_uri_scheme_protocol(TILE_SCHEME, |ctx, request, responder| {
+            let window = ctx.webview_label().to_owned();
+            let engines = Arc::clone(&ctx.app_handle().state::<Arc<Engines>>());
+            let uri = request.uri().clone();
+            let is_get = request.method() == tauri::http::Method::GET;
+            tauri::async_runtime::spawn_blocking(move || {
+                let answer = if is_get {
+                    engine::parse_tile(uri.path(), uri.query())
+                        .map_err(DesktopError::from)
+                        .and_then(|query| engines.render_tile(&window, &query).map(|tile| (tile, query.encoding)))
+                } else {
+                    Err(DesktopError::from(engine::TileUrlError::NotATile))
+                };
+                responder.respond(engine::tile_response(answer));
+            });
+        })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
