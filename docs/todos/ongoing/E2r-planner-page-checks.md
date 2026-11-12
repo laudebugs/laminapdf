@@ -11,7 +11,7 @@
 | Branch | `feat/e2r-planner-page-checks` |
 | PR title | `feat(save): field-level checks for page ops` |
 | Size | M (200–400): an index of the pages that hold restricted widgets, two restrictions and the per-field FieldMDP check in `laminapdf-save`, with tests on the signed fixtures; the ops that report their touched widgets come in [E2b](../ready/E2b-page-structure-ops.md) |
-| PR | — |
+| PR | [#525](https://github.com/laudebugs/laminapdf/pull/525) |
 
 ## Goal
 
