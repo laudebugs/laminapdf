@@ -1,0 +1,40 @@
+---
+title: Render pages to images
+description: Draw a PDF's pages as pixels, for thumbnails, previews or tests, in JavaScript and from the command line.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+import Transcript from "../../../components/Transcript.astro";
+
+You'll draw a page as an image: a thumbnail for a file list, a preview in an email, or a picture to compare in a test. A renderer turns the page into straight RGBA pixels, and Lamina PDF reads the same page's text, so you can show both.
+
+## In JavaScript
+
+Two renderers implement the same interface, `RenderBackend` from `@laminapdf/render`:
+
+| Package | Renderer | Best for |
+| --- | --- | --- |
+| `@laminapdf/render-hayro` | hayro, written in Rust and built to WebAssembly | servers, Cloudflare Workers and tests: small, and it needs no address |
+| `@laminapdf/render-pdfium` | PDFium, the engine of Chrome's PDF viewer | browsers, where pages should look as they do in Chrome |
+
+This example draws a page with hayro and reads its text with Lamina PDF:
+
+<Snippet file="packages/sdk/examples/draw-page.ts" />
+
+To draw with PDFium instead, start it with `initPdfium(wasm)` from `@laminapdf/render-pdfium`, which takes PDFium's WebAssembly as `initHayro` takes hayro's. Then pass the backend it returns to `drawPage`; nothing else changes.
+
+A scale of 2 draws 144 pixels per inch. Ask for a `clip` to draw only part of a page. The renderer refuses a tile wider or taller than 16,384 pixels, or larger than about 16.7 million pixels, with `render-too-large`, so draw a poster-sized page at a high scale in tiles. [How a page is drawn](/concepts/drawing-pages/) explains the tile plan.
+
+## From the command line
+
+`laminapdf render` writes pages as PNG files, which suits scripts and batch jobs:
+
+<Transcript name="render" />
+
+[Extract text and render pages](/cli/extract-and-render/#images-render) lists its options.
+
+## In Rust
+
+The Rust renderers are the `laminapdf-render` crate, with hayro behind its `hayro` feature, and `laminapdf-render-pdfium` for a native PDFium. Their API is at [docs.rs](https://docs.rs/laminapdf-render). The `laminapdf` crate doesn't draw pages yet, so this guide has no Rust example; the command line above runs the same renderers.
+
+Next, see [how to compare pages in tests](/guides/test-generated-pdfs/), which draws two PDFs and counts the pixels that differ.

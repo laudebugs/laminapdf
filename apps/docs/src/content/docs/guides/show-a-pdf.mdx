@@ -1,0 +1,49 @@
+---
+title: Show a PDF in a web page
+description: Put a scrolling, zoomable PDF viewer in your page with @laminapdf/viewer, drawn by PDFium in a Web Worker.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+You'll put a PDF on your page that people can scroll and zoom, with text they can select and links within the document they can follow. The viewer draws only the pages near the scroll position, so a 1,000-page file scrolls as smoothly as a short one.
+
+:::caution[Preview]
+`@laminapdf/viewer` is a preview. It is the core of [the Lamina PDF reader](https://app.laminapdf.com), and its API can still change between releases while the reader grows.
+:::
+
+Install the viewer and the PDFium build it draws with:
+
+```sh
+npm install @laminapdf/viewer @embedpdf/pdfium@2.15.1
+```
+
+This example shows a file the user picked, in a container on your page:
+
+<Snippet file="packages/viewer/examples/show-a-pdf.ts" />
+
+Call it with an element that has a height, the file from an `<input type="file">` or a drop, and the address your bundler serves PDFium's WebAssembly at:
+
+```ts
+using shown = await showPdf(container, file, pdfiumWasm);
+```
+
+## What runs where
+
+The viewer splits the work between your page and a Web Worker, one per document:
+
+- **The Web Worker** opens the file with Lamina PDF and draws pages with PDFium. A slow PDF page never blocks scrolling or typing on your site.
+- **Your web page** holds the view: a shell for each page near the scroll position, the canvases they paint into, and the text and link layers over them.
+
+The file stays in the Web Worker. A `File` goes to the Web Worker by reference, so your web page never reads its bytes. To show a file from a server instead, pass `client.open` the file's address as `{ url }` where the example passes `file`. The Web Worker then reads it with HTTP range requests, fetching only the parts the visible pages need.
+
+## Give the container a size
+
+The viewer fills its container and scrolls inside it, so the container needs a height: a fixed one, or `flex: 1` in a column that fills the window. A container with no height shows nothing.
+
+## Take it down
+
+Dispose of what `showPdf` returns, with `using` or by calling `[Symbol.dispose]()`, when the PDF leaves the page. That stops its renders, frees its canvases and ends its Web Worker. If the file won't open, because it's damaged or locked with a password, `showPdf` ends its Web Worker before it throws.
+
+## Next
+
+[How a page is drawn](/concepts/drawing-pages/) explains why a renderer draws the pixels while Lamina PDF reads the text. To draw pages to images instead of a scrolling view, see [render pages to images](/guides/render-pages/).
