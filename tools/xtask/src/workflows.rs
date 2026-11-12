@@ -38,17 +38,8 @@ pub(crate) fn jobs(workflow: &str) -> Vec<(&str, Vec<&str>)> {
 /// The two-space-indented keys under `workflow`'s top-level `<section>:` line (a trailing comment
 /// allowed), each with its own lines, in order. The section ends at the next top-level key.
 fn keys_under<'a>(workflow: &'a str, section: &str) -> Vec<(&'a str, Vec<&'a str>)> {
-    let top_level = |line: &str| !line.is_empty() && !line.starts_with(' ') && !line.starts_with('#');
-    let header = format!("{section}:");
-    let body = workflow
-        .lines()
-        .skip_while(|line| !(top_level(line) && line.split(" #").next().unwrap_or_default().trim_end() == header))
-        .skip(1);
     let mut keys: Vec<(&str, Vec<&str>)> = Vec::new();
-    for line in body {
-        if top_level(line) {
-            break;
-        }
+    for line in section_lines(workflow, section) {
         if let Some(id) = job_id(line) {
             keys.push((id, Vec::new()));
         } else if let Some((_, lines)) = keys.last_mut() {
@@ -56,6 +47,19 @@ fn keys_under<'a>(workflow: &'a str, section: &str) -> Vec<(&'a str, Vec<&'a str
         }
     }
     keys
+}
+
+/// The lines under `workflow`'s top-level `<section>:` line (a trailing comment allowed), up to the
+/// next top-level key.
+fn section_lines<'a>(workflow: &'a str, section: &str) -> Vec<&'a str> {
+    let top_level = |line: &str| !line.is_empty() && !line.starts_with(' ') && !line.starts_with('#');
+    let header = format!("{section}:");
+    workflow
+        .lines()
+        .skip_while(|line| !(top_level(line) && line.split(" #").next().unwrap_or_default().trim_end() == header))
+        .skip(1)
+        .take_while(|line| !top_level(line))
+        .collect()
 }
 
 /// The lines of `key` under `workflow`'s top-level `section` (empty when there is none).
@@ -684,15 +688,8 @@ mod tests {
     }
 
     /// The value of `key` among the lines of `workflow`'s top-level `section:` block.
-    fn top_level_value<'a>(workflow: &'a str, section: &str, key: &str) -> Option<&'a str> {
-        let header = format!("{section}:");
-        workflow
-            .lines()
-            .skip_while(|line| line.trim_end() != header)
-            .skip(1)
-            .take_while(|line| line.is_empty() || line.starts_with(' '))
-            .find_map(|line| line.trim_start().strip_prefix(key))
-            .map(|value| value.split(" #").next().unwrap_or_default().trim())
+    fn top_level_value(workflow: &str, section: &str, key: &str) -> Option<String> {
+        pinned(&section_lines(workflow, section).join("\n"), key).map(str::to_owned)
     }
 
     /// Todo X9d: a newer push to main cancels the older run, as a newer push to a PR does.
@@ -702,7 +699,7 @@ mod tests {
             .iter()
             .map(|workflow| top_level_value(workflow, "concurrency", "cancel-in-progress:"))
             .collect();
-        assert_eq!(values, [Some("true"), Some("true")]);
+        assert_eq!(values, [Some("true".to_owned()), Some("true".to_owned())]);
     }
 
     #[test]
@@ -710,7 +707,7 @@ mod tests {
         let workflow = "concurrency:\n  group: x\n  # cancel-in-progress: false\n  cancel-in-progress: true # why\njobs:\n  a:\n    cancel-in-progress: false\n";
         assert_eq!(
             top_level_value(workflow, "concurrency", "cancel-in-progress:"),
-            Some("true")
+            Some("true".to_owned())
         );
     }
 
