@@ -1,15 +1,18 @@
 // The desktop reader's Platform (ADR 0010, ADR 0008). It starts from the web platform, which works
 // in any webview (the clipboard, IndexedDB storage), and reports what the desktop shell adds:
 // saving in place, watching files, native printing and several windows. Opening a file goes
-// through the main process's dialog, so its path never reaches the webview. Until the shell
+// through the main process's dialog, so its path never reaches the webview; so do the recent list,
+// which the main process keeps, and watching, which it does for every open document. Until the shell
 // implements the rest, each one rejects with NotYetSupportedError rather than falling back to the
 // web behaviour silently, and shared UI never asks which platform it runs on: only these flags.
 import { type Capabilities, createWebPlatform, type Platform, type PlatformFile, type SaveResult } from "@laminapdf/ui";
 import type { DesktopShell } from "../engine/desktop-engine-client.ts";
-import { pickDocument } from "../engine/open.ts";
+import { RELOADED_EVENT, type Reloaded } from "../engine/file-changes.ts";
+import { documentOf, pickDocument } from "../engine/open.ts";
+import { desktopRecent } from "./recent.ts";
 
 /** What this build of the desktop app can't do yet: opening a dropped document, and the Platform methods the desktop flags promise. */
-export type DesktopFeature = "open" | "saveInPlace" | "print" | "watch" | "openWindow";
+export type DesktopFeature = "open" | "saveInPlace" | "print" | "openWindow";
 
 /** The codes of the desktop app's errors. */
 export type DesktopErrorCode = "not-yet-supported";
@@ -46,6 +49,8 @@ export const DESKTOP_FLAGS = {
   canWatchFiles: true,
   hasNativePrint: true,
   multiWindow: true,
+  // The main process keeps each recent file's path, so an entry reopens with no dialog.
+  canReopenRecent: true,
   // The main process opens dropped files (src-tauri/src/open.rs); the webview gets no path to open.
   shellTakesDrops: true,
 } as const satisfies Partial<Capabilities>;
@@ -53,10 +58,10 @@ export const DESKTOP_FLAGS = {
 /**
  * The desktop Platform over `web`.
  * @param web - The webview's own platform; `createWebPlatform()` by default.
- * @param shell - The Tauri shell, whose open dialog `openFiles` runs; without one (a browser),
- *   `openFiles` is the web platform's.
- * @returns The web platform with the desktop flags set and their methods rejecting until built.
- * @throws {@link NotYetSupportedError} from `watch`; the other unbuilt methods reject with it.
+ * @param shell - The Tauri shell, whose open dialog `openFiles` runs, and which keeps the recent
+ *   list and watches open files; without one (a browser), these are the web platform's.
+ * @returns The web platform with the desktop flags set and their unbuilt methods rejecting with
+ *   {@link NotYetSupportedError}.
  */
 export function createDesktopPlatform(web: Platform = createWebPlatform(), shell?: DesktopShell): Platform {
   const capabilities: Capabilities = { ...web.capabilities, ...DESKTOP_FLAGS };
@@ -64,15 +69,40 @@ export function createDesktopPlatform(web: Platform = createWebPlatform(), shell
     ...web,
     capabilities,
     // One file at a time until tabs; the main process keeps its path.
-    ...(shell === undefined ? {} : { openFiles: () => pickDocument(shell) }),
+    ...(shell === undefined
+      ? {}
+      : { openFiles: () => pickDocument(shell), recent: desktopRecent(shell), watch: watchOver(shell) }),
     // The desktop flags are always on, so there is nothing for the user to enable.
     howToEnable: (flag) => (flag in DESKTOP_FLAGS ? undefined : web.howToEnable(flag)),
     saveInPlace: (_file: PlatformFile, _bytes: Uint8Array): Promise<SaveResult> =>
       Promise.reject(new NotYetSupportedError("saveInPlace")),
     print: () => Promise.reject(new NotYetSupportedError("print")),
-    watch: () => {
-      throw new NotYetSupportedError("watch");
-    },
     openWindow: () => Promise.reject(new NotYetSupportedError("openWindow")),
+  };
+}
+
+/**
+ * `Platform.watch` over the main process's watcher, which watches every open document's file by
+ * itself: `onChange` runs each time the document `file` stands for reloads from its changed file.
+ */
+function watchOver(shell: DesktopShell): NonNullable<Platform["watch"]> {
+  return (file, onChange) => {
+    let stop: (() => void) | undefined;
+    let stopped = false;
+    void shell
+      .listen<Reloaded>(RELOADED_EVENT, ({ previous, document }) => {
+        // The window rebinds the file to the new document as it shows it, before or after this
+        // runs, so either id is this file's.
+        const doc = documentOf(file)?.doc;
+        if (doc !== undefined && (doc === previous || doc === document.doc)) onChange();
+      })
+      .then((unlisten) => {
+        if (stopped) unlisten();
+        else stop = unlisten;
+      });
+    return () => {
+      stopped = true;
+      stop?.();
+    };
   };
 }

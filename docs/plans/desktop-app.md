@@ -194,9 +194,9 @@ Ticked by the PR that completes them.
 
 - [x] Register `.pdf` file associations in the bundle config for all three OSes ([D3a](../todos/done/D3a-open-from-os.md): an alternate handler, never the default; ADR 0008 §10)
 - [x] Handle argv, `RunEvent::Opened` and single-instance forwarding ([D3a](../todos/done/D3a-open-from-os.md), with drops on the window)
-- [ ] Recent files: OS recent documents and an in-app list with "clear"
-- [ ] Watch open files and reload preserving position
-- [ ] Integration tests for open-from-OS on each platform (open from the OS done in [D3a](../todos/done/D3a-open-from-os.md): a second launch and a cold start with a path, on all three OSes; file watching's come with [D3b](../todos/ongoing/D3b-recent-files-and-file-watching.md))
+- [x] Recent files: OS recent documents and an in-app list with "clear" ([D3b](../todos/ongoing/D3b-recent-files-and-file-watching.md); ADR 0008 §11)
+- [x] Watch open files and reload preserving position ([D3b](../todos/ongoing/D3b-recent-files-and-file-watching.md): the folder watched, a change reloaded once it settles)
+- [x] Integration tests for open-from-OS on each platform ([D3a](../todos/done/D3a-open-from-os.md): a second launch and a cold start with a path; [D3b](../todos/ongoing/D3b-recent-files-and-file-watching.md): a file written in place, an atomic save, a deletion, the recent list across a restart; all on three OSes)
 
 ### D4. Windows, tabs, menus and printing
 

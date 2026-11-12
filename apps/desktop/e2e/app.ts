@@ -193,3 +193,18 @@ export async function waitForDocument(pages: number, timeout = 20_000): Promise<
   });
   await waitForSharp(0, timeout);
 }
+
+/** The names in the recent files list, newest first, as the main process keeps it. */
+export async function recentNames(): Promise<string[]> {
+  const entries = (await invoke("recent_list")) as { name: string }[];
+  return entries.map((entry) => entry.name);
+}
+
+/** Runs the command palette's command named `title`: ⌘K or Ctrl+K, its title, Enter. */
+export async function runCommand(title: string): Promise<void> {
+  await browser.keys([platform === "darwin" ? Key.Command : Key.Ctrl, "k"]);
+  const input = $('input[role="combobox"]');
+  await input.waitForExist();
+  await input.setValue(title);
+  await browser.keys("Enter");
+}

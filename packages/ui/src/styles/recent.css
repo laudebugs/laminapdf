@@ -72,4 +72,13 @@
     color: var(--paper-text-3);
     font: var(--paper-type-caption);
   }
+
+  /* A missing file's row: not a button, its name muted. */
+  .paper-recent-row[data-missing] {
+    cursor: default;
+  }
+
+  .paper-recent-row[data-missing] .paper-recent-name {
+    color: var(--paper-text-3);
+  }
 }

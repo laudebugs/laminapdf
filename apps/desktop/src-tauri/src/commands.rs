@@ -1,17 +1,22 @@
 //! The app commands the webview may call, each allowed by name in `capabilities/main.json`.
 //!
-//! The webview names documents by id and never sends a path; the calling window comes from
-//! Tauri, not from the webview's arguments, so a window reaches only its own documents.
+//! The webview names documents by id, and recent files by their entry's id, and never sends a
+//! path; the calling window comes from Tauri, not from the webview's arguments, so a window reaches
+//! only its own documents.
 
 use std::sync::Arc;
 
 use laminapdf_desktop_protocol::DocId;
 use serde::Serialize;
+use tauri::Manager as _;
 use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 
 use crate::DesktopError;
 use crate::engine::{DocumentMeta, Engines, PageMeta};
+use crate::opened::{self, open_path};
+use crate::prefs::{Preferences, Prefs};
+use crate::recent::{self, RecentFiles};
 
 /// What `app_info` reports: enough for an About box and a bug report, nothing about documents.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -53,17 +58,13 @@ pub(crate) fn app_info(app: tauri::AppHandle) -> AppInfo {
 /// Lets the user pick a PDF, opens it in this window's engine and returns its pages; `None` when
 /// the user cancels. The dialog runs from Rust, so the path never reaches the webview.
 #[tauri::command]
-pub(crate) async fn open_dialog(
-    window: tauri::WebviewWindow,
-    engines: tauri::State<'_, Arc<Engines>>,
-) -> Result<Option<DocumentMeta>, DesktopError> {
-    let engines = Arc::clone(&engines);
+pub(crate) async fn open_dialog(window: tauri::WebviewWindow) -> Result<Option<DocumentMeta>, DesktopError> {
     // The dialog and the engine's replies block: off the async runtime's threads.
     tauri::async_runtime::spawn_blocking(move || {
         // End-to-end builds: a scenario's queued fixture stands in for the dialog.
         #[cfg(feature = "e2e")]
         if let Some(path) = tauri::Manager::state::<crate::e2e::QueuedPick>(&window).take() {
-            return engines.open(window.label(), &path).map(Some);
+            return open_path(window.app_handle(), window.label(), &path).map(Some);
         }
         let picked = window
             .dialog()
@@ -77,7 +78,7 @@ pub(crate) async fn open_dialog(
         let path = picked
             .into_path()
             .map_err(|error| DesktopError::Internal(error.to_string()))?;
-        engines.open(window.label(), &path).map(Some)
+        open_path(window.app_handle(), window.label(), &path).map(Some)
     })
     .await
     .map_err(|error| DesktopError::Internal(error.to_string()))?
@@ -137,7 +138,79 @@ pub(crate) fn close_document(
     engines: tauri::State<'_, Arc<Engines>>,
     doc: u32,
 ) -> Result<(), DesktopError> {
-    engines.close(window.label(), DocId(doc))
+    engines.close(window.label(), DocId(doc))?;
+    opened::closed(window.app_handle(), window.label(), DocId(doc));
+    Ok(())
+}
+
+/// The recent files, newest first: ids, names, sizes and dates, never a path.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its state by value")]
+pub(crate) fn recent_list(recent: tauri::State<'_, RecentFiles>) -> Vec<recent::Listed> {
+    recent.list()
+}
+
+/// Opens the recent file `id` in this window, as the open dialog would; the webview names the
+/// entry, never its path.
+#[tauri::command]
+pub(crate) async fn recent_open(window: tauri::WebviewWindow, id: String) -> Result<DocumentMeta, DesktopError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = window
+            .state::<RecentFiles>()
+            .path_of(&id)
+            .ok_or_else(|| DesktopError::Io(std::io::ErrorKind::NotFound.into()))?;
+        open_path(window.app_handle(), window.label(), &path)
+    })
+    .await
+    .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// Forgets the recent file `id`, in the app's list and, where the OS can, in its own.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its handle and state by value"
+)]
+pub(crate) fn recent_remove(app: tauri::AppHandle, recent: tauri::State<'_, RecentFiles>, id: String) {
+    if let Some(path) = recent.remove(&id) {
+        opened::forget(&app, vec![path], false);
+    }
+}
+
+/// Forgets every recent file: the app's list and the OS's list of this app's documents.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its handle and state by value"
+)]
+pub(crate) fn recent_clear(app: tauri::AppHandle, recent: tauri::State<'_, RecentFiles>) {
+    opened::forget(&app, recent.clear(), true);
+}
+
+/// The app's preferences.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its state by value")]
+pub(crate) fn preferences(prefs: tauri::State<'_, Prefs>) -> Preferences {
+    prefs.get()
+}
+
+/// Sets the app's preferences. Turning "Remember recent files" off clears both recent lists.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its handle and state by value"
+)]
+pub(crate) fn set_preferences(
+    app: tauri::AppHandle,
+    prefs: tauri::State<'_, Prefs>,
+    recent: tauri::State<'_, RecentFiles>,
+    value: Preferences,
+) {
+    let was = prefs.get();
+    prefs.set(value);
+    if was.remember_recent && !value.remember_recent {
+        opened::forget(&app, recent.clear(), true);
+    }
 }
 
 /// Kills this window's engine as a crash would (end-to-end tests only, feature `e2e`).
