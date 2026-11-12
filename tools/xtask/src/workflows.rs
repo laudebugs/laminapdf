@@ -19,7 +19,7 @@
 
 mod compile_cache;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// The `<id>` of a two-space-indented `<id>:` line (a trailing comment allowed), else `None`.
 pub(crate) fn job_id(line: &str) -> Option<&str> {
@@ -147,18 +147,21 @@ fn missing_from<'a>(workflow: &'a str, gate: &str) -> Vec<&'a str> {
         .collect()
 }
 
-/// A file's text, by its path from the repository root; `None` when it can't be read.
-pub(crate) fn repository_file(path: &str) -> Option<String> {
-    std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").join(path)).ok()
+fn root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-/// The entries of the repository's directory `dir`, as paths from the root, sorted.
+/// A file's text, by its path from the repository root; `None` when it can't be read.
+pub(crate) fn repository_file(path: &str) -> Option<String> {
+    std::fs::read_to_string(root().join(path)).ok()
+}
+
+/// The entries of the repository's directory `dir`, as paths from the root, sorted. Panics when
+/// the directory can't be read, so a check over its files never passes having read none.
 fn entries(dir: &str) -> Vec<String> {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let mut found: Vec<String> = std::fs::read_dir(root.join(dir))
-        .map(|read| read.filter_map(Result::ok).collect::<Vec<_>>())
-        .unwrap_or_default()
-        .into_iter()
+    let read = std::fs::read_dir(root().join(dir)).unwrap_or_else(|e| panic!("can't read {dir}: {e}"));
+    let mut found: Vec<String> = read
+        .filter_map(Result::ok)
         .map(|entry| format!("{dir}/{}", entry.file_name().to_string_lossy()))
         .collect();
     found.sort();
@@ -630,9 +633,8 @@ mod tests {
     /// The owner installs the train from tools/release: never merge a partial installation.
     #[test]
     fn installed_cli_release_train_should_match_the_reviewed_file() {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github/workflows/cli-release-train.yml");
         assert!(
-            std::fs::read_to_string(&path).is_ok_and(|installed| installed == CLI_TRAIN),
+            repository_file(".github/workflows/cli-release-train.yml").is_some_and(|installed| installed == CLI_TRAIN),
             "the owner must install tools/release/cli-release-train.yml as .github/workflows/cli-release-train.yml before merge"
         );
     }

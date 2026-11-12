@@ -87,8 +87,8 @@ fn local_file(value: &str) -> Option<String> {
     })
 }
 
-/// Whether a line outside a comment names sccache: the action, `RUSTC_WRAPPER: sccache`, an
-/// install of it.
+/// Whether a line that isn't a whole-line comment names sccache: the action, `RUSTC_WRAPPER:
+/// sccache`, an install of it. A trailing comment counts, which errs toward a failure.
 fn mentions_sccache(line: &str) -> bool {
     !line.trim_start().starts_with('#') && (line.contains("sccache") || line.contains("rust-compile-cache"))
 }
