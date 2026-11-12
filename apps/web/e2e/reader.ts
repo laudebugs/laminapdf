@@ -98,10 +98,10 @@ export async function load(
         () => (window as unknown as { cspViolations: { text: string; target: string; at: string }[] }).cspViolations,
       );
       if (BROWSER !== "webkit") return seen.map((v) => v.text);
-      // Playwright's WebKit reports every native <select> as an inline style under `style-src
-      // 'self'`: the engine's own styles for the control (a page with a bare <select> does the
-      // same). It reports at the script's `createElement("select")`, aimed at the select or, once
-      // that is detached, at the document; those are left out, and everything else must be clean.
+      // Playwright's WebKit reports every native <select> as a refused inline style
+      // (@laminapdf/test-utils/webkit-select explains it). Here the selects are made by script and
+      // gone before the check, so instead of counting them this matches each report to the
+      // script's `createElement("select")`; those are left out, and everything else must be clean.
       const sources = new Map<string, boolean>();
       for (const { at } of seen) if (!sources.has(at)) sources.set(at, await createsSelect(page, at));
       return seen.filter((v) => !sources.get(v.at)).map((v) => v.text);
