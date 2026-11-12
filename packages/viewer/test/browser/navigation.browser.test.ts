@@ -4,8 +4,8 @@
 // outline and named destinations of the links-and-outlines reference PDF landing on their pages.
 import { Builder, init } from "@laminapdf/sdk";
 import { createViewer, ThumbnailStrip, type Viewer, type ViewerClient } from "@laminapdf/viewer";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { hook, read, testViewer } from "./helpers.js";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { hook, next, read, testViewer } from "./helpers.js";
 
 /** A 1,000-page document of letter pages, each with one box. */
 function thousandPages(): Uint8Array {
@@ -79,6 +79,35 @@ function close({ viewer, strip }: { viewer: Viewer; strip: ThumbnailStrip }): vo
 }
 
 describe("the thumbnails strip", () => {
+  it("draws its thumbnails again after the worker restarts, and reports no error for the renders the crash cut short", async () => {
+    // Its own client: the crash restarts only this one.
+    const client = await testViewer();
+    const reported = vi.spyOn(globalThis, "reportError");
+    const viewer = createViewer({ client });
+    const strip = new ThumbnailStrip(client, viewer);
+    try {
+      const doc = await client.open(thousand);
+      viewer.mount(main);
+      viewer.open(doc);
+      strip.element.style.flex = "1";
+      strip.mount(side);
+      strip.open(doc);
+      await frame();
+      // The thumbnails' background renders are still queued when the worker goes.
+      const restarted = next(client, "restarted");
+      void hook(client, "__crash").catch(() => undefined);
+      expect(await restarted).toMatchObject({ reopened: true });
+      const items = () => strip.element.querySelectorAll("[role=option]").length;
+      await until(() => items() > 0 && strip.element.querySelectorAll("canvas").length === items());
+      expect(reported).not.toHaveBeenCalled();
+    } finally {
+      reported.mockRestore();
+      strip.destroy();
+      viewer.destroy();
+      client.terminate();
+    }
+  });
+
   it("never mounts more than the thumbnails in view and 4 either side, scrolling 1,000 pages", async () => {
     const view = await opened(thousand);
     const { strip } = view;

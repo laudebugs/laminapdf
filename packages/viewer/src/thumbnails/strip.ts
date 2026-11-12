@@ -7,7 +7,7 @@
 // the CSSOM, which a `style-src 'self'` policy allows.
 
 import type { PageAppearance } from "@laminapdf/render";
-import type { PageInfo } from "@laminapdf/sdk";
+import { isLaminaPdfError, type PageInfo } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
@@ -104,6 +104,12 @@ export class ThumbnailStrip {
     on("keydown", (e) => this.#key(e));
     this.#cleanup.push(viewer.subscribe(() => this.#viewChanged()));
     this.#cleanup.push(viewer.on("invalidate", ({ pages }) => this.#invalidate(pages)));
+    // A restarted worker reopened the document under a new id: every thumbnail is drawn again.
+    this.#cleanup.push(
+      client.on("restarted", ({ reopened }) => {
+        if (reopened) this.#redrawAll();
+      }),
+    );
     // A strip shown later (its tab opened, its sheet raised) mounts what it now shows.
     const resized = new ResizeObserver(() => this.#schedule());
     resized.observe(root);
@@ -138,6 +144,13 @@ export class ThumbnailStrip {
   }
 
   // --- internals ---
+
+  /** Every thumbnail drawn again, as after a restart reopened the document under a new id. */
+  #redrawAll(): void {
+    this.#unmountAll();
+    this.#cache.clear();
+    this.#schedule();
+  }
 
   #relayout(): void {
     const pages = this.#sizes();
@@ -290,21 +303,15 @@ export class ThumbnailStrip {
       const abort = new AbortController();
       item.abort = abort;
       try {
-        const rendered = await this.#client.render(
+        bitmap = await this.#render(
+          item,
           { page: item.index, scale, rotation: layout.rotation, ...appearanceField(appearance) },
-          { priority: "background", signal: abort.signal },
+          abort.signal,
         );
-        bitmap = rendered.bitmap;
-      } catch (error) {
-        // Scrolled away or a new document: drawn again if it comes back into view.
-        if (abort.signal.aborted) return;
-        // A failed render keeps its placeholder, and isn't asked for again while mounted.
-        item.done = true;
-        reportError(error);
-        return;
       } finally {
         if (item.abort === abort) item.abort = undefined;
       }
+      if (bitmap === undefined) return;
       if (abort.signal.aborted || this.#items.get(item.index) !== item || this.#layout !== layout) {
         bitmap.close();
         return;
@@ -313,6 +320,25 @@ export class ThumbnailStrip {
     }
     this.#paint(item, bitmap, layout);
     if (owned) bitmap.close();
+  }
+
+  /** `item`'s thumbnail from the worker, or undefined when the render failed (and why is handled). */
+  async #render(
+    item: Item,
+    request: Parameters<ViewerClient["render"]>[0],
+    signal: AbortSignal,
+  ): Promise<ImageBitmap | undefined> {
+    try {
+      return (await this.#client.render(request, { priority: "background", signal })).bitmap;
+    } catch (error) {
+      // Scrolled away or a new document: drawn again if it comes back into view. A crashed
+      // worker is no failure of this page's: the restart draws it again.
+      if (signal.aborted || isLaminaPdfError(error, "worker-crashed")) return undefined;
+      // A failed render keeps its placeholder, and isn't asked for again while mounted.
+      item.done = true;
+      reportError(error);
+      return undefined;
+    }
   }
 
   #paint(item: Item, bitmap: ImageBitmap, layout: PageLayout): void {
