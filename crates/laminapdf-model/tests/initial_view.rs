@@ -129,6 +129,7 @@ const THREAD: [&str; 4] = [
     "<< /Type /Bead /N 7 0 R /V 8 0 R /P 5 0 R /R [300 100 550 400] >>",
 ];
 
+/// capability: I.09 core read
 #[test]
 fn a_thread_lists_its_beads_in_order_and_stops_where_the_circle_closes() {
     let threads = doc("/Threads [6 0 R]", &THREAD).threads().unwrap();

@@ -60,6 +60,11 @@ pub enum Error {
     /// its sources before it replays the log).
     #[error("no source document with this ID was added to the session")]
     UnknownSource(crate::SourceId),
+    /// A [`SetInitialView`](crate::SetInitialView) would replace or remove the catalog's
+    /// `/OpenAction`, which is an action other than `GoTo` (JavaScript, a named action, a link
+    /// to another file). The op never replaces one: leave `open` out to keep it.
+    #[error("the document's open action is not a destination, and the op would replace it")]
+    OpenActionNotDestination,
 }
 
 /// A page ID as a message may show it: an object ID in full (lamina-made: a kind and two
@@ -97,6 +102,7 @@ impl Error {
         "no-pending-save",
         "malformed-xmp",
         "unknown-source",
+        "open-action-not-destination",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -116,6 +122,7 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
+            Self::OpenActionNotDestination => "open-action-not-destination",
         }
     }
 
@@ -133,7 +140,7 @@ impl Error {
             Self::NestedTransaction | Self::NoTransaction | Self::SavedNotRebased | Self::NoPendingSave => {
                 ErrorKind::State
             }
-            Self::UnknownPage(_) | Self::UnknownSource(_) => ErrorKind::Usage,
+            Self::UnknownPage(_) | Self::UnknownSource(_) | Self::OpenActionNotDestination => ErrorKind::Usage,
             Self::DirectPage(_) | Self::UnsupportedVersion(_) => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
         }
@@ -163,7 +170,8 @@ impl Error {
             | Self::SavedNotRebased
             | Self::NoPendingSave
             | Self::MalformedXmp
-            | Self::UnknownSource(_) => Location::NONE,
+            | Self::UnknownSource(_)
+            | Self::OpenActionNotDestination => Location::NONE,
         }
     }
 }
@@ -193,6 +201,7 @@ mod tests {
             Error::NoPendingSave,
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
+            Error::OpenActionNotDestination,
         ]
     }
 

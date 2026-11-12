@@ -102,6 +102,8 @@ pub enum ErrorCode {
     MalformedXmp,
     /// `unknown-source`: an op or a call names a source document that was not added to the session.
     UnknownSource,
+    /// `open-action-not-destination`: an op would replace or remove the document's open action, which is an action other than a destination.
+    OpenActionNotDestination,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -298,6 +300,7 @@ impl ErrorCode {
         Self::NoPendingSave,
         Self::MalformedXmp,
         Self::UnknownSource,
+        Self::OpenActionNotDestination,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -430,6 +433,7 @@ impl ErrorCode {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource => "unknown-source",
+            Self::OpenActionNotDestination => "open-action-not-destination",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -548,6 +552,7 @@ impl ErrorCode {
             Self::NoPendingSave => ErrorKind::State,
             Self::MalformedXmp => ErrorKind::Input,
             Self::UnknownSource => ErrorKind::Usage,
+            Self::OpenActionNotDestination => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -666,6 +671,7 @@ impl ErrorCode {
             Self::NoPendingSave => "rebase was called without a save waiting for it",
             Self::MalformedXmp => "a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds",
             Self::UnknownSource => "an op or a call names a source document that was not added to the session",
+            Self::OpenActionNotDestination => "an op would replace or remove the document's open action, which is an action other than a destination",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -784,6 +790,7 @@ impl ErrorCode {
             Self::NoPendingSave => "call rebase only after a save that returned SavedNotRebased",
             Self::MalformedXmp => "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
             Self::UnknownSource => "add the source document's bytes with addSource before applying ops that name it",
+            Self::OpenActionNotDestination => "leave the open page out of the edit, which keeps the open action as it is",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

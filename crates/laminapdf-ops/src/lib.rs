@@ -35,7 +35,8 @@
 //! clocks or threads.
 //!
 //! * [`Op`]: [`SetMetadata`] (with [`MetadataPatch`]), [`RemoveMetadata`] (with
-//!   [`MetadataKey`]), the save planner's [`UpdateSaveMetadata`], [`RotatePage`] and the
+//!   [`MetadataKey`]), the save planner's [`UpdateSaveMetadata`], [`RotatePage`],
+//!   [`SetInitialView`] (with [`OpenAt`], [`OpenZoom`], [`WindowPreferencesPatch`]) and the
 //!   deprecated [`SetInfo`] (with [`InfoPatch`]), each with a
 //!   [`ModificationClass`] and [`Op::requires_rewrite`]; [`OpLog`] is the versioned JSON
 //!   envelope `{ "v": 1, "ops": [ … ] }`.
@@ -80,6 +81,7 @@ mod document;
 mod error;
 mod history;
 mod info;
+mod initial_view;
 mod metadata;
 mod op;
 mod pending;
@@ -98,6 +100,7 @@ pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
+pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
     SetMetadata, UpdateSaveMetadata, conformance_warnings, read_metadata,

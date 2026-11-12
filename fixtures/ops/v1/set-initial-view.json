@@ -1,0 +1,9 @@
+{
+  "op": "setInitialView",
+  "args": {
+    "open": { "page": "p3.0", "zoom": "fitWidth" },
+    "pageMode": "outlines",
+    "pageLayout": "oneColumn",
+    "preferences": { "displayDocTitle": true, "fitWindow": true }
+  }
+}

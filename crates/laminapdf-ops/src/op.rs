@@ -10,6 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
+use crate::initial_view::SetInitialView;
 use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
 use crate::rotate::RotatePage;
 
@@ -51,6 +52,8 @@ pub enum Op {
     SetMetadata(SetMetadata),
     /// Remove metadata fields from Info and XMP.
     RemoveMetadata(RemoveMetadata),
+    /// Change how the document asks to be shown when it opens.
+    SetInitialView(SetInitialView),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -69,6 +72,7 @@ impl Op {
                 ModificationClass::Metadata
             }
             Self::RotatePage(_) => ModificationClass::PageStructure,
+            Self::SetInitialView(_) => ModificationClass::Document,
         }
     }
 
@@ -83,6 +87,7 @@ impl Op {
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
+            | Self::SetInitialView(_)
             | Self::UpdateSaveMetadata(_) => false,
         }
     }
@@ -98,6 +103,7 @@ impl Op {
             }),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
+            Self::SetInitialView(op) => op.apply_to(doc).map(|()| Effect::default()),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
         }
     }
@@ -136,6 +142,12 @@ impl From<RemoveMetadata> for Op {
 impl From<UpdateSaveMetadata> for Op {
     fn from(op: UpdateSaveMetadata) -> Self {
         Self::UpdateSaveMetadata(op)
+    }
+}
+
+impl From<SetInitialView> for Op {
+    fn from(op: SetInitialView) -> Self {
+        Self::SetInitialView(op)
     }
 }
 

@@ -34,6 +34,7 @@
             "no-pending-save",
             "malformed-xmp",
             "unknown-source",
+            "open-action-not-destination",
             "sink",
             "not-rebased",
             "sink-not-empty",
