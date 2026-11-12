@@ -12,7 +12,7 @@
 | Branch | `docs/e2a-page-organisation-feature-plan` |
 | PR title | `docs(editor): E2 feature plan (page organisation)` |
 | Size | S (< 200 lines) |
-| PR | — |
+| PR | [#478](https://github.com/laudebugs/laminapdf/pull/478) |
 
 ## Goal
 
