@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) and [§7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E3h](../ongoing/E3h-images-to-pdf-and-page-export.md) |
+| Depends on | [E3h](../done/E3h-images-to-pdf-and-page-export.md) |
 | ADRs | Follows [0002](../../decisions/0002-binding-strategy.md), [0009](../../decisions/0009-web-client-architecture.md), [0016](../../decisions/0016-package-design.md), [0028](../../decisions/0028-facade-rules-jobs-and-cancellation.md) |
 | Branch | `feat/e3m-web-image-export` |
 | PR title | `feat(sdk,viewer): images to PDF and page export in TypeScript and the web reader` |

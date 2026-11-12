@@ -29,4 +29,4 @@ let files = export_pages(doc.as_ref(), &[0], &ExportOptions::new(ExportFormat::P
 
 The decisions and todos behind this code:
 
-- [E3h](../todos/ongoing/E3h-images-to-pdf-and-page-export.md): page export
+- [E3h](../todos/done/E3h-images-to-pdf-and-page-export.md): page export

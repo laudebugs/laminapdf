@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3h` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
+| Depends on | [C2b](./C2b-lamina-render-crate.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3h-images-to-pdf-and-page-export` |
 | PR title | `feat(build): images to PDF and page image export` |
@@ -52,14 +52,14 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 
 ## Tasks
 
-- [ ] Images → PDF with orientation and DPI handling
-- [ ] Page export through the render trait
-- [ ] The three encoders, cargo-deny clean
+- [x] Images → PDF with orientation and DPI handling
+- [x] Page export through the render trait
+- [x] The three encoders, cargo-deny clean
 
 ## Acceptance criteria
 
-- [ ] JPEG input is embedded byte-identical (DCTDecode passthrough)
-- [ ] Exported PNG at 150 dpi matches PDFium golden renders
+- [x] JPEG input is embedded byte-identical (DCTDecode passthrough)
+- [x] Exported PNG at 150 dpi matches PDFium golden renders
 
 ## Post-merge checks
 
@@ -83,8 +83,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

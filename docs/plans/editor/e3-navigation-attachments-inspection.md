@@ -195,7 +195,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E3e](../../todos/ready/E3e-xmp-editor.md) | XMP property ops, extension schemas and the XMP editor | E1c, B8b, X3a |
 | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) | Attachment ops, `/AF`, portfolios read, and the Attachments tab | E2i, E2j, E2p, B8b, X3a |
 | [E3g](../../todos/ready/E3g-inspectors.md) | Conformance, fonts, colour and object inspection, and the inspector | T2c |
-| [E3h](../../todos/ongoing/E3h-images-to-pdf-and-page-export.md) | Images → PDF and page export with the three encoders (the Rust core) | C2b |
+| [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) | Images → PDF and page export with the three encoders (the Rust core) | C2b |
 | [E3m](../../todos/ready/E3m-web-image-export.md) | Images → PDF and page export in TypeScript and the web reader: the binding, the worker's export call and the TIFF module | E3h |
 | [E3i](../../todos/ready/E3i-extraction.md) | Image extraction, and links and bookmarks as JSON and CSV | B9c |
 | [E3j](../../todos/ready/E3j-export-dialog.md) | The export dialog (O16): pages, text, images, links and bookmarks; images → PDF in the interface | E2m, E3i, E3m |
