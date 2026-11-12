@@ -73,7 +73,8 @@ fn main() -> Result<()> {
         if BufReader::new(&stream).read_line(&mut line).is_err() || !line.starts_with("GET /cb?") {
             continue;
         }
-        stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nYou're signed in. You can close this tab and go back to Lamina PDF.")?;
+        // The page is a courtesy: the code has arrived even if the browser has closed the socket.
+        let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nYou're signed in. You can close this tab and go back to Lamina PDF.");
         break line;
     };
     drop(listener);

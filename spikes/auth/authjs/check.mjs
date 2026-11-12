@@ -67,6 +67,8 @@ console.log(`note OAuth check cookies (${setCookies.map((c) => c.split(";")[0].s
 // file `wrangler dev` writes to) tells a failed state or PKCE check from GitHub refusing the fake code.
 await new Promise((r) => setTimeout(r, 500));
 const { readFileSync } = await import("node:fs");
+// Wrangler prints a request's line after the handler's own errors, so the callback's errors sit
+// in the text just before its line: `.at(-2)`.
 const log = process.env.LOG ? readFileSync(process.env.LOG, "utf8").split("GET /api/auth/callback/github").at(-2) ?? "" : "";
 check("OAuth callback gets past the state check", process.env.LOG !== undefined && !/InvalidCheck/.test(log),
   /InvalidCheck/.test(log) ? "InvalidCheck: the check cookie didn't come back" : "reached GitHub's token endpoint");

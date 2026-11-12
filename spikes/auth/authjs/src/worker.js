@@ -71,6 +71,7 @@ async function deleteAccount(request, env) {
   if (session === null) return new Response("sign in first", { status: 401 });
   const adapter = D1Adapter(env.DB);
   const user = await adapter.getUserByEmail(session.user.email);
+  if (user === null) return new Response("no such user", { status: 404 });
   await adapter.deleteUser(user.id);
   return Response.json({ deleted: user.id });
 }
