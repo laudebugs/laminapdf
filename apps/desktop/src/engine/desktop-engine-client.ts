@@ -10,7 +10,7 @@
 //   passwords: `engine://restarted` becomes the viewer's `restarted`, which redraws what is
 //   on screen; `engine://failed` and a document that didn't come back become `restart-failed`.
 // - Text, links, search and editing aren't served by the engine yet: their calls answer as for
-//   a document without them (no text runs, no links, untagged), and edits reject.
+//   a document without them (no text runs, no links, untagged), and edits and saves reject.
 // - Only types come from `@laminapdf/viewer` here, so the app's Node tests run without the
 //   viewer's build (which needs the WebAssembly); the app itself imports `createViewer`.
 
@@ -337,6 +337,18 @@ export class DesktopEngineClient implements ViewerEngine {
   }
 
   editHistory(): Promise<EditHistory> {
+    return notYet();
+  }
+
+  planSave(): ReturnType<ViewerEngine["planSave"]> {
+    return notYet();
+  }
+
+  copyEdits(): ReturnType<ViewerEngine["copyEdits"]> {
+    return notYet();
+  }
+
+  adoptEdits(): Promise<EditHistory> {
     return notYet();
   }
 }
