@@ -1,6 +1,6 @@
 # `auth` spike (H1): Better Auth on D1 fits Lamina PDF's hosted service best
 
-Lamina PDF's hosted service needs a login stack before any round ships sign-in ([ADR 0011 §6.5](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#6-the-hosted-service-and-later-server-features)). That stack has to keep the ADR's privacy rules, run on Workers with D1, let forks deploy without a vendor account, and sign in the desktop app through the system browser. This spike built three prototypes and measured each against the [H1 criteria](../../docs/todos/ongoing/H1-auth-spike.md): Better Auth on a Worker with D1, Auth.js on a Worker with D1, and Clerk as the hosted vendor. **Recommendation: Better Auth 1.7 on a Worker with D1**, with a Lax OAuth state cookie, a 90-line loopback sign-in with an approval page for the desktop app, and email magic links plus passkeys as the first sign-in methods.
+Lamina PDF's hosted service needs a login stack before any round ships sign-in ([ADR 0011 §6.5](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#6-the-hosted-service-and-later-server-features)). That stack has to keep the ADR's privacy rules, run on Workers with D1, let forks deploy without a vendor account, and sign in the desktop app through the system browser. This spike built three prototypes and measured each against the [H1 criteria](../../docs/todos/ongoing/H1-auth-spike.md): Better Auth and Auth.js, each on a Worker with D1, and Clerk as the hosted vendor. **Recommendation: Better Auth 1.7 on a Worker with D1.** It needs a Lax OAuth state cookie and a 90-line desktop sign-in with an approval page, and it starts with email magic links and passkeys.
 
 Run on 2026-11-12, on Linux x64, against `wrangler dev --local` 4.157.0 (workerd with local D1) and Playwright's Chromium. Nothing here touched Cloudflare, GitHub or Clerk accounts: the checks stop at the edge of what a local run can prove, and the README says where.
 
@@ -28,7 +28,7 @@ Run on 2026-11-12, on Linux x64, against `wrangler dev --local` 4.157.0 (workerd
 
 ### SameSite=Strict breaks OAuth unless the state cookie is Lax
 
-ADR 0011 §6.5 asks for `SameSite=Strict` session cookies, and both libraries can set it. But an OAuth provider sends the browser back to `/api/auth/callback/github` from its own site. Browsers leave Strict cookies out of that cross-site navigation, so the library can't match the state it stored. With every cookie Strict, Better Auth redirects to `?error=state_mismatch` and Auth.js fails with `InvalidCheck` (run with `--var STRICT_STATE:1`). A Lax state cookie, which lives 5 minutes and holds no session, fixes both while the session cookie stays Strict. The ADR amendment below says so, since its wording would otherwise forbid the fix.
+ADR 0011 §6.5 asks for `SameSite=Strict` session cookies, and both libraries can set it. But an OAuth provider sends the browser back to `/api/auth/callback/github` from its own site. Browsers leave Strict cookies out of that cross-site navigation, so the library can't match the state it stored. With every cookie Strict, Better Auth redirects to `?error=state_mismatch` and Auth.js fails with `InvalidCheck` (run with `--var STRICT_STATE:1`). A Lax state cookie, which holds no session and lives 5 minutes in Better Auth, fixes both while the session cookie stays Strict. ADR 0011's current wording forbids that fix, so the amendment below allows it for the state cookie alone.
 
 ### Better Auth covers every criterion with its own plugins
 
@@ -48,7 +48,7 @@ The desktop flow follows RFC 8252. The app's Rust main process listens on `127.0
 
 The approval page is the defence against another program on the same computer. Any local program can open the authorize page with a loopback port and a challenge of its own, so without the click it would get a session silently. A public client can't prove which app it is (RFC 8252 §8.6), so the user's click is the check. The codes are the Worker's own random values, not Better Auth's one-time tokens, because its `/one-time-token/verify` route would trade one for the browser's session without a verifier.
 
-In Lamina PDF, the main process would open the address through `tauri-plugin-opener` from Rust, as ADR 0008 §5 already allows, and keep the token in the OS keychain. The webview gets no new permission, and no custom URL scheme has to be registered on three OSes, which a deep-link flow would need (`tauri-plugin-deep-link`). The device authorization grant is the fallback for a machine with no usable browser. This spike didn't build the Tauri window itself: the flow lives in the main process, so the Rust client is the part that changes.
+In Lamina PDF, the main process would open the address through `tauri-plugin-opener` from Rust, as ADR 0008 §5 already allows, and keep the token in the OS keychain. The webview gets no new permission, and no custom URL scheme has to be registered on three OSes, which a deep-link flow would need (`tauri-plugin-deep-link`). The device authorization grant is the fallback for a machine with no usable browser. This spike didn't build the Tauri window itself. The whole flow runs in the main process, so the app adds only the opener call and the keychain to the Rust client above.
 
 ### Auth.js works but is the wrong start for a new service
 
@@ -56,7 +56,11 @@ Auth.js signed in by email link, set the same Strict cookie, passed the OAuth st
 
 ### Clerk is the least work, but it breaks the privacy rules
 
-Clerk's backend SDK verified a Clerk-shaped session token on a Worker with only the instance's public key: it refused an expired token and one issued for another origin. The spike signed its own tokens, since it had no Clerk account. Clerk's own documentation decides the rest. Its `__session` cookie is readable by JavaScript and set `SameSite=Lax`, which ADR 0011 §6.5 rules out. Its pages need `style-src 'unsafe-inline'` and third-party scripts and frames, which ADR 0011 §4 rules out. A fork would also need its own Clerk account. WorkOS (free to a million monthly active users) has the same hosted shape and wasn't prototyped.
+Clerk's backend SDK verified a Clerk-shaped session token on a Worker with only the instance's public key: it refused an expired token and one issued for another origin. The spike signed its own tokens, since it had no Clerk account. The rest comes from Clerk's own documentation, and it rules Clerk out. Its `__session` cookie is readable by JavaScript and set `SameSite=Lax`, which ADR 0011 §6.5 rules out. Its pages need `style-src 'unsafe-inline'` and third-party scripts and frames, which ADR 0011 §4 rules out. A fork would also need its own Clerk account. WorkOS (free to a million monthly active users) has the same hosted shape and wasn't prototyped.
+
+## Recommendation
+
+Better Auth keeps every account in Lamina PDF's own D1 database, behind first-party cookies, with no vendor between a reader and their account. Adopting it through the amendment above lets H2 build accounts on checked ground: the privacy rules stay as they are, with one documented exception for the OAuth state cookie.
 
 ## Questions for the owner
 
@@ -96,4 +100,3 @@ curl -X POST localhost:8787/_spike/migrate && NODE_PATH="$(npm root -g)" node ch
 
 `authjs/` runs the same way on port 8788 (`AUTH_SECRET` in `.dev.vars`; `LOG=<wrangler's output file> node check.mjs` so the check can tell a state failure from GitHub refusing the fake code). For `clerk/`, `node check.mjs > .dev.vars`, then `pnpm dev` and `node check.mjs --run`. For `desktop/`, `cargo build --release`, then `node check.mjs` with the Better Auth Worker running. Add `--var STRICT_STATE:1` to `pnpm dev` to see OAuth fail with a Strict state cookie, and `--var PASSKEY:1` in `authjs/` to see `MissingAdapterMethods`. `pnpm size` gives the bundle sizes in the table.
 
-Better Auth keeps every account in Lamina PDF's own D1 database, behind first-party cookies, with no vendor between a reader and their account. Adopting it through the amendment above lets H2 build accounts on checked ground: the privacy rules stay as they are, with one documented exception for the OAuth state cookie.
