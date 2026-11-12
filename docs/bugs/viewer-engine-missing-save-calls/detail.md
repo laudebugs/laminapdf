@@ -2,7 +2,7 @@
 
 ## What happened
 
-After #421 merged on 2026-11-12, `main` stopped building. The reader's deploy failed on `345184be` (Web reader run 43137391157), and `cargo xtask desktop-frontend` failed in a fresh checkout, with:
+After #421 merged on 2026-11-11 (01:51 UTC on the 12th), `main` stopped building. The reader's deploy failed on `345184be` (Web reader run 43137391157), and `cargo xtask desktop-frontend` failed in a fresh checkout, with:
 
 ```
 src/view/viewer.ts(461,43): error TS2339: Property 'planSave' does not exist on type 'ViewerEngine'.

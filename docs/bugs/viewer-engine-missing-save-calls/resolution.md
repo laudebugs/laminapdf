@@ -10,4 +10,6 @@
 
 ## Left for later
 
-Nothing. When the desktop engine learns to save (E1i), these three stubs are where it plugs in.
+Nothing in the code. When the desktop engine learns to save (E1i), these three stubs are where it plugs in.
+
+A call the viewer starts making must still be added in two places, `ViewerEngine`'s list and `DesktopEngineClient`, and the type checker names both. What let this break reach `main` was the order of merges, not a missing check: each PR was tested against a `main` without the other. Merging `main` into a PR and letting CI run again before merging it, which the review process asks for, catches it; a merge queue or GitHub's "require branches to be up to date" rule would enforce it, and that choice is the owner's.

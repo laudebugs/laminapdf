@@ -23,6 +23,7 @@ import type {
   PageTextData,
   ReadingBlock,
   RenderedBitmap,
+  SavedCopy,
   ViewerCallOptions,
   ViewerEngine,
   ViewerEvent,
@@ -340,11 +341,12 @@ export class DesktopEngineClient implements ViewerEngine {
     return notYet();
   }
 
+  // The viewer doesn't export `PlannedSave`, so its type comes from `ViewerEngine`.
   planSave(): ReturnType<ViewerEngine["planSave"]> {
     return notYet();
   }
 
-  copyEdits(): ReturnType<ViewerEngine["copyEdits"]> {
+  copyEdits(): Promise<SavedCopy> {
     return notYet();
   }
 
