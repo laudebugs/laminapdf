@@ -161,5 +161,5 @@ fn a_bead_on_a_page_the_document_lacks_has_no_page() {
 
 #[test]
 fn a_document_without_threads_has_none() {
-    assert!(doc("", &[]).threads().unwrap().is_empty());
+    assert_eq!(doc("", &[]).threads().unwrap(), []);
 }
