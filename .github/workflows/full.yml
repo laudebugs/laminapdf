@@ -8,8 +8,8 @@
 # Adding a suite: give it `needs: changes`, an `if:` on its flag (`code` unless a narrower one
 # fits: `desktop-build`, `desktop-e2e`, `render`, `rust`; CI caching plan §8.1), and add it to
 # `gate.needs`; a suite on any flag but `code` also needs a line in the gate's `case`. The two
-# desktop jobs also leave out each leg that already passed on the same inputs (todo X10b). All suites are required, including
-# the hosted Linux Arm64 and Windows x64 checks.
+# desktop jobs also leave out each leg that already passed on the same inputs (todo X10b). All
+# suites are required, including the hosted Linux Arm64 and Windows x64 checks.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Full lane

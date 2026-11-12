@@ -323,8 +323,9 @@ tasks:
                     without the branch or with no full record, and warns when it is over 3 days old
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
-                    and say whether any is code (not docs), the gallery's inputs or the
-                    reader's; sets `code`, `gallery` and `web` in $GITHUB_OUTPUT
+                    and say which groups of CI jobs they can affect; sets `code`, `gallery`,
+                    `web`, `desktop`, `render`, `rust`, `ts` and `codeql` (the CodeQL languages,
+                    as JSON) in $GITHUB_OUTPUT
                     (default base: origin/main, or main when there is no origin/main); also
                     `desktop-key`, as `desktop-key` prints it
   desktop-key       print a key naming the contents of every file the desktop app's full-lane

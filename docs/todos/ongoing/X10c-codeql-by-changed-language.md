@@ -11,7 +11,7 @@
 | Branch | `ci/x10-desktop-ci-reuse` |
 | PR title | `ci: run the desktop legs and CodeQL only for what changed` |
 | Size | S |
-| PR | — |
+| PR | [#522](https://github.com/laudebugs/laminapdf/pull/522) |
 
 ## Goal
 
@@ -52,3 +52,16 @@ CodeQL analyses four languages on every pull request, a docs-only one included. 
 ## Docs to update
 
 The plan's §8.2; CLAUDE.md's `cargo xtask changes` entry.
+
+## Risks and open questions
+
+- A script under `docs/` is analysed only on its merge to `main`.
+- Code scanning may warn on a PR that a skipped language's analysis is missing; harmless while no ruleset requires code scanning.
+
+## Definition of done
+
+- [x] Claimed: the work PR, opened from a fresh worktree, added this file to `ongoing/` in its first commit with `[skip ci]` (the owner asked for the work in progress, so it skipped `ready/`), **PR** field filled in, board regenerated
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

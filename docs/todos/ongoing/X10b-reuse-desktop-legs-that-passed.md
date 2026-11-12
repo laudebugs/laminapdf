@@ -10,8 +10,8 @@
 | ADRs | [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) |
 | Branch | `ci/x10-desktop-ci-reuse` |
 | PR title | `ci: run the desktop legs and CodeQL only for what changed` |
-| Size | M |
-| PR | — |
+| Size | L |
+| PR | [#522](https://github.com/laudebugs/laminapdf/pull/522) |
 
 ## Goal
 
@@ -19,7 +19,7 @@ A pull request runs the desktop build and e2e legs again whenever the full lane 
 
 ## Context
 
-- X10a's inputs.
+- X10a's inputs, in the same PR.
 - The GitHub Actions cache: a PR's run restores entries saved by the same PR or by `main`, and the REST API lists entries by key prefix and ref.
 
 ## Scope
@@ -55,3 +55,16 @@ A pull request runs the desktop build and e2e legs again whenever the full lane 
 ## Docs to update
 
 The plan's §8.2; ADR 0018 §2; CLAUDE.md; `full.yml`'s header.
+
+## Risks and open questions
+
+- A missed input reuses a pass it shouldn't (X10a's list, which counts all of `tools/xtask`).
+- Each OS must compute the same key: paths are canonicalised before the walk, and a leg on another OS that never matches only runs again.
+
+## Definition of done
+
+- [x] Claimed: the work PR, opened from a fresh worktree, added this file to `ongoing/` in its first commit with `[skip ci]` (the owner asked for the work in progress, so it skipped `ready/`), **PR** field filled in, board regenerated
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

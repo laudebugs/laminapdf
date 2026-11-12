@@ -10,8 +10,8 @@
 | ADRs | [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) |
 | Branch | `ci/x10-desktop-ci-reuse` |
 | PR title | `ci: run the desktop legs and CodeQL only for what changed` |
-| Size | M |
-| PR | — |
+| Size | L |
+| PR | [#522](https://github.com/laudebugs/laminapdf/pull/522) |
 
 ## Goal
 
@@ -28,7 +28,7 @@ The full lane's `desktop` flag counts every path under `crates/` and `packages/`
 
 - The crates reached through path dependencies from `laminapdf-desktop`, `laminapdf-desktop-engine` and the WebAssembly crates of `wasm::MODULES`.
 - The packages reached through `workspace:` dependencies from `apps/desktop`.
-- A fixed list for what no graph names: manifests, lockfiles, toolchains, shared configs, the fixtures the scenarios open, the xtask modules the jobs run, the workflow and its actions.
+- A fixed list for what no graph names: manifests, lockfiles, toolchains, shared configs, the fixtures the scenarios open, `tools/xtask` (whose tasks the jobs run), the workflow and its actions.
 
 **Out of scope** (and which todo covers it)
 
@@ -54,3 +54,15 @@ None.
 ## Docs to update
 
 The plan's §8.1 table and §8.2; CLAUDE.md's `cargo xtask changes` entry.
+
+## Risks and open questions
+
+- A path the fixed list misses skips the desktop jobs on a PR until the next push to `main`. When unsure, a path counts.
+
+## Definition of done
+
+- [x] Claimed: the work PR, opened from a fresh worktree, added this file to `ongoing/` in its first commit with `[skip ci]` (the owner asked for the work in progress, so it skipped `ready/`), **PR** field filled in, board regenerated
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
