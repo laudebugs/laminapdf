@@ -24,6 +24,24 @@
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
     "category": "Productivity",
     "copyright": "© 2026 Lamina PDF contributors",
-    "licenseFile": "../../../LICENSE-MIT"
+    "licenseFile": "../../../LICENSE-MIT",
+    "fileAssociations": [
+      {
+        "ext": ["pdf"],
+        "mimeType": "application/pdf",
+        "name": "PDF Document",
+        "description": "Portable Document Format",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ],
+    "linux": {
+      "deb": {
+        "desktopTemplate": "linux/laminapdf.desktop"
+      },
+      "rpm": {
+        "desktopTemplate": "linux/laminapdf.desktop"
+      }
+    }
   }
 }

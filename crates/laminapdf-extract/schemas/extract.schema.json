@@ -122,7 +122,7 @@
       "type": "object"
     },
     "Coordinates": {
-      "description": "ADR 0027 §4's `coordinates` block: top-left points of the displayed box.",
+      "description": "How to read the page's boxes: points from the top-left of the displayed box, y down.",
       "properties": {
         "box": {
           "description": "`\"CropBox\"`, or `\"default\"` when the page had no usable box and US Letter was used.",
@@ -214,7 +214,7 @@
       ]
     },
     "Dropped": {
-      "description": "Text left out of the output ([ADR 0030] §4). It records a count, never the text, so a log of\nthe output can't leak what was hidden.\n\n[ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md",
+      "description": "Text left out of the output. It records a count, never the text, so a log of the output can't\nleak what was hidden.",
       "properties": {
         "bbox": {
           "description": "Where it was, in page space.",
@@ -259,7 +259,7 @@
       "type": "object"
     },
     "ExtractedPage": {
-      "description": "One extracted page ([ADR 0027] §4).\n\n[ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md",
+      "description": "One extracted page, with its blocks' boxes in top-left page space.",
       "properties": {
         "coordinates": {
           "$ref": "#/$defs/Coordinates",
@@ -310,7 +310,7 @@
       "type": "object"
     },
     "ExtractedSource": {
-      "description": "The input, as ADR 0030 §1's `source` describes it.",
+      "description": "The input: its SHA-256, page count, whether it is tagged, and where the reading order came from.",
       "properties": {
         "pageCount": {
           "description": "The document's page count.",
@@ -349,7 +349,7 @@
       "type": "array"
     },
     "Generator": {
-      "description": "Who made the extraction (ADR 0030 §1's `generator`).",
+      "description": "Who made the extraction: the library, its version, and the models it ran, if any.",
       "properties": {
         "mode": {
           "description": "`\"rules\"`, or `\"rules+models\"` when a model plug-in was used.",
@@ -598,7 +598,7 @@
           "description": "The structure element the block comes from, when it comes from one."
         },
         "text": {
-          "description": "The visible text, lines joined by a space after the text fixes (ADR 0030 §5).",
+          "description": "The visible text, lines joined by a space after the text fixes (Latin ligatures spelled out\nand, unless `dehyphenate` is off, words hyphenated at a line break joined again).",
           "type": "string"
         },
         "textRange": {
@@ -675,7 +675,7 @@
       "description": "One run of text in a block or a dropped entry.",
       "properties": {
         "baseline": {
-          "description": "The baseline's y in page space (ADR 0027 §5).",
+          "description": "The baseline's y in page space (points from the top, y down).",
           "format": "double",
           "type": "number"
         },
@@ -698,7 +698,7 @@
           "type": "string"
         },
         "ocr": {
-          "description": "The OCR engine's confidence, 0 to 1, when an engine read this text from the page image\nrather than the file's text layer ([ADR 0030] §6); absent for the text layer's runs.\n\n[ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md",
+          "description": "The OCR engine's confidence, 0 to 1, when an engine read this text from the page image\nrather than the file's text layer; absent for the text layer's runs.",
           "format": "double",
           "type": [
             "number",
@@ -726,7 +726,7 @@
       "type": "object"
     },
     "StructRef": {
-      "description": "A structure element ([ADR 0030] §1's `structRef`).\n\n[ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md",
+      "description": "The element of the file's structure tree that a block came from.",
       "properties": {
         "gen": {
           "description": "Its generation.",
@@ -758,7 +758,7 @@
       "type": "object"
     },
     "StructSource": {
-      "description": "Where the reading order came from ([ADR 0030] §2).\n\n[ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md",
+      "description": "Where the reading order came from: the file's structure tree, the page layout, or the order\nthe content stream draws in.",
       "oneOf": [
         {
           "const": "tagged",

@@ -178,9 +178,17 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 
 **Platform differences.** Web identical (opened from More). Phone: the dialog becomes a full-height sheet; XMP shows the tree, and selecting a property pushes the detail view with a Back button.
 
+**As built (E1f).** The web reader's dialog has the Description tab and a File tab (R08's read-only facts, with Copy all); the XMP tab waits for [E3e](../../todos/ready/E3e-xmp-editor.md). Differences from the boards:
+
+- **Modified** is read-only, with "Saving sets this to the time you save" and no checkbox: every save stamps the modification date ([E1e](../../todos/done/E1e-save-and-constraint-banner.md)), so the checkbox could only ever be on.
+- **Keyword chips** have 26 px remove buttons, the smallest icon button; they still meet the 24 px minimum.
+- **The two conformance warnings** (more than one author in PDF/A-1, no title in PDF/UA-1) appear under the field before Apply. The dialog applies the save planner's two rules itself, since the SDK reports conformance warnings only from a save plan; `apps/web/e2e/properties-warnings.e2e.test.ts` holds them to the SDK's. In a PDF/A file whose Info and XMP disagree, Apply writes the value shown to both, and the PDF/A notice names those fields.
+- **XMP metadata that can't be read** gets a warning notice: Apply replaces it.
+- **The dialog opens from** More › Document properties… and the palette; the top bar's file name doesn't open it yet.
+
 **Artboards:** `O04-document-info.dc.html`, `O04-xmp-editor.dc.html`.
 
-**Todos:** [E1f](../../todos/ready/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md).
+**Todos:** [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md).
 
 ## O05 Capability page
 
@@ -211,9 +219,16 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Platform differences.** Desktop: opens as a window tab with the same content. Phone: the table becomes one card per operation (ID and name, then four label–badge pairs).
 
+**As built (E1f).** The page lives at `/capabilities` in the web reader, over the open document. More › What Lamina PDF can do (`help.capabilities`) pushes the address, and Back (the page's or the browser's) returns to the document as it was. A link from the docs site opens it directly, and Back then goes to the reader. The data is `docs/capabilities/matrix.json`, which `cargo xtask capabilities` writes beside the README and the reader bundles. Differences from the board:
+
+- **The bar** holds Back alone, without the title, Commands and More: the page covers the reader, and Back is the way out of it.
+- **On a phone** the table scrolls inside its box rather than becoming one card per operation.
+- **"How statuses are tested"** opens the matrix's README on GitHub, which explains each status's evidence.
+- **"Unsupported" notices** don't link here yet; no notice in the reader says an operation is unsupported so far.
+
 **Artboards:** `O05-capabilities.dc.html`.
 
-**Todos:** [E1f](../../todos/ready/E1f-metadata-ui-capability-page.md).
+**Todos:** [E1f](../../todos/done/E1f-metadata-ui-capability-page.md).
 
 ## O06 Organise mode
 
