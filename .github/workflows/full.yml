@@ -240,7 +240,7 @@ jobs:
           if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
           test -s "target/debug/laminapdf-desktop-engine$exe"
           find target/debug/pdfium -maxdepth 1 -type f \( -name '*.dylib' -o -name '*.so' -o -name '*.dll' \) -size +1M | grep -q .
-      # D2g: the app renders through its engine, never the viewer's WebAssembly, so none ships.
+      # The app renders through its engine, never the viewer's WebAssembly, so none ships.
       - name: Check the frontend ships no WebAssembly
         shell: bash
         run: |
@@ -270,10 +270,12 @@ jobs:
           set -euo pipefail
           exe=""
           if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
-          if grep -aq debug_kill_engine "target/debug/laminapdf-desktop$exe"; then
-            echo "::error::the app holds debug_kill_engine without the e2e feature"
-            exit 1
-          fi
+          for marker in debug_kill_engine "startup timings"; do
+            if grep -aq "$marker" "target/debug/laminapdf-desktop$exe"; then
+              echo "::error::the app holds '$marker' without the e2e feature"
+              exit 1
+            fi
+          done
 
   # The whole `cargo xtask check` on Windows x64 (todo X6): the docs, Rust and TypeScript checks,
   # where the fast lane's Windows legs run only `check rust`. It catches what only Windows breaks:

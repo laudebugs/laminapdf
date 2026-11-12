@@ -1,7 +1,7 @@
-//! Cold-start timing (D2g), in `e2e` builds only: when the process reached `run`, `setup` began,
-//! the main window was built and the webview's first command arrived. The first command logs them
-//! once, so a script that launches the app reads them from its output (`tools/desktop/cold_start.py`,
-//! ADR 0008 §4).
+//! Cold-start timing, in `e2e` builds only: when the process reached `run`, `setup` began, the
+//! main window was built and shown, and the webview's first command (`app_info`) arrived. That
+//! command logs them once, as plain milliseconds, so a script that launches the app reads them from
+//! its output (`tools/desktop/cold_start.py`, ADR 0008 §4's cold-start gates).
 
 use std::sync::OnceLock;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -17,10 +17,10 @@ struct Marks {
 }
 
 impl Marks {
-    /// Milliseconds from the start of `run` to `mark`, once it is reached.
-    fn since_start(&self, mark: &OnceLock<Instant>) -> Option<f64> {
+    /// Milliseconds from the start of `run` to `mark`; -1 while it isn't reached.
+    fn since_start(&self, mark: &OnceLock<Instant>) -> f64 {
         mark.get()
-            .map(|at| at.duration_since(self.start).as_secs_f64() * 1000.0)
+            .map_or(-1.0, |at| at.duration_since(self.start).as_secs_f64() * 1000.0)
     }
 }
 
@@ -51,13 +51,14 @@ pub(crate) fn setup() {
     reach(|marks| &marks.setup);
 }
 
-/// The main window is built.
+/// The main window is built, and shown: it is visible from creation, blank until its page paints.
 pub(crate) fn window() {
     reach(|marks| &marks.window);
 }
 
-/// A command arrived from the webview; the first one logs every mark.
-pub(crate) fn command() {
+/// `app_info` arrived: the window's first command, sent once its empty state has rendered. The
+/// first call logs every mark.
+pub(crate) fn app_info() {
     if !reach(|marks| &marks.first_command) {
         return;
     }
@@ -65,9 +66,9 @@ pub(crate) fn command() {
     tracing::info!(
         target: "laminapdf_desktop::startup",
         start_unix_ms = %marks.start_unix_ms,
-        setup_ms = ?marks.since_start(&marks.setup),
-        window_ms = ?marks.since_start(&marks.window),
-        first_command_ms = ?marks.since_start(&marks.first_command),
+        setup_ms = %format_args!("{:.1}", marks.since_start(&marks.setup)),
+        window_ms = %format_args!("{:.1}", marks.since_start(&marks.window)),
+        first_command_ms = %format_args!("{:.1}", marks.since_start(&marks.first_command)),
         "startup timings"
     );
 }

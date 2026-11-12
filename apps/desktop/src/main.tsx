@@ -9,6 +9,7 @@ import { FONT_PRELOADS } from "@laminapdf/fonts";
 import { PlatformProvider } from "@laminapdf/ui";
 import { createViewer } from "@laminapdf/viewer";
 import { isTauri } from "@tauri-apps/api/core";
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { App, type DesktopEngine } from "./app.tsx";
 import { type AppInfo, loadAppInfo } from "./app-info.ts";
@@ -62,5 +63,7 @@ const render = (info: AppInfo | undefined) =>
       <App platform={platform} info={info} keys={keys} engine={engine} />
     </PlatformProvider>,
   );
-render(undefined);
+// The empty state commits before the first command goes out, so that command marks the moment the
+// window can take input (ADR 0008 §4's cold-start gate); `render` alone only schedules the work.
+flushSync(() => render(undefined));
 if (desktop) loadAppInfo().then(render, (error: unknown) => console.error("app_info failed", error));

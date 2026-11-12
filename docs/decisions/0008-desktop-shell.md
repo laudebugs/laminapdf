@@ -6,7 +6,7 @@
 
 ## Context
 
-Lamina PDF's desktop reader must reuse the web reader's UI (`@laminapdf/ui`, `@laminapdf/viewer`, [ADR 0009](0009-web-client-architecture.md)), link the Rust core natively, open 1 GB files, and never let a hostile PDF take down the app ([desktop plan §4](../plans/desktop-app.md#4-requirements)). It also has to start in under 300 ms and ship an installer under 15 MB with PDFium included, the two release gates the owner set on 2026-10-29. Every later desktop todo (engine process, tiles, files, menus, printing, updates, signing) builds on three things this ADR fixes: the shell, the process split and the security baseline. D2a's PR must get them right. D2d and D2e measure the 300 ms start, and D6b's release workflow fails any installer of 15 MB or more.
+Lamina PDF's desktop reader must reuse the web reader's UI (`@laminapdf/ui`, `@laminapdf/viewer`, [ADR 0009](0009-web-client-architecture.md)), link the Rust core natively, open 1 GB files, and never let a hostile PDF take down the app ([desktop plan §4](../plans/desktop-app.md#4-requirements)). It also has to start fast and ship an installer under 15 MB with PDFium included, the two release gates the owner set on 2026-10-29; D2g replaced the first, 300 ms to the first command, with two cold-start gates (§4, owner decision 2026-11-11). Every later desktop todo (engine process, tiles, files, menus, printing, updates, signing) builds on three things this ADR fixes: the shell, the process split and the security baseline. D2a's PR must get them right. D2d and D2e measure the 300 ms start, and D6b's release workflow fails any installer of 15 MB or more.
 
 The research picked Tauri 2 and left four questions to measure ([report](../research/architecture/app-and-package-architecture.md#tauri-2-is-the-desktop-shell-with-electron-held-in-reserve-for-linux); [desktop notes Q1–Q4](../research/architecture/notes/desktop-shell.md#q1-shell-options-versions-size-memory-startup-webview-differences-licence-maturity-production-users)):
 
@@ -85,24 +85,25 @@ A failure answers `{ kind, message }` with a status the client maps back: 404 fo
 
 The app's open (0.48–0.68 s) matches the engine alone in §2 (478–494 ms), so the webview, the IPC and PDFium's own open add little to it. The sandbox adds about 15 ms to an engine's start: a warm engine is ready in 22–29 ms, against 8 ms before D2c, and the first engine after a build takes about 220 ms while macOS checks the new binary.
 
-**Cold start (D2g).** Most of the cold start is Tauri and the webview, not the app's code. D2g measured the steps with the `e2e` build's startup log and [`tools/desktop/cold_start.py`](../../tools/desktop/README.md), launching the app and a floor build in turn. The floor is the same app with a page that sends the first command as soon as it runs, and none of the app's code. Medians of 10 runs each on the M1 Pro (macOS 27, release builds), in milliseconds:
+**Cold start (D2g).** Most of the cold start is Tauri and the webview, not the app's code. D2g measured the steps with the `e2e` build's startup log and [`tools/desktop/cold_start.py`](../../tools/desktop/README.md), launching the app and a floor build in turn. The floor is the same app with a page that sends the first command as soon as it runs, and none of the app's code. Medians of 20 runs each on the M1 Pro (macOS 27, release builds), in milliseconds:
 
 | Step | App | Floor |
 | --- | --- | --- |
 | Launch → `run` | 8 | 8 |
-| `run` → `setup` (Tauri builds the app and starts its event loop) | 93 | 101 |
-| `setup` → window built and shown (WKWebView created) | 135 | 129 |
-| Window → first command (the page loads and runs) | 201 | 169 |
-| Launch → first command | 436 | 410 |
+| `run` → `setup` (Tauri builds the app and starts its event loop) | 98 | 98 |
+| `setup` → window built and shown (WKWebView created; the window is visible from creation, blank until the page paints) | 133 | 138 |
+| Window → first command (the page loads and runs; the app renders its empty state first) | 230 | 184 |
+| Launch → window | 241 | 249 |
+| Launch → first command | 486 | 431 |
 
-The machine was busy with other builds (load average 12–20), so only the difference between the columns is reliable: the app's code costs about 26 ms over the floor. The floor alone takes over 300 ms, so changing the app's code can't meet the gate on this machine. A build without the viewer was only 13 ms faster to the first command, so the viewer stays in the first chunk.
+The machine was busy with other builds (load average 25–37), so only the difference between the columns is reliable: the app's code costs about 55 ms over the floor, nearly all of it loading the page and rendering the empty state. Medians of 10 runs at that load ranged from −11 to 57 ms over the floor, so a check needs 20 runs or a quiet machine. The floor alone takes over 300 ms, so changing the app's code can't meet the gate on this machine. The app's own code before `setup` takes about 1 ms, and a build without the log plugin started no faster. A build without the viewer was 13 ms faster to the first command (measured before the empty state rendered first, so an underestimate).
 
 D2g changed the build: it no longer copies the viewer's 8 MB of WebAssembly, which the app never loads, into `dist/`. The frontend went from 8.6 MB to 1.0 MB, and the full lane fails if `dist/` holds a `.wasm` file again.
 
-**The cold-start gates (owner decision 2026-11-11).** Tauri and the webview alone take 410 ms on a busy M1 Pro, so the app can't meet the desktop plan's < 300 ms to the first command (owner decision 2026-10-29). Two gates replace it, both measured by `cold_start.py`:
+**The cold-start gates (owner decision 2026-11-11).** Tauri and the webview alone take 431 ms on a busy M1 Pro, so the app can't meet the desktop plan's < 300 ms to the first command (owner decision 2026-10-29). Two gates replace it, both measured by `cold_start.py`:
 
-- Launch → window built and shown: under 300 ms (about 240 ms now). This is what the user sees first.
-- Launch → first command: within 50 ms of the floor, measured in the same session (26 ms now). This catches the app's own startup growing, on any machine, however busy.
+- Launch → window built and shown: under 300 ms (241 ms now). This is what the user sees first.
+- Launch → first command: within 50 ms of the floor, measured in the same session. This catches the app's own startup growing, on any machine, however busy. **Missed: 55 ms now.** The owner set 50 ms from a first measurement of 26 ms that sent the first command before the empty state rendered; D2g fixed that measurement.
 
 D2e's reference runners measure Windows and Linux from the same startup log.
 
