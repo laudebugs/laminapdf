@@ -16,7 +16,17 @@ use laminapdf_save::{Renumber, Save, SaveMode, SaveOptions, XrefKind};
 pub type Entry = fn(&[u8]);
 
 /// The targets, by name.
-pub const TARGETS: [(&str, Entry); 2] = [("ops_json", ops_json), ("save_roundtrip", save_roundtrip)];
+pub const TARGETS: [(&str, Entry); 3] = [
+    ("ops_json", ops_json),
+    ("save_roundtrip", save_roundtrip),
+    ("copy_pages", copy_pages),
+];
+
+/// The file `copy_pages` copies into besides an empty one: pages, an outline and destinations.
+const COPY_TARGETS: [&[u8]; 1] = [include_bytes!("../../../../fixtures/corpus/outline.pdf")];
+
+/// At most this many pages of a fuzzed source are copied.
+const COPY_PAGES: usize = 8;
 
 /// The files `ops_json` applies its op log to: the pages and Info the samples in
 /// `fixtures/ops/v1/` name (`p3.0` in `hello.pdf`, `p4.0` in `outline.pdf`).
@@ -165,4 +175,38 @@ fn rotate(doc: &mut Document, index: usize, quarters: u8) -> laminapdf_ops::Resu
     };
     doc.apply_all(Origin::Local, [RotatePage::new(page, rotation).into()])
         .map(drop)
+}
+
+/// Reads `data` as a PDF and copies its first pages (at most [`COPY_PAGES`]) with
+/// `ObjectCopier` into an empty document and into `outline.pdf` (todo E2p). A copy that fails
+/// must leave the target unchanged; one that succeeds must save (a full rewrite) into a file
+/// that reopens without repair and has the pages added.
+///
+/// # Panics
+/// When a failed copy changed the target, or a copy doesn't save or reopen as described.
+pub fn copy_pages(data: &[u8]) {
+    let Ok(source) = laminapdf_model::Document::open(data.to_vec(), OpenOptions::default()) else {
+        return;
+    };
+    let Ok(pages) = source.pages() else {
+        return;
+    };
+    let chosen: Vec<&laminapdf_cos::Page> = pages.iter().take(COPY_PAGES).map(|p| p.cos()).collect();
+    let empty = super::copy::empty_file();
+    for base in std::iter::once(&empty[..]).chain(COPY_TARGETS) {
+        let mut target = laminapdf_cos::Document::open(base.to_vec(), OpenOptions::default()).unwrap();
+        let before = target.page_count().unwrap();
+        if super::copy::copy_pages_into(&mut target, &source, &chosen).is_err() {
+            assert!(!target.is_dirty(), "a failed copy changed the target");
+            continue;
+        }
+        let mut doc = Document::from(laminapdf_model::Document::from(target));
+        let mut out = Vec::new();
+        doc.save(&mut out, &SaveOptions::new())
+            .unwrap_or_else(|e| panic!("saving copied pages: {e}"));
+        let reopened = laminapdf_cos::Document::open(out, OpenOptions::default())
+            .unwrap_or_else(|e| panic!("a saved copy does not reopen: {e}"));
+        assert!(!reopened.was_repaired(), "a saved copy needed repair");
+        assert_eq!(reopened.page_count().unwrap(), before + chosen.len());
+    }
 }

@@ -29,12 +29,13 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-cos/   #   core: reader and overlay: Document over a ByteSource (xref, object streams, repair, page tree,
 │   │                    #     warnings), the overlay (CosMut, journal), rebase
 │   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree),
-│                        #     LaminaPdfIds and the shared graphics values (Matrix, FillRule, Dash); xmp/: the XMP
+│                        #     LaminaPdfIds and the shared graphics values (Matrix, FillRule, Dash), ObjectCopier (pages and what
+│                        #     they reach copied across documents); xmp/: the XMP
 │                        #     packet (a tolerant reader over quick-xml, typed Info-mapped fields, the one Info ↔ XMP
 │                        #     table, which the builder's literal tags are tested against, a writer that edits in place)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the planner's UpdateSaveMetadata,
 │                        #     RotatePage, the deprecated SetInfo), metadata/ (one Info + XMP writer, read_metadata,
-│                        #     conformance warnings), transactions, savepoints, undo/redo
+│                        #     conformance warnings), transactions, savepoints, undo/redo, source documents and the blob store
 │   ├── laminapdf-save/  #   core: save planner (SaveConstraint, signatures, mode table), incremental and full writers
 │   │                    #     over the overlay, WriteSink, /ID, rebase; the spike-era Writer (feature `test-support`)
 │   ├── laminapdf-content/ #   core: read-only content-stream interpreter (tokenizer, graphics/text state, Form XObjects,

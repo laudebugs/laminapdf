@@ -33,6 +33,7 @@
             "saved-not-rebased",
             "no-pending-save",
             "malformed-xmp",
+            "unknown-source",
             "sink",
             "not-rebased",
             "sink-not-empty",

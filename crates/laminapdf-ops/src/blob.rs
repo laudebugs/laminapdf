@@ -1,11 +1,14 @@
 //! Content-addressed references to large payloads (ADR 0006 §1).
 
+use std::collections::BTreeMap;
 use std::fmt;
 use std::str::FromStr;
+use std::sync::Arc;
 
-/// A large binary payload (an image, a font) referenced by its SHA-256 content hash, so ops
-/// stay small; the bytes live in a blob store held by the document (ADR 0006 §1). Declared
-/// for the ops that need it (images, fonts, attachments); no B3 op uses it yet.
+use sha2::{Digest as _, Sha256};
+
+/// A large binary payload (an image, a font, another PDF) referenced by its SHA-256 content
+/// hash, so ops stay small; the bytes live in the document's [`BlobStore`] (ADR 0006 §1).
 ///
 /// On the wire it is 64 lowercase hex digits.
 ///
@@ -35,6 +38,76 @@ impl BlobId {
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.0
+    }
+
+    /// The ID of `bytes`: their SHA-256 digest, the same on every platform.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn of(bytes: &[u8]) -> Self {
+        Self(Sha256::digest(bytes).into())
+    }
+}
+
+/// A source document ([`Document::add_source`](crate::Document::add_source)): the [`BlobId`]
+/// of its bytes, so the same file has the same ID on every device and in every session. Ops
+/// name source documents only by this ID; their passwords never enter an op.
+///
+/// Added in 0.2.0.
+pub type SourceId = BlobId;
+
+/// The bytes that ops name by [`BlobId`], kept for the whole session (ADR 0006 §1): undo,
+/// redo and a restarted document worker replaying the log find them here. Nothing is removed while
+/// the session lasts, since an op on the undo or redo stack may still name a blob.
+///
+/// ```
+/// use laminapdf_ops::{BlobId, BlobStore};
+///
+/// let mut store = BlobStore::default();
+/// let id = store.insert(b"font bytes".to_vec());
+/// assert_eq!(id, BlobId::of(b"font bytes"));
+/// assert_eq!(store.get(&id).map(|b| &b[..]), Some(&b"font bytes"[..]));
+/// ```
+///
+/// Added in 0.2.0.
+#[derive(Debug, Clone, Default)]
+pub struct BlobStore {
+    blobs: BTreeMap<BlobId, Arc<[u8]>>,
+}
+
+impl BlobStore {
+    /// Keeps `bytes` and returns their ID. Bytes already held are kept once.
+    ///
+    /// Added in 0.2.0.
+    pub fn insert(&mut self, bytes: impl Into<Arc<[u8]>>) -> BlobId {
+        let bytes = bytes.into();
+        let id = BlobId::of(&bytes);
+        self.blobs.entry(id).or_insert(bytes);
+        id
+    }
+
+    /// The bytes with this ID, if the store holds them.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn get(&self, id: &BlobId) -> Option<&Arc<[u8]>> {
+        self.blobs.get(id)
+    }
+
+    /// How many blobs the store holds.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.blobs.len()
+    }
+
+    /// Whether the store holds no blob.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.blobs.is_empty()
     }
 }
 
