@@ -65,6 +65,7 @@ runs:
       env:
         SCCACHE_ENDPOINT: ${{ inputs.endpoint }}
         SCCACHE_BUCKET: ${{ inputs.bucket }}
+        # sccache's S3 backend, which R2 speaks, reads its keys only under AWS's names.
         AWS_ACCESS_KEY_ID: ${{ inputs.access-key-id }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-access-key }}
         SCCACHE_REGION: auto
