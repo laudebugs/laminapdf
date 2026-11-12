@@ -3,19 +3,19 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2p` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2a](../done/E2a-page-organisation-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2p-source-documents-and-copier` |
 | PR title | `feat(ops,model): source documents, the blob store and the object copier` |
-| Size | L (400–800): the blob store and `add_source` in `laminapdf-ops`, and the `ObjectCopier` in `laminapdf-model`, with their tests and a fuzz target; no op and no binding, which [E2c](E2c-cross-document-pages.md) adds |
+| Size | L (400–800): the blob store and `add_source` in `laminapdf-ops`, and the `ObjectCopier` in `laminapdf-model`, with their tests and a fuzz target; no op and no binding, which [E2c](../ready/E2c-cross-document-pages.md) adds |
 | PR | — |
 
 ## Goal
 
-Give the session the three pieces every cross-document op needs, before any op uses them. A blob store holds other files' bytes by hash, `Document::add_source` opens one as a source, and an `ObjectCopier` deep-copies a page and what it reaches into the target's overlay. Split out of [E2c](E2c-cross-document-pages.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) so E2c fits one reviewable PR.
+Give the session the three pieces every cross-document op needs, before any op uses them. A blob store holds other files' bytes by hash, `Document::add_source` opens one as a source, and an `ObjectCopier` deep-copies a page and what it reaches into the target's overlay. Split out of [E2c](../ready/E2c-cross-document-pages.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) so E2c fits one reviewable PR.
 
 ## Context
 
@@ -34,8 +34,8 @@ Give the session the three pieces every cross-document op needs, before any op u
 
 **Out of scope** (and which todo covers it)
 
-- The ops that copy pages (`InsertPagesFrom`, `ReplacePages`), extract and export → [E2c](E2c-cross-document-pages.md)
-- Merge → [E2d](E2d-merge-and-split.md)
+- The ops that copy pages (`InsertPagesFrom`, `ReplacePages`), extract and export → [E2c](../ready/E2c-cross-document-pages.md)
+- Merge → [E2d](../ready/E2d-merge-and-split.md)
 
 **Editor facts**
 
