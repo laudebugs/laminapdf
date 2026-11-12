@@ -12,11 +12,12 @@ use serde_json::Value;
 
 use crate::tracked::git;
 
-/// The crates the desktop jobs compile: the app and its engine, and the WebAssembly modules the
-/// frontend's packages are built from (`cargo xtask desktop-frontend`).
+/// The crates the desktop jobs compile: the app and its engine, the WebAssembly modules the
+/// frontend's packages are built from (`cargo xtask desktop-frontend`), and the task runner, whose
+/// path dependencies (the test fixtures behind `fixtures large-pdf`) the jobs build too.
 fn root_crates() -> BTreeSet<&'static str> {
     let wasm = crate::wasm::MODULES.iter().map(|module| module.krate);
-    ["laminapdf-desktop", "laminapdf-desktop-engine"]
+    ["laminapdf-desktop", "laminapdf-desktop-engine", "xtask"]
         .into_iter()
         .chain(wasm)
         .collect()

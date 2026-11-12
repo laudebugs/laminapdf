@@ -15,7 +15,7 @@
 
 ## Goal
 
-A pull request runs the desktop build and e2e legs again whenever the full lane reruns: after a description edit, a rerun of an unrelated failure, or a merge from `main` that touched nothing the app reads. Each leg takes 4 to 11 minutes, and macOS legs wait 19 minutes or more for a runner. This todo names the desktop's inputs by a key and leaves out each leg that already passed on the same key.
+A pull request runs the desktop build and e2e legs again whenever the full lane reruns: after a description edit, a rerun of an unrelated failure, or a merge from `main` that touched nothing the app reads. Each leg takes 4 to 11 minutes, and macOS legs wait 19 minutes or more for a runner. This todo computes a key, a digest of the desktop's inputs, and leaves out each leg that already passed on the same key.
 
 ## Context
 
@@ -28,7 +28,7 @@ A pull request runs the desktop build and e2e legs again whenever the full lane 
 
 - `cargo xtask desktop-key`: a digest of `git ls-tree -r HEAD` over the inputs, the same on every OS; `changes` prints it as `desktop-key`.
 - Each passing leg saves an empty entry, `desktop-passed-<key>-<build|e2e>-<os>`.
-- The `changes` job lists the entries for the PR's ref and `main`, and gives each job the legs without one; `gate` holds each job to its own flag.
+- The `changes` job lists the entries for the PR's ref and `main`, and gives each job the legs without one; `gate` requires each job only when its own flag is set.
 
 **Out of scope** (and which todo covers it)
 
@@ -58,8 +58,8 @@ The plan's §8.2; ADR 0018 §2; CLAUDE.md; `full.yml`'s header.
 
 ## Risks and open questions
 
-- A missed input reuses a pass it shouldn't (X10a's list, which counts all of `tools/xtask`).
-- Each OS must compute the same key: paths are canonicalised before the walk, and a leg on another OS that never matches only runs again.
+- A missed input reuses a pass it shouldn't. X10a's list guards against this by counting all of `tools/xtask`.
+- Each OS must compute the same key: paths are canonicalised before the walk, and if another OS computes a different key, its leg just runs again; nothing is wrongly skipped.
 
 ## Definition of done
 
