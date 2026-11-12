@@ -15,6 +15,8 @@ use crate::structure::kids_of;
 use crate::values::read_name;
 
 /// One thing that points at a page.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct PageReference {
@@ -25,6 +27,8 @@ pub struct PageReference {
 }
 
 /// What points at a page.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ReferenceKind {
@@ -86,6 +90,8 @@ pub enum ReferenceKind {
 }
 
 /// Where a destination is stored on the object that holds it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Via {
@@ -104,6 +110,8 @@ pub enum Via {
 }
 
 /// Where a named destination is stored.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum NameStore {
@@ -114,6 +122,8 @@ pub enum NameStore {
 }
 
 /// How a widget names its page.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum WidgetLink {
@@ -129,6 +139,8 @@ pub enum WidgetLink {
 /// by `/Next` and those in additional-actions (`/AA`) dictionaries are not followed. A
 /// destination that names a page through a named destination is reported twice: once on its
 /// holder (with the name in [`Via`]) and once as the [`ReferenceKind::NamedDestination`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PageReferences {
     entries: Vec<PageReference>,
@@ -137,23 +149,31 @@ pub struct PageReferences {
 impl PageReferences {
     /// Every reference, grouped by kind in the order of [`ReferenceKind`]'s variants, each
     /// group in document order.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn entries(&self) -> &[PageReference] {
         &self.entries
     }
 
     /// The references to `page`.
+    ///
+    /// Added in 0.2.0.
     pub fn to_page<'a>(&'a self, page: &'a PageId) -> impl Iterator<Item = &'a PageReference> + 'a {
         self.entries.iter().filter(move |e| &e.page == page)
     }
 
     /// The number of references.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
     /// True when nothing points at the pages.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
@@ -166,6 +186,8 @@ impl Document {
     /// # Errors
     /// Reading errors (the page tree, outline, annotations, names, structure tree and form);
     /// in strict mode a warning they raise.
+    ///
+    /// Added in 0.2.0.
     pub fn page_references(&self, pages: &[PageId]) -> Result<PageReferences> {
         let all = self.pages()?;
         let outline = all.outline()?;

@@ -29,6 +29,8 @@ use laminapdf_cos::{CosMut, Dict, ObjRef, Object, PdfString, Result};
 /// assert_eq!(tree.entries()?.len(), 200);
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TreeWriter {
     max_kids: usize,
@@ -44,9 +46,13 @@ impl TreeWriter {
     /// The default node size: 64 entries per leaf and 64 kids per intermediate node, so two
     /// levels hold 4,096 entries and three hold 262,144, while a reader's `/Limits` lookup
     /// reads at most a few small arrays.
+    ///
+    /// Added in 0.2.0.
     pub const DEFAULT_MAX_KIDS: usize = 64;
 
     /// A writer with [`TreeWriter::DEFAULT_MAX_KIDS`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -56,6 +62,8 @@ impl TreeWriter {
 
     /// The same writer with at most `max_kids` entries per leaf and kids per intermediate
     /// node (at least 2, so every level shrinks the next).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_max_kids(self, max_kids: usize) -> Self {
         Self {
@@ -64,6 +72,8 @@ impl TreeWriter {
     }
 
     /// The largest number of entries in a leaf, and of kids in an intermediate node.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn max_kids(self) -> usize {
         self.max_kids
@@ -74,6 +84,8 @@ impl TreeWriter {
     ///
     /// # Errors
     /// Errors of the overlay ([`CosMut::create`]).
+    ///
+    /// Added in 0.2.0.
     pub fn write_names(self, cos: &mut CosMut<'_>, entries: &BTreeMap<Vec<u8>, Object>) -> Result<ObjRef> {
         let entries: Vec<(Object, Object)> = entries
             .iter()
@@ -87,6 +99,8 @@ impl TreeWriter {
     ///
     /// # Errors
     /// As [`TreeWriter::write_names`].
+    ///
+    /// Added in 0.2.0.
     pub fn write_numbers(self, cos: &mut CosMut<'_>, entries: &BTreeMap<i64, Object>) -> Result<ObjRef> {
         let entries: Vec<(Object, Object)> = entries.iter().map(|(k, v)| (Object::Integer(*k), v.clone())).collect();
         self.write(cos, "Nums", entries)

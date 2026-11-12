@@ -15,6 +15,8 @@ use load::{Kid, Slot, Tree, overlay};
 
 /// Where pages go in the page list. Positions name pages, never indices, since indices shift
 /// while an edit runs.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PagePosition {
@@ -29,6 +31,8 @@ pub enum PagePosition {
 }
 
 /// Why a page-tree edit failed.
+///
+/// Added in 0.2.0.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum PageTreeError {
@@ -94,6 +98,8 @@ pub enum PageTreeError {
 /// assert_eq!(order, ["p4.0", "p2.0", "p3.0"]);
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 #[must_use = "the changes are written by `finish`"]
 pub struct PageTreeEditor<'d> {
@@ -107,6 +113,8 @@ impl Document {
     /// # Errors
     /// [`PageTreeError::Cos`] when the catalog's `/Pages` is not an indirect dictionary, when
     /// a node is reached twice ([`laminapdf_cos::Error::ReferenceCycle`]) or reading fails.
+    ///
+    /// Added in 0.2.0.
     pub fn edit_page_tree(&mut self) -> Result<PageTreeEditor<'_>, PageTreeError> {
         let tree = Tree::load(self)?;
         Ok(PageTreeEditor { doc: self, tree })
@@ -117,16 +125,24 @@ impl PageTreeEditor<'_> {
     /// Past this depth the tree is rebuilt. Writers' trees are a few levels deep (a balanced
     /// tree of [`PageTreeEditor::FAN_OUT`] kids holds a million pages in four); a deeper one
     /// is a chain left by appends, which costs a reader a step per level for every page.
+    ///
+    /// Added in 0.2.0.
     pub const MAX_DEPTH: usize = 32;
     /// Past this many kids, a node the edits touched gets the tree rebuilt. Writers that put
     /// every page under the root give files of a thousand pages one flat node, which readers
     /// take well, so only nodes larger than that count as too wide.
+    ///
+    /// Added in 0.2.0.
     pub const MAX_KIDS: usize = 1024;
     /// The kids per node of a rebuilt tree: shallow, and small enough that rewriting one
     /// node's `/Kids` stays cheap.
+    ///
+    /// Added in 0.2.0.
     pub const FAN_OUT: usize = 32;
 
     /// The pages in order, as their IDs (a page listed twice appears twice).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn page_ids(&self) -> Vec<PageId> {
         self.tree
@@ -138,6 +154,8 @@ impl PageTreeEditor<'_> {
     }
 
     /// The document being edited, for reading.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn document(&self) -> &Document {
         self.doc
@@ -152,6 +170,8 @@ impl PageTreeEditor<'_> {
     /// [`PageTreeError::NotAPage`] when `page` is not a page dictionary,
     /// [`PageTreeError::AlreadyInTree`], [`PageTreeError::UnknownPage`] for an `at` that names
     /// no page, and reading errors.
+    ///
+    /// Added in 0.2.0.
     pub fn insert(&mut self, page: ObjRef, at: &PagePosition) -> Result<PageId, PageTreeError> {
         let index = self.index();
         if index.first.contains_key(&page) {
@@ -174,6 +194,8 @@ impl PageTreeEditor<'_> {
     /// # Errors
     /// [`PageTreeError::UnknownPage`] for an `at` that names no page; the overlay's error when
     /// no object number is left.
+    ///
+    /// Added in 0.2.0.
     pub fn insert_new(&mut self, mut dict: Dict, at: &PagePosition) -> Result<PageId, PageTreeError> {
         let index = self.index();
         let place = self.place(&index, at, &BTreeSet::new())?;
@@ -212,6 +234,8 @@ impl PageTreeEditor<'_> {
     ///
     /// # Errors
     /// [`PageTreeError::UnknownPage`].
+    ///
+    /// Added in 0.2.0.
     pub fn remove(&mut self, page: &PageId) -> Result<ObjRef, PageTreeError> {
         let slot = self
             .index()
@@ -231,6 +255,8 @@ impl PageTreeEditor<'_> {
     ///
     /// # Errors
     /// [`PageTreeError::UnknownPage`] for a page or anchor not in the tree.
+    ///
+    /// Added in 0.2.0.
     pub fn move_pages(&mut self, pages: &[PageId], to: &PagePosition) -> Result<(), PageTreeError> {
         let lookup = self.index();
         let mut slots = Vec::with_capacity(pages.len());
@@ -269,6 +295,8 @@ impl PageTreeEditor<'_> {
     ///
     /// # Errors
     /// Errors of the overlay; in strict mode, the warning for a page listed twice.
+    ///
+    /// Added in 0.2.0.
     pub fn finish(self) -> Result<(), PageTreeError> {
         Ok(write::finish(self.doc, self.tree)?)
     }

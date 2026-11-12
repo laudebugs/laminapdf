@@ -237,6 +237,8 @@ impl PageLabels {
     /// let moved = vec![ids[3].clone(), ids[0].clone(), ids[1].clone(), ids[2].clone()];
     /// assert!(labels.remap(&ids, &moved).is_empty());
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn remap(&self, before: &[PageId], after: &[PageId]) -> Self {
         if self.ranges.is_empty() {
@@ -259,6 +261,8 @@ impl PageLabels {
     ///
     /// # Errors
     /// Errors of the overlay; [`laminapdf_cos::Error::MissingRoot`] without a catalog.
+    ///
+    /// Added in 0.2.0.
     pub fn write(&self, cos: &mut CosMut<'_>) -> Result<()> {
         if self.ranges.is_empty() {
             return set_catalog_entry(cos, "PageLabels", None);
