@@ -1,8 +1,8 @@
-//! `cargo xtask check docs-snippets`: the rules of docs/guidelines/examples.md that a tool can check,
-//! over the examples (`packages/sdk/examples/**`, `packages/viewer/examples/**`,
-//! `crates/laminapdf/examples/**`) and the files the docs site's `Snippet` component may show (its `import.meta.glob`). Run on its own, strict on
-//! changed files and counted warnings elsewhere, like `docs-prose` ([`crate::reports`]);
-//! `cargo xtask check docs` runs it strict on every file.
+//! `cargo xtask check docs-snippets`: the rules of docs/guidelines/examples.md that a tool can
+//! check, over the examples (`packages/sdk/examples/**`, `packages/viewer/examples/**`,
+//! `crates/laminapdf/examples/**`) and the files the docs site's `Snippet` component may show (its
+//! `import.meta.glob`). Run on its own, strict on changed files and counted warnings elsewhere,
+//! like `docs-prose` ([`crate::reports`]); `cargo xtask check docs` runs it strict on every file.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;

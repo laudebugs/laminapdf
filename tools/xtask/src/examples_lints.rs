@@ -18,8 +18,8 @@ use crate::workspace::Workspace;
 const CLIPPY_CONF_DIR: &str = "tools/xtask/clippy-examples";
 
 /// Biome's examples overrides (`packages/sdk/biome.json`, `packages/viewer/biome.json`) report
-/// errors on every example; this lints the examples again with warnings as errors (the changed ones, or every one with `--all-strict`), for
-/// the rules that only warn outside the override.
+/// errors on every example; this lints the examples again with warnings as errors (the changed
+/// ones, or every one with `--all-strict`), for the rules that only warn outside the override.
 pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
     if options.json || options.warnings {
         bail!("usage: cargo xtask biome-examples [--all-strict] (Biome prints its own report)");

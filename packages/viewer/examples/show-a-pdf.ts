@@ -1,6 +1,6 @@
 // Shows a PDF in a web page. The viewer keeps only the PDF's pages near the scroll position on
-// screen and draws them with PDFium, in a Web Worker so the web page stays responsive. Pass the address your
-// bundler serves PDFium's WebAssembly at; with Vite:
+// screen and draws them with PDFium, in a Web Worker so the web page stays responsive. Pass the
+// address your bundler serves PDFium's WebAssembly at; with Vite:
 //
 //   import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 //

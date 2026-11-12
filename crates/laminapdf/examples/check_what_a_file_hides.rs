@@ -26,11 +26,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 pub(crate) struct Hidden {
     /// The kinds of thing it holds, such as `history` or `hidden-content`, in report order.
     pub(crate) categories: Vec<&'static str>,
-    /// Each redaction that hid text without removing it.
+    /// Each place text was hidden rather than removed.
     pub(crate) redactions: Vec<FailedRedaction>,
 }
 
-/// A redaction that hid text without removing it.
+/// A warning that text was hidden rather than removed: a redaction that only covered it, or text an
+/// earlier revision still holds.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct FailedRedaction {
     /// Its warning code, such as `redaction-not-applied`.

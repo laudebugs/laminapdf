@@ -37,9 +37,12 @@ it("ends the Web Worker when the file won't open", async () => {
   document.body.append(container);
   const notPdf = new Blob([new TextEncoder().encode("not a PDF")]);
   const terminate = vi.spyOn(Worker.prototype, "terminate");
-  await expect(showPdf(container, notPdf, pdfiumWasm)).rejects.toThrow();
-  expect(terminate).toHaveBeenCalled();
-  terminate.mockRestore();
+  try {
+    await expect(showPdf(container, notPdf, pdfiumWasm)).rejects.toThrow();
+    expect(terminate).toHaveBeenCalled();
+  } finally {
+    terminate.mockRestore();
+  }
   expect(container.childElementCount).toBe(0);
   container.remove();
 });
