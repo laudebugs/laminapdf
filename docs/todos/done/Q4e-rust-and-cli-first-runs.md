@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4e` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
-| Depends on | [Q4a](../done/Q4a-cli-output-from-real-runs.md) |
+| Depends on | [Q4a](./Q4a-cli-output-from-real-runs.md) |
 | ADRs | None |
 | Branch | `docs/q4e-rust-cli-first-runs` |
 | PR title | `docs: first PDFs in Rust and on the command line` |
 | Size | M |
-| PR | — |
+| PR | [laudebugs/lamina#445](https://github.com/laudebugs/laminapdf/pull/445) |
 
 ## Goal
 
@@ -38,14 +38,14 @@ The only first-run tutorial is for Node. A Rust developer lands on a quick start
 
 ## Tasks
 
-- [ ] Write the Rust tutorial from `crates/laminapdf/examples/hello.rs`, checked by the examples' tests.
-- [ ] Write the command-line tutorial on Q4a's transcripts.
-- [ ] Link both from the home page and the install page.
+- [x] Write the Rust tutorial from `crates/laminapdf/examples/hello.rs`, checked by the examples' tests.
+- [x] Write the command-line tutorial on Q4a's transcripts.
+- [x] Link both from the home page and the install page.
 
 ## Acceptance criteria
 
-- [ ] Each tutorial ends with a PDF the reader made, shown on the page.
-- [ ] Every code block and transcript in them is tested.
+- [x] Each tutorial ends with a PDF the reader made, shown on the page. *As done:* the Rust one with its page picture; the command-line one with its text read back and `render` writing a PNG, but no picture, since a committed PNG from `render` can differ across CPU architectures.
+- [x] Every code block and transcript in them is tested: the Rust program is the tested `hello` example (and the steps were run against the published crate), every session a transcript; the install `sh` lines are the install page's.
 
 ## Post-merge checks
 
@@ -65,8 +65,8 @@ The examples' tests; Q4a's transcript test; the docs build.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

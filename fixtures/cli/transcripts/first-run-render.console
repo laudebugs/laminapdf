@@ -1,0 +1,2 @@
+$ laminapdf render notes.pdf -o notes.png
+page 1: 1240 × 1753 px → notes.png
