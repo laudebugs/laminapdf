@@ -40,7 +40,7 @@ Before the compile cache, the first two trial legs of `ci.yml`'s `rust` job took
 
 Until 2026-11-12, §5's rule kept the compile cache if this macOS x64 PR median fell to 8.6 minutes or less. The macOS figures are noisy: compiling took 8.4 to 26.7 minutes on PR runs, and four of the five PR runs started within seconds of each other and waited 50 to 120 minutes for a Mac. Pushes to `main` mostly found no Rust cache at all, so their figures are cold builds and don't compare with the PR rows.
 
-The trial's PR measurement moved to macOS Arm64 on 2026-11-12, because [X9a](../todos/ready/X9a-macos-x64-rust-off-prs.md), from §8, will run Rust on macOS x64 only on pushes to `main` and in the nightly. The macOS Arm64 leg had no compile cache before then. Its medians, in minutes, over PR runs of 2026-11-12 by how they restored the Rust cache, and the five pushes to `main` before the change (runs 43257452966, 43254655568, 43220612637, 43213213416 and 43189752514):
+The trial's PR measurement moved to macOS Arm64 on 2026-11-12, because [X9a](../todos/done/X9a-macos-x64-rust-off-prs.md), from §8, will run Rust on macOS x64 only on pushes to `main` and in the nightly. The macOS Arm64 leg had no compile cache before then. Its medians, in minutes, over PR runs of 2026-11-12 by how they restored the Rust cache, and the five pushes to `main` before the change (runs 43257452966, 43254655568, 43220612637, 43213213416 and 43189752514):
 
 | Leg | Runs | Rust cache | `check rust` | Tests | Compiling | of which clippy | of which test builds |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -105,7 +105,7 @@ Requests cost more than storage. While the Rust cache stays, sccache sees only t
 
 The trial (X8a) runs the compile cache on the Rust legs where compiling costs most and least, macOS x64 and Linux x64 in `ci.yml`, and since 2026-11-12 on macOS Arm64, whose PR runs the rule below reads. For PR runs and pushes to `main`, five of each (on macOS Arm64, five PR runs in each Rust-cache state, however many runs that takes; a state with fewer than five by X8b's start doesn't count toward the rule), it records the hits, misses and non-cacheable calls from `sccache --show-stats`, the minutes of each step against the five runs of each kind before the patch, and the crates each PR touched. Then X8b decides:
 
-- **Keep and spread** if the compile minutes of `cargo xtask check rust` on macOS Arm64 PR runs fall by a third or more in at least one Rust-cache state, compared within that state (exact-key hits to 3.95 minutes or less, misses to 7.57 or less, against §2.1's 5.92 and 11.36), and grow in neither. Until 2026-11-12 the rule read macOS x64 PR runs with a Rust-cache hit (8.6 minutes); [X9a](../todos/ready/X9a-macos-x64-rust-off-prs.md) takes that leg off pull requests. The compile cache then goes to every Rust job in `ci.yml` and `full.yml`, and X8b tries one leg without the Rust cache.
+- **Keep and spread** if the compile minutes of `cargo xtask check rust` on macOS Arm64 PR runs fall by a third or more in at least one Rust-cache state, compared within that state (exact-key hits to 3.95 minutes or less, misses to 7.57 or less, against §2.1's 5.92 and 11.36), and grow in neither. Until 2026-11-12 the rule read macOS x64 PR runs with a Rust-cache hit (8.6 minutes); [X9a](../todos/done/X9a-macos-x64-rust-off-prs.md) takes that leg off pull requests. The compile cache then goes to every Rust job in `ci.yml` and `full.yml`, and X8b tries one leg without the Rust cache.
 - **Remove** otherwise. X8b then takes the action and the secrets out and records the numbers here, so nobody tries the same thing without new evidence.
 
 Each todo's PR carries its workflow edits with the action, the pin, the tests and the docs. If the agent's GitHub access can't push workflow files, the PR gives them as a patch for the owner to commit.
@@ -126,11 +126,25 @@ Each todo's PR carries its workflow edits with the action, the pin, the tests an
 
 ## 8. The waits
 
-The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 minutes for a runner in §2.1's baseline, against about 13 minutes of compiling, and pushes to `main` waited up to 43 minutes for the run before them. Four todos take them, each in its own PR:
+The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 minutes for a runner in §2.1's baseline, against about 13 minutes of compiling, and pushes to `main` waited up to 43 minutes for the run before them. Four todos take them, in one PR at the owner's request:
 
-- [ ] Rust on macOS x64 only on pushes to `main` and in the nightly, not on PRs: the leg that waits longest for a runner and finishes last. A break only macOS x64 shows then appears after the merge, and the macOS Arm64 leg still runs on every PR, so the owner accepted the risk (2026-11-12). X8b's PR measurements move to macOS Arm64 first ([X9a](../todos/ready/X9a-macos-x64-rust-off-prs.md))
-- [ ] The render goldens, which need a Mac, only when a PR changes what they draw ([X9b](../todos/ready/X9b-render-goldens-when-rendering-changes.md))
-- [ ] More of `cargo xtask changes`'s path flags, to skip whole groups of jobs a PR can't affect ([X9c](../todos/ready/X9c-skip-jobs-by-changed-paths.md))
-- [ ] A newer push to `main` cancels the older CI run on `main` ([X9d](../todos/ready/X9d-cancel-superseded-main-runs.md))
+- [x] Rust on macOS x64 only on pushes to `main` and in the nightly, not on PRs: the leg that waits longest for a runner and finishes last. A break only macOS x64 shows then appears after the merge, and the macOS Arm64 leg still runs on every PR, so the owner accepted the risk (2026-11-12). X8b's PR measurements move to macOS Arm64 first ([X9a](../todos/done/X9a-macos-x64-rust-off-prs.md))
+- [x] The render goldens, which need a Mac, only when a PR changes what they draw ([X9b](../todos/done/X9b-render-goldens-when-rendering-changes.md))
+- [x] More of `cargo xtask changes`'s path flags, to skip whole groups of jobs a PR can't affect ([X9c](../todos/done/X9c-skip-jobs-by-changed-paths.md))
+- [x] A newer push to `main` cancels the older CI run on `main` ([X9d](../todos/done/X9d-cancel-superseded-main-runs.md))
+
+### 8.1 Which jobs a pull request's paths reach (X9c)
+
+`cargo xtask changes` gives each group of jobs a flag, and a pull request skips a group when no changed path can affect it; pushes to `main` run everything. A path counts when in doubt. Every flag is false on a docs-only change.
+
+| Jobs | Flag | Skipped when every changed path is under | Notes |
+| --- | --- | --- | --- |
+| `ci.yml`'s `rust` legs and `msrv-and-spike`; `full.yml`'s `fuzz` | `rust` | `apps/web/`, `apps/docs/`, `apps/site/`, `apps/gallery/`, `packages/`, but not `packages/sdk/` or any package's `src/` | Rust tests read the SDK's schemas and test files; `check maintainability` scans package sources for todo IDs |
+| `ci.yml`'s `wasm`, `pdf-runtimes`, `semver`, `typescript` | `ts` | `fuzz/`, `spikes/`, `tools/`, `.github/workflows/`, but not `tools/xtask/`, `tools/cli-release/`, `tools/fonts/`, any file Biome lints, or the two lanes' workflows | The crates and fixtures always count: the WebAssembly, the docs site and the examples' goldens come from them |
+| `full.yml`'s `render-golden` | `render` (X9b) | Runs only when a path is under the crates, the example and render goldens, the corpus, `tools/render/`, `tools/xtask/`, the manifests and toolchain, or `full.yml` | It needs a Mac |
+| `full.yml`'s `desktop`, `desktop-e2e` | `desktop` | Runs only when a path is under `DESKTOP_INPUTS` (the desktop app, the packages, the crates, the manifests and the desktop's actions) | |
+| `full.yml`'s `check-linux`, `check-windows`, `suites` | `code` | Docs only | The checks run the whole `cargo xtask check`; the suites read both Rust and the TypeScript tests' capability tags, so `rust` or `ts` would always equal `code` |
+
+A change only to `apps/web/` runs none of `ci.yml`'s native Rust legs; `check-linux` and `check-windows` still run, since they check everything. A change only to a crate runs both groups. `fast-gate` and `gate` check each job against its flag, and `tools/xtask/src/workflows.rs` checks that each job's `if` names the flag its gate expects. The risk is a Rust test that starts reading a file under `apps/` or `packages/`: the `rust` flag would miss it until the next push to `main`.
 
 Turborepo for the TypeScript packages stays as ADR 0015 left it, to revisit once TypeScript time shows on the critical path.

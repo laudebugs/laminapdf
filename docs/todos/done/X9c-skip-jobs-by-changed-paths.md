@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X9c` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [CI caching §8](../../plans/ci-caching.md#8-the-waits) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | [X9b](./X9b-render-goldens-when-rendering-changes.md) |
@@ -11,7 +11,7 @@
 | Branch | `ci/x9c-skip-jobs-by-changed-paths` |
 | PR title | `ci: skip the jobs a PR's changed paths can't affect` |
 | Size | M |
-| PR | — |
+| PR | [#514](https://github.com/laudebugs/laminapdf/pull/514) |
 
 ## Goal
 
@@ -37,14 +37,14 @@ Today `cargo xtask changes` sorts a PR into docs-only or code, plus three narrow
 
 ## Tasks
 
-- [ ] The survey table.
-- [ ] The flags in `changes.rs`, with their input lists and tests.
-- [ ] The `if`s, and the gates.
+- [x] The survey table.
+- [x] The flags in `changes.rs`, with their input lists and tests.
+- [x] The `if`s, and the gates.
 
 ## Acceptance criteria
 
-- [ ] A PR that changes only `apps/web/` runs no native Rust leg; a PR that changes only a Rust crate's source still runs the jobs that build the WebAssembly from it.
-- [ ] Each flag has tests for paths in and out of it.
+- [x] A PR that changes only `apps/web/` runs no native Rust leg; a PR that changes only a Rust crate's source still runs the jobs that build the WebAssembly from it.
+- [x] Each flag has tests for paths in and out of it.
 
 ## Post-merge checks
 
@@ -64,8 +64,13 @@ The CI caching plan's §8 (the survey; tick X9c); `ci.yml`'s header comment, whi
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes
+
+- **The survey** is the plan's §8.1, per group of jobs. A web-only change skips `ci.yml`'s native Rust legs, but `check-linux` and `check-windows` still run, since they run the whole `cargo xtask check`. The suites stay on `code`: they read both Rust and the TypeScript tests' capability tags, so `rust` or `ts` would always equal `code`.
+- **The gates.** `fast-gate` and `gate` check each job against its flag and that every flag is exactly true or false; a test in `workflows.rs` reads each gate's `case` lines and fails when a job's `if` names another flag.

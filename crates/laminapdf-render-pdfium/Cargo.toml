@@ -26,6 +26,11 @@ pdfium-render = { workspace = true }
 # so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
 # The goldens and cross-checks render with both backends and compare sizes with lamina's model.
 laminapdf = { path = "../laminapdf" }
+# The append API's render diffs (tests/append.rs): pages edited and saved, then rendered.
+laminapdf-content = { path = "../laminapdf-content" }
+laminapdf-cos = { path = "../laminapdf-cos" }
+laminapdf-model = { path = "../laminapdf-model" }
+laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 laminapdf-render = { path = "../laminapdf-render", features = ["hayro"] }
 # The test helpers every crate shares (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
