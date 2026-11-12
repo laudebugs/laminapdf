@@ -11,7 +11,7 @@
 | Branch | `feat/e3h-images-to-pdf-and-page-export` |
 | PR title | `feat(build): images to PDF and page image export` |
 | Size | M (200–400): two functions and three encoders; the dialog is E3j's |
-| PR | — |
+| PR | [#515](https://github.com/laudebugs/laminapdf/pull/515) |
 
 ## Goal
 
