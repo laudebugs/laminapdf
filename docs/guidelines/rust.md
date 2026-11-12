@@ -113,6 +113,7 @@ too-many-lines-threshold = 100
 - **MUST:** `lib.rs` opens with `//!` docs that say what the crate does, with a runnable example (C-CRATE-DOC).
 - **MUST:** public functions document `# Errors` (when they return `Result`), `# Panics` (should never be needed in library code) and `# Safety` (C-FAILURE). Link related items with intra-doc links (`[`Document`]`). `rustdoc::broken_intra_doc_links` is denied in CI (`RUSTDOCFLAGS="-D warnings" cargo doc --no-deps`).
 - **SHOULD:** use `//` comments for *why*: spec references (`// ISO 32000-2 §7.5.8.4`), invariants and workarounds. `TODO(#issue)` only.
+- **MUST:** every public item of a published crate ends its doc comment with a line `Added in X.Y.Z.`, naming the first release it ships in (the next release, for a new item). Every item that existed before the alphas ended reads `Added in 0.2.0.`. That covers structs, enums, unions, traits, functions, constants, statics, type aliases and macros, the associated items of their inherent impls, and the items a public trait declares. Fields and variants are part of their type and need no line; `#[doc(hidden)]` items are left out. An item a macro generates gets the line from the macro (`#[doc = "Added in 0.2.0."]`), and a generated file gets it from its generator. `cargo xtask check since`, part of `check rust`, fails on a public item without the line, from rustdoc's JSON output.
 
 ## Dependencies
 

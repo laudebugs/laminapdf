@@ -11,9 +11,13 @@ use crate::state::{FontRef, GraphicsState, TextAdvance};
 ///
 /// Every method has an empty default, so a visitor implements only what it needs. The
 /// events borrow the interpreter's state; copy what you keep.
+///
+/// Added in 0.2.0.
 pub trait Visitor {
     /// Every operator as it is read, before it runs (including unknown and skipped ones);
     /// `depth` is the Form XObject nesting (0 for the page's own content).
+    ///
+    /// Added in 0.2.0.
     fn operator(&mut self, op: &Op<'_>, depth: usize) {
         let _ = (op, depth);
     }
@@ -22,6 +26,8 @@ pub trait Visitor {
     /// the text matrix ([`TextState::glyph_advance`](crate::TextState::glyph_advance) summed
     /// over them, including `TJ` adjustments); the default, no movement, suits visitors that
     /// don't know the glyph widths.
+    ///
+    /// Added in 0.2.0.
     fn show_text(&mut self, show: &TextShow<'_>) -> TextAdvance {
         let _ = show;
         TextAdvance::default()
@@ -30,6 +36,8 @@ pub trait Visitor {
     /// A path construction operator (`m`, `l`, `c`, `v`, `y`, `h`, `re`), in user space, with
     /// the CTM in effect when it ran (which maps it to the page; a `cm` in the middle of a path,
     /// which the spec forbids but files contain, changes it for the later segments only).
+    ///
+    /// Added in 0.2.0.
     fn path_segment(&mut self, segment: &PathSegment, ctm: &Matrix) {
         let _ = (segment, ctm);
     }
@@ -37,6 +45,8 @@ pub trait Visitor {
     /// A path-painting operator (`S`, `s`, `f`, `F`, `f*`, `B`, `B*`, `b`, `b*`, `n`) ending
     /// the path built by the preceding segments, or [`Paint::Discarded`] for a path its content
     /// stream left unpainted.
+    ///
+    /// Added in 0.2.0.
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
         let _ = paint;
     }
@@ -44,39 +54,55 @@ pub trait Visitor {
     /// `gs`: a graphics state parameter dictionary was applied (after the parameters the
     /// [`GraphicsState`] tracks were set from it; soft masks, blend modes, overprint and the
     /// rest are read from the dictionary).
+    ///
+    /// Added in 0.2.0.
     fn set_graphics_state(&mut self, params: &GraphicsStateParams<'_>) {
         let _ = params;
     }
 
     /// `sh`: a shading painted over the clip.
+    ///
+    /// Added in 0.2.0.
     fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
         let _ = shading;
     }
 
     /// An image: an image XObject drawn by `Do`, or an inline image.
+    ///
+    /// Added in 0.2.0.
     fn image(&mut self, image: &ImageDraw<'_>) {
         let _ = image;
     }
 
     /// `BMC` or `BDC`.
+    ///
+    /// Added in 0.2.0.
     fn begin_marked(&mut self, marked: &MarkedContent<'_>) {
         let _ = marked;
     }
 
     /// `EMC` (also called for sequences a content stream left open, ADR 0023).
+    ///
+    /// Added in 0.2.0.
     fn end_marked(&mut self) {}
 
     /// `MP` or `DP`.
+    ///
+    /// Added in 0.2.0.
     fn marked_point(&mut self, marked: &MarkedContent<'_>) {
         let _ = marked;
     }
 
     /// A Form XObject is about to run (`Do`), its matrix already applied to the CTM.
+    ///
+    /// Added in 0.2.0.
     fn enter_xobject(&mut self, form: &FormXObject<'_>) {
         let _ = form;
     }
 
     /// The Form XObject entered last has finished.
+    ///
+    /// Added in 0.2.0.
     fn leave_xobject(&mut self, form: &FormXObject<'_>) {
         let _ = form;
     }
@@ -84,12 +110,16 @@ pub trait Visitor {
     /// Something was repaired or skipped. The same warning is recorded on the document
     /// ([`laminapdf_cos::Document::warnings`]); in strict mode the interpretation fails with
     /// [`laminapdf_cos::Error::Strict`] right after this call.
+    ///
+    /// Added in 0.2.0.
     fn warning(&mut self, warning: &Warning) {
         let _ = warning;
     }
 }
 
 /// One path construction step (§8.5.2), in user space.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PathSegment {
     /// `x y m`.
@@ -132,6 +162,8 @@ pub enum PathSegment {
 }
 
 /// How a path is painted (§8.5.3, Table 59).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Paint {
     /// `S`; `s` closes the path first (`close`).
@@ -158,6 +190,8 @@ pub enum Paint {
 impl Paint {
     /// Whether anything is painted: a stroke, a fill or both, not [`Paint::None`] or
     /// [`Paint::Discarded`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn draws(self) -> bool {
         matches!(self, Self::Stroke { .. } | Self::Fill(_) | Self::FillStroke { .. })
@@ -165,6 +199,8 @@ impl Paint {
 }
 
 /// A path-painting operator.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct PathPaint<'s> {
@@ -181,6 +217,8 @@ pub struct PathPaint<'s> {
 }
 
 /// One element of a text-showing operator.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TextItem<'o> {
     /// Glyph codes to show (still encoded; decoding them is the font's job).
@@ -190,6 +228,8 @@ pub enum TextItem<'o> {
 }
 
 /// A graphics state parameter dictionary applied by `gs` (§8.4.5).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct GraphicsStateParams<'s> {
@@ -204,6 +244,8 @@ pub struct GraphicsStateParams<'s> {
 }
 
 /// A text-showing operator (§9.4.3).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct TextShow<'s> {
@@ -221,12 +263,16 @@ pub struct TextShow<'s> {
 
 impl<'s> TextShow<'s> {
     /// The current font (`None` before any `Tf`; see [`FontRef::dict`] for a missing one).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn font(&self) -> Option<&'s FontRef> {
         self.state.text.font.as_ref()
     }
 
     /// The strings and `TJ` adjustments in order (other array elements are skipped).
+    ///
+    /// Added in 0.2.0.
     pub fn items(&self) -> impl Iterator<Item = TextItem<'s>> + 's {
         let items: &'s [Object] = match self.operand {
             Object::Array(items) => items,
@@ -241,6 +287,8 @@ impl<'s> TextShow<'s> {
 
     /// The text rendering matrix at the start of the show:
     /// `Trm = [Tfs·Th 0 0 Tfs 0 Trise] × Tm × CTM` (§9.4.4).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn rendering_matrix(&self) -> Matrix {
         self.state.text.text_space_matrix().then(&self.tm).then(&self.state.ctm)
@@ -248,6 +296,8 @@ impl<'s> TextShow<'s> {
 }
 
 /// Where an image comes from.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub enum ImageSource<'s> {
@@ -265,6 +315,8 @@ pub enum ImageSource<'s> {
 }
 
 /// An image painted into the unit square of user space (§8.9.4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct ImageDraw<'s> {
@@ -275,6 +327,8 @@ pub struct ImageDraw<'s> {
 }
 
 /// `sh`: a shading painted over the clip (§8.7.4.2).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct ShadingPaint<'s> {
@@ -289,6 +343,8 @@ pub struct ShadingPaint<'s> {
 }
 
 /// A marked-content sequence or point (§14.6).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct MarkedContent<'s> {
@@ -307,6 +363,8 @@ pub struct MarkedContent<'s> {
 }
 
 /// A Form XObject drawn by `Do` (§8.10).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct FormXObject<'s> {

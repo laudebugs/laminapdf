@@ -5,6 +5,8 @@ use crate::Object;
 
 /// A rotation by a multiple of 90°, clockwise when displayed: a page's `/Rotate`
 /// (§7.7.3.3), or a view rotation added to it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Rotation {
     /// No rotation.
@@ -20,6 +22,8 @@ pub enum Rotation {
 
 impl Rotation {
     /// The rotation in degrees: 0, 90, 180 or 270.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn degrees(self) -> u16 {
         match self {
@@ -31,6 +35,8 @@ impl Rotation {
     }
 
     /// The rotation for `degrees` (any multiple of 90, negative included), else `Option::None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_degrees(degrees: i64) -> Option<Self> {
         match degrees.rem_euclid(360) {
@@ -45,6 +51,8 @@ impl Rotation {
     /// The rotation for `degrees` written the canonical way, 0, 90, 180 or 270, else
     /// `Option::None`: the check for values callers pass in (op JSON, the bindings), where
     /// `-90` or `450` is a mistake rather than a file to tolerate.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_canonical_degrees(degrees: u16) -> Option<Self> {
         match degrees {
@@ -58,6 +66,8 @@ impl Rotation {
 
     /// The rotation a resolved `/Rotate` value states: an integer or an integral real that is
     /// a multiple of 90 (`90` and `90.0` alike), else `Option::None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_object(value: &Object) -> Option<Self> {
         let degrees = match *value {
@@ -73,6 +83,8 @@ impl Rotation {
     }
 
     /// Whether the rotation swaps width and height.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_quarter_turn(self) -> bool {
         matches!(self, Self::Clockwise90 | Self::Clockwise270)

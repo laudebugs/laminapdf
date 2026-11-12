@@ -10,6 +10,8 @@ use crate::document::{Document, DocumentInfo};
 use crate::error::Result;
 
 /// A document's properties.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct DocumentProperties {
@@ -45,6 +47,8 @@ pub struct DocumentProperties {
 }
 
 /// What a document holds besides its pages.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct DocumentContents {
@@ -57,6 +61,8 @@ pub struct DocumentContents {
 }
 
 /// How a file is encrypted (§7.6) and what its author permits.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EncryptionSummary {
@@ -73,6 +79,8 @@ pub struct EncryptionSummary {
 }
 
 /// What a file's author permits (`/P`, ISO 32000-2 Table 22). A request to readers, not a lock.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 #[expect(
@@ -99,6 +107,8 @@ pub struct DocumentPermissions {
 }
 
 /// One font the document uses.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct FontSummary {
@@ -120,6 +130,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (`data-pending` for a range document, a failed source).
+    ///
+    /// Added in 0.2.0.
     pub fn properties(&self) -> Result<DocumentProperties> {
         let model = self.ops();
         let disclosure = model.disclosure()?;

@@ -11,6 +11,8 @@ use crate::{Diagnostic, WarningCode};
 /// accessors and serialisation as [`Error`](crate::Error) (no `didYouMean`).
 ///
 /// [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Warning {
@@ -33,6 +35,8 @@ pub enum Warning {
 
 impl Warning {
     /// The stable kebab-case code.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         self.warning_code().as_str()
@@ -42,6 +46,8 @@ impl Warning {
     /// [`kind`](Warning::kind), [`hint`](Warning::hint), [`docs_url`](Warning::docs_url) and
     /// the message are read. The build fails if any code a wrapped crate declares is missing
     /// from the table.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn warning_code(&self) -> WarningCode {
         match self {
@@ -59,6 +65,8 @@ impl Warning {
     /// The kind ([ADR 0026] §2), from the generated [`WarningCode`](crate::WarningCode) table.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         self.warning_code().kind()
@@ -67,6 +75,8 @@ impl Warning {
     /// Where the problem is ([ADR 0026] §1.1).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
@@ -82,12 +92,16 @@ impl Warning {
     }
 
     /// The code's hint from `fixtures/codes.json`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn hint(&self) -> Option<String> {
         codes::fill_hint(self.warning_code().hint(), None)
     }
 
     /// The code's explain page.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn docs_url(&self) -> String {
         self.warning_code().docs_url()
@@ -98,6 +112,8 @@ impl Warning {
     /// document.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn diagnostic(&self) -> Diagnostic {
         Diagnostic::warning(self.warning_code())
@@ -146,6 +162,8 @@ impl From<laminapdf_text::Warning> for Warning {
 /// ```
 ///
 /// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WarningCursor {
     items: Vec<Warning>,
@@ -158,6 +176,8 @@ impl WarningCursor {
     }
 
     /// Up to `max` more warnings, oldest first; empty once all were read.
+    ///
+    /// Added in 0.2.0.
     pub fn next_batch(&mut self, max: u32) -> Vec<Warning> {
         let take = usize::try_from(max).unwrap_or(usize::MAX);
         let batch: Vec<Warning> = self.items.iter().skip(self.next).take(take).cloned().collect();
@@ -166,6 +186,8 @@ impl WarningCursor {
     }
 
     /// How many warnings are left to read.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn remaining(&self) -> u32 {
         u32::try_from(self.items.len().saturating_sub(self.next)).unwrap_or(u32::MAX)

@@ -3,7 +3,11 @@
 import { packageError } from "../errors.js";
 import { type RangeSource, WHOLE } from "./range.js";
 
-/** Options for {@link httpRangeSource}. */
+/**
+ * Options for {@link httpRangeSource}.
+ *
+ * @since 0.2.0
+ */
 export interface HttpRangeOptions {
   /** Extra request headers (authorisation, …). `Range` and `If-Range` are Lamina PDF's. */
   readonly headers?: Readonly<Record<string, string>>;
@@ -55,6 +59,8 @@ function changed() {
  * @param options - headers, credentials, signal, block size.
  * @returns the source, once the first request has answered.
  * @throws {@link LaminaPdfError} `fetch-failed` (with `data.status`), `source-changed`.
+ *
+ * @since 0.2.0
  */
 export async function httpRangeSource(url: string | URL, options: HttpRangeOptions = {}): Promise<RangeSource> {
   // A whole number of bytes, at least 1 (a fraction would make a malformed Range header).

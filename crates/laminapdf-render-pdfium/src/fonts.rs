@@ -9,6 +9,8 @@ use pdfium_render::prelude::{
 };
 
 /// The character set PDFium wants a font for.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum FontCharset {
@@ -30,6 +32,8 @@ pub enum FontCharset {
 
 /// What PDFium asks for: a face name as the PDF gives it (`Helvetica-Bold`, `SimSun`), a weight
 /// (400 regular, 700 bold) and whether it is italic.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FontQuery<'a> {
     /// The face name.
@@ -43,6 +47,8 @@ pub struct FontQuery<'a> {
 }
 
 /// A font the source found: a non-zero id it keeps for that face, its name, and the font file.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SystemFont {
     /// The face's id, never 0 (PDFium uses it as a handle).
@@ -54,9 +60,13 @@ pub struct SystemFont {
 }
 
 /// Where PDFium's system fonts come from.
+///
+/// Added in 0.2.0.
 pub trait SystemFontSource: Send + Sync {
     /// The face that best answers `query`, with its bytes; `None` lets PDFium fall back to its
     /// built-in fonts.
+    ///
+    /// Added in 0.2.0.
     fn find(&self, query: &FontQuery<'_>) -> Option<SystemFont>;
 }
 

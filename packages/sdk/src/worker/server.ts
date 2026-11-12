@@ -36,27 +36,49 @@ import {
 import { DOCUMENT_METHODS, PAGE_METHODS } from "./support.js";
 import { whole } from "./transfer.js";
 
-/** What an extension method sees of its call. */
+/**
+ * What an extension method sees of its call.
+ *
+ * @since 0.2.0
+ */
 export interface CallContext {
   /** Trips when every caller of this (possibly coalesced) call has cancelled. */
   readonly signal: AbortSignal;
-  /** Sends a progress event to each caller (`onProgress`). */
+  /**
+   * Sends a progress event to each caller (`onProgress`).
+   *
+   * @since 0.2.0
+   */
   progress(progress: unknown): void;
 }
 
-/** A method an extension adds (called on the client itself, handle 0). */
+/**
+ * A method an extension adds (called on the client itself, handle 0).
+ *
+ * @since 0.2.0
+ */
 export interface ExtensionMethod {
-  /** Runs the method in the worker: its result, or a promise of it; what it throws is the caller's error. */
+  /**
+   * Runs the method in the worker: its result, or a promise of it; what it throws is the caller's error.
+   *
+   * @since 0.2.0
+   */
   run(params: readonly unknown[], context: CallContext): unknown;
   /**
    * One caller's answer from the result, and what to transfer with it. Called once per caller of
    * a coalesced call, so each gets its own transferables (an ImageBitmap each). Omitted, the
    * result is posted as is, its buffers transferred to the last caller and copied to the others.
+   *
+   * @since 0.2.0
    */
   reply?(result: unknown): [unknown, Transferable[]] | Promise<[unknown, Transferable[]]>;
 }
 
-/** What a package adds to the worker: methods on the client (handle 0). */
+/**
+ * What a package adds to the worker: methods on the client (handle 0).
+ *
+ * @since 0.2.0
+ */
 export interface ServerExtension {
   readonly methods: Readonly<Record<string, ExtensionMethod>>;
   /**
@@ -66,7 +88,11 @@ export interface ServerExtension {
   readonly saveBudget?: number;
 }
 
-/** What the worker holds and has done: for diagnostics, such as checking that handles are freed. */
+/**
+ * What the worker holds and has done: for diagnostics, such as checking that handles are freed.
+ *
+ * @since 0.2.0
+ */
 export interface WorkerStats {
   /** Calls that started running (a call cancelled while queued never starts). */
   readonly started: number;
@@ -125,7 +151,11 @@ function post(message: FromWorker, transfer: Transferable[] = []): void {
   scope.postMessage(message, transfer);
 }
 
-/** Posts an extension event (`client.on("event", …)` on the page side). */
+/**
+ * Posts an extension event (`client.on("event", …)` on the page side).
+ *
+ * @since 0.2.0
+ */
 export function emit(name: string, data?: unknown, transfer: Transferable[] = []): void {
   post({ kind: "event", name, data }, transfer);
 }
@@ -162,6 +192,8 @@ const yielding: (() => void)[] = [];
 /**
  * Lets queued messages (calls, a `cancel`) in, without the 4 ms clamp of nested `setTimeout`s.
  * Exported for extensions whose methods must notice a cancel before committing a change.
+ *
+ * @since 0.2.0
  */
 export function yieldToMessages(): Promise<void> {
   if (yieldChannel === undefined) {
@@ -544,7 +576,11 @@ async function hello(message: Hello): Promise<void> {
 
 let serving = false;
 
-/** What this worker holds and has done (see {@link WorkerStats}). */
+/**
+ * What this worker holds and has done (see {@link WorkerStats}).
+ *
+ * @since 0.2.0
+ */
 export function workerStats(): WorkerStats {
   return { started, handles: handles.size, queued: queue.length };
 }
@@ -552,6 +588,8 @@ export function workerStats(): WorkerStats {
 /**
  * Serves the worker client's protocol in this worker, with `ext`'s methods added. Call it once,
  * at the top of the worker's module.
+ *
+ * @since 0.2.0
  */
 export function serve(ext?: ServerExtension): void {
   if (serving) throw packageError("invalid-argument", "serve() was already called in this worker");

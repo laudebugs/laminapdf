@@ -17,6 +17,8 @@ use crate::error::{Error, Result};
 /// assert_eq!(Color::hex("#fff")?, Color::rgb(1.0, 1.0, 1.0));
 /// # Ok::<(), laminapdf_build::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum Color {
@@ -37,21 +39,29 @@ fn unit(v: f64) -> f64 {
 
 impl Color {
     /// Black in `DeviceGray`.
+    ///
+    /// Added in 0.2.0.
     pub const BLACK: Self = Self::Gray(0.0);
 
     /// A `DeviceGray` level.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn gray(level: f64) -> Self {
         Self::Gray(unit(level))
     }
 
     /// A `DeviceRGB` colour.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn rgb(r: f64, g: f64, b: f64) -> Self {
         Self::Rgb(unit(r), unit(g), unit(b))
     }
 
     /// A `DeviceRGB` colour from 8-bit components.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn rgb8(r: u8, g: u8, b: u8) -> Self {
         let c = |v: u8| f64::from(v) / 255.0;
@@ -59,6 +69,8 @@ impl Color {
     }
 
     /// A `DeviceCMYK` colour.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn cmyk(c: f64, m: f64, y: f64, k: f64) -> Self {
         Self::Cmyk(unit(c), unit(m), unit(y), unit(k))
@@ -69,6 +81,8 @@ impl Color {
     ///
     /// # Errors
     /// [`Error::ColorComponents`] when `components` has another length.
+    ///
+    /// Added in 0.2.0.
     pub fn icc(profile: &IccProfile, components: &[f64]) -> Result<Self> {
         if components.len() != profile.components() {
             return Err(Error::ColorComponents {
@@ -86,6 +100,8 @@ impl Color {
     ///
     /// # Errors
     /// [`Error::InvalidColor`] for anything else.
+    ///
+    /// Added in 0.2.0.
     pub fn hex(text: &str) -> Result<Self> {
         let invalid = || Error::InvalidColor { text: text.to_owned() };
         let digits = text.strip_prefix('#').ok_or_else(invalid)?;
@@ -113,6 +129,8 @@ impl Color {
 /// `/N` (Gray 1, RGB 3, CMYK 4; Lab profiles, whose components need a `/Range` outside
 /// `[0, 1]`, are refused). Cheap to clone; the builder writes each distinct
 /// profile once per document.
+///
+/// Added in 0.2.0.
 #[derive(Clone, PartialEq, Eq)]
 pub struct IccProfile {
     inner: Arc<IccData>,
@@ -149,6 +167,8 @@ impl IccProfile {
     /// [`Error::InvalidIccProfile`] for bytes shorter than a header and tag count, a declared
     /// size that doesn't fit, no `acsp` signature, a device-link, abstract or named-colour
     /// profile, or a data colour space other than Gray, RGB or CMYK.
+    ///
+    /// Added in 0.2.0.
     pub fn new(bytes: Vec<u8>) -> Result<Self> {
         let invalid = |reason| Error::InvalidIccProfile { reason };
         let field = |at: usize| -> Option<[u8; 4]> { bytes.get(at..at + 4)?.try_into().ok() };
@@ -179,6 +199,8 @@ impl IccProfile {
     }
 
     /// The number of colour components (`/N`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn components(&self) -> usize {
         match self.inner.space {
@@ -189,6 +211,8 @@ impl IccProfile {
     }
 
     /// The profile bytes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.inner.bytes

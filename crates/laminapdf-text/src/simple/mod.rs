@@ -31,6 +31,8 @@ fn free_codes(base: Encoding) -> impl Iterator<Item = u8> {
 /// The codes one standard 14 font uses in a document: the `/Differences` it needs and the
 /// text each code stands for (the ToUnicode CMap). Read it with
 /// [`FontRegistry::usage`](crate::FontRegistry::usage).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct SimpleUse {
     font: Standard14,
@@ -56,6 +58,8 @@ impl SimpleUse {
     }
 
     /// The standard 14 font.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn font(&self) -> Standard14 {
         self.font
@@ -63,12 +67,16 @@ impl SimpleUse {
 
     /// Code → the text it stands for, for every code drawn, in code order: what the ToUnicode
     /// CMap maps. An empty text maps the code to nothing (`<code> <>`), as for Type 0 fonts.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn text(&self) -> &BTreeMap<u8, String> {
         &self.text
     }
 
     /// The `/Differences` entries: (code, glyph name), in code order.
+    ///
+    /// Added in 0.2.0.
     pub fn differences(&self) -> impl Iterator<Item = (u8, &'static str)> + '_ {
         self.differences
             .iter()

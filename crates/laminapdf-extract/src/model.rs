@@ -7,11 +7,15 @@
 use laminapdf_model::{Pt, RectPt, Rotation};
 
 /// The schema name every serialised extraction carries.
+///
+/// Added in 0.2.0.
 pub const SCHEMA: &str = "laminapdf.extract/1";
 
 /// One extraction: the pages it read and their blocks in reading order, with what it dropped.
 /// The document's warnings stay on the document (`laminapdf_cos::Document::warnings`); a
 /// serialiser adds them as `warnings`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -33,6 +37,8 @@ pub struct Extraction {
 }
 
 /// The input: its SHA-256, page count, whether it is tagged, and where the reading order came from.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -52,6 +58,8 @@ pub struct ExtractedSource {
 
 /// Where the reading order came from: the file's structure tree, the page layout, or the order
 /// the content stream draws in.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -68,6 +76,8 @@ pub enum StructSource {
 }
 
 /// One extracted page, with its blocks' boxes in top-left page space.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -96,6 +106,8 @@ pub struct ExtractedPage {
 
 /// What a page's text layer is: whether its extracted text is the page's text, or the page
 /// needs OCR. The measures let a pipeline apply its own cut-offs.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -118,6 +130,8 @@ pub struct TextLayer {
 }
 
 /// A page's text-layer status, the first that applies.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -140,6 +154,8 @@ pub enum TextLayerStatus {
 
 impl TextLayerStatus {
     /// The JSON name: `empty`, `ocr-layer`, `needs-ocr`, `mixed` or `native`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -153,6 +169,8 @@ impl TextLayerStatus {
 }
 
 /// How to read the page's boxes: points from the top-left of the displayed box, y down.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -173,6 +191,8 @@ pub struct Coordinates {
 
 impl Coordinates {
     /// The block for a page with this rotation and unit, `letter` when the fallback was used.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(rotate: Rotation, user_unit: f64, letter: bool) -> Self {
         Self {
@@ -186,6 +206,8 @@ impl Coordinates {
 }
 
 /// A block of text: a paragraph, heading, list item and so on.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -242,6 +264,8 @@ impl Block {
     /// Whether this block is the part of a table that `before`, the block just before it,
     /// goes on in. A renderer joins the two only then, so a list of blocks with a part cut
     /// out still renders whole tables.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn continues_from(&self, before: &Self) -> bool {
         self.continues.as_deref() == Some(before.id.as_str())
@@ -261,6 +285,8 @@ pub(crate) fn header_row_count(cells: &[Cell]) -> usize {
 }
 
 /// One cell of a table block.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -285,6 +311,8 @@ pub struct Cell {
 }
 
 /// What found a table.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -299,6 +327,8 @@ pub enum TableDetector {
 }
 
 /// What a block is.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
@@ -341,6 +371,8 @@ pub enum BlockKind {
 }
 
 /// The element of the file's structure tree that a block came from.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -355,6 +387,8 @@ pub struct StructRef {
 }
 
 /// One run of text in a block or a dropped entry.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -385,6 +419,8 @@ pub struct Span {
 }
 
 /// Why text is hidden from a reader. Flagged text is never in a block's text.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 #[expect(
@@ -409,6 +445,8 @@ pub struct Flags {
 
 impl Flags {
     /// No flag: visible text.
+    ///
+    /// Added in 0.2.0.
     pub const NONE: Self = Self {
         invisible: false,
         off_page: false,
@@ -419,12 +457,16 @@ impl Flags {
     };
 
     /// Whether any flag is set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn any(self) -> bool {
         self.invisible || self.off_page || self.tiny || self.clipped || self.low_contrast || self.covered
     }
 
     /// The flags set, as the reasons a dropped entry names, in a fixed order.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn reasons(self) -> Vec<DropReason> {
         [
@@ -443,6 +485,8 @@ impl Flags {
 
 /// Text left out of the output. It records a count, never the text, so a log of the output can't
 /// leak what was hidden.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -466,6 +510,8 @@ pub struct Dropped {
 }
 
 /// Why text was left out.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -511,7 +557,8 @@ impl schemars::JsonSchema for Flags {
         let mut schema = generator.subschema_for::<Vec<DropReason>>();
         schema.insert(
             "description".to_owned(),
-            "Why a run would be hidden from a reader; empty for visible text.".into(),
+            // The schema's own type, so it says when it was added as the Rust types do.
+            "Why a run would be hidden from a reader; empty for visible text.\n\nAdded in 0.2.0.".into(),
         );
         schema
     }

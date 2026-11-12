@@ -17,6 +17,8 @@ use crate::{ErrorCode, Op};
 /// it before the user saves.
 ///
 /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct PlannedSave {
@@ -67,6 +69,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (the catalog, the form, a signature dictionary).
+    ///
+    /// Added in 0.2.0.
     pub fn plan(&self, options: &SaveOptions) -> Result<PlannedSave> {
         let planner = SavePlanner::new(self.ops())?;
         let constraint = planner.constraint();
@@ -114,6 +118,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::plan`].
+    ///
+    /// Added in 0.2.0.
     pub fn would_violate(&self, op: &Op) -> Result<Vec<Violation>> {
         Ok(SavePlanner::new(self.ops())?.would_violate(op))
     }

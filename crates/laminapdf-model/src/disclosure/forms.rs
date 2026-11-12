@@ -212,6 +212,8 @@ impl Document {
     ///
     /// # Errors
     /// The errors that must propagate (`data-pending`, the source's, strict mode).
+    ///
+    /// Added in 0.2.0.
     pub fn redact_annotations(&self, page: &Page<'_>) -> Result<u32> {
         let Some(annots) = page.cos().dict.get("Annots") else {
             return Ok(0);

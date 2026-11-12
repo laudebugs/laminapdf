@@ -13,11 +13,17 @@ use crate::request::{RenderLimits, RenderOpenOptions, RenderPage, RenderRequest,
 /// A renderer only produces pixels: text, glyph quads, structure, annotation and form
 /// geometry, links and outlines always come from Lamina PDF's model, never from the renderer
 /// (ADR 0004 §1).
+///
+/// Added in 0.2.0.
 pub trait RenderBackend: Send {
     /// `"pdfium"` or `"hayro"`; with [`RenderBackend::version`], part of every golden's key.
+    ///
+    /// Added in 0.2.0.
     fn name(&self) -> &'static str;
 
     /// The engine's version (a crate version or a PDFium build tag).
+    ///
+    /// Added in 0.2.0.
     fn version(&self) -> &'static str;
 
     /// Opens a document from `source` (the same source Lamina PDF reads, never a second copy).
@@ -26,6 +32,8 @@ pub trait RenderBackend: Send {
     /// `password-required`, `wrong-password`, `data-pending` (with the ranges to fetch),
     /// `source`, `render-failed` (the engine can't open the file),
     /// `render-backend-unavailable`.
+    ///
+    /// Added in 0.2.0.
     fn open(
         &self,
         source: Arc<dyn ByteSource>,
@@ -35,23 +43,33 @@ pub trait RenderBackend: Send {
 
 /// One open document. `Send` but not `Sync`: one call at a time on a document. A backend
 /// whose engine isn't thread-safe (PDFium) also serialises calls across its documents.
+///
+/// Added in 0.2.0.
 pub trait RenderDocument: Send {
     /// The number of pages.
+    ///
+    /// Added in 0.2.0.
     fn page_count(&self) -> u32;
 
     /// Page `index`'s displayed size and `/Rotate` (ADR 0027: 0-based).
     ///
     /// # Errors
     /// `page-index-out-of-range`, `data-pending`, `render-failed`.
+    ///
+    /// Added in 0.2.0.
     fn page(&self, index: u32) -> Result<RenderPage, RenderError>;
 
     /// The limits this document was opened with.
+    ///
+    /// Added in 0.2.0.
     fn limits(&self) -> &RenderLimits;
 
     /// Validates `request` for this document: the tile geometry and the bytes it needs.
     ///
     /// # Errors
     /// As [`RenderDocument::page`], plus [`TilePlan::new`]'s.
+    ///
+    /// Added in 0.2.0.
     fn plan(&self, request: &RenderRequest) -> Result<TilePlan, RenderError> {
         TilePlan::new(&self.page(request.page)?, request, self.limits())
     }
@@ -63,5 +81,7 @@ pub trait RenderDocument: Send {
     /// # Errors
     /// As [`RenderDocument::plan`], plus `invalid-argument` for a wrong buffer size,
     /// `render-failed` and `cancelled`.
+    ///
+    /// Added in 0.2.0.
     fn render(&self, request: &RenderRequest, out: &mut [u8], cancel: &CancelToken) -> Result<TilePlan, RenderError>;
 }

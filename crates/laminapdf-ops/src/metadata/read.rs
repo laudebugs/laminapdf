@@ -10,6 +10,8 @@ use crate::error::Result;
 use crate::wire;
 
 /// Which side [`DocumentMetadata`]'s values come from.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -23,6 +25,8 @@ pub enum MetadataSource {
 }
 
 /// What the document's `/Metadata` holds.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -46,6 +50,8 @@ pub enum PacketStatus {
 /// is newer, Info winning a tie. A field the winning side lacks is taken from the other.
 /// [`disagreements`](DocumentMetadata::disagreements) names the fields where the two differ, so
 /// a properties view can say so.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -203,6 +209,8 @@ pub(crate) fn info_without_equal_xmp(doc: &laminapdf_model::Document, packet: &P
 /// # Errors
 /// Reading errors (Info, the catalog, the packet's stream); in strict mode a packet that
 /// can't be read or an invalid date.
+///
+/// Added in 0.2.0.
 pub fn read_metadata(doc: &laminapdf_model::Document) -> Result<DocumentMetadata> {
     let info = doc.info()?;
     let info_side = Side::of_info(info.as_ref())?;

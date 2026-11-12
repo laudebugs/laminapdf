@@ -15,6 +15,8 @@ use crate::outline::Outline;
 
 /// The document's pages in page-tree order (the result of one walk; see
 /// [`laminapdf_cos::Document::pages`]).
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct Pages<'d> {
     doc: &'d Document,
@@ -82,18 +84,24 @@ impl<'d> Pages<'d> {
     }
 
     /// The number of pages.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn len(&self) -> usize {
         self.walked.len()
     }
 
     /// True when the document has no pages.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.walked.is_empty()
     }
 
     /// The page at `index` (0-based), if any.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn get(&self, index: usize) -> Option<Page<'_>> {
         let cos = self.walked.get(index)?;
@@ -107,12 +115,16 @@ impl<'d> Pages<'d> {
     }
 
     /// The page with ID `id`, if it is in this document.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn by_id(&self, id: &PageId) -> Option<Page<'_>> {
         self.index_of(id).and_then(|i| self.get(i))
     }
 
     /// The index of the page with ID `id`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn index_of(&self, id: &PageId) -> Option<usize> {
         self.by_id.get(id).copied()
@@ -124,6 +136,8 @@ impl<'d> Pages<'d> {
     }
 
     /// The pages in order.
+    ///
+    /// Added in 0.2.0.
     pub fn iter(&self) -> impl Iterator<Item = Page<'_>> + '_ {
         (0..self.len()).filter_map(|i| self.get(i))
     }
@@ -133,6 +147,8 @@ impl<'d> Pages<'d> {
     ///
     /// # Errors
     /// As [`Document::outline`].
+    ///
+    /// Added in 0.2.0.
     pub fn outline(&self) -> Result<Outline<'_>> {
         Outline::with_pages(self.doc, self)
     }
@@ -145,6 +161,8 @@ impl<'d> Pages<'d> {
     /// # Errors
     /// Reading errors (the annotations, named destinations, the page tree); in strict mode a
     /// warning they raise.
+    ///
+    /// Added in 0.2.0.
     pub fn links(&self, page: &Page<'_>) -> Result<Vec<crate::Link>> {
         Outline::without_items(self.doc, self).links(page)
     }
@@ -165,6 +183,8 @@ impl<'d> Pages<'d> {
 }
 
 /// One page: a thin view over its dictionary and inherited attributes.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 pub struct Page<'p> {
     pages: &'p Pages<'p>,
@@ -175,30 +195,40 @@ pub struct Page<'p> {
 
 impl<'p> Page<'p> {
     /// The page's stable ID.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn id(&self) -> &'p PageId {
         self.id
     }
 
     /// The page's 0-based index in the document.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn index(&self) -> usize {
         self.index
     }
 
     /// The page object (`None` for a direct page dictionary).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn obj_ref(&self) -> Option<ObjRef> {
         self.cos.obj_ref
     }
 
     /// The page dictionary.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn dict(&self) -> &'p Dict {
         &self.cos.dict
     }
 
     /// The COS page (inherited attributes resolved).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn cos(&self) -> &'p laminapdf_cos::Page {
         self.cos
@@ -256,6 +286,8 @@ impl<'p> Page<'p> {
     /// # Errors
     /// [`laminapdf_cos::Error::Strict`] in strict mode for a malformed box;
     /// [`laminapdf_cos::Error::DataPending`] / [`laminapdf_cos::Error::Source`].
+    ///
+    /// Added in 0.2.0.
     pub fn media_box(&self) -> Result<Option<UserSpaceRect>> {
         Ok(self.boxes()?.media)
     }
@@ -265,6 +297,8 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// As [`Page::media_box`].
+    ///
+    /// Added in 0.2.0.
     pub fn crop_box(&self) -> Result<Option<UserSpaceRect>> {
         Ok(self.boxes()?.crop)
     }
@@ -284,6 +318,8 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// As [`Page::media_box`].
+    ///
+    /// Added in 0.2.0.
     pub fn bleed_box(&self) -> Result<Option<UserSpaceRect>> {
         self.clipped_box("BleedBox")
     }
@@ -292,6 +328,8 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// As [`Page::media_box`].
+    ///
+    /// Added in 0.2.0.
     pub fn trim_box(&self) -> Result<Option<UserSpaceRect>> {
         self.clipped_box("TrimBox")
     }
@@ -300,6 +338,8 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// As [`Page::media_box`].
+    ///
+    /// Added in 0.2.0.
     pub fn art_box(&self) -> Result<Option<UserSpaceRect>> {
         self.clipped_box("ArtBox")
     }
@@ -310,6 +350,8 @@ impl<'p> Page<'p> {
     /// # Errors
     /// [`laminapdf_cos::Error::Strict`] in strict mode for an invalid value;
     /// [`laminapdf_cos::Error::DataPending`] / [`laminapdf_cos::Error::Source`].
+    ///
+    /// Added in 0.2.0.
     pub fn rotate(&self) -> Result<Rotation> {
         memo(self.cache().map(|c| &c.rotate), || self.read_rotate())
     }
@@ -321,6 +363,8 @@ impl<'p> Page<'p> {
     /// # Errors
     /// [`laminapdf_cos::Error::DataPending`] / [`laminapdf_cos::Error::Source`], and
     /// [`laminapdf_cos::Error::Strict`] in strict mode when the value cannot be resolved.
+    ///
+    /// Added in 0.2.0.
     pub fn rotate_quietly(&self) -> Result<Rotation> {
         Ok(self.stored_rotate()?.unwrap_or_default())
     }
@@ -352,6 +396,8 @@ impl<'p> Page<'p> {
     /// # Errors
     /// [`laminapdf_cos::Error::Strict`] in strict mode for an invalid value;
     /// [`laminapdf_cos::Error::DataPending`] / [`laminapdf_cos::Error::Source`].
+    ///
+    /// Added in 0.2.0.
     pub fn user_unit(&self) -> Result<f64> {
         memo(self.cache().map(|c| &c.user_unit), || self.read_user_unit())
     }
@@ -385,6 +431,8 @@ impl<'p> Page<'p> {
     /// As [`Page::media_box`], [`Page::rotate`] and [`Page::user_unit`].
     ///
     /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+    ///
+    /// Added in 0.2.0.
     pub fn frame(&self) -> Result<PageFrame> {
         memo(self.cache().map(|c| &c.frame), || self.read_frame())
     }
@@ -410,6 +458,8 @@ impl<'p> Page<'p> {
     }
 
     /// `/Resources`, own or inherited, resolved.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn resources(&self) -> Option<&'p Dict> {
         self.cos.resources_dict()
@@ -420,6 +470,8 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// [`laminapdf_cos::Error::DataPending`] / [`laminapdf_cos::Error::Source`].
+    ///
+    /// Added in 0.2.0.
     pub fn contents(&self) -> Result<Vec<ObjRef>> {
         self.refs("Contents", true)
     }
@@ -429,6 +481,8 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// As [`Page::contents`].
+    ///
+    /// Added in 0.2.0.
     pub fn annots(&self) -> Result<Vec<ObjRef>> {
         self.refs("Annots", false)
     }
@@ -453,6 +507,8 @@ impl<'p> Page<'p> {
     /// # Errors
     /// [`laminapdf_cos::Error::Strict`] in strict mode for a malformed label entry; errors
     /// reading the catalog.
+    ///
+    /// Added in 0.2.0.
     pub fn label(&self) -> Result<Option<String>> {
         Ok(self.pages.labels()?.label(self.index))
     }

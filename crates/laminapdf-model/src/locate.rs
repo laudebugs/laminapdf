@@ -9,6 +9,8 @@ use crate::document::{Document, tolerant};
 use crate::page::Rotation;
 
 /// A page found by [`Document::page_by_parents`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct ParentedPage {
@@ -28,6 +30,8 @@ impl Document {
     ///
     /// # Errors
     /// Only those that [must propagate](laminapdf_cos::Error::must_propagate).
+    ///
+    /// Added in 0.2.0.
     pub fn page_by_parents(&self, r: ObjRef) -> Result<Option<ParentedPage>> {
         let Some(page) = tolerant(self.resolve(r))? else {
             return Ok(None);
@@ -89,6 +93,8 @@ impl Document {
     ///
     /// # Errors
     /// Only those that [must propagate](laminapdf_cos::Error::must_propagate).
+    ///
+    /// Added in 0.2.0.
     pub fn read_rotate(&self, value: &Object) -> Result<Option<Rotation>> {
         Ok(self.read(value)?.and_then(|v| Rotation::from_object(&v)))
     }

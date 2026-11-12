@@ -4,6 +4,8 @@
 /// The known names within two edits of `given`, closest first; names at the same distance in
 /// code-point order. Edits count chars, after lowercasing ASCII letters only
 /// (`fixtures/did-you-mean.json` pins the rule for both languages).
+///
+/// Added in 0.2.0.
 pub fn did_you_mean(given: &str, known: &[String]) -> Vec<String> {
     let given = given.to_ascii_lowercase();
     let mut close: Vec<(usize, &String)> = known

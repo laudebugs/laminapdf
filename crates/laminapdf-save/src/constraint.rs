@@ -7,6 +7,8 @@ use laminapdf_model::FieldId;
 use laminapdf_ops::ModificationClass;
 
 /// What a signature is (ISO 32000-2 §12.8).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum SignatureKind {
@@ -23,6 +25,8 @@ pub enum SignatureKind {
 }
 
 /// A signature found in the document: one per signature dictionary.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct SignatureInfo {
@@ -43,6 +47,8 @@ pub struct SignatureInfo {
 
 impl SignatureInfo {
     /// A signature of `kind` with nothing else known.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(kind: SignatureKind) -> Self {
         Self {
@@ -55,6 +61,8 @@ impl SignatureInfo {
     }
 
     /// With the field that holds it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_field(mut self, field: FieldId) -> Self {
         self.field = Some(field);
@@ -62,6 +70,8 @@ impl SignatureInfo {
     }
 
     /// With its signature dictionary.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_value(mut self, value: ObjRef) -> Self {
         self.value = Some(value);
@@ -71,6 +81,8 @@ impl SignatureInfo {
 
 /// The `DocMDP` access permissions of a certification signature (§12.8.2.2, `/P` in the
 /// transform parameters).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum DocMdpPermission {
@@ -85,6 +97,8 @@ pub enum DocMdpPermission {
 impl DocMdpPermission {
     /// The permission for a `/P` value (§12.8.2.2, Table 257); `None` for anything but 1, 2
     /// and 3. An absent `/P` means 2; the planner takes an invalid one as 1, the strictest.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_p(p: i64) -> Option<Self> {
         match p {
@@ -96,6 +110,8 @@ impl DocMdpPermission {
     }
 
     /// The `/P` value.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn p(self) -> u8 {
         match self {
@@ -106,6 +122,8 @@ impl DocMdpPermission {
     }
 
     /// Whether a change of `class` keeps a certification with this permission valid.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn allows(self, class: ModificationClass) -> bool {
         match self {
@@ -120,6 +138,8 @@ impl DocMdpPermission {
 }
 
 /// The document's certification (`DocMDP`) restriction.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct DocMdp {
@@ -133,6 +153,8 @@ pub struct DocMdp {
 }
 
 /// Why only a full rewrite is a safe save.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum RewriteReason {
@@ -153,6 +175,8 @@ pub enum RewriteReason {
 }
 
 /// Which restriction a pending change breaks.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum Restriction {
@@ -170,6 +194,8 @@ pub enum Restriction {
 
 /// A pending change that a signature's restriction forbids: saving it, even incrementally,
 /// invalidates that signature.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct Violation {
@@ -183,6 +209,8 @@ pub struct Violation {
 
 impl Violation {
     /// A change of `class` that breaks `restriction`, carried by `signature`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(class: ModificationClass, restriction: Restriction, signature: SignatureInfo) -> Self {
         Self {
@@ -196,6 +224,8 @@ impl Violation {
 /// What [`SaveConstraint::kind`] says, for the UI's banner ([ADR 0007] §2).
 ///
 /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ConstraintKind {
@@ -213,6 +243,8 @@ pub enum ConstraintKind {
 /// are reported. [`SavePlanner`](crate::SavePlanner) fills it from the base and the overlay.
 ///
 /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct SaveConstraint {
@@ -248,6 +280,8 @@ impl SaveConstraint {
     /// constraint.rewrite_reasons.push(RewriteReason::RepairedBase);
     /// assert_eq!(constraint.kind(), ConstraintKind::Conflict);
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn kind(&self) -> ConstraintKind {
         let signed = !self.signatures.is_empty() || self.signatures_unknown;

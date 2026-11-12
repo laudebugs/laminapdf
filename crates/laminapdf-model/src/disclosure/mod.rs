@@ -19,6 +19,8 @@ use crate::outline::ActionKind;
 use crate::values::text_of;
 
 /// The XMP metadata packet the catalog's `/Metadata` names (§14.3.2).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct XmpPacket {
@@ -31,6 +33,8 @@ pub struct XmpPacket {
 }
 
 /// What points at an embedded file.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum EmbeddedFileHolder {
@@ -43,6 +47,8 @@ pub enum EmbeddedFileHolder {
 }
 
 /// An embedded file: a file specification with an `/EF` entry (§7.11.4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EmbeddedFile {
@@ -59,6 +65,8 @@ pub struct EmbeddedFile {
 }
 
 /// What fires an action.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Trigger {
@@ -73,6 +81,8 @@ pub enum Trigger {
 }
 
 /// The object an action belongs to.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Owner {
@@ -92,6 +102,8 @@ pub enum Owner {
 }
 
 /// An action reached from a trigger, directly or through `/Next` (§12.6.4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Action {
@@ -109,6 +121,8 @@ pub struct Action {
 }
 
 /// An annotation on a page (§12.5).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Annotation {
@@ -127,6 +141,8 @@ pub struct Annotation {
 impl Annotation {
     /// Whether this is a link, a widget or a popup: annotations that carry no comment of
     /// their own.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_plain(&self) -> bool {
         matches!(self.subtype.as_str(), "Link" | "Widget" | "Popup")
@@ -134,6 +150,8 @@ impl Annotation {
 }
 
 /// A terminal form field (§12.7.4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct FormField {
@@ -150,6 +168,8 @@ pub struct FormField {
 }
 
 /// What [`Document::disclosure`] finds.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Disclosure {
@@ -182,6 +202,8 @@ pub struct Disclosure {
 
 impl Disclosure {
     /// The `Redact` annotations, as `(page, count)` with pages ascending.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn redactions(&self) -> Vec<(usize, u32)> {
         let mut out: BTreeMap<usize, u32> = BTreeMap::new();
@@ -201,6 +223,8 @@ impl Document {
     /// # Errors
     /// [`laminapdf_cos::Error::DataPending`], [`laminapdf_cos::Error::Source`] and
     /// [`laminapdf_cos::Error::Strict`]: the errors that must propagate.
+    ///
+    /// Added in 0.2.0.
     pub fn disclosure(&self) -> Result<Disclosure> {
         let mut scan = Scan {
             doc: self,

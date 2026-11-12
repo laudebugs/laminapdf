@@ -7,6 +7,8 @@ use std::str::FromStr;
 use laminapdf_cos::{DirectPath, Error, ObjRef, PathSegment};
 
 /// What a [`LaminaPdfId`] identifies. Its letter starts the string form.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum Kind {
@@ -75,6 +77,8 @@ enum Segment {
 /// assert_eq!("p5.0/Kids/3".parse::<LaminaPdfId>()?.to_string(), "p5.0/Kids/3");
 /// # Ok::<(), laminapdf_model::ParseIdError>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LaminaPdfId {
     kind: Kind,
@@ -84,6 +88,8 @@ pub struct LaminaPdfId {
 
 impl LaminaPdfId {
     /// The ID of the indirect object `r` as an item of `kind`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn object(kind: Kind, r: ObjRef) -> Self {
         Self {
@@ -94,6 +100,8 @@ impl LaminaPdfId {
     }
 
     /// The path ID of a direct dictionary at `path`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn path(kind: Kind, path: &DirectPath) -> Self {
         let segments = path
@@ -112,12 +120,16 @@ impl LaminaPdfId {
     }
 
     /// What this ID identifies.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> Kind {
         self.kind
     }
 
     /// The indirect object this ID names, when it is an object ID (not a path ID).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn obj_ref(&self) -> Option<ObjRef> {
         match self.anchor {
@@ -127,6 +139,8 @@ impl LaminaPdfId {
     }
 
     /// True for a path ID (a direct dictionary).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_path(&self) -> bool {
         !self.path.is_empty()
@@ -151,6 +165,8 @@ impl fmt::Display for LaminaPdfId {
 }
 
 /// Why a string is not a [`LaminaPdfId`] (or not one of the expected kind).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ParseIdError {
@@ -255,26 +271,36 @@ impl FromStr for LaminaPdfId {
 macro_rules! typed_id {
     ($(#[$doc:meta])* $name:ident, $kind:expr) => {
         $(#[$doc])*
+        #[doc = ""]
+        #[doc = "Added in 0.2.0."]
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $name(LaminaPdfId);
 
         impl $name {
             /// The kind every ID of this type has.
+            ///
+            /// Added in 0.2.0.
             pub const KIND: Kind = $kind;
 
             /// The ID of the indirect object `r`.
+            ///
+            /// Added in 0.2.0.
             #[must_use]
             pub fn object(r: ObjRef) -> Self {
                 Self(LaminaPdfId::object(Self::KIND, r))
             }
 
             /// The path ID of a direct dictionary at `path`.
+            ///
+            /// Added in 0.2.0.
             #[must_use]
             pub fn path(path: &DirectPath) -> Self {
                 Self(LaminaPdfId::path(Self::KIND, path))
             }
 
             /// The untyped ID.
+            ///
+            /// Added in 0.2.0.
             #[must_use]
             pub const fn as_lamina_id(&self) -> &LaminaPdfId {
                 &self.0
@@ -352,6 +378,8 @@ typed_id!(
 /// never resolves to a new object), stay within
 /// [`Limits::max_object_number`](laminapdf_cos::Limits::max_object_number), and are never
 /// reused in a session, so neither are IDs.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 pub struct IdAllocator<'d> {
     cos: &'d laminapdf_cos::Document,
@@ -359,6 +387,8 @@ pub struct IdAllocator<'d> {
 
 impl<'d> IdAllocator<'d> {
     /// The allocator of `cos`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(cos: &'d laminapdf_cos::Document) -> Self {
         Self { cos }
@@ -366,6 +396,8 @@ impl<'d> IdAllocator<'d> {
 
     /// Whether this document handed out `id`'s object number (existing items' IDs are
     /// derived, not allocated, so this never depends on which views were read).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_allocated(&self, id: &LaminaPdfId) -> bool {
         id.obj_ref()
@@ -378,6 +410,8 @@ impl<'d> IdAllocator<'d> {
     /// # Errors
     /// [`Error::InvalidStructure`] once the next number would exceed the document's
     /// [`Limits::max_object_number`](laminapdf_cos::Limits::max_object_number).
+    ///
+    /// Added in 0.2.0.
     pub fn allocate(&self, kind: Kind) -> Result<(ObjRef, LaminaPdfId), Error> {
         let r = self.cos.reserve_number()?;
         Ok((r, LaminaPdfId::object(kind, r)))

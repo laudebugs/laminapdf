@@ -80,6 +80,8 @@ function tryNext(e: unknown, attempt: number, attempts: number): boolean {
 /**
  * A page of a {@link Document}, held by its ID: moving pages doesn't retarget it.
  * Freed with its document; every call after that throws `disposed`.
+ *
+ * @since 0.2.0
  */
 export class PageRef extends Handle<BaseGlue> {
   readonly #page: WasmPage;
@@ -90,17 +92,29 @@ export class PageRef extends Handle<BaseGlue> {
     this.#page = page;
   }
 
-  /** The page's stable ID (`p12.0`). */
+  /**
+   * The page's stable ID (`p12.0`).
+   *
+   * @since 0.2.0
+   */
   get id(): string {
     return this.call(() => this.#page.id);
   }
 
-  /** The page's current 0-based index. @throws {@link LaminaPdfError} `unknown-page` when it is gone. */
+  /**
+   * The page's current 0-based index. @throws {@link LaminaPdfError} `unknown-page` when it is gone.
+   *
+   * @since 0.2.0
+   */
   get index(): number {
     return this.call(() => this.#page.index());
   }
 
-  /** The page's facts now. @throws {@link LaminaPdfError} `unknown-page` when it is gone. */
+  /**
+   * The page's facts now. @throws {@link LaminaPdfError} `unknown-page` when it is gone.
+   *
+   * @since 0.2.0
+   */
   get info(): PageInfo {
     return this.call(() => this.#page.info());
   }
@@ -118,6 +132,8 @@ export class PageRef extends Handle<BaseGlue> {
    * @param options - `skipInvisible` leaves out invisible text (OCR layers).
    * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
    *   module; `unknown-page`; reading errors (`data-pending` for a range document: use `ensure`).
+   *
+   * @since 0.2.0
    */
   text(options?: TextOptions): PageText {
     this.assertLive();
@@ -140,6 +156,8 @@ export class PageRef extends Handle<BaseGlue> {
 /**
  * A save in progress, stepped by the caller with a budget of work units. Freed with
  * its document; every call after that throws `disposed`.
+ *
+ * @since 0.2.0
  */
 export class SaveJob extends Handle<BaseGlue> {
   readonly #job: WasmSaveJob;
@@ -155,6 +173,8 @@ export class SaveJob extends Handle<BaseGlue> {
    *
    * @returns `{ state: "progress", … }`, or `{ state: "done", bytes, report }` at the end.
    * @throws {@link LaminaPdfError} `cancelled`, `document-changed`, `job-finished`, or the save's errors.
+   *
+   * @since 0.2.0
    */
   step(
     budget: number,
@@ -164,7 +184,11 @@ export class SaveJob extends Handle<BaseGlue> {
     return this.call(() => this.#job.step(budget));
   }
 
-  /** Stops the job: its next step fails with `cancelled`. */
+  /**
+   * Stops the job: its next step fails with `cancelled`.
+   *
+   * @since 0.2.0
+   */
   cancel(): void {
     this.call(() => this.#job.cancel());
   }
@@ -185,6 +209,8 @@ export class SaveJob extends Handle<BaseGlue> {
  * doc.transact((tx) => tx.setInfo({ title: "Final" }));
  * const updated = doc.save({ mode: "incremental" });
  * ```
+ *
+ * @since 0.2.0
  */
 export class Document extends Handle<BaseGlue> {
   readonly #doc: WasmDocument;
@@ -215,6 +241,8 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} as {@link Document.open}; `data-pending` when fetching made no
    *   progress or `maxRounds` ran out; `source-budget-exceeded`; the source's own errors
    *   (`fetch-failed`, `source-changed`); the signal's reason when aborted.
+   *
+   * @since 0.2.0
    */
   static async openRange(
     source: RangeSource | Promise<RangeSource>,
@@ -283,6 +311,8 @@ export class Document extends Handle<BaseGlue> {
    *   only).
    * @returns what `f` returns.
    * @throws what `f` throws, and as {@link Document.openRange}.
+   *
+   * @since 0.2.0
    */
   async ensure<T>(f: () => T | Promise<T>, options: { readonly signal?: AbortSignal } = {}): Promise<T> {
     this.assertLive();
@@ -302,6 +332,8 @@ export class Document extends Handle<BaseGlue> {
    * @returns the document.
    * @throws {@link LaminaPdfError} `not-pdf`, `password-required`, `wrong-password`, `limit-exceeded`,
    *   `strict`, …; `unknown-option` / `invalid-argument` for bad options; `not-initialized`.
+   *
+   * @since 0.2.0
    */
   static open(bytes: Uint8Array | ArrayBuffer, options?: OpenOptions): Document {
     const instance = readingModule();
@@ -323,18 +355,28 @@ export class Document extends Handle<BaseGlue> {
    * Whether `page(i).text()` works on this document: it was opened or built while the extract or
    * the text module was loaded. A document opened before the module loaded stays in the base
    * module; save and reopen it to move it.
+   *
+   * @since 0.2.0
    */
   get canExtractText(): boolean {
     this.assertLive();
     return extractsText(this.#doc);
   }
 
-  /** The number of pages. @throws {@link LaminaPdfError} reading errors. */
+  /**
+   * The number of pages. @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.2.0
+   */
   get pageCount(): number {
     return this.call(() => this.#doc.pageCount());
   }
 
-  /** Every page's facts, in order (one page-tree walk). @throws {@link LaminaPdfError} reading errors. */
+  /**
+   * Every page's facts, in order (one page-tree walk). @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.2.0
+   */
   get pages(): readonly PageInfo[] {
     return this.call(() => this.#doc.pageInfos());
   }
@@ -343,6 +385,8 @@ export class Document extends Handle<BaseGlue> {
    * Page `index`'s facts.
    *
    * @throws {@link LaminaPdfError} `page-index-out-of-range`.
+   *
+   * @since 0.2.0
    */
   pageInfo(index: number): PageInfo {
     return this.call(() => this.#doc.pageInfo(index));
@@ -352,6 +396,8 @@ export class Document extends Handle<BaseGlue> {
    * A handle on page `index` that follows the page by its ID.
    *
    * @throws {@link LaminaPdfError} `page-index-out-of-range`.
+   *
+   * @since 0.2.0
    */
   page(index: number): PageRef {
     return new PageRef(
@@ -365,6 +411,8 @@ export class Document extends Handle<BaseGlue> {
    * A handle on the page with `id` (`p12.0`).
    *
    * @throws {@link LaminaPdfError} `invalid-argument`, `unknown-page`.
+   *
+   * @since 0.2.0
    */
   pageById(id: string): PageRef {
     return new PageRef(
@@ -381,6 +429,8 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
    *   module; reading errors (`data-pending` for a range document: use `ensure`).
+   *
+   * @since 0.2.0
    */
   outline(): OutlineNode[] {
     return this.call(() => this.#extracting("doc.outline()").outline());
@@ -392,6 +442,8 @@ export class Document extends Handle<BaseGlue> {
    * extract or text module was loaded.
    *
    * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.2.0
    */
   namedDestination(name: string): Target | undefined {
     return this.call(() => this.#extracting("doc.namedDestination()").namedDestination(name));
@@ -404,6 +456,8 @@ export class Document extends Handle<BaseGlue> {
    * when the view opens. Needs a document opened while the extract or text module was loaded.
    *
    * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.2.0
    */
   properties(): DocumentProperties {
     return this.call(() => this.#extracting("doc.properties()").properties());
@@ -415,6 +469,8 @@ export class Document extends Handle<BaseGlue> {
    * `"unsupported"`. Needs a document opened while the extract or text module was loaded.
    *
    * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.outline}.
+   *
+   * @since 0.2.0
    */
   pageLinks(index: number): PageLink[] {
     return this.call(() => this.#extracting("doc.pageLinks()").pageLinks(index));
@@ -438,6 +494,8 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
    *   module; `page-index-out-of-range`; `unknown-option` (with `didYouMean`) / `invalid-argument`
    *   for bad options; reading errors (`data-pending` for a range document: use `ensure`).
+   *
+   * @since 0.2.0
    */
   extract<F extends ExtractFormat>(options: ExtractOptions<F>): ExtractResult[F] {
     this.assertLive();
@@ -462,6 +520,8 @@ export class Document extends Handle<BaseGlue> {
    * document opened while the extract or text module was loaded.
    *
    * @throws {@link LaminaPdfError} as {@link Document.extract}.
+   *
+   * @since 0.2.0
    */
   extractJob<F extends ExtractFormat>(options: ExtractJobOptions<F>): ExtractJob<F> {
     this.assertLive();
@@ -481,7 +541,11 @@ export class Document extends Handle<BaseGlue> {
     );
   }
 
-  /** The Info dictionary's text entries (document text). @throws {@link LaminaPdfError} reading errors. */
+  /**
+   * The Info dictionary's text entries (document text). @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.2.0
+   */
   get info(): DocumentInfo {
     return this.call(() => this.#doc.info());
   }
@@ -490,6 +554,8 @@ export class Document extends Handle<BaseGlue> {
    * Whether the document says it is tagged (`/MarkInfo /Marked true`); it doesn't check the tree.
    * Needs a document opened while the extract or text module was loaded, as `page.text()` does.
    * @throws {@link LaminaPdfError} `extract-module-not-loaded`; reading errors.
+   *
+   * @since 0.2.0
    */
   get isTagged(): boolean {
     return this.call(() => this.#extracting("doc.isTagged").isTagged());
@@ -501,6 +567,8 @@ export class Document extends Handle<BaseGlue> {
    * `{ type: "content", page, mcid }` kid names it. Needs the extract or text module, as
    * `page.text()` does.
    * @throws {@link LaminaPdfError} `extract-module-not-loaded`; reading errors.
+   *
+   * @since 0.2.0
    */
   structureTree(): StructureNode[] | undefined {
     return this.call(() => this.#extracting("doc.structureTree()").structureTree());
@@ -522,6 +590,8 @@ export class Document extends Handle<BaseGlue> {
    * ```
    * @throws {@link LaminaPdfError} `extract-module-not-loaded` in the base or text module;
    *   reading errors.
+   *
+   * @since 0.2.0
    */
   reflow(): Reflow {
     this.assertLive();
@@ -548,7 +618,11 @@ export class Document extends Handle<BaseGlue> {
     return doc as ExtractWasmDocument;
   }
 
-  /** Every warning so far (build warnings first), each a {@link LaminaPdfWarning}. */
+  /**
+   * Every warning so far (build warnings first), each a {@link LaminaPdfWarning}.
+   *
+   * @since 0.2.0
+   */
   get warnings(): readonly LaminaPdfWarning[] {
     return this.call(() => {
       const cursor = this.#doc.warnings();
@@ -568,12 +642,18 @@ export class Document extends Handle<BaseGlue> {
   /**
    * Whether the file is encrypted: it opened with its password, or the empty one. An encrypted
    * document can't be saved incrementally yet (`encrypted-base`).
+   *
+   * @since 0.2.0
    */
   get isEncrypted(): boolean {
     return this.call(() => this.#doc.isEncrypted());
   }
 
-  /** Whether there are changes no save has written yet. */
+  /**
+   * Whether there are changes no save has written yet.
+   *
+   * @since 0.2.0
+   */
   get hasUnsavedChanges(): boolean {
     return this.call(() => this.#doc.hasUnsavedChanges());
   }
@@ -584,6 +664,8 @@ export class Document extends Handle<BaseGlue> {
    * @returns the pages the edit touched.
    * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for a value that isn't an op;
    *   the first failing op's error (`unknown-page`, …), with nothing applied.
+   *
+   * @since 0.2.0
    */
   apply(ops: readonly Op[]): Edited {
     this.#notInTransaction("apply");
@@ -594,6 +676,8 @@ export class Document extends Handle<BaseGlue> {
    * Applies an op log (`{ v: 1, ops }`, as JSON text or an object) as one transaction.
    *
    * @throws {@link LaminaPdfError} `invalid-op-log`, `unsupported-version`; as {@link Document.apply}.
+   *
+   * @since 0.2.0
    */
   applyLog(log: string | OpLog): Edited {
     this.#notInTransaction("applyLog");
@@ -620,6 +704,8 @@ export class Document extends Handle<BaseGlue> {
    *   tx.rotatePage(doc.page(0).id, 90);
    * });
    * ```
+   *
+   * @since 0.2.0
    */
   transact<T>(edit: (tx: Transaction) => T): T {
     this.assertLive();
@@ -656,6 +742,8 @@ export class Document extends Handle<BaseGlue> {
    * they disagree and the PDF/A and PDF/UA levels it claims.
    *
    * @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.2.0
    */
   metadata(): DocumentMetadata {
     return this.call(() => this.#doc.metadata());
@@ -670,6 +758,8 @@ export class Document extends Handle<BaseGlue> {
    *   `replaceMalformed`: replace XMP metadata that can't be read, losing what it held.
    * @throws {@link LaminaPdfError} `malformed-xmp` when the XMP metadata can't be read and
    *   `replaceMalformed` isn't set; as {@link Document.apply}.
+   *
+   * @since 0.2.0
    */
   setMetadata(patch: MetadataPatch, options?: MetadataEditOptions): Edited {
     return this.apply([setMetadataOp(patch, options)]);
@@ -681,6 +771,8 @@ export class Document extends Handle<BaseGlue> {
    * (`save({ mode: "fullRewrite" })`); the result's `stillInEarlierRevisions` says when.
    *
    * @throws {@link LaminaPdfError} as {@link Document.setMetadata}.
+   *
+   * @since 0.2.0
    */
   removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Edited {
     return this.apply([removeMetadataOp(keys, options)]);
@@ -692,6 +784,8 @@ export class Document extends Handle<BaseGlue> {
    * conformance warnings. A save that would be refused is a plan with a `refusal`, not an error.
    *
    * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for bad options; reading errors.
+   *
+   * @since 0.2.0
    */
   plan(options?: SaveOptions): PlannedSave {
     return this.call(() => this.#doc.plan(options));
@@ -702,6 +796,8 @@ export class Document extends Handle<BaseGlue> {
    * before an edit (a metadata change on a certified file, for example).
    *
    * @throws {@link LaminaPdfError} `invalid-argument` for a value that isn't an op; reading errors.
+   *
+   * @since 0.2.0
    */
   wouldViolate(op: Op): Violation[] {
     return this.call(() => this.#doc.wouldViolate(op));
@@ -713,6 +809,8 @@ export class Document extends Handle<BaseGlue> {
    * @returns how it went (`outcome`) and the pages it touched (`touchedPages`, to draw again), or
    *   `undefined` when there is nothing to undo.
    * @throws {@link LaminaPdfError} `saved-not-rebased`; reading errors.
+   *
+   * @since 0.2.0
    */
   undo(): Reverted | undefined {
     this.#notInTransaction("undo");
@@ -725,6 +823,8 @@ export class Document extends Handle<BaseGlue> {
    * @returns how it went (`outcome`) and the pages it touched (`touchedPages`), or `undefined`
    *   when there is nothing to redo.
    * @throws {@link LaminaPdfError} as {@link Document.undo}.
+   *
+   * @since 0.2.0
    */
   redo(): Reverted | undefined {
     this.#notInTransaction("redo");
@@ -737,6 +837,8 @@ export class Document extends Handle<BaseGlue> {
    * @param options - `mode` (`auto`, `incremental`, `fullRewrite`), overrides, output form.
    * @returns the file's bytes.
    * @throws {@link LaminaPdfError} `would-invalidate-signatures`, `requires-rewrite`, `encrypted-base`, …
+   *
+   * @since 0.2.0
    */
   save(options?: SaveOptions): Uint8Array<ArrayBuffer> {
     return this.saveWithReport(options).bytes;
@@ -746,6 +848,8 @@ export class Document extends Handle<BaseGlue> {
    * As {@link Document.save}, with the save's report (mode used, bytes written, renumbering, …).
    *
    * @throws {@link LaminaPdfError} as {@link Document.save}.
+   *
+   * @since 0.2.0
    */
   saveWithReport(options?: SaveOptions): { readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
     this.#notInTransaction("save");
@@ -758,6 +862,8 @@ export class Document extends Handle<BaseGlue> {
    * only. For Save a copy, and for a copy to draw the pages from while edits stay unsaved.
    *
    * @throws {@link LaminaPdfError} as {@link Document.save}; the document is unchanged either way.
+   *
+   * @since 0.2.0
    */
   saveCopy(options?: SaveOptions): { readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
     this.#notInTransaction("saveCopy");
@@ -771,6 +877,8 @@ export class Document extends Handle<BaseGlue> {
    * in between.
    *
    * @throws {@link LaminaPdfError} `saved-not-rebased`; `not-rebased` when `bytes` can't be read.
+   *
+   * @since 0.2.0
    */
   adoptCopy(bytes: Uint8Array, historyCleared: boolean): void {
     this.#notInTransaction("adoptCopy");
@@ -781,6 +889,8 @@ export class Document extends Handle<BaseGlue> {
    * A save as a job stepped by the caller (to keep a UI responsive).
    *
    * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for bad options.
+   *
+   * @since 0.2.0
    */
   saveJob(options?: SaveOptions): SaveJob {
     this.#notInTransaction("saveJob");
@@ -795,6 +905,8 @@ export class Document extends Handle<BaseGlue> {
    * Rebases onto `bytes`, the output of a save whose rebase failed (`not-rebased`).
    *
    * @throws {@link LaminaPdfError} `no-pending-save`; reading errors in `bytes`.
+   *
+   * @since 0.2.0
    */
   rebase(bytes: Uint8Array): void {
     this.#notInTransaction("rebase");
