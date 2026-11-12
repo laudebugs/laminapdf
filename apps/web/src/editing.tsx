@@ -1,7 +1,9 @@
 // The edit session in the reader (Paper O01): the view's session (`viewer.edits`) in the commands'
 // context, with the shell's handlers for Show history and turning the current page; the More
 // menu's edit items; the History tab once an edit was made; the browser tab's "•" while there are
-// unsaved changes, and the browser's own prompt when the tab closes (`beforeunload`). What waits
+// unsaved changes, and the browser's own prompt when the tab closes (`beforeunload`); saving (Save,
+// Save as…, Save as optimised, and Download a copy with the edits, in save-flow.ts) and the strip
+// under the top bar that says how the file saves. What waits
 // until a document is open (the commands, toasts, the close confirmation, the tools) is in
 // editing-runtime.tsx, which loads then, with the History tab's panel, so none of it is in the
 // startup script (#380).
@@ -12,6 +14,7 @@ import {
   type EditControls,
   type GatedEntry,
   type KeyPlatform,
+  type Platform,
   type RailTab,
   type ShellLayout,
   sessionStarted,
@@ -19,8 +22,9 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { EditMenuId } from "./edit-menu.ts";
+import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
 
 /** The History tab's id in the rail. */
@@ -48,9 +52,20 @@ function useLater(open: boolean): Later | undefined {
 /** A store's subscribe with nothing to hear, for the session while no document is open. */
 const NOTHING_TO_HEAR = () => () => undefined;
 
-/** The delegated edit commands' handlers: Show history and turning the current page. */
+/** The delegated edit commands' handlers: Show history, turning the current page, and the saves. */
 export type EditActions = Readonly<
-  Partial<Record<"edit.history" | "pages.rotate-right" | "pages.rotate-left", () => void>>
+  Partial<
+    Record<
+      | "edit.history"
+      | "pages.rotate-right"
+      | "pages.rotate-left"
+      | "file.save"
+      | "file.save-as"
+      | "file.save-optimised"
+      | "file.save-copy",
+      () => void
+    >
+  >
 >;
 
 /** No handlers, before the edit commands load. */
@@ -69,6 +84,8 @@ export interface Editing {
   readonly later: Later | undefined;
   /** The top bar's save state, Undo and Redo, while a document is open. */
   readonly topBar: ReactNode;
+  /** The strip under the top bar: how the file saves, and a save that failed. */
+  readonly notice: ReactNode;
   /** The History tab, once the document has an edit session. */
   readonly tab: RailTab | undefined;
   /** The More menu's edit items and what each does, in the commands' context. */
@@ -87,6 +104,29 @@ export interface Editing {
   readonly runtime: (registry: CommandRegistry) => ReactNode;
 }
 
+/** The open document's saving, once later.ts has loaded; the file name it names is read when a save runs (Save as… changes it). */
+function useSaveFlow(
+  reader: {
+    readonly engine: Engine;
+    readonly viewer: Viewer | undefined;
+    readonly platform: Platform;
+    readonly toasts: ToastQueue;
+    readonly fileName: string | undefined;
+  },
+  later: Later | undefined,
+): SaveFlow | undefined {
+  const { engine, viewer, platform, toasts } = reader;
+  const name = useRef(reader.fileName);
+  name.current = reader.fileName;
+  return useMemo(
+    () =>
+      later === undefined || viewer === undefined
+        ? undefined
+        : new later.SaveFlow({ engine, viewer, platform, toasts, fileName: () => name.current ?? "" }),
+    [engine, viewer, platform, toasts, later],
+  );
+}
+
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
 export function useEditing(options: {
   readonly engine: Engine;
@@ -97,8 +137,9 @@ export function useEditing(options: {
   readonly fileName: string | undefined;
   /** How shortcut chips are written. */
   readonly keys: KeyPlatform;
+  readonly platform: Platform;
 }): Editing {
-  const { engine, viewer, toasts } = options;
+  const { engine, viewer, toasts, platform } = options;
   const { layout, registry } = options.shell;
   const pages = useStoreState(engine, (s) => s.pages);
   const edits = viewer?.edits;
@@ -114,10 +155,15 @@ export function useEditing(options: {
   const unsaved = slice?.history.unsaved ?? 0;
   const openedAt = useStoreState(engine, (s) => s.openedAt);
   const { fileName } = options;
-  // With the commands they run, which register once later.ts has loaded.
+  const flow = useSaveFlow({ engine, viewer, platform, toasts, fileName }, later);
+  // With the commands they run, which register once later.ts has loaded. Download a copy is the
+  // output's (the file as opened) until there are changes, then the flow's (with them).
   const actions = useMemo(
-    () => (later === undefined || viewer === undefined ? NO_ACTIONS : later.editActions(engine, layout, viewer)),
-    [engine, layout, viewer, later],
+    () =>
+      later === undefined || viewer === undefined || flow === undefined
+        ? NO_ACTIONS
+        : later.editActions(engine, layout, viewer, flow, unsaved > 0),
+    [engine, layout, viewer, later, flow, unsaved],
   );
   const tab = useMemo<RailTab | undefined>(
     () =>
@@ -134,9 +180,17 @@ export function useEditing(options: {
     later,
     topBar:
       edits === undefined || later === undefined ? undefined : <later.EditArea edits={edits} keys={options.keys} />,
+    notice: flow === undefined || later === undefined ? undefined : <later.SaveNotices flow={flow} />,
     runtime: (registry) =>
-      viewer === undefined || fileName === undefined || later === undefined ? null : (
-        <later.EditingRuntime engine={engine} viewer={viewer} registry={registry} toasts={toasts} fileName={fileName} />
+      viewer === undefined || fileName === undefined || later === undefined || flow === undefined ? null : (
+        <later.EditingRuntime
+          engine={engine}
+          viewer={viewer}
+          registry={registry}
+          toasts={toasts}
+          fileName={fileName}
+          flow={flow}
+        />
       ),
   };
 }

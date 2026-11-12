@@ -207,6 +207,7 @@ impl<'d> FullWriter<'d> {
             invalidated: Vec::new(),
             encryption_removed: decrypt,
             metadata: MetadataFlags::default(),
+            history_cleared: false,
         })
     }
 

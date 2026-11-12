@@ -3,7 +3,9 @@
 // makes until Organise (E2) brings the page grid. Undo, Redo and Go to step drive the session in
 // the context; Show history and the page turns are the shell's, which knows the rail and the pages.
 // Each has a visible home: the top bar's Undo and Redo, the web's More menu (the desktop's Edit
-// menu, once it has one), the History tab.
+// menu, once it has one), the History tab. Save, Save as… and Save as optimised (Paper O02) are the
+// shell's too, which plans the save, asks before one that breaks a signature, and writes the file
+// through the platform; their home is the top bar's Save button and its options.
 
 import { type EditControls, type EditSlice, inSentence, stepToRedo, stepToUndo } from "../edit/edit-controls.js";
 import { blockedReason } from "../edit/outcome.js";
@@ -66,6 +68,59 @@ function rotateCommand(id: CommandId, icon: "rotate-left" | "rotate-right"): Com
     enabled: editable,
     run: (ctx) => ctx.actions?.[id]?.(undefined),
   };
+}
+
+/** Save's keys: ⌘S and Ctrl S, in a text field too. Save as…'s: ⇧⌘S and Ctrl Shift S. */
+const SAVE_KEYS: readonly Shortcut[] = [{ mac: "Mod+S", other: "Mod+S", scope: "global" }];
+const SAVE_AS_KEYS: readonly Shortcut[] = [{ mac: "Mod+Shift+S", other: "Mod+Shift+S", scope: "global" }];
+
+/** `editable`, unless a save is already writing. */
+const notSaving = withSession((s) => (s.saving === true ? message("command.reason.saving") : true));
+
+/** A save command the shell runs (`actions`). */
+function saveCommand(command: Omit<Command, "group" | "delegated" | "run">): Command {
+  const { id } = command;
+  return { ...command, group: "file", delegated: true, run: (ctx) => ctx.actions?.[id]?.(undefined) };
+}
+
+/** Save, Save as… and Save as optimised. */
+function saveCommands(): readonly Command[] {
+  return [
+    saveCommand({
+      id: "file.save",
+      // Where the browser can neither write the file nor ask where to save, Save downloads it.
+      title: (ctx) => {
+        const { canWriteInPlace, canSaveAsDialog } = ctx.platform.capabilities;
+        return message(canWriteInPlace || canSaveAsDialog ? "command.file.save" : "command.file.save.download");
+      },
+      keywords: ["write", "keep", "download"],
+      shortcuts: SAVE_KEYS,
+      home: ["top-bar"],
+      enabled: (ctx) => {
+        const ok = notSaving(ctx);
+        if (ok !== true) return ok;
+        return (ctx.edits as EditControls).getState().history.unsaved > 0
+          ? true
+          : message("command.reason.nothingToSave");
+      },
+    }),
+    saveCommand({
+      id: "file.save-as",
+      title: message("command.file.save-as"),
+      keywords: ["write", "new file", "export"],
+      shortcuts: SAVE_AS_KEYS,
+      requires: "canSaveAsDialog",
+      home: ["top-bar"],
+      enabled: notSaving,
+    }),
+    saveCommand({
+      id: "file.save-optimised",
+      title: message("command.file.save-optimised"),
+      keywords: ["rewrite", "compact", "smaller"],
+      home: ["top-bar"],
+      enabled: notSaving,
+    }),
+  ];
 }
 
 /** The edit session's commands, built in the catalogue's words. */
@@ -138,6 +193,7 @@ export function editCommands(): readonly AnyCommand[] {
     } satisfies Command<number>,
     rotateCommand("pages.rotate-right", "rotate-right"),
     rotateCommand("pages.rotate-left", "rotate-left"),
+    ...saveCommands(),
   ];
 }
 

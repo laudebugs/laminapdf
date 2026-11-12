@@ -243,6 +243,43 @@ impl WasmDocument {
         saved(&out)
     }
 
+    /// Writes what `save` would and leaves the document as it was: not rebased, its changes
+    /// still unsaved, the save-time stamp in the copy only (Save a copy).
+    ///
+    /// # Errors
+    /// As `save`; the document is unchanged either way.
+    #[wasm_bindgen(js_name = saveCopy, unchecked_return_type = "{ bytes: Uint8Array<ArrayBuffer>; report: SaveReportJs }")]
+    pub fn save_copy(
+        &mut self,
+        #[wasm_bindgen(unchecked_param_type = "SaveOptionsInit | undefined")] options: &JsValue,
+    ) -> JsResult<JsValue> {
+        let options: SaveOptionsInit = from_js_or_default(options, "options")?;
+        let out = self
+            .doc
+            .borrow_mut()
+            .save_copy(&options.to_options()?)
+            .map_err(|e| lamina_error(&e))?;
+        saved(&out)
+    }
+
+    /// Makes `bytes`, the whole output of `saveCopy`, the document's saved file (it rebases onto
+    /// them), once they are written where the document lives; `historyCleared` is the copy's
+    /// report's.
+    ///
+    /// # Errors
+    /// `nested-transaction`, `saved-not-rebased`; `not-rebased` when `bytes` can't be read.
+    #[wasm_bindgen(js_name = adoptCopy)]
+    pub fn adopt_copy(
+        &mut self,
+        bytes: &[u8],
+        #[wasm_bindgen(js_name = historyCleared)] history_cleared: bool,
+    ) -> JsResult<()> {
+        self.doc
+            .borrow_mut()
+            .adopt_copy(bytes.to_vec(), history_cleared)
+            .map_err(|e| lamina_error(&e))
+    }
+
     /// A save as a job, stepped with a budget of work units (ADR 0028 §3, §4).
     ///
     /// # Errors

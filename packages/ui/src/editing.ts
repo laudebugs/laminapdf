@@ -7,4 +7,12 @@ export { editCommands, registerEditCommands } from "./commands/edit-commands.js"
 export { EditArea } from "./edit/edit-area.js";
 export { HistoryPanel, type HistoryPanelProps } from "./edit/history-panel.js";
 export { blockedReason, revertedText } from "./edit/outcome.js";
+export {
+  ConformanceDialog,
+  RemoveSignaturesDialog,
+  type SavePlanSlice,
+  type SaveSignature,
+  SaveStrip,
+  signatureKind,
+} from "./edit/save-ui.js";
 export { attachTools, handTool, SELECT_TOOL, TEXT_SELECT_TOOL, ToolRegistry } from "./tools/tools.js";

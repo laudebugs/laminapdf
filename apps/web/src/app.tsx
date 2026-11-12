@@ -51,7 +51,7 @@ import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAnnouncements } from "./announce.tsx";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
-import { type Editing, type EditMenuId, useEditing } from "./editing.tsx";
+import { type EditActions, type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
@@ -445,6 +445,8 @@ function useDocumentMenu(
   shown: Viewer | undefined,
   settings: Settings,
   shared: { readonly updates: AppUpdates; readonly toasts: ToastQueue },
+  /** The edit session's handlers, which take Download a copy over while there are changes. */
+  editActions: EditActions,
 ): {
   labels: readonly string[] | undefined;
   output: Output;
@@ -477,7 +479,10 @@ function useDocumentMenu(
     else if (id === "shortcuts") appActions["help.shortcuts"]?.(undefined);
     else if (id === "install") install.actions["app.install"]?.();
     else if (id === "privacy") void platform.openExternal(PRIVACY_URL).catch(() => undefined);
-    else output.actions[MORE_COMMANDS[id]]();
+    else {
+      const command = MORE_COMMANDS[id];
+      (editActions[command as keyof EditActions] ?? output.actions[command])();
+    }
   };
   return {
     labels,
@@ -629,6 +634,18 @@ function useDocumentChrome(options: {
   return { find, tabs, rail, history, selection, reading, commands };
 }
 
+/** Two strips under the top bar, one over the other; either alone when the other is empty. */
+function both(first: ReactNode, second: ReactNode): ReactNode {
+  if (first === undefined || first === null) return second;
+  if (second === undefined || second === null) return first;
+  return (
+    <>
+      {first}
+      {second}
+    </>
+  );
+}
+
 /** The reader over `engine`, on `platform`. */
 export function App({ engine, platform, network, updates, debug }: AppProps): ReactNode {
   const state = useReaderState(engine.reader);
@@ -640,8 +657,8 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const shown = open ? engineState.viewer : undefined;
   const { settings, toasts } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined);
   const fileName = open ? state.file.name : undefined;
-  const editing = useEditing({ engine, shell, viewer: shown, toasts, fileName, keys: KEYS });
-  const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts });
+  const editing = useEditing({ engine, shell, viewer: shown, toasts, fileName, keys: KEYS, platform });
+  const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts }, editing.actions);
   const { labels, output, recent } = menu;
   const chrome = useDocumentChrome({ engine, platform, shell, state, shown, editing, menu });
   const { find, tabs, rail, history, selection, reading, commands } = chrome;
@@ -666,7 +683,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
         layout={layout}
         modes={modes}
         {...(find.bar === undefined ? {} : { secondaryToolbar: find.bar })}
-        notice={notice}
+        notice={both(notice, editing.notice)}
         topBar={
           <ReaderTopBar
             reader={engine.reader}

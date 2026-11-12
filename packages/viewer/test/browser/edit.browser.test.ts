@@ -414,3 +414,78 @@ describe("the edit session", () => {
     expect(String((error as Error).message)).toContain("encrypted");
   });
 });
+
+describe("saving the edit session", () => {
+  it("saves: a copy written, adopted, the history marked saved, the next save appending to it", async () => {
+    const client = await opened();
+    const id = client.document?.pages[1]?.id as string;
+    await client.applyEdit(turn(id), { label: "Rotate page 2" });
+    const copy = await client.copyEdits({ metadataDate: new Date(0).toISOString() });
+    const before = (await client.editHistory()).unsaved;
+    const after = await client.adoptEdits(copy.token);
+    await client.applyEdit(turn(id, 180), { label: "Rotate page 2 again" });
+    const next = await client.copyEdits({});
+    const tail = next.bytes.subarray(0, copy.bytes.length);
+    expect([before, after.unsaved, after.steps.length, tail.every((b, i) => b === copy.bytes[i])]).toEqual([
+      1,
+      0,
+      1,
+      true,
+    ]);
+  });
+
+  it("leaves the document unsaved with a copy that is never adopted (Save a copy)", async () => {
+    const client = await opened();
+    await client.applyEdit(turn(client.document?.pages[1]?.id as string));
+    await client.copyEdits({});
+    expect((await client.editHistory()).unsaved).toBe(1);
+  });
+
+  it("refuses a copy an edit made stale: the document stays unsaved", async () => {
+    const client = await opened();
+    const id = client.document?.pages[1]?.id as string;
+    await client.applyEdit(turn(id));
+    const copy = await client.copyEdits({});
+    await client.applyEdit(turn(id, 180));
+    const error = await rejection(client.adoptEdits(copy.token));
+    expect([String((error as Error).message), (await client.editHistory()).unsaved]).toEqual([
+      expect.stringContaining("changed after this copy"),
+      2,
+    ]);
+  });
+
+  it("empties the history for a save that rewrites the file", async () => {
+    const client = await opened();
+    await client.applyEdit(turn(client.document?.pages[1]?.id as string));
+    const copy = await client.copyEdits({ mode: "fullRewrite" });
+    const history = await client.adoptEdits(copy.token);
+    expect([copy.report.historyCleared, history.steps.length, history.unsaved]).toEqual([true, 0, 0]);
+  });
+
+  it("applies an edit a certification forbids, and plans its save as a conflict naming the signature", async () => {
+    rpc = await testViewer("pdfium");
+    const opened = await rpc.open(await read("fixtures/signed/certified-p1.pdf"));
+    await rpc.applyEdit(turn(opened.pages[0]?.id as string), { label: "Rotate page 1" });
+    const plan = await rpc.planSave({});
+    expect([plan.constraint, plan.signatures.length > 0, opened.pages[0]?.rotation]).toEqual(["conflict", true, 0]);
+    expect(rpc.document?.pages[0]?.rotation).toBe(90);
+  });
+
+  it("reopens the saved file after a restart, and takes back only the edits since the save", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const id = client.document?.pages[1]?.id as string;
+    await v.applyEdit(turn(id), { label: "Rotate page 2" });
+    await v.edits.save({}, async () => {});
+    await v.applyEdit(turn(id, 180), { label: "Rotate page 2 again" });
+    const restarted = next(client, "restarted");
+    void hook(client, "__crash").catch(() => undefined);
+    expect(await restarted).toMatchObject({ reopened: true, edits: "restored" });
+    const history = await client.editHistory();
+    expect([history.steps.map((s) => s.label), history.unsaved, client.document?.pages[1]?.rotation]).toEqual([
+      ["Rotate page 2 again"],
+      1,
+      180,
+    ]);
+  });
+});
