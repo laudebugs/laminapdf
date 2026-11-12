@@ -1,7 +1,9 @@
 //! `cargo xtask changes`: which groups of CI jobs can a branch's changes affect? Both lanes' first
 //! job (`.github/workflows/ci.yml`, `full.yml`, ADR 0018 §2) runs it on pull requests and runs each
 //! group of jobs only when its flag is true: `code` (anything but docs), and the narrower `gallery`,
-//! `web`, `desktop`, `render`, `rust` and `ts` (CI caching plan §8.1). Pushes to main run everything.
+//! `web`, `desktop` (its inputs worked out in [`desktop`]), `render`, `rust` and `ts` (CI caching plan
+//! §8.1). Pushes to main run everything. It also prints `desktop-key`, which names the desktop's
+//! inputs, so a desktop leg that passed on them can be skipped (todo X10b).
 //!
 //! The filter is an allowlist of documentation paths ([`is_docs`], where it is defined); every
 //! other path counts as code. Inverting it this way means a root config file nobody thought to list
@@ -15,6 +17,8 @@ use anyhow::{Context, Result};
 
 use crate::tracked::git;
 
+pub(crate) mod desktop;
+
 /// `cargo xtask changes [--base <rev>]`: lists the paths changed since the merge base of
 /// `base` and `HEAD`, prints each flag as `name=true|false`, and appends them to
 /// `$GITHUB_OUTPUT` when it is set (in GitHub Actions).
@@ -26,6 +30,7 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
     let diff = git(root, &["diff", "--name-only", "--no-renames", "-z", merge_base, "HEAD"])?;
     let paths: Vec<&str> = diff.split('\0').filter(|p| !p.is_empty()).collect();
     let code = touches_code(&paths);
+    let desktop_inputs = desktop::inputs(root)?;
     println!("{} paths changed since {merge_base} ({base}):", paths.len());
     for path in &paths {
         let kind = if is_docs(path) { "docs" } else { "code" };
@@ -35,7 +40,7 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
         ("code", code),
         ("gallery", touches_gallery(&paths)),
         ("web", touches_web(&paths)),
-        ("desktop", touches_desktop(&paths)),
+        ("desktop", desktop::touches(&paths, &desktop_inputs)),
         ("render", touches_render(&paths)),
         ("rust", touches_rust(&paths)),
         ("ts", touches_ts(&paths)),
@@ -44,7 +49,13 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
         println!("{name}={value}");
         crate::util::github_output(name, &value.to_string())?;
     }
-    Ok(())
+    // A JSON list, which codeql.yml's matrix reads (todo X10c).
+    let languages = serde_json::to_string(&codeql_languages(&paths))?;
+    println!("codeql={languages}");
+    crate::util::github_output("codeql", &languages)?;
+    let key = desktop::key(root, &desktop_inputs)?;
+    println!("desktop-key={key}");
+    crate::util::github_output("desktop-key", &key)
 }
 
 /// Whether any of `paths` that isn't docs lies outside every prefix of `outside`, or counts all the
@@ -99,34 +110,6 @@ fn ts_anyway(path: &str) -> bool {
 /// but docs and the paths in [`OUTSIDE_TS`]: when unsure, a path counts.
 pub(crate) fn touches_ts(paths: &[&str]) -> bool {
     touches_unless_outside(paths, &OUTSIDE_TS, ts_anyway)
-}
-
-/// What the desktop app's three-OS build depends on (apps/desktop, ADR 0008): the app, the
-/// packages its frontend imports, the crates (the engine will be one), the manifests, lockfiles,
-/// toolchains and shared configs, and the workflow and actions that build it.
-const DESKTOP_INPUTS: [&str; 15] = [
-    "apps/desktop/",
-    "packages/",
-    "crates/",
-    "Cargo.toml",
-    "Cargo.lock",
-    "rust-toolchain.toml",
-    "package.json",
-    ".nvmrc",
-    "pnpm-lock.yaml",
-    "pnpm-workspace.yaml",
-    "tsconfig.base.json",
-    "biome.json",
-    ".github/workflows/full.yml",
-    ".github/actions/linux-webkit/",
-    ".github/actions/node-pnpm/",
-];
-
-/// Whether any of `paths` can change how the desktop app builds, so the full lane builds it.
-pub(crate) fn touches_desktop(paths: &[&str]) -> bool {
-    paths
-        .iter()
-        .any(|path| !is_docs(path) && DESKTOP_INPUTS.iter().any(|input| path.starts_with(input)))
 }
 
 /// What the render goldens draw from (`cargo xtask render-golden`, the full lane's macOS job; todo
@@ -205,6 +188,42 @@ pub(crate) fn touches_web(paths: &[&str]) -> bool {
     })
 }
 
+/// CodeQL's languages, as codeql.yml's matrix names them, in its order (todo X10c).
+pub(crate) const CODEQL_LANGUAGES: [&str; 4] = ["actions", "javascript-typescript", "python", "rust"];
+
+/// The CodeQL languages whose analysis any of `paths` can change, in [`CODEQL_LANGUAGES`]' order:
+/// a workflow or action for `actions`, a script or web page for `javascript-typescript`, a Python
+/// file for `python`, and a Rust file or the Cargo manifests for `rust`. Docs change none; the
+/// CodeQL workflow itself changes all four.
+pub(crate) fn codeql_languages(paths: &[&str]) -> Vec<&'static str> {
+    const SCRIPTS: [&str; 12] = [
+        "ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs", "html", "htm", "vue", "json",
+    ];
+    let language = |path: &str| -> &[&'static str] {
+        let extension = Path::new(path).extension().and_then(|e| e.to_str()).unwrap_or_default();
+        let name = Path::new(path).file_name().and_then(|n| n.to_str()).unwrap_or_default();
+        if path == ".github/workflows/codeql.yml" || path.starts_with(".github/codeql/") {
+            &CODEQL_LANGUAGES
+        } else if path.starts_with(".github/workflows/") || path.starts_with(".github/actions/") {
+            &["actions"]
+        } else if SCRIPTS.contains(&extension) {
+            &["javascript-typescript"]
+        } else if extension == "py" || extension == "pyi" {
+            &["python"]
+        } else if extension == "rs" || name == "Cargo.toml" || name == "Cargo.lock" {
+            &["rust"]
+        } else {
+            &[]
+        }
+    };
+    let touched: Vec<&str> = paths
+        .iter()
+        .filter(|path| !is_docs(path))
+        .flat_map(|path| language(path).iter().copied())
+        .collect();
+    CODEQL_LANGUAGES.into_iter().filter(|l| touched.contains(l)).collect()
+}
+
 /// Old path → new path for each file renamed between `merge_base` and the working tree.
 pub(crate) fn renames(root: &Path, merge_base: &str) -> Result<BTreeMap<String, String>> {
     let diff = git(
@@ -277,8 +296,8 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        is_docs, pick_base, touches_code, touches_desktop, touches_gallery, touches_render, touches_rust, touches_ts,
-        touches_web,
+        CODEQL_LANGUAGES, codeql_languages, is_docs, pick_base, touches_code, touches_gallery, touches_render,
+        touches_rust, touches_ts, touches_web,
     };
 
     #[test]
@@ -331,17 +350,42 @@ mod tests {
     }
 
     #[test]
-    fn touches_desktop_should_follow_the_app_its_inputs_and_its_workflow() {
-        assert!(touches_desktop(&["apps/desktop/src/main.tsx"]));
-        assert!(touches_desktop(&["packages/ui/src/index.ts"]));
-        assert!(touches_desktop(&["Cargo.lock"]));
-        assert!(touches_desktop(&[".github/actions/linux-webkit/action.yml"]));
-        assert!(touches_desktop(&[".nvmrc"]));
-        assert!(!touches_desktop(&[
-            "apps/web/src/app.tsx",
-            "docs/README.md",
-            "tools/xtask/src/web.rs"
-        ]));
+    fn codeql_languages_should_be_none_for_docs_alone() {
+        assert_eq!(
+            codeql_languages(&["docs/plans/ci-caching.md", "README.md", "docs/research/x/notes.ts"]),
+            Vec::<&str>::new()
+        );
+    }
+
+    #[test]
+    fn codeql_languages_should_follow_each_files_language() {
+        assert_eq!(
+            [
+                codeql_languages(&["packages/sdk/src/index.ts", "apps/docs/astro.config.mjs"]),
+                codeql_languages(&["tools/render/pdfium.py"]),
+                codeql_languages(&["crates/laminapdf/src/lib.rs", "Cargo.lock"]),
+                codeql_languages(&[".github/workflows/full.yml", ".github/actions/node-pnpm/action.yml"]),
+                codeql_languages(&["crates/laminapdf/README.md", "fixtures/corpus/hello.pdf"]),
+            ],
+            [
+                vec!["javascript-typescript"],
+                vec!["python"],
+                vec!["rust"],
+                vec!["actions"],
+                vec![],
+            ]
+        );
+    }
+
+    #[test]
+    fn codeql_languages_should_be_all_four_for_the_codeql_workflow_in_order() {
+        assert_eq!(
+            [
+                codeql_languages(&[".github/workflows/codeql.yml"]),
+                codeql_languages(&["x.rs", "a.py", ".github/workflows/ci.yml", "b.ts"]),
+            ],
+            [CODEQL_LANGUAGES.to_vec(), CODEQL_LANGUAGES.to_vec()]
+        );
     }
 
     #[test]

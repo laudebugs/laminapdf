@@ -6,8 +6,9 @@
 # add a workflow-level `paths` filter here.
 #
 # Adding a suite: give it `needs: changes`, an `if:` on its flag (`code` unless a narrower one
-# fits: `desktop`, `render`, `rust`; CI caching plan §8.1), and add it to `gate.needs`; a suite
-# on any flag but `code` also needs a line in the gate's `case`. All suites are required, including
+# fits: `desktop-build`, `desktop-e2e`, `render`, `rust`; CI caching plan §8.1), and add it to
+# `gate.needs`; a suite on any flag but `code` also needs a line in the gate's `case`. The two
+# desktop jobs also leave out each leg that already passed on the same inputs (todo X10b). All suites are required, including
 # the hosted Linux Arm64 and Windows x64 checks.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
@@ -49,9 +50,18 @@ jobs:
     name: Changed paths
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: read
+      # Listing the cache entries that name a desktop leg's pass (todo X10b).
+      actions: read
     outputs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
       desktop: ${{ steps.pr.outputs.desktop || steps.push.outputs.desktop }}
+      # Whether each desktop job has a leg to run, and the legs (todo X10b).
+      desktop-build: ${{ steps.desktop.outputs.build }}
+      desktop-build-legs: ${{ steps.desktop.outputs.build-legs }}
+      desktop-e2e: ${{ steps.desktop.outputs.e2e }}
+      desktop-e2e-legs: ${{ steps.desktop.outputs.e2e-legs }}
       render: ${{ steps.pr.outputs.render || steps.push.outputs.render }}
       rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
       ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
@@ -90,6 +100,48 @@ jobs:
       - name: Docs checks (cargo xtask check docs)
         if: github.event_name == 'pull_request'
         run: cargo xtask check docs
+      # Todo X10b: each desktop leg saves an empty cache entry, desktop-passed-<key>-<job>-<os>,
+      # once it passes, where <key> names the contents of every file the desktop jobs read
+      # (`cargo xtask desktop-key`). A PR leaves out each leg with such an entry, saved by this PR
+      # or by main (the only scopes a PR's run can restore from), for its own key. Pushes to main
+      # run every leg. A failed lookup leaves nothing out.
+      - name: Choose the desktop legs
+        id: desktop
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          DESKTOP: ${{ steps.pr.outputs.desktop || steps.push.outputs.desktop }}
+          KEY: ${{ steps.pr.outputs.desktop-key }}
+          PR_REF: refs/pull/${{ github.event.pull_request.number }}/merge
+        run: |
+          set -euo pipefail
+          legs='[
+            {"os": "linux", "runner": "ubuntu-22.04"},
+            {"os": "macos", "runner": "macos-15"},
+            {"os": "windows", "runner": "windows-2025"}
+          ]'
+          passed='[]'
+          if [ "$EVENT" = pull_request ] && [ "$DESKTOP" = true ]; then
+            passed=$(for ref in "$PR_REF" refs/heads/main; do
+              gh api -X GET "repos/$REPO/actions/caches" -f key="desktop-passed-$KEY-" -f ref="$ref" \
+                -F per_page=100 --jq '[.actions_caches[].key]' || echo '[]'
+            done | jq -cs 'add')
+          fi
+          for job in build e2e; do
+            chosen='[]'
+            if [ "$DESKTOP" = true ]; then
+              chosen=$(jq -c --arg prefix "desktop-passed-$KEY-$job-" --argjson passed "$passed" \
+                '[.[] | select((($prefix + .os) as $k | $passed | index($k)) == null)]' <<<"$legs")
+            fi
+            run=true
+            if [ "$chosen" = '[]' ]; then run=false; fi
+            {
+              echo "$job-legs=$chosen"
+              echo "$job=$run"
+            } >> "$GITHUB_OUTPUT"
+            echo "desktop $job legs: $chosen"
+          done
 
   # ADR 0018 tier 9: every fuzz target under default Limits, 2 at once (`--jobs 2`: built once,
   # then separate cargo-fuzz processes): 30 s per target on PRs, a smoke test that keeps the PR
@@ -202,16 +254,14 @@ jobs:
   desktop:
     name: Desktop build (${{ matrix.os }})
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.desktop == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.desktop-build == 'true' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { os: linux, runner: ubuntu-22.04 }
-          - { os: macos, runner: macos-15 }
-          - { os: windows, runner: windows-2025 }
+        # The `changes` job's list: Linux, macOS and Windows, less those that passed on these inputs.
+        include: ${{ fromJSON(needs.changes.outputs.desktop-build-legs) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -289,6 +339,22 @@ jobs:
             echo "::error::the frontend bundle holds the e2e probe or WebdriverIO's plugin"
             exit 1
           fi
+      # Todo X10b: this leg passed on these inputs, so a later run with the same ones leaves it out.
+      - name: Name this leg's pass
+        id: passed
+        shell: bash
+        env:
+          OS: ${{ matrix.os }}
+        run: |
+          set -euo pipefail
+          mkdir -p target/desktop-passed
+          echo "$GITHUB_RUN_ID" > target/desktop-passed/run
+          echo "key=desktop-passed-$(cargo xtask desktop-key)-build-$OS" >> "$GITHUB_OUTPUT"
+      - name: Save this leg's pass
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/desktop-passed
+          key: ${{ steps.passed.outputs.key }}
 
   # The reader's end-to-end scenarios (D2e) against the desktop app's e2e build on each OS:
   # WebdriverIO drives the app through the WebDriver server it embeds (tauri-plugin-wdio-webdriver,
@@ -297,16 +363,14 @@ jobs:
   desktop-e2e:
     name: Desktop e2e (${{ matrix.os }})
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.desktop == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.desktop-e2e == 'true' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { os: linux, runner: ubuntu-22.04 }
-          - { os: macos, runner: macos-15 }
-          - { os: windows, runner: windows-2025 }
+        # The `changes` job's list: Linux, macOS and Windows, less those that passed on these inputs.
+        include: ${{ fromJSON(needs.changes.outputs.desktop-e2e-legs) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -376,6 +440,22 @@ jobs:
           else
             pnpm --filter @laminapdf/desktop run cold-start
           fi
+      # Todo X10b: this leg passed on these inputs, so a later run with the same ones leaves it out.
+      - name: Name this leg's pass
+        id: passed
+        shell: bash
+        env:
+          OS: ${{ matrix.os }}
+        run: |
+          set -euo pipefail
+          mkdir -p target/desktop-passed
+          echo "$GITHUB_RUN_ID" > target/desktop-passed/run
+          echo "key=desktop-passed-$(cargo xtask desktop-key)-e2e-$OS" >> "$GITHUB_OUTPUT"
+      - name: Save this leg's pass
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/desktop-passed
+          key: ${{ steps.passed.outputs.key }}
       - name: Upload the failed scenarios' screenshots and logs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -552,6 +632,8 @@ jobs:
           NEEDS: ${{ toJSON(needs) }}
           CODE: ${{ needs.changes.outputs.code }}
           DESKTOP: ${{ needs.changes.outputs.desktop }}
+          DESKTOP_BUILD: ${{ needs.changes.outputs.desktop-build }}
+          DESKTOP_E2E: ${{ needs.changes.outputs.desktop-e2e }}
           RENDER: ${{ needs.changes.outputs.render }}
           RUST: ${{ needs.changes.outputs.rust }}
           TS: ${{ needs.changes.outputs.ts }}
@@ -562,7 +644,8 @@ jobs:
             echo "::error::the changes job ended with '$changes'"
             exit 1
           fi
-          for flag in "code=$CODE" "desktop=$DESKTOP" "render=$RENDER" "rust=$RUST" "ts=$TS"; do
+          for flag in "code=$CODE" "desktop=$DESKTOP" "desktop-build=$DESKTOP_BUILD" "desktop-e2e=$DESKTOP_E2E" \
+            "render=$RENDER" "rust=$RUST" "ts=$TS"; do
             case "${flag#*=}" in
               true|false) echo "Needed: $flag" ;;
               *)
@@ -574,13 +657,15 @@ jobs:
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
-            # Each job follows a flag (todos X9b, X9c): desktop and desktop-e2e `desktop`;
-            # render-golden `render`; fuzz `rust`; the others `code`, since check-linux and
-            # check-windows run the whole `cargo xtask check` and the suites read both Rust and the
-            # TypeScript tests' capability tags.
+            # Each job follows a flag (todos X9b, X9c, X10b): desktop `desktop-build` and
+            # desktop-e2e `desktop-e2e` (false when no leg is left to run); render-golden `render`;
+            # fuzz `rust`; the others `code`, since check-linux and check-windows run the whole
+            # `cargo xtask check` and the suites read both Rust and the TypeScript tests'
+            # capability tags.
             needed=$CODE
             case "$job" in
-              desktop | desktop-e2e) needed=$DESKTOP ;;
+              desktop) needed=$DESKTOP_BUILD ;;
+              desktop-e2e) needed=$DESKTOP_E2E ;;
               render-golden) needed=$RENDER ;;
               fuzz) needed=$RUST ;;
             esac

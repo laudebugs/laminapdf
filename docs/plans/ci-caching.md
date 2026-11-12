@@ -5,7 +5,7 @@
 - **Asked for by:** the project owner (2026-11-12): "look at caching for our tests, so as to speed up the pipeline", then "cache the rust builds without turborepo", with the cache on Cloudflare R2.
 - **Changes:** [ADR 0018 §2](../decisions/0018-test-strategy.md#2-ci-lanes) (a CI compile cache, and what may never use it)
 - **Builds on:** the fast and full lanes ([X4](../todos/done/X4-full-lane-gate.md), [X7](../todos/done/X7-fast-lane-gate.md)), the hosted runners ([X6](../todos/done/X6-windows-ci.md)), and the shared setup actions in `.github/actions/`
-- **Todos:** [§7](#7-todos) (the compile cache) and [§8](#8-the-waits) (the waits)
+- **Todos:** [§7](#7-todos) (the compile cache), [§8](#8-the-waits) (the waits) and [§8.2](#82-desktop-legs-and-codeql-by-what-changed-x10) (desktop legs and CodeQL)
 
 ## 1. Goal
 
@@ -142,9 +142,18 @@ The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 mi
 | `ci.yml`'s `rust` legs and `msrv-and-spike`; `full.yml`'s `fuzz` | `rust` | `apps/web/`, `apps/docs/`, `apps/site/`, `apps/gallery/`, `packages/`, but not `packages/sdk/` or any package's `src/` | Rust tests read the SDK's schemas and test files; `check maintainability` scans package sources for todo IDs |
 | `ci.yml`'s `wasm`, `pdf-runtimes`, `semver`, `typescript` | `ts` | `fuzz/`, `spikes/`, `tools/`, `.github/workflows/`, but not `tools/xtask/`, `tools/cli-release/`, `tools/fonts/`, any file Biome lints, or the two lanes' workflows | The crates and fixtures always count: the WebAssembly, the docs site and the examples' goldens come from them |
 | `full.yml`'s `render-golden` | `render` (X9b) | Runs only when a path is under the crates, the example and render goldens, the corpus, `tools/render/`, `tools/xtask/`, the manifests and toolchain, or `full.yml` | It needs a Mac |
-| `full.yml`'s `desktop`, `desktop-e2e` | `desktop` | Runs only when a path is under `DESKTOP_INPUTS` (the desktop app, the packages, the crates, the manifests and the desktop's actions) | |
+| `full.yml`'s `desktop`, `desktop-e2e` | `desktop-build`, `desktop-e2e` (X10a, X10b) | Runs only when a path is among the desktop's inputs (`changes/desktop.rs`: the crates and packages the app builds, from the dependency graph, and a fixed list) and a leg is left that hasn't passed on them | §8.2 |
+| `codeql.yml`'s `analyze` legs | `codeql` (X10c) | A language runs only when a path is in it | §8.2 |
 | `full.yml`'s `check-linux`, `check-windows`, `suites` | `code` | Docs only | The checks run the whole `cargo xtask check`; the suites read both Rust and the TypeScript tests' capability tags, so `rust` or `ts` would always equal `code` |
 
 A change only to `apps/web/` runs none of `ci.yml`'s native Rust legs; `check-linux` and `check-windows` still run, since they check everything. A change only to a crate runs both groups. `fast-gate` and `gate` check each job against its flag, and `tools/xtask/src/workflows.rs` checks that each job's `if` names the flag its gate expects. The risk is a Rust test that starts reading a file under `apps/` or `packages/`: the `rust` flag would miss it until the next push to `main`.
 
 Turborepo for the TypeScript packages stays as ADR 0015 left it, to revisit once TypeScript time shows on the critical path.
+
+### 8.2 Desktop legs and CodeQL by what changed (X10)
+
+The desktop jobs and CodeQL ran more than a pull request's changes needed. The owner asked for both to run only when their inputs change (2026-11-12), and kept the macOS desktop legs on pull requests. Three todos, in one PR:
+
+- [x] The `desktop` flag counted every crate and package, so a CLI-only change built and tested the app on three systems. `cargo xtask changes` now works out the crates the app, its engine and its WebAssembly reach through path dependencies (`cargo metadata --no-deps`), and the packages `apps/desktop` reaches through `workspace:` dependencies; a fixed list adds the manifests, toolchains, the fixtures the scenarios open, the xtask modules the jobs run and the workflow ([X10a](../todos/ongoing/X10a-desktop-inputs-from-the-graph.md)). `laminapdf-cli`, `laminapdf-layout-onnx`, `packages/cli`, `packages/layout-heron` and `packages/site-kit` fall outside it.
+- [x] A rerun of the full lane ran every desktop leg again, though nothing the app reads had changed: a description edit reruns the lane, and so does a merge from `main` that touched other code. `cargo xtask desktop-key` names the contents of every input file at `HEAD`. Each passing leg saves an empty Actions cache entry, `desktop-passed-<key>-<build|e2e>-<os>`, and the `changes` job leaves out each leg with an entry saved by the same PR or by `main` ([X10b](../todos/ongoing/X10b-reuse-desktop-legs-that-passed.md)). Pushes to `main` run every leg, so they save the entries that PRs matching `main`'s inputs reuse. A PR can only fool its own gate this way, since its entries are visible to no other ref. An evicted entry runs the leg again.
+- [x] CodeQL analysed four languages on every pull request, a docs-only one included. `cargo xtask changes` now lists the languages a PR's paths are in, and `codeql.yml` analyses only those; pushes to `main` and the weekly schedule analyse all four ([X10c](../todos/ongoing/X10c-codeql-by-changed-language.md)).
