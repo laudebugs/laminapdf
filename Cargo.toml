@@ -32,7 +32,7 @@ publish = false
 # for by the crates and builds that want it (laminapdf-cos and the façade by default; ADR 0016 §5).
 laminapdf-syntax = { version = "0.2.0-alpha.6", path = "crates/laminapdf-syntax", default-features = false }
 laminapdf-cos = { version = "0.2.0-alpha.6", path = "crates/laminapdf-cos", default-features = false }
-laminapdf-model = { version = "0.2.0-alpha.6", path = "crates/laminapdf-model" }
+laminapdf-model = { version = "0.2.0-alpha.6", path = "crates/laminapdf-model", default-features = false }
 laminapdf-ops = { version = "0.2.0-alpha.6", path = "crates/laminapdf-ops" }
 laminapdf-source = { version = "0.2.0-alpha.6", path = "crates/laminapdf-source" }
 laminapdf-save = { version = "0.2.0-alpha.6", path = "crates/laminapdf-save" }

@@ -11,7 +11,7 @@ Typed, tolerant views over a PDF's COS graph and the stable `LaminaPdfId`s that 
 - `Outline` / `OutlineItem`: titles (PDFDocEncoding, UTF-16BE, UTF-8), nesting, open state, destinations resolved to `PageId` + view (explicit, `/Dests`, `/Names /Dests`, `GoTo` actions), action kinds.
 - `Info` with dates as `PdfDate` (raw string kept when invalid); `NameTree`, `NumberTree`; `PageLabels`.
 - `StructTree` / `StructElem` / `StructKid` (`Document::structure()`, B8a): a minimal read-only view of the logical structure: each element's `/S`, `/Pg`, `/Alt`, `/ActualText`, `/E`, `/Lang` and kids (child elements, MCIDs with their page, `OBJR`s), the `RoleMap` (`standard_kind`), the raw `ParentTree` and `/ParentTreeNextKey`; elements reached twice or deeper than `max_tree_depth` are skipped with `invalid-entry`.
-- Writing (the editor's foundation, ISO 32000-2 §7.7.3, §7.9.6, §7.9.7):
+- Writing (the editor's foundation, ISO 32000-2 §7.7.3, §7.9.6, §7.9.7; the default feature `edit`, which crates that only read leave off):
   - `Document::edit_page_tree()` gives a `PageTreeEditor`, which inserts, removes and moves pages by `PageId` and `PagePosition` (`insert`, `insert_new`, `remove`, `move_pages`). `finish` writes the edits through the overlay; dropping the editor writes nothing.
   - A page that moves keeps the `/Resources`, `/MediaBox`, `/CropBox` and `/Rotate` it showed. Every touched `/Count` and `/Parent` is written, and nodes left empty are removed.
   - The tree is rebuilt balanced only past `PageTreeEditor::MAX_DEPTH` (32 levels) or `MAX_KIDS` (1,024 kids on a touched node). A page dictionary listed twice is copied, with an `invalid-entry` warning on `Kids`.
