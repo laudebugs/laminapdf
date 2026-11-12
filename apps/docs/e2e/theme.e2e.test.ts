@@ -6,6 +6,7 @@
 
 import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
+import { withoutSelectErrors } from "@laminapdf/test-utils/webkit-select";
 import { type Browser, type BrowserContext, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 
@@ -55,7 +56,7 @@ describe(`the theme switch in ${BROWSER}`, () => {
     const select = page.getByRole("combobox", { name: "Select theme" }).first();
     expect(await select.inputValue()).toBe("auto");
     expect(await shownTheme(page)).toBe("dark");
-    expect(errors).toEqual([]);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await context.close();
   });
 
@@ -82,10 +83,13 @@ describe(`the theme switch in ${BROWSER}`, () => {
     await select.selectOption("light");
     expect(await shownTheme(page)).toBe("light");
     expect(await stored(page)).toBe("light");
+    // Each load is checked on its own, since WebKit reports the page's selects once per load.
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
+    errors.length = 0;
     await page.reload();
     expect(await select.inputValue()).toBe("light");
     expect(await shownTheme(page)).toBe("light");
-    expect(errors).toEqual([]);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await context.close();
   });
 
@@ -97,7 +101,7 @@ describe(`the theme switch in ${BROWSER}`, () => {
     await select.selectOption("auto");
     expect(await shownTheme(page)).toBe("light");
     expect(await stored(page)).toBe("");
-    expect(errors).toEqual([]);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await context.close();
   });
 
@@ -110,7 +114,7 @@ describe(`the theme switch in ${BROWSER}`, () => {
     await menuSwitch.selectOption("light");
     expect(await shownTheme(page)).toBe("light");
     expect(await switches(page)).toEqual(["light", "light"]);
-    expect(errors).toEqual([]);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await context.close();
   });
 });

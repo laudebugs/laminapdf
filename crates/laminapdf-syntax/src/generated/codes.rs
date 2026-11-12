@@ -100,6 +100,8 @@ pub enum ErrorCode {
     NoPendingSave,
     /// `malformed-xmp`: a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds.
     MalformedXmp,
+    /// `unknown-source`: an op or a call names a source document that was not added to the session.
+    UnknownSource,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -295,6 +297,7 @@ impl ErrorCode {
         Self::SavedNotRebased,
         Self::NoPendingSave,
         Self::MalformedXmp,
+        Self::UnknownSource,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -426,6 +429,7 @@ impl ErrorCode {
             Self::SavedNotRebased => "saved-not-rebased",
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
+            Self::UnknownSource => "unknown-source",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -543,6 +547,7 @@ impl ErrorCode {
             Self::SavedNotRebased => ErrorKind::State,
             Self::NoPendingSave => ErrorKind::State,
             Self::MalformedXmp => ErrorKind::Input,
+            Self::UnknownSource => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -660,6 +665,7 @@ impl ErrorCode {
             Self::SavedNotRebased => "the document was saved to a sink Lamina PDF cannot read back and waits for rebase",
             Self::NoPendingSave => "rebase was called without a save waiting for it",
             Self::MalformedXmp => "a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds",
+            Self::UnknownSource => "an op or a call names a source document that was not added to the session",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -777,6 +783,7 @@ impl ErrorCode {
             Self::SavedNotRebased => "call rebase with the saved bytes before applying ops or saving again",
             Self::NoPendingSave => "call rebase only after a save that returned SavedNotRebased",
             Self::MalformedXmp => "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
+            Self::UnknownSource => "add the source document's bytes with addSource before applying ops that name it",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

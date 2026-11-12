@@ -77,14 +77,18 @@ jobs:
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    # The compile cache's trial (todo X8a) runs on the legs marked compile-cache. On a push to
+    # main they take the rust-compile-cache environment, which only main may use and which holds
+    # the token that writes; every other run gets no environment and the read-only token.
+    environment: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.compile-cache && 'rust-compile-cache' || '' }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { platform: linux-x64, runner: ubuntu-24.04, host: x86_64-unknown-linux-gnu }
+          - { platform: linux-x64, runner: ubuntu-24.04, host: x86_64-unknown-linux-gnu, compile-cache: true }
           - { platform: linux-arm64, runner: ubuntu-24.04-arm, host: aarch64-unknown-linux-gnu }
-          - { platform: macos-x64, runner: macos-15-intel, host: x86_64-apple-darwin }
-          - { platform: macos-arm64, runner: macos-15, host: aarch64-apple-darwin }
+          - { platform: macos-x64, runner: macos-15-intel, host: x86_64-apple-darwin, compile-cache: true }
+          - { platform: macos-arm64, runner: macos-15, host: aarch64-apple-darwin, compile-cache: true }
           - { platform: windows-x64, runner: windows-2025, host: x86_64-pc-windows-msvc }
           - { platform: windows-arm64, runner: windows-11-arm, host: aarch64-pc-windows-msvc }
     steps:
@@ -111,6 +115,15 @@ jobs:
             echo "::error::Expected native host $EXPECTED_HOST, got $actual"
             exit 1
           fi
+      # After the toolchain step, so the Rust cache's key doesn't change (docs/plans/ci-caching.md §4.1).
+      - name: Set up the compile cache
+        if: matrix.compile-cache
+        uses: ./.github/actions/rust-compile-cache
+        with:
+          endpoint: ${{ vars.SCCACHE_R2_ENDPOINT }}
+          bucket: ${{ vars.SCCACHE_R2_BUCKET }}
+          access-key-id: ${{ secrets.SCCACHE_R2_ACCESS_KEY_ID }}
+          secret-access-key: ${{ secrets.SCCACHE_R2_SECRET_ACCESS_KEY }}
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
       - uses: ./.github/actions/install-tools
         with:
@@ -140,6 +153,11 @@ jobs:
           path: ${{ env.CARGO_TARGET_DIR }}/doc/
           if-no-files-found: error
           retention-days: 30
+      - name: Compile cache statistics
+        if: ${{ !cancelled() && matrix.compile-cache }}
+        uses: ./.github/actions/rust-compile-cache
+        with:
+          stats: "true"
 
   # The @laminapdf/wasm modules (ADR 0016): built, tested in Node (wasm-bindgen-test and the
   # package's smoke test), and measured against the size budgets, failing above them.

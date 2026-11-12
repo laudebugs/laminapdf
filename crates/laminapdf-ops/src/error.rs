@@ -55,6 +55,11 @@ pub enum Error {
     /// replace the packet ([`SetMetadata::replace_malformed`](crate::SetMetadata::replace_malformed)).
     #[error("the XMP packet can't be read, and the edit would replace it")]
     MalformedXmp,
+    /// An op, or a call, names a source document the session doesn't hold: add it with
+    /// [`Document::add_source`](crate::Document::add_source) first (a restarted document worker re-adds
+    /// its sources before it replays the log).
+    #[error("no source document with this ID was added to the session")]
+    UnknownSource(crate::SourceId),
 }
 
 /// A page ID as a message may show it: an object ID in full (lamina-made: a kind and two
@@ -91,6 +96,7 @@ impl Error {
         "saved-not-rebased",
         "no-pending-save",
         "malformed-xmp",
+        "unknown-source",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -109,6 +115,7 @@ impl Error {
             Self::SavedNotRebased => "saved-not-rebased",
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
+            Self::UnknownSource(_) => "unknown-source",
         }
     }
 
@@ -126,7 +133,7 @@ impl Error {
             Self::NestedTransaction | Self::NoTransaction | Self::SavedNotRebased | Self::NoPendingSave => {
                 ErrorKind::State
             }
-            Self::UnknownPage(_) => ErrorKind::Usage,
+            Self::UnknownPage(_) | Self::UnknownSource(_) => ErrorKind::Usage,
             Self::DirectPage(_) | Self::UnsupportedVersion(_) => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
         }
@@ -155,7 +162,8 @@ impl Error {
             | Self::InvalidLog(_)
             | Self::SavedNotRebased
             | Self::NoPendingSave
-            | Self::MalformedXmp => Location::NONE,
+            | Self::MalformedXmp
+            | Self::UnknownSource(_) => Location::NONE,
         }
     }
 }
@@ -184,6 +192,7 @@ mod tests {
             Error::SavedNotRebased,
             Error::NoPendingSave,
             Error::MalformedXmp,
+            Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
         ]
     }
 

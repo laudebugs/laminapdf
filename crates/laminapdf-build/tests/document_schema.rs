@@ -228,3 +228,24 @@ fn no_message_carries_the_document_s_or_the_data_s_text() {
     assert!(!error.to_string().contains(MARKER), "{error}");
     assert!(key.0.contains(MARKER), "the pointer, in data, names the key");
 }
+
+#[test]
+fn a_tab_in_a_code_block_should_raise_no_tounicode_conflict_in_a_cff_font() {
+    let document = FlowDocument::from_json(&json!({
+        "schema": "laminapdf.document/1",
+        "styles": { "body": { "font": "noto", "size": 10 } },
+        "blocks": [
+            { "type": "codeBlock", "text": "name\tqty\n\tindented\nab\t1" },
+            { "type": "paragraph", "text": "a\tb" }
+        ]
+    }))
+    .unwrap();
+    let mut b = Builder::new(BuildOptions::new());
+    let noto = b
+        .font(laminapdf_text::Font::from_bytes(fixture("fonts/NotoSansSC-Regular.otf")).unwrap())
+        .unwrap();
+    let resources = laminapdf_build::flow::document::Resources::new().with_font("noto", &noto);
+    b.document(&document, &resources).unwrap();
+    let (_, warnings) = b.finish_with_warnings().unwrap();
+    assert_eq!(warnings, []);
+}
