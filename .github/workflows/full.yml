@@ -218,9 +218,15 @@ jobs:
           cache-bin: false
       - uses: ./.github/actions/node-pnpm
       - uses: ./.github/actions/linux-webkit
-      # The frontend imports the built @laminapdf/ui, tokens, fonts and icons.
+      - uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      # The frontend imports the built @laminapdf/ui, tokens, fonts and icons, and the viewer over
+      # @laminapdf/sdk and its WebAssembly (D2d).
       - name: Build the packages the frontend imports
-        run: pnpm --filter "@laminapdf/desktop^..." run build
+        run: cargo xtask desktop-frontend
+      - name: Typecheck the frontend against them
+        run: pnpm --filter @laminapdf/desktop run typecheck:wasm
       # desktop:build merges tauri.bundle.conf.json, whose beforeBuildCommand runs
       # `cargo xtask desktop-sidecar` (the engine, and PDFium from its pinned, hash-checked release).
       - name: Build the app with its engine and PDFium (tauri build --debug --no-bundle)

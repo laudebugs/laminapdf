@@ -562,7 +562,7 @@ pnpm --filter @laminapdf/desktop run desktop:dev  # the desktop reader with its 
 cargo xtask desktop-notices  # the desktop app's THIRD_PARTY_NOTICES.md (cargo-about, MPL-2.0 text included) into target/desktop/
 cargo xtask desktop-sidecar [--release|--debug]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
                              #   pinned PDFium into src-tauri/resources/pdfium/ (both git-ignored); the profile defaults to the
-                             #   Tauri CLI's (TAURI_ENV_DEBUG); desktop:dev/desktop:build run it first
+                             #   Tauri CLI's (release unless its hook sets TAURI_ENV_DEBUG=true); desktop:dev/desktop:build run it first
 cargo xtask fixtures large-pdf [--pages N] [--out PATH]  # the engine's 1 GB fixture (20,000 image pages, ~1.1 GB, never
                              #   committed) into target/fixtures/1gb.pdf; needs ~1.5 GB of RAM
 cargo run -p laminapdf-cli --features mcp -- mcp --root <dir> [--allow-write [--allow-in-place]]  # the MCP server on stdio (L4c)

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use laminapdf_desktop_protocol::DocId;
 use serde::Serialize;
 use tauri_plugin_dialog::DialogExt as _;
+use zeroize::Zeroizing;
 
 use crate::DesktopError;
 use crate::engine::{DocumentMeta, Engines, PageMeta};
@@ -88,6 +89,35 @@ pub(crate) async fn page_info(
     tauri::async_runtime::spawn_blocking(move || engines.page_info(window.label(), DocId(doc)))
         .await
         .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// Unlocks one of this window's documents with the password the user typed; the main process
+/// keeps it while the document stays open, so a restarted engine never asks again. The command's
+/// own copy is wiped when dropped and never logged; the IPC layer's buffers and serde's copies
+/// along the way are not ours to wipe.
+#[tauri::command]
+pub(crate) async fn unlock_document(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+    password: String,
+) -> Result<DocumentMeta, DesktopError> {
+    let password = Zeroizing::new(password);
+    let engines = Arc::clone(&engines);
+    tauri::async_runtime::spawn_blocking(move || engines.unlock(window.label(), DocId(doc), &password))
+        .await
+        .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// Drops tiles this window's viewer no longer wants (scrolled away, zoomed past), by the tickets
+/// their `lamina://` addresses carried.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its window and state by value"
+)]
+pub(crate) fn cancel_tiles(window: tauri::WebviewWindow, engines: tauri::State<'_, Arc<Engines>>, tickets: Vec<u64>) {
+    engines.cancel_tiles(window.label(), &tickets);
 }
 
 /// Closes one of this window's documents: the engine forgets it, its file closes and its kept
