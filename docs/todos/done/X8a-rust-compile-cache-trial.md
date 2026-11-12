@@ -54,7 +54,7 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
   - Cloudflare: the bucket, with a lifecycle rule deleting objects 30 days after upload; a read-only and a read-write R2 API token for that bucket alone.
   - GitHub secrets: the read token in repository and Dependabot secrets.
   - GitHub environment: the `rust-compile-cache` environment, limited to `main`, holding the write token.
-  - The names, which the owner set up on 2026-11-12 and the action must read:
+  - The names the action reads, which the owner creates (not yet set up on 2026-11-12):
     - `SCCACHE_R2_ENDPOINT` and `SCCACHE_R2_BUCKET`: repository variables;
     - `SCCACHE_R2_ACCESS_KEY_ID` and `SCCACHE_R2_SECRET_ACCESS_KEY`: the read token in repository and Dependabot secrets, and the write token under the same names in the `rust-compile-cache` environment, whose secrets take precedence there. A job therefore reads one pair of names and gets the write token only inside the environment.
 - [x] Add workflow checks:
@@ -73,7 +73,8 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
 
 ## Post-merge checks
 
-- [ ] After the owner commits the patch: five PR runs and five pushes to `main` on the two legs, with each job summary's stats, recorded in X8b.
+- [ ] The owner sets up the bucket, tokens, variables, secrets and environment (the action's README), and commits the patch.
+- [ ] After that: five PR runs and five pushes to `main` on the two legs, with each job summary's stats, recorded in X8b.
 - [ ] A PR run reads in `READ_ONLY` and writes nothing; a push to `main` writes.
 - [ ] The two legs' Rust-cache key, in the toolchain step's log, is the same as before the patch for the same `Cargo.lock`, so the compile cache, which comes after that step, leaves it alone.
 - [ ] A PR job runs with the empty environment expression (plan §6); if GitHub rejects it, switch to the `rust-compile-cache-read` fallback.
