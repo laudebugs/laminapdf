@@ -68,6 +68,7 @@
 //! [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #![forbid(unsafe_code)]
 
+mod copy;
 mod date;
 mod disclosure;
 mod document;
@@ -86,6 +87,7 @@ mod tree;
 mod values;
 pub mod xmp;
 
+pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};
 pub use disclosure::{
     Action, Annotation, Disclosure, EmbeddedFile, EmbeddedFileHolder, FormField, Owner, Trigger, XmpPacket,
