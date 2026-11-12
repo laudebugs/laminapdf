@@ -1,13 +1,13 @@
 # Desktop cold start
 
-`cold_start.py` measures how long the desktop app takes from launch to the first command its window sends, the moment its empty state accepts input (ADR 0008 §4). It needs a release build with the `e2e` feature, whose first command logs the app's own timings:
+`cold_start.py` measures the desktop app's two cold-start gates (ADR 0008 §4): launch to the window built and shown, and launch to the first command its window sends, the moment its empty state accepts input. It needs a release build with the `e2e` feature, whose first command logs the app's own timings:
 
 ```sh
 pnpm --filter @laminapdf/desktop run desktop:build --no-bundle --features e2e
 python3 tools/desktop/cold_start.py target/release/laminapdf-desktop 10
 ```
 
-`floor/` is the floor: a page that sends the first command as soon as it runs, with none of the app's code. Built in place of the app's frontend, it shows how much of the cold start Tauri and the webview take on their own:
+`floor/` is the floor: a page that sends the first command as soon as it runs, with none of the app's code. An app built with it in place of the frontend shows how much of the cold start Tauri and the webview take on their own:
 
 ```sh
 cd apps/desktop

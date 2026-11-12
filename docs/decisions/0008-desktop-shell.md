@@ -85,24 +85,26 @@ A failure answers `{ kind, message }` with a status the client maps back: 404 fo
 
 The app's open (0.48–0.68 s) matches the engine alone in §2 (478–494 ms), so the webview, the IPC and PDFium's own open add little to it. The sandbox adds about 15 ms to an engine's start: a warm engine is ready in 22–29 ms, against 8 ms before D2c, and the first engine after a build takes about 220 ms while macOS checks the new binary.
 
-**Cold start (D2g).** Most of the cold start is Tauri and the webview, not the app's code. D2g measured the steps with the `e2e` build's startup log and [`tools/desktop/cold_start.py`](../../tools/desktop/README.md), launching the app and a floor page in turn: the floor is the same app with a page that sends the first command as soon as it runs, and none of the app's code. Medians of 10 runs each on the M1 Pro (macOS 27, release builds), in milliseconds:
+**Cold start (D2g).** Most of the cold start is Tauri and the webview, not the app's code. D2g measured the steps with the `e2e` build's startup log and [`tools/desktop/cold_start.py`](../../tools/desktop/README.md), launching the app and a floor build in turn. The floor is the same app with a page that sends the first command as soon as it runs, and none of the app's code. Medians of 10 runs each on the M1 Pro (macOS 27, release builds), in milliseconds:
 
 | Step | App | Floor |
 | --- | --- | --- |
 | Launch → `run` | 8 | 8 |
 | `run` → `setup` (Tauri builds the app and starts its event loop) | 93 | 101 |
-| `setup` → window built (WKWebView created) | 135 | 129 |
+| `setup` → window built and shown (WKWebView created) | 135 | 129 |
 | Window → first command (the page loads and runs) | 201 | 169 |
 | Launch → first command | 436 | 410 |
 
-The machine was busy with other builds (load average 12–20), which lengthens every step, so only the two columns' difference is reliable: the app's code costs about 26 ms over the floor. The floor alone misses 300 ms, so no change to the app's code can meet the gate on this machine, and removing the viewer from the first chunk (522 KB of 604 KB stays) saved 13 ms of the 201. What D2g changed: the build no longer copies the viewer's 8 MB of WebAssembly into `dist/`, which the app never loads (the frontend went from 8.6 MB to 1.0 MB), and the full lane fails if it ever does again.
+The machine was busy with other builds (load average 12–20), so only the difference between the columns is reliable: the app's code costs about 26 ms over the floor. The floor alone takes over 300 ms, so changing the app's code can't meet the gate on this machine. A build without the viewer was only 13 ms faster to the first command, so the viewer stays in the first chunk.
 
-**The cold-start gates (owner decision 2026-11-11).** The desktop plan's < 300 ms to the first command (owner decision 2026-10-29) can't be met by the app while Tauri and the webview take 410 ms on a busy M1 Pro. Two gates replace it, both measured by `cold_start.py`:
+D2g changed the build: it no longer copies the viewer's 8 MB of WebAssembly, which the app never loads, into `dist/`. The frontend went from 8.6 MB to 1.0 MB, and the full lane fails if `dist/` holds a `.wasm` file again.
 
-- Launch → window on screen: under 300 ms (about 240 ms now). This is what the user sees first.
+**The cold-start gates (owner decision 2026-11-11).** Tauri and the webview alone take 410 ms on a busy M1 Pro, so the app can't meet the desktop plan's < 300 ms to the first command (owner decision 2026-10-29). Two gates replace it, both measured by `cold_start.py`:
+
+- Launch → window built and shown: under 300 ms (about 240 ms now). This is what the user sees first.
 - Launch → first command: within 50 ms of the floor, measured in the same session (26 ms now). This catches the app's own startup growing, on any machine, however busy.
 
-Windows and Linux are measured by D2e's reference runners, which read the same startup log.
+D2e's reference runners measure Windows and Linux from the same startup log.
 
 ### 5. Sandboxing per OS
 
