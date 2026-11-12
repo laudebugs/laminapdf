@@ -1,5 +1,7 @@
-//! `cargo xtask changes`: does a branch touch code, or only docs? The full lane's first job
-//! (`.github/workflows/full.yml`, ADR 0018 §2) runs it, and its suites run only for code.
+//! `cargo xtask changes`: which groups of CI jobs can a branch's changes affect? Both lanes' first
+//! job (`.github/workflows/ci.yml`, `full.yml`, ADR 0018 §2) runs it on pull requests and runs each
+//! group of jobs only when its flag is true: `code` (anything but docs), and the narrower `gallery`,
+//! `web`, `desktop`, `render`, `rust` and `ts` (CI caching plan §8.1). Pushes to main run everything.
 //!
 //! The filter is an allowlist of documentation paths ([`is_docs`], where it is defined); every
 //! other path counts as code. Inverting it this way means a root config file nobody thought to list
@@ -14,7 +16,7 @@ use anyhow::{Context, Result};
 use crate::tracked::git;
 
 /// `cargo xtask changes [--base <rev>]`: lists the paths changed since the merge base of
-/// `base` and `HEAD`, prints whether any of them is code, and appends `code=true|false` to
+/// `base` and `HEAD`, prints each flag as `name=true|false`, and appends them to
 /// `$GITHUB_OUTPUT` when it is set (in GitHub Actions).
 pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
     let merge_base = git(root, &["merge-base", base, "HEAD"])
@@ -29,30 +31,32 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
         let kind = if is_docs(path) { "docs" } else { "code" };
         println!("  {kind}  {path}");
     }
-    let gallery = touches_gallery(&paths);
-    let web = touches_web(&paths);
-    let desktop = touches_desktop(&paths);
-    let render = touches_render(&paths);
-    let rust = touches_rust(&paths);
-    let ts = touches_ts(&paths);
-    println!("code={code}");
-    println!("gallery={gallery}");
-    println!("web={web}");
-    println!("desktop={desktop}");
-    println!("render={render}");
-    println!("rust={rust}");
-    println!("ts={ts}");
-    crate::util::github_output("code", &code.to_string())?;
-    crate::util::github_output("gallery", &gallery.to_string())?;
-    crate::util::github_output("web", &web.to_string())?;
-    crate::util::github_output("desktop", &desktop.to_string())?;
-    crate::util::github_output("render", &render.to_string())?;
-    crate::util::github_output("rust", &rust.to_string())?;
-    crate::util::github_output("ts", &ts.to_string())
+    let flags = [
+        ("code", code),
+        ("gallery", touches_gallery(&paths)),
+        ("web", touches_web(&paths)),
+        ("desktop", touches_desktop(&paths)),
+        ("render", touches_render(&paths)),
+        ("rust", touches_rust(&paths)),
+        ("ts", touches_ts(&paths)),
+    ];
+    for (name, value) in flags {
+        println!("{name}={value}");
+        crate::util::github_output(name, &value.to_string())?;
+    }
+    Ok(())
+}
+
+/// Whether any of `paths` that isn't docs lies outside every prefix of `outside`, or counts all the
+/// same (`anyway`): the rule of the flags that list where a change can't reach their jobs.
+fn touches_unless_outside(paths: &[&str], outside: &[&str], anyway: impl Fn(&str) -> bool) -> bool {
+    paths
+        .iter()
+        .any(|path| !is_docs(path) && (anyway(path) || !outside.iter().any(|o| path.starts_with(o))))
 }
 
 /// Where a change can't affect the native Rust jobs (`check rust`, the MSRV check, the fuzz smoke;
-/// todo X9c): the apps built from TypeScript alone, and the packages, but for [`RUST_ANYWAY`].
+/// todo X9c): the apps built from TypeScript alone, and the packages, but for [`rust_anyway`].
 const OUTSIDE_RUST: [&str; 5] = ["apps/web/", "apps/docs/", "apps/site/", "apps/gallery/", "packages/"];
 
 /// Package paths the Rust jobs read all the same: @laminapdf/sdk, whose schemas and test files
@@ -68,9 +72,7 @@ fn rust_anyway(path: &str) -> bool {
 /// Whether any of `paths` can change a native Rust job's result. Everything counts but docs and
 /// the paths in [`OUTSIDE_RUST`]: when unsure, a path counts.
 pub(crate) fn touches_rust(paths: &[&str]) -> bool {
-    paths
-        .iter()
-        .any(|path| !is_docs(path) && (rust_anyway(path) || !OUTSIDE_RUST.iter().any(|o| path.starts_with(o))))
+    touches_unless_outside(paths, &OUTSIDE_RUST, rust_anyway)
 }
 
 /// Where a change can't affect the TypeScript and WebAssembly jobs (`check ts`, `wasm`, the
@@ -96,9 +98,7 @@ fn ts_anyway(path: &str) -> bool {
 /// Whether any of `paths` can change a TypeScript or WebAssembly job's result. Everything counts
 /// but docs and the paths in [`OUTSIDE_TS`]: when unsure, a path counts.
 pub(crate) fn touches_ts(paths: &[&str]) -> bool {
-    paths
-        .iter()
-        .any(|path| !is_docs(path) && (ts_anyway(path) || !OUTSIDE_TS.iter().any(|o| path.starts_with(o))))
+    touches_unless_outside(paths, &OUTSIDE_TS, ts_anyway)
 }
 
 /// What the desktop app's three-OS build depends on (apps/desktop, ADR 0008): the app, the
@@ -130,10 +130,11 @@ pub(crate) fn touches_desktop(paths: &[&str]) -> bool {
 }
 
 /// What the render goldens draw from (`cargo xtask render-golden`, the full lane's macOS job; todo
-/// X9b): the committed example PDFs and their pictures, the corpus and its goldens, the renderer
-/// tools, every crate (the render crates read through the core ones, and the examples come from
-/// the façade), the task itself, and the manifests, toolchain and workflow that build them. Wide on
-/// purpose: a path left out lets a drawing change through until the next push to main.
+/// X9b). Every crate counts, since the render crates read through the core ones and the examples
+/// come from the façade. So do the example PDFs and their pictures, the corpus and its goldens,
+/// `tools/render`, `tools/xtask` itself, and the manifests, toolchain and workflow that build them.
+/// The list is wide on purpose: a path left out lets a drawing change through until the next push
+/// to main.
 const RENDER_INPUTS: [&str; 12] = [
     "crates/",
     "fixtures/golden/examples/",
@@ -199,9 +200,8 @@ const WEB_ANYWAY: [&str; 2] = ["tools/xtask/", ".github/workflows/web-deploy.yml
 /// (`.github/workflows/web-deploy.yml`) run only when one does; the production deploy runs for
 /// every `web-v*` tag.
 pub(crate) fn touches_web(paths: &[&str]) -> bool {
-    paths.iter().any(|path| {
-        let under = |prefix: &&str| path.starts_with(prefix);
-        !is_docs(path) && (WEB_ANYWAY.iter().any(under) || !OUTSIDE_WEB.iter().any(under))
+    touches_unless_outside(paths, &OUTSIDE_WEB, |path| {
+        WEB_ANYWAY.iter().any(|w| path.starts_with(w))
     })
 }
 

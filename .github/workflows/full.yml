@@ -1,14 +1,14 @@
 # CI full lane (ADR 0018 §2, todo X4): every PR and every push to main, next to the fast lane
-# (ci.yml). It always runs, so its required check never waits as "Expected": `changes` decides
-# whether the change touches code (the docs allowlist is defined in tools/xtask/src/changes.rs),
-# the suites run only if it does (pushes to main always count as code), and `gate` passes when
-# every suite passed or was not needed. Branch protection requires `gate` and ci.yml's
-# `fast-gate` (todo X7). Never add a workflow-level `paths` filter here.
+# (ci.yml). It always runs, so its required check never waits as "Expected": `changes` reports
+# which groups of suites the change can affect (tools/xtask/src/changes.rs), each suite runs only
+# when its flag is true (pushes to main set every flag), and `gate` passes when every suite passed
+# or was not needed. Branch protection requires `gate` and ci.yml's `fast-gate` (todo X7). Never
+# add a workflow-level `paths` filter here.
 #
-# Adding a suite: give it `needs: changes`, the code-change condition below, and add it to
-# `gate.needs`. All code suites are required, including the hosted Linux Arm64 and Windows x64
-# checks. A suite with its own path filter (`desktop`) uses its own `changes` output instead,
-# and the gate's loop maps the job to that output.
+# Adding a suite: give it `needs: changes`, an `if:` on its flag (`code` unless a narrower one
+# fits: `desktop`, `render`, `rust`; CI caching plan §8.1), and add it to `gate.needs`; a suite
+# on any flag but `code` also needs a line in the gate's `case`. All suites are required, including
+# the hosted Linux Arm64 and Windows x64 checks.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Full lane
@@ -26,10 +26,7 @@ permissions:
 
 concurrency:
   group: full-${{ github.event.pull_request.number || github.ref }}
-  # A newer run cancels the older one, on PRs and on main alike (todo X9d): nothing reads a push to
-  # main's own result (the release trains wait on the nightly and on tag pushes), and the newer run
-  # saves the caches again. A commit whose run was cancelled has no result of its own; a break it
-  # brought shows in the next run.
+  # Newer runs cancel older ones, on PRs and on main (todo X9d; ADR 0018 §2).
   cancel-in-progress: true
 
 env:
@@ -433,7 +430,7 @@ jobs:
   suites:
     name: Suites (differential, capability matrix, round trip, examples)
     needs: changes
-    if: ${{ !cancelled() && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.ts == 'true') }}
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -529,10 +526,10 @@ jobs:
           path: target/xtask/render-golden/diff/
           if-no-files-found: ignore
 
-  # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with `code`
-  # exactly "true" or "false"; then every suite must have succeeded (code) or been skipped
-  # (docs-only). Any failure, cancellation, or skip of a suite that should have run fails it.
-  # Every code suite must succeed; docs-only changes skip all suites.
+  # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with every flag
+  # exactly "true" or "false"; then each suite must have succeeded when its flag is true, or been
+  # skipped when it is false. Any failure, cancellation, or skip of a suite that should have run
+  # fails it.
   gate:
     name: gate
     if: always()
@@ -567,16 +564,15 @@ jobs:
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
-            # The desktop build and its e2e suite follow their own paths (`desktop`), the render
-            # goldens theirs (`render`), the fuzz smoke the Rust jobs' (`rust`), the suites either
-            # group's (they read Rust and the TypeScript tests' capability tags; todo X9c), and the
-            # whole checks on Linux Arm64 and Windows `code`.
+            # Each job follows a flag (todos X9b, X9c): desktop and desktop-e2e `desktop`;
+            # render-golden `render`; fuzz `rust`; the others `code`, since check-linux and
+            # check-windows run the whole `cargo xtask check` and the suites read both Rust and the
+            # TypeScript tests' capability tags.
             needed=$CODE
             case "$job" in
               desktop | desktop-e2e) needed=$DESKTOP ;;
               render-golden) needed=$RENDER ;;
               fuzz) needed=$RUST ;;
-              suites) needed=$([ "$RUST" = true ] || [ "$TS" = true ] && echo true || echo false) ;;
             esac
             echo "$job: $result"
             case "$needed/$result" in

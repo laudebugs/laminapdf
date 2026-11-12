@@ -125,17 +125,16 @@ The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 mi
 
 ### 8.1 Which jobs a pull request's paths reach (X9c)
 
-`cargo xtask changes` gives each group of jobs a flag, and a pull request skips a group when no changed path can affect it; pushes to `main` run everything. Each flag is false on a docs-only change, and when unsure a path counts.
+`cargo xtask changes` gives each group of jobs a flag, and a pull request skips a group when no changed path can affect it; pushes to `main` run everything. A path counts when in doubt. Every flag is false on a docs-only change.
 
-| Jobs | Flag | A path counts unless it is under | Why the exceptions count |
+| Jobs | Flag | Skipped when every changed path is under | Notes |
 | --- | --- | --- | --- |
-| `ci.yml`'s `rust` legs and `msrv-and-spike`; `full.yml`'s `fuzz` | `rust` | `apps/web/`, `apps/docs/`, `apps/site/`, `apps/gallery/`, `packages/`, but `packages/sdk/` and any package's `src/` count | Rust tests read the SDK's schemas and test files; `check maintainability` scans package sources for todo IDs |
-| `ci.yml`'s `wasm`, `pdf-runtimes`, `semver`, `typescript` | `ts` | `fuzz/`, `spikes/`, `tools/`, `.github/workflows/`, but `tools/xtask/`, `tools/cli-release/`, `tools/fonts/`, any file Biome lints, and the two lanes' workflows count | The crates and fixtures always count: the WebAssembly, the docs site and the examples' goldens come from them |
-| `full.yml`'s `suites` | `rust` or `ts` | | It runs Rust suites and reads the TypeScript tests' capability tags |
-| `full.yml`'s `render-golden` | `render` (X9b) | anything outside the crates, the goldens, the corpus, `tools/render/`, `tools/xtask/`, the manifests and `full.yml` | |
-| `full.yml`'s `desktop`, `desktop-e2e` | `desktop` | (as before) | |
-| `full.yml`'s `check-linux`, `check-windows` | `code` | docs only | They run the whole `cargo xtask check` |
+| `ci.yml`'s `rust` legs and `msrv-and-spike`; `full.yml`'s `fuzz` | `rust` | `apps/web/`, `apps/docs/`, `apps/site/`, `apps/gallery/`, `packages/`, but not `packages/sdk/` or any package's `src/` | Rust tests read the SDK's schemas and test files; `check maintainability` scans package sources for todo IDs |
+| `ci.yml`'s `wasm`, `pdf-runtimes`, `semver`, `typescript` | `ts` | `fuzz/`, `spikes/`, `tools/`, `.github/workflows/`, but not `tools/xtask/`, `tools/cli-release/`, `tools/fonts/`, any file Biome lints, or the two lanes' workflows | The crates and fixtures always count: the WebAssembly, the docs site and the examples' goldens come from them |
+| `full.yml`'s `render-golden` | `render` (X9b) | Runs only when a path is under the crates, the example and render goldens, the corpus, `tools/render/`, `tools/xtask/`, the manifests and toolchain, or `full.yml` | It needs a Mac |
+| `full.yml`'s `desktop`, `desktop-e2e` | `desktop` | Runs only when a path is under `DESKTOP_INPUTS` (the desktop app, the packages, the crates, the manifests and the desktop's actions) | |
+| `full.yml`'s `check-linux`, `check-windows`, `suites` | `code` | Docs only | The checks run the whole `cargo xtask check`; the suites read both Rust and the TypeScript tests' capability tags, so `rust` or `ts` would always equal `code` |
 
-A change only to `apps/web/` runs no native Rust job; a change only to a crate runs both groups. `fast-gate` and `gate` hold each job to its flag, and `tools/xtask/src/workflows.rs` checks that each job's `if` names the flag its gate expects. The risk is a Rust test that starts reading a file under `apps/` or `packages/`: the flag would miss it until the next push to `main`.
+A change only to `apps/web/` runs none of `ci.yml`'s native Rust legs; `check-linux` and `check-windows` still run, since they check everything. A change only to a crate runs both groups. `fast-gate` and `gate` check each job against its flag, and `tools/xtask/src/workflows.rs` checks that each job's `if` names the flag its gate expects. The risk is a Rust test that starts reading a file under `apps/` or `packages/`: the `rust` flag would miss it until the next push to `main`.
 
 Turborepo for the TypeScript packages stays as ADR 0015 left it, to revisit once TypeScript time shows on the critical path.

@@ -2,10 +2,10 @@
 # and every push to main. Jobs call the same `cargo xtask …` entry points developers run locally.
 # The full lane (full.yml) runs alongside it. Branch protection requires `fast-gate` (the last
 # job in this file) and full.yml's `gate` (todo X7). A new job here runs on its group's flag from
-# `cargo xtask changes` (todo X9c), the native Rust jobs on
+# `cargo xtask changes` (todo X9c): native Rust jobs on
 #     if: ${{ !cancelled() && needs.changes.outputs.rust == 'true' }}
-# and the TypeScript and WebAssembly ones on `ts`, so a PR that can't affect it skips it (both are
-# false on docs-only PRs); it joins `fast-gate`'s `needs`, and fast-gate's `case` names its flag.
+# and TypeScript and WebAssembly jobs on `ts`. Both flags are false on docs-only PRs. Add the job to
+# `fast-gate`'s `needs`; a Rust job also needs a line in fast-gate's `case`, which defaults to `ts`.
 # Native Rust checks cover Linux, macOS and Windows on x64 and Arm64 (macOS x64 on pushes to main
 # and in the nightly only, todo X9a). Everything else runs on
 # Linux x64, except WebKit, which runs on macOS Arm64 (closest to Safari). Each job gets a
@@ -25,10 +25,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  # A newer run cancels the older one, on PRs and on main alike (todo X9d): nothing reads a push to
-  # main's own result (the release trains wait on the nightly and on tag pushes), and the newer run
-  # saves the caches again. A commit whose run was cancelled has no result of its own; a break it
-  # brought shows in the next run.
+  # Newer runs cancel older ones, on PRs and on main (todo X9d; ADR 0018 §2).
   cancel-in-progress: true
 
 env:
@@ -51,15 +48,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
-      code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
       rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
       ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
       rust-legs: ${{ steps.legs.outputs.rust-legs }}
     steps:
-      # The native Rust legs, read by the `rust` job's matrix. Pull requests leave out macOS x64
-      # (todo X9a): its runners are the slowest to come, so the leg runs on pushes to main and in
-      # the nightly (nightly.yml's rust-macos-x64), and macOS Arm64 still checks every PR. A
-      # matrix `exclude` can't do this, since GitHub adds an `include` entry back as a new leg.
+      # The native Rust legs, read by the `rust` job's matrix. Pull requests leave out macOS x64,
+      # because its runners queue longest; the leg runs on pushes to main and in the nightly
+      # (nightly.yml's rust-macos-x64; todo X9a). A matrix `exclude` can't do this: GitHub applies
+      # it before `include`, and this matrix is only `include` entries.
       - name: Choose the native Rust legs
         id: legs
         env:
@@ -82,7 +78,6 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           {
-            echo "code=true"
             echo "rust=true"
             echo "ts=true"
           } >> "$GITHUB_OUTPUT"
@@ -454,7 +449,6 @@ jobs:
       - name: Check every job passed or was not needed
         env:
           NEEDS: ${{ toJSON(needs) }}
-          CODE: ${{ needs.changes.outputs.code }}
           RUST: ${{ needs.changes.outputs.rust }}
           TS: ${{ needs.changes.outputs.ts }}
         run: |
@@ -464,7 +458,7 @@ jobs:
             echo "::error::the changes job ended with '$changes'"
             exit 1
           fi
-          for flag in "code=$CODE" "rust=$RUST" "ts=$TS"; do
+          for flag in "rust=$RUST" "ts=$TS"; do
             case "${flag#*=}" in
               true|false) echo "Needed: $flag" ;;
               *)

@@ -10,7 +10,10 @@
 //! one bump changes both, and no workflow or action but `.github/actions/install-tools` runs
 //! install-action, so its pin lives in one place. cli-release.yml publishes
 //! only on a CLI tag push with the owner's variable, in the `release` environment, with no stored
-//! secret, from GitHub-hosted runners only (todo L4d).
+//! secret, from GitHub-hosted runners only (todo L4d). Both lanes cancel a superseded run (X9d);
+//! ci.yml checks Rust on macOS x64 only on pushes to main, and the nightly checks it too (X9a);
+//! each job runs on the `changes` flag its gate holds it to (X9b, X9c); and every workflow
+//! installs the cargo-nextest and cargo-deny that `doctor.rs` pins.
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs and
 //! triggers are two-space-indented keys under the top-level `jobs:` and `on:`, and a job lists its
@@ -711,9 +714,9 @@ mod tests {
         );
     }
 
-    /// The platforms of ci.yml's native Rust legs, from the `changes` job's list.
-    fn rust_legs(workflow: &str) -> Vec<String> {
-        let lines: Vec<&str> = workflow.lines().collect();
+    /// The native Rust legs of ci.yml's `changes` job, as JSON objects.
+    fn rust_legs(workflow: &str) -> Vec<serde_json::Value> {
+        let lines = lines_of(workflow, "jobs", "changes");
         let start = lines.iter().position(|l| l.trim() == "legs='[").unwrap_or(lines.len());
         let end = lines
             .iter()
@@ -721,18 +724,22 @@ mod tests {
             .position(|l| l.trim() == "]'")
             .map_or(start, |n| start + n);
         let json = format!("[{}]", lines.get(start + 1..end).unwrap_or_default().join("\n"));
-        let legs: Vec<serde_json::Value> = serde_json::from_str(&json).unwrap_or_default();
-        legs.iter()
-            .filter_map(|leg| leg.get("platform").and_then(serde_json::Value::as_str))
-            .map(str::to_owned)
-            .collect()
+        serde_json::from_str(&json).unwrap_or_default()
     }
 
-    /// Todo X9a: every native Rust leg on pushes to main; pull requests leave out only macOS x64.
+    fn platform(leg: &serde_json::Value) -> &str {
+        leg.get("platform")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default()
+    }
+
+    /// Todo X9a: pushes to main run all six native Rust legs.
     #[test]
-    fn ci_should_run_macos_x64_rust_on_main_only() {
+    fn ci_should_list_every_native_rust_leg() {
+        let legs = rust_legs(CI);
+        let platforms: Vec<&str> = legs.iter().map(platform).collect();
         assert_eq!(
-            rust_legs(CI),
+            platforms,
             [
                 "linux-x64",
                 "linux-arm64",
@@ -742,87 +749,150 @@ mod tests {
                 "windows-arm64"
             ]
         );
-        let changes = jobs(CI)
-            .into_iter()
-            .find(|(id, _)| *id == "changes")
-            .map(|(_, l)| l)
-            .unwrap_or_default();
-        let filter = changes
-            .iter()
-            .position(|l| l.contains(r#"select(.platform != "macos-x64")"#));
-        let guarded = filter.is_some_and(|at| {
-            changes
-                .get(at.saturating_sub(1))
-                .is_some_and(|l| l.contains(r#"if [ "$EVENT" = pull_request ]"#))
-        });
-        assert!(guarded, "only a pull request may drop the macOS x64 leg");
-        let rust = jobs(CI)
-            .into_iter()
-            .find(|(id, _)| *id == "rust")
-            .map(|(_, l)| l)
-            .unwrap_or_default();
-        assert!(
-            rust.iter()
-                .any(|l| l.contains("include: ${{ fromJSON(needs.changes.outputs.rust-legs) }}"))
+    }
+
+    /// Todo X9a: the macOS x64 leg keeps filling the compile cache from main.
+    #[test]
+    fn the_macos_x64_leg_should_keep_the_compile_cache() {
+        let leg = rust_legs(CI).into_iter().find(|leg| platform(leg) == "macos-x64");
+        assert_eq!(
+            leg.and_then(|l| l.get("compile-cache").cloned()),
+            Some(serde_json::Value::Bool(true))
         );
     }
 
-    /// Todo X9a: the nightly checks Rust on macOS x64, and its report covers the job.
+    /// Todo X9a: only a pull request drops the macOS x64 leg.
     #[test]
-    fn nightly_should_check_rust_on_macos_x64() {
-        let job = jobs(NIGHTLY)
-            .into_iter()
-            .find(|(id, _)| *id == "rust-macos-x64")
-            .map(|(_, l)| l)
-            .unwrap_or_default();
-        assert!(job.iter().any(|l| l.trim() == "runs-on: macos-15-intel"));
-        assert!(job.iter().any(|l| l.trim() == "- run: cargo xtask check rust"));
-        assert!(needs(NIGHTLY, "report").contains(&"rust-macos-x64"));
+    fn only_a_pull_request_should_drop_the_macos_x64_leg() {
+        let lines = lines_of(CI, "jobs", "changes");
+        let filter = lines
+            .iter()
+            .position(|l| l.contains(r#"select(.platform != "macos-x64")"#));
+        let guard = filter.and_then(|at| lines.get(at.checked_sub(1)?));
+        assert!(guard.is_some_and(|l| l.contains(r#"if [ "$EVENT" = pull_request ]"#)));
+    }
+
+    /// Todo X9a: the `rust` matrix is the `changes` job's list.
+    #[test]
+    fn the_rust_matrix_should_read_the_changes_jobs_list() {
+        assert!(
+            lines_of(CI, "jobs", "rust")
+                .iter()
+                .any(|l| l.trim() == "include: ${{ fromJSON(needs.changes.outputs.rust-legs) }}")
+        );
+    }
+
+    /// Todo X9a: the nightly checks Rust on macOS x64, after the benchmarks, and reports it.
+    #[test]
+    fn nightly_should_check_rust_on_macos_x64_after_the_benchmarks() {
+        let job = lines_of(NIGHTLY, "jobs", "rust-macos-x64");
+        assert_eq!(
+            [
+                job.iter().any(|l| l.trim() == "runs-on: macos-15-intel"),
+                job.iter().any(|l| l.trim() == "- run: cargo xtask check rust"),
+                needs(NIGHTLY, "rust-macos-x64") == ["bench"],
+                needs(NIGHTLY, "report").contains(&"rust-macos-x64"),
+            ],
+            [true; 4]
+        );
     }
 
     #[test]
     fn rust_legs_should_read_nothing_from_a_workflow_without_the_list() {
-        assert_eq!(rust_legs("jobs:\n  a:\n    steps: []\n"), Vec::<String>::new());
+        assert_eq!(
+            rust_legs("jobs:\n  changes:\n    steps: []\n"),
+            Vec::<serde_json::Value>::new()
+        );
     }
 
-    /// The `changes` output a job's `if` runs it on (`code`, `rust`, `ts`, …), each one it names.
+    /// The `changes` outputs a job's `if` names (`code`, `rust`, `ts`, …), in order.
     fn flags_of(workflow: &str, job: &str) -> Vec<String> {
-        let lines = jobs(workflow)
-            .into_iter()
-            .find(|(id, _)| *id == job)
-            .map(|(_, l)| l)
-            .unwrap_or_default();
+        let lines = lines_of(workflow, "jobs", job);
         lines
             .iter()
             .filter(|l| l.trim_start().starts_with("if:"))
             .take(1)
             .flat_map(|l| l.split("needs.changes.outputs.").skip(1))
-            .filter_map(|rest| rest.split_whitespace().next())
-            .map(str::to_owned)
+            .map(|rest| {
+                rest.chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
+                    .collect()
+            })
             .collect()
     }
 
-    /// Todo X9c: each job runs on the flag its gate holds it to.
+    /// The flag `gate` holds each job of `workflow` to, read from its shell: the `case` lines
+    /// (`a | b) needed=$FLAG ;;`), then its default (a `*)` line, or `needed=$FLAG` before the `case`).
+    fn gate_flag(workflow: &str, gate: &str, job: &str) -> Option<String> {
+        let lines = lines_of(workflow, "jobs", gate);
+        let flag_of = |line: &str| {
+            line.split("needed=$").nth(1).map(|rest| {
+                rest.chars()
+                    .take_while(char::is_ascii_alphabetic)
+                    .collect::<String>()
+                    .to_lowercase()
+            })
+        };
+        let listed = lines.iter().find_map(|l| {
+            let (jobs, _) = l.trim().split_once(") needed=$")?;
+            jobs.split('|').any(|j| j.trim() == job).then(|| flag_of(l)).flatten()
+        });
+        let default = lines
+            .iter()
+            .find(|l| l.trim().starts_with("*) needed=$"))
+            .or_else(|| lines.iter().find(|l| l.trim().starts_with("needed=$")))
+            .and_then(|l| flag_of(l));
+        listed.or(default)
+    }
+
+    /// Todos X9b, X9c: every job a gate needs runs on the one flag that gate holds it to, so a
+    /// job added on one flag and left to the gate's default fails here.
     #[test]
-    fn every_job_should_run_on_the_flag_its_gate_expects() {
-        let expected = [
-            (CI, "rust", vec!["rust"]),
-            (CI, "msrv-and-spike", vec!["rust"]),
-            (CI, "wasm", vec!["ts"]),
-            (CI, "pdf-runtimes", vec!["ts"]),
-            (CI, "semver", vec!["ts"]),
-            (CI, "typescript", vec!["ts"]),
-            (FULL, "fuzz", vec!["rust"]),
-            (FULL, "suites", vec!["rust", "ts"]),
-            (FULL, "render-golden", vec!["render"]),
-            (FULL, "check-linux", vec!["code"]),
-            (FULL, "check-windows", vec!["code"]),
-            (FULL, "desktop", vec!["desktop"]),
-            (FULL, "desktop-e2e", vec!["desktop"]),
-        ];
-        for (workflow, job, flags) in expected {
-            assert_eq!(flags_of(workflow, job), flags, "{job}");
+    fn every_job_should_run_on_the_flag_its_gate_holds_it_to() {
+        let mut wrong: Vec<String> = Vec::new();
+        for (workflow, gate) in [(CI, "fast-gate"), (FULL, "gate")] {
+            for job in needs(workflow, gate).into_iter().filter(|j| *j != "changes") {
+                let expected: Vec<String> = gate_flag(workflow, gate, job).into_iter().collect();
+                if flags_of(workflow, job) != expected {
+                    wrong.push(format!(
+                        "{gate}: {job} runs on {:?}, held to {expected:?}",
+                        flags_of(workflow, job)
+                    ));
+                }
+            }
         }
+        assert_eq!(wrong, Vec::<String>::new());
+    }
+
+    #[test]
+    fn gate_flag_should_prefer_a_case_line_over_the_default() {
+        let workflow = "jobs:\n  g:\n    steps:\n      - run: |\n          needed=$CODE\n          case \"$job\" in\n            a | b) needed=$RUST ;;\n          esac\n";
+        assert_eq!(
+            [gate_flag(workflow, "g", "b"), gate_flag(workflow, "g", "c")],
+            [Some("rust".to_owned()), Some("code".to_owned())]
+        );
+    }
+
+    /// Every workflow installs the cargo-nextest and cargo-deny that doctor.rs pins.
+    #[test]
+    fn every_workflow_should_install_the_pinned_nextest_and_deny() {
+        let pins = [
+            ("cargo-nextest@", crate::doctor::CARGO_NEXTEST_VERSION),
+            ("cargo-deny@", crate::doctor::CARGO_DENY_VERSION),
+        ];
+        let mut off: Vec<String> = Vec::new();
+        for path in workflow_files() {
+            let text = repository_file(&path).unwrap_or_default();
+            for (tool, version) in pins {
+                for found in text.split(tool).skip(1) {
+                    let found: String = found.chars().take_while(|c| c.is_ascii_digit() || *c == '.').collect();
+                    if found != version {
+                        off.push(format!("{path}: {tool}{found}, want {version}"));
+                    }
+                }
+            }
+        }
+        assert_eq!(off, Vec::<String>::new());
     }
 
     #[test]
