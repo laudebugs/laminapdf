@@ -1,0 +1,60 @@
+---
+title: Show a PDF in a web page
+description: Put a scrolling, zooming PDF viewer in your web page with @laminapdf/viewer, which opens and draws the file in a Web Worker with PDFium.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+You'll put a PDF viewer in your own web page: the reader scrolls, zooms and selects text, and the page stays responsive however long the file is. You need this when your app shows PDFs and the browser's built-in viewer isn't enough, or isn't there at all.
+
+This example starts the viewer, opens a file the reader picked, asks for a password when the file has one, and keeps a "Page 3 of 12" label up to date:
+
+<Snippet file="packages/viewer/examples/show-a-pdf.ts" />
+
+Call `startViewer` when your page loads and `showFile` when the reader picks a file, for example from an `<input type="file">`. The viewer fills the element you give it, so give that element a size, such as `height: 100vh`. Once the file opens, you see its first page fitted to the width, and scrolling brings in the next ones.
+
+:::caution[Preview]
+`@laminapdf/viewer` is newer than the rest of Lamina PDF, and its API can still change between releases. This page shows only its core: starting a viewer, opening a file, moving through it and reading its state. The package's README lists the rest, such as find, thumbnails and edits.
+:::
+
+## Install the viewer and PDFium
+
+Install the viewer and the PDFium build it draws with, at the versions these docs describe:
+
+```sh
+npm install @laminapdf/viewer@{{version}} @laminapdf/sdk@{{version}} @embedpdf/pdfium@2.15.1
+```
+
+PDFium is the engine behind Chrome's PDF viewer, compiled to WebAssembly. The viewer is tested with one exact build, 2.15.1, so pin that version. Your bundler gives its `.wasm` file a URL with the `?url` import the example uses; Vite does this out of the box. Exclude `@laminapdf/sdk`, `@laminapdf/viewer` and `@embedpdf/pdfium` from Vite's dependency pre-bundling (`optimizeDeps.exclude`), so each one finds its WebAssembly file next to its code.
+
+## Two parts: the view and its Web Worker
+
+`ViewerClient.create` starts a Web Worker for one document. The Web Worker opens the file with Lamina PDF and draws its pages with PDFium, so the page's main thread never parses or draws a PDF. `createViewer` makes the view: it lays the pages out in one column, keeps only the pages near the screen in the page's DOM, and paints each one first blurry, then sharp. [How a page is drawn](/concepts/drawing-pages/) explains why text and pixels come from two readers.
+
+Start the client before the reader picks a file. PDFium is about 2 MB to download, compressed, so it loads while the reader is still choosing.
+
+A `File`, a `Blob` or bytes can go to `client.open`. For a file on another server, pass `{ url }` instead: the Web Worker then fetches it by ranges, so the first page shows before the whole file has arrived. The server must allow `Range` requests from your page's origin.
+
+## Move through the file
+
+The viewer has methods for the controls a toolbar needs:
+
+| Call | What it does |
+| --- | --- |
+| `viewer.goToPage(index)` | Scrolls to a page, counting from 0 |
+| `viewer.setZoom("fit-width")` | Zooms to fit the width; also `"fit-page"`, `"actual-size"` or a percentage from 10 to 800 |
+| `viewer.rotate(90)` | Turns the view a quarter, without changing the file |
+| `viewer.getState()` | The current page, page count, zoom and rotation |
+| `viewer.subscribe(listener)` | Calls `listener` whenever that state changes, and returns a function that stops it |
+
+The reader can also zoom with Ctrl or ⌘ and the mouse wheel, pinch on a trackpad or a touch screen, and press `+`, `-` and `0`. The point under the pointer stays where it is. The `subscribe` call works with React's `useSyncExternalStore`, so a React toolbar can read `viewer.getState()` directly.
+
+## Text you can select, links you can follow
+
+Each page has a transparent text layer on top of its picture, so the reader can select and copy text and a screen reader can read it. Links work too: a link to another page scrolls there. A web link opens nothing by itself. It calls the `onExternal` function you pass in `createViewer({ client, links: { onExternal } })`, so your app can show the address and ask before it opens it. Both layers are on by default; `text: false` and `links: false` leave them out.
+
+## Clean up
+
+The example's view is disposable: `using view = await startViewer(container)` takes the viewer down and ends its Web Worker when the block ends. A viewer that lives as long as the page needs no cleanup. To show another file, call `showFile` again on the same view; a file that fails to open leaves the previous one on screen.
+
+Next: [render pages to images](/guides/render-pages/), for a thumbnail or a preview without a viewer.

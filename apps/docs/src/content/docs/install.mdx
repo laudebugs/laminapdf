@@ -41,11 +41,11 @@ Most projects need only the two above. The table links every published package t
 | --- | --- | --- |
 | `@laminapdf/sdk` | [npm](https://www.npmjs.com/package/@laminapdf/sdk) | The TypeScript API, for every JavaScript runtime |
 | `@laminapdf/wasm` | [npm](https://www.npmjs.com/package/@laminapdf/wasm) | The WebAssembly modules under `@laminapdf/sdk` |
-| `@laminapdf/render` | [npm](https://www.npmjs.com/package/@laminapdf/render) | The interface that page renderers implement |
-| `@laminapdf/render-pdfium` | [npm](https://www.npmjs.com/package/@laminapdf/render-pdfium) | The default web renderer, built on PDFium |
-| `@laminapdf/render-hayro` | [npm](https://www.npmjs.com/package/@laminapdf/render-hayro) | A second web renderer, built on hayro |
-| `@laminapdf/viewer` | [npm](https://www.npmjs.com/package/@laminapdf/viewer) | The core of a web PDF viewer, one worker per document |
-| `laminapdf` | [crates.io](https://crates.io/crates/laminapdf) | The Rust API: open, read, edit, save and build PDFs |
+| `@laminapdf/render` | [npm](https://www.npmjs.com/package/@laminapdf/render) | The interface that page renderers implement ([render pages](/guides/render-pages/)) |
+| `@laminapdf/render-pdfium` | [npm](https://www.npmjs.com/package/@laminapdf/render-pdfium) | The default web renderer, built on PDFium ([render pages](/guides/render-pages/)) |
+| `@laminapdf/render-hayro` | [npm](https://www.npmjs.com/package/@laminapdf/render-hayro) | A second web renderer, built on hayro ([render pages](/guides/render-pages/)) |
+| `@laminapdf/viewer` | [npm](https://www.npmjs.com/package/@laminapdf/viewer) | The core of a web PDF viewer, one Web Worker per document ([show a PDF](/guides/show-a-pdf/)) |
+| `laminapdf` | [crates.io](https://crates.io/crates/laminapdf) | The Rust API: open, read, edit, save and build PDFs, and [check what a file hides](/guides/check-what-a-file-hides/) |
 | `laminapdf-syntax` | [crates.io](https://crates.io/crates/laminapdf-syntax) | Objects, the lexer, the parser and stream filters |
 | `laminapdf-cos` | [crates.io](https://crates.io/crates/laminapdf-cos) | File structure: the tolerant reader and the writer |
 | `laminapdf-model` | [crates.io](https://crates.io/crates/laminapdf-model) | Typed views of pages, outlines, metadata and labels |
@@ -55,8 +55,8 @@ Most projects need only the two above. The table links every published package t
 | `laminapdf-text` | [crates.io](https://crates.io/crates/laminapdf-text) | Fonts, shaping and line breaking |
 | `laminapdf-build` | [crates.io](https://crates.io/crates/laminapdf-build) | The builder that generates PDFs |
 | `laminapdf-source` | [crates.io](https://crates.io/crates/laminapdf-source) | Byte sources filled range by range, for remote files |
-| `laminapdf-render` | [crates.io](https://crates.io/crates/laminapdf-render) | The Rust interface that page renderers implement |
-| `laminapdf-render-pdfium` | [crates.io](https://crates.io/crates/laminapdf-render-pdfium) | The native PDFium renderer |
+| `laminapdf-render` | [crates.io](https://crates.io/crates/laminapdf-render) | The Rust interface that page renderers implement, with hayro ([render pages](/guides/render-pages/)) |
+| `laminapdf-render-pdfium` | [crates.io](https://crates.io/crates/laminapdf-render-pdfium) | The native PDFium renderer ([render pages](/guides/render-pages/)) |
 
 <Diagram name="package-map" />
 

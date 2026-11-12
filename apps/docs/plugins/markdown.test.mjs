@@ -208,6 +208,7 @@ test("a snippet's file is found whatever the attributes' order", () => {
 
 test("a twin reads only files in the example folders", () => {
   assert.match(shownFileUrl("packages/sdk/examples/hello.ts").href, /packages\/sdk\/examples\/hello\.ts$/);
+  assert.match(shownFileUrl("packages/viewer/examples/show-a-pdf.ts").href, /viewer\/examples\/show-a-pdf\.ts$/);
   for (const file of [
     "",
     "/etc/passwd",

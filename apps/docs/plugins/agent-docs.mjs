@@ -201,11 +201,12 @@ const snippetCache = new Map();
 
 /**
  * The folders a page may show files from: the ones `Snippet.astro`, `Example.astro` and
- * `Transcript.astro` glob (the TypeScript and Rust examples, the reading examples' outputs and the
- * command-line transcripts). A twin never reads elsewhere.
+ * `Transcript.astro` glob (the TypeScript and Rust examples, the viewer's, the reading examples'
+ * outputs and the command-line transcripts). A twin never reads elsewhere.
  */
 const SHOWN_FOLDERS = [
   "packages/sdk/examples/",
+  "packages/viewer/examples/",
   "crates/laminapdf/examples/",
   "fixtures/extract/examples/",
   "fixtures/cli/transcripts/",

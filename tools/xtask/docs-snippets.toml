@@ -67,6 +67,10 @@ ts = "packages/sdk/examples/element-flow.ts"
 rust = "crates/laminapdf/examples/element_flow.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/render-page.ts"
+rust = "crates/laminapdf/examples/render_page.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/snapshot-test.ts"
 rust = "crates/laminapdf/examples/snapshot_test.rs"
 

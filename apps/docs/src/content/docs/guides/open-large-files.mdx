@@ -35,3 +35,5 @@ Every request after the first sends `If-Range` with the `ETag` the first respons
 A remote file decides how much you fetch, so cap it when the file comes from someone else. Pass `budget` to `Document.openRange`: it's the most bytes the document may hold, and past it a read fails with `source-budget-exceeded`. Pass `signal` with the same options to stop the open's fetches. Later reads take their own: `doc.ensure(read, { signal: AbortSignal.timeout(10_000) })`.
 
 The [limits for files you don't trust](/guides/untrusted-files/) apply here too: pass `limits` with the other options.
+
+Next: [show a PDF in a web page](/guides/show-a-pdf/), which opens remote files by ranges for you.

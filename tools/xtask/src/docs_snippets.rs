@@ -433,7 +433,12 @@ fn code_part<'a>(line: &'a str, toml: bool, in_block_comment: &mut bool) -> Opti
     (!code.starts_with("//")).then_some(code)
 }
 
-/// Whether code names a crate other than the façade: `laminapdf_build::…`, `use laminapdf_text`.
+/// The crates besides the façade that readers depend on directly: `laminapdf-render`, which draws
+/// pages (the façade never renders), as `@laminapdf/render` is in TypeScript.
+const PUBLIC_CRATES: [&str; 1] = ["render"];
+
+/// Whether code names a crate other than the façade and [`PUBLIC_CRATES`]: `laminapdf_build::…`,
+/// `use laminapdf_text`.
 fn names_internal_crate(code: &str) -> bool {
     code.match_indices("laminapdf_").any(|(index, _)| {
         let before = code.get(..index).and_then(|before| before.chars().next_back());
@@ -445,8 +450,10 @@ fn names_internal_crate(code: &str) -> bool {
         let use_line = ["use ", "pub use ", "extern crate "]
             .iter()
             .any(|start| code.starts_with(start));
+        let public = rest.get(..name_len).is_some_and(|name| PUBLIC_CRATES.contains(&name));
         starts_word
             && name_len > 0
+            && !public
             && (after.starts_with("::") || (use_line && (after.starts_with(';') || after.starts_with(" as "))))
     })
 }
@@ -788,6 +795,14 @@ mod tests {
     fn internal_crates_should_be_reported_wherever_they_are_named() {
         let text = "//! Shows text.\npub use laminapdf_text::Font;\nlet b = laminapdf_build::Builder::new();\nuse laminapdf::Document;\n";
         assert_eq!(rules("a.rs", text), vec!["public-imports", "public-imports"]);
+    }
+
+    #[test]
+    fn the_render_crate_should_be_a_public_import_but_not_its_pdfium_adapter() {
+        let text = "//! Shows a page.\nuse laminapdf_render::{HayroBackend, RenderBackend};\n";
+        assert_eq!(rules("a.rs", text), Vec::<&str>::new());
+        let text = "//! Shows a page.\nuse laminapdf_render_pdfium::PdfiumBackend;\n";
+        assert_eq!(rules("a.rs", text), vec!["public-imports"]);
     }
 
     #[test]

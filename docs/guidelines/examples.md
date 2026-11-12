@@ -4,6 +4,7 @@ An example is code a reader will paste into their own app, so it must be code we
 
 - `packages/sdk/examples/**`;
 - `crates/laminapdf/examples/**`;
+- `packages/viewer/examples/show-a-pdf.ts`, the viewer's one example for readers (the folder's demo pages are for contributors);
 - every file the docs site's `Snippet` component may show;
 - the command-line transcripts in `fixtures/cli/transcripts/`, which the `Transcript` component shows.
 
@@ -22,8 +23,8 @@ An example is code a reader will paste into their own app, so it must be code we
 
 - **MUST:** the file opens with a comment that says what it shows. That comment mentions no ADR or todo IDs, no repository paths and no test vocabulary such as "golden" or "twin".
 - **MUST:** an example imports only public entry points:
-  - in TypeScript, `@laminapdf/sdk` and `@laminapdf/sdk/worker`, and for drawing pages `@laminapdf/render` and `@laminapdf/render-hayro`;
-  - in Rust, `laminapdf::…`.
+  - in TypeScript, `@laminapdf/sdk` and `@laminapdf/sdk/worker`, and for drawing pages `@laminapdf/render` and `@laminapdf/render-hayro`; the viewer's example imports `@laminapdf/viewer` and PDFium's `.wasm` URL;
+  - in Rust, `laminapdf::…`, and for drawing pages `laminapdf_render::…`, which the façade doesn't re-export.
 
   It never imports from `src/`, `test/`, `fixtures/` or another package's path, and never from `laminapdf_<crate>` directly.
 - **MUST:** an example contains no test scaffolding. Fixed file IDs, dates and producers are parameters, and the tests pass them in. Checks of the output belong in the tests. An example whose subject is testing a reader's own PDFs may fix the file ID and dates; it is listed under `[[test-example]]` in `tools/xtask/docs-snippets.toml` with the reason.

@@ -59,6 +59,9 @@ export function sidebar(typeDoc) {
         { label: "Open password-protected files", slug: "guides/password-protected-files" },
         { label: "Open files you don't trust", slug: "guides/untrusted-files" },
         { label: "Open large files by ranges", slug: "guides/open-large-files" },
+        { label: "Show a PDF in a web page", slug: "guides/show-a-pdf" },
+        { label: "Render pages to images", slug: "guides/render-pages" },
+        { label: "Check what a file hides", slug: "guides/check-what-a-file-hides" },
       ],
     },
     {
