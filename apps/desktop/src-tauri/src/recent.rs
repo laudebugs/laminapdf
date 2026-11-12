@@ -76,6 +76,9 @@ pub(crate) struct RecentFiles {
     /// `None` in tests that keep it in memory.
     file: Option<PathBuf>,
     entries: Mutex<Vec<Entry>>,
+    /// Held while a change is saved, so saves land in the order of the changes while `list` and
+    /// `path_of` only wait for the change itself, never for the disk.
+    saving: Mutex<()>,
 }
 
 impl RecentFiles {
@@ -89,6 +92,7 @@ impl RecentFiles {
         Self {
             file: Some(file),
             entries: Mutex::new(entries),
+            saving: Mutex::new(()),
         }
     }
 
@@ -98,6 +102,7 @@ impl RecentFiles {
         Self {
             file: None,
             entries: Mutex::new(Vec::new()),
+            saving: Mutex::new(()),
         }
     }
 
@@ -105,6 +110,7 @@ impl RecentFiles {
     /// which keeps the entry's id), and drops the oldest past [`MAX_ENTRIES`]. Returns the id.
     pub(crate) fn add(&self, opened: Opened<'_>, now: u64) -> String {
         let path = canonical(opened.path);
+        let _saving = self.saving.lock().unwrap_or_else(PoisonError::into_inner);
         let mut entries = self.lock();
         let id = match entries.iter().position(|entry| entry.path == path) {
             Some(at) => entries.remove(at).id,
@@ -123,7 +129,9 @@ impl RecentFiles {
             },
         );
         entries.truncate(MAX_ENTRIES);
-        self.save(&entries);
+        let snapshot = entries.clone();
+        drop(entries);
+        self.save(snapshot);
         id
     }
 
@@ -159,28 +167,32 @@ impl RecentFiles {
 
     /// Forgets the entry `id`; returns its path, for the OS's list.
     pub(crate) fn remove(&self, id: &str) -> Option<PathBuf> {
+        let _saving = self.saving.lock().unwrap_or_else(PoisonError::into_inner);
         let mut entries = self.lock();
         let at = entries.iter().position(|entry| entry.id == id)?;
         let removed = entries.remove(at);
-        self.save(&entries);
+        let snapshot = entries.clone();
+        drop(entries);
+        self.save(snapshot);
         Some(removed.path)
     }
 
     /// Forgets every entry; returns their paths, for the OS's list.
     pub(crate) fn clear(&self) -> Vec<PathBuf> {
-        let mut entries = self.lock();
-        let paths = entries.drain(..).map(|entry| entry.path).collect();
-        self.save(&entries);
+        let _saving = self.saving.lock().unwrap_or_else(PoisonError::into_inner);
+        let paths = self.lock().drain(..).map(|entry| entry.path).collect();
+        self.save(Vec::new());
         paths
     }
 
-    fn save(&self, entries: &[Entry]) {
+    /// Writes `entries`; the caller holds `saving` and not the list's own lock.
+    fn save(&self, entries: Vec<Entry>) {
         let Some(file) = &self.file else {
             return;
         };
         let saved = Saved {
             version: VERSION,
-            entries: entries.to_vec(),
+            entries,
         };
         if let Err(error) = write_json(file, &saved) {
             tracing::warn!("could not save the recent files list: {error}");

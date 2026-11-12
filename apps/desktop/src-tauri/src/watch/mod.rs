@@ -172,7 +172,9 @@ impl Worker {
                     }
                 }
             }
-            Command::Event(Err(error)) => tracing::warn!("the file watcher reported an error: {error}"),
+            Command::Event(Err(error)) => {
+                tracing::warn!("the file watcher reported an error: {}", without_paths(&error));
+            }
         }
     }
 
@@ -194,7 +196,7 @@ impl Worker {
         if !self.dirs.contains_key(&dir)
             && let Err(error) = self.os.watch(&dir, RecursiveMode::NonRecursive)
         {
-            tracing::warn!("could not watch an open document's folder: {error}");
+            tracing::warn!("could not watch an open document's folder: {}", without_paths(&error));
             return;
         }
         *self.dirs.entry(dir).or_insert(0) += 1;
@@ -298,6 +300,20 @@ impl Worker {
 /// created, removed, or either end of a rename), or the OS lost track and names nothing or asks
 /// for a rescan. What happened is read from the disk afterwards, never from the event's kind, so
 /// a rename onto the path and a write to it count the same.
+/// A watcher error for the log: its kind without the paths, which `notify`'s own text ends with,
+/// since no full path is logged at `info` or above. A backend's own message may hold a path too, so
+/// only its kind is named.
+fn without_paths(error: &notify::Error) -> String {
+    match &error.kind {
+        notify::ErrorKind::Io(io) => io.kind().to_string(),
+        notify::ErrorKind::Generic(_) => "the watcher's backend failed".to_owned(),
+        notify::ErrorKind::PathNotFound => "no path was found".to_owned(),
+        notify::ErrorKind::WatchNotFound => "no watch was found".to_owned(),
+        notify::ErrorKind::MaxFilesWatch => "the OS's file watch limit was reached".to_owned(),
+        notify::ErrorKind::InvalidConfig(_) => "the watcher's configuration was refused".to_owned(),
+    }
+}
+
 fn touches(event: &notify::Event, path: &Path) -> bool {
     event.paths.is_empty() || event.need_rescan() || event.paths.iter().any(|p| p == path)
 }

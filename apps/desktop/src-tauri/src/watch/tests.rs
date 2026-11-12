@@ -195,3 +195,9 @@ fn another_file_in_the_folder_should_not_reload() {
     std::fs::write(setup.dir.join("other.pdf"), b"%PDF-1.7 other").unwrap();
     assert_eq!(setup.fake.wait_for(1), vec![]);
 }
+
+#[test]
+fn a_watcher_error_should_be_logged_without_its_paths() {
+    let error = notify::Error::path_not_found().add_path(PathBuf::from("/Users/someone/secret/report.pdf"));
+    assert_eq!(without_paths(&error), "no path was found");
+}
