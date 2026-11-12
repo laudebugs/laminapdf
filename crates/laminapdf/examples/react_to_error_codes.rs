@@ -1,6 +1,6 @@
 //! Turn an error's code into what your app does next: ask for a password, ask again, or tell the
-//! person the file isn't a PDF. Any other code is returned as the error, so a code your app
-//! doesn't know yet isn't swallowed.
+//! person the file isn't a PDF. Any other code is returned as the error, so your app passes on
+//! the codes it doesn't handle.
 //!
 //! ```sh
 //! cargo run -p laminapdf --example react_to_error_codes -- in.pdf [password]

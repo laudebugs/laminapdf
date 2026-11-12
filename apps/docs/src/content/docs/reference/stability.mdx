@@ -45,7 +45,7 @@ Four promises hold across every version, `0.x` and alphas included:
 
 Lamina PDF compares every change with the newest published release: the Rust crates with [cargo-semver-checks](https://github.com/obi1kenobi/cargo-semver-checks), and `@laminapdf/sdk` with a report of its exported types. A change that breaks either one has to raise the minor version, and the changelog lists it first.
 
-Each release also installs itself twice and runs the quick start: once from the packages before they're published, and once from npm and crates.io after. Both runs cover Node 22, 24 and 26, Deno, Bun, Chromium, Cloudflare Workers and a Rust program, and every run has to write the same `hello.pdf`, byte for byte.
+Each release also installs itself twice and runs the quick start: once from the packages before they're published, and once from npm and crates.io after. Both runs cover every JavaScript runtime (Node 22, 24 and 26, Deno, Bun, Chromium and Cloudflare Workers) and a Rust program. Every run has to write the same `hello.pdf`, byte for byte.
 
 ## What isn't promised yet
 

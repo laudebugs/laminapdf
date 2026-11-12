@@ -5,7 +5,7 @@ description: How fast Lamina PDF makes PDFs in each runtime, how large its WebAs
 
 import Benchmarks from "../../../components/Benchmarks.astro";
 
-These are Lamina PDF's measured numbers: how long it takes to make a PDF in each runtime, how much your app downloads, and how well it extracts text from a public benchmark of real pages. Each table states the version, the date and the machine it came from, so you can judge how the numbers apply to yours.
+This page gives Lamina PDF's measured numbers: how long it takes to make a PDF in each runtime, how much your app downloads, and how well it extracts text from a public benchmark of real pages. Each table states the version, the date and the machine it came from, so you can judge how the numbers apply to yours.
 
 ## How long a PDF takes to make
 
@@ -18,7 +18,7 @@ Each figure is the time to build a document and save it to bytes, after the WebA
 
 <Benchmarks section="generation" />
 
-The browsers run in Playwright at the version shown, and Cloudflare Workers run in workerd through wrangler. WebAssembly memory is the modules' memory after the reports, in megabytes of 1,000,000 bytes. It never shrinks, so it is their peak. The JavaScript heap isn't included. The native Rust row is the same invoice and report built by the `laminapdf` crate, the median build as measured by criterion, a Rust benchmarking library.
+The browsers run in Playwright at the version shown, and Cloudflare Workers run in workerd through wrangler. WebAssembly memory is the modules' memory after the reports, in megabytes of 1,000,000 bytes. Because WebAssembly memory never shrinks, the figure is also their peak. The JavaScript heap isn't included. The native Rust row is the same invoice and report built by the `laminapdf` crate, the median build as measured by criterion, a Rust benchmarking library.
 
 ## How much your app downloads
 
@@ -46,6 +46,6 @@ Most tables in the benchmark have no ruled lines. Extraction finds tables like t
 
 One command runs every measurement on one machine before a release and writes the file this page reads, so no figure here is typed by hand. Each version of these docs keeps the numbers measured for it.
 
-Each table also gives the machine's load average as its run began: how many jobs were running or waiting for a processor. A load average well above the core count means other jobs shared the machine, so the timings are slower than its best. For example, a load average of 12 on an 8-core machine means the timings ran slower than an idle machine would give.
+Each table also gives the machine's load average as its run began: how many jobs were running or waiting for a processor. A load average well above the core count means other jobs shared the machine, so the timings are slower than its best. For example, a load average of 12 on an 8-core machine means about four jobs were waiting for a processor at any moment.
 
 Next: [make your first PDF](/start/first-pdf/) and time it on your own machine.

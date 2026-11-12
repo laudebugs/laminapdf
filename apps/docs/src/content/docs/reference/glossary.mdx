@@ -34,7 +34,7 @@ Where Lamina PDF keeps your edits. The bytes you opened never change; the overla
 
 ### Incremental save
 
-A save that keeps the original bytes as they are and appends a new revision with your edits after them. Signatures over the original stay valid. For example, rotating one page of a signed contract adds a short revision at the end of the file, and the signature still checks.
+A save that keeps the original bytes as they are and appends a new revision with your edits after them. For example, rotating one page of a signed contract adds a short revision at the end of the file, and the signature over the original bytes stays valid.
 
 ### Full rewrite
 
@@ -116,7 +116,7 @@ A CMap a font carries that maps its codes to Unicode, so a reader can copy, sear
 
 ### DocMDP
 
-The permissions of a certifying signature: which changes the signed document still allows, such as none, filling in forms, or comments. For example, a form certified to allow form filling refuses an edit that rotates a page. DocMDP stands for document modification detection and prevention.
+The permissions of a certifying signature: which changes the signed document still allows, such as none, filling in forms, or comments. DocMDP stands for document modification detection and prevention. For example, if a form is certified to allow only form filling, Lamina PDF refuses to save an edit that rotates one of its pages.
 
 ### UR3
 

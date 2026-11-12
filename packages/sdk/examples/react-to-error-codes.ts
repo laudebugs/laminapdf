@@ -1,6 +1,6 @@
 // Turn an error's code into what your app does next: ask for a password, ask again, or tell the
-// person the file isn't a PDF. Any other code throws, so a code your app doesn't know yet isn't
-// swallowed.
+// person the file isn't a PDF. Any other code throws, so your app passes on the codes it doesn't
+// handle.
 import { Document, isLaminaPdfError } from "@laminapdf/sdk";
 
 /** What the app does after trying to open a file. */
