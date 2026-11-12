@@ -8,7 +8,7 @@
 //! output with them.
 //!
 //! ```sh
-//! cargo run -p laminapdf-cli --example golden -- <out-dir>
+//! cargo run -p laminapdf-cli --example golden-cli -- <out-dir>
 //! ```
 
 use std::error::Error;
