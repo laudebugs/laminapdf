@@ -4,6 +4,7 @@
 // reading order). Twins come from the pages' sources, not their HTML: the MDX pages through
 // markdown.mjs, the code pages from docs/errors/, the API reference from TypeDoc's Markdown. The
 // build fails when an HTML page has no twin or a link in `llms.txt` has no file.
+
 import { realpathSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, relative } from "node:path";
@@ -11,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { parseBenchmarks, sectionMarkdown } from "../src/lib/benchmarks.ts";
 import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
+import { GUIDE_PDF, ONE_PAGE, onePageAreas, onePageBody } from "./guide.mjs";
 import { frontMatter, mdxToMarkdown, rewriteLinks, shownFiles, twin, twinHref } from "./markdown.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
@@ -149,6 +151,13 @@ async function twinOf(route, context) {
     const description = context.codes.get(id)?.summary;
     return { title: id, description, markdown: twin({ title: id, description, version: context.version, url, body }) };
   }
+  const area = onePageAreas().find((a) => route === `${ONE_PAGE}/${a.slug}/`);
+  if (area) {
+    const title = `${area.label}, on one page`;
+    const description = `Every page of the docs' ${area.label} section, in order, on one page.`;
+    const body = await onePageBody(area, async (page) => (await twinOf(page, context))?.markdown);
+    return { title, description, markdown: twin({ title, description, version: context.version, url, body }) };
+  }
   const base = route === "" ? "index" : route.replace(/\/$/, "");
   const name = (await contentFiles()).get(base);
   if (name !== undefined) {
@@ -160,6 +169,7 @@ async function twinOf(route, context) {
       changelog: () => context.changelog,
       benchmarks: (section) =>
         sectionMarkdown(context.benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
+      guidePdf: () => `[The whole guide as one PDF](${context.site}${GUIDE_PDF}), with a contents page and bookmarks.`,
     });
     const title = data.title ?? base;
     return {
@@ -355,7 +365,9 @@ export function agentDocs(groups) {
         const routes = [...twins.keys()];
         const api = routes.filter((r) => r.startsWith("reference/sdk/"));
         const codeRoutes = routes.filter((r) => r.startsWith("reference/codes/") && r !== "reference/codes/");
-        const rest = routes.filter((r) => !listed.has(r) && !api.includes(r) && !codeRoutes.includes(r));
+        // The one-page views repeat their areas' pages, so llms.txt and llms-full.txt leave them out.
+        const onePage = (/** @type {string} */ r) => r.startsWith(`${ONE_PAGE}/`);
+        const rest = routes.filter((r) => !listed.has(r) && !api.includes(r) && !codeRoutes.includes(r) && !onePage(r));
         const all = [...sidebar, ...(rest.length > 0 ? [{ label: "More", slugs: rest }] : [])];
         await writeFile(
           new URL("llms.txt", dir),

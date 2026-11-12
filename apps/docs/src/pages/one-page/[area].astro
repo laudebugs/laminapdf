@@ -1,0 +1,51 @@
+---
+import { getEntry, render } from "astro:content";
+// One area of the sidebar on one page (plugins/guide.mjs): its pages in sidebar order, each under
+// its title, for reading straight through, printing or saving. Search leaves it out, so results
+// point at the pages themselves; "Read offline" (start/offline) lists every area.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import { onePageAreas } from "../../../plugins/guide.mjs";
+
+export async function getStaticPaths() {
+  return onePageAreas().map((area) => ({ params: { area: area.slug }, props: { area } }));
+}
+
+const { area } = Astro.props;
+/** The content entry of a sidebar route (`guides/x/`, or `` for the home page). */
+const entryOf = (route: string) => getEntry("docs", route === "" ? "index" : route.replace(/\/$/, ""));
+const pages = await Promise.all(
+  area.routes.map(async (route: string) => {
+    const entry = await entryOf(route);
+    if (entry === undefined) throw new Error(`one page: no page for ${route || "/"}`);
+    const { Content } = await render(entry);
+    const id = `page-${route.replace(/\/$/, "").replaceAll("/", "-") || "home"}`;
+    return { route, id, title: entry.data.title, Content };
+  }),
+);
+const headings = pages.map((page) => ({ depth: 2, slug: page.id, text: page.title }));
+---
+
+<StarlightPage
+  frontmatter={{
+    title: `${area.label}, on one page`,
+    description: `Every page of the docs' ${area.label} section, in order, on one page.`,
+    pagefind: false,
+    editUrl: false,
+  }}
+  headings={headings}
+>
+  <p>
+    The {area.label} pages in order, on one page. <a href="/start/offline/">Read offline</a> lists every section and the
+    whole guide as one PDF.
+  </p>
+  {
+    pages.map(({ route, id, title, Content }) => (
+      <section class="one-page-section" aria-labelledby={id}>
+        <h2 id={id} class="one-page-title">
+          <a href={`/${route}`}>{title}</a>
+        </h2>
+        <Content />
+      </section>
+    ))
+  }
+</StarlightPage>

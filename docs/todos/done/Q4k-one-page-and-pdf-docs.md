@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4k` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | None |
@@ -35,14 +35,14 @@ Hacker News commenters ask again and again for docs they can read offline or on 
 
 ## Tasks
 
-- [ ] Add the one-page routes from the sidebar's order; keep them out of search so results point at the single pages.
-- [ ] Build the PDF from the twins with `laminapdf build`; add a cover, contents and the version.
-- [ ] Link both; check the PDF with the profile checks the examples use.
+- [x] Add the one-page routes from the sidebar's order; keep them out of search so results point at the single pages.
+- [x] Build the PDF from the twins with `laminapdf build`; add a cover, contents and the version.
+- [x] Link both; check the PDF with the profile checks the examples use.
 
 ## Acceptance criteria
 
-- [ ] Each area has a one-page view.
-- [ ] The guide PDF builds in the docs build and opens in pdf.js and PDFium.
+- [x] Each area has a one-page view.
+- [x] The guide PDF builds in the docs build and opens in pdf.js and PDFium.
 
 ## Post-merge checks
 
@@ -62,8 +62,8 @@ The home page, the docs README.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

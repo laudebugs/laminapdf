@@ -214,7 +214,7 @@ function outsideCode(markdown, transform) {
  * @param {(text: string) => string} transform
  * @returns {string}
  */
-function outsideFences(markdown, transform) {
+export function outsideFences(markdown, transform) {
   const parts = markdown.split(/(^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n {0,3}\2[ \t]*$)/m);
   /** @type {string[]} */
   const out = [];
@@ -230,9 +230,9 @@ function outsideFences(markdown, transform) {
  * A page's MDX body as Markdown.
  *
  * @param {string} body the page without its front matter
- * @param {{ snippet: (file: string) => string, codeTable: () => string, changelog: () => string, benchmarks?: (section: string) => string }} components
+ * @param {{ snippet: (file: string) => string, codeTable: () => string, changelog: () => string, benchmarks?: (section: string) => string, guidePdf?: () => string }} components
  *   `snippet` reads an example file; `codeTable` writes the code table; `changelog` the releases;
- *   `benchmarks` one section of the benchmarks page
+ *   `benchmarks` one section of the benchmarks page; `guidePdf` the link to the guide as one PDF
  * @returns {string}
  */
 export function mdxToMarkdown(body, components) {
@@ -246,6 +246,7 @@ export function mdxToMarkdown(body, components) {
       .replace(DIAGRAM, (_, _quote, name) => diagramMarkdown(name))
       .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
       .replace(/<Changelog\s*\/>/g, () => components.changelog())
+      .replace(/<GuidePdf\s*\/>/g, () => components.guidePdf?.() ?? "")
       .replace(/<Benchmarks\s+section="([a-z-]+)"\s*\/>/g, (_, section) => {
         if (components.benchmarks === undefined) throw new Error("a page shows benchmarks, but none were read");
         return components.benchmarks(section);
