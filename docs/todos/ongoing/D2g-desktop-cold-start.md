@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §4 release gates](../../plans/desktop-app.md#non-functional-targets-and-release-gates) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D2d](../done/D2d-tile-transport-and-first-document.md) |

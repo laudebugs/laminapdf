@@ -81,7 +81,7 @@ A failure answers `{ kind, message }` with a status the client maps back: 404 fo
 | First page of the 1 GB fixture, from the open to the first tile answered | ≤ 1.5 s | 0.53–0.74 s (opening and sizing 20,000 pages takes 0.48–0.68 s of it; a tile takes 1–28 ms) |
 | Idle memory, 13-page document (`flowing_report.pdf`), main + engine | ≤ 150 MB | 54 MB (main 41 MB, engine 13 MB; `footprint`) |
 | The webview's content process, same document | recorded | 170 MB (before the sandbox; the sandbox doesn't touch the webview) |
-| Launch to the window's first command (the empty state accepts input) | < 300 ms | 0.51–0.54 s: **missed**, see [D2g](../todos/ready/D2g-desktop-cold-start.md) |
+| Launch to the window's first command (the empty state accepts input) | < 300 ms | 0.51–0.54 s: **missed**, see [D2g](../todos/ongoing/D2g-desktop-cold-start.md) |
 
 The app's open (0.48–0.68 s) matches the engine alone in §2 (478–494 ms), so the webview, the IPC and PDFium's own open add little to it. The sandbox adds about 15 ms to an engine's start: a warm engine is ready in 22–29 ms, against 8 ms before D2c, and the first engine after a build takes about 220 ms while macOS checks the new binary.
 
