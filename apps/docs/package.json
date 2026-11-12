@@ -20,7 +20,7 @@
     "e2e": "vitest run -c vitest.e2e.config.ts"
   },
   "devDependencies": {
-    "@astrojs/starlight": "0.42.8",
+    "@astrojs/starlight": "0.42.9",
     "@codemirror/lang-javascript": "6.2.5",
     "@codemirror/language": "6.13.1",
     "@laminapdf/fonts": "workspace:*",
