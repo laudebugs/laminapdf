@@ -11,7 +11,7 @@
 | Branch | `docs/q4j-starlight-policy` |
 | PR title | `docs: a policy for upgrading Starlight and Astro` |
 | Size | S |
-| PR | — |
+| PR | [#464](https://github.com/laudebugs/laminapdf/pull/464) |
 
 ## Goal
 
