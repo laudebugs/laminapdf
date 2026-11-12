@@ -7,6 +7,12 @@ import { Converter } from "typedoc";
 /** Types whose members the reference leaves out, since their description explains them. */
 export const SUMMARISED = ["FlowTemplate"];
 
+/** The classes with a usage page (common tasks and mistakes), which their reference page links to. */
+export const USAGE_PAGES = {
+  Document: "/reference/document-usage/",
+  Builder: "/reference/builder-usage/",
+};
+
 /** Where TypeDoc writes the @laminapdf/sdk reference, under the site's pages (astro.config.mjs). */
 export const TYPEDOC_OUTPUT = "reference/sdk";
 
@@ -46,6 +52,25 @@ export function removeSummarisedMembers(project) {
 }
 
 /**
+ * Ends the summary of each class in {@link USAGE_PAGES} with a link to its usage page. A class
+ * that is missing or has no doc comment fails the build, so a rename can't drop the link unseen.
+ *
+ * @param {Pick<import("typedoc").ProjectReflection, "getChildByName">} project
+ */
+export function addUsageLinks(project) {
+  for (const [name, href] of Object.entries(USAGE_PAGES)) {
+    const reflection = project.getChildByName(name);
+    if (reflection?.comment === undefined) {
+      throw new Error(`typedoc-sources: ${name} has a usage page (${href}) but no documented class to link it from`);
+    }
+    reflection.comment.summary.push({
+      kind: "text",
+      text: `\n\nCommon tasks with examples, and the mistakes to avoid: [using ${name}](${href}).`,
+    });
+  }
+}
+
+/**
  * TypeDoc's entry point for a plugin.
  *
  * @param {import("typedoc").Application} app
@@ -60,5 +85,6 @@ export function load(app) {
       }
     }
     removeSummarisedMembers(context.project);
+    addUsageLinks(context.project);
   });
 }

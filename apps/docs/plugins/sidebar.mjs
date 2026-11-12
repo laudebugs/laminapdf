@@ -108,6 +108,8 @@ export function sidebar(typeDoc) {
     {
       label: "Reference",
       items: [
+        { label: "Using Document", slug: "reference/document-usage" },
+        { label: "Using Builder", slug: "reference/builder-usage" },
         ...(typeDoc ? [typeDoc] : []),
         { label: "Rust API (rustdoc)", slug: "reference/rust" },
         { label: "Error and warning codes", slug: "reference/codes" },

@@ -2,7 +2,14 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isDependencyFile, removeSummarisedMembers, SUMMARISED, sourceRevision } from "./typedoc-sources.mjs";
+import {
+  addUsageLinks,
+  isDependencyFile,
+  removeSummarisedMembers,
+  SUMMARISED,
+  sourceRevision,
+  USAGE_PAGES,
+} from "./typedoc-sources.mjs";
 
 test("a declaration in node_modules is a dependency's, on any platform", () => {
   assert.equal(
@@ -43,4 +50,41 @@ test("a summarised type keeps its page but loses its members; other types keep t
   );
   removeSummarisedMembers(project);
   assert.deepEqual(removed, ["blocks", "page"]);
+});
+
+/**
+ * A project whose classes, by name, have the given doc comment summaries (`undefined`: no comment).
+ *
+ * @param {Record<string, import("typedoc").CommentDisplayPart[] | undefined>} summaries
+ */
+function projectWith(summaries) {
+  /** @type {Record<string, { comment?: { summary: import("typedoc").CommentDisplayPart[] } }>} */
+  const classes = Object.fromEntries(
+    Object.entries(summaries).map(([name, summary]) => [name, summary === undefined ? {} : { comment: { summary } }]),
+  );
+  return /** @type {Pick<import("typedoc").ProjectReflection, "getChildByName">} */ (
+    /** @type {unknown} */ ({
+      /** @param {string} name */
+      getChildByName: (name) => classes[name],
+    })
+  );
+}
+
+test("each class with a usage page ends its summary with a link to it", () => {
+  /** @type {Record<string, import("typedoc").CommentDisplayPart[]>} */
+  const summaries = Object.fromEntries(
+    Object.keys(USAGE_PAGES).map((name) => [name, [{ kind: "text", text: `The ${name} class.` }]]),
+  );
+  addUsageLinks(projectWith(summaries));
+  for (const [name, href] of Object.entries(USAGE_PAGES)) {
+    const text = (summaries[name] ?? []).map((part) => part.text).join("");
+    assert.ok(text.startsWith(`The ${name} class.\n\n`), text);
+    assert.ok(text.endsWith(`[using ${name}](${href}).`), text);
+  }
+});
+
+test("a usage page whose class is missing or undocumented fails the build", () => {
+  assert.throws(() => addUsageLinks(projectWith({})), /Document has a usage page/);
+  const documented = { Document: [{ kind: /** @type {const} */ ("text"), text: "An open PDF." }] };
+  assert.throws(() => addUsageLinks(projectWith({ ...documented, Builder: undefined })), /Builder has a usage page/);
 });
