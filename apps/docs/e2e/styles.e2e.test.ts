@@ -105,8 +105,8 @@ describe(`the docs under a CSP without inline styles in ${BROWSER}`, () => {
   });
 
   it("types over the editor's lines with no CSP violation, and a bracket wraps them", async () => {
+    // A one-page result has no Result tab: "Edit and run" is under the picture beside the code.
     const { page, problems, close } = await open("/recipes/hello/", "light");
-    await page.getByRole("tab", { name: "Result" }).click();
     await page
       .getByRole("button", { name: /Edit and run/ })
       .first()
