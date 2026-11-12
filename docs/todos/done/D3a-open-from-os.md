@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `D3a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D3](../../plans/desktop-app.md#d3-files) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D2e](../done/D2e-desktop-e2e-webdriverio.md) |
+| Depends on | [D2e](./D2e-desktop-e2e-webdriverio.md) |
 | ADRs | Follows ADR 0008 (paths only enter through trusted sources), ADR 0010 (Platform adapter) |
 | Branch | `feat/d3a-open-from-os` |
 | PR title | `feat(desktop): open PDFs from file associations, argv, the dock and drag-drop` |
 | Size | M–L (500–900 lines) |
-| PR | — |
+| PR | [#476](https://github.com/laudebugs/laminapdf/pull/476) |
 
 ## Goal
 
@@ -50,24 +50,24 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] `cargo tauri add single-instance` equivalent: add `tauri-plugin-single-instance` to workspace deps (licence check); register first in the builder. No webview permission needed (Rust-only).
-- [ ] `src-tauri/src/open.rs`: `fn paths_from_args(args: &[String], cwd: &Path) -> Vec<PathBuf>` (pure, unit-tested), `fn route_open(app: &AppHandle, paths: Vec<PathBuf>)`, `PendingOpens` state, `take_pending_opens` command (manifest + capability).
-- [ ] macOS `RunEvent::Opened` handler converting `Url` → `PathBuf` (`to_file_path()`), skipping non-file URLs.
-- [ ] Drag-drop handling in `on_window_event`; events `drop://enter|leave` to the UI; overlay component in `@laminapdf/ui` (shared, behind `Platform` capability `acceptsFileDrop` if needed — web already supports drop via DOM, so reuse the same overlay).
-- [ ] `bundle.fileAssociations` config; macOS `Info.plist` check (`CFBundleDocumentTypes` emitted by Tauri — verify `LSHandlerRank`); Linux `.desktop` file `MimeType=application/pdf;` and `Exec=lamina %F` (verify Tauri's generated `Exec` passes files; override with a custom desktop template via `bundle.linux.deb.desktopTemplate` if not).
-- [ ] Windows: verify NSIS and WiX register `OpenWithProgids`/`Applications\lamina.exe\SupportedTypes` and the `%1` argument quoting for paths with spaces and Unicode.
-- [ ] e2e scenarios + manual checklist (`apps/desktop/e2e/MANUAL-OPEN.md`) covering: double-click in Finder/Explorer/Files, "Open with", dock drop, taskbar-pinned app with "Open with", paths with spaces/Unicode/very long paths (Windows `\\?\`), network share.
-- [ ] Record the default-handler decision.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`. *`feat-d3a-open-from-os` worktree; claimed in the work PR (#476).*
+- [x] `cargo tauri add single-instance` equivalent: add `tauri-plugin-single-instance` to workspace deps (licence check); register first in the builder. No webview permission needed (Rust-only). *`tauri-plugin-single-instance` =2.5.5, MIT/Apache-2.0, registered first.*
+- [x] `src-tauri/src/open.rs`: `fn paths_from_args(args: &[String], cwd: &Path) -> Vec<PathBuf>` (pure, unit-tested), `fn route_open(app: &AppHandle, paths: Vec<PathBuf>)`, `PendingOpens` state, `take_pending_opens` command (manifest + capability). *Also an `OpenWorker` thread that opens requests in order.*
+- [x] macOS `RunEvent::Opened` handler converting `Url` → `PathBuf` (`to_file_path()`), skipping non-file URLs. *`paths_from_urls`, behind `cfg(target_os = "macos")`.*
+- [x] Drag-drop handling in `on_window_event`; events `drop://enter|leave` to the UI; overlay component in `@laminapdf/ui` (shared, behind `Platform` capability `acceptsFileDrop` if needed — web already supports drop via DOM, so reuse the same overlay). *Events renamed `open://drag-enter|leave` (see Notes); `DropOverlay` in `@laminapdf/ui`, and the `shellTakesDrops` capability turns off the DOM's drop listeners.*
+- [x] `bundle.fileAssociations` config; macOS `Info.plist` check (`CFBundleDocumentTypes` emitted by Tauri — verify `LSHandlerRank`); Linux `.desktop` file `MimeType=application/pdf;` and `Exec=lamina %F` (verify Tauri's generated `Exec` passes files; override with a custom desktop template via `bundle.linux.deb.desktopTemplate` if not). *Viewer role, `Alternate` rank; `src-tauri/linux/laminapdf.desktop` adds `%F`.*
+- [x] Windows: verify NSIS and WiX register `OpenWithProgids`/`Applications\lamina.exe\SupportedTypes` and the `%1` argument quoting for paths with spaces and Unicode. *Read in the templates: `"%1"` is quoted; both also write `.pdf`'s default, which moved to D6d (see Notes).*
+- [x] e2e scenarios + manual checklist (`apps/desktop/e2e/MANUAL-OPEN.md`) covering: double-click in Finder/Explorer/Files, "Open with", dock drop, taskbar-pinned app with "Open with", paths with spaces/Unicode/very long paths (Windows `\\?\`), network share. *`forward` and `cold-open` scenarios; MANUAL-OPEN.md has 11 rows.*
+- [x] Record the default-handler decision. *ADR 0008 §10; the desktop plan's open question 5 answered.*
 
 ## Acceptance criteria
 
-- [ ] On each OS, with a dev bundle installed (dmg/NSIS/deb), double-clicking a PDF when lamina is **running** opens it in the running instance (no second window process remains — checked with the process list) — manual check recorded in the PR per OS.
-- [ ] Cold start via double-click or `laminapdf /path/to/file.pdf` opens the file on every OS through `PendingOpens` (no code path opens a document before the frontend has called `take_pending_opens`); first page within the cold-start + first-page budgets.
-- [ ] Dropping a PDF onto the window opens it; dropping onto the macOS dock icon opens it; dropping a non-PDF shows a toast and opens nothing.
-- [ ] Paths with spaces, non-ASCII characters and (Windows) > 260 characters open correctly (unit tests for parsing + manual check).
-- [ ] lamina appears in "Open with" on all three OSes and does **not** become the default handler unless the user chooses it.
-- [ ] New e2e scenarios pass in `desktop-e2e`.
+- [ ] On each OS, with a dev bundle installed (dmg/NSIS/deb), double-clicking a PDF when lamina is **running** opens it in the running instance (no second window process remains — checked with the process list) — manual check recorded in the PR per OS. *Partly: the `forward` e2e scenario checks it on all three OSes; the installed-bundle runs on Windows and Linux are still to do (see Notes).*
+- [x] Cold start via double-click or `laminapdf /path/to/file.pdf` opens the file on every OS through `PendingOpens` (no code path opens a document before the frontend has called `take_pending_opens`); first page within the cold-start + first-page budgets. *`cold-open` scenario on all three OSes; it reports the time to the first sharp page.*
+- [ ] Dropping a PDF onto the window opens it; dropping onto the macOS dock icon opens it; dropping a non-PDF shows a toast and opens nothing. *Window drops: unit and browser tests; the Dock and a real drag are MANUAL-OPEN.md rows still to run.*
+- [x] Paths with spaces, non-ASCII characters and (Windows) > 260 characters open correctly (unit tests for parsing + manual check). *Unit tests for spaces, non-ASCII, long and drive-relative Windows paths, and non-UTF-8 names.*
+- [ ] lamina appears in "Open with" on all three OSes and does **not** become the default handler unless the user chooses it. *macOS checked (`LSHandlerRank` `Alternate`); Windows installers still write the default on a machine with none chosen, moved to D6d.*
+- [x] New e2e scenarios pass in `desktop-e2e`. *CI's desktop e2e jobs on macOS, Windows and Linux.*
 
 ## Post-merge checks
 
@@ -108,8 +108,8 @@ What the PR changed from the scope above, and why:
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started *In the work PR (#476), as the claim rule now says.*
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

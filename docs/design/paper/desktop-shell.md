@@ -41,7 +41,7 @@ Conventions on this canvas:
 - **Recent files** (S01-start): six entries, one missing.
 - **First run** (S01-start-empty): empty state “No recent files yet / Files you open appear here, with the page you were reading.” and a quiet notice “lamina is not your default PDF app.” with **Not now** and **Open system settings…** (plan open question 5: lamina never makes itself the default silently). “Not now” hides the notice for good; Settings › General keeps the button.
 - **Remember recent files off:** the Recent section is replaced by one line: “lamina is not keeping recent files. Turn this on in Settings › General.”
-- **Dragging files over the window** (not drawn): a full-window overlay on `scrim` with a centred `surface` card, the drop icon and “Drop to open 2 PDFs”; non-PDF files say “Only PDF files open in lamina” and dropping them shows a toast with the file name only ([D3a](../../todos/ongoing/D3a-open-from-os.md)). The same overlay appears over a document window (drop opens new tabs).
+- **Dragging files over the window** (not drawn): a full-window overlay on `scrim` with a centred `surface` card, the drop icon and “Drop to open 2 PDFs”; non-PDF files say “Only PDF files open in lamina” and dropping them shows a toast with the file name only ([D3a](../../todos/done/D3a-open-from-os.md)). The same overlay appears over a document window (drop opens new tabs).
   - *As built (D3a):* the desktop shows the web reader's drop overlay (`DropOverlay`: an accent tint with a dashed accent border and the words in the heading style), so both readers look the same. Paper's `surface` card on `scrim`, with the drop icon, isn't built yet. Until tabs, a window shows one document, so several PDFs say "Drop to open the last of these 2 PDFs" and open the last. The app's name in the words is "Lamina PDF".
 - **Unreadable file** from the list or a drop: toast “Couldn’t open Annual-accounts-2025.pdf. It may have been moved.” plus the missing state on its card.
 
@@ -53,7 +53,7 @@ Conventions on this canvas:
 
 **Artboards:** `S01-start.dc.html`, `S01-start-empty.dc.html`.
 
-**Todos:** [D3a](../../todos/ongoing/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md).
+**Todos:** [D3a](../../todos/done/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md).
 
 ## S02 Window with document tabs and session restore
 

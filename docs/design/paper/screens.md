@@ -43,7 +43,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| S01 | Start window: recent files with thumbnails, open, drop zone | D | [D3a](../../todos/ongoing/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) |
+| S01 | Start window: recent files with thumbnails, open, drop zone | D | [D3a](../../todos/done/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) |
 | S02 | Window with document tabs and session restore: tab overflow, session restore notice | D | [D4a](../../todos/ready/D4a-windows-tabs-and-session-restore.md) |
 | S03 | Native menus: macOS menu bar (File, Edit, View, Go, Tools, Window, Help) and Windows/Linux in-window menu | D | [D4b](../../todos/ready/D4b-native-menus.md) |
 | S04 | File changed on disk: strip (Compare · Keep mine · Reload from disk); the next Save asks | D | [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) |
