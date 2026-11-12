@@ -16,8 +16,17 @@ mod edit_metadata;
 #[path = "../examples/element_flow.rs"]
 mod element_flow;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/extract_blocks.rs"]
+mod extract_blocks;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/extract_chunks.rs"]
+mod extract_chunks;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_markdown.rs"]
 mod extract_markdown;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/extract_text.rs"]
+mod extract_text;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/flowing_invoice.rs"]
 mod flowing_invoice;
@@ -309,9 +318,12 @@ fn check_text_golden(path: &str, text: &str) {
 }
 
 /// The examples that read a PDF instead of building one.
-const READERS: [&str; 4] = [
+const READERS: [&str; 7] = [
     "check_what_a_file_hides",
+    "extract_blocks",
+    "extract_chunks",
     "extract_markdown",
+    "extract_text",
     "react_to_error_codes",
     "snapshot_test",
 ];
@@ -383,6 +395,24 @@ fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
     assert!(read("invoice.chunks.jsonl").lines().count() >= 1);
     let _ = std::fs::remove_dir_all(&out);
+}
+
+/// The text, block list and chunks the extraction guide shows as its examples' output, each a
+/// golden in `fixtures/extract/examples/` (`UPDATE_GOLDEN=1` rewrites them).
+#[test]
+fn extract_text_blocks_and_chunks_print_their_goldens_for_the_invoice() {
+    let invoice = || fixture("golden/examples/invoice.pdf");
+    let outputs = [
+        ("invoice.txt", extract_text::text_of(invoice())),
+        ("invoice-blocks.txt", extract_blocks::blocks_of(invoice())),
+        ("invoice-chunks.txt", extract_chunks::chunks_of(invoice())),
+    ];
+    for (name, out) in outputs {
+        check_text_golden(
+            &format!("extract/examples/{name}"),
+            &out.unwrap_or_else(|e| panic!("{name}: {e}")),
+        );
+    }
 }
 
 /// `SNAPSHOT_HELLO_SHA256` in `packages/sdk/test/snapshot-test.test.ts`: `hello` built with the

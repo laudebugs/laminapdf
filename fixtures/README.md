@@ -265,6 +265,8 @@ The reader-mode corpus (todo [U4b](../docs/todos/done/U4b-reader-mode-from-struc
 
 `examples/invoice.md`: the Markdown the `extract_markdown` example writes for `golden/examples/invoice.pdf`, which the docs' Extract Markdown recipe shows as its output. Written by `crates/laminapdf/tests/examples.rs` with `UPDATE_GOLDEN=1`, checked by it without.
 
+`examples/invoice.txt`, `examples/invoice-blocks.txt`, `examples/invoice-chunks.txt`: what the `extract_text`, `extract_blocks` and `extract_chunks` examples print for the same invoice, and their TypeScript twins return, which the docs' extraction guide shows as their output. Written and checked by the same test, and checked by `packages/sdk/test/extract.test.ts`.
+
 `markdown/<layout>-{ordered,reversed}.md`: `laminapdf-extract`'s Markdown for each reading-order file, with page markers. Written by `crates/laminapdf-extract/tests/output.rs` with `UPDATE_GOLDEN=1`, checked by the same test without it; a change to the rules or the renderer shows up as a diff here.
 
 Not here yet: real-world files with hand-checked order (they need a second annotator), vertical CJK (the builder lays out horizontally).
