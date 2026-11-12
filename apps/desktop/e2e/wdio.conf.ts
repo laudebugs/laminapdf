@@ -1,7 +1,7 @@
 // WebdriverIO against the desktop reader's e2e build: `pnpm --filter @laminapdf/desktop
 // desktop:build:e2e`, then `pnpm --filter @laminapdf/desktop e2e`. The WebDriver server runs
 // inside the app (tauri-plugin-wdio-webdriver), on every OS, so no driver is installed.
-import { appendFileSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { env } from "node:process";
 import { fileURLToPath } from "node:url";
@@ -17,8 +17,8 @@ const app = { browserName: "tauri", "tauri:options": { application: appBinary } 
 export const config: WebdriverIO.Config = {
   runner: "local",
   // The service starts the app once for the whole run, so the scenarios share it and run in this
-  // order: the empty state while nothing is open, then each scenario opens its own file, which
-  // replaces the one before, so none depends on another's state.
+  // order: the empty state while nothing is open first, then the rest, each opening its own file,
+  // which replaces the one before (ADR 0018 §4's ordering exception).
   specs: [
     ["start", "open", "scroll", "zoom", "password", "repaired", "restart", "large"].map((name) =>
       join(specs, `${name}.e2e.ts`),
@@ -40,13 +40,9 @@ export const config: WebdriverIO.Config = {
   },
 };
 
-/** A test that passed only on its retry: a warning on Actions and `flaky=true` in the step's outputs. */
+/** A test that passed only on its retry: a warning annotation on Actions, a console warning elsewhere. */
 function reportFlaky(file: string, name: string): void {
   const flaky = { project: "desktop-e2e", file, name };
-  if (env.GITHUB_ACTIONS !== "true") {
-    console.warn(`flaky: ${describeFlaky(flaky)} failed, then passed on its retry`);
-    return;
-  }
-  console.log(warningLine(flaky));
-  if (env.GITHUB_OUTPUT !== undefined) appendFileSync(env.GITHUB_OUTPUT, "flaky=true\n");
+  if (env.GITHUB_ACTIONS === "true") console.log(warningLine(flaky));
+  else console.warn(`flaky: ${describeFlaky(flaky)} failed, then passed on its retry`);
 }

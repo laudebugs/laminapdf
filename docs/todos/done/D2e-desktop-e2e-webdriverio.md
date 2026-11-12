@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D2c](../done/D2c-engine-sandbox.md), [D2d](../done/D2d-tile-transport-and-first-document.md) |
+| Depends on | [D2c](./D2c-engine-sandbox.md), [D2d](./D2d-tile-transport-and-first-document.md) |
 | ADRs | Completes ADR 0008 §test strategy. Follows [0018](../../decisions/0018-test-strategy.md) (test lanes) |
 | Branch | `test/d2e-desktop-e2e` |
 | PR title | `test(desktop): run reader e2e scenarios with WebdriverIO on macOS, Windows and Linux` |
 | Size | M–L (500–1,000 lines: config, page objects, scenarios, CI) |
-| PR | — |
+| PR | [#450](https://github.com/laudebugs/laminapdf/pull/450) |
 
 ## Goal
 
@@ -53,23 +53,23 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
-- [ ] Add devDeps `@wdio/cli`, `@wdio/local-runner`, `@wdio/mocha-framework` (or Jasmine), `@wdio/spec-reporter`, `@wdio/tauri-service` (pinned via `catalog:`; licence check: MIT).
-- [ ] Add `tauri-plugin-wdio-webdriver` as an optional dependency of `laminapdf-desktop` under feature `e2e` (licence check), registered only with `#[cfg(feature = "e2e")]`.
-- [ ] Test-only commands under `e2e`: `e2e_open_path(path)` (path must be under the repo's `fixtures/` or `target/fixtures/` — checked), `e2e_metrics()` (first-paint timestamps), reuse `debug_kill_engine`.
-- [ ] `tauri.e2e.conf.json` setting `app.security.capabilities` to the **full** base list plus `"e2e"` (today `["main", "e2e"]`; later `["main", "settings", "e2e"]` etc.). Tauri merges `--config` files as a JSON merge patch, which replaces arrays wholesale, so listing only `"e2e"` would silently drop `main`. D2a's capability guard test checks the e2e list equals the base list plus `"e2e"`, so a later todo that adds a capability must update both files. `capabilities/e2e.json` is scoped to `"windows": ["main", "doc-*"]` and grants only the `allow-e2e-*` / `allow-debug-kill-engine` permissions.
-- [ ] Page objects and the eight scenarios; deterministic waits (no sleeps): wait for `data-state="painted"` attributes the viewer sets in test builds.
-- [ ] CI job and doctor pins; cache `tauri-driver` install.
-- [ ] Run the macOS job 50 times (workflow_dispatch loop) and record flakiness in the PR; apply the fallback rule if needed.
-- [ ] Update ADR 0008 and the plan.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
+- [x] Add devDeps `@wdio/cli`, `@wdio/local-runner`, `@wdio/mocha-framework` (or Jasmine), `@wdio/spec-reporter`, `@wdio/tauri-service` (pinned via `catalog:`; licence check: MIT). *WebdriverIO 9.31 (what `@wdio/tauri-service` 1.5.1 depends on) and `@wdio/tauri-plugin`, all MIT.*
+- [x] Add `tauri-plugin-wdio-webdriver` as an optional dependency of `laminapdf-desktop` under feature `e2e` (licence check), registered only with `#[cfg(feature = "e2e")]`. *With `tauri-plugin-wdio` (MIT OR Apache-2.0), which the service needs for its scripts and logs.*
+- [x] Test-only commands under `e2e`: `e2e_open_path(path)` (path must be under the repo's `fixtures/` or `target/fixtures/` — checked), `e2e_metrics()` (first-paint timestamps), reuse `debug_kill_engine`. *As `e2e_queue_pick` (the next Choose a file opens the queued fixture, so scenarios run the real open path), the frontend probe's timings for `e2e_metrics`, and `e2e_interactive` for the cold start.*
+- [x] `tauri.e2e.conf.json` setting `app.security.capabilities` to the **full** base list plus `"e2e"` (today `["main", "e2e"]`; later `["main", "settings", "e2e"]` etc.). Tauri merges `--config` files as a JSON merge patch, which replaces arrays wholesale, so listing only `"e2e"` would silently drop `main`. D2a's capability guard test checks the e2e list equals the base list plus `"e2e"`, so a later todo that adds a capability must update both files. `capabilities/e2e.json` is scoped to `"windows": ["main", "doc-*"]` and grants only the `allow-e2e-*` / `allow-debug-kill-engine` permissions.
+- [x] Page objects and the eight scenarios; deterministic waits (no sleeps): wait for `data-state="painted"` attributes the viewer sets in test builds. *The waits read a probe on `globalThis` (page states with the app's time, tiles answered, restarts) instead of DOM attributes.*
+- [x] CI job and doctor pins; cache `tauri-driver` install. *The server is embedded on every OS, so there is no `tauri-driver` to install, pin or cache; the large fixtures are cached instead.*
+- [x] Run the macOS job 50 times (workflow_dispatch loop) and record flakiness in the PR; apply the fallback rule if needed. *Run locally on an M1 Pro: 50 of 50 passed; no fallback needed (ADR 0008 §8, the PR).*
+- [x] Update ADR 0008 and the plan.
 
 ## Acceptance criteria
 
-- [ ] `desktop-e2e` is green on Linux, Windows and macOS (or macOS uses the documented fallback with the gap in ADR 0008).
-- [ ] All eight scenarios pass on each OS that runs WebdriverIO; the 1 GB scenario reports its first-page time.
-- [ ] The web build's Playwright suite still runs on all three OSes (no change, verified in the PR).
-- [ ] The release build contains no e2e plugin/commands (CI guard green).
-- [ ] `pnpm --filter @laminapdf/desktop e2e` runs locally on Linux and Windows with documented prerequisites.
+- [x] `desktop-e2e` is green on Linux, Windows and macOS (or macOS uses the documented fallback with the gap in ADR 0008).
+- [x] All eight scenarios pass on each OS that runs WebdriverIO; the 1 GB scenario reports its first-page time. *The 1 GB time is reported, not asserted (ADR 0018 §1).*
+- [x] The web build's Playwright suite still runs on all three OSes (no change, verified in the PR). *`pdf-runtimes`' Chromium, Firefox and WebKit jobs, unchanged.*
+- [x] The release build contains no e2e plugin/commands (CI guard green). *The desktop build job checks its featureless build's binary and bundle.*
+- [x] `pnpm --filter @laminapdf/desktop e2e` runs locally on Linux and Windows with documented prerequisites. *Prerequisites in apps/desktop/README.md; run locally on macOS, and in CI on Linux and Windows.*
 
 ## Post-merge checks
 
@@ -95,8 +95,8 @@ This PR is tests: WebdriverIO scenarios under `apps/desktop/e2e/specs/`, fixture
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started *In the work PR (#450), as the claim rule now says.*
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

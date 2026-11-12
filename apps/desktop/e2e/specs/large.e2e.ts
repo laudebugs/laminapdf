@@ -8,8 +8,7 @@ describe("the 1 GB document", () => {
     const since = await open(fixture("target", "fixtures", "1gb.pdf"));
     await waitForSharpSince(0, since, 30_000);
     const first = (await paintsSince(since)).find((p) => p.page === 0 && (p.state === "low" || p.state === "sharp"));
-    console.log(
-      `1 GB fixture: first page painted ${Math.round((first?.at ?? since) - since)} ms after Choose a file (target 1,500 ms)`,
-    );
+    const painted = first === undefined ? "no paint recorded" : `${Math.round(first.at - since)} ms`;
+    console.log(`1 GB fixture: first page painted ${painted} after Choose a file (target 1,500 ms)`);
   });
 });

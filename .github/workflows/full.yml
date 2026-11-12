@@ -308,7 +308,8 @@ jobs:
         run: cargo xtask desktop-frontend
       - name: Typecheck the frontend and the scenarios
         run: pnpm --filter @laminapdf/desktop run typecheck:wasm
-      # The 1,000-page and 1 GB fixtures, generated (never committed) and cached by what writes them.
+      # The 1,000-page and 1 GB fixtures, generated (never committed) and cached by what writes them:
+      # the example and the crates its bytes come from (path crates aren't in Cargo.lock).
       # The builder's output is the same bytes on every OS, so the three legs share one entry;
       # like the other caches, it is saved only from main.
       - name: Restore the large fixtures
@@ -316,7 +317,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: target/fixtures
-          key: desktop-e2e-fixtures-${{ hashFiles('crates/laminapdf-desktop-engine/examples/large_pdf.rs', 'crates/laminapdf-build/src/**', 'tools/xtask/src/fixtures.rs', 'Cargo.lock') }}
+          key: desktop-e2e-fixtures-${{ hashFiles('crates/laminapdf-desktop-engine/examples/large_pdf.rs', 'crates/laminapdf/src/**', 'crates/laminapdf-build/src/**', 'crates/laminapdf-cos/src/**', 'crates/laminapdf-model/src/**', 'crates/laminapdf-ops/src/**', 'crates/laminapdf-save/src/**', 'crates/laminapdf-syntax/src/**', 'crates/laminapdf-text/src/**', 'crates/laminapdf-test-fixtures/src/**', 'tools/xtask/src/fixtures.rs', 'Cargo.lock') }}
           enableCrossOsArchive: true
       - name: Generate the large fixtures
         if: steps.fixtures.outputs.cache-hit != 'true'
