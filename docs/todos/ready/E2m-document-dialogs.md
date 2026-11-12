@@ -15,7 +15,7 @@
 
 ## Goal
 
-The dialogs that bring pages in from other files and write pages out to new ones, on the web: Insert pages from a file, Replace with pages from a file, Extract, Export ranges, Merge documents and Split document, with their outputs through the `Platform`. Split out of [E2h](E2h-page-organiser-ui.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos).
+Build the web dialogs that bring pages in from other files and write pages out to new ones, with their outputs through the `Platform`. They are Insert pages from a file, Replace with pages from a file, Extract, Export ranges, Merge documents and Split document. Split out of [E2h](E2h-page-organiser-ui.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos).
 
 ## Context
 

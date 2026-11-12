@@ -15,7 +15,7 @@
 
 ## Goal
 
-Give the session the pieces every cross-document op needs, before any op uses them: a blob store that holds other files' bytes by hash, `Document::add_source` to open one as a source, and an `ObjectCopier` that deep-copies a page and what it reaches into the target's overlay. Split out of [E2c](E2c-cross-document-pages.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) so E2c fits one reviewable PR.
+Give the session the three pieces every cross-document op needs, before any op uses them. A blob store holds other files' bytes by hash, `Document::add_source` opens one as a source, and an `ObjectCopier` deep-copies a page and what it reaches into the target's overlay. Split out of [E2c](E2c-cross-document-pages.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) so E2c fits one reviewable PR.
 
 ## Context
 
