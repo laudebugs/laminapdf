@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import { readdirSync } from "node:fs";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { startTags } from "./markup.mjs";
 import { isProduction } from "./robots.mjs";
 
 /** The token in public/_headers that {@link fillInlineScriptHashes} replaces. */
@@ -181,25 +182,6 @@ function markupOf(html) {
 }
 
 /**
- * Every start tag in `markup` (from {@link markupOf}): its lowercase name and attributes, with
- * names lowercased and values in double, single or no quotes.
- *
- * @param {string} markup
- * @returns {{ name: string, attributes: Map<string, string> }[]}
- */
-function tags(markup) {
-  return [...markup.matchAll(/<([a-z][a-z0-9-]*)\b([^>]*)>/gi)].map(([, name = "", text = ""]) => {
-    const attributes = new Map();
-    for (const [, key = "", ...values] of text.matchAll(
-      /([^\s"'=<>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g,
-    )) {
-      attributes.set(key.toLowerCase(), values.find((v) => v !== undefined) ?? "");
-    }
-    return { name: name.toLowerCase(), attributes };
-  });
-}
-
-/**
  * Every address the page loads: `src`, `href`, `srcset`, `data` and `poster` of the elements that
  * load what they name. Links the reader follows don't count, nor do the `<link>`s that only name a
  * page (canonical, alternate, me, author), nor `data:` addresses.
@@ -233,7 +215,7 @@ function loadedAddresses(found) {
  */
 export function pageProblems(html, origin) {
   const markup = markupOf(html);
-  const found = tags(markup);
+  const found = startTags(markup);
   return [
     ...absoluteLoads(found, origin),
     ...markupProblems(markup, found),
@@ -384,7 +366,7 @@ export async function builtSiteProblems(dir, origin) {
  * @returns {Promise<string[]>}
  */
 async function missingTargets(html, page, dir, origin) {
-  const found = tags(markupOf(html));
+  const found = startTags(markupOf(html));
   const base = new URL(page, `${origin}/`);
   const links = found.filter(({ name }) => name === "a").map(({ attributes }) => attributes.get("href") ?? "");
   const missing = [];

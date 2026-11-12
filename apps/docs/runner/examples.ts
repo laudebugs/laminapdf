@@ -1,4 +1,5 @@
-// The examples a reader can edit and run on their pages (todo B7e; the docs examples plan, §1):
+// The examples a reader can edit and run on their pages (todo B7e; the docs examples plan, §1;
+// "Your first PDF"'s Node app, todo Q4d):
 // which function each file exports, and the inputs it takes, in the order it takes them. The
 // inputs are the files the SDK's test suite passes (packages/sdk/test/suite/examples.ts); the
 // worker (worker.ts) serves them as its own assets.
@@ -20,7 +21,15 @@ interface OptionsInput {
   readonly options: string;
 }
 
-export type RunInput = FileInput | OptionsInput;
+/**
+ * The function a quick start hands its PDF to (its `save`), which the runner gives it in place of
+ * writing a file: what it is handed is the run's PDF.
+ */
+interface SaveInput {
+  readonly save: true;
+}
+
+export type RunInput = FileInput | OptionsInput | SaveInput;
 
 /** The producer and creation date the suite's `exampleOptions` fix. */
 export const FIXED = { producer: "lamina examples", creationDate: "D:20261030120000Z" } as const;
@@ -53,4 +62,9 @@ export const RUNNABLE: Readonly<Record<string, Runnable>> = {
     inputs: [PHOTO, FLOW_REPORT, { options: "lamina-ex-flow!!" }],
   },
   "packages/sdk/examples/pdf-ua-report.ts": { export: "pdfUaReport", inputs: [NOTO] },
+  // The quick start the first tutorial shows: run as it is, its `save` given the PDF.
+  "packages/sdk/examples/quick-start/node.ts": {
+    export: "hello",
+    inputs: [{ save: true }, { options: "lamina-ex-hello!" }],
+  },
 };
