@@ -128,7 +128,7 @@ describe(`the edit session in ${BROWSER}`, () => {
 
     // In the reader: More › Choose a file would leave the document.
     await more(page, "Choose a file");
-    const ask = page.getByRole("alertdialog", { name: `Close ${NAME} without saving?` });
+    const ask = page.getByRole("alertdialog", { name: `Save changes to ${NAME}?` });
     await ask.waitFor();
     await ask.getByRole("button", { name: "Cancel" }).click();
     await expect.poll(() => page.title()).toBe(`• ${NAME} · Lamina PDF`);

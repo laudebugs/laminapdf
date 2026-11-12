@@ -3,15 +3,18 @@
 // were made, so three quick presses of Undo undo three steps; each redraws the pages it touched
 // before the next starts. The store's state is what an interface reads: the steps, whether a call
 // is running, why editing is blocked, and the last undo or redo that restored only part of a step,
-// which stays until the next edit (a toast is never the only place it shows).
+// which stays until the next edit (a toast is never the only place it shows). Saves queue with the
+// calls too (E1 plan §7): a save writes a copy, the caller writes it where the file lives, and only
+// then does the document take it as saved; edits wait until it is done.
 
-import type { Op } from "@laminapdf/sdk";
+import type { Op, PlannedSave, SaveOptions } from "@laminapdf/sdk";
 import {
   type EditHistory,
   type EditResult,
   EMPTY_HISTORY,
   type OpenedDocument,
   type RevertedStep,
+  type SavedCopy,
 } from "../protocol.js";
 
 /** Why the document can't be edited now. */
@@ -34,6 +37,8 @@ export interface EditSessionState {
   readonly notice: RevertedStep | undefined;
   /** How long the last call took from the call to its pages redrawn, in ms (E1 plan §6's measure). */
   readonly lastMs: number | undefined;
+  /** A save is writing: edits, undo and redo wait for it, and the interface says "Saving…". */
+  readonly saving: boolean;
 }
 
 /** What the session drives: the viewer's edit calls, which redraw the pages they touch. */
@@ -44,6 +49,12 @@ export interface EditSessionHost {
   goToStep(position: number): Promise<EditResult>;
   /** The worker's history now, read after a call failed (a failed edit can clear the steps undone). */
   editHistory(): Promise<EditHistory>;
+  /** How a save with `options` would go. */
+  planSave(options: SaveOptions): Promise<PlannedSave>;
+  /** A copy of the document as a save with `options` writes it; the document stays unsaved. */
+  copyEdits(options: SaveOptions): Promise<SavedCopy>;
+  /** Makes the copy `token` names the saved file, once it is written. */
+  adoptEdits(token: number): Promise<EditHistory>;
 }
 
 /** Called after an undo or redo, with each step it took back or made again. */
@@ -65,6 +76,7 @@ const CLOSED: EditSessionState = {
   blocked: "no-document",
   notice: undefined,
   lastMs: undefined,
+  saving: false,
 };
 
 /**
@@ -138,6 +150,7 @@ export class EditSession {
       blocked: document === undefined ? "no-document" : document.encrypted ? "encrypted" : undefined,
       notice: undefined,
       lastMs: undefined,
+      saving: false,
     });
   }
 
@@ -147,6 +160,54 @@ export class EditSession {
    */
   follow(history: EditHistory): void {
     this.#set({ history, ...(history.diverged ? { blocked: "diverged" as const } : {}) });
+  }
+
+  /**
+   * How a save with `options` would go: its constraint, the signatures it would break, its mode
+   * and the conformance warnings. Read after the calls before it.
+   */
+  plan(options: SaveOptions): Promise<PlannedSave> {
+    return this.#queued(() => this.#host.planSave(options));
+  }
+
+  /**
+   * Saves: a copy with `options`, which `write` puts where the file lives; once that worked, the
+   * document takes the copy as its saved file and the history marks the point saved. A failed
+   * plan, copy or write rejects, and the document stays unsaved. `saving` is set meanwhile, and
+   * edits wait.
+   */
+  save(options: SaveOptions, write: (copy: SavedCopy) => Promise<void>): Promise<SavedCopy> {
+    const turn = this.#turn;
+    return this.#queued(async () => {
+      this.#set({ saving: true });
+      try {
+        const copy = await this.#host.copyEdits(options);
+        await write(copy);
+        const history = await this.#host.adoptEdits(copy.token);
+        if (turn === this.#turn) this.#set({ history });
+        return copy;
+      } finally {
+        if (turn === this.#turn) this.#set({ saving: false });
+      }
+    });
+  }
+
+  /** A copy of the document as a save with `options` writes it, which leaves it unsaved (Save a copy). */
+  copy(options: SaveOptions): Promise<SavedCopy> {
+    return this.#queued(() => this.#host.copyEdits(options));
+  }
+
+  /** Runs `call` after the calls before it, for this document only, unless editing is blocked by then. */
+  #queued<R>(call: () => Promise<R>): Promise<R> {
+    const turn = this.#turn;
+    const run = this.#queue.then(() => {
+      if (turn !== this.#turn) throw new Error("the document was closed");
+      const { blocked } = this.#state;
+      if (blocked !== undefined) throw new Error(`the document can't be saved: ${blocked}`);
+      return call();
+    });
+    this.#queue = run.catch(() => undefined);
+    return run;
   }
 
   /** Applies `ops` as one step named `label` ("Rotate page 5"). Rejects as the edit failed. */

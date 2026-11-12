@@ -52,6 +52,8 @@ export const DOCUMENT_METHODS = {
   removeMetadata: 2,
   save: 1,
   saveWithReport: 1,
+  saveCopy: 1,
+  adoptCopy: 2,
   setMetadata: 2,
   structureTree: 0,
   undo: 0,

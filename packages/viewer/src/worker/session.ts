@@ -165,6 +165,14 @@ export function markSaved(session: Session): void {
   session.saved = at(session);
 }
 
+/** Empties the history and records the document now as the one saved: a save that couldn't keep it. */
+export function clearHistory(session: Session): void {
+  session.steps.length = 0;
+  session.position = 0;
+  session.dropped = 0;
+  session.saved = 0;
+}
+
 /** A copy of `session` to go back to when a move fails half way. */
 export function snapshot(session: Session): Session {
   return { ...session, steps: [...session.steps] };

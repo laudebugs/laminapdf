@@ -87,6 +87,8 @@ export function sidebar(typeDoc) {
         { label: "All recipes", slug: "recipes" },
         { label: "Hello, world", slug: "recipes/hello" },
         { label: "An invoice", slug: "recipes/invoice" },
+        { label: "An invoice from JSON", slug: "recipes/invoice-from-json" },
+        { label: "Markdown to PDF", slug: "recipes/markdown-to-pdf" },
         { label: "Multilingual text", slug: "recipes/multilingual" },
         { label: "Images and vectors", slug: "recipes/images-and-vectors" },
         { label: "Element flow", slug: "recipes/element-flow" },
@@ -133,4 +135,21 @@ export function sidebarRoutes() {
       ? [{ label: entry.label, slugs: entry.items.map(route) }]
       : [{ label: entry.label, slugs: [route(entry)] }],
   );
+}
+
+/**
+ * The pages under `src/content/docs/` (paths such as `recipes/hello.mdx`) that no sidebar entry
+ * links, so readers could reach them only by search. The generated TypeScript reference
+ * (`reference/sdk/`) has its own group and is left out.
+ *
+ * @param {string[]} pages
+ * @returns {string[]}
+ */
+export function unlistedPages(pages) {
+  const routes = new Set(sidebarRoutes().flatMap((group) => group.slugs));
+  return pages.filter((page) => {
+    if (page.startsWith("reference/sdk/")) return false;
+    const route = page.replace(/\.mdx?$/, "").replace(/(^|\/)index$/, "");
+    return !routes.has(route ? `${route}/` : "");
+  });
 }

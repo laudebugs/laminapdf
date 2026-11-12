@@ -1,5 +1,6 @@
+import type { PlannedSave } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { type EditHistory, type EditResult, EMPTY_HISTORY, type OpenedDocument } from "../protocol.js";
+import { type EditHistory, type EditResult, EMPTY_HISTORY, type OpenedDocument, type SavedCopy } from "../protocol.js";
 import { EditSession, type EditSessionHost } from "./session.js";
 
 /** A worker's session in memory: steps by label, and calls in the order they ran. */
@@ -10,10 +11,31 @@ class FakeWorker implements EditSessionHost {
   /** The next call's outcome for undo and redo. */
   outcome: "applied" | "partial" | "skipped" = "applied";
   fail = false;
+  /** The position the last adopted save wrote. */
+  saved = 0;
+  copies = 0;
 
   history(): EditHistory {
     const steps = this.labels.map((label, i) => ({ id: i + 1, label, pages: [0], at: 0 }));
-    return { ...EMPTY_HISTORY, steps, position: this.position, unsaved: this.position };
+    return { ...EMPTY_HISTORY, steps, position: this.position, unsaved: Math.abs(this.position - this.saved) };
+  }
+
+  async planSave(): Promise<PlannedSave> {
+    this.calls.push("plan");
+    return { constraint: "free" } as PlannedSave;
+  }
+
+  async copyEdits(): Promise<SavedCopy> {
+    this.calls.push("copy");
+    await Promise.resolve();
+    this.copies += 1;
+    return { token: this.copies, bytes: new Uint8Array([this.position]), report: {} as SavedCopy["report"] };
+  }
+
+  async adoptEdits(): Promise<EditHistory> {
+    this.calls.push("adopt");
+    this.saved = this.position;
+    return this.history();
   }
 
   async applyEdit(_ops: unknown, { label }: { label: string }): Promise<EditResult> {
@@ -175,5 +197,58 @@ describe("the edit session store", () => {
     await session.apply([], "b");
     await session.goTo(0);
     expect([worker.calls.at(-1), session.getState().history.position]).toEqual(["go 0", 0]);
+  });
+
+  describe("saving", () => {
+    it("writes the copy, then marks the document saved", async () => {
+      const { session, worker } = open();
+      await session.apply([], "Rotate page 1");
+      const written: number[] = [];
+      await session.save({}, async (copy) => {
+        written.push(copy.token);
+        worker.calls.push("write");
+      });
+      expect([worker.calls.slice(-3), written, session.getState().history.unsaved]).toEqual([
+        ["copy", "write", "adopt"],
+        [1],
+        0,
+      ]);
+    });
+
+    it("leaves the document unsaved when the write fails", async () => {
+      const { session, worker } = open();
+      await session.apply([], "Rotate page 1");
+      const failed = session.save({}, () => Promise.reject(new Error("the disk is full")));
+      await expect(failed).rejects.toThrow(/disk is full/);
+      expect([worker.calls.includes("adopt"), session.getState().history.unsaved, session.getState().saving]).toEqual([
+        false,
+        1,
+        false,
+      ]);
+    });
+
+    it("reads saving while it writes, and edits wait for it", async () => {
+      const { session, worker } = open();
+      let finish = () => {};
+      const writing = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      const saved = session.save({}, () => writing);
+      const edit = session.apply([], "Rotate page 1");
+      await Promise.resolve();
+      await Promise.resolve();
+      const during = session.getState().saving;
+      finish();
+      await saved;
+      await edit;
+      expect([during, worker.calls]).toEqual([true, ["copy", "adopt", "apply Rotate page 1"]]);
+    });
+
+    it("copies without saving for Save a copy", async () => {
+      const { session, worker } = open();
+      await session.apply([], "Rotate page 1");
+      await session.copy({});
+      expect([worker.calls.at(-1), session.getState().history.unsaved]).toEqual(["copy", 1]);
+    });
   });
 });

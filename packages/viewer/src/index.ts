@@ -57,6 +57,7 @@ export type {
   ReplayedStep,
   Result,
   RevertedStep,
+  SavedCopy,
   SourceInit,
   StructureData,
   TextRunData,

@@ -1,20 +1,27 @@
-// Edits on screen (E1 plan §6). PDFium draws the pages from the bytes it opened, so an edit to
-// Lamina PDF's model reaches the screen as bytes: after a transaction that touched pages, the
-// model saves incrementally into memory (only the appended revision; the model rebases onto the
-// file with it) and the backend opens the file with every revision appended so far. The new render
-// document replaces the old one only once it is open, so a failure leaves the pages drawn as they
-// were. The worker runs one call at a time, so no render runs while the documents are swapped: a
-// render answered before this call drew the old file, one answered after it draws the new one.
+// Edits on screen (E1 plan §6) and saving them (§7). PDFium draws the pages from the bytes it
+// opened, so an edit to Lamina PDF's model reaches the screen as bytes: after a transaction that
+// touched pages, the model writes a copy of every edit since the last save, as one revision
+// appended to the saved file (`saveCopy`: the model isn't rebased, so its plan still sees every
+// change), and the backend opens the file with it. The new render document replaces the old one
+// only once it is open, so a failure leaves the pages drawn as they were. The worker runs one call
+// at a time, so no render runs while the documents are swapped: a render answered before this call
+// drew the old file, one answered after it draws the new one.
+//
+// A save is a copy too (`copyEdits`), which the page writes where the file lives; only once that
+// worked does the model adopt it as its saved file (`adoptEdits`), so a failed write leaves every
+// edit unsaved.
 
 import type { RenderSource } from "@laminapdf/render";
-import type { Document, Op, PageInfo, Reverted } from "@laminapdf/sdk";
-import type { EditHistory, EditResult, ReplayedStep, RevertedStep } from "../protocol.js";
+import type { Document, Op, PageInfo, PlannedSave, Reverted, SaveOptions } from "@laminapdf/sdk";
+import type { EditHistory, EditResult, ReplayedStep, RevertedStep, SavedCopy } from "../protocol.js";
 import { current, currentBackend, type EditState, filling, followEdit, type Open } from "./document.js";
 import { forgetSearch } from "./find.js";
 import { forgetLinks } from "./navigation.js";
 import {
+  clearHistory,
   clearRedo,
   historyOf,
+  markSaved,
   record,
   removeStep,
   restore,
@@ -68,6 +75,7 @@ async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label:
   const count = await model.ensure(() => model.pageCount, { signal });
   const edited = await model.ensure(() => model.apply(ops), { signal });
   if (!edited.changed) return { pages: [], history: historyOf(edit.session, false) };
+  edit.copy = undefined;
   // The transaction cleared the model's redo stack, whatever happens next.
   clearRedo(edit.session);
   if (edited.touchedPages.length > 0) {
@@ -128,6 +136,7 @@ async function moveTo(position: () => number, id: number, signal: AbortSignal): 
   const { model, edit } = opened;
   const { session } = edit;
   const kept = snapshot(session);
+  edit.copy = undefined;
   const done: RevertedStep[] = [];
   const ids = new Set<string>();
   try {
@@ -200,6 +209,7 @@ async function replay(
   editable(opened);
   const { model, edit } = opened;
   const ids = new Set<string>();
+  edit.copy = undefined;
   try {
     const count = await model.ensure(() => model.pageCount, { signal });
     for (const step of steps) {
@@ -277,24 +287,91 @@ async function touched(opened: Open, ids: readonly string[]): Promise<PageInfo[]
 }
 
 /**
- * Saves the model's changes into memory and swaps in a render document opened from the result.
- * The old one keeps drawing until the new one is open, and is closed after.
+ * Writes a copy of the model's changes since the last save and swaps in a render document opened
+ * from the saved file with it. The old one keeps drawing until the new one is open, and is closed
+ * after. The copy overrides signatures a change breaks (`invalidateSignatures`): the pages must
+ * show the edit, and only a save asks before it breaks one.
  */
 async function redraw(opened: Open): Promise<void> {
   const { model, edit } = opened;
-  // Only the appended revision: the model rebases onto the old file with it, copying nothing.
-  const { bytes } = await model.ensure(() => model.saveWithReport({ mode: "incremental", output: "appendedOnly" }));
-  // Kept even if the reopen below fails: the model's file now ends with this revision, and the
-  // next save appends to it. Each edit adds one revision, and one more section to the chain of
-  // cross-reference sections PDFium reads on open; compacting them is the edit session's to decide.
-  edit.appended.push(bytes);
-  const source = joined([edit.source, ...edit.appended.map(bytesSource)]);
+  // Only the appended revision, unless the saved file must be rewritten (a repaired one).
+  const { bytes, report } = await model.ensure(() =>
+    model.saveCopy({ mode: "auto", output: "appendedOnly", invalidateSignatures: true }),
+  );
+  edit.drawn = { bytes, whole: report.mode === "fullRewrite" };
+  await reopen(opened);
+}
+
+/** Swaps in a render document opened from the saved file and the copy drawn after it. */
+async function reopen(opened: Open): Promise<void> {
+  const { edit } = opened;
+  const { drawn } = edit;
+  const source =
+    drawn === undefined
+      ? edit.source
+      : drawn.whole
+        ? bytesSource(drawn.bytes)
+        : joined([edit.source, bytesSource(drawn.bytes)]);
   const options = edit.renderLimits === undefined ? {} : { limits: edit.renderLimits };
-  // Not the caller's signal: the model is already saved, so the reopen finishes either way.
+  // Not the caller's signal: the model has moved on, so the reopen finishes either way.
   const next = await filling(opened.remote, () => currentBackend().open(source, options), new AbortController().signal);
   const old = opened.render;
   opened.render = next;
   old.close();
+}
+
+/** How saving document `id` with `options` would go: its constraint, signatures, mode and warnings. */
+export function planSave(options: SaveOptions, id: number, signal: AbortSignal): Promise<PlannedSave> {
+  const opened = current(id);
+  return serial(opened, () => opened.model.ensure(() => opened.model.plan(options), { signal }));
+}
+
+/** The token of the next copy a save writes. */
+let nextCopy = 1;
+
+/**
+ * Writes document `id` as a save with `options` would, for the page to write where the file
+ * lives; the document stays unsaved until `adoptEdits` takes the copy. `whole` copies are the
+ * file a save writes; Save a copy writes one too and never adopts it.
+ *
+ * @throws the save's refusals (`would-invalidate-signatures`, `requires-rewrite`, …); a diverged
+ *   or encrypted document's.
+ */
+export function copyEdits(options: SaveOptions, id: number, signal: AbortSignal): Promise<SavedCopy> {
+  const opened = current(id);
+  return serial(opened, async () => {
+    editable(opened);
+    const { model, edit } = opened;
+    const { bytes, report } = await model.ensure(() => model.saveCopy({ ...options, output: "whole" }), { signal });
+    const token = nextCopy++;
+    edit.copy = { token, bytes, historyCleared: report.historyCleared };
+    return { token, bytes, report };
+  });
+}
+
+/**
+ * Makes the copy `token` names document `id`'s saved file, once the page has written it where
+ * the file lives: the model rebases onto it, the pages are drawn from it, and the history marks
+ * this point saved (or empties, when the save couldn't keep it).
+ *
+ * @throws when an edit, undo or redo since the copy made it stale: the copy written isn't the
+ *   document any more, which stays unsaved.
+ */
+export function adoptEdits(token: number, id: number): Promise<EditHistory> {
+  const opened = current(id);
+  return serial(opened, async () => {
+    const { model, edit } = opened;
+    const { copy } = edit;
+    if (copy?.token !== token) throw new Error("the document changed after this copy was written: it stays unsaved");
+    edit.copy = undefined;
+    await model.ensure(() => model.adoptCopy(copy.bytes, copy.historyCleared));
+    edit.source = bytesSource(copy.bytes);
+    edit.drawn = undefined;
+    if (copy.historyCleared) clearHistory(edit.session);
+    else markSaved(edit.session);
+    await reopen(opened);
+    return historyOf(edit.session, false);
+  });
 }
 
 function bytesSource(bytes: Uint8Array): RenderSource {

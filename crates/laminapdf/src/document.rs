@@ -425,6 +425,45 @@ impl Document {
         }
     }
 
+    /// Writes what [`Document::save`] would, and leaves the document as it was: not rebased, its
+    /// changes still unsaved, the save-time stamp in the copy only. Save a copy, and the copy an
+    /// edit session draws its pages from (ADR 0007).
+    ///
+    /// ```
+    /// use laminapdf::{Document, MetadataPatch, Op, SaveOptions, SetMetadata};
+    ///
+    /// # let bytes = include_bytes!("../../../fixtures/corpus/hello.pdf").to_vec();
+    /// let mut doc = Document::open_bytes(bytes, Default::default())?;
+    /// doc.apply(vec![Op::from(SetMetadata::new(MetadataPatch::new().title(Some("Copy")), None))])?;
+    /// let copy = doc.save_copy(&SaveOptions::new())?;
+    /// assert!(copy.bytes.starts_with(b"%PDF-") && doc.has_unsaved_changes());
+    /// # Ok::<(), laminapdf::Error>(())
+    /// ```
+    ///
+    /// # Errors
+    /// As [`Document::save`]; the document is unchanged either way.
+    pub fn save_copy(&mut self, options: &SaveOptions) -> Result<Saved> {
+        let mut bytes = Vec::new();
+        let report = self.inner.save_copy(&mut Output { bytes: &mut bytes }, options)?;
+        Ok(Saved { bytes, report })
+    }
+
+    /// Makes `bytes`, the whole output of [`Document::save_copy`], the document's saved file, as
+    /// if [`Document::save`] had written it: once the copy is written where the document lives,
+    /// the document rebases onto it, so a failed write leaves it unsaved. `history_cleared` is
+    /// the copy's [`SaveReport::history_cleared`]. The document must not change in between.
+    ///
+    /// # Errors
+    /// `nested-transaction` / `saved-not-rebased`; `not-rebased` when `bytes` can't be read
+    /// (the document then waits for [`Document::rebase`]).
+    pub fn adopt_copy(&mut self, bytes: Vec<u8>, history_cleared: bool) -> Result<()> {
+        let result = self.inner.adopt_copy(bytes.into(), history_cleared);
+        if matches!(&result, Ok(()) | Err(laminapdf_save::SaveError::NotRebased { .. })) {
+            self.bump();
+        }
+        Ok(result?)
+    }
+
     /// A save as a resumable job, with its own [`CancelToken`] ([`SaveJob::cancel_token`]).
     #[must_use]
     pub fn save_job(&self, options: &SaveOptions) -> SaveJob {

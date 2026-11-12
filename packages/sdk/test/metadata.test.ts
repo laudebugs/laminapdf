@@ -110,6 +110,13 @@ describe("plan and wouldViolate", () => {
     expect(doc.saveWithReport({ metadataDate: SAVED_AT }).report.metadataUpdated).toBe(true);
   });
 
+  it("saves a copy that leaves the document unsaved, its conflict still planned", () => {
+    using doc = open("fixtures/signed/certified-p2.pdf");
+    doc.setMetadata({ title: "x" });
+    const { bytes } = doc.saveCopy({ invalidateSignatures: true, metadataDate: SAVED_AT });
+    expect([bytes.length > 0, doc.hasUnsavedChanges, doc.plan().constraint]).toEqual([true, true, "conflict"]);
+  });
+
   it("warns before a save that breaks a PDF/UA claim, and still saves", () => {
     using doc = open("fixtures/golden/examples/pdf_ua_report.pdf");
     doc.removeMetadata(["title"]);

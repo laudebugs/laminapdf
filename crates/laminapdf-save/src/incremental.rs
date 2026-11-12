@@ -148,6 +148,7 @@ impl<'d> IncrementalWriter<'d> {
                 invalidated: Vec::new(),
                 encryption_removed: false,
                 metadata: MetadataFlags::default(),
+                history_cleared: false,
             },
             appended,
             freed,

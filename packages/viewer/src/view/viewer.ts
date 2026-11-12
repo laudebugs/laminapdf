@@ -458,6 +458,9 @@ export class Viewer {
       redoEdit: () => this.#editCall(() => this.#client.redoEdit()),
       goToStep: (position) => this.#editCall(() => this.#client.goToStep(position)),
       editHistory: () => this.#client.editHistory(),
+      planSave: (options) => this.#client.planSave(options),
+      copyEdits: (options) => this.#client.copyEdits(options),
+      adoptEdits: (token) => this.#client.adoptEdits(token),
     });
     this.#cleanup.push(
       this.#client.on("restarted", ({ reopened, edits: replay }) => {
