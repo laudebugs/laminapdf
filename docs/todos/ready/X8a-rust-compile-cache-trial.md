@@ -54,7 +54,9 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
   - Cloudflare: the bucket, with a lifecycle rule deleting objects 30 days after upload; a read-only and a read-write R2 API token for that bucket alone.
   - GitHub secrets: the read token in repository and Dependabot secrets.
   - GitHub environment: the `rust-compile-cache` environment, limited to `main`, holding the write token.
-  - Every secret's name.
+  - The names, which the owner set up on 2026-11-12 and the action must read:
+    - `SCCACHE_R2_ENDPOINT` and `SCCACHE_R2_BUCKET`: repository variables;
+    - `SCCACHE_R2_ACCESS_KEY_ID` and `SCCACHE_R2_SECRET_ACCESS_KEY`: the read token in repository and Dependabot secrets, and the write token under the same names in the `rust-compile-cache` environment, whose secrets take precedence there. A job therefore reads one pair of names and gets the write token only inside the environment.
 - [ ] Add workflow checks:
   - the action's sccache pin is `doctor.rs`'s;
   - in every job that uses the action, its setup step comes after the toolchain step;
