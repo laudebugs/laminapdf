@@ -15,7 +15,7 @@
 
 ## Goal
 
-The desktop part of round E3 ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo), and the round's close. Every E3 panel and dialog runs over the engine's edit session; exports are encoded natively, pages in parallel, into a folder; attachments save to disk through a dialog. The signed-document table of the [E3 plan §6](../../plans/editor/e3-navigation-attachments-inspection.md#6-saving-and-the-save-constraint) runs as one suite. This completes the desktop column of every E3 row.
+The desktop part of round E3 ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo), and the round's close. Every E3 panel and dialog runs over the engine's edit session; exports are encoded natively, pages in parallel, into a folder; attachments save to disk through a dialog. The signed-document table of the [E3 plan §6](../../plans/editor/e3-navigation-attachments-inspection.md#6-saving-and-the-save-constraint) runs as one suite. With this todo merged, every E3 row's desktop column is complete.
 
 ## Context
 

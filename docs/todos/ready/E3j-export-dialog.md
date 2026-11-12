@@ -15,7 +15,7 @@
 
 ## Goal
 
-The interface for the round's exports: one dialog (O16) that exports pages as PNG, JPEG or TIFF, text as plain text, Markdown or JSON with positions, the file's pictures, and its links and bookmarks as JSON or CSV; and images → PDF from Insert in Organise (O07). On the web, several files stream into a zip one page at a time; with `canWriteDirectory` they go into a folder.
+The interface for the round's exports: one dialog (O16) that exports pages as PNG, JPEG or TIFF, text as plain text, Markdown or JSON with positions, the file's embedded images, and its links and bookmarks as JSON or CSV. The todo also adds images → PDF to Insert in Organise (O07). On the web, several files stream into a zip one page at a time; with `canWriteDirectory` they go into a folder.
 
 ## Context
 

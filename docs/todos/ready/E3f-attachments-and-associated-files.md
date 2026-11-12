@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2j](./E2j-page-tree-and-tree-writers.md), [E2p](./E2p-source-documents-and-copier.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2i](./E2i-signed-gating-and-close.md), [E2j](./E2j-page-tree-and-tree-writers.md), [E2p](./E2p-source-documents-and-copier.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3f-attachments-and-associated-files` |
 | PR title | `feat(ops): embedded files, associated files and portfolio reading` |
