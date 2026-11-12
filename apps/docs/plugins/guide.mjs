@@ -92,6 +92,18 @@ export function onePageAreas(groups) {
 }
 
 /**
+ * The one-page views as a Markdown list, one link per area: what `<OnePageLinks />` shows, for the
+ * Markdown twins.
+ *
+ * @returns {string}
+ */
+export function onePageList() {
+  return onePageAreas()
+    .map((area) => `- [${area.label}](/${ONE_PAGE}/${area.slug}/)`)
+    .join("\n");
+}
+
+/**
  * A twin's body: its front matter and its own `# Title` line removed.
  *
  * @param {string} twin
@@ -142,6 +154,8 @@ export function siteLinks(markdown, site, route) {
 /**
  * The guide as one Markdown document: front matter for the PDF's metadata, "About this guide", then
  * each area as a level-1 heading with its pages as level-2 headings, their own headings below.
+ * U+FFFD, the replacement character the extraction pages show, is written as its code point:
+ * none of the guide's fonts has a glyph for it, and the builder refuses a character it can't draw.
  *
  * @param {{ version: string, site: string, areas: { label: string, routes: string[] }[], twins: Map<string, string> }} input
  *   `twins`: route → the twin's Markdown
@@ -171,7 +185,7 @@ export function guideMarkdown({ version, site, areas, twins }) {
       parts.push("", `## ${title}`, "", siteLinks(deeperHeadings(body.trim(), 1), site, route));
     }
   }
-  return `${parts.join("\n")}\n`;
+  return `${parts.join("\n")}\n`.replaceAll("\uFFFD", "U+FFFD");
 }
 
 /**

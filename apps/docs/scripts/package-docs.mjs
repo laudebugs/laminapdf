@@ -26,7 +26,7 @@ import {
 } from "../plugins/agent-docs.mjs";
 import { releaseNotes } from "../plugins/changelog.mjs";
 import { readerMarkdown } from "../plugins/error-pages.mjs";
-import { GUIDE_PDF } from "../plugins/guide.mjs";
+import { GUIDE_PDF, onePageList } from "../plugins/guide.mjs";
 import { frontMatter, mdxToMarkdown, rewriteLinks, twin } from "../plugins/markdown.mjs";
 import { sidebarRoutes } from "../plugins/sidebar.mjs";
 import { sectionMarkdown } from "../src/lib/benchmarks.ts";
@@ -102,6 +102,7 @@ async function writePages(out, version, api) {
     const markdown = mdxToMarkdown(body, {
       snippet: snippetText,
       codeTable: () => "See the [error and warning codes](/reference/codes/).",
+      onePageLinks: onePageList,
       guidePdf: () =>
         `Download [the whole guide as one PDF](${SITE}${GUIDE_PDF}): every section above in order, with a contents page and bookmarks.`,
       changelog: () => changelog,

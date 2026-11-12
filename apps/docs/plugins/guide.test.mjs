@@ -1,7 +1,6 @@
 // Tests for guide.mjs: `node --test plugins/` (the docs site's `test` script).
 
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import {
   areaSlug,
@@ -11,6 +10,7 @@ import {
   ONE_PAGE,
   onePageAreas,
   onePageBody,
+  onePageList,
   onePageSections,
   siteLinks,
   twinBody,
@@ -49,9 +49,8 @@ test("an area of one page gets no one-page view", () => {
   );
 });
 
-test("Read offline links every one-page view, and nothing else under it", async () => {
-  const page = await readFile(new URL("../src/content/docs/start/offline.mdx", import.meta.url), "utf8");
-  const linked = [...page.matchAll(new RegExp(`\\(/${ONE_PAGE}/([a-z-]+)/\\)`, "g"))].map((m) => m[1]);
+test("the one-page list links every one-page view, in sidebar order", () => {
+  const linked = [...onePageList().matchAll(new RegExp(`\\(/${ONE_PAGE}/([a-z-]+)/\\)`, "g"))].map((m) => m[1]);
   assert.deepEqual(
     linked,
     onePageAreas().map((a) => a.slug),
@@ -104,6 +103,16 @@ test("the guide puts each area under a level-1 heading and its pages under level
   assert.match(markdown, /^---\ntitle: Lamina PDF 1\.0\.0: the guide\nlang: en\n/);
   assert.match(markdown, /\n# About this guide\n/);
   assert.match(markdown, /\n# Start here\n\n## Install\n\nRun it\.\n\n### npm\n$/);
+});
+
+test("the guide writes U+FFFD as its code point, which no font of the guide can draw", () => {
+  const markdown = guideMarkdown({
+    version: "1",
+    site: SITE,
+    areas: [{ label: "A", routes: ["x/"] }],
+    twins: new Map([["x/", twinOf("X", "Characters come out as `\uFFFD`.")]]),
+  });
+  assert.match(markdown, /come out as `U\+FFFD`\./);
 });
 
 test("the guide fails on a page with no twin", () => {

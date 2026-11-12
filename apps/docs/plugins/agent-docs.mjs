@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { parseBenchmarks, sectionMarkdown } from "../src/lib/benchmarks.ts";
 import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
-import { GUIDE_PDF, ONE_PAGE, onePageAreas, onePageBody } from "./guide.mjs";
+import { GUIDE_PDF, ONE_PAGE, onePageAreas, onePageBody, onePageList } from "./guide.mjs";
 import { frontMatter, mdxToMarkdown, rewriteLinks, shownFiles, twin, twinHref } from "./markdown.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
@@ -166,6 +166,7 @@ async function twinOf(route, context) {
         context.guidePdf
           ? `Download [the whole guide as one PDF](${context.site}${GUIDE_PDF}): every section above in order, with a contents page and bookmarks.`
           : "This build of the docs has no PDF of the guide; the published site has one.",
+      onePageLinks: onePageList,
     });
     const title = data.title ?? base;
     return {

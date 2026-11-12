@@ -1,0 +1,15 @@
+---
+// The one-page views (plugins/guide.mjs), one link per area in sidebar order, read from the
+// sidebar so the list never drifts from it. The Markdown twins get the same list (onePageList).
+import { ONE_PAGE, onePageAreas } from "../../plugins/guide.mjs";
+---
+
+<ul>
+  {
+    onePageAreas().map((area) => (
+      <li>
+        <a href={`/${ONE_PAGE}/${area.slug}/`}>{area.label}</a>
+      </li>
+    ))
+  }
+</ul>

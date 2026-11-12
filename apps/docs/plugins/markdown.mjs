@@ -230,9 +230,10 @@ export function outsideFences(markdown, transform) {
  * A page's MDX body as Markdown.
  *
  * @param {string} body the page without its front matter
- * @param {{ snippet: (file: string) => string, codeTable: () => string, changelog: () => string, benchmarks?: (section: string) => string, guidePdf?: () => string }} components
+ * @param {{ snippet: (file: string) => string, codeTable: () => string, changelog: () => string, benchmarks?: (section: string) => string, guidePdf?: () => string, onePageLinks?: () => string }} components
  *   `snippet` reads an example file; `codeTable` writes the code table; `changelog` the releases;
- *   `benchmarks` one section of the benchmarks page; `guidePdf` the link to the guide as one PDF
+ *   `benchmarks` one section of the benchmarks page; `guidePdf` the link to the guide as one PDF;
+ *   `onePageLinks` the list of one-page views
  * @returns {string}
  */
 export function mdxToMarkdown(body, components) {
@@ -247,6 +248,7 @@ export function mdxToMarkdown(body, components) {
       .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
       .replace(/<Changelog\s*\/>/g, () => components.changelog())
       .replace(/<GuidePdf\s*\/>/g, () => components.guidePdf?.() ?? "")
+      .replace(/<OnePageLinks\s*\/>/g, () => components.onePageLinks?.() ?? "")
       .replace(/<Benchmarks\s+section="([a-z-]+)"\s*\/>/g, (_, section) => {
         if (components.benchmarks === undefined) throw new Error("a page shows benchmarks, but none were read");
         return components.benchmarks(section);
