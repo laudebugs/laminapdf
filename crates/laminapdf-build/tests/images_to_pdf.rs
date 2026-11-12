@@ -91,17 +91,19 @@ fn every_image_gets_its_own_page_in_order() {
     assert_eq!(size(&doc, 0), size(&doc, 2));
 }
 
-/// Where EXIF's orientations 1 to 8 show the stored image's bottom-left and top-right corners,
-/// as fractions of the shown image's width and height (y down): its meaning, not our matrices.
-const CORNERS: [((f64, f64), (f64, f64)); 8] = [
-    ((0.0, 1.0), (1.0, 0.0)), // 1: as stored
-    ((1.0, 1.0), (0.0, 0.0)), // 2: mirrored left to right
-    ((1.0, 0.0), (0.0, 1.0)), // 3: half a turn
-    ((0.0, 0.0), (1.0, 1.0)), // 4: mirrored top to bottom
-    ((1.0, 0.0), (0.0, 1.0)), // 5: mirrored on the main diagonal
-    ((0.0, 0.0), (1.0, 1.0)), // 6: a quarter turn clockwise
-    ((0.0, 1.0), (1.0, 0.0)), // 7: mirrored on the other diagonal
-    ((1.0, 1.0), (0.0, 0.0)), // 8: a quarter turn anticlockwise
+/// Where EXIF's orientations 1 to 8 show the stored image's bottom-left, top-right and
+/// bottom-right corners, as fractions of the shown image's width and height (y down): from what
+/// each value says row 0 and column 0 become, not from our matrices.
+type Corner = (f64, f64);
+const CORNERS: [(Corner, Corner, Corner); 8] = [
+    ((0.0, 1.0), (1.0, 0.0), (1.0, 1.0)), // 1: as stored
+    ((1.0, 1.0), (0.0, 0.0), (0.0, 1.0)), // 2: mirrored left to right
+    ((1.0, 0.0), (0.0, 1.0), (0.0, 0.0)), // 3: half a turn
+    ((0.0, 0.0), (1.0, 1.0), (1.0, 0.0)), // 4: mirrored top to bottom
+    ((1.0, 0.0), (0.0, 1.0), (1.0, 1.0)), // 5: mirrored on the main diagonal
+    ((0.0, 0.0), (1.0, 1.0), (0.0, 1.0)), // 6: a quarter turn clockwise
+    ((0.0, 1.0), (1.0, 0.0), (0.0, 0.0)), // 7: mirrored on the other diagonal
+    ((1.0, 1.0), (0.0, 0.0), (1.0, 0.0)), // 8: a quarter turn anticlockwise
 ];
 
 #[test]
@@ -119,13 +121,20 @@ fn each_orientation_shows_the_wide_photo_its_way_up_on_a_page_its_shape() {
     let doc = build(&images, &ImagesOptions::new());
     let (w, h) = size(&doc, 0);
     assert!(w > h, "the stored photo is wide");
-    for (i, ((bl_x, bl_y), (tr_x, tr_y))) in CORNERS.into_iter().enumerate() {
+    for (i, (bottom_left, top_right, bottom_right)) in CORNERS.into_iter().enumerate() {
         let (pw, ph) = size(&doc, i);
         assert_eq!((pw, ph), if i >= 4 { (h, w) } else { (w, h) }, "orientation {}", i + 1);
-        // Image space (0, 0) is the stored bottom-left corner, (1, 1) the top-right; the page's
-        // user space has y up.
-        let expected = [(bl_x * pw, (1.0 - bl_y) * ph), (tr_x * pw, (1.0 - tr_y) * ph)];
-        assert_eq!(record(&doc, i).images[0].corners, expected, "orientation {}", i + 1);
+        // Image space (0, 0) is the stored bottom-left corner, (1, 1) the top-right and (1, 0)
+        // the bottom-right; the page's user space has y up.
+        let on_page = |(x, y): Corner| (x * pw, (1.0 - y) * ph);
+        let drawn = &record(&doc, i).images[0];
+        assert_eq!(
+            drawn.corners,
+            [on_page(bottom_left), on_page(top_right)],
+            "orientation {}",
+            i + 1
+        );
+        assert_eq!(drawn.bottom_right, on_page(bottom_right), "orientation {}", i + 1);
     }
 }
 
@@ -172,8 +181,12 @@ fn a_page_past_14400_points_gets_a_user_unit_and_keeps_its_size() {
     let page = doc.pages().unwrap();
     let page = page.get(0).unwrap();
     assert_eq!(page.user_unit().unwrap(), 3.0);
-    // The MediaBox is in user-space units: a third of the points, written to six places.
+    // The MediaBox is in user-space units: a third of the points, written to six places; the
+    // image fills it.
     let media = page.media_box().unwrap().unwrap();
     assert_eq!(media.width(), 10_000.0);
     assert!((media.height() - 1.0 / 3.0).abs() < 1e-5);
+    let [(x0, y0), (x1, y1)] = record(&doc, 0).images[0].corners;
+    assert_eq!((x0, y0, x1), (0.0, 0.0, 10_000.0));
+    assert!((y1 - 1.0 / 3.0).abs() < 1e-3);
 }

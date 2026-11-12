@@ -117,8 +117,9 @@ def rgb_profile() -> bytes:
 
 
 def crop(height: int, width: int, out: Path):
-    """`photo-rgb.jpg` cropped to `width` x `height` around its centre by `sips`, APP segments
-    removed."""
+    """`photo-rgb.jpg` cropped around its centre by `sips` to `height` rows of `width` pixels (the
+    order `sips -c` takes them), with the APP1, APP2 and APP13 segments removed like every JPEG
+    here; APP0 (JFIF, 72 dpi) stays."""
     with tempfile.TemporaryDirectory() as tmp:
         dst = Path(tmp) / "out.jpg"
         subprocess.run(

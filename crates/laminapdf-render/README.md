@@ -31,11 +31,11 @@ doc.render(&req, &mut out, &CancelToken::new())?;
   - `max_render_side`, default 16,384;
   - `max_input_bytes`, default 1 GiB, for backends that read the whole file (hayro).
 - **Errors** are `RenderError`, in the ADR 0026 contract:
-  - **new codes** under `renderErrors` in `fixtures/codes.json`: `render-too-large`, `render-failed` and `render-backend-unavailable`;
+  - **new codes** under `renderErrors` in `fixtures/codes.json`: `render-too-large`, `render-failed`, `render-backend-unavailable` and, for an export's encoder, `export-failed`;
   - **reused codes:** `page-index-out-of-range`, `password-required`, `wrong-password`, `data-pending`, `source`, `invalid-argument` and `cancelled`.
 - **Cancellation:** a `CancelToken` (the façade's, which now lives in `laminapdf-syntax`) is checked before and after the engine call. A running render can't be interrupted (ADR 0004 §1).
 - **Determinism:** the same backend version, input and request give the same bytes.
-- **Export** (feature `export`, E3h): `export_pages(&dyn RenderDocument, &[page], &ExportOptions, &CancelToken)` draws pages one at a time and encodes each as `ExportFormat::Png` (RGBA, `pHYs`), `Jpeg { quality }` (on an opaque background, JFIF density) or `Tiff { multi_page }` (RGBA, Deflate, `XResolution`; one file for every page when `multi_page`), at `ExportOptions::with_dpi` (150 by default). The scale is never below `dpi / 72`, so a page that is a whole number of pixels keeps its last column. Encoders: `png`, `jpeg-encoder` and `tiff`. `jpeg-encoder`'s code derives from libjpeg: this software is based in part on the work of the Independent JPEG Group.
+- **Export** (feature `export`, E3h): `export_pages(&dyn RenderDocument, &[page], &ExportOptions, &CancelToken)` draws pages one at a time and encodes each as `ExportFormat::Png` (RGBA, `pHYs`), `Jpeg { quality }` (on an opaque background, JFIF density) or `Tiff { multi_page }` (RGBA, Deflate, `XResolution`; one file for every page when `multi_page`), at `ExportOptions::with_dpi` (150 by default). The scale is never below `dpi / 72`, so a page that is a whole number of pixels keeps its last column. An empty page list is `invalid-argument`; an encoder failure, a bug since it writes into memory, is `export-failed`. Encoders: `png`, `jpeg-encoder` and `tiff`. `jpeg-encoder`'s code derives from libjpeg: this software is based in part on the work of the Independent JPEG Group.
 
 ## Page appearance
 
