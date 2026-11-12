@@ -19,8 +19,10 @@ import type { MetadataField } from "./properties-form.js";
 import {
   changeKey,
   isXmlName,
+  isXmlPrefix,
   readXmpPacket,
   withChange,
+  withoutChange,
   type XmpChange,
   type XmpProperty,
   type XmpSchema,
@@ -50,6 +52,8 @@ export interface XmpEditorProps {
   readonly onEdits: (edits: XmpEdits) => void;
   /** A property the Description tab edits was chosen: open that tab. */
   readonly onDescription: (field: MetadataField) => void;
+  /** Whether a removal or a replaced packet will leave the old values in the file's earlier versions. */
+  readonly removalStays?: boolean;
 }
 
 const TYPES: readonly XmpType[] = ["text", "uri", "integer", "real", "boolean", "date", "seq", "bag", "langAlt"];
@@ -231,11 +235,7 @@ function Detail({
       changes: withChange(edits.changes, { kind: "remove", namespace: property.namespace, name: property.name }),
       valid: true,
     });
-  const keep = () =>
-    onEdits({
-      changes: edits.changes.filter((c) => c.kind === "replace" || changeKey(c) !== changeKey(property)),
-      valid: true,
-    });
+  const keep = () => onEdits({ changes: withoutChange(edits.changes, changeKey(property)), valid: true });
   const many = type === "seq" || type === "bag" || type === "langAlt";
   const Field = many ? TextArea : TextInput;
   return (
@@ -277,7 +277,7 @@ function AddProperty({ onAdd, onCancel }: { onAdd: (change: XmpChange) => void; 
   const [fields, setFields] = useState({ namespace: "", prefix: "", name: "", type: "text" as XmpType, text: "" });
   const value = xmpValueOf(fields.type, fields.text);
   const namespaceOk = /^[a-z][a-z0-9+.-]*:\S+$/i.test(fields.namespace);
-  const ok = namespaceOk && isXmlName(fields.prefix) && isXmlName(fields.name) && value !== undefined;
+  const ok = namespaceOk && isXmlPrefix(fields.prefix) && isXmlName(fields.name) && value !== undefined;
   const field = (key: "namespace" | "prefix" | "name", label: string, help: string) => (
     <TextInput
       label={label}
@@ -462,7 +462,7 @@ function Panes({
 }
 
 /** The XMP tab. */
-export function XmpEditor({ packet, edits, onEdits, onDescription }: XmpEditorProps): ReactNode {
+export function XmpEditor({ packet, edits, onEdits, onDescription, removalStays = false }: XmpEditorProps): ReactNode {
   const [view, setView] = useState<"properties" | "raw">(() =>
     edits.changes.some((c) => c.kind === "replace") || packet.status === "malformed" ? "raw" : "properties",
   );
@@ -482,6 +482,11 @@ export function XmpEditor({ packet, edits, onEdits, onDescription }: XmpEditorPr
         canAdd={!replacing}
         onAdd={() => setAdding(true)}
       />
+      {removalStays ? (
+        <Notice tone="warning" title={laterMessage("properties.edit.notice.earlier")}>
+          {laterMessage("properties.edit.notice.earlier.body")}
+        </Notice>
+      ) : null}
       {packet.pdfa === undefined ? null : (
         <Notice title={laterMessage("properties.xmp.pdfa", { level: pdfaLevel(packet.pdfa) })}>
           {laterMessage("properties.xmp.pdfa.body")}

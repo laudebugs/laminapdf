@@ -228,23 +228,22 @@
     min-inline-size: 12rem;
   }
 
+  /* The tree beside the detail, stacked when the dialog is too narrow for both. */
   .paper-xmp-panes {
-    --paper-xmp-pane-height: max(14rem, calc(100vh - var(--paper-properties-chrome-height) - 9rem));
-    display: grid;
-    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--paper-space-20);
   }
 
   /* Each pane scrolls on its own, so the footer never covers the detail's buttons. */
   .paper-xmp-tree,
   .paper-xmp-detail {
-    max-block-size: var(--paper-xmp-pane-height);
+    max-block-size: max(14rem, calc(100vh - var(--paper-properties-chrome-height) - 9rem));
   }
 
   .paper-xmp-tree {
+    flex: 1 1 16rem;
     overflow-y: auto;
-    border-inline-end: var(--paper-border-width) solid var(--paper-hairline);
-    padding-inline-end: var(--paper-space-8);
   }
 
   .paper-xmp-item[data-selected] .paper-outline-link {
@@ -260,6 +259,7 @@
   }
 
   .paper-xmp-detail {
+    flex: 2 1 20rem;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -278,16 +278,6 @@
 
   .paper-xmp > .paper-field .paper-textarea {
     min-block-size: min(20rem, calc(100vh - var(--paper-properties-chrome-height) - 12rem));
-  }
-
-  @media (width < 640px) {
-    .paper-xmp-panes {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .paper-xmp-tree {
-      border-inline-end: 0;
-    }
   }
 
   @media (forced-colors: active) {

@@ -80,8 +80,8 @@ Every edit of the open document is an `Op` ([full-editor §5](../full-editor.md#
 | `UpdateLink` | `{ link, rect?, quads?, target?, contents? }` | `Annotation` | E3c |
 | `DeleteLink` | `{ link }` | `Annotation` | E3c |
 | `SetInitialView` | `{ open: Option<OpenView>?, page_mode?, page_layout?, preferences?: ViewerPreferences }`; `OpenView { page: PageId, view: View }` | `Document` | E3d |
-| `SetXmpProperty` | `{ namespace, prefix, name, value: XmpValue }`; `XmpValue` is text, a URI, an integer, a real, a boolean, a date, a language alternative, or an ordered or unordered array of simple values (`{ type, value }` on the wire). A property is named by its local name: a structure's fields are written only through the whole packet | `Metadata` | E3e |
-| `RemoveXmpProperty` | `{ namespace, name }` | `Metadata` | E3e |
+| `SetXmpProperty` | `{ namespace, prefix, name, value: XmpValue, replaceMalformed? }`; `XmpValue` is text, a URI, an integer, a real, a boolean, a date, a language alternative, or an ordered or unordered array of simple values (`{ type, value }` on the wire). A property is named by its local name: a structure's fields are written only through the whole packet | `Metadata` | E3e |
+| `RemoveXmpProperty` | `{ namespace, name, replaceMalformed? }`; `replaceMalformed` as E1's metadata ops | `Metadata` | E3e |
 | `ReplaceXmpPacket` | `{ xml: String }`: the whole packet, parsed before it applies and refused if it doesn't parse | `Metadata` | E3e |
 | `AttachFile` | `{ name, file: BlobId, mime, description?, created?, modified?, attach_to: AttachTarget, relationship: AfRelationship }`; `AttachTarget` is the `/EmbeddedFiles` tree only, or also the `/AF` of the catalog, a page or an annotation | `Document` | E3f |
 | `UpdateAttachment` | `{ attachment: AttachmentId, name?, description?, mime?, relationship? }` | `Document` | E3f |
@@ -125,7 +125,7 @@ These change nothing in the open document; long ones are jobs with a run-to-comp
 
 ## 4. Crate and package changes
 
-- **`laminapdf-model`**: the outline view reads `/C` and `/F`, and an outline writer over `CosMut` keeps the list and counts (E3b); `link.rs` resolves a URI against `/URI /Base`; a catalog view reads `/OpenAction` as a destination, `/PageMode`, `/PageLayout` and `/ViewerPreferences` (E3d), and `threads()` reads `/Threads` and their beads (E3d); `xmp::Packet` sets and removes any property, and generates extension schemas (E3e); file specifications, embedded files, `/AF` at every level and `/Collection` (E3f); output intents and ICC headers, and a reference index (E3g).
+- **`laminapdf-model`**: the outline view reads `/C` and `/F`, and an outline writer over `CosMut` keeps the list and counts (E3b); `link.rs` resolves a URI against `/URI /Base`; a catalog view reads `/OpenAction` as a destination, `/PageMode`, `/PageLayout` and `/ViewerPreferences` (E3d), and `threads()` reads `/Threads` and their beads (E3d); `xmp::Packet` sets and removes any property, and generates extension schemas (E3e; the façade's `Document::xmp_packet` reads the packet's XML for the raw view); file specifications, embedded files, `/AF` at every level and `/Collection` (E3f); output intents and ICC headers, and a reference index (E3g).
 - **`laminapdf-ops`**: the ops of §2.1, `AttachmentId`, and `Applied`'s reports (`OutlineRepaired`, renamed destination uses, `still_in_earlier_revisions`).
 - **`laminapdf-build`**: `images_to_pdf` and EXIF orientation (E3h); the contents page's layout (E3l).
 - **`laminapdf-render`**: `export_pages` and the encoders (E3h): PNG through `png`, JPEG through `jpeg-encoder` (MIT OR Apache-2.0) and TIFF through `tiff` (MIT), each checked by cargo-deny.
@@ -209,7 +209,7 @@ Every new fixture is written by Lamina PDF's own scripts and licensed like the r
 
 - **`fixtures/navigation/`** (new, E3b, from a dependency-free `make.py`): `outline.pdf` (three levels, closed and open items, colours and styles, a `URI` and a JavaScript action), `outline-broken.pdf` (a cycle, a wrong `/Last`, wrong counts), `dests.pdf` (names in the tree and in the PDF 1.1 dictionary, used by bookmarks and links), `links.pdf` (links with quads, a `/URI /Base`, a `javascript:` link and a `GoToR`), `initial-view.pdf` (an `/OpenAction` destination, page modes and layouts, every preference) and `threads.pdf` (two threads across three pages).
 - **Tagged files:** the builder's `golden/tagged-report.pdf` for tagged links and the contents page.
-- **XMP:** `fixtures/metadata/` gains a PDF/A-2b file with a custom property and its extension schema, and a packet with struct values (E3e).
+- **XMP:** a PDF/A-2b file with custom properties and their extension schema (`fixtures/golden/examples/edit_xmp.pdf`, the `edit_xmp` example's output), and a packet with an extension schema and struct values (`fixtures/golden/xmp/pdfa-extension.xmp`, a seed of the `xmp_parse` fuzz target) (E3e).
 - **Attachments** (E3f): a Factur-X-style PDF/A-3 invoice built by the builder (an XML attachment with `/AFRelationship /Alternative`), a page-level `/AF`, a FileAttachment annotation, and a portfolio with a `/Collection` schema, written by `make.py`.
 - **Images** (E3h, E3i): JPEGs with each of the eight EXIF orientations (`tools/fixtures/images.py`), and `fixtures/images/extract.pdf` with an image of each kind E3i decodes (DCT, JPX, Flate RGB, `Indexed`, CMYK, 16-bit, `/Decode` inverted, `/SMask`, `/Mask` stencil, an inline image, a nested form).
 - **Signed files:** the pyHanko files in `fixtures/signed/` (approval, certified at P1, P2 and P3, a FieldMDP lock), with the usage-rights file E2i adds.

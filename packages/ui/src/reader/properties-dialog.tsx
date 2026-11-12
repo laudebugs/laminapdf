@@ -31,7 +31,7 @@ import {
   removalStaysInEarlierVersions,
 } from "./properties-form.js";
 import { XmpEditor, type XmpEdits, type XmpPacketData } from "./xmp-editor.js";
-import type { XmpChange } from "./xmp-model.js";
+import { type XmpChange, xmpRemovalStays } from "./xmp-model.js";
 
 /** What the dialog shows: the properties once read, or that they are being read or couldn't be. */
 export type PropertiesState =
@@ -326,6 +326,7 @@ function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEdit
             <p className="paper-properties-empty">{laterMessage("properties.loading")}</p>
           ) : (
             <XmpEditor
+              removalStays={xmpRemovalStays(edit.xmp.changes, editing.rewritesWhole)}
               packet={editing.xmp}
               edits={edit.xmp}
               onEdits={edit.setXmp}

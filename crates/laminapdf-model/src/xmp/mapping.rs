@@ -225,6 +225,17 @@ impl MappedField {
         }
     }
 
+    /// The field whose XMP property is `name` in `namespace`, e.g. `dc:title`.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn from_property(namespace: &str, name: &str) -> Option<Self> {
+        MAPPINGS
+            .iter()
+            .find(|m| m.namespace == namespace && m.name == name)
+            .map(|m| m.field)
+    }
+
     /// The field whose Info key is `key`, e.g. `Title`.
     ///
     /// Added in 0.2.0.

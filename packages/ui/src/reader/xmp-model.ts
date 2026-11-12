@@ -29,8 +29,11 @@ const KNOWN_SCHEMAS: readonly (readonly [namespace: string, name: string])[] = [
   ["http://www.aiim.org/pdfa/ns/extension/", "PDF/A extension schemas"],
 ];
 
-/** The properties the Description tab edits, by namespace and name, as `xmp::MAPPINGS` lists them. */
-const MAPPED: readonly (readonly [namespace: string, name: string, field: MetadataField])[] = [
+/**
+ * The properties the Description tab edits, by namespace and name, as Rust's `xmp::MAPPINGS`
+ * lists the Info-mapped ones (test/xmp-model.test.ts reads `mapping.rs` to hold them equal).
+ */
+export const MAPPED: readonly (readonly [namespace: string, name: string, field: MetadataField])[] = [
   ["http://purl.org/dc/elements/1.1/", "title", "title"],
   ["http://purl.org/dc/elements/1.1/", "creator", "authors"],
   ["http://purl.org/dc/elements/1.1/", "description", "subject"],
@@ -242,9 +245,14 @@ export function xmpValueOf(type: XmpType, text: string): XmpValueData | undefine
   return simple(type, text);
 }
 
-/** Whether `name` can name a property or prefix: an XML name without a colon (ASCII letters, digits, `-`, `_`, `.`). */
+/** Whether `name` can name a property: an XML name without a colon (ASCII letters, digits, `-`, `_`, `.`). */
 export function isXmlName(name: string): boolean {
-  return /^[A-Za-z_][A-Za-z0-9_.-]*$/.test(name) && !/^xml/i.test(name);
+  return /^[A-Za-z_][A-Za-z0-9_.-]*$/.test(name);
+}
+
+/** Whether `prefix` can name a namespace: as {@link isXmlName}, and not starting with `xml`, which XML reserves. */
+export function isXmlPrefix(prefix: string): boolean {
+  return isXmlName(prefix) && !/^xml/i.test(prefix);
 }
 
 /** The key of a property's change: its namespace and name. */
@@ -252,9 +260,18 @@ export function changeKey(change: { readonly namespace: string; readonly name: s
   return `${change.namespace} ${change.name}`;
 }
 
+/** `changes` without any change to the property `key` names ({@link changeKey}). */
+export function withoutChange(changes: readonly XmpChange[], key: string): XmpChange[] {
+  return changes.filter((c) => c.kind === "replace" || changeKey(c) !== key);
+}
+
 /** `changes` with `change` in place of an earlier one for the same property; a replaced packet drops the others. */
 export function withChange(changes: readonly XmpChange[], change: XmpChange): XmpChange[] {
   if (change.kind === "replace") return [change];
-  const others = changes.filter((c) => c.kind === "replace" || changeKey(c) !== changeKey(change));
-  return [...others.filter((c) => c.kind !== "replace"), change];
+  return [...withoutChange(changes, changeKey(change)).filter((c) => c.kind !== "replace"), change];
+}
+
+/** Whether `changes` remove values the file's earlier versions keep: a removal or a replaced packet, saved incrementally. */
+export function xmpRemovalStays(changes: readonly XmpChange[], rewritesWhole: boolean): boolean {
+  return !rewritesWhole && changes.some((c) => c.kind === "remove" || c.kind === "replace");
 }

@@ -162,8 +162,8 @@ pub(crate) mod xmp_value {
         text: String,
     }
 
-    fn to_wire(value: &Value) -> XmpValue {
-        match value {
+    fn to_wire(value: &Value) -> Result<XmpValue, &'static str> {
+        Ok(match value {
             Value::Text(s) => XmpValue::Text(s.clone()),
             Value::Uri(s) => XmpValue::Uri(s.clone()),
             Value::Integer(n) => XmpValue::Integer(*n),
@@ -179,11 +179,11 @@ pub(crate) mod xmp_value {
                     })
                     .collect(),
             ),
-            Value::Seq(items) => XmpValue::Seq(items.iter().map(to_wire).collect()),
-            Value::Bag(items) => XmpValue::Bag(items.iter().map(to_wire).collect()),
-            // A later kind of value has no wire form yet; it can't come from an op log.
-            _ => XmpValue::Text(String::new()),
-        }
+            Value::Seq(items) => XmpValue::Seq(items.iter().map(to_wire).collect::<Result<_, _>>()?),
+            Value::Bag(items) => XmpValue::Bag(items.iter().map(to_wire).collect::<Result<_, _>>()?),
+            // A later kind of value has no wire form yet: refuse rather than write another value.
+            _ => return Err("this kind of XMP value has no wire form"),
+        })
     }
 
     fn from_wire(wire: XmpValue) -> Result<Value, String> {
@@ -204,7 +204,7 @@ pub(crate) mod xmp_value {
     }
 
     pub(crate) fn serialize<S: Serializer>(value: &Value, s: S) -> Result<S::Ok, S::Error> {
-        to_wire(value).serialize(s)
+        to_wire(value).map_err(serde::ser::Error::custom)?.serialize(s)
     }
 
     pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Value, D::Error> {

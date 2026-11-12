@@ -27,7 +27,7 @@ Edit any XMP property, including custom and PDF/A extension schemas (`pdfaExtens
 
 **In scope**
 
-- `SetXmpProperty { namespace, prefix, path, value }`, `RemoveXmpProperty`, `ReplaceXmpPacket { xml }` (parsed before it applies; the packet travels in the op, not as a blob)
+- `SetXmpProperty { namespace, prefix, name, value }`, `RemoveXmpProperty { namespace, name }` (both with `replaceMalformed`, as E1's metadata ops), `ReplaceXmpPacket { xml }` (parsed before it applies; the packet travels in the op, not as a blob)
 - `pdfaid:` and `pdfuaid:` are refused (`xmp-claim-read-only`), in a property op or a replaced packet ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions))
 - Extension-schema declarations generated when adding custom properties to PDF/A files
 - XMP panel: tree editor plus raw XML view with validation errors
@@ -45,7 +45,7 @@ Edit any XMP property, including custom and PDF/A extension schemas (`pdfaExtens
 - **`SaveConstraint`:** as E1c
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `J.04` → `round-trip` (core, pdf, web)
+- **Capability-matrix rows to flip:** `J.04` → `round-trip` (core, pdf, web). As built: core and web; the pdf column takes no evidence from TypeScript tests yet (as for J.01), though `packages/sdk/test/xmp.test.ts` covers it
 
 ## Tasks
 

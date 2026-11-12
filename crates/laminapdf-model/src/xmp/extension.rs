@@ -23,8 +23,8 @@ pub const PDFA_SCHEMA: &str = "http://www.aiim.org/pdfa/ns/schema#";
 ///
 /// Added in 0.2.0.
 pub const PDFA_PROPERTY: &str = "http://www.aiim.org/pdfa/ns/property#";
-const PDFA_TYPE: &str = "http://www.aiim.org/pdfa/ns/type#";
-const PDFA_FIELD: &str = "http://www.aiim.org/pdfa/ns/field#";
+pub(super) const PDFA_TYPE: &str = "http://www.aiim.org/pdfa/ns/type#";
+pub(super) const PDFA_FIELD: &str = "http://www.aiim.org/pdfa/ns/field#";
 
 /// The schemas PDF/A predefines (ISO 19005-2 §6.6.2.3.1: those of the XMP Specification
 /// 2005, and PDF/A's own), whose properties need no declaration.

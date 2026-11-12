@@ -198,3 +198,66 @@ fn every_xmp_op_is_a_metadata_change_saved_incrementally() {
         );
     }
 }
+
+#[test]
+fn a_malformed_pdfa_packet_can_be_repaired_keeping_its_claim() {
+    let broken = format!("{}<unclosed>", packet(PDFA_2B));
+    let mut d = doc("", None, Some(broken.as_bytes()));
+    assert!(d.xmp().unwrap().is_malformed());
+    ReplaceXmpPacket::new(packet(PDFA_2B)).apply_to(&mut d).unwrap();
+    assert_eq!(xmp(&d).pdfa_part(), Some(2));
+}
+
+#[test]
+fn a_malformed_packet_can_neither_gain_nor_lose_a_claim() {
+    let mut plain = doc("", None, Some(b"<x:xmpmeta"));
+    let claimed = ReplaceXmpPacket::new(packet(PDFA_2B)).apply_to(&mut plain);
+    assert_eq!(claimed.unwrap_err(), Error::XmpClaimReadOnly);
+    let broken = format!("{}<unclosed>", packet(PDFA_2B));
+    let mut pdfa = doc("", None, Some(broken.as_bytes()));
+    assert_eq!(
+        ReplaceXmpPacket::new(packet("")).apply_to(&mut pdfa).unwrap_err(),
+        Error::XmpClaimReadOnly
+    );
+}
+
+#[test]
+fn the_extension_schemas_own_namespaces_are_refused() {
+    let mut d = doc("", None, Some(packet("").as_bytes()));
+    for ns in [
+        "http://www.aiim.org/pdfa/ns/type#",
+        "http://www.aiim.org/pdfa/ns/field#",
+    ] {
+        let e = SetXmpProperty::new(ns, "t", "type", XmpValue::Text("x".into()))
+            .apply_to(&mut d)
+            .unwrap_err();
+        assert_eq!(e, Error::InvalidXmpProperty { reason: "namespace" }, "{ns}");
+    }
+}
+
+#[test]
+fn removing_a_property_the_packet_lacks_writes_nothing() {
+    let mut d = doc("", None, Some(packet("").as_bytes()));
+    assert_eq!(
+        RemoveXmpProperty::new(ACME, "batch").apply_to(&mut d).unwrap(),
+        Effect::default()
+    );
+    assert!(!d.cos().is_dirty());
+}
+
+#[test]
+fn setting_the_value_a_property_holds_writes_nothing() {
+    let body = r#"<acme:batch xmlns:acme="http://example.com/acme/">7</acme:batch>"#;
+    let mut d = doc("", None, Some(packet(body).as_bytes()));
+    let effect = set(ACME, "batch", XmpValue::Integer(7)).apply_to(&mut d).unwrap();
+    assert_eq!((effect, d.cos().is_dirty()), (Effect::default(), false));
+}
+
+#[test]
+fn an_empty_list_for_a_mirrored_property_is_refused() {
+    let mut d = doc("", None, Some(packet("").as_bytes()));
+    let e = SetXmpProperty::new(DC, "dc", "creator", XmpValue::Seq(vec![]))
+        .apply_to(&mut d)
+        .unwrap_err();
+    assert_eq!(e, Error::InvalidXmpProperty { reason: "value" });
+}

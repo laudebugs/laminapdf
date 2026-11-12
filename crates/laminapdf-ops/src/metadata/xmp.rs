@@ -10,7 +10,7 @@
 //! [`SetMetadata`]: crate::SetMetadata
 //! [`MAPPINGS`]: laminapdf_model::xmp::MAPPINGS
 
-use laminapdf_model::xmp::{MAPPINGS, Mapping, PDFA_ID, PDFUA_ID, Value, ValueKind, XmpValue};
+use laminapdf_model::xmp::{MappedField, Mapping, PDFA_ID, PDFUA_ID, Value, ValueKind, XmpValue};
 use serde::{Deserialize, Serialize};
 
 use super::write::{Policy, edit_packet, replace_packet, write};
@@ -222,12 +222,13 @@ fn refuse_claims(namespace: &str) -> Result<()> {
 
 /// The row of [`MAPPINGS`] for the property, when the Info dictionary mirrors it.
 fn mapped(namespace: &str, name: &str) -> Option<&'static Mapping> {
-    MAPPINGS.iter().find(|m| m.namespace == namespace && m.name == name)
+    MappedField::from_property(namespace, name).map(MappedField::mapping)
 }
 
 /// `value` as the metadata writer takes it for `mapping`'s field: `shape` when it has the
 /// wrong shape.
 fn mapped_value(mapping: &Mapping, value: &XmpValue) -> Result<Value> {
+    value.check().map_err(laminapdf_model::xmp::PropertyError::from)?;
     let shape = Error::InvalidXmpProperty { reason: "shape" };
     match (mapping.kind, value) {
         (ValueKind::Text | ValueKind::LangAlt, XmpValue::Text(s)) => Ok(Value::Text(s.clone())),

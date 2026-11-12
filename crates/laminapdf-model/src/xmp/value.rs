@@ -140,14 +140,13 @@ impl XmpValue {
             Self::Boolean(_) => "Boolean".to_owned(),
             Self::Date(_) => "Date".to_owned(),
             Self::LangAlt(_) => "Lang Alt".to_owned(),
-            Self::Seq(items) => format!(
-                "Seq {}",
-                items.first().map_or_else(|| "Text".to_owned(), Self::value_type)
-            ),
-            Self::Bag(items) => format!(
-                "Bag {}",
-                items.first().map_or_else(|| "Text".to_owned(), Self::value_type)
-            ),
+            Self::Seq(items) | Self::Bag(items) => {
+                let array = if matches!(self, Self::Seq(_)) { "Seq" } else { "Bag" };
+                format!(
+                    "{array} {}",
+                    items.first().map_or_else(|| "Text".to_owned(), Self::value_type)
+                )
+            }
         }
     }
 

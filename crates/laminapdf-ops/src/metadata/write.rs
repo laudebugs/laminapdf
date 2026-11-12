@@ -146,14 +146,16 @@ pub(crate) fn edit_packet(
     };
     if fresh {
         for (field, value) in super::read::info_values(doc)? {
+            // Info's values are read in their field's shape, so this can't fail.
             let _ = packet.set(field, Some(xml_value(&value)));
         }
     }
     let removed = edit(&mut packet)?;
-    if !packet.is_changed() {
+    let written = packet.write();
+    // An edit that set a value the packet already held writes the same bytes: nothing changes.
+    if !packet.is_changed() || (!fresh && written.bytes == packet.original()) {
         return Ok(Effect::default());
     }
-    let written = packet.write();
     write_packet(&mut doc.cos_mut().edit(), written.bytes)?;
     Ok(Effect {
         packet_rewritten: written.canonical && !fresh,
@@ -169,7 +171,15 @@ pub(crate) fn edit_packet(
 pub(crate) fn replace_packet(doc: &mut laminapdf_model::Document, xml: &str) -> Result<Effect> {
     let mut new = Packet::parse(xml.as_bytes()).map_err(Error::InvalidXmpPacket)?;
     let old = doc.xmp()?;
-    if claims(old.packet()) != claims(Some(&new)) {
+    let same_claims = match &old {
+        // A packet that can't be read can't be compared value by value: for each identification,
+        // the new packet may claim it only where the old bytes show a `part` in its namespace.
+        PacketState::Malformed { bytes, .. } => [PDFA_ID, PDFUA_ID]
+            .into_iter()
+            .all(|ns| claims_part(&String::from_utf8_lossy(bytes), ns) == new.properties().any(|p| p.namespace == ns)),
+        _ => claims(old.packet()) == claims(Some(&new)),
+    };
+    if !same_claims {
         return Err(Error::XmpClaimReadOnly);
     }
     new.declare_extensions();
@@ -200,6 +210,22 @@ pub(crate) fn replace_packet(doc: &mut laminapdf_model::Document, xml: &str) -> 
         removed: !matches!(old, PacketState::Absent) || removed_from_info,
         declared: written.declared,
         ..Effect::default()
+    })
+}
+
+/// Whether the text of a packet that can't be parsed shows a `part` property in `namespace`:
+/// `<p:part` or `p:part=` for a prefix `p` it binds to the namespace.
+fn claims_part(text: &str, namespace: &str) -> bool {
+    text.match_indices(namespace).any(|(at, _)| {
+        let before = text
+            .get(..at)
+            .unwrap_or_default()
+            .trim_end_matches(['"', '\'', '=', ' ']);
+        let Some(start) = before.rfind("xmlns:") else {
+            return false;
+        };
+        let prefix = before.get(start + "xmlns:".len()..).unwrap_or_default();
+        !prefix.is_empty() && (text.contains(&format!("<{prefix}:part")) || text.contains(&format!("{prefix}:part=")))
     })
 }
 

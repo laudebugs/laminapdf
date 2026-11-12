@@ -188,6 +188,7 @@ describe("the XMP tab", () => {
     await userEvent.click(item("reviewers"));
     await userEvent.click(button("Remove property"));
     await expect.element(page.getByText("Will be removed")).toBeVisible();
+    await expect.element(page.getByText("Removed values stay in earlier versions.")).toBeVisible();
     await userEvent.click(button("Keep"));
     await expect.element(button("Apply")).toBeDisabled();
   });

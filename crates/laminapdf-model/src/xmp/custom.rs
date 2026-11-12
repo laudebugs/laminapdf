@@ -2,8 +2,8 @@
 //! [`MAPPINGS`](super::MAPPINGS), and declaring a PDF/A packet's properties.
 
 use super::Packet;
-use super::extension::{PDFA_EXTENSION, PDFA_PROPERTY, PDFA_SCHEMA};
-use super::mapping::{ADOBE_META, MAPPINGS, MappedField, RDF, XML};
+use super::extension::{PDFA_EXTENSION, PDFA_FIELD, PDFA_PROPERTY, PDFA_SCHEMA, PDFA_TYPE};
+use super::mapping::{ADOBE_META, MappedField, RDF, XML};
 use super::tree::is_name;
 use super::value::{ValueError, XmpValue};
 use super::write::is_xml_char;
@@ -42,7 +42,16 @@ pub enum PropertyError {
 }
 
 /// Namespaces whose properties are the packet's structure, not metadata.
-const RESERVED: [&str; 6] = [RDF, XML, ADOBE_META, PDFA_EXTENSION, PDFA_SCHEMA, PDFA_PROPERTY];
+const RESERVED: [&str; 8] = [
+    RDF,
+    XML,
+    ADOBE_META,
+    PDFA_EXTENSION,
+    PDFA_SCHEMA,
+    PDFA_PROPERTY,
+    PDFA_TYPE,
+    PDFA_FIELD,
+];
 
 /// Whether `s` is a prefix or local name: an XML name with no colon.
 fn is_ncname(s: &str) -> bool {
@@ -57,8 +66,8 @@ fn check_property(namespace: &str, name: &str) -> Result<(), PropertyError> {
     if !is_ncname(name) {
         return Err(PropertyError::Name);
     }
-    match MAPPINGS.iter().find(|m| m.namespace == namespace && m.name == name) {
-        Some(m) => Err(PropertyError::Mapped(m.field)),
+    match MappedField::from_property(namespace, name) {
+        Some(field) => Err(PropertyError::Mapped(field)),
         None => Ok(()),
     }
 }
@@ -110,7 +119,8 @@ impl Packet {
         Ok(())
     }
 
-    /// Removes the property `name` in `namespace` (every copy of it the packet holds).
+    /// Removes the property `name` in `namespace` (every copy of it the packet holds). Removing
+    /// one the packet doesn't hold changes nothing.
     ///
     /// # Errors
     /// A [`PropertyError`] when the namespace or name can't hold a property, or the property is
@@ -119,8 +129,14 @@ impl Packet {
     /// Added in 0.2.0.
     pub fn remove_property(&mut self, namespace: &str, name: &str) -> Result<(), PropertyError> {
         check_property(namespace, name)?;
+        let key = (namespace.to_owned(), name.to_owned());
+        if self.property(namespace, name).is_none() {
+            // Nothing parsed to remove: forget a value set since, and write nothing for it.
+            self.edits.custom.remove(&key);
+            return Ok(());
+        }
         self.edits.custom.insert(
-            (namespace.to_owned(), name.to_owned()),
+            key,
             Custom {
                 prefix: String::new(),
                 value: None,
