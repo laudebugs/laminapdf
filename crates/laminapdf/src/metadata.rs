@@ -12,7 +12,7 @@ use crate::{DocumentMetadata, PacketStatus};
 /// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
-pub struct XmpPacket {
+pub struct XmpText {
     /// Whether there is a packet, and whether it was read.
     pub status: PacketStatus,
     /// The packet's XML as UTF-8 (a UTF-16 packet decoded), with its edits; for a packet that
@@ -58,22 +58,22 @@ impl Document {
     /// Reading errors (the catalog, the packet's stream).
     ///
     /// Added in 0.2.0.
-    pub fn xmp_packet(&self) -> Result<XmpPacket> {
+    pub fn xmp_packet(&self) -> Result<XmpText> {
         Ok(match self.ops().xmp()? {
-            PacketState::Parsed(p) => XmpPacket {
+            PacketState::Parsed(p) => XmpText {
                 status: PacketStatus::Parsed,
                 xml: Some(p.xml().to_owned()),
                 pdfa: p
                     .pdfa_part()
                     .map(|part| format!("{part}{}", p.pdfa_conformance().unwrap_or_default())),
             },
-            PacketState::Malformed { bytes, .. } => XmpPacket {
+            PacketState::Malformed { bytes, .. } => XmpText {
                 status: PacketStatus::Malformed,
                 xml: Some(String::from_utf8_lossy(&bytes).into_owned()),
                 pdfa: None,
             },
             // No packet, or a later state with none to show.
-            _ => XmpPacket::default(),
+            _ => XmpText::default(),
         })
     }
 }

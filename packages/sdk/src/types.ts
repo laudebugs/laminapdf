@@ -44,7 +44,7 @@ import type {
   ViewerPreferencesInit,
   ViolationJs,
   XmpLangText as XmpLangTextJs,
-  XmpPacketJs,
+  XmpTextJs,
   XmpValue as XmpValueJs,
 } from "@laminapdf/wasm/text";
 
@@ -98,7 +98,7 @@ export type XmpLangText = XmpLangTextJs;
  *
  * @since 0.2.0
  */
-export type XmpPacket = XmpPacketJs;
+export type XmpText = XmpTextJs;
 /**
  * An XMP property an edit declared in a PDF/A file's extension schemas, so the file keeps its
  * PDF/A claim: its `namespace`, `prefix`, `name` and `valueType` (`Text`, `Seq Integer`, …).

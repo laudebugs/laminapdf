@@ -383,10 +383,10 @@ impl From<laminapdf::ExtensionProperty> for ExtensionPropertyJs {
     }
 }
 
-/// The document's XMP packet as text (`laminapdf::XmpPacket`).
+/// The document's XMP packet as text (`laminapdf::XmpText`).
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct XmpPacketJs {
+pub(crate) struct XmpTextJs {
     /// Whether there is a packet, and whether it was read.
     pub status: laminapdf::PacketStatus,
     /// The packet's XML, with the edits made so far.
@@ -399,8 +399,8 @@ pub(crate) struct XmpPacketJs {
     pub pdfa: Option<String>,
 }
 
-impl From<laminapdf::XmpPacket> for XmpPacketJs {
-    fn from(p: laminapdf::XmpPacket) -> Self {
+impl From<laminapdf::XmpText> for XmpTextJs {
+    fn from(p: laminapdf::XmpText) -> Self {
         Self {
             status: p.status,
             xml: p.xml,

@@ -151,6 +151,6 @@ export type {
   ViewerPreferences,
   Violation,
   XmpLangText,
-  XmpPacket,
+  XmpText,
   XmpValue,
 } from "./types.js";

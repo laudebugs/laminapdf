@@ -153,7 +153,7 @@ pub use generated::explain::explain;
 pub use laminapdf_cos::Cipher;
 pub use laminapdf_model::FontEncoding;
 pub use links::{LinkTo, PageLink};
-pub use metadata::XmpPacket;
+pub use metadata::XmpText;
 pub use navigation::{OutlineNode, PageTarget, PageTargetView};
 pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};
 pub use structure::{StructureKid, StructureNode};

@@ -27,6 +27,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "decompress":
     case "invalid-op-log":
     case "malformed-xmp":
+    case "invalid-xmp-packet":
     case "invalid-font":
     case "missing-glyph":
     case "invalid-image":
@@ -65,6 +66,8 @@ function kindOf(code: ErrorCode): ErrorKind {
       return "security";
     case "unknown-page":
     case "unknown-source":
+    case "xmp-claim-read-only":
+    case "invalid-xmp-property":
     case "sink-not-empty":
     case "collection-index":
     case "unknown-axis":

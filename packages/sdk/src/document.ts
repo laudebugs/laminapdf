@@ -45,7 +45,7 @@ import type {
   StructureNode,
   Target,
   Violation,
-  XmpPacket,
+  XmpText,
   XmpValue,
 } from "./types.js";
 
@@ -793,7 +793,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @since 0.2.0
    */
-  xmpPacket(): XmpPacket {
+  xmpPacket(): XmpText {
     return this.call(() => this.#doc.xmpPacket());
   }
 

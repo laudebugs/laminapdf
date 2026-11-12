@@ -17,7 +17,7 @@ use wasm_bindgen::prelude::*;
 use crate::convert::{from_js, from_js_or_default, to_js};
 use crate::dto::{
     DocumentInfoJs, EditedJs, OpenOptionsInit, PageInfoJs, ProgressJs, RevertedJs, SaveOptionsInit, SaveReportJs,
-    XmpPacketJs, phase_name,
+    XmpTextJs, phase_name,
 };
 use crate::error::{JsResult, disposed, invalid_argument, lamina_error};
 use crate::plan::{PlannedSaveJs, ViolationJs};
@@ -312,10 +312,10 @@ impl WasmDocument {
     ///
     /// # Errors
     /// Reading errors.
-    #[wasm_bindgen(js_name = xmpPacket, unchecked_return_type = "XmpPacketJs")]
+    #[wasm_bindgen(js_name = xmpPacket, unchecked_return_type = "XmpTextJs")]
     pub fn xmp_packet(&self) -> JsResult<JsValue> {
         let packet = self.doc.borrow().xmp_packet().map_err(|e| lamina_error(&e))?;
-        Ok(to_js(&XmpPacketJs::from(packet)))
+        Ok(to_js(&XmpTextJs::from(packet)))
     }
 
     /// How a save with `options` would go, without saving.
