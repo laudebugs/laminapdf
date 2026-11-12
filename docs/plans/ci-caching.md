@@ -44,8 +44,8 @@ The trial's PR measurement moved to macOS Arm64 on 2026-11-12, because the CI wa
 
 | Leg | Runs | Rust cache | `check rust` | Tests | Compiling | of which clippy | of which test builds |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| macOS Arm64 | 5 PRs | hit, exact key | 7.0 | 1.1 | **5.9** | 1.5 | 2.8 |
-| macOS Arm64 | 32 PRs | missed | 12.3 | 1.0 | **11.4** | 4.3 | 3.8 |
+| macOS Arm64 | 5 PRs | hit, exact key | 7.0 | 1.1 | **5.92** | 1.5 | 2.8 |
+| macOS Arm64 | 32 PRs | missed | 12.3 | 1.0 | **11.36** | 4.3 | 3.8 |
 | macOS Arm64 | 5 pushes | missed in all 5 | 13.4 | 1.0 | 12.6 | 5.2 | 4.3 |
 
 The exact-key PR runs are 43257042096, 43216833241, 43199525601, 43169313504 and 43143748953. Of the 49 PR runs that day, 5 restored the Rust cache by its exact key, 12 by an older key, and 32 found none. The repository's Actions cache sits at its 10 GB limit, and each push to `main` saves about 1 GB of Rust cache per leg, so GitHub evicts entries before the next run reads them. A missed Rust cache is the common case on this leg, and it is where the compile cache can do most, since it also holds the third-party crates.
@@ -103,7 +103,7 @@ Requests cost more than storage. While the Rust cache stays, sccache sees only t
 
 ## 5. Rollout
 
-The trial (X8a) runs the compile cache on the Rust legs where compiling costs most and least: Rust on macOS x64 and on Linux x64 in `ci.yml`, and since 2026-11-12 on macOS Arm64, whose PR runs the rule below reads. For five PR runs and five pushes to `main`, it records the hits, misses and non-cacheable calls from `sccache --show-stats`, the minutes of each step against the five runs of each kind before the patch, and the crates each PR touched. Then X8b decides:
+The trial (X8a) runs the compile cache on the Rust legs where compiling costs most and least, macOS x64 and Linux x64 in `ci.yml`, and since 2026-11-12 on macOS Arm64, whose PR runs the rule below reads. For PR runs and pushes to `main`, five of each (on macOS Arm64, five PR runs in each Rust-cache state, however many runs that takes; a state with fewer than five by X8b's start doesn't count toward the rule), it records the hits, misses and non-cacheable calls from `sccache --show-stats`, the minutes of each step against the five runs of each kind before the patch, and the crates each PR touched. Then X8b decides:
 
 - **Keep and spread** if the compile minutes of `cargo xtask check rust` on macOS Arm64 PR runs fall by a third or more in at least one Rust-cache state, compared within that state (exact-key hits to 3.95 minutes or less, misses to 7.57 or less, against §2.1's 5.92 and 11.36), and grow in neither. Until 2026-11-12 the rule read macOS x64 PR runs with a Rust-cache hit (8.6 minutes); §8's work takes that leg off pull requests. The compile cache then goes to every Rust job in `ci.yml` and `full.yml`, and X8b tries one leg without the Rust cache.
 - **Remove** otherwise. X8b then takes the action and the secrets out and records the numbers here, so nobody tries the same thing without new evidence.
