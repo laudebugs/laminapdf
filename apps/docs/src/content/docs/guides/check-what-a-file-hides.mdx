@@ -33,7 +33,9 @@ A redaction fails when it hides text from the eye but leaves it in the file. The
 | `disclosure.redactions()` | Redaction marks someone drew but never applied. They show where the secret is, and the secret is still under them. |
 | `revisions`, `removed_words` | Words an earlier revision of the file holds and the latest one doesn't. |
 
-A PDF edit often appends the change to the end of the file and keeps every earlier revision before it, so a word deleted in an edit can still be read in the revision before. The example's lines give counts and page numbers, never the hidden text itself, so you can log them without leaking what they found. When you only need these three, `doc.redaction_warnings(&options, &cancel)` returns them as warnings, with the codes `covered-text`, `redaction-not-applied` and `text-in-earlier-revision` that `laminapdf check` reports.
+A PDF edit often appends the change to the end of the file and keeps every earlier revision. A word deleted in an edit can still be read in the revision before it. The example's lines give counts and page numbers, never the hidden text itself, so you can log them without leaking what they found.
+
+Need only these three? `doc.redaction_warnings(&options, &cancel)` returns them as warnings, with the codes `laminapdf check` reports: `covered-text`, `redaction-not-applied` and `text-in-earlier-revision`.
 
 ## What a file holds beyond its pages
 
@@ -51,11 +53,11 @@ The same `Reveal` has a `found()` method, which lists the categories with someth
 
 The `Reveal` also holds the details behind each category. `revisions` lists what each revision added, changed and freed, and `info` holds every document information entry. `disclosure` lists the attachments, scripts, annotations and form fields. `hidden` lists each run of text a reader can't see, with its page, its box and why it's hidden.
 
-Text counts as hidden when it's under something drawn over it, invisible, off the page, smaller than 1 point, outside its clipping area, or so pale on a white page that no one can read it. The same rules keep that text out of [text extraction](/recipes/extract-markdown/).
+Text counts as hidden in six cases: under something drawn over it, invisible, off the page, smaller than 1 point, outside its clipping area, or too pale to read on a white page. The same rules keep that text out of [text extraction](/recipes/extract-markdown/).
 
 ## Decide what to refuse
 
-Almost every file has some metadata, such as a title, so refusing `Metadata` stops nearly every file. The example refuses history, scripts, attachments and hidden content instead. Pick the list for your own documents: a court filing might refuse annotations too, and a form you send back must keep its values.
+Almost every file has some metadata, such as a title, so refusing `Metadata` stops nearly every file. The example refuses history, scripts, attachments and hidden content instead. Pick the list for your own documents. For example, you might refuse annotations in a court filing, but a form you send back must keep its values.
 
 `reveal` takes the `OpenOptions` you opened the file with, since earlier revisions open with the same password and limits. It also takes a `CancelToken`: it reads every page and every revision, so a server can cancel it when the request it serves goes away.
 

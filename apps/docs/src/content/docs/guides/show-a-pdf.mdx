@@ -53,7 +53,7 @@ The reader can also zoom with Ctrl or ⌘ and the mouse wheel, pinch on a trackp
 
 Each page has a transparent text layer on top of its picture, so the reader can select and copy text and a screen reader can read it. Links work too: a link to another page scrolls there. A web link opens nothing by itself. It calls the `onExternal` function you pass in `createViewer({ client, links: { onExternal } })`, so your app can show the address and ask before it opens it. Both layers are on by default; `text: false` and `links: false` leave them out.
 
-## Clean up
+## Clean up and recover
 
 A viewer that lives as long as the page needs no cleanup. When it leaves the page earlier, such as when its dialog closes, `view.close()` takes it down and ends its Web Worker. To show another file, call `view.show` again on the same view; a file that fails to open leaves the previous one on screen.
 
