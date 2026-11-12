@@ -1,4 +1,4 @@
-# D2g — Desktop cold start under 300 ms
+# D2g — Desktop cold start: measure it, trim it and set its gates
 
 | Field | Value |
 | --- | --- |
@@ -9,7 +9,7 @@
 | Depends on | [D2d](./D2d-tile-transport-and-first-document.md) |
 | ADRs | Records its numbers in [0008](../../decisions/0008-desktop-shell.md) §4 |
 | Branch | `perf/d2g-desktop-cold-start` |
-| PR title | `perf(desktop): reach an interactive window within 300 ms of launch` |
+| PR title | `perf(desktop): measure cold start, drop the unused WebAssembly, and set the new cold-start gates` |
 | Size | S–M (measure first; the fix decides) |
 | PR | [#456](https://github.com/laudebugs/laminapdf/pull/456) |
 

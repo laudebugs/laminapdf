@@ -260,7 +260,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
 │                        #   Rust only, window `main` built in Rust, Engines managed state, window close/app exit stop engines),
 │                        #   commands.rs (`app_info`, `open_dialog`, `page_info`, `close_document`; `debug_kill_engine` with
-│                        #   feature `e2e`), startup.rs (feature `e2e`: the cold-start marks, logged by the first `app_info`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
+│                        #   feature `e2e`), startup.rs (feature `e2e`: the cold-start marks, logged by the first
+│                        #   `app_info`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
 │                        #   engine://failed to that window; documents.rs DocumentRegistry, a window reads only its own docs;
 │                        #   bytesource.rs FileSource, positioned reads, no mmap; secret.rs SessionPassword, locked and wiped),
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*

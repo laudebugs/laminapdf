@@ -246,7 +246,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | Page-mode recolouring differs between PDFium and hayro | Render-diff the modes in the nightly lane; Original stays the default |
 | Telemetry erodes the privacy promise | Off by default, aggregate counts only, documented payload, a test that it carries no document data, visible in the network indicator |
 | Pricing reads as the paywalls users complained about | Price and tier shown before work starts; no feature locked after the user has invested work; honour existing purchases (principle 10) |
-| < 300 ms cold start and < 15 MB installer are hard with a sandboxed engine process and PDFium (macOS universal builds double PDFium) | Measure from D2a/D2d onward; per-arch macOS builds if universal breaks 15 MB; show the window before the engine process is ready; Linux (WebKitGTK) is the likeliest miss, so measure it first |
+| The cold-start gates (window shown < 300 ms, first command within 75 ms of the floor build) and < 15 MB installer are hard with a sandboxed engine process and PDFium (macOS universal builds double PDFium) | Measure from D2a/D2d onward; per-arch macOS builds if universal breaks 15 MB; show the window before the engine process is ready; Linux (WebKitGTK) is the likeliest miss, so measure it first |
 
 ## 8. Open questions
 

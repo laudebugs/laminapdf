@@ -17,10 +17,12 @@ struct Marks {
 }
 
 impl Marks {
-    /// Milliseconds from the start of `run` to `mark`; -1 while it isn't reached.
-    fn since_start(&self, mark: &OnceLock<Instant>) -> f64 {
-        mark.get()
-            .map_or(-1.0, |at| at.duration_since(self.start).as_secs_f64() * 1000.0)
+    /// Milliseconds from the start of `run` to `mark`, with one decimal, or `n/a` before it.
+    fn since_start(&self, mark: &OnceLock<Instant>) -> String {
+        mark.get().map_or_else(
+            || "n/a".to_owned(),
+            |at| format!("{:.1}", at.duration_since(self.start).as_secs_f64() * 1000.0),
+        )
     }
 }
 
@@ -66,9 +68,9 @@ pub(crate) fn app_info() {
     tracing::info!(
         target: "laminapdf_desktop::startup",
         start_unix_ms = %marks.start_unix_ms,
-        setup_ms = %format_args!("{:.1}", marks.since_start(&marks.setup)),
-        window_ms = %format_args!("{:.1}", marks.since_start(&marks.window)),
-        first_command_ms = %format_args!("{:.1}", marks.since_start(&marks.first_command)),
+        setup_ms = %marks.since_start(&marks.setup),
+        window_ms = %marks.since_start(&marks.window),
+        first_command_ms = %marks.since_start(&marks.first_command),
         "startup timings"
     );
 }
