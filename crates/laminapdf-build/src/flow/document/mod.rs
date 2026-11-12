@@ -439,7 +439,7 @@ pub struct GroupSpec {
     pub blocks: Vec<BlockSpec>,
 }
 
-/// Code, line by line as written.
+/// Code, line by line as written, a tab as spaces to the next multiple of four columns.
 ///
 /// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

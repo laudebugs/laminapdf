@@ -86,6 +86,7 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 - Open question: Auto-tagging of untagged documents: heuristic layout analysis now, ML later, or out of scope?
 - Open question: WTPDF and PDF/UA-2 targets in addition to PDF/UA-1?
+- Open question: article threads (`I.09`, read since E3): edit them, or map them onto the structure tree's reading order? The [E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions) left the choice to this round.
 - The plan location `docs/plans/editor/` is a recommendation; if the plans README prescribes another place, use it and update this todo's links
 
 ## Definition of done

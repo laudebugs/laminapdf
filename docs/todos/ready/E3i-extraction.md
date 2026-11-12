@@ -4,19 +4,18 @@
 | --- | --- |
 | ID | `E3i` |
 | Status | `ready` |
-| Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
+| Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
-| Dependency notes | [E3a](E3a-navigation-attachments-inspection-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction) |
+| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3i-extraction` |
 | PR title | `feat(text): document-level extraction of text, images, links and bookmarks` |
-| Size | M (200–600) |
+| Size | M (200–400): the image walk and its decoders, and two JSON schemas; the dialog is E3j's |
 | PR | — |
 
 ## Goal
 
-Export extracted content: text (plain, with positions as JSON), original embedded images (DCT/JPX passthrough, others decoded with `/Decode`, masks and colour spaces honoured), and links and bookmarks (JSON/CSV), from the library and both apps.
+Give the library what it lacks for the round's extraction rows: the original embedded images (DCT and JPX passed through, others decoded with `/Decode`, masks and colour spaces honoured), and links and bookmarks as JSON and CSV. Text already comes from `laminapdf-extract` and its `@laminapdf/sdk` binding; this todo tags their tests for `A.10` and the text half of `H.07`. The dialog is [E3j](E3j-export-dialog.md)'s.
 
 ## Context
 
@@ -29,28 +28,30 @@ Export extracted content: text (plain, with positions as JSON), original embedde
 
 **In scope**
 
-- `doc.extract_text(options)` (plain/JSON), `doc.extract_images()` with passthrough and decode paths, `doc.links()`, `doc.outline()` export
-- Extract dialog in `@laminapdf/ui`
+- `extract_images(&doc, pages)` with passthrough (DCT, JPX) and decode paths
+- `doc.links()` and `doc.outline()` as JSON (`laminapdf.links/1`, `laminapdf.outline/1`, schemas committed) and CSV
+- Text stays `laminapdf-extract`'s, as it is now
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The export dialog → [E3j](E3j-export-dialog.md)
+- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `H.07` extract text and images; `H.08` extract hyperlinks and bookmarks; `B.03` extract original embedded images; `A.10` extract text with position and formatting
-- **Crates and packages:** `laminapdf-text`, `laminapdf-content` (XObject walk), image decoders (licence-checked)
+- **Crates and packages:** `laminapdf-content` (the XObject walk), `laminapdf-extract`, image decoders (licence-checked), `laminapdf`, `@laminapdf/sdk`
 - **`SaveConstraint`:** read-only
-- **Web vs desktop:** desktop writes to a folder; web zips
+- **Web vs desktop:** the same functions in both; where the output goes is E3j's and E3k's
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `H.07` → `write` (core, pdf, web, desktop); `H.08` → `write` (core, pdf, web, desktop); `B.03` → `write` (core, pdf, web, desktop); `A.10` → `read` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `H.07` → `read` (core, pdf); `H.08` → `read` (core, pdf); `B.03` → `read` (core, pdf); `A.10` → `read` (pdf)
 
 ## Tasks
 
 - [ ] Image walk incl. inline images and Form XObject recursion
 - [ ] Decode paths (Indexed, ICC, CMYK, 16-bit, masks)
 - [ ] JSON schemas for exports
-- [ ] Dialog
+- [ ] The `extract_images` fuzz target
 
 ## Acceptance criteria
 
@@ -70,7 +71,7 @@ None.
 ## Docs to update
 
 - API docs: extraction
-- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and the [E3 plan §8](../../plans/editor/e3-navigation-attachments-inspection.md#8-todos): point this todo's link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
 ## Risks and open questions
@@ -79,8 +80,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -4,13 +4,13 @@
 | --- | --- |
 | ID | `E3f` |
 | Status | `ready` |
-| Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
+| Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [E3b](./E3b-bookmarks-and-destinations.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2i](./E2i-signed-gating-and-close.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E2p](./E2p-source-documents-and-copier.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3f-attachments-and-associated-files` |
 | PR title | `feat(ops): embedded files, associated files and portfolio reading` |
-| Size | L (600–1,500) |
+| Size | L (400–800): three ops, file specifications at every level, the portfolio view and the Attachments tab |
 | PR | — |
 
 ## Goal
@@ -27,8 +27,11 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 
 **In scope**
 
-- Ops: `AttachFile { name, blob, mime, description, af: Option<AfTarget>, relationship }`, `DeleteAttachment`, `UpdateAttachment`
-- `extract_attachment(id) -> bytes` and listing incl. FileAttachment annotations (read)
+- Ops: `AttachFile { name, file: BlobId, mime, description, created, modified, attach_to, relationship }`, `UpdateAttachment`, `DeleteAttachment` ([E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops)); the bytes live in [E2p](E2p-source-documents-and-copier.md)'s blob store, and the dates come in the op
+- PDF/A warnings `pdfa-attachment-forbidden` (PDF/A-1, PDF/A-2) and `pdfa-attachment-incomplete` (PDF/A-3 without `/AF` or a modification date); `/Version` is never raised
+- `DeleteAttachment` reports `AttachmentStillHeld` when a FileAttachment annotation keeps the file
+- UR3 `/EF` rights mapped to the attachment ops in `would_violate`, by op ([E3 plan §6](../../plans/editor/e3-navigation-attachments-inspection.md#6-saving-and-the-save-constraint))
+- `doc.attachments()` and `attachment_bytes(id)` (size checked against `Limits`, checksum compared), listing FileAttachment annotations too (read)
 - PDF/A-3 helper: MIME `/Subtype`, `/Params` (size, dates, checksum), `/AFRelationship`
 - Portfolio view (collection schema, files) read-only
 - Attachments panel: add (picker/drop), save out, delete, show relationship
@@ -46,7 +49,7 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 - **`SaveConstraint`:** `Free` → incremental; signed: adding or changing attachments is class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`. Deleting an attachment leaves it in earlier revisions: notice offers full rewrite
 - **Web vs desktop:** identical; desktop saves extracted files to disk via dialog, web downloads
 - **Server features:** none (attachments never leave the device)
-- **Capability-matrix rows to flip:** `J.05` → `round-trip` (core, pdf, web, desktop); `J.06` → `read` (core, pdf, web, desktop); `H.09` → `write` (core, pdf, web, desktop); `M.09` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `J.05` → `round-trip` (core, pdf, web); `J.06` → `read` (core, pdf, web); `H.09` → `read` (core, pdf, web); `M.09` → `round-trip` (core, pdf, web)
 
 ## Tasks
 
@@ -75,13 +78,13 @@ None.
 
 - Unit and round-trip
 - veraPDF nightly
-- e2e on both shells
+- Playwright: attach, save out and compare the bytes
 
 ## Docs to update
 
 - API docs: attachments
 - Guide: Factur-X/ZUGFeRD
-- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and the [E3 plan §8](../../plans/editor/e3-navigation-attachments-inspection.md#8-todos): point this todo's link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
 ## Risks and open questions
@@ -91,8 +94,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
