@@ -57,7 +57,7 @@ Move every byte of untrusted PDF processing out of the Tauri main process. This 
 - OS-level sandboxing of the engine: [D2c](../done/D2c-engine-sandbox.md) (this PR runs it unsandboxed but already without any file paths).
 - Delivering tiles to the webview and the viewer integration: [D2d](../done/D2d-tile-transport-and-first-document.md).
 - WebdriverIO e2e: [D2e](../done/D2e-desktop-e2e-webdriverio.md).
-- File watching (the registry exposes a "reload" entry point used by [D3b](../ready/D3b-recent-files-and-file-watching.md)).
+- File watching (the registry exposes a "reload" entry point used by [D3b](../done/D3b-recent-files-and-file-watching.md)).
 - Crash reports for engine crashes: [D7a](../ready/D7a-crash-reporting.md) (this PR only logs exit status).
 - Pooling engines across windows (ADR 0008 open question 3): revisit after measurements.
 

@@ -2,7 +2,9 @@
 //! user does by hand. A native file dialog can't be driven, so a scenario queues a fixture with
 //! `e2e_queue_pick` and clicks Choose a file, and `open_dialog` takes the queued path instead of
 //! showing the dialog. Only files under the repository's `fixtures/` or `target/fixtures/` may be
-//! queued. `e2e_interactive` reports the cold start: the time from `run()` to the empty state
+//! queued. `e2e_replace` moves one fixture copy over another with `std::fs::rename`, the replace
+//! Windows allows over a file another process holds open (ADR 0008 §11); the watch scenario uses it
+//! on Windows, where Node's rename can't. `e2e_interactive` reports the cold start: the time from `run()` to the empty state
 //! accepting input. Release builds have none of this; CI checks their binary (ADR 0008 §8).
 
 use std::path::{Path, PathBuf};
@@ -79,6 +81,25 @@ pub(crate) fn e2e_queue_pick(queue: tauri::State<'_, QueuedPick>, path: String) 
         .ok_or_else(|| DesktopError::Internal("e2e_queue_pick: not a fixture".to_owned()))?;
     queue.set(resolved);
     Ok(())
+}
+
+/// Renames `from` over `to`, both files under the repository's fixtures, as an editor's atomic
+/// save does. `std::fs::rename` uses POSIX semantics on Windows, which replace a file that another
+/// process holds open with delete sharing, as the main process holds a document.
+///
+/// # Errors
+/// [`DesktopError::Internal`] when either isn't a file under the fixtures, or the rename fails.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its arguments by value"
+)]
+pub(crate) fn e2e_replace(from: String, to: String) -> Result<(), DesktopError> {
+    let roots = fixture_roots();
+    let not_a_fixture = || DesktopError::Internal("e2e_replace: not a fixture".to_owned());
+    let from = fixture_path(Path::new(&from), &roots).ok_or_else(not_a_fixture)?;
+    let to = fixture_path(Path::new(&to), &roots).ok_or_else(not_a_fixture)?;
+    std::fs::rename(&from, &to).map_err(|error| DesktopError::Internal(format!("e2e_replace: {error}")))
 }
 
 #[cfg(test)]

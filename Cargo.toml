@@ -49,6 +49,7 @@ laminapdf-render-wasm = { version = "0.2.0-alpha.6", path = "crates/laminapdf-re
 laminapdf-desktop-protocol = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-protocol" }
 laminapdf-desktop-engine = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-engine" }
 laminapdf-desktop-sandbox = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-sandbox" }
+laminapdf-desktop-os = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-os" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
@@ -158,6 +159,19 @@ tauri-plugin-dialog = "=2.8.3"
 tauri-plugin-log = "=2.10.1"
 tauri-plugin-opener = "=2.7.2"
 tauri-plugin-single-instance = "=2.5.5"
+# The desktop reader's file watching (D3b): the OS's change events (FSEvents, inotify,
+# ReadDirectoryChangesW). CC0-1.0
+notify = { version = "=8.2.1", default-features = false, features = ["macos_fsevent"] }
+# A file's identity (inode, or Windows' file index), so a replaced file reads as changed. MIT OR Apache-2.0
+file-id = "=0.2.3"
+# The desktop reader's OS recent lists (laminapdf-desktop-os, D3b), at the versions Tauri already uses: AppKit's
+# NSDocumentController (MIT), Windows' Shell and Jump List (MIT OR Apache-2.0), GTK's
+# RecentManager (MIT).
+objc2 = "=0.6.5"
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSDocumentController"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSString", "NSURL"] }
+windows = { version = "=0.62.2", default-features = false, features = ["std", "Win32_Foundation", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common"] }
+gtk = { version = "=0.18.2", default-features = false }
 # The desktop end-to-end tests' plugins (D2e), only in `laminapdf-desktop`'s `e2e` builds: the
 # test API (execute, logs) and the WebDriver server inside the app.
 tauri-plugin-wdio = "=1.5.1"            # MIT OR Apache-2.0

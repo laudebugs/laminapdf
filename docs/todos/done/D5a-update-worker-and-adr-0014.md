@@ -6,8 +6,8 @@
 | Status | `done` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2a](./C2a-render-adrs.md), [C4d](./C4d-deploy-previews-and-production.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md) |
-| Dependency notes | [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md) (bundle identifier, product name, target/arch matrix); web plan **C4** (`apps/web` Worker conventions, Wrangler pin, deploy workflow, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and ADR 0011 from web **C2** (Cloudflare topology, privacy and logging rules). Was ordered after [D3b](../ready/D3b-recent-files-and-file-watching.md) on the board, though it uses no D3 code; the owner asked for it first on 2026-11-12, so D3b was dropped from Depends on; it does not need D4 and may run in parallel with D4a–D4c. |
+| Depends on | [C2a](./C2a-render-adrs.md), [C4d](./C4d-deploy-previews-and-production.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D3b](./D3b-recent-files-and-file-watching.md) |
+| Dependency notes | [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md) (bundle identifier, product name, target/arch matrix); web plan **C4** (`apps/web` Worker conventions, Wrangler pin, deploy workflow, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and ADR 0011 from web **C2** (Cloudflare topology, privacy and logging rules). Ordered after [D3b](../done/D3b-recent-files-and-file-watching.md) on the board (see Depends on), though it uses no D3 code; it does not need D4 and may run in parallel with D4a–D4c. |
 | ADRs | **Writes ADR 0014** (desktop distribution). Follows ADR 0011, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md), ADR 0017 (attestations, library plan) |
 | Branch | `feat/d5a-update-worker` |
 | PR title | `feat(updates): add ADR 0014 and the update Worker with channels and staged rollout` |

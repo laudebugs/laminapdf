@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `D3b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Desktop app §6 D3](../../plans/desktop-app.md#d3-files) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D3a](../done/D3a-open-from-os.md) |
+| Depends on | [D3a](./D3a-open-from-os.md) |
 | ADRs | Follows ADR 0008 (main process owns file I/O and watching), ADR 0010 (`canWatchFiles`), ADR 0011 (privacy rules, web C2: what may be stored locally) |
 | Branch | `feat/d3b-recent-files-and-watching` |
 | PR title | `feat(desktop): add recent files and reload documents changed on disk` |
 | Size | M–L (500–900 lines) |
-| PR | — |
+| PR | [#480](https://github.com/laudebugs/laminapdf/pull/480) |
 
 ## Goal
 
@@ -43,31 +43,31 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 
 **Out of scope** (and which todo covers it)
 
-- Session restore (reopen last session): [D4a](D4a-windows-tabs-and-session-restore.md), which keeps its own document references in `session.json` (it does not depend on recent entries) but follows this todo's "Remember recent files" switch.
-- "Open Recent" native menu: [D4b](D4b-native-menus.md) (reads `RecentFiles`).
-- Settings page: [D5b](D5b-updater-in-app.md) creates it; [D7b](D7b-settings-renderer-switch-and-download-page.md) completes it.
+- Session restore (reopen last session): [D4a](../ready/D4a-windows-tabs-and-session-restore.md), which keeps its own document references in `session.json` (it does not depend on recent entries) but follows this todo's "Remember recent files" switch.
+- "Open Recent" native menu: [D4b](../ready/D4b-native-menus.md) (reads `RecentFiles`).
+- Settings page: [D5b](../ready/D5b-updater-in-app.md) creates it; [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md) completes it.
 - Watching for the editor's unsaved-changes conflicts: editor plan.
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] Add deps (`notify`, `notify-debouncer-full`, `objc2-app-kit`/`objc2-foundation` macOS, `windows` features `Win32_UI_Shell`, `gtk` Linux) with licence comments; `cargo deny check`.
-- [ ] Implement `RecentFiles` with unit tests (ordering, dedupe by canonical path, cap 20, atomic persistence, corrupted JSON → reset with a log warning).
-- [ ] OS recent-documents integration per platform (called from the main thread where the API requires it: `run_on_main_thread`; COM initialised as STA on that thread on Windows). A grep-based test (or clippy `disallowed_methods`) fails the build if `SHAddToRecentDocs` is called with a null `pv`.
-- [ ] Commands + capability entries; UI components and desktop `Platform` methods.
-- [ ] Watcher service: registration on open, unregistration on close, reload flow with the engine protocol message `ReopenDocument { doc, len }` (added to `laminapdf-desktop-protocol` with a protocol version bump; for an unlocked encrypted document the main process follows it with `UnlockDocument` using the held `SessionPassword` from D2b).
-- [ ] UI: preserve position on `document://reloaded`; banner for missing files; retry state.
-- [ ] e2e scenarios: (a) open fixture copy in a temp dir, overwrite it with a different fixture via the test process → UI shows new page count, same page index; (b) atomic replace (write temp + rename) → reload; (c) delete → banner; (d) recent list shows the opened file after restart; "clear" empties it.
-- [ ] Manual check per OS: OS recent list shows the file (Dock right-click / File ▸ Open Recent in Finder apps / Jump List / GNOME Files "Recent").
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
+- [x] Add deps (`notify`, `notify-debouncer-full`, `objc2-app-kit`/`objc2-foundation` macOS, `windows` features `Win32_UI_Shell`, `gtk` Linux) with licence comments; `cargo deny check`. *As built:* `notify` and `file-id` without `notify-debouncer-full` (Notes).
+- [x] Implement `RecentFiles` with unit tests (ordering, dedupe by canonical path, cap 20, atomic persistence, corrupted JSON → reset with a log warning).
+- [x] OS recent-documents integration per platform (called from the main thread where the API requires it: `run_on_main_thread`; COM initialised as STA on that thread on Windows). A grep-based test (or clippy `disallowed_methods`) fails the build if `SHAddToRecentDocs` is called with a null `pv`.
+- [x] Commands + capability entries; UI components and desktop `Platform` methods.
+- [x] Watcher service: registration on open, unregistration on close, reload flow with the engine protocol message `ReopenDocument { doc, len }` (added to `laminapdf-desktop-protocol` with a protocol version bump; for an unlocked encrypted document the main process follows it with `UnlockDocument` using the held `SessionPassword` from D2b). *As built:* a reload is a new document, with no new engine message or protocol bump (Notes, ADR 0008 §11).
+- [x] UI: preserve position on `document://reloaded`; banner for missing files; retry state.
+- [x] e2e scenarios: (a) open fixture copy in a temp dir, overwrite it with a different fixture via the test process → UI shows new page count, same page index; (b) atomic replace (write temp + rename) → reload; (c) delete → banner; (d) recent list shows the opened file after restart; "clear" empties it.
+- [ ] Manual check per OS (**not run**; rows 12–16 of `apps/desktop/e2e/MANUAL-OPEN.md`, see Notes): OS recent list shows the file (Dock right-click / File ▸ Open Recent in Finder apps / Jump List / GNOME Files "Recent").
 
 ## Acceptance criteria
 
-- [ ] Editing (overwriting) an open file externally reloads it within 1 s on each OS while keeping page index and zoom (e2e).
-- [ ] Atomic-save replacements (vim/VS Code style: write temp file, rename over the original — new inode, same path) reload the document like an in-place edit and never show the "missing" banner (e2e).
-- [ ] Deleting the open file shows the banner and the app keeps running (e2e).
-- [ ] Opened files appear in the OS recent list on each OS (manual check recorded) and in the in-app list across restarts (e2e); "clear" empties both. On Windows, "clear" empties lamina's Jump List and leaves another app's recent entries (e.g. a `.txt` opened in Notepad shown in Explorer's Recent) untouched (manual check recorded).
-- [ ] Disabling "Remember recent files" stops recording and clears the list (unit + e2e).
-- [ ] No full paths logged at `info` level or above (log assertion in e2e).
+- [x] Editing (overwriting) an open file externally reloads it within 1 s on each OS while keeping page index and zoom (e2e).
+- [x] Atomic-save replacements (vim/VS Code style: write temp file, rename over the original — new inode, same path) reload the document like an in-place edit and never show the "missing" banner (e2e).
+- [x] Deleting the open file shows the banner and the app keeps running (e2e).
+- [ ] Opened files appear in the OS recent list on each OS (manual check recorded) and in the in-app list across restarts (e2e); "clear" empties both. On Windows, "clear" empties lamina's Jump List and leaves another app's recent entries (e.g. a `.txt` opened in Notepad shown in Explorer's Recent) untouched (manual check recorded). **Partly:** the in-app list across restarts and clearing it are e2e; the OS lists' manual checks weren't run (Notes).
+- [x] Disabling "Remember recent files" stops recording and clears the list (unit + e2e).
+- [x] No full paths logged at `info` level or above (log assertion in e2e).
 
 ## Post-merge checks
 
@@ -93,10 +93,25 @@ None.
 - **Very large files rewritten in place** might be read mid-write; the stability rule mitigates; a parse failure keeps the old view.
 - `notify`'s macOS FSEvents backend reports directory-level events with latency (~1 s); acceptable within the 1 s target? Measure; widen to 2 s if needed and record.
 
+## Notes
+
+What the PR changed from the scope above, and why:
+
+- **A reload is a new document, with no new engine message.** The main process opens the changed file under a new id with a new handle, unlocks it with the kept password, and only then closes the old one; the window shows the new one at the same place. `ReopenDocument` and a protocol bump aren't needed: the engine opens and closes documents as it already does, and if the new file fails to open, the old document is still there to show.
+- **`notify` without `notify-debouncer-full`.** The watcher's own thread debounces (300 ms) and applies the settle rule, which the debouncer would only have duplicated; `file-id` gives the file identity directly. The second look comes one period after the first, so a settled change reloads about 600 ms after the last event, and the e2e scenario reports the time instead of asserting it (ADR 0018), so the acceptance criterion's "within 1 s" is met by design and measured in each run's log, not asserted.
+- **The OS calls live in an edge crate, `laminapdf-desktop-os`**, since they need `unsafe` and rust.md keeps `unsafe` out of app crates. AppKit can't remove one recent document, so on macOS Remove leaves the Dock's entry until the list is cleared.
+- **The AppUserModelID is the bundle identifier**, which the app sets at start-up and Tauri's NSIS and WiX templates (CLI 2.12.4) give the Start Menu shortcuts. WiX's desktop shortcut has none; D6d can add it.
+- **Settings, not a Recent popover.** Both switches are in the shared Settings dialog's Files section, opened from More, which D5b and D7b extend. While a document is open, the palette's Open recent and Clear recent reach the list; D4b's native menu adds Open Recent.
+- **Rows, not cards.** The start window shows R01's Recent list, with a missing file's row saying "File not found" beside Remove. Thumbnails and folder names aren't shown: the webview gets no path, and the engine draws no thumbnails yet.
+- **Fingerprints, not positions.** Each entry keeps the document's fingerprint, computed in the main process with the viewer's scheme, for the list's "stopped at page …". The desktop doesn't record reading positions yet; once it does, the list can show it.
+- **Not built:** the setting-off banner with Reload and Ignore (with reloading off, changes are ignored), polling for network shares and cloud folders, and the first-run empty state with the default-app notice.
+- **The privacy page** needs the owner's words before it changes: [#481](https://github.com/laudebugs/laminapdf/issues/481).
+- **Manual checks** of each OS's own recent list are rows 12–16 of `apps/desktop/e2e/MANUAL-OPEN.md`. They weren't run: the Windows and Linux ones need those machines, and the Mac's screen was locked.
+
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (the claim PR step is no longer used)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
