@@ -302,8 +302,7 @@ h1#_top,
 
 /* The one-page views (src/pages/one-page/): each page's title, an h2 like the pages' own sections,
    is larger and has a rule above it, so a reader sees where one page ends and the next begins. */
-.sl-markdown-content .one-page-section + .one-page-section,
-.sl-markdown-content .one-page-section:first-of-type {
+.sl-markdown-content .one-page-section {
   margin-top: 3rem;
 }
 .sl-markdown-content .one-page-title {

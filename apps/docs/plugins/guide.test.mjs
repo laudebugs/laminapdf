@@ -11,6 +11,7 @@ import {
   ONE_PAGE,
   onePageAreas,
   onePageBody,
+  onePageSections,
   siteLinks,
   twinBody,
 } from "./guide.mjs";
@@ -69,11 +70,25 @@ test("headings go deeper, but not inside fenced code and never past six", () => 
   assert.equal(deeperHeadings(markdown, 1), "### A\n\n```md\n## not a heading\n```\n\n###### F");
 });
 
-test("links to twins point at the site's pages, anchors kept, code left alone", () => {
-  const markdown = "See [Save](/guides/save-a-pdf.md#refusals) and [home](/index.md).\n\n```\n[x](/a.md)\n```";
+test("links within the site point at the site, anchors kept, code left alone", () => {
+  const markdown =
+    "See [Save](/guides/save-a-pdf.md#refusals), [home](/index.md), [the PDF](/examples/pdf/hello.pdf) and [below](#more).\n\n```\n[x](/a.md)\n```";
   assert.equal(
-    siteLinks(markdown, SITE),
-    `See [Save](${SITE}/guides/save-a-pdf/#refusals) and [home](${SITE}/).\n\n\`\`\`\n[x](/a.md)\n\`\`\``,
+    siteLinks(markdown, SITE, "recipes/hello/"),
+    `See [Save](${SITE}/guides/save-a-pdf/#refusals), [home](${SITE}/), [the PDF](${SITE}/examples/pdf/hello.pdf) and [below](${SITE}/recipes/hello/#more).\n\n\`\`\`\n[x](/a.md)\n\`\`\``,
+  );
+});
+
+test("a one-page section's ids and headings stand inside the whole page", () => {
+  const html =
+    '<section class="one-page-section" aria-labelledby="page-a"><h2 id="page-a" class="one-page-title">A</h2>' +
+    '<div class="sl-heading-wrapper level-h2"><h2 id="how">How</h2><a href="#how">#</a></div>' +
+    '<button aria-controls="tab-0 tab-1">x</button></section>';
+  assert.equal(
+    onePageSections(html),
+    '<section class="one-page-section" aria-labelledby="page-a"><h2 id="page-a" class="one-page-title">A</h2>' +
+      '<div class="sl-heading-wrapper level-h3"><h3 id="page-a-how">How</h3><a href="#page-a-how">#</a></div>' +
+      '<button aria-controls="page-a-tab-0 page-a-tab-1">x</button></section>',
   );
 });
 

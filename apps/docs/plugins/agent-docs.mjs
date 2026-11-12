@@ -134,7 +134,7 @@ async function readMaybe(url) {
  * A route's twin, from its source; `undefined` when the route has none.
  *
  * @param {string} route
- * @param {{ version: string, site: string, codes: Map<string, { summary: string }>, table: string, changelog: string, benchmarks: import("../src/lib/benchmarks.ts").Benchmarks }} context
+ * @param {{ version: string, site: string, codes: Map<string, { summary: string }>, table: string, changelog: string, benchmarks: import("../src/lib/benchmarks.ts").Benchmarks, guidePdf: boolean }} context
  * @returns {Promise<{ title: string, description?: string | undefined, markdown: string } | undefined>}
  */
 async function twinOf(route, context) {
@@ -151,13 +151,6 @@ async function twinOf(route, context) {
     const description = context.codes.get(id)?.summary;
     return { title: id, description, markdown: twin({ title: id, description, version: context.version, url, body }) };
   }
-  const area = onePageAreas().find((a) => route === `${ONE_PAGE}/${a.slug}/`);
-  if (area) {
-    const title = `${area.label}, on one page`;
-    const description = `Every page of the docs' ${area.label} section, in order, on one page.`;
-    const body = await onePageBody(area, async (page) => (await twinOf(page, context))?.markdown);
-    return { title, description, markdown: twin({ title, description, version: context.version, url, body }) };
-  }
   const base = route === "" ? "index" : route.replace(/\/$/, "");
   const name = (await contentFiles()).get(base);
   if (name !== undefined) {
@@ -169,7 +162,10 @@ async function twinOf(route, context) {
       changelog: () => context.changelog,
       benchmarks: (section) =>
         sectionMarkdown(context.benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
-      guidePdf: () => `[The whole guide as one PDF](${context.site}${GUIDE_PDF}), with a contents page and bookmarks.`,
+      guidePdf: () =>
+        context.guidePdf
+          ? `[The whole guide as one PDF](${context.site}${GUIDE_PDF}), with a contents page and bookmarks.`
+          : "This build of the docs has no PDF of the guide; the published site has one.",
     });
     const title = data.title ?? base;
     return {
@@ -317,13 +313,55 @@ export function llmsTxt(input) {
   ].join("\n");
 }
 
+/** @typedef {{ title: string, description?: string | undefined, markdown: string }} Twin */
+
+/**
+ * Writes every built page's twin next to it and returns them by route. The one-page views'
+ * twins are made last, from their pages' twins (plugins/guide.mjs). Fails on a page with none.
+ *
+ * @param {URL} dir
+ * @param {Parameters<typeof twinOf>[1]} context
+ * @returns {Promise<Map<string, Twin>>}
+ */
+async function writeTwins(dir, context) {
+  /** @type {Map<string, Twin>} */
+  const twins = new Map();
+  const missing = [];
+  const onePageRoutes = new Map(onePageAreas().map((area) => [`${ONE_PAGE}/${area.slug}/`, area]));
+  for (const route of await pageRoutes(dir)) {
+    if (onePageRoutes.has(route)) continue;
+    const page = await twinOf(route, context);
+    if (page === undefined) missing.push(route || "/");
+    else twins.set(route, page);
+  }
+  if (missing.length > 0) throw new Error(`agent docs: no Markdown source for ${missing.join(", ")}`);
+  for (const [route, area] of onePageRoutes) {
+    const title = `${area.label}, on one page`;
+    const description = `Every page of the docs' ${area.label} section, in order, on one page.`;
+    const body = await onePageBody(area, async (page) => twins.get(page)?.markdown);
+    const url = `${context.site}/${route}`;
+    twins.set(route, {
+      title,
+      description,
+      markdown: twin({ title, description, version: context.version, url, body }),
+    });
+  }
+  for (const [route, page] of twins) {
+    const out = new URL(twinPath(route), dir);
+    await mkdir(new URL(".", out), { recursive: true });
+    await writeFile(out, page.markdown);
+  }
+  return twins;
+}
+
 /**
  * The integration: twins, `llms.txt` and `llms-full.txt` after the build, in sidebar order.
  *
  * @param {() => { label: string, slugs: string[] }[]} groups the sidebar's groups as routes
+ * @param {{ guidePdf?: boolean }} [options] whether the build writes the guide PDF (plugins/guide.mjs)
  * @returns {import("astro").AstroIntegration}
  */
-export function agentDocs(groups) {
+export function agentDocs(groups, { guidePdf = false } = {}) {
   /** @type {string} */
   let site = "";
   return {
@@ -343,23 +381,9 @@ export function agentDocs(groups) {
         );
         const changelog = releaseNotes(await readFile(new URL("CHANGELOG.md", ROOT), "utf8"));
         const benchmarks = await readBenchmarks();
-        const context = { version, site, codes, table: await codeTable(), changelog, benchmarks };
+        const context = { version, site, codes, table: await codeTable(), changelog, benchmarks, guidePdf };
         await readSnippets();
-        /** @type {Map<string, { title: string, description?: string | undefined, markdown: string }>} */
-        const twins = new Map();
-        const missing = [];
-        for (const route of await pageRoutes(dir)) {
-          const page = await twinOf(route, context);
-          if (page === undefined) {
-            missing.push(route || "/");
-            continue;
-          }
-          twins.set(route, page);
-          const out = new URL(twinPath(route), dir);
-          await mkdir(new URL(".", out), { recursive: true });
-          await writeFile(out, page.markdown);
-        }
-        if (missing.length > 0) throw new Error(`agent docs: no Markdown source for ${missing.join(", ")}`);
+        const twins = await writeTwins(dir, context);
         const sidebar = groups();
         const listed = new Set(sidebar.flatMap((g) => g.slugs));
         const routes = [...twins.keys()];

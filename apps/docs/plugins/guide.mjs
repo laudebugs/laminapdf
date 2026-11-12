@@ -5,9 +5,10 @@
 // don't link one, as they show no "Edit and run" without the runner.
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { routeOfTwin } from "./agent-docs.mjs";
 import { outsideFences } from "./markdown.mjs";
 import { sidebarRoutes } from "./sidebar.mjs";
 
@@ -23,7 +24,7 @@ export const ONE_PAGE = "one-page";
 const NOT_GUIDE = new Set(["Reference"]);
 
 /** What the guide PDF needs built: the SDK and its text module. */
-const NEEDS = ["packages/wasm/dist/lamina_pdf_text.wasm", "packages/sdk/dist/index.js"];
+const NEEDS = ["packages/wasm/dist/lamina_pdf_text.wasm", "packages/sdk/dist/entry/node.js"];
 
 /** The fonts the PDF is set in, from the docs' dev dependencies and the repository's Noto fixtures. */
 const FONTS = {
@@ -116,18 +117,24 @@ export function deeperHeadings(markdown, levels) {
 }
 
 /**
- * `markdown`'s links to the docs' own twins (`/guides/x.md#a`) as addresses on `site`
- * (`https://docs…/guides/x/#a`), outside code: the PDF is read away from the site.
+ * `markdown`'s links within the site as addresses on `site`, outside code, since the PDF is read
+ * away from the site: a twin's (`/guides/x.md#a` → `https://docs…/guides/x/#a`), any other path
+ * (`/examples/pdf/hello.pdf`), and an anchor on the page itself (`#a`), which the joined guide
+ * would otherwise resolve against the first heading of that name in any page.
  *
  * @param {string} markdown
  * @param {string} site
+ * @param {string} route the page's own route (`guides/x/`)
  * @returns {string}
  */
-export function siteLinks(markdown, site) {
+export function siteLinks(markdown, site, route) {
   return outsideFences(markdown, (text) =>
-    text.replace(/\]\((\/[^)\s#]*?)\.md(#[^)\s]*)?\)/g, (_, path, anchor = "") => {
-      const route = path === "/index" ? "/" : `${path}/`;
-      return `](${site}${route}${anchor})`;
+    text.replace(/\]\(((?:\/|#)[^)\s]*)\)/g, (_, href) => {
+      if (href.startsWith("#")) return `](${site}/${route}${href})`;
+      if (href.startsWith("//")) return `](${href})`;
+      const twin = /^\/([^#]*?)\.md(#.*)?$/.exec(href);
+      if (twin) return `](${site}/${routeOfTwin(`${twin[1]}.md`)}${twin[2] ?? ""})`;
+      return `](${site}${href})`;
     }),
   );
 }
@@ -161,7 +168,7 @@ export function guideMarkdown({ version, site, areas, twins }) {
       const twin = twins.get(route);
       if (twin === undefined) throw new Error(`guide: no Markdown twin for ${route || "/"}`);
       const { title, body } = twinBody(twin);
-      parts.push("", `## ${title}`, "", siteLinks(deeperHeadings(body.trim(), 1), site));
+      parts.push("", `## ${title}`, "", siteLinks(deeperHeadings(body.trim(), 1), site, route));
     }
   }
   return `${parts.join("\n")}\n`;
@@ -184,6 +191,50 @@ export async function onePageBody(area, twinFor) {
   }
   return parts.join("\n\n");
 }
+
+/**
+ * A one-page view's HTML with each page's section made to stand inside the whole: its ids and
+ * the references to them (`href="#…"`, `aria-controls`, `aria-labelledby`, `for`) prefixed with
+ * the section's id, so the pages' repeated headings ("How it works") and tabs stay distinct, and
+ * its headings one level deeper (h2 → h3, at most h6), under the page's own title. The title (the
+ * section's first h2, class `one-page-title`) keeps its id and level.
+ *
+ * @param {string} html
+ * @returns {string}
+ */
+export function onePageSections(html) {
+  return html.replace(
+    /(<section class="one-page-section" aria-labelledby="([^"]+)">[\s\S]*?<\/h2>)([\s\S]*?)(<\/section>)/g,
+    (_, head, id, body, end) => {
+      const prefixed = body
+        .replace(/\b(id|for|aria-controls|aria-labelledby)="([^"]+)"/g, (_m, attr, value) => {
+          const ids = value.split(/\s+/).map((v) => `${id}-${v}`);
+          return `${attr}="${ids.join(" ")}"`;
+        })
+        .replace(/\bhref="#([^"]+)"/g, (_m, anchor) => `href="#${id}-${anchor}"`)
+        .replace(/<(\/?)h([2-5])\b/g, (_m, close, level) => `<${close}h${Number(level) + 1}`)
+        .replace(/\blevel-h([2-5])\b/g, (_m, level) => `level-h${Number(level) + 1}`);
+      return head + prefixed + end;
+    },
+  );
+}
+
+/**
+ * The build step for the one-page views: {@link onePageSections} on each one's HTML.
+ *
+ * @type {import("astro").AstroIntegration}
+ */
+export const onePageViews = {
+  name: "lamina-one-page-views",
+  hooks: {
+    "astro:build:done": async ({ dir }) => {
+      for (const area of onePageAreas()) {
+        const file = new URL(`${ONE_PAGE}/${area.slug}/index.html`, dir);
+        await writeFile(file, onePageSections(await readFile(file, "utf8")));
+      }
+    },
+  },
+};
 
 /**
  * The guide PDF's bytes, built by @laminapdf/sdk's Markdown builder under PDF/UA-1 with the
