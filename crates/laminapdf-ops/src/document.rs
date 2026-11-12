@@ -1,10 +1,12 @@
 //! [`Document`]: a model document that can only be changed through transactions.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ops;
+use std::sync::Arc;
 
 use laminapdf_cos::{OpenOptions, Reserved, Source};
 
+use crate::blob::{BlobStore, SourceId};
 use crate::error::{Error, Result};
 use crate::history::{Entry, History, Reverted, UndoOutcome};
 use crate::op::Op;
@@ -48,6 +50,10 @@ pub struct Document {
     unrebased: Option<PendingRebase>,
     /// The op classes of the changes since the last rebase (for the save planner).
     pending: PendingChanges,
+    /// The bytes ops name by `BlobId`: source documents for now.
+    blobs: BlobStore,
+    /// The source documents added in this session, opened (and decrypted).
+    sources: BTreeMap<SourceId, laminapdf_model::Document>,
 }
 
 /// What a save that wrote its bytes means for the rebase onto them
@@ -106,6 +112,8 @@ impl From<laminapdf_model::Document> for Document {
             open: None,
             unrebased: None,
             pending,
+            blobs: BlobStore::default(),
+            sources: BTreeMap::new(),
         }
     }
 }
@@ -127,6 +135,76 @@ impl Document {
     /// Added in 0.2.0.
     pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
         Ok(laminapdf_model::Document::open(source, options)?.into())
+    }
+
+    /// Adds another PDF as a source document for the ops that copy pages from one (E2 plan
+    /// §2.1), and returns its ID: the [`BlobId`](crate::BlobId) of `bytes`, so adding the same
+    /// bytes again, here or on another device, gives the same ID (and opens nothing twice).
+    ///
+    /// The file opens with this document's [`Limits`](laminapdf_cos::Limits); an encrypted
+    /// one with `password` (or the empty user password), and its objects are read decrypted,
+    /// so what is copied from it is written as plain objects. The password is used here only:
+    /// it never enters an op or the log. The bytes stay in the session's [`BlobStore`] until
+    /// the document is dropped, so undo, redo and a replayed log find them.
+    ///
+    /// ```
+    /// use laminapdf_ops::{BlobId, Document};
+    /// # use laminapdf_cos::{Dict, Object};
+    /// # use laminapdf_save::test_support::Writer;
+    /// # let file = || -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    /// #     let mut w = Writer::new(1, 7);
+    /// #     let pages = w.add([("Type", Object::name("Pages")), ("Kids", Vec::new().into()), ("Count", 0.into())].into_iter().collect::<Dict>());
+    /// #     let root = w.add([("Type", Object::name("Catalog")), ("Pages", pages.into())].into_iter().collect::<Dict>());
+    /// #     Ok(w.finish(&[("Root", root)].into_iter().collect())?)
+    /// # };
+    /// # let (target_bytes, other_bytes) = (file()?, file()?);
+    /// let mut doc = Document::open(target_bytes, Default::default())?;
+    /// let id = doc.add_source(other_bytes.clone(), None)?;
+    /// assert_eq!(id, BlobId::of(&other_bytes));
+    /// assert_eq!(doc.add_source(other_bytes, None)?, id);
+    /// assert_eq!(doc.source_document(&id)?.page_count()?, 0);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Errors
+    /// As [`laminapdf_cos::Document::open`]: `wrong-password` and `password-required` for an
+    /// encrypted file, `not-pdf` and the others for one that doesn't open. The session is
+    /// unchanged then.
+    ///
+    /// Added in 0.2.0.
+    pub fn add_source(&mut self, bytes: impl Into<Arc<[u8]>>, password: Option<&str>) -> Result<SourceId> {
+        let bytes: Arc<[u8]> = bytes.into();
+        let id = SourceId::of(&bytes);
+        if self.sources.contains_key(&id) {
+            return Ok(id);
+        }
+        let mut options = OpenOptions::default().with_limits(*self.model.limits());
+        if let Some(password) = password {
+            options = options.with_password(password);
+        }
+        let source = laminapdf_model::Document::open(Arc::clone(&bytes), options)?;
+        self.blobs.insert(bytes);
+        self.sources.insert(id, source);
+        Ok(id)
+    }
+
+    /// The source document added with this ID ([`Document::add_source`]).
+    ///
+    /// # Errors
+    /// [`Error::UnknownSource`] when no source with this ID was added in this session.
+    ///
+    /// Added in 0.2.0.
+    pub fn source_document(&self, id: &SourceId) -> Result<&laminapdf_model::Document> {
+        self.sources.get(id).ok_or(Error::UnknownSource(*id))
+    }
+
+    /// The bytes ops name by [`BlobId`](crate::BlobId) in this session: every source
+    /// document's.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn blobs(&self) -> &BlobStore {
+        &self.blobs
     }
 
     /// The undo and redo stacks.

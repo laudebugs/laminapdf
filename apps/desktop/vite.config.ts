@@ -1,6 +1,6 @@
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
 // The desktop reader's frontend, built as the web reader is: the React Compiler through Babel, and
 // only files in dist/ (no inline script or style: the CSP in tauri.conf.json allows none). Tauri
@@ -10,8 +10,34 @@ import { defineConfig } from "vite";
 const platform = process.env.TAURI_ENV_PLATFORM;
 const debug = process.env.TAURI_ENV_DEBUG === "true";
 
+/**
+ * Drops the WebAssembly no chunk refers to. Vite emits the viewer's modules while it reads the
+ * default document worker (`new Worker(new URL(…))` in the viewer's client), which the desktop app
+ * never starts: its engine renders in the main process. Tree-shaking removes the worker, not what
+ * it emitted, and 8 MB of unused files would ship in the app.
+ */
+function dropUnusedWasm(): Plugin {
+  return {
+    name: "lamina-drop-unused-wasm",
+    apply: "build",
+    generateBundle(_options, bundle) {
+      // Assets count too: Vite emits a worker's entry as an asset, and HTML is one.
+      const code = Object.values(bundle)
+        .map((file) => {
+          if (file.type === "chunk") return file.code;
+          return typeof file.source === "string" ? file.source : "";
+        })
+        .join("\n");
+      for (const [name, file] of Object.entries(bundle)) {
+        const base = name.slice(name.lastIndexOf("/") + 1);
+        if (file.type === "asset" && name.endsWith(".wasm") && !code.includes(base)) delete bundle[name];
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] }), dropUnusedWasm()],
   // Tauri prints its own output; Vite clearing the screen would hide Rust's errors.
   clearScreen: false,
   server: { port: 1420, strictPort: true, fs: { allow: ["../.."] } },

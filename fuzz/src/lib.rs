@@ -10,10 +10,13 @@ pub mod exercise;
 pub mod fuzz_entry;
 #[path = "../../crates/laminapdf-content/tests/common/fuzz_entry.rs"]
 pub mod content_entry;
-/// The save targets' entry points (`ops_json`, `save_roundtrip`), shared with laminapdf-save's
-/// `tests/regressions.rs`.
+/// The save targets' entry points (`ops_json`, `save_roundtrip`, `copy_pages`), shared with
+/// laminapdf-save's `tests/regressions.rs`.
 #[path = "../../crates/laminapdf-save/tests/common/fuzz_entry.rs"]
 pub mod save_entry;
+/// What `copy_pages` copies with (`save_entry` reaches it as `super::copy`).
+#[path = "../../crates/laminapdf-save/tests/common/copy.rs"]
+pub mod copy;
 /// The `extract_text` target's entry point, shared with laminapdf-text's `tests/regressions.rs`.
 #[path = "../../crates/laminapdf-text/tests/common/fuzz_entry.rs"]
 pub mod text_entry;

@@ -16,6 +16,8 @@ mod open;
 mod opened;
 mod prefs;
 mod recent;
+#[cfg(feature = "e2e")]
+mod startup;
 mod store;
 mod watch;
 
@@ -124,6 +126,8 @@ fn engines(app: &tauri::AppHandle) -> Arc<Engines> {
 /// The app's state and its first window, before the event loop runs: the preferences and recent
 /// list from the config folder, the engines, the file watcher, the OS's open requests.
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(feature = "e2e")]
+    startup::setup();
     // Windows: the taskbar's Jump List is this app ID's (the installers' shortcuts carry it).
     if let Err(error) = laminapdf_desktop_os::set_app_id(&app.config().identifier) {
         tracing::warn!("could not set the app's ID: {error}");
@@ -144,6 +148,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         .min_inner_size(640.0, 480.0)
         .center()
         .build()?;
+    #[cfg(feature = "e2e")]
+    startup::window();
     tracing::info!(version = %app.package_info().version, "Lamina PDF started");
     // A cold start's PDFs (Windows, Linux, a macOS terminal): queued until the webview takes them.
     let cwd = std::env::current_dir().unwrap_or_default();

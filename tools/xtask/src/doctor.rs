@@ -13,9 +13,9 @@ use anyhow::{Context, Result, bail};
 use crate::workspace::Workspace;
 
 /// cargo-deny release (`cargo xtask deny`, `check rust`).
-const CARGO_DENY_VERSION: &str = "0.20.2";
+pub(crate) const CARGO_DENY_VERSION: &str = "0.20.2";
 /// cargo-nextest release (`cargo xtask test`; plain `cargo test` is the fallback).
-const CARGO_NEXTEST_VERSION: &str = "0.9.150";
+pub(crate) const CARGO_NEXTEST_VERSION: &str = "0.9.150";
 /// cargo-cyclonedx release (`cargo xtask sbom`, the release lane; Apache-2.0).
 const CARGO_CYCLONEDX_VERSION: &str = "0.5.9";
 /// cargo-dist release, the `dist` binary (the `laminapdf` release archives and Homebrew formula,
@@ -28,6 +28,9 @@ const CARGO_ABOUT_VERSION: &str = "0.9.2";
 const CARGO_SEMVER_CHECKS_VERSION: &str = "0.51.0";
 /// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/nightly.yml`); it runs on nightly.
 const CARGO_FUZZ_VERSION: &str = "0.13.2";
+/// sccache release, CI's compile cache (`.github/actions/rust-compile-cache`, which installs this
+/// version; docs/plans/ci-caching.md; Apache-2.0). Optional locally.
+pub(crate) const SCCACHE_VERSION: &str = "0.19.0";
 /// qpdf release for the nightly differential (`cargo xtask differential --live`; the nightly
 /// workflow downloads this release's binaries, checked by SHA-256), the round-trip suite
 /// (`cargo xtask roundtrip`) and the committed `qpdf --check` facts (`tools/fixtures/text_facts.py`,
@@ -229,6 +232,16 @@ pub(crate) fn cargo_fuzz() -> Tool {
     }
 }
 
+fn sccache() -> Tool {
+    Tool {
+        name: "sccache",
+        version_command: &["sccache", "--version"],
+        pin: Pin::Exact(SCCACHE_VERSION.to_owned()),
+        fix: format!("cargo install sccache --locked --version {SCCACHE_VERSION}"),
+        optional_for: Some("CI's compile cache (.github/actions/rust-compile-cache); local builds don't need it"),
+    }
+}
+
 pub(crate) fn qpdf() -> Tool {
     Tool {
         name: "qpdf",
@@ -276,6 +289,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_about(),
         cargo_semver_checks(),
         cargo_fuzz(),
+        sccache(),
         qpdf(),
         pdftotext(),
         exiftool(),

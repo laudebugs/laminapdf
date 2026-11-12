@@ -1,14 +1,14 @@
 # CI full lane (ADR 0018 §2, todo X4): every PR and every push to main, next to the fast lane
-# (ci.yml). It always runs, so its required check never waits as "Expected": `changes` decides
-# whether the change touches code (the docs allowlist is defined in tools/xtask/src/changes.rs),
-# the suites run only if it does (pushes to main always count as code), and `gate` passes when
-# every suite passed or was not needed. Branch protection requires `gate` and ci.yml's
-# `fast-gate` (todo X7). Never add a workflow-level `paths` filter here.
+# (ci.yml). It always runs, so its required check never waits as "Expected": `changes` reports
+# which groups of suites the change can affect (tools/xtask/src/changes.rs), each suite runs only
+# when its flag is true (pushes to main set every flag), and `gate` passes when every suite passed
+# or was not needed. Branch protection requires `gate` and ci.yml's `fast-gate` (todo X7). Never
+# add a workflow-level `paths` filter here.
 #
-# Adding a suite: give it `needs: changes`, the code-change condition below, and add it to
-# `gate.needs`. All code suites are required, including the hosted Linux Arm64 and Windows x64
-# checks. A suite with its own path filter (`desktop`) uses its own `changes` output instead,
-# and the gate's loop maps the job to that output.
+# Adding a suite: give it `needs: changes`, an `if:` on its flag (`code` unless a narrower one
+# fits: `desktop`, `render`, `rust`; CI caching plan §8.1), and add it to `gate.needs`; a suite
+# on any flag but `code` also needs a line in the gate's `case`. All suites are required, including
+# the hosted Linux Arm64 and Windows x64 checks.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Full lane
@@ -26,8 +26,8 @@ permissions:
 
 concurrency:
   group: full-${{ github.event.pull_request.number || github.ref }}
-  # Cancel superseded runs on PRs only; every push to main keeps its own result.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Newer runs cancel older ones, on PRs and on main (todo X9d; ADR 0018 §2).
+  cancel-in-progress: true
 
 env:
   CARGO_TARGET_DIR: ${{ github.workspace }}/target
@@ -52,13 +52,21 @@ jobs:
     outputs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
       desktop: ${{ steps.pr.outputs.desktop || steps.push.outputs.desktop }}
+      render: ${{ steps.pr.outputs.render || steps.push.outputs.render }}
+      rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
+      ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
     steps:
       - name: Pushes to main run every suite
         id: push
         if: github.event_name != 'pull_request'
         run: |
-          echo "code=true" >> "$GITHUB_OUTPUT"
-          echo "desktop=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "code=true"
+            echo "desktop=true"
+            echo "render=true"
+            echo "rust=true"
+            echo "ts=true"
+          } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -92,7 +100,7 @@ jobs:
   fuzz:
     name: Fuzz smoke (${{ github.event_name == 'pull_request' && '30 s' || '2 min' }} per target)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -240,6 +248,16 @@ jobs:
           if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
           test -s "target/debug/laminapdf-desktop-engine$exe"
           find target/debug/pdfium -maxdepth 1 -type f \( -name '*.dylib' -o -name '*.so' -o -name '*.dll' \) -size +1M | grep -q .
+      # The app renders through its engine, never the viewer's WebAssembly, so none ships.
+      - name: Check the frontend ships no WebAssembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=$(find apps/desktop/dist -name '*.wasm')
+          if [ -n "$found" ]; then
+            echo "::error::apps/desktop/dist holds WebAssembly: $found"
+            exit 1
+          fi
       # ADR 0008 §3: the main process never links the parser or PDFium. Exact names: the app and
       # the protocol crate are expected.
       - name: Check the main process links no parser or renderer
@@ -261,7 +279,7 @@ jobs:
           set -euo pipefail
           exe=""
           if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
-          for name in debug_kill_engine e2e_queue_pick e2e_interactive tauri-plugin-wdio TAURI_WEBDRIVER_PORT; do
+          for name in debug_kill_engine e2e_queue_pick e2e_interactive tauri-plugin-wdio TAURI_WEBDRIVER_PORT "startup timings"; do
             if grep -aq "$name" "target/debug/laminapdf-desktop$exe"; then
               echo "::error::the app holds $name without the e2e feature"
               exit 1
@@ -481,11 +499,12 @@ jobs:
           if-no-files-found: ignore
 
   # The render goldens were written on macOS arm64, and PDFium's rasteriser (fonts, anti-aliasing)
-  # differs by platform, so this is the one suite that stays on macOS.
+  # differs by platform, so this is the one suite that stays on macOS. It waits for a Mac, so a PR
+  # runs it only when it changes what the goldens draw (`render`, todo X9b); pushes to main always do.
   render-golden:
     name: Render goldens (PDFium and hayro)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.render == 'true' }}
     runs-on: macos-15
     timeout-minutes: 40
     steps:
@@ -517,10 +536,10 @@ jobs:
           path: target/xtask/render-golden/diff/
           if-no-files-found: ignore
 
-  # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with `code`
-  # exactly "true" or "false"; then every suite must have succeeded (code) or been skipped
-  # (docs-only). Any failure, cancellation, or skip of a suite that should have run fails it.
-  # Every code suite must succeed; docs-only changes skip all suites.
+  # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with every flag
+  # exactly "true" or "false"; then each suite must have succeeded when its flag is true, or been
+  # skipped when it is false. Any failure, cancellation, or skip of a suite that should have run
+  # fails it.
   gate:
     name: gate
     if: always()
@@ -533,6 +552,9 @@ jobs:
           NEEDS: ${{ toJSON(needs) }}
           CODE: ${{ needs.changes.outputs.code }}
           DESKTOP: ${{ needs.changes.outputs.desktop }}
+          RENDER: ${{ needs.changes.outputs.render }}
+          RUST: ${{ needs.changes.outputs.rust }}
+          TS: ${{ needs.changes.outputs.ts }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -540,20 +562,28 @@ jobs:
             echo "::error::the changes job ended with '$changes'"
             exit 1
           fi
-          case "$CODE" in
-            true|false) echo "Suites needed: $CODE" ;;
-            *)
-              echo "::error::the changes job's code output is '$CODE', not true or false"
-              exit 1
-              ;;
-          esac
+          for flag in "code=$CODE" "desktop=$DESKTOP" "render=$RENDER" "rust=$RUST" "ts=$TS"; do
+            case "${flag#*=}" in
+              true|false) echo "Needed: $flag" ;;
+              *)
+                echo "::error::the changes job's ${flag%%=*} output is '${flag#*=}', not true or false"
+                exit 1
+                ;;
+            esac
+          done
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
-            # The desktop build and its e2e suite follow their own paths (`desktop`), every other
-            # suite `code`.
+            # Each job follows a flag (todos X9b, X9c): desktop and desktop-e2e `desktop`;
+            # render-golden `render`; fuzz `rust`; the others `code`, since check-linux and
+            # check-windows run the whole `cargo xtask check` and the suites read both Rust and the
+            # TypeScript tests' capability tags.
             needed=$CODE
-            case "$job" in desktop | desktop-e2e) needed=$DESKTOP ;; esac
+            case "$job" in
+              desktop | desktop-e2e) needed=$DESKTOP ;;
+              render-golden) needed=$RENDER ;;
+              fuzz) needed=$RUST ;;
+            esac
             echo "$job: $result"
             case "$needed/$result" in
               true/success | false/skipped) ;;

@@ -22,6 +22,7 @@ layer = "core"
 laminapdf-cos = { workspace = true }
 laminapdf-syntax = { workspace = true }
 quick-xml = { workspace = true }
+sha2 = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

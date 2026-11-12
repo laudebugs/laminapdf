@@ -16,9 +16,10 @@ use crate::DesktopError;
 /// When `run()` began: the start of the cold start `e2e_interactive` reports.
 static STARTED: OnceLock<Instant> = OnceLock::new();
 
-/// Starts the cold start's clock; `run()` calls it first.
+/// Starts the cold start's clock and the startup marks' (`startup.rs`); `run()` calls it first.
 pub(crate) fn start_clock() {
     STARTED.get_or_init(Instant::now);
+    crate::startup::start();
 }
 
 /// The frontend's empty state accepts input: prints and returns the milliseconds since `run()`

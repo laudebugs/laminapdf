@@ -10,12 +10,19 @@
 //! one bump changes both, and no workflow or action but `.github/actions/install-tools` runs
 //! install-action, so its pin lives in one place. cli-release.yml publishes
 //! only on a CLI tag push with the owner's variable, in the `release` environment, with no stored
-//! secret, from GitHub-hosted runners only (todo L4d).
+//! secret, from GitHub-hosted runners only (todo L4d). Both lanes cancel a superseded run (X9d);
+//! ci.yml checks Rust on macOS x64 only on pushes to main, and the nightly checks it too (X9a);
+//! each job runs on the `changes` flag its gate holds it to (X9b, X9c); and every workflow
+//! installs the cargo-nextest and cargo-deny that `doctor.rs` pins.
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs and
 //! triggers are two-space-indented keys under the top-level `jobs:` and `on:`, and a job lists its
 //! `needs` on one line, as `[a, b]` or a single id, a trailing comment allowed. A gate whose `needs` is written any other way reads as empty, so every job is
 //! reported missing. The module is compiled only for tests (`main.rs`).
+
+mod compile_cache;
+
+use std::path::{Path, PathBuf};
 
 /// The `<id>` of a two-space-indented `<id>:` line (a trailing comment allowed), else `None`.
 pub(crate) fn job_id(line: &str) -> Option<&str> {
@@ -34,17 +41,8 @@ pub(crate) fn jobs(workflow: &str) -> Vec<(&str, Vec<&str>)> {
 /// The two-space-indented keys under `workflow`'s top-level `<section>:` line (a trailing comment
 /// allowed), each with its own lines, in order. The section ends at the next top-level key.
 fn keys_under<'a>(workflow: &'a str, section: &str) -> Vec<(&'a str, Vec<&'a str>)> {
-    let top_level = |line: &str| !line.is_empty() && !line.starts_with(' ') && !line.starts_with('#');
-    let header = format!("{section}:");
-    let body = workflow
-        .lines()
-        .skip_while(|line| !(top_level(line) && line.split(" #").next().unwrap_or_default().trim_end() == header))
-        .skip(1);
     let mut keys: Vec<(&str, Vec<&str>)> = Vec::new();
-    for line in body {
-        if top_level(line) {
-            break;
-        }
+    for line in section_lines(workflow, section) {
         if let Some(id) = job_id(line) {
             keys.push((id, Vec::new()));
         } else if let Some((_, lines)) = keys.last_mut() {
@@ -52,6 +50,19 @@ fn keys_under<'a>(workflow: &'a str, section: &str) -> Vec<(&'a str, Vec<&'a str
         }
     }
     keys
+}
+
+/// The lines under `workflow`'s top-level `<section>:` line (a trailing comment allowed), up to the
+/// next top-level key.
+fn section_lines<'a>(workflow: &'a str, section: &str) -> Vec<&'a str> {
+    let top_level = |line: &str| !line.is_empty() && !line.starts_with(' ') && !line.starts_with('#');
+    let header = format!("{section}:");
+    workflow
+        .lines()
+        .skip_while(|line| !(top_level(line) && line.split(" #").next().unwrap_or_default().trim_end() == header))
+        .skip(1)
+        .take_while(|line| !top_level(line))
+        .collect()
 }
 
 /// The lines of `key` under `workflow`'s top-level `section` (empty when there is none).
@@ -140,6 +151,44 @@ fn missing_from<'a>(workflow: &'a str, gate: &str) -> Vec<&'a str> {
     job_ids(workflow)
         .into_iter()
         .filter(|id| *id != gate && !needed.contains(id))
+        .collect()
+}
+
+fn root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+}
+
+/// A file's text, by its path from the repository root; `None` when it can't be read.
+pub(crate) fn repository_file(path: &str) -> Option<String> {
+    std::fs::read_to_string(root().join(path)).ok()
+}
+
+/// The entries of the repository's directory `dir`, as paths from the root, sorted. Panics when
+/// the directory can't be read, so a check over its files never passes having read none.
+fn entries(dir: &str) -> Vec<String> {
+    let read = std::fs::read_dir(root().join(dir)).unwrap_or_else(|e| panic!("can't read {dir}: {e}"));
+    let mut found: Vec<String> = read
+        .filter_map(Result::ok)
+        .map(|entry| format!("{dir}/{}", entry.file_name().to_string_lossy()))
+        .collect();
+    found.sort();
+    found
+}
+
+/// Every workflow file, as a path from the repository root.
+pub(crate) fn workflow_files() -> Vec<String> {
+    entries(".github/workflows")
+        .into_iter()
+        .filter(|p| Path::new(p).extension().is_some_and(|e| e == "yml" || e == "yaml"))
+        .collect()
+}
+
+/// Every local action's `action.yml`, as a path from the repository root.
+pub(crate) fn action_files() -> Vec<String> {
+    entries(".github/actions")
+        .into_iter()
+        .map(|dir| format!("{dir}/action.yml"))
+        .filter(|p| repository_file(p).is_some())
         .collect()
 }
 
@@ -591,10 +640,8 @@ mod tests {
     /// The owner installs the train from tools/release: never merge a partial installation.
     #[test]
     fn installed_cli_release_train_should_match_the_reviewed_file() {
-        let path =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github/workflows/cli-release-train.yml");
         assert!(
-            std::fs::read_to_string(&path).is_ok_and(|installed| installed == CLI_TRAIN),
+            repository_file(".github/workflows/cli-release-train.yml").is_some_and(|installed| installed == CLI_TRAIN),
             "the owner must install tools/release/cli-release-train.yml as .github/workflows/cli-release-train.yml before merge"
         );
     }
@@ -643,6 +690,211 @@ mod tests {
         );
     }
 
+    /// The value of `key` among the lines of `workflow`'s top-level `section:` block.
+    fn top_level_value(workflow: &str, section: &str, key: &str) -> Option<String> {
+        pinned(&section_lines(workflow, section).join("\n"), key).map(str::to_owned)
+    }
+
+    /// Todo X9d: a newer push to main cancels the older run, as a newer push to a PR does.
+    #[test]
+    fn both_lanes_should_cancel_a_superseded_run_for_every_event() {
+        let values: Vec<_> = [CI, FULL]
+            .iter()
+            .map(|workflow| top_level_value(workflow, "concurrency", "cancel-in-progress:"))
+            .collect();
+        assert_eq!(values, [Some("true".to_owned()), Some("true".to_owned())]);
+    }
+
+    #[test]
+    fn top_level_value_should_read_only_its_own_block() {
+        let workflow = "concurrency:\n  group: x\n  # cancel-in-progress: false\n  cancel-in-progress: true # why\njobs:\n  a:\n    cancel-in-progress: false\n";
+        assert_eq!(
+            top_level_value(workflow, "concurrency", "cancel-in-progress:"),
+            Some("true".to_owned())
+        );
+    }
+
+    /// The native Rust legs of ci.yml's `changes` job, as JSON objects.
+    fn rust_legs(workflow: &str) -> Vec<serde_json::Value> {
+        let lines = lines_of(workflow, "jobs", "changes");
+        let start = lines.iter().position(|l| l.trim() == "legs='[").unwrap_or(lines.len());
+        let end = lines
+            .iter()
+            .skip(start)
+            .position(|l| l.trim() == "]'")
+            .map_or(start, |n| start + n);
+        let json = format!("[{}]", lines.get(start + 1..end).unwrap_or_default().join("\n"));
+        serde_json::from_str(&json).unwrap_or_default()
+    }
+
+    fn platform(leg: &serde_json::Value) -> &str {
+        leg.get("platform")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default()
+    }
+
+    /// Todo X9a: pushes to main run all six native Rust legs.
+    #[test]
+    fn ci_should_list_every_native_rust_leg() {
+        let legs = rust_legs(CI);
+        let platforms: Vec<&str> = legs.iter().map(platform).collect();
+        assert_eq!(
+            platforms,
+            [
+                "linux-x64",
+                "linux-arm64",
+                "macos-x64",
+                "macos-arm64",
+                "windows-x64",
+                "windows-arm64"
+            ]
+        );
+    }
+
+    /// Todo X9a: the macOS x64 leg keeps filling the compile cache from main.
+    #[test]
+    fn the_macos_x64_leg_should_keep_the_compile_cache() {
+        let leg = rust_legs(CI).into_iter().find(|leg| platform(leg) == "macos-x64");
+        assert_eq!(
+            leg.and_then(|l| l.get("compile-cache").cloned()),
+            Some(serde_json::Value::Bool(true))
+        );
+    }
+
+    /// Todo X9a: only a pull request drops the macOS x64 leg.
+    #[test]
+    fn only_a_pull_request_should_drop_the_macos_x64_leg() {
+        let lines = lines_of(CI, "jobs", "changes");
+        let filter = lines
+            .iter()
+            .position(|l| l.contains(r#"select(.platform != "macos-x64")"#));
+        let guard = filter.and_then(|at| lines.get(at.checked_sub(1)?));
+        assert!(guard.is_some_and(|l| l.contains(r#"if [ "$EVENT" = pull_request ]"#)));
+    }
+
+    /// Todo X9a: the `rust` matrix is the `changes` job's list.
+    #[test]
+    fn the_rust_matrix_should_read_the_changes_jobs_list() {
+        assert!(
+            lines_of(CI, "jobs", "rust")
+                .iter()
+                .any(|l| l.trim() == "include: ${{ fromJSON(needs.changes.outputs.rust-legs) }}")
+        );
+    }
+
+    /// Todo X9a: the nightly checks Rust on macOS x64, after the benchmarks, and reports it.
+    #[test]
+    fn nightly_should_check_rust_on_macos_x64_after_the_benchmarks() {
+        let job = lines_of(NIGHTLY, "jobs", "rust-macos-x64");
+        assert_eq!(
+            [
+                job.iter().any(|l| l.trim() == "runs-on: macos-15-intel"),
+                job.iter().any(|l| l.trim() == "- run: cargo xtask check rust"),
+                needs(NIGHTLY, "rust-macos-x64") == ["bench"],
+                needs(NIGHTLY, "report").contains(&"rust-macos-x64"),
+            ],
+            [true; 4]
+        );
+    }
+
+    #[test]
+    fn rust_legs_should_read_nothing_from_a_workflow_without_the_list() {
+        assert_eq!(
+            rust_legs("jobs:\n  changes:\n    steps: []\n"),
+            Vec::<serde_json::Value>::new()
+        );
+    }
+
+    /// The `changes` outputs a job's `if` names (`code`, `rust`, `ts`, …), in order.
+    fn flags_of(workflow: &str, job: &str) -> Vec<String> {
+        let lines = lines_of(workflow, "jobs", job);
+        lines
+            .iter()
+            .filter(|l| l.trim_start().starts_with("if:"))
+            .take(1)
+            .flat_map(|l| l.split("needs.changes.outputs.").skip(1))
+            .map(|rest| {
+                rest.chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
+                    .collect()
+            })
+            .collect()
+    }
+
+    /// The flag `gate` holds each job of `workflow` to, read from its shell: the `case` lines
+    /// (`a | b) needed=$FLAG ;;`), then its default (a `*)` line, or `needed=$FLAG` before the `case`).
+    fn gate_flag(workflow: &str, gate: &str, job: &str) -> Option<String> {
+        let lines = lines_of(workflow, "jobs", gate);
+        let flag_of = |line: &str| {
+            line.split("needed=$").nth(1).map(|rest| {
+                rest.chars()
+                    .take_while(char::is_ascii_alphabetic)
+                    .collect::<String>()
+                    .to_lowercase()
+            })
+        };
+        let listed = lines.iter().find_map(|l| {
+            let (jobs, _) = l.trim().split_once(") needed=$")?;
+            jobs.split('|').any(|j| j.trim() == job).then(|| flag_of(l)).flatten()
+        });
+        let default = lines
+            .iter()
+            .find(|l| l.trim().starts_with("*) needed=$"))
+            .or_else(|| lines.iter().find(|l| l.trim().starts_with("needed=$")))
+            .and_then(|l| flag_of(l));
+        listed.or(default)
+    }
+
+    /// Todos X9b, X9c: every job a gate needs runs on the one flag that gate holds it to, so a
+    /// job added on one flag and left to the gate's default fails here.
+    #[test]
+    fn every_job_should_run_on_the_flag_its_gate_holds_it_to() {
+        let mut wrong: Vec<String> = Vec::new();
+        for (workflow, gate) in [(CI, "fast-gate"), (FULL, "gate")] {
+            for job in needs(workflow, gate).into_iter().filter(|j| *j != "changes") {
+                let expected: Vec<String> = gate_flag(workflow, gate, job).into_iter().collect();
+                if flags_of(workflow, job) != expected {
+                    wrong.push(format!(
+                        "{gate}: {job} runs on {:?}, held to {expected:?}",
+                        flags_of(workflow, job)
+                    ));
+                }
+            }
+        }
+        assert_eq!(wrong, Vec::<String>::new());
+    }
+
+    #[test]
+    fn gate_flag_should_prefer_a_case_line_over_the_default() {
+        let workflow = "jobs:\n  g:\n    steps:\n      - run: |\n          needed=$CODE\n          case \"$job\" in\n            a | b) needed=$RUST ;;\n          esac\n";
+        assert_eq!(
+            [gate_flag(workflow, "g", "b"), gate_flag(workflow, "g", "c")],
+            [Some("rust".to_owned()), Some("code".to_owned())]
+        );
+    }
+
+    /// Every workflow installs the cargo-nextest and cargo-deny that doctor.rs pins.
+    #[test]
+    fn every_workflow_should_install_the_pinned_nextest_and_deny() {
+        let pins = [
+            ("cargo-nextest@", crate::doctor::CARGO_NEXTEST_VERSION),
+            ("cargo-deny@", crate::doctor::CARGO_DENY_VERSION),
+        ];
+        let mut off: Vec<String> = Vec::new();
+        for path in workflow_files() {
+            let text = repository_file(&path).unwrap_or_default();
+            for (tool, version) in pins {
+                for found in text.split(tool).skip(1) {
+                    let found: String = found.chars().take_while(|c| c.is_ascii_digit() || *c == '.').collect();
+                    if found != version {
+                        off.push(format!("{path}: {tool}{found}, want {version}"));
+                    }
+                }
+            }
+        }
+        assert_eq!(off, Vec::<String>::new());
+    }
+
     #[test]
     fn keys_under_should_stop_at_the_next_top_level_key() {
         let workflow = "name: x\non: # triggers\n  push:\n    branches: [main]\n  # a comment\n  schedule:\n    - cron: \"0 1 * * *\"\npermissions:\n  contents: read\n";
@@ -683,23 +935,16 @@ mod tests {
     /// One pin for install-action, in `.github/actions/install-tools`.
     #[test]
     fn install_action_should_run_only_through_install_tools() {
-        let github = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github");
-        let read = |dir: &str| std::fs::read_dir(github.join(dir)).unwrap().map(|e| e.unwrap().path());
-        let workflows = read("workflows").filter(|p| p.extension().is_some_and(|e| e == "yml" || e == "yaml"));
-        let actions = read("actions")
-            .filter(|p| !p.ends_with("install-tools"))
-            .map(|p| p.join("action.yml"));
+        let actions = action_files().into_iter().filter(|p| !p.contains("/install-tools/"));
         let mut direct: Vec<String> = Vec::new();
-        for path in workflows.chain(actions) {
-            let text = std::fs::read_to_string(&path).unwrap();
+        for path in workflow_files().into_iter().chain(actions) {
+            let text = repository_file(&path).unwrap_or_default();
             for (i, line) in text.lines().enumerate() {
                 if !line.trim_start().starts_with('#') && line.contains("taiki-e/install-action") {
-                    let name = path.strip_prefix(&github).unwrap_or(&path).display();
-                    direct.push(format!(".github/{name}:{}", i + 1));
+                    direct.push(format!("{path}:{}", i + 1));
                 }
             }
         }
-        direct.sort();
         assert_eq!(
             direct,
             Vec::<String>::new(),

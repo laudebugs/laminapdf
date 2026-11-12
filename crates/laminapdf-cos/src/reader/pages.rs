@@ -108,6 +108,20 @@ pub struct Inherited {
 const INHERITABLE: [&str; 4] = ["MediaBox", "CropBox", "Rotate", "Resources"];
 
 impl Inherited {
+    /// Each inheritable attribute's key with its value: `/MediaBox`, `/CropBox`, `/Rotate`,
+    /// `/Resources`.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn entries(&self) -> [(&'static str, Option<&Arc<Object>>); 4] {
+        let values = [&self.media_box, &self.crop_box, &self.rotate, &self.resources];
+        let mut out = [("", None); 4];
+        for ((slot, key), value) in out.iter_mut().zip(INHERITABLE).zip(values) {
+            *slot = (key, value.as_ref());
+        }
+        out
+    }
+
     /// `parent` with any attributes `dict` sets itself replacing the inherited ones.
     /// Returns `parent` unchanged (a pointer copy) when `dict` sets none of them.
     ///
