@@ -1,0 +1,89 @@
+---
+// Starlight's `PageTitle` override (todo Q4l): the page's title, then "Copy as Markdown", which
+// copies the page's Markdown twin (Head.astro links it) for pasting into a chat. The twin is fetched
+// from this site only when the button is pressed. The 404 page has no twin, so no button.
+import Default from "@astrojs/starlight/components/PageTitle.astro";
+import copyIcon from "@laminapdf/icons/svg/copy.svg?raw";
+import { decorativeIcon } from "@laminapdf/site-kit/icon";
+import { twinHref } from "../../plugins/markdown.mjs";
+
+const path = Astro.url.pathname;
+const twin = /^\/404(\.html|\/)?$/.test(path) ? undefined : twinHref(path);
+---
+
+<Default />
+{
+  twin && (
+    <lamina-copy-markdown class="copy-markdown" data-twin={twin} data-pagefind-ignore>
+      <button type="button">
+        <Fragment set:html={decorativeIcon(copyIcon, "copy-markdown-icon")} />
+        Copy as Markdown
+      </button>
+      <span class="copy-markdown-status" role="status" />
+    </lamina-copy-markdown>
+  )
+}
+
+<script>
+  /** Copies the page's Markdown twin when its button is pressed, and says how that went. */
+  class LaminaCopyMarkdown extends HTMLElement {
+    connectedCallback(): void {
+      const button = this.querySelector("button");
+      const status = this.querySelector(".copy-markdown-status");
+      const { twin } = this.dataset;
+      if (button === null || status === null || twin === undefined) return;
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        status.textContent = "";
+        try {
+          const response = await fetch(twin);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          await navigator.clipboard.writeText(await response.text());
+          status.textContent = "Copied";
+        } catch {
+          status.textContent = "Couldn't copy. Open the Markdown instead:";
+          const link = document.createElement("a");
+          link.href = twin;
+          link.textContent = twin;
+          status.append(" ", link);
+        } finally {
+          button.disabled = false;
+        }
+      });
+    }
+  }
+  customElements.define("lamina-copy-markdown", LaminaCopyMarkdown);
+</script>
+
+<style>
+  .copy-markdown {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-top: 0.75rem;
+    font-size: var(--sl-text-sm);
+  }
+  .copy-markdown button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0;
+    font: inherit;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 0.25rem;
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-white);
+    cursor: pointer;
+  }
+  .copy-markdown button:disabled {
+    cursor: progress;
+  }
+  .copy-markdown :global(.copy-markdown-icon) {
+    flex: none;
+  }
+  .copy-markdown-status {
+    color: var(--sl-color-gray-2);
+  }
+</style>

@@ -103,11 +103,14 @@ export default defineConfig({
       head: WEBSITE_ICONS.head,
       // One header for both sites (@laminapdf/site-kit), with Starlight's search and theme switch;
       // on phones, where the header hides the site's links, the menu lists them. The banner says
-      // when the docs describe unreleased changes.
+      // when the docs describe unreleased changes. Each page links its Markdown twin from its head
+      // and offers to copy it under its title.
       components: {
         Banner: "./src/components/Banner.astro",
+        Head: "./src/components/Head.astro",
         Header: "./src/components/Header.astro",
         MobileMenuFooter: "./src/components/MobileMenuFooter.astro",
+        PageTitle: "./src/components/PageTitle.astro",
         ThemeSelect: "./src/components/ThemeSelect.astro",
       },
       // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,
@@ -134,12 +137,13 @@ export default defineConfig({
     repositoryLinks("/install/", REPOSITORY, `${EDIT_BASE}apps/docs/src/content/docs/install.mdx`),
     cliDownloadChecks(ROOT),
     websiteIcons(new URL("apps/site/public/", ROOT)),
-    checkedLinks,
     inlineScriptHashes,
     previewNoindex(process.env.LAMINA_PDF_ENV),
     // Starlight writes sitemap-index.xml from `site`; only the released docs name it.
     robots({ env: process.env.LAMINA_PDF_ENV, sitemap: "https://docs.laminapdf.com/sitemap-index.xml" }),
     agentDocs(sidebarRoutes),
+    // After agentDocs: every page links its Markdown twin, and the code pages' twins are checked too.
+    checkedLinks,
     // Last, so it also reads the Markdown twins agentDocs writes.
     releaseChecks(DOCS_RELEASE),
   ],

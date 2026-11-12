@@ -1,0 +1,13 @@
+---
+// Starlight's `Head` override (todo Q4l): Starlight's own head, then a link to the page's Markdown
+// twin (plugins/agent-docs.mjs writes `/guides/save-a-pdf.md` for `/guides/save-a-pdf/`), so a coding
+// agent that fetches the HTML finds the clean text. The 404 page has no twin.
+import Default from "@astrojs/starlight/components/Head.astro";
+import { twinHref } from "../../plugins/markdown.mjs";
+
+const path = Astro.url.pathname;
+const twin = /^\/404(\.html|\/)?$/.test(path) ? undefined : twinHref(path);
+---
+
+<Default />
+{twin && <link rel="alternate" type="text/markdown" href={twin} />}

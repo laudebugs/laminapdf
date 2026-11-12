@@ -11,7 +11,7 @@
 | Branch | `feat/q4l-markdown-alternate` |
 | PR title | `feat(docs): link each page's Markdown twin and offer to copy it` |
 | Size | S |
-| PR | — |
+| PR | [#460](https://github.com/laudebugs/laminapdf/pull/460) |
 
 ## Goal
 

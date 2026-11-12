@@ -83,7 +83,8 @@ export function websiteIcons(websitePublic) {
 /**
  * Fails the build on a link from any page to a file the build didn't write, for the paths the
  * links validator leaves out: the example PDFs (`/examples/pdf/…`, not pages) and the code pages
- * (`/reference/codes/<code>/`, written by src/pages/, which the validator doesn't read).
+ * (`/reference/codes/<code>/`, written by src/pages/, which the validator doesn't read, and their
+ * Markdown twins, `/reference/codes/<code>.md`, so it runs after agent-docs.mjs writes them).
  *
  * @type {import("astro").AstroIntegration}
  */

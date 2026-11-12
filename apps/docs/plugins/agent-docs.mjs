@@ -3,7 +3,8 @@
 // one-paragraph summary, then sections of links to the twins) and `llms-full.txt` (every twin in
 // reading order). Twins come from the pages' sources, not their HTML: the MDX pages through
 // markdown.mjs, the code pages from docs/errors/, the API reference from TypeDoc's Markdown. The
-// build fails when an HTML page has no twin or a link in `llms.txt` has no file.
+// build fails when an HTML page has no twin, doesn't link its twin (`<link rel="alternate"
+// type="text/markdown">`, from src/components/Head.astro), or a link in `llms.txt` has no file.
 import { realpathSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, relative } from "node:path";
@@ -350,6 +351,8 @@ export function agentDocs(groups) {
           await writeFile(out, page.markdown);
         }
         if (missing.length > 0) throw new Error(`agent docs: no Markdown source for ${missing.join(", ")}`);
+        const unlinked = await unlinkedPages(dir, [...twins.keys()]);
+        if (unlinked.length > 0) throw new Error(`agent docs: no link to the Markdown twin on ${unlinked.join(", ")}`);
         const sidebar = groups();
         const listed = new Set(sidebar.flatMap((g) => g.slugs));
         const routes = [...twins.keys()];
@@ -376,6 +379,38 @@ export function agentDocs(groups) {
       },
     },
   };
+}
+
+/**
+ * The routes among `routes` whose built page doesn't link its Markdown twin (`/` for the home page).
+ *
+ * @param {URL} dir the build's output folder
+ * @param {string[]} routes
+ * @returns {Promise<string[]>}
+ */
+async function unlinkedPages(dir, routes) {
+  const unlinked = [];
+  for (const route of routes) {
+    const html = await readFile(new URL(`${route}index.html`, dir), "utf8");
+    if (!linksTwin(html, `/${twinPath(route)}`)) unlinked.push(route || "/");
+  }
+  return unlinked;
+}
+
+/**
+ * Whether the page `html` links `href` as its Markdown twin, with
+ * `<link rel="alternate" type="text/markdown" href="…">` in any attribute order.
+ *
+ * @param {string} html
+ * @param {string} href
+ * @returns {boolean}
+ */
+export function linksTwin(html, href) {
+  return [...html.matchAll(/<link\b[^>]*>/gi)].some(([tag]) => {
+    /** @param {string} name */
+    const attr = (name) => new RegExp(`\\s${name}="([^"]*)"`, "i").exec(tag)?.[1];
+    return attr("rel") === "alternate" && attr("type") === "text/markdown" && attr("href") === href;
+  });
 }
 
 /**
