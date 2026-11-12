@@ -13,9 +13,14 @@ use tauri::http::{Response, StatusCode, header};
 
 use crate::DesktopError;
 
-/// The largest tile side the URL may ask for, in pixels: twice the viewer's 512 px tiles, far
-/// below the engine's own limits (which still apply).
-const MAX_SIDE: u32 = 2048;
+/// The largest tile side the URL may ask for, in pixels: the engine's own limit
+/// (`laminapdf_render::RenderLimits::max_render_side`'s default, copied because the main process
+/// links no render crate). Not the viewer's 512 px tile: a page's low-resolution backdrop is one
+/// request of up to 8 MiB pixels, as tall as the page needs.
+const MAX_SIDE: u32 = 16_384;
+
+/// The most pixels one tile may hold: `RenderLimits::max_render_pixels`' default (4096 × 4096).
+const MAX_PIXELS: u64 = 16_777_216;
 
 /// The largest scale the URL may ask for: the viewer's 800 % zoom at a device pixel ratio of 4,
 /// with room to spare.
@@ -90,6 +95,10 @@ pub(crate) fn parse(path: &str, query: Option<&str>) -> Result<TileQuery, UrlErr
         side @ 1..=MAX_SIDE => Ok(side),
         _ => Err(UrlError::Bad(name)),
     };
+    let (w, h) = (side(params.w, "w")?, side(params.h, "h")?);
+    if u64::from(w) * u64::from(h) > MAX_PIXELS {
+        return Err(UrlError::Bad("h"));
+    }
     Ok(TileQuery {
         doc: DocId(doc.parse().map_err(|_| UrlError::Bad("doc"))?),
         page: page.parse().map_err(|_| UrlError::Bad("page"))?,
@@ -98,8 +107,8 @@ pub(crate) fn parse(path: &str, query: Option<&str>) -> Result<TileQuery, UrlErr
         appearance: appearance(params.a)?,
         x: number(params.x, "x")?,
         y: number(params.y, "y")?,
-        w: side(params.w, "w")?,
-        h: side(params.h, "h")?,
+        w,
+        h,
         priority: match params.p {
             Some("v") | None => Priority::Visible,
             Some("p") => Priority::Prefetch,
@@ -356,7 +365,7 @@ mod tests {
             ("s=NaN&x=0&y=0&w=1&h=1&t=1", UrlError::Bad("s")),
             ("s=100&x=0&y=0&w=1&h=1&t=1", UrlError::Bad("s")),
             ("s=1&x=0&y=0&w=0&h=1&t=1", UrlError::Bad("w")),
-            ("s=1&x=0&y=0&w=1&h=4096&t=1", UrlError::Bad("h")),
+            ("s=1&x=0&y=0&w=1&h=16385&t=1", UrlError::Bad("h")),
             ("s=1&x=-1&y=0&w=1&h=1&t=1", UrlError::Bad("x")),
             ("s=1&x=0&y=0&w=1&h=1&t=1&r=45", UrlError::Bad("r")),
             ("s=1&x=0&y=0&w=1&h=1&t=1&a=hc-000000-ffffff", UrlError::Bad("a")),
@@ -366,6 +375,25 @@ mod tests {
         for (query, expected) in cases {
             assert_eq!(parsed("/tile/1/0", query), Err(expected), "{query}");
         }
+    }
+
+    #[test]
+    fn parse_should_take_a_backdrop_taller_than_the_viewer_tiles() {
+        // The viewer's whole-page backdrop at 250 % on a Retina screen (D2e's zoom scenario).
+        let query = parsed("/tile/1/0", "s=5.8&x=0&y=0&w=2431&h=3450&t=1");
+        assert_eq!(query.map(|q| (q.w, q.h)), Ok((2431, 3450)));
+    }
+
+    #[test]
+    fn parse_should_refuse_a_tile_past_the_engine_limits() {
+        assert_eq!(
+            parsed("/tile/1/0", "s=1&x=0&y=0&w=16385&h=1&t=1"),
+            Err(UrlError::Bad("w"))
+        );
+        assert_eq!(
+            parsed("/tile/1/0", "s=1&x=0&y=0&w=4097&h=4096&t=1"),
+            Err(UrlError::Bad("h"))
+        );
     }
 
     #[test]
