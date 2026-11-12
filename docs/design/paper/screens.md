@@ -43,7 +43,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| S01 | Start window: recent files with thumbnails, open, drop zone | D | [D3a](../../todos/ready/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) |
+| S01 | Start window: recent files with thumbnails, open, drop zone | D | [D3a](../../todos/done/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) |
 | S02 | Window with document tabs and session restore: tab overflow, session restore notice | D | [D4a](../../todos/ready/D4a-windows-tabs-and-session-restore.md) |
 | S03 | Native menus: macOS menu bar (File, Edit, View, Go, Tools, Window, Help) and Windows/Linux in-window menu | D | [D4b](../../todos/ready/D4b-native-menus.md) |
 | S04 | File changed on disk: strip (Compare · Keep mine · Reload from disk); the next Save asks | D | [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) |
@@ -61,8 +61,8 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O01 | Edit session and history: unsaved state in title and status bar, undo/redo, History tab | D | [E1d](../../todos/done/E1d-edit-session-undo-ui.md) |
 | O02 | Save, Save as and Download a copy: Save a copy, signed-file constraint banner, incremental vs full explanation | D, W | [E1e](../../todos/done/E1e-save-and-constraint-banner.md) |
 | O03 | Close with unsaved changes (dialog) | D | [E2i](../../todos/ready/E2i-signed-gating-and-close.md) |
-| O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/ready/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md) |
-| O05 | Capability page: what lamina can read, write and round-trip | W | [E1f](../../todos/ready/E1f-metadata-ui-capability-page.md) |
+| O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md) |
+| O05 | Capability page: what lamina can read, write and round-trip | W | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) |
 | O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/ready/E2b-page-structure-ops.md) |
 | O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/ready/E2c-cross-document-pages.md), [E2d](../../todos/ready/E2d-merge-and-split.md), [E3h](../../todos/ready/E3h-images-to-pdf-and-page-export.md) |
 | O08 | Split document (by count, ranges, bookmarks) | D | [E2d](../../todos/ready/E2d-merge-and-split.md) |

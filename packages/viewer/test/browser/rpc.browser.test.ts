@@ -226,18 +226,18 @@ describe("long renders", () => {
     expect(slow).toBe(false);
   });
 
-  it("restarts on stop() without re-sending the blocked render", async () => {
+  it("restarts on stop() without re-sending the blocked call, and draws the render queued behind it", async () => {
     const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
     const restarted = next(client, "restarted");
     const blocked = rejection(hook(client, "__busy", [5_000]));
-    const queued = rejection(client.render({ page: 0, scale: 0.77 }));
+    const queued = client.render({ page: 0, scale: 0.77 });
     await client.stop();
     expect(isLaminaPdfError(await blocked, "worker-crashed")).toBe(true);
-    expect(isLaminaPdfError(await queued, "worker-crashed")).toBe(true);
     expect(await restarted).toEqual({ reason: "cancelled", reopened: true });
-    expect(await hook(client, "__renderLog", [])).toEqual([]);
-    (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
+    // Sent again once, in the restarted worker (ADR 0009 §3.6): only what was running is dropped.
+    (await queued).bitmap.close();
+    expect(await hook(client, "__renderLog", [])).toEqual([0.77]);
   });
 
   it("emits render-stuck for an encrypted document at the hard cap, and restarts only on stop()", async () => {
@@ -356,6 +356,46 @@ describe("crashes", () => {
     expect(client.document).toBeUndefined();
     await client.open(await read(ENCRYPTED), { password: PASSWORD });
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
+  });
+});
+
+describe("renders lost with the worker (ADR 0009 §3.6)", () => {
+  it("sends a render that was waiting again after a crash, and draws it", async () => {
+    const client = await track(testViewer());
+    await client.open(await read("fixtures/corpus/hello.pdf"));
+    const held = hook(client, "__busy", [500]);
+    const waiting = client.render({ page: 0, scale: 0.5 });
+    const crash = rejection(hook(client, "__crash", []));
+    await held;
+    expect(isLaminaPdfError(await crash, "worker-crashed")).toBe(true);
+    (await waiting).bitmap.close();
+  });
+
+  it("doesn't send again the render that was drawing when the worker stopped, and sends the one waiting", async () => {
+    const client = await track(testViewer());
+    await client.open(await read("fixtures/corpus/hello.pdf"));
+    await hook(client, "__holdNextRender", [3000]);
+    const started = next(client, "render-start");
+    const running = rejection(client.render({ page: 0, scale: 0.5 }));
+    await started;
+    const waiting = client.render({ page: 0, scale: 0.25 });
+    const restarted = next(client, "restarted");
+    void client.stop();
+    expect(isLaminaPdfError(await running, "worker-crashed")).toBe(true);
+    expect(await restarted).toMatchObject({ reason: "cancelled", reopened: true });
+    (await waiting).bitmap.close();
+  });
+
+  it("ends a waiting render as cancelled when the restart can't reopen an encrypted document", async () => {
+    const client = await track(testViewer());
+    await client.open(await read(ENCRYPTED), { password: PASSWORD });
+    const held = hook(client, "__busy", [500]);
+    const waiting = rejection(client.render({ page: 0, scale: 0.5 }));
+    const crash = rejection(hook(client, "__crash", []));
+    await held;
+    await crash;
+    const error = await waiting;
+    expect(error instanceof DOMException && error.name === "AbortError").toBe(true);
   });
 });
 

@@ -4,12 +4,11 @@
 // chrome animates.
 
 import { env } from "node:process";
-import axe from "axe-core";
-import type { Browser, Page } from "playwright";
+import type { Browser } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { appVersion } from "../plugins/app-version.ts";
 import { BROWSER, launch } from "./browser.ts";
-import { chooseFile, load, type Watched } from "./reader.ts";
+import { chooseFile, load, serious, type Watched } from "./reader.ts";
 
 const origin = inject("origin");
 
@@ -21,21 +20,6 @@ const withAppearance = (appearance: object) => ({
   },
   arg: [...JSON.stringify(appearance)].map((c) => c.charCodeAt(0)),
 });
-
-/** axe's serious and critical violations on the page now, as `id: targets`, without the rules `off`. */
-async function serious(page: Page, off: readonly string[] = []): Promise<string[]> {
-  await page.evaluate(axe.source);
-  return page.evaluate(async (off) => {
-    const run = (window as unknown as { axe: typeof axe }).axe;
-    const result = await run.run(document, {
-      runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
-      rules: Object.fromEntries(off.map((id) => [id, { enabled: false }])),
-    });
-    return result.violations
-      .filter((v) => v.impact === "serious" || v.impact === "critical")
-      .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
-  }, off);
-}
 
 describe(`accessibility in ${BROWSER}`, () => {
   let browser: Browser;

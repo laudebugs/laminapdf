@@ -1,6 +1,6 @@
 # @laminapdf/desktop
 
-The desktop reader: `@laminapdf/ui`'s reader chrome around `@laminapdf/viewer` in a Tauri 2 window on macOS, Windows and Linux ([ADR 0008](../../docs/decisions/0008-desktop-shell.md)). Choose a file opens one PDF from the system's file dialog. A separate engine process parses and draws it, and restarts after a crash (todo [D2b](../../docs/todos/done/D2b-engine-process.md)). The engine's tiles reach the viewer over the app's own `lamina://` scheme (todo [D2d](../../docs/todos/done/D2d-tile-transport-and-first-document.md)). A locked document asks for its password. Text selection, search, links and thumbnails come later: the engine doesn't read text yet, and dropped files arrive with opening from the OS (D3a).
+The desktop reader: `@laminapdf/ui`'s reader chrome around `@laminapdf/viewer` in a Tauri 2 window on macOS, Windows and Linux ([ADR 0008](../../docs/decisions/0008-desktop-shell.md)). Choose a file opens one PDF from the system's file dialog. A separate engine process parses and draws it, and restarts after a crash (todo [D2b](../../docs/todos/done/D2b-engine-process.md)). The engine's tiles reach the viewer over the app's own `lamina://` scheme (todo [D2d](../../docs/todos/done/D2d-tile-transport-and-first-document.md)). A locked document asks for its password. The app opens the PDFs the OS hands it: a double-click or "Open with", a second launch, Finder and the Dock on macOS, and files dropped on the window (todo [D3a](../../docs/todos/done/D3a-open-from-os.md)). Text selection, search, links and thumbnails come later: the engine doesn't read text yet.
 
 ## Build, run and test
 
@@ -29,17 +29,28 @@ cargo xtask desktop-notices                           # target/desktop/THIRD_PAR
 
 ### End-to-end tests
 
-WebdriverIO drives the app's e2e build through the WebDriver server it embeds, so no driver needs installing ([ADR 0008 §8](../../docs/decisions/0008-desktop-shell.md#8-test-strategy-per-os)). The scenarios share one app and run in a fixed order; two of them need generated fixtures:
+WebdriverIO drives the app's e2e build through the WebDriver server it embeds, so no driver needs installing ([ADR 0008 §8](../../docs/decisions/0008-desktop-shell.md#8-test-strategy-per-os)). The scenarios share one app and run in a fixed order. `e2e` runs them, then a second run that starts the app with a PDF's path, as a double-click does. Two scenarios need generated fixtures:
 
 ```sh
 cargo xtask fixtures large-pdf --pages 1000 --out target/fixtures/1000-pages.pdf
 cargo xtask fixtures large-pdf                                     # target/fixtures/1gb.pdf
 pnpm --filter @laminapdf/desktop run desktop:build:e2e             # feature e2e + tauri.e2e.conf.json
-pnpm --filter @laminapdf/desktop run e2e                           # the scenarios (Linux: under xvfb-run)
+pnpm --filter @laminapdf/desktop run e2e                           # both runs (Linux: under dbus-run-session and xvfb-run)
 pnpm --filter @laminapdf/desktop run cold-start                    # five launches, median time to the empty state
 ```
 
-Each OS needs only what building the app needs. Linux adds `xvfb` for a display (`xvfb-run pnpm --filter @laminapdf/desktop run e2e`), and `WEBKIT_DISABLE_DMABUF_RENDERER=1` without a GPU driver. Windows needs the WebView2 runtime, which Windows 10 and 11 include, and no driver, since the app embeds its own. A failed scenario leaves a screenshot in `target/desktop-e2e/`. The first launch after a fresh build is slow on macOS while the OS checks the new binary, so run the scenarios again before trusting a first-run failure.
+Each OS needs only what building the app needs. Linux adds `xvfb` for a display, a D-Bus session bus so a second launch can find the running app, and `WEBKIT_DISABLE_DMABUF_RENDERER=1` without a GPU driver: run `dbus-run-session -- xvfb-run pnpm --filter @laminapdf/desktop run e2e`. Windows needs the WebView2 runtime, which Windows 10 and 11 include, and no driver, since the app embeds its own. A failed scenario leaves a screenshot in `target/desktop-e2e/`. The first launch after a fresh build is slow on macOS while the OS checks the new binary, so run the scenarios again before trusting a first-run failure. A locked Mac screen stops WebKit's animation frames, so nothing draws and every scenario that waits for a page fails: run them with the screen unlocked.
+
+### Opening from the OS
+
+Every way the OS hands the app a file goes through `src-tauri/src/open.rs` ([ADR 0008 §10](../../docs/decisions/0008-desktop-shell.md#10-opening-files-from-the-os)). From a terminal, start the built app with a path, then start it again with another while it runs: the second process hands its file over and exits.
+
+```sh
+target/debug/laminapdf-desktop fixtures/golden/examples/invoice.pdf
+target/debug/laminapdf-desktop fixtures/golden/examples/hello.pdf   # opens in the first app
+```
+
+File associations exist only in an installed bundle. `bundle.fileAssociations` registers the app for PDFs as an alternate handler, never the default, and `src-tauri/linux/laminapdf.desktop` passes the files (`%F`) on Linux. [`e2e/MANUAL-OPEN.md`](e2e/MANUAL-OPEN.md) builds a dev bundle per OS and lists the checks WebDriver can't make: Finder, Explorer, the Dock and a real drag.
 
 The engine runs sandboxed on every OS ([ADR 0008 §5](../../docs/decisions/0008-desktop-shell.md#5-sandboxing-per-os)): it can't open files, use the network or start processes. It gets the system's fonts from the main process, which lists them once at start-up. To see whether a problem comes from the sandbox, turn it off in a debug build and try again:
 
@@ -81,6 +92,7 @@ Add `#raw` to the window's address (in the dev tools) to fetch tiles as raw RGBA
 - **`src/app.tsx`** puts the reader's top bar, home screen, the document's view and status bar in the window, with the password dialog, the failure page, the repaired-file notice and the "Document process restarted" toast; **`src/app-info.ts`** calls `app_info`, whose version the status bar shows.
 - **`src/engine/`** is the viewer's engine on the desktop. `desktop-engine-client.ts` is `DesktopEngineClient`, the `ViewerEngine` that `@laminapdf/viewer` draws from, as it draws from `ViewerClient` on the web. It fetches each tile from `lamina://localhost/tile/{doc}/{page}?…` (`http://lamina.localhost/…` on Windows; `tile-url.ts` builds the address), decodes the WebP, and closes a tile that lands after its render was aborted or its document went. An aborted render's ticket goes to `cancel_tiles`, so the engine skips it. The engine's restart events become the viewer's `restarted`, which redraws the pages on screen. `open.ts` holds the open dialog's files and the reader's opener, which shows a document or unlocks it first. `tauri-shell.ts` is the Tauri side the client runs on; the tests pass Tauri's mocks.
 - **`src-tauri/`** is the Rust crate `laminapdf-desktop`, a member of the Cargo workspace. `src/lib.rs` builds the app and its main window; `src/commands.rs` holds the commands the webview may call; `src/error.rs` holds `DesktopError`, which reaches the UI as `{ kind, message }`.
+- **`src-tauri/src/open.rs`** opens what the OS asks: the command line, a second launch (`tauri-plugin-single-instance`, the first plugin registered), macOS's `RunEvent::Opened` and drops on the window. `route_open` queues the paths until the webview calls `take_pending_opens`, then opens each request's last path, in order, in the window's engine and sends `open://document` with its id and name. `src/engine/open.ts`'s `listenForOsOpens` shows each in turn, and the app shows the drop overlay from `open://drag-enter`.
 - **`src-tauri/src/engine/tiles.rs`** answers the `lamina://` scheme (ADR 0008 §4). It parses the tile's address strictly, takes the window from the webview that asked (never from the address), has the window's engine draw the tile, checks the pixels against the size asked for, and sends them as lossless WebP, or raw RGBA when the address has no `fmt`. A failure answers `{ kind, message }` with a status the client maps back.
 - **`src-tauri/src/engine/`** runs documents in the engine process (ADR 0008 §2). Each window gets its own engine, `crates/laminapdf-desktop-engine`, started on its first document and sandboxed (`crates/laminapdf-desktop-sandbox`). The main process opens each file read-only and answers the engine's range requests with positioned reads (`bytesource.rs`), so neither the webview nor the engine ever sees a path. `documents.rs` maps each document to its file, its window and its kept password, and keeps each window's engine away from other windows' documents. When an engine crashes or stops answering, the protocol crate's supervisor starts a new one, and `mod.rs` reopens the window's documents, unlocking encrypted ones with the kept password (`secret.rs`). The window then gets `engine://restarted`, which says whether each document is open, locked or closed; a document that fails to reopen, or kills the new engine, is closed. A fourth crash within 60 s sends `engine://failed` instead.
 
@@ -88,12 +100,12 @@ Add `#raw` to the window's address (in the dev tools) to fetch tiles as raw RGBA
 
 ADR 0008 §6 sets these rules, and every later todo keeps or tightens them:
 
-- **The webview gets no plugin permissions.** The dialog, log and opener plugins are for Rust's use. The webview may call only the app's own commands, each allowed by name in `src-tauri/capabilities/main.json` (today `allow-app-info`, `allow-open-dialog`, `allow-unlock-document`, `allow-page-info`, `allow-cancel-tiles` and `allow-close-document`), plus `core:event:allow-listen` and `allow-unlisten` for the engine's events; not `core:default`. The webview names documents by id, never by path.
+- **The webview gets no plugin permissions.** The dialog, log and opener plugins are for Rust's use. The webview may call only the app's own commands, each allowed by name in `src-tauri/capabilities/main.json` (today `allow-app-info`, `allow-open-dialog`, `allow-unlock-document`, `allow-page-info`, `allow-cancel-tiles`, `allow-close-document` and `allow-take-pending-opens`), plus `core:event:allow-listen` and `allow-unlisten` for the engine's and the open requests' events; not `core:default`. The webview names documents by id, never by path. Tauri itself sends dropped files' paths to the webview's `tauri://drag-*` events, which the app doesn't listen to, and no command opens a path the webview names, so the webview can see a dropped path but can't open it.
 - **The capability guard checks the files.** `src-tauri/tests/capabilities.rs` fails on a `shell:`, `fs:`, `http:`, `dialog:`, `process:`, `opener:` or `log:` permission, on a capability file missing from `app.security.capabilities`, and on an `e2e` capability outside `tauri.e2e.conf.json`.
 - **A window reads only its own documents.** The tile scheme takes the window from the webview that asked, and every command checks the document belongs to the calling window.
 - **A password is typed once.** `unlock_document` moves it into memory that is wiped when dropped as soon as it arrives; the main process keeps it for restarts and never logs it.
 - **The CSP allows the app's own files plus the tile and IPC schemes.** `tauri.conf.json` allows no inline script, no other web origin, and no frames. `withGlobalTauri` is off and the prototype is frozen.
 - **The main process never parses a PDF.** It links only the protocol crate; CI's `desktop` job fails if `cargo tree` shows the parser, the renderer or PDFium under `laminapdf-desktop`.
-- **Release builds have no test code.** The test commands (`debug_kill_engine`, `e2e_queue_pick`, `e2e_interactive`) and the WebdriverIO plugins exist only with the Cargo feature `e2e`, and only Vite's `e2e` mode bundles `src/e2e.ts`; CI checks the built app and its bundle hold none of them.
+- **Release builds have no test code.** The test commands (`debug_kill_engine`, `e2e_queue_pick`, `e2e_interactive`) and the WebdriverIO plugins exist only with the Cargo feature `e2e`, and only Vite's `e2e` mode bundles `e2e/probe/probe.ts`; CI checks the built app and its bundle hold none of them.
 
 Tauri writes `src-tauri/gen/` on every build, and Git ignores it.

@@ -186,6 +186,26 @@ export function twinHref(href) {
 }
 
 /**
+ * The file a route's twin is written to: `guides/x/` → `guides/x.md`, `` → `index.md`.
+ *
+ * @param {string} route
+ * @returns {string}
+ */
+export function twinPath(route) {
+  return route === "" ? "index.md" : `${route.replace(/\/$/, "")}.md`;
+}
+
+/**
+ * The route whose twin is `path` (the inverse of {@link twinPath}).
+ *
+ * @param {string} path
+ * @returns {string}
+ */
+export function routeOfTwin(path) {
+  return path === "index.md" ? "" : `${path.replace(/\.md$/, "")}/`;
+}
+
+/**
  * Rewrites every Markdown link target in `markdown` with `rewrite`, outside code.
  *
  * @param {string} markdown
@@ -227,7 +247,7 @@ function outsideCode(markdown, transform) {
  * @param {(text: string) => string} transform
  * @returns {string}
  */
-function outsideFences(markdown, transform) {
+export function outsideFences(markdown, transform) {
   const parts = markdown.split(/(^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n {0,3}\2[ \t]*$)/m);
   /** @type {string[]} */
   const out = [];
@@ -243,9 +263,10 @@ function outsideFences(markdown, transform) {
  * A page's MDX body as Markdown.
  *
  * @param {string} body the page without its front matter
- * @param {{ snippet: (file: string) => string, codeTable: () => string, changelog: () => string, benchmarks?: (section: string) => string }} components
+ * @param {{ snippet: (file: string) => string, codeTable: () => string, changelog: () => string, benchmarks?: (section: string) => string, guidePdf?: () => string, onePageLinks?: () => string }} components
  *   `snippet` reads an example file; `codeTable` writes the code table; `changelog` the releases;
- *   `benchmarks` one section of the benchmarks page
+ *   `benchmarks` one section of the benchmarks page; `guidePdf` the link to the guide as one PDF;
+ *   `onePageLinks` the list of one-page views
  * @returns {string}
  */
 export function mdxToMarkdown(body, components) {
@@ -259,6 +280,8 @@ export function mdxToMarkdown(body, components) {
       .replace(DIAGRAM, (_, _quote, name) => diagramMarkdown(name))
       .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
       .replace(/<Changelog\s*\/>/g, () => components.changelog())
+      .replace(/<GuidePdf\s*\/>/g, () => components.guidePdf?.() ?? "")
+      .replace(/<OnePageLinks\s*\/>/g, () => components.onePageLinks?.() ?? "")
       .replace(/<Benchmarks\s+section="([a-z-]+)"\s*\/>/g, (_, section) => {
         if (components.benchmarks === undefined) throw new Error("a page shows benchmarks, but none were read");
         return components.benchmarks(section);

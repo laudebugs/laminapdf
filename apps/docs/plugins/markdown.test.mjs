@@ -6,16 +6,18 @@ import { platform } from "node:process";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { diagramText } from "../src/components/diagrams/registry.mjs";
-import { linksTwin, llmsTxt, routeOfTwin, shownFileUrl, twinPath } from "./agent-docs.mjs";
+import { linksTwin, llmsTxt, shownFileUrl } from "./agent-docs.mjs";
 import {
   codeBlock,
   exampleParts,
   frontMatter,
   mdxToMarkdown,
   rewriteLinks,
+  routeOfTwin,
   shownFiles,
   twin,
   twinHref,
+  twinPath,
 } from "./markdown.mjs";
 
 const components = {

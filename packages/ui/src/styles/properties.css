@@ -129,4 +129,74 @@
   .paper-sheet .paper-properties-fonts td + td::before {
     content: " · ";
   }
+
+  /* The editable Description tab (O04): the fields in one column, a removed value struck through
+     beside its badge and Keep, keyword chips in a wrapping row before their input, and the
+     footer's Remove metadata… pushed to the start. */
+  .paper-properties-form {
+    gap: var(--paper-space-16);
+    padding-block-start: var(--paper-space-16);
+  }
+
+  .paper-properties-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-properties-removed-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-properties-removed-value {
+    color: var(--paper-text-2);
+    font: var(--paper-type-body);
+    overflow-wrap: anywhere;
+  }
+
+  .paper-properties-keywords {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-properties-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-properties-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--paper-space-2);
+    padding-inline-start: var(--paper-space-8);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-pill);
+    font: var(--paper-type-body);
+    color: var(--paper-text);
+  }
+
+  .paper-properties-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-properties-checklist-label {
+    font: var(--paper-type-label);
+    margin-inline-end: var(--paper-space-8);
+  }
+
+  .paper-properties-checklist-value {
+    color: var(--paper-text-2);
+    overflow-wrap: anywhere;
+  }
+
+  .paper-properties-actions-start {
+    margin-inline-end: auto;
+  }
 }

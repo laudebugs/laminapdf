@@ -11,6 +11,7 @@ const COMMANDS: &[&str] = &[
     "close_document",
     "unlock_document",
     "cancel_tiles",
+    "take_pending_opens",
 ];
 
 /// With the `e2e` feature: the end-to-end tests' commands too.
@@ -21,6 +22,7 @@ const E2E_COMMANDS: &[&str] = &[
     "close_document",
     "unlock_document",
     "cancel_tiles",
+    "take_pending_opens",
     "debug_kill_engine",
     "e2e_queue_pick",
     "e2e_interactive",
