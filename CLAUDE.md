@@ -459,7 +459,7 @@ cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust r
                              #   laminapdf-syntax (`one-lexer`); no todo ID with a letter suffix (read from docs/todos/'s file
                              #   names) in crates/*/src or packages/*/src, TypeScript included (`todo-id`)
 cargo xtask check since      # every public item of a published crate ends its docs with `Added in X.Y.Z.` (rustdoc's JSON
-                             #   with RUSTC_BOOTSTRAP=1; tools/xtask/src/since.rs); part of `check rust`. @laminapdf/sdk's
+                             #   with RUSTC_BOOTSTRAP=1, into target/since/; tools/xtask/src/since.rs); part of `check rust` (in CI on the Linux x64 leg only). @laminapdf/sdk's
                              #   exports carry `@since X.Y.Z`, which `check ts`'s apps/docs/scripts/check-api-docs.mjs checks
 cargo xtask check ts         # the platform boundary (ADR 0010 rule 1: no `@tauri-apps/*`, `isTauri`, Tauri globals or user agent in
                              #   packages/*/src, comments aside), biome ci (packages/sdk/biome.json's examples override reports errors; every example is linted

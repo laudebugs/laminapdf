@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { hasSince, missingSince } from "./since.mjs";
 
-const tag = (text) => ({ tag: "@since", content: [{ kind: "text", text }] });
-const reflection = (name, extra) => ({
+const tag = (/** @type {string} */ text) => ({ tag: "@since", content: [{ kind: "text", text }] });
+const reflection = (/** @type {string} */ name, /** @type {object} */ extra) => ({
   name,
   getFullName: () => name,
   sources: [{ fileName: "src/a.ts", line: 3 }],

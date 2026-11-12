@@ -53,7 +53,7 @@ for (const pkg of packageDirs(ROOT).map(entriesOf)) {
     excludeExternals: true,
     validation: { notExported: false, invalidLink: false, notDocumented: true },
     // The guideline's "exported symbols and public methods": declarations, not every property.
-    requiredToBeDocumented: REQUIRED,
+    requiredToBeDocumented: [...REQUIRED],
     treatValidationWarningsAsErrors: true,
     logLevel: LogLevel.Warn,
   });

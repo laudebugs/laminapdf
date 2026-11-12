@@ -570,7 +570,11 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     examples_lints::clippy(ws, reports::Options::strict())?;
     rust_tests(ws)?;
     docs(ws)?;
-    since::check(ws)?;
+    // rustdoc's JSON is the same on every host, so CI checks it on one leg, Linux x64, rather
+    // than build it on all six; a local run always checks it.
+    if env::var_os("CI").is_none() || cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        since::check(ws)?;
+    }
     cargo_deny(ws)?;
     step("Rust checks passed");
     Ok(())
