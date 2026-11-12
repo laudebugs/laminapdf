@@ -39,7 +39,7 @@ pnpm --filter @laminapdf/desktop run e2e                           # the scenari
 pnpm --filter @laminapdf/desktop run cold-start                    # five launches, median time to the empty state
 ```
 
-Each OS needs only what building the app needs: on Linux the WebKitGTK and D-Bus packages above, plus `xvfb` for a display (`xvfb-run pnpm --filter @laminapdf/desktop run e2e`), and `WEBKIT_DISABLE_DMABUF_RENDERER=1` without a GPU driver; on Windows the WebView2 runtime, which Windows 10 and 11 include, and no driver, since the app embeds its own. A failed scenario leaves a screenshot in `target/desktop-e2e/`. The first launch after a fresh build is slow on macOS while the OS checks the new binary, so run the scenarios again before trusting a first-run failure.
+Each OS needs only what building the app needs. Linux adds `xvfb` for a display (`xvfb-run pnpm --filter @laminapdf/desktop run e2e`), and `WEBKIT_DISABLE_DMABUF_RENDERER=1` without a GPU driver. Windows needs the WebView2 runtime, which Windows 10 and 11 include, and no driver, since the app embeds its own. A failed scenario leaves a screenshot in `target/desktop-e2e/`. The first launch after a fresh build is slow on macOS while the OS checks the new binary, so run the scenarios again before trusting a first-run failure.
 
 The engine runs sandboxed on every OS ([ADR 0008 §5](../../docs/decisions/0008-desktop-shell.md#5-sandboxing-per-os)): it can't open files, use the network or start processes. It gets the system's fonts from the main process, which lists them once at start-up. To see whether a problem comes from the sandbox, turn it off in a debug build and try again:
 
