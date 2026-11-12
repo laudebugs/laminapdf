@@ -1,7 +1,8 @@
 // The capability page's filters (O05): the search, the group, and filters read back from storage.
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { type CapabilityMatrix, filterMatrix, NO_FILTER, storedFilter } from "../src/help/capabilities.ts";
+import { type CapabilityMatrix, filterMatrix, NO_FILTER, SURFACES, storedFilter } from "../src/help/capabilities.ts";
 
 const op = (id: string, name: string) => ({
   id,
@@ -47,5 +48,34 @@ describe("the capability filters", () => {
     });
     expect(storedFilter({ group: "Z", surfaces: "web" }, MATRIX)).toEqual(NO_FILTER);
     expect(storedFilter("junk", MATRIX)).toEqual(NO_FILTER);
+  });
+});
+
+// The page's types copy what `cargo xtask capabilities` writes (tools/xtask's Status and Surface);
+// the reader bundles the file with a cast, so this pins the file to them.
+describe("docs/capabilities/matrix.json", () => {
+  const json = JSON.parse(readFileSync(new URL("../../../docs/capabilities/matrix.json", import.meta.url), "utf8")) as {
+    version: number;
+    groups: { id: string; name: string; ops: Record<string, unknown>[] }[];
+  };
+  const STATUSES = ["unsupported", "read", "write", "round-trip"];
+
+  it("is version 1, with groups of operations", () => {
+    expect([json.version, json.groups.length > 0, json.groups.every((g) => g.ops.length > 0)]).toEqual([1, true, true]);
+  });
+
+  it("gives every operation the page's fields, a status the page knows per surface, and a target status", () => {
+    const wrong = json.groups.flatMap((g) =>
+      g.ops.filter((op) => {
+        const surfaces = op.surfaces as Record<string, unknown>;
+        return (
+          JSON.stringify(Object.keys(op)) !== JSON.stringify(["id", "name", "round", "target", "surfaces"]) ||
+          JSON.stringify(Object.keys(surfaces)) !== JSON.stringify(SURFACES) ||
+          !STATUSES.includes(op.target as string) ||
+          !Object.values(surfaces).every((v) => v === null || v === "n/a" || STATUSES.includes(v as string))
+        );
+      }),
+    );
+    expect(wrong).toEqual([]);
   });
 });

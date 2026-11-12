@@ -90,15 +90,15 @@ type ReaderMoreId =
   | "capabilities"
   | "privacy";
 
+/** The More menu's items that aren't one of the output's commands: the menu handles each itself. */
+type OwnMoreId = "install" | "open" | "rotate" | "settings" | "shortcuts" | "capabilities" | "privacy";
+
 /** The More menu's commands, by item. */
 const MORE_COMMANDS = {
   "save-copy": "file.save-copy",
   print: "file.print",
   properties: "file.properties",
-} as const satisfies Record<
-  Exclude<ReaderMoreId, "install" | "open" | "rotate" | "settings" | "shortcuts" | "capabilities" | "privacy">,
-  OutputCommand
->;
+} as const satisfies Record<Exclude<ReaderMoreId, OwnMoreId>, OutputCommand>;
 
 /** Every item of the More menu: the edit items and its own. */
 type MoreId = EditMenuId | ReaderMoreId;
@@ -479,7 +479,7 @@ function useDocumentMenu(
   const capabilities = useCapabilityRoute(window);
   const items = useGatedEntries<ReaderMoreId>(moreEntries(document !== undefined, install.available));
   // The items that aren't one of the output's commands, each with what it does.
-  const own: Record<Exclude<ReaderMoreId, keyof typeof MORE_COMMANDS>, () => void> = {
+  const own: Record<OwnMoreId, () => void> = {
     open: () => void engine.reader.requestClose(),
     rotate: () => engine.getState().viewer?.rotate(90),
     settings: () => appActions["app.settings"]?.(undefined),
@@ -490,7 +490,7 @@ function useDocumentMenu(
   };
   const onAction = (id: ReaderMoreId) => {
     if (id in own) {
-      own[id as keyof typeof own]();
+      own[id as OwnMoreId]();
       return;
     }
     const command = MORE_COMMANDS[id as keyof typeof MORE_COMMANDS];

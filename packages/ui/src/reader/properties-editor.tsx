@@ -35,6 +35,10 @@ const FIELD_LABEL: Readonly<Record<EditableField, MessageId>> = {
   producer: "properties.producer",
 };
 
+/** The fields above the read-only Modified date and below it (O04's order). */
+const BEFORE_MODIFIED: readonly EditableField[] = ["title", "authors", "subject", "keywords", "created"];
+const AFTER_MODIFIED: readonly EditableField[] = ["creator", "producer"];
+
 /** `"2B"` as `"PDF/A-2b"`. */
 function pdfaLevel(pdfa: string): string {
   const m = /^(\d+)([A-Za-z]*)$/.exec(pdfa);
@@ -241,7 +245,7 @@ export function PropertiesEditor({ metadata, form, onForm, removalStays }: Prope
           {message("properties.edit.notice.malformed.body")}
         </Notice>
       ) : null}
-      {EDITABLE_FIELDS.slice(0, 5).map(field)}
+      {BEFORE_MODIFIED.map(field)}
       <div className="paper-field">
         <span className="paper-field-label">{message("properties.modified")}</span>
         <span className="paper-properties-value">
@@ -251,7 +255,7 @@ export function PropertiesEditor({ metadata, form, onForm, removalStays }: Prope
         </span>
         <span className="paper-field-help">{message("properties.edit.modified.help")}</span>
       </div>
-      {EDITABLE_FIELDS.slice(5).map(field)}
+      {AFTER_MODIFIED.map(field)}
       {removalStays ? (
         <Notice tone="warning" title={message("properties.edit.notice.earlier")}>
           {message("properties.edit.notice.earlier.body")}

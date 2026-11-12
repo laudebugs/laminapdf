@@ -100,10 +100,10 @@ fn evaluate(inputs: &Inputs, results: &BTreeMap<(String, Target), BTreeMap<Strin
         };
         let run = results.get(&(krate.clone(), target.clone()));
         let at = format!("{}:{} ({} {} {})", test.file, tag.line, tag.id, tag.surface, tag.status);
-        match run.and_then(|r| tags::passed(r, &test.function)) {
+        match run.and_then(|r| tags::passed(r, &test.name)) {
             Some(true) => {}
-            Some(false) => problems.push(format!("{at}: `{}` failed or is ignored", test.function)),
-            None => problems.push(format!("{at}: `{}` did not run", test.function)),
+            Some(false) => problems.push(format!("{at}: `{}` failed or is ignored", test.name)),
+            None => problems.push(format!("{at}: `{}` did not run", test.name)),
         }
     }
     fail_on(

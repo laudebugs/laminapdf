@@ -174,8 +174,8 @@ fn evidence(matrix: &Matrix<'_>, id: &str) -> String {
     tags.iter()
         .map(|(test, surface, status)| {
             let name = match test.runner {
-                Runner::Cargo { .. } => format!("`{}`", test.function),
-                Runner::Suite(_) => md_cell(&test.function).replace('[', "\\[").replace(']', "\\]"),
+                Runner::Cargo { .. } => format!("`{}`", test.name),
+                Runner::Suite(_) => md_cell(&test.name).replace('[', "\\[").replace(']', "\\]"),
             };
             format!("[{name}](../../{}) {surface} {status}", test.file)
         })
@@ -209,12 +209,18 @@ struct JsonOp<'a> {
     surfaces: JsonSurfaces,
 }
 
-#[derive(Serialize)]
-struct JsonSurfaces {
-    core: Option<&'static str>,
-    pdf: Option<&'static str>,
-    web: Option<&'static str>,
-    desktop: Option<&'static str>,
+/// A row's cell per surface, in [`Surface::ALL`]'s order, as a JSON object.
+struct JsonSurfaces(Vec<(&'static str, Option<&'static str>)>);
+
+impl Serialize for JsonSurfaces {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap as _;
+        let mut map = serializer.serialize_map(Some(self.0.len()))?;
+        for (surface, cell) in &self.0 {
+            map.serialize_entry(surface, cell)?;
+        }
+        map.end()
+    }
 }
 
 /// The matrix as `matrix.json` (version 1): groups in the manifest's order, each with its
@@ -242,12 +248,7 @@ pub(crate) fn render_json(manifest: &Manifest, matrix: &Matrix<'_>) -> anyhow::R
                     name: &row.name,
                     round: &row.round,
                     target: row.target.name(),
-                    surfaces: JsonSurfaces {
-                        core: cell(row, Surface::Core),
-                        pdf: cell(row, Surface::Pdf),
-                        web: cell(row, Surface::Web),
-                        desktop: cell(row, Surface::Desktop),
-                    },
+                    surfaces: JsonSurfaces(Surface::ALL.map(|s| (s.name(), cell(row, s))).to_vec()),
                 })
                 .collect(),
         })

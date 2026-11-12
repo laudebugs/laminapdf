@@ -498,7 +498,7 @@ const EN = {
   "properties.edit.keyword.remove": "Remove keyword {keyword}",
   "properties.edit.keywords.one": "1 keyword",
   "properties.edit.keywords.many": "{count} keywords",
-  "properties.edit.modified.help": "Saving sets this to the time you save.",
+  "properties.edit.modified.help": "Each save sets this to the time it saves.",
   "properties.edit.modified.none": "Not set",
   "properties.edit.willRemove": "Will be removed",
   "properties.edit.keep": "Keep",
@@ -506,7 +506,7 @@ const EN = {
   "properties.edit.removeMetadata": "Remove metadata…",
   "properties.edit.remove.title": "Remove metadata",
   "properties.edit.remove.body":
-    "Choose the values to remove. They are removed when you apply, and leave the file when you save.",
+    "Choose the values to remove. Apply removes them from the document, and Save from the file.",
   "properties.edit.remove.confirm": "Mark for removal",
   "properties.edit.cancel": "Cancel",
   "properties.edit.apply": "Apply",
@@ -522,7 +522,7 @@ const EN = {
     "The Info dictionary and XMP disagree on {fields}. Apply writes the values shown here to both.",
   "properties.edit.notice.malformed": "This file's XMP metadata can't be read.",
   "properties.edit.notice.malformed.body":
-    "Apply replaces it with new XMP metadata, and whatever the old one held is lost.",
+    "Apply replaces it with new XMP metadata, losing whatever the old one held.",
   "properties.edit.warning.oneAuthor":
     "{level} allows one author. With {count}, the file no longer meets the standard it claims.",
   "properties.edit.warning.title":

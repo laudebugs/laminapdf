@@ -6,7 +6,8 @@
 // it, so its bytes never reach this page.
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import type { DocumentMetadata, SaveOptions, SaveReport } from "@laminapdf/sdk";
+import type { DocumentMetadata, MetadataPatch, Op, SaveOptions, SaveReport } from "@laminapdf/sdk";
+import type { MetadataChange } from "@laminapdf/ui/dialogs";
 import type {
   DebugBackend,
   ExternalStore,
@@ -469,18 +470,16 @@ export class Engine implements ExternalStore<EngineState> {
    * Changes the open document's metadata as one step of the edit session (O04's Apply): `patch`
    * set and `remove` removed, Info and XMP together. Nothing reaches the file until a save.
    */
-  async editMetadata(
-    change: { readonly patch: object; readonly remove: readonly string[] },
-    options: { readonly replaceMalformed: boolean },
-  ): Promise<void> {
+  async editMetadata(change: MetadataChange, options: { readonly replaceMalformed: boolean }): Promise<void> {
     const session = await this.#session;
     const replace = options.replaceMalformed ? { replaceMalformed: true } : {};
-    const ops: unknown[] = [];
-    if (Object.keys(change.patch).length > 0)
-      ops.push({ op: "setMetadata", args: { patch: change.patch, ...replace } });
-    if (change.remove.length > 0) ops.push({ op: "removeMetadata", args: { keys: change.remove, ...replace } });
+    const { authors, ...rest } = change.patch;
+    const patch: MetadataPatch = { ...rest, ...(authors === undefined ? {} : { authors: [...authors] }) };
+    const ops: Op[] = [];
+    if (Object.keys(patch).length > 0) ops.push({ op: "setMetadata", args: { patch, ...replace } });
+    if (change.remove.length > 0) ops.push({ op: "removeMetadata", args: { keys: [...change.remove], ...replace } });
     if (ops.length === 0) return;
-    await session.viewer.edits.apply(ops as unknown as Ops, message("properties.edit.step"));
+    await session.viewer.edits.apply(ops, message("properties.edit.step"));
   }
 
   /** Moves to `backend`: a new document worker, and the open file reopened in it. */

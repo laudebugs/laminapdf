@@ -158,7 +158,8 @@ async function createsSelect(page: Page, at: string): Promise<boolean> {
   const m = /^(.*):(\d+):(\d+)$/.exec(at);
   if (m === null || !(m[1] ?? "").startsWith("http")) return false;
   const [, url = "", line, column] = m;
-  const source = await page.evaluate(async (u) => (await fetch(u)).text(), url);
+  // Through Playwright's own request context, so the page and its watchers see no extra request.
+  const source = await (await page.request.get(url, { ignoreHTTPSErrors: true })).text();
   const text = source.split("\n")[Number(line) - 1] ?? "";
   const col = Number(column) - 1;
   return text.slice(0, col).endsWith("createElement") && /^\(\s*[`'"]select[`'"]/.test(text.slice(col));

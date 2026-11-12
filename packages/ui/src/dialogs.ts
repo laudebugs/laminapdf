@@ -17,11 +17,4 @@ export {
   type PropertiesEditing,
   type PropertiesState,
 } from "./reader/properties-dialog.js";
-export {
-  type DocumentMetadataData,
-  type EditableField,
-  fieldWarnings,
-  formFrom,
-  type MetadataChange,
-  type MetadataField,
-} from "./reader/properties-form.js";
+export type { DocumentMetadataData, MetadataChange } from "./reader/properties-form.js";

@@ -152,6 +152,19 @@ describe(`document properties in ${BROWSER}`, () => {
       "Report template 2.3",
       "Lamina PDF",
     ]);
+    // Reopened in the reader, the dialog shows the saved values.
+    const chooser = page.waitForEvent("filechooser");
+    await more(page, "Choose a file");
+    await page.getByRole("button", { name: "Choose a file" }).click();
+    await (await chooser).setFiles({ name: "metadata.pdf", mimeType: "application/pdf", buffer: Buffer.from(saved) });
+    await page.locator(".web-viewer canvas").first().waitFor();
+    const reopened = await properties(page);
+    expect([
+      await reopened.getByLabel("Title").inputValue(),
+      await reopened.getByLabel("Author").inputValue(),
+      await reopened.getByRole("button", { name: "Remove keyword board" }).count(),
+    ]).toEqual(["Quarterly figures", "Ada Lovelace; Charles Babbage", 1]);
+    await page.keyboard.press("Escape");
     await clean(watched);
   });
 
@@ -250,9 +263,10 @@ describe(`document properties in ${BROWSER}`, () => {
     await page.getByRole("heading", { name: "What Lamina PDF can read, write and round-trip" }).waitFor();
     expect(new URL(page.url()).pathname).toBe("/capabilities");
     const table = page.getByRole("table");
-    expect(await table.locator("caption").textContent()).toMatch(/^(\d+) of \1 operations in \d+ groups$/);
+    const total = /^(\d+) of \1 operations in \d+ groups$/.exec((await table.locator("caption").textContent()) ?? "")?.[1];
+    expect(total).toBeDefined();
     await page.getByLabel("Search operations").fill("J.10");
-    await expect.poll(() => table.locator("caption").textContent()).toBe(`1 of ${169} operations in 1 group`);
+    await expect.poll(() => table.locator("caption").textContent()).toBe(`1 of ${total} operations in 1 group`);
     await page.getByLabel("Search operations").fill("no such operation");
     await page.getByRole("button", { name: "Clear filters" }).click();
     await page.getByRole("button", { name: "Back to metadata.pdf" }).click();

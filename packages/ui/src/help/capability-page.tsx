@@ -33,6 +33,14 @@ const SURFACE_LABEL: Readonly<Record<CapabilitySurface, MessageId>> = {
   desktop: "capabilities.surface.desktop",
 };
 
+/** What each status means, in the legend. */
+const STATUS_MEANS: Readonly<Record<CapabilityStatus, MessageId>> = {
+  "round-trip": "capabilities.status.roundTrip.means",
+  write: "capabilities.status.write.means",
+  read: "capabilities.status.read.means",
+  unsupported: "capabilities.status.unsupported.means",
+};
+
 const STATUS_LABEL: Readonly<Record<CapabilityStatus, MessageId>> = {
   "round-trip": "capabilities.status.roundTrip",
   write: "capabilities.status.write",
@@ -93,7 +101,8 @@ function useStoredFilter(matrix: CapabilityMatrix): [CapabilityFilter, (next: Ca
     let live = true;
     platform.storage.get(STORAGE_KEY).then(
       (stored) => {
-        if (live && stored !== undefined) setFilterState(storedFilter(stored, matrix));
+        // A filter the viewer set before the stored one arrived wins over it.
+        if (live && stored !== undefined) setFilterState((now) => (now === NO_FILTER ? storedFilter(stored, matrix) : now));
       },
       () => undefined,
     );
@@ -238,7 +247,7 @@ export function CapabilityPage({ matrix, version, backLabel, onBack, onHowTested
               <dt>
                 <StatusBadge status={status} />
               </dt>
-              <dd>{message(`${STATUS_LABEL[status]}.means` as MessageId)}</dd>
+              <dd>{message(STATUS_MEANS[status])}</dd>
             </div>
           ))}
         </dl>

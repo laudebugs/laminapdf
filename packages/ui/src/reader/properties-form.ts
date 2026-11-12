@@ -205,19 +205,30 @@ function same(metadata: DocumentMetadataData, field: EditableField, value: strin
 }
 
 /**
- * What Apply changes, or undefined when it changes nothing. A field emptied or marked for removal
- * is removed; a changed one is set. In a PDF/A file, a field where Info and XMP disagree is set
- * to the value shown even when unchanged, so Apply brings the two back in step.
+ * What Apply changes, or undefined when it changes nothing. Only the fields the reader touched
+ * change: one left as the dialog showed it is left alone, so a value the form can't show exactly
+ * (a date it can't read, spaces around a title) stays as the file has it. A touched field emptied,
+ * or one marked for removal, is removed; a touched one with a new value is set. In a PDF/A file, a
+ * field where Info and XMP disagree is set to the value shown even when untouched, so Apply brings
+ * the two back in step.
  */
 export function changeOf(metadata: DocumentMetadataData, form: MetadataForm): MetadataChange | undefined {
+  const start = formFrom(metadata);
   const patch: Record<string, string | readonly string[]> = {};
   const remove: EditableField[] = [];
   const resync = metadata.pdfa !== undefined;
   for (const field of EDITABLE_FIELDS) {
-    const value = form.removed.includes(field) ? undefined : formValue(form, field);
-    if (value === undefined) {
+    if (form.removed.includes(field)) {
       if (hasValue(metadata, field)) remove.push(field);
-    } else if (!same(metadata, field, value) || (resync && metadata.disagreements.includes(field))) {
+      continue;
+    }
+    const value = formValue(form, field);
+    const touched = JSON.stringify(form[field]) !== JSON.stringify(start[field]);
+    if (!touched) {
+      if (value !== undefined && resync && metadata.disagreements.includes(field)) patch[field] = value;
+    } else if (value === undefined) {
+      if (hasValue(metadata, field)) remove.push(field);
+    } else if (!same(metadata, field, value)) {
       patch[field] = value;
     }
   }

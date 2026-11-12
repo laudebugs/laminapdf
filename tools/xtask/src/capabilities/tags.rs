@@ -71,7 +71,7 @@ pub(crate) struct TestRef {
     pub(crate) runner: Runner,
     /// A Rust test's function name (its full name has it as one `::` segment), or a TypeScript
     /// test's title without its tags.
-    pub(crate) function: String,
+    pub(crate) name: String,
     /// The source file, relative to the repository root, `/`-separated.
     pub(crate) file: String,
 }
@@ -148,8 +148,8 @@ pub(crate) fn scan_rust(path: &Path, text: &str, files: &BTreeSet<PathBuf>) -> R
             status,
             test: TestRef {
                 runner: Runner::Cargo { krate, target },
-                function,
-                file: path.to_string_lossy().replace('\\', "/"),
+                name: function,
+                file: repo_path(path),
             },
             line: i,
         });
@@ -245,9 +245,14 @@ const TS_BLOCKERS: &[&str] = &[
     "test.only(",
 ];
 
+/// `path` with forward slashes, as the matrix and the suites name files.
+fn repo_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
 /// The suite `path` belongs to.
 fn ts_suite(path: &Path) -> Option<&'static TsSuite> {
-    let file = path.to_string_lossy().replace('\\', "/");
+    let file = repo_path(path);
     let (dir, name) = file.rsplit_once('/')?;
     TS_SUITES.iter().find(|s| s.dir == dir && name.ends_with(s.suffix))
 }
@@ -270,6 +275,13 @@ fn ts_places() -> String {
 pub(crate) fn scan_ts(path: &Path, text: &str) -> Result<Vec<Tag>> {
     let lines: Vec<&str> = text.lines().collect();
     let shown = path.display();
+    let suite = ts_suite(path);
+    // A blocker in a comment doesn't run, so only code lines count.
+    let blocker = TS_BLOCKERS.iter().find(|b| {
+        lines
+            .iter()
+            .any(|l| !l.trim_start().starts_with("//") && l.contains(**b))
+    });
     let mut tags = Vec::new();
     let mut previous = "";
     for (index, line) in lines.iter().enumerate() {
@@ -280,10 +292,10 @@ pub(crate) fn scan_ts(path: &Path, text: &str) -> Result<Vec<Tag>> {
             }
             continue;
         };
-        let Some(suite) = ts_suite(path) else {
+        let Some(suite) = suite else {
             bail!("{at}: TypeScript capability tags go only in {}", ts_places());
         };
-        if let Some(blocker) = TS_BLOCKERS.iter().find(|b| text.contains(**b)) {
+        if let Some(blocker) = blocker {
             bail!("{at}: the file has `{blocker}…)`, so its tagged tests don't run every time; remove it");
         }
         let before = line.get(..start).unwrap_or_default();
@@ -336,10 +348,11 @@ pub(crate) fn scan_ts(path: &Path, text: &str) -> Result<Vec<Tag>> {
         }
         for (id, surface, status) in claims {
             if !suite.surfaces.contains(&surface) {
+                let claimed: Vec<&str> = suite.surfaces.iter().map(|x| x.name()).collect();
                 bail!(
                     "{at}: tags in {}/ claim only {}; found `{surface}`",
                     suite.dir,
-                    ts_places()
+                    claimed.join(", ")
                 );
             }
             tags.push(Tag {
@@ -348,8 +361,8 @@ pub(crate) fn scan_ts(path: &Path, text: &str) -> Result<Vec<Tag>> {
                 status,
                 test: TestRef {
                     runner: Runner::Suite(suite),
-                    function: title.to_owned(),
-                    file: path.to_string_lossy().replace('\\', "/"),
+                    name: title.to_owned(),
+                    file: repo_path(path),
                 },
                 line: index + 1,
             });
@@ -421,8 +434,8 @@ pub(crate) fn runs(tags: &[Tag]) -> BTreeMap<(String, Target), Vec<String>> {
             continue;
         };
         let names = runs.entry((krate.clone(), target.clone())).or_default();
-        if !names.contains(&tag.test.function) {
-            names.push(tag.test.function.clone());
+        if !names.contains(&tag.test.name) {
+            names.push(tag.test.name.clone());
         }
     }
     runs
@@ -472,7 +485,7 @@ mod pages {
         let tags = scan("crates/laminapdf-model/tests/views.rs", SOURCE).unwrap();
         let found: Vec<(&str, &str, Status)> = tags
             .iter()
-            .map(|t| (t.id.as_str(), t.test.function.as_str(), t.status))
+            .map(|t| (t.id.as_str(), t.test.name.as_str(), t.status))
             .collect();
         assert_eq!(
             found,
@@ -555,7 +568,7 @@ mod pages {
         let tags = scan_e2e("  it(\"[cap J.01 web round-trip] edits the title\", async () => {\n").unwrap();
         let found: Vec<(&str, Surface, Status, &str, usize)> = tags
             .iter()
-            .map(|t| (t.id.as_str(), t.surface, t.status, t.test.function.as_str(), t.line))
+            .map(|t| (t.id.as_str(), t.surface, t.status, t.test.name.as_str(), t.line))
             .collect();
         assert_eq!(found, [("J.01", Surface::Web, Status::RoundTrip, "edits the title", 1)]);
     }
@@ -566,7 +579,7 @@ mod pages {
         let tags = scan_e2e(text).unwrap();
         let found: Vec<(&str, Status, &str, usize)> = tags
             .iter()
-            .map(|t| (t.id.as_str(), t.status, t.test.function.as_str(), t.line))
+            .map(|t| (t.id.as_str(), t.status, t.test.name.as_str(), t.line))
             .collect();
         assert_eq!(
             found,
@@ -597,6 +610,17 @@ mod pages {
             let text = format!("{call}\"[cap J.01 web round-trip] t\", () => {{}});");
             assert!(scan_e2e(&text).is_err(), "{call} was accepted");
         }
+    }
+
+    #[test]
+    fn scan_ts_should_ignore_a_skip_named_only_in_a_comment() {
+        let text = "// never describe.skip( here\nit(\"[cap J.01 web round-trip] edits\", () => {});";
+        assert_eq!(
+            scan_ts(Path::new("apps/web/e2e/a.e2e.test.ts"), text)
+                .map(|t| t.len())
+                .ok(),
+            Some(1)
+        );
     }
 
     #[test]

@@ -79,6 +79,14 @@ describe("the metadata form", () => {
     expect(changeOf({ ...pdfa, pdfa: undefined }, formFrom(pdfa))).toBeUndefined();
   });
 
+  it("leaves alone what the reader didn't touch, even when the form can't show it exactly", () => {
+    const odd = { ...META, title: " Spaced title ", created: "14 October 2026" };
+    expect(changeOf(odd, formFrom(odd))).toBeUndefined();
+    expect(changeOf(odd, { ...formFrom(odd), subject: "New" })).toEqual({ patch: { subject: "New" }, remove: [] });
+    // Emptied by the reader, the spaced title goes.
+    expect(changeOf(odd, { ...formFrom(odd), title: "" })?.remove).toEqual(["title"]);
+  });
+
   it("removes nothing the file doesn't hold", () => {
     const empty: DocumentMetadataData = { authors: [], disagreements: [], packet: "absent" };
     expect(changeOf(empty, { ...formFrom(empty), removed: ["title"] })).toBeUndefined();
