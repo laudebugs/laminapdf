@@ -9,6 +9,9 @@ only, plus macOS `sips` for the JPEG conversions.
   CMYK and Generic Gray profiles. `sips` writes CMYK as Photoshop does: inverted samples and an
   Adobe APP14 marker. APP1, APP2 (the embedded Apple ICC profile) and APP13 are removed, so no
   third-party profile data is committed.
+* `photo-rgb-exif6.jpg`: `photo-rgb.jpg` with an APP1 Exif segment after its SOI holding only
+  IFD0's Orientation, 6 (turned a quarter clockwise to be shown upright), for images-to-PDF's
+  orientation tests (todo E3h).
 * `gray-gamma22.icc`, `srgb-like.icc`: minimal ICC v2 profiles written here from first principles
   (a gamma 2.2 gray TRC; sRGB primaries adapted to D50 with gamma 2.2 TRCs), licensed
   `MIT OR Apache-2.0` like the rest of lamina (their copyright tag says so).
@@ -121,9 +124,19 @@ def convert(profile_name: str, out: Path):
         out.write_bytes(strip_app_segments(dst.read_bytes()))
 
 
+def with_orientation(jpeg: bytes, orientation: int) -> bytes:
+    """`jpeg` with an APP1 Exif segment, a big-endian TIFF holding only IFD0's Orientation (tag
+    0x0112, SHORT), inserted right after its SOI."""
+    tiff = b"MM\0*" + struct.pack(">I", 8) + struct.pack(">H", 1)
+    tiff += struct.pack(">HHIHH", 0x0112, 3, 1, orientation, 0) + struct.pack(">I", 0)
+    segment = b"Exif\0\0" + tiff
+    return jpeg[:2] + b"\xff\xe1" + struct.pack(">H", len(segment) + 2) + segment + jpeg[2:]
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "photo-rgb.jpg").write_bytes(strip_app_segments(PHOTO.read_bytes()))
+    (OUT / "photo-rgb-exif6.jpg").write_bytes(with_orientation((OUT / "photo-rgb.jpg").read_bytes(), 6))
     if shutil.which("sips"):
         convert("Generic CMYK Profile.icc", OUT / "photo-cmyk.jpg")
         convert("Generic Gray Profile.icc", OUT / "photo-gray.jpg")

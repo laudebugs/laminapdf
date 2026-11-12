@@ -48,7 +48,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-build/ #   core: the builder over the overlay: pages and boxes, paths, colour (device, ICC),
 │                        #     opacity/blend ExtGStates, clipping, images (JPEG, PNG + SMask, RGBA), text runs and
 │                        #     boxes, links, destinations, outlines, page labels, Info + XMP, tagged PDF, PDF/UA-1 and
-│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; page space
+│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; images_to_pdf with EXIF
+│                        #     orientation; page space
 │   ├── laminapdf/       #   core: the façade (ADR 0028): Document, one Error (ADR 0026 JSON), jobs, CancelToken,
 │                        #     Builder; features `build`, `extract`, `text`, `markdown`, `saslprep`, `explain`; src/generated/ and schemas/ from
 │                        #     `cargo xtask gen codes`; examples/ with byte goldens and render goldens
@@ -69,7 +70,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-source/ #   edge: SparseSource (filled range by range), the data-pending retry loop (over `laminapdf::Error::pending_ranges`), FileSource
 │   │                    #     (feature native), MmapSource (feature mmap) (L2c)
 │   ├── laminapdf-render/ #   core: the RenderBackend / RenderDocument traits (ADR 0004): validated tile requests (TilePlan,
-│   │                    #     RenderLimits), straight-RGBA tiles, RenderError; the hayro adapter (feature `hayro`)
+│   │                    #     RenderLimits), straight-RGBA tiles, RenderError; the hayro adapter (feature `hayro`);
+│   │                    #     export_pages to PNG, JPEG and TIFF (feature `export`)
 │   ├── laminapdf-render-pdfium/  # edge: the PDFium adapter (pdfium-render, bound at runtime to pdfium-binaries chromium/7881;
 │   │                    #     tests and render goldens #[ignore]d: `cargo xtask render-golden` runs them)
 │   ├── laminapdf-desktop-protocol/  # app, unpublished: the frames between the desktop main process and its engine

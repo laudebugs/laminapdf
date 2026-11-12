@@ -35,6 +35,7 @@ doc.render(&req, &mut out, &CancelToken::new())?;
   - **reused codes:** `page-index-out-of-range`, `password-required`, `wrong-password`, `data-pending`, `source`, `invalid-argument` and `cancelled`.
 - **Cancellation:** a `CancelToken` (the façade's, which now lives in `laminapdf-syntax`) is checked before and after the engine call. A running render can't be interrupted (ADR 0004 §1).
 - **Determinism:** the same backend version, input and request give the same bytes.
+- **Export** (feature `export`, E3h): `export_pages(&dyn RenderDocument, &[page], &ExportOptions, &CancelToken)` draws pages one at a time and encodes each as `ExportFormat::Png` (RGBA, `pHYs`), `Jpeg { quality }` (on an opaque background, JFIF density) or `Tiff { multi_page }` (RGBA, Deflate, `XResolution`; one file for every page when `multi_page`), at `ExportOptions::with_dpi` (150 by default). The scale is never below `dpi / 72`, so a page that is a whole number of pixels keeps its last column. Encoders: `png`, `jpeg-encoder` and `tiff`. `jpeg-encoder`'s code derives from libjpeg: this software is based in part on the work of the Independent JPEG Group.
 
 ## Page appearance
 

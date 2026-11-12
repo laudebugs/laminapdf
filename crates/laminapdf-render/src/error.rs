@@ -80,12 +80,12 @@ pub enum RenderError {
         len: u64,
     },
     /// The engine couldn't open the document or render the page: a damaged or unsupported
-    /// file, or an engine failure (`render-failed`).
+    /// file, or an engine failure; or an export's encoder failed (`render-failed`).
     #[error("the {backend} backend could not {stage} the document")]
     Failed {
-        /// `pdfium` or `hayro`.
+        /// `pdfium` or `hayro`; for an export, the encoder: `png`, `jpeg` or `tiff`.
         backend: &'static str,
-        /// `open` or `render`.
+        /// `open` or `render`; `encode` for an export.
         stage: &'static str,
     },
     /// The engine isn't available: the PDFium library couldn't be found or bound

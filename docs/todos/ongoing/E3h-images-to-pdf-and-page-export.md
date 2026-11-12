@@ -30,10 +30,13 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 
 - `laminapdf_build::images_to_pdf(images, options)`
 - `export_pages(&render_doc, pages, &ExportOptions)` via `RenderBackend` (PDFium by default): format, resolution, one page at a time
-- Encoders: PNG through `png`, JPEG through `jpeg-encoder` (MIT OR Apache-2.0), TIFF through `tiff` (MIT), multi-page included ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions)); on the web, PNG and JPEG through the canvas and TIFF in a small WebAssembly module loaded on first use
+- Encoders: PNG through `png`, JPEG through `jpeg-encoder` (`(MIT OR Apache-2.0) AND IJG` since 0.6.1: a deny.toml exception, owner decision 2026-11-12), TIFF through `tiff` (MIT), multi-page included ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions)), behind `laminapdf-render`'s `export` feature
+- The façade's `images_to_pdf`, and a Rust example with its golden
 - EXIF orientation applied by the drawing transform; page size from the image's resolution or fitted to a paper size
 
 **Out of scope** (and which todo covers it)
+
+- The TypeScript binding and example, the worker's export call (PNG and JPEG through the canvas) and the TIFF WebAssembly module → [E3m](../ready/E3m-web-image-export.md), split out on 2026-11-12 (the owner's choice) to keep this PR to the Rust core
 
 - The export dialog, the web zip and images → PDF in the interface → [E3j](../ready/E3j-export-dialog.md)
 - The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
@@ -41,11 +44,11 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `H.02` images → PDF; `H.06` pages → PNG/JPEG/TIFF; `H.11` render pages to images
-- **Crates and packages:** `laminapdf-build`, `laminapdf-render`, the worker's export call in `@laminapdf/viewer`
+- **Crates and packages:** `laminapdf-build`, `laminapdf-render`, `laminapdf` (the worker's export call in `@laminapdf/viewer` is E3m's)
 - **`SaveConstraint`:** new document (full write) for images → PDF
 - **Web vs desktop:** the same functions; the web encodes PNG and JPEG with the canvas and TIFF in its own small WebAssembly module, the desktop natively ([E3 plan §7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells))
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `H.02` → `write` (core, pdf); `H.06` → `read` (core, pdf); `H.11` → `read` (core, pdf)
+- **Capability-matrix rows to flip:** `H.02` → `write` (core); `H.06` → `read` (core); `H.11` → `read` (core); the `pdf` column is E3m's
 
 ## Tasks
 
@@ -64,9 +67,9 @@ None.
 
 ## Tests
 
-- Golden PDFs for images → PDF
-- Render goldens
-- e2e
+- Golden PDFs for images → PDF (the `images_to_pdf` example), and the round-trip suite's image cases (qpdf, pdf.js, PDFium)
+- Render goldens (PDFium, through `laminapdf-render-pdfium`'s ignored tests)
+- e2e: E3m and E3j
 
 ## Docs to update
 

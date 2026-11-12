@@ -77,6 +77,7 @@ mod error;
 mod finish;
 #[cfg(feature = "text")]
 pub mod flow;
+mod images;
 #[cfg(feature = "markdown")]
 pub mod markdown;
 mod meta;
@@ -99,6 +100,7 @@ use laminapdf_test_fixtures::codes as test_codes;
 pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
 pub use error::{Error, ImageFormat, Result, Warning};
+pub use images::{ImagePages, ImagesOptions, images_to_pdf};
 pub use laminapdf_model::{
     BlendMode, Dash, FillRule, LabelStyle, Matrix, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt,
     Rotation,
@@ -117,5 +119,5 @@ pub use surface::style::{LineCap, LineJoin, StrokeStyle};
 pub use surface::text::{FontHandle, TextRenderMode, TextRun};
 #[cfg(feature = "text")]
 pub use surface::textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
-pub use surface::{PendingPath, Surface};
+pub use surface::{Orientation, PendingPath, Surface};
 pub use tag::{Artifact, ArtifactKind, ContentKind, ElementId, PageEdge, TableScope, Tag, TagDiagnostic, TagKind};
