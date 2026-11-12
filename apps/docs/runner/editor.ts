@@ -16,6 +16,47 @@ const PAGE_PIXELS = 832;
 /** How long a run may take before the runner is stopped: an edit can loop forever. */
 const TIME_LIMIT_MS = 30_000;
 
+/**
+ * Typing over a selection that spans lines: CodeMirror replaces it itself, as it would typed text,
+ * its input handlers first (closeBrackets wraps the selection in a typed bracket). Left to the
+ * browser, Chromium merges the lines' elements and writes inline styles to keep their look, which
+ * the docs' CSP blocks and reports (`style-src 'self'`). Composition (an IME, a dead key) can't be
+ * cancelled, so it still goes to the browser; its blocked styles change nothing a reader sees, since
+ * CodeMirror redraws the lines.
+ */
+const typeOverLines = EditorView.domEventHandlers({
+  beforeinput(event, view) {
+    const { state } = view;
+    const text = event.data;
+    const acrossLines = state.selection.ranges.some(
+      (range) => state.doc.lineAt(range.from).number !== state.doc.lineAt(range.to).number,
+    );
+    if (event.inputType !== "insertText" || text === null || !acrossLines) return false;
+    event.preventDefault();
+    const { from, to } = state.selection.main;
+    const insert = () => state.update(state.replaceSelection(text), { scrollIntoView: true, userEvent: "input.type" });
+    if (state.facet(EditorView.inputHandler).some((handler) => handler(view, from, to, text, insert))) return true;
+    view.dispatch(insert());
+    return true;
+  },
+});
+
+/**
+ * The editor of `source`, in a shadow root on `host`. There CodeMirror's styles go into adopted
+ * style sheets, which the docs' CSP allows; on the page itself they would be a <style> element,
+ * which `style-src 'self'` blocks (public/_headers). The --paper-* tokens are custom properties, so
+ * they still reach the theme inside it.
+ */
+function editor(host: HTMLElement, source: string): EditorView {
+  const root = host.attachShadow({ mode: "open" });
+  return new EditorView({
+    doc: source,
+    root,
+    parent: root,
+    extensions: [basicSetup, javascript({ typescript: true }), EditorView.lineWrapping, paperTheme, typeOverLines],
+  });
+}
+
 let worker: Worker | undefined;
 let nextId = 0;
 const waiting = new Map<number, (reply: RunReply) => void>();
@@ -135,11 +176,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   buttons.bar.hidden = false;
   buttons.download.hidden = true;
 
-  const view = new EditorView({
-    doc: source,
-    parent: editorHost,
-    extensions: [basicSetup, javascript({ typescript: true }), EditorView.lineWrapping, paperTheme],
-  });
+  const view = editor(editorHost, source);
   // The pressed "Edit and run" is gone: focus goes to the editor, where the reader's work starts.
   view.focus();
   /** The last PDF as a data: URL: not a blob: one, since Chromium checks a blob: download against
