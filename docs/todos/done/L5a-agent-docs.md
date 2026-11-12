@@ -94,7 +94,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 ## Post-merge checks
 
-- [x] The production docs deploy serves `/llms.txt`, `/llms-full.txt` and a `.md` twin (check one URL of each); link them in the done todo. Checked 2026-11-11 ([W3f](../ongoing/W3f-agent-discovery.md)): [llms.txt](https://docs.laminapdf.com/llms.txt), [llms-full.txt](https://docs.laminapdf.com/llms-full.txt) and [install.md](https://docs.laminapdf.com/install.md) each answer 200.
+- [x] The production docs deploy serves `/llms.txt`, `/llms-full.txt` and a `.md` twin (check one URL of each); link them in the done todo. Checked 2026-11-11 ([W3f](../done/W3f-agent-discovery.md)): [llms.txt](https://docs.laminapdf.com/llms.txt), [llms-full.txt](https://docs.laminapdf.com/llms-full.txt) and [install.md](https://docs.laminapdf.com/install.md) each answer 200.
 
 ## Tests
 

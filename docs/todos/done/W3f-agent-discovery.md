@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3b](../done/W3b-public-repository-links.md) |
+| Depends on | [W3b](./W3b-public-repository-links.md) |
 | ADRs | None |
 | Branch | `docs/w3f-agent-discovery` |
 | PR title | `docs: a Context7 listing, and llms.txt linked where agents look` |
@@ -45,11 +45,12 @@ Coding agents look up a library's current docs through tools such as Context7, o
 
 ## Acceptance criteria
 
-- [ ] Context7 lists Lamina PDF from the docs' llms.txt, claimed by the repository's `context7.json`.
-- [ ] The website and the README link the agent docs.
+- [x] Context7 lists Lamina PDF from the docs' llms.txt ([`/llmstxt/laminapdf_llms_txt`](https://context7.com/llmstxt/laminapdf_llms_txt)) and from the repository ([`/laudebugs/laminapdf`](https://context7.com/laudebugs/laminapdf)), each claimable by its `context7.json`; the claims complete after merge (below).
+- [x] The website and the README link the agent docs.
 
 ## Post-merge checks
 
+- [ ] The owner claims both listings: the repository's on its admin page once this is on `main`, the llms.txt one with `https://docs.laminapdf.com/context7.json` once a release deploys it.
 - [ ] Context7 refreshes the listing after the next release.
 
 ## Tests
@@ -66,8 +67,8 @@ The root README, the website copy (owner-approved), `docs/todos/done/L5a-agent-d
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
