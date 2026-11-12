@@ -7,6 +7,8 @@ use laminapdf_syntax::{Name, ObjRef, Object};
 
 /// A font selected by `Tf` (by resource name) or by an `ExtGState`'s `/Font` entry. Glyph
 /// decoding and metrics are `laminapdf-text`'s job; this is where to find the font.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct FontRef {
@@ -20,6 +22,8 @@ pub struct FontRef {
 }
 
 /// A colour space as selected by `CS`/`cs` or implied by `G`/`RG`/`K` (§8.6).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ColorSpace {
@@ -36,6 +40,8 @@ pub enum ColorSpace {
 }
 
 /// A current colour: its space, components and pattern (§8.6.8).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct CurrentColor {
@@ -56,6 +62,8 @@ impl Default for CurrentColor {
 
 impl CurrentColor {
     /// The initial colour of `space` (§8.6.8 Table 73: black for device spaces).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn initial(space: ColorSpace) -> Self {
         let components = match space {
@@ -75,6 +83,8 @@ impl CurrentColor {
     /// `None` for a pattern and for a named space: the interpreter doesn't read what it is, and
     /// its components mean different things in an `ICCBased`, `Separation` (1 is full ink),
     /// `Indexed` or `Lab` space.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn approx_rgb(&self) -> Option<[f64; 3]> {
         let c = |i: usize| self.components.get(i).copied().map(|v| v.clamp(0.0, 1.0));
@@ -96,6 +106,8 @@ impl CurrentColor {
 
 /// The text state parameters (§9.3, Table 103). Part of the graphics state, so `q`/`Q` save
 /// and restore it; `BT` does not reset it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct TextState {
@@ -139,6 +151,8 @@ impl TextState {
     ///
     /// Horizontal writing: `tx = ((w0 − tj/1000) · Tfs + Tc + Tw) · Th`, `ty = 0`.
     /// Vertical writing: `tx = 0`, `ty = (w1 − tj/1000) · Tfs + Tc + Tw`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn glyph_advance(&self, w0: f64, w1: f64, tj: f64, space: bool, vertical: bool) -> TextAdvance {
         let word = if space { self.word_spacing } else { 0.0 };
@@ -153,6 +167,8 @@ impl TextState {
 
     /// The matrix `[Tfs·Th 0 0 Tfs 0 Trise]` that maps text space to the text rendering
     /// matrix's input (§9.4.4): `Trm = this × Tm × CTM`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn text_space_matrix(&self) -> Matrix {
         Matrix::new([
@@ -170,6 +186,8 @@ impl TextState {
 /// interpreter applies `Tm = [1 0 0 1 tx ty] × Tm` (§9.4.4). A [`Visitor`](crate::Visitor)
 /// that knows the glyph widths returns it from
 /// [`show_text`](crate::Visitor::show_text); the default is no movement.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct TextAdvance {
     /// Horizontal displacement.
@@ -193,6 +211,8 @@ impl std::ops::Add for TextAdvance {
 ///
 /// Saved by `q`, restored by `Q`. Parameters the interpreter does not track (the soft mask
 /// itself, overprint, transfer functions, halftones) are left to the `ExtGState` dictionary.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct GraphicsState {
@@ -236,6 +256,8 @@ pub struct GraphicsState {
 
 impl GraphicsState {
     /// Narrows the clip to `bounds` (in default user space).
+    ///
+    /// Added in 0.2.0.
     pub fn clip_to(&mut self, bounds: UserSpaceRect) {
         let clipped = match self.clip_box {
             Some(current) => current.intersect(&bounds),
@@ -248,6 +270,8 @@ impl GraphicsState {
 }
 
 /// The bounding box of `rect` after `m`.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn transformed_box(rect: &UserSpaceRect, m: &Matrix) -> UserSpaceRect {
     let corners = [

@@ -27,6 +27,8 @@ use std::str::FromStr;
 /// assert_eq!(date.to_string(), "D:20261028143000+01'00'");
 /// # Ok::<(), laminapdf_model::InvalidDate>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PdfDate {
     year: u16,
@@ -39,6 +41,8 @@ pub struct PdfDate {
 }
 
 /// The string is not a PDF date.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("not a PDF date")]
 #[non_exhaustive]
@@ -46,42 +50,56 @@ pub struct InvalidDate;
 
 impl PdfDate {
     /// The year (0–9999).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn year(&self) -> u16 {
         self.year
     }
 
     /// The month (1–12).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn month(&self) -> u8 {
         self.month
     }
 
     /// The day of the month (1–31).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn day(&self) -> u8 {
         self.day
     }
 
     /// The hour (0–23).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn hour(&self) -> u8 {
         self.hour
     }
 
     /// The minute (0–59).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn minute(&self) -> u8 {
         self.minute
     }
 
     /// The second (0–59).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn second(&self) -> u8 {
         self.second
     }
 
     /// The offset from UTC in minutes (`Some(0)` for `Z`), or `None` when unknown.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn utc_offset_minutes(&self) -> Option<i16> {
         self.offset
@@ -121,6 +139,8 @@ impl PdfDate {
     /// assert_eq!(utc.cmp_instant(&paris), Ordering::Equal);
     /// # Ok::<(), laminapdf_model::InvalidDate>(())
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn cmp_instant(&self, other: &Self) -> std::cmp::Ordering {
         self.instant().cmp(&other.instant())
@@ -234,6 +254,8 @@ impl PdfDate {
     /// assert_eq!(date.to_iso8601(), "2026-10-28T14:30:00+01:00");
     /// # Ok::<(), laminapdf_model::InvalidDate>(())
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_iso8601(&self) -> String {
         let mut s = format!(
@@ -270,6 +292,8 @@ impl PdfDate {
     ///
     /// # Errors
     /// [`InvalidDate`] when `s` is not such a date or names no real day or time.
+    ///
+    /// Added in 0.2.0.
     pub fn from_iso8601(s: &str) -> Result<Self, InvalidDate> {
         let mut rest = s.trim().as_bytes();
         let year = digits(&mut rest, 4).ok_or(InvalidDate)?;
@@ -330,6 +354,8 @@ impl PdfDate {
     /// assert_eq!(date.to_pdf_string(), "D:20261028143000+01'00");
     /// # Ok::<(), laminapdf_model::InvalidDate>(())
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_pdf_string(&self) -> String {
         let mut s = self.to_string();

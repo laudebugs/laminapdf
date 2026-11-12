@@ -15,6 +15,8 @@ use crate::source::SourceError;
 ///
 /// `Display` formats only fixed text and numbers, never names or bytes read from the input
 /// (ADR 0026 §4): those stay in the variant's fields.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -144,6 +146,8 @@ impl From<SourceError> for Error {
 impl Error {
     /// Every code [`Error::code`] can return: this crate's own codes and those of
     /// [`laminapdf_syntax::Error`] (listed together in `fixtures/codes.json`).
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &[
         "not-pdf",
         "missing-root",
@@ -168,6 +172,8 @@ impl Error {
 
     /// A stable kebab-case code for this error, part of the public API in Rust, WASM and
     /// TypeScript. Syntax-layer errors report [`laminapdf_syntax::Error::code`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -195,6 +201,8 @@ impl Error {
     /// [`laminapdf_syntax::Error::kind`].
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -215,6 +223,8 @@ impl Error {
     }
 
     /// Where the error was found (ADR 0026 §1.1); empty when there is no position.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
@@ -242,6 +252,8 @@ impl Error {
     /// caller asked for it) or input that is missing or unreadable ([`Error::DataPending`],
     /// [`Error::Source`]: the call has to be retried or fail). Every other error makes a
     /// tolerant reader treat the item as unreadable.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn must_propagate(&self) -> bool {
         matches!(self, Self::Strict { .. } | Self::DataPending { .. } | Self::Source(_))
@@ -251,6 +263,8 @@ impl Error {
     /// (ADR 0003 §1) or an error that [must propagate](Self::must_propagate). Hard limits are
     /// not among them: the walk is one of ADR 0003's tolerant paths, so it skips the node and
     /// raises `page-tree-node-skipped` (§3).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn ends_page_walk(&self) -> bool {
         matches!(self, Self::ReferenceCycle(_)) || self.must_propagate()
@@ -259,6 +273,8 @@ impl Error {
     /// Whether this is an encryption error no repair can get around: the password is wrong or
     /// missing, or the security handler is one Lamina PDF can't decrypt. Opening a file
     /// returns these instead of repairing its cross-reference table.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_security_refusal(&self) -> bool {
         matches!(
@@ -289,6 +305,8 @@ impl Error {
 }
 
 /// Shorthand for `Result<T, laminapdf_cos::Error>`.
+///
+/// Added in 0.2.0.
 pub type Result<T> = core::result::Result<T, Error>;
 
 // The policies below decide which errors a read swallows. Each one is defined here and only
@@ -302,6 +320,8 @@ pub type Result<T> = core::result::Result<T, Error>;
 ///
 /// # Errors
 /// The errors of `result` for which [`Error::must_propagate`] is true.
+///
+/// Added in 0.2.0.
 pub fn tolerant<T>(result: Result<T>) -> Result<Option<T>> {
     match result {
         Ok(v) => Ok(Some(v)),
@@ -319,6 +339,8 @@ pub fn tolerant<T>(result: Result<T>) -> Result<Option<T>> {
 /// # Errors
 /// [`Error::ReferenceCycle`], [`Error::LimitExceeded`] and the errors of `result` for which
 /// [`Error::must_propagate`] is true.
+///
+/// Added in 0.2.0.
 pub fn absent_if_malformed<T>(result: Result<T>) -> Result<Option<T>> {
     match result {
         Ok(value) => Ok(Some(value)),

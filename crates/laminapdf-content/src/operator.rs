@@ -4,6 +4,8 @@
 use laminapdf_syntax::Object;
 
 /// The kind of one operand in an operator's [`Signature`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Operand {
     /// An integer or real number.
@@ -32,6 +34,8 @@ impl Operand {
 }
 
 /// The operands an operator takes (ISO 32000-2 Annex A and the tables it refers to).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Signature {
     /// Exactly these operands, in order.
@@ -45,6 +49,8 @@ pub enum Signature {
 
 impl Signature {
     /// The fewest operands the operator accepts.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn min(&self) -> usize {
         match self {
@@ -54,6 +60,8 @@ impl Signature {
     }
 
     /// The most operands the operator accepts (`None`: no fixed maximum).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn max(&self) -> Option<usize> {
         match self {
@@ -67,6 +75,8 @@ impl Signature {
     ///
     /// Operands are taken from the end, as a PostScript interpreter pops them, so extra
     /// operands in front are left out ([`Checked::extra`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn check<'o>(&self, operands: &'o [Object]) -> Option<Checked<'o>> {
         let used = match self {
@@ -104,6 +114,8 @@ fn number_suffix(operands: &[Object]) -> &[Object] {
 }
 
 /// The result of [`Signature::check`]: the operands an operator uses.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Checked<'o> {
     /// The operands the operator uses, in order.
@@ -120,6 +132,8 @@ macro_rules! operators {
         /// an [`Unknown`](Operator::Unknown) keyword.
         ///
         /// `Copy`; an unknown operator borrows its keyword from the content bytes.
+        ///
+        /// Added in 0.2.0.
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
         #[non_exhaustive]
         pub enum Operator<'a> {
@@ -131,9 +145,13 @@ macro_rules! operators {
 
         impl<'a> Operator<'a> {
             /// Every Annex A operator, in the order of Table A.1's categories.
+            ///
+            /// Added in 0.2.0.
             pub const ALL: &'static [Operator<'static>] = &[ $( Operator::$variant, )* ];
 
             /// The operator a keyword names ([`Operator::Unknown`] for any other keyword).
+            ///
+            /// Added in 0.2.0.
             #[must_use]
             pub fn from_keyword(keyword: &'a [u8]) -> Self {
                 match keyword {
@@ -143,6 +161,8 @@ macro_rules! operators {
             }
 
             /// The operator's keyword, e.g. `b"Tj"`.
+            ///
+            /// Added in 0.2.0.
             #[must_use]
             pub const fn keyword(&self) -> &'a [u8] {
                 match self {
@@ -153,6 +173,8 @@ macro_rules! operators {
 
             /// The operands the operator takes (none for [`Operator::Unknown`], whose
             /// operands are discarded).
+            ///
+            /// Added in 0.2.0.
             #[must_use]
             pub const fn signature(&self) -> Signature {
                 match self {

@@ -20,6 +20,8 @@ use crate::page::{count, count_i64};
 ///     .bold();
 /// assert_eq!(chapter.children().len(), 1);
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct OutlineEntry {
@@ -34,6 +36,8 @@ pub struct OutlineEntry {
 
 impl OutlineEntry {
     /// An item titled `title` going to `target`, closed, with no children.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(title: impl Into<String>, target: LinkTarget) -> Self {
         Self {
@@ -43,6 +47,8 @@ impl OutlineEntry {
     }
 
     /// An item that goes nowhere: a heading for its children.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn heading(title: impl Into<String>) -> Self {
         Self {
@@ -57,6 +63,8 @@ impl OutlineEntry {
     }
 
     /// With `child` added after the existing children.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_child(mut self, child: Self) -> Self {
         self.children.push(child);
@@ -64,6 +72,8 @@ impl OutlineEntry {
     }
 
     /// With `children` added after the existing children.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_children(mut self, children: impl IntoIterator<Item = Self>) -> Self {
         self.children.extend(children);
@@ -71,6 +81,8 @@ impl OutlineEntry {
     }
 
     /// Whether the item's children are shown when the document opens (default: closed).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn open(mut self, open: bool) -> Self {
         self.open = open;
@@ -78,6 +90,8 @@ impl OutlineEntry {
     }
 
     /// The title's colour, RGB components in `[0, 1]` (clamped; NaN is 0).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_color(mut self, r: f64, g: f64, b: f64) -> Self {
         let unit = |v: f64| if v.is_nan() { 0.0 } else { v.clamp(0.0, 1.0) };
@@ -86,6 +100,8 @@ impl OutlineEntry {
     }
 
     /// A bold title.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn bold(mut self) -> Self {
         self.bold = true;
@@ -93,6 +109,8 @@ impl OutlineEntry {
     }
 
     /// An italic title.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn italic(mut self) -> Self {
         self.italic = true;
@@ -100,18 +118,24 @@ impl OutlineEntry {
     }
 
     /// The title.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn title(&self) -> &str {
         &self.title
     }
 
     /// Where it goes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn target(&self) -> Option<&LinkTarget> {
         self.target.as_ref()
     }
 
     /// The children.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn children(&self) -> &[Self] {
         &self.children

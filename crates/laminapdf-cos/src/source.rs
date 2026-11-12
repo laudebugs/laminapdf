@@ -23,11 +23,17 @@ use crate::error::{Error, Result as CosResult};
 ///
 /// Core implementations: `Vec<u8>` (moved in), `Arc<[u8]>` (shared), `&'static [u8]`.
 /// Platform sources (mmap, `Blob`, OPFS) live in edge crates.
+///
+/// Added in 0.2.0.
 pub trait ByteSource: Send + Sync {
     /// Total length in bytes.
+    ///
+    /// Added in 0.2.0.
     fn len(&self) -> u64;
 
     /// Whether the source holds no bytes.
+    ///
+    /// Added in 0.2.0.
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -37,15 +43,21 @@ pub trait ByteSource: Send + Sync {
     /// # Errors
     /// [`SourceError::Pending`] when the range is not available yet, [`SourceError::Failed`]
     /// when it cannot be read.
+    ///
+    /// Added in 0.2.0.
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError>;
 
     /// The whole input, when it is already in memory (lets the parser skip copies).
+    ///
+    /// Added in 0.2.0.
     fn as_slice(&self) -> Option<&[u8]> {
         None
     }
 }
 
 /// Why a [`ByteSource`] could not deliver a range.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum SourceError {
@@ -145,6 +157,8 @@ const MAX_PENDING: usize = 1024;
 /// let b = a.clone();
 /// assert!(Arc::ptr_eq(a.get(), b.get()));
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Clone)]
 pub struct Source(Arc<Shared>);
 
@@ -321,6 +335,8 @@ impl Pending {
 
 /// Sorts `(offset, len)` ranges and merges those that overlap or touch (the form
 /// [`Error::DataPending`] reports them in).
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn merge_ranges(mut ranges: Vec<(u64, u64)>) -> Vec<(u64, u64)> {
     ranges.sort_unstable();
@@ -360,6 +376,8 @@ fn addressable(len: u64, max: usize) -> CosResult<usize> {
 /// # Errors
 /// The source's errors ([`Error::DataPending`] for [`SourceError::Pending`]);
 /// [`SourceError::Failed`] when the source ends before `buf` is full.
+///
+/// Added in 0.2.0.
 pub fn read_exact(source: &dyn ByteSource, offset: u64, buf: &mut [u8]) -> CosResult<()> {
     let mut done = 0;
     while let Some(rest) = buf.get_mut(done..).filter(|rest| !rest.is_empty()) {
@@ -393,6 +411,8 @@ impl Source {
     }
 
     /// The underlying source.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn get(&self) -> &Arc<dyn ByteSource> {
         &self.0.source

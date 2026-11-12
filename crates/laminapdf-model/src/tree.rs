@@ -134,6 +134,8 @@ fn within_limits<K: TreeKind>(doc: &Document, node: &laminapdf_cos::Dict, target
 }
 
 /// A name tree (§7.9.6): string keys, in tree order, mapped to values.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct NameTree<'d> {
     doc: &'d Document,
@@ -142,6 +144,8 @@ pub struct NameTree<'d> {
 
 impl<'d> NameTree<'d> {
     /// The name tree rooted at `root` (a dictionary or a reference to one).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(doc: &'d Document, root: Object) -> Self {
         Self { doc, root }
@@ -153,6 +157,8 @@ impl<'d> NameTree<'d> {
     /// # Errors
     /// [`laminapdf_cos::Error::Strict`] in strict mode when a node is skipped;
     /// [`laminapdf_cos::Error::DataPending`] / [`laminapdf_cos::Error::Source`].
+    ///
+    /// Added in 0.2.0.
     pub fn get(&self, key: &[u8]) -> Result<Option<Object>> {
         let key = key.to_vec();
         Ok(walk::<Names>(self.doc, &self.root, Some(&key))?
@@ -165,12 +171,16 @@ impl<'d> NameTree<'d> {
     ///
     /// # Errors
     /// As [`NameTree::get`].
+    ///
+    /// Added in 0.2.0.
     pub fn entries(&self) -> Result<Vec<(Vec<u8>, Object)>> {
         walk::<Names>(self.doc, &self.root, None)
     }
 }
 
 /// A number tree (§7.9.7): integer keys, in tree order, mapped to values.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct NumberTree<'d> {
     doc: &'d Document,
@@ -179,6 +189,8 @@ pub struct NumberTree<'d> {
 
 impl<'d> NumberTree<'d> {
     /// The number tree rooted at `root` (a dictionary or a reference to one).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(doc: &'d Document, root: Object) -> Self {
         Self { doc, root }
@@ -188,6 +200,8 @@ impl<'d> NumberTree<'d> {
     ///
     /// # Errors
     /// As [`NameTree::get`].
+    ///
+    /// Added in 0.2.0.
     pub fn get(&self, key: i64) -> Result<Option<Object>> {
         Ok(walk::<Nums>(self.doc, &self.root, Some(&key))?
             .into_iter()
@@ -199,6 +213,8 @@ impl<'d> NumberTree<'d> {
     ///
     /// # Errors
     /// As [`NameTree::get`].
+    ///
+    /// Added in 0.2.0.
     pub fn entries(&self) -> Result<Vec<(i64, Object)>> {
         walk::<Nums>(self.doc, &self.root, None)
     }

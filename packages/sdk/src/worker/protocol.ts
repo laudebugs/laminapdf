@@ -5,7 +5,11 @@ import type { Diagnostic } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
 import { VERSION } from "../version.js";
 
-/** Bumped whenever a message's shape changes (2: priorities, coalescing keys, extension events). */
+/**
+ * Bumped whenever a message's shape changes (2: priorities, coalescing keys, extension events).
+ *
+ * @since 0.2.0
+ */
 export const PROTOCOL_VERSION = 2;
 
 /** What both ends compare on connect. */

@@ -25,6 +25,8 @@ use marked::Mark;
 use path::{close_fill_stroke, curve_to, curve_to_y, fill_stroke, line_to, move_to, rectangle};
 
 /// What an interpretation did.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct Summary {
@@ -90,6 +92,8 @@ pub struct Summary {
 /// assert_eq!(summary.operators, 5);
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+///
+/// Added in 0.2.0.
 pub fn interpret_page<V: Visitor + ?Sized>(
     doc: &Document,
     page: &laminapdf_model::Page<'_>,
@@ -107,6 +111,8 @@ pub fn interpret_page<V: Visitor + ?Sized>(
 ///
 /// # Errors
 /// As [`interpret_page`], without the page decoding errors.
+///
+/// Added in 0.2.0.
 pub fn interpret_content<V: Visitor + ?Sized>(
     doc: &Document,
     content: &[u8],

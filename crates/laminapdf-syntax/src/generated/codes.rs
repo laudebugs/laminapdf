@@ -12,9 +12,13 @@
 use crate::ErrorKind;
 
 /// The base of every `docsUrl` (ADR 0026 §6): `DOCS_URL_BASE` + code + `DOCS_URL_SUFFIX`.
+///
+/// Added in 0.2.0.
 pub const DOCS_URL_BASE: &str = "https://docs.laminapdf.com/reference/codes/";
 
 /// The suffix of every `docsUrl` (ADR 0026 §6).
+///
+/// Added in 0.2.0.
 pub const DOCS_URL_SUFFIX: &str = "/";
 
 /// Whether two byte strings are equal, in a `const fn`.
@@ -35,6 +39,8 @@ const fn bytes_eq(a: &[u8], b: &[u8]) -> bool {
 
 /// Every error code lamina's Rust crates and its WASM binding raise (the codes only
 /// `@laminapdf/sdk` raises are not here), in `codes.json` order.
+///
+/// Added in 0.2.0.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ErrorCode {
@@ -258,6 +264,8 @@ pub enum ErrorCode {
 
 impl ErrorCode {
     /// Every variant, in `codes.json` order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: &'static [Self] = &[
         Self::NotPdf,
         Self::MissingRoot,
@@ -370,6 +378,8 @@ impl ErrorCode {
     ];
 
     /// The code with this name, if there is one.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_code(code: &str) -> Option<Self> {
         let mut rest = Self::ALL;
@@ -383,6 +393,8 @@ impl ErrorCode {
     }
 
     /// The kebab-case code.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -498,6 +510,8 @@ impl ErrorCode {
     }
 
     /// The kind (ADR 0026 §2).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(self) -> ErrorKind {
         match self {
@@ -613,6 +627,8 @@ impl ErrorCode {
     }
 
     /// One lowercase sentence: what happened.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn summary(self) -> &'static str {
         match self {
@@ -728,6 +744,8 @@ impl ErrorCode {
     }
 
     /// The hint (ADR 0026 §5), with its `{limit}`/`{option}` parameters unfilled.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn hint(self) -> &'static str {
         match self {
@@ -843,6 +861,8 @@ impl ErrorCode {
     }
 
     /// The code's explain page (`docsUrl`, ADR 0026 §6).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn docs_url(self) -> String {
         format!("{DOCS_URL_BASE}{}{DOCS_URL_SUFFIX}", self.as_str())
@@ -850,6 +870,8 @@ impl ErrorCode {
 }
 
 /// Every warning code, in `codes.json` order.
+///
+/// Added in 0.2.0.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum WarningCode {
@@ -965,6 +987,8 @@ pub enum WarningCode {
 
 impl WarningCode {
     /// Every variant, in `codes.json` order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: &'static [Self] = &[
         Self::MissingHeader,
         Self::XrefRepaired,
@@ -1023,6 +1047,8 @@ impl WarningCode {
     ];
 
     /// The code with this name, if there is one.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_code(code: &str) -> Option<Self> {
         let mut rest = Self::ALL;
@@ -1036,6 +1062,8 @@ impl WarningCode {
     }
 
     /// The kebab-case code.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -1097,6 +1125,8 @@ impl WarningCode {
     }
 
     /// The kind (ADR 0026 §2).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(self) -> ErrorKind {
         match self {
@@ -1158,6 +1188,8 @@ impl WarningCode {
     }
 
     /// One lowercase sentence: what happened.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn summary(self) -> &'static str {
         match self {
@@ -1219,6 +1251,8 @@ impl WarningCode {
     }
 
     /// The hint (ADR 0026 §5), with its `{limit}`/`{option}` parameters unfilled.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn hint(self) -> &'static str {
         match self {
@@ -1280,6 +1314,8 @@ impl WarningCode {
     }
 
     /// The code's explain page (`docsUrl`, ADR 0026 §6).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn docs_url(self) -> String {
         format!("{DOCS_URL_BASE}{}{DOCS_URL_SUFFIX}", self.as_str())

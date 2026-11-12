@@ -1,8 +1,26 @@
 ---
-// Starlight's `PageTitle` override: the page's title, then "Copy as Markdown" (CopyMarkdown.astro).
+// Starlight's `PageTitle` override: the page's title, with "Copy as Markdown" (CopyMarkdown.astro)
+// beside it on the right, a quiet secondary action. Where the title leaves no room, as on a phone,
+// the button wraps under it.
 import Default from "@astrojs/starlight/components/PageTitle.astro";
 import CopyMarkdown from "./CopyMarkdown.astro";
 ---
 
-<Default />
-<CopyMarkdown />
+<div class="page-title-row">
+  <Default />
+  <CopyMarkdown />
+</div>
+
+<style>
+  .page-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0 1.5rem;
+  }
+  /* Level with the title, which Starlight sets 1rem from the top. */
+  .page-title-row :global(.copy-markdown) {
+    margin-top: 1rem;
+  }
+</style>

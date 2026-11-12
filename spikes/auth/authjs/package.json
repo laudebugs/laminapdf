@@ -1,0 +1,17 @@
+{
+  "name": "auth-spike-authjs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --port 8788",
+    "size": "wrangler deploy --dry-run --outdir dist"
+  },
+  "dependencies": {
+    "@auth/core": "0.41.3",
+    "@auth/d1-adapter": "1.11.3",
+    "@simplewebauthn/server": "9.0.3"
+  },
+  "devDependencies": {
+    "wrangler": "4.157.0"
+  }
+}

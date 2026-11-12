@@ -34,6 +34,8 @@ pub(crate) enum Segment {
 ///     .ellipse(RectPt::from_xywh(Pt::new(200.0), Pt::new(10.0), Pt::new(80.0), Pt::new(40.0)));
 /// assert!(!p.is_empty());
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PathBuilder {
     segments: Vec<Segment>,
@@ -49,12 +51,16 @@ fn lerp(a: PointPt, b: PointPt, t: f64) -> PointPt {
 
 impl PathBuilder {
     /// Whether the path has no segments.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.segments.is_empty()
     }
 
     /// Starts a new subpath at `p` (`m`).
+    ///
+    /// Added in 0.2.0.
     pub fn move_to(&mut self, p: PointPt) -> &mut Self {
         self.segments.push(Segment::MoveTo(p));
         self.current = Some(p);
@@ -70,6 +76,8 @@ impl PathBuilder {
     }
 
     /// A straight line to `p` (`l`).
+    ///
+    /// Added in 0.2.0.
     pub fn line_to(&mut self, p: PointPt) -> &mut Self {
         if self.current.is_none() {
             return self.move_to(p);
@@ -80,6 +88,8 @@ impl PathBuilder {
     }
 
     /// A cubic Bézier curve to `p` with control points `c1` and `c2` (`c`).
+    ///
+    /// Added in 0.2.0.
     pub fn cubic_to(&mut self, c1: PointPt, c2: PointPt, p: PointPt) -> &mut Self {
         self.ensure_current(c1);
         self.segments.push(Segment::CubicTo(c1, c2, p));
@@ -89,6 +99,8 @@ impl PathBuilder {
 
     /// A quadratic Bézier curve to `p` with control point `c`, written as the equivalent cubic
     /// (PDF has no quadratic operator). Without a current point it starts at `c`.
+    ///
+    /// Added in 0.2.0.
     pub fn quad_to(&mut self, c: PointPt, p: PointPt) -> &mut Self {
         self.ensure_current(c);
         let from = self.current.unwrap_or(c);
@@ -96,6 +108,8 @@ impl PathBuilder {
     }
 
     /// Closes the current subpath with a straight line to its start (`h`).
+    ///
+    /// Added in 0.2.0.
     pub fn close(&mut self) -> &mut Self {
         if self.current.is_none() {
             return self;
@@ -106,6 +120,8 @@ impl PathBuilder {
     }
 
     /// A rectangle as a closed subpath of its own (`re`).
+    ///
+    /// Added in 0.2.0.
     pub fn rect(&mut self, r: RectPt) -> &mut Self {
         self.segments.push(Segment::Rect(r));
         let corner = PointPt::new(r.x0, r.y0);
@@ -115,6 +131,8 @@ impl PathBuilder {
     }
 
     /// The ellipse inscribed in `r`, as a closed subpath of four cubic curves.
+    ///
+    /// Added in 0.2.0.
     pub fn ellipse(&mut self, r: RectPt) -> &mut Self {
         let (rx, ry) = (r.width() / 2.0, r.height() / 2.0);
         let (cx, cy) = (r.x0 + rx, r.y0 + ry);
@@ -129,6 +147,8 @@ impl PathBuilder {
     }
 
     /// The circle of radius `radius` around `center`.
+    ///
+    /// Added in 0.2.0.
     pub fn circle(&mut self, center: PointPt, radius: Pt) -> &mut Self {
         self.ellipse(RectPt::new(
             center.x - radius,

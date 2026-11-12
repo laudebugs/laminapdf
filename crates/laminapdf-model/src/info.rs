@@ -9,6 +9,8 @@ use crate::document::{Document, object_number};
 
 /// A date entry of the Info dictionary: the decoded string as stored, and the date when it
 /// parses.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct InfoDate {
@@ -23,6 +25,8 @@ pub struct InfoDate {
 ///
 /// PDF 2.0 deprecates most of these in favour of XMP metadata (§14.3.2); reading XMP is a
 /// later round.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct Info<'d> {
     doc: &'d Document,
@@ -52,6 +56,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// [`laminapdf_cos::Error::DataPending`] / [`laminapdf_cos::Error::Source`].
+    ///
+    /// Added in 0.2.0.
     pub fn text(&self, key: &str) -> Result<Option<String>> {
         match self.dict.as_dict() {
             Some(d) => self.doc.text_entry(d, key),
@@ -61,6 +67,8 @@ impl<'d> Info<'d> {
 
     /// Every key of the dictionary, as written, in the file's order: the standard ones and any
     /// custom key a producer added.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn keys(&self) -> Vec<String> {
         self.dict
@@ -77,6 +85,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// As [`Info::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn title(&self) -> Result<Option<String>> {
         self.text("Title")
     }
@@ -85,6 +95,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// As [`Info::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn author(&self) -> Result<Option<String>> {
         self.text("Author")
     }
@@ -93,6 +105,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// As [`Info::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn subject(&self) -> Result<Option<String>> {
         self.text("Subject")
     }
@@ -101,6 +115,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// As [`Info::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn keywords(&self) -> Result<Option<String>> {
         self.text("Keywords")
     }
@@ -109,6 +125,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// As [`Info::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn creator(&self) -> Result<Option<String>> {
         self.text("Creator")
     }
@@ -117,6 +135,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// As [`Info::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn producer(&self) -> Result<Option<String>> {
         self.text("Producer")
     }
@@ -125,6 +145,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// As [`Info::date`].
+    ///
+    /// Added in 0.2.0.
     pub fn creation_date(&self) -> Result<Option<InfoDate>> {
         self.date("CreationDate")
     }
@@ -133,6 +155,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// As [`Info::date`].
+    ///
+    /// Added in 0.2.0.
     pub fn mod_date(&self) -> Result<Option<InfoDate>> {
         self.date("ModDate")
     }
@@ -142,6 +166,8 @@ impl<'d> Info<'d> {
     ///
     /// # Errors
     /// [`laminapdf_cos::Error::Strict`] in strict mode for an invalid date; as [`Info::text`].
+    ///
+    /// Added in 0.2.0.
     pub fn date(&self, key: &str) -> Result<Option<InfoDate>> {
         let Some(raw) = self.text(key)? else {
             return Ok(None);

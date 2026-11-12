@@ -27,6 +27,8 @@ use crate::xmp;
 /// Like the COS document it is `Send` but `!Sync`.
 ///
 /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+///
+/// Added in 0.2.0.
 pub struct Document {
     cos: laminapdf_cos::Document,
 }
@@ -64,11 +66,15 @@ impl Document {
     ///
     /// # Errors
     /// As [`laminapdf_cos::Document::open`].
+    ///
+    /// Added in 0.2.0.
     pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
         laminapdf_cos::Document::open(source, options).map(Self::from)
     }
 
     /// The COS document.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn cos(&self) -> &laminapdf_cos::Document {
         &self.cos
@@ -77,18 +83,24 @@ impl Document {
     /// The COS document for writing through its overlay ([`laminapdf_cos::Document::edit`]).
     /// `laminapdf-ops` holds the model document privately and hands out write access only
     /// inside a transaction.
+    ///
+    /// Added in 0.2.0.
     pub const fn cos_mut(&mut self) -> &mut laminapdf_cos::Document {
         &mut self.cos
     }
 
     /// The COS document, giving up the typed views (the overlay and the allocator stay
     /// with it).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn into_cos(self) -> laminapdf_cos::Document {
         self.cos
     }
 
     /// The document-level ID allocator.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn ids(&self) -> IdAllocator<'_> {
         IdAllocator::new(&self.cos)
@@ -99,6 +111,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors that aren't repairs (`data-pending`, a failed source).
+    ///
+    /// Added in 0.2.0.
     pub fn xmp_packet(&self) -> Result<Option<Vec<u8>>> {
         let catalog = self.catalog()?;
         let Some(metadata) = catalog.get("Metadata") else {
@@ -120,6 +134,8 @@ impl Document {
     /// # Errors
     /// As [`Document::xmp_packet`]; [`Error::Strict`](laminapdf_cos::Error::Strict) in strict
     /// mode for a malformed packet.
+    ///
+    /// Added in 0.2.0.
     pub fn xmp(&self) -> Result<xmp::PacketState> {
         let Some(bytes) = self.xmp_packet()? else {
             return Ok(xmp::PacketState::Absent);
@@ -144,6 +160,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (the catalog).
+    ///
+    /// Added in 0.2.0.
     pub fn version(&self) -> Result<Option<String>> {
         let header = self.header_version().filter(|v| version_number(v).is_some());
         let catalog = self.catalog()?;
@@ -164,6 +182,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::version`].
+    ///
+    /// Added in 0.2.0.
     pub fn is_pdf2(&self) -> Result<bool> {
         Ok(self
             .version()?
@@ -176,6 +196,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`laminapdf_cos::Document::pages`].
+    ///
+    /// Added in 0.2.0.
     pub fn pages(&self) -> Result<Pages<'_>> {
         Pages::new(self)
     }
@@ -185,6 +207,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (the catalog, `/MarkInfo`).
+    ///
+    /// Added in 0.2.0.
     pub fn is_tagged(&self) -> Result<bool> {
         let catalog = self.catalog()?;
         let Some(mark_info) = catalog.get("MarkInfo") else {
@@ -201,6 +225,8 @@ impl Document {
     /// [`Error::Strict`](laminapdf_cos::Error::Strict) in strict mode when an item is skipped; [`Error::DataPending`](laminapdf_cos::Error::DataPending) /
     /// [`Error::Source`](laminapdf_cos::Error::Source) when the input cannot be read; errors from
     /// [`laminapdf_cos::Document::catalog`].
+    ///
+    /// Added in 0.2.0.
     pub fn outline(&self) -> Result<Outline<'_>> {
         Outline::new(self)
     }
@@ -209,6 +235,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::outline`].
+    ///
+    /// Added in 0.2.0.
     pub fn structure(&self) -> Result<Option<crate::StructTree>> {
         crate::structure::read(self)
     }
@@ -217,6 +245,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::outline`].
+    ///
+    /// Added in 0.2.0.
     pub fn info(&self) -> Result<Option<Info<'_>>> {
         Info::new(self)
     }
@@ -225,6 +255,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::outline`].
+    ///
+    /// Added in 0.2.0.
     pub fn page_labels(&self) -> Result<PageLabels> {
         PageLabels::new(self)
     }
@@ -234,6 +266,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::outline`].
+    ///
+    /// Added in 0.2.0.
     pub fn name_tree(&self, key: &str) -> Result<Option<NameTree<'_>>> {
         let catalog = self.catalog()?;
         let Some(names) = catalog.get("Names") else {
@@ -254,6 +288,8 @@ impl Document {
     }
 
     /// A number tree rooted at `root` (a dictionary or a reference to one).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn number_tree(&self, root: Object) -> NumberTree<'_> {
         NumberTree::new(self, root)
