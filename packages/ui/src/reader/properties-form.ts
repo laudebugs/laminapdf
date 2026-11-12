@@ -216,22 +216,28 @@ export function changeOf(metadata: DocumentMetadataData, form: MetadataForm): Me
   const start = formFrom(metadata);
   const patch: Record<string, string | readonly string[]> = {};
   const remove: EditableField[] = [];
-  const resync = metadata.pdfa !== undefined;
   for (const field of EDITABLE_FIELDS) {
-    if (form.removed.includes(field)) {
-      if (hasValue(metadata, field)) remove.push(field);
-      continue;
-    }
-    const value = formValue(form, field);
-    const touched = JSON.stringify(form[field]) !== JSON.stringify(start[field]);
-    const outOfStep = resync && metadata.disagreements.includes(field);
-    if (value === undefined) {
-      if (touched && hasValue(metadata, field)) remove.push(field);
-    } else if (outOfStep || (touched && !same(metadata, field, value))) {
-      patch[field] = value;
-    }
+    const change = fieldChange(metadata, form, start, field);
+    if (change === "remove") remove.push(field);
+    else if (change !== undefined) patch[field] = change.value;
   }
   return Object.keys(patch).length === 0 && remove.length === 0 ? undefined : { patch, remove };
+}
+
+/** What Apply does to one field: remove it, set it to a value, or nothing (undefined). */
+function fieldChange(
+  metadata: DocumentMetadataData,
+  form: MetadataForm,
+  start: MetadataForm,
+  field: EditableField,
+): "remove" | { readonly value: string | readonly string[] } | undefined {
+  const held = hasValue(metadata, field);
+  if (form.removed.includes(field)) return held ? "remove" : undefined;
+  const value = formValue(form, field);
+  const touched = JSON.stringify(form[field]) !== JSON.stringify(start[field]);
+  if (value === undefined) return touched && held ? "remove" : undefined;
+  const outOfStep = metadata.pdfa !== undefined && metadata.disagreements.includes(field);
+  return outOfStep || (touched && !same(metadata, field, value)) ? { value } : undefined;
 }
 
 /** A warning under a field: the message and its values. */

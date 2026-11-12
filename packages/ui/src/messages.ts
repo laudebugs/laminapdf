@@ -521,8 +521,7 @@ const EN = {
   "properties.edit.notice.mismatch":
     "The Info dictionary and XMP disagree on {fields}. Apply writes the values shown here to both.",
   "properties.edit.notice.malformed": "This file's XMP metadata can't be read.",
-  "properties.edit.notice.malformed.body":
-    "Apply replaces it with new XMP metadata, losing whatever the old one held.",
+  "properties.edit.notice.malformed.body": "Apply replaces it with new XMP metadata, losing whatever the old one held.",
   "properties.edit.warning.oneAuthor":
     "{level} allows one author. With {count}, the file no longer meets the standard it claims.",
   "properties.edit.warning.title":

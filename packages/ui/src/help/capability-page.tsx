@@ -102,7 +102,8 @@ function useStoredFilter(matrix: CapabilityMatrix): [CapabilityFilter, (next: Ca
     platform.storage.get(STORAGE_KEY).then(
       (stored) => {
         // A filter the viewer set before the stored one arrived wins over it.
-        if (live && stored !== undefined) setFilterState((now) => (now === NO_FILTER ? storedFilter(stored, matrix) : now));
+        if (live && stored !== undefined)
+          setFilterState((now) => (now === NO_FILTER ? storedFilter(stored, matrix) : now));
       },
       () => undefined,
     );

@@ -7,7 +7,6 @@
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 import type { DocumentMetadata, MetadataPatch, Op, SaveOptions, SaveReport } from "@laminapdf/sdk";
-import type { MetadataChange } from "@laminapdf/ui/dialogs";
 import type {
   DebugBackend,
   ExternalStore,
@@ -19,6 +18,7 @@ import type {
   SaveResult,
 } from "@laminapdf/ui";
 import { fromFile, message, ReaderController } from "@laminapdf/ui";
+import type { MetadataChange } from "@laminapdf/ui/dialogs";
 import {
   createViewer,
   type LinkLayerOptions,

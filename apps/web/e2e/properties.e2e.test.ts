@@ -263,7 +263,9 @@ describe(`document properties in ${BROWSER}`, () => {
     await page.getByRole("heading", { name: "What Lamina PDF can read, write and round-trip" }).waitFor();
     expect(new URL(page.url()).pathname).toBe("/capabilities");
     const table = page.getByRole("table");
-    const total = /^(\d+) of \1 operations in \d+ groups$/.exec((await table.locator("caption").textContent()) ?? "")?.[1];
+    const total = /^(\d+) of \1 operations in \d+ groups$/.exec(
+      (await table.locator("caption").textContent()) ?? "",
+    )?.[1];
     expect(total).toBeDefined();
     await page.getByLabel("Search operations").fill("J.10");
     await expect.poll(() => table.locator("caption").textContent()).toBe(`1 of ${total} operations in 1 group`);

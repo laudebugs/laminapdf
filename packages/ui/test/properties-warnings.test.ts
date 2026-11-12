@@ -6,12 +6,7 @@
 import { readFileSync } from "node:fs";
 import { Document, init, type MetadataKey } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
-import {
-  type EditableField,
-  fieldWarnings,
-  formFrom,
-  type MetadataField,
-} from "../src/reader/properties-form.ts";
+import { type EditableField, fieldWarnings, formFrom, type MetadataField } from "../src/reader/properties-form.ts";
 
 const EXAMPLES = new URL("../../../fixtures/golden/examples/", import.meta.url);
 
