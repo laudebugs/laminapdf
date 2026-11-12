@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `D2g` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §4 release gates](../../plans/desktop-app.md#non-functional-targets-and-release-gates) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D2d](../done/D2d-tile-transport-and-first-document.md) |
+| Depends on | [D2d](./D2d-tile-transport-and-first-document.md) |
 | ADRs | Records its numbers in [0008](../../decisions/0008-desktop-shell.md) §4 |
 | Branch | `perf/d2g-desktop-cold-start` |
 | PR title | `perf(desktop): reach an interactive window within 300 ms of launch` |
 | Size | S–M (measure first; the fix decides) |
-| PR | — |
+| PR | [#456](https://github.com/laudebugs/laminapdf/pull/456) |
 
 ## Goal
 
@@ -32,5 +32,5 @@ Bring the desktop reader's cold start, from launch to an empty window that accep
 
 ## Acceptance criteria
 
-- [ ] Launch to an interactive empty window is under 300 ms on the reference machine on macOS, Windows and Linux. *Not met, and can't be by the app: Tauri and the webview alone take 410 ms (the floor build) on the M1 Pro. ADR 0008 §4 proposes the gates that replace it, for the owner to decide.*
+- [x] ~~Launch to an interactive empty window is under 300 ms on the reference machine on macOS, Windows and Linux.~~ *Replaced by the owner on 2026-11-11 (ADR 0008 §4): Tauri and the webview alone take 410 ms (the floor build) on the M1 Pro. The gates are now launch → window under 300 ms (about 240 ms on macOS) and launch → first command within 50 ms of the floor (26 ms on macOS); Windows and Linux are measured by D2e's runners.*
 - [x] The desktop `dist/` contains no `.wasm` file. *Checked by the full lane's `desktop` job.*
