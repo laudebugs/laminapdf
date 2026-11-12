@@ -4,13 +4,13 @@
 | --- | --- |
 | ID | `E3g` |
 | Status | `ready` |
-| Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
+| Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E3a](../ongoing/E3a-navigation-attachments-inspection-feature-plan.md), [T2c](../done/T2c-reveal-command.md) |
+| Depends on | [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [T2c](../done/T2c-reveal-command.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3g-inspectors` |
 | PR title | `feat(app): document inspectors and COS object browser` |
-| Size | L (600–1,500) |
+| Size | L (400–800): six read-only APIs and their bindings, and the inspector's five tabs |
 | PR | — |
 
 ## Goal
@@ -28,13 +28,15 @@ Give power users and developers read-only inspection: header/catalog version and
 
 **In scope**
 
-- Core APIs: `doc.conformance()`, `doc.fonts()` (per page, via B9 font reading), `doc.color_profiles()`, `doc.objects()` iterator, `doc.object(ref)`, `doc.revisions()` summary (from [T2c](../done/T2c-reveal-command.md)'s `revision_index`)
+- Core APIs: `doc.conformance()` (claims "claimed, not verified", PDF/X's `GTS_PDFXVersion` too), `doc.fonts(pages)` (via B9 font reading), `doc.color_profiles()` (output intents and `ICCBased` spaces), `doc.objects()` iterator, `doc.object(ref)`, `doc.references_to(ref)`, `doc.revisions()` summary (from [T2c](../done/T2c-reveal-command.md)'s `revision_index`)
 - Inspector panels in `@laminapdf/ui`: Properties → Conformance; Fonts; Colour; Object browser (tree from trailer, jump to ref, hex/text stream views with size caps)
 - Bindings for all of the above in `laminapdf-wasm` / `@laminapdf/sdk`
 
 **Out of scope** (and which todo covers it)
 
 - Opening prior revisions read-only and diffing → [E14b](E14b-revision-browser.md)
+- Editing raw objects: no round plans it ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions))
+- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
@@ -43,7 +45,7 @@ Give power users and developers read-only inspection: header/catalog version and
 - **`SaveConstraint`:** read-only
 - **Web vs desktop:** identical (object inspector ships on both)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `J.07` → `read` (core, pdf, web, desktop); `J.08` → `read` (core, pdf, web, desktop); `J.09` → `read` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `J.07` → `read` (core, pdf, web); `J.08` → `read` (core, pdf, web); `J.09` → `read` (core, pdf, web)
 
 ## Tasks
 
@@ -70,7 +72,7 @@ None.
 ## Docs to update
 
 - User help: inspectors
-- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and the [E3 plan §8](../../plans/editor/e3-navigation-attachments-inspection.md#8-todos): point this todo's link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
 ## Risks and open questions
@@ -79,8 +81,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

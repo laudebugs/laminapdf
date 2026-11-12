@@ -4,13 +4,13 @@
 | --- | --- |
 | ID | `E3e` |
 | Status | `ready` |
-| Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
+| Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1c](../done/E1c-metadata-ops.md), [E3a](../ongoing/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1c](../done/E1c-metadata-ops.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3e-xmp-editor` |
 | PR title | `feat(ops): general XMP editing with extension schemas` |
-| Size | M (200–600) |
+| Size | M (200–400): three ops over the packet E1b reads, the extension schemas, and the editor |
 | PR | — |
 
 ## Goal
@@ -27,13 +27,15 @@ Edit any XMP property, including custom and PDF/A extension schemas (`pdfaExtens
 
 **In scope**
 
-- `SetXmpProperty { ns, path, value }`, `RemoveXmpProperty`, `ReplaceXmpPacket { blob }` (validated)
+- `SetXmpProperty { namespace, prefix, path, value }`, `RemoveXmpProperty`, `ReplaceXmpPacket { xml }` (parsed before it applies; the packet travels in the op, not as a blob)
+- `pdfaid:` and `pdfuaid:` are refused (`xmp-claim-read-only`), in a property op or a replaced packet ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions))
 - Extension-schema declarations generated when adding custom properties to PDF/A files
 - XMP panel: tree editor plus raw XML view with validation errors
 
 **Out of scope** (and which todo covers it)
 
-- None
+- Converting a file to PDF/A → E16 (`H.12`)
+- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
@@ -43,7 +45,7 @@ Edit any XMP property, including custom and PDF/A extension schemas (`pdfaExtens
 - **`SaveConstraint`:** as E1c
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `J.04` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `J.04` → `round-trip` (core, pdf, web)
 
 ## Tasks
 
@@ -74,7 +76,7 @@ None.
 ## Docs to update
 
 - API docs: XMP
-- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and the [E3 plan §8](../../plans/editor/e3-navigation-attachments-inspection.md#8-todos): point this todo's link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
 ## Risks and open questions
@@ -83,8 +85,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

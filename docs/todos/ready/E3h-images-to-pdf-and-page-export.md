@@ -4,14 +4,13 @@
 | --- | --- |
 | ID | `E3h` |
 | Status | `ready` |
-| Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
+| Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [E3a](../ongoing/E3a-navigation-attachments-inspection-feature-plan.md) |
-| Dependency notes | [E3a](../ongoing/E3a-navigation-attachments-inspection-feature-plan.md), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `laminapdf-render`, ADR 0011) |
+| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3h-images-to-pdf-and-page-export` |
 | PR title | `feat(build): images to PDF and page image export` |
-| Size | M (200–600) |
+| Size | M (200–400): two functions and three encoders; the dialog is E3j's |
 | PR | — |
 
 ## Goal
@@ -31,12 +30,13 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 
 - `laminapdf_build::images_to_pdf(images, options)`
 - `render::export_pages(doc, pages, format, dpi)` via `RenderBackend` (PDFium default)
-- TIFF encoder choice per E3a (licence-checked), multi-page TIFF optional
-- Export dialog in `@laminapdf/ui`
+- Encoders: PNG through `png`, JPEG through `jpeg-encoder` (MIT OR Apache-2.0), TIFF through `tiff` (MIT), multi-page included ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions)); on the web, PNG and JPEG through the canvas and TIFF in a small WebAssembly module loaded on first use
+- EXIF orientation applied by the drawing transform; page size from the image's resolution or fitted to a paper size
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The export dialog, the web zip and images → PDF in the interface → [E3j](E3j-export-dialog.md)
+- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
@@ -45,19 +45,18 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 - **`SaveConstraint`:** new document (full write) for images → PDF
 - **Web vs desktop:** desktop writes files to a folder (native render, multi-threaded); web zips and streams; web memory capped by `Limits`
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `H.02` → `write` (core, pdf, web, desktop); `H.06` → `write` (core, pdf, web, desktop); `H.11` → `write` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `H.02` → `write` (core, pdf); `H.06` → `read` (core, pdf); `H.11` → `read` (core, pdf)
 
 ## Tasks
 
 - [ ] Images → PDF with orientation and DPI handling
 - [ ] Page export through the render trait
-- [ ] Dialog and outputs per shell
+- [ ] The three encoders, cargo-deny clean
 
 ## Acceptance criteria
 
 - [ ] JPEG input is embedded byte-identical (DCTDecode passthrough)
 - [ ] Exported PNG at 150 dpi matches PDFium golden renders
-- [ ] Exporting 500 pages on web streams into a zip without exceeding the memory budget
 
 ## Post-merge checks
 
@@ -72,7 +71,7 @@ None.
 ## Docs to update
 
 - API docs
-- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and the [E3 plan §8](../../plans/editor/e3-navigation-attachments-inspection.md#8-todos): point this todo's link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
 ## Risks and open questions
@@ -81,8 +80,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2a](../done/E2a-page-organisation-feature-plan.md) |
+| Depends on | [E2a](./E2a-page-organisation-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e3a-navigation-attachments-inspection-feature-plan` |
 | PR title | `docs(editor): E3 feature plan (navigation, attachments, inspection and extraction)` |
 | Size | S (< 200 lines) |
-| PR | — |
+| PR | [#510](https://github.com/laudebugs/laminapdf/pull/510) |
 
 ## Goal
 
@@ -48,23 +48,23 @@ The short feature-plan PR that opens round E3 ([full-editor §E3](../../plans/fu
 
 ## Tasks
 
-- [ ] Create `docs/plans/editor/e3-navigation-attachments-inspection.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`I.01`, `I.02`, `I.03`, `I.04`, `I.05`, `I.06`, `I.09`, `I.11`, `J.04`, `J.05`, `J.06`, `J.07`, `J.08`, `J.09`, `A.09`, `B.03`, `H.02`, `H.06`, `H.07`, `H.08`, `H.09`, `H.11`, `M.09`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
-- [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
-- [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
-- [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
-- [ ] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E3"` and status `unsupported` until each implementation PR flips them
-- [ ] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E3b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
-- [ ] Answer or assign an owner to each open question below; record decisions in the feature plan
-- [ ] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)
+- [x] Create `docs/plans/editor/e3-navigation-attachments-inspection.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`I.01`, `I.02`, `I.03`, `I.04`, `I.05`, `I.06`, `I.09`, `I.11`, `J.04`, `J.05`, `J.06`, `J.07`, `J.08`, `J.09`, `A.09`, `B.03`, `H.02`, `H.06`, `H.07`, `H.08`, `H.09`, `H.11`, `M.09`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
+- [x] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [x] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
+- [x] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
+- [x] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
+- [x] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E3"` and status `unsupported` until each implementation PR flips them
+- [x] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E3b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
+- [x] Answer or assign an owner to each open question below; record decisions in the feature plan
+- [x] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)
 
 ## Acceptance criteria
 
-- [ ] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
-- [ ] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
-- [ ] Every implementation todo of the round is linked from the plan and each has explicit dependencies
-- [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E3"`; `cargo xtask capabilities` regenerates without error
-- [ ] Each open question below is answered or has a named owner and a deadline round
+- [x] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
+- [x] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
+- [x] Every implementation todo of the round is linked from the plan and each has explicit dependencies
+- [x] `docs/capabilities/manifest.toml` has a row per op with `target round = "E3"`; `cargo xtask capabilities` regenerates without error
+- [x] Each open question below is answered or has a named owner and a deadline round
 
 ## Post-merge checks
 
@@ -88,8 +88,8 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
