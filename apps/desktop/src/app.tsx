@@ -11,6 +11,7 @@ import {
   CommandRegistry,
   CommandsProvider,
   DropOverlay,
+  message,
   Notice,
   OpenDropZone,
   type Opener,
@@ -156,8 +157,8 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
 
 /** What a drop of the dragged files will do. */
 function dropText({ pdfs }: Dragging): string {
-  if (pdfs === 0) return "Only PDF files open in Lamina PDF";
-  return pdfs === 1 ? "Drop to open the PDF" : `Drop to open the last of these ${pdfs} PDFs`;
+  if (pdfs === 0) return message("reader.open.droppingNone");
+  return pdfs === 1 ? message("reader.open.dropping") : message("reader.open.droppingMany", { count: pdfs });
 }
 
 /**
@@ -176,9 +177,9 @@ function useOsOpens(
     let gone = false;
     listenForOsOpens(engine.shell, {
       open: (file) => reader.open(file),
-      unreadable: (name) => toasts.add({ message: `${name} couldn't be opened. It may have been moved or deleted.` }),
+      unreadable: (name) => toasts.add({ message: message("reader.open.missing", { name }) }),
       dragging: setDragging,
-      refused: (names) => toasts.add({ message: `Only PDF files open in Lamina PDF: ${names.join(", ")}` }),
+      refused: (names) => toasts.add({ message: message("reader.open.refused", { names: names.join(", ") }) }),
     }).then(
       (unsubscribe) => {
         if (gone) unsubscribe();

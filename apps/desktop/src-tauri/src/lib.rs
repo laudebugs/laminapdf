@@ -157,7 +157,9 @@ pub fn run() -> Result<(), DesktopError> {
     // anything else starts (the plugin's own rule). Its callback queues them like any OS request.
     let builder = builder
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-            open::route_open(app, open::paths_from_args(&args, std::path::Path::new(&cwd)));
+            open::bring_forward(app, MAIN_WINDOW);
+            let paths = open::paths_from_args(&args, std::path::Path::new(&cwd));
+            open::route_open(app, MAIN_WINDOW, paths);
         }))
         .manage(open::PendingOpens::default());
     let builder = builder.plugin(
@@ -196,6 +198,7 @@ pub fn run() -> Result<(), DesktopError> {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             app.manage(engines(app.handle()));
+            app.manage(open::OpenWorker::start(app.handle().clone()));
             // Windows are made here, not in tauri.conf.json, so the app chooses every label.
             let (width, height) = first_window_size(app.primary_monitor().ok().flatten());
             WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::default())
@@ -208,7 +211,7 @@ pub fn run() -> Result<(), DesktopError> {
             // A cold start's PDFs (Windows, Linux, a macOS terminal): queued until the webview takes them.
             let cwd = std::env::current_dir().unwrap_or_default();
             let args: Vec<OsString> = std::env::args_os().collect();
-            open::route_open(app.handle(), open::paths_from_args(&args, &cwd));
+            open::route_open(app.handle(), MAIN_WINDOW, open::paths_from_args(&args, &cwd));
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -225,7 +228,7 @@ pub fn run() -> Result<(), DesktopError> {
         RunEvent::Exit => app.state::<Arc<Engines>>().shutdown(),
         // macOS hands Finder's, the Dock's and `open`'s files to the running app, cold or warm.
         #[cfg(target_os = "macos")]
-        RunEvent::Opened { urls } => open::route_open(app, open::paths_from_urls(&urls)),
+        RunEvent::Opened { urls } => open::route_open(app, MAIN_WINDOW, open::paths_from_urls(&urls)),
         _ => {}
     });
     Ok(())

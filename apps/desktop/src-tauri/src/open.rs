@@ -9,7 +9,7 @@
 
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::{Arc, Mutex, PoisonError, mpsc};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _};
@@ -18,6 +18,7 @@ use crate::DesktopError;
 use crate::engine::{DocumentMeta, Engines};
 
 /// A document opened at the OS's request, or why it didn't open: sent to the window that shows it.
+/// These event names are repeated in `src/engine/open.ts`.
 pub(crate) const OPEN_EVENT: &str = "open://document";
 /// Files are being dragged over the window: how many are PDFs, and how many aren't.
 pub(crate) const DRAG_ENTER_EVENT: &str = "open://drag-enter";
@@ -26,24 +27,21 @@ pub(crate) const DRAG_LEAVE_EVENT: &str = "open://drag-leave";
 /// Dropped files that aren't PDFs, by name: the window says so and opens none of them.
 pub(crate) const REFUSED_EVENT: &str = "open://refused";
 
-/// The window OS requests open in. One window shows one document until tabs (D4a), so a request
-/// replaces what it shows.
-const TARGET_WINDOW: &str = crate::MAIN_WINDOW;
-
 /// Whether `path` names a PDF by its extension, in any case.
 fn is_pdf(path: &Path) -> bool {
     path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("pdf"))
 }
 
-/// The PDFs a command line names, in order and each once: `args[0]` (the program) and flags
-/// (`-psn_…` from old macOS, `Tauri`'s and `WebDriver`'s own) are skipped, `file://` URLs become
-/// paths, and relative paths resolve against `cwd`, the launching process's folder. Whether each
-/// file exists is checked when it opens, so a missing one is reported by name, not dropped.
+/// The PDFs a command line names, in order and each once: `args[0]` (the program) is skipped, and
+/// so are flags (`-psn_…` from old macOS, `Tauri`'s and `WebDriver`'s own) unless one is an existing
+/// file (`-scan.pdf`); `file://` URLs become paths, and relative paths resolve against `cwd`, the
+/// launching process's folder. Whether each other file exists is checked when it opens, so a missing
+/// one is reported by name rather than dropped.
 pub(crate) fn paths_from_args<A: AsRef<OsStr>>(args: &[A], cwd: &Path) -> Vec<PathBuf> {
     let mut paths: Vec<PathBuf> = Vec::new();
     for arg in args.iter().skip(1).map(AsRef::as_ref) {
         let text = arg.to_str();
-        if text.is_some_and(|text| text.starts_with('-')) {
+        if text.is_some_and(|text| text.starts_with('-')) && !cwd.join(arg).is_file() {
             continue;
         }
         let path = match text.filter(|text| text.starts_with("file:")) {
@@ -107,38 +105,83 @@ impl PendingOpens {
 }
 
 /// Why a document didn't open, as a command's error reaches the webview: `{ kind, message }`.
+/// [`DesktopError`] serialises the same way but can't be cloned, which emitting needs.
 #[derive(Debug, Clone, Serialize)]
 struct Failure {
     kind: &'static str,
     message: String,
 }
 
-/// What [`OPEN_EVENT`] carries: the document, or the file's name and why it didn't open.
+impl From<&DesktopError> for Failure {
+    fn from(error: &DesktopError) -> Self {
+        Self {
+            kind: error.kind(),
+            message: error.to_string(),
+        }
+    }
+}
+
+/// What [`OPEN_EVENT`] carries: the document, or the file's name and why it didn't open. The
+/// name is never the folder.
 #[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Opened {
-    /// The file's name, never its folder.
-    name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    document: Option<DocumentMeta>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<Failure>,
+#[serde(untagged)]
+enum Opened {
+    Document { name: String, document: DocumentMeta },
+    Failed { name: String, error: Failure },
+}
+
+/// One file to open, and the window that asked for it.
+struct OpenJob {
+    window: String,
+    path: PathBuf,
+}
+
+/// Opens the OS's requests one at a time, in the order they came, on a thread of its own: an open
+/// waits for the engine, and two opens on separate threads could finish in either order, so the
+/// window could end up showing the earlier request.
+pub(crate) struct OpenWorker(mpsc::Sender<OpenJob>);
+
+impl OpenWorker {
+    /// Starts the worker; it stops when the app drops its state.
+    pub(crate) fn start(app: AppHandle) -> Self {
+        let (send, receive) = mpsc::channel::<OpenJob>();
+        std::thread::spawn(move || {
+            for job in receive {
+                open_and_tell(&app, &job);
+            }
+        });
+        Self(send)
+    }
+}
+
+/// Brings `window` to the front: unminimised, shown, focused. A second launch does this even with
+/// no file, as launching a running app does on every OS.
+pub(crate) fn bring_forward(app: &AppHandle, window: &str) {
+    let Some(window) = app.get_webview_window(window) else {
+        return;
+    };
+    for result in [window.unminimize(), window.show(), window.set_focus()] {
+        if let Err(error) = result {
+            tracing::debug!("could not bring the window forward: {error}");
+        }
+    }
 }
 
 /// The one way an OS request opens documents: queued until the webview is ready, then opened in
-/// the target window, which comes to the front.
-pub(crate) fn route_open(app: &AppHandle, paths: Vec<PathBuf>) {
+/// `window`, which comes to the front. Requests made before the webview was ready go to the main
+/// window, the only one there is until tabs and windows (D4a).
+pub(crate) fn route_open(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
     if paths.is_empty() {
         return;
     }
     if let Some(paths) = app.state::<PendingOpens>().offer(paths) {
-        open_now(app, paths);
+        open_now(app, window, paths);
     }
 }
 
-/// Opens the last of `paths` in the target window: it shows one document at a time until tabs
-/// (D4a), and the last one asked for is the one the user expects to see.
-pub(crate) fn open_now(app: &AppHandle, mut paths: Vec<PathBuf>) {
+/// Opens the last of `paths` in `window`: it shows one document at a time until tabs (D4a), and
+/// the last one asked for is the one the user expects to see.
+fn open_now(app: &AppHandle, window: &str, mut paths: Vec<PathBuf>) {
     let Some(path) = paths.pop() else {
         return;
     };
@@ -148,38 +191,38 @@ pub(crate) fn open_now(app: &AppHandle, mut paths: Vec<PathBuf>) {
             "several PDFs asked to open at once; the window shows the last until it has tabs"
         );
     }
-    let Some(window) = app.get_webview_window(TARGET_WINDOW) else {
-        tracing::warn!("no window to open a document in");
+    bring_forward(app, window);
+    let job = OpenJob {
+        window: window.to_owned(),
+        path,
+    };
+    let Some(worker) = app.try_state::<OpenWorker>() else {
+        tracing::warn!("a document the OS asked for came before the app could open it");
         return;
     };
-    // Brought forward first: an open from Finder or a second launch expects the app in front.
-    for result in [window.unminimize(), window.show(), window.set_focus()] {
-        if let Err(error) = result {
-            tracing::debug!("could not bring the window forward: {error}");
-        }
+    if worker.0.send(job).is_err() {
+        tracing::warn!("the worker that opens documents has stopped");
     }
+}
+
+/// Opens one job's file in its window's engine and sends the window the document or the failure.
+fn open_and_tell(app: &AppHandle, job: &OpenJob) {
+    let name = file_name(&job.path);
+    tracing::debug!(path = %job.path.display(), "opening a document the OS asked for");
     let engines = Arc::clone(&app.state::<Arc<Engines>>());
-    let app = app.clone();
-    // Opening waits for the engine: off the event loop.
-    tauri::async_runtime::spawn_blocking(move || {
-        let name = file_name(&path);
-        tracing::debug!(path = %path.display(), "opening a document the OS asked for");
-        let (document, error) = match open_file(&engines, TARGET_WINDOW, &path) {
-            Ok(document) => (Some(document), None),
-            Err(error) => {
-                tracing::info!(kind = error.kind(), "a document the OS asked for didn't open");
-                let failure = Failure {
-                    kind: error.kind(),
-                    message: error.to_string(),
-                };
-                (None, Some(failure))
+    let payload = match open_file(&engines, &job.window, &job.path) {
+        Ok(document) => Opened::Document { name, document },
+        Err(error) => {
+            tracing::info!(kind = error.kind(), "a document the OS asked for didn't open");
+            Opened::Failed {
+                name,
+                error: Failure::from(&error),
             }
-        };
-        let payload = Opened { name, document, error };
-        if let Err(error) = app.emit_to(EventTarget::webview_window(TARGET_WINDOW), OPEN_EVENT, payload) {
-            tracing::warn!("could not hand the window its document: {error}");
         }
-    });
+    };
+    if let Err(error) = app.emit_to(EventTarget::webview_window(&job.window), OPEN_EVENT, payload) {
+        tracing::warn!("could not hand the window its document: {error}");
+    }
 }
 
 /// Opens `path` in `window`'s engine; a missing file is an `io` error, which the window reports by name.
@@ -235,7 +278,7 @@ pub(crate) fn on_drag_drop(window: &tauri::Window, event: &tauri::DragDropEvent)
             {
                 tracing::warn!("could not tell the window a drop was refused: {error}");
             }
-            route_open(window.app_handle(), pdfs);
+            route_open(window.app_handle(), window.label(), pdfs);
             left
         }
         _ => Ok(()),
@@ -254,7 +297,7 @@ pub(crate) fn on_drag_drop(window: &tauri::Window, event: &tauri::DragDropEvent)
 )]
 pub(crate) fn take_pending_opens(app: AppHandle) {
     let paths = app.state::<PendingOpens>().take();
-    open_now(&app, paths);
+    open_now(&app, crate::MAIN_WINDOW, paths);
 }
 
 #[cfg(test)]
@@ -312,12 +355,29 @@ mod tests {
         assert_eq!(paths_from_args(&["laminapdf", url], &cwd()), vec![PathBuf::from(path)]);
     }
 
+    #[cfg(unix)]
     #[test]
-    fn paths_from_args_should_skip_urls_that_are_not_files() {
-        assert_eq!(
-            paths_from_args(&["laminapdf", "file://server/share/a.txt"], &cwd()),
-            Vec::<PathBuf>::new()
-        );
+    fn paths_from_args_should_skip_urls_on_another_host() {
+        // A network share's URL has no local path on Unix; Windows makes it a UNC path (below).
+        let none: Vec<PathBuf> = Vec::new();
+        assert_eq!(paths_from_args(&["laminapdf", "file://server/share/a.pdf"], &cwd()), none);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn paths_from_args_should_turn_a_share_url_into_a_unc_path() {
+        let expected = vec![PathBuf::from(r"\\server\share\a.pdf")];
+        assert_eq!(paths_from_args(&["laminapdf", "file://server/share/a.pdf"], &cwd()), expected);
+    }
+
+    #[test]
+    fn paths_from_args_should_keep_a_file_whose_name_starts_with_a_dash() {
+        let dir = std::env::temp_dir().join(format!("laminapdf-open-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("-scan.pdf"), b"%PDF-1.7").unwrap();
+        let paths = paths_from_args(&["laminapdf", "-scan.pdf", "-flag.pdf"], &dir);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(paths, vec![dir.join("-scan.pdf")]);
     }
 
     #[test]

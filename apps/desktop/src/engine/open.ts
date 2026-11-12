@@ -59,18 +59,16 @@ function failedFile(name: string, failure: DesktopEngineError): PlatformFile {
   return file;
 }
 
-/** The main process's open events (src-tauri/src/open.rs), sent to this window only. */
+/** The main process's open events, sent to this window only; the same names as src-tauri/src/open.rs's. */
 export const OPEN_EVENT = "open://document";
 export const DRAG_ENTER_EVENT = "open://drag-enter";
 export const DRAG_LEAVE_EVENT = "open://drag-leave";
 export const REFUSED_EVENT = "open://refused";
 
 /** What `OPEN_EVENT` carries: the document, or the file's name and why it didn't open. */
-interface OsOpened {
-  readonly name: string;
-  readonly document?: DesktopDocument;
-  readonly error?: { readonly kind: string; readonly message: string };
-}
+type OsOpened =
+  | { readonly name: string; readonly document: DesktopDocument }
+  | { readonly name: string; readonly error: { readonly kind: string; readonly message: string } };
 
 /** What a drag over the window holds: how many files are PDFs and how many aren't. */
 export interface Dragging {
@@ -100,11 +98,8 @@ export interface OsOpenHandlers {
 export async function listenForOsOpens(shell: DesktopShell, handlers: OsOpenHandlers): Promise<() => void> {
   let turn = Promise.resolve();
   const show = (opened: OsOpened) => {
-    if (opened.error?.kind === "io") return handlers.unreadable(opened.name);
-    const file =
-      opened.document === undefined
-        ? failedFile(opened.name, engineError(opened.error ?? { kind: "internal", message: "nothing opened" }))
-        : desktopFile(opened.document);
+    if ("error" in opened && opened.error.kind === "io") return handlers.unreadable(opened.name);
+    const file = "error" in opened ? failedFile(opened.name, engineError(opened.error)) : desktopFile(opened.document);
     turn = turn.then(() => handlers.open(file)).catch((error: unknown) => console.warn("opening failed", error));
   };
   const off = await Promise.all([

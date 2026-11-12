@@ -162,6 +162,10 @@ const EN = {
   "reader.open.privacy": "Lamina PDF reads PDFs inside this browser tab and has no upload server.",
   "reader.rotate": "Rotate clockwise",
   "reader.open.dropping": "Drop to open the PDF",
+  "reader.open.droppingMany": "Drop to open the last of these {count} PDFs",
+  "reader.open.droppingNone": "Only PDF files open in Lamina PDF",
+  "reader.open.refused": "Only PDF files open in Lamina PDF: {names}",
+  "reader.open.missing": "{name} couldn't be opened. It may have been moved or deleted.",
   "reader.open.notPdf": "That isn't a PDF. Lamina PDF opens PDF files only.",
   "reader.open.unreadable":
     "That file couldn't be read. It may have moved, or this browser may have lost access to it.",
