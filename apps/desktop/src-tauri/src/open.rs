@@ -360,14 +360,20 @@ mod tests {
     fn paths_from_args_should_skip_urls_on_another_host() {
         // A network share's URL has no local path on Unix; Windows makes it a UNC path (below).
         let none: Vec<PathBuf> = Vec::new();
-        assert_eq!(paths_from_args(&["laminapdf", "file://server/share/a.pdf"], &cwd()), none);
+        assert_eq!(
+            paths_from_args(&["laminapdf", "file://server/share/a.pdf"], &cwd()),
+            none
+        );
     }
 
     #[cfg(windows)]
     #[test]
     fn paths_from_args_should_turn_a_share_url_into_a_unc_path() {
         let expected = vec![PathBuf::from(r"\\server\share\a.pdf")];
-        assert_eq!(paths_from_args(&["laminapdf", "file://server/share/a.pdf"], &cwd()), expected);
+        assert_eq!(
+            paths_from_args(&["laminapdf", "file://server/share/a.pdf"], &cwd()),
+            expected
+        );
     }
 
     #[test]
