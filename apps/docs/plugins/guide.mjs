@@ -209,13 +209,26 @@ export function onePageSections(html) {
     /(<section class="one-page-section" aria-labelledby="([^"]+)">[\s\S]*?<\/h2>)([\s\S]*?)(<div data-one-page-end hidden><\/div>)/g,
     (_, head, id, body, end) => {
       const prefixed = body
-        .replace(/\b(id|for|aria-controls|aria-labelledby)="([^"]+)"/g, (_m, attr, value) => {
-          const ids = value.split(/\s+/).map((v) => `${id}-${v}`);
-          return `${attr}="${ids.join(" ")}"`;
-        })
-        .replace(/\bhref="#([^"]+)"/g, (_m, anchor) => `href="#${id}-${anchor}"`)
-        .replace(/<(\/?)h([2-5])\b/g, (_m, close, level) => `<${close}h${Number(level) + 1}`)
-        .replace(/\blevel-h([2-5])\b/g, (_m, level) => `level-h${Number(level) + 1}`);
+        .replace(
+          /\b(id|for|aria-controls|aria-labelledby)="([^"]+)"/g,
+          (/** @type {string} */ _m, /** @type {string} */ attr, /** @type {string} */ value) => {
+            const ids = value.split(/\s+/).map((v) => `${id}-${v}`);
+            return `${attr}="${ids.join(" ")}"`;
+          },
+        )
+        .replace(
+          /\bhref="#([^"]+)"/g,
+          (/** @type {string} */ _m, /** @type {string} */ anchor) => `href="#${id}-${anchor}"`,
+        )
+        .replace(
+          /<(\/?)h([2-5])\b/g,
+          (/** @type {string} */ _m, /** @type {string} */ close, /** @type {string} */ level) =>
+            `<${close}h${Number(level) + 1}`,
+        )
+        .replace(
+          /\blevel-h([2-5])\b/g,
+          (/** @type {string} */ _m, /** @type {string} */ level) => `level-h${Number(level) + 1}`,
+        );
       return head + prefixed + end;
     },
   );
@@ -239,6 +252,18 @@ export const onePageViews = {
 };
 
 /**
+ * @laminapdf/sdk, loaded by name when the PDF is built. The docs typecheck runs before the SDK
+ * is built, so a typed import would fail there; a name typed as `string` gives an untyped module.
+ *
+ * @returns {Promise<any>}
+ */
+export function loadSdk() {
+  /** @type {string} */
+  const name = "@laminapdf/sdk";
+  return import(name);
+}
+
+/**
  * The guide PDF's bytes, built by @laminapdf/sdk's Markdown builder under PDF/UA-1 with the
  * guide's fonts. Fails on a warning but a missing image: the twins name the docs' diagrams by
  * file, which the PDF leaves out and describes in text.
@@ -247,7 +272,7 @@ export const onePageViews = {
  * @returns {Promise<Uint8Array>}
  */
 export async function guidePdf(markdown) {
-  const { Builder, Font, init } = await import("@laminapdf/sdk");
+  const { Builder, Font, init } = await loadSdk();
   await init({ text: true });
   const read = async (/** @type {string} */ path) => new Uint8Array(await readFile(new URL(path, ROOT)));
   const fonts = {
@@ -273,8 +298,9 @@ export async function guidePdf(markdown) {
     });
     const doc = builder.finish();
     try {
-      const warnings = doc.warnings.filter((w) => w.code !== "markdown-image-missing");
-      if (warnings.length > 0) throw new Error(`guide PDF: ${warnings.map((w) => w.code).join(", ")}`);
+      const warnings = doc.warnings.filter((/** @type {{ code: string }} */ w) => w.code !== "markdown-image-missing");
+      if (warnings.length > 0)
+        throw new Error(`guide PDF: ${warnings.map((/** @type {{ code: string }} */ w) => w.code).join(", ")}`);
       return doc.save();
     } finally {
       doc.free();

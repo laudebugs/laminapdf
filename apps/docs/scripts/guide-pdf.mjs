@@ -7,7 +7,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { packageVersion, twinPath } from "../plugins/agent-docs.mjs";
-import { GUIDE_PDF, guideAreas, guideMarkdown, guidePdf } from "../plugins/guide.mjs";
+import { GUIDE_PDF, guideAreas, guideMarkdown, guidePdf, loadSdk } from "../plugins/guide.mjs";
 
 const [distPath, site] = process.argv.slice(2);
 if (distPath === undefined || site === undefined) throw new Error("usage: node scripts/guide-pdf.mjs <dist> <site>");
@@ -23,7 +23,7 @@ const out = new URL(GUIDE_PDF.slice(1), dist);
 await mkdir(new URL(".", out), { recursive: true });
 await writeFile(out, bytes);
 
-const { Document } = await import("@laminapdf/sdk");
+const { Document } = await loadSdk();
 const doc = Document.open(bytes);
 try {
   const outline = doc.outline().length;
