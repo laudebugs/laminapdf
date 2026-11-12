@@ -1,0 +1,17 @@
+---
+// The link to the whole guide as one PDF (plugins/guide.mjs), on builds that write it: the PDF
+// needs the WebAssembly modules, which a docs build without `cargo xtask wasm` doesn't have.
+import { GUIDE_PDF } from "../../plugins/guide.mjs";
+---
+
+{
+  __GUIDE_PDF__ ? (
+    <p>
+      Download <a href={GUIDE_PDF} download>the whole guide as one PDF</a>: every section above in order, with a contents
+      page and bookmarks. Lamina PDF built it from these pages' Markdown with the Markdown builder behind
+      <code>laminapdf build</code>.
+    </p>
+  ) : (
+    <p>This build of the docs has no PDF of the guide; the published site has one.</p>
+  )
+}

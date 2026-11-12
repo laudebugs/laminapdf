@@ -93,8 +93,9 @@ fn read_changesets(dir: &Path) -> Result<Vec<String>> {
 }
 
 /// The bump this checkout's version already makes over the published `baseline`: none when they
-/// are equal, else the first of major, minor and patch that differs (a pre-release step counts
-/// as a patch).
+/// are equal, else the first of major, minor and patch that differs. A pre-release step counts as
+/// a patch, and the release of a pre-release's own version (`0.2.0-alpha.6` to `0.2.0`) as a
+/// minor: the pre-releases promised nothing to each other, so it may carry any break they made.
 fn version_step(baseline: &str, current: &str) -> Option<Bump> {
     if baseline == current {
         return None;
@@ -104,9 +105,10 @@ fn version_step(baseline: &str, current: &str) -> Option<Bump> {
         core.split('.').map(|n| n.parse().unwrap_or(0)).collect()
     };
     let (before, after) = (numbers(baseline), numbers(current));
+    let leaves_pre_release = baseline.contains('-') && !current.contains('-');
     Some(if before.first() != after.first() {
         Bump::Major
-    } else if before.get(1) != after.get(1) {
+    } else if before.get(1) != after.get(1) || (leaves_pre_release && before == after) {
         Bump::Minor
     } else {
         Bump::Patch
@@ -117,7 +119,8 @@ fn version_step(baseline: &str, current: &str) -> Option<Bump> {
 /// release reaching npm, the checkout's version is ahead of `baseline` and the version PR has
 /// consumed its changesets (moved to `.changeset/pre/` in pre mode); then that version's step and
 /// the consumed changesets count too. In pre mode `.changeset/pre/` also holds earlier alphas'
-/// changesets, so the check is lenient for that window, never stricter.
+/// changesets, so the check is lenient for that window, never stricter. Leaving pre mode
+/// (`0.2.0`) removes `.changeset/pre/`, so there the version's step alone allows the alphas' breaks.
 fn allowed_bump(root: &Path, members: &[String], baseline: &str, version: &str) -> Result<Bump> {
     let mut bump = pending_bump(&read_changesets(&root.join(".changeset"))?, members);
     if let Some(step) = version_step(baseline, version) {
@@ -694,6 +697,8 @@ export class B {
         assert_eq!(version_step("0.2.0-alpha.2", "0.2.0-alpha.3"), Some(Bump::Patch));
         assert_eq!(version_step("0.2.0", "0.2.1"), Some(Bump::Patch));
         assert_eq!(version_step("0.2.0-alpha.2", "0.3.0"), Some(Bump::Minor));
+        assert_eq!(version_step("0.2.0-alpha.6", "0.2.0"), Some(Bump::Minor));
+        assert_eq!(version_step("0.2.0-alpha.6", "0.2.1"), Some(Bump::Patch));
         assert_eq!(version_step("0.9.1", "1.0.0"), Some(Bump::Major));
     }
 

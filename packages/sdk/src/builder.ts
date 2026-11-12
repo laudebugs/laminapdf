@@ -136,7 +136,7 @@ export interface TextOptions {
   readonly font: Font;
   /** Size in points. */
   readonly size: number;
-  /** Where the first line starts: `x`, and `y` is the baseline (ADR 0027 §5). */
+  /** Where the first line starts, in page space: `x`, and `y` is the baseline, not the top of the text. */
   readonly at: Point;
   /** Fill colour. */
   readonly fill?: Color;

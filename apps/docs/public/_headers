@@ -22,6 +22,10 @@
 /examples/pdf/*
   ! Content-Security-Policy
 
+# The guide as one PDF (plugins/guide.mjs) opens in the same viewer.
+/pdf/*
+  ! Content-Security-Policy
+
 # The example runner (scripts/build-runner.mjs): the module worker that runs a reader's edit of an
 # example. It needs 'unsafe-eval' to run that code, so it gets its own policy, and nothing else on
 # the site does. A worker's CSP comes from its own script's response, so the pages that start it

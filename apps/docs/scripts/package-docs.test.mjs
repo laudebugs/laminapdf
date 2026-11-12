@@ -32,6 +32,7 @@ test("site links become links inside the folder", () => {
   assert.equal(packageHref("/guides/save-a-pdf/#incremental", 2), "../../pages/guides/save-a-pdf.md#incremental");
   assert.equal(packageHref("/", 1), "../pages/index.md");
   assert.equal(packageHref("/reference/codes/wrong-password/", 2), "../../errors/wrong-password.md");
+  assert.equal(packageHref("/one-page/recipes/", 2), "https://docs.laminapdf.com/one-page/recipes/");
   assert.equal(packageHref("/examples/pdf/hello.pdf", 1), "https://docs.laminapdf.com/examples/pdf/hello.pdf");
   assert.equal(packageHref("https://example.com/", 1), "https://example.com/");
 });

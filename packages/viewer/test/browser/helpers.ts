@@ -75,12 +75,19 @@ export function testViewer(
 
 /**
  * Calls one of the test worker's hooks: `__busy` (ms; answers the wall clock when the hold ends),
- * `__renderLog`, `__renderDocument` (a number per render document the worker draws from),
+ * `__holdNextRender` (ms the next render holds the worker once drawn), `__renderLog`, `__renderDocument` (a number per render document the worker draws from),
  * `__failNextReopen`, `__failNextUndo` or `__crash`.
  */
 export function hook(
   client: ViewerClient,
-  method: "__busy" | "__renderLog" | "__renderDocument" | "__failNextReopen" | "__failNextUndo" | "__crash",
+  method:
+    | "__busy"
+    | "__holdNextRender"
+    | "__renderLog"
+    | "__renderDocument"
+    | "__failNextReopen"
+    | "__failNextUndo"
+    | "__crash",
   params: unknown[] = [],
 ) {
   return (client.call as (m: string, p: unknown[]) => Promise<unknown>).call(client, method, params);

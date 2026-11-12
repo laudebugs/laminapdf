@@ -548,25 +548,25 @@ fn render_ts(codes: &Codes) -> String {
     );
     ts_union(
         &mut out,
-        "The nine kinds of ADR 0026 §2: what the caller can do about an error.",
+        "The nine kinds of error: what the caller can do about one.",
         "ErrorKind",
         &kinds,
     );
     ts_union(
         &mut out,
-        "Every error code (ADR 0026 §3; `fixtures/codes.json`).",
+        "Every error code, each with its own page on the docs site.",
         "ErrorCode",
         &errors,
     );
     ts_union(
         &mut out,
-        "Every warning code (ADR 0026 §3; `fixtures/codes.json`).",
+        "Every warning code, each with its own page on the docs site.",
         "WarningCode",
         &warnings,
     );
     ts_union(
         &mut out,
-        "The names of the `Limits` (ADR 0003 §3), as `data.limit` of `limit-exceeded`.",
+        "The names of the resource limits (`Limits`), as `data.limit` of `limit-exceeded`.",
         "LimitName",
         &limits,
     );
@@ -596,16 +596,16 @@ fn render_ts(codes: &Codes) -> String {
     );
     ts_record(
         &mut out,
-        "The hint of every code (ADR 0026 §5), with its `{limit}`/`{option}` parameters unfilled.",
+        "The hint of every code, with its `{limit}`/`{option}` parameters unfilled.",
         "HINTS",
         "string",
         &rows(&|e| quoted(&e.hint)),
     );
     let _ = writeln!(
         out,
-        "/** `docsUrl` = base + code + suffix (ADR 0026 §6). */\n\
+        "/** `docsUrl` = base + code + suffix. */\n\
          export const DOCS_URL = {{ base: {}, suffix: {} }} as const;\n\n\
-         /** The explain page of `code` (`docsUrl`, ADR 0026 §6). */\n\
+         /** The page on the docs site that explains `code` (its `docsUrl`). */\n\
          export function docsUrl(code: ErrorCode | WarningCode): string {{\n  \
          return `${{DOCS_URL.base}}${{code}}${{DOCS_URL.suffix}}`;\n\
          }}\n",
@@ -677,7 +677,7 @@ fn render_ts_explain(pages: &[(String, String)]) -> String {
         "{HEADER}\n// From docs/errors/<code>.md; `cargo xtask check docs` fails when it is stale. Imported only\n\
          // by the `@laminapdf/sdk/explain` subpath, so the text stays out of the main bundle.\n\n\
          import type {{ ErrorCode, WarningCode }} from \"./codes.js\";\n\n\
-         /** Every code's explain page (ADR 0026 §6), as Markdown. */\n\
+         /** The page that explains each code, as Markdown. */\n\
          export const PAGES: {{ readonly [C in ErrorCode | WarningCode]: string }} = {{\n"
     );
     for (code, text) in pages {

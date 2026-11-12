@@ -21,6 +21,7 @@ import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 import { agentDocs, packageVersion } from "./plugins/agent-docs.mjs";
 import { cliDownloadChecks } from "./plugins/cli-downloads.mjs";
+import { guidePdfAvailable, guidePdfStep, onePageViews } from "./plugins/guide.mjs";
 import {
   checkedLinks,
   codePages,
@@ -69,13 +70,22 @@ const typeDoc = starlightTypeDoc({
 });
 
 // A default export because that is how Astro reads its configuration.
+// Whether this build can make the guide PDF (plugins/guide.mjs): read once, so the pages link it
+// exactly when the build writes it.
+// `astro dev` never runs the build steps, so only a build writes the PDF.
+const GUIDE_PDF = process.argv.includes("build") && guidePdfAvailable();
+
 export default defineConfig({
   // Production's address: canonical links and the sitemap use it (previews too; they're noindex).
   site: SITE,
   // Telemetry is off in the package scripts (ASTRO_TELEMETRY_DISABLED).
   devToolbar: { enabled: false },
   vite: {
-    define: { __SITE_PAGES__: JSON.stringify(WEBSITE_PAGES), __DOCS_RELEASE__: JSON.stringify(DOCS_RELEASE) },
+    define: {
+      __SITE_PAGES__: JSON.stringify(WEBSITE_PAGES),
+      __DOCS_RELEASE__: JSON.stringify(DOCS_RELEASE),
+      __GUIDE_PDF__: JSON.stringify(GUIDE_PDF),
+    },
     // Pages write `{{version}}` where they name the version; this fills it in.
     plugins: [versionInPages(DOCS_RELEASE.version)],
   },
@@ -103,11 +113,15 @@ export default defineConfig({
       head: WEBSITE_ICONS.head,
       // One header for both sites (@laminapdf/site-kit), with Starlight's search and theme switch;
       // on phones, where the header hides the site's links, the menu lists them. The banner says
-      // when the docs describe unreleased changes.
+      // when the docs describe unreleased changes. Each page links its Markdown twin from its head
+      // and offers to copy it under its title.
       components: {
         Banner: "./src/components/Banner.astro",
+        Head: "./src/components/Head.astro",
         Header: "./src/components/Header.astro",
+        Hero: "./src/components/Hero.astro",
         MobileMenuFooter: "./src/components/MobileMenuFooter.astro",
+        PageTitle: "./src/components/PageTitle.astro",
         ThemeSelect: "./src/components/ThemeSelect.astro",
       },
       // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,
@@ -122,7 +136,7 @@ export default defineConfig({
         starlightLinksValidator({
           errorOnLocalLinks: true,
           // Not pages: plugins/integrations.mjs `checkedLinks` checks these (and the code pages).
-          exclude: ["/examples/pdf/*", "/reference/codes/*/"],
+          exclude: ["/examples/pdf/*", "/reference/codes/*/", "/one-page/*/"],
         }),
         ...(TYPEDOC ? [typeDoc] : []),
       ],
@@ -134,12 +148,17 @@ export default defineConfig({
     repositoryLinks("/install/", REPOSITORY, `${EDIT_BASE}apps/docs/src/content/docs/install.mdx`),
     cliDownloadChecks(ROOT),
     websiteIcons(new URL("apps/site/public/", ROOT)),
-    checkedLinks,
     inlineScriptHashes,
     previewNoindex(process.env.LAMINA_PDF_ENV),
     // Starlight writes sitemap-index.xml from `site`; only the released docs name it.
     robots({ env: process.env.LAMINA_PDF_ENV, sitemap: "https://docs.laminapdf.com/sitemap-index.xml" }),
-    agentDocs(sidebarRoutes),
+    agentDocs(sidebarRoutes, { guidePdf: GUIDE_PDF }),
+    // The one-page views' ids and heading levels, after agentDocs, which reads the built pages.
+    onePageViews,
+    // After agentDocs: the guide PDF is built from the twins it writes.
+    guidePdfStep({ available: GUIDE_PDF, site: SITE }),
+    // After the guide PDF, which pages link to.
+    checkedLinks,
     // Last, so it also reads the Markdown twins agentDocs writes.
     releaseChecks(DOCS_RELEASE),
   ],
