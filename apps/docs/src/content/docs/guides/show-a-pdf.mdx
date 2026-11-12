@@ -31,10 +31,10 @@ using shown = await showPdf(container, file, pdfiumWasm);
 
 The viewer splits the work between your page and a Web Worker, one per document:
 
-- **The Web Worker** opens the file with Lamina PDF and draws pages with PDFium. A long page never blocks your page's scrolling or typing.
-- **Your page** holds the view: a shell for each page near the scroll position, the canvases they paint into, and the text and link layers over them.
+- **The Web Worker** opens the file with Lamina PDF and draws pages with PDFium. A slow PDF page never blocks scrolling or typing on your site.
+- **Your web page** holds the view: a shell for each page near the scroll position, the canvases they paint into, and the text and link layers over them.
 
-The file stays in the Web Worker. A `File` is read there in slices, so the page never holds a copy of its bytes. To show a file from a server instead, pass `client.open` the file's address as `{ url }` where the example passes `file`. The Web Worker then reads it with HTTP range requests, fetching only the parts the visible pages need.
+The file stays in the Web Worker. A `File` is read there in slices, so your web page never holds a copy of its bytes. To show a file from a server instead, pass `client.open` the file's address as `{ url }` where the example passes `file`. The Web Worker then reads it with HTTP range requests, fetching only the parts the visible pages need.
 
 ## Give the container a size
 
@@ -42,7 +42,7 @@ The viewer fills its container and scrolls inside it, so the container needs a h
 
 ## Take it down
 
-Dispose of what `showPdf` returns, with `using` or by calling `[Symbol.dispose]()`, when the PDF leaves the page. That stops its renders, frees its canvases and ends its Web Worker. A file that fails to open, a damaged or password-protected one, ends its Web Worker before `showPdf` throws.
+Dispose of what `showPdf` returns, with `using` or by calling `[Symbol.dispose]()`, when the PDF leaves the page. That stops its renders, frees its canvases and ends its Web Worker. If the file won't open, because it's damaged or locked with a password, `showPdf` ends its Web Worker before it throws.
 
 ## Next
 

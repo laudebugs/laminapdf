@@ -21,7 +21,7 @@ This example draws a page with hayro and reads its text with Lamina PDF:
 
 <Snippet file="packages/sdk/examples/draw-page.ts" />
 
-To draw with PDFium instead, start it with `initPdfium(wasm)` from `@laminapdf/render-pdfium`, passing its WebAssembly as `initHayro` takes hayro's, and pass the backend it returns to `drawPage`. Nothing else changes.
+To draw with PDFium instead, start it with `initPdfium(wasm)` from `@laminapdf/render-pdfium`, which takes PDFium's WebAssembly as `initHayro` takes hayro's. Then pass the backend it returns to `drawPage`; nothing else changes.
 
 A scale of 2 draws 144 pixels per inch. Ask for a `clip` to draw only part of a page. The renderer refuses a tile wider or taller than 16,384 pixels, or larger than about 16.7 million pixels, with `render-too-large`, so draw a poster-sized page at a high scale in tiles. [How a page is drawn](/concepts/drawing-pages/) explains the tile plan.
 
