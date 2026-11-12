@@ -50,7 +50,7 @@ The work goes in four steps, so the cheap, well-evidenced fixes ship first and t
 | [Q4l](../todos/ready/Q4l-markdown-for-agents-per-page.md) | A Markdown alternate link and "Copy as Markdown" on every page | 10 |
 | [Q4m](../todos/ready/Q4m-watch-readers-use-the-docs.md) | Watch developers follow the docs, and read the agent eval | 13 |
 | [Q4n](../todos/ready/Q4n-since-markers-and-versions.md) | "Added in" markers on API items, and stable URLs per release from 1.0 | 11 |
-| [Q4o](../todos/ready/Q4o-usage-pages-for-document-and-builder.md) | Usage pages for `Document` and `Builder` beside their reference | 12 |
+| [Q4o](../todos/done/Q4o-usage-pages-for-document-and-builder.md) | Usage pages for `Document` and `Builder` beside their reference | 12 |
 | [Q4p](../todos/done/Q4p-twoslash-spike.md) | A spike: Twoslash hover types on one page, measured against Q4i's CSP | — |
 
 The recommendation numbers are the report's. Two of them are too large for one pull request, so the reading path is Q4b and Q4c, and the sidebar is Q4f now and Q4g after Q4m.
@@ -84,5 +84,5 @@ The recommendation numbers are the report's. Two of them are too large for one p
 - [ ] Q4l: Markdown for agents on every page
 - [ ] Q4m: watch readers use the docs
 - [ ] Q4n: "added in" markers and versions
-- [ ] Q4o: usage pages for `Document` and `Builder`
+- [x] Q4o: usage pages for `Document` and `Builder`
 - [x] Q4p: the Twoslash spike

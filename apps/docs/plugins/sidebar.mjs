@@ -2,6 +2,13 @@
 // quality plan §3), so every page is listed. llms.txt (agent-docs.mjs) follows the same order.
 
 /**
+ * The classes with a usage page (common tasks and mistakes) beside their generated reference: the
+ * class name, then the page's slug. The sidebar lists each page as "Using <class>", and
+ * typedoc-sources.mjs links the class's reference page to it.
+ */
+export const USAGE_PAGES = { Document: "reference/document-usage", Builder: "reference/builder-usage" };
+
+/**
  * The sidebar's groups, with the TypeDoc reference group (`typeDoc`) when the build has one.
  *
  * @param {unknown} [typeDoc]
@@ -119,6 +126,7 @@ export function sidebar(typeDoc) {
     {
       label: "Reference",
       items: [
+        ...Object.entries(USAGE_PAGES).map(([name, slug]) => ({ label: `Using ${name}`, slug })),
         ...(typeDoc ? [typeDoc] : []),
         { label: "Rust API (rustdoc)", slug: "reference/rust" },
         { label: "Error and warning codes", slug: "reference/codes" },
