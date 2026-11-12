@@ -61,16 +61,16 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.02 | Insert pages from other PDFs | — | — | — | — | E2 round-trip |  |
 | C.03 | Delete & duplicate pages | — | — | — | — | E2 round-trip |  |
 | C.04 | Reorder pages | 🟡 read | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read |
-| C.05 | Extract selected pages | — | — | — | — | E2 round-trip |  |
+| C.05 | Extract selected pages | — | — | — | — | E2 write |  |
 | C.06 | Merge multiple documents | — | — | — | — | E2 round-trip |  |
-| C.07 | Split by count, ranges, bookmarks | — | — | — | — | E2 round-trip |  |
+| C.07 | Split by count, ranges, bookmarks | — | — | — | — | E2 write |  |
 | C.08 | Rotate pages 90/180/270 | 🟢 round-trip | — | — | — | E2 round-trip | [`rotate_normalises_negative_multiples_of_90`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.09 | Crop display area | 🟡 read | — | — | — | E2 round-trip | [`crop_box_is_clipped_to_the_media_box`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.10 | Resize page dimensions | — | — | — | — | E2 round-trip |  |
 | C.11 | Modify margins & page boxes | 🟡 read | — | — | — | E2 round-trip | [`art_and_bleed_boxes_are_read_from_the_page`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.12 | Portrait ↔ landscape | — | — | — | — | E2 round-trip |  |
 | C.13 | Reverse page order | — | — | — | — | E2 round-trip |  |
-| C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read |
+| C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E6 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.15 | Booklet / N-up layouts | — | — | — | — | E16 round-trip |  |
 | C.16 | Replace pages, preserving the rest | — | — | — | — | E2 round-trip |  |
 
@@ -164,7 +164,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | H.07 | Extract text & images | — | — | — | — | E3 read |  |
 | H.08 | Extract hyperlinks & bookmarks | — | — | — | — | E3 read |  |
 | H.09 | Extract attachments | — | — | — | — | E3 read |  |
-| H.10 | Export pages/ranges | — | — | — | — | E2 round-trip |  |
+| H.10 | Export pages/ranges | — | — | — | — | E2 write |  |
 | H.11 | Render pages to images | — | — | — | — | E3 read |  |
 | H.12 | Convert to PDF/A, PDF/X, PDF/UA | — | — | — | — | E16 round-trip |  |
 | H.13 | Scanned → searchable PDF | — | — | — | — | E13 round-trip |  |

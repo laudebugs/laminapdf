@@ -41,7 +41,7 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.05` attach / extract / delete embedded files; `J.06` portfolios / collections; `H.09` extract attachments; `M.09` associated files and structured metadata
-- **Crates and packages:** `laminapdf-model` (file specs, name-tree writer from [E2b](E2b-page-structure-ops.md)), `laminapdf-ops`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-model` (file specs, name-tree writer from [E2j](E2j-page-tree-and-tree-writers.md)), `laminapdf-ops`, `@laminapdf/ui`
 - **`Op` variants:** `AttachFile`, `UpdateAttachment`, `DeleteAttachment` (class `Document`)
 - **`SaveConstraint`:** `Free` → incremental; signed: adding or changing attachments is class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`. Deleting an attachment leaves it in earlier revisions: notice offers full rewrite
 - **Web vs desktop:** identical; desktop saves extracted files to disk via dialog, web downloads
