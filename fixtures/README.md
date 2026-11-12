@@ -131,6 +131,7 @@ The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a 
 | File | Origin | Exercises |
 | --- | --- | --- |
 | `operators.pdf` | [`tools/fixtures/content.py`](../tools/fixtures/content.py) (no dependencies) | One page using every content construct `laminapdf-content` interprets: graphics state and `ExtGState`, every path-painting and clipping operator, device, named and pattern colours, a shading, every text operator, an inline image, an image XObject, nested Form XObjects with their own matrix and resources, marked content (inline and named property lists, points) and a `BX`/`EX` section. Compared with pdf.js by `crates/laminapdf-content/tests/corpus.rs` |
+| `append/*.pdf` | [`tools/fixtures/content_append.py`](../tools/fixtures/content_append.py) (no dependencies) | Pages whose content leaves `q`/`Q` unbalanced, for the append API (E2e): balanced, two `q`s left open, a `Q` after a balanced pair (`q 2 0 0 2 0 0 cm … Q Q 0 0 1 rg`), a `Q` at depth 0 after a state change (`2 0 0 2 0 0 cm Q 0 0 10 10 re f`), an unmatched `Q` and an open `q` in each of two `/Contents` streams, an inline image whose data is `QQ`, two pages sharing a content stream and inherited resources that use `Fm1` and `Gs1`, content ending in a text object and content ending inside a string (refused). Read by `crates/laminapdf-content/tests/append.rs` and rendered by `crates/laminapdf-render-pdfium/tests/append.rs` |
 
 ### `differential/`
 

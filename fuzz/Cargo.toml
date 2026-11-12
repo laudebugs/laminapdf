@@ -77,6 +77,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "content_append_scan"
+path = "fuzz_targets/content_append_scan.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "ops_json"
 path = "fuzz_targets/ops_json.rs"
 test = false

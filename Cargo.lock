@@ -3088,7 +3088,11 @@ name = "laminapdf-render-pdfium"
 version = "0.2.0-alpha.6"
 dependencies = [
  "laminapdf",
+ "laminapdf-content",
+ "laminapdf-cos",
+ "laminapdf-model",
  "laminapdf-render",
+ "laminapdf-save",
  "laminapdf-test-fixtures",
  "pdfium-render",
  "serde_json",

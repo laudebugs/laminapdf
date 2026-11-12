@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E2a](../done/E2a-page-organisation-feature-plan.md) |
+| Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [E2a](./E2a-page-organisation-feature-plan.md) |
 | Dependency notes | [E2a](../done/E2a-page-organisation-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); extends the crate created by ADR 0023 (B9) |
 | Branch | `feat/e2e-content-append-api` |
 | PR title | `feat(content): append API that wraps and appends page content streams` |
 | Size | M (200–400): one writer in `laminapdf-content` over the lexer it already has, and its fixtures; no op |
-| PR | — |
+| PR | [#490](https://github.com/laudebugs/laminapdf/pull/490) |
 
 ## Goal
 
@@ -53,19 +53,19 @@ Add the minimal write API to `laminapdf-content` that never interprets existing 
 
 ## Tasks
 
-- [ ] Implement the token scan reusing B9's lexer (no interpretation)
-- [ ] Resource-name allocator (`Fm1`, `Gs1`, …) avoiding names in inherited resources
-- [ ] Copy-on-write for shared resource dicts and shared content streams
-- [ ] The writer works inside a transaction, so its callers' ops undo it through the journal
-- [ ] Unmatched-`Q` neutraliser: rewrite only the streams that contain one, blanking exactly the recorded tokens; copy-on-write for shared streams
-- [ ] Tests on pages with surplus `q`, surplus `Q` (e.g. `q 2 0 0 2 0 0 cm … Q Q 0 0 1 rg`, and `2 0 0 2 0 0 cm Q <draw>` where the depth-0 `Q` follows state changes), both in different streams of one `/Contents` array, inline images containing `Q` bytes, shared resources and shared content streams
+- [x] Implement the token scan reusing B9's lexer (no interpretation)
+- [x] Resource-name allocator (`Fm1`, `Gs1`, …) avoiding names in inherited resources
+- [x] Copy-on-write for shared resource dicts and shared content streams
+- [x] The writer works inside a transaction, so its callers' ops undo it through the journal
+- [x] Unmatched-`Q` neutraliser: rewrite only the streams that contain one, blanking exactly the recorded tokens; copy-on-write for shared streams
+- [x] Tests on pages with surplus `q`, surplus `Q` (e.g. `q 2 0 0 2 0 0 cm … Q Q 0 0 1 rg`, and `2 0 0 2 0 0 cm Q <draw>` where the depth-0 `Q` follows state changes), both in different streams of one `/Contents` array, inline images containing `Q` bytes, shared resources and shared content streams
 
 ## Acceptance criteria
 
-- [ ] Property test: writes made in a transaction and rolled back leave the overlay empty, and the next save is byte-identical to the previous one
-- [ ] Appending a filled rectangle to every page of 30 corpus files renders the original pixels unchanged plus the rectangle (PDFium diff) and passes qpdf `--check`
-- [ ] Pages with unbalanced `q` or surplus `Q` are rendered identically before/after wrapping (PDFium and pdf.js pixel diff = 0), including the fixture `2 0 0 2 0 0 cm Q 0 0 10 10 re f` (the rectangle stays at scale 2 after wrapping); streams without an unmatched `Q` are byte-identical after wrapping; and a rectangle appended to the surplus-`Q` fixture lands at the same place and colour as on a balanced page (no leaked CTM, clip or colour); a unit test checks the appended `Q` count against the scan's `e` and that only the recorded unmatched `Q` tokens were blanked
-- [ ] Fuzz target for the token scan runs 10 min without panic
+- [x] Property test: writes made in a transaction and rolled back leave the overlay empty, and the next save is byte-identical to the previous one
+- [x] Appending a filled rectangle to every page of 30 corpus files renders the original pixels unchanged plus the rectangle (PDFium diff) and passes qpdf `--check`
+- [x] Pages with unbalanced `q` or surplus `Q` are rendered identically before/after wrapping (PDFium and pdf.js pixel diff = 0), including the fixture `2 0 0 2 0 0 cm Q 0 0 10 10 re f` (the rectangle stays at scale 2 after wrapping); streams without an unmatched `Q` are byte-identical after wrapping; and a rectangle appended to the surplus-`Q` fixture lands at the same place and colour as on a balanced page (no leaked CTM, clip or colour); a unit test checks the appended `Q` count against the scan's `e` and that only the recorded unmatched `Q` tokens were blanked
+- [x] Fuzz target for the token scan runs 10 min without panic
 
 ## Post-merge checks
 
@@ -89,8 +89,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

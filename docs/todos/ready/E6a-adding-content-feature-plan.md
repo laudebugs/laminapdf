@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E2e](../ongoing/E2e-content-append-api.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md) |
+| Depends on | [E2e](../done/E2e-content-append-api.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e6a-adding-content-feature-plan` |
 | PR title | `docs(editor): E6 feature plan (adding content to pages)` |
@@ -34,7 +34,7 @@ The short feature-plan PR that opens round E6 ([full-editor §E6](../../plans/fu
 - The feature plan `docs/plans/editor/e6-adding-content.md`
 - Capability-manifest rows for the round's operations
 - Adjustments to the E6 implementation todos (split, merge, dependency fixes)
-- The `AppendContent` op over [E2e](../ongoing/E2e-content-append-api.md)'s `PageContentWriter`: its payload, including how its form's images and fonts are carried (blob store `BlobId`s from [E2c](E2c-cross-document-pages.md) or a form spec), and which E6 todo implements it ([E2 plan §8](../../plans/editor/e2-page-organisation.md#8-todos) moved it here from E2e)
+- The `AppendContent` op over [E2e](../done/E2e-content-append-api.md)'s `PageContentWriter`: its payload, including how its form's images and fonts are carried (blob store `BlobId`s from [E2c](E2c-cross-document-pages.md) or a form spec), and which E6 todo implements it ([E2 plan §8](../../plans/editor/e2-page-organisation.md#8-todos) moved it here from E2e)
 
 **Out of scope** (and which todo covers it)
 
