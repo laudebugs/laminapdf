@@ -149,7 +149,7 @@ The ops and dialogs are the same on both shells; the differences are where files
 
 | Area | Flag | Web | Desktop |
 | --- | --- | --- | --- |
-| Several files opened together from the OS: "Merge into one document" or "Open each" | `hasFileHandlers` (exists) | The installed app in Chromium, whose launch queue can hand over several files | Finder and Explorer selections, through Open with or a drop on the icon ([D3a](../../todos/ready/D3a-open-from-os.md)) |
+| Several files opened together from the OS: "Merge into one document" or "Open each" | `hasFileHandlers` (exists) | The installed app in Chromium, whose launch queue can hand over several files | Finder and Explorer selections, through Open with or a drop on the icon ([D3a](../../todos/done/D3a-open-from-os.md)) |
 | Files dropped on the window or the grid | none: both shells | Drop on the page | Drop on the window |
 | Extract and export one file | `canSaveAsDialog` (exists) | A save dialog in Chromium, else a download | A save dialog |
 | Split and export several files | `canWriteDirectory` (**new**): the platform can write files into a folder the user picks | A folder in Chromium (`showDirectoryPicker`); else one zip download, or two separate downloads for two files | A folder chosen with the dialog plugin, with Show in Finder or Explorer |

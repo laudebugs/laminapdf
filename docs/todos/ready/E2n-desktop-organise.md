@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D3a](./D3a-open-from-os.md), [E1i](./E1i-desktop-save-in-place.md), [E2g](./E2g-page-labels.md), [E2m](./E2m-document-dialogs.md) |
+| Depends on | [D3a](../done/D3a-open-from-os.md), [E1i](./E1i-desktop-save-in-place.md), [E2g](./E2g-page-labels.md), [E2m](./E2m-document-dialogs.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e2n-desktop-organise` |
 | PR title | `feat(desktop): organise pages, merge from Finder and Explorer, split to a folder` |
@@ -21,7 +21,7 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 
 - **Design (Paper):** [O06](../../design/paper/edit-session-organise.md#o06-organise-mode), [O07](../../design/paper/edit-session-organise.md#o07-insert-pages-and-merge-documents) (desktop: "Merge into one document"), [O08](../../design/paper/edit-session-organise.md#o08-split-document) (Save to a folder, Show in Finder)
 - [E2 plan §5 and §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells)
-- [E1h](E1h-desktop-edit-session.md) and [E1i](E1i-desktop-save-in-place.md): the engine's edit session and saving in place; [D3a](D3a-open-from-os.md): open requests with several paths
+- [E1h](E1h-desktop-edit-session.md) and [E1i](E1i-desktop-save-in-place.md): the engine's edit session and saving in place; [D3a](../done/D3a-open-from-os.md): open requests with several paths
 
 ## Scope
 
