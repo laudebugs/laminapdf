@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E1a](../done/E1a-editing-foundation-feature-plan.md), [E1f](../ready/E1f-metadata-ui-capability-page.md) |
@@ -51,23 +51,23 @@ The short feature-plan PR that opens round E2 ([full-editor §E2](../../plans/fu
 
 ## Tasks
 
-- [ ] Create `docs/plans/editor/e2-page-organisation.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`C.01`, `C.02`, `C.03`, `C.04`, `C.05`, `C.06`, `C.07`, `C.08`, `C.09`, `C.10`, `C.11`, `C.12`, `C.13`, `C.14`, `C.16`, `H.10`, `I.10`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
-- [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
-- [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
-- [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
-- [ ] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E2"` and status `unsupported` until each implementation PR flips them
-- [ ] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E2b onwards): split or merge them so each stays one reviewable PR, at most L (400–800 changed lines) on the [todo template](../TEMPLATE.md)'s scale, and keep their `Depends on` explicit
-- [ ] Answer or assign an owner to each open question below; record decisions in the feature plan
-- [ ] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E2](../../plans/full-editor.md#e2-page-organisation)
+- [x] Create `docs/plans/editor/e2-page-organisation.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`C.01`, `C.02`, `C.03`, `C.04`, `C.05`, `C.06`, `C.07`, `C.08`, `C.09`, `C.10`, `C.11`, `C.12`, `C.13`, `C.14`, `C.16`, `H.10`, `I.10`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
+- [x] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [x] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
+- [x] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
+- [x] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
+- [x] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E2"` and status `unsupported` until each implementation PR flips them
+- [x] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E2b onwards): split or merge them so each stays one reviewable PR, at most L (400–800 changed lines) on the [todo template](../TEMPLATE.md)'s scale, and keep their `Depends on` explicit
+- [x] Answer or assign an owner to each open question below; record decisions in the feature plan
+- [x] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E2](../../plans/full-editor.md#e2-page-organisation)
 
 ## Acceptance criteria
 
-- [ ] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
-- [ ] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
-- [ ] Every implementation todo of the round is linked from the plan and each has explicit dependencies
-- [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E2"`, except `C.14`, which the plan moves to round E6; `cargo xtask capabilities` regenerates without error
-- [ ] Each open question below is answered or has a named owner and a deadline round
+- [x] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
+- [x] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
+- [x] Every implementation todo of the round is linked from the plan and each has explicit dependencies
+- [x] `docs/capabilities/manifest.toml` has a row per op with `target round = "E2"`, except `C.14`, which the plan moves to round E6; `cargo xtask capabilities` regenerates without error
+- [x] Each open question below is answered or has a named owner and a deadline round
 
 ## Post-merge checks
 
@@ -91,8 +91,8 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [ ] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

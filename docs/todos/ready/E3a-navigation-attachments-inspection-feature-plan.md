@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2a](../ongoing/E2a-page-organisation-feature-plan.md) |
+| Depends on | [E2a](../done/E2a-page-organisation-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e3a-navigation-attachments-inspection-feature-plan` |
 | PR title | `docs(editor): E3 feature plan (navigation, attachments, inspection and extraction)` |

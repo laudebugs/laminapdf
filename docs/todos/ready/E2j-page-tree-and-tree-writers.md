@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8a](../done/B8a-structure-tree.md), [E2a](../ongoing/E2a-page-organisation-feature-plan.md) |
+| Depends on | [B8a](../done/B8a-structure-tree.md), [E2a](../done/E2a-page-organisation-feature-plan.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0005](../../decisions/0005-document-model.md) |
 | Branch | `feat/e2j-page-tree-and-tree-writers` |
 | PR title | `feat(model): page-tree editor, name and number tree writers, page reference index` |

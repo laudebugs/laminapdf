@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2a](../ongoing/E2a-page-organisation-feature-plan.md) |
+| Depends on | [E2a](../done/E2a-page-organisation-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2p-source-documents-and-copier` |
 | PR title | `feat(ops,model): source documents, the blob store and the object copier` |

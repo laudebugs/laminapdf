@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E2a](../ongoing/E2a-page-organisation-feature-plan.md) |
-| Dependency notes | [E2a](../ongoing/E2a-page-organisation-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
+| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E2a](../done/E2a-page-organisation-feature-plan.md) |
+| Dependency notes | [E2a](../done/E2a-page-organisation-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); extends the crate created by ADR 0023 (B9) |
 | Branch | `feat/e2e-content-append-api` |
 | PR title | `feat(content): append API that wraps and appends page content streams` |
