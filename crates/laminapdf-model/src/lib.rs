@@ -87,7 +87,7 @@ mod tree;
 mod values;
 pub mod xmp;
 
-pub use copy::ObjectCopier;
+pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};
 pub use disclosure::{
     Action, Annotation, Disclosure, EmbeddedFile, EmbeddedFileHolder, FormField, Owner, Trigger, XmpPacket,

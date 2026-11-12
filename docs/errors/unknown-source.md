@@ -13,7 +13,7 @@ The source was never added, or it was added to another session. An op log names 
 
 ## How to fix
 
-Add the source document's bytes with `add_source` (`addSource` in TypeScript) before applying ops that name it. The same bytes always give the same ID, so adding the file again restores the source the log names.
+Add the source document's bytes with `add_source` (in Rust; the bindings come with the ops that copy pages) before applying ops that name it. The same bytes always give the same ID, so adding the file again restores the source the log names.
 
 ## Example
 

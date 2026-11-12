@@ -1,7 +1,6 @@
 //! Source documents and the blob store (todo E2p): `add_source` names a file by the hash of
 //! its bytes, opens it once, keeps its bytes for the session, and leaves the session as it
 //! was when the file doesn't open.
-#![allow(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;
 

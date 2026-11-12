@@ -1,9 +1,9 @@
 //! `ObjectCopier` (todo E2p): what a copy carries, what it shares, what it leaves out, and the
 //! limits that stop it before it writes.
-#![allow(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
+#![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 use laminapdf_cos::{Document, Error, Limit, Limits, ObjRef, Object, OpenOptions};
-use laminapdf_model::ObjectCopier;
+use laminapdf_model::{Copied, ObjectCopier};
 use laminapdf_test_fixtures::{classic, classic_with_root, fixture, stream_body};
 
 /// An empty target: a catalog and an empty page tree.
@@ -164,8 +164,56 @@ fn links_between_pages_copied_together_point_at_the_copies_and_others_become_nul
         copier.outside().iter().copied().collect::<Vec<_>>(),
         [ObjRef::new(5, 0)]
     );
-    assert_eq!(copier.copy_of(ObjRef::new(5, 0)), Some(None));
-    assert_eq!(copier.copy_of(ObjRef::new(4, 0)), Some(Some(new_pages[1])));
+    assert_eq!(copier.copy_of(ObjRef::new(5, 0)), Some(Copied::Null));
+    assert_eq!(copier.copy_of(ObjRef::new(4, 0)), Some(Copied::Object(new_pages[1])));
+}
+
+#[test]
+fn a_widget_comes_with_its_field_and_the_fields_widget_on_another_page_stays_out() {
+    let source = source(&[
+        b"<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [5 0 R] >> >>",
+        b"<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /MediaBox [0 0 200 200] >>",
+        b"<< /Type /Page /Parent 2 0 R /Annots [6 0 R] >>",
+        b"<< /Type /Page /Parent 2 0 R /Annots [7 0 R] >>",
+        b"<< /FT /Tx /T (name) /Kids [6 0 R 7 0 R] >>",
+        b"<< /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /P 3 0 R /Parent 5 0 R >>",
+        b"<< /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /P 4 0 R /Parent 5 0 R >>",
+    ]);
+    let mut target = target();
+    let pages = source.pages().unwrap();
+    let mut copier = ObjectCopier::new(&source, Limits::default());
+    copier.copy_pages(&mut target.edit(), &[&pages[0]]).unwrap();
+    // The page, its widget and the field; the other page's widget is null in /Kids.
+    assert_eq!(target.overlay().len(), 3);
+    assert_eq!(
+        copier.outside().iter().copied().collect::<Vec<_>>(),
+        [ObjRef::new(7, 0)]
+    );
+    let Some(Copied::Object(field)) = copier.copy_of(ObjRef::new(5, 0)) else {
+        panic!("the field was not copied");
+    };
+    let kids = get(&mut target, field).as_dict().unwrap().get("Kids").unwrap().clone();
+    assert_eq!(kids.as_array().unwrap()[1], Object::Null);
+}
+
+#[test]
+fn a_failed_copy_leaves_the_copier_as_it_was() {
+    let source = source(&[
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /MediaBox [0 0 200 200] >>",
+        b"<< /Type /Page /Parent 2 0 R /Next 4 0 R /Annots [5 0 R] /Big 6 0 R >>",
+        b"<< /Type /Page /Parent 2 0 R >>",
+        b"<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /Dest [4 0 R /Fit] >>",
+        &stream_body("", &[b'x'; 64]),
+    ]);
+    let mut target = target();
+    let pages = source.pages().unwrap();
+    let mut copier = ObjectCopier::new(&source, Limits::default().with_max_decoded_total(16));
+    // The walk reaches page 2 (outside the copy) and the link before the stream that is too big.
+    copier.copy_pages(&mut target.edit(), &[&pages[0]]).unwrap_err();
+    assert!(copier.outside().is_empty());
+    assert_eq!(copier.copy_of(ObjRef::new(4, 0)), None);
+    assert_eq!(copier.copy_of(ObjRef::new(5, 0)), None);
 }
 
 #[test]

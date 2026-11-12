@@ -11,24 +11,50 @@ use sha2::{Digest as _, Sha256};
 /// streams with the same key are the same stream in the target.
 type Key = [u8; 32];
 
+/// What a source object becomes in the target ([`ObjectCopier::copy_of`]).
+///
+/// Added in 0.2.0.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum Copied {
+    /// This target object.
+    Object(ObjRef),
+    /// Nothing: references to it are written as `null` (a missing object, or one outside the
+    /// copy).
+    Null,
+}
+
+impl Copied {
+    /// The reference a copied reference to the source object becomes.
+    fn reference(self) -> Object {
+        match self {
+            Self::Object(r) => Object::Ref(r),
+            Self::Null => Object::Null,
+        }
+    }
+}
+
 /// Copies pages, and every object they reach, from a source document into a target
 /// document's overlay, with fresh object numbers ([ADR 0005] §3).
 ///
 /// * **Once per source.** An object reached from several copied pages (a font, an image) is
 ///   copied once, and so is a stream stored twice in the source with the same dictionary
 ///   and bytes: streams are matched by a hash of their content, references included. The
-///   copier remembers what it copied, so later calls with the same copier reuse it; keep one
-///   copier per source and target for as long as the target keeps its copies.
+///   copier remembers what it copied, so later calls with the same copier reuse it. Its
+///   records name objects in the target: drop it when the target loses them (a transaction
+///   rolled back, an undo), and use a new one.
 /// * **Pages stay pages.** A page's `/Parent` is left out and the attributes it inherited
 ///   (`/Resources`, `/MediaBox`, `/CropBox`, `/Rotate`; §7.7.3.4) are set on the copy, which
 ///   the caller then puts in the target's page tree. A reference to a page that is not being
-///   copied, to a page-tree node or to the catalog (a link's destination, a widget's field
-///   and its other widgets) is written as `null`, and the object it named is listed in
-///   [`ObjectCopier::outside`].
-/// * **Bounded.** The copy walks the source before it writes anything: stream data past
-///   [`Limits::max_decoded_total`] bytes, or objects nested deeper than
-///   [`Limits::max_nesting_depth`], stop it with [`Error::LimitExceeded`] and leave the
-///   target as it was. Reference cycles are followed once.
+///   copied, to a page-tree node, to the catalog (a link's destination) or to an annotation
+///   whose `/P` names a page that is not being copied (a field's widget on another page) is
+///   written as `null`, and the object it named is listed in [`ObjectCopier::outside`]. A
+///   widget's field comes with it; fitting it into the target's form is the caller's job.
+/// * **Bounded.** The copy walks the source before it writes anything. Streams whose stored
+///   (still encoded) data passes [`Limits::max_decoded_total`] bytes in one call, the bytes
+///   the copy holds in memory, or objects nested deeper than [`Limits::max_nesting_depth`],
+///   stop it with [`Error::LimitExceeded`], leaving the target and the copier as they were.
+///   Reference cycles are followed once.
 /// * **Decrypted.** Objects of an encrypted source are read decrypted, and their streams lose
 ///   the `/Crypt` filter (§7.4.10), so the copies are written as plain objects (encrypted
 ///   only if the target is).
@@ -79,8 +105,8 @@ type Key = [u8; 32];
 pub struct ObjectCopier<'s> {
     source: &'s laminapdf_cos::Document,
     limits: Limits,
-    /// Each source object reached so far → its copy, or `None` where it is written as `null`.
-    copies: BTreeMap<ObjRef, Option<ObjRef>>,
+    /// Each source object reached so far → what it became.
+    copies: BTreeMap<ObjRef, Copied>,
     /// Each copied stream's key → the copy.
     streams: BTreeMap<Key, ObjRef>,
     /// Each keyed source object's key; `None` when it can't be keyed (in a cycle, or too far).
@@ -91,18 +117,19 @@ pub struct ObjectCopier<'s> {
 /// What one call reads from the source before it writes.
 #[derive(Default)]
 struct Walk {
+    /// The pages being copied.
+    roots: BTreeSet<ObjRef>,
     /// The source objects to copy, in the order they were reached.
     order: Vec<(ObjRef, Arc<Object>)>,
     /// The same, by reference.
     objects: BTreeMap<ObjRef, Arc<Object>>,
     /// References written as `null`: missing objects, and what lies outside the copy.
     nulls: BTreeSet<ObjRef>,
+    /// What lies outside the copy, for [`ObjectCopier::outside`] once the call succeeds.
+    outside: BTreeSet<ObjRef>,
     /// Stream bytes read.
     bytes: usize,
 }
-
-/// Inheritable page attributes (ISO 32000-2 §7.7.3.4), as [`laminapdf_cos::Inherited`] holds them.
-const INHERITED: [&str; 4] = ["Resources", "MediaBox", "CropBox", "Rotate"];
 
 /// The key of a reference written as `null`.
 const NULL_KEY: Key = [0; 32];
@@ -137,24 +164,46 @@ impl<'s> ObjectCopier<'s> {
     /// Added in 0.2.0.
     pub fn copy_pages(&mut self, target: &mut CosMut<'_>, pages: &[&laminapdf_cos::Page]) -> Result<Vec<ObjRef>> {
         let roots: Vec<Dict> = pages.iter().map(|page| page_dict(page)).collect();
-        let root_refs: BTreeSet<ObjRef> = pages.iter().filter_map(|page| page.obj_ref).collect();
-        let walk = self.walk(&roots, &root_refs)?;
+        let walk = self.walk(&roots, pages.iter().filter_map(|page| page.obj_ref).collect())?;
+        let before = (self.copies.clone(), self.streams.clone(), self.keys.clone());
+        let written = self
+            .key_streams(&walk)
+            .and_then(|()| self.write(target, pages, &roots, &walk));
+        if written.is_err() {
+            (self.copies, self.streams, self.keys) = before;
+        } else {
+            self.outside.extend(&walk.outside);
+        }
+        written
+    }
+
+    /// Keys every stream the walk read, so equal ones are copied once.
+    fn key_streams(&mut self, walk: &Walk) -> Result<()> {
         for (r, object) in &walk.order {
             if matches!(**object, Object::Stream(_)) {
-                self.key_of(*r, &walk, &root_refs, &mut Vec::new())?;
+                self.key_of(*r, walk, &mut Vec::new())?;
             }
         }
+        Ok(())
+    }
 
-        // Every read is done: from here on, numbers are reserved and objects written.
+    /// Reserves the numbers of the copies and writes them: the pages last, as `roots`.
+    fn write(
+        &mut self,
+        target: &mut CosMut<'_>,
+        pages: &[&laminapdf_cos::Page],
+        roots: &[Dict],
+        walk: &Walk,
+    ) -> Result<Vec<ObjRef>> {
         let doc = target.document();
         let copies = pages.iter().map(|_| doc.reserve_number()).collect::<Result<Vec<_>>>()?;
         for (page, &copy) in pages.iter().zip(&copies) {
             if let Some(r) = page.obj_ref {
-                self.copies.insert(r, Some(copy));
+                self.copies.insert(r, Copied::Object(copy));
             }
         }
         for &r in &walk.nulls {
-            self.copies.insert(r, None);
+            self.copies.insert(r, Copied::Null);
         }
         let mut writes = Vec::new();
         for (r, object) in &walk.order {
@@ -163,11 +212,11 @@ impl<'s> ObjectCopier<'s> {
                 _ => None,
             };
             if let Some(&copy) = key.and_then(|k| self.streams.get(&k)) {
-                self.copies.insert(*r, Some(copy));
+                self.copies.insert(*r, Copied::Object(copy));
                 continue;
             }
             let copy = doc.reserve_number()?;
-            self.copies.insert(*r, Some(copy));
+            self.copies.insert(*r, Copied::Object(copy));
             if let Some(key) = key {
                 self.streams.insert(key, copy);
             }
@@ -191,17 +240,17 @@ impl<'s> ObjectCopier<'s> {
         Ok(copies)
     }
 
-    /// The copy of source object `source`: `Some(None)` when references to it are written as
-    /// `null`, `None` when nothing copied so far reached it.
+    /// What source object `source` became in the target; `None` when nothing copied so far
+    /// reached it.
     ///
     /// Added in 0.2.0.
     #[must_use]
-    pub fn copy_of(&self, source: ObjRef) -> Option<Option<ObjRef>> {
+    pub fn copy_of(&self, source: ObjRef) -> Option<Copied> {
         self.copies.get(&source).copied()
     }
 
-    /// The source pages, page-tree nodes and catalog that copied objects referred to without
-    /// being copied; those references were written as `null`.
+    /// The source pages, page-tree nodes, catalog and annotations of other pages that copied
+    /// objects referred to without being copied; those references were written as `null`.
     ///
     /// Added in 0.2.0.
     #[must_use]
@@ -210,14 +259,17 @@ impl<'s> ObjectCopier<'s> {
     }
 
     /// Reads every source object the `roots` reach that isn't copied yet, checking the limits.
-    fn walk(&mut self, roots: &[Dict], root_refs: &BTreeSet<ObjRef>) -> Result<Walk> {
-        let mut walk = Walk::default();
+    fn walk(&self, roots: &[Dict], root_refs: BTreeSet<ObjRef>) -> Result<Walk> {
+        let mut walk = Walk {
+            roots: root_refs,
+            ..Walk::default()
+        };
         let mut queue = VecDeque::new();
         for root in roots {
             self.scan_dict(root, None, 0, &mut queue)?;
         }
         while let Some(r) = queue.pop_front() {
-            if root_refs.contains(&r)
+            if walk.roots.contains(&r)
                 || self.copies.contains_key(&r)
                 || walk.objects.contains_key(&r)
                 || walk.nulls.contains(&r)
@@ -229,8 +281,8 @@ impl<'s> ObjectCopier<'s> {
                 walk.nulls.insert(r);
                 continue;
             }
-            if is_outside(&object) {
-                self.outside.insert(r);
+            if self.is_outside(&object, &walk.roots)? {
+                walk.outside.insert(r);
                 walk.nulls.insert(r);
                 continue;
             }
@@ -248,6 +300,28 @@ impl<'s> ObjectCopier<'s> {
             walk.objects.insert(r, object);
         }
         Ok(walk)
+    }
+
+    /// Whether `object` lies outside the copy: a page not being copied (and not copied
+    /// earlier), a page-tree node, the catalog, or an annotation whose `/P` names such a page.
+    fn is_outside(&self, object: &Object, roots: &BTreeSet<ObjRef>) -> Result<bool> {
+        let Some(dict) = object.as_dict() else {
+            return Ok(false);
+        };
+        if is_page_tree_or_catalog(dict) {
+            return Ok(true);
+        }
+        let Some(page) = dict.get("P").and_then(Object::as_ref) else {
+            return Ok(false);
+        };
+        if roots.contains(&page) || matches!(self.copies.get(&page), Some(Copied::Object(_))) {
+            return Ok(false);
+        }
+        Ok(self
+            .source
+            .resolve(page)?
+            .as_dict()
+            .is_some_and(is_page_tree_or_catalog))
     }
 
     /// Queues the references in `object`, checking its nesting.
@@ -280,28 +354,24 @@ impl<'s> ObjectCopier<'s> {
     /// by the key of what it points at. `None` for an object in a reference cycle, or more
     /// than [`Limits::max_resolve_depth`] references away from the stream being keyed: such a
     /// stream is copied, just never matched with another.
-    fn key_of(
-        &mut self,
-        r: ObjRef,
-        walk: &Walk,
-        roots: &BTreeSet<ObjRef>,
-        stack: &mut Vec<ObjRef>,
-    ) -> Result<Option<Key>> {
+    fn key_of(&mut self, r: ObjRef, walk: &Walk, stack: &mut Vec<ObjRef>) -> Result<Option<Key>> {
         if let Some(&known) = self.keys.get(&r) {
             return Ok(known);
         }
-        if walk.nulls.contains(&r) || self.copies.get(&r) == Some(&None) {
+        if walk.nulls.contains(&r) || self.copies.get(&r) == Some(&Copied::Null) {
             return Ok(Some(NULL_KEY));
         }
         let mut hash = Sha256::new();
         // A page copied with this call, or an object an earlier call copied, stands for itself.
-        if roots.contains(&r) {
+        if walk.roots.contains(&r) {
             hash.update(b"page");
             hash.update(r.num.to_be_bytes());
             hash.update(r.gen_nr.to_be_bytes());
             return Ok(Some(hash.finalize().into()));
         }
-        if let Some(Some(copy)) = self.copies.get(&r) {
+        if let Some(Copied::Object(copy)) = self.copies.get(&r) {
+            // A later call keys such a stream apart from an equal one keyed by its content:
+            // it is copied again, never matched wrongly.
             hash.update(b"copy");
             hash.update(copy.num.to_be_bytes());
             return Ok(Some(hash.finalize().into()));
@@ -313,7 +383,7 @@ impl<'s> ObjectCopier<'s> {
             return Ok(None);
         }
         stack.push(r);
-        let keyed = self.feed(&mut hash, object, walk, roots, stack, 0);
+        let keyed = self.feed(&mut hash, object, walk, stack, 0);
         stack.pop();
         let key = keyed?.then(|| hash.finalize().into());
         self.keys.insert(r, key);
@@ -326,7 +396,6 @@ impl<'s> ObjectCopier<'s> {
         hash: &mut Sha256,
         object: &Object,
         walk: &Walk,
-        roots: &BTreeSet<ObjRef>,
         stack: &mut Vec<ObjRef>,
         depth: usize,
     ) -> Result<bool> {
@@ -334,30 +403,30 @@ impl<'s> ObjectCopier<'s> {
             return Ok(false);
         }
         match object {
-            Object::Null => put(hash, 0, &[]),
-            Object::Bool(b) => put(hash, 1, &[u8::from(*b)]),
-            Object::Integer(i) => put(hash, 2, &i.to_be_bytes()),
-            Object::Real(f) => put(hash, 3, &f.to_bits().to_be_bytes()),
-            Object::String(s) => put(hash, 4, &s.bytes),
-            Object::Name(n) => put(hash, 5, n.as_bytes()),
-            Object::Ref(r) => match self.key_of(*r, walk, roots, stack)? {
-                Some(key) => put(hash, 6, &key),
+            Object::Null => put(hash, tag::NULL, &[]),
+            Object::Bool(b) => put(hash, tag::BOOL, &[u8::from(*b)]),
+            Object::Integer(i) => put(hash, tag::INTEGER, &i.to_be_bytes()),
+            Object::Real(f) => put(hash, tag::REAL, &f.to_bits().to_be_bytes()),
+            Object::String(s) => put(hash, tag::STRING, &s.bytes),
+            Object::Name(n) => put(hash, tag::NAME, n.as_bytes()),
+            Object::Ref(r) => match self.key_of(*r, walk, stack)? {
+                Some(key) => put(hash, tag::REFERENCE, &key),
                 None => return Ok(false),
             },
             Object::Array(items) => {
-                put(hash, 7, &(items.len() as u64).to_be_bytes());
+                put(hash, tag::ARRAY, &(items.len() as u64).to_be_bytes());
                 for item in items {
-                    if !self.feed(hash, item, walk, roots, stack, depth + 1)? {
+                    if !self.feed(hash, item, walk, stack, depth + 1)? {
                         return Ok(false);
                     }
                 }
             }
-            Object::Dict(dict) => return self.feed_dict(hash, dict, walk, roots, stack, depth),
+            Object::Dict(dict) => return self.feed_dict(hash, dict, walk, stack, depth),
             Object::Stream(stream) => {
-                if !self.feed_dict(hash, &stream.dict, walk, roots, stack, depth)? {
+                if !self.feed_dict(hash, &stream.dict, walk, stack, depth)? {
                     return Ok(false);
                 }
-                put(hash, 9, &stream.data);
+                put(hash, tag::STREAM_DATA, &stream.data);
             }
         }
         Ok(true)
@@ -368,18 +437,17 @@ impl<'s> ObjectCopier<'s> {
         hash: &mut Sha256,
         dict: &Dict,
         walk: &Walk,
-        roots: &BTreeSet<ObjRef>,
         stack: &mut Vec<ObjRef>,
         depth: usize,
     ) -> Result<bool> {
-        put(hash, 8, &(dict.len() as u64).to_be_bytes());
+        put(hash, tag::DICT, &(dict.len() as u64).to_be_bytes());
         for (name, value) in dict.iter() {
             // The writer sets /Length; an indirect one would only make equal streams differ.
             if name.as_bytes() == b"Length" {
                 continue;
             }
-            put(hash, 5, name.as_bytes());
-            if !self.feed(hash, value, walk, roots, stack, depth + 1)? {
+            put(hash, tag::NAME, name.as_bytes());
+            if !self.feed(hash, value, walk, stack, depth + 1)? {
                 return Ok(false);
             }
         }
@@ -389,7 +457,7 @@ impl<'s> ObjectCopier<'s> {
     /// `object` with each source reference replaced by its copy (`null` where there is none).
     fn rewrite(&self, object: &Object) -> Object {
         match object {
-            Object::Ref(r) => self.copies.get(r).copied().flatten().map_or(Object::Null, Object::Ref),
+            Object::Ref(r) => self.copies.get(r).map_or(Object::Null, |copied| copied.reference()),
             Object::Array(items) => Object::Array(items.iter().map(|item| self.rewrite(item)).collect()),
             Object::Dict(dict) => Object::Dict(self.rewrite_dict(dict)),
             Object::Stream(stream) => {
@@ -415,13 +483,7 @@ impl<'s> ObjectCopier<'s> {
 fn page_dict(page: &laminapdf_cos::Page) -> Dict {
     let mut dict = page.dict.clone();
     dict.remove("Parent");
-    let inherited = &page.inherited;
-    for (key, value) in INHERITED.into_iter().zip([
-        &inherited.resources,
-        &inherited.media_box,
-        &inherited.crop_box,
-        &inherited.rotate,
-    ]) {
+    for (key, value) in page.inherited.entries() {
         if let Some(value) = value
             && matches!(dict.get(key), None | Some(Object::Null))
         {
@@ -431,10 +493,23 @@ fn page_dict(page: &laminapdf_cos::Page) -> Dict {
     dict
 }
 
-/// Whether `object` is a page, a page-tree node or the catalog: what a copy points at only
-/// when it is copied too.
-fn is_outside(object: &Object) -> bool {
-    let Some(Object::Name(kind)) = object.as_dict().and_then(|d| d.get("Type")) else {
+/// The tags that keep the hashed encodings of different kinds of value apart.
+mod tag {
+    pub(super) const NULL: u8 = 0;
+    pub(super) const BOOL: u8 = 1;
+    pub(super) const INTEGER: u8 = 2;
+    pub(super) const REAL: u8 = 3;
+    pub(super) const STRING: u8 = 4;
+    pub(super) const NAME: u8 = 5;
+    pub(super) const REFERENCE: u8 = 6;
+    pub(super) const ARRAY: u8 = 7;
+    pub(super) const DICT: u8 = 8;
+    pub(super) const STREAM_DATA: u8 = 9;
+}
+
+/// Whether `dict` is a page, a page-tree node or the catalog.
+fn is_page_tree_or_catalog(dict: &Dict) -> bool {
+    let Some(Object::Name(kind)) = dict.get("Type") else {
         return false;
     };
     matches!(kind.as_bytes(), b"Page" | b"Pages" | b"Catalog")
