@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §4 release gates](../../plans/desktop-app.md#non-functional-targets-and-release-gates) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D2d](../ongoing/D2d-tile-transport-and-first-document.md) |
+| Depends on | [D2d](../done/D2d-tile-transport-and-first-document.md) |
 | ADRs | Records its numbers in [0008](../../decisions/0008-desktop-shell.md) §4 |
 | Branch | `perf/d2g-desktop-cold-start` |
 | PR title | `perf(desktop): reach an interactive window within 300 ms of launch` |
