@@ -14,7 +14,7 @@ This error originated in "test/browser/edit.browser.test.ts" test file.
 The last test to run before this error was "reopens the saved file after a restart, and takes back only the edits since the save".
 ```
 
-Locally the whole Chromium suite showed it about one run in six.
+Locally the whole Chromium suite showed it about one run in six. The edit tests alone (20 of 20, in Chromium and Firefox) never showed it, and a log of the calls still pending when the worker stopped never fired there: no call of the client's or the edit session's goes unhandled. That ruled out the worker client and the edit session, and left the strip, whose renders were the only calls in flight in the full suite's runs.
 
 A reader sees the other half of the bug: when the document's worker crashes and restarts, the thumbnails whose renders the crash cut short stay blank placeholders until they scroll out of the strip and back.
 

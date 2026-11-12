@@ -5,7 +5,7 @@
 import { Builder, init } from "@laminapdf/sdk";
 import { createViewer, ThumbnailStrip, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { hook, next, read, testViewer } from "./helpers.js";
+import { ENCRYPTED, hook, next, PASSWORD, read, testViewer } from "./helpers.js";
 
 /** A 1,000-page document of letter pages, each with one box. */
 function thousandPages(): Uint8Array {
@@ -93,12 +93,44 @@ describe("the thumbnails strip", () => {
       strip.mount(side);
       strip.open(doc);
       await frame();
+      const items = () => strip.element.querySelectorAll("[role=option]").length;
+      const drawn = () => strip.element.querySelectorAll("canvas").length;
       // The thumbnails' background renders are still queued when the worker goes.
+      expect(drawn()).toBeLessThan(items());
       const restarted = next(client, "restarted");
       void hook(client, "__crash").catch(() => undefined);
       expect(await restarted).toMatchObject({ reopened: true });
-      const items = () => strip.element.querySelectorAll("[role=option]").length;
-      await until(() => items() > 0 && strip.element.querySelectorAll("canvas").length === items());
+      await until(() => items() > 0 && drawn() === items());
+      expect(reported).not.toHaveBeenCalled();
+    } finally {
+      reported.mockRestore();
+      strip.destroy();
+      viewer.destroy();
+      client.terminate();
+    }
+  });
+
+  it("empties itself, reporting nothing, when the restarted worker can't reopen a locked document", async () => {
+    const client = await testViewer();
+    const reported = vi.spyOn(globalThis, "reportError");
+    const viewer = createViewer({ client });
+    const strip = new ThumbnailStrip(client, viewer);
+    try {
+      const doc = await client.open(await read(ENCRYPTED), { password: PASSWORD });
+      viewer.mount(main);
+      viewer.open(doc);
+      strip.element.style.flex = "1";
+      strip.mount(side);
+      strip.open(doc);
+      await frame();
+      // The password died with the worker, so the document doesn't come back without it.
+      const restarted = next(client, "restarted");
+      void hook(client, "__crash").catch(() => undefined);
+      expect(await restarted).toMatchObject({ reopened: false });
+      strip.element.scrollTop = 0;
+      await frame();
+      await frame();
+      expect(strip.element.querySelectorAll("[role=option]").length).toBe(0);
       expect(reported).not.toHaveBeenCalled();
     } finally {
       reported.mockRestore();

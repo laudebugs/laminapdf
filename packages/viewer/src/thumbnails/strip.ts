@@ -104,12 +104,7 @@ export class ThumbnailStrip {
     on("keydown", (e) => this.#key(e));
     this.#cleanup.push(viewer.subscribe(() => this.#viewChanged()));
     this.#cleanup.push(viewer.on("invalidate", ({ pages }) => this.#invalidate(pages)));
-    // A restarted worker reopened the document under a new id: every thumbnail is drawn again.
-    this.#cleanup.push(
-      client.on("restarted", ({ reopened }) => {
-        if (reopened) this.#redrawAll();
-      }),
-    );
+    this.#cleanup.push(client.on("restarted", ({ reopened }) => this.#restarted(reopened)));
     // A strip shown later (its tab opened, its sheet raised) mounts what it now shows.
     const resized = new ResizeObserver(() => this.#schedule());
     resized.observe(root);
@@ -124,8 +119,7 @@ export class ThumbnailStrip {
 
   /** Shows `document`'s pages (the one the viewer opened). */
   open(document: OpenedDocument): void {
-    this.#unmountAll();
-    this.#cache.clear();
+    this.#clear();
     this.#document = document;
     this.#current = 0;
     this.#focus = 0;
@@ -137,19 +131,36 @@ export class ThumbnailStrip {
   /** Takes the strip down: renders aborted, canvases and bitmaps freed, listeners removed. */
   destroy(): void {
     if (this.#frame !== undefined) cancelAnimationFrame(this.#frame);
-    this.#unmountAll();
-    this.#cache.clear();
+    this.#clear();
     for (const f of this.#cleanup.splice(0)) f();
     this.element.remove();
   }
 
   // --- internals ---
 
-  /** Every thumbnail drawn again, as after a restart reopened the document under a new id. */
-  #redrawAll(): void {
+  /** Every thumbnail and cached bitmap gone. */
+  #clear(): void {
     this.#unmountAll();
     this.#cache.clear();
-    this.#schedule();
+  }
+
+  /**
+   * After the worker restarted: the reopened document (its id, its sizes with the edits replayed)
+   * laid out and drawn again, with no bitmap kept, since a restarted worker numbers its documents
+   * afresh and an old key could name the new document's pages. A document that didn't come back
+   * (its password died with the worker) leaves the strip empty until the next `open`.
+   */
+  #restarted(reopened: boolean): void {
+    this.#clear();
+    const document = this.#client.document;
+    if (!reopened || document === undefined) {
+      this.#document = undefined;
+      this.#layout = undefined;
+      this.#spacer.style.height = "0px";
+      return;
+    }
+    this.#document = document;
+    this.#relayout();
   }
 
   #relayout(): void {
@@ -303,11 +314,13 @@ export class ThumbnailStrip {
       const abort = new AbortController();
       item.abort = abort;
       try {
-        bitmap = await this.#render(
-          item,
-          { page: item.index, scale, rotation: layout.rotation, ...appearanceField(appearance) },
-          abort.signal,
-        );
+        const request = { page: item.index, scale, rotation: layout.rotation, ...appearanceField(appearance) };
+        bitmap = await this.#render(request, abort.signal);
+      } catch (error) {
+        // A failed render keeps its placeholder, and isn't asked for again while mounted.
+        item.done = true;
+        reportError(error);
+        return;
       } finally {
         if (item.abort === abort) item.abort = undefined;
       }
@@ -322,22 +335,17 @@ export class ThumbnailStrip {
     if (owned) bitmap.close();
   }
 
-  /** `item`'s thumbnail from the worker, or undefined when the render failed (and why is handled). */
-  async #render(
-    item: Item,
-    request: Parameters<ViewerClient["render"]>[0],
-    signal: AbortSignal,
-  ): Promise<ImageBitmap | undefined> {
+  /**
+   * A thumbnail from the worker, or undefined when it should be asked for again later: the page
+   * scrolled away or another document opened (the render was aborted), or the worker crashed (its
+   * restart draws every thumbnail again). Other failures throw.
+   */
+  async #render(request: Parameters<ViewerClient["render"]>[0], signal: AbortSignal): Promise<ImageBitmap | undefined> {
     try {
       return (await this.#client.render(request, { priority: "background", signal })).bitmap;
     } catch (error) {
-      // Scrolled away or a new document: drawn again if it comes back into view. A crashed
-      // worker is no failure of this page's: the restart draws it again.
       if (signal.aborted || isLaminaPdfError(error, "worker-crashed")) return undefined;
-      // A failed render keeps its placeholder, and isn't asked for again while mounted.
-      item.done = true;
-      reportError(error);
-      return undefined;
+      throw error;
     }
   }
 
