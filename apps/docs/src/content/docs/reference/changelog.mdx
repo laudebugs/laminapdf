@@ -6,6 +6,13 @@ tableOfContents: false
 
 import Changelog from "../../../components/Changelog.astro";
 
-Every Lamina PDF package shares one version, so each entry covers all of them, from the Rust crates to `@laminapdf/sdk` and the viewer. Breaking changes come first, under **Minor Changes**, as the [stability policy](/reference/stability/) explains. Versions from `0.2.0-alpha.2` on are on npm and crates.io; earlier ones were never published.
+Every Lamina PDF package shares one version, so each entry covers all of them, from the Rust crates to `@laminapdf/sdk` and the viewer. The first version on npm and crates.io is `0.2.0-alpha.2`.
+
+Each entry lists its changes under two headings:
+
+- **Minor Changes** holds every breaking change. Before version 1.0, a breaking change raises the minor version (`0.2` to `0.3`), as the [stability policy](/reference/stability/) explains. In the alphas, new features were listed here too. Read this list first when you upgrade: a breaking change's entry says what to change in your code.
+- **Patch Changes** holds fixes and, from `0.2.0` on, new features. Neither needs a change to your code.
+
+For example, to move from `0.2.0` to `0.3.1`, read the Minor Changes of `0.3.0`; `0.3.1` needs no code change. To move from an alpha to `0.2.0`, read both headings of every entry after your alpha: the alphas promised nothing to each other.
 
 <Changelog />

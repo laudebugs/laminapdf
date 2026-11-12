@@ -1,0 +1,136 @@
+/* The capability page (O05): a page over the whole window on `ground`, a bar with Back, then one
+   column up to 1080 px: the display heading, the lede, the legend, the filters (which wrap) and the
+   table, which scrolls inside its box at narrow widths so the page never scrolls sideways. */
+@layer paper.components {
+  .paper-capability-page {
+    position: fixed;
+    inset: 0;
+    z-index: var(--paper-z-modal);
+    overflow-y: auto;
+    background: var(--paper-ground);
+    color: var(--paper-text);
+  }
+
+  .paper-capability-bar {
+    display: flex;
+    align-items: center;
+    padding: var(--paper-space-8) var(--paper-space-16);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-surface);
+  }
+
+  .paper-capability-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-20);
+    max-inline-size: var(--paper-capability-page-width);
+    margin-inline: auto;
+    padding: var(--paper-space-32) var(--paper-space-16) var(--paper-space-48);
+  }
+
+  .paper-capability-heading {
+    margin: 0;
+    font: var(--paper-type-display);
+    letter-spacing: var(--paper-type-display-letter-spacing);
+  }
+
+  .paper-capability-lede,
+  .paper-capability-provenance {
+    margin: 0;
+    max-inline-size: 70ch;
+    font: var(--paper-type-body);
+    color: var(--paper-text-2);
+  }
+
+  .paper-capability-legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--paper-capability-legend-width), 1fr));
+    gap: var(--paper-space-12);
+    margin: 0;
+  }
+
+  .paper-capability-legend div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-capability-legend dd {
+    margin: 0;
+    font: var(--paper-type-caption);
+    color: var(--paper-text-2);
+  }
+
+  .paper-capability-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--paper-space-16);
+  }
+
+  .paper-capability-show {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-capability-show .paper-field-label {
+    inline-size: 100%;
+  }
+
+  .paper-capability-table-box {
+    overflow-x: auto;
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-surface);
+  }
+
+  .paper-capability-table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font: var(--paper-type-body);
+  }
+
+  .paper-capability-table caption {
+    padding: var(--paper-space-8) var(--paper-space-12);
+    text-align: start;
+    font: var(--paper-type-caption);
+    color: var(--paper-text-2);
+  }
+
+  .paper-capability-table :is(th, td) {
+    padding: var(--paper-space-8) var(--paper-space-12);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+    text-align: start;
+    vertical-align: middle;
+  }
+
+  .paper-capability-table th[scope="row"] {
+    font-weight: normal;
+  }
+
+  .paper-capability-table th[scope="col"] {
+    font: var(--paper-type-label);
+    color: var(--paper-text-3);
+  }
+
+  .paper-capability-group {
+    font: var(--paper-type-heading);
+    letter-spacing: var(--paper-type-heading-letter-spacing);
+    background: var(--paper-surface);
+  }
+
+  .paper-capability-id {
+    font: var(--paper-type-mono);
+    white-space: nowrap;
+  }
+
+  .paper-capability-none {
+    color: var(--paper-text-3);
+  }
+
+  .paper-capability-unsupported .paper-badge {
+    border-style: dashed;
+  }
+}

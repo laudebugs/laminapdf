@@ -9,7 +9,7 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
-use crate::docs_snippets::{RUST_EXAMPLES, TS_EXAMPLES, is_tool};
+use crate::docs_snippets::{RUST_EXAMPLES, TS_EXAMPLE_DIRS, is_tool};
 use crate::reports::{Options, Ratchet, finding};
 use crate::tracked::Tracked;
 use crate::workspace::Workspace;
@@ -17,9 +17,9 @@ use crate::workspace::Workspace;
 /// The examples' clippy configuration: the root `clippy.toml` plus a 40-line function limit.
 const CLIPPY_CONF_DIR: &str = "tools/xtask/clippy-examples";
 
-/// Biome's `packages/sdk/biome.json` override reports errors on every example; this lints the
-/// examples again with warnings as errors (the changed ones, or every one with `--all-strict`), for
-/// the rules that only warn outside the override.
+/// Biome's examples overrides (`packages/sdk/biome.json`, `packages/viewer/biome.json`) report
+/// errors on every example; this lints the examples again with warnings as errors (the changed
+/// ones, or every one with `--all-strict`), for the rules that only warn outside the override.
 pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
     if options.json || options.warnings {
         bail!("usage: cargo xtask biome-examples [--all-strict] (Biome prints its own report)");
@@ -32,7 +32,9 @@ pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
         .map(|path| path.to_string_lossy().replace('\\', "/"))
         .chain(untracked)
         .filter(|path| {
-            path.starts_with(TS_EXAMPLES) && crate::util::has_extension(path, &["ts"]) && ws.root.join(path).is_file()
+            TS_EXAMPLE_DIRS.iter().any(|dir| path.starts_with(dir))
+                && crate::util::has_extension(path, &["ts"])
+                && ws.root.join(path).is_file()
         })
         .filter(|path| ratchet.is_strict(path))
         .collect();

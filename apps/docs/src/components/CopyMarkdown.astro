@@ -1,0 +1,102 @@
+---
+// "Copy as Markdown": copies the page's Markdown twin (Head.astro links it) for pasting into a chat.
+// The twin is fetched from this site only when the button is pressed. The clipboard write starts
+// inside the press, with the twin's text as a promise: Safari refuses a write that comes after an
+// await, outside the click. The button stays focusable while it works (aria-disabled, not disabled),
+// so a keyboard user keeps their place. The 404 page has no twin, so no button.
+import copyIcon from "@laminapdf/icons/svg/copy.svg?raw";
+import { decorativeIcon } from "@laminapdf/site-kit/icon";
+import { pageTwin } from "../../plugins/markdown.mjs";
+
+const twin = pageTwin(Astro.url.pathname);
+---
+
+{
+  twin && (
+    <lamina-copy-markdown class="copy-markdown" data-twin={twin} data-pagefind-ignore>
+      <button type="button">
+        <Fragment set:html={decorativeIcon(copyIcon, "copy-markdown-icon")} />
+        Copy as Markdown
+      </button>
+      <span class="copy-markdown-status" role="status" />
+    </lamina-copy-markdown>
+  )
+}
+
+<script>
+  /** The twin's text as a plain-text blob, or a rejection the button reports. */
+  async function twinText(twin: string): Promise<Blob> {
+    const response = await fetch(twin);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return new Blob([await response.text()], { type: "text/plain" });
+  }
+
+  /** Writes the twin to the clipboard, started within the press that asked for it. */
+  function copy(twin: string): Promise<void> {
+    if (typeof ClipboardItem === "function") {
+      return navigator.clipboard.write([new ClipboardItem({ "text/plain": twinText(twin) })]);
+    }
+    return twinText(twin).then((blob) => blob.text().then((text) => navigator.clipboard.writeText(text)));
+  }
+
+  /** Copies the page's Markdown twin when its button is pressed, and says how that went. */
+  class LaminaCopyMarkdown extends HTMLElement {
+    connectedCallback(): void {
+      const button = this.querySelector("button");
+      const status = this.querySelector(".copy-markdown-status");
+      const { twin } = this.dataset;
+      if (button === null || status === null || twin === undefined) return;
+      button.addEventListener("click", () => {
+        if (button.getAttribute("aria-disabled") === "true") return;
+        button.setAttribute("aria-disabled", "true");
+        status.textContent = "";
+        copy(twin)
+          .then(() => {
+            status.textContent = "Copied";
+          })
+          .catch(() => {
+            status.textContent = "Couldn't copy. Open the Markdown instead:";
+            const link = document.createElement("a");
+            link.href = twin;
+            link.textContent = twin;
+            status.append(" ", link);
+          })
+          .finally(() => button.removeAttribute("aria-disabled"));
+      });
+    }
+  }
+  customElements.define("lamina-copy-markdown", LaminaCopyMarkdown);
+</script>
+
+<style>
+  .copy-markdown {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-top: 0.75rem;
+    font-size: var(--sl-text-sm);
+  }
+  .copy-markdown button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0;
+    font: inherit;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 0.25rem;
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-white);
+    cursor: pointer;
+  }
+  .copy-markdown button[aria-disabled="true"] {
+    cursor: progress;
+  }
+  .copy-markdown :global(.copy-markdown-icon) {
+    flex: none;
+  }
+  .copy-markdown-status {
+    color: var(--sl-color-gray-2);
+  }
+</style>

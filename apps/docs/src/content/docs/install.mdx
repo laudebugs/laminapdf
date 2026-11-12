@@ -5,7 +5,7 @@ description: Install Lamina PDF from npm or crates.io, and find every published 
 
 import Diagram from "../../components/Diagram.astro";
 
-Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both are alpha releases, so name the version when you install them. A plain `npm install` or `cargo add` picks a `0.0.0` placeholder that only reserves the name.
+Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both follow SemVer from `0.2.0` on: a breaking change raises the minor version (`0.2` to `0.3`), so an upgrade within one `0.x` line, such as `0.2.0` to `0.2.1`, needs no change to your code.
 
 ## TypeScript: `@laminapdf/sdk`
 
@@ -15,7 +15,7 @@ Install the version these docs describe:
 npm install @laminapdf/sdk@{{version}}
 ```
 
-`npm install @laminapdf/sdk@alpha` installs the newest alpha, whichever version that is. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@{{version}}`), and Deno takes `npm:@laminapdf/sdk@{{version}}`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
+Without a version, `npm install @laminapdf/sdk` installs the newest release. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@{{version}}`), and Deno takes `npm:@laminapdf/sdk@{{version}}`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
 
 The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](/quick-start/browser/) show each one.
 
@@ -24,10 +24,12 @@ The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `b
 Add the crate at the version these docs describe:
 
 ```sh
-cargo add laminapdf@={{version}}
+cargo add laminapdf@{{version}}
 ```
 
-The command writes `laminapdf = "={{version}}"` to `Cargo.toml`, which keeps your project on this release until you change it: alphas promise nothing to each other (see the [stability policy](/reference/stability/)). The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
+The command writes `laminapdf = "{{version}}"` to `Cargo.toml`, and Cargo reads it as this release or a later one in the same `0.x` line, which the [stability policy](/reference/stability/) promises needs no change to your code.
+
+The default features start with `text`: fonts and text, which includes the builder and text extraction. Four more are on by default: `markdown` (Markdown in, flowing pages out), `document` (JSON documents in, flowing pages out), `reflow` (a tagged document's text in reading order, for reader mode) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`, then turn on what you need: `build` for the builder without text, `extract` for text extraction alone. `explain`, off by default, gives each code's page as text.
 
 ## The command-line tool
 
@@ -41,10 +43,10 @@ Most projects need only the two above. The table links every published package t
 | --- | --- | --- |
 | `@laminapdf/sdk` | [npm](https://www.npmjs.com/package/@laminapdf/sdk) | The TypeScript API, for every JavaScript runtime |
 | `@laminapdf/wasm` | [npm](https://www.npmjs.com/package/@laminapdf/wasm) | The WebAssembly modules under `@laminapdf/sdk` |
-| `@laminapdf/render` | [npm](https://www.npmjs.com/package/@laminapdf/render) | The interface that page renderers implement |
-| `@laminapdf/render-pdfium` | [npm](https://www.npmjs.com/package/@laminapdf/render-pdfium) | The default web renderer, built on PDFium |
-| `@laminapdf/render-hayro` | [npm](https://www.npmjs.com/package/@laminapdf/render-hayro) | A second web renderer, built on hayro |
-| `@laminapdf/viewer` | [npm](https://www.npmjs.com/package/@laminapdf/viewer) | The core of a web PDF viewer, one worker per document |
+| `@laminapdf/render` | [npm](https://www.npmjs.com/package/@laminapdf/render) | The interface that page renderers implement ([guide](/guides/render-pages/)) |
+| `@laminapdf/render-pdfium` | [npm](https://www.npmjs.com/package/@laminapdf/render-pdfium) | The default web renderer, built on PDFium ([guide](/guides/render-pages/)) |
+| `@laminapdf/render-hayro` | [npm](https://www.npmjs.com/package/@laminapdf/render-hayro) | A second web renderer, built on hayro ([guide](/guides/render-pages/)) |
+| `@laminapdf/viewer` | [npm](https://www.npmjs.com/package/@laminapdf/viewer) | The core of a web PDF viewer, one worker per document ([guide](/guides/show-a-pdf/)) |
 | `laminapdf` | [crates.io](https://crates.io/crates/laminapdf) | The Rust API: open, read, edit, save and build PDFs |
 | `laminapdf-syntax` | [crates.io](https://crates.io/crates/laminapdf-syntax) | Objects, the lexer, the parser and stream filters |
 | `laminapdf-cos` | [crates.io](https://crates.io/crates/laminapdf-cos) | File structure: the tolerant reader and the writer |
@@ -55,8 +57,8 @@ Most projects need only the two above. The table links every published package t
 | `laminapdf-text` | [crates.io](https://crates.io/crates/laminapdf-text) | Fonts, shaping and line breaking |
 | `laminapdf-build` | [crates.io](https://crates.io/crates/laminapdf-build) | The builder that generates PDFs |
 | `laminapdf-source` | [crates.io](https://crates.io/crates/laminapdf-source) | Byte sources filled range by range, for remote files |
-| `laminapdf-render` | [crates.io](https://crates.io/crates/laminapdf-render) | The Rust interface that page renderers implement |
-| `laminapdf-render-pdfium` | [crates.io](https://crates.io/crates/laminapdf-render-pdfium) | The native PDFium renderer |
+| `laminapdf-render` | [crates.io](https://crates.io/crates/laminapdf-render) | The Rust interface that page renderers implement ([guide](/guides/render-pages/#in-rust)) |
+| `laminapdf-render-pdfium` | [crates.io](https://crates.io/crates/laminapdf-render-pdfium) | The native PDFium renderer ([guide](/guides/render-pages/#in-rust)) |
 
 <Diagram name="package-map" />
 

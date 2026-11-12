@@ -11,12 +11,13 @@
 //   (`hard-timeout`) or, for an encrypted document, `render-stuck` and a restart only on `stop()`;
 // - restart after a crash (the worker's error, messageerror or a reported trap; never silence):
 //   pending calls reject with `worker-crashed`, a new worker reopens the document from the same
-//   source, but the call that was running is never re-sent (the UI offers Retry). An encrypted
+//   source, and renders that were waiting are sent again once, there; the render that was running
+//   is never re-sent, so a page that crashes the engine can't loop (the UI offers Retry). An encrypted
 //   document isn't reopened: the password lived only in the dead worker, so `password-required`
 //   fires and the caller opens again with the password.
 
 import type { RenderRequest } from "@laminapdf/render";
-import { isLaminaPdfError, type Op, type PlannedSave, type SaveOptions } from "@laminapdf/sdk";
+import { type DocumentMetadata, isLaminaPdfError, type Op, type PlannedSave, type SaveOptions } from "@laminapdf/sdk";
 import {
   connect,
   Emitter,
@@ -121,7 +122,7 @@ export interface ViewerCallOptions {
 
 /**
  * What a `Viewer` needs of the engine it draws from: the open document, its events, renders,
- * and the text, link, find and edit calls of the layers and the edit session it builds. A
+ * and the text, link, find, edit and save calls of the layers and the edit session it builds. A
  * `ViewerClient` over its document worker is one; the desktop app's client over its engine
  * process is another, so the same viewer runs on both.
  */
@@ -140,6 +141,9 @@ export type ViewerEngine = Pick<
   | "redoEdit"
   | "goToStep"
   | "editHistory"
+  | "planSave"
+  | "copyEdits"
+  | "adoptEdits"
 >;
 
 /** One pending render's soft and hard timers. */
@@ -195,6 +199,8 @@ export class ViewerClient {
   readonly #timers = new Map<string, Set<RenderTimers>>();
   /** The key the worker is drawing now: a render that joins it starts its timers at once. */
   #drawing: string | undefined;
+  /** The render that was drawing when the worker crashed or was stopped: it isn't sent again. */
+  #lost: string | undefined;
 
   private constructor(pdf: WorkerClient, options: ViewerOptions) {
     this.#pdf = pdf;
@@ -383,6 +389,12 @@ export class ViewerClient {
     return history;
   }
 
+  /** The open document's metadata as its edits leave it: Info and XMP read together. */
+  async metadata(call?: ViewerCallOptions): Promise<DocumentMetadata> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("metadata", [this.#document?.id ?? 0], call);
+  }
+
   /** How saving the open document with `options` would go: its constraint, signatures, mode and warnings. */
   async planSave(options: SaveOptions, call?: ViewerCallOptions): Promise<PlannedSave> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
@@ -559,6 +571,26 @@ export class ViewerClient {
    * drawn once. An aborted render rejects with `AbortError` and never paints.
    */
   async render(request: RenderRequest, options: ViewerCallOptions = {}): Promise<RenderedBitmap> {
+    const attempt = { interrupted: false };
+    try {
+      return await this.#render(request, options, attempt);
+    } catch (e) {
+      if (!attempt.interrupted) throw e;
+    }
+    // The worker was lost while this render waited: it is sent again, once, in the restarted
+    // worker (ADR 0009 §3.6). A restart that didn't reopen the document (an encrypted one waits
+    // for its password) leaves it nothing to draw from: it ends as cancelled, as for a new open.
+    await this.#recovering?.catch(() => {});
+    if (this.#document === undefined) throw new DOMException("the document closed in a restart", "AbortError");
+    return this.#render(request, options, { interrupted: false });
+  }
+
+  /** One render; `attempt.interrupted` says a failure was only the worker's loss (see `render`). */
+  async #render(
+    request: RenderRequest,
+    options: ViewerCallOptions,
+    attempt: { interrupted: boolean },
+  ): Promise<RenderedBitmap> {
     const id = this.#nextRender++;
     // A restarted worker numbers its documents again: read the ID once it serves.
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
@@ -598,6 +630,12 @@ export class ViewerClient {
       // render that replaces it would wait behind them.)
       this.#firstDraw?.drawn(documentId);
       return drawn;
+    } catch (e) {
+      // Lost with its worker while it waited: a restart is under way, and it wasn't the render
+      // drawing then, which isn't re-sent so a page that crashes the engine can't loop.
+      attempt.interrupted =
+        isLaminaPdfError(e, "worker-crashed") && this.#recovering !== undefined && key !== this.#lost;
+      throw e;
     } finally {
       const own = this.#timers.get(key);
       own?.delete(timers);
@@ -611,8 +649,8 @@ export class ViewerClient {
 
   /**
    * Stops whatever the worker is doing by terminating it (the user's Stop, or the hard cap), then
-   * restarts it as after a crash: pending calls reject, the running one isn't re-sent, and an
-   * encrypted document asks for its password again.
+   * restarts it as after a crash: pending calls reject, renders that were waiting are sent again,
+   * the running one isn't, and an encrypted document asks for its password again.
    */
   stop(reason: "cancelled" | "hard-timeout" = "cancelled"): Promise<void> {
     // A restart already under way serves: a second would end the worker it is starting.
@@ -693,6 +731,8 @@ export class ViewerClient {
 
   #recover(reason: RestartReason): Promise<void> {
     if (this.#recovering !== undefined) return this.#recovering;
+    // Read before the lost calls' rejections run, which clear what was drawing.
+    this.#lost = this.#drawing;
     const recovering = (async () => {
       await this.#pdf.restart();
       await this.#pdf.request("initBackend", [this.#backend], { priority: PRIORITY.document });

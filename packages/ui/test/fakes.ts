@@ -27,6 +27,7 @@ const NO_CAPABILITIES: Capabilities = {
   crossOriginIsolated: false,
   ownsKeyboard: false,
   canShare: false,
+  shellTakesDrops: false,
 };
 
 /** A file over `bytes`, as a picker or a drop would give it. */

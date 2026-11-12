@@ -176,8 +176,8 @@ describe("CommandRegistry", () => {
 describe("the reader's commands", () => {
   const commands = readerCommands();
 
-  it("are ADR 0024's 48, reader mode's 7, Forget reading positions and Follow link, each with a visible home besides the palette", () => {
-    expect(commands).toHaveLength(57);
+  it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link and What Lamina PDF can do, each with a visible home besides the palette", () => {
+    expect(commands).toHaveLength(58);
     expect(commands.filter((c) => c.home.length === 0).map((c) => c.id)).toEqual([]);
   });
 

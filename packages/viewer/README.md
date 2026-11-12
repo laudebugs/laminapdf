@@ -179,8 +179,9 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
   - Defaults are `soft` 10 s (`render-slow`) and `hard` 120 s.
   - At the hard cap the client calls `stop("hard-timeout")`. For a document that needed a password, it emits `render-stuck` instead and waits for the user's `stop()`.
 - **Crashes:** a crash is the Web Worker's `error` or `messageerror`, or a WebAssembly trap it reports, never silence.
-  - Pending calls reject with `worker-crashed`.
-  - A new Web Worker reopens the document from the same source, but nothing that was pending is re-sent. The UI offers Retry, so a page that crashes the engine can't loop.
+  - Pending calls reject with `worker-crashed`, and a new Web Worker reopens the document from the same source.
+  - `render()` sends again, once, in the new Web Worker, each render that was waiting when the old one was lost. The render that was drawing then isn't re-sent: its page shows an error the UI offers Retry for, so a page that crashes the engine can't loop.
+  - When the restart can't reopen the document (an encrypted one waits for its password), a waiting render rejects with an `AbortError`.
   - `stop()` takes the same path with `reason: "cancelled"`.
 - **Secrets:** the password crosses to the Web Worker once, when the document opens, and is kept only there. The page keeps the source and the other options.
   - After a crash of an encrypted document, `password-required` fires and the caller opens again.
@@ -272,7 +273,7 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
   - page labels in the names;
   - the outline and a named destination of the links-and-outlines reference PDF landing on their pages.
 - Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps, and where each kind of destination puts the view at each rotation. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
-- Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite examples`. `examples/viewer-demo.html` is the viewer, with zoom buttons; `examples/rpc-demo.html` draws page 1 through the RPC alone. The perf harness has its own page, `perf/page/` ([Performance](#performance)).
+- Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite demo`. `demo/viewer-demo.html` is the viewer, with zoom buttons; `demo/rpc-demo.html` draws page 1 through the RPC alone. `examples/` holds the examples the docs site shows, under [the examples' rules](../../docs/guidelines/examples.md); `test/browser/show-a-pdf.browser.test.ts` runs `examples/show-a-pdf.ts`. The perf harness has its own page, `perf/page/` ([Performance](#performance)).
 
 ### Performance
 

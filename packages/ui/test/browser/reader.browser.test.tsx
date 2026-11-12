@@ -548,6 +548,15 @@ describe("OpenDropZone", () => {
     expect(document.querySelector(".paper-open-overlay")).toBeNull();
   });
 
+  it("leaves drops to a shell that takes them itself, and opens nothing", async () => {
+    const { opened } = home(fakePlatform({ flags: { shellTakesDrops: true } }));
+    const drop = dropFiles(pdf);
+    drop();
+    // A frame for anything the drop would have started.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect([document.querySelector(".paper-open-overlay"), opened]).toEqual([null, []]);
+  });
+
   it("opens a file named .pdf without a header, which the reader may repair", async () => {
     const { opened } = home();
     dropFiles(new File(["damaged bytes"], "Minutes-september.PDF"))();

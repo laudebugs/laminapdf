@@ -4,7 +4,7 @@
 import { Builder, init } from "@laminapdf/sdk";
 import { createViewer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { viewer as client } from "./helpers.js";
+import { viewer as client, hook, next, testViewer } from "./helpers.js";
 
 /** A seeded 1,000-page document of letter, A4 and landscape pages, each with one filled box. */
 function thousandPages(): Uint8Array {
@@ -400,6 +400,42 @@ describe("page appearance", () => {
     } finally {
       rpc.render = render;
       v.destroy();
+    }
+  });
+});
+
+describe("after a crash", () => {
+  it("draws the pages a crash interrupted once the worker restarts, leaving none in error", async () => {
+    // Its own client: the crash restarts the worker the other tests share.
+    const crashing = await testViewer();
+    const v = createViewer({ client: crashing });
+    v.mount(host);
+    v.open(await crashing.open(bytes));
+    const states = () => Object.values(v.stats().pages);
+    // Every mounted page drawn: sharp in view, the quick pass in the margin around it.
+    const drawn = () => states().length > 0 && states().every((s) => s === "sharp" || s === "low");
+    try {
+      await until(drawn);
+      // The worker is held while the pages scrolled to queue their renders; the crash runs first
+      // when the hold ends (document calls go before renders) and rejects them.
+      const held = hook(crashing, "__busy", [1500]).catch(() => undefined);
+      v.element.scrollTop = 200_000;
+      await until(() => !drawn());
+      // Pages still waiting for their render when the worker crashed: the ones it interrupted.
+      let waiting = 0;
+      const off = crashing.on("crashed", () => {
+        waiting = states().filter((s) => s === "placeholder").length;
+      });
+      const restarted = next(crashing, "restarted");
+      void hook(crashing, "__crash").catch(() => undefined);
+      await held;
+      expect(await restarted).toMatchObject({ reopened: true });
+      off();
+      expect(waiting).toBeGreaterThan(0);
+      await until(drawn);
+    } finally {
+      v.destroy();
+      crashing.terminate();
     }
   });
 });

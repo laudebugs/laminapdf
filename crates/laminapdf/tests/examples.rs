@@ -7,6 +7,9 @@
 #![expect(clippy::panic, reason = "test helper: a panic is a test failure")]
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/check_what_a_file_hides.rs"]
+mod check_what_a_file_hides;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -54,6 +57,9 @@ mod pdf_a_archive;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/pdf_ua_report.rs"]
 mod pdf_ua_report;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/react_to_error_codes.rs"]
+mod react_to_error_codes;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/snapshot_test.rs"]
 mod snapshot_test;
@@ -289,8 +295,78 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
     assert_eq!((&here, &in_manifest), (&files, &files));
 }
 
+/// Compares `text` with the golden at `path` under `fixtures/`; `UPDATE_GOLDEN=1` rewrites it. The
+/// docs site shows these goldens as the reading examples' output.
+fn check_text_golden(path: &str, text: &str) {
+    let golden = fixtures_dir().join(path);
+    if std::env::var_os("UPDATE_GOLDEN").is_some() {
+        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
+            .unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(&golden, text).unwrap_or_else(|e| panic!("{e}"));
+    }
+    let want = std::fs::read_to_string(&golden).unwrap_or_default();
+    assert!(text == want, "{} is stale: run with UPDATE_GOLDEN=1", golden.display());
+}
+
 /// The examples that read a PDF instead of building one.
-const READERS: [&str; 2] = ["extract_markdown", "snapshot_test"];
+const READERS: [&str; 4] = [
+    "check_what_a_file_hides",
+    "extract_markdown",
+    "react_to_error_codes",
+    "snapshot_test",
+];
+
+#[test]
+fn react_to_error_codes_asks_for_a_password_then_again_and_refuses_a_non_pdf() {
+    use react_to_error_codes::{NextStep, open_or_ask};
+    let file = fixture("encrypted/r6-aes-256-user.pdf");
+    let next = |password: Option<&str>| open_or_ask(file.clone(), password).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(next(None), NextStep::AskForPassword);
+    assert_eq!(next(Some("nope")), NextStep::AskAgain);
+    assert_eq!(
+        next(Some("Pässwört-6")),
+        NextStep::Show {
+            pages: 2,
+            warnings: Vec::new()
+        }
+    );
+    let not_pdf = open_or_ask(b"not a PDF".to_vec(), None).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(not_pdf, NextStep::NotAPdf);
+}
+
+#[test]
+fn check_what_a_file_hides_finds_an_old_revision_hidden_text_and_metadata() {
+    use check_what_a_file_hides::{FailedRedaction, report, what_it_hides};
+    let hides = |path: &str| what_it_hides(fixture(path)).unwrap_or_else(|e| panic!("{path}: {e}"));
+    // A letter whose later revision deleted a word that the first one still holds.
+    let letter = hides("corpus/hello-incremental.pdf");
+    assert_eq!(letter.categories, ["history"]);
+    assert_eq!(
+        letter.redactions,
+        [FailedRedaction {
+            code: "text-in-earlier-revision",
+            page: None
+        }]
+    );
+    // Invisible text on its first page, and metadata.
+    let brochure = hides("corpus/text-example.pdf");
+    assert_eq!(brochure.categories, ["metadata", "hidden-content"]);
+    assert_eq!(brochure.redactions, []);
+    // The report is a golden: the docs' guide shows it as the example's output, for the two
+    // files under the names the guide gives them. `UPDATE_GOLDEN=1` rewrites it.
+    let printed = report("letter.pdf", &letter) + &report("brochure.pdf", &brochure);
+    check_text_golden("reveal/examples/check_what_a_file_hides.txt", &printed);
+}
+
+#[test]
+fn check_what_a_file_hides_reports_a_file_with_nothing_beyond_its_pages() {
+    use check_what_a_file_hides::{Hidden, report};
+    let clean = Hidden {
+        categories: Vec::new(),
+        redactions: Vec::new(),
+    };
+    assert_eq!(report("clean.pdf", &clean), "clean.pdf: nothing beyond its pages\n");
+}
 
 #[test]
 fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
@@ -302,18 +378,7 @@ fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     // The whole Markdown is a golden: the docs' Extract Markdown recipe shows it as the example's
     // output. `UPDATE_GOLDEN=1` rewrites it.
     let markdown = read("invoice.md");
-    let golden = fixtures_dir().join("extract/examples/invoice.md");
-    if std::env::var_os("UPDATE_GOLDEN").is_some() {
-        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
-            .unwrap_or_else(|e| panic!("{e}"));
-        std::fs::write(&golden, &markdown).unwrap_or_else(|e| panic!("{e}"));
-    }
-    let want = std::fs::read_to_string(&golden).unwrap_or_default();
-    assert!(
-        markdown == want,
-        "{} is stale: run with UPDATE_GOLDEN=1",
-        golden.display()
-    );
+    check_text_golden("extract/examples/invoice.md", &markdown);
     assert!(markdown.starts_with("<!-- page 1 -->\n\n# Invoice 42\n"));
     assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
     assert!(read("invoice.chunks.jsonl").lines().count() >= 1);

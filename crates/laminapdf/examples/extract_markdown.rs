@@ -5,7 +5,7 @@
 //! invisible or off the page) is left out of all three.
 //!
 //! ```sh
-//! cargo run -p laminapdf --example extract_markdown -- <file.pdf> [out-dir]
+//! cargo run -p laminapdf --features extract --example extract_markdown -- <file.pdf> [out-dir]
 //! # writes <out-dir>/<file>.md, <file>.json and <file>.chunks.jsonl
 //! ```
 

@@ -299,3 +299,19 @@ h1#_top,
 .docs-unreleased a {
   color: var(--paper-text);
 }
+
+/* The one-page views (src/pages/one-page/): each page's title, an h2 like the pages' own sections,
+   is larger and has a rule above it, so a reader sees where one page ends and the next begins. */
+.sl-markdown-content .one-page-section {
+  margin-top: 3rem;
+}
+.sl-markdown-content .one-page-title {
+  font-size: var(--sl-text-h1);
+  letter-spacing: -0.02em;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--sl-color-hairline);
+}
+.sl-markdown-content .one-page-title a {
+  color: inherit;
+  text-decoration: none;
+}
