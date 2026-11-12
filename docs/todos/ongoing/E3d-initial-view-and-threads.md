@@ -11,7 +11,7 @@
 | Branch | `feat/e3d-initial-view-and-threads` |
 | PR title | `feat(ops): initial view and viewer preferences; read article threads` |
 | Size | M (200–400): one op, the catalog and threads views, the viewer's initial view and the dialog |
-| PR | — |
+| PR | [#516](https://github.com/laudebugs/laminapdf/pull/516) |
 
 ## Goal
 
