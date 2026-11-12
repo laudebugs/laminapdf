@@ -12,8 +12,10 @@ import {
   type RenderRequest,
 } from "@laminapdf/render";
 import type {
+  ArticleThread,
   DocumentMetadata,
   DocumentProperties,
+  InitialView,
   Limits,
   Op,
   OutlineNode,
@@ -232,6 +234,8 @@ export interface Methods {
   networkLog: { params: []; result: WorkerNetworkLog };
   outline: { params: []; result: OutlineNode[] };
   namedDestination: { params: [name: string]; result: Target | undefined };
+  initialView: { params: []; result: InitialView };
+  threads: { params: []; result: ArticleThread[] };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   properties: { params: []; result: DocumentProperties };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };
