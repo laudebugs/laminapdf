@@ -21,7 +21,7 @@ Use three files: one plain (`fixtures/golden/examples/invoice.pdf`), one whose n
 | --- | --- | --- |
 | 1 | With the app closed, choose Lamina PDF in "Open with" for the plain PDF. | The app starts and shows the file. |
 | 2 | With the app running, open `Relevé de compte 2026.pdf` with "Open with" → Lamina PDF. | The running window comes to the front and shows it. The process list holds one Lamina PDF (plus its engine). |
-| 3 | Drop the plain PDF onto the window, on the home screen and over an open document. | "Drop to open the PDF" shows while dragging; the drop opens the file. |
+| 3 | Drop the plain PDF onto the window, on the home screen and over an open document. | "Drop to open the PDF" shows while dragging; the drop opens the file, and no failure page or second message follows (the webview's own drop handler must not fire too). |
 | 4 | Drop `notes.txt` onto the window. | "Only PDF files open in Lamina PDF" shows while dragging; a toast names `notes.txt`; nothing opens. |
 | 5 | Drop two PDFs at once. | The overlay says it opens the last of them, and it does. |
 | 6 | macOS: drop the PDF onto the Dock icon, with the app running and with it closed. | The file opens. |

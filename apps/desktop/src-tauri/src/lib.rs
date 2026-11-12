@@ -157,8 +157,11 @@ pub fn run() -> Result<(), DesktopError> {
     // anything else starts (the plugin's own rule). Its callback queues them like any OS request.
     let builder = builder
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-            open::bring_forward(app, MAIN_WINDOW);
+            // A launch with no file still brings the running app to the front; with files, opening does.
             let paths = open::paths_from_args(&args, std::path::Path::new(&cwd));
+            if paths.is_empty() {
+                open::bring_forward(app, MAIN_WINDOW);
+            }
             open::route_open(app, MAIN_WINDOW, paths);
         }))
         .manage(open::PendingOpens::default());
@@ -198,7 +201,7 @@ pub fn run() -> Result<(), DesktopError> {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             app.manage(engines(app.handle()));
-            app.manage(open::OpenWorker::start(app.handle().clone()));
+            app.manage(open::OpenWorker::start(app.handle().clone())?);
             // Windows are made here, not in tauri.conf.json, so the app chooses every label.
             let (width, height) = first_window_size(app.primary_monitor().ok().flatten());
             WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::default())

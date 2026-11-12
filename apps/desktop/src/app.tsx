@@ -179,7 +179,7 @@ function useOsOpens(
       open: (file) => reader.open(file),
       unreadable: (name) => toasts.add({ message: message("reader.open.missing", { name }) }),
       dragging: setDragging,
-      refused: (names) => toasts.add({ message: message("reader.open.refused", { names: names.join(", ") }) }),
+      refused: (names) => toasts.add({ message: `${message("reader.open.droppingNone")}: ${names.join(", ")}` }),
     }).then(
       (unsubscribe) => {
         if (gone) unsubscribe();

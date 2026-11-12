@@ -142,15 +142,21 @@ struct OpenJob {
 pub(crate) struct OpenWorker(mpsc::Sender<OpenJob>);
 
 impl OpenWorker {
-    /// Starts the worker; it stops when the app drops its state.
-    pub(crate) fn start(app: AppHandle) -> Self {
+    /// Starts the worker thread. It holds the app, whose state holds the sender, so it waits for
+    /// jobs until the process exits; a job for a window that has closed opens nothing.
+    ///
+    /// # Errors
+    /// The OS's error when it can't start a thread.
+    pub(crate) fn start(app: AppHandle) -> std::io::Result<Self> {
         let (send, receive) = mpsc::channel::<OpenJob>();
-        std::thread::spawn(move || {
-            for job in receive {
-                open_and_tell(&app, &job);
-            }
-        });
-        Self(send)
+        std::thread::Builder::new()
+            .name("open-worker".to_owned())
+            .spawn(move || {
+                for job in receive {
+                    open_and_tell(&app, &job);
+                }
+            })?;
+        Ok(Self(send))
     }
 }
 
@@ -206,11 +212,24 @@ fn open_now(app: &AppHandle, window: &str, mut paths: Vec<PathBuf>) {
 }
 
 /// Opens one job's file in its window's engine and sends the window the document or the failure.
+/// A window that has closed gets nothing: opening would start an engine that nothing stops.
 fn open_and_tell(app: &AppHandle, job: &OpenJob) {
+    if app.get_webview_window(&job.window).is_none() {
+        tracing::debug!("a document the OS asked for came after its window closed");
+        return;
+    }
+    let payload = opened(app, job);
+    if let Err(error) = app.emit_to(EventTarget::webview_window(&job.window), OPEN_EVENT, payload) {
+        tracing::warn!("could not hand the window its document: {error}");
+    }
+}
+
+/// Opens one job's file and says what came of it, by the file's name.
+fn opened(app: &AppHandle, job: &OpenJob) -> Opened {
     let name = file_name(&job.path);
     tracing::debug!(path = %job.path.display(), "opening a document the OS asked for");
     let engines = Arc::clone(&app.state::<Arc<Engines>>());
-    let payload = match open_file(&engines, &job.window, &job.path) {
+    match open_file(&engines, &job.window, &job.path) {
         Ok(document) => Opened::Document { name, document },
         Err(error) => {
             tracing::info!(kind = error.kind(), "a document the OS asked for didn't open");
@@ -219,9 +238,6 @@ fn open_and_tell(app: &AppHandle, job: &OpenJob) {
                 error: Failure::from(&error),
             }
         }
-    };
-    if let Err(error) = app.emit_to(EventTarget::webview_window(&job.window), OPEN_EVENT, payload) {
-        tracing::warn!("could not hand the window its document: {error}");
     }
 }
 
@@ -291,13 +307,10 @@ pub(crate) fn on_drag_drop(window: &tauri::Window, event: &tauri::DragDropEvent)
 /// Hands the webview the requests that came before it was ready, through [`OPEN_EVENT`], and lets
 /// later ones through at once. The webview calls it once, after it listens for the event.
 #[tauri::command]
-#[expect(
-    clippy::needless_pass_by_value,
-    reason = "Tauri hands a command its AppHandle by value"
-)]
-pub(crate) fn take_pending_opens(app: AppHandle) {
-    let paths = app.state::<PendingOpens>().take();
-    open_now(&app, crate::MAIN_WINDOW, paths);
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn take_pending_opens(window: tauri::WebviewWindow) {
+    let paths = window.state::<PendingOpens>().take();
+    open_now(window.app_handle(), window.label(), paths);
 }
 
 #[cfg(test)]

@@ -46,6 +46,8 @@ export const DESKTOP_FLAGS = {
   canWatchFiles: true,
   hasNativePrint: true,
   multiWindow: true,
+  // The main process opens dropped files (src-tauri/src/open.rs); the webview gets no path to open.
+  shellTakesDrops: true,
 } as const satisfies Partial<Capabilities>;
 
 /**
