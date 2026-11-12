@@ -39,9 +39,9 @@ Coding agents look up a library's current docs through tools such as Context7, o
 ## Tasks
 
 - [x] Read Context7's current docs for `context7.json` and the add-library flow; write the file; submit the listing (the owner, if it needs an account) and record its URL. The owner submitted it on 2026-11-11: [context7.com/llmstxt/laminapdf_llms_txt](https://context7.com/llmstxt/laminapdf_llms_txt). An llms.txt listing is claimed by a `context7.json` under the docs' own address, so the docs serve `apps/docs/public/context7.json` (its `url` and `public_key`) at `https://docs.laminapdf.com/context7.json`; the owner finishes the claim once a release deploys it. Context7 also built [`/laudebugs/laminapdf`](https://context7.com/laudebugs/laminapdf) from the repository; the root `context7.json` configures it and holds its claim (`url`, `public_key`), which Context7 reads from `main` once this merges.
-- [ ] Website links (the owner approves any change to the home page's words) and the README line.
-- [ ] Check `/llms.txt`, `/llms-full.txt` and one twin on production; tick L5a's check.
-- [ ] Ask Context7's MCP server a question about Lamina PDF and note the answer in the PR.
+- [x] Website links (the owner approves any change to the home page's words) and the README line. The owner approved the parts line and the footer line on 2026-11-12.
+- [x] Check `/llms.txt`, `/llms-full.txt` and one twin on production; tick L5a's check.
+- [x] Ask Context7's MCP server a question about Lamina PDF and note the answer in the PR. The owner asked "how do I add text to a page with @laminapdf/sdk" on 2026-11-12: the first useful snippets are the tested quick starts (`await init({ text: true })`, `page.surface().text(…)` with `at` as the baseline in top-left points, `finish`, `save`), so an agent writes working code. Context7's own summaries mislabel `loadText` and `isTextLoaded` as text extraction and the flowing report as PDF/A-1a, and the SDK reference shows an ADR reference in `OpenOptions.password` (a follow-up task).
 
 ## Acceptance criteria
 
