@@ -10,7 +10,7 @@ use super::{FrontMatter, MarkdownBuildOptions, Styles};
 use crate::error::Warning;
 use crate::flow::{
     ColumnWidth, Figure, FlowBlock, List, ListItem, ListKind, Paragraph, ParagraphStyle, Table, TableCell, TableRow,
-    destination, headings, plain_text,
+    destination, expand_tabs, headings, plain_text,
 };
 use crate::nav::LinkTarget;
 use laminapdf_text::Alignment;
@@ -574,7 +574,13 @@ fn joined(paragraphs: Vec<Paragraph>) -> Paragraph {
 /// A block's text, for a block a list item can't hold.
 fn block_text(block: &FlowBlock) -> String {
     match block {
-        FlowBlock::CodeBlock(text, _) => text.trim_end().to_owned(),
+        // Its tabs expanded here: as paragraph text, each would become a single space.
+        FlowBlock::CodeBlock(text, _) => text
+            .trim_end()
+            .split('\n')
+            .map(expand_tabs)
+            .collect::<Vec<_>>()
+            .join("\n"),
         FlowBlock::Paragraph(p) | FlowBlock::Heading(_, p) => plain_text(p),
         FlowBlock::Quote(blocks) => blocks.iter().map(block_text).collect::<Vec<_>>().join(" "),
         _ => String::new(),
