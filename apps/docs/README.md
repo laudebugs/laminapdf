@@ -70,7 +70,7 @@ Every page names the version it documents: the fixed group's version (`packages/
 
 - **The header** shows the version on the released docs, linked to the changelog, and "Unreleased" on every other build, linked to the released docs.
 - **The notice** (`src/components/Banner.astro`, Starlight's `Banner` override) says above every unreleased page that it describes changes that aren't released yet, and links to the released docs.
-- **Pages write `{{version}}`** where they name the version: install lines (`npm install @laminapdf/sdk@{{version}}`, `cargo add laminapdf@={{version}}`) and docs.rs links. The build fills it in on the pages and in their Markdown twins. On an `.mdx` page it may stand anywhere, prose and links included, because a Vite plugin fills it in before MDX reads the page. The `.md` pages (the TypeDoc reference, the changelog) can't use it. The website copies the install page's two install lines and fills in the same placeholder (`@laminapdf/site-kit/version`).
+- **Pages write `{{version}}`** where they name the version: install lines (`npm install @laminapdf/sdk@{{version}}`, `cargo add laminapdf@{{version}}`) and docs.rs links. The build fills it in on the pages and in their Markdown twins. On an `.mdx` page it may stand anywhere, prose and links included, because a Vite plugin fills it in before MDX reads the page. The `.md` pages (the TypeDoc reference, the changelog) can't use it. The website copies the install page's two install lines and fills in the same placeholder (`@laminapdf/site-kit/version`).
 - **The build fails** (`releaseChecks`) on:
   - a placeholder left unfilled;
   - an install command that names another version, the `alpha` tag aside, on any page but the changelog (a page of history);

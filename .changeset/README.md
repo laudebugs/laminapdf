@@ -12,7 +12,7 @@ sync` reads, so a new member needs no code change), and the sync gives every cra
   then `cargo xtask version sync` (the crates, `Cargo.lock`, the root `CHANGELOG.md` merged from
   every member's, and
   `@laminapdf/sdk`'s `VERSION` in `packages/sdk/src/version.ts`).
-- `pre.json` exists while the versions are pre-releases (`-alpha.N`). Its `"mode": "exit"` makes the next
+- `pre.json` exists while the versions are pre-releases (`-alpha.N`), and `pre/` holds the changesets they consumed. Its `"mode": "exit"` makes the next
   `pnpm changeset version` write a plain version and remove it, ending the alphas (`0.2.0`).
 
 Nothing is published from here: a `v<version>` tag on the merged version PR publishes, through the release lane ([P1](../docs/todos/done/P1-reserve-names-and-trusted-publishing.md), ADR 0017 §7).
