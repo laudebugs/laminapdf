@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
-| Dependency notes | [E3a](E3a-navigation-attachments-inspection-feature-plan.md), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `laminapdf-render`, ADR 0011) |
+| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [E3a](../ongoing/E3a-navigation-attachments-inspection-feature-plan.md) |
+| Dependency notes | [E3a](../ongoing/E3a-navigation-attachments-inspection-feature-plan.md), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `laminapdf-render`, ADR 0011) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3h-images-to-pdf-and-page-export` |
 | PR title | `feat(build): images to PDF and page image export` |

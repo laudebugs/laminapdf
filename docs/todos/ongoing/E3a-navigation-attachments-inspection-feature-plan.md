@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2a](../done/E2a-page-organisation-feature-plan.md) |

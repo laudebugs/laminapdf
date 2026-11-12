@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E2e](./E2e-content-append-api.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
+| Depends on | [E2e](./E2e-content-append-api.md), [E3a](../ongoing/E3a-navigation-attachments-inspection-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e4a-markup-and-drawing-annotations-feature-plan` |
 | PR title | `docs(editor): E4 feature plan (markup and drawing annotations)` |
