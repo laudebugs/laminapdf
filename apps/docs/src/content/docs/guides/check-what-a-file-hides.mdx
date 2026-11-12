@@ -20,14 +20,14 @@ The letter's latest revision deleted a word, but its first revision still holds 
 | Category | What it means |
 | --- | --- |
 | `history` | Earlier revisions, and objects nothing refers to any more |
-| `metadata` | The title, author and dates in the Info dictionary and the XMP packet, and metadata on single objects |
+| `metadata` | The title, author and dates in the file's two metadata stores (its document information and its XMP metadata), and metadata on single objects |
 | `attachments` | Embedded files |
 | `active-content` | JavaScript, actions that run on a trigger, and XFA forms |
 | `annotations` | Comments and markup, with their authors |
 | `forms` | Form fields that hold values |
 | `hidden-content` | Hidden text, layers turned off, and redaction marks never applied |
 
-The `Reveal` it returns also holds the details: each revision with the words it lost, each Info entry, each attachment's name and size, and each run of hidden text.
+The `Reveal` it returns also holds the details: each revision with how many words it removed and from which pages, each Info entry, each attachment's name and size, and each run of hidden text.
 
 ## Redactions that didn't remove the text
 

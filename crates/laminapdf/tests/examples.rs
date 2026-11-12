@@ -336,12 +336,18 @@ fn react_to_error_codes_asks_for_a_password_then_again_and_refuses_a_non_pdf() {
 
 #[test]
 fn check_what_a_file_hides_finds_an_old_revision_hidden_text_and_metadata() {
-    use check_what_a_file_hides::{report, what_it_hides};
+    use check_what_a_file_hides::{FailedRedaction, report, what_it_hides};
     let hides = |path: &str| what_it_hides(fixture(path)).unwrap_or_else(|e| panic!("{path}: {e}"));
     // A letter whose later revision deleted a word that the first one still holds.
     let letter = hides("corpus/hello-incremental.pdf");
     assert_eq!(letter.categories, ["history"]);
-    assert_eq!(letter.redactions, [("text-in-earlier-revision", None)]);
+    assert_eq!(
+        letter.redactions,
+        [FailedRedaction {
+            code: "text-in-earlier-revision",
+            page: None
+        }]
+    );
     // Invisible text on its first page, and metadata.
     let brochure = hides("corpus/text-example.pdf");
     assert_eq!(brochure.categories, ["metadata", "hidden-content"]);

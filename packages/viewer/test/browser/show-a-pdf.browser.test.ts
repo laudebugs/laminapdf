@@ -1,7 +1,7 @@
 // The docs site's "Show a PDF" example (examples/show-a-pdf.ts) in Chromium, Firefox and WebKit:
 // a PDF opens, its first page paints, and disposing of it empties the container.
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { showPdf } from "../../examples/show-a-pdf.js";
 import { read } from "./helpers.js";
 
@@ -36,7 +36,10 @@ it("ends the Web Worker when the file won't open", async () => {
   const container = document.createElement("div");
   document.body.append(container);
   const notPdf = new Blob([new TextEncoder().encode("not a PDF")]);
+  const terminate = vi.spyOn(Worker.prototype, "terminate");
   await expect(showPdf(container, notPdf, pdfiumWasm)).rejects.toThrow();
+  expect(terminate).toHaveBeenCalled();
+  terminate.mockRestore();
   expect(container.childElementCount).toBe(0);
   container.remove();
 });

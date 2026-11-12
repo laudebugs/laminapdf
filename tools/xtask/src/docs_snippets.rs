@@ -1,6 +1,6 @@
 //! `cargo xtask check docs-snippets`: the rules of docs/guidelines/examples.md that a tool can check,
-//! over the examples (`packages/sdk/examples/**`, `packages/viewer/examples/**`, `crates/laminapdf/examples/**`) and the files the
-//! docs site's `Snippet` component may show (its `import.meta.glob`). Run on its own, strict on
+//! over the examples (`packages/sdk/examples/**`, `packages/viewer/examples/**`,
+//! `crates/laminapdf/examples/**`) and the files the docs site's `Snippet` component may show (its `import.meta.glob`). Run on its own, strict on
 //! changed files and counted warnings elsewhere, like `docs-prose` ([`crate::reports`]);
 //! `cargo xtask check docs` runs it strict on every file.
 
@@ -20,6 +20,7 @@ const PAGES: &str = "apps/docs/src/content/docs/";
 pub(crate) const TS_EXAMPLE_DIRS: [&str; 2] = ["packages/sdk/examples/", "packages/viewer/examples/"];
 /// The Rust examples' folder (the `laminapdf` façade's).
 pub(crate) const RUST_EXAMPLES: &str = "crates/laminapdf/examples/";
+/// Every examples folder; a test holds it to [`TS_EXAMPLE_DIRS`] and [`RUST_EXAMPLES`].
 const EXAMPLE_DIRS: [&str; 3] = [TS_EXAMPLE_DIRS[0], TS_EXAMPLE_DIRS[1], RUST_EXAMPLES];
 const MAX_LINES: usize = 100;
 
@@ -577,6 +578,14 @@ fn pair_findings(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn example_dirs_should_hold_every_ts_folder_and_the_rust_one() {
+        for dir in TS_EXAMPLE_DIRS.iter().chain([&RUST_EXAMPLES]) {
+            assert!(EXAMPLE_DIRS.contains(dir), "{dir} is missing from EXAMPLE_DIRS");
+        }
+        assert_eq!(EXAMPLE_DIRS.len(), TS_EXAMPLE_DIRS.len() + 1);
+    }
 
     fn glob(pattern: &str) -> Glob {
         Glob {

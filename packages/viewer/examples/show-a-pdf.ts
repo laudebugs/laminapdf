@@ -1,5 +1,5 @@
-// Shows a PDF in a web page. The viewer keeps only the pages near the scroll position in the page
-// and draws them with PDFium, in a Web Worker so the page stays responsive. Pass the address your
+// Shows a PDF in a web page. The viewer keeps only the PDF's pages near the scroll position on
+// screen and draws them with PDFium, in a Web Worker so the web page stays responsive. Pass the address your
 // bundler serves PDFium's WebAssembly at; with Vite:
 //
 //   import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
@@ -24,7 +24,7 @@ export async function showPdf(container: HTMLElement, file: Blob, pdfiumWasm: st
   };
   try {
     viewer.mount(container);
-    // The Web Worker reads the file in slices; the page never holds its bytes.
+    // The file goes to the Web Worker by reference; the web page never reads its bytes.
     const opened = await client.open(file);
     viewer.open(opened);
     return { pageCount: opened.pages.length, [Symbol.dispose]: close };

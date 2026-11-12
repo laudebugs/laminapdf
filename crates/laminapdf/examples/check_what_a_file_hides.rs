@@ -3,7 +3,7 @@
 //! only covered text instead of removing it.
 //!
 //! ```sh
-//! cargo run -p laminapdf --example check_what_a_file_hides -- <file.pdf>…
+//! cargo run -p laminapdf --features extract --example check_what_a_file_hides -- <file.pdf>…
 //! ```
 
 use std::error::Error;
@@ -26,8 +26,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 pub(crate) struct Hidden {
     /// The kinds of thing it holds, such as `history` or `hidden-content`, in report order.
     pub(crate) categories: Vec<&'static str>,
-    /// Each failed redaction's warning code, with the 0-based page it is on, if it has one.
-    pub(crate) redactions: Vec<(&'static str, Option<u64>)>,
+    /// Each redaction that hid text without removing it.
+    pub(crate) redactions: Vec<FailedRedaction>,
+}
+
+/// A redaction that hid text without removing it.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct FailedRedaction {
+    /// Its warning code, such as `redaction-not-applied`.
+    pub(crate) code: &'static str,
+    /// The 0-based page it is on, when it is on one.
+    pub(crate) page: Option<u64>,
 }
 
 /// Opens `bytes` and lists what they hold beyond the visible pages.
@@ -47,7 +56,10 @@ pub(crate) fn what_it_hides(bytes: Vec<u8>) -> Result<Hidden, laminapdf::Error> 
             .collect(),
         redactions: redactions
             .iter()
-            .map(|warning| (warning.code(), warning.location().page_index))
+            .map(|warning| FailedRedaction {
+                code: warning.code(),
+                page: warning.location().page_index,
+            })
             .collect(),
     })
 }
@@ -55,7 +67,7 @@ pub(crate) fn what_it_hides(bytes: Vec<u8>) -> Result<Hidden, laminapdf::Error> 
 /// One line for each thing `found` holds, or one saying there is nothing.
 pub(crate) fn report(path: &str, found: &Hidden) -> String {
     let mut lines: Vec<String> = found.categories.iter().map(|c| format!("{path}: {c}\n")).collect();
-    for (code, page) in &found.redactions {
+    for FailedRedaction { code, page } in &found.redactions {
         let place = page.map_or_else(String::new, |page| format!(" on page {}", page + 1));
         lines.push(format!("{path}: {code}{place}\n"));
     }
