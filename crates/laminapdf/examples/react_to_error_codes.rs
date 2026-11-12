@@ -36,17 +36,17 @@ pub(crate) fn open_or_ask(bytes: Vec<u8>, password: Option<&str>) -> Result<Next
     };
     match Document::open_bytes(bytes, options) {
         Ok(doc) => {
-            // Warnings mean the file opened but needed repairs; their codes say which.
+            // Count the pages first: reading the page tree can add warnings of its own.
+            let pages = doc.page_count()?;
+            // Warnings mean the file opened but not exactly as written: a repair, or a value
+            // dropped at a limit. Their codes say which.
             let warnings = doc
                 .warnings()
                 .next_batch(u32::MAX)
                 .iter()
                 .map(Warning::warning_code)
                 .collect();
-            Ok(NextStep::Show {
-                pages: doc.page_count()?,
-                warnings,
-            })
+            Ok(NextStep::Show { pages, warnings })
         }
         Err(e) => match e.error_code() {
             ErrorCode::PasswordRequired => Ok(NextStep::AskForPassword),

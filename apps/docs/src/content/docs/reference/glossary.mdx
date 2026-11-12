@@ -92,7 +92,7 @@ A page entry that makes each user-space unit bigger than 1/72 of an inch, for ve
 
 ### User space
 
-PDF's own coordinates: points from the bottom-left corner of the page, with y going up, before any rotation. For example, on an A4 page 842 points tall, page space's `[72, 96]` is `[72, 746]` in user space. Lamina PDF's API uses page space instead; see [pages and coordinates](/concepts/pages-and-coordinates/).
+PDF's own coordinates: points from the bottom-left corner of the page, with y going up, before any rotation. For example, on an A4 page 842 points tall whose crop box starts at the corner, page space's `[72, 96]` is `[72, 746]` in user space. Lamina PDF's API uses page space instead; see [pages and coordinates](/concepts/pages-and-coordinates/).
 
 ## Fonts and text
 
@@ -116,7 +116,7 @@ A CMap a font carries that maps its codes to Unicode, so a reader can copy, sear
 
 ### DocMDP
 
-The permissions of a certifying signature: which changes the signed document still allows, such as none, filling in forms, or comments. DocMDP stands for document modification detection and prevention. For example, if a form is certified to allow only form filling, Lamina PDF refuses to save an edit that rotates one of its pages.
+The permissions of a certifying signature: which changes the signed document still allows, such as none, filling in forms, or comments. DocMDP stands for document modification detection and prevention. For example, if a form is certified to allow only form filling, Lamina PDF refuses to save an edit that rotates one of its pages, unless you ask it to remove the signature with `invalidateSignatures: true`.
 
 ### UR3
 

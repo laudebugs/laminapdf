@@ -14,7 +14,8 @@ export type NextStep =
 export function openOrAsk(bytes: Uint8Array, password?: string): NextStep {
   try {
     using doc = Document.open(bytes, password === undefined ? {} : { password });
-    // Warnings mean the file opened but needed repairs; their codes say which.
+    // Warnings mean the file opened but not exactly as written: a repair, or a value dropped at a
+    // limit. Their codes say which. `pageCount` comes first, since reading the pages can add some.
     return { step: "show", pages: doc.pageCount, warnings: doc.warnings.map((w) => w.code) };
   } catch (e) {
     if (isLaminaPdfError(e, "password-required")) return { step: "ask-for-password" };
