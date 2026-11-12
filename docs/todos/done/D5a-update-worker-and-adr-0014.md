@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `D5a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C4d](../done/C4d-deploy-previews-and-production.md), [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md), [D3b](../ready/D3b-recent-files-and-file-watching.md) |
-| Dependency notes | [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md) (bundle identifier, product name, target/arch matrix); web plan **C4** (`apps/web` Worker conventions, Wrangler pin, deploy workflow, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and ADR 0011 from web **C2** (Cloudflare topology, privacy and logging rules). Ordered after [D3b](../ready/D3b-recent-files-and-file-watching.md) on the board (see Depends on), though it uses no D3 code; it does not need D4 and may run in parallel with D4a–D4c. |
+| Depends on | [C2a](./C2a-render-adrs.md), [C4d](./C4d-deploy-previews-and-production.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md) |
+| Dependency notes | [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md) (bundle identifier, product name, target/arch matrix); web plan **C4** (`apps/web` Worker conventions, Wrangler pin, deploy workflow, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and ADR 0011 from web **C2** (Cloudflare topology, privacy and logging rules). Was ordered after [D3b](../ready/D3b-recent-files-and-file-watching.md) on the board, though it uses no D3 code; the owner asked for it first on 2026-11-12, so D3b was dropped from Depends on; it does not need D4 and may run in parallel with D4a–D4c. |
 | ADRs | **Writes ADR 0014** (desktop distribution). Follows ADR 0011, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md), ADR 0017 (attestations, library plan) |
 | Branch | `feat/d5a-update-worker` |
 | PR title | `feat(updates): add ADR 0014 and the update Worker with channels and staged rollout` |
@@ -96,24 +96,24 @@ Decide and build the server side of desktop updates. ADR 0014 records channels, 
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`, `workers-best-practices` and `wrangler` skills.
-- [ ] Write ADR 0014 (template in `docs/decisions/README.md`); index it; update the architecture §3 table row.
-- [ ] Scaffold `apps/updates` (package.json, `tsconfig.json` extending the base, Biome, Vitest with `@cloudflare/vitest-pool-workers` — licence check), `wrangler.jsonc` with `r2_buckets`, `routes`, `compatibility_date`, `observability: { enabled: true, head_sampling_rate: … }` and no header logging.
-- [ ] `src/index.ts` (fetch handler), `src/route.ts` (parse/validate), `src/manifest.ts` (schema + validation), `src/rollout.ts` (`bucketFor(installId, version): Promise<number>` with `crypto.subtle.digest`), `src/semver.ts` (compare incl. prerelease like `0.1.1-nightly.20261028.42`; or a vetted small dependency), `src/cache.ts` (single Cache API layer, 30 s TTL).
-- [ ] Header handling: read `Lamina-Install-Id`, validate UUID v4 (case-insensitive), lower-case before hashing; never pass it to `console.*` or include it in errors; strip it before any subrequest.
-- [ ] Manifest tooling commands; JSON Schema; example manifests under `apps/updates/test/fixtures/`.
-- [ ] **Owner action — updater key ceremony** (per ADR 0014 §7, before D5b): on an offline or freshly booted trusted machine run `pnpm tauri signer generate -w lamina-updater.key` with a strong password; store the private key + password in the secret manager and an encrypted offline backup in two places; add them as `desktop-release`-environment secrets `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; repeat for the **nightly** key (`lamina-updater-nightly.key`, stored as `desktop-nightly`-environment secrets with the same names; one backup is enough — losing it only strands nightly installs, which can reinstall); give both **public** keys to the D5b author. Record in the PR only that it was done and the public key's fingerprint — never the key.
-- [ ] Owner actions listed in the PR: create the R2 buckets `lamina-pdf-releases`, `lamina-pdf-staging` and `lamina-pdf-nightly`, connect `downloads.laminapdf.com`, `staging-downloads.laminapdf.com` and `nightly-downloads.laminapdf.com` as their custom domains, create the `updates.laminapdf.com` route, create three scoped API tokens (one per bucket) and store them as GitHub secrets: `lamina-pdf-releases` in `desktop-release`, `lamina-pdf-nightly` in `desktop-nightly`, and `lamina-pdf-staging` (`CLOUDFLARE_STAGING_R2_TOKEN`) in a `desktop-staging` environment (deployment branches: `main`) and also in `desktop-release`, for the signed staging dispatch runs of D6b–D6d (D6a). Until the domain exists, use a staging zone/`workers.dev` for tests (ADR 0014 notes it).
-- [ ] Deploy workflow + staging environment (`staging` channel) for D5b's e2e test.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`, `workers-best-practices` and `wrangler` skills.
+- [x] Write ADR 0014 (template in `docs/decisions/README.md`); index it; update the architecture §3 table row.
+- [x] Scaffold `apps/updates` (package.json, `tsconfig.json` extending the base, Biome, Vitest with `@cloudflare/vitest-pool-workers` — licence check), `wrangler.jsonc` with `r2_buckets`, `routes`, `compatibility_date`, `observability: { enabled: true, head_sampling_rate: … }` and no header logging.
+- [x] `src/index.ts` (fetch handler), `src/route.ts` (parse/validate), `src/manifest.ts` (schema + validation), `src/rollout.ts` (`bucketFor(installId, version): Promise<number>` with `crypto.subtle.digest`), `src/semver.ts` (compare incl. prerelease like `0.1.1-nightly.20261028.42`; or a vetted small dependency), `src/cache.ts` (single Cache API layer, 30 s TTL).
+- [x] Header handling: read `Lamina-Install-Id`, validate UUID v4 (case-insensitive), lower-case before hashing; never pass it to `console.*` or include it in errors; strip it before any subrequest.
+- [x] Manifest tooling commands; JSON Schema; example manifests under `apps/updates/test/fixtures/`.
+- [x] **Owner action — updater key ceremony** (per ADR 0014 §7, before D5b): on an offline or freshly booted trusted machine run `pnpm tauri signer generate -w lamina-updater.key` with a strong password; store the private key + password in the secret manager and an encrypted offline backup in two places; add them as `desktop-release`-environment secrets `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; repeat for the **nightly** key (`lamina-updater-nightly.key`, stored as `desktop-nightly`-environment secrets with the same names; one backup is enough — losing it only strands nightly installs, which can reinstall); give both **public** keys to the D5b author. Record in the PR only that it was done and the public key's fingerprint — never the key.
+- [x] Owner actions listed in the PR: create the R2 buckets `lamina-pdf-releases`, `lamina-pdf-staging` and `lamina-pdf-nightly`, connect `downloads.laminapdf.com`, `staging-downloads.laminapdf.com` and `nightly-downloads.laminapdf.com` as their custom domains, create the `updates.laminapdf.com` route, create three scoped API tokens (one per bucket) and store them as GitHub secrets: `lamina-pdf-releases` in `desktop-release`, `lamina-pdf-nightly` in `desktop-nightly`, and `lamina-pdf-staging` (`CLOUDFLARE_STAGING_R2_TOKEN`) in a `desktop-staging` environment (deployment branches: `main`) and also in `desktop-release`, for the signed staging dispatch runs of D6b–D6d (D6a). Until the domain exists, use a staging zone/`workers.dev` for tests (ADR 0014 notes it).
+- [x] Deploy workflow + staging environment (`staging` channel) for D5b's e2e test.
 
 ## Acceptance criteria
 
-- [ ] ADR 0014 is **Accepted** and covers items 1–9 above, including the key rotation runbook and compromise procedure.
-- [ ] Worker unit tests cover: 204 when up to date; 200 with the exact Tauri dynamic JSON when newer; 204 when the platform key is missing; rollout bucketing with the header **present** (in cohort / not in cohort, deterministic for a fixed ID+version), **absent** (only 100 % releases) and **malformed** (treated as absent); `previous` fallback; bridges (served below the bound with the bridge's own `url` + `signature`; not served at or above it; invalid bridge entries rejected by the validator); `paused` kill switch → 204 for clients outside every bridge, while a client below a bridge's `below` still gets the bridge with `paused: true`; manifest cache expiry: a `paused` change in R2 is visible after ≤ 30 s and there is no second cache layer (fake timers: request at t=0, flip `paused` at t=1 s, assert 204 by t=31 s); 400 on malformed path segments; unknown channel → 404.
-- [ ] A test asserts the install ID never reaches logs: spies on every `console` method and on the observability/tail output across all test requests and fails if the ID (or its hash) appears.
-- [ ] Rollout distribution test: 100,000 random UUIDs at 10 % → 10 % ± 0.5 %.
-- [ ] Deployed to staging; `curl -H 'Lamina-Install-Id: <uuid>' https://<staging>/staging/darwin/aarch64/0.0.1` returns the expected JSON for a seeded manifest (recorded in the PR).
-- [ ] `cargo xtask check ts` covers `apps/updates` (typecheck, Biome, Vitest).
+- [x] ADR 0014 is **Accepted** and covers items 1–9 above, including the key rotation runbook and compromise procedure.
+- [x] Worker unit tests cover: 204 when up to date; 200 with the exact Tauri dynamic JSON when newer; 204 when the platform key is missing; rollout bucketing with the header **present** (in cohort / not in cohort, deterministic for a fixed ID+version), **absent** (only 100 % releases) and **malformed** (treated as absent); `previous` fallback; bridges (served below the bound with the bridge's own `url` + `signature`; not served at or above it; invalid bridge entries rejected by the validator); `paused` kill switch → 204 for clients outside every bridge, while a client below a bridge's `below` still gets the bridge with `paused: true`; manifest cache expiry: a `paused` change in R2 is visible after ≤ 30 s and there is no second cache layer (fake timers: request at t=0, flip `paused` at t=1 s, assert 204 by t=31 s); 400 on malformed path segments; unknown channel → 404.
+- [x] A test asserts the install ID never reaches logs: spies on every `console` method and on the observability/tail output across all test requests and fails if the ID (or its hash) appears.
+- [x] Rollout distribution test: 100,000 random UUIDs at 10 % → 10 % ± 0.5 %.
+- [x] Deployed to staging; `curl -H 'Lamina-Install-Id: <uuid>' https://<staging>/staging/darwin/aarch64/0.0.1` returns the expected JSON for a seeded manifest (recorded in the PR).
+- [x] `cargo xtask check ts` covers `apps/updates` (typecheck, Biome, Vitest).
 
 ## Post-merge checks
 
@@ -142,8 +142,8 @@ Decide and build the server side of desktop updates. ADR 0014 records channels, 
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed (in the work PR's first commit, as the claim rule now says): a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

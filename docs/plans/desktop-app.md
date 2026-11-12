@@ -127,7 +127,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D5. Update service
 
-**Todos:** [D5a](../todos/ongoing/D5a-update-worker-and-adr-0014.md), [D5b](../todos/ready/D5b-updater-in-app.md)
+**Todos:** [D5a](../todos/done/D5a-update-worker-and-adr-0014.md), [D5b](../todos/ready/D5b-updater-in-app.md)
 
 **Deliverable:** ADR 0014; `apps/updates` Worker (channels, staged rollout, kill switch, 60 s cache) with tests; R2 layout and channel manifests; updater plugin wired in the app with settings.
 **Accepted when:** Worker unit tests cover 204/200, rollout bucketing from the `Lamina-Install-Id` header (present, absent, malformed) and kill switch; a test asserts the install ID never reaches logs; an app on `0.0.1-test` updates to `0.0.2-test` on each OS from a staging channel; a tampered bundle is rejected.
