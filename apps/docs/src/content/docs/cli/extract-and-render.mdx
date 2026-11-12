@@ -32,6 +32,8 @@ None of them contain hidden text: text under a box, white on white, off the page
 
 A scanned page is a picture of text, with no text to read. Each page in the JSON has a `textLayer` that says whether its text can be used or the page needs OCR, optical character recognition. A scanned page gives no Markdown and raises the `extract-needs-ocr` warning, so the command exits 3. [Troubleshooting text extraction](/troubleshooting/extraction/) covers this and other surprises, such as text in the wrong order.
 
+To extract from your own code instead, see [Extract text and Markdown](/guides/extract-text/).
+
 ## Images: `render`
 
 `render` draws pages as PNG images, at 150 dots per inch unless `--dpi` or `--scale` (pixels per point) says otherwise. `-o` takes one file-name pattern for every file `render` writes, and `render` fills in its fields for each page. The folders in the pattern must already exist:
