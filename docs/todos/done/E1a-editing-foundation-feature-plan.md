@@ -59,7 +59,7 @@ The short feature-plan PR that opens round E1 ([full-editor §E1](../../plans/fu
 - [x] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E1"` and status `unsupported` until each implementation PR flips them (already present on `main`: J.01–J.03 and J.10 with `round = "E1"`; `cargo xtask capabilities --check` passes)
 - [x] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E1b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
 - [x] Split E1d's desktop part into its own todo: the engine-process session commands, the native Edit menu items and the window-close guard, depending on E1d and [D4b](../ready/D4b-native-menus.md). E1d drops D4b
-- [x] Split E1e's desktop part into its own todo: in-place save, watcher suppression and the external-change conflict dialog, depending on E1e and [D3b](../ready/D3b-recent-files-and-file-watching.md). E1e drops D3b
+- [x] Split E1e's desktop part into its own todo: in-place save, watcher suppression and the external-change conflict dialog, depending on E1e and [D3b](../ongoing/D3b-recent-files-and-file-watching.md). E1e drops D3b
 - [x] Answer or assign an owner to each open question below; record decisions in the feature plan
 - [x] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation)
 

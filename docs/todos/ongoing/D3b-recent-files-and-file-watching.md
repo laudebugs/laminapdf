@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D3b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D3](../../plans/desktop-app.md#d3-files) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D3a](../done/D3a-open-from-os.md) |
@@ -43,9 +43,9 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 
 **Out of scope** (and which todo covers it)
 
-- Session restore (reopen last session): [D4a](D4a-windows-tabs-and-session-restore.md), which keeps its own document references in `session.json` (it does not depend on recent entries) but follows this todo's "Remember recent files" switch.
-- "Open Recent" native menu: [D4b](D4b-native-menus.md) (reads `RecentFiles`).
-- Settings page: [D5b](D5b-updater-in-app.md) creates it; [D7b](D7b-settings-renderer-switch-and-download-page.md) completes it.
+- Session restore (reopen last session): [D4a](../ready/D4a-windows-tabs-and-session-restore.md), which keeps its own document references in `session.json` (it does not depend on recent entries) but follows this todo's "Remember recent files" switch.
+- "Open Recent" native menu: [D4b](../ready/D4b-native-menus.md) (reads `RecentFiles`).
+- Settings page: [D5b](../ready/D5b-updater-in-app.md) creates it; [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md) completes it.
 - Watching for the editor's unsaved-changes conflicts: editor plan.
 
 ## Tasks
