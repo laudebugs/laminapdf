@@ -11,25 +11,58 @@ use super::load::{Attrs, INHERITABLE, Kid, Node, Tree, overlay, own};
 use crate::document::Document;
 use crate::tree_writer::even_chunks;
 
-/// Writes `tree` (edited from the document's page tree) into the overlay.
+/// Writes `tree` (edited from the document's page tree) into the overlay, all or nothing.
+///
+/// Strict-mode refusals (the warning for a page listed twice) come first, before any number
+/// is reserved or object written. The writes then run after a journal mark and are rolled
+/// back if one fails, so the overlay is left as it was (numbers reserved for new nodes and
+/// copies stay reserved, as [`laminapdf_cos::Document::rollback_to`] keeps them, unused).
 pub(super) fn finish(doc: &mut Document, mut tree: Tree) -> Result<()> {
     prune(&mut tree);
     if needs_rebuild(&tree) {
         rebuild(&mut tree);
     }
+    warn_listed_twice(doc, &tree)?;
     let refs = node_refs(doc, &tree)?;
     let inherited = inherited(doc, &tree)?;
     let mut writes: Vec<(ObjRef, Object)> = Vec::new();
     write_pages(doc, &mut tree, &refs, &inherited, &mut writes)?;
     write_nodes(&tree, &refs, &mut writes);
     let dead: Vec<ObjRef> = tree.nodes.iter().filter(|n| !n.alive).filter_map(|n| n.r).collect();
+    let mark = doc.journal_mark();
+    let written = apply(doc, writes, &dead);
+    if written.is_err() {
+        doc.cos_mut().rollback_to(mark)?;
+    }
+    written
+}
+
+/// Writes `writes` and deletes the `dead` nodes.
+fn apply(doc: &mut Document, writes: Vec<(ObjRef, Object)>, dead: &[ObjRef]) -> Result<()> {
     let mut cos = doc.cos_mut().edit();
     for (r, object) in writes {
         cos.set(r, object)?;
     }
-    for r in dead {
+    for &r in dead {
         if cos.get(r)?.is_some() {
             cos.delete(r)?;
+        }
+    }
+    Ok(())
+}
+
+/// Raises [`Warning::InvalidEntry`] (key `Kids`, on the node that lists it) for every listing
+/// of a page after its first, which `write_pages` copies.
+fn warn_listed_twice(doc: &Document, tree: &Tree) -> Result<()> {
+    let mut seen = BTreeSet::new();
+    for slot in tree.order() {
+        let Some(s) = tree.slots.get(slot) else { continue };
+        if !seen.insert(s.r) {
+            let node = s.parent.and_then(|p| tree.nodes.get(p)).and_then(|n| n.r);
+            doc.warn(Warning::InvalidEntry {
+                object: node.map(|r| r.num),
+                key: "Kids",
+            })?;
         }
     }
     Ok(())
@@ -169,7 +202,7 @@ fn inherited(doc: &Document, tree: &Tree) -> Result<BTreeMap<usize, Attrs>> {
 }
 
 /// The page dictionaries to write: pages that moved (attributes materialised), pages whose
-/// node changed (`/Parent`), and a copy of each page listed again after its first listing.
+/// `/Parent` is wrong, and a copy of each page listed again after its first listing.
 fn write_pages(
     doc: &Document,
     tree: &mut Tree,
@@ -183,9 +216,8 @@ fn write_pages(
         let Some(parent) = s.parent else { continue };
         let Some(&parent_ref) = refs.get(&parent) else { continue };
         let listed_again = !seen.insert(s.r);
-        let parent_touched = tree.nodes.get(parent).is_some_and(|n| n.touched);
         let parent_wrong = s.dict.get("Parent") != Some(&Object::Ref(parent_ref));
-        if !(s.moved || parent_touched || parent_wrong || listed_again) {
+        if !(s.moved || parent_wrong || listed_again) {
             continue;
         }
         let mut dict = s.dict.clone();
@@ -195,10 +227,12 @@ fn write_pages(
         }
         dict.insert("Parent", Object::Ref(parent_ref));
         if listed_again {
-            doc.warn(Warning::InvalidEntry {
-                object: Some(parent_ref.num),
-                key: "Kids",
-            })?;
+            // The copy shares the page's content and resources but none of its annotations
+            // (whose `/P` names the original) or its structure (`/StructParents` keys the
+            // original's `ParentTree` entry): it is a second view of the page, not a duplicate
+            // with fields and tags of its own.
+            dict.remove("Annots");
+            dict.remove("StructParents");
             let copy = doc.reserve_number()?;
             if let Some(s) = tree.slots.get_mut(slot) {
                 s.r = copy;

@@ -1,7 +1,7 @@
 //! What points at a page ([`PageReferences`]): outline items (ISO 32000-2 §12.3.3), link and
 //! other annotations with a destination (§12.5.6.5), named destinations (§12.3.2.4),
-//! `/OpenAction` (§7.7.2), structure elements by `/Pg` (§14.7.2) and form-field widgets
-//! (§12.7.4), as typed entries an edit can retarget or remove.
+//! `/OpenAction` (§7.7.2), structure elements and their `MCR`/`OBJR` kids by `/Pg` (§14.7.2,
+//! §14.7.5) and form-field widgets (§12.7.4), as typed entries an edit can retarget or remove.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -11,6 +11,7 @@ use crate::document::Document;
 use crate::id::{OutlineItemId, PageId};
 use crate::outline::{ActionKind, Destination, Outline};
 use crate::page::Pages;
+use crate::structure::kids_of;
 use crate::values::read_name;
 
 /// One thing that points at a page.
@@ -60,6 +61,18 @@ pub enum ReferenceKind {
     StructElem {
         /// The element (`None` for a direct one).
         elem: Option<ObjRef>,
+    },
+    /// A marked-content reference (`MCR`) or object reference (`OBJR`) kid of a structure
+    /// element whose own `/Pg` is the page. It is named by its element and its index in the
+    /// element's `/K` (counting every item, MCIDs included), and by its own object when it is
+    /// indirect.
+    StructContentRef {
+        /// The element whose `/K` holds it (`None` for a direct element).
+        elem: Option<ObjRef>,
+        /// Its index in the element's `/K`.
+        index: usize,
+        /// The kid's dictionary, when it is an indirect object.
+        kid: Option<ObjRef>,
     },
     /// A widget annotation of a form field, on the page.
     Widget {
@@ -275,23 +288,80 @@ impl Finder<'_, '_> {
         Ok(())
     }
 
+    /// Structure elements by their own `/Pg`, then the `MCR` and `OBJR` kids that name the
+    /// page with a `/Pg` of their own (§14.7.5.2, §14.7.5.3), in document order. Elements
+    /// reached twice or deeper than `max_tree_depth` are skipped, as the structure view skips
+    /// them.
     fn structure(&mut self) -> Result<()> {
-        let Some(tree) = self.doc.structure()? else {
+        let doc = self.doc;
+        let catalog = doc.catalog()?;
+        let Some(root) = catalog.get("StructTreeRoot") else {
             return Ok(());
         };
-        for elem in tree.elements() {
-            if let Some(page) = elem.page.clone().filter(|p| self.targets.contains(p)) {
+        let Some(root) = self.dict(root)? else {
+            return Ok(());
+        };
+        let Some(k) = root.get("K") else {
+            return Ok(());
+        };
+        let max_depth = doc.limits().max_tree_depth();
+        let mut visited = BTreeSet::new();
+        let mut kids_found = Vec::new();
+        let mut stack: Vec<(Object, usize)> = kids_of(doc, k)?.into_iter().rev().map(|o| (o, 1)).collect();
+        while let Some((obj, depth)) = stack.pop() {
+            if depth > max_depth || obj.as_ref().is_some_and(|r| !visited.insert(r.num)) {
+                continue;
+            }
+            let Some(dict) = self.dict(&obj)? else { continue };
+            if is_content_ref(&dict) {
+                continue;
+            }
+            let elem = obj.as_ref();
+            if let Some(page) = self.own_page(&dict) {
                 self.out.push(PageReference {
                     page,
-                    kind: ReferenceKind::StructElem { elem: elem.object },
+                    kind: ReferenceKind::StructElem { elem },
                 });
             }
+            let items = match dict.get("K") {
+                Some(k) => kids_of(doc, k)?,
+                None => Vec::new(),
+            };
+            let mut children = Vec::new();
+            for (index, item) in items.into_iter().enumerate() {
+                if matches!(item, Object::Integer(_) | Object::Null) {
+                    continue;
+                }
+                let Some(kid_dict) = self.dict(&item)? else { continue };
+                if !is_content_ref(&kid_dict) {
+                    children.push((item, depth + 1));
+                } else if let Some(page) = self.own_page(&kid_dict) {
+                    let kind = ReferenceKind::StructContentRef {
+                        elem,
+                        index,
+                        kid: item.as_ref(),
+                    };
+                    kids_found.push(PageReference { page, kind });
+                }
+            }
+            stack.extend(children.into_iter().rev());
         }
+        self.out.extend(kids_found);
         Ok(())
     }
 
-    /// The widgets of `/AcroForm /Fields`' terminal fields, by `/P`, else by the `/Annots`
-    /// that lists them (`listed`).
+    /// A dictionary's own `/Pg`, when it names one of the target pages.
+    fn own_page(&self, dict: &Dict) -> Option<PageId> {
+        dict.get("Pg")
+            .and_then(Object::as_ref)
+            .map(PageId::object)
+            .filter(|p| self.targets.contains(p))
+    }
+
+    /// The widgets of `/AcroForm /Fields`' fields, by `/P`, else by the `/Annots` that lists
+    /// them (`listed`). Each kid of a field is classified on its own (§12.7.4.2: a kid without
+    /// `/T` may still be a field): a widget annotation without `/T` belongs to the field;
+    /// anything else is a field and is walked in turn.
     fn widgets(&mut self, pages: &Pages<'_>, listed: &BTreeMap<ObjRef, PageId>) -> Result<()> {
         let doc = self.doc;
         let catalog = doc.catalog()?;
@@ -316,31 +386,51 @@ impl Finder<'_, '_> {
             }
             let Some(dict) = self.dict(&obj)? else { continue };
             let kids = self.kids(&dict)?;
-            if kids.iter().any(|(_, k)| k.contains_key("T")) {
-                // A non-terminal field: its kids are fields.
-                stack.extend(kids.into_iter().rev().map(|(k, _)| (Object::Ref(k), depth + 1)));
+            if kids.is_empty() {
+                // A merged field and widget.
+                if is_widget(&dict) {
+                    self.widget(pages, listed, r, &dict, r);
+                }
                 continue;
             }
-            let widgets = if kids.is_empty() { vec![(r, dict)] } else { kids };
-            for (widget, w) in widgets {
-                let by_p = w
-                    .get("P")
-                    .and_then(Object::as_ref)
-                    .map(PageId::object)
-                    .filter(|p| pages.index_of(p).is_some());
-                let (page, by) = match by_p {
-                    Some(page) => (Some(page), WidgetLink::P),
-                    None => (listed.get(&widget).cloned(), WidgetLink::Annots),
-                };
-                if let Some(page) = page.filter(|p| self.targets.contains(p)) {
-                    self.out.push(PageReference {
-                        page,
-                        kind: ReferenceKind::Widget { widget, field: r, by },
-                    });
+            let mut fields = Vec::new();
+            for (kid, kid_dict) in kids {
+                // A kid with `/T` is a field (merged with its widget when it has no kids).
+                if !kid_dict.contains_key("T") && is_widget(&kid_dict) {
+                    self.widget(pages, listed, kid, &kid_dict, r);
+                } else {
+                    fields.push((Object::Ref(kid), depth + 1));
                 }
             }
+            stack.extend(fields.into_iter().rev());
         }
         Ok(())
+    }
+
+    /// Reports `widget` (dictionary `dict`, of `field`) when it is on a target page.
+    fn widget(
+        &mut self,
+        pages: &Pages<'_>,
+        listed: &BTreeMap<ObjRef, PageId>,
+        widget: ObjRef,
+        dict: &Dict,
+        field: ObjRef,
+    ) {
+        let by_p = dict
+            .get("P")
+            .and_then(Object::as_ref)
+            .map(PageId::object)
+            .filter(|p| pages.index_of(p).is_some());
+        let (page, by) = match by_p {
+            Some(page) => (Some(page), WidgetLink::P),
+            None => (listed.get(&widget).cloned(), WidgetLink::Annots),
+        };
+        if let Some(page) = page.filter(|p| self.targets.contains(p)) {
+            self.out.push(PageReference {
+                page,
+                kind: ReferenceKind::Widget { widget, field, by },
+            });
+        }
     }
 
     /// `/Kids` that are indirect dictionaries, with their dictionaries.
@@ -398,4 +488,15 @@ impl Finder<'_, '_> {
     fn dict(&self, value: &Object) -> Result<Option<Dict>> {
         Ok(self.doc.read(value)?.and_then(|o| o.as_dict().cloned()))
     }
+}
+
+/// A marked-content reference or object reference (`/Type /MCR` or `/OBJR`), not an element.
+fn is_content_ref(dict: &Dict) -> bool {
+    matches!(dict.get_name("Type"), Some(b"MCR" | b"OBJR"))
+}
+
+/// A widget annotation: `/Subtype /Widget`, or (as some writers leave the subtype out) a
+/// `/Rect` without `/Kids`.
+fn is_widget(dict: &Dict) -> bool {
+    dict.get_name("Subtype") == Some(b"Widget") || (dict.contains_key("Rect") && !dict.contains_key("Kids"))
 }

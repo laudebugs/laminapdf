@@ -128,17 +128,19 @@ def inherited():
 
 def unbalanced():
     """Root -> pages 1-6, then a chain of 40 one-kid nodes (Rotate 90 at level 10, a MediaBox at
-    level 20) with a page at levels 5, 15, 25, 35 and 40; page 3's dictionary is listed twice
-    (as pages 3 and 12)."""
+    level 20) with a page at levels 5, 15, 25, 35 and 40; page 3's dictionary (with a text
+    annotation and /StructParents) is listed twice (as pages 3 and 12)."""
     pdf = Pdf()
     f = font(pdf)
     root = pdf.reserve()
     flat_pages = [pdf.reserve() for _ in range(6)]
     chain = [pdf.reserve() for _ in range(40)]
     n = 0
-    for i, num in enumerate(flat_pages):
+    note = pdf.add(f"<< /Type /Annot /Subtype /Text /Rect [72 600 92 620] /Contents (Note) /P {flat_pages[2]} 0 R >>")
+    for num in flat_pages:
         n += 1
-        pdf.set(num, page(root, marker(pdf, n)))
+        extra = f" /Annots [{note} 0 R] /StructParents 0" if num == flat_pages[2] else ""
+        pdf.set(num, page(root, marker(pdf, n), extra))
     chain_pages = {}
     for level in (5, 15, 25, 35, 40):
         n += 1
@@ -172,23 +174,37 @@ def references():
     link5 = pdf.add(f"<< /Type /Annot /Subtype /Link /Rect [72 600 300 630] /Dest [{p[2]} 0 R /Fit] >>")
     # A merged field and widget on page 3 (/P), and a field whose kid widget has no /P but is
     # listed in page 3's /Annots; a third field's widget is on page 4.
-    merged = pdf.add(f"<< /Type /Annot /Subtype /Widget /FT /Tx /T (name) /Rect [72 500 300 520] /P {p[3]} 0 R >>")
+    merged = pdf.add(f"<< /Type /Annot /Subtype /Widget /FT /Tx /T (name) /Rect [72 500 300 520] /P {p[3]} 0 R"
+                     " /StructParent 2 >>")
     parent_field = pdf.reserve()
     kid_widget = pdf.add(f"<< /Type /Annot /Subtype /Widget /Parent {parent_field} 0 R /Rect [72 450 300 470] >>")
     pdf.set(parent_field, f"<< /FT /Tx /T (city) /Kids [{kid_widget} 0 R] >>")
     other = pdf.add(f"<< /Type /Annot /Subtype /Widget /FT /Tx /T (zip) /Rect [72 500 300 520] /P {p[4]} 0 R >>")
-    annots = {1: [link1], 2: [link2], 3: [merged, kid_widget], 4: [link4, other], 5: [link5]}
+    # A field whose kids are a widget (no /T) and a field "street", whose one kid is a field
+    # without /T holding a widget: each kid is classified on its own.
+    addr, street, part = pdf.reserve(), pdf.reserve(), pdf.reserve()
+    w_addr = pdf.add(f"<< /Type /Annot /Subtype /Widget /Parent {addr} 0 R /Rect [72 400 300 420] /P {p[3]} 0 R >>")
+    w_part = pdf.add(f"<< /Type /Annot /Subtype /Widget /Parent {part} 0 R /Rect [72 350 300 370] /P {p[3]} 0 R >>")
+    pdf.set(addr, f"<< /FT /Tx /T (addr) /Kids [{w_addr} 0 R {street} 0 R] >>")
+    pdf.set(street, f"<< /T (street) /Parent {addr} 0 R /Kids [{part} 0 R] >>")
+    pdf.set(part, f"<< /Parent {street} 0 R /Kids [{w_part} 0 R] >>")
+    annots = {1: [link1], 2: [link2], 3: [merged, kid_widget, w_addr, w_part], 4: [link4, other], 5: [link5]}
     struct_root, doc_elem, para3, para2 = (pdf.reserve() for _ in range(4))
     for n in range(1, 6):
-        mcid = {3: b"\n/P <</MCID 0>> BDC EMC", 2: b"\n/P <</MCID 0>> BDC EMC"}.get(n, b"")
+        mcid = {3: b"\n/P <</MCID 0>> BDC EMC\n/P <</MCID 1>> BDC EMC", 2: b"\n/P <</MCID 0>> BDC EMC"}.get(n, b"")
         sp = {3: " /StructParents 0", 2: " /StructParents 1"}.get(n, "")
         pdf.set(p[n], page(root, marker(pdf, n, mcid), f" /Annots {kids(annots[n])}{sp}"))
     pdf.set(root, f"<< /Type /Pages /Kids {kids(p[1:])} /Count 5 /MediaBox [0 0 612 792] /Resources {resources(f)} >>")
     pdf.set(para3, f"<< /Type /StructElem /S /P /P {doc_elem} 0 R /Pg {p[3]} 0 R /K 0 >>")
-    pdf.set(para2, f"<< /Type /StructElem /S /P /P {doc_elem} 0 R /Pg {p[2]} 0 R /K 0 >>")
+    # Paragraph 2 (on page 2) also holds marked content and an annotation on page 3, through
+    # an MCR and an indirect OBJR with their own /Pg.
+    objr = pdf.add(f"<< /Type /OBJR /Pg {p[3]} 0 R /Obj {merged} 0 R >>")
+    pdf.set(para2, f"<< /Type /StructElem /S /P /P {doc_elem} 0 R /Pg {p[2]} 0 R"
+            f" /K [0 << /Type /MCR /Pg {p[3]} 0 R /MCID 1 >> {objr} 0 R] >>")
     pdf.set(doc_elem, f"<< /Type /StructElem /S /Document /P {struct_root} 0 R /K [{para2} 0 R {para3} 0 R] >>")
     pdf.set(struct_root, f"<< /Type /StructTreeRoot /K {doc_elem} 0 R"
-            f" /ParentTree << /Nums [0 [{para3} 0 R] 1 [{para2} 0 R]] >> /ParentTreeNextKey 2 >>")
+            f" /ParentTree << /Nums [0 [{para3} 0 R {para2} 0 R] 1 [{para2} 0 R] 2 {para2} 0 R] >>"
+            " /ParentTreeNextKey 3 >>")
     pdf.set(o1, f"<< /Title (Dest to page 3) /Parent {outlines} 0 R /Next {o2} 0 R /Dest [{p[3]} 0 R /Fit] >>")
     pdf.set(o2, f"<< /Title (GoTo page 3) /Parent {outlines} 0 R /Prev {o1} 0 R /Next {o3} 0 R"
             f" /A << /S /GoTo /D [{p[3]} 0 R /FitH 700] >> >>")
@@ -198,7 +214,7 @@ def references():
     pdf.set(catalog, f"<< /Type /Catalog /Pages {root} 0 R /Outlines {outlines} 0 R"
             f" /Names << /Dests {names} 0 R >> /Dests << /old3 [{p[3]} 0 R /FitH 700] /old5 [{p[5]} 0 R /Fit] >>"
             f" /OpenAction [{p[3]} 0 R /Fit] /MarkInfo << /Marked true >> /StructTreeRoot {struct_root} 0 R"
-            f" /AcroForm << /Fields [{merged} 0 R {parent_field} 0 R {other} 0 R] >> >>")
+            f" /AcroForm << /Fields [{merged} 0 R {parent_field} 0 R {other} 0 R {addr} 0 R] >> >>")
     pdf.write("references.pdf", catalog, "2A42C3F4D5E6F708192A3B4C5D6E7F80")
 
 

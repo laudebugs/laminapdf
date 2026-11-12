@@ -138,7 +138,15 @@ impl Tree {
         for item in items {
             let kid = match item {
                 Object::Ref(r) if depth < max_depth => self.read_kid(doc, index, r, &inherited, visited)?,
-                Object::Ref(_) => Kid::Other { value: item, pages: 0 },
+                Object::Ref(r) => {
+                    // Past the depth limit the reader skips the subtree; its stored `/Count`
+                    // stands, so the counts above it don't change for what isn't read.
+                    let pages = match node_dict(doc, r)? {
+                        Some(d) => stored_count(doc, &d)?,
+                        None => 0,
+                    };
+                    Kid::Other { value: item, pages }
+                }
                 direct => {
                     let pages = direct_pages(doc, &direct, depth + 1, visited)?;
                     Kid::Other { value: direct, pages }
@@ -224,6 +232,21 @@ impl Tree {
             .filter(|n| n.alive)
             .any(|n| n.kids.iter().any(|k| matches!(k, Kid::Other { .. })))
     }
+}
+
+/// A kid's stored page count: 1 for a page, a node's `/Count` when it is a number of pages.
+fn stored_count(doc: &Document, dict: &Dict) -> Result<usize> {
+    if !is_tree_node(dict) {
+        return Ok(1);
+    }
+    let Some(count) = dict.get("Count") else {
+        return Ok(0);
+    };
+    Ok(doc
+        .read(count)?
+        .and_then(|c| c.as_int())
+        .and_then(|c| usize::try_from(c).ok())
+        .unwrap_or(0))
 }
 
 /// The dictionary of object `r` when it is one.

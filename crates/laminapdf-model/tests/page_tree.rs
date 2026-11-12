@@ -15,7 +15,8 @@ use std::process::Command;
 
 use laminapdf_cos::{Dict, ObjRef, Object, Warning};
 use laminapdf_model::{
-    Document, OpenOptions, PageId, PageLabels, PagePosition, PageTreeEditor, Rotation, UserSpaceRect,
+    Document, Limits, OpenOptions, PageId, PageLabels, PagePosition, PageTreeEditor, PageTreeError, Rotation,
+    UserSpaceRect,
 };
 use laminapdf_save::{FullWriter, SaveOptions};
 use laminapdf_test_fixtures::fixture;
@@ -383,6 +384,105 @@ fn a_node_past_the_fan_out_threshold_should_get_the_tree_rebuilt() {
     let after = shown(&doc);
     assert_eq!(after.len(), 8 + model.len());
     assert_eq!(after[8..].iter().map(|(_, s)| s.clone()).collect::<Vec<_>>(), model);
+}
+
+#[test]
+fn inserting_an_object_that_is_not_a_page_should_fail() {
+    let mut doc = open("inherited.pdf");
+    let font = doc
+        .pages()
+        .unwrap()
+        .get(0)
+        .unwrap()
+        .resources()
+        .unwrap()
+        .get("Font")
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .get("F1")
+        .and_then(Object::as_ref)
+        .unwrap();
+    let catalog = doc.trailer().get("Root").and_then(Object::as_ref).unwrap();
+    let mut editor = doc.edit_page_tree().unwrap();
+    for r in [font, catalog] {
+        assert!(
+            matches!(editor.insert(r, &PagePosition::End), Err(PageTreeError::NotAPage(_))),
+            "{r:?}"
+        );
+    }
+}
+
+#[test]
+fn an_editor_dropped_without_finish_should_write_nothing() {
+    let mut doc = open("inherited.pdf");
+    let mut editor = doc.edit_page_tree().unwrap();
+    editor.insert_new(new_page(1), &PagePosition::Start).unwrap();
+    drop(editor);
+    assert!(doc.overlay().is_empty());
+    assert_eq!(doc.pages().unwrap().len(), 8);
+}
+
+#[test]
+fn the_copy_of_a_page_listed_twice_should_share_no_annotations_or_structure() {
+    let mut doc = open("unbalanced.pdf");
+    doc.edit_page_tree().unwrap().finish().unwrap();
+    let pages = doc.pages().unwrap();
+    let (original, copy) = (pages.get(2).unwrap(), pages.get(11).unwrap());
+    assert!(original.dict().contains_key("Annots") && original.dict().contains_key("StructParents"));
+    assert!(!copy.dict().contains_key("Annots"), "the copy lists no annotation");
+    assert!(!copy.dict().contains_key("StructParents"));
+    assert_eq!(copy.dict().get("Contents"), original.dict().get("Contents"));
+}
+
+#[test]
+fn a_subtree_past_the_depth_limit_should_keep_its_stored_count() {
+    let options = OpenOptions::default().with_limits(Limits::default().with_max_page_tree_depth(1));
+    let mut doc = Document::open(fixture("pages/inherited.pdf"), options).unwrap();
+    let root = doc.catalog().unwrap().get("Pages").and_then(Object::as_ref).unwrap();
+    let count = |doc: &Document, r: ObjRef| {
+        doc.resolve(r)
+            .unwrap()
+            .as_dict()
+            .unwrap()
+            .get("Count")
+            .and_then(Object::as_int)
+    };
+    let mut editor = doc.edit_page_tree().unwrap();
+    // Page 7, a kid of the root, is the only page the editor reads; the nodes below it are
+    // past the limit.
+    let ids = editor.page_ids();
+    assert_eq!(ids.len(), 1);
+    editor.move_pages(&ids, &PagePosition::Start).unwrap();
+    editor.finish().unwrap();
+    assert_eq!(count(&doc, root), Some(8));
+    let first_kid = doc
+        .resolve(root)
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .get("Kids")
+        .unwrap()
+        .as_array()
+        .unwrap()[0]
+        .clone();
+    assert_eq!(first_kid, Object::Ref(ids[0].as_lamina_id().obj_ref().unwrap()));
+}
+
+#[test]
+fn a_refused_finish_should_leave_the_document_unchanged() {
+    // Strict mode refuses the page listed twice before anything is reserved or written.
+    let mut doc = Document::open(
+        fixture("pages/unbalanced.pdf"),
+        OpenOptions::default().with_strict(true),
+    )
+    .unwrap();
+    let next = doc.next_number();
+    let mut editor = doc.edit_page_tree().unwrap();
+    editor.move_pages(&editor.page_ids()[..1], &PagePosition::End).unwrap();
+    assert!(editor.finish().is_err());
+    assert!(doc.overlay().is_empty());
+    assert_eq!(doc.next_number(), next, "no number reserved");
 }
 
 #[test]

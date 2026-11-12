@@ -5,7 +5,7 @@
 mod load;
 mod write;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, ObjRef, Object};
 
@@ -144,24 +144,46 @@ impl PageTreeEditor<'_> {
     }
 
     /// Inserts the page object `page` (a page dictionary already in the document, not in the
-    /// page tree) at `at`, and returns its ID. Its `/Parent` is written by `finish`.
+    /// page tree) at `at`, and returns its ID. Its `/Parent` is written by `finish`. A page
+    /// dictionary has `/Type /Page`; one without `/Type` is taken when it has no `/Kids` and
+    /// has a `/MediaBox` or `/Contents`, as some writers leave the type out.
     ///
     /// # Errors
     /// [`PageTreeError::NotAPage`] when `page` is not a page dictionary,
     /// [`PageTreeError::AlreadyInTree`], [`PageTreeError::UnknownPage`] for an `at` that names
     /// no page, and reading errors.
     pub fn insert(&mut self, page: ObjRef, at: &PagePosition) -> Result<PageId, PageTreeError> {
-        let id = PageId::object(page);
-        if self.find(&id).is_some() {
-            return Err(PageTreeError::AlreadyInTree(id));
+        let index = self.index();
+        if index.first.contains_key(&page) {
+            return Err(PageTreeError::AlreadyInTree(PageId::object(page)));
         }
         let dict = self
             .doc
             .read(&Object::Ref(page))?
             .and_then(|o| o.as_dict().cloned())
-            .filter(|d| !load::is_tree_node(d))
+            .filter(is_page_dict)
             .ok_or(PageTreeError::NotAPage(page))?;
-        let (node, index) = self.place(at, &BTreeSet::new())?;
+        let place = self.place(&index, at, &BTreeSet::new())?;
+        self.put(page, dict, place)
+    }
+
+    /// Inserts a new page made from `dict` (given `/Type /Page`) at `at`, as
+    /// [`PageTreeEditor::insert`] does. The page's object number is reserved now, for its ID;
+    /// the object is written by `finish`, so dropping the editor writes nothing.
+    ///
+    /// # Errors
+    /// [`PageTreeError::UnknownPage`] for an `at` that names no page; the overlay's error when
+    /// no object number is left.
+    pub fn insert_new(&mut self, mut dict: Dict, at: &PagePosition) -> Result<PageId, PageTreeError> {
+        let index = self.index();
+        let place = self.place(&index, at, &BTreeSet::new())?;
+        dict.insert("Type", Object::name("Page"));
+        let page = self.doc.reserve_number()?;
+        self.put(page, dict, place)
+    }
+
+    /// Puts page `page` (dictionary `dict`) at `place`.
+    fn put(&mut self, page: ObjRef, dict: Dict, (node, index): (usize, usize)) -> Result<PageId, PageTreeError> {
         // A page taken out by this editor comes back showing what it showed before.
         let removed = self.tree.slots.iter().position(|s| s.r == page && s.parent.is_none());
         let slot = if let Some(slot) = removed {
@@ -182,20 +204,7 @@ impl PageTreeEditor<'_> {
             s.moved = true;
         }
         self.attach(node, index, &[slot]);
-        Ok(id)
-    }
-
-    /// Creates a page object from `dict` (given `/Type /Page`) and inserts it at `at`, as
-    /// [`PageTreeEditor::insert`] does.
-    ///
-    /// # Errors
-    /// As [`PageTreeEditor::insert`].
-    pub fn insert_new(&mut self, mut dict: Dict, at: &PagePosition) -> Result<PageId, PageTreeError> {
-        // Placed first, so a bad position creates nothing.
-        self.place(at, &BTreeSet::new())?;
-        dict.insert("Type", Object::name("Page"));
-        let page = self.doc.cos_mut().edit().create(Object::Dict(dict))?;
-        self.insert(page, at)
+        Ok(PageId::object(page))
     }
 
     /// Takes `page` out of the page tree and returns its object, which stays in the document
@@ -205,6 +214,7 @@ impl PageTreeEditor<'_> {
     /// [`PageTreeError::UnknownPage`].
     pub fn remove(&mut self, page: &PageId) -> Result<ObjRef, PageTreeError> {
         let slot = self
+            .index()
             .find(page)
             .ok_or_else(|| PageTreeError::UnknownPage(page.clone()))?;
         self.detach(slot);
@@ -222,15 +232,16 @@ impl PageTreeEditor<'_> {
     /// # Errors
     /// [`PageTreeError::UnknownPage`] for a page or anchor not in the tree.
     pub fn move_pages(&mut self, pages: &[PageId], to: &PagePosition) -> Result<(), PageTreeError> {
+        let lookup = self.index();
         let mut slots = Vec::with_capacity(pages.len());
+        let mut moving = BTreeSet::new();
         for id in pages {
-            let slot = self.find(id).ok_or_else(|| PageTreeError::UnknownPage(id.clone()))?;
-            if !slots.contains(&slot) {
+            let slot = lookup.find(id).ok_or_else(|| PageTreeError::UnknownPage(id.clone()))?;
+            if moving.insert(slot) {
                 slots.push(slot);
             }
         }
-        let moving: BTreeSet<usize> = slots.iter().copied().collect();
-        let (node, index) = self.place(to, &moving)?;
+        let (node, index) = self.place(&lookup, to, &moving)?;
         // The anchor stays, so its node and index hold once the moved pages are out of the way;
         // only pages before it in the same node shift the index.
         let shift = self.tree.nodes.get(node).map_or(0, |n| {
@@ -262,40 +273,49 @@ impl PageTreeEditor<'_> {
         Ok(write::finish(self.doc, self.tree)?)
     }
 
-    /// The slot of `id`: its first listing in page order.
-    fn find(&self, id: &PageId) -> Option<usize> {
-        let r = id.as_lamina_id().obj_ref()?;
-        self.tree
-            .order()
-            .into_iter()
-            .find(|&s| self.tree.slots.get(s).is_some_and(|slot| slot.r == r))
+    /// The page order and where each page sits in it, built once per edit.
+    fn index(&self) -> Index {
+        let order = self.tree.order();
+        let mut first = BTreeMap::new();
+        let mut position = BTreeMap::new();
+        for (at, &slot) in order.iter().enumerate() {
+            position.insert(slot, at);
+            if let Some(s) = self.tree.slots.get(slot) {
+                first.entry(s.r).or_insert(slot);
+            }
+        }
+        Index { order, first, position }
     }
 
     /// The node and kid index where `at` puts pages, skipping anchors in `moving`.
-    fn place(&self, at: &PagePosition, moving: &BTreeSet<usize>) -> Result<(usize, usize), PageTreeError> {
-        let order: Vec<usize> = self.tree.order().into_iter().filter(|s| !moving.contains(s)).collect();
+    fn place(
+        &self,
+        index: &Index,
+        at: &PagePosition,
+        moving: &BTreeSet<usize>,
+    ) -> Result<(usize, usize), PageTreeError> {
+        let all = &index.order;
+        let staying = |s: &&usize| !moving.contains(*s);
         let anchor = |id: &PageId| -> Result<usize, PageTreeError> {
-            self.find(id).ok_or_else(|| PageTreeError::UnknownPage(id.clone()))
+            let slot = index.find(id).ok_or_else(|| PageTreeError::UnknownPage(id.clone()))?;
+            Ok(index.position.get(&slot).copied().unwrap_or(0))
         };
-        let all = self.tree.order();
         // An anchor being moved gives way to the nearest page that stays.
         let (slot, after) = match at {
-            PagePosition::Start => (order.first().copied(), false),
-            PagePosition::End => (order.last().copied(), true),
+            PagePosition::Start => (all.iter().find(staying).copied(), false),
+            PagePosition::End => (all.iter().rev().find(staying).copied(), true),
             PagePosition::Before(id) => {
-                let a = anchor(id)?;
-                let at = all.iter().position(|&s| s == a).unwrap_or(0);
-                match all.iter().skip(at).find(|s| !moving.contains(s)) {
+                let at = anchor(id)?;
+                match all.iter().skip(at).find(staying) {
                     Some(&s) => (Some(s), false),
-                    None => (order.last().copied(), true),
+                    None => (all.iter().rev().find(staying).copied(), true),
                 }
             }
             PagePosition::After(id) => {
-                let a = anchor(id)?;
-                let at = all.iter().position(|&s| s == a).unwrap_or(0);
-                match all.iter().take(at + 1).rev().find(|s| !moving.contains(s)) {
+                let at = anchor(id)?;
+                match all.iter().take(at + 1).rev().find(staying) {
                     Some(&s) => (Some(s), true),
-                    None => (order.first().copied(), false),
+                    None => (all.iter().find(staying).copied(), false),
                 }
             }
         };
@@ -332,5 +352,31 @@ impl PageTreeEditor<'_> {
             n.kids.splice(index..index, slots.iter().map(|&s| Kid::Page(s)));
             n.touched = true;
         }
+    }
+}
+
+/// The page order of the tree as it is, with lookups, so one edit walks the tree once.
+struct Index {
+    /// The slots in page order.
+    order: Vec<usize>,
+    /// Each page object's first listing.
+    first: BTreeMap<ObjRef, usize>,
+    /// Each slot's place in `order`.
+    position: BTreeMap<usize, usize>,
+}
+
+impl Index {
+    /// The slot of `id`: its first listing in page order.
+    fn find(&self, id: &PageId) -> Option<usize> {
+        self.first.get(&id.as_lamina_id().obj_ref()?).copied()
+    }
+}
+
+/// Whether `dict` is a page dictionary to insert: `/Type /Page`, or (some writers leave the
+/// type out) no `/Type`, no `/Kids`, and a `/MediaBox` or `/Contents`.
+fn is_page_dict(dict: &Dict) -> bool {
+    match dict.get_name("Type") {
+        Some(t) => t == b"Page",
+        None => !dict.contains_key("Kids") && (dict.contains_key("MediaBox") || dict.contains_key("Contents")),
     }
 }
