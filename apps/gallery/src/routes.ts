@@ -79,7 +79,7 @@ export const ROUTES: readonly Route[] = [
     id: "reader-shell",
     title: "Reader shell",
     components: [],
-    renders: ["ReaderShell", "OpenDropZone", "DebugMenu"],
+    renders: ["ReaderShell", "OpenDropZone", "DropOverlay", "DebugMenu"],
   },
   {
     id: "shell-regions",

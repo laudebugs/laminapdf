@@ -247,7 +247,7 @@ export {
   networkIndicatorText,
 } from "./reader/network.js";
 export { OfflineNotice, type OfflineNoticeProps } from "./reader/offline-notice.js";
-export { OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
+export { DropOverlay, OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
 export {
   currentOutlineItem,
   type OutlinePlace,

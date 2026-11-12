@@ -159,6 +159,19 @@ export function codeBlock(file, code) {
 }
 
 /**
+ * Where the page at `pathname` has its Markdown twin (`/guides/x/` → `/guides/x.md`, `/` →
+ * `/index.md`), or `undefined` for the 404 page, which has none. The head's alternate link, "Copy as
+ * Markdown" and the build's check of that link all ask this.
+ *
+ * @param {string} pathname a page's path on the site
+ * @returns {string | undefined}
+ */
+export function pageTwin(pathname) {
+  if (/^\/404(\.html|\/)?$/.test(pathname)) return undefined;
+  return twinHref(pathname.endsWith("/") ? pathname : `${pathname}/`);
+}
+
+/**
  * A site link as a link to its Markdown twin: `/guides/x/#a` → `/guides/x.md#a`, `/` →
  * `/index.md`. Other links are returned as they are.
  *
@@ -170,6 +183,26 @@ export function twinHref(href) {
   if (!match || href.startsWith("//") || /\.[a-z0-9]+(#.*)?$/i.test(match[1] ?? "")) return href;
   const path = match[1] === "" || match[1] === "/" ? "/index" : match[1];
   return `${path}.md${match[2] ?? ""}`;
+}
+
+/**
+ * The file a route's twin is written to: `guides/x/` → `guides/x.md`, `` → `index.md`.
+ *
+ * @param {string} route
+ * @returns {string}
+ */
+export function twinPath(route) {
+  return route === "" ? "index.md" : `${route.replace(/\/$/, "")}.md`;
+}
+
+/**
+ * The route whose twin is `path` (the inverse of {@link twinPath}).
+ *
+ * @param {string} path
+ * @returns {string}
+ */
+export function routeOfTwin(path) {
+  return path === "index.md" ? "" : `${path.replace(/\.md$/, "")}/`;
 }
 
 /**
@@ -214,7 +247,7 @@ function outsideCode(markdown, transform) {
  * @param {(text: string) => string} transform
  * @returns {string}
  */
-function outsideFences(markdown, transform) {
+export function outsideFences(markdown, transform) {
   const parts = markdown.split(/(^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n {0,3}\2[ \t]*$)/m);
   /** @type {string[]} */
   const out = [];
@@ -230,9 +263,10 @@ function outsideFences(markdown, transform) {
  * A page's MDX body as Markdown.
  *
  * @param {string} body the page without its front matter
- * @param {{ snippet: (file: string) => string, codeTable: () => string, changelog: () => string, benchmarks?: (section: string) => string }} components
+ * @param {{ snippet: (file: string) => string, codeTable: () => string, changelog: () => string, benchmarks?: (section: string) => string, guidePdf?: () => string, onePageLinks?: () => string }} components
  *   `snippet` reads an example file; `codeTable` writes the code table; `changelog` the releases;
- *   `benchmarks` one section of the benchmarks page
+ *   `benchmarks` one section of the benchmarks page; `guidePdf` the link to the guide as one PDF;
+ *   `onePageLinks` the list of one-page views
  * @returns {string}
  */
 export function mdxToMarkdown(body, components) {
@@ -246,6 +280,8 @@ export function mdxToMarkdown(body, components) {
       .replace(DIAGRAM, (_, _quote, name) => diagramMarkdown(name))
       .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
       .replace(/<Changelog\s*\/>/g, () => components.changelog())
+      .replace(/<GuidePdf\s*\/>/g, () => components.guidePdf?.() ?? "")
+      .replace(/<OnePageLinks\s*\/>/g, () => components.onePageLinks?.() ?? "")
       .replace(/<Benchmarks\s+section="([a-z-]+)"\s*\/>/g, (_, section) => {
         if (components.benchmarks === undefined) throw new Error("a page shows benchmarks, but none were read");
         return components.benchmarks(section);

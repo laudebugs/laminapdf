@@ -3,7 +3,7 @@ title: Stability policy
 description: What a Lamina PDF version number promises, and what stays the same in every version.
 ---
 
-Lamina PDF is in alpha, so its API can still change from one release to the next. A few things never change, whatever the version: error and warning codes, the error object's fields, saved edit logs, and identical output from every runtime. This page says what each version number promises, so you know when an upgrade needs a code change.
+Lamina PDF is at `0.x`: a new minor version (`0.2` to `0.3`) can change its API, and the releases within one minor version never break your code. A few things never change, whatever the version: error and warning codes, the error object's fields, saved edit logs, and identical output from every runtime. This page says what each version number promises, so you know when an upgrade needs a code change.
 
 ## One version for every package
 
@@ -11,9 +11,9 @@ Every crate and every npm package shares one version, and they are released toge
 
 ## What a version number tells you
 
-- **Alphas promise nothing to each other.** Anything can change between `0.2.0-alpha.1` and `0.2.0-alpha.2`. While you try an alpha, pin the exact version: `npm install --save-exact @laminapdf/sdk@{{version}}`, and `laminapdf = "={{version}}"` in `Cargo.toml`.
-- **The `alpha` tag names the newest alpha.** `npm install @laminapdf/sdk@alpha` gets it. A plain `npm install @laminapdf/sdk` gets a `0.0.0` placeholder that only reserves the name.
-- **After the alphas, `0.x` versions follow SemVer as Cargo reads it.** A breaking change raises the minor version (`0.2` to `0.3`), and features and fixes raise the patch (`0.2.0` to `0.2.1`). So an upgrade within one `0.x` line never needs a code change.
+- **From `0.2.0` on, `0.x` versions follow SemVer as Cargo reads it.** A breaking change raises the minor version (`0.2` to `0.3`), and features and fixes raise the patch (`0.2.0` to `0.2.1`). So an upgrade within one `0.x` line never needs a code change.
+- **A plain install gets the newest release.** `npm install @laminapdf/sdk` and `cargo add laminapdf` take it. To match these docs, name their version: `npm install @laminapdf/sdk@{{version}}` and `cargo add laminapdf@{{version}}`.
+- **The alphas promised nothing to each other.** Anything could change between `0.2.0-alpha.1` and `0.2.0-alpha.6`, the last of them, which `npm install @laminapdf/sdk@alpha` still installs.
 
 ## What counts as a breaking change
 

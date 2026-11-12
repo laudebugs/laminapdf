@@ -157,6 +157,11 @@ tauri-build = "=2.7.4"
 tauri-plugin-dialog = "=2.8.3"
 tauri-plugin-log = "=2.10.1"
 tauri-plugin-opener = "=2.7.2"
+tauri-plugin-single-instance = "=2.5.5"
+# The desktop end-to-end tests' plugins (D2e), only in `laminapdf-desktop`'s `e2e` builds: the
+# test API (execute, logs) and the WebDriver server inside the app.
+tauri-plugin-wdio = "=1.5.1"            # MIT OR Apache-2.0
+tauri-plugin-wdio-webdriver = "=1.5.1"  # MIT
 # Structured logs in the app crates (tauri-plugin-log routes `log` and these). MIT
 tracing = { version = "=0.1.44", default-features = false, features = ["std", "log"] }
 # The laminapdf CLI (ADR 0031): argument parsing, colour that respects NO_COLOR, JSON Schemas of its reports.

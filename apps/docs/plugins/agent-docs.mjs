@@ -3,7 +3,9 @@
 // one-paragraph summary, then sections of links to the twins) and `llms-full.txt` (every twin in
 // reading order). Twins come from the pages' sources, not their HTML: the MDX pages through
 // markdown.mjs, the code pages from docs/errors/, the API reference from TypeDoc's Markdown. The
-// build fails when an HTML page has no twin or a link in `llms.txt` has no file.
+// build fails when an HTML page has no twin, doesn't link its twin (`<link rel="alternate"
+// type="text/markdown">`, from src/components/Head.astro), or a link in `llms.txt` has no file.
+
 import { realpathSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, relative } from "node:path";
@@ -11,7 +13,18 @@ import { fileURLToPath } from "node:url";
 import { parseBenchmarks, sectionMarkdown } from "../src/lib/benchmarks.ts";
 import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
-import { frontMatter, mdxToMarkdown, rewriteLinks, shownFiles, twin, twinHref } from "./markdown.mjs";
+import { GUIDE_PDF, ONE_PAGE, onePageAreas, onePageBody, onePageList } from "./guide.mjs";
+import {
+  frontMatter,
+  mdxToMarkdown,
+  pageTwin,
+  rewriteLinks,
+  routeOfTwin,
+  shownFiles,
+  twin,
+  twinHref,
+  twinPath,
+} from "./markdown.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
 const CONTENT = new URL("src/content/docs/", new URL("../", import.meta.url));
@@ -88,30 +101,25 @@ function slashes(name) {
 
 /**
  * Every HTML page the build wrote, as routes (`guides/save-a-pdf/`, `` for the home page):
- * not the 404 page, nor the redirect pages Astro writes for moved URLs.
+ * not the 404 page, nor the redirect pages Astro writes for moved URLs. Read in the same pass:
+ * the routes whose page doesn't link its Markdown twin (`/` for the home page).
  *
  * @param {URL} dir
- * @returns {Promise<string[]>}
+ * @returns {Promise<{ routes: string[], unlinked: string[] }>}
  */
 async function pageRoutes(dir) {
   const routes = [];
+  const unlinked = [];
   for (const name of (await readdir(dir, { recursive: true })).map(slashes)) {
     if (!name.endsWith(".html") || name === "404.html") continue;
     const html = await readFile(new URL(name, dir), "utf8");
     if (/<meta\s+http-equiv="refresh"/i.test(html)) continue;
-    routes.push(name.replace(/index\.html$/, "").replace(/\.html$/, "/"));
+    const route = name.replace(/index\.html$/, "").replace(/\.html$/, "/");
+    routes.push(route);
+    const twin = pageTwin(`/${route}`);
+    if (twin === undefined || !linksTwin(html, twin)) unlinked.push(route || "/");
   }
-  return routes.sort();
-}
-
-/**
- * The file a route's twin is written to: `guides/x/` → `guides/x.md`, `` → `index.md`.
- *
- * @param {string} route
- * @returns {string}
- */
-export function twinPath(route) {
-  return route === "" ? "index.md" : `${route.replace(/\/$/, "")}.md`;
+  return { routes: routes.sort(), unlinked: unlinked.sort() };
 }
 
 /**
@@ -132,7 +140,7 @@ async function readMaybe(url) {
  * A route's twin, from its source; `undefined` when the route has none.
  *
  * @param {string} route
- * @param {{ version: string, site: string, codes: Map<string, { summary: string }>, table: string, changelog: string, benchmarks: import("../src/lib/benchmarks.ts").Benchmarks }} context
+ * @param {{ version: string, site: string, codes: Map<string, { summary: string }>, table: string, changelog: string, benchmarks: import("../src/lib/benchmarks.ts").Benchmarks, guidePdf: boolean }} context
  * @returns {Promise<{ title: string, description?: string | undefined, markdown: string } | undefined>}
  */
 async function twinOf(route, context) {
@@ -160,6 +168,11 @@ async function twinOf(route, context) {
       changelog: () => context.changelog,
       benchmarks: (section) =>
         sectionMarkdown(context.benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
+      guidePdf: () =>
+        context.guidePdf
+          ? `Download [the whole guide as one PDF](${context.site}${GUIDE_PDF}): every section above in order, with a contents page and bookmarks.`
+          : "This build of the docs has no PDF of the guide; the published site has one.",
+      onePageLinks: onePageList,
     });
     const title = data.title ?? base;
     return {
@@ -307,13 +320,59 @@ export function llmsTxt(input) {
   ].join("\n");
 }
 
+/** @typedef {{ title: string, description?: string | undefined, markdown: string }} Twin */
+
+/**
+ * Writes every built page's twin next to it and returns them by route. The one-page views'
+ * twins are made last, from their pages' twins (plugins/guide.mjs). Fails on a page with none.
+ *
+ * @param {URL} dir
+ * @param {Parameters<typeof twinOf>[1]} context
+ * @returns {Promise<Map<string, Twin>>}
+ */
+async function writeTwins(dir, context) {
+  /** @type {Map<string, Twin>} */
+  const twins = new Map();
+  const missing = [];
+  const onePageRoutes = new Map(onePageAreas().map((area) => [`${ONE_PAGE}/${area.slug}/`, area]));
+  const pages = await pageRoutes(dir);
+  if (pages.unlinked.length > 0) {
+    throw new Error(`agent docs: no link to the Markdown twin on ${pages.unlinked.join(", ")}`);
+  }
+  for (const route of pages.routes) {
+    if (onePageRoutes.has(route)) continue;
+    const page = await twinOf(route, context);
+    if (page === undefined) missing.push(route || "/");
+    else twins.set(route, page);
+  }
+  if (missing.length > 0) throw new Error(`agent docs: no Markdown source for ${missing.join(", ")}`);
+  for (const [route, area] of onePageRoutes) {
+    const title = `${area.label}, on one page`;
+    const description = `Every page of the docs' ${area.label} section, in order, on one page.`;
+    const body = await onePageBody(area, async (page) => twins.get(page)?.markdown);
+    const url = `${context.site}/${route}`;
+    twins.set(route, {
+      title,
+      description,
+      markdown: twin({ title, description, version: context.version, url, body }),
+    });
+  }
+  for (const [route, page] of twins) {
+    const out = new URL(twinPath(route), dir);
+    await mkdir(new URL(".", out), { recursive: true });
+    await writeFile(out, page.markdown);
+  }
+  return twins;
+}
+
 /**
  * The integration: twins, `llms.txt` and `llms-full.txt` after the build, in sidebar order.
  *
  * @param {() => { label: string, slugs: string[] }[]} groups the sidebar's groups as routes
+ * @param {{ guidePdf?: boolean }} [options] whether the build writes the guide PDF (plugins/guide.mjs)
  * @returns {import("astro").AstroIntegration}
  */
-export function agentDocs(groups) {
+export function agentDocs(groups, { guidePdf = false } = {}) {
   /** @type {string} */
   let site = "";
   return {
@@ -333,29 +392,17 @@ export function agentDocs(groups) {
         );
         const changelog = releaseNotes(await readFile(new URL("CHANGELOG.md", ROOT), "utf8"));
         const benchmarks = await readBenchmarks();
-        const context = { version, site, codes, table: await codeTable(), changelog, benchmarks };
+        const context = { version, site, codes, table: await codeTable(), changelog, benchmarks, guidePdf };
         await readSnippets();
-        /** @type {Map<string, { title: string, description?: string | undefined, markdown: string }>} */
-        const twins = new Map();
-        const missing = [];
-        for (const route of await pageRoutes(dir)) {
-          const page = await twinOf(route, context);
-          if (page === undefined) {
-            missing.push(route || "/");
-            continue;
-          }
-          twins.set(route, page);
-          const out = new URL(twinPath(route), dir);
-          await mkdir(new URL(".", out), { recursive: true });
-          await writeFile(out, page.markdown);
-        }
-        if (missing.length > 0) throw new Error(`agent docs: no Markdown source for ${missing.join(", ")}`);
+        const twins = await writeTwins(dir, context);
         const sidebar = groups();
         const listed = new Set(sidebar.flatMap((g) => g.slugs));
         const routes = [...twins.keys()];
         const api = routes.filter((r) => r.startsWith("reference/sdk/"));
         const codeRoutes = routes.filter((r) => r.startsWith("reference/codes/") && r !== "reference/codes/");
-        const rest = routes.filter((r) => !listed.has(r) && !api.includes(r) && !codeRoutes.includes(r));
+        // The one-page views repeat their areas' pages, so llms.txt and llms-full.txt leave them out.
+        const onePage = (/** @type {string} */ r) => r.startsWith(`${ONE_PAGE}/`);
+        const rest = routes.filter((r) => !listed.has(r) && !api.includes(r) && !codeRoutes.includes(r) && !onePage(r));
         const all = [...sidebar, ...(rest.length > 0 ? [{ label: "More", slugs: rest }] : [])];
         await writeFile(
           new URL("llms.txt", dir),
@@ -379,11 +426,17 @@ export function agentDocs(groups) {
 }
 
 /**
- * The route whose twin is `path` (the inverse of {@link twinPath}).
+ * Whether the page `html` links `href` as its Markdown twin, with
+ * `<link rel="alternate" type="text/markdown" href="…">` in any attribute order.
  *
- * @param {string} path
- * @returns {string}
+ * @param {string} html
+ * @param {string} href
+ * @returns {boolean}
  */
-export function routeOfTwin(path) {
-  return path === "index.md" ? "" : `${path.replace(/\.md$/, "")}/`;
+export function linksTwin(html, href) {
+  return [...html.matchAll(/<link\b[^>]*>/gi)].some(([tag]) => {
+    /** @param {string} name */
+    const attr = (name) => new RegExp(`\\s${name}="([^"]*)"`, "i").exec(tag)?.[1];
+    return attr("rel") === "alternate" && attr("type") === "text/markdown" && attr("href") === href;
+  });
 }

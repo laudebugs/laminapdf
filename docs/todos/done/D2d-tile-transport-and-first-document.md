@@ -44,9 +44,9 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 
 **Out of scope** (and which todo covers it)
 
-- e2e automation of these flows: [D2e](../ready/D2e-desktop-e2e-webdriverio.md) (this PR includes a manual checklist in the PR).
+- e2e automation of these flows: [D2e](../done/D2e-desktop-e2e-webdriverio.md) (this PR includes a manual checklist in the PR).
 - Text layer, search, thumbnails: arrive through shared web rounds C5/C6 and need engine messages for text extraction — a follow-up desktop todo once C5 lands (note in Risks).
-- Opening from argv/OS/drag-drop: [D3a](../ready/D3a-open-from-os.md). Multiple documents/tabs: [D4a](../ready/D4a-windows-tabs-and-session-restore.md).
+- Opening from argv/OS/drag-drop: [D3a](./D3a-open-from-os.md). Multiple documents/tabs: [D4a](../ready/D4a-windows-tabs-and-session-restore.md).
 
 ## Tasks
 
@@ -57,7 +57,7 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 - [x] Wire `@laminapdf/ui`'s open button and password prompt through the desktop `Platform`.
 - [x] Engine restart and failure events in the UI.
 - [x] Measure: time-to-first-page (1 GB), scroll smoothness on the 1,000-page fixture using C3's perf harness adapted to the desktop build (dev-only page), idle memory; record in ADR 0008 and the PR. *Done on macOS, measured again under D2c's sandbox. Scroll smoothness isn't measured: D2e's scroll scenario covers the 1,000-page fixture on all three OSes.*
-- [x] Manual checklist in the PR for macOS, Windows, Linux (X11 and Wayland): open, scroll, zoom 25–800 %, password file, repaired file, kill engine mid-scroll. *macOS by hand; the owner moved Windows and Linux to [D2e](../ready/D2e-desktop-e2e-webdriverio.md)'s scenarios, which run the same flows on all three OSes in CI.*
+- [x] Manual checklist in the PR for macOS, Windows, Linux (X11 and Wayland): open, scroll, zoom 25–800 %, password file, repaired file, kill engine mid-scroll. *macOS by hand; the owner moved Windows and Linux to [D2e](../done/D2e-desktop-e2e-webdriverio.md)'s scenarios, which run the same flows on all three OSes in CI.*
 
 ## Acceptance criteria
 

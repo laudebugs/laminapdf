@@ -6,7 +6,7 @@ Every operation of the [feature inventory](../research/pdf/06-feature-inventory.
 
 **Statuses**, weakest first: 🔴 `unsupported` (detected and reported, never silently dropped), 🟡 `read` (displayed or extracted faithfully), 🔵 `write` (created or changed; output passes qpdf `--check` and opens in pdf.js and PDFium), 🟢 `round-trip` (open → change → save → reopen preserves the feature and everything else). `—` means no evidence yet; `n/a` means the row doesn't target that surface. **Columns:** `core` (the Rust crates), `pdf` (`@laminapdf/sdk`), `web`, `desktop`; *Target* is the round that must reach the target status on every targeted surface.
 
-**Evidence.** A Rust test claims a status with a doc-comment line above it, `/// capability: C.08 core round-trip` (ID, surface, status; several lines for several claims), on a `#[test]` function in a crate's `src/` or `tests/<name>.rs`. TypeScript tests will use their name, `test("[cap C.04 pdf round-trip] …")`. `cargo xtask capabilities` runs every tagged test and rewrites this page; `cargo xtask capabilities --check` (full lane) fails when this page differs from what the passing tests prove or a tagged test fails, and `cargo xtask check docs` (every PR, no test run) fails when this page claims more than any tagged test could prove or differs from what the manifest and the tags generate. Core `write` and `round-trip` may be claimed only by tests in the round-trip suite ([`roundtrip_suite.rs`](../../crates/laminapdf-save/tests/roundtrip_suite.rs)), whose saves the full lane's `cargo xtask roundtrip` also checks with qpdf `--check`, pdf.js and PDFium.
+**Evidence.** A Rust test claims a status with a doc-comment line above it, `/// capability: C.08 core round-trip` (ID, surface, status; several lines for several claims), on a `#[test]` function in a crate's `src/` or `tests/<name>.rs`. A TypeScript test claims one at the start of its title, `it("[cap J.01 web round-trip] edits the title, …")` (several tags in a row for several claims), on a plain `it(` or `test(` call (not `.skip`, `.only`, `.todo`, `.skipIf` or `.runIf`), only in the reader's end-to-end tests (`apps/web/e2e/*.e2e.test.ts`, the `web` column). `cargo xtask capabilities` runs every tagged Rust test and rewrites this page and [`matrix.json`](matrix.json) (the same matrix as data, which the reader's capability page shows); it doesn't run the TypeScript tests, which need the built reader and a browser: `cargo xtask pdf-runtimes` runs them in Chromium, Firefox and WebKit in the fast lane, whose gate a pull request must pass to merge. `cargo xtask capabilities --check` (full lane) fails when this page or `matrix.json` differs from what the passing tests prove or a tagged Rust test fails, and `cargo xtask check docs` (every PR, no test run) fails when this page claims more than any tagged test could prove or either file differs from what the manifest and the tags generate. Core `write` and `round-trip` may be claimed only by tests in the round-trip suite ([`roundtrip_suite.rs`](../../crates/laminapdf-save/tests/roundtrip_suite.rs)), whose saves the full lane's `cargo xtask roundtrip` also checks with qpdf `--check`, pdf.js and PDFium.
 
 ## Summary
 
@@ -16,7 +16,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | core | 169 | 6 | 7 | 15 | 0 | 141 | 9 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
-| web | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
+| web | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
 
 ## A. Text & typography
@@ -189,16 +189,16 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| J.01 | Title, author, subject, keywords | 🟢 round-trip | — | — | — | E1 round-trip | [`text_fields_are_decoded`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| J.02 | Creation/modification dates | 🟢 round-trip | — | — | — | E1 round-trip | [`a_valid_date_is_parsed`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| J.03 | Producer & creator | 🟢 round-trip | — | — | — | E1 round-trip | [`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| J.01 | Title, author, subject, keywords | 🟢 round-trip | — | 🟢 round-trip | — | E1 round-trip | [`text_fields_are_decoded`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[sets title, authors, subject, keywords, creator and producer in Info and XMP](../../apps/web/e2e/properties.e2e.test.ts) web round-trip |
+| J.02 | Creation/modification dates | 🟢 round-trip | — | 🟢 round-trip | — | E1 round-trip | [`a_valid_date_is_parsed`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[sets the creation date, and the save sets the modification date, in a file that had no XMP](../../apps/web/e2e/properties.e2e.test.ts) web round-trip |
+| J.03 | Producer & creator | 🟢 round-trip | — | 🟢 round-trip | — | E1 round-trip | [`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[sets title, authors, subject, keywords, creator and producer in Info and XMP](../../apps/web/e2e/properties.e2e.test.ts) web round-trip |
 | J.04 | Manage XMP | 🔵 write | — | — | — | E3 round-trip | [`a_documents_packet_is_parsed_and_its_fields_read`](../../crates/laminapdf-model/tests/xmp.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | J.05 | Attach / extract / delete embedded files | — | — | — | — | E3 round-trip |  |
 | J.06 | Portfolios / collections | — | — | — | — | E3 read |  |
 | J.07 | Inspect version & conformance | — | — | — | — | E3 read |  |
 | J.08 | Identify fonts & colour profiles | — | — | — | — | E3 read |  |
 | J.09 | Inspect internal objects, streams, references | — | — | — | — | E3 read |  |
-| J.10 | Remove selected metadata | 🟢 round-trip | — | — | — | E1 round-trip | [`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| J.10 | Remove selected metadata | 🟢 round-trip | — | 🟢 round-trip | — | E1 round-trip | [`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[removes the values chosen in Remove metadata… from Info and XMP](../../apps/web/e2e/properties.e2e.test.ts) web round-trip |
 
 ## K. Printing & optimisation
 

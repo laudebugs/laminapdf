@@ -55,6 +55,8 @@ const keys = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 // open dialog runs in the main process.
 const shell = desktop ? tauriShell() : undefined;
 const engine = startEngine(shell);
+// End-to-end test builds only: Vite drops this branch, and the module, from every other build.
+if (import.meta.env.MODE === "e2e") void import("../e2e/probe/probe.ts").then(({ exposeProbe }) => exposeProbe(engine));
 const platform = createDesktopPlatform(undefined, shell);
 const app = createRoot(root);
 const render = (info: AppInfo | undefined) =>
