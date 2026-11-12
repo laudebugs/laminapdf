@@ -6,7 +6,7 @@
 //! golden --update` runs it on `fixtures/golden/`; tests never write goldens (ADR 0018 tier 3).
 //!
 //! ```sh
-//! cargo run -p laminapdf-build --example golden -- <out-dir>
+//! cargo run -p laminapdf-build --example golden-build -- <out-dir>
 //! ```
 #![allow(
     clippy::unwrap_used,

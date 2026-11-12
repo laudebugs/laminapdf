@@ -5,7 +5,7 @@
 //! (ADR 0018 tier 3).
 //!
 //! ```sh
-//! cargo run -p laminapdf-save --example golden -- <out-dir>
+//! cargo run -p laminapdf-save --example golden-save -- <out-dir>
 //! ```
 #![allow(
     clippy::unwrap_used,
