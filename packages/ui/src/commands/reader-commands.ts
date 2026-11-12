@@ -217,6 +217,26 @@ function pageCommands(): AnyCommand[] {
   ];
 }
 
+/** Following an article thread (O13): the shell gives a handler only while the file has threads. */
+function threadCommands(): AnyCommand[] {
+  return [
+    delegated({
+      id: "nav.next-thread-part",
+      title: title("nav.next-thread-part"),
+      group: "navigate",
+      home: ["threads-panel"],
+      enabled: documentOpen,
+    }),
+    delegated({
+      id: "nav.previous-thread-part",
+      title: title("nav.previous-thread-part"),
+      group: "navigate",
+      home: ["threads-panel"],
+      enabled: documentOpen,
+    }),
+  ];
+}
+
 /** History, and stepping the zoom. */
 function historyAndZoomCommands(): AnyCommand[] {
   return [
@@ -641,6 +661,7 @@ export function readerCommands(): readonly AnyCommand[] {
     ...fileDocumentCommands(),
     ...pageCommands(),
     ...historyAndZoomCommands(),
+    ...threadCommands(),
     ...zoomModeCommands(),
     ...viewSettingCommands(),
     ...readerModeCommands(),

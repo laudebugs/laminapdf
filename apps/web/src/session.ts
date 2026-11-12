@@ -6,7 +6,7 @@
 // it, so its bytes never reach this page.
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import type { DocumentMetadata, Op, SaveOptions, SaveReport } from "@laminapdf/sdk";
+import type { ArticleThread, DocumentMetadata, InitialView, Op, SaveOptions, SaveReport } from "@laminapdf/sdk";
 import type {
   DebugBackend,
   ExternalStore,
@@ -17,7 +17,7 @@ import type {
   RepairKind,
   SaveResult,
 } from "@laminapdf/ui";
-import { fromFile, message, ReaderController } from "@laminapdf/ui";
+import { fromFile, message, ReaderController, type ThreadPartRef } from "@laminapdf/ui";
 import {
   createViewer,
   type LinkLayerOptions,
@@ -94,7 +94,19 @@ export interface EngineState {
   readonly openedAt: number | undefined;
   /** The document worker restarted and couldn't apply the unsaved edits again; counts each time. */
   readonly editsLost: number;
+  /**
+   * How the open document asked to be shown when it opened (O13), read once its first page
+   * painted: the shell shows the panel it asks for. Undefined until read, and when it can't be.
+   */
+  readonly opening: InitialView | undefined;
+  /** The open document's article threads, read with `opening`; empty without any. */
+  readonly threads: readonly ArticleThread[];
+  /** The thread part the reader followed last. */
+  readonly threadPart: ThreadPartRef | undefined;
 }
+
+/** No threads: the Threads tab stays away. */
+const NO_THREADS: readonly ArticleThread[] = [];
 
 /** An edit, as the view applies it. */
 type Ops = Parameters<Viewer["applyEdit"]>[0];
@@ -261,6 +273,9 @@ export class Engine implements ExternalStore<EngineState> {
       resumedAt: undefined,
       openedAt: undefined,
       editsLost: 0,
+      opening: undefined,
+      threads: NO_THREADS,
+      threadPart: undefined,
     };
     this.#platform = platform;
     this.#session = this.#start(backend);
@@ -474,6 +489,45 @@ export class Engine implements ExternalStore<EngineState> {
     await session.viewer.edits.apply(ops, label);
   }
 
+  /**
+   * Reads how the open document asks to be shown and its article threads, once its first page
+   * painted (O13, E3 plan §5), and goes to its opening page and zoom when `go`: no address
+   * fragment named a place and no kept position wins, and the reader hasn't moved since.
+   */
+  async #readOpening(session: Session, latest: () => boolean, go: boolean): Promise<void> {
+    try {
+      const [opening, threads] = await Promise.all([session.client.initialView(), session.client.threads()]);
+      if (!latest()) return;
+      this.#set({ opening, threads: threads.length === 0 ? NO_THREADS : threads });
+      const state = session.viewer.getState();
+      if (go && opening.open.kind === "page" && state.currentPage === 0 && state.scrollTop === 0) {
+        session.viewer.goToDestination(opening.open.target);
+      }
+    } catch (error) {
+      // The file opens at its first page, as without an initial view; the error is the worker's.
+      reportError(error);
+    }
+  }
+
+  /**
+   * Goes to part `ref` of the open document's article threads, as a history jump: the part's
+   * top at the top of the view, keeping the zoom. A part on a missing page goes nowhere.
+   */
+  async goToThreadPart(ref: ThreadPartRef): Promise<void> {
+    const part = this.#state.threads[ref.thread]?.parts[ref.part];
+    if (part?.page === undefined) return;
+    const { viewer } = await this.#session;
+    const y = part.rect?.[1];
+    viewer.jumpToDestination({ page: part.page, view: y === undefined ? { kind: "fit" } : { kind: "at", y } });
+    this.#set({ threadPart: ref });
+  }
+
+  /** The open document's initial view as its edits leave it, for the dialog. */
+  async initialView(): Promise<InitialView> {
+    const session = await this.#session;
+    return session.client.initialView();
+  }
+
   /** Moves to `backend`: a new document worker, and the open file reopened in it. */
   async switchBackend(backend: DebugBackend): Promise<void> {
     if (backend === this.#state.backend) return;
@@ -603,6 +657,9 @@ export class Engine implements ExternalStore<EngineState> {
       fingerprint: opened.fingerprint,
       resumedAt: resume === undefined ? undefined : shownFirst,
       openedAt: Date.now(),
+      opening: undefined,
+      threads: NO_THREADS,
+      threadPart: undefined,
     });
     const firstPage = () => {
       const state = session.viewer.stats().pages[shownFirst];
@@ -612,6 +669,7 @@ export class Engine implements ExternalStore<EngineState> {
     void whenPainted(firstPage, () => !latest()).then((painted) => {
       if (!painted) return;
       if (place !== undefined) void this.#goTo(place);
+      void this.#readOpening(session, latest, place === undefined && resume === undefined);
       const backend = `${opened.backend.name} ${opened.backend.version}`;
       this.#set({ timing: { backend, firstPageMs: Math.round(performance.now() - started) } });
     });
@@ -648,6 +706,9 @@ export class Engine implements ExternalStore<EngineState> {
       fingerprint: undefined,
       resumedAt: undefined,
       openedAt: undefined,
+      opening: undefined,
+      threads: NO_THREADS,
+      threadPart: undefined,
     });
     if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
   }

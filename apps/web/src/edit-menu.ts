@@ -9,6 +9,7 @@ const EDIT_MENU = {
   undo: "edit.undo",
   redo: "edit.redo",
   history: "edit.history",
+  "initial-view": "organise.initial-view",
   "rotate-right": "pages.rotate-right",
   "rotate-left": "pages.rotate-left",
 } as const satisfies Record<string, CommandId>;

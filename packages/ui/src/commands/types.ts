@@ -65,6 +65,7 @@ export type CommandHome =
   | "mini-toolbar"
   | "mode-switcher"
   | "history-panel"
+  | "threads-panel"
   | "layer";
 
 /** What a parser made of typed arguments. */

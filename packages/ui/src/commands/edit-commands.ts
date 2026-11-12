@@ -70,6 +70,20 @@ function rotateCommand(id: CommandId, icon: "rotate-left" | "rotate-right"): Com
   };
 }
 
+/** Initial view… (O13): the shell opens the dialog, which knows the document's pages. */
+function initialViewCommand(): Command {
+  return {
+    id: "organise.initial-view",
+    title: message("command.organise.initial-view"),
+    keywords: ["open", "opens", "zoom", "layout", "page mode", "viewer preferences"],
+    group: "edit",
+    delegated: true,
+    home: ["edit-menu"],
+    enabled: editable,
+    run: (ctx) => ctx.actions?.["organise.initial-view"]?.(undefined),
+  };
+}
+
 /** Save's keys: ⌘S and Ctrl S, in a text field too. Save as…'s: ⇧⌘S and Ctrl Shift S. */
 const SAVE_KEYS: readonly Shortcut[] = [{ mac: "Mod+S", other: "Mod+S", scope: "global" }];
 const SAVE_AS_KEYS: readonly Shortcut[] = [{ mac: "Mod+Shift+S", other: "Mod+Shift+S", scope: "global" }];
@@ -191,6 +205,7 @@ export function editCommands(): readonly AnyCommand[] {
         await ctx.edits?.goTo(step);
       },
     } satisfies Command<number>,
+    initialViewCommand(),
     rotateCommand("pages.rotate-right", "rotate-right"),
     rotateCommand("pages.rotate-left", "rotate-left"),
     ...saveCommands(),

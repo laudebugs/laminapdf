@@ -52,11 +52,12 @@ function useLater(open: boolean): Later | undefined {
 /** A store's subscribe with nothing to hear, for the session while no document is open. */
 const NOTHING_TO_HEAR = () => () => undefined;
 
-/** The delegated edit commands' handlers: Show history, turning the current page, and the saves. */
+/** The delegated edit commands' handlers: Show history, Initial view…, turning the current page, and the saves. */
 export type EditActions = Readonly<
   Partial<
     Record<
       | "edit.history"
+      | "organise.initial-view"
       | "pages.rotate-right"
       | "pages.rotate-left"
       | "file.save"
@@ -190,6 +191,7 @@ export function useEditing(options: {
           toasts={toasts}
           fileName={fileName}
           flow={flow}
+          layout={layout}
         />
       ),
   };

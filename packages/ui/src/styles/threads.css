@@ -1,0 +1,92 @@
+/* The Threads rail tab (Paper O13): a muted note, one disclosure per thread (a 14 px title over a
+   12 px muted summary), its parts as rows (padding 6 × 8, radius 4) with the current part in the
+   accent tint and an inset accent ring, a missing part muted, and Previous / Next part under the
+   list. The list scrolls inside the rail. */
+@layer paper.components {
+  .paper-threads {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    block-size: 100%;
+    min-block-size: 0;
+    padding: var(--paper-space-8);
+  }
+
+  .paper-threads-note {
+    margin: 0;
+    padding-inline: var(--paper-space-8);
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-threads-list,
+  .paper-thread-parts {
+    margin: 0;
+    padding-inline: 0;
+    list-style: none;
+  }
+
+  .paper-threads-list {
+    flex: 1;
+    min-block-size: 0;
+    overflow: auto;
+  }
+
+  .paper-thread-toggle,
+  .paper-thread-part {
+    display: flex;
+    inline-size: 100%;
+    padding-block: var(--paper-space-6);
+    padding-inline: var(--paper-space-8);
+    border: 0;
+    border-radius: var(--paper-radius-4);
+    background: transparent;
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+    text-align: start;
+  }
+
+  .paper-thread-toggle {
+    flex-direction: column;
+    align-items: flex-start;
+    cursor: pointer;
+  }
+
+  .paper-thread-title {
+    font-weight: 600;
+  }
+
+  .paper-thread-summary {
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-thread-parts {
+    padding-inline-start: var(--paper-space-8);
+  }
+
+  button.paper-thread-part {
+    cursor: pointer;
+  }
+
+  .paper-thread-toggle:hover,
+  button.paper-thread-part:hover {
+    background: var(--paper-hover);
+  }
+
+  .paper-thread-part[aria-current="location"] {
+    background: var(--paper-accent-tint);
+    box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
+  }
+
+  .paper-thread-part[data-missing] {
+    color: var(--paper-muted);
+  }
+
+  .paper-threads-footer {
+    display: flex;
+    gap: var(--paper-space-8);
+    padding-inline: var(--paper-space-8);
+  }
+}
