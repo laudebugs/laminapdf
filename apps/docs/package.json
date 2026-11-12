@@ -35,6 +35,7 @@
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "astro": "7.4.5",
+    "axe-core": "catalog:",
     "codemirror": "6.0.2",
     "playwright": "catalog:",
     "starlight-links-validator": "0.27.0",

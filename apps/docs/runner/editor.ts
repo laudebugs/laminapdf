@@ -10,7 +10,7 @@ import { paperTheme } from "./theme.js";
 /** The runner's address: a fixed path, so its own headers (public/_headers' `/run/*`) apply. */
 const WORKER = "/run/worker.js";
 
-/** A page's width in pixels: twice the widest the page shows one (26rem), as the pictures are. */
+/** A page's width in pixels: about three times the 15rem the page shows it at, for zoom and dense screens. */
 const PAGE_PIXELS = 832;
 
 /** How long a run may take before the runner is stopped: an edit can loop forever. */
@@ -81,15 +81,36 @@ export interface RunButtons {
   readonly download: HTMLButtonElement;
 }
 
+/** The example a runner edits. */
+export interface RunExample {
+  /** The example's TypeScript file, from the repository root (a key of `RUNNABLE`). */
+  readonly file: string;
+  /** The example's code as the page shows it. */
+  readonly source: string;
+  /** The name Download gives the PDF: the example's own (`hello.pdf`). */
+  readonly name: string;
+}
+
+/** Where the runner goes on the page (Example.astro). */
+export interface RunPlaces {
+  /** The code's column: the editor, the bar and the run's status and errors go at its end. */
+  readonly code: HTMLElement;
+  /** The first page's picture, hidden once a run has drawn its own pages. */
+  readonly picture: HTMLElement;
+  /** The picture's column, where a run's pages go. */
+  readonly pages: HTMLElement;
+}
+
 /**
- * Opens the example's editor: the code above the bar, the result below it.
+ * Opens the example's editor in the code's column, with the bar under it; a run's pages go where
+ * the first page's picture was.
  *
  * @param buttons the bar with Run, Reset and Download
- * @param file the example's TypeScript file, from the repository root (a key of `RUNNABLE`)
- * @param source the example's code as the page shows it
- * @param pictures the Result tab's pictures, hidden once a run has drawn its own pages
+ * @param example the example's file, code and PDF name
+ * @param places the code's column, the picture and its column
  */
-export function openRunner(buttons: RunButtons, file: string, source: string, pictures: HTMLElement): void {
+export function openRunner(buttons: RunButtons, example: RunExample, places: RunPlaces): void {
+  const { file, source, name } = example;
   const status = element("p", "run-status");
   status.setAttribute("role", "status");
   const problem = element("div", "run-error");
@@ -97,8 +118,8 @@ export function openRunner(buttons: RunButtons, file: string, source: string, pi
   problem.hidden = true;
   const pages = element("div", "run-pages");
   const editorHost = element("div", "run-editor");
-  buttons.bar.before(editorHost);
-  buttons.bar.after(status, problem, pages);
+  places.code.append(editorHost, buttons.bar, status, problem);
+  places.pages.append(pages);
   buttons.bar.hidden = false;
   buttons.download.hidden = true;
 
@@ -107,10 +128,11 @@ export function openRunner(buttons: RunButtons, file: string, source: string, pi
     parent: editorHost,
     extensions: [basicSetup, javascript({ typescript: true }), EditorView.lineWrapping, paperTheme],
   });
+  // The pressed "Edit and run" is gone: focus goes to the editor, where the reader's work starts.
+  view.focus();
   /** The last PDF as a data: URL: not a blob: one, since Chromium checks a blob: download against
    * the page's CSP, which lists no blob: (ADR 0011), and reports a violation though the file arrives. */
   let pdf = "";
-  const name = `${file.slice(file.lastIndexOf("/") + 1, -3)}.pdf`;
 
   buttons.reset.addEventListener("click", () => {
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: source } });
@@ -134,7 +156,7 @@ export function openRunner(buttons: RunButtons, file: string, source: string, pi
       return;
     }
     problem.hidden = true;
-    pictures.hidden = true;
+    places.picture.hidden = true;
     pages.replaceChildren(
       ...reply.pages.map((bitmap, index) => {
         const canvas = element("canvas", "run-page");
@@ -146,7 +168,6 @@ export function openRunner(buttons: RunButtons, file: string, source: string, pi
         return canvas;
       }),
     );
-    pages.classList.toggle("run-pages-many", reply.pages.length > 1);
     pdf = await dataUrl(reply.bytes);
     buttons.download.hidden = false;
     const count = reply.pageCount === 1 ? "1 page" : `${reply.pageCount} pages`;
