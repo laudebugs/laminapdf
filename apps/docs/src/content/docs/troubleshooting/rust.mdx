@@ -7,15 +7,15 @@ These entries cover the `laminapdf` crate: the version Cargo picks, the features
 
 ## The `laminapdf` crate has nothing in it
 
-**Cause:** a plain `cargo add laminapdf` picked version `0.0.0`, a placeholder that only reserves the name. Lamina PDF's releases are alphas, and Cargo never picks an alpha unless you name it.
+**Cause:** your project is on version `0.0.0`, a placeholder that only reserves the name. Every release before `0.2.0` was an alpha, and Cargo never picks an alpha unless you name it, so a plain `cargo add laminapdf` picked the placeholder.
 
-**Fix:** add the version these docs describe: `cargo add laminapdf@={{version}}`. See [Install](/install/#rust-laminapdf).
+**Fix:** add the version these docs describe: `cargo add laminapdf@{{version}}`. See [Install](/install/#rust-laminapdf).
 
 ## Cargo finds no version that matches your requirement
 
-**Cause:** Lamina PDF's releases are alphas, whose versions end in `-alpha` and a number, and Cargo treats them as pre-releases. A requirement such as `"0.2"` matches only full releases, so Cargo's error lists the alphas as "candidate versions found which didn't match".
+**Cause:** Lamina PDF's releases before `0.2.0` were alphas, whose versions end in `-alpha` and a number, and Cargo treats them as pre-releases. A requirement such as `"0.1"` matches only full releases, so Cargo's error lists the alphas as "candidate versions found which didn't match".
 
-**Fix:** name the alpha exactly, as `cargo add` writes it: `laminapdf = "={{version}}"`. The `=` also keeps `cargo update` from moving you to the next alpha, which may change the API: alphas promise nothing to each other. Move to a new alpha by changing the version yourself, after reading the [changelog](/reference/changelog/). See the [stability policy](/reference/stability/).
+**Fix:** require `0.2.0` or later, as `cargo add` writes it: `laminapdf = "{{version}}"`. Cargo then takes later releases in the same `0.x` line, which the [stability policy](/reference/stability/) promises need no change to your code. Read the [changelog](/reference/changelog/) before you move to a new `0.x` line.
 
 ## `Builder` or `page_text` is not found in `laminapdf`
 
@@ -27,7 +27,7 @@ These entries cover the `laminapdf` crate: the version Cargo picks, the features
 
 **Cause:** `explain` returns each code's page from these docs as text, which adds about 80 KB to your program. The function is behind the `explain` feature, which is off by default.
 
-**Fix:** turn the feature on: `cargo add laminapdf@={{version}} --features explain`. Or link to the page instead: every error's `docs_url()` gives its address.
+**Fix:** turn the feature on: `cargo add laminapdf@{{version}} --features explain`. Or link to the page instead: every error's `docs_url()` gives its address.
 
 ## Cargo says the crate requires a newer rustc
 

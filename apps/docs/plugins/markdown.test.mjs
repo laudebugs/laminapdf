@@ -6,7 +6,7 @@ import { platform } from "node:process";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { diagramText } from "../src/components/diagrams/registry.mjs";
-import { llmsTxt, shownFileUrl } from "./agent-docs.mjs";
+import { linksTwin, llmsTxt, shownFileUrl } from "./agent-docs.mjs";
 import {
   codeBlock,
   exampleParts,
@@ -232,4 +232,19 @@ test("a symbolic link in an example folder can't lead out of it", { skip: platfo
   } finally {
     unlinkSync(link);
   }
+});
+
+test("a page links its twin only with rel alternate, type text/markdown and the twin's path", () => {
+  const link = '<link rel="alternate" type="text/markdown" href="/guides/save-a-pdf.md">';
+  assert.equal(linksTwin(`<head>${link}</head>`, "/guides/save-a-pdf.md"), true);
+  assert.equal(
+    linksTwin('<link href="/guides/save-a-pdf.md" type="text/markdown" rel="alternate"/>', "/guides/save-a-pdf.md"),
+    true,
+  );
+  assert.equal(linksTwin(link, "/guides/other.md"), false);
+  assert.equal(linksTwin('<link rel="canonical" href="/guides/save-a-pdf.md">', "/guides/save-a-pdf.md"), false);
+  assert.equal(
+    linksTwin('<link rel="alternate" type="text/html" href="/guides/save-a-pdf.md">', "/guides/save-a-pdf.md"),
+    false,
+  );
 });

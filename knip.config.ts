@@ -56,10 +56,18 @@ const config: KnipConfig = {
     "apps/site": { entry: ["test/**/*.test.ts", "vitest.config.ts"], vitest: false },
     // The docs' example runner: scripts/build-runner.mjs builds runner/worker.ts by its path.
     // src/routeData.ts is Starlight's route middleware, which astro.config.mjs names by path.
-    // The guide PDF's fonts (plugins/guide.mjs) are read as files from node_modules, not imported.
+    // The guide PDF's fonts (scripts/guide-pdf.mjs) are read as files from node_modules, not imported.
     "apps/docs": {
       entry: ["runner/worker.ts", "src/routeData.ts"],
       ignoreDependencies: ["source-sans", "source-code-pro"],
+    },
+    // The desktop reader's e2e scenarios. WebdriverIO's config sits in e2e/, not the package root
+    // where knip's plugin looks, and it builds the specs' paths, which knip can't follow.
+    "apps/desktop": {
+      entry: ["e2e/specs/*.e2e.ts"],
+      "webdriver-io": { config: ["e2e/wdio.conf.ts"] },
+      // The config's `runner: "local"` loads it; knip's plugin doesn't map the name to the package.
+      ignoreDependencies: ["@wdio/local-runner"],
     },
     // A command, not a library: no `exports`. bin/laminapdf.js runs the built src/launcher.ts.
     "packages/cli": { entry: ["src/launcher.ts"] },

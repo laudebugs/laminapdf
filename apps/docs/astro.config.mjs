@@ -113,11 +113,15 @@ export default defineConfig({
       head: WEBSITE_ICONS.head,
       // One header for both sites (@laminapdf/site-kit), with Starlight's search and theme switch;
       // on phones, where the header hides the site's links, the menu lists them. The banner says
-      // when the docs describe unreleased changes.
+      // when the docs describe unreleased changes. Each page links its Markdown twin from its head
+      // and offers to copy it under its title.
       components: {
         Banner: "./src/components/Banner.astro",
+        Head: "./src/components/Head.astro",
         Header: "./src/components/Header.astro",
+        Hero: "./src/components/Hero.astro",
         MobileMenuFooter: "./src/components/MobileMenuFooter.astro",
+        PageTitle: "./src/components/PageTitle.astro",
         ThemeSelect: "./src/components/ThemeSelect.astro",
       },
       // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,

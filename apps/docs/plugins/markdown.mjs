@@ -159,6 +159,19 @@ export function codeBlock(file, code) {
 }
 
 /**
+ * Where the page at `pathname` has its Markdown twin (`/guides/x/` → `/guides/x.md`, `/` →
+ * `/index.md`), or `undefined` for the 404 page, which has none. The head's alternate link, "Copy as
+ * Markdown" and the build's check of that link all ask this.
+ *
+ * @param {string} pathname a page's path on the site
+ * @returns {string | undefined}
+ */
+export function pageTwin(pathname) {
+  if (/^\/404(\.html|\/)?$/.test(pathname)) return undefined;
+  return twinHref(pathname.endsWith("/") ? pathname : `${pathname}/`);
+}
+
+/**
  * A site link as a link to its Markdown twin: `/guides/x/#a` → `/guides/x.md#a`, `/` →
  * `/index.md`. Other links are returned as they are.
  *

@@ -9,7 +9,9 @@
 //!   file;
 //! - `e2e` is in the base list (only `tauri.e2e.conf.json` may enable it, for the end-to-end tests);
 //! - `tauri.e2e.conf.json` doesn't list exactly the base capabilities plus `e2e`: `--config` merges
-//!   as a JSON merge patch, which replaces arrays rather than appending to them.
+//!   as a JSON merge patch, which replaces arrays rather than appending to them;
+//! - its CSP isn't the base CSP with only `'unsafe-eval'` added to `script-src` (the test
+//!   plugin runs scripts with `eval`): the e2e build must test the policy users get.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -45,6 +47,10 @@ fn capability(file: &str, json: &Value) -> Capability {
             .to_owned(),
         permissions,
     }
+}
+
+fn csp(conf: &Value) -> Option<&str> {
+    conf.pointer("/app/security/csp").and_then(Value::as_str)
 }
 
 fn listed(conf: &Value) -> Vec<String> {
@@ -92,6 +98,13 @@ fn problems(conf: &Value, caps: &[Capability], e2e_conf: Option<&Value>) -> Vec<
             found.push(format!(
                 "tauri.e2e.conf.json must list {expected:?} (a merge patch replaces the base list), not {:?}",
                 listed(e2e)
+            ));
+        }
+        let expected = csp(conf).map(|base| base.replacen("script-src 'self'", "script-src 'self' 'unsafe-eval'", 1));
+        if csp(e2e).map(str::to_owned) != expected {
+            found.push(format!(
+                "tauri.e2e.conf.json's CSP must be the base CSP with 'unsafe-eval' added to script-src ({expected:?}), not {:?}",
+                csp(e2e)
             ));
         }
     }
@@ -202,4 +215,26 @@ fn the_guard_should_accept_an_e2e_override_that_repeats_the_base_list() {
 fn the_guard_should_reject_a_missing_capability_list() {
     let caps = [cap("main.json", "main", &[])];
     assert_eq!(problems(&serde_json::json!({}), &caps, None).len(), 2);
+}
+
+/// A configuration listing `list` with the CSP `policy`.
+fn conf_with_csp(list: &[&str], policy: &str) -> Value {
+    serde_json::json!({ "app": { "security": { "capabilities": list, "csp": policy } } })
+}
+
+#[test]
+fn the_guard_should_accept_an_e2e_csp_that_only_adds_unsafe_eval() {
+    let base = conf_with_csp(&["main"], "default-src 'self'; script-src 'self'");
+    let e2e = conf_with_csp(&["main", "e2e"], "default-src 'self'; script-src 'self' 'unsafe-eval'");
+    assert_eq!(
+        problems(&base, &[cap("main.json", "main", &[])], Some(&e2e)),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn the_guard_should_reject_an_e2e_csp_that_differs_otherwise() {
+    let base = conf_with_csp(&["main"], "default-src 'self'; script-src 'self'");
+    let e2e = conf_with_csp(&["main", "e2e"], "default-src *; script-src 'self' 'unsafe-eval'");
+    assert_eq!(problems(&base, &[cap("main.json", "main", &[])], Some(&e2e)).len(), 1);
 }
