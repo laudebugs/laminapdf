@@ -299,3 +299,11 @@ h1#_top,
 .docs-unreleased a {
   color: var(--paper-text);
 }
+
+/* Starlight's search button shows its keyboard shortcut once its inline script has named the
+   platform's key, by removing the kbd's inline display: none. The docs' CSP allows no inline style,
+   so the build gives that kbd this class instead (astro.config.mjs), and it stays hidden while the
+   button is disabled: until search has loaded, after the script has run. */
+button[data-open-modal][disabled] > kbd.lamina-search-shortcut {
+  display: none;
+}

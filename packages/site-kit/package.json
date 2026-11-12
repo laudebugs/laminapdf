@@ -13,6 +13,7 @@
   },
   "exports": {
     "./integrations": "./src/integrations.mjs",
+    "./inline-styles": "./src/inline-styles.mjs",
     "./robots": "./src/robots.mjs",
     "./nav": "./src/nav.mjs",
     "./SiteHeader.astro": "./src/SiteHeader.astro",
