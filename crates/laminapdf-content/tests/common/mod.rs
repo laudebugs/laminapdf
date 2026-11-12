@@ -12,6 +12,7 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure"
 )]
 
+pub mod append_fuzz_entry;
 pub mod fuzz_entry;
 
 use laminapdf_content::{

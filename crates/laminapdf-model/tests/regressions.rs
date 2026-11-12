@@ -36,10 +36,11 @@ fn every_regressions_folder_is_a_fuzz_target() {
         // `content`, the save targets (`ops_json`, `save_roundtrip`, `copy_pages`), `extract_text`, `markdown`
         // and `engine_protocol_decode` are replayed by laminapdf-content's, laminapdf-save's,
         // laminapdf-text's, laminapdf-build's and laminapdf-desktop-protocol's own
-        // `tests/regressions.rs`.
+        // `tests/regressions.rs`; `content_append_scan` by laminapdf-content's `tests/append.rs`.
         let elsewhere = matches!(
             name.as_str(),
             "content"
+                | "content_append_scan"
                 | "ops_json"
                 | "save_roundtrip"
                 | "copy_pages"
