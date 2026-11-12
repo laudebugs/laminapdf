@@ -98,15 +98,15 @@ None.
 What the PR changed from the scope above, and why:
 
 - **A reload is a new document, with no new engine message.** The main process opens the changed file under a new id with a new handle, unlocks it with the kept password, and only then closes the old one; the window shows the new one at the same place. `ReopenDocument` and a protocol bump aren't needed: the engine opens and closes documents as it already does, and if the new file fails to open, the old document is still there to show.
-- **`notify` without `notify-debouncer-full`.** The watcher's own thread debounces (300 ms) and applies the settle rule, which the debouncer would only have duplicated; `file-id` gives the file identity directly. The second look comes one period after the first, so a settled change reloads about 600 ms after the last event, and the e2e scenario reports the time instead of asserting it (ADR 0018).
+- **`notify` without `notify-debouncer-full`.** The watcher's own thread debounces (300 ms) and applies the settle rule, which the debouncer would only have duplicated; `file-id` gives the file identity directly. The second look comes one period after the first, so a settled change reloads about 600 ms after the last event, and the e2e scenario reports the time instead of asserting it (ADR 0018), so the acceptance criterion's "within 1 s" is met by design and measured in each run's log, not asserted.
 - **The OS calls live in an edge crate, `laminapdf-desktop-os`**, since they need `unsafe` and rust.md keeps `unsafe` out of app crates. AppKit can't remove one recent document, so on macOS Remove leaves the Dock's entry until the list is cleared.
 - **The AppUserModelID is the bundle identifier**, which the app sets at start-up and Tauri's NSIS and WiX templates (CLI 2.12.4) give the Start Menu shortcuts. WiX's desktop shortcut has none; D6d can add it.
 - **Settings, not a Recent popover.** Both switches are in the shared Settings dialog's Files section, opened from More, which D5b and D7b extend. While a document is open, the palette's Open recent and Clear recent reach the list; D4b's native menu adds Open Recent.
 - **Rows, not cards.** The start window shows R01's Recent list, with a missing file's row saying "File not found" beside Remove. Thumbnails and folder names aren't shown: the webview gets no path, and the engine draws no thumbnails yet.
-- **Fingerprints, not positions.** Each entry keeps the document's fingerprint, computed in the main process with the viewer's scheme, so the list will show "stopped at page …" once the desktop records reading positions, which it doesn't yet.
+- **Fingerprints, not positions.** Each entry keeps the document's fingerprint, computed in the main process with the viewer's scheme, for the list's "stopped at page …". The desktop doesn't record reading positions yet; once it does, the list can show it.
 - **Not built:** the setting-off banner with Reload and Ignore (with reloading off, changes are ignored), polling for network shares and cloud folders, and the first-run empty state with the default-app notice.
 - **The privacy page** needs the owner's words before it changes: [#481](https://github.com/laudebugs/laminapdf/issues/481).
-- **Manual checks** of each OS's own recent list are rows 12–16 of `apps/desktop/e2e/MANUAL-OPEN.md`. They weren't run: the Windows and Linux ones need those machines, and the Mac's screen was locked, which stops the webview drawing.
+- **Manual checks** of each OS's own recent list are rows 12–16 of `apps/desktop/e2e/MANUAL-OPEN.md`. They weren't run: the Windows and Linux ones need those machines, and the Mac's screen was locked.
 
 ## Definition of done
 

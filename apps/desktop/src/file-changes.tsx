@@ -1,7 +1,7 @@
 // When the open document's file changes on disk (S04): a settled change shows the new version at
 // the same page and zoom, with a toast; a file moved or deleted shows a strip under the top bar,
 // with Locate… (choose where it went: the view moves to that file) and Close, while the document
-// stays readable; a change the main process couldn't open shows "retrying" until the next good
+// stays readable; a change the main process couldn't open shows the unreadable notice until the next good
 // reload. Each event names a document id, and only the one on screen counts.
 
 import { message, Notice, type ReaderController, type ToastQueue } from "@laminapdf/ui";
