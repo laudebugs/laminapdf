@@ -197,14 +197,16 @@ export async function onePageBody(area, twinFor) {
  * the references to them (`href="#…"`, `aria-controls`, `aria-labelledby`, `for`) prefixed with
  * the section's id, so the pages' repeated headings ("How it works") and tabs stay distinct, and
  * its headings one level deeper (h2 → h3, at most h6), under the page's own title. The title (the
- * section's first h2, class `one-page-title`) keeps its id and level.
+ * section's first h2, class `one-page-title`) keeps its id and level. A page's content ends at the
+ * `data-one-page-end` marker the view writes after it, not at the first `</section>`: a page's
+ * footnotes are a section of their own.
  *
  * @param {string} html
  * @returns {string}
  */
 export function onePageSections(html) {
   return html.replace(
-    /(<section class="one-page-section" aria-labelledby="([^"]+)">[\s\S]*?<\/h2>)([\s\S]*?)(<\/section>)/g,
+    /(<section class="one-page-section" aria-labelledby="([^"]+)">[\s\S]*?<\/h2>)([\s\S]*?)(<div data-one-page-end hidden><\/div>)/g,
     (_, head, id, body, end) => {
       const prefixed = body
         .replace(/\b(id|for|aria-controls|aria-labelledby)="([^"]+)"/g, (_m, attr, value) => {

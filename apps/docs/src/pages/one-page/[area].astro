@@ -45,6 +45,7 @@ const headings = pages.map((page) => ({ depth: 2, slug: page.id, text: page.titl
           <a href={`/${route}`}>{title}</a>
         </h2>
         <Content />
+        <div data-one-page-end hidden />
       </section>
     ))
   }
