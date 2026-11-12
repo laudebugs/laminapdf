@@ -22,6 +22,6 @@ In `crates/laminapdf-build/tests/document_schema.rs`, `a_tab_in_a_code_block_sho
 
 The unit tests in `items.rs` check the tab stops, a combining mark and a line without tabs.
 
-## Left for later
+## The workaround removed
 
-`expandTabs` in `apps/docs/plugins/guide.mjs` and its test in `guide.test.mjs` come from #461, which is still open. They can go once both PRs have merged.
+`expandTabs`, which #461 added to `apps/docs/plugins/guide.mjs` to expand tabs before the build, is gone with its test in `guide.test.mjs`. The guide PDF now passes the extraction guide's tab-separated example to the builder as written and builds without a warning.
