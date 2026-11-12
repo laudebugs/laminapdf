@@ -10,7 +10,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
-use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
+use crate::metadata::{
+    RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
+};
 use crate::rotate::RotatePage;
 
 /// An editing operation ([ADR 0006] §1): typed and semantic (it names things by
@@ -51,6 +53,12 @@ pub enum Op {
     SetMetadata(SetMetadata),
     /// Remove metadata fields from Info and XMP.
     RemoveMetadata(RemoveMetadata),
+    /// Set any XMP property.
+    SetXmpProperty(SetXmpProperty),
+    /// Remove an XMP property.
+    RemoveXmpProperty(RemoveXmpProperty),
+    /// Replace the whole XMP packet.
+    ReplaceXmpPacket(ReplaceXmpPacket),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -65,9 +73,13 @@ impl Op {
     #[must_use]
     pub const fn class(&self) -> ModificationClass {
         match self {
-            Self::SetInfo(_) | Self::SetMetadata(_) | Self::RemoveMetadata(_) | Self::UpdateSaveMetadata(_) => {
-                ModificationClass::Metadata
-            }
+            Self::SetInfo(_)
+            | Self::SetMetadata(_)
+            | Self::RemoveMetadata(_)
+            | Self::SetXmpProperty(_)
+            | Self::RemoveXmpProperty(_)
+            | Self::ReplaceXmpPacket(_)
+            | Self::UpdateSaveMetadata(_) => ModificationClass::Metadata,
             Self::RotatePage(_) => ModificationClass::PageStructure,
         }
     }
@@ -83,6 +95,9 @@ impl Op {
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
+            | Self::SetXmpProperty(_)
+            | Self::RemoveXmpProperty(_)
+            | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_) => false,
         }
     }
@@ -98,6 +113,9 @@ impl Op {
             }),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
+            Self::SetXmpProperty(op) => op.apply_to(doc),
+            Self::RemoveXmpProperty(op) => op.apply_to(doc),
+            Self::ReplaceXmpPacket(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
         }
     }
@@ -113,6 +131,8 @@ pub(crate) struct Effect {
     pub(crate) packet_rewritten: bool,
     /// It removed metadata that the file's earlier revisions still hold.
     pub(crate) removed: bool,
+    /// The properties it declared in a PDF/A packet's extension schemas.
+    pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
 }
 
 impl From<SetInfo> for Op {
@@ -136,6 +156,24 @@ impl From<RemoveMetadata> for Op {
 impl From<UpdateSaveMetadata> for Op {
     fn from(op: UpdateSaveMetadata) -> Self {
         Self::UpdateSaveMetadata(op)
+    }
+}
+
+impl From<SetXmpProperty> for Op {
+    fn from(op: SetXmpProperty) -> Self {
+        Self::SetXmpProperty(op)
+    }
+}
+
+impl From<RemoveXmpProperty> for Op {
+    fn from(op: RemoveXmpProperty) -> Self {
+        Self::RemoveXmpProperty(op)
+    }
+}
+
+impl From<ReplaceXmpPacket> for Op {
+    fn from(op: ReplaceXmpPacket) -> Self {
+        Self::ReplaceXmpPacket(op)
     }
 }
 

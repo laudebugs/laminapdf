@@ -79,6 +79,10 @@ pub struct Applied {
     /// A metadata op removed values that the file's earlier revisions still hold: an
     /// incremental save keeps them in the file, a full rewrite drops them.
     pub still_in_earlier_revisions: bool,
+    /// The properties an XMP op declared in a PDF/A packet's extension schemas, so it stays
+    /// valid PDF/A ([`SetXmpProperty`](crate::SetXmpProperty),
+    /// [`ReplaceXmpPacket`](crate::ReplaceXmpPacket)).
+    pub declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -94,6 +98,7 @@ pub(crate) struct TxState {
     /// What the ops applied so far did besides their changes (`Applied`'s flags).
     pub(crate) packet_rewritten: bool,
     pub(crate) removed: bool,
+    pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -152,6 +157,7 @@ impl Tx<'_> {
             touched_pages: effect.pages.into_iter().collect(),
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
+            declared: effect.declared,
         })
     }
 
@@ -170,6 +176,7 @@ impl Tx<'_> {
                 self.state.pending.record(op, effect.packet_rewritten);
                 self.state.packet_rewritten |= effect.packet_rewritten;
                 self.state.removed |= effect.removed;
+                self.state.declared.extend(effect.declared.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -247,6 +254,7 @@ mod tests {
             coalesce: None,
             packet_rewritten: false,
             removed: false,
+            declared: Vec::new(),
         }
     }
 

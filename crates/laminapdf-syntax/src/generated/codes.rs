@@ -102,6 +102,12 @@ pub enum ErrorCode {
     MalformedXmp,
     /// `unknown-source`: an op or a call names a source document that was not added to the session.
     UnknownSource,
+    /// `xmp-claim-read-only`: an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set.
+    XmpClaimReadOnly,
+    /// `invalid-xmp-packet`: the XMP packet given to replace the document's doesn't parse.
+    InvalidXmpPacket,
+    /// `invalid-xmp-property`: an XMP property edit names a property, or gives a value, that can't be written.
+    InvalidXmpProperty,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -298,6 +304,9 @@ impl ErrorCode {
         Self::NoPendingSave,
         Self::MalformedXmp,
         Self::UnknownSource,
+        Self::XmpClaimReadOnly,
+        Self::InvalidXmpPacket,
+        Self::InvalidXmpProperty,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -430,6 +439,9 @@ impl ErrorCode {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource => "unknown-source",
+            Self::XmpClaimReadOnly => "xmp-claim-read-only",
+            Self::InvalidXmpPacket => "invalid-xmp-packet",
+            Self::InvalidXmpProperty => "invalid-xmp-property",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -548,6 +560,9 @@ impl ErrorCode {
             Self::NoPendingSave => ErrorKind::State,
             Self::MalformedXmp => ErrorKind::Input,
             Self::UnknownSource => ErrorKind::Usage,
+            Self::XmpClaimReadOnly => ErrorKind::Usage,
+            Self::InvalidXmpPacket => ErrorKind::Input,
+            Self::InvalidXmpProperty => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -666,6 +681,9 @@ impl ErrorCode {
             Self::NoPendingSave => "rebase was called without a save waiting for it",
             Self::MalformedXmp => "a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds",
             Self::UnknownSource => "an op or a call names a source document that was not added to the session",
+            Self::XmpClaimReadOnly => "an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set",
+            Self::InvalidXmpPacket => "the XMP packet given to replace the document's doesn't parse",
+            Self::InvalidXmpProperty => "an XMP property edit names a property, or gives a value, that can't be written",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -784,6 +802,9 @@ impl ErrorCode {
             Self::NoPendingSave => "call rebase only after a save that returned SavedNotRebased",
             Self::MalformedXmp => "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
             Self::UnknownSource => "add the source document's bytes with addSource before applying ops that name it",
+            Self::XmpClaimReadOnly => "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
+            Self::InvalidXmpPacket => "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
+            Self::InvalidXmpProperty => "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

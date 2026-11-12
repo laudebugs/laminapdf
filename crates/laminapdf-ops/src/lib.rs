@@ -100,7 +100,8 @@ pub use history::{History, Reverted, UndoOutcome};
 pub use info::{InfoPatch, SetInfo};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
-    SetMetadata, UpdateSaveMetadata, conformance_warnings, read_metadata,
+    RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata, conformance_warnings,
+    read_metadata,
 };
 pub use op::{Op, OpLog};
 pub use pending::PendingChanges;

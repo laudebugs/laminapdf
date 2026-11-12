@@ -99,6 +99,9 @@ A PR that adds a code adds:
 | [`no-pending-save`](no-pending-save.md) | `state` | rebase was called without a save waiting for it |
 | [`malformed-xmp`](malformed-xmp.md) | `input` | a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds |
 | [`unknown-source`](unknown-source.md) | `usage` | an op or a call names a source document that was not added to the session |
+| [`xmp-claim-read-only`](xmp-claim-read-only.md) | `usage` | an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set |
+| [`invalid-xmp-packet`](invalid-xmp-packet.md) | `input` | the XMP packet given to replace the document's doesn't parse |
+| [`invalid-xmp-property`](invalid-xmp-property.md) | `usage` | an XMP property edit names a property, or gives a value, that can't be written |
 
 ## Op warnings
 

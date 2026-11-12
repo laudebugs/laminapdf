@@ -526,6 +526,27 @@
       "summary": "an op or a call names a source document that was not added to the session",
       "hint": "add the source document's bytes with addSource before applying ops that name it",
       "since": "0.2.0"
+    },
+    {
+      "code": "xmp-claim-read-only",
+      "kind": "usage",
+      "summary": "an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set",
+      "hint": "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
+      "since": "0.2.0"
+    },
+    {
+      "code": "invalid-xmp-packet",
+      "kind": "input",
+      "summary": "the XMP packet given to replace the document's doesn't parse",
+      "hint": "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
+      "since": "0.2.0"
+    },
+    {
+      "code": "invalid-xmp-property",
+      "kind": "usage",
+      "summary": "an XMP property edit names a property, or gives a value, that can't be written",
+      "hint": "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
+      "since": "0.2.0"
     }
   ],
   "opWarnings": [
