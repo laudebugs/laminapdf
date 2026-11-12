@@ -15,7 +15,7 @@
 
 ## Goal
 
-X8a's trial shows how much sccache saves on the Linux x64, macOS x64 and macOS Arm64 Rust legs. This todo acts on those numbers. If the compile minutes of `cargo xtask check rust` on macOS Arm64 PR runs fell by a third or more in either Rust-cache state, compared within that state (plan §5), every Rust job in `ci.yml` and `full.yml` uses the compile cache. Otherwise the action, the pin and the secrets go, and the plan records why.
+X8a's trial shows how much sccache saves on the Linux x64, macOS x64 and macOS Arm64 Rust legs. This todo acts on those numbers. If the compile minutes of `cargo xtask check rust` on macOS Arm64 PR runs fell by a third or more in at least one Rust-cache state, compared within that state, and grew in neither (plan §5), every Rust job in `ci.yml` and `full.yml` uses the compile cache. Otherwise the action, the pin and the secrets go, and the plan records why.
 
 ## Context
 

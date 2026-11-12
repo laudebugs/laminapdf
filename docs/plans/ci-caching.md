@@ -29,7 +29,7 @@ The waits need their own work (§8). This plan takes the compiling. The Rust cac
 
 ### 2.1 The trial's baseline (X8a)
 
-Before the compile cache, the two trial legs of `ci.yml`'s `rust` job took these medians, in minutes, over the five latest PR runs and five latest pushes to `main` in which `cargo xtask check rust` finished on both legs (PR runs 43233720085, 43216833241, 43216820936, 43216814987 and 43216808235; pushes 43220612637, 43213213416, 43189752514, 43184922825 and 43176803902). The step's time comes from the job's step timings. The test time is nextest's summary plus the doc tests' run time. Compiling is the rest, so it includes fmt, the maintainability check and cargo-deny, about half a minute together, and rustdoc compiling the doc tests.
+Before the compile cache, the first two trial legs of `ci.yml`'s `rust` job took these medians, in minutes, over the five latest PR runs and five latest pushes to `main` in which `cargo xtask check rust` finished on both legs (PR runs 43233720085, 43216833241, 43216820936, 43216814987 and 43216808235; pushes 43220612637, 43213213416, 43189752514, 43184922825 and 43176803902). The step's time comes from the job's step timings. The test time is nextest's summary plus the doc tests' run time. Compiling is the rest, so it includes fmt, the maintainability check and cargo-deny, about half a minute together, and rustdoc compiling the doc tests.
 
 | Leg | Runs | Rust cache | `check rust` | Tests | Compiling | of which clippy | of which test builds |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -38,9 +38,9 @@ Before the compile cache, the two trial legs of `ci.yml`'s `rust` job took these
 | Linux x64 | 5 PRs | hit (1 exact, 4 an older key) | 4.7 | 0.9 | 3.9 | 1.3 | 1.4 |
 | Linux x64 | 5 pushes | missed in all 5 | 7.8 | 0.7 | 7.1 | 2.8 | 2.4 |
 
-So §5's rule keeps the compile cache if the macOS x64 PR median falls to 8.6 minutes or less. The macOS figures are noisy: compiling took 8.4 to 26.7 minutes on PR runs, and four of the five PR runs started within seconds of each other and waited 50 to 120 minutes for a Mac. Pushes to `main` mostly found no Rust cache at all, so their figures are cold builds and don't compare with the PR rows.
+Until 2026-11-12, §5's rule kept the compile cache if this macOS x64 PR median fell to 8.6 minutes or less. The macOS figures are noisy: compiling took 8.4 to 26.7 minutes on PR runs, and four of the five PR runs started within seconds of each other and waited 50 to 120 minutes for a Mac. Pushes to `main` mostly found no Rust cache at all, so their figures are cold builds and don't compare with the PR rows.
 
-The trial's PR measurement moved to macOS Arm64 on 2026-11-12, because the CI waits work (todo X9a, from §8) runs Rust on macOS x64 only on pushes to `main` and in the nightly. Its leg had no compile cache before then. Its medians, in minutes, over PR runs of 2026-11-12 by how they restored the Rust cache, and the five pushes to `main` before the change (runs 43257452966, 43254655568, 43220612637, 43213213416 and 43189752514):
+The trial's PR measurement moved to macOS Arm64 on 2026-11-12, because the CI waits work in §8 will run Rust on macOS x64 only on pushes to `main` and in the nightly. The macOS Arm64 leg had no compile cache before then. Its medians, in minutes, over PR runs of 2026-11-12 by how they restored the Rust cache, and the five pushes to `main` before the change (runs 43257452966, 43254655568, 43220612637, 43213213416 and 43189752514):
 
 | Leg | Runs | Rust cache | `check rust` | Tests | Compiling | of which clippy | of which test builds |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -105,7 +105,7 @@ Requests cost more than storage. While the Rust cache stays, sccache sees only t
 
 The trial (X8a) runs the compile cache on the Rust legs where compiling costs most and least: Rust on macOS x64 and on Linux x64 in `ci.yml`, and since 2026-11-12 on macOS Arm64, whose PR runs the rule below reads. For five PR runs and five pushes to `main`, it records the hits, misses and non-cacheable calls from `sccache --show-stats`, the minutes of each step against the five runs of each kind before the patch, and the crates each PR touched. Then X8b decides:
 
-- **Keep and spread** if the compile minutes of `cargo xtask check rust` on macOS Arm64 PR runs fall by a third or more in either Rust-cache state, compared within that state (exact-key hits to 3.9 minutes or less, misses to 7.6 or less, against §2.1), and grow in neither. Until 2026-11-12 the rule read macOS x64 PR runs with a Rust-cache hit (8.6 minutes); X9a takes that leg off pull requests. The compile cache then goes to every Rust job in `ci.yml` and `full.yml`, and X8b tries one leg without the Rust cache.
+- **Keep and spread** if the compile minutes of `cargo xtask check rust` on macOS Arm64 PR runs fall by a third or more in at least one Rust-cache state, compared within that state (exact-key hits to 3.95 minutes or less, misses to 7.57 or less, against §2.1's 5.92 and 11.36), and grow in neither. Until 2026-11-12 the rule read macOS x64 PR runs with a Rust-cache hit (8.6 minutes); §8's work takes that leg off pull requests. The compile cache then goes to every Rust job in `ci.yml` and `full.yml`, and X8b tries one leg without the Rust cache.
 - **Remove** otherwise. X8b then takes the action and the secrets out and records the numbers here, so nobody tries the same thing without new evidence.
 
 Each todo's PR carries its workflow edits with the action, the pin, the tests and the docs. If the agent's GitHub access can't push workflow files, the PR gives them as a patch for the owner to commit.
