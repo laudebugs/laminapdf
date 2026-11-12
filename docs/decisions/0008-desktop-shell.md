@@ -204,14 +204,13 @@ D2a's scaffold sets this baseline, and every later todo keeps it or tightens it:
 
 ### 8. Test strategy per OS
 
-Playwright can't drive Tauri webviews, so the desktop build runs the reader's end-to-end scenarios with WebdriverIO and `@wdio/tauri-service`:
+Playwright can't drive Tauri webviews, so the desktop build runs the reader's end-to-end scenarios with WebdriverIO and `@wdio/tauri-service` 1.5. On every OS the WebDriver server runs inside the app: `tauri-plugin-wdio-webdriver` with `tauri-plugin-wdio` (the service's script and log API). The plan had `tauri-driver` with `msedgedriver` or `WebKitWebDriver` on Windows and Linux, but the service now embeds the server on all three OSes, so CI installs no driver and pins no driver version against the webview.
 
-| OS | Driver |
-| --- | --- |
-| Windows, Linux | `tauri-driver` (with `msedgedriver` matching WebView2 on Windows, `WebKitWebDriver` under Xvfb on Linux) |
-| macOS | The service's embedded WebDriver server (`tauri-plugin-wdio-webdriver`), compiled into test builds only behind the Cargo feature `e2e`, with its capability in `capabilities/e2e.json` |
+**As built (D2e).** The e2e build is the debug app with the Cargo feature `e2e` and `tauri.e2e.conf.json` merged in. The feature adds the two plugins (registered after the log plugin, because `tauri-plugin-wdio` installs its own logger when none is set), `debug_kill_engine`, `e2e_queue_pick` and `e2e_interactive`. The config adds the `e2e` capability to the base list, sets `withGlobalTauri`, allows `'unsafe-eval'` in `script-src` (the service runs scripts through `eval`), and builds the frontend in Vite's `e2e` mode. Only that mode imports `src/e2e.ts`, the frontend plugin and a probe the scenarios read instead of sleeping: page render states with the app's time, tiles the engine answered, and restarts that reopened the document. A native file dialog can't be driven, so a scenario queues a fixture with `e2e_queue_pick` (only files under `fixtures/` or `target/fixtures/`) and clicks Choose a file, or presses the open shortcut once a document shows.
 
-Release builds contain neither the plugin nor the e2e commands, and CI checks that. The web build's Playwright suite keeps running on all three OSes. If the macOS embedded driver proves unreliable, macOS falls back to that Playwright run plus a recorded manual smoke checklist. D2e fills this section in with what runs where and records any such gap here.
+The scenarios (`apps/desktop/e2e/specs/`) share one app per run, because the service starts the app once, so they run in a fixed order: the empty state, open, the 1,000-page fixture's last page, zoom in and out, a password file (a wrong password, the right one, then a killed engine with no second prompt), a repaired file, a killed engine mid-document, and the 1 GB fixture's first paint (under 3 s in CI, against the 1.5 s target, with the raw time reported). The full lane's `desktop-e2e` job runs them on Ubuntu 22.04 (under `xvfb-run`), macOS 15 and Windows 2025 whenever the desktop build runs, and the gate requires it. `e2e/cold-start.ts` times five launches from `run()` to the empty state accepting input and writes the median to the job summary; it asserts nothing, since the 300 ms gate is measured on the reference machine and [D2g](../todos/ready/D2g-desktop-cold-start.md) brings the app under it.
+
+Release builds contain neither plugin, no e2e command and no probe: the desktop build job fails if the binary holds `debug_kill_engine`, `e2e_queue_pick`, `tauri-plugin-wdio` or `TAURI_WEBDRIVER_PORT`, or the frontend bundle holds `__laminaE2e` or `__wdio`. The web build's Playwright suite keeps running on all three OSes. If the embedded driver fails more than 2 % of runs on an OS, that OS falls back to the web Playwright run plus a recorded manual smoke checklist, and the gap is recorded here.
 
 ### 9. Printing: the engine's rasters through each OS's print API
 

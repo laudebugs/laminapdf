@@ -27,6 +27,20 @@ cargo xtask desktop-notices                           # target/desktop/THIRD_PAR
 
 `desktop:dev` and `desktop:build` merge `src-tauri/tauri.bundle.conf.json`, which bundles the engine binary (`src-tauri/binaries/`, Tauri's sidecar naming) and PDFium (`src-tauri/resources/pdfium/`); `cargo xtask desktop-sidecar` writes both, and Git ignores them. The base `tauri.conf.json` names neither, so plain `cargo build` and `cargo test` work on a fresh clone; documents then fail to open with `engine-start`, because no engine sits beside the app.
 
+### End-to-end tests
+
+WebdriverIO drives the app's e2e build through the WebDriver server it embeds, so no driver needs installing ([ADR 0008 §8](../../docs/decisions/0008-desktop-shell.md#8-test-strategy-per-os)). The scenarios share one app and run in a fixed order; two of them need generated fixtures:
+
+```sh
+cargo xtask fixtures large-pdf --pages 1000 --out target/fixtures/1000-pages.pdf
+cargo xtask fixtures large-pdf                                     # target/fixtures/1gb.pdf
+pnpm --filter @laminapdf/desktop run desktop:build:e2e             # feature e2e + tauri.e2e.conf.json
+pnpm --filter @laminapdf/desktop run e2e                           # the scenarios (Linux: under xvfb-run)
+pnpm --filter @laminapdf/desktop run cold-start                    # five launches, median time to the empty state
+```
+
+A failed scenario leaves a screenshot in `target/desktop-e2e/`. The first launch after a fresh build is slow on macOS while the OS checks the new binary, so run the scenarios again before trusting a first-run failure.
+
 The engine runs sandboxed on every OS ([ADR 0008 §5](../../docs/decisions/0008-desktop-shell.md#5-sandboxing-per-os)): it can't open files, use the network or start processes. It gets the system's fonts from the main process, which lists them once at start-up. To see whether a problem comes from the sandbox, turn it off in a debug build and try again:
 
 ```sh
@@ -80,6 +94,6 @@ ADR 0008 §6 sets these rules, and every later todo keeps or tightens them:
 - **A password is typed once.** `unlock_document` moves it into memory that is wiped when dropped as soon as it arrives; the main process keeps it for restarts and never logs it.
 - **The CSP allows the app's own files plus the tile and IPC schemes.** `tauri.conf.json` allows no inline script, no other web origin, and no frames. `withGlobalTauri` is off and the prototype is frozen.
 - **The main process never parses a PDF.** It links only the protocol crate; CI's `desktop` job fails if `cargo tree` shows the parser, the renderer or PDFium under `laminapdf-desktop`.
-- **Release builds have no test commands.** `debug_kill_engine` exists only with the Cargo feature `e2e`; CI checks the built app doesn't contain its name.
+- **Release builds have no test code.** The test commands (`debug_kill_engine`, `e2e_queue_pick`, `e2e_interactive`) and the WebdriverIO plugins exist only with the Cargo feature `e2e`, and only Vite's `e2e` mode bundles `src/e2e.ts`; CI checks the built app and its bundle hold none of them.
 
 Tauri writes `src-tauri/gen/` on every build, and Git ignores it.
