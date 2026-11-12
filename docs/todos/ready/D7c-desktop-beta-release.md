@@ -58,7 +58,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 - [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
 - [ ] Work through the pre-release checklist; collect evidence links (CI runs, VM notes).
 - [ ] Version bump, changelog, release notes.
-- [ ] Merge the PR (versions and notes) **before** tagging; tag from `main`; approve the `release` environment deployment (owner).
+- [ ] Merge the PR (versions and notes) **before** tagging; tag from `main`; approve the `desktop-release` environment deployment (owner).
 - [ ] Verify published artefacts with the runbook commands on each OS; verify the download page.
 - [ ] After merge and the `desktop-v0.1.0` tag: run the 0.1.1 update cycle and kill-switch rehearsal (Post-merge checks) and record the results in a follow-up PR that ticks them in the `done/` file.
 - [ ] Update plans and board; open follow-up todos.
@@ -72,7 +72,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 
 ## Post-merge checks
 
-- [ ] Tag `desktop-v0.1.0` from `main` after this PR merges and approve the `release` environment; the publish job and post-publish Worker check are green.
+- [ ] Tag `desktop-v0.1.0` from `main` after this PR merges and approve the `desktop-release` environment; the publish job and post-publish Worker check are green.
 - [ ] At least one install per OS on the beta channel auto-updated from `0.1.0` to `0.1.1` (recorded: OS version, install type, time to update).
 - [ ] Kill switch rehearsal: `paused` on `beta` → every poll returns 204 within 60 s of the manifest write (measured worst case recorded; anything over 30 s is investigated as a sign of a second cache layer) → resumed (recorded).
 - [ ] Both are recorded in a follow-up PR that ticks these boxes in the `done/` file (this todo moves to `done/` with its work PR, per the DoD).

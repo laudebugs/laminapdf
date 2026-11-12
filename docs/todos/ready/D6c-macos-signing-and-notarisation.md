@@ -37,7 +37,7 @@ Every macOS artefact lamina publishes — the `.app` inside the updater `.app.ta
 - Updater artefact: the `.app.tar.gz` is created from the signed, stapled `.app` and signed with the updater key (order matters: verify Tauri's ordering).
 - Verification steps in CI after build: `codesign --verify --deep --strict --verbose=2 Lamina.app`, `codesign -d --entitlements - <helper>` shows the sandbox entitlement, `spctl -a -vvv -t exec Lamina.app` → `accepted, source=Notarized Developer ID`, `spctl -a -vvv -t open --context context:primary-signature Lamina.dmg`, `xcrun stapler validate` on both.
 - Lift the D6b guard for macOS (signed platforms may publish to beta/stable once Windows is also signed — D6d).
-- Clean-VM checks: fresh macOS 13 and the latest macOS (VM or spare Mac): download the dmg via a browser (quarantine attribute set), open, drag to Applications, first launch shows only the standard "downloaded from the Internet" prompt naming the developer, no "unidentified developer"/"damaged" errors; engine sandbox selftest passes in the signed build; a signed build updates to the next signed build (nightlies are not OS-signed — D6b — so use two `workflow_dispatch` runs of the release workflow to the `staging` channel, each approved in the `release` environment).
+- Clean-VM checks: fresh macOS 13 and the latest macOS (VM or spare Mac): download the dmg via a browser (quarantine attribute set), open, drag to Applications, first launch shows only the standard "downloaded from the Internet" prompt naming the developer, no "unidentified developer"/"damaged" errors; engine sandbox selftest passes in the signed build; a signed build updates to the next signed build (nightlies are not OS-signed — D6b — so use two `workflow_dispatch` runs of the release workflow to the `staging` channel, each approved in the `desktop-release` environment).
 
 **Out of scope** (and which todo covers it)
 
@@ -59,12 +59,12 @@ Every macOS artefact lamina publishes — the `.app` inside the updater `.app.ta
 - [ ] `spctl` accepts the `.app` as "Notarized Developer ID" and the `.dmg` passes its Gatekeeper check; `stapler validate` passes for both (CI step green).
 - [ ] On a clean macOS 13 VM and the latest macOS, the downloaded dmg installs and launches with no Gatekeeper warning beyond the standard first-launch prompt showing the owner as developer (recorded with OS versions).
 - [ ] The engine helper in the signed build runs sandboxed (`--sandbox-selftest` all blocked) and the app opens fixtures.
-- [ ] An installed signed build updates to the next signed build via the updater (two `release`-environment `workflow_dispatch` runs to the `staging` channel; nightlies stay ad-hoc signed per D6b).
+- [ ] An installed signed build updates to the next signed build via the updater (two `desktop-release`-environment `workflow_dispatch` runs to the `staging` channel; nightlies stay ad-hoc signed per D6b).
 - [ ] No signing secrets are printed in logs (masking verified).
 
 ## Post-merge checks
 
-- [ ] The first scheduled nightly after merge still builds macOS ad-hoc signed in the `nightly` environment (no Apple secrets referenced).
+- [ ] The first scheduled nightly after merge still builds macOS ad-hoc signed in the `desktop-nightly` environment (no Apple secrets referenced).
 
 ## Tests
 

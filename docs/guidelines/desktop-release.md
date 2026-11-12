@@ -16,6 +16,8 @@ This runbook tells the owner how to set up and look after the identities that si
 
 D5a writes ADR 0014. Once it exists, these answers, the Apple Team ID and the GPG fingerprint go into it, before D6a merges.
 
+The desktop app uses its own GitHub environments, `desktop-release`, `desktop-nightly` and `desktop-staging`. The repository's `release` environment belongs to the daily library and CLI releases, which publish with no approval step; adding a reviewer there would stop them, and their jobs must not read the desktop signing secrets.
+
 ## 1. Owner setup checklist
 
 Start with the items that take longest: Apple enrolment and Azure identity validation both wait on someone else's checks. "Secret manager" below means the owner's password manager; the entry names are suggestions.
@@ -24,15 +26,15 @@ Start with the items that take longest: Apple enrolment and Azure identity valid
 | --- | --- | --- | --- | --- |
 | 1.1 Bundle identity | none | minutes | this page | never |
 | 1.2 Apple Developer Program (individual) | US$99 a year | 1–3 days, sometimes weeks | Apple account; Team ID on this page | yearly membership |
-| 1.3 Developer ID Application certificate | included | an hour | secret manager `Lamina PDF / Developer ID .p12`; `release` secrets | the date on the certificate (the first, issued 2026-11-12, expires 2027-12-12) |
-| 1.4 Notarisation API key | included | minutes | secret manager `Lamina PDF / App Store Connect API key`; `release` secrets | when rotated |
-| 1.5 Artifact Signing | Basic tier from US$9.99 a month, billed in full from the day the account is created; needs a paid subscription | 1–20 business days of identity validation | Azure subscription; non-secret names on this page; `release` secrets | identity validation before its expiry date (shown in the portal) |
-| 1.6 Linux GPG key | none | an hour | offline primary key on two encrypted drives; subkey in secret manager and `release` secrets; public key on the website | subkey every 2 years |
-| 1.7 Updater keys (D5a) | none | an hour | secret manager plus two offline backups; `release` and `nightly` secrets | only on compromise |
-| 1.8 GitHub `release` environment | none | minutes | repository settings | review yearly |
-| 1.9 GitHub `nightly` environment | none | minutes | repository settings | review yearly |
-| 1.10 GitHub `staging` environment | none | minutes | repository settings | review yearly |
-| 1.11 Cloudflare buckets and tokens (D5a) | R2 usage, a few US$ a month | minutes | Cloudflare account; `release`, `nightly` and `staging` secrets | yearly token rotation |
+| 1.3 Developer ID Application certificate | included | an hour | secret manager `Lamina PDF / Developer ID .p12`; `desktop-release` secrets | the date on the certificate (the first, issued 2026-11-12, expires 2027-12-12) |
+| 1.4 Notarisation API key | included | minutes | secret manager `Lamina PDF / App Store Connect API key`; `desktop-release` secrets | when rotated |
+| 1.5 Artifact Signing | Basic tier from US$9.99 a month, billed in full from the day the account is created; needs a paid subscription | 1–20 business days of identity validation | Azure subscription; non-secret names on this page; `desktop-release` secrets | identity validation before its expiry date (shown in the portal) |
+| 1.6 Linux GPG key | none | an hour | offline primary key on two encrypted drives; subkey in secret manager and `desktop-release` secrets; public key on the website | subkey every 2 years |
+| 1.7 Updater keys (D5a) | none | an hour | secret manager plus two offline backups; `desktop-release` and `desktop-nightly` secrets | only on compromise |
+| 1.8 GitHub `desktop-release` environment | none | minutes | repository settings | review yearly |
+| 1.9 GitHub `desktop-nightly` environment | none | minutes | repository settings | review yearly |
+| 1.10 GitHub `desktop-staging` environment | none | minutes | repository settings | review yearly |
+| 1.11 Cloudflare buckets and tokens (D5a) | R2 usage, a few US$ a month | minutes | Cloudflare account; `desktop-release`, `desktop-nightly` and `desktop-staging` secrets | yearly token rotation |
 
 ### 1.1 Bundle identity
 
@@ -52,7 +54,7 @@ Gatekeeper accepts an app from outside the App Store only when a Developer ID Ap
 - [ ] In Keychain Access, export the certificate **with its private key** as a `.p12` protected by a long random password. Store the `.p12` and the password in the secret manager.
 - [ ] If Keychain Access says the certificate "is not trusted" and `security find-identity -v -p codesigning` finds 0 valid identities, install Apple's [Developer ID G2 intermediate](https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer) (`security import DeveloperIDG2CA.cer -k ~/Library/Keychains/login.keychain-db`). CI's keychain needs it too.
 - [ ] Run `security find-identity -v -p codesigning` and copy the identity, `Developer ID Application: <Legal Name> (<TEAMID>)`.
-- [ ] Add the `release`-environment secrets `APPLE_CERTIFICATE` (`base64 -i cert.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` and `KEYCHAIN_PASSWORD` (a new random value for CI's temporary keychain).
+- [ ] Add the `desktop-release`-environment secrets `APPLE_CERTIFICATE` (`base64 -i cert.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` and `KEYCHAIN_PASSWORD` (a new random value for CI's temporary keychain).
 - [ ] Delete the exported `.p12` file from disk once it is in the secret manager.
 
 **For D6c:** the build step gets `APPLE_CERTIFICATE` and `APPLE_CERTIFICATE_PASSWORD`, and Tauri signs with the identity in `APPLE_SIGNING_IDENTITY`. `KEYCHAIN_PASSWORD` is used only by the workflow's `security create-keychain` step ([Tauri macOS signing](https://v2.tauri.app/distribute/sign/macos/)).
@@ -61,8 +63,8 @@ Gatekeeper accepts an app from outside the App Store only when a Developer ID Ap
 
 - [ ] In App Store Connect → Users and Access → Integrations → App Store Connect API, request access if asked, then create a **Team key** with the Developer role. Download the `.p8` file: Apple lets you download it once.
 - [ ] Store the `.p8`, its Key ID and the Issuer ID in the secret manager.
-- [ ] Add the `release`-environment secrets `APPLE_API_KEY` (the Key ID), `APPLE_API_ISSUER` and `APPLE_API_KEY_P8` (the file's contents). The workflow writes the contents to a file and points `APPLE_API_KEY_PATH` at it, as Tauri expects.
-- [ ] **Fallback**, only if an individual account can't create a Team key: an app-specific password, with `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` as `release` secrets. Reason the API key wasn't possible: `<to fill in if used>`.
+- [ ] Add the `desktop-release`-environment secrets `APPLE_API_KEY` (the Key ID), `APPLE_API_ISSUER` and `APPLE_API_KEY_P8` (the file's contents). The workflow writes the contents to a file and points `APPLE_API_KEY_PATH` at it, as Tauri expects.
+- [ ] **Fallback**, only if an individual account can't create a Team key: an app-specific password, with `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` as `desktop-release` secrets. Reason the API key wasn't possible: `<to fill in if used>`.
 
 ### 1.5 Azure Artifact Signing (Windows)
 
@@ -73,9 +75,9 @@ The steps follow Microsoft's [quickstart](https://learn.microsoft.com/azure/arti
 - [ ] Create an Artifact Signing account, Basic tier (billing starts now, for the whole month), in a US region (for example East US, endpoint `https://eus.codesigning.azure.net`). Give yourself the Artifact Signing Identity Verifier role.
 - [ ] Under Identity validations, choose **Individual → New identity → Public**, then finish the ID check with AU10TIX and Microsoft Authenticator. The certificate shows your name, city, state or province, and country, never your street address.
 - [ ] Create a **Public Trust** certificate profile using that validation. Leave "Include street address" and "Include postal code" unticked.
-- [ ] In Microsoft Entra ID, register an app (`lamina-pdf-release-signing`). Add a **federated credential** for GitHub Actions: this repository, entity type *Environment*, environment `release`. Store no client secret ([GitHub OIDC with Azure](https://docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-azure)).
+- [ ] In Microsoft Entra ID, register an app (`lamina-pdf-release-signing`). Add a **federated credential** for GitHub Actions: this repository, entity type *Environment*, environment `desktop-release`. Store no client secret ([GitHub OIDC with Azure](https://docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-azure)).
 - [ ] Give the app the **Artifact Signing Certificate Profile Signer** role on the certificate profile only.
-- [ ] Add the `release`-environment secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`. Record the non-secret names here:
+- [ ] Add the `desktop-release`-environment secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`. Record the non-secret names here:
 
 | Name | Value |
 | --- | --- |
@@ -95,7 +97,7 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 - [ ] On a trusted machine, preferably offline, create an ed25519 **primary key** for certification only: `gpg --quick-gen-key "<Legal Name> (Lamina PDF releases) <releases@laminapdf.com>" ed25519 cert 5y`. The email address is a suggestion.
 - [ ] Add a **signing subkey** that expires in two years: `gpg --quick-add-key <PRIMARY FPR> ed25519 sign 2y`.
 - [ ] Back up the primary key (`gpg --export-secret-keys --armor`) and a revocation certificate to two encrypted drives kept in different places, then remove the primary secret key from the machine CI's key comes from.
-- [ ] Export **only the subkey** (`gpg --export-secret-subkeys --armor <SUBKEY FPR>!`), protected by a passphrase. Add the `release` secrets `LINUX_SIGNING_KEY` (the armored export) and `LINUX_SIGNING_KEY_PASSPHRASE`.
+- [ ] Export **only the subkey** (`gpg --export-secret-subkeys --armor <SUBKEY FPR>!`), protected by a passphrase. Add the `desktop-release` secrets `LINUX_SIGNING_KEY` (the armored export) and `LINUX_SIGNING_KEY_PASSPHRASE`.
 - [ ] Publish the public key at `https://laminapdf.com/keys/lamina-release.asc` (the file `apps/site/public/keys/lamina-release.asc`) and on [keys.openpgp.org](https://keys.openpgp.org/).
 - [ ] Record the primary key's fingerprint here and in ADR 0014: `<FINGERPRINT — to fill in>`.
 
@@ -111,36 +113,36 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 
 D5a's key ceremony makes two Tauri updater keys: one for releases and one for nightlies. Losing the release key strands every installed copy, because installed apps accept only updates that key signed.
 
-- [ ] Confirm `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exist in the `release` environment.
+- [ ] Confirm `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exist in the `desktop-release` environment.
 - [ ] Confirm the release key's offline backups exist in two places.
-- [ ] Confirm the nightly key exists in the `nightly` environment under the same two names, with different values and one backup.
+- [ ] Confirm the nightly key exists in the `desktop-nightly` environment under the same two names, with different values and one backup.
 
-### 1.8 GitHub `release` environment
+### 1.8 GitHub `desktop-release` environment
 
-The `release` environment holds every production secret, and every job that uses it waits for the owner's approval ([GitHub environments](https://docs.github.com/actions/deployment/targeting-different-environments/using-environments-for-deployment)).
+The `desktop-release` environment holds every production secret, and every job that uses it waits for the owner's approval ([GitHub environments](https://docs.github.com/actions/deployment/targeting-different-environments/using-environments-for-deployment)).
 
 - [ ] Create it with required reviewer = the owner, and "Prevent self-review" off so the owner can approve their own runs.
 - [ ] Limit deployment branches and tags to the tag pattern `desktop-v*`, the branch `main`, and, for now, the branches `ci/d6c-*` and `ci/d6d-*`, so D6c and D6d can test their signing steps before they merge. D6d removes the two `ci/` patterns when it merges.
-- [ ] Add the secrets listed for `release` in §2, and none at repository level.
+- [ ] Add the secrets listed for `desktop-release` in §2, and none at repository level.
 
-### 1.9 GitHub `nightly` environment
+### 1.9 GitHub `desktop-nightly` environment
 
-Scheduled nightlies run in `nightly`, which has **no required reviewer** so the schedule never waits for approval. To keep that safe, it holds nothing that can sign as the owner.
+Scheduled nightlies run in `desktop-nightly`, which has **no required reviewer** so the schedule never waits for approval. To keep that safe, it holds nothing that can sign as the owner.
 
 - [ ] Create it with no reviewer, and limit deployment branches to `main`.
 - [ ] Add only the nightly updater key and the Cloudflare token for the nightly bucket (§2). It gets no Apple, Azure or GPG secret and no Azure federated credential. Nightlies are ad-hoc signed on macOS, unsigned on Windows, and come with only `SHA256SUMS` on Linux (decided in D6b).
 
-### 1.10 GitHub `staging` environment
+### 1.10 GitHub `desktop-staging` environment
 
-D5b's updater tests run in `staging` on every push to `main` and every night, so it has no required reviewer either. It holds only a throwaway test updater key and a token for the staging bucket, so nothing in it can reach a user's install.
+D5b's updater tests run in `desktop-staging` on every push to `main` and every night, so it has no required reviewer either. It holds only a throwaway test updater key and a token for the staging bucket, so nothing in it can reach a user's install.
 
 - [ ] Create it with no reviewer, and limit deployment branches to `main`.
-- [ ] Add only the two `staging` secrets in §2 (from D5a and D5b).
+- [ ] Add only the two `desktop-staging` secrets in §2 (from D5a and D5b).
 
 ### 1.11 Cloudflare (waits on D5a)
 
-- [ ] Confirm the R2 buckets `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging` and their download domains exist (D5a). The staging bucket and the `staging` environment in §2 serve D5b's updater tests and D6b–D6d's trial runs; they hold only a throwaway updater key and that bucket's token, so nothing in them can reach a user's install.
-- [ ] Confirm each token is scoped to one bucket only, stored as in §2. The staging bucket has two separate tokens: one in `release`, for D6b–D6d's signed trial runs, and one in `staging`, for D5b's tests.
+- [ ] Confirm the R2 buckets `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging` and their download domains exist (D5a). The staging bucket and the `desktop-staging` environment in §2 serve D5b's updater tests and D6b–D6d's trial runs; they hold only a throwaway updater key and that bucket's token, so nothing in them can reach a user's install.
+- [ ] Confirm each token is scoped to one bucket only, stored as in §2. The staging bucket has two separate tokens: one in `desktop-release`, for D6b–D6d's signed trial runs, and one in `desktop-staging`, for D5b's tests.
 
 ## 2. Secrets inventory
 
@@ -148,31 +150,31 @@ Every secret is an **environment** secret; the repository level holds none. "Rea
 
 | Secret | Environment | Purpose | Secret manager entry | Readers | Rotate or renew |
 | --- | --- | --- | --- | --- | --- |
-| `APPLE_CERTIFICATE` | `release` | base64 Developer ID `.p12` | `Lamina PDF / Developer ID .p12` | macOS signing jobs (D6c), after approval | with the certificate (§4) |
-| `APPLE_CERTIFICATE_PASSWORD` | `release` | the `.p12` password | `Lamina PDF / Developer ID .p12` | same | with the certificate |
-| `APPLE_SIGNING_IDENTITY` | `release` | `Developer ID Application: <Name> (<TEAMID>)` | `Lamina PDF / Developer ID .p12` | same | with the certificate |
-| `KEYCHAIN_PASSWORD` | `release` | CI's temporary keychain | `Lamina PDF / CI keychain` | same | any time; no calendar entry |
-| `APPLE_API_KEY` | `release` | App Store Connect Key ID | `Lamina PDF / App Store Connect API key` | notarisation step (D6c) | when the key is revoked |
-| `APPLE_API_ISSUER` | `release` | App Store Connect Issuer ID | `Lamina PDF / App Store Connect API key` | same | never |
-| `APPLE_API_KEY_P8` | `release` | the `.p8` contents | `Lamina PDF / App Store Connect API key` | same | when the key is revoked |
-| `AZURE_CLIENT_ID` | `release` | Entra app for Artifact Signing (federated, no secret) | `Lamina PDF / Azure Artifact Signing` | Windows signing jobs (D6d), after approval | never |
-| `AZURE_TENANT_ID` | `release` | Entra tenant | `Lamina PDF / Azure Artifact Signing` | same | never |
-| `AZURE_SUBSCRIPTION_ID` | `release` | Azure subscription | `Lamina PDF / Azure Artifact Signing` | same | never |
-| `LINUX_SIGNING_KEY` | `release` | armored GPG signing subkey | `Lamina PDF / GPG signing subkey` | Linux packaging jobs (D6b), after approval | subkey every 2 years |
-| `LINUX_SIGNING_KEY_PASSPHRASE` | `release` | its passphrase | `Lamina PDF / GPG signing subkey` | same | with the subkey |
-| `TAURI_SIGNING_PRIVATE_KEY` | `release` | release updater key (D5a) | `Lamina PDF / updater key (release)` | bundle jobs (D6b), after approval | only on compromise |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `release` | its password | `Lamina PDF / updater key (release)` | same | with the key |
-| `CLOUDFLARE_API_TOKEN` | `release` | write to `lamina-pdf-releases` only | `Lamina PDF / Cloudflare R2 release` | publish job (D6b) | yearly |
-| `CLOUDFLARE_ACCOUNT_ID` | `release` | Cloudflare account | `Lamina PDF / Cloudflare R2 release` | same | never |
-| `CLOUDFLARE_STAGING_R2_TOKEN` | `release` | write to `lamina-pdf-staging`, for signed staging dispatch runs | `Lamina PDF / Cloudflare R2 staging` | D6b–D6d staging runs | yearly |
-| `TAURI_SIGNING_PRIVATE_KEY` | `nightly` | nightly-only updater key (D5a) | `Lamina PDF / updater key (nightly)` | nightly bundle jobs | only on compromise |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `nightly` | its password | `Lamina PDF / updater key (nightly)` | same | with the key |
-| `CLOUDFLARE_API_TOKEN` | `nightly` | write to `lamina-pdf-nightly` only | `Lamina PDF / Cloudflare R2 nightly` | nightly publish job | yearly |
-| `CLOUDFLARE_ACCOUNT_ID` | `nightly` | Cloudflare account | `Lamina PDF / Cloudflare R2 nightly` | same | never |
-| `CLOUDFLARE_STAGING_R2_TOKEN` | `staging` | write to `lamina-pdf-staging` only (D5b) | `Lamina PDF / Cloudflare R2 staging` | updater end-to-end tests on `main` | yearly |
-| `TAURI_TEST_SIGNING_PRIVATE_KEY` | `staging` | throwaway test updater key (D5b), never a production key | none (throwaway) | same | any time |
+| `APPLE_CERTIFICATE` | `desktop-release` | base64 Developer ID `.p12` | `Lamina PDF / Developer ID .p12` | macOS signing jobs (D6c), after approval | with the certificate (§4) |
+| `APPLE_CERTIFICATE_PASSWORD` | `desktop-release` | the `.p12` password | `Lamina PDF / Developer ID .p12` | same | with the certificate |
+| `APPLE_SIGNING_IDENTITY` | `desktop-release` | `Developer ID Application: <Name> (<TEAMID>)` | `Lamina PDF / Developer ID .p12` | same | with the certificate |
+| `KEYCHAIN_PASSWORD` | `desktop-release` | CI's temporary keychain | `Lamina PDF / CI keychain` | same | any time; no calendar entry |
+| `APPLE_API_KEY` | `desktop-release` | App Store Connect Key ID | `Lamina PDF / App Store Connect API key` | notarisation step (D6c) | when the key is revoked |
+| `APPLE_API_ISSUER` | `desktop-release` | App Store Connect Issuer ID | `Lamina PDF / App Store Connect API key` | same | never |
+| `APPLE_API_KEY_P8` | `desktop-release` | the `.p8` contents | `Lamina PDF / App Store Connect API key` | same | when the key is revoked |
+| `AZURE_CLIENT_ID` | `desktop-release` | Entra app for Artifact Signing (federated, no secret) | `Lamina PDF / Azure Artifact Signing` | Windows signing jobs (D6d), after approval | never |
+| `AZURE_TENANT_ID` | `desktop-release` | Entra tenant | `Lamina PDF / Azure Artifact Signing` | same | never |
+| `AZURE_SUBSCRIPTION_ID` | `desktop-release` | Azure subscription | `Lamina PDF / Azure Artifact Signing` | same | never |
+| `LINUX_SIGNING_KEY` | `desktop-release` | armored GPG signing subkey | `Lamina PDF / GPG signing subkey` | Linux packaging jobs (D6b), after approval | subkey every 2 years |
+| `LINUX_SIGNING_KEY_PASSPHRASE` | `desktop-release` | its passphrase | `Lamina PDF / GPG signing subkey` | same | with the subkey |
+| `TAURI_SIGNING_PRIVATE_KEY` | `desktop-release` | release updater key (D5a) | `Lamina PDF / updater key (release)` | bundle jobs (D6b), after approval | only on compromise |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `desktop-release` | its password | `Lamina PDF / updater key (release)` | same | with the key |
+| `CLOUDFLARE_API_TOKEN` | `desktop-release` | write to `lamina-pdf-releases` only | `Lamina PDF / Cloudflare R2 release` | publish job (D6b) | yearly |
+| `CLOUDFLARE_ACCOUNT_ID` | `desktop-release` | Cloudflare account | `Lamina PDF / Cloudflare R2 release` | same | never |
+| `CLOUDFLARE_STAGING_R2_TOKEN` | `desktop-release` | write to `lamina-pdf-staging`, for signed staging dispatch runs | `Lamina PDF / Cloudflare R2 staging` | D6b–D6d staging runs | yearly |
+| `TAURI_SIGNING_PRIVATE_KEY` | `desktop-nightly` | nightly-only updater key (D5a) | `Lamina PDF / updater key (nightly)` | nightly bundle jobs | only on compromise |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `desktop-nightly` | its password | `Lamina PDF / updater key (nightly)` | same | with the key |
+| `CLOUDFLARE_API_TOKEN` | `desktop-nightly` | write to `lamina-pdf-nightly` only | `Lamina PDF / Cloudflare R2 nightly` | nightly publish job | yearly |
+| `CLOUDFLARE_ACCOUNT_ID` | `desktop-nightly` | Cloudflare account | `Lamina PDF / Cloudflare R2 nightly` | same | never |
+| `CLOUDFLARE_STAGING_R2_TOKEN` | `desktop-staging` | write to `lamina-pdf-staging` only (D5b) | `Lamina PDF / Cloudflare R2 staging` | updater end-to-end tests on `main` | yearly |
+| `TAURI_TEST_SIGNING_PRIVATE_KEY` | `desktop-staging` | throwaway test updater key (D5b), never a production key | none (throwaway) | same | any time |
 
-`AZURE_CLIENT_SECRET` is added to `release` only if D6d's federated login fails (§1.5). D6b's workflow fails a build if any job in the `nightly` environment refers to an `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*` secret.
+`AZURE_CLIENT_SECRET` is added to `desktop-release` only if D6d's federated login fails (§1.5). D6b's workflow fails a build if any job in the `desktop-nightly` environment refers to an `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*` secret.
 
 ## 3. Verification commands
 

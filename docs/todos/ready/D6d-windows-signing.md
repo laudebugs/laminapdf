@@ -41,7 +41,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 - **Pre-sign PDFium** (like D6c's dylib step): Tauri passes the app binary, sidecars and installers to `signCommand`, but `bundle.resources` files are copied as they are — so `pdfium.dll` would ship unsigned. In the Windows release job, after `cargo xtask desktop-sidecar` has fetched and hash-checked PDFium (the pinned hash is checked on the downloaded archive, and the fetch leaves an existing DLL alone, so signing doesn't trip a later hash check), run `sign-windows` on `src-tauri/resources/pdfium/pdfium.dll` before `tauri build` bundles it. Any other DLL that ends up in resources is signed the same way; the coverage check below catches a miss.
 - Signing coverage check: a CI step listing every PE file in the build output and installers (extract MSI with `lessmsi` (MIT) or `msiexec /a`; NSIS with `7z`) and running `signtool verify /pa /v` on each; fails if any is unsigned or the signer subject isn't the owner's name.
 - Lift the D6b guard for Windows.
-- Clean-VM checks (Windows 11 current, fresh, SmartScreen on, Defender on): download each installer via Edge (Mark-of-the-Web set), run; record SmartScreen behaviour, UAC prompt publisher name (MSI), installed app's signature (`Get-AuthenticodeSignature`), file association registration, uninstall cleanliness; update from the previous signed build via the NSIS updater artefact (two `release`-environment `workflow_dispatch` runs to the `staging` channel — nightlies are unsigned and NSIS-only per D6b).
+- Clean-VM checks (Windows 11 current, fresh, SmartScreen on, Defender on): download each installer via Edge (Mark-of-the-Web set), run; record SmartScreen behaviour, UAC prompt publisher name (MSI), installed app's signature (`Get-AuthenticodeSignature`), file association registration, uninstall cleanliness; update from the previous signed build via the NSIS updater artefact (two `desktop-release`-environment `workflow_dispatch` runs to the `staging` channel — nightlies are unsigned and NSIS-only per D6b).
 - Windows 10 22H2: best-effort smoke only (no CI), per the plan's supported-OS note.
 - Release-notes snippet (either path) explaining SmartScreen "Windows protected your PC → More info → Run anyway" during the reputation period, added to the runbook template.
 
@@ -69,12 +69,12 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 - [ ] SmartScreen: any warning is recorded, it names the owner as publisher, and the release notes text is in place (per the plan; no path gets instant reputation).
 - [ ] MSI and NSIS both install, register `.pdf` "Open with", and uninstall cleanly (manual check recorded).
 - [ ] An MSI-installed build shows "Updates are managed by your organisation" and makes no update requests (manual check with a proxy recorded).
-- [ ] An NSIS-installed signed build updates to the next signed build (two `release`-environment `workflow_dispatch` runs to the `staging` channel).
+- [ ] An NSIS-installed signed build updates to the next signed build (two `desktop-release`-environment `workflow_dispatch` runs to the `staging` channel).
 
 ## Post-merge checks
 
-- [ ] Owner removes the temporary `ci/d6c-*` / `ci/d6d-*` deployment-branch patterns from the `release` environment (D6a), leaving `main` and `desktop-v*` tags.
-- [ ] The first scheduled nightly after merge still builds Windows NSIS-only and unsigned in the `nightly` environment (no signing secrets referenced).
+- [ ] Owner removes the temporary `ci/d6c-*` / `ci/d6d-*` deployment-branch patterns from the `desktop-release` environment (D6a), leaving `main` and `desktop-v*` tags.
+- [ ] The first scheduled nightly after merge still builds Windows NSIS-only and unsigned in the `desktop-nightly` environment (no signing secrets referenced).
 
 ## Tests
 
