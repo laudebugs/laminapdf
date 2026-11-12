@@ -138,7 +138,7 @@ fn append_fixture(name: &str) -> Vec<u8> {
 /// The fixtures with a `Q` at depth 0. hayro doesn't ignore such a `Q`, as PDFium and pdf.js
 /// do: it saves a state of its own before the page's content (hayro-interpret 0.8,
 /// `interpret::interpret`), so the stray `Q` restores the page's initial state, which the
-/// blanking then changes. ISO 32000-2 §8.4.2 makes the `Q` an error either way.
+/// neutralising then changes. ISO 32000-2 §8.4.2 makes the `Q` an error either way.
 const UNMATCHED_Q: [&str; 5] = ["extra-Q", "stray-Q", "split", "inline-image", "shared"];
 
 fn wrapped_fixtures_render_unchanged(backend: &dyn RenderBackend, skip: &[&str]) {

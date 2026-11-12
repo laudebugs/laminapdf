@@ -40,14 +40,20 @@ pub struct Balance {
     /// How many `q` are still open at the end (`e`): the closing `Q`s a wrap needs besides its own.
     pub depth: usize,
     /// Every `Q` read at depth 0, in order. A renderer ignores such a `Q` (there is no saved state
-    /// to restore), but inside a wrap it would restore the wrap's own state, so the writer blanks
-    /// exactly these tokens before it wraps.
+    /// to restore), but inside a wrap it would restore the wrap's own state, so the writer
+    /// neutralises exactly these tokens (each becomes `q Q`) before it wraps.
     pub unmatched: Vec<StreamOffset>,
+    /// The most `q`s open at once, which a wrap raises by one (the interpreter's hard limit is
+    /// [`Limits::max_nesting_depth`]).
+    pub max_depth: usize,
     /// Whether the content ends inside a text object (`BT` without its `ET`).
     pub in_text: bool,
+    /// How many marked-content sequences (`BMC`/`BDC` without their `EMC`) are open at the end.
+    pub marked: usize,
     /// Whether the content is already wrapped: the first stream holds only `q`, the depth first
-    /// returns to 0 at the end of a stream holding only `Q`s (and an `ET`), nothing after that
-    /// draws or changes state outside a `q … Q` group, and nothing is unmatched or left open.
+    /// returns to 0 at the end of a stream holding only `Q`s (and `ET`, `EMC`), nothing after
+    /// that draws or changes state outside a `q … Q` group, and nothing is unmatched or left
+    /// open.
     pub wrapped: bool,
 }
 
@@ -71,6 +77,13 @@ pub struct Balance {
 ///
 /// Added in 0.2.0.
 pub fn scan_balance(streams: &[&[u8]], limits: &Limits) -> Result<Balance> {
+    scan(streams, limits).map(|(balance, _)| balance)
+}
+
+/// [`scan_balance`], and the stream of the last operator read (`None` when there is none): a
+/// stream added after content that ends inside a string, array, dictionary or inline image is
+/// read as part of it, so its operators aren't the last.
+pub(super) fn scan(streams: &[&[u8]], limits: &Limits) -> Result<(Balance, Option<usize>)> {
     let mut joined = Vec::with_capacity(streams.iter().map(|s| s.len() + 1).sum());
     let mut starts = Vec::with_capacity(streams.len());
     for (i, stream) in streams.iter().enumerate() {
@@ -92,19 +105,24 @@ pub fn scan_balance(streams: &[&[u8]], limits: &Limits) -> Result<Balance> {
     let mut balance = Balance::default();
     // Per stream: whether every operator in it is `Q` or `ET` (a wrap's closing stream).
     let mut closing_only = vec![true; streams.len()];
+    let mut last = None;
     let mut closed_at: Option<usize> = None;
     let mut leaked = false;
     for item in ContentIter::new(&joined).with_limits(limits) {
         let Lexed::Op(op) = item? else { continue };
         let at = locate(op.offset);
-        if !matches!(op.operator, Operator::Restore | Operator::EndText)
+        last = Some(at.stream);
+        if !matches!(op.operator, Operator::Restore | Operator::EndText | Operator::EndMarked)
             && let Some(flag) = closing_only.get_mut(at.stream)
         {
             *flag = false;
         }
         let outside = closed_at.is_some() && balance.depth == 0;
         match op.operator {
-            Operator::Save => balance.depth += 1,
+            Operator::Save => {
+                balance.depth += 1;
+                balance.max_depth = balance.max_depth.max(balance.depth);
+            }
             Operator::Restore if balance.depth == 0 => balance.unmatched.push(at),
             Operator::Restore => {
                 balance.depth -= 1;
@@ -117,6 +135,8 @@ pub fn scan_balance(streams: &[&[u8]], limits: &Limits) -> Result<Balance> {
                 match other {
                     Operator::BeginText => balance.in_text = true,
                     Operator::EndText => balance.in_text = false,
+                    Operator::BeginMarked | Operator::BeginMarkedProperties => balance.marked += 1,
+                    Operator::EndMarked => balance.marked = balance.marked.saturating_sub(1),
                     _ => {}
                 }
             }
@@ -128,8 +148,9 @@ pub fn scan_balance(streams: &[&[u8]], limits: &Limits) -> Result<Balance> {
         && !leaked
         && balance.unmatched.is_empty()
         && balance.depth == 0
-        && !balance.in_text;
-    Ok(balance)
+        && !balance.in_text
+        && balance.marked == 0;
+    Ok((balance, last))
 }
 
 /// `bytes` without leading and trailing PDF white-space.
@@ -139,16 +160,23 @@ fn trim(bytes: &[u8]) -> &[u8] {
     bytes.get(start..end).unwrap_or_default()
 }
 
-/// `content` with the `Q` at each of `offsets` replaced by a space, every other byte kept.
-pub(super) fn blank(content: &[u8], offsets: impl IntoIterator<Item = usize>) -> Vec<u8> {
-    let mut out = content.to_vec();
-    for offset in offsets {
-        if let Some(byte) = out.get_mut(offset)
-            && *byte == b'Q'
-        {
-            *byte = b' ';
+/// `content` with each `Q` at `offsets` turned into `q Q`: a save and restore that changes
+/// nothing, so the `Q` is matched and a wrap around the content keeps its own state. Every other
+/// byte is kept. Blanking the `Q` instead would also neutralise it, but a token must stay
+/// there: the inline-image heuristic (here and in pdf.js) ends an image at an `EI` only when an
+/// operator or operand follows it, so a blank after `EI` would let the image run on.
+pub(super) fn neutralise(content: &[u8], offsets: &[usize]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(content.len() + 2 * offsets.len());
+    let mut from = 0;
+    for &offset in offsets {
+        if content.get(offset) != Some(&b'Q') || offset < from {
+            continue;
         }
+        out.extend_from_slice(content.get(from..offset).unwrap_or_default());
+        out.extend_from_slice(b"q ");
+        from = offset;
     }
+    out.extend_from_slice(content.get(from..).unwrap_or_default());
     out
 }
 
@@ -188,6 +216,12 @@ mod tests {
     }
 
     #[test]
+    fn open_marked_content_and_the_deepest_q_are_reported() {
+        let b = scan(&[b"/P <</MCID 3>> BDC q q Q /Artifact BMC EMC"]);
+        assert_eq!((b.marked, b.max_depth, b.depth), (1, 2, 1));
+    }
+
+    #[test]
     fn content_ending_inside_a_text_object_is_reported() {
         assert!(scan(&[b"BT /F1 12 Tf (Hi) Tj"]).in_text);
     }
@@ -208,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn blank_replaces_only_the_q_bytes_at_the_offsets() {
-        assert_eq!(blank(b"Q q Q", [0, 2, 4]), b"  q  ");
+    fn neutralise_turns_only_the_qs_at_the_offsets_into_q_q() {
+        assert_eq!(neutralise(b"Q q Q", &[0, 2, 4]), b"q Q q q Q");
     }
 }

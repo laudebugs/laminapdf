@@ -3,8 +3,8 @@
 //! it and registers resources under unused names, all through a [`CosMut`], so the caller's
 //! transaction undoes it through the journal (ADR 0006).
 //!
-//! The only change it makes to existing content is blanking the `Q` tokens that
-//! [`scan_balance`] finds at depth 0 (a renderer ignores them, but inside a wrap they would
+//! The only change it makes to existing content is turning each `Q` that [`scan_balance`]
+//! finds at depth 0 into `q Q` (a renderer ignores such a `Q`, but inside a wrap it would
 //! restore the wrap's own state). Every other stream is left as it is, and a stream it changes is
 //! written as a new object, so a stream other pages share stays theirs.
 
@@ -12,8 +12,12 @@ mod scan;
 
 pub use scan::{Balance, StreamOffset, scan_balance};
 
-use laminapdf_cos::{CosMut, Error, ObjRef, Page, Result};
+use std::collections::BTreeSet;
+
+use laminapdf_cos::{CosMut, Error, Limit, ObjRef, Page, Result};
 use laminapdf_syntax::{Dict, Limits, Name, Object, Stream};
+
+use crate::lexer::{ContentIter, Lexed};
 
 /// The resource categories whose names a new name must not repeat (§7.8.3, Table 34).
 const CATEGORIES: [&str; 7] = [
@@ -39,11 +43,14 @@ pub enum Wrapped {
         /// The `Q`s the closing stream holds: one for the wrap and one per `q` the content left
         /// open ([`Balance::depth`]).
         closing: usize,
-        /// The unmatched `Q` tokens that were blanked, by their place in the old `/Contents`.
-        blanked: Vec<StreamOffset>,
-        /// Whether the closing stream starts with `ET` because the content ended in a text
-        /// object.
+        /// The unmatched `Q` tokens that were neutralised (each now `q Q`), by their place in
+        /// the old `/Contents`.
+        neutralised: Vec<StreamOffset>,
+        /// Whether the closing stream ends a text object the content left open (`ET`).
         ended_text: bool,
+        /// The marked-content sequences the content left open, which the closing stream ends
+        /// (`EMC`) so that nothing added after the wrap is marked as part of them.
+        ended_marked: usize,
     },
 }
 
@@ -83,6 +90,9 @@ pub struct PageContentWriter<'d> {
     contents: Vec<Object>,
     resources: Dict,
     limits: Limits,
+    /// Every name the page's content uses as an operand, read at the first resource added: a
+    /// new name must not be one the content already draws with, even when its resources lack it.
+    content_names: Option<BTreeSet<Name>>,
 }
 
 impl<'d> PageContentWriter<'d> {
@@ -123,7 +133,15 @@ impl<'d> PageContentWriter<'d> {
                 _ => vec![value.clone()],
             },
         };
-        let resources = page.resources_dict().cloned().unwrap_or_default();
+        // The page's own `/Resources` as it is now (an earlier writer may have written it), else
+        // what it inherits.
+        let resources = match dict.get("Resources") {
+            Some(own) => match &*doc.deref(own)? {
+                Object::Dict(d) => d.clone(),
+                _ => page.resources_dict().cloned().unwrap_or_default(),
+            },
+            None => page.resources_dict().cloned().unwrap_or_default(),
+        };
         let limits = *doc.limits();
         Ok(Self {
             cos,
@@ -132,6 +150,7 @@ impl<'d> PageContentWriter<'d> {
             contents,
             resources,
             limits,
+            content_names: None,
         })
     }
 
@@ -145,7 +164,7 @@ impl<'d> PageContentWriter<'d> {
 
     /// Wraps the page's content in `q … Q`: a stream holding `q` before it and one holding
     /// `Q` once plus once per `q` it leaves open after it (with `ET` first when it ends in a
-    /// text object). Unmatched `Q`s are blanked first, each in a new copy of its stream; no
+    /// text object). Unmatched `Q`s are turned into `q Q` first, each in a new copy of its stream; no
     /// other stream changes. A page already wrapped is left alone ([`Wrapped::Already`]).
     ///
     /// # Errors
@@ -155,20 +174,54 @@ impl<'d> PageContentWriter<'d> {
     ///
     /// Added in 0.2.0.
     pub fn wrap_existing(&mut self) -> Result<Wrapped> {
-        let decoded = self.decoded_contents()?;
-        let views: Vec<&[u8]> = decoded.iter().map(Vec::as_slice).collect();
-        let balance = scan_balance(&views, &self.limits)?;
+        let mut streams = self.decoded_contents()?;
+        let balance = {
+            let views: Vec<&[u8]> = streams.iter().map(Vec::as_slice).collect();
+            scan_balance(&views, &self.limits)?
+        };
         if balance.wrapped {
             return Ok(Wrapped::Already);
         }
-        let mut streams = decoded.clone();
-        for (i, stream) in streams.iter_mut().enumerate() {
-            let offsets = balance.unmatched.iter().filter(|at| at.stream == i).map(|at| at.offset);
-            *stream = scan::blank(stream, offsets);
+        // A neutralised `Q` (`q Q`) opens one level where it stands.
+        let deepest = balance.max_depth.max(usize::from(!balance.unmatched.is_empty()));
+        if deepest >= self.limits.max_nesting_depth() {
+            return Err(Error::LimitExceeded {
+                limit: Limit::NestingDepth,
+                at: None,
+            });
+        }
+        let mut changed: Vec<usize> = balance.unmatched.iter().map(|at| at.stream).collect();
+        changed.dedup();
+        for &i in &changed {
+            if let Some(stream) = streams.get_mut(i) {
+                let offsets: Vec<usize> = balance
+                    .unmatched
+                    .iter()
+                    .filter(|at| at.stream == i)
+                    .map(|at| at.offset)
+                    .collect();
+                *stream = scan::neutralise(stream, &offsets);
+            }
+        }
+        if !changed.is_empty() {
+            // The neutralised content must read as the old one did, less the unmatched `Q`s.
+            let views: Vec<&[u8]> = streams.iter().map(Vec::as_slice).collect();
+            let after = scan_balance(&views, &self.limits)?;
+            let same = after.unmatched.is_empty()
+                && (after.depth, after.in_text, after.marked) == (balance.depth, balance.in_text, balance.marked);
+            if !same {
+                return Err(Error::InvalidStructure {
+                    kind: "content stream",
+                    message: "the page's content can't be read the same way once its unmatched Q operators are neutralised",
+                });
+            }
         }
         let closing = balance.depth + 1;
-        let mut close = Vec::with_capacity(4 + 2 * closing);
+        let mut close = Vec::with_capacity(4 + 4 * balance.marked + 2 * closing);
         close.push(b'\n');
+        for _ in 0..balance.marked {
+            close.extend_from_slice(b"EMC\n");
+        }
         if balance.in_text {
             close.extend_from_slice(b"ET\n");
         }
@@ -177,6 +230,9 @@ impl<'d> PageContentWriter<'d> {
         }
         let open = b"q\n".to_vec();
 
+        // Read as a renderer reads it, the wrapped content must end with the closing stream's
+        // own operators: content that ends inside a string, array, dictionary or inline image
+        // would swallow them.
         let mut check: Vec<&[u8]> = vec![&open];
         check.extend(streams.iter().map(Vec::as_slice));
         check.push(&close);
@@ -187,8 +243,6 @@ impl<'d> PageContentWriter<'d> {
             });
         }
 
-        let mut changed: Vec<usize> = balance.unmatched.iter().map(|at| at.stream).collect();
-        changed.dedup();
         for i in changed {
             let (Some(Object::Ref(old)), Some(bytes)) = (self.contents.get(i), streams.get(i)) else {
                 continue;
@@ -205,21 +259,26 @@ impl<'d> PageContentWriter<'d> {
         self.write_page()?;
         Ok(Wrapped::Now {
             closing,
-            blanked: balance.unmatched,
+            neutralised: balance.unmatched,
             ended_text: balance.in_text,
+            ended_marked: balance.marked,
         })
     }
 
-    /// Adds `content` as a new Flate-compressed stream before every other stream of the page.
+    /// Adds `content` as a new Flate-compressed stream before the page's content: right after a
+    /// wrap's `q` on a wrapped page (so the page stays wrapped and the content stays inside
+    /// it), else before every other stream.
     ///
     /// # Errors
-    /// [`Error::InvalidStructure`] when `content` has an unmatched `Q`, leaves a `q` open or
-    /// ends inside a text object; errors writing.
+    /// [`Error::InvalidStructure`] when `content` has an unmatched `Q`, leaves a `q`, a text
+    /// object or a marked-content sequence open, or ends inside a string, array, dictionary,
+    /// inline image or comment; errors decoding the page's streams or writing.
     ///
     /// Added in 0.2.0.
     pub fn prepend(&mut self, content: &[u8]) -> Result<ObjRef> {
         let r = self.new_stream(content)?;
-        self.contents.insert(0, Object::Ref(r));
+        let at = usize::from(self.is_wrapped()?);
+        self.contents.insert(at, Object::Ref(r));
         self.write_page()?;
         Ok(r)
     }
@@ -283,7 +342,11 @@ impl<'d> PageContentWriter<'d> {
         if let Some((name, _)) = entries.iter().find(|(_, v)| **v == value) {
             return Ok(name.clone());
         }
-        let mut used = Vec::new();
+        if self.content_names.is_none() {
+            self.content_names = Some(self.content_names()?);
+        }
+        let doc = self.cos.document();
+        let mut used: Vec<Name> = self.content_names.iter().flatten().cloned().collect();
         for key in CATEGORIES {
             if let Some(sub) = self.resources.get(key)
                 && let Object::Dict(d) = &*doc.deref(sub)?
@@ -297,26 +360,42 @@ impl<'d> PageContentWriter<'d> {
             .find(|name| !used.contains(name))
             .unwrap_or_else(|| Name::from(prefix));
         entries.insert(name.clone(), value);
+        if let Some(names) = &mut self.content_names {
+            names.insert(name.clone());
+        }
         self.resources.insert(category, Object::Dict(entries));
         self.dict.insert("Resources", Object::Dict(self.resources.clone()));
         self.write_page()?;
         Ok(name)
     }
 
-    /// Every `/Contents` entry decoded; a null or missing stream is empty.
+    /// Every `/Contents` entry decoded; a null or missing stream is empty. The streams share one
+    /// [`Limits::max_decoded_total`] budget, as in `Document::page_content`.
     fn decoded_contents(&self) -> Result<Vec<Vec<u8>>> {
         let doc = self.cos.document();
-        self.contents
-            .iter()
-            .map(|element| match &*doc.deref(element)? {
-                Object::Stream(s) => doc.decode_stream(s),
-                Object::Null => Ok(Vec::new()),
-                _ => Err(Error::Type {
-                    expected: "stream",
-                    context: "/Contents",
-                }),
-            })
-            .collect()
+        let mut total = 0usize;
+        let mut out = Vec::with_capacity(self.contents.len());
+        for element in &self.contents {
+            let bytes = match &*doc.deref(element)? {
+                Object::Stream(s) => doc.decode_stream(s)?,
+                Object::Null => Vec::new(),
+                _ => {
+                    return Err(Error::Type {
+                        expected: "stream",
+                        context: "/Contents",
+                    });
+                }
+            };
+            total = total.saturating_add(bytes.len());
+            if total > self.limits.max_decoded_total() {
+                return Err(Error::LimitExceeded {
+                    limit: Limit::DecodedTotal,
+                    at: None,
+                });
+            }
+            out.push(bytes);
+        }
+        Ok(out)
     }
 
     /// A new stream object with `old`'s dictionary and `decoded` as its content: compressed
@@ -339,14 +418,51 @@ impl<'d> PageContentWriter<'d> {
     }
 
     fn new_stream(&mut self, content: &[u8]) -> Result<ObjRef> {
-        let balance = scan_balance(&[content], &self.limits)?;
-        if !balance.unmatched.is_empty() || balance.depth > 0 || balance.in_text {
+        // A sentinel `q` after the content must be read as its own operator: content that ends
+        // inside a string, array, dictionary or inline image would swallow it.
+        let (balance, last) = scan::scan(&[content, b"q"], &self.limits)?;
+        let closed = balance.unmatched.is_empty() && balance.depth == 1 && !balance.in_text && balance.marked == 0;
+        if !closed || last != Some(1) {
             return Err(Error::InvalidStructure {
                 kind: "content stream",
-                message: "added content must close every q and text object it opens and restore no state it didn't save",
+                message: "added content must end at a token boundary, close every q, text object and marked-content sequence it opens and restore no state it didn't save",
             });
         }
-        self.cos.create(Object::Stream(Stream::flate(Dict::new(), content)))
+        // A newline ends a trailing comment, so the next stream's first token is its own.
+        let mut bytes = content.to_vec();
+        bytes.push(b'\n');
+        self.cos.create(Object::Stream(Stream::flate(Dict::new(), &bytes)))
+    }
+
+    /// Whether the page's content is wrapped now ([`Balance::wrapped`]).
+    fn is_wrapped(&self) -> Result<bool> {
+        let streams = self.decoded_contents()?;
+        let views: Vec<&[u8]> = streams.iter().map(Vec::as_slice).collect();
+        Ok(scan_balance(&views, &self.limits)?.wrapped)
+    }
+
+    /// Every name the content uses as an operand (including inside arrays and dictionaries,
+    /// such as a `BDC` property list).
+    fn content_names(&self) -> Result<BTreeSet<Name>> {
+        fn collect(object: &Object, names: &mut BTreeSet<Name>) {
+            match object {
+                Object::Name(name) => {
+                    names.insert(name.clone());
+                }
+                Object::Array(items) => items.iter().for_each(|item| collect(item, names)),
+                Object::Dict(dict) => dict.iter().for_each(|(_, value)| collect(value, names)),
+                _ => {}
+            }
+        }
+        let mut names = BTreeSet::new();
+        for stream in self.decoded_contents()? {
+            for item in ContentIter::new(&stream).with_limits(&self.limits) {
+                if let Lexed::Op(op) = item? {
+                    op.operands.iter().for_each(|operand| collect(operand, &mut names));
+                }
+            }
+        }
+        Ok(names)
     }
 
     fn write_page(&mut self) -> Result<()> {

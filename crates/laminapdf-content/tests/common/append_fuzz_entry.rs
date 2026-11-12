@@ -13,28 +13,21 @@ const MAX_STREAMS: usize = 8;
 
 /// Splits `data` at its zero bytes into at most [`MAX_STREAMS`] content streams and checks the
 /// scan and a wrap of a page holding them. Invariants: no panic; every unmatched `Q` the scan
-/// reports is a `Q` byte in its stream; blanking them leaves the depth and text state alone and
-/// nothing unmatched; a wrap either refuses with `invalid-structure` and writes nothing, or
-/// leaves the page wrapped, so that a second wrap does nothing, and changes only the streams
-/// that held an unmatched `Q`; rolling it back empties the overlay.
+/// reports is a `Q` byte in its stream; a wrap either refuses (`invalid-structure`,
+/// `limit-exceeded`) and writes nothing, or leaves the page wrapped with the depth, text and
+/// marked-content state the content left (read again, with nothing unmatched), so that a second
+/// wrap does nothing, and changes only the streams that held an unmatched `Q`; rolling it back
+/// empties the overlay.
 pub fn content_append_scan(data: &[u8]) {
     let streams: Vec<&[u8]> = data.splitn(MAX_STREAMS, |&b| b == 0).collect();
     let limits = Limits::default();
     let Ok(balance) = scan_balance(&streams, &limits) else {
         return;
     };
-    let mut blanked: Vec<Vec<u8>> = streams.iter().map(|s| s.to_vec()).collect();
     for at in &balance.unmatched {
-        let byte = blanked.get_mut(at.stream).and_then(|s| s.get_mut(at.offset));
-        assert_eq!(byte.as_deref(), Some(&b'Q'), "an unmatched Q at {at:?}");
-        if let Some(byte) = byte {
-            *byte = b' ';
-        }
+        let byte = streams.get(at.stream).and_then(|s| s.get(at.offset));
+        assert_eq!(byte, Some(&b'Q'), "an unmatched Q at {at:?}");
     }
-    let views: Vec<&[u8]> = blanked.iter().map(Vec::as_slice).collect();
-    let again = scan_balance(&views, &limits).unwrap();
-    assert!(again.unmatched.is_empty(), "blanking leaves nothing unmatched");
-    assert_eq!((again.depth, again.in_text), (balance.depth, balance.in_text));
 
     let mut doc = Document::open(page_file(&streams), OpenOptions::default()).unwrap();
     let page = doc.pages().unwrap().get(0).unwrap().cos().clone();
@@ -43,13 +36,29 @@ pub fn content_append_scan(data: &[u8]) {
     let result = PageContentWriter::new(doc.cos_mut().edit(), &page).and_then(|mut w| w.wrap_existing());
     match result {
         Err(e) => {
-            assert_eq!(e.code(), "invalid-structure", "{e}");
+            assert!(matches!(e.code(), "invalid-structure" | "limit-exceeded"), "{e}");
             assert!(!doc.cos().is_dirty(), "a refused wrap writes nothing");
         }
         Ok(Wrapped::Already) => assert!(balance.wrapped),
-        Ok(Wrapped::Now { blanked: at, .. }) => {
+        Ok(Wrapped::Now {
+            neutralised: at,
+            closing,
+            ended_text,
+            ended_marked,
+        }) => {
             assert_eq!(at, balance.unmatched);
+            assert_eq!(
+                (closing, ended_text, ended_marked),
+                (balance.depth + 1, balance.in_text, balance.marked)
+            );
             let after = decoded(&doc);
+            let inner: Vec<&[u8]> = after[1..after.len() - 1].iter().map(Vec::as_slice).collect();
+            let again = scan_balance(&inner, &limits).unwrap();
+            assert!(again.unmatched.is_empty(), "neutralising leaves nothing unmatched");
+            assert_eq!(
+                (again.depth, again.in_text, again.marked),
+                (balance.depth, balance.in_text, balance.marked)
+            );
             assert_eq!(after.len(), before.len() + 2);
             for (i, (old, new)) in before.iter().zip(&after[1..]).enumerate() {
                 if at.iter().all(|a| a.stream != i) {

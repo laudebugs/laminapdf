@@ -57,7 +57,7 @@ Add the minimal write API to `laminapdf-content` that never interprets existing 
 - [x] Resource-name allocator (`Fm1`, `Gs1`, …) avoiding names in inherited resources
 - [x] Copy-on-write for shared resource dicts and shared content streams
 - [x] The writer works inside a transaction, so its callers' ops undo it through the journal
-- [x] Unmatched-`Q` neutraliser: rewrite only the streams that contain one, blanking exactly the recorded tokens; copy-on-write for shared streams
+- [x] Unmatched-`Q` neutraliser: rewrite only the streams that contain one, neutralising exactly the recorded tokens (each becomes `q Q`: a blank after an inline image's `EI` would make the image run on); copy-on-write for shared streams
 - [x] Tests on pages with surplus `q`, surplus `Q` (e.g. `q 2 0 0 2 0 0 cm … Q Q 0 0 1 rg`, and `2 0 0 2 0 0 cm Q <draw>` where the depth-0 `Q` follows state changes), both in different streams of one `/Contents` array, inline images containing `Q` bytes, shared resources and shared content streams
 
 ## Acceptance criteria
@@ -65,7 +65,7 @@ Add the minimal write API to `laminapdf-content` that never interprets existing 
 - [x] Property test: writes made in a transaction and rolled back leave the overlay empty, and the next save is byte-identical to the previous one
 - [x] Appending a filled rectangle to every page of 30 corpus files renders the original pixels unchanged plus the rectangle (PDFium diff) and passes qpdf `--check`
 - [x] Pages with unbalanced `q` or surplus `Q` are rendered identically before/after wrapping (PDFium and pdf.js pixel diff = 0), including the fixture `2 0 0 2 0 0 cm Q 0 0 10 10 re f` (the rectangle stays at scale 2 after wrapping); streams without an unmatched `Q` are byte-identical after wrapping; and a rectangle appended to the surplus-`Q` fixture lands at the same place and colour as on a balanced page (no leaked CTM, clip or colour); a unit test checks the appended `Q` count against the scan's `e` and that only the recorded unmatched `Q` tokens were blanked
-- [x] Fuzz target for the token scan runs 10 min without panic
+- [x] Fuzz target for the token scan runs 10 min without panic (run locally; registering it in `cargo xtask fuzz` and the nightly matrix needs a workflow change the owner makes: [#491](https://github.com/laudebugs/laminapdf/issues/491))
 
 ## Post-merge checks
 

@@ -1,5 +1,5 @@
 //! The append API (todo E2e) over `fixtures/content/append/` (`tools/fixtures/content_append.py`):
-//! what a wrap writes, which `Q` tokens it blanks, the resource names it picks, and what the
+//! what a wrap writes, which `Q` tokens it neutralises, the resource names it picks, and what the
 //! interpreter sees before and after (the same paths, in the same place and colour).
 #![allow(
     clippy::unwrap_used,
@@ -72,12 +72,18 @@ fn balance(doc: &Document, index: usize) -> Balance {
     scan_balance(&views, &laminapdf_content::Limits::default()).unwrap()
 }
 
-fn now(closing: usize, blanked: &[(usize, usize)], ended_text: bool) -> Wrapped {
+fn now(closing: usize, neutralised: &[(usize, usize)], ended_text: bool) -> Wrapped {
     Wrapped::Now {
         closing,
-        blanked: blanked.iter().map(|&(s, o)| StreamOffset::new(s, o)).collect(),
+        neutralised: neutralised.iter().map(|&(s, o)| StreamOffset::new(s, o)).collect(),
         ended_text,
+        ended_marked: 0,
     }
+}
+
+/// A one-page document whose content is `content`, with no resources.
+fn content_doc(content: &[u8]) -> Document {
+    common::page_doc(|_| (content.to_vec(), Dict::new()))
 }
 
 // What a wrap writes.
@@ -115,20 +121,20 @@ fn streams_without_an_unmatched_q_are_byte_identical_after_wrapping() {
 }
 
 #[test]
-fn the_unmatched_q_after_a_state_change_is_blanked_and_nothing_else() {
+fn the_unmatched_q_after_a_state_change_becomes_q_q_and_nothing_else_changes() {
     let mut doc = open("stray-Q");
     let before = streams(&doc, 0);
     let old = contents(&doc, 0)[0].clone();
     assert_eq!(wrap(&mut doc, 0).unwrap(), now(1, &[(0, 15)], false));
     let mut expected = before[0].clone();
-    expected[15] = b' ';
+    expected.splice(15..15, *b"q ");
     assert_eq!(streams(&doc, 0)[1], expected);
     assert_ne!(contents(&doc, 0)[1], old, "the copy is a new object");
     assert_eq!(decoded(&doc, &old), before[0], "the original stream is unchanged");
 }
 
 #[test]
-fn only_the_second_of_two_qs_is_blanked() {
+fn only_the_second_of_two_qs_is_neutralised() {
     let mut doc = open("extra-Q");
     let content = &streams(&doc, 0)[0];
     let second = content.windows(3).position(|w| w == b"Q Q").unwrap() + 2;
@@ -136,7 +142,7 @@ fn only_the_second_of_two_qs_is_blanked() {
 }
 
 #[test]
-fn unmatched_qs_in_two_streams_are_blanked_in_each_and_the_depth_carries_across() {
+fn unmatched_qs_in_two_streams_are_neutralised_in_each_and_the_depth_carries_across() {
     let mut doc = open("split");
     // Stream 0 leaves one q open, closed by stream 1's first Q; its second Q is unmatched.
     assert_eq!(wrap(&mut doc, 0).unwrap(), now(2, &[(0, 15), (1, 2)], false));
@@ -153,6 +159,7 @@ fn q_bytes_in_an_inline_image_are_left_alone() {
     let after = &streams(&doc, 0)[1];
     let data = content.windows(5).position(|w| w == b"ID QQ").unwrap() + 3;
     assert_eq!(&after[data..data + 2], b"QQ");
+    assert!(after.ends_with(b"EI Q q Q 0 1 0 rg 100 100 30 30 re f"));
 }
 
 #[test]
@@ -188,7 +195,113 @@ fn added_content_that_leaks_state_is_refused() {
     }
 }
 
+#[test]
+fn added_content_that_ends_inside_a_token_is_refused() {
+    let mut doc = open("balanced");
+    let mut w = writer(&mut doc, 0);
+    for bad in [
+        &b"("[..],
+        b"0 g (open",
+        b"<<",
+        b"[1 2",
+        b"BI /W 1 /H 1 /BPC 8 /CS /G ID ",
+    ] {
+        assert_eq!(w.prepend(bad).unwrap_err().code(), "invalid-structure", "{bad:?}");
+    }
+}
+
+#[test]
+fn added_content_ending_in_a_comment_gets_a_newline() {
+    let mut doc = open("balanced");
+    let r = writer(&mut doc, 0).append(b"q 0 g Q % a comment").unwrap();
+    assert_eq!(decoded(&doc, &Object::Ref(r)), b"q 0 g Q % a comment\n");
+}
+
+#[test]
+fn open_marked_content_is_ended_before_the_closing_qs() {
+    let mut doc = content_doc(b"/P <</MCID 0>> BDC 0 0 1 rg 0 0 5 5 re f");
+    let before = fills(&doc, 0);
+    let wrapped = wrap(&mut doc, 0).unwrap();
+    assert_eq!(
+        wrapped,
+        Wrapped::Now {
+            closing: 1,
+            neutralised: Vec::new(),
+            ended_text: false,
+            ended_marked: 1,
+        }
+    );
+    assert_eq!(decoded(&doc, contents(&doc, 0).last().unwrap()), b"\nEMC\nQ\n");
+    assert_eq!(fills(&doc, 0), before);
+    assert!(balance(&doc, 0).wrapped);
+}
+
+#[test]
+fn a_wrap_that_would_pass_the_nesting_limit_is_refused() {
+    let limit = laminapdf_content::Limits::default().max_nesting_depth();
+    let mut doc = content_doc(&b"q ".repeat(limit));
+    assert_eq!(wrap(&mut doc, 0).unwrap_err().code(), "limit-exceeded");
+    assert!(!doc.cos().is_dirty());
+    let mut doc = content_doc(&b"q ".repeat(limit - 1));
+    assert!(wrap(&mut doc, 0).is_ok());
+}
+
+#[test]
+fn the_page_streams_share_one_decoded_budget() {
+    let limits = laminapdf_content::Limits::default().with_max_decoded_total(40);
+    let mut doc = common::page_doc_with(OpenOptions::default().with_limits(limits), |_| {
+        (vec![b' '; 30], Dict::new())
+    });
+    wrap(&mut doc, 0).unwrap();
+    // Now the page holds the 30 bytes and the wrap's own streams; twice that is over 40.
+    let mut w = writer(&mut doc, 0);
+    w.append(&[b' '; 30]).unwrap();
+    assert_eq!(
+        writer(&mut doc, 0).wrap_existing().unwrap_err().code(),
+        "limit-exceeded"
+    );
+}
+
+#[test]
+fn content_prepended_to_a_wrapped_page_goes_inside_the_wrap() {
+    let mut doc = open("split");
+    wrap(&mut doc, 0).unwrap();
+    let r = writer(&mut doc, 0).prepend(b"0.9 g 0 0 200 200 re f").unwrap();
+    assert_eq!(contents(&doc, 0)[1], Object::Ref(r));
+    assert_eq!(wrap(&mut doc, 0).unwrap(), Wrapped::Already);
+}
+
+#[test]
+fn content_prepended_to_an_unwrapped_page_goes_first() {
+    let mut doc = open("balanced");
+    let r = writer(&mut doc, 0).prepend(b"0.9 g").unwrap();
+    assert_eq!(contents(&doc, 0)[0], Object::Ref(r));
+}
+
 // Resources.
+
+#[test]
+fn a_name_the_content_draws_with_is_not_reused_even_without_its_resource() {
+    let mut doc = content_doc(b"/Fm1 Do /Gs1 gs BT /Ft1 9 Tf ET");
+    let form = ObjRef::new(1, 0);
+    let mut w = writer(&mut doc, 0);
+    assert_eq!(w.add_xobject(form).unwrap().as_bytes(), b"Fm2");
+    assert_eq!(w.add_extgstate(Object::Dict(Dict::new())).unwrap().as_bytes(), b"Gs2");
+    assert_eq!(w.add_font(form).unwrap().as_bytes(), b"Ft2");
+}
+
+#[test]
+fn a_second_writer_from_the_same_page_snapshot_sees_the_first_ones_resources() {
+    let mut doc = open("balanced");
+    let page = doc.pages().unwrap().get(0).unwrap().cos().clone();
+    let first = PageContentWriter::new(doc.cos_mut().edit(), &page)
+        .unwrap()
+        .add_xobject(ObjRef::new(4, 0))
+        .unwrap();
+    let mut second = PageContentWriter::new(doc.cos_mut().edit(), &page).unwrap();
+    let other = second.add_xobject(ObjRef::new(10, 0)).unwrap();
+    assert_eq!((first.as_bytes(), other.as_bytes()), (&b"Fm1"[..], &b"Fm2"[..]));
+}
 
 #[test]
 fn new_names_avoid_every_inherited_name_and_the_shared_dictionaries_stay_as_they_were() {
@@ -338,6 +451,16 @@ fn every_saved_fuzz_input_replays_without_a_panic() {
     for file in files {
         content_append_scan(&std::fs::read(file.unwrap().path()).unwrap());
     }
+}
+
+#[test]
+fn a_q_neutralised_right_after_an_inline_image_keeps_the_image_end() {
+    // A blank after `EI` would leave `BTF10` as the next token, which the inline-image
+    // heuristic doesn't take for content, so the image would run on (the fuzzer's first find).
+    content_append_scan(b"BI /W/2 ID QQ EI Q Q BTF10 (x) Tj");
+    let mut doc = content_doc(b"q BI /W/2 ID QQ EI Q Q BTF10 /F1 9 Tf ET");
+    assert_eq!(wrap(&mut doc, 0).unwrap(), now(1, &[(0, 21)], false));
+    assert!(balance(&doc, 0).wrapped);
 }
 
 #[test]
