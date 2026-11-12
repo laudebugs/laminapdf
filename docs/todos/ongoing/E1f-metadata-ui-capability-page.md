@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E1 editing foundation §2](../../plans/editor/e1-editing-foundation.md#2-the-operations) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1c](../done/E1c-metadata-ops.md), [E1e](../done/E1e-save-and-constraint-banner.md), [X2](../done/X2-capability-matrix.md) |
@@ -31,11 +31,11 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 - Editable properties dialog bound to `SetMetadata`/`RemoveMetadata` with validation (date pickers, keywords chips)
 - Inline `ConformanceWarning`s and an "edits are kept in earlier revisions" notice for `RemoveMetadata` on incremental saves
 - Capability page in `@laminapdf/ui` rendering `docs/capabilities/README.md` data (JSON emitted by `cargo xtask capabilities`) bundled at build time, filterable by group and surface
-- e2e round-trip tests for J.01–J.03, J.10 on the web (flipping the web column; the desktop column flips with [E1i](./E1i-desktop-save-in-place.md))
+- e2e round-trip tests for J.01–J.03, J.10 on the web (flipping the web column; the desktop column flips with [E1i](../ready/E1i-desktop-save-in-place.md))
 
 **Out of scope** (and which todo covers it)
 
-- General XMP editor → [E3e](E3e-xmp-editor.md)
+- General XMP editor → [E3e](../ready/E3e-xmp-editor.md)
 
 **Editor facts**
 

@@ -180,7 +180,7 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 
 **Artboards:** `O04-document-info.dc.html`, `O04-xmp-editor.dc.html`.
 
-**Todos:** [E1f](../../todos/ready/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md).
+**Todos:** [E1f](../../todos/ongoing/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md).
 
 ## O05 Capability page
 
@@ -213,7 +213,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Artboards:** `O05-capabilities.dc.html`.
 
-**Todos:** [E1f](../../todos/ready/E1f-metadata-ui-capability-page.md).
+**Todos:** [E1f](../../todos/ongoing/E1f-metadata-ui-capability-page.md).
 
 ## O06 Organise mode
 

@@ -154,7 +154,7 @@ No server feature: every edit and save happens on the device, and nothing leaves
 | [E1g](../../todos/done/E1g-redraw-after-edit.md) | Redraw after an edit: the worker's incremental reload of PDFium, per-page invalidation and page sizes in the viewer, measured | E1a |
 | [E1d](../../todos/done/E1d-edit-session-undo-ui.md) | The edit session in the document worker, the interaction modes, undo and redo, history, dirty state and the web close guard | E1g |
 | [E1e](../../todos/done/E1e-save-and-constraint-banner.md) | Save, Save as and Download a copy on the web, and the save-constraint strip | E1c, E1d |
-| [E1f](../../todos/ready/E1f-metadata-ui-capability-page.md) | The editable Properties dialog and the capability page | E1c, E1e |
+| [E1f](../../todos/ongoing/E1f-metadata-ui-capability-page.md) | The editable Properties dialog and the capability page | E1c, E1e |
 | [E1h](../../todos/ready/E1h-desktop-edit-session.md) | Desktop: the session in the engine process, the native Edit menu, the close guard | E1d, D4b |
 | [E1i](../../todos/ready/E1i-desktop-save-in-place.md) | Desktop: save in place, watcher suppression and the conflict dialog for outside changes | E1e, E1h, D3b |
 
