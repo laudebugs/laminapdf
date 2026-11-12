@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1c](../done/E1c-metadata-ops.md), [E2j](./E2j-page-tree-and-tree-writers.md), [E2r](./E2r-planner-page-checks.md) |
+| Depends on | [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1c](../done/E1c-metadata-ops.md), [E2j](../ongoing/E2j-page-tree-and-tree-writers.md), [E2r](./E2r-planner-page-checks.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2b-page-structure-ops` |
 | PR title | `feat(ops): page structure ops with reference cleanup` |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Implement the single-document page ops as view-level mapping of `PageId`s (no re-parse of content) over [E2j](E2j-page-tree-and-tree-writers.md)'s page-tree editor: insert blank pages, delete, move (reorder), rotate (batch, generalising B3's `RotatePage`) and reverse, with cleanup of references to deleted pages (outline items, link destinations, named destinations, struct-tree `/Pg`, `/OpenAction`). Each op reports the widgets it touches, which [E2r](E2r-planner-page-checks.md)'s checks judge. Duplicating pages is [E2k](E2k-duplicate-pages.md).
+Implement the single-document page ops as view-level mapping of `PageId`s (no re-parse of content) over [E2j](../ongoing/E2j-page-tree-and-tree-writers.md)'s page-tree editor: insert blank pages, delete, move (reorder), rotate (batch, generalising B3's `RotatePage`) and reverse, with cleanup of references to deleted pages (outline items, link destinations, named destinations, struct-tree `/Pg`, `/OpenAction`). Each op reports the widgets it touches, which [E2r](E2r-planner-page-checks.md)'s checks judge. Duplicating pages is [E2k](E2k-duplicate-pages.md).
 
 ## Context
 
@@ -38,7 +38,7 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 
 **Out of scope** (and which todo covers it)
 
-- Page-tree editing, the tree writers, `PageLabels::remap` and the reference index → [E2j](E2j-page-tree-and-tree-writers.md)
+- Page-tree editing, the tree writers, `PageLabels::remap` and the reference index → [E2j](../ongoing/E2j-page-tree-and-tree-writers.md)
 - The planner's field-level checks → [E2r](E2r-planner-page-checks.md)
 - Duplicating pages (tags and widgets) → [E2k](E2k-duplicate-pages.md)
 - Pages from other documents, replace, extract → [E2c](E2c-cross-document-pages.md)

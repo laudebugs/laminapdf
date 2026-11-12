@@ -41,7 +41,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour/styl
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.01` create/edit bookmarks; nested trees; `I.04` named destinations; `I.05` clickable table of contents; `I.11` outline and navigation preferences
-- **Crates and packages:** `laminapdf-model` (outline write; name-tree writer from [E2j](E2j-page-tree-and-tree-writers.md)), `laminapdf-ops`, `laminapdf-build` (TOC page), `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-model` (outline write; name-tree writer from [E2j](../ongoing/E2j-page-tree-and-tree-writers.md)), `laminapdf-ops`, `laminapdf-build` (TOC page), `@laminapdf/ui`
 - **`Op` variants:** outline and destination ops (class `Document`), `GenerateToc` (class `PageStructure`: one class per op, ADR 0006 §1; it inserts a page, which is forbidden at every DocMDP level, so it is more restrictive than the link annotations it adds, which P3 would allow)
 - **`SaveConstraint`:** `Free` → incremental; signed: outline and destination changes are class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
@@ -51,7 +51,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour/styl
 ## Tasks
 
 - [ ] Outline writer with `/Count` sign semantics
-- [ ] Named-destination ops over [E2j](E2j-page-tree-and-tree-writers.md)'s name-tree writer (E3b does not write its own; E3f uses the same writer)
+- [ ] Named-destination ops over [E2j](../ongoing/E2j-page-tree-and-tree-writers.md)'s name-tree writer (E3b does not write its own; E3f uses the same writer)
 - [ ] Ops with undo
 - [ ] TOC generator using builder text and E3c links
 - [ ] Bookmark panel with DnD and keyboard

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2j` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B8a](../done/B8a-structure-tree.md), [E2a](../done/E2a-page-organisation-feature-plan.md) |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Give `laminapdf-model` the write side that every E2 page op needs, so the ops themselves stay small: a page-tree editor, writers for number trees and name trees, `PageLabels::remap`, and an index of everything that points at a page. Split out of [E2b](E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) to keep each PR reviewable; [E2b](E2b-page-structure-ops.md), [E2c](E2c-cross-document-pages.md), [E2d](E2d-merge-and-split.md), [E2f](E2f-page-geometry.md), [E2g](E2g-page-labels.md), [E3b](E3b-bookmarks-and-destinations.md) and [E3f](E3f-attachments-and-associated-files.md) build on it instead of writing their own.
+Give `laminapdf-model` the write side that every E2 page op needs, so the ops themselves stay small: a page-tree editor, writers for number trees and name trees, `PageLabels::remap`, and an index of everything that points at a page. Split out of [E2b](../ready/E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) to keep each PR reviewable; [E2b](../ready/E2b-page-structure-ops.md), [E2c](../ready/E2c-cross-document-pages.md), [E2d](../ready/E2d-merge-and-split.md), [E2f](../ready/E2f-page-geometry.md), [E2g](../ready/E2g-page-labels.md), [E3b](../ready/E3b-bookmarks-and-destinations.md) and [E3f](../ready/E3f-attachments-and-associated-files.md) build on it instead of writing their own.
 
 ## Context
 
@@ -35,8 +35,8 @@ Give `laminapdf-model` the write side that every E2 page op needs, so the ops th
 
 **Out of scope** (and which todo covers it)
 
-- The ops that use them → [E2b](E2b-page-structure-ops.md), [E2k](E2k-duplicate-pages.md)
-- Copying objects between documents → [E2c](E2c-cross-document-pages.md)
+- The ops that use them → [E2b](../ready/E2b-page-structure-ops.md), [E2k](../ready/E2k-duplicate-pages.md)
+- Copying objects between documents → [E2c](../ready/E2c-cross-document-pages.md)
 
 **Editor facts**
 
