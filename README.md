@@ -1,6 +1,6 @@
 # Lamina PDF
 
-[![npm](https://img.shields.io/npm/v/@laminapdf/sdk/alpha)](https://www.npmjs.com/package/@laminapdf/sdk) [![crates.io](https://img.shields.io/crates/v/laminapdf)](https://crates.io/crates/laminapdf)
+[![npm](https://img.shields.io/npm/v/@laminapdf/sdk)](https://www.npmjs.com/package/@laminapdf/sdk) [![crates.io](https://img.shields.io/crates/v/laminapdf)](https://crates.io/crates/laminapdf)
 
 Lamina PDF creates, reads, edits and saves PDFs from code, in Rust and in TypeScript on every JavaScript runtime. It has six parts, and the first three share one Rust core:
 
@@ -22,7 +22,7 @@ page.finish();
 const bytes = builder.finish().save(); // a Uint8Array holding the PDF
 ```
 
-> **Status:** alpha, published on npm as `@laminapdf/sdk` (the `alpha` tag) and on crates.io as `laminapdf`. Anything can change between alphas, so pin the exact version you use; the [stability policy](https://docs.laminapdf.com/reference/stability/) shows how and says what each version promises.
+> **Status:** `0.x`, published on npm as `@laminapdf/sdk` and on crates.io as `laminapdf`. From `0.2.0` on, releases follow SemVer: a breaking change raises the minor version (`0.2` to `0.3`). The [stability policy](https://docs.laminapdf.com/reference/stability/) says what each version promises.
 
 ## What's here
 
