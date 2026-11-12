@@ -3,7 +3,7 @@
 // the tests that need them, not from props, so shipped code carries nothing for tests.
 
 import type { ReactElement } from "react";
-import { EditArea, HistoryPanel } from "../src/editing.ts";
+import { EditArea, HistoryPanel, type SavePlanSlice, SaveStrip } from "../src/editing.ts";
 import {
   Badge,
   Button,
@@ -535,6 +535,37 @@ const history: Example[] = [
   },
 ];
 
+const CERTIFICATION = { kind: "certification", field: "f7.0" };
+const APPROVAL = { kind: "approval", field: "f9.0" };
+
+function savePlan(constraint: SavePlanSlice["constraint"]): SavePlanSlice {
+  const signed = constraint === "appendOnly" || constraint === "conflict";
+  return {
+    constraint,
+    signatures: signed ? [CERTIFICATION, APPROVAL] : [],
+    wouldInvalidate: constraint === "conflict" ? [CERTIFICATION, APPROVAL] : [],
+  };
+}
+
+/** The strip under the top bar (O02) in each way a file saves that isn't plain. */
+const saveStrip: Example[] = [
+  {
+    component: "SaveStrip",
+    state: "signed: changes go after the signature",
+    element: () => <SaveStrip plan={savePlan("appendOnly")} />,
+  },
+  {
+    component: "SaveStrip",
+    state: "the save rewrites the file",
+    element: () => <SaveStrip plan={savePlan("requiresRewrite")} />,
+  },
+  {
+    component: "SaveStrip",
+    state: "the save would invalidate the certification",
+    element: () => <SaveStrip plan={savePlan("conflict")} />,
+  },
+];
+
 const findResults: Example[] = [
   {
     component: "FindResults",
@@ -902,6 +933,7 @@ export const EXAMPLES: readonly Example[] = [
   ...findBar,
   ...findResults,
   ...history,
+  ...saveStrip,
   ...buttons,
   ...toggles,
   ...rail,

@@ -18,7 +18,10 @@ import type {
   OutlineNode,
   PageInfo,
   PageLink,
+  PlannedSave,
   Reflow,
+  SaveOptions,
+  SaveReport,
   StructureNode,
   Target,
 } from "@laminapdf/sdk";
@@ -149,6 +152,16 @@ export interface RevertedStep {
   readonly outcome: "applied" | "partial" | "skipped";
 }
 
+/**
+ * A copy of the document as a save writes it (`copyEdits`), for the page to write where the file
+ * lives; `token` names it to `adoptEdits` once written.
+ */
+export interface SavedCopy {
+  readonly token: number;
+  readonly bytes: Uint8Array;
+  readonly report: SaveReport;
+}
+
 /** The ops of one step and its label, as a restarted worker replays them (`restoreEdits`). */
 export interface ReplayedStep {
   readonly ops: readonly Op[];
@@ -199,6 +212,9 @@ export interface Methods {
   goToStep: { params: [position: number, document: number]; result: EditResult };
   /** The edit session's history. */
   editHistory: { params: [document: number]; result: EditHistory };
+  planSave: { params: [options: SaveOptions, document: number]; result: PlannedSave };
+  copyEdits: { params: [options: SaveOptions, document: number]; result: SavedCopy };
+  adoptEdits: { params: [token: number, document: number]; result: EditHistory };
   /**
    * A restarted worker's document takes the edits the old one had: `steps` applied again, one
    * transaction each, then the newest `undone` of them undone, and drawn once.

@@ -14,6 +14,19 @@ const LANGUAGES = { ts: "ts", rs: "rust", toml: "toml", json: "json", md: "md" }
 /** A `<Snippet … file="…" … />`, whatever its attributes' order; group 1 is the file. */
 const SNIPPET = /<Snippet\b[^>]*?\bfile="([^"]+)"[^>]*\/>/g;
 
+/** A `<Transcript name="…" />` (todo Q4a); group 1 is the transcript's name. */
+export const TRANSCRIPT = /<Transcript\s+name="([a-z0-9-]+)"\s*\/>/g;
+
+/**
+ * The file a `<Transcript>` shows, from the repository root.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+export function transcriptFile(name) {
+  return `fixtures/cli/transcripts/${name}.console`;
+}
+
 /** An `<Example … />` (todo B7d); group 1 is its attributes. */
 const EXAMPLE = /<Example\b([^>]*?)\/>/g;
 
@@ -34,13 +47,14 @@ export function exampleParts(attributes) {
 }
 
 /**
- * Every file a page's `<Snippet>`s and `<Example>`s show, for the twins to read before they write.
+ * Every file a page's `<Snippet>`s, `<Example>`s and `<Transcript>`s show, for the twins to read before they write.
  *
  * @param {string} source
  * @returns {string[]}
  */
 export function shownFiles(source) {
   const files = [...source.matchAll(SNIPPET)].map((m) => m[1] ?? "");
+  for (const [, name = ""] of source.matchAll(TRANSCRIPT)) files.push(transcriptFile(name));
   for (const [, attributes = ""] of source.matchAll(EXAMPLE)) {
     const { ts, rust, output } = exampleParts(attributes);
     for (const file of [ts, rust, output]) if (file !== undefined) files.push(file);
@@ -117,6 +131,17 @@ export function frontMatter(source) {
 function fenceFor(text) {
   const longest = Math.max(2, ...[...text.matchAll(/`+/g)].map((m) => m[0].length));
   return "`".repeat(longest + 1);
+}
+
+/**
+ * A terminal session as a `console` block, without a caption: the page shows it the same way.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+function consoleBlock(text) {
+  const fence = fenceFor(text);
+  return `${fence}console\n${text.replace(/\n$/, "")}\n${fence}`;
 }
 
 /**
@@ -217,6 +242,7 @@ export function mdxToMarkdown(body, components) {
       .replace(/^import\s.+?;?\s*$/gm, "")
       .replace(SNIPPET, (_, file) => codeBlock(file, components.snippet(file)))
       .replace(EXAMPLE, (_, attributes) => exampleMarkdown(attributes, components.snippet))
+      .replace(TRANSCRIPT, (_, name) => consoleBlock(components.snippet(transcriptFile(name))))
       .replace(DIAGRAM, (_, _quote, name) => diagramMarkdown(name))
       .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
       .replace(/<Changelog\s*\/>/g, () => components.changelog())

@@ -200,10 +200,16 @@ export async function contentFiles() {
 const snippetCache = new Map();
 
 /**
- * The folders a page may show files from: the ones `Snippet.astro` and `Example.astro` glob (the
- * TypeScript and Rust examples, and the reading examples' outputs). A twin never reads elsewhere.
+ * The folders a page may show files from: the ones `Snippet.astro`, `Example.astro` and
+ * `Transcript.astro` glob (the TypeScript and Rust examples, the reading examples' outputs and the
+ * command-line transcripts). A twin never reads elsewhere.
  */
-const SHOWN_FOLDERS = ["packages/sdk/examples/", "crates/laminapdf/examples/", "fixtures/extract/examples/"];
+const SHOWN_FOLDERS = [
+  "packages/sdk/examples/",
+  "crates/laminapdf/examples/",
+  "fixtures/extract/examples/",
+  "fixtures/cli/transcripts/",
+];
 
 /**
  * `file` (a path from the repository root, as a page names it) as a URL inside one of

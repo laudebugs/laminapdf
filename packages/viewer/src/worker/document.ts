@@ -72,7 +72,8 @@ function newEditState(source: RenderSource, renderLimits: RenderOpenOptions["lim
   return {
     source,
     renderLimits,
-    appended: [],
+    drawn: undefined,
+    copy: undefined,
     pending: [],
     diverged: false,
     session: newSession(),
@@ -82,18 +83,24 @@ function newEditState(source: RenderSource, renderLimits: RenderOpenOptions["lim
 
 /**
  * What edit.ts keeps of a document between edits. It reopens the render document over `source`
- * with every appended revision after it.
+ * with `drawn` after it: a copy of the edits since the last save.
  */
 export interface EditState {
-  /** The file as first opened. */
-  readonly source: RenderSource;
+  /** The file as last saved: as opened, until a save adopts a copy (edit.ts's `adoptEdits`). */
+  source: RenderSource;
   /**
    * The render limits, to open the render document again after an edit. Never the password: an
    * encrypted file can't take an incremental save, so an edit never reopens one.
    */
   readonly renderLimits: RenderOpenOptions["limits"];
-  /** The revisions the edits appended to `source`, in order, each as its save wrote it. */
-  readonly appended: Uint8Array[];
+  /**
+   * What the pages are drawn from besides `source`: a copy of every edit since the last save,
+   * as one revision appended to it, or a whole file when the copy had to rewrite it. Undefined
+   * when nothing was edited since.
+   */
+  drawn: { readonly bytes: Uint8Array; readonly whole: boolean } | undefined;
+  /** The copy a save wrote and the page is writing where the file lives, until it is adopted or an edit makes it stale. */
+  copy: { readonly token: number; readonly bytes: Uint8Array; readonly historyCleared: boolean } | undefined;
   /**
    * The edits, undos and redos a text-capable copy has yet to make, oldest first: kept only while
    * there is a copy, or one may be opened, so a document that reads its own text keeps none.

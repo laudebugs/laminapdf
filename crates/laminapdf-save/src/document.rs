@@ -94,6 +94,32 @@ pub trait Save {
     /// document is unchanged; when the rebase onto them fails, it is `SavedNotRebased` and
     /// [`SaveError::NotRebased`] carries the output.
     fn save_and_rebase<S: ReadableSink>(&mut self, sink: S, options: &SaveOptions) -> Result<SaveReport>;
+
+    /// Writes to `sink` what [`Save::save`] would, and leaves the document as it was: not
+    /// rebased, its changes still pending (so a later plan still sees them), and the save-time
+    /// stamp, when the plan stamps, written into the copy only. For Save a copy, and for the
+    /// copy an edit session draws its pages from ([ADR 0007]).
+    ///
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+    ///
+    /// # Errors
+    /// As [`Save::save`], less [`SaveError::NotRebased`]; the document is unchanged either way.
+    fn save_copy<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport>;
+
+    /// Makes `copy`, the whole output of [`Save::save_copy`] ([`IncrementalOutput::Whole`]),
+    /// the document's saved file, as if [`Save::save`] had written it: the document rebases onto
+    /// it, and keeps or empties its undo history as the copy's
+    /// [`SaveReport::history_cleared`] says. A shell writes the copy where the document lives,
+    /// then adopts it, so a failed write leaves the document unsaved. The document must not
+    /// change between the copy and its adoption.
+    ///
+    /// [`IncrementalOutput::Whole`]: crate::IncrementalOutput::Whole
+    ///
+    /// # Errors
+    /// [`SaveError::Ops`] while a transaction is open or another save waits for its rebase;
+    /// [`SaveError::NotRebased`] when `copy` can't be read (the document then waits for a
+    /// rebase, as after a full rewrite to a sink it couldn't read back).
+    fn adopt_copy(&mut self, copy: Source, history_cleared: bool) -> Result<()>;
 }
 
 /// The refusals every save shares.
@@ -129,20 +155,25 @@ enum Written {
 /// own ([`Origin::System`]: never on the undo history) that stays open while the writer runs:
 /// committed once the bytes are written, rolled back when writing fails, so a failed save leaves
 /// the document as it was.
-fn write<S: WriteSink + ?Sized>(doc: &mut Document, sink: &mut S, options: SaveOptions) -> Result<Written> {
+/// A `copy` rolls the stamp back once written and leaves the document unrebased.
+fn write<S: WriteSink + ?Sized>(doc: &mut Document, sink: &mut S, options: SaveOptions, copy: bool) -> Result<Written> {
     ready(doc)?;
     let planner = SavePlanner::new(doc)?;
     let plan = planner.plan(&options)?;
     // Whether the stamp changed anything: a file without a packet and a save without a date
     // has nothing to stamp, and the report must say so.
     let stamped = *plan.metadata_update() == MetadataUpdate::Stamp && stamp(doc, &options)?;
-    let result = write_planned(doc, sink, options, &planner, &plan, stamped);
+    let result = write_planned(doc, sink, options, &planner, &plan, stamped, copy);
     if result.is_err() && doc.in_transaction() {
         // The writer failed before the stamp was committed; a failed rollback leaves the
         // transaction closed, and the error to report is the writer's.
         let _ = doc.rollback();
     }
     let mut report = result?;
+    if copy && doc.in_transaction() {
+        // The copy has the stamp; the document keeps its own metadata.
+        doc.rollback()?;
+    }
     let (Written::Incremental(r) | Written::Full(r)) = &mut report;
     r.invalidated = plan.would_invalidate().to_vec();
     r.metadata.updated = stamped;
@@ -181,13 +212,14 @@ fn write_planned<S: WriteSink + ?Sized>(
     planner: &SavePlanner,
     plan: &SavePlan,
     stamped: bool,
+    copy: bool,
 ) -> Result<Written> {
     let patches = planner.patches(doc.cos(), plan)?;
     if plan.mode() == SaveMode::Incremental {
-        write_incremental(doc, sink, options, &patches, stamped).map(Written::Incremental)
+        write_incremental(doc, sink, options, &patches, stamped, copy).map(Written::Incremental)
     } else {
         let report = FullWriter::new(doc.cos(), options).with_patches(&patches).write(sink)?;
-        if stamped {
+        if stamped && !copy {
             doc.commit()?;
         }
         Ok(Written::Full(report))
@@ -201,19 +233,25 @@ fn write_incremental<S: WriteSink + ?Sized>(
     options: SaveOptions,
     patches: &Patches,
     stamped: bool,
+    copy: bool,
 ) -> Result<SaveReport> {
     let saved = IncrementalWriter::new(doc.cos(), options)
         .with_patches(patches)
         .write(sink)?;
-    if stamped {
-        doc.commit()?;
-    }
     let pending = if saved.freed_objects() {
         PendingRebase::ClearHistory
     } else {
         PendingRebase::KeepHistory
     };
-    let (report, appended) = saved.into_parts();
+    let (mut report, appended) = saved.into_parts();
+    // For a copy: whether adopting it as the save would.
+    report.history_cleared = !appended.is_empty() && pending == PendingRebase::ClearHistory;
+    if copy {
+        return Ok(report);
+    }
+    if stamped {
+        doc.commit()?;
+    }
     if appended.is_empty() {
         doc.mark_saved();
         return Ok(report);
@@ -242,24 +280,46 @@ impl Save for Document {
     }
 
     fn save<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport> {
-        match write(self, sink, *options)? {
+        match write(self, sink, *options, false)? {
             Written::Incremental(report) => Ok(report),
-            Written::Full(report) => {
+            Written::Full(mut report) => {
                 self.saved_not_rebased(PendingRebase::ClearHistory)?;
+                report.history_cleared = true;
                 Ok(report)
             }
         }
     }
 
     fn save_and_rebase<S: ReadableSink>(&mut self, mut sink: S, options: &SaveOptions) -> Result<SaveReport> {
-        match write(self, &mut sink, *options)? {
+        match write(self, &mut sink, *options, false)? {
             Written::Incremental(report) => Ok(report),
-            Written::Full(report) => {
+            Written::Full(mut report) => {
                 let source = Source::from(sink.into_source()?);
                 settle(self, source, PendingRebase::ClearHistory)?;
+                report.history_cleared = true;
                 Ok(report)
             }
         }
+    }
+
+    fn save_copy<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport> {
+        match write(self, sink, *options, true)? {
+            Written::Incremental(report) => Ok(report),
+            Written::Full(mut report) => {
+                report.history_cleared = true;
+                Ok(report)
+            }
+        }
+    }
+
+    fn adopt_copy(&mut self, copy: Source, history_cleared: bool) -> Result<()> {
+        ready(self)?;
+        let pending = if history_cleared {
+            PendingRebase::ClearHistory
+        } else {
+            PendingRebase::KeepHistory
+        };
+        settle(self, copy, pending)
     }
 }
 

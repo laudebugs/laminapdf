@@ -2,10 +2,10 @@
 // workers too, which add their own hooks on top so none ships.
 
 import type { RenderRequest } from "@laminapdf/render";
-import type { Op } from "@laminapdf/sdk";
+import type { Op, SaveOptions } from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
-import type { BackendInit, PrintOptions, ReplayedStep, SourceInit, ViewerOpenOptions } from "../protocol.js";
+import type { BackendInit, PrintOptions, ReplayedStep, SavedCopy, SourceInit, ViewerOpenOptions } from "../protocol.js";
 import {
   closeDocument,
   current,
@@ -15,7 +15,7 @@ import {
   textModel,
   workerMemory,
 } from "./document.js";
-import { applyEdit, editHistory, goToStep, restoreEdits, stepEdit } from "./edit.js";
+import { adoptEdits, applyEdit, copyEdits, editHistory, goToStep, planSave, restoreEdits, stepEdit } from "./edit.js";
 import { find, forgetSearch } from "./find.js";
 import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
 import { networkLog } from "./network.js";
@@ -54,6 +54,20 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   editHistory: {
     run: ([id]) => editHistory(id as number),
+  },
+  planSave: {
+    run: ([options, id], { signal }) => planSave(options as SaveOptions, id as number, signal),
+  },
+  copyEdits: {
+    run: ([options, id], { signal }) => copyEdits(options as SaveOptions, id as number, signal),
+    reply: (copy) => {
+      const { token, bytes, report } = copy as SavedCopy;
+      const [own, transfer] = replyBytes(bytes);
+      return [{ token, bytes: own, report }, transfer];
+    },
+  },
+  adoptEdits: {
+    run: ([token, id]) => adoptEdits(token as number, id as number),
   },
   restoreEdits: {
     run: ([steps, undone, id], { signal }) =>

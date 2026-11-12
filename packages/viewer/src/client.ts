@@ -16,7 +16,7 @@
 //   fires and the caller opens again with the password.
 
 import type { RenderRequest } from "@laminapdf/render";
-import { isLaminaPdfError, type Op } from "@laminapdf/sdk";
+import { isLaminaPdfError, type Op, type PlannedSave, type SaveOptions } from "@laminapdf/sdk";
 import {
   connect,
   Emitter,
@@ -43,6 +43,7 @@ import {
   type RenderedBitmap,
   type Result,
   renderKey,
+  type SavedCopy,
   type SourceInit,
   type ViewerOpenOptions,
   type WorkerNetworkLog,
@@ -182,6 +183,8 @@ export class ViewerClient {
   #document: OpenedDocument | undefined;
   /** The open document's edit session, kept so a restarted worker takes it back. */
   readonly #edits = new EditLog();
+  /** The last copy a save wrote (`copyEdits`), until it is adopted or another replaces it. */
+  #copy: { readonly token: number; readonly bytes: Uint8Array } | undefined;
   /** Opens asked for so far: each open's ticket. */
   #opens = 0;
   #recovering: Promise<void> | undefined;
@@ -377,6 +380,44 @@ export class ViewerClient {
     const history = await this.call("editHistory", [opened?.id ?? 0], options);
     // A failed edit clears the steps undone: what a restart would replay follows.
     if (opened !== undefined && this.#document === opened) this.#edits.take({ pages: [], history });
+    return history;
+  }
+
+  /** How saving the open document with `options` would go: its constraint, signatures, mode and warnings. */
+  async planSave(options: SaveOptions, call?: ViewerCallOptions): Promise<PlannedSave> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("planSave", [options, this.#document?.id ?? 0], call);
+  }
+
+  /**
+   * Writes the open document as a save with `options` would, for the caller to write where the
+   * file lives; the document stays unsaved until `adoptEdits(copy.token)`. Save a copy uses it
+   * and never adopts.
+   */
+  async copyEdits(options: SaveOptions, call?: ViewerCallOptions): Promise<SavedCopy> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const copy = await this.call("copyEdits", [options, this.#document?.id ?? 0], call);
+    this.#copy = { token: copy.token, bytes: copy.bytes };
+    return copy;
+  }
+
+  /**
+   * Makes the copy `token` names the document's saved file, once it is written where the file
+   * lives: the worker rebases onto it, the history marks the point saved, and a restarted worker
+   * reopens that file. Emits `edit` with the history.
+   *
+   * @throws when the document changed since the copy (it stays unsaved).
+   */
+  async adoptEdits(token: number, call?: ViewerCallOptions): Promise<EditHistory> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const opened = this.#document;
+    const history = await this.call("adoptEdits", [token, opened?.id ?? 0], call);
+    const copy = this.#copy;
+    if (opened === undefined || this.#document !== opened) return history;
+    this.#copy = undefined;
+    if (copy?.token === token && this.#reopen !== undefined) this.#reopen = { ...this.#reopen, source: copy.bytes };
+    this.#edits.saved(history);
+    this.#events.emit("edit", { pages: [], history });
     return history;
   }
 

@@ -1,17 +1,19 @@
-// The editor's part of the top bar's file area (§7.1, Paper O01): the save state after the file
-// name, then a divider and Undo and Redo. \`ReaderTopBar\` takes it as \`editArea\`; it is in
+// The editor's part of the top bar's file area (§7.1, Paper O01, O02): the save state after the file
+// name, then a divider, Undo and Redo, and Save with its options while there are changes. \`ReaderTopBar\` takes it as \`editArea\`; it is in
 // \`@laminapdf/ui/editing\`, which an app loads once a document is open (#380). Undo and Redo run
 // \`edit.undo\` and \`edit.redo\`, so it sits inside a \`CommandsProvider\`.
 
 import type { ReactNode } from "react";
-import { useCommand, useCommands } from "../commands/react.js";
+import { type CommandView, useCommand, useCommands } from "../commands/react.js";
 import { isBound, onPlatform } from "../commands/shortcuts.js";
 import type { CommandContext, CommandId, Shortcut } from "../commands/types.js";
 import { IconButton } from "../components/button.js";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
+import { Tooltip } from "../overlays/tooltip.js";
 import { useStoreState } from "../state/hooks.js";
 import { type EditControls, saveStateText, sessionStarted } from "./edit-controls.js";
+import { SaveButton } from "./save-ui.js";
 
 /** The editor's part of the file area: the save state, then Undo and Redo; nothing in the reader. */
 export function EditArea({ edits, keys }: { edits: EditControls; keys: KeyPlatform }): ReactNode {
@@ -19,6 +21,7 @@ export function EditArea({ edits, keys }: { edits: EditControls; keys: KeyPlatfo
     <>
       <SaveState edits={edits} />
       <UndoRedo keys={keys} />
+      <SaveButton keys={keys} />
     </>
   );
 }
@@ -47,19 +50,48 @@ function UndoRedo({ keys }: { keys: KeyPlatform }): ReactNode {
   return (
     // biome-ignore lint/a11y/useSemanticElements: a toolbar group of buttons, as History's is; <fieldset> holds form controls.
     <div className="paper-top-bar-edit" role="group" aria-label={message("commandGroup.edit")}>
-      {/* No hover tooltip yet: the top bar's other buttons have none either, and the tooltip's code
-          would weigh on the startup script (#380); the names carry the step and the keys. */}
+      {/* The tooltip names the step with its keys (O01); this chunk loads only once a document is
+          open, so its code stays out of the startup script (#380). */}
       {[undo, redo].map((view) => (
-        <IconButton
+        <StepButton
           key={view.id}
-          icon={view.id === "edit.undo" ? "undo" : "redo"}
-          label={view.title}
-          aria-keyshortcuts={shortcut(view.id)}
-          isDisabled={view.availability.state !== "available"}
-          onPress={() => view.run()}
+          view={view}
+          keys={keys}
+          shortcut={registry.get(view.id)?.shortcuts?.[0]}
+          ariaKeys={shortcut(view.id)}
         />
       ))}
     </div>
+  );
+}
+
+/** Undo or Redo with its tooltip: the step, and the first of its keys as a chip. */
+function StepButton({
+  view,
+  keys,
+  shortcut,
+  ariaKeys,
+}: {
+  view: CommandView;
+  keys: KeyPlatform;
+  shortcut: Shortcut | undefined;
+  ariaKeys: string | undefined;
+}): ReactNode {
+  const button = (
+    <IconButton
+      icon={view.id === "edit.undo" ? "undo" : "redo"}
+      label={view.title}
+      aria-keyshortcuts={ariaKeys}
+      isDisabled={view.availability.state !== "available"}
+      onPress={() => view.run()}
+    />
+  );
+  return shortcut === undefined ? (
+    <Tooltip text={view.title}>{button}</Tooltip>
+  ) : (
+    <Tooltip text={view.title} shortcut={shortcut} platform={keys}>
+      {button}
+    </Tooltip>
   );
 }
 

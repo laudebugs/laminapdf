@@ -348,6 +348,10 @@ Inputs for the desktop engine's tests (ADR 0008 §5).
 | --- | --- | --- |
 | `cjk-not-embedded.pdf` | [`tools/fixtures/cjk_not_embedded.py`](../tools/fixtures/cjk_not_embedded.py) (no dependencies) | Six Chinese characters in STSong-Light (Type 0, `UniGB-UCS2-H`, Adobe-GB1), not embedded, and no other ink on the page: the sandboxed engine must get a system font from the main process for any glyph to render. `crates/laminapdf-desktop-engine/tests/engine_process.rs` counts the dark pixels |
 
+### `cli/`
+
+`transcripts/*.console` are the command-line sessions the docs site shows: the commands and their output, written by `crates/laminapdf-cli/tests/transcripts.rs` with `UPDATE_GOLDEN=1` (the version as `{{version}}`). `transcripts/transcripts.json` gives each one's commands, written by hand, and stages its inputs from other fixtures, under the names the pages use: `invoice.pdf` is `golden/examples/invoice.pdf`, `scan.pdf` is `corpus/hello-broken.pdf`, `letter.pdf` is `corpus/hello-incremental.pdf`, `brochure.pdf` is `corpus/text-example.pdf`, `report.pdf` is `golden/examples/flowing_report.pdf`, and `notes.pdf` in the scripts examples is a Markdown file, to show a failure. `notes.md` is the Markdown file the build page shows, written for it.
+
 ### Generated large files (not committed)
 
 Files too large for the repository are written on demand into `target/fixtures/`, which Git ignores. The same command always writes the same bytes.
