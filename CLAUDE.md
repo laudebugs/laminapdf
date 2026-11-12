@@ -267,7 +267,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
 │                        #   Rust only, window `main` built in Rust, Engines managed state, window close/app exit stop engines),
 │                        #   commands.rs (`app_info`, `open_dialog`, `page_info`, `close_document`; `debug_kill_engine` with
-│                        #   feature `e2e`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
+│                        #   feature `e2e`), startup.rs (feature `e2e`: the cold-start marks, logged by the first
+│                        #   `app_info`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
 │                        #   engine://failed to that window; documents.rs DocumentRegistry, a window reads only its own docs;
 │                        #   bytesource.rs FileSource, positioned reads, no mmap; secret.rs SessionPassword, locked and wiped),
 │                        #   open.rs (D3a: the OS's opens (argv, single-instance, macOS RunEvent::Opened, drops) through
@@ -362,6 +363,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── tools/hn-research/   # the Hacker News research's scripts (docs/research/hacker-news/): collect stories and comments from the
 │                        #   HN Search API, sort them into areas, count themes per area, check quotes; stdlib Python, run by hand,
 │                        #   never by tests; the data stays out of git (README.md)
+├── tools/desktop/        # cold_start.py: the desktop app's cold-start gates (ADR 0008 §4) from an e2e build's startup log,
+│                        #   the app against floor/ (a page that sends the first command at once) launched in turn; by hand
 ├── tools/agent-eval/     # L5a: fixed tasks for a pinned coding agent, with and without the shipped docs, checked by
 │                        #   @laminapdf/sdk and qpdf; run by hand with the owner's API key, never in CI (README.md)
 ├── tools/ci-runner/linux/  # the Linux CI runner container on the Mac (Dockerfile, up.sh, down.sh, loop.sh)
