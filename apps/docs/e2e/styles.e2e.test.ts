@@ -6,9 +6,9 @@
 
 import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
+import { type CspReport, withoutSelectErrors, withoutSelectReports } from "@laminapdf/test-utils/webkit-select";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
-import { isSelectReport, withoutSelectReports } from "./webkit-select.ts";
 
 const DOCS = new URL("../", import.meta.url);
 const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
@@ -37,11 +37,14 @@ afterAll(async () => {
   await browser?.close();
 });
 
-/** `path` in a fresh reader whose system is `scheme`, with CSP violations and console errors recorded. */
+/**
+ * `path` in a fresh reader whose system is `scheme`. `problems()` gives its console errors and CSP
+ * violations, less WebKit's report of each <select> (@laminapdf/test-utils/webkit-select).
+ */
 async function open(
   path: string,
   scheme: "dark" | "light",
-): Promise<{ page: Page; problems: string[]; close: () => Promise<void> }> {
+): Promise<{ page: Page; problems: () => Promise<string[]>; close: () => Promise<void> }> {
   // The server's certificate is self-signed (@laminapdf/test-utils/wrangler-dev).
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,
@@ -49,12 +52,13 @@ async function open(
     viewport: { width: 1280, height: 800 },
   });
   const page = await context.newPage();
-  const problems: string[] = [];
+  const errors: string[] = [];
+  const reports: (CspReport & { blocked: string })[] = [];
   page.on("console", (message) => {
-    if (message.type() === "error") problems.push(message.text());
+    if (message.type() === "error") errors.push(message.text());
   });
   await page.exposeFunction("__violation", (directive: string, blocked: string, target: string) => {
-    if (!isSelectReport(directive, target)) problems.push(`CSP: ${directive} ${blocked}`);
+    reports.push({ directive, blocked, target });
   });
   await page.addInitScript(() => {
     document.addEventListener("securitypolicyviolation", (e) => {
@@ -67,6 +71,11 @@ async function open(
   });
   await page.goto(new URL(path, origin).href);
   await page.waitForLoadState("load");
+  const problems = async () => {
+    const selects = await page.locator("select").count();
+    const left = withoutSelectReports(BROWSER, reports, selects);
+    return [...withoutSelectErrors(BROWSER, errors, selects), ...left.map((r) => `CSP: ${r.directive} ${r.blocked}`)];
+  };
   return { page, problems, close: () => context.close() };
 }
 
@@ -91,7 +100,7 @@ describe(`the docs under a CSP without inline styles in ${BROWSER}`, () => {
         const sent = await (await page.request.get(new URL(path, origin).href)).text();
         expect(/\sstyle\s*=|<style[\s>]/i.test(sent), `${path} sends an inline style`).toBe(false);
         if (!WITHOUT_CODE.has(path)) expect(await colouredTokens(page), `${path}'s code`).toBeGreaterThan(0);
-        expect(await withoutSelectReports(page, problems), path).toEqual([]);
+        expect(await problems(), path).toEqual([]);
         await close();
       }
     });
@@ -105,7 +114,7 @@ describe(`the docs under a CSP without inline styles in ${BROWSER}`, () => {
     await button.click();
     await page.locator(".pagefind-ui__search-input").first().fill("encrypted");
     await expect.poll(() => page.locator(".pagefind-ui__result").count(), { timeout: 15_000 }).toBeGreaterThan(0);
-    expect(await withoutSelectReports(page, problems)).toEqual([]);
+    expect(await problems()).toEqual([]);
     await close();
   });
 
@@ -127,7 +136,7 @@ describe(`the docs under a CSP without inline styles in ${BROWSER}`, () => {
     await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.type("x");
     expect(await content.innerText()).toBe("x");
-    expect(await withoutSelectReports(page, problems)).toEqual([]);
+    expect(await problems()).toEqual([]);
     await close();
   });
 });
