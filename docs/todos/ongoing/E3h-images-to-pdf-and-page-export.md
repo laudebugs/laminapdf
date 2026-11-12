@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3h` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [C2b](../done/C2b-lamina-render-crate.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + SMask, EXIF orientation) and export pages or ranges as PNG/JPEG/TIFF at a chosen resolution through `laminapdf-render`, one page at a time. The dialog and where the files go are [E3j](E3j-export-dialog.md)'s and [E3k](E3k-desktop-navigation-and-export.md)'s.
+Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + SMask, EXIF orientation) and export pages or ranges as PNG/JPEG/TIFF at a chosen resolution through `laminapdf-render`, one page at a time. The dialog and where the files go are [E3j](../ready/E3j-export-dialog.md)'s and [E3k](../ready/E3k-desktop-navigation-and-export.md)'s.
 
 ## Context
 
@@ -35,8 +35,8 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 
 **Out of scope** (and which todo covers it)
 
-- The export dialog, the web zip and images → PDF in the interface → [E3j](E3j-export-dialog.md)
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
+- The export dialog, the web zip and images → PDF in the interface → [E3j](../ready/E3j-export-dialog.md)
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
