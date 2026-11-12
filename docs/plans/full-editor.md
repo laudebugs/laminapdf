@@ -132,11 +132,12 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E5. Review, stamps and interchange
 
-- **Ships (group D):** custom stamps (image and dynamic text), attach files as annotations, replies, status and review state (`/IRT`, `/StateModel`), filter and search comments, import/export XFDF (and FDF), flatten annotations into content, delete or summarise annotations (comment summary as a new PDF). Audio annotations: `read` (listed, playable on desktop) only.
-- **Crates:** as E4, plus XFDF reader/writer; flattening needs E4 appearances and uses the `laminapdf-content` append API from E2 (each appearance becomes a Form XObject drawn with an appended `q <cm> /FmN Do Q` stream; the annotation is then removed).
-- **Save:** flattening is a content change → incremental on `Free`; on signed files it invalidates signatures and is gated.
+- **Ships (group D):** custom stamps (image and dynamic text), attach files as annotations, replies, status and review state (`/IRT`, `/StateModel`), filter and search comments, import/export XFDF and FDF (and Markdown), flatten annotations into content, delete or summarise annotations (comment summary as a new PDF). Audio annotations: `read` (listed and playable) only.
+- **Plan:** [E5 review, stamps and interchange](editor/e5-review-stamps-interchange.md).
+- **Crates:** as E4, plus `laminapdf-interchange` (XFDF, FDF and Markdown; shared with E8g); flattening uses the `laminapdf-content` append API from E2 (each appearance becomes a Form XObject drawn with an appended `q <cm> /FmN Do Q` stream; the annotation is then removed); the summary draws pages beside their comments as Form XObjects copied by E2p's object copier.
+- **Save:** annotation ops as E4. Flattening is a content change: incremental on `Free` and under approval signatures, a violation under any certification.
 - **Web vs desktop:** identical. Shared review across users is E18.
-- **Todos:** [E5a](../todos/ready/E5a-review-stamps-interchange-feature-plan.md) feature plan · [E5b](../todos/ready/E5b-comment-threads-and-review.md) Comment panel: replies, review state, filter and search · [E5c](../todos/ready/E5c-stamps-and-attachments.md) Custom stamps, file-attachment annotations and audio annotations (read) · [E5d](../todos/ready/E5d-xfdf-fdf.md) XFDF and FDF import/export of annotations · [E5e](../todos/ready/E5e-flatten-and-summary.md) Flatten annotations into content and comment summary.
+- **Todos:** [E5a](../todos/done/E5a-review-stamps-interchange-feature-plan.md) feature plan · [E5b](../todos/ready/E5b-comment-threads-and-review.md) Comment threads, replies and review state · [E5c](../todos/ready/E5c-stamps-and-attachments.md) Stamps, file-attachment annotations and audio comments read · [E5d](../todos/ready/E5d-xfdf-fdf.md) XFDF, FDF and Markdown: import and export comments · [E5e](../todos/ready/E5e-flatten-and-summary.md) Flatten annotations into page content · [E5f](../todos/ready/E5f-comment-summary.md) The comment summary · [E5g](../todos/ready/E5g-comments-panel.md) The Comments panel · [E5h](../todos/ready/E5h-stamps-and-attachments-ui.md) Stamps and file attachments in the interface · [E5i](../todos/ready/E5i-interchange-flatten-summary-ui.md) Import, export, flatten and summary in the interface · [E5j](../todos/ready/E5j-desktop-review.md) Desktop: review, stamps and interchange, and the round's close.
 
 ### Phase 4: content editing
 
@@ -339,7 +340,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Round-trip tests: appearance identical in pdf.js and PDFium
 
 ### E5. Review, stamps and interchange
-- [ ] Feature-plan PR for E5
+- [x] Feature-plan PR for E5
 - [ ] Comment panel with replies, status, filter and search
 - [ ] Custom stamps (image, dynamic text) and file-attachment annotations
 - [ ] XFDF and FDF import/export with tests against Acrobat-produced fixtures

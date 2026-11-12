@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E2e](../done/E2e-content-append-api.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md) |
+| Depends on | [E2e](../done/E2e-content-append-api.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e6a-adding-content-feature-plan` |
 | PR title | `docs(editor): E6 feature plan (adding content to pages)` |
