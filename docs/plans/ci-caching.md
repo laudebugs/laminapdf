@@ -118,10 +118,10 @@ Each todo's PR carries its workflow edits with the action, the pin, the tests an
 
 The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 minutes for a runner in §2.1's baseline, against about 13 minutes of compiling, and pushes to `main` waited up to 43 minutes for the run before them. Four todos take them, in one PR at the owner's request:
 
-- [x] Rust on macOS x64 only on pushes to `main` and in the nightly, not on PRs: the leg that waits longest for a runner and finishes last. A break only macOS x64 shows then appears after the merge, and the macOS Arm64 leg still runs on every PR, so the owner accepted the risk (2026-11-12). X8b's PR measurements move to macOS Arm64 first ([X9a](../todos/ongoing/X9a-macos-x64-rust-off-prs.md))
-- [x] The render goldens, which need a Mac, only when a PR changes what they draw ([X9b](../todos/ongoing/X9b-render-goldens-when-rendering-changes.md))
-- [x] More of `cargo xtask changes`'s path flags, to skip whole groups of jobs a PR can't affect ([X9c](../todos/ongoing/X9c-skip-jobs-by-changed-paths.md))
-- [x] A newer push to `main` cancels the older CI run on `main` ([X9d](../todos/ongoing/X9d-cancel-superseded-main-runs.md))
+- [x] Rust on macOS x64 only on pushes to `main` and in the nightly, not on PRs: the leg that waits longest for a runner and finishes last. A break only macOS x64 shows then appears after the merge, and the macOS Arm64 leg still runs on every PR, so the owner accepted the risk (2026-11-12). X8b's PR measurements move to macOS Arm64 first ([X9a](../todos/done/X9a-macos-x64-rust-off-prs.md))
+- [x] The render goldens, which need a Mac, only when a PR changes what they draw ([X9b](../todos/done/X9b-render-goldens-when-rendering-changes.md))
+- [x] More of `cargo xtask changes`'s path flags, to skip whole groups of jobs a PR can't affect ([X9c](../todos/done/X9c-skip-jobs-by-changed-paths.md))
+- [x] A newer push to `main` cancels the older CI run on `main` ([X9d](../todos/done/X9d-cancel-superseded-main-runs.md))
 
 ### 8.1 Which jobs a pull request's paths reach (X9c)
 
