@@ -375,6 +375,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── lamina-ffi/      # Round L6a: the façade over UniFFI 0.32 for Swift and Kotlin (findings in its README; ADR 0029)
 │   ├── desktop-print/   # D1b: webview, native raster and native vector printing per OS, scored against the fixtures (results in its README; D4c, ADR 0008)
 │   ├── desktop-ipc/     # D1a: Tauri tile transports (channel, ipc::Response, lamina:// raw and compressed) and COOP/COEP per webview (results in its README; ADR 0008)
+│   ├── auth/            # H1: Better Auth and Auth.js on a Worker with D1, Clerk's SDK on a Worker, a Rust loopback + PKCE desktop client (results in its README; ADR 0011)
 │   └── flow-layout/     # T4a: flowing layout by our own paginator over Surface, by Typst 0.15.1, and by Typst's frames through Surface (findings in its README; ADR 0032)
 ├── .agents/skills/      # the repository's agent skills (rust-best-practices, lamina-story, session-name); .claude/skills links here
 └── docs/                # all documentation (see docs/README.md)
@@ -760,6 +761,8 @@ Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions,
 `spikes/desktop-print/` — a Tauri 2.12 app that prints three generated fixtures through the webview, through PDFium rasters and the OS print API, and through each OS's vector path, then scores the PDFs against the fixtures (D1b); standalone, not in CI: `cargo xtask fetch-pdfium`, then `scripts/run-all.sh <label>` (Windows: `scripts\run-all.ps1`; Linux under `xvfb-run` with CUPS and `cups-pdf`) and `python3 scripts/summarise.py results/` (see its README).
 
 `spikes/docs-twoslash/` — Twoslash hover types (`expressive-code-twoslash` 0.6.1) on one docs page, measured in Chromium, Firefox and WebKit against the docs' CSP and Q4i's (Q4p); throwaway, not in CI: a patch for `apps/docs` and `measure.mjs` (see its README, which recommends keeping Twoslash out).
+
+`spikes/auth/` — Better Auth 1.7.14 and Auth.js 0.41.3 on a Worker with local D1, `@clerk/backend` on a Worker, and a Rust loopback + PKCE desktop client (H1, ADR 0011); standalone, not in CI: each folder is its own pnpm project (`pnpm install --ignore-workspace`, `pnpm dev` on `wrangler dev --local`, then `node check.mjs` with Playwright's Chromium), `desktop/` a Cargo project of its own (see its README).
 
 `spikes/flow-layout/` — our own paginator over `Surface`, Typst 0.15.1 embedded, and Typst's frames drawn through `Surface` (T4a, ADR 0032); standalone, not in CI. Typst needs `skrifa` 0.42.1 where the workspace pins `=0.42.0`, so `scripts/run.sh <command>` moves the pin for one command and restores the root `Cargo.toml`: `scripts/run.sh cargo run --release` (the PDFs in `target/flow-layout/`), `scripts/run.sh scripts/wasm.sh` (WebAssembly sizes), then `node scripts/node-time.mjs target/wasm/own.wasm` (see its README).
 

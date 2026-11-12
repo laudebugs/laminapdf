@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features) (accounts) |
 | Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
-| Depends on | [C7c](../done/C7c-performance-gates-and-launch.md), [D5b](./D5b-updater-in-app.md), [H1](./H1-auth-spike.md) |
-| Dependency notes | [H1](H1-auth-spike.md), `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1), `D5` ([desktop-app §D5](../../plans/desktop-app.md#d5-update-service): update Worker) |
+| Depends on | [C7c](../done/C7c-performance-gates-and-launch.md), [D5b](./D5b-updater-in-app.md), [H1](../ongoing/H1-auth-spike.md) |
+| Dependency notes | [H1](../ongoing/H1-auth-spike.md), `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1), `D5` ([desktop-app §D5](../../plans/desktop-app.md#d5-update-service): update Worker) |
 | ADRs | Implements ADR 0011 (as amended by H1) |
 | Branch | `feat/h2-accounts-and-login` |
 | PR title | `feat(hosted): user accounts and sign-in on web and desktop` |
