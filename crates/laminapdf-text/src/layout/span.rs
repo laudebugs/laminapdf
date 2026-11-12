@@ -13,6 +13,8 @@ use crate::shape::Feature;
 /// Every field but the range defaults to the paragraph's [`LayoutOptions`]: a span made with
 /// [`StyledSpan::new`] alone is laid out exactly as [`break_lines`](super::break_lines) lays out
 /// its text.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[non_exhaustive]
 pub struct StyledSpan {
@@ -37,6 +39,8 @@ pub struct StyledSpan {
 
 impl StyledSpan {
     /// The bytes `range` of the text, in the paragraph's style.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(range: Range<usize>) -> Self {
         Self {
@@ -46,6 +50,8 @@ impl StyledSpan {
     }
 
     /// With the fonts set: indices into the font list, in order of preference.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_fonts(mut self, fonts: impl Into<Vec<usize>>) -> Self {
         self.fonts = Some(fonts.into());
@@ -53,6 +59,8 @@ impl StyledSpan {
     }
 
     /// With the font size set, in points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_size(mut self, size: f32) -> Self {
         self.size = Some(size);
@@ -60,6 +68,8 @@ impl StyledSpan {
     }
 
     /// With the baseline rise set, in points (negative: lowered).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_rise(mut self, rise: f32) -> Self {
         self.rise = rise;
@@ -67,6 +77,8 @@ impl StyledSpan {
     }
 
     /// With the language set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_language(mut self, language: impl Into<String>) -> Self {
         self.language = Some(language.into());
@@ -74,6 +86,8 @@ impl StyledSpan {
     }
 
     /// With a feature added.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_feature(mut self, feature: Feature) -> Self {
         self.features.push(feature);

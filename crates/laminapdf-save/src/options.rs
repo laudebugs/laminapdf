@@ -10,6 +10,8 @@ use laminapdf_model::PdfDate;
 use crate::constraint::SignatureInfo;
 
 /// The 20-byte cross-reference entry ends with a two-byte EOL; both forms are legal (§7.5.4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum XrefEol {
     /// `\r\n`.
@@ -30,6 +32,8 @@ impl XrefEol {
 
 /// How to save: the mode requested in [`SaveOptions`], and the one a plan resolves to
 /// ([`SavePlan::mode`](crate::SavePlan::mode), [`SaveReport::mode`]: never `Auto`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum SaveMode {
@@ -45,6 +49,8 @@ pub enum SaveMode {
 }
 
 /// What an incremental save writes to the sink.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum IncrementalOutput {
@@ -57,6 +63,8 @@ pub enum IncrementalOutput {
 }
 
 /// Object numbering in a full rewrite.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum Renumber {
@@ -70,6 +78,8 @@ pub enum Renumber {
 
 /// The cross-reference form of a full rewrite. An incremental save always appends the same
 /// kind as the base's newest section.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum XrefKind {
@@ -94,6 +104,8 @@ pub enum XrefKind {
 /// assert_eq!((options.renumber(), options.xref()), (Renumber::Compact, XrefKind::Classic));
 /// assert_eq!((options.mode(), options.invalidate_signatures()), (SaveMode::Auto, false));
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SaveOptions {
     mode: SaveMode,
@@ -116,6 +128,8 @@ impl Default for SaveOptions {
 impl SaveOptions {
     /// The defaults: `Auto`, no overrides, whole output, numbers kept, xref stream, `\r\n`
     /// entry EOLs.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -134,6 +148,8 @@ impl SaveOptions {
     /// The mode to save in ([ADR 0007] §3; default [`SaveMode::Auto`]).
     ///
     /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_mode(mut self, mode: SaveMode) -> Self {
         self.mode = mode;
@@ -147,6 +163,8 @@ impl SaveOptions {
     /// [`SavePlan::would_invalidate`](crate::SavePlan::would_invalidate).
     ///
     /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_invalidate_signatures(mut self, invalidate: bool) -> Self {
         self.invalidate_signatures = invalidate;
@@ -159,6 +177,8 @@ impl SaveOptions {
     /// encryption on write yet (full-editor E11). Anyone who could open the document can
     /// already read it decrypted; whether the editor asks for the owner password first is
     /// E11's decision. No effect on an unencrypted document.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_remove_encryption(mut self, remove: bool) -> Self {
         self.remove_encryption = remove;
@@ -166,6 +186,8 @@ impl SaveOptions {
     }
 
     /// What an incremental save writes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_output(mut self, output: IncrementalOutput) -> Self {
         self.output = output;
@@ -173,6 +195,8 @@ impl SaveOptions {
     }
 
     /// Numbering of a full rewrite.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_renumber(mut self, renumber: Renumber) -> Self {
         self.renumber = renumber;
@@ -180,6 +204,8 @@ impl SaveOptions {
     }
 
     /// Xref form of a full rewrite.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_xref(mut self, xref: XrefKind) -> Self {
         self.xref = xref;
@@ -187,6 +213,8 @@ impl SaveOptions {
     }
 
     /// The two-byte EOL of classic xref entries (§7.5.4).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_eol(mut self, eol: XrefEol) -> Self {
         self.eol = eol;
@@ -209,6 +237,8 @@ impl SaveOptions {
     /// assert!(options.metadata_date().is_some());
     /// # Ok::<(), laminapdf_model::InvalidDate>(())
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_metadata_date(mut self, date: PdfDate) -> Self {
         self.metadata_date = Some(date);
@@ -218,6 +248,8 @@ impl SaveOptions {
     /// The `xmpMM:InstanceID` the save writes, as the 16 bytes of a UUID (written
     /// `uuid:xxxxxxxx-xxxx-…`). Without it, a save that stamps derives one from the content it
     /// writes, so the same edits give the same bytes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_instance_id(mut self, id: [u8; 16]) -> Self {
         self.instance_id = Some(id);
@@ -225,12 +257,16 @@ impl SaveOptions {
     }
 
     /// See [`SaveOptions::with_metadata_date`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn metadata_date(&self) -> Option<PdfDate> {
         self.metadata_date
     }
 
     /// See [`SaveOptions::with_instance_id`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn instance_id(&self) -> Option<[u8; 16]> {
         self.instance_id
@@ -242,42 +278,56 @@ impl SaveOptions {
     }
 
     /// See [`SaveOptions::with_mode`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn mode(&self) -> SaveMode {
         self.mode
     }
 
     /// See [`SaveOptions::with_invalidate_signatures`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn invalidate_signatures(&self) -> bool {
         self.invalidate_signatures
     }
 
     /// See [`SaveOptions::with_remove_encryption`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn remove_encryption(&self) -> bool {
         self.remove_encryption
     }
 
     /// See [`SaveOptions::with_output`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn output(&self) -> IncrementalOutput {
         self.output
     }
 
     /// See [`SaveOptions::with_renumber`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn renumber(&self) -> Renumber {
         self.renumber
     }
 
     /// See [`SaveOptions::with_xref`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn xref(&self) -> XrefKind {
         self.xref
     }
 
     /// See [`SaveOptions::with_eol`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn eol(&self) -> XrefEol {
         self.eol
@@ -285,6 +335,8 @@ impl SaveOptions {
 }
 
 /// What a save wrote.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SaveReport {
     pub(crate) bytes_written: u64,
@@ -308,18 +360,24 @@ pub(crate) struct MetadataFlags {
 
 impl SaveReport {
     /// Bytes written to the sink.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn bytes_written(&self) -> u64 {
         self.bytes_written
     }
 
     /// The writer that ran ([`SaveMode::Incremental`] or [`SaveMode::FullRewrite`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn mode(&self) -> SaveMode {
         self.mode
     }
 
     /// For [`Renumber::Compact`]: every written object's old number → new number.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn renumbered(&self) -> Option<&BTreeMap<u32, u32>> {
         self.renumbered.as_ref()
@@ -327,6 +385,8 @@ impl SaveReport {
 
     /// For an incremental save: the offset in the complete file where the appended revision
     /// starts (the base's length).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn append_offset(&self) -> Option<u64> {
         self.append_offset
@@ -334,6 +394,8 @@ impl SaveReport {
 
     /// The signatures the save invalidated under the explicit override (their values and
     /// `/Perms` entries removed); empty otherwise.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn invalidated(&self) -> &[SignatureInfo] {
         &self.invalidated
@@ -341,12 +403,16 @@ impl SaveReport {
 
     /// Whether the save removed the document's encryption
     /// ([`SaveOptions::with_remove_encryption`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn encryption_removed(&self) -> bool {
         self.encryption_removed
     }
 
     /// Whether the save stamped the save-time metadata ([`SaveOptions::with_metadata_date`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn metadata_updated(&self) -> bool {
         self.metadata.updated
@@ -356,6 +422,8 @@ impl SaveReport {
     /// writing it would have broken a signature's restriction that the saved changes keep (a
     /// form fill on a certified file, which allows form filling but not metadata changes). The
     /// file's Info and `/Metadata` are as the changes left them.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn metadata_not_updated(&self) -> bool {
         self.metadata.not_updated
@@ -364,6 +432,8 @@ impl SaveReport {
     /// Whether the save emptied the document's undo history: a full rewrite does, and so does
     /// an incremental save that freed objects (their numbers may be reused). For a copy
     /// ([`Save::save_copy`](crate::Save::save_copy)), whether adopting it as the save would.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn history_cleared(&self) -> bool {
         self.history_cleared
@@ -371,6 +441,8 @@ impl SaveReport {
 
     /// Whether an edit saved here rewrote the XMP packet whole, because it was UTF-16 or marked
     /// read-only (`end="r"`): every property is kept, the packet's layout and comments are not.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn packet_rewritten(&self) -> bool {
         self.metadata.packet_rewritten

@@ -35,6 +35,8 @@ pub use line::{Line, LineRun};
 pub use span::StyledSpan;
 
 /// Where lines sit in the box.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Alignment {
     /// The paragraph's start side: left for a left-to-right paragraph, right for a
@@ -52,6 +54,8 @@ pub enum Alignment {
 }
 
 /// How to lay out a paragraph.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[non_exhaustive]
 pub struct LayoutOptions {
@@ -74,6 +78,8 @@ pub struct LayoutOptions {
 
 impl LayoutOptions {
     /// A box `width` points wide, text at `size` points, everything else default.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(width: f32, size: f32) -> Self {
         Self {
@@ -84,6 +90,8 @@ impl LayoutOptions {
     }
 
     /// With the alignment set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_align(mut self, align: Alignment) -> Self {
         self.align = align;
@@ -91,6 +99,8 @@ impl LayoutOptions {
     }
 
     /// With the paragraph direction set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_direction(mut self, direction: Direction) -> Self {
         self.direction = Some(direction);
@@ -98,6 +108,8 @@ impl LayoutOptions {
     }
 
     /// With the language set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_language(mut self, language: impl Into<String>) -> Self {
         self.language = Some(language.into());
@@ -105,6 +117,8 @@ impl LayoutOptions {
     }
 
     /// With a feature added.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_feature(mut self, feature: Feature) -> Self {
         self.features.push(feature);
@@ -131,6 +145,8 @@ impl LayoutOptions {
 ///
 /// # Errors
 /// As [`break_spans`].
+///
+/// Added in 0.2.0.
 pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &LayoutOptions) -> Result<Vec<Line>> {
     break_spans(shaper, fonts, text, &[StyledSpan::new(0..text.len())], options)
 }
@@ -170,6 +186,8 @@ pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &L
 /// [`Error::MissingGlyph`] for a character none of its span's fonts covers, and the other
 /// errors of [`itemize`](crate::itemize) and [`Shaper::shape_range`];
 /// [`Error::UnsupportedLayoutOption`] when [`LayoutOptions::justify`] is set.
+///
+/// Added in 0.2.0.
 pub fn break_spans(
     shaper: &impl Shaper,
     fonts: &[Font],

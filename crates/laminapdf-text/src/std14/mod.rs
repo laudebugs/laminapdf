@@ -23,6 +23,8 @@ use generated::metrics::FONTS;
 /// assert_eq!(font.width("A"), Some(722));
 /// assert_eq!(font.metrics().cap_height, Some(718));
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Standard14 {
     /// `Courier`.
@@ -57,6 +59,8 @@ pub enum Standard14 {
 
 impl Standard14 {
     /// All fourteen, in declaration order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 14] = [
         Self::Courier,
         Self::CourierBold,
@@ -75,6 +79,8 @@ impl Standard14 {
     ];
 
     /// The font's AFM metrics.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     #[expect(clippy::similar_names, reason = "one binding per font, named after it")]
     pub fn metrics(self) -> &'static AfmMetrics {
@@ -113,12 +119,16 @@ impl Standard14 {
     }
 
     /// The PostScript name, written as `/BaseFont` (`Times-Roman`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn base_font(self) -> &'static str {
         self.metrics().font_name
     }
 
     /// The font named `name` (exactly one of the fourteen `/BaseFont` names).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_base_font(name: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|f| f.base_font() == name)
@@ -126,6 +136,8 @@ impl Standard14 {
 
     /// Symbol and `ZapfDingbats`: their glyphs are outside the standard Latin character set and
     /// they keep their built-in encodings.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_symbolic(self) -> bool {
         matches!(self, Self::Symbol | Self::ZapfDingbats)
@@ -133,6 +145,8 @@ impl Standard14 {
 
     /// The font's built-in encoding: [`Encoding::Standard`] for the Latin fonts, or
     /// [`Encoding::Symbol`] / [`Encoding::ZapfDingbats`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn builtin_encoding(self) -> Encoding {
         match self {
@@ -144,6 +158,8 @@ impl Standard14 {
 
     /// The encoding Lamina PDF writes text in: `WinAnsiEncoding` for the Latin fonts (with
     /// `/Differences` for glyphs it lacks), the built-in encoding for the symbolic ones.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn text_encoding(self) -> Encoding {
         if self.is_symbolic() {
@@ -155,12 +171,16 @@ impl Standard14 {
 
     /// The font's glyph names, sorted (315 for the Latin fonts, which all have the standard
     /// Latin character set; 190 for Symbol; 202 for `ZapfDingbats`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn glyph_names(self) -> &'static [&'static str] {
         self.metrics().names
     }
 
     /// The advance width of glyph `name` in thousandths of an em, as in the AFM file.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn width(self, name: &str) -> Option<u16> {
         self.glyph_width(self.glyph_id(name)?)
@@ -189,6 +209,8 @@ impl Standard14 {
     /// Whether a standard 14 font lays `ch` out as nothing: a control, a line or paragraph
     /// separator (a flow's hard break), or a default-ignorable format character such as a
     /// zero-width space. Shaping gives it no width and the builder draws no byte for it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn draws_nothing(ch: char) -> bool {
         ch.is_control()

@@ -9,6 +9,8 @@ use crate::model::{Block, Dropped, ExtractedPage, ExtractedSource, Extraction, S
 use crate::plugins::ModelInfo;
 
 /// What the JSON carries besides the extraction.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct JsonOptions {
@@ -21,12 +23,16 @@ pub struct JsonOptions {
 
 impl JsonOptions {
     /// No warnings and no chunks.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// The warnings.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_warnings(mut self, warnings: Vec<serde_json::Value>) -> Self {
         self.warnings = warnings;
@@ -34,6 +40,8 @@ impl JsonOptions {
     }
 
     /// The chunks.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_chunks(mut self, chunks: Vec<Chunk>) -> Self {
         self.chunks = Some(chunks);
@@ -42,6 +50,8 @@ impl JsonOptions {
 }
 
 /// Who made the extraction: the library, its version, and the models it ran, if any.
+///
+/// Added in 0.2.0.
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub(crate) struct Generator<'a> {
@@ -54,6 +64,8 @@ pub(crate) struct Generator<'a> {
 }
 
 /// A block and where its text sits in the Markdown.
+///
+/// Added in 0.2.0.
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
@@ -82,6 +94,8 @@ pub(crate) struct JsonDocument<'a> {
 
 /// `extraction` as `laminapdf.extract/1` JSON, one line. `markdown` is
 /// [`Extraction::to_markdown`]'s output, which `textRange` points into.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn to_json(extraction: &Extraction, markdown: &Rendered, options: &JsonOptions) -> String {
     let document = JsonDocument {
@@ -116,6 +130,8 @@ pub fn to_json(extraction: &Extraction, markdown: &Rendered, options: &JsonOptio
 }
 
 /// The chunks as JSON Lines: one chunk object per line, for streaming into an index.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn chunks_jsonl(chunks: &[Chunk]) -> String {
     chunks
@@ -126,6 +142,8 @@ pub fn chunks_jsonl(chunks: &[Chunk]) -> String {
 }
 
 /// The JSON Schema (2020-12) of [`to_json`]'s output, as `tests/json_schema.rs` commits it.
+///
+/// Added in 0.2.0.
 #[cfg(feature = "schema")]
 #[must_use]
 pub fn json_schema() -> serde_json::Value {

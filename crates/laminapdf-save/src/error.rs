@@ -30,6 +30,8 @@ use crate::sink::SinkError;
 /// Messages hold no document text (field names, strings): only counts and fixed words.
 ///
 /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum SaveError {
@@ -95,6 +97,8 @@ impl SaveError {
     /// Every code [`SaveError::code`] can return besides those of [`laminapdf_cos::Error`] and
     /// [`laminapdf_ops::Error`] (listed in `fixtures/codes.json` under `saveErrors`).
     /// [`SaveError::EncryptedBase`] reports `encrypted-base`, which `errors` already lists.
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &[
         "sink",
         "not-rebased",
@@ -104,6 +108,8 @@ impl SaveError {
     ];
 
     /// A stable kebab-case code for this error.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -123,6 +129,8 @@ impl SaveError {
     /// [`SaveError::code`] (a test checks every variant). Wrapped errors report their own.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -140,6 +148,8 @@ impl SaveError {
     /// error's location; empty for sink failures and for [`SaveError::NotRebased`], whose
     /// `error` is about the newly written output, not the input (its own `location()` gives
     /// positions in that output).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
@@ -177,6 +187,8 @@ impl From<SinkError> for SaveError {
 
 /// A save's complete output, handed back when the rebase onto it failed
 /// ([`SaveError::NotRebased`]). Two are equal when they share the same source.
+///
+/// Added in 0.2.0.
 #[derive(Clone)]
 pub struct SavedOutput(Source);
 
@@ -186,12 +198,16 @@ impl SavedOutput {
     }
 
     /// The output, to pass to [`laminapdf_ops::Document::rebase`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn source(&self) -> Source {
         self.0.clone()
     }
 
     /// The underlying byte source.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn bytes(&self) -> &Arc<dyn ByteSource> {
         self.0.get()
@@ -213,6 +229,8 @@ impl fmt::Debug for SavedOutput {
 }
 
 /// Shorthand for `Result<T, laminapdf_save::SaveError>`.
+///
+/// Added in 0.2.0.
 pub type Result<T> = core::result::Result<T, SaveError>;
 
 #[cfg(test)]

@@ -14,6 +14,8 @@ use crate::document::Document;
 use crate::page::Pages;
 
 /// One font the document uses.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct FontResource {
@@ -31,6 +33,8 @@ pub struct FontResource {
 }
 
 /// A font's `/Encoding` (§9.6.5, §9.7.5).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum FontEncoding {
@@ -52,6 +56,8 @@ impl Pages<'_> {
     ///
     /// # Errors
     /// Reading errors that aren't repairs (`data-pending`, a failed source).
+    ///
+    /// Added in 0.2.0.
     pub fn fonts(&self) -> Result<Vec<FontResource>> {
         let mut walk = Walk {
             doc: self.document(),

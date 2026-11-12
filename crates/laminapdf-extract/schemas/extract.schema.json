@@ -1,7 +1,7 @@
 {
   "$defs": {
     "Cell": {
-      "description": "One cell of a table block.",
+      "description": "One cell of a table block.\n\nAdded in 0.2.0.",
       "properties": {
         "bbox": {
           "description": "Its box in page space.",
@@ -58,7 +58,7 @@
       "type": "object"
     },
     "Chunk": {
-      "description": "One chunk.",
+      "description": "One chunk.\n\nAdded in 0.2.0.",
       "properties": {
         "blockIds": {
           "description": "The blocks it holds, in order.",
@@ -122,7 +122,7 @@
       "type": "object"
     },
     "Coordinates": {
-      "description": "How to read the page's boxes: points from the top-left of the displayed box, y down.",
+      "description": "How to read the page's boxes: points from the top-left of the displayed box, y down.\n\nAdded in 0.2.0.",
       "properties": {
         "box": {
           "description": "`\"CropBox\"`, or `\"default\"` when the page had no usable box and US Letter was used.",
@@ -159,7 +159,7 @@
       "type": "object"
     },
     "DropReason": {
-      "description": "Why text was left out.",
+      "description": "Why text was left out.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "const": "invisible",
@@ -214,7 +214,7 @@
       ]
     },
     "Dropped": {
-      "description": "Text left out of the output. It records a count, never the text, so a log of the output can't\nleak what was hidden.",
+      "description": "Text left out of the output. It records a count, never the text, so a log of the output can't\nleak what was hidden.\n\nAdded in 0.2.0.",
       "properties": {
         "bbox": {
           "description": "Where it was, in page space.",
@@ -259,7 +259,7 @@
       "type": "object"
     },
     "ExtractedPage": {
-      "description": "One extracted page, with its blocks' boxes in top-left page space.",
+      "description": "One extracted page, with its blocks' boxes in top-left page space.\n\nAdded in 0.2.0.",
       "properties": {
         "coordinates": {
           "$ref": "#/$defs/Coordinates",
@@ -310,7 +310,7 @@
       "type": "object"
     },
     "ExtractedSource": {
-      "description": "The input: its SHA-256, page count, whether it is tagged, and where the reading order came from.",
+      "description": "The input: its SHA-256, page count, whether it is tagged, and where the reading order came from.\n\nAdded in 0.2.0.",
       "properties": {
         "pageCount": {
           "description": "The document's page count.",
@@ -342,14 +342,14 @@
       "type": "object"
     },
     "Flags": {
-      "description": "Why a run would be hidden from a reader; empty for visible text.",
+      "description": "Why a run would be hidden from a reader; empty for visible text.\n\nAdded in 0.2.0.",
       "items": {
         "$ref": "#/$defs/DropReason"
       },
       "type": "array"
     },
     "Generator": {
-      "description": "Who made the extraction: the library, its version, and the models it ran, if any.",
+      "description": "Who made the extraction: the library, its version, and the models it ran, if any.\n\nAdded in 0.2.0.",
       "properties": {
         "mode": {
           "description": "`\"rules\"`, or `\"rules+models\"` when a model plug-in was used.",
@@ -378,7 +378,7 @@
       "type": "object"
     },
     "JsonBlock": {
-      "description": "A block and where its text sits in the Markdown.",
+      "description": "A block and where its text sits in the Markdown.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "description": "A heading, level 1 (the top) to 6.",
@@ -618,7 +618,7 @@
       "type": "object"
     },
     "ModelInfo": {
-      "description": "Which model made a result, as the output's `generator.models` records it.",
+      "description": "Which model made a result, as the output's `generator.models` records it.\n\nAdded in 0.2.0.",
       "properties": {
         "licence": {
           "description": "The SPDX licence of its weights.",
@@ -646,7 +646,7 @@
       "type": "object"
     },
     "Region": {
-      "description": "A chunk's area on one page.",
+      "description": "A chunk's area on one page.\n\nAdded in 0.2.0.",
       "properties": {
         "bbox": {
           "description": "The union of the chunk's blocks' boxes on that page, in page space.",
@@ -672,7 +672,7 @@
       "type": "object"
     },
     "Span": {
-      "description": "One run of text in a block or a dropped entry.",
+      "description": "One run of text in a block or a dropped entry.\n\nAdded in 0.2.0.",
       "properties": {
         "baseline": {
           "description": "The baseline's y in page space (points from the top, y down).",
@@ -726,7 +726,7 @@
       "type": "object"
     },
     "StructRef": {
-      "description": "The element of the file's structure tree that a block came from.",
+      "description": "The element of the file's structure tree that a block came from.\n\nAdded in 0.2.0.",
       "properties": {
         "gen": {
           "description": "Its generation.",
@@ -758,7 +758,7 @@
       "type": "object"
     },
     "StructSource": {
-      "description": "Where the reading order came from: the file's structure tree, the page layout, or the order\nthe content stream draws in.",
+      "description": "Where the reading order came from: the file's structure tree, the page layout, or the order\nthe content stream draws in.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "const": "tagged",
@@ -778,7 +778,7 @@
       ]
     },
     "TableDetector": {
-      "description": "What found a table.",
+      "description": "What found a table.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "const": "lattice",
@@ -798,7 +798,7 @@
       ]
     },
     "TextLayer": {
-      "description": "What a page's text layer is: whether its extracted text is the page's text, or the page\nneeds OCR. The measures let a pipeline apply its own cut-offs.",
+      "description": "What a page's text layer is: whether its extracted text is the page's text, or the page\nneeds OCR. The measures let a pipeline apply its own cut-offs.\n\nAdded in 0.2.0.",
       "properties": {
         "chars": {
           "description": "Visible characters (spaces left out) in runs that aren't invisible, off the page or tiny.",
@@ -851,7 +851,7 @@
       "type": "object"
     },
     "TextLayerStatus": {
-      "description": "A page's text-layer status, the first that applies.",
+      "description": "A page's text-layer status, the first that applies.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "const": "empty",
@@ -881,7 +881,7 @@
       ]
     },
     "TextRange": {
-      "description": "Where a piece of text sits in a rendering, in Unicode scalar values (`char`s), `start`\ninclusive and `end` exclusive. Code points, not bytes or UTF-16 units, so Python slices a\nrendering with them as they are; [`Rendered::slice`] does it in Rust.",
+      "description": "Where a piece of text sits in a rendering, in Unicode scalar values (`char`s), `start`\ninclusive and `end` exclusive. Code points, not bytes or UTF-16 units, so Python slices a\nrendering with them as they are; [`Rendered::slice`] does it in Rust.\n\nAdded in 0.2.0.",
       "properties": {
         "end": {
           "description": "One past the last character.",

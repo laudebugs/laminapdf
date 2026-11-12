@@ -16,22 +16,32 @@ use crate::fstype::FsType;
 use crate::std14::Standard14;
 
 /// A four-byte OpenType tag, such as the variation axis `wght`.
+///
+/// Added in 0.2.0.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OpenTypeTag([u8; 4]);
 
 impl OpenTypeTag {
     /// The weight axis, `wght`.
+    ///
+    /// Added in 0.2.0.
     pub const WEIGHT: Self = Self(*b"wght");
     /// The width axis, `wdth`.
+    ///
+    /// Added in 0.2.0.
     pub const WIDTH: Self = Self(*b"wdth");
 
     /// A tag from its four bytes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(bytes: &[u8; 4]) -> Self {
         Self(*bytes)
     }
 
     /// The tag's four bytes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn to_bytes(self) -> [u8; 4] {
         self.0
@@ -56,20 +66,28 @@ impl fmt::Debug for OpenTypeTag {
 
 /// A glyph ID in a font's own numbering (an index into `glyf`/`loca` or the CFF
 /// `CharStrings` INDEX).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct GlyphId(u16);
 
 impl GlyphId {
     /// `.notdef`, glyph 0.
+    ///
+    /// Added in 0.2.0.
     pub const NOTDEF: Self = Self(0);
 
     /// A glyph ID.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(id: u16) -> Self {
         Self(id)
     }
 
     /// The numeric ID.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn get(self) -> u16 {
         self.0
@@ -77,6 +95,8 @@ impl GlyphId {
 }
 
 /// A variation axis of a variable font (`fvar`), in user units.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct Axis {
@@ -92,6 +112,8 @@ pub struct Axis {
 
 /// What a font says about itself, at its instance's location for a variable font. Lengths are
 /// in font units (see [`FontInfo::units_per_em`]); y grows upwards.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct FontInfo {
@@ -143,6 +165,8 @@ pub struct FontInfo {
 
 /// The longest [`FontInfo::postscript_name`]: 63 (the PostScript name limit) minus the
 /// seven characters of a subset tag.
+///
+/// Added in 0.2.0.
 pub const MAX_NAME_LEN: usize = 56;
 
 /// The bytes a font was loaded from, shared by every instance of it.
@@ -176,6 +200,8 @@ pub(crate) const MAX_PLANS: usize = 64;
 /// assert!(font.glyph_for('A').is_some());
 /// # Ok::<(), laminapdf_text::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Clone)]
 pub struct Font {
     source: Arc<Source>,
@@ -203,6 +229,8 @@ impl Font {
     ///
     /// # Errors
     /// [`Error::InvalidFont`] when the bytes are not a readable font.
+    ///
+    /// Added in 0.2.0.
     pub fn from_bytes(bytes: impl Into<Arc<[u8]>>) -> Result<Self> {
         Self::from_collection(bytes, 0)
     }
@@ -213,6 +241,8 @@ impl Font {
     /// # Errors
     /// [`Error::InvalidFont`] when the bytes are not a readable font or collection;
     /// [`Error::CollectionIndex`] when `index` is past its last member.
+    ///
+    /// Added in 0.2.0.
     pub fn from_collection(bytes: impl Into<Arc<[u8]>>, index: u32) -> Result<Self> {
         let bytes: Arc<[u8]> = bytes.into();
         let count = Self::collection_len(&bytes).map_err(|_| Error::InvalidFont { index })?;
@@ -253,6 +283,8 @@ impl Font {
     /// assert!(font.glyph_for('é').is_some());
     /// assert!(font.glyph_for('中').is_none());
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn standard(font: Standard14) -> Self {
         let m = font.metrics();
@@ -300,6 +332,8 @@ impl Font {
 
     /// Which standard 14 font this is, if it is one ([`Font::standard`]); `None` for a font
     /// loaded from bytes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn standard14(&self) -> Option<Standard14> {
         self.standard
@@ -308,6 +342,8 @@ impl Font {
     /// Whether a document using this font has to embed it to be self-contained: `false` only
     /// for the standard 14, which readers provide. PDF/A and PDF/UA require every font
     /// embedded, so the builder's conformance profiles reject a font for which this is `false`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn requires_embedding(&self) -> bool {
         self.standard.is_none()
@@ -317,6 +353,8 @@ impl Font {
     ///
     /// # Errors
     /// [`Error::InvalidFont`] when the bytes are neither.
+    ///
+    /// Added in 0.2.0.
     pub fn collection_len(bytes: &[u8]) -> Result<u32> {
         match FileRef::new(bytes) {
             Ok(FileRef::Font(_)) => Ok(1),
@@ -336,6 +374,8 @@ impl Font {
     /// [`Error::UnknownAxis`] for a tag the font has no axis for (a static font has none);
     /// [`Error::InvalidAxisValue`] for a NaN or infinite value; [`Error::InvalidFont`] when the
     /// font's `fvar` record for the axis is not `min ≤ default ≤ max`.
+    ///
+    /// Added in 0.2.0.
     pub fn instance(&self, settings: &[(OpenTypeTag, f32)]) -> Result<Self> {
         if self.standard.is_some() {
             return match settings.first() {
@@ -387,6 +427,8 @@ impl Font {
     }
 
     /// What the font says about itself.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn info(&self) -> &FontInfo {
         &self.info
@@ -394,12 +436,16 @@ impl Font {
 
     /// The instance's variation coordinates (user units, sorted by tag); empty for a static
     /// font or the default instance.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn coordinates(&self) -> &[(OpenTypeTag, f32)] {
         &self.coords
     }
 
     /// The collection member this font was loaded from (0 for a single font).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn index(&self) -> u32 {
         self.source.index
@@ -410,6 +456,8 @@ impl Font {
     /// glyphs from the same font. For a standard 14 font the glyph is found by name through
     /// the Adobe Glyph List; its ID is its index in [`Standard14::glyph_names`] plus one, as
     /// glyph 0 is `.notdef`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn glyph_for(&self, ch: char) -> Option<GlyphId> {
         if let Some(standard) = self.standard {
@@ -422,6 +470,8 @@ impl Font {
     /// The horizontal advance of `gid` in font units at this instance's location, rounded to
     /// a whole unit as `hmtx` stores it (so it matches the embedded instance's widths); `None`
     /// for a glyph past the font's glyph count.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn advance(&self, gid: GlyphId) -> Option<f32> {
         if gid.get() >= self.info.glyph_count {
@@ -437,6 +487,8 @@ impl Font {
     }
 
     /// The glyph name of `gid` in a standard 14 font (`None` for other fonts).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn glyph_name(&self, gid: GlyphId) -> Option<&'static str> {
         self.standard?.glyph_name(gid)
@@ -444,6 +496,8 @@ impl Font {
 
     /// The bytes the font was loaded from (the whole collection for a member); empty for a
     /// standard 14 font.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn bytes(&self) -> &[u8] {
         &self.source.bytes

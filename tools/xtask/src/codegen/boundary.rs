@@ -160,13 +160,17 @@ fn tag_names(source: &str) -> Result<Vec<String>> {
 
 /// `export const LIST = [...] as const;` and its union type.
 fn ts_list(out: &mut String, list: &str, ty: &str, doc: &str, names: &[String]) {
-    let _ = writeln!(out, "/** Every {ty}, as the WASM module names it. */");
+    let _ = writeln!(
+        out,
+        "{}",
+        super::ts_doc(list, &format!("Every {ty}, as the WASM module names it."))
+    );
     let _ = writeln!(out, "export const {list} = [");
     for n in names {
         let _ = writeln!(out, "  \"{n}\",");
     }
     let _ = writeln!(out, "] as const;\n");
-    let _ = writeln!(out, "/** {doc} */");
+    let _ = writeln!(out, "{}", super::ts_doc(ty, doc));
     let _ = writeln!(out, "export type {ty} = (typeof {list})[number];\n");
 }
 

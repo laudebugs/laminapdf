@@ -7,6 +7,8 @@ use laminapdf_syntax::{ErrorKind, Location};
 /// What stops an extraction. Errors end the job ([ADR 0028] §3): there is no partial result.
 ///
 /// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ExtractError {
@@ -57,6 +59,8 @@ impl From<crate::plugins::ModelError> for ExtractError {
 
 impl ExtractError {
     /// The error's code in `fixtures/codes.json`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -71,6 +75,8 @@ impl ExtractError {
     }
 
     /// The error's kind (ADR 0026 §2).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn kind(&self) -> ErrorKind {
         match self {
@@ -83,6 +89,8 @@ impl ExtractError {
     }
 
     /// Where the error is: the document's location for a reading error, none otherwise.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {

@@ -19,6 +19,8 @@ use laminapdf_syntax::CancelToken;
 
 /// A rendered page, as a model reads it: straight (not premultiplied) RGBA, 8 bits per channel,
 /// rows top to bottom, `width_px × 4` bytes per row, no padding.
+///
+/// Added in 0.2.0.
 #[derive(Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PageRaster {
@@ -53,6 +55,8 @@ impl PageRaster {
     /// # Errors
     /// [`ModelError::BadRaster`] when `pixels` isn't `width_px × height_px × 4` bytes, a side
     /// is 0, `dpi` is 0, or `page_box` isn't finite.
+    ///
+    /// Added in 0.2.0.
     pub fn new(width_px: u32, height_px: u32, dpi: u32, pixels: Vec<u8>, page_box: RectPt) -> Result<Self, ModelError> {
         let expected = u64::from(width_px) * u64::from(height_px) * 4;
         if width_px == 0 || height_px == 0 || dpi == 0 || !page_box.is_finite() {
@@ -72,6 +76,8 @@ impl PageRaster {
 
     /// A box in the image's pixels (`x0, y0, x1, y1`, top-left origin) in page space, the
     /// coordinates [`LayoutRegion`] and [`OcrWord`] take.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_page(&self, x0: f64, y0: f64, x1: f64, y1: f64) -> RectPt {
         let sx = self.page_box.width().get() / f64::from(self.width_px.max(1));
@@ -88,6 +94,8 @@ impl PageRaster {
 
 /// What a layout model says a region of the page is. Models' own label sets map onto these;
 /// labels with no match here are [`RegionLabel::Other`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum RegionLabel {
@@ -118,6 +126,8 @@ pub enum RegionLabel {
 }
 
 /// A region a [`LayoutModel`] found.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct LayoutRegion {
@@ -131,6 +141,8 @@ pub struct LayoutRegion {
 
 impl LayoutRegion {
     /// A region.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(label: RegionLabel, bbox: RectPt, score: f64) -> Self {
         Self { label, bbox, score }
@@ -138,6 +150,8 @@ impl LayoutRegion {
 }
 
 /// A word an [`OcrEngine`] read.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct OcrWord {
@@ -151,6 +165,8 @@ pub struct OcrWord {
 
 impl OcrWord {
     /// A word.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(text: impl Into<String>, bbox: RectPt, confidence: f64) -> Self {
         Self {
@@ -162,6 +178,8 @@ impl OcrWord {
 }
 
 /// Which model made a result, as the output's `generator.models` records it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -179,6 +197,8 @@ pub struct ModelInfo {
 
 impl ModelInfo {
     /// A model's description.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(
         name: impl Into<String>,
@@ -196,6 +216,8 @@ impl ModelInfo {
 }
 
 /// Why a model, or the renderer feeding it, gave no result.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ModelError {
@@ -214,20 +236,30 @@ pub enum ModelError {
 }
 
 /// A model that finds a page's regions: text, headings, tables, pictures, furniture.
+///
+/// Added in 0.2.0.
 pub trait LayoutModel: Send + Sync {
     /// Which model this is.
+    ///
+    /// Added in 0.2.0.
     fn info(&self) -> ModelInfo;
 
     /// The regions on `page`, in page space. Check `cancel` between expensive stages.
     ///
     /// # Errors
     /// [`ModelError::Cancelled`] once `cancel` is cancelled; [`ModelError::Failed`] otherwise.
+    ///
+    /// Added in 0.2.0.
     fn detect(&self, page: &PageRaster, cancel: &CancelToken) -> Result<Vec<LayoutRegion>, ModelError>;
 }
 
 /// An engine that reads the words on a page image.
+///
+/// Added in 0.2.0.
 pub trait OcrEngine: Send + Sync {
     /// Which engine this is.
+    ///
+    /// Added in 0.2.0.
     fn info(&self) -> ModelInfo;
 
     /// The words on `page`, in page space, reading in `langs` (BCP 47 tags; empty for the
@@ -235,20 +267,28 @@ pub trait OcrEngine: Send + Sync {
     ///
     /// # Errors
     /// [`ModelError::Cancelled`] once `cancel` is cancelled; [`ModelError::Failed`] otherwise.
+    ///
+    /// Added in 0.2.0.
     fn recognise(&self, page: &PageRaster, langs: &[String], cancel: &CancelToken) -> Result<Vec<OcrWord>, ModelError>;
 }
 
 /// Renders pages for the models a job runs itself. The core renders nothing; the caller
 /// supplies this (from `laminapdf-render`, a platform API, a cache…).
+///
+/// Added in 0.2.0.
 pub trait PageRenderer: Send + Sync {
     /// Page `index` (0-based, ADR 0027) at `dpi`, the whole displayed page.
     ///
     /// # Errors
     /// [`ModelError::Cancelled`] once `cancel` is cancelled; [`ModelError::Failed`] otherwise.
+    ///
+    /// Added in 0.2.0.
     fn render(&self, index: usize, dpi: u32, cancel: &CancelToken) -> Result<PageRaster, ModelError>;
 }
 
 /// Where a model's results come from.
+///
+/// Added in 0.2.0.
 #[non_exhaustive]
 pub enum ModelSlot<M: ?Sized> {
     /// The job runs this model itself, on rasters from [`Models::renderer`].
@@ -300,6 +340,8 @@ impl fmt::Debug for ModelSlot<dyn OcrEngine> {
 
 impl ModelSlot<dyn LayoutModel> {
     /// The model it names.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn info(&self) -> ModelInfo {
         match self {
@@ -311,6 +353,8 @@ impl ModelSlot<dyn LayoutModel> {
 
 impl ModelSlot<dyn OcrEngine> {
     /// The engine it names.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn info(&self) -> ModelInfo {
         match self {
@@ -321,6 +365,8 @@ impl ModelSlot<dyn OcrEngine> {
 }
 
 /// The models an extraction uses: none by default, so extraction is rules only.
+///
+/// Added in 0.2.0.
 #[derive(Clone, Default)]
 #[non_exhaustive]
 pub struct Models {
@@ -339,15 +385,21 @@ pub struct Models {
 
 impl Models {
     /// The resolution models get unless told otherwise: enough for body text.
+    ///
+    /// Added in 0.2.0.
     pub const DEFAULT_DPI: u32 = 150;
 
     /// No models.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// With a layout model.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_layout(mut self, slot: ModelSlot<dyn LayoutModel>) -> Self {
         self.layout = Some(slot);
@@ -355,6 +407,8 @@ impl Models {
     }
 
     /// With an OCR engine.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_ocr(mut self, slot: ModelSlot<dyn OcrEngine>) -> Self {
         self.ocr = Some(slot);
@@ -362,6 +416,8 @@ impl Models {
     }
 
     /// With a renderer for the plug-in models.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_renderer(mut self, renderer: Arc<dyn PageRenderer>) -> Self {
         self.renderer = Some(renderer);
@@ -369,18 +425,24 @@ impl Models {
     }
 
     /// Whether any model is set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn any(&self) -> bool {
         self.layout.is_some() || self.ocr.is_some()
     }
 
     /// The resolution rasters are asked for at.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn dpi(&self) -> u32 {
         if self.dpi == 0 { Self::DEFAULT_DPI } else { self.dpi }
     }
 
     /// Every model set, layout first, as `generator.models` lists them.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn infos(&self) -> Vec<ModelInfo> {
         let layout = self.layout.as_ref().map(ModelSlot::<dyn LayoutModel>::info);
@@ -419,6 +481,8 @@ impl fmt::Debug for Models {
 }
 
 /// A result an extraction job waits for ([`ExtractJob::request`](crate::ExtractJob::request)).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ModelRequest {
@@ -442,6 +506,8 @@ pub enum ModelRequest {
 
 impl ModelRequest {
     /// The page it is about.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn page(&self) -> usize {
         match self {
@@ -451,6 +517,8 @@ impl ModelRequest {
 }
 
 /// A result handed to a waiting job ([`ExtractJob::provide`](crate::ExtractJob::provide)).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum ModelResult {

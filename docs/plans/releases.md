@@ -40,7 +40,9 @@ The cadence is at most one release a day, set by the nightly. A release on every
 - **Every page names its version.** The docs site's header shows the version it documents, read from the fixed group's version at build time, and the install lines name it exactly (`npm install @laminapdf/sdk@0.2.0-alpha.3`, `cargo add laminapdf@0.2.0-alpha.3`) beside the `alpha` tag.
 - **`docs.laminapdf.com` is the latest release.** The release lane deploys the docs from the release commit once the packages are published, so the live docs never run ahead of the registries.
 - **`next.docs.laminapdf.com` is `main`.** Every push to `main` deploys the docs to a second Worker, `lamina-pdf-docs-next`. Its pages say they describe unreleased changes and link to the released docs, and the build marks them `noindex`, as previews are today.
-- **Older versions are not kept** while the version is an alpha. A version switcher, with each minor version's docs kept, can come with `1.0`.
+- **Older versions are not kept** while the version is `0.x`. A version switcher, with each minor version's docs kept, can come with `1.0`.
+- **Each API item says when it was added.** Every public Rust item's docs end with `Added in X.Y.Z.`, and every `@laminapdf/sdk` export carries `@since X.Y.Z`, which the reference shows as "Since". Everything that existed when the alphas ended reads `0.2.0`; a new item names the release it first ships in, and checks fail on one without it (Rust and TypeScript guidelines).
+- **From `1.0`, each minor release's docs stay online at a stable address.** The decision (Q4n, 2026-11-12): `docs.laminapdf.com` stays the latest release, and each `1.x` minor keeps its docs at `docs.laminapdf.com/1.x/` once the next minor ships, deployed from that minor's last release tag, so a link into `1.2`'s docs keeps working after `1.3`. The `0.x` releases keep only the latest docs: their API still changes from minor to minor, and the "Added in" markers say what a reader on an older release has. The version switcher and the per-minor deploy are work for the `1.0` round.
 - **Previews per pull request** stay as they are.
 
 ## 5. Risks

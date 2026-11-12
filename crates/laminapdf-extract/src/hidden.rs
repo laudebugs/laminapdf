@@ -25,6 +25,8 @@ use crate::tables::TableMode;
 /// # Errors
 /// As [`crate::extract`]: `cancelled` once `cancel` is set (checked before each page),
 /// `page-index-out-of-range`, and the document's reading errors.
+///
+/// Added in 0.2.0.
 pub fn hidden_text(
     doc: &Document,
     options: &ExtractOptions,

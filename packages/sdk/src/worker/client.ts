@@ -37,6 +37,8 @@ const ASYNC_DISPOSE: symbol = (Symbol as { asyncDispose?: symbol }).asyncDispose
  * `openUrl`'s options besides `OpenOptions`: `httpRangeSource`'s without a custom `fetch` (a
  * function can't reach the worker), and `openRange`'s (`budget`, `readahead`, `maxRounds`).
  * `signal` is the call's (`CallOptions`), and cancels the fetches in flight too.
+ *
+ * @since 0.2.0
  */
 export type RemoteHttpOptions = Omit<HttpRangeOptions, "fetch" | "signal"> & Omit<RangeOptions, "signal">;
 
@@ -44,10 +46,16 @@ export type RemoteHttpOptions = Omit<HttpRangeOptions, "fetch" | "signal"> & Omi
  * Where the worker loads a WebAssembly module from: what can be sent to a worker. A string or
  * `URL` is resolved against the page (not the worker file) before it is sent. A `Response`
  * can't cross: pass its bytes, or a `WebAssembly.Module`.
+ *
+ * @since 0.2.0
  */
 export type WorkerWasmSource = string | URL | ArrayBuffer | ArrayBufferView | WebAssembly.Module;
 
-/** `init()`'s options, with sources the worker can receive. */
+/**
+ * `init()`'s options, with sources the worker can receive.
+ *
+ * @since 0.2.0
+ */
 export interface WorkerInitOptions {
   readonly module?: WorkerWasmSource;
   readonly text?: boolean | WorkerWasmSource;
@@ -79,7 +87,11 @@ function sendableInit(init: WorkerWasmSource | WorkerInitOptions): unknown {
   );
 }
 
-/** `connect()`'s options: the worker to start, a signal to stop connecting, the WebAssembly to load, and what to do with late answers. */
+/**
+ * `connect()`'s options: the worker to start, a signal to stop connecting, the WebAssembly to load, and what to do with late answers.
+ *
+ * @since 0.2.0
+ */
 export interface ConnectOptions {
   /**
    * The worker to use, or a function that makes one (needed for `restart()`). Omitted, the
@@ -130,14 +142,22 @@ function crashed(message: string, reason: string): LaminaPdfError {
   return packageError("worker-crashed", message, { data: { reason } });
 }
 
-/** Starts the worker and waits for its handshake. */
+/**
+ * Starts the worker and waits for its handshake.
+ *
+ * @since 0.2.0
+ */
 export async function connect(options: ConnectOptions = {}): Promise<WorkerClient> {
   const client = new WorkerClient(options);
   await client.start(options.signal);
   return client;
 }
 
-/** A connection to one Lamina PDF worker. */
+/**
+ * A connection to one Lamina PDF worker.
+ *
+ * @since 0.2.0
+ */
 export class WorkerClient {
   readonly #factory: () => Worker;
   readonly #init: WorkerWasmSource | WorkerInitOptions | undefined;
@@ -293,7 +313,11 @@ export class WorkerClient {
     this.#stop(reason, true);
   }
 
-  /** Listens for the worker crashing (`reason`: `error`, `messageerror` or `trap`; not `terminate()`). */
+  /**
+   * Listens for the worker crashing (`reason`: `error`, `messageerror` or `trap`; not `terminate()`).
+   *
+   * @since 0.2.0
+   */
   on(event: "crashed", listener: CrashListener): () => void;
   /** Listens for an extension's events (`emit()` in the worker). */
   on(event: "event", listener: EventListener): () => void;
@@ -309,17 +333,27 @@ export class WorkerClient {
   /**
    * Calls an extension method in the worker (for packages that extend it with `serve(…)`, such
    * as `@laminapdf/viewer`). Same cancellation, transfers and errors as every other call.
+   *
+   * @since 0.2.0
    */
   request(method: string, params: readonly unknown[], options: RequestOptions = {}): Promise<unknown> {
     return this.call(0, method, params, options);
   }
 
-  /** Ends the worker; pending calls reject with `worker-crashed` (no `crashed` event). */
+  /**
+   * Ends the worker; pending calls reject with `worker-crashed` (no `crashed` event).
+   *
+   * @since 0.2.0
+   */
   terminate(): void {
     this.#stop("terminated", false);
   }
 
-  /** Starts a new worker (after a crash, or to reset); handles of the old one are `disposed`. */
+  /**
+   * Starts a new worker (after a crash, or to reset); handles of the old one are `disposed`.
+   *
+   * @since 0.2.0
+   */
   async restart(signal?: AbortSignal): Promise<void> {
     this.terminate();
     await this.start(signal);
@@ -406,6 +440,8 @@ export class WorkerClient {
    * buffer is detached). Opening is one synchronous call there: `signal` drops it if it hasn't
    * started, but can't stop it midway (`terminate()` is the hard stop). An open aborted midway
    * still rejects with `cancelled`, and the worker frees the document it opened.
+   *
+   * @since 0.2.0
    */
   async open(bytes: Uint8Array | ArrayBuffer, options: OpenOptions & CallOptions = {}): Promise<RemoteDocument> {
     const { signal, onProgress, transfer, ...open } = options;
@@ -413,19 +449,31 @@ export class WorkerClient {
     return this.#remoteDocument(ref as HandleRef);
   }
 
-  /** Opens a remote file by HTTP range requests: the worker fetches what each call needs. */
+  /**
+   * Opens a remote file by HTTP range requests: the worker fetches what each call needs.
+   *
+   * @since 0.2.0
+   */
   async openUrl(url: string, options: OpenOptions & RemoteHttpOptions & CallOptions = {}): Promise<RemoteDocument> {
     const { signal, onProgress, transfer: _, ...open } = options;
     const ref = await this.call(0, "openUrl", [url, open], defined({ signal, onProgress }));
     return this.#remoteDocument(ref as HandleRef);
   }
 
-  /** Loads the text module in the worker (`loadText()`). */
+  /**
+   * Loads the text module in the worker (`loadText()`).
+   *
+   * @since 0.2.0
+   */
   async loadText(options?: CallOptions): Promise<void> {
     await this.call(0, "loadText", [], options);
   }
 
-  /** Loads the extract module in the worker (`loadExtract()`), for `page.text()`. */
+  /**
+   * Loads the extract module in the worker (`loadExtract()`), for `page.text()`.
+   *
+   * @since 0.2.0
+   */
   async loadExtract(options?: CallOptions): Promise<void> {
     await this.call(0, "loadExtract", [], options);
   }

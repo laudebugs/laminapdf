@@ -32,6 +32,8 @@ use crate::rotate::RotatePage;
 /// ```
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "op", content = "args", rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -58,6 +60,8 @@ pub enum Op {
 
 impl Op {
     /// The kind of change, for the save planner (ADR 0006 §1).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn class(&self) -> ModificationClass {
         match self {
@@ -70,6 +74,8 @@ impl Op {
 
     /// Whether saving this op needs a full rewrite rather than an incremental update
     /// (redaction, encryption changes; none of these ops does).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn requires_rewrite(&self) -> bool {
         match self {
@@ -153,6 +159,8 @@ impl From<RotatePage> for Op {
 /// ```
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -175,27 +183,37 @@ fn known_version<'de, D: Deserializer<'de>>(d: D) -> core::result::Result<u64, D
 
 impl OpLog {
     /// The schema version this crate reads and writes.
+    ///
+    /// Added in 0.2.0.
     pub const VERSION: u64 = 1;
 
     /// A log of `ops` at the current version.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(ops: Vec<Op>) -> Self {
         Self { v: Self::VERSION, ops }
     }
 
     /// The schema version.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn version(&self) -> u64 {
         self.v
     }
 
     /// The ops, in order.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn ops(&self) -> &[Op] {
         &self.ops
     }
 
     /// The ops, giving up the log.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn into_ops(self) -> Vec<Op> {
         self.ops
@@ -207,6 +225,8 @@ impl OpLog {
     /// # Errors
     /// [`Error::UnsupportedVersion`]; [`Error::InvalidLog`] for anything else that does not
     /// parse (not JSON, no `v`, an unknown op or field, a bad value).
+    ///
+    /// Added in 0.2.0.
     pub fn from_json(json: &str) -> Result<Self> {
         let value: serde_json::Value = serde_json::from_str(json).map_err(invalid)?;
         match value.get("v").and_then(serde_json::Value::as_u64) {
@@ -220,6 +240,8 @@ impl OpLog {
     ///
     /// # Errors
     /// [`Error::InvalidLog`] if serialisation fails (it does not for the ops of this crate).
+    ///
+    /// Added in 0.2.0.
     pub fn to_json(&self) -> Result<String> {
         serde_json::to_string(self).map_err(invalid)
     }

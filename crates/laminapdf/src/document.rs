@@ -35,6 +35,8 @@ pub(crate) struct Instance;
 ///
 /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 /// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct Document {
     inner: laminapdf_ops::Document,
@@ -56,6 +58,8 @@ pub struct Document {
 /// (the `CropBox` with `/Rotate` and `/UserUnit` applied, [ADR 0027]) and its rotation.
 ///
 /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PageInfo {
@@ -74,6 +78,8 @@ pub struct PageInfo {
 }
 
 /// The Info dictionary's text entries (ISO 32000-2 §14.3.3), decoded; document text.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct DocumentInfo {
@@ -92,6 +98,8 @@ pub struct DocumentInfo {
 }
 
 /// The pages an edit touched (owned, F5).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct Edited {
@@ -112,6 +120,8 @@ pub struct Edited {
 }
 
 /// A finished save: the output and what the writer did.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Saved {
@@ -129,6 +139,8 @@ impl Document {
     /// # Errors
     /// `not-pdf`, `missing-root`, `password-required`, `wrong-password`, `limit-exceeded`,
     /// `strict` and the other reading errors.
+    ///
+    /// Added in 0.2.0.
     pub fn open_bytes(bytes: Vec<u8>, options: OpenOptions) -> Result<Self> {
         Ok(Self::from(laminapdf_ops::Document::open(bytes, options)?))
     }
@@ -139,6 +151,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::open_bytes`], and `data-pending`/`source`.
+    ///
+    /// Added in 0.2.0.
     pub fn open_source(source: Arc<dyn ByteSource>, options: OpenOptions) -> Result<Self> {
         Ok(Self::from(laminapdf_ops::Document::open(source, options)?))
     }
@@ -147,6 +161,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (the page tree).
+    ///
+    /// Added in 0.2.0.
     pub fn page_count(&self) -> Result<u32> {
         self.with_pages(|pages| Ok(u32::try_from(pages.len()).unwrap_or(u32::MAX)))
     }
@@ -155,6 +171,8 @@ impl Document {
     ///
     /// # Errors
     /// `page-index-out-of-range`; reading errors.
+    ///
+    /// Added in 0.2.0.
     pub fn page_info(&self, index: u32) -> Result<PageInfo> {
         self.with_pages(|pages| {
             let count = u32::try_from(pages.len()).unwrap_or(u32::MAX);
@@ -175,6 +193,8 @@ impl Document {
     /// # Errors
     /// `page-index-out-of-range`; the content limits, `strict`, `data-pending` and the other
     /// reading errors.
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "extract")]
     pub fn page_text(&self, index: u32, options: &crate::extract::TextOptions) -> Result<crate::extract::PageText> {
         let pages = self.inner.pages()?;
@@ -198,6 +218,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::page_text`].
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "extract")]
     pub fn page_texts(&self, options: &crate::extract::TextOptions) -> Result<Vec<crate::extract::PageText>> {
         let pages = self.inner.pages()?;
@@ -220,6 +242,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors.
+    ///
+    /// Added in 0.2.0.
     pub fn page_infos(&self) -> Result<Vec<PageInfo>> {
         self.with_pages(|pages| Ok(pages.to_vec()))
     }
@@ -228,6 +252,8 @@ impl Document {
     ///
     /// # Errors
     /// `unknown-page` when the document has no such page; reading errors.
+    ///
+    /// Added in 0.2.0.
     pub fn page_by_id(&self, id: &PageId) -> Result<PageInfo> {
         self.with_pages(|pages| {
             pages
@@ -272,6 +298,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors.
+    ///
+    /// Added in 0.2.0.
     pub fn info(&self) -> Result<DocumentInfo> {
         let Some(info) = self.inner.info()? else {
             return Ok(DocumentInfo::default());
@@ -292,12 +320,16 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (the catalog).
+    ///
+    /// Added in 0.2.0.
     pub fn version(&self) -> Result<Option<String>> {
         Ok(self.inner.version()?)
     }
 
     /// Whether the file is encrypted. An encrypted document opens only when its password, or
     /// the empty user password, decrypts it, so this says only that it was encrypted.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_encrypted(&self) -> bool {
         self.inner.encryption().is_some()
@@ -308,6 +340,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (the catalog, `/MarkInfo`).
+    ///
+    /// Added in 0.2.0.
     pub fn is_tagged(&self) -> Result<bool> {
         Ok(self.inner.is_tagged()?)
     }
@@ -318,6 +352,8 @@ impl Document {
     ///
     /// # Errors
     /// The first object that can't be read (in strict mode, the first repair too).
+    ///
+    /// Added in 0.2.0.
     pub fn read_every_object(&self) -> Result<u32> {
         let numbers: Vec<u32> = self.inner.object_numbers().collect();
         for &number in &numbers {
@@ -328,6 +364,8 @@ impl Document {
 
     /// A cursor over the warnings raised so far (F8), oldest first: those of building the
     /// document (font embedding), then those of reading it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn warnings(&self) -> WarningCursor {
         let read = self.inner.warnings().into_iter().map(Warning::from);
@@ -336,6 +374,8 @@ impl Document {
 
     /// Whether there are changes no save has written yet: an edit since the last save, or a
     /// built document that was never saved (its objects are all in the overlay).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn has_unsaved_changes(&self) -> bool {
         self.inner.has_unsaved_changes() || self.inner.is_dirty()
@@ -349,6 +389,8 @@ impl Document {
     /// # Errors
     /// The first op's error (the transaction is rolled back): `unknown-page`, `direct-page`,
     /// `malformed-xmp`, reading errors; `saved-not-rebased`.
+    ///
+    /// Added in 0.2.0.
     pub fn apply(&mut self, ops: Vec<Op>) -> Result<Edited> {
         let applied = self.inner.apply_all(Origin::Local, ops)?;
         // An edit that changed nothing (setting a value it already had) commits no record:
@@ -370,6 +412,8 @@ impl Document {
     /// # Errors
     /// `invalid-op-log` (the log's text only in `data`), `unsupported-version`; as
     /// [`Document::apply`].
+    ///
+    /// Added in 0.2.0.
     pub fn apply_log(&mut self, json: &str) -> Result<Edited> {
         self.apply(OpLog::from_json(json)?.into_ops())
     }
@@ -379,6 +423,8 @@ impl Document {
     ///
     /// # Errors
     /// `nested-transaction`, `saved-not-rebased`; reading errors (nothing is undone).
+    ///
+    /// Added in 0.2.0.
     pub fn undo(&mut self) -> Result<Option<Reverted>> {
         let reverted = self.inner.undo()?;
         if reverted.is_some() {
@@ -392,6 +438,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::undo`].
+    ///
+    /// Added in 0.2.0.
     pub fn redo(&mut self) -> Result<Option<Reverted>> {
         let reverted = self.inner.redo()?;
         if reverted.is_some() {
@@ -408,6 +456,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`SaveJob::step`], except `cancelled`.
+    ///
+    /// Added in 0.2.0.
     pub fn save(&mut self, options: &SaveOptions) -> Result<Saved> {
         self.save_with(options, &CancelToken::new())
     }
@@ -416,6 +466,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`SaveJob::step`].
+    ///
+    /// Added in 0.2.0.
     pub fn save_with(&mut self, options: &SaveOptions, cancel: &CancelToken) -> Result<Saved> {
         let mut job = SaveJob::new(self, *options, cancel.clone());
         loop {
@@ -442,6 +494,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::save`]; the document is unchanged either way.
+    ///
+    /// Added in 0.2.0.
     pub fn save_copy(&mut self, options: &SaveOptions) -> Result<Saved> {
         let mut bytes = Vec::new();
         let report = self.inner.save_copy(&mut Output { bytes: &mut bytes }, options)?;
@@ -456,6 +510,8 @@ impl Document {
     /// # Errors
     /// `nested-transaction` / `saved-not-rebased`; `not-rebased` when `bytes` can't be read
     /// (the document then waits for [`Document::rebase`]).
+    ///
+    /// Added in 0.2.0.
     pub fn adopt_copy(&mut self, bytes: Vec<u8>, history_cleared: bool) -> Result<()> {
         let result = self.inner.adopt_copy(bytes.into(), history_cleared);
         if matches!(&result, Ok(()) | Err(laminapdf_save::SaveError::NotRebased { .. })) {
@@ -465,12 +521,16 @@ impl Document {
     }
 
     /// A save as a resumable job, with its own [`CancelToken`] ([`SaveJob::cancel_token`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn save_job(&self, options: &SaveOptions) -> SaveJob {
         SaveJob::new(self, *options, CancelToken::new())
     }
 
     /// A save job that stops when `cancel` is cancelled (one token for several jobs).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn save_job_with(&self, options: &SaveOptions, cancel: &CancelToken) -> SaveJob {
         SaveJob::new(self, *options, cancel.clone())
@@ -483,6 +543,8 @@ impl Document {
     /// # Errors
     /// `no-pending-save` when no save is waiting; reading errors in `bytes` (the document
     /// keeps waiting).
+    ///
+    /// Added in 0.2.0.
     pub fn rebase(&mut self, bytes: Vec<u8>) -> Result<()> {
         self.inner.rebase(bytes)?;
         self.bump();
