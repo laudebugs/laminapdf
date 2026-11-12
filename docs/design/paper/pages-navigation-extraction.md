@@ -165,7 +165,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `O13-initial-view.dc.html`, `O13-article-threads.dc.html`.
 
-**Todos.** [E3d](../../todos/ready/E3d-initial-view-and-threads.md).
+**Todos.** [E3d](../../todos/ongoing/E3d-initial-view-and-threads.md).
 
 ## O14 Attachments panel
 

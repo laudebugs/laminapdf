@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §5](../../plans/editor/e3-navigation-attachments-inspection.md#5-the-viewer-and-the-initial-view) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
@@ -27,15 +27,15 @@ Edit `/OpenAction` (initial page and zoom), `/PageMode`, `/PageLayout` and `/Vie
 
 **In scope**
 
-- `SetInitialView { open, page_mode, page_layout, preferences }` op; an `/OpenAction` that is another action is shown and kept, never run (editing it is [E17b](E17b-action-editor.md)'s)
+- `SetInitialView { open, page_mode, page_layout, preferences }` op; an `/OpenAction` that is another action is shown and kept, never run (editing it is [E17b](../ready/E17b-action-editor.md)'s)
 - A catalog view reading the open destination, page mode, page layout and viewer preferences
 - Initial-view dialog in `@laminapdf/ui`
 - Article-thread view in `laminapdf-model` and a read-only threads panel
 
 **Out of scope** (and which todo covers it)
 
-- Editing article threads → E15's feature plan, [E15a](E15a-accessibility-feature-plan.md) ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions))
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
+- Editing article threads → E15's feature plan, [E15a](../ready/E15a-accessibility-feature-plan.md) ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions))
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
