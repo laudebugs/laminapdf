@@ -42,6 +42,8 @@
 //! * [`Outline`] / [`OutlineItem`]: titles, nesting, open state, [`Destination`]s resolved
 //!   to [`PageId`]s, action kinds.
 //! * [`Info`]: the information dictionary, with dates as [`PdfDate`].
+//! * [`InitialView`]: how the document asks to be shown when it opens ([`Document::initial_view`]),
+//!   and its article [`Thread`]s ([`Document::threads`]).
 //! * [`Disclosure`]: what a document holds beyond its visible pages ([`Document::disclosure`]).
 //! * [`xmp`]: the XMP metadata packet ([`Document::xmp`]): a tolerant reader, typed access to
 //!   the properties Info mirrors, the Info ↔ XMP mapping table, and a writer that keeps every
@@ -77,12 +79,14 @@ mod geometry;
 mod graphics;
 mod id;
 mod info;
+mod initial_view;
 mod labels;
 mod link;
 mod locate;
 mod outline;
 mod page;
 mod structure;
+mod threads;
 mod tree;
 mod values;
 pub mod xmp;
@@ -98,12 +102,14 @@ pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserS
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
 pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
+pub use initial_view::{InitialView, OpenAction, PageLayout, PageMode, WindowPreferences};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
 pub use link::{Link, LinkAction};
 pub use locate::ParentedPage;
 pub use outline::{ActionKind, Destination, Outline, OutlineItem, View};
 pub use page::{Page, Pages, Rotation};
 pub use structure::{StructElem, StructKid, StructTree};
+pub use threads::{Bead, Thread};
 pub use tree::{NameTree, NumberTree};
 
 // The layers below, in façade order (ADR 0005 §1): what callers of the model need without
