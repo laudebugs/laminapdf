@@ -37,7 +37,7 @@ The work goes in four steps, so the cheap, well-evidenced fixes ship first and t
 | Todo | What it does | Recommendation |
 | --- | --- | --- |
 | [Q4a](../todos/done/Q4a-cli-output-from-real-runs.md) | Command-line transcripts and shell blocks generated from real runs, checked for drift | 1 |
-| [Q4b](../todos/ongoing/Q4b-extraction-guide.md) | An extraction guide in TypeScript and Rust, and extraction on the home page | 2 |
+| [Q4b](../todos/done/Q4b-extraction-guide.md) | An extraction guide in TypeScript and Rust, and extraction on the home page | 2 |
 | [Q4c](../todos/ready/Q4c-viewer-render-and-redaction-guides.md) | Guides for the viewer, rendering pages, and reveal and redaction from code | 2 |
 | [Q4d](../todos/ready/Q4d-result-beside-the-code.md) | The first page picture beside the code; "Your first PDF" runnable | 3 |
 | [Q4e](../todos/ready/Q4e-rust-and-cli-first-runs.md) | First-run tutorials for Rust and the command line | 4 |
@@ -71,7 +71,7 @@ The recommendation numbers are the report's. Two of them are too large for one p
 ## 7. To-dos
 
 - [x] Q4a: command-line output from real runs
-- [ ] Q4b: the extraction guide
+- [x] Q4b: the extraction guide
 - [ ] Q4c: viewer, rendering, and reveal and redaction guides
 - [ ] Q4d: the result beside the code
 - [ ] Q4e: first runs in Rust and on the command line
