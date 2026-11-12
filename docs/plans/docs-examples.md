@@ -16,7 +16,7 @@ An example gets a preview only when it makes something a reader can look at. Thr
 
 | Pages | Example | Preview | Edit and run |
 | --- | --- | --- | --- |
-| Recipes: Hello, world; Quick starts (Node, Deno, Bun, browser, Rust); Start: Your first PDF; Concepts: Pages and coordinates | `hello`, and the quick starts, which write the same bytes (`cargo xtask verify-install` checks it) | Result | Yes, on the recipe: the text, size and page size |
+| Recipes: Hello, world; Quick starts (Node, Deno, Bun, browser, Rust); Start: Your first PDF; Concepts: Pages and coordinates | `hello`, and the quick starts, which write the same bytes (`cargo xtask verify-install` checks it) | Result | Yes, on the recipe and wherever the Node quick start shows (Your first PDF, Quick start: Node, Pages and coordinates): the text, size and page size |
 | Recipes: Invoice | `invoice` | Result | Yes: the line items |
 | Recipes and Guides: Images and vectors | `images_and_vectors` | Result | Yes: the shapes and colours |
 | Recipes: Links and outlines; Guides: Links, outlines and metadata | `links_and_outlines` | Result | Yes: the outline and page labels |
@@ -36,16 +36,18 @@ An example gets a preview only when it makes something a reader can look at. Thr
 
 An `Example` component in `apps/docs` wraps the language tabs that pages already use, and adds a Result or Output tab when the example has one. The Result tab shows each page as an image with its alt text and page number, the link to open the PDF, and the PDF's size. Pictures load lazily (`loading="lazy"`), so a page with five examples costs nothing until a reader opens a tab.
 
+Since Q4d, the first page of an example's PDF shows without a click, with the link and size under it. Like the tab's pictures, it loads lazily, as it nears the window. CSS alone places it: beside the code on screens 90rem (1440 px) and wider, below it on narrower ones. Side by side, the example grows into the margins around the content column and keeps 36rem (about 66 characters) for the code. A narrower screen would squeeze the code, so there the page goes below it. The Result tab stays only where there is more than that first page: two or more pages, or two PDFs.
+
 The pictures come from the example goldens, rendered at 144 dpi (2× the render goldens' 72 dpi) by the render tooling in `tools/render` (hayro), as PNG. They are committed to `apps/docs/public/examples/preview/`, next to a manifest of each golden PDF's SHA-256. `cargo xtask check docs` compares the manifest with `fixtures/golden/examples/`, so a changed example can't ship with old pictures; regenerating them is one command. The docs build stays as it is: no WebAssembly, no Python.
 
 ### Edit and run (B7e)
 
-An "Edit and run" button on the Result tab loads, on first press, a small runner of our own:
+An "Edit and run" button loads, on first press, a small runner of our own. Since Q4d the button sits under the first page's picture; the editor takes the code's place, and a run's pages take the picture's:
 
 - **Editor:** CodeMirror 6 (MIT) with TypeScript highlighting, holding the example's own file.
 - **Types:** stripped by Sucrase (MIT) in the runner, with no type check, so a typo shows as the error the SDK throws, not a compiler message.
 - **Run:** in a module worker the docs site serves at `/run/worker.js`. A worker's CSP comes from its own script's response, so `_headers` gives `/run/*` a policy of its own with `'unsafe-eval'`, and every page keeps ADR 0011's headers unchanged. The worker loads the docs' own build of `@laminapdf/sdk` and the fonts, images and data the example takes, all from the docs site, and passes the same fixed file ID and date as the SDK's tests, so an unchanged example gives its golden's bytes.
-- **Result:** `@laminapdf/render-hayro` draws each page in the worker, the same renderer as the Result tab's pictures, and the page shows them as canvases in the Result tab. A Download button saves the PDF. An error shows its code and hint, as `LaminaPdfError` gives them.
+- **Result:** `@laminapdf/render-hayro` draws each page in the worker, the same renderer as the Result tab's pictures, and the page shows them as canvases where the picture was. A Download button saves the PDF. An error shows its code and hint, as `LaminaPdfError` gives them.
 - **Reset:** puts the example's file back.
 - **Limits:** a run stops after 30 seconds, so an endless loop can't hang the page, and draws at most 20 pages.
 
@@ -65,6 +67,7 @@ The first draft of this plan ran the code in a sandboxed iframe and drew it with
 | --- | --- |
 | [B7d](../todos/done/B7d-docs-example-results.md) | The `Example` component, Result and Output tabs, page pictures with their manifest and check, every page in §1 moved to it |
 | [B7e](../todos/done/B7e-docs-edit-and-run.md) | "Edit and run" for the six examples in §1: editor, runner worker, pages drawn by hayro, download, reset |
+| [Q4d](../todos/done/Q4d-result-beside-the-code.md) | The first page beside or below the code with no click, "Edit and run" under it, and "Your first PDF"'s Node quick start runnable (its `save` and `writeFile` hand the runner the PDF) |
 
 ## 5. To-dos
 

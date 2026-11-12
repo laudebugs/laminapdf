@@ -12,7 +12,7 @@ import photo from "../../../fixtures/images/photo-rgb.jpg?url";
 import flowReport from "../../../fixtures/text/element-flow-report.json?url";
 import { FIXED, RUNNABLE, type RunInput } from "./examples.js";
 import type { RunReply, RunRequest } from "./protocol.js";
-import { runExample } from "./run.js";
+import { runExample, SAVE } from "./run.js";
 
 /** The most pages a run draws: each is about 4 MB, and an edit can make thousands. */
 const MAX_PAGES = 20;
@@ -59,6 +59,7 @@ function input(file: string, as: "bytes" | "json"): Promise<unknown> {
 
 /** An input as the example takes it. */
 function argument(i: RunInput): unknown {
+  if ("save" in i) return SAVE;
   return "options" in i ? { id: new TextEncoder().encode(i.options), ...FIXED } : input(i.file, i.as);
 }
 
@@ -68,7 +69,7 @@ async function handle(request: RunRequest): Promise<RunReply> {
     return { id: request.id, ok: false, code: "error", message: `${request.file} can't run here` };
   const [, hayro] = await engines();
   const args = await Promise.all(runnable.inputs.map(argument));
-  const outcome = runExample(request.source, runnable.export, args, sdk);
+  const outcome = await runExample(request.source, runnable.export, args, sdk);
   if (!outcome.ok) return { id: request.id, ...outcome };
   using doc = hayro.open(bytesSource(outcome.bytes));
   const pages: ImageBitmap[] = [];
