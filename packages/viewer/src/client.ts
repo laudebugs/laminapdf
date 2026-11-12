@@ -155,6 +155,17 @@ function workerFactory(): Worker {
   return new Worker(new URL("./worker/entry.js", import.meta.url), { type: "module", name: "lamina-viewer" });
 }
 
+/**
+ * Whether a call failed only because the worker crashed under it (its error, messageerror or a
+ * trap). The client restarts the worker and reopens the document, so the caller draws again rather
+ * than show an error: a call made now waits for the restart, then runs in the new worker. A worker
+ * the client ended itself (`stop()`: the reader's Stop, or a render past the hard cap) rejects with
+ * the reason `terminated`, and isn't retried, since that render is what was stopped.
+ */
+export function interruptedByCrash(e: unknown): boolean {
+  return isLaminaPdfError(e, "worker-crashed") && e.data?.reason !== "terminated";
+}
+
 function abortError(e: unknown): unknown {
   return isLaminaPdfError(e, "cancelled") ? new DOMException("the call was cancelled", "AbortError") : e;
 }
