@@ -128,6 +128,13 @@ fn load_config(root: &Path) -> Result<Config> {
     toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))
 }
 
+/// The examples among `paths` (as [`examples`] finds them), with the `Snippet` globs read from
+/// the repository at `root`: what `biome-examples` lints too.
+pub(crate) fn example_paths(root: &Path, paths: &BTreeSet<String>) -> Result<Vec<String>> {
+    let snippet = std::fs::read_to_string(root.join(SNIPPET)).with_context(|| format!("reading {SNIPPET}"))?;
+    Ok(examples(paths, &snippet_globs(&snippet)))
+}
+
 /// The examples the rules apply to: everything under the example folders, and every file the
 /// `Snippet` glob matches under an `examples/` folder.
 fn examples(paths: &BTreeSet<String>, globs: &[Glob]) -> Vec<String> {

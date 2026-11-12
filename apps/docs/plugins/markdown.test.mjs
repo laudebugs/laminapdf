@@ -217,6 +217,8 @@ test("a twin reads only files in the example folders", () => {
     "C:/x.ts",
     "packages/sdk/examples/../../../.env",
     "packages/sdk/src/index.ts",
+    "packages/viewer/examples/viewer-demo.ts",
+    "packages/viewer/examples/./show-a-pdf.ts",
   ]) {
     assert.throws(() => shownFileUrl(file), /outside the example folders/, file);
   }

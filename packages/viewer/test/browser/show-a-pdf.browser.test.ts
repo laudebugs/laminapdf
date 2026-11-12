@@ -1,8 +1,8 @@
 // The docs' "Show a PDF in a web page" example in Chromium, Firefox and WebKit: a plain file opens
-// and paints, an encrypted one asks for its password, again after a wrong one, then opens, and a
-// cancel keeps the file shown before.
+// and paints, an encrypted one asks for its password, again after a wrong or empty one, then
+// opens, asks again once a restarted worker has lost it, and a cancel keeps the file shown before.
 import { afterEach, describe, expect, it } from "vitest";
-import { type PdfView, showFile, showPosition, startViewer } from "../../examples/show-a-pdf.js";
+import { PdfView, showPosition } from "../../examples/show-a-pdf.js";
 import { ENCRYPTED, PASSWORD, read } from "./helpers.js";
 
 const host = document.createElement("div");
@@ -17,11 +17,11 @@ async function until(done: () => boolean, limit = 600): Promise<void> {
 
 const views: PdfView[] = [];
 afterEach(() => {
-  for (const view of views.splice(0)) view[Symbol.dispose]();
+  for (const view of views.splice(0)) view.close();
 });
 
 async function started(): Promise<PdfView> {
-  const view = await startViewer(host);
+  const view = await PdfView.start(host);
   views.push(view);
   return view;
 }
@@ -42,29 +42,49 @@ describe("show-a-pdf example", () => {
     const view = await started();
     const label = document.createElement("span");
     const stop = showPosition(view.viewer, label);
-    expect(await showFile(view, await file(HELLO), never)).toBe(true);
+    expect(label.textContent).toBe("");
+    expect(await view.show(await file(HELLO), never)).toBe(true);
     expect(view.viewer.getState().pageCount).toBe(1);
     await until(() => view.viewer.stats().pages[0] === "sharp");
     await until(() => label.textContent?.startsWith("Page 1 of 1 · ") === true);
     stop();
   });
 
-  it("asks for the password, again after a wrong one, then opens", async () => {
+  it("asks for the password, again after a wrong or an empty one, then opens", async () => {
     const view = await started();
+    const answers = ["not it", "", PASSWORD];
     const asked: boolean[] = [];
     const ask = async (wrong: boolean) => {
       asked.push(wrong);
-      return asked.length === 1 ? "not it" : PASSWORD;
+      return answers[asked.length - 1];
     };
-    expect(await showFile(view, await file(ENCRYPTED), ask)).toBe(true);
-    expect(asked).toEqual([false, true]);
+    expect(await view.show(await file(ENCRYPTED), ask)).toBe(true);
+    expect(asked).toEqual([false, true, true]);
     expect(view.viewer.getState().pageCount).toBeGreaterThan(0);
+  });
+
+  it("asks for the password again after the worker restarts, and shows the file again", async () => {
+    const view = await started();
+    let asked = 0;
+    const ask = async () => {
+      asked++;
+      return PASSWORD;
+    };
+    await view.show(await file(ENCRYPTED), ask);
+    await view.client.stop();
+    await until(() => asked === 2 && view.client.document !== undefined);
+    await until(() => view.viewer.stats().pages[0] === "sharp");
   });
 
   it("keeps the file shown when the reader cancels the password", async () => {
     const view = await started();
-    await showFile(view, await file(HELLO), never);
-    expect(await showFile(view, await file(ENCRYPTED), async () => undefined)).toBe(false);
-    expect(view.client.document?.pageCount).toBe(1);
+    await view.show(await file(HELLO), never);
+    const shown = view.client.document;
+    expect(await view.show(await file(ENCRYPTED), async () => undefined)).toBe(false);
+    expect(view.viewer.getState().pageCount).toBe(1);
+    expect(view.client.document).toBe(shown);
+    // The worker still has the file: its page draws again.
+    view.viewer.invalidate([0]);
+    await until(() => view.viewer.stats().pages[0] === "sharp");
   });
 });

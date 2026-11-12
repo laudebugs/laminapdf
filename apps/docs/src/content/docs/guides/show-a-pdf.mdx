@@ -11,7 +11,7 @@ This example starts the viewer, opens a file the reader picked, asks for a passw
 
 <Snippet file="packages/viewer/examples/show-a-pdf.ts" />
 
-Call `startViewer` when your page loads and `showFile` when the reader picks a file, for example from an `<input type="file">`. The viewer fills the element you give it, so give that element a size, such as `height: 100vh`. Once the file opens, you see its first page fitted to the width, and scrolling brings in the next ones.
+Call `PdfView.start` when your page loads and `view.show` when the reader picks a file, for example from an `<input type="file">`. The viewer fills the element you give it, so give that element a size, such as `height: 100vh`. Once the file opens, you see its first page fitted to the width, and scrolling brings in the next ones.
 
 :::caution[Preview]
 `@laminapdf/viewer` is newer than the rest of Lamina PDF, and its API can still change between releases. This page shows only its core: starting a viewer, opening a file, moving through it and reading its state. The package's README lists the rest, such as find, thumbnails and edits.
@@ -47,7 +47,7 @@ The viewer has methods for the controls a toolbar needs:
 | `viewer.getState()` | The current page, page count, zoom and rotation |
 | `viewer.subscribe(listener)` | Calls `listener` whenever that state changes, and returns a function that stops it |
 
-The reader can also zoom with Ctrl or ⌘ and the mouse wheel, pinch on a trackpad or a touch screen, and press `+`, `-` and `0`. The point under the pointer stays where it is. The `subscribe` call works with React's `useSyncExternalStore`, so a React toolbar can read `viewer.getState()` directly.
+The reader can also zoom with Ctrl or ⌘ and the mouse wheel, pinch on a trackpad or a touch screen, and press `+`, `-` and `0`. The point under the pointer stays where it is. In React, `useSyncExternalStore((onChange) => viewer.subscribe(onChange), () => viewer.getState())` gives a toolbar the state; pass the two calls in arrow functions like these, since the methods need their viewer.
 
 ## Text you can select, links you can follow
 
@@ -55,6 +55,8 @@ Each page has a transparent text layer on top of its picture, so the reader can 
 
 ## Clean up
 
-The example's view is disposable: `using view = await startViewer(container)` takes the viewer down and ends its Web Worker when the block ends. A viewer that lives as long as the page needs no cleanup. To show another file, call `showFile` again on the same view; a file that fails to open leaves the previous one on screen.
+A viewer that lives as long as the page needs no cleanup. When it leaves the page earlier, such as when its dialog closes, `view.close()` takes it down and ends its Web Worker. To show another file, call `view.show` again on the same view; a file that fails to open leaves the previous one on screen.
+
+If the Web Worker crashes, the client starts a new one and opens the file again. A file with a password can't open by itself, because the password stayed in the old Web Worker and nowhere else. The client then sends a `password-required` event, and the example's `show` asks the reader again.
 
 Next: [render pages to images](/guides/render-pages/), for a thumbnail or a preview without a viewer.

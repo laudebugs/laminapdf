@@ -25,19 +25,19 @@ These checks are in the Rust API and on the command line, and not yet in `@lamin
 
 ## Failed redactions
 
-A redaction fails when it hides text from the eye but leaves it in the file. `doc.redaction_warnings(&options, &cancel)` finds three ways that happens, each a warning with its own code:
+A redaction fails when it hides text from the eye but leaves it in the file. The example finds three ways that happens, all in the `Reveal` that `doc.reveal(&options, &cancel)` returns, so it reads the file once:
 
-| Code | What it found |
+| Where | What it found |
 | --- | --- |
-| `covered-text` | Text under a box, an image or an annotation drawn over it. The text is still there to select, copy and search. |
-| `redaction-not-applied` | Redaction marks someone drew but never applied. They show where the secret is, and the secret is still under them. |
-| `text-in-earlier-revision` | Words an earlier revision of the file holds and the latest one doesn't. |
+| `hidden`, reason `Covered` | Text under a box, an image or an annotation drawn over it. The text is still there to select, copy and search. |
+| `disclosure.redactions()` | Redaction marks someone drew but never applied. They show where the secret is, and the secret is still under them. |
+| `revisions`, `removed_words` | Words an earlier revision of the file holds and the latest one doesn't. |
 
-A PDF edit often appends the change to the end of the file and keeps every earlier revision before it, so a word deleted in an edit can still be read in the revision before. Each warning gives counts and page indices, never the hidden text itself, so you can log it without leaking what it found.
+A PDF edit often appends the change to the end of the file and keeps every earlier revision before it, so a word deleted in an edit can still be read in the revision before. The example's lines give counts and page numbers, never the hidden text itself, so you can log them without leaking what they found. When you only need these three, `doc.redaction_warnings(&options, &cancel)` returns them as warnings, with the codes `covered-text`, `redaction-not-applied` and `text-in-earlier-revision` that `laminapdf check` reports.
 
 ## What a file holds beyond its pages
 
-`doc.reveal(&options, &cancel)` reads the whole file once and returns a `Reveal`. Its `found()` method lists the categories with something in them, in this order:
+The same `Reveal` has a `found()` method, which lists the categories with something in them, in this order:
 
 | Category | What it means |
 | --- | --- |
@@ -57,6 +57,6 @@ Text counts as hidden when it's under something drawn over it, invisible, off th
 
 Almost every file has some metadata, such as a title, so refusing `Metadata` stops nearly every file. The example refuses history, scripts, attachments and hidden content instead. Pick the list for your own documents: a court filing might refuse annotations too, and a form you send back must keep its values.
 
-Both calls take the `OpenOptions` you opened the file with, since earlier revisions open with the same password and limits. Both also take a `CancelToken`: they read every page and every revision, so a server can cancel them when the request they serve goes away.
+`reveal` takes the `OpenOptions` you opened the file with, since earlier revisions open with the same password and limits. It also takes a `CancelToken`: it reads every page and every revision, so a server can cancel it when the request it serves goes away.
 
 Next: [inspect and check PDFs on the command line](/cli/inspect/), which runs the same checks over many files at once.

@@ -26,7 +26,7 @@ An example is code a reader will paste into their own app, so it must be code we
   - in TypeScript, `@laminapdf/sdk` and `@laminapdf/sdk/worker`, and for drawing pages `@laminapdf/render` and `@laminapdf/render-hayro`; the viewer's example imports `@laminapdf/viewer` and PDFium's `.wasm` URL;
   - in Rust, `laminapdf::…`, and for drawing pages `laminapdf_render::…`, which the façade doesn't re-export.
 
-  It never imports from `src/`, `test/`, `fixtures/` or another package's path, and never from `laminapdf_<crate>` directly.
+  It never imports from `src/`, `test/`, `fixtures/` or another package's path, and never from any other `laminapdf_<crate>`.
 - **MUST:** an example contains no test scaffolding. Fixed file IDs, dates and producers are parameters, and the tests pass them in. Checks of the output belong in the tests. An example whose subject is testing a reader's own PDFs may fix the file ID and dates; it is listed under `[[test-example]]` in `tools/xtask/docs-snippets.toml` with the reason.
 - **MUST:** a TypeScript example frees what it creates with `using`; documents and builders implement `Symbol.dispose`.
 - **MUST:** layout numbers have names (`MARGIN`, `ROW_HEIGHT`) or come from the API (the page width comes from the page size).

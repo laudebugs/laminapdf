@@ -3,13 +3,14 @@
 //! ([`crate::reports`]): run on their own, strict on the examples a PR changes and warnings on the
 //! others; `cargo xtask check` runs both strict on every example.
 
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::process::Command;
 
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
-use crate::docs_snippets::{RUST_EXAMPLES, TS_EXAMPLES, is_tool};
+use crate::docs_snippets::{RUST_EXAMPLES, is_tool};
 use crate::reports::{Options, Ratchet, finding};
 use crate::tracked::Tracked;
 use crate::workspace::Workspace;
@@ -17,7 +18,7 @@ use crate::workspace::Workspace;
 /// The examples' clippy configuration: the root `clippy.toml` plus a 40-line function limit.
 const CLIPPY_CONF_DIR: &str = "tools/xtask/clippy-examples";
 
-/// Biome's `packages/sdk/biome.json` override reports errors on every example; this lints the
+/// Biome's examples overrides (`packages/sdk/biome.json`) report errors on the examples; this lints the
 /// examples again with warnings as errors (the changed ones, or every one with `--all-strict`), for
 /// the rules that only warn outside the override.
 pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
@@ -27,13 +28,16 @@ pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
     let untracked = Ratchet::untracked(&ws.root)?;
     let ratchet = Ratchet::new(&ws.root, "examples (Biome)", options, &untracked);
     let tracked = Tracked::from_git(&ws.root)?;
-    let strict: Vec<String> = tracked
+    let paths: BTreeSet<String> = tracked
         .files()
         .map(|path| path.to_string_lossy().replace('\\', "/"))
         .chain(untracked)
-        .filter(|path| {
-            path.starts_with(TS_EXAMPLES) && crate::util::has_extension(path, &["ts"]) && ws.root.join(path).is_file()
-        })
+        .filter(|path| ws.root.join(path).is_file())
+        .collect();
+    // The examples docs-snippets checks, the viewer's among them, not only `@laminapdf/sdk`'s.
+    let strict: Vec<String> = crate::docs_snippets::example_paths(&ws.root, &paths)?
+        .into_iter()
+        .filter(|path| crate::util::has_extension(path, &["ts"]))
         .filter(|path| ratchet.is_strict(path))
         .collect();
     crate::step(&if options.all_strict {

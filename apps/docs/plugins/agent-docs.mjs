@@ -201,16 +201,19 @@ const snippetCache = new Map();
 
 /**
  * The folders a page may show files from: the ones `Snippet.astro`, `Example.astro` and
- * `Transcript.astro` glob (the TypeScript and Rust examples, the viewer's, the reading examples'
- * outputs and the command-line transcripts). A twin never reads elsewhere.
+ * `Transcript.astro` glob (the TypeScript and Rust examples, the reading examples' outputs and the
+ * command-line transcripts), and the single files they show from other folders
+ * ({@link SHOWN_FILES}). A twin never reads elsewhere.
  */
 const SHOWN_FOLDERS = [
   "packages/sdk/examples/",
-  "packages/viewer/examples/",
   "crates/laminapdf/examples/",
   "fixtures/extract/examples/",
   "fixtures/cli/transcripts/",
 ];
+
+/** Files a page may show from a folder that also holds files it may not: the viewer's example for readers, beside its demo pages. */
+const SHOWN_FILES = ["packages/viewer/examples/show-a-pdf.ts"];
 
 /**
  * `file` (a path from the repository root, as a page names it) as a URL inside one of
@@ -226,19 +229,20 @@ export function shownFileUrl(file) {
     !/^([/\\]|[A-Za-z]:|file:)/.test(file) &&
     !file.includes("%") &&
     !file.split(/[/\\]/).includes("..") &&
-    SHOWN_FOLDERS.some((folder) => file.startsWith(folder));
+    (SHOWN_FOLDERS.some((folder) => file.startsWith(folder)) || SHOWN_FILES.includes(file));
   const outside = new Error(
-    `agent docs: a page shows ${file}, outside the example folders (${SHOWN_FOLDERS.join(", ")})`,
+    `agent docs: a page shows ${file}, outside the example folders (${[...SHOWN_FOLDERS, ...SHOWN_FILES].join(", ")})`,
   );
   if (!safe) throw outside;
   const url = new URL(file, ROOT);
   // The check that counts: the file read, decoded and with every symbolic link followed, lies
   // inside an allowed folder (its real path too).
   const path = realpathSync(fileURLToPath(url));
-  const inside = SHOWN_FOLDERS.some((folder) => {
-    const rest = relative(realpathSync(fileURLToPath(new URL(folder, ROOT))), path);
-    return rest !== "" && !rest.startsWith("..") && !isAbsolute(rest);
-  });
+  const inside =
+    SHOWN_FOLDERS.some((folder) => {
+      const rest = relative(realpathSync(fileURLToPath(new URL(folder, ROOT))), path);
+      return rest !== "" && !rest.startsWith("..") && !isAbsolute(rest);
+    }) || SHOWN_FILES.some((shown) => realpathSync(fileURLToPath(new URL(shown, ROOT))) === path);
   if (!inside) throw outside;
   return url;
 }
