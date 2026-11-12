@@ -4,6 +4,9 @@
 // and loses the link, so the member stays documented without a link that would 404.
 import { Converter } from "typedoc";
 
+/** Types whose members the reference leaves out, since their description explains them. */
+export const SUMMARISED = ["FlowTemplate"];
+
 /** Where TypeDoc writes the @laminapdf/sdk reference, under the site's pages (astro.config.mjs). */
 export const TYPEDOC_OUTPUT = "reference/sdk";
 
@@ -29,6 +32,20 @@ export function isDependencyFile(fileName) {
 }
 
 /**
+ * Leaves out the members of the types in {@link SUMMARISED}.
+ *
+ * @param {Pick<import("typedoc").ProjectReflection, "getChildByName" | "removeReflection">} project
+ */
+export function removeSummarisedMembers(project) {
+  for (const name of SUMMARISED) {
+    const reflection = /** @type {{ children?: import("typedoc").Reflection[] } | undefined} */ (
+      project.getChildByName(name)
+    );
+    for (const child of [...(reflection?.children ?? [])]) project.removeReflection(child);
+  }
+}
+
+/**
  * TypeDoc's entry point for a plugin.
  *
  * @param {import("typedoc").Application} app
@@ -42,5 +59,6 @@ export function load(app) {
         if (isDependencyFile(source.fullFileName)) delete source.url;
       }
     }
+    removeSummarisedMembers(context.project);
   });
 }

@@ -58,6 +58,9 @@ const typeDoc = starlightTypeDoc({
     // "Defined in" links to the file at the release's tag (main for unreleased docs). disableGit
     // builds them from the template alone, so a worktree or a shallow CI checkout links the same way.
     disableGit: true,
+    // Declarations as code blocks, one member or union case to a line, rather than a paragraph
+    // of inline code that a long union or object type turns into an unbroken wall of text.
+    useCodeBlocks: true,
     displayBasePath: fileURLToPath(ROOT),
     // Sources in node_modules (TypeScript's own types) keep no link: they aren't on GitHub.
     plugin: [fileURLToPath(new URL("plugins/typedoc-sources.mjs", import.meta.url))],

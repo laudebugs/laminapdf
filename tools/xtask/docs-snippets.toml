@@ -55,6 +55,10 @@ ts = "packages/sdk/examples/extract-markdown.ts"
 rust = "crates/laminapdf/examples/extract_markdown.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/react-to-error-codes.ts"
+rust = "crates/laminapdf/examples/react_to_error_codes.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/invoice-from-json.ts"
 rust = "crates/laminapdf/examples/invoice_from_json.rs"
 
