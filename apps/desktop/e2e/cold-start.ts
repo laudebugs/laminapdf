@@ -26,8 +26,9 @@ function launch(): Promise<number> {
       reject(new Error(`the app didn't report within ${LIMIT_MS} ms`));
     }, LIMIT_MS);
     let output = "";
-    app.stdout.on("data", (chunk: Buffer) => {
-      output += chunk.toString();
+    app.stdout.setEncoding("utf8");
+    app.stdout.on("data", (chunk: string) => {
+      output += chunk;
       const found = /e2e: interactive (\d+) ms/.exec(output);
       if (found === null) return;
       clearTimeout(timer);

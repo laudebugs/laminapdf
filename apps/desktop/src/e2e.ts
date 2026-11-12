@@ -2,8 +2,8 @@
 // frontend plugin, and what the scenarios read instead of sleeping. A release build never
 // imports this file; CI checks its bundle has none of it (D2e).
 import "@wdio/tauri-plugin";
-import { invoke } from "@tauri-apps/api/core";
 import type { PageRenderState } from "@laminapdf/viewer";
+import { invoke } from "@tauri-apps/api/core";
 import type { DesktopEngine } from "./app.tsx";
 import type { Paint } from "./e2e-probe.ts";
 
