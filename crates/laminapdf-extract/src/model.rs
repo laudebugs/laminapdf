@@ -25,14 +25,14 @@ pub struct Extraction {
     pub blocks: Vec<Block>,
     /// What was left out of the text, and why.
     pub dropped: Vec<Dropped>,
-    /// The models used ([ADR 0030] §6), layout first; empty for rules only. The JSON names
+    /// The layout and OCR models used, layout first; empty for rules only. The JSON names
     /// them in `generator.models`.
     #[cfg_attr(feature = "serde", serde(skip))]
     #[cfg_attr(feature = "schema", schemars(skip))]
     pub models: Vec<crate::plugins::ModelInfo>,
 }
 
-/// The input, as ADR 0030 §1's `source` describes it.
+/// The input: its SHA-256, page count, whether it is tagged, and where the reading order came from.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -50,9 +50,8 @@ pub struct ExtractedSource {
     pub struct_source: StructSource,
 }
 
-/// Where the reading order came from ([ADR 0030] §2).
-///
-/// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+/// Where the reading order came from: the file's structure tree, the page layout, or the order
+/// the content stream draws in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -68,9 +67,7 @@ pub enum StructSource {
     Content,
 }
 
-/// One extracted page ([ADR 0027] §4).
-///
-/// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+/// One extracted page, with its blocks' boxes in top-left page space.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -155,7 +152,7 @@ impl TextLayerStatus {
     }
 }
 
-/// ADR 0027 §4's `coordinates` block: top-left points of the displayed box.
+/// How to read the page's boxes: points from the top-left of the displayed box, y down.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -188,9 +185,7 @@ impl Coordinates {
     }
 }
 
-/// A block of text: a paragraph, heading, list item and so on ([ADR 0030] §1).
-///
-/// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+/// A block of text: a paragraph, heading, list item and so on.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -201,7 +196,8 @@ pub struct Block {
     /// What the block is.
     #[cfg_attr(feature = "serde", serde(flatten))]
     pub kind: BlockKind,
-    /// The visible text, lines joined by a space after the text fixes (ADR 0030 §5).
+    /// The visible text, lines joined by a space after the text fixes (hyphenated words
+    /// joined again, ligatures expanded).
     pub text: String,
     /// The page index.
     pub page: usize,
@@ -344,9 +340,7 @@ pub enum BlockKind {
     },
 }
 
-/// A structure element ([ADR 0030] §1's `structRef`).
-///
-/// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+/// The element of the file's structure tree that a block came from.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -372,7 +366,7 @@ pub struct Span {
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::rect"))]
     #[cfg_attr(feature = "schema", schemars(with = "[f64; 4]"))]
     pub bbox: RectPt,
-    /// The baseline's y in page space (ADR 0027 §5).
+    /// The baseline's y in page space (points from the top, y down).
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::pt"))]
     #[cfg_attr(feature = "schema", schemars(with = "f64"))]
     pub baseline: Pt,
@@ -385,16 +379,12 @@ pub struct Span {
     /// Why the run would be hidden; empty for visible text.
     pub flags: Flags,
     /// The OCR engine's confidence, 0 to 1, when an engine read this text from the page image
-    /// rather than the file's text layer ([ADR 0030] §6); absent for the text layer's runs.
-    ///
-    /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+    /// rather than the file's text layer; absent for the text layer's runs.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub ocr: Option<f64>,
 }
 
-/// Why text is hidden from a reader ([ADR 0030] §4). Flagged text is never in a block's text.
-///
-/// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+/// Why text is hidden from a reader. Flagged text is never in a block's text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 #[expect(
@@ -451,10 +441,8 @@ impl Flags {
     }
 }
 
-/// Text left out of the output ([ADR 0030] §4). It records a count, never the text, so a log of
-/// the output can't leak what was hidden.
-///
-/// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+/// Text left out of the output. It records a count, never the text, so a log of the output can't
+/// leak what was hidden.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]

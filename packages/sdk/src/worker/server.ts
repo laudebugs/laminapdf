@@ -131,8 +131,8 @@ export function emit(name: string, data?: unknown, transfer: Transferable[] = []
 }
 
 /**
- * The ADR 0026 object for anything thrown. Lamina PDF's own errors pass through, and so does the §1
- * object the WASM modules throw. Any other error that can describe itself (`toDiagnostic()`,
+ * The error object (`laminapdf.error/1`) for anything thrown. Lamina PDF's own errors pass through, and
+ * so does the object the WebAssembly modules throw. Any other error that can describe itself (`toDiagnostic()`,
  * as `@laminapdf/render`'s RenderError does) is posted as that object, so a render
  * `data-pending` keeps its `[offset, length]` ranges in `data.ranges` (`LaminaPdfError.ranges`).
  * Anything else is a failure of the worker itself (`worker-failed`, kind internal). Caller
@@ -147,7 +147,7 @@ function diagnostic(e: unknown): Diagnostic<ErrorCode> {
   return packageError("worker-failed", e instanceof Error ? e.message : String(e)).toJSON();
 }
 
-/** What `e.toDiagnostic()` returns, when `e` has that method and it returns a §1 object. */
+/** What `e.toDiagnostic()` returns, when `e` has that method and it returns an error object. */
 function fromToDiagnostic(e: unknown): Diagnostic<ErrorCode> | undefined {
   const toDiagnostic = (e as { toDiagnostic?: unknown } | null | undefined)?.toDiagnostic;
   if (typeof toDiagnostic !== "function") return undefined;

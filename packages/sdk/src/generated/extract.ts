@@ -39,7 +39,7 @@ export type Chunk = {
   tokensApprox: number;
 };
 
-/** ADR 0027 §4's `coordinates` block: top-left points of the displayed box. */
+/** How to read the page's boxes: points from the top-left of the displayed box, y down. */
 export type Coordinates = {
   /** `"CropBox"`, or `"default"` when the page had no usable box and US Letter was used. */
   box: string;
@@ -57,10 +57,8 @@ export type Coordinates = {
 export type DropReason = "invisible" | "off-page" | "tiny" | "clipped" | "low-contrast" | "covered" | "artifact" | "running-header" | "running-footer" | "page-number";
 
 /**
- * Text left out of the output ([ADR 0030] §4). It records a count, never the text, so a log of
- * the output can't leak what was hidden.
- * 
- * [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+ * Text left out of the output. It records a count, never the text, so a log of the output can't
+ * leak what was hidden.
  */
 export type Dropped = {
   /** Where it was, in page space. */
@@ -78,11 +76,7 @@ export type Dropped = {
   spans?: Span[];
 };
 
-/**
- * One extracted page ([ADR 0027] §4).
- * 
- * [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
- */
+/** One extracted page, with its blocks' boxes in top-left page space. */
 export type ExtractedPage = {
   /** The frame the boxes are in. */
   coordinates: Coordinates;
@@ -100,7 +94,7 @@ export type ExtractedPage = {
   width: number;
 };
 
-/** The input, as ADR 0030 §1's `source` describes it. */
+/** The input: its SHA-256, page count, whether it is tagged, and where the reading order came from. */
 export type ExtractedSource = {
   /** The document's page count. */
   pageCount: number;
@@ -118,7 +112,7 @@ export type ExtractedSource = {
 /** Why a run would be hidden from a reader; empty for visible text. */
 export type Flags = DropReason[];
 
-/** Who made the extraction (ADR 0030 §1's `generator`). */
+/** Who made the extraction: the library, its version, and the models it ran, if any. */
 export type Generator = {
   /** `"rules"`, or `"rules+models"` when a model plug-in was used. */
   mode: string;
@@ -155,7 +149,10 @@ export type JsonBlock = {
   structPath: string[];
   /** The structure element the block comes from, when it comes from one. */
   structRef?: StructRef | null;
-  /** The visible text, lines joined by a space after the text fixes (ADR 0030 §5). */
+  /**
+   * The visible text, lines joined by a space after the text fixes (hyphenated words
+   * joined again, ligatures expanded).
+   */
   text: string;
   textRange: TextRange;
 } & ({
@@ -208,7 +205,7 @@ export type Region = {
 
 /** One run of text in a block or a dropped entry. */
 export type Span = {
-  /** The baseline's y in page space (ADR 0027 §5). */
+  /** The baseline's y in page space (points from the top, y down). */
   baseline: number;
   /** Its box in page space. */
   bbox: [number, number, number, number];
@@ -218,9 +215,7 @@ export type Span = {
   font: string;
   /**
    * The OCR engine's confidence, 0 to 1, when an engine read this text from the page image
-   * rather than the file's text layer ([ADR 0030] §6); absent for the text layer's runs.
-   * 
-   * [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+   * rather than the file's text layer; absent for the text layer's runs.
    */
   ocr?: number | null;
   /** The glyph size in points. */
@@ -229,11 +224,7 @@ export type Span = {
   text: string;
 };
 
-/**
- * A structure element ([ADR 0030] §1's `structRef`).
- * 
- * [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
- */
+/** The element of the file's structure tree that a block came from. */
 export type StructRef = {
   /** Its generation. */
   gen: number;
@@ -244,9 +235,8 @@ export type StructRef = {
 };
 
 /**
- * Where the reading order came from ([ADR 0030] §2).
- * 
- * [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+ * Where the reading order came from: the file's structure tree, the page layout, or the order
+ * the content stream draws in.
  */
 export type StructSource = "tagged" | "xycut" | "content";
 

@@ -113,7 +113,7 @@ export class Instance<G extends Glue = Glue> {
   /**
    * Runs one call into the glue, after replacing an instance that trapped.
    *
-   * @throws {@link LaminaPdfError} for the §1 object the module throws; `wasm-trap` or
+   * @throws {@link LaminaPdfError} for the error object the module throws; `wasm-trap` or
    *   `out-of-memory` when it traps or overflows the stack (the next call gets a fresh instance).
    */
   call<T>(f: (glue: G) => T): T {

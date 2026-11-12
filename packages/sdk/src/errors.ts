@@ -5,7 +5,7 @@ import { docsUrl, type ErrorCode, type ErrorKind, RAISED_BY_PACKAGE, type Warnin
 
 export type { ErrorKind };
 
-/** Where a problem is (ADR 0026 §1.1); each field has one meaning, all lamina-made values. */
+/** Where a problem is; each field has one meaning, and every value is Lamina PDF's own, never document text. */
 export interface Location {
   /** Byte offset in the input file. */
   readonly offset?: number;
@@ -13,13 +13,16 @@ export interface Location {
   readonly object?: number;
   /** Byte offset in the decoded data of `object`. */
   readonly streamOffset?: number;
-  /** 0-based page index (ADR 0027 §6). */
+  /** 0-based page index: the first page is 0. */
   readonly pageIndex?: number;
   /** A LaminaPdfId (`p12.0`). */
   readonly id?: string;
 }
 
-/** The ADR 0026 §1 object: what `LaminaPdfError.toJSON()` returns and the WASM throws. */
+/**
+ * An error as plain data (the `laminapdf.error/1` object): what `LaminaPdfError.toJSON()` returns
+ * and the WebAssembly modules throw.
+ */
 export interface Diagnostic<C extends string = ErrorCode> {
   readonly code: C;
   readonly kind: ErrorKind;
@@ -32,14 +35,14 @@ export interface Diagnostic<C extends string = ErrorCode> {
 }
 
 /**
- * A warning: something Lamina PDF repaired or skipped (ADR 0003, ADR 0026 §1). The §1 object without
+ * A warning: something Lamina PDF repaired or skipped while reading. A {@link Diagnostic} without
  * `didYouMean`; document text appears only in `data`.
  */
 export type LaminaPdfWarning = Omit<Diagnostic<WarningCode>, "didYouMean">;
 
 /**
- * The one error class of `@laminapdf/sdk` (ADR 0026 §7). `message`, `hint` and `didYouMean` never
- * hold document text (ADR 0026 §4); that goes in `data`, marked untrusted on the code's page at
+ * The one error class of `@laminapdf/sdk`. `message`, `hint` and `didYouMean` never
+ * hold document text; that goes in `data`, marked untrusted on the code's page at
  * `docsUrl`.
  *
  * @example
@@ -70,7 +73,7 @@ export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
   readonly docsUrl: string;
 
   /**
-   * @param diagnostic - the ADR 0026 §1 object.
+   * @param diagnostic - the error as plain data.
    * @param options - `cause`, when wrapping another error.
    */
   constructor(diagnostic: Diagnostic<C>, options?: { readonly cause?: unknown }) {
@@ -99,7 +102,7 @@ export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
     );
   }
 
-  /** The ADR 0026 §1 object (for logs, workers and `--json` output); optional fields omitted. */
+  /** The error as plain data (for logs, workers and `--json` output); optional fields omitted. */
   toJSON(): Diagnostic<C> {
     return {
       code: this.code,
@@ -125,7 +128,7 @@ export function isLaminaPdfError<C extends ErrorCode>(e: unknown, code?: C): e i
   return e instanceof LaminaPdfError && (code === undefined || e.code === code);
 }
 
-/** Whether `value` is the §1 object the WASM throws. */
+/** Whether `value` is the error object the WebAssembly modules throw. */
 export function isDiagnostic(value: unknown): value is Diagnostic<ErrorCode> {
   if (typeof value !== "object" || value === null || value instanceof Error) return false;
   const v = value as Record<string, unknown>;

@@ -61,7 +61,7 @@ function bytesOf(input: Uint8Array | ArrayBuffer): Uint8Array {
 /**
  * The open options to try, in order: as given, then, when the password's NFKC form differs, with
  * that form (tried only after `wrong-password`). R5/R6 passwords are prepared with SASLprep,
- * whose normalisation the WASM modules leave out (ADR 0016 §7), while R2–R4 passwords must reach
+ * whose normalisation the WebAssembly modules leave out, while R2–R4 passwords must reach
  * the core unchanged.
  */
 function passwordAttempts<O extends OpenOptions>(options: O): O[] {
@@ -78,7 +78,7 @@ function tryNext(e: unknown, attempt: number, attempts: number): boolean {
 }
 
 /**
- * A page of a {@link Document}, held by its ID: moving pages doesn't retarget it (ADR 0028 F2).
+ * A page of a {@link Document}, held by its ID: moving pages doesn't retarget it.
  * Freed with its document; every call after that throws `disposed`.
  */
 export class PageRef extends Handle<BaseGlue> {
@@ -138,7 +138,7 @@ export class PageRef extends Handle<BaseGlue> {
 }
 
 /**
- * A save in progress, stepped by the caller with a budget of work units (ADR 0028 §3). Freed with
+ * A save in progress, stepped by the caller with a budget of work units. Freed with
  * its document; every call after that throws `disposed`.
  */
 export class SaveJob extends Handle<BaseGlue> {
@@ -294,7 +294,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * The password is tried as given. When that fails with `wrong-password` and its NFKC form
    * differs, the NFKC form is tried too: R5/R6 passwords are prepared with SASLprep, whose
-   * normalisation the WASM modules leave out (ADR 0016 §7), while R2–R4 passwords must reach
+   * normalisation the WebAssembly modules leave out, while R2–R4 passwords must reach
    * the core unchanged.
    *
    * @param bytes - the PDF file.
@@ -548,7 +548,7 @@ export class Document extends Handle<BaseGlue> {
     return doc as ExtractWasmDocument;
   }
 
-  /** Every warning so far (build warnings first), each the ADR 0026 §1 object. */
+  /** Every warning so far (build warnings first), each a {@link LaminaPdfWarning}. */
   get warnings(): readonly LaminaPdfWarning[] {
     return this.call(() => {
       const cursor = this.#doc.warnings();
@@ -602,8 +602,8 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
-   * Runs `edit` with a transaction handle and applies what it collected as one transaction
-   * (ADR 0006 §2). When `edit` throws, nothing is applied and the error propagates. The ops are
+   * Runs `edit` with a transaction handle and applies what it collected as one transaction,
+   * undone and redone as one step. When `edit` throws, nothing is applied and the error propagates. The ops are
    * applied when `edit` returns: reads inside `edit` see the document before the transaction.
    *
    * @param edit - collects ops on `tx`; synchronous only (a callback returning a promise is
