@@ -1,64 +1,68 @@
-# E5c — Custom stamps, file-attachment annotations and audio annotations (read)
+# E5c — Stamps, file-attachment annotations and audio comments read
 
 | Field | Value |
 | --- | --- |
 | ID | `E5c` |
 | Status | `ready` |
-| Plan | [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) |
+| Plan | [E5 plan §2.1](../../plans/editor/e5-review-stamps-interchange.md#21-ops) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E4b](./E4b-annotation-model-and-overlay.md), [E5a](../ongoing/E5a-review-stamps-interchange-feature-plan.md) |
+| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E4b](./E4b-annotation-model-and-overlay.md), [E4e](./E4e-freetext-callouts.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e5c-stamps-and-attachments` |
-| PR title | `feat(annots): custom stamps and file attachment annotations` |
-| Size | M (200–600) |
+| PR title | `feat(build): stamps, file-attachment annotations and audio comments` |
+| Size | L (400–800): two specs with their appearances, the Sound reader and WAV conversion |
 | PR | — |
 
 ## Goal
 
-Stamp annotations with image or dynamic-text appearances ("Approved by {user} on {date}" resolved at creation, not by JavaScript), a stamp library stored per user on the device, FileAttachment annotations (embedded file spec + icon), and Sound annotations listed and playable on desktop (read).
+Stamp annotations (the standard names, image stamps and dynamic text), FileAttachment annotations with their embedded files, and Sound annotations read and turned into WAV.
 
 ## Context
 
-- **Design (Paper):** [C05 Stamps and file attachments](../../design/paper/comment-review.md#c05-stamps-and-file-attachments). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [04 §2.2](../../research/pdf/04-interactive-security.md#22-the-annotation-zoo)
-- [04 §6.1 File specifications](../../research/pdf/04-interactive-security.md#61-file-specifications-711)
+- [E5 plan §2.1 and §2.2](../../plans/editor/e5-review-stamps-interchange.md#21-ops)
+- **Design (Paper):** [C05 Stamps and file attachments](../../design/paper/comment-review.md#c05-stamps-and-file-attachments)
+- ISO 32000-2 §12.5.6.12 (stamps), §12.5.6.15 (file attachments), §12.5.6.16 (sound)
 
 ## Scope
 
 **In scope**
 
-- Stamp builder (image via `laminapdf-build` images, text via laminapdf-text)
-- Stamp library UI
-- FileAttachment create/extract
-- Sound annotation listing; desktop playback via native audio decoding, web lists only
+- The `Stamp` spec: the standard names drawn by E4's generator, image stamps from the blob store, dynamic stamps laid out by `laminapdf-text` (`appearance-needs-text` in the base module)
+- The `FileAttachment` spec: the file specification through [E3f](E3f-attachments-and-associated-files.md)'s writer, the icons of C05; `pdfa-attachment-forbidden` on PDF/A-1 and -2
+- `page_annotations` records for Stamp, FileAttachment and Sound; `sound_as_wav(id)` for raw, signed, μ-law and A-law samples within `Limits`
+- `fixtures/annotations/stamps.pdf`, `attachments.pdf`, `sound.pdf`
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The stamp picker, custom stamps, the inspector and Play → [E5h](E5h-stamps-and-attachments-ui.md)
+- Recording audio → [E17d](E17d-media.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `D.07` custom stamps; `D.08` attach files as annotations; `D.09` audio annotations
-- **Crates and packages:** `laminapdf-build`, `laminapdf-model`, `@laminapdf/ui`
-- **`Op` variants:** `AddAnnot` specs `Stamp`, `FileAttachment`
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Annotation` is allowed only under DocMDP P3 or when there is no certification signature (approval signatures alone allow annotations); otherwise a violation → warn and gate. Note the Evil Annotation Attack: annotations added after certification are shown as such in the signature panel (E10)
-- **Web vs desktop:** stamp library: desktop app data folder, web IndexedDB (per viewer); audio playback on desktop only
-- **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `D.07` → `round-trip` (core, pdf, web, desktop); `D.08` → `round-trip` (core, pdf, web, desktop); `D.09` → `read` (core, pdf, web, desktop)
+- **Crates and packages:** `laminapdf-model`, `laminapdf-ops`, `laminapdf-build`, `laminapdf`, `laminapdf-wasm`, `@laminapdf/sdk`
+- **`Op` variants:** `AddAnnot` with `Stamp` and `FileAttachment` (class `Annotation`)
+- **`SaveConstraint`:** as [E5 plan §5](../../plans/editor/e5-review-stamps-interchange.md#5-saving-and-the-save-constraint)
+- **Web vs desktop:** identical
+- **Server features:** none
+- **Capability-matrix rows to flip:** `D.07`, `D.08` → `round-trip` (core, pdf); `D.09` → `read` (core, pdf)
 
 ## Tasks
 
-- [ ] Builders
-- [ ] Library storage per shell
-- [ ] Attachment annotation
-- [ ] Sound listing/playback
+- [ ] Stamp generators and goldens
+- [ ] The FileAttachment spec
+- [ ] The Sound reader and `sound_as_wav`
+- [ ] Bindings and examples
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
-- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
-- [ ] Stamps render identically in pdf.js and PDFium; attached file extracts byte-identical
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new op and function is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdicts of [E5 plan §5](../../plans/editor/e5-review-stamps-interchange.md#5-saving-and-the-save-constraint), because a misclassified op is a security bug
+- [ ] Round-trip: open → op → save → reopen in Lamina PDF, pdf.js and PDFium preserves the change and everything else; `qpdf --check` is clean
+- [ ] Each stamp renders in pdf.js and PDFium within E4g's threshold
+- [ ] pdf.js's `getAttachments` returns the attached file's exact bytes
+- [ ] `sound_as_wav` gives a playable WAV for each sample format of `sound.pdf`
 
 ## Post-merge checks
 
@@ -66,13 +70,14 @@ None.
 
 ## Tests
 
-- Goldens, round-trip, e2e
+- Goldens in `fixtures/golden/annots/stamps.pdf` and render diffs
+- The round-trip suite
 
 ## Docs to update
 
-- User help: stamps
-- [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- API docs: stamps, file attachments and audio
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
+- [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) and the [E5 plan §7](../../plans/editor/e5-review-stamps-interchange.md#7-todos): point this todo's link at `done/`
 
 ## Risks and open questions
 
@@ -80,8 +85,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E5a](../ongoing/E5a-review-stamps-interchange-feature-plan.md), [E8a](./E8a-adr-0021-javascript-policy.md) |
+| Depends on | [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E8a](./E8a-adr-0021-javascript-policy.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e8b-form-filling-feature-plan` |
 | PR title | `docs(editor): E8 feature plan (form filling and data)` |
