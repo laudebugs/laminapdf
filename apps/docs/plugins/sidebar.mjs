@@ -24,6 +24,7 @@ export function sidebar(typeDoc) {
         { label: "Install", slug: "install" },
         { label: "Your first PDF", slug: "start/first-pdf" },
         { label: "Use with coding agents", slug: "start/coding-agents" },
+        { label: "Read offline", slug: "start/offline" },
       ],
     },
     {

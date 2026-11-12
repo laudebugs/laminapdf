@@ -94,6 +94,8 @@ It isn't the right choice for every job today:
 - **It doesn't fill forms or sign.** LibPDF and pdfium-render fill form fields today, and LibPDF signs.
 - **Its editing is narrow.** It changes document info, such as the title and author, and page rotation. It can't yet edit the text or images already on a page.
 
+For every operation, the reader's [capability page](https://app.laminapdf.com/capabilities) shows what Lamina PDF reads, writes and round-trips today in the Rust core, the TypeScript library, the web reader and the desktop app. A status appears there only when a test proves it.
+
 To see how Lamina PDF is checked, read [How we test](https://laminapdf.com/how-we-test/). [Benchmarks](/reference/benchmarks/) has its timings and download sizes in each runtime.
 
 Next: [Install](/install/) Lamina PDF, or make [your first PDF](/start/first-pdf/).
