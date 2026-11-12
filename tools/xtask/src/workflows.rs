@@ -683,6 +683,37 @@ mod tests {
         );
     }
 
+    /// The value of `key` among the lines of `workflow`'s top-level `section:` block.
+    fn top_level_value<'a>(workflow: &'a str, section: &str, key: &str) -> Option<&'a str> {
+        let header = format!("{section}:");
+        workflow
+            .lines()
+            .skip_while(|line| line.trim_end() != header)
+            .skip(1)
+            .take_while(|line| line.is_empty() || line.starts_with(' '))
+            .find_map(|line| line.trim_start().strip_prefix(key))
+            .map(|value| value.split(" #").next().unwrap_or_default().trim())
+    }
+
+    /// Todo X9d: a newer push to main cancels the older run, as a newer push to a PR does.
+    #[test]
+    fn both_lanes_should_cancel_a_superseded_run_for_every_event() {
+        let values: Vec<_> = [CI, FULL]
+            .iter()
+            .map(|workflow| top_level_value(workflow, "concurrency", "cancel-in-progress:"))
+            .collect();
+        assert_eq!(values, [Some("true"), Some("true")]);
+    }
+
+    #[test]
+    fn top_level_value_should_read_only_its_own_block() {
+        let workflow = "concurrency:\n  group: x\n  # cancel-in-progress: false\n  cancel-in-progress: true # why\njobs:\n  a:\n    cancel-in-progress: false\n";
+        assert_eq!(
+            top_level_value(workflow, "concurrency", "cancel-in-progress:"),
+            Some("true")
+        );
+    }
+
     #[test]
     fn keys_under_should_stop_at_the_next_top_level_key() {
         let workflow = "name: x\non: # triggers\n  push:\n    branches: [main]\n  # a comment\n  schedule:\n    - cron: \"0 1 * * *\"\npermissions:\n  contents: read\n";

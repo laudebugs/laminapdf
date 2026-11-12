@@ -23,8 +23,11 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  # Cancel superseded runs on PRs only; every push to main keeps its own result.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # A newer run cancels the older one, on PRs and on main alike (todo X9d): nothing reads a push to
+  # main's own result (the release trains wait on the nightly and on tag pushes), and the newer run
+  # saves the caches again. A commit whose run was cancelled has no result of its own; a break it
+  # brought shows in the next run.
+  cancel-in-progress: true
 
 env:
   CARGO_TARGET_DIR: ${{ github.workspace }}/target
