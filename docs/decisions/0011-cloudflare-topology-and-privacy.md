@@ -54,7 +54,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
   | `staging-app.laminapdf.com` | the reader's staging | `lamina-pdf-web-staging` | every push to `main` |
   | `docs.laminapdf.com` | the docs site (`apps/docs`) for the latest release | `lamina-pdf-docs` | each release ([ADR 0017 §7](0017-versioning-and-release.md#7-publishing)), with a preview per PR |
   | `next.docs.laminapdf.com` | the docs site for what `main` holds beyond the latest release, never indexed | `lamina-pdf-docs-next` | every push to `main` |
-  | `updates.laminapdf.com`, `downloads.laminapdf.com`, `staging-downloads.laminapdf.com`, `nightly-downloads.laminapdf.com` | the desktop updater and the downloads of the release, staging and nightly channels ([desktop plan §5](../plans/desktop-app.md#5-design-summary), [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md)) | ADR 0014, written in D5a | D5a, D6b |
+  | `updates.laminapdf.com`, `downloads.laminapdf.com`, `staging-downloads.laminapdf.com`, `nightly-downloads.laminapdf.com` | the desktop updater and the downloads of the release, staging and nightly channels ([desktop plan §5](../plans/desktop-app.md#5-design-summary), [D5a](../todos/ongoing/D5a-update-worker-and-adr-0014.md)) | ADR 0014, written in D5a | D5a, D6b |
 
   Every name but `next.docs.laminapdf.com` is one label deep, so the zone's universal certificate (the apex and `*.laminapdf.com`) covers it. That one is two labels deep: its Workers custom domain gets a certificate of its own, which P4 checks before it deploys. The HSTS preload submission follows the website's first production deploy (§4).
 

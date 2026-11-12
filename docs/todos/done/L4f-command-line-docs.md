@@ -48,7 +48,7 @@ Rescoped on 2026-11-10 from "a download table on the install page": the owner as
 
 **Out of scope** (and which todo covers it)
 
-- The desktop downloads and `downloads.laminapdf.com`: [D5a](../ready/D5a-update-worker-and-adr-0014.md).
+- The desktop downloads and `downloads.laminapdf.com`: [D5a](../ongoing/D5a-update-worker-and-adr-0014.md).
 - The website's `/download` page: [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md).
 - Signing and notarisation: [D6c](../ready/D6c-macos-signing-and-notarisation.md), [D6d](../ready/D6d-windows-signing.md).
 - A shell installer (`curl … | sh`): later, on demand.

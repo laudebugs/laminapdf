@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `D5a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C4d](../done/C4d-deploy-previews-and-production.md), [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md), [D3b](./D3b-recent-files-and-file-watching.md) |
-| Dependency notes | [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md) (bundle identifier, product name, target/arch matrix); web plan **C4** (`apps/web` Worker conventions, Wrangler pin, deploy workflow, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and ADR 0011 from web **C2** (Cloudflare topology, privacy and logging rules). Ordered after [D3b](D3b-recent-files-and-file-watching.md) on the board (see Depends on), though it uses no D3 code; it does not need D4 and may run in parallel with D4a–D4c. |
+| Depends on | [C2a](../done/C2a-render-adrs.md), [C4d](../done/C4d-deploy-previews-and-production.md), [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md), [D3b](../ready/D3b-recent-files-and-file-watching.md) |
+| Dependency notes | [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md) (bundle identifier, product name, target/arch matrix); web plan **C4** (`apps/web` Worker conventions, Wrangler pin, deploy workflow, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and ADR 0011 from web **C2** (Cloudflare topology, privacy and logging rules). Ordered after [D3b](../ready/D3b-recent-files-and-file-watching.md) on the board (see Depends on), though it uses no D3 code; it does not need D4 and may run in parallel with D4a–D4c. |
 | ADRs | **Writes ADR 0014** (desktop distribution). Follows ADR 0011, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md), ADR 0017 (attestations, library plan) |
 | Branch | `feat/d5a-update-worker` |
 | PR title | `feat(updates): add ADR 0014 and the update Worker with channels and staged rollout` |
@@ -89,10 +89,10 @@ Decide and build the server side of desktop updates. ADR 0014 records channels, 
 
 **Out of scope** (and which todo covers it)
 
-- App-side updater wiring, settings, install-ID generation, managed policy reading, end-to-end update test: [D5b](D5b-updater-in-app.md).
-- Producing signed artefacts and uploading them: [D6b](D6b-release-workflow-and-linux-packages.md)–[D6d](D6d-windows-signing.md).
-- Crash-report endpoint on the same Worker: [D7a](D7a-crash-reporting.md).
-- Download page on the website: [D7b](D7b-settings-renderer-switch-and-download-page.md).
+- App-side updater wiring, settings, install-ID generation, managed policy reading, end-to-end update test: [D5b](../ready/D5b-updater-in-app.md).
+- Producing signed artefacts and uploading them: [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md).
+- Crash-report endpoint on the same Worker: [D7a](../ready/D7a-crash-reporting.md).
+- Download page on the website: [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md).
 
 ## Tasks
 
