@@ -2,12 +2,31 @@
 //! user does by hand. A native file dialog can't be driven, so a scenario queues a fixture with
 //! `e2e_queue_pick` and clicks Choose a file, and `open_dialog` takes the queued path instead of
 //! showing the dialog. Only files under the repository's `fixtures/` or `target/fixtures/` may be
-//! queued. Release builds have none of this; CI checks their binary (ADR 0008 §8).
+//! queued. `e2e_interactive` reports the cold start: the time from `run()` to the empty state
+//! accepting input. Release builds have none of this; CI checks their binary (ADR 0008 §8).
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
+use std::time::Instant;
 
 use crate::DesktopError;
+
+/// When `run()` began: the start of the cold start `e2e_interactive` reports.
+static STARTED: OnceLock<Instant> = OnceLock::new();
+
+/// Starts the cold start's clock; `run()` calls it first.
+pub(crate) fn start_clock() {
+    STARTED.get_or_init(Instant::now);
+}
+
+/// The frontend's empty state accepts input: prints and returns the milliseconds since `run()`
+/// began (`e2e/cold-start.ts` reads the line).
+#[tauri::command]
+pub(crate) fn e2e_interactive() -> u128 {
+    let ms = STARTED.get().map_or(0, |started| started.elapsed().as_millis());
+    println!("e2e: interactive {ms} ms");
+    ms
+}
 
 /// The path the next `open_dialog` opens instead of asking, per app.
 #[derive(Debug, Default)]

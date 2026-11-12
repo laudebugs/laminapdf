@@ -23,6 +23,7 @@ const E2E_COMMANDS: &[&str] = &[
     "cancel_tiles",
     "debug_kill_engine",
     "e2e_queue_pick",
+    "e2e_interactive",
 ];
 
 fn main() -> ExitCode {

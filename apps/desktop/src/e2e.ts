@@ -2,6 +2,7 @@
 // frontend plugin, and what the scenarios read instead of sleeping. A release build never
 // imports this file; CI checks its bundle has none of it (D2e).
 import "@wdio/tauri-plugin";
+import { invoke } from "@tauri-apps/api/core";
 import type { PageRenderState } from "@laminapdf/viewer";
 import type { DesktopEngine } from "./app.tsx";
 import type { Paint } from "./e2e-probe.ts";
@@ -48,6 +49,7 @@ export function exposeProbe(engine: DesktopEngine | undefined): void {
   engine?.client.on("restarted", ({ reopened }) => {
     if (reopened) restarts++;
   });
+  reportInteractive();
   globalThis.__laminaE2e = {
     now: () => performance.now(),
     view: () => engine?.viewer.getState(),
@@ -57,4 +59,17 @@ export function exposeProbe(engine: DesktopEngine | undefined): void {
     restarts: () => restarts,
     tileFailures: () => tileFailures,
   };
+}
+
+/**
+ * Tells the main process when the empty state first accepts input (its Choose a file button is on
+ * screen), for the cold start `e2e/cold-start.ts` measures. Checked each frame.
+ */
+function reportInteractive(): void {
+  const check = () => {
+    const ready = [...document.querySelectorAll("button")].some((b) => b.textContent === "Choose a file");
+    if (ready) void invoke("e2e_interactive");
+    else requestAnimationFrame(check);
+  };
+  check();
 }

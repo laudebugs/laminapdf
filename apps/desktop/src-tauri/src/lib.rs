@@ -123,6 +123,8 @@ fn engines(app: &tauri::AppHandle) -> Arc<Engines> {
     reason = "tauri::generate_context! builds a HashMap of the bundled assets"
 )]
 pub fn run() -> Result<(), DesktopError> {
+    #[cfg(feature = "e2e")]
+    e2e::start_clock();
     // The test commands and WebdriverIO's plugins exist only in e2e builds; generate_handler!
     // takes no cfg per command.
     #[cfg(not(feature = "e2e"))]
@@ -145,6 +147,7 @@ pub fn run() -> Result<(), DesktopError> {
             commands::cancel_tiles,
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
+            e2e::e2e_interactive,
         ])
         .manage(e2e::QueuedPick::default());
     let builder = builder.plugin(
