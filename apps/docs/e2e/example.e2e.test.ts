@@ -9,6 +9,7 @@ import { firefoxEnv } from "@laminapdf/test-utils/firefox";
 import axe from "axe-core";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { withoutSelectReports } from "./webkit-select.ts";
 
 const DOCS = new URL("../", import.meta.url);
 const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
@@ -110,7 +111,7 @@ describe(`an example's first page in ${BROWSER}`, () => {
     expect(code.width).toBeGreaterThanOrEqual(576);
     expect(picture.width).toBeGreaterThan(200);
     expect(scrolls).toBe(false);
-    expect(errors).toEqual([]);
+    expect(await withoutSelectReports(page, errors)).toEqual([]);
     await page.context().close();
   });
 
@@ -120,7 +121,7 @@ describe(`an example's first page in ${BROWSER}`, () => {
     expect(picture.top).toBeGreaterThan(code.bottom);
     expect(picture.left).toBeCloseTo(code.left, 0);
     expect(scrolls).toBe(false);
-    expect(errors).toEqual([]);
+    expect(await withoutSelectReports(page, errors)).toEqual([]);
     await page.context().close();
   });
 

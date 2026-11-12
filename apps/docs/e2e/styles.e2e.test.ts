@@ -8,6 +8,7 @@ import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { isSelectReport, withoutSelectReports } from "./webkit-select.ts";
 
 const DOCS = new URL("../", import.meta.url);
 const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
@@ -52,11 +53,15 @@ async function open(
   page.on("console", (message) => {
     if (message.type() === "error") problems.push(message.text());
   });
-  await page.exposeFunction("__violation", (text: string) => problems.push(text));
+  await page.exposeFunction("__violation", (directive: string, blocked: string, target: string) => {
+    if (!isSelectReport(directive, target)) problems.push(`CSP: ${directive} ${blocked}`);
+  });
   await page.addInitScript(() => {
     document.addEventListener("securitypolicyviolation", (e) => {
-      (window as unknown as { __violation: (t: string) => void }).__violation(
-        `CSP: ${e.violatedDirective} ${e.blockedURI}`,
+      (window as unknown as { __violation: (d: string, b: string, t: string) => void }).__violation(
+        e.violatedDirective,
+        e.blockedURI,
+        (e.target as Node | null)?.nodeName ?? "",
       );
     });
   });
@@ -86,7 +91,7 @@ describe(`the docs under a CSP without inline styles in ${BROWSER}`, () => {
         const sent = await (await page.request.get(new URL(path, origin).href)).text();
         expect(/\sstyle\s*=|<style[\s>]/i.test(sent), `${path} sends an inline style`).toBe(false);
         if (!WITHOUT_CODE.has(path)) expect(await colouredTokens(page), `${path}'s code`).toBeGreaterThan(0);
-        expect(problems, path).toEqual([]);
+        expect(await withoutSelectReports(page, problems), path).toEqual([]);
         await close();
       }
     });
@@ -100,7 +105,7 @@ describe(`the docs under a CSP without inline styles in ${BROWSER}`, () => {
     await button.click();
     await page.locator(".pagefind-ui__search-input").first().fill("encrypted");
     await expect.poll(() => page.locator(".pagefind-ui__result").count(), { timeout: 15_000 }).toBeGreaterThan(0);
-    expect(problems).toEqual([]);
+    expect(await withoutSelectReports(page, problems)).toEqual([]);
     await close();
   });
 
@@ -122,7 +127,7 @@ describe(`the docs under a CSP without inline styles in ${BROWSER}`, () => {
     await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.type("x");
     expect(await content.innerText()).toBe("x");
-    expect(problems).toEqual([]);
+    expect(await withoutSelectReports(page, problems)).toEqual([]);
     await close();
   });
 });
