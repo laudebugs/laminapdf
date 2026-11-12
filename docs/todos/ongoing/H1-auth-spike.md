@@ -37,7 +37,7 @@ Answer the architecture's open spike: which login stack for lamina's hosted serv
 
 **Out of scope** (and which todo covers it)
 
-- Production accounts → [H2](H2-accounts-and-login.md)
+- Production accounts → [H2](../ready/H2-accounts-and-login.md)
 
 **Editor facts**
 
@@ -76,7 +76,7 @@ Spike: manual and scripted checks recorded in the README.
 
 ## Risks and open questions
 
-- Open product questions for the owner: which sign-in methods (passkeys only? email? Google/GitHub/Apple?), whether accounts are free (lamina will be priced, owner decision 2026-10-29; the model is set later in [U5a](./U5a-pricing-and-promises-page.md), so pick a login stack that works either way and can carry an entitlements claim), and data residency (EU?)
+- Open product questions for the owner: which sign-in methods (passkeys only? email? Google/GitHub/Apple?), whether accounts are free (lamina will be priced, owner decision 2026-10-29; the model is set later in [U5a](../ready/U5a-pricing-and-promises-page.md), so pick a login stack that works either way and can carry an entitlements claim), and data residency (EU?)
 
 ## Definition of done
 
