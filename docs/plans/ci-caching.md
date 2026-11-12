@@ -98,7 +98,7 @@ The trial (X8a) runs the compile cache on the two legs where compiling costs mos
 - **Keep and spread** if the compile minutes of `cargo xtask check rust` on macOS x64 PR runs with a Rust-cache hit fall by a third or more. The compile cache then goes to every Rust job in `ci.yml` and `full.yml`, and X8b tries one leg without the Rust cache.
 - **Remove** otherwise. X8b then takes the action and the secrets out and records the numbers here, so nobody tries the same thing without new evidence.
 
-Agents can't push changes to `.github/workflows/`, so each todo's PR carries the workflow edits as a patch for the owner to commit. The action, the pin, the tests and the docs go in the PR itself.
+Each todo's PR carries its workflow edits with the action, the pin, the tests and the docs. If the agent's GitHub access can't push workflow files, the PR gives them as a patch for the owner to commit.
 
 ## 6. Risks
 

@@ -33,7 +33,7 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
 - The sccache pin in `tools/xtask/src/doctor.rs`, optional locally.
 - Workflow checks in `tools/xtask/src/workflows.rs`.
 - ADR 0018's amendment.
-- The patch to `ci.yml` for the two legs, for the owner to commit.
+- The `ci.yml` change for the two legs (a patch for the owner, if workflow files can't be pushed).
 
 **Out of scope** (and which todo covers it)
 
@@ -62,7 +62,7 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
   - in every job that uses the action, its setup step comes after the toolchain step;
   - the workflows in the plan's §4.3 don't use the action, following each `uses: ./.github/workflows/*.yml` they call.
 - [x] Amend ADR 0018 §2: the compile cache, who writes it, and what never uses it.
-- [x] Write the `ci.yml` patch for the Linux x64 and macOS x64 Rust legs. It needs the environment expression, the action after the toolchain step, and the stats step at the end. Then hand it to the owner.
+- [x] Write the `ci.yml` patch for the Linux x64 and macOS x64 Rust legs. It needs the environment expression, the action after the toolchain step, and the stats step at the end. Then hand it to the owner. (The push worked, so it is in the PR.)
 - [x] Record the five PR runs and five pushes to `main` before the patch as the baseline: the compile and test minutes of `check rust` on both legs.
 
 ## Acceptance criteria
@@ -73,7 +73,8 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
 
 ## Post-merge checks
 
-- [ ] The owner sets up the bucket, tokens, variables, secrets and environment (the action's README), and commits the patch.
+- [x] The bucket, its 30-day rule, both tokens, the variables and the environment set up through Cloudflare's API and `gh` on 2026-11-12.
+- [ ] The owner writes the six `SCCACHE_R2_*` secrets (the script from the session; auto mode refuses secret-store writes).
 - [ ] After that: five PR runs and five pushes to `main` on the two legs, with each job summary's stats, recorded in X8b.
 - [ ] A PR run reads in `READ_ONLY` and writes nothing; a push to `main` writes.
 - [ ] The two legs' Rust-cache key, in the toolchain step's log, is the same as before the patch for the same `Cargo.lock`, so the compile cache, which comes after that step, leaves it alone.
@@ -103,7 +104,7 @@ The plan's to-dos, ADR 0018, `CLAUDE.md` (the layout's `.github/` line and the C
 
 ## Notes
 
-- **Workflow file.** Agents can't push workflow changes, so the `ci.yml` patch is in [#507](https://github.com/laudebugs/laminapdf/pull/507)'s description for the owner to commit. It marks the two trial legs with `compile-cache: true` in the matrix, which turns on the setup step, the stats step and the `rust-compile-cache` environment on pushes to `main`.
+- **Workflow file.** The `ci.yml` change is in the PR itself: pushing over SSH accepted the workflow file. It marks the two trial legs with `compile-cache: true` in the matrix, which turns on the setup step, the stats step and the `rust-compile-cache` environment on pushes to `main`.
 - **Baseline.** In the plan's [§2.1](../../plans/ci-caching.md#21-the-trials-baseline-x8a): compiling in `check rust` on macOS x64 PR runs with a Rust-cache hit took a median 12.9 min, so §5's bar is 8.6 min.
 - **Credentials.** sccache's server starts `rustc` with the client's environment (`env_clear()` in its `src/compiler/rust.rs`), so build scripts and proc-macros don't get the keys. A same-user process could read the server's environment from the OS; on a pull request that is the read-only token.
 - **The never-cached check** follows every local `uses:` from the release, deploy and nightly workflows and fails on any non-comment mention of sccache or the action on the way, which also catches a hand-set `RUSTC_WRAPPER: sccache`. It doesn't check step order inside composite actions.
