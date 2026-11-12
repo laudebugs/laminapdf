@@ -13,16 +13,18 @@ mkdirSync(output, { recursive: true });
 
 /**
  * A run of the scenarios `names`, in this order, against one launch of the app with `args`.
- * @wdio/tauri-service reads `tauri:options` but doesn't declare it in WebdriverIO's types.
+ * @wdio/tauri-service reads `tauri:options` but doesn't declare it in WebdriverIO's types. With
+ * the embedded driver it starts the app itself, with the service's `appArgs`: it ignores
+ * `tauri:options.args`.
  */
 export function e2eConfig(names: readonly string[], args: readonly string[] = []): WebdriverIO.Config {
-  const app = { browserName: "tauri", "tauri:options": { application: appBinary, args } };
+  const app = { browserName: "tauri", "tauri:options": { application: appBinary } };
   return {
     runner: "local",
     specs: [names.map((name) => join(specs, `${name}.e2e.ts`))],
     maxInstances: 1,
     capabilities: [app],
-    services: [["@wdio/tauri-service", { driverProvider: "embedded", captureBackendLogs: true, logDir: output }]],
+    services: [["@wdio/tauri-service", { driverProvider: "embedded", appArgs: args, captureBackendLogs: true, logDir: output }]],
     framework: "mocha",
     reporters: ["spec"],
     logLevel: "warn",
