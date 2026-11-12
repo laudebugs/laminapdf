@@ -421,10 +421,17 @@ describe("after a crash", () => {
       const held = hook(crashing, "__busy", [1500]).catch(() => undefined);
       v.element.scrollTop = 200_000;
       await until(() => !drawn());
+      // Pages still waiting for their render when the worker crashed: the ones it interrupted.
+      let waiting = 0;
+      const off = crashing.on("crashed", () => {
+        waiting = states().filter((s) => s === "placeholder").length;
+      });
       const restarted = next(crashing, "restarted");
       void hook(crashing, "__crash").catch(() => undefined);
       await held;
       expect(await restarted).toMatchObject({ reopened: true });
+      off();
+      expect(waiting).toBeGreaterThan(0);
       await until(drawn);
     } finally {
       v.destroy();

@@ -27,4 +27,4 @@ When the worker crashes, the SDK's worker client rejects every call still waitin
 
 So a reader whose worker crashes sees the document reopen with some pages and thumbnails missing. The flaky test showed the bug only because it crashes the worker while the strip is drawing.
 
-Ending the worker on purpose is different. `ViewerClient.stop()` (the reader's Stop, or a render past the hard cap) ends it through the SDK's `terminate()`, which rejects the waiting calls with the reason `terminated`. Drawing those renders again would run the slow render that was stopped, so they stay errors.
+ADR 0009 §3.6 already says what should happen: after a crash, the viewer re-requests its tiles "except the request that was running when the worker died", which shows an error with Retry so a page that crashes the engine can't loop. The client never re-sent anything, and the views showed every lost render as failed.

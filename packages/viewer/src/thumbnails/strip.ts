@@ -10,7 +10,7 @@ import type { PageAppearance } from "@laminapdf/render";
 import type { PageInfo } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool } from "../canvas/pool.js";
-import { interruptedByCrash, type ViewerClient } from "../client.js";
+import type { ViewerClient } from "../client.js";
 import { PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { appearanceField, appearanceKey, type OpenedDocument } from "../protocol.js";
 import type { InvalidatedPage, Viewer } from "../view/viewer.js";
@@ -296,7 +296,11 @@ export class ThumbnailStrip {
         );
         bitmap = rendered.bitmap;
       } catch (error) {
-        this.#failed(item, error, abort.signal.aborted);
+        // Scrolled away or a new document: drawn again if it comes back into view.
+        if (abort.signal.aborted) return;
+        // A failed render keeps its placeholder, and isn't asked for again while mounted.
+        item.done = true;
+        reportError(error);
         return;
       } finally {
         if (item.abort === abort) item.abort = undefined;
@@ -309,20 +313,6 @@ export class ThumbnailStrip {
     }
     this.#paint(item, bitmap, layout);
     if (owned) bitmap.close();
-  }
-
-  /** A thumbnail's render failed: drawn again when it was only interrupted, else left blank. */
-  #failed(item: Item, error: unknown, aborted: boolean): void {
-    // Scrolled away or a new document: drawn again if it comes back into view.
-    if (aborted) return;
-    // The worker crashed under it: drawn again in the restarted worker, never an error.
-    if (interruptedByCrash(error)) {
-      this.#schedule();
-      return;
-    }
-    // A failed render keeps its placeholder, and isn't asked for again while mounted.
-    item.done = true;
-    reportError(error);
   }
 
   #paint(item: Item, bitmap: ImageBitmap, layout: PageLayout): void {

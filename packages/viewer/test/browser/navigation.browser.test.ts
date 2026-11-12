@@ -360,10 +360,17 @@ describe("the thumbnails strip after a crash", () => {
       const held = hook(client, "__busy", [1500]).catch(() => undefined);
       list.scrollTop = 6000;
       await until(() => !painted());
+      // Thumbnails still waiting for their render when the worker crashed: the ones it interrupted.
+      let waiting = 0;
+      const off = client.on("crashed", () => {
+        waiting = list.querySelectorAll("[role=option]").length - list.querySelectorAll("canvas").length;
+      });
       const restarted = next(client, "restarted");
       void hook(client, "__crash").catch(() => undefined);
       await held;
       expect(await restarted).toMatchObject({ reopened: true });
+      off();
+      expect(waiting).toBeGreaterThan(0);
       await until(painted);
       expect(errors).toEqual([]);
     } finally {

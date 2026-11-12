@@ -13,7 +13,7 @@ import { type PageAppearance, type PixelRect, pagePixels } from "@laminapdf/rend
 import type { Op, Target } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
-import { interruptedByCrash, type ViewerCallOptions, type ViewerClient, type ViewerEngine } from "../client.js";
+import type { ViewerCallOptions, ViewerClient, ViewerEngine } from "../client.js";
 import { EditSession } from "../edit/session.js";
 import { FindController } from "../find/controller.js";
 import {
@@ -1504,8 +1504,7 @@ export class Viewer {
           this.#aborted++;
           return;
         }
-        // The worker crashed under it: the next frame draws it in the restarted worker.
-        if (pass !== view.pass || interruptedByCrash(e)) return;
+        if (pass !== view.pass) return;
         view.state = "error";
         this.#emit("renderstats", this.stats());
       })
