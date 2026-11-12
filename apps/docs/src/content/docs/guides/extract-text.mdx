@@ -8,11 +8,11 @@ import Example from "../../../components/Example.astro";
 
 You'll get a PDF's text out in the form your program needs: plain text to search, Markdown for a language model, JSON with each paragraph's page and box, or chunks for a search index. Each form writes out the same reading of the document.
 
-In TypeScript, extraction needs the extract module or the text module, so call `init({ extract: true })` once before you open the document, unless you already load the text module. In Rust, it needs the crate's `extract` feature, which the default features include.
+In TypeScript, extraction runs in the extract module or the text module. Call `init({ extract: true })` once before you open the document, unless your app already loads the text module. In Rust, it needs the crate's `extract` feature, which the default features include.
 
 ## Get the text
 
-`extract` with the `text` format gives the page's words in the order a person reads them. Paragraphs and headings are separated by a blank line, and a table's cells by tabs:
+`extract` with the `text` format gives the page's words in the order a person reads them. A blank line separates paragraphs and headings, and tabs separate a table's cells:
 
 <Example ts="packages/sdk/examples/extract-text.ts" rust="crates/laminapdf/examples/extract_text.rs" output="fixtures/extract/examples/invoice.txt" />
 
@@ -26,11 +26,11 @@ Markdown keeps what plain text loses: headings stay headings, lists stay lists, 
 
 <Example ts="packages/sdk/examples/extract-markdown.ts" rust="crates/laminapdf/examples/extract_markdown.rs" output="fixtures/extract/examples/invoice.md" />
 
-The example also writes the JSON and the chunks, which the next sections describe. The [Extract text for an LLM](/recipes/extract-markdown/) recipe runs it on any file.
+The example also writes the JSON and the chunks, which the next sections describe. The [Extract text for an LLM](/recipes/extract-markdown/) recipe shows how to run it on your own files.
 
 ## Get each block with its box
 
-The `json` format returns the whole result as data: every block with its kind, its page and its box: left, top, width and height, in points from the page's top-left corner. Use it to highlight a passage on the page, to keep a table's cells apart, or to check what extraction left out. Here each block prints as one line:
+The `json` format returns the whole result as data: every block with its kind, its page and its box (left, top, width and height, in points from the page's top-left corner). Use it to highlight a passage on the page, to keep a table's cells apart, or to check what extraction left out. Here each block prints as one line:
 
 <Example ts="packages/sdk/examples/extract-blocks.ts" rust="crates/laminapdf/examples/extract_blocks.rs" output="fixtures/extract/examples/invoice-blocks.txt" />
 
