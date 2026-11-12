@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
-| Depends on | [E2b](./E2b-page-structure-ops.md), [E4b](./E4b-annotation-model-and-overlay.md), [E5b](./E5b-comment-threads-and-review.md), [E8c](./E8c-acroform-field-model.md), [E18b](./E18b-collaboration-feature-plan.md) |
+| Depends on | [E2b](./E2b-page-structure-ops.md), [E4b](../ongoing/E4b-annotation-model-and-overlay.md), [E5b](./E5b-comment-threads-and-review.md), [E8c](./E8c-acroform-field-model.md), [E18b](./E18b-collaboration-feature-plan.md) |
 | ADRs | Implements ADR 0012; follows ADR 0006 |
 | Branch | `feat/e18c-layer-document-schema` |
 | PR title | `feat(sync): layer-document records for annotations, field values and page order` |

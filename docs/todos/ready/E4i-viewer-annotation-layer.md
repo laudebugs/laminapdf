@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §5](../../plans/editor/e4-markup-and-drawing-annotations.md#5-the-viewer-while-drawing) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E1g](../done/E1g-redraw-after-edit.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](./E4b-annotation-model-and-overlay.md) |
+| Depends on | [E1g](../done/E1g-redraw-after-edit.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](../ongoing/E4b-annotation-model-and-overlay.md) |
 | ADRs | Follows [0004](../../decisions/0004-render-backend.md), [0009](../../decisions/0009-web-client-architecture.md) |
 | Branch | `feat/e4i-viewer-annotation-layer` |
 | PR title | `feat(viewer): the annotation layer, with previews and one-annotation hiding` |

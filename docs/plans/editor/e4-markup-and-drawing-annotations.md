@@ -162,7 +162,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E4b](../../todos/ready/E4b-annotation-model-and-overlay.md) | Annotation views, `page_annotations`, the `/NM` index, `AddAnnot`'s core, `UpdateAnnot`, `DeleteAnnot` and the `Appearances` trait | E1d, E2j |
+| [E4b](../../todos/ongoing/E4b-annotation-model-and-overlay.md) | Annotation views, `page_annotations`, the `/NM` index, `AddAnnot`'s core, `UpdateAnnot`, `DeleteAnnot` and the `Appearances` trait | E1d, E2j |
 | [E4c](../../todos/ready/E4c-appearances-markup-notes-caret.md) | Text markup, notes and caret with their appearances; `replace_text` | C5b, E4b |
 | [E4d](../../todos/ready/E4d-appearances-ink-and-shapes.md) | Ink, shapes, lines, arrows, polygons and cloudy borders with their appearances | E4b |
 | [E4e](../../todos/ready/E4e-freetext-callouts.md) | FreeText text boxes, callouts and typewriter text: `/DA`, layout, the rich-text subset | B4b, B4c, E2p, E4b |
