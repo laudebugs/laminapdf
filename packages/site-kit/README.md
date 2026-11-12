@@ -34,9 +34,9 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 
 `src/inline-styles.mjs` (`@laminapdf/site-kit/inline-styles`) lets the docs site's CSP refuse inline styles:
 
-- **`inlineStylesToClasses({ scripted })`** turns every style attribute in the built pages into a class in one style sheet, its declarations `!important` so they win as the attribute did. It gives a style sheet it changes a new name, since the old content-hashed one stays cached for a year. It rewrites Expressive Code's selector on the style attribute to the classes, and fails the build on any other such selector or on a page left with an inline style. `scripted` names the styles a page's script removes, which get a class the site styles instead.
+- **`inlineStylesToClasses({ scripted })`** turns every style attribute in the built pages into a class in one style sheet, its declarations `!important` so they win as the attribute did. It gives a style sheet it changes a new name, since the old content-hashed one stays cached for a year. It rewrites Expressive Code's selector on the style attribute to the classes, and fails the build on any other such selector or on a page left with an inline style. `scripted` names the styles a page's own script removes; each gets a class that the site's CSS styles instead.
 
-`src/markup.mjs` (`@laminapdf/site-kit/markup`) reads built HTML for both. **`tokens(html)`** splits a page as a browser does, so text that looks like a tag inside an attribute, a script or a comment is never read as one. **`startTags(html)`** gives each start tag's attributes, which the website's checks read.
+`src/markup.mjs` (`@laminapdf/site-kit/markup`) reads built HTML for `inline-styles.mjs` and the checks in `integrations.mjs`. **`tokens(html)`** splits a page as a browser does, so text that looks like a tag inside an attribute, a script or a comment is never read as one. **`startTags(html)`** gives each start tag's attributes, which the website's checks read.
 
 `src/robots.mjs` (`@laminapdf/site-kit/robots`) holds the one robots.txt policy of the website, the docs site and the web reader:
 
