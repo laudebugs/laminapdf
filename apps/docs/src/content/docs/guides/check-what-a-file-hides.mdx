@@ -39,6 +39,8 @@ A black rectangle over a name hides it on screen and in print, but the name is s
 | [`redaction-not-applied`](/reference/codes/redaction-not-applied/) | Redaction marks that were drawn but never applied |
 | [`text-in-earlier-revision`](/reference/codes/text-in-earlier-revision/) | Words an earlier revision holds that the latest doesn't |
 
+The example reads these warnings from the `Reveal` with `Reveal::redaction_warnings`, which gives the same warnings without reading the file again. `Document::redaction_warnings` would read every page and every earlier revision a second time, so call it only when the warnings are all you need.
+
 Each warning names its page when it has one. Remove the text itself with a tool that deletes what a redaction covers, then save a [full rewrite](/reference/glossary/#full-rewrite), so no earlier revision keeps it.
 
 ## From TypeScript and the command line
