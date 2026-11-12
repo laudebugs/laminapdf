@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2i](./E2i-signed-gating-and-close.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E2p](./E2p-source-documents-and-copier.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2i](./E2i-signed-gating-and-close.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E2p](../done/E2p-source-documents-and-copier.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3f-attachments-and-associated-files` |
 | PR title | `feat(ops): embedded files, associated files and portfolio reading` |
@@ -27,7 +27,7 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 
 **In scope**
 
-- Ops: `AttachFile { name, file: BlobId, mime, description, created, modified, attach_to, relationship }`, `UpdateAttachment`, `DeleteAttachment` ([E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops)); the bytes live in [E2p](E2p-source-documents-and-copier.md)'s blob store, and the dates come in the op
+- Ops: `AttachFile { name, file: BlobId, mime, description, created, modified, attach_to, relationship }`, `UpdateAttachment`, `DeleteAttachment` ([E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops)); the bytes live in [E2p](../done/E2p-source-documents-and-copier.md)'s blob store, and the dates come in the op
 - PDF/A warnings `pdfa-attachment-forbidden` (PDF/A-1, PDF/A-2) and `pdfa-attachment-incomplete` (PDF/A-3 without `/AF` or a modification date); `/Version` is never raised
 - `DeleteAttachment` reports `AttachmentStillHeld` when a FileAttachment annotation keeps the file
 - UR3 `/EF` rights mapped to the attachment ops in `would_violate`, by op ([E3 plan §6](../../plans/editor/e3-navigation-attachments-inspection.md#6-saving-and-the-save-constraint))
