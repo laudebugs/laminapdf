@@ -1,5 +1,6 @@
 // The properties dialog warns under a field before Apply (O04) by rules of its own, since the SDK
-// reports conformance warnings only from a save plan, after an edit. These hold the dialog's rules
+// reports conformance warnings only from a save plan, after an edit. No browser: it is in the e2e
+// suite because that suite runs after the WebAssembly is built, which loading the SDK needs. These hold the dialog's rules
 // and its field list to the SDK's: the same edit, made through the SDK, plans the warnings the form
 // shows, and the form's fields are the SDK's metadata keys.
 

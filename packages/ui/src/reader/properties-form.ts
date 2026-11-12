@@ -249,7 +249,7 @@ export interface FieldWarning {
 /**
  * The claims Apply would break, under the field that breaks them (the save planner's
  * `pdfa-one-author` and `pdfua-title-missing`, laminapdf-ops' `conformance_warnings`; the reader's
- * test/properties-warnings.test.ts holds them to the SDK's own on the same edits).
+ * e2e/properties-warnings.e2e.test.ts holds them to the SDK's own on the same edits).
  */
 export function fieldWarnings(
   metadata: DocumentMetadataData,
