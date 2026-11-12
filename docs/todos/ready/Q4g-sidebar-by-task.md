@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
-| Depends on | [W3h](./W3h-docs-titles-for-questions.md), [Q4f](./Q4f-every-page-in-the-sidebar.md), [Q4m](./Q4m-watch-readers-use-the-docs.md) |
+| Depends on | [W3h](./W3h-docs-titles-for-questions.md), [Q4f](../done/Q4f-every-page-in-the-sidebar.md), [Q4m](./Q4m-watch-readers-use-the-docs.md) |
 | ADRs | None |
 | Branch | `docs/q4g-sidebar-by-task` |
 | PR title | `docs: group the sidebar by what readers want to do` |
