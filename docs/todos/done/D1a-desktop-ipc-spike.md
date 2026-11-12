@@ -49,7 +49,7 @@ Answer, with numbers from all three desktop webviews (WKWebView on macOS, WebVie
 
 **Out of scope** (and which todo covers it)
 
-- The production transport, `Platform` adapter and engine process: [D2b](../done/D2b-engine-process.md), [D2d](../ongoing/D2d-tile-transport-and-first-document.md).
+- The production transport, `Platform` adapter and engine process: [D2b](../done/D2b-engine-process.md), [D2d](../done/D2d-tile-transport-and-first-document.md).
 - Writing ADR 0008: [D2a](../done/D2a-adr-0008-and-desktop-scaffold.md).
 - Printing: [D1b](../done/D1b-desktop-print-spike.md).
 - Engine-process ↔ main-process IPC (pipes/shared memory): measured in D2b, not here (this spike measures the Rust → webview hop only).

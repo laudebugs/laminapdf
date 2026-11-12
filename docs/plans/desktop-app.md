@@ -106,7 +106,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D2. Shell and native core
 
-**Todos:** [D2a](../todos/done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/done/D2b-engine-process.md), [D2c](../todos/done/D2c-engine-sandbox.md), [D2d](../todos/ongoing/D2d-tile-transport-and-first-document.md), [D2e](../todos/ongoing/D2e-desktop-e2e-webdriverio.md)
+**Todos:** [D2a](../todos/done/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/done/D2b-engine-process.md), [D2c](../todos/done/D2c-engine-sandbox.md), [D2d](../todos/done/D2d-tile-transport-and-first-document.md), [D2e](../todos/ongoing/D2e-desktop-e2e-webdriverio.md)
 
 **Deliverable:** ADR 0008; `apps/desktop` with Tauri 2, desktop `Platform` adapter, engine child process, tile transport, single window opening one file.
 **Accepted when:** the reader end-to-end scenarios run against the desktop build with WebdriverIO and `@wdio/tauri-service` on Windows and Linux (`tauri-driver`) and on macOS (the service's embedded WebDriver server via `tauri-plugin-wdio-webdriver`, compiled into test builds only behind a Cargo feature) ([Tauri WebDriver docs](https://v2.tauri.app/develop/tests/webdriver/)); the C-round Playwright suite keeps running against the web build on all three OSes (Playwright drives browsers, not Tauri webviews); killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target. If the macOS embedded driver proves unreliable, macOS falls back to the web-build Playwright run plus a recorded manual smoke checklist, and ADR 0008 records the gap.
@@ -186,7 +186,7 @@ Ticked by the PR that completes them.
 - [x] Implement the desktop `Platform` adapter and capability flags
 - [x] Implement the engine child process with restart on crash, sandboxed on each OS ([D2c](../todos/done/D2c-engine-sandbox.md): Seatbelt and a memory watchdog, a job with a restricted Low-integrity token, seccomp-bpf and Landlock; system fonts served by the main process; ADR 0008 §5)
 - [x] Implement a positioned-read `ByteSource` (no mmap in the main process; see [D2b](../todos/done/D2b-engine-process.md) and ADR 0008 §2)
-- [x] Implement the chosen tile transport ([D2d](../todos/ongoing/D2d-tile-transport-and-first-document.md))
+- [x] Implement the chosen tile transport ([D2d](../todos/done/D2d-tile-transport-and-first-document.md))
 - [ ] Port the reader end-to-end scenarios to WebdriverIO (`@wdio/tauri-service`): `tauri-driver` on Windows and Linux, embedded WebDriver plugin (test builds only) on macOS; run in CI on three OSes
 - [ ] Record the per-OS test strategy and any macOS gap in ADR 0008
 

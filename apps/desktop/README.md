@@ -1,6 +1,6 @@
 # @laminapdf/desktop
 
-The desktop reader: `@laminapdf/ui`'s reader chrome around `@laminapdf/viewer` in a Tauri 2 window on macOS, Windows and Linux ([ADR 0008](../../docs/decisions/0008-desktop-shell.md)). Choose a file opens one PDF from the system's file dialog. A separate engine process parses and draws it, and restarts after a crash (todo [D2b](../../docs/todos/done/D2b-engine-process.md)). The engine's tiles reach the viewer over the app's own `lamina://` scheme (todo [D2d](../../docs/todos/ongoing/D2d-tile-transport-and-first-document.md)). A locked document asks for its password. Text selection, search, links and thumbnails come later: the engine doesn't read text yet, and dropped files arrive with opening from the OS (D3a).
+The desktop reader: `@laminapdf/ui`'s reader chrome around `@laminapdf/viewer` in a Tauri 2 window on macOS, Windows and Linux ([ADR 0008](../../docs/decisions/0008-desktop-shell.md)). Choose a file opens one PDF from the system's file dialog. A separate engine process parses and draws it, and restarts after a crash (todo [D2b](../../docs/todos/done/D2b-engine-process.md)). The engine's tiles reach the viewer over the app's own `lamina://` scheme (todo [D2d](../../docs/todos/done/D2d-tile-transport-and-first-document.md)). A locked document asks for its password. Text selection, search, links and thumbnails come later: the engine doesn't read text yet, and dropped files arrive with opening from the OS (D3a).
 
 ## Build, run and test
 
