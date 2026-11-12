@@ -29,11 +29,11 @@ cargo add laminapdf@{{version}}
 
 The command writes `laminapdf = "{{version}}"` to `Cargo.toml`, and Cargo reads it as this release or a later one in the same `0.x` line, which the [stability policy](/reference/stability/) promises needs no change to your code.
 
-The default features start with `text`: fonts and text, which includes the builder and text extraction. Four more are on by default: `markdown` (Markdown in, flowing pages out), `document` (JSON documents in, flowing pages out), `reflow` (a tagged document's text in reading order, for reader mode) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`, then turn on what you need: `build` for the builder without text, `extract` for text extraction alone. `explain`, off by default, gives each code's page as text.
+The default features start with `text`: fonts and text, which includes the builder and text extraction. Four more are on by default: `markdown` (Markdown in, flowing pages out), `document` (JSON documents in, flowing pages out), `reflow` (a tagged document's text in reading order, for reader mode) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`, then turn on what you need: `build` for the builder without text, `extract` for text extraction alone. `explain`, off by default, gives each code's page as text. [Your first PDF in Rust](/start/first-pdf-rust/) walks through a first program.
 
 ## The command-line tool
 
-The `laminapdf` command does the common jobs from a terminal or a script, without a Node or Rust project: describe, check, extract, render and build PDFs. Homebrew installs it with `brew install laudebugs/tap/laminapdf`; [install the command-line tool](/cli/install/) has npm and downloads for macOS, Linux and Windows.
+The `laminapdf` command does the common jobs from a terminal or a script, without a Node or Rust project: describe, check, extract, render and build PDFs. Homebrew installs it with `brew install laudebugs/tap/laminapdf`; [install the command-line tool](/cli/install/) has npm and downloads for macOS, Linux and Windows. [Your first PDF on the command line](/start/first-pdf-cli/) walks through a first session.
 
 ## Every published package
 

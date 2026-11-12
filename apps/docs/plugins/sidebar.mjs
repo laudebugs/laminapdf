@@ -23,6 +23,8 @@ export function sidebar(typeDoc) {
         { label: "Choosing a PDF library", slug: "start/choosing-a-pdf-library" },
         { label: "Install", slug: "install" },
         { label: "Your first PDF", slug: "start/first-pdf" },
+        { label: "Your first PDF in Rust", slug: "start/first-pdf-rust" },
+        { label: "Your first PDF on the command line", slug: "start/first-pdf-cli" },
         { label: "Use with coding agents", slug: "start/coding-agents" },
         { label: "Read offline", slug: "start/offline" },
       ],
