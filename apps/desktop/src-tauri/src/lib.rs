@@ -199,6 +199,7 @@ pub fn run() -> Result<(), DesktopError> {
             open::take_pending_opens,
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
+            e2e::e2e_replace,
             e2e::e2e_interactive,
         ])
         .manage(e2e::QueuedPick::default());

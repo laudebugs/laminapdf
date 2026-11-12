@@ -1,5 +1,6 @@
 // The desktop reader as the scenarios see it: open a fixture, read the view, wait for paint.
 import { spawn } from "node:child_process";
+import { renameSync } from "node:fs";
 import { join } from "node:path";
 import { platform } from "node:process";
 import type { ViewState } from "@laminapdf/viewer";
@@ -207,4 +208,15 @@ export async function runCommand(title: string): Promise<void> {
   await input.waitForExist();
   await input.setValue(title);
   await browser.keys("Enter");
+}
+
+/**
+ * Moves `from` over `to`, as an editor's atomic save does. On Windows the app does it
+ * (`e2e_replace`, Rust's POSIX-semantics rename): Node's rename uses `MoveFileEx`, which Windows
+ * refuses over a file another process holds open, as the main process holds a document (ADR 0008
+ * §11).
+ */
+export async function atomicReplace(from: string, to: string): Promise<void> {
+  if (platform === "win32") await invoke("e2e_replace", { from, to });
+  else renameSync(from, to);
 }

@@ -4,5 +4,5 @@
   "description": "End-to-end test builds only (feature e2e, enabled by tauri.e2e.conf.json): the test commands and WebdriverIO's plugin. Release builds have neither the file's commands nor the plugin.",
   "windows": ["main", "doc-*"],
   "platforms": ["macOS", "windows", "linux"],
-  "permissions": ["allow-debug-kill-engine", "allow-e2e-queue-pick", "allow-e2e-interactive", "wdio:default"]
+  "permissions": ["allow-debug-kill-engine", "allow-e2e-queue-pick", "allow-e2e-replace", "allow-e2e-interactive", "wdio:default"]
 }
