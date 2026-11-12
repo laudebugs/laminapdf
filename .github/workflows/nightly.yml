@@ -32,6 +32,10 @@
 #   roundtrip     lamina saves every fixture × op × mode and reopens each output, then qpdf --check,
 #                 pdf.js and PDFium check them (`cargo xtask roundtrip`, ADR 0018 tier 7; the full
 #                 lane runs it on every push to main too); its counts go to `proof`
+#   rust-macos-x64  `cargo xtask check rust` on macOS x64, after the benchmarks and never when the
+#                 release lane calls this workflow: ci.yml runs that leg only on pushes to main
+#                 (todo X9a). It's the one job here that `cargo xtask nightly` doesn't run, since it
+#                 checks the platform rather than adding a task
 #   proof         after the jobs above: their reports gathered into one record, kind "proof" (corpus
 #                 outcomes, differentials, render diff, fuzz runs, veraPDF, round trip, runtimes),
 #                 appended to the bench-data history only for a full-budget night on main
