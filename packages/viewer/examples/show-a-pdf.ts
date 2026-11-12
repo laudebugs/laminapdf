@@ -1,79 +1,36 @@
-// Shows a PDF in a web page: the viewer scrolls and zooms it, and a Web Worker opens and draws it
-// with PDFium, away from the page's main thread. A bundler such as Vite gives PDFium's
-// WebAssembly file a URL through the `?url` import.
+// Shows a PDF in a web page. The viewer keeps only the PDF's pages near the scroll position on
+// screen and draws them with PDFium, in a Web Worker so the web page stays responsive. Pass the
+// address your bundler serves PDFium's WebAssembly at; with Vite:
+//
+//   import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
+//
+// The viewer is a preview: its API can still change between releases.
 
-import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import { isLaminaPdfError } from "@laminapdf/sdk";
-import { createViewer, type Viewer, ViewerClient } from "@laminapdf/viewer";
+import { createViewer, ViewerClient } from "@laminapdf/viewer";
 
-/** Asks the reader for the file's password, saying whether the last one was wrong; `undefined` when they cancel. */
-export type AskPassword = (wrong: boolean) => Promise<string | undefined>;
-
-/** A viewer on the page and the Web Worker that draws for it. */
-export class PdfView {
-  readonly client: ViewerClient;
-  readonly viewer: Viewer;
-  #shown: { file: Blob; askPassword: AskPassword } | undefined;
-  #opening = false;
-  readonly #stopReopening: () => void;
-
-  private constructor(client: ViewerClient, viewer: Viewer) {
-    this.client = client;
-    this.viewer = viewer;
-    // A Web Worker that crashed starts again, but a password died with it, so ask again.
-    this.#stopReopening = client.on("password-required", () => {
-      if (this.#shown !== undefined && !this.#opening) void this.show(this.#shown.file, this.#shown.askPassword);
-    });
-  }
-
-  /** Starts a viewer in `container`, which gives it its size. Start it before the reader picks a file. */
-  static async start(container: HTMLElement): Promise<PdfView> {
-    // The Web Worker starts and PDFium downloads now, so the first page draws sooner.
-    const client = await ViewerClient.create({ backend: { backend: "pdfium", wasm: pdfiumWasm } });
-    const viewer = createViewer({ client });
-    viewer.mount(container);
-    return new PdfView(client, viewer);
-  }
-
-  /**
-   * Shows `file`. A file with a password asks for it, again after a wrong one, until it opens; it
-   * resolves `false` when the reader cancels, and the file shown before stays.
-   */
-  async show(file: Blob, askPassword: AskPassword): Promise<boolean> {
-    this.#opening = true;
-    try {
-      let password: string | undefined;
-      for (;;) {
-        try {
-          this.viewer.open(await this.client.open(file, password === undefined ? {} : { password }));
-          this.#shown = { file, askPassword };
-          return true;
-        } catch (e) {
-          if (!isLaminaPdfError(e, "wrong-password") && !isLaminaPdfError(e, "password-required")) throw e;
-          // Any password that failed was wrong, an empty one included.
-          password = await askPassword(password !== undefined);
-          if (password === undefined) return false;
-        }
-      }
-    } finally {
-      this.#opening = false;
-    }
-  }
-
-  /** Takes the viewer off the page and ends its Web Worker. */
-  close(): void {
-    this.#stopReopening();
-    this.viewer.destroy();
-    this.client.terminate();
-  }
+/** A PDF on screen; dispose of it to take it down and end its Web Worker. */
+export interface ShownPdf extends Disposable {
+  readonly pageCount: number;
 }
 
-/** Keeps `label` showing the page and the zoom, such as "Page 3 of 12 · 100 %". */
-export function showPosition(viewer: Viewer, label: HTMLElement): () => void {
-  const write = () => {
-    const { currentPage, pageCount, percent } = viewer.getState();
-    label.textContent = pageCount === 0 ? "" : `Page ${currentPage + 1} of ${pageCount} · ${Math.round(percent)} %`;
+/** Shows `file` in `container`, which must have a height, drawn by PDFium from `pdfiumWasm`. */
+export async function showPdf(container: HTMLElement, file: Blob, pdfiumWasm: string): Promise<ShownPdf> {
+  // The client starts the document's Web Worker and loads PDFium into it.
+  const client = await ViewerClient.create({ backend: { backend: "pdfium", wasm: pdfiumWasm } });
+  const viewer = createViewer({ client });
+  const close = () => {
+    viewer.destroy();
+    client.terminate();
   };
-  write();
-  return viewer.subscribe(write);
+  try {
+    viewer.mount(container);
+    // The file goes to the Web Worker by reference; the web page never reads its bytes.
+    const opened = await client.open(file);
+    viewer.open(opened);
+    return { pageCount: opened.pages.length, [Symbol.dispose]: close };
+  } catch (error) {
+    // A file that won't open, a damaged one or a locked one, still ends the Web Worker.
+    close();
+    throw error;
+  }
 }

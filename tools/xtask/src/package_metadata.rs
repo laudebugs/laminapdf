@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
-use crate::docs_prose::{is_adr_number, is_todo_id};
+use crate::docs_prose::{id_words, internal_reference};
 use crate::workspace::Workspace;
 
 /// The CLI's npm wrapper: private in the workspace, published by `cli-release.yml`.
@@ -126,28 +126,13 @@ fn without_link_destinations(text: &str) -> String {
 /// The ADR numbers and todo IDs in `text`, and any claim that the package is private ("is
 /// private", "private package"); other uses of the word, such as files that stay private, pass.
 fn internal_words(text: &str) -> Vec<String> {
-    let words: Vec<&str> = text
-        .split(|c: char| !(c.is_ascii_alphanumeric() || c == '-'))
-        .flat_map(|word| {
-            if word.starts_with("ADR-") {
-                vec![word]
-            } else {
-                word.split('-').collect()
-            }
-        })
-        .filter(|w| !w.is_empty())
-        .collect();
+    let words = id_words(text);
     let mut found = Vec::new();
     for (index, word) in words.iter().enumerate() {
         let next = words.get(index + 1).copied();
         let previous = index.checked_sub(1).and_then(|i| words.get(i)).copied();
-        if is_adr_number(word, next) {
-            found.push(format!(
-                "ADR {}",
-                word.strip_prefix("ADR-").or(next).unwrap_or_default()
-            ));
-        } else if is_todo_id(word) {
-            found.push(format!("the todo ID {word}"));
+        if let Some(reference) = internal_reference(word, next) {
+            found.push(reference);
         } else if word.eq_ignore_ascii_case("private")
             && (matches!(previous, Some("is" | "It" | "it")) || next.is_some_and(|n| n.eq_ignore_ascii_case("package")))
         {

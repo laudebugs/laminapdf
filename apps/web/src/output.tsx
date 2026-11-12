@@ -11,6 +11,7 @@ import type { Viewer } from "@laminapdf/viewer";
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
 import { downloadName } from "./download-name.ts";
 import type { PageInfo } from "./outline.ts";
+import type { EditablePropertiesDialog } from "./properties-editing.tsx";
 import type { DocumentProperties, Engine } from "./session.ts";
 
 /** The commands this module handles. */
@@ -61,8 +62,8 @@ const PrintDialog = lazy<typeof Dialogs.PrintDialog>(() =>
 const PrintProgressDialog = lazy<typeof Dialogs.PrintProgressDialog>(() =>
   loadDialogs().then((m) => ({ default: m.PrintProgressDialog }), nothing),
 );
-const PropertiesDialog = lazy<typeof Dialogs.PropertiesDialog>(() =>
-  loadDialogs().then((m) => ({ default: m.PropertiesDialog }), nothing),
+const LazyEditablePropertiesDialog = lazy<typeof EditablePropertiesDialog>(() =>
+  loadDialogs().then((m) => ({ default: m.EditablePropertiesDialog }), nothing),
 );
 
 /** Whether `error` is a stopped print, which needs no message. */
@@ -143,7 +144,10 @@ function usePrint(engine: Engine, platform: Platform, onProblem: (problem: Probl
   };
 }
 
-/** Document properties: read when the dialog opens, once per document. */
+/**
+ * Document properties: the facts read when the dialog opens, once per document; the dialog itself
+ * reads what its form edits (properties-editing.tsx).
+ */
 function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<PropertiesState>({ status: "loading" });
@@ -165,13 +169,14 @@ function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
     render: (document: OutputDocument | undefined) =>
       document === undefined ? null : (
         <Suspense fallback={null}>
-          <PropertiesDialog
+          <LazyEditablePropertiesDialog
             isOpen={open}
             fileName={document.fileName}
             state={state}
             context={{ pages: document.pages, labels: document.labels }}
             onCopy={copy}
             onClose={() => setOpen(false)}
+            engine={engine}
           />
         </Suspense>
       ),

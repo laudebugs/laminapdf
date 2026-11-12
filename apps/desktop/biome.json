@@ -4,7 +4,7 @@
   "extends": "//",
   "overrides": [
     {
-      "includes": ["src/**"],
+      "includes": ["src/**", "e2e/probe/**"],
       "linter": {
         "rules": {
           "correctness": {

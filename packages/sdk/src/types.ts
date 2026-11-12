@@ -76,11 +76,11 @@ export interface OpLog {
   readonly v: 1;
   readonly ops: readonly Op[];
 }
-/** `Limits` (ADR 0003 §3); each one left out keeps its default. */
+/** Resource limits for reading untrusted files; each one left out keeps its default. */
 export type Limits = LimitsInit;
 /** Options for {@link Document.open}. */
 export interface OpenOptions {
-  /** The user or owner password of an encrypted document (normalised to NFKC, ADR 0016 §7). */
+  /** The user or owner password of an encrypted document (tried as given, then in its NFKC form). */
   readonly password?: string;
   /** Refuse files that need repair (`strict`). */
   readonly strict?: boolean;
@@ -188,7 +188,7 @@ export type Color =
   | readonly [number]
   | readonly [number, number, number]
   | readonly [number, number, number, number];
-/** A point in page space (points from the top-left of the displayed page, y down; ADR 0027). */
+/** A point in page space (points from the top-left of the displayed page, y down). */
 export type Point = readonly [x: number, y: number];
 /** A rectangle in page space: left, top, width, height. */
 export type Rect = readonly [x: number, y: number, width: number, height: number];

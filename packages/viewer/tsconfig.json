@@ -5,5 +5,5 @@
     "allowImportingTsExtensions": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "examples/**/*.ts", "perf/**/*.ts", "vitest.*.config.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "examples/**/*.ts", "demo/**/*.ts", "perf/**/*.ts", "vitest.*.config.ts"]
 }

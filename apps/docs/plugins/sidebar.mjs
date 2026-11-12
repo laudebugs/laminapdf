@@ -2,6 +2,13 @@
 // quality plan §3), so every page is listed. llms.txt (agent-docs.mjs) follows the same order.
 
 /**
+ * The classes with a usage page (common tasks and mistakes) beside their generated reference: the
+ * class name, then the page's slug. The sidebar lists each page as "Using <class>", and
+ * typedoc-sources.mjs links the class's reference page to it.
+ */
+export const USAGE_PAGES = { Document: "reference/document-usage", Builder: "reference/builder-usage" };
+
+/**
  * The sidebar's groups, with the TypeDoc reference group (`typeDoc`) when the build has one.
  *
  * @param {unknown} [typeDoc]
@@ -16,7 +23,10 @@ export function sidebar(typeDoc) {
         { label: "Choosing a PDF library", slug: "start/choosing-a-pdf-library" },
         { label: "Install", slug: "install" },
         { label: "Your first PDF", slug: "start/first-pdf" },
+        { label: "Your first PDF in Rust", slug: "start/first-pdf-rust" },
+        { label: "Your first PDF on the command line", slug: "start/first-pdf-cli" },
         { label: "Use with coding agents", slug: "start/coding-agents" },
+        { label: "Read offline", slug: "start/offline" },
       ],
     },
     {
@@ -59,9 +69,14 @@ export function sidebar(typeDoc) {
         { label: "Open password-protected files", slug: "guides/password-protected-files" },
         { label: "Open files you don't trust", slug: "guides/untrusted-files" },
         { label: "Open large files by ranges", slug: "guides/open-large-files" },
+        { label: "Check what a file hides", slug: "guides/check-what-a-file-hides" },
+      ],
+    },
+    {
+      label: "Show PDFs",
+      items: [
         { label: "Show a PDF in a web page", slug: "guides/show-a-pdf" },
         { label: "Render pages to images", slug: "guides/render-pages" },
-        { label: "Check what a file hides", slug: "guides/check-what-a-file-hides" },
       ],
     },
     {
@@ -107,10 +122,22 @@ export function sidebar(typeDoc) {
         { label: "A Cloudflare Worker", slug: "recipes/cloudflare-worker" },
       ],
     },
-    { label: "Troubleshooting", slug: "troubleshooting" },
+    {
+      label: "Troubleshooting",
+      items: [
+        { label: "Find your problem", slug: "troubleshooting" },
+        { label: "JavaScript and TypeScript", slug: "troubleshooting/javascript" },
+        { label: "Rust", slug: "troubleshooting/rust" },
+        { label: "The command line", slug: "troubleshooting/command-line" },
+        { label: "Opening and saving files", slug: "troubleshooting/files" },
+        { label: "Extracting text", slug: "troubleshooting/extraction" },
+        { label: "Rendering pages", slug: "troubleshooting/rendering" },
+      ],
+    },
     {
       label: "Reference",
       items: [
+        ...Object.entries(USAGE_PAGES).map(([name, slug]) => ({ label: `Using ${name}`, slug })),
         ...(typeDoc ? [typeDoc] : []),
         { label: "Rust API (rustdoc)", slug: "reference/rust" },
         { label: "Error and warning codes", slug: "reference/codes" },

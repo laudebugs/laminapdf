@@ -6,16 +6,18 @@ import { platform } from "node:process";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { diagramText } from "../src/components/diagrams/registry.mjs";
-import { llmsTxt, routeOfTwin, shownFileUrl, twinPath } from "./agent-docs.mjs";
+import { linksTwin, llmsTxt, shownFileUrl } from "./agent-docs.mjs";
 import {
   codeBlock,
   exampleParts,
   frontMatter,
   mdxToMarkdown,
   rewriteLinks,
+  routeOfTwin,
   shownFiles,
   twin,
   twinHref,
+  twinPath,
 } from "./markdown.mjs";
 
 const components = {
@@ -208,7 +210,6 @@ test("a snippet's file is found whatever the attributes' order", () => {
 
 test("a twin reads only files in the example folders", () => {
   assert.match(shownFileUrl("packages/sdk/examples/hello.ts").href, /packages\/sdk\/examples\/hello\.ts$/);
-  assert.match(shownFileUrl("packages/viewer/examples/show-a-pdf.ts").href, /viewer\/examples\/show-a-pdf\.ts$/);
   for (const file of [
     "",
     "/etc/passwd",
@@ -217,8 +218,6 @@ test("a twin reads only files in the example folders", () => {
     "C:/x.ts",
     "packages/sdk/examples/../../../.env",
     "packages/sdk/src/index.ts",
-    "packages/viewer/examples/viewer-demo.ts",
-    "packages/viewer/examples/./show-a-pdf.ts",
   ]) {
     assert.throws(() => shownFileUrl(file), /outside the example folders/, file);
   }
@@ -233,4 +232,19 @@ test("a symbolic link in an example folder can't lead out of it", { skip: platfo
   } finally {
     unlinkSync(link);
   }
+});
+
+test("a page links its twin only with rel alternate, type text/markdown and the twin's path", () => {
+  const link = '<link rel="alternate" type="text/markdown" href="/guides/save-a-pdf.md">';
+  assert.equal(linksTwin(`<head>${link}</head>`, "/guides/save-a-pdf.md"), true);
+  assert.equal(
+    linksTwin('<link href="/guides/save-a-pdf.md" type="text/markdown" rel="alternate"/>', "/guides/save-a-pdf.md"),
+    true,
+  );
+  assert.equal(linksTwin(link, "/guides/other.md"), false);
+  assert.equal(linksTwin('<link rel="canonical" href="/guides/save-a-pdf.md">', "/guides/save-a-pdf.md"), false);
+  assert.equal(
+    linksTwin('<link rel="alternate" type="text/html" href="/guides/save-a-pdf.md">', "/guides/save-a-pdf.md"),
+    false,
+  );
 });

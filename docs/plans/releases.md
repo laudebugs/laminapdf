@@ -58,6 +58,7 @@ The cadence is at most one release a day, set by the nightly. A release on every
 | [P4](../todos/done/P4-docs-match-the-release.md) | Docs that match the release: the version on every page, exact install lines, `main` at `next.docs.laminapdf.com`, production docs from the release lane | P3 |
 | [P5](../todos/done/P5-npm-trusted-publishing-and-version-only-releases.md) | npm trusted publishing from a GitHub-hosted runner, and a release lane that skips its nightly run for a version-only commit | P2 |
 | [P6](../todos/done/P6-daily-release.md) | The daily release: `release-train.yml`, `cargo xtask release prepare`, the release bot and its version pull request | P4, P5 |
+| [P7](../todos/done/P7-leave-alpha-0-2-0.md) | The end of the alphas: Changesets leaves pre mode, so the next daily release is `v0.2.0` on npm's `latest` tag | P6 |
 
 Workflow files can't be pushed by the agents' GitHub access, so each todo's pull request carries its workflow changes for the owner to commit. P6's files and installation steps are in [`tools/release/README.md`](../../tools/release/README.md); its installation test blocks merge until the owner commits them.
 

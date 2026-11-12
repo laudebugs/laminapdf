@@ -1,5 +1,6 @@
-// The reader's words, kept in one catalogue so that components and the platform never hold text
-// of their own: a translation is a second catalogue of the same shape. English only in v0.1.
+// The reader's words, kept in catalogues so that components and the platform never hold text of
+// their own: a translation is a second catalogue of the same shape. English only in v0.1. This one
+// loads at startup; later-messages.ts holds the words of parts that load after it (#380).
 
 const EN = {
   "platform.enable.savePicker": "Use a browser that can save to your files, such as Chrome or Edge.",
@@ -162,6 +163,9 @@ const EN = {
   "reader.open.privacy": "Lamina PDF reads PDFs inside this browser tab and has no upload server.",
   "reader.rotate": "Rotate clockwise",
   "reader.open.dropping": "Drop to open the PDF",
+  "reader.open.droppingMany": "Drop to open the last of these {count} PDFs",
+  "reader.open.droppingNone": "Only PDF files open in Lamina PDF",
+  "reader.open.missing": "{name} couldn't be opened. It may have been moved or deleted.",
   "reader.open.notPdf": "That isn't a PDF. Lamina PDF opens PDF files only.",
   "reader.open.unreadable":
     "That file couldn't be read. It may have moved, or this browser may have lost access to it.",
@@ -451,6 +455,9 @@ const EN = {
   "properties.signatures.none": "None",
   "properties.signatures.one": "1 signature present, not verified",
   "properties.signatures.many": "{count} signatures present, not verified",
+  "capabilities.back": "Back to {name}",
+  "capabilities.back.reader": "Back to the reader",
+  "properties.edit.step": "Document properties changed",
   "print.title": "Print",
   "print.close": "Close",
   "print.pages": "Pages",
@@ -567,6 +574,7 @@ const EN = {
   "command.privacy.network-activity": "Network activity",
   "command.palette.open": "Command palette",
   "command.help.shortcuts": "Keyboard shortcuts",
+  "command.help.capabilities": "What Lamina PDF can do",
   "command.layer.close": "Close the open panel or dialog",
   "command.selection.actions": "Show selection actions",
   "commandGroup.file": "File",
@@ -740,11 +748,22 @@ export const ENGLISH: Catalogue = EN;
  */
 export function countMessage(
   count: number,
-  ids: { readonly zero?: MessageId; readonly one: MessageId; readonly many: MessageId },
+  ids: CountIds<MessageId>,
   values: Readonly<Record<string, string | number>> = {},
 ): string {
-  const id = count === 0 && ids.zero !== undefined ? ids.zero : count === 1 ? ids.one : ids.many;
-  return message(id, { count, ...values });
+  return message(countId(count, ids), { count, ...values });
+}
+
+/** The ids of a counted message's forms: `zero` (optional), `one` and `many`. */
+export interface CountIds<Id> {
+  readonly zero?: Id;
+  readonly one: Id;
+  readonly many: Id;
+}
+
+/** The form of `ids` for `count`. */
+export function countId<Id>(count: number, ids: CountIds<Id>): Id {
+  return count === 0 && ids.zero !== undefined ? ids.zero : count === 1 ? ids.one : ids.many;
 }
 
 /**
@@ -756,5 +775,10 @@ export function message(
   values: Readonly<Record<string, string | number>> = {},
   catalogue = ENGLISH,
 ): string {
-  return catalogue[id].replace(/\{(\w+)\}/g, (whole, name: string) => (name in values ? String(values[name]) : whole));
+  return fill(catalogue[id], values);
+}
+
+/** `text` with each `{name}` replaced by `values[name]`, as `message` does. */
+export function fill(text: string, values: Readonly<Record<string, string | number>>): string {
+  return text.replace(/\{(\w+)\}/g, (whole, name: string) => (name in values ? String(values[name]) : whole));
 }

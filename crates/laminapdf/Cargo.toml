@@ -83,9 +83,6 @@ toml = { workspace = true }
 # The report bench checks its bytes against the TS suite's REPORT_SHA256.
 criterion = { workspace = true }
 sha2 = { workspace = true }
-# The render_page example draws a page with hayro and writes it as a PNG.
-laminapdf-render = { path = "../laminapdf-render", features = ["hayro"] }
-png = { workspace = true }
 
 [[example]]
 name = "hello"
@@ -100,14 +97,11 @@ name = "extract_markdown"
 required-features = ["extract"]
 
 [[example]]
-name = "react_to_error_codes"
-
-[[example]]
-name = "render_page"
-
-[[example]]
 name = "check_what_a_file_hides"
 required-features = ["extract"]
+
+[[example]]
+name = "react_to_error_codes"
 
 [[example]]
 name = "snapshot_test"

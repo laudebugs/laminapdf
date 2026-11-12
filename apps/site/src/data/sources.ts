@@ -101,12 +101,12 @@ export function installLines(page: string = installPage): readonly string[] {
 }
 
 /**
- * The install page's note on alpha releases: the sentences from "Both are alpha releases" to the
- * end of their paragraph, so the home page repeats the install page's advice word for word.
+ * The install page's note on versions: the sentences from "Both follow SemVer" to the end of
+ * their paragraph, so the home page repeats the install page's advice word for word.
  */
-export function alphaNote(page: string = installPage): string {
-  const note = page.match(/Both are alpha releases[^\n]*/)?.[0];
-  if (note === undefined) throw new Error('install.mdx: no "Both are alpha releases" note');
+export function versionNote(page: string = installPage): string {
+  const note = page.match(/Both follow SemVer[^\n]*/)?.[0];
+  if (note === undefined) throw new Error('install.mdx: no "Both follow SemVer" note');
   return note.trim();
 }
 

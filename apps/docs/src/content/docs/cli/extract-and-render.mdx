@@ -30,7 +30,7 @@ None of them contain hidden text: text under a box, white on white, off the page
 
 ### Scanned pages
 
-A scanned page is a picture of text, with no text to read. Each page in the JSON has a `textLayer` that says whether its text can be used or the page needs OCR, optical character recognition. A scanned page gives no Markdown and raises the `extract-needs-ocr` warning, so the command exits 3.
+A scanned page is a picture of text, with no text to read. Each page in the JSON has a `textLayer` that says whether its text can be used or the page needs OCR, optical character recognition. A scanned page gives no Markdown and raises the `extract-needs-ocr` warning, so the command exits 3. [Troubleshooting text extraction](/troubleshooting/extraction/) covers this and other surprises, such as text in the wrong order.
 
 ## Images: `render`
 
@@ -51,8 +51,6 @@ A width after a colon pads a number with zeros: `{n:03}` is `007`. `{{` and `}}`
 
 ### Choose the renderer
 
-The built-in renderer is hayro, written in Rust. `--backend pdfium` uses PDFium, the renderer in Chrome, loaded from the folder that the `LAMINA_PDF_PDFIUM_DIR` environment variable names. Use it when a file draws differently in hayro than in a browser.
-
-To draw pages from your own code instead, in a web page or in Rust, see [render pages to images](/guides/render-pages/).
+The built-in renderer is hayro, written in Rust. `--backend pdfium` uses PDFium, the renderer in Chrome, loaded from the folder that the `LAMINA_PDF_PDFIUM_DIR` environment variable names. Use it when a file draws differently in hayro than in a browser. [Troubleshooting rendering](/troubleshooting/rendering/) covers a PDFium that won't load and images too large to draw.
 
 Next: [make and change PDFs](/cli/build-and-edit/).

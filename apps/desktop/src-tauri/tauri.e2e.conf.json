@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "com.laminapdf.desktop.e2e",
+  "build": {
+    "beforeBuildCommand": "cargo xtask desktop-sidecar && pnpm build --mode e2e"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: lamina: http://lamina.localhost; connect-src 'self' ipc: http://ipc.localhost lamina: http://lamina.localhost; worker-src 'self' blob:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'",
+      "capabilities": ["main", "e2e"]
+    }
+  }
+}

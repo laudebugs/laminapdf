@@ -299,3 +299,27 @@ h1#_top,
 .docs-unreleased a {
   color: var(--paper-text);
 }
+
+/* Starlight's search button shows its keyboard shortcut once its inline script has named the
+   platform's key, by removing the kbd's inline display: none. The docs' CSP allows no inline style,
+   so the build gives that kbd this class instead (astro.config.mjs). The class keeps it hidden while
+   the button is disabled, which lasts until search has loaded; by then the script has named the key. */
+button[data-open-modal][disabled] > kbd.lamina-search-shortcut {
+  display: none;
+}
+
+/* The one-page views (src/pages/one-page/): each page's title, an h2 like the pages' own sections,
+   is larger and has a rule above it, so a reader sees where one page ends and the next begins. */
+.sl-markdown-content .one-page-section {
+  margin-top: 3rem;
+}
+.sl-markdown-content .one-page-title {
+  font-size: var(--sl-text-h1);
+  letter-spacing: -0.02em;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--sl-color-hairline);
+}
+.sl-markdown-content .one-page-title a {
+  color: inherit;
+  text-decoration: none;
+}

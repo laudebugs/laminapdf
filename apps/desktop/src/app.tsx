@@ -1,13 +1,17 @@
 // The desktop reader's window: the reader's chrome around `@laminapdf/viewer`, which draws tiles
 // from this window's engine process through `DesktopEngineClient` (ADR 0008). The Open button
 // runs the main process's file dialog; a locked document asks for its password; a restarted
-// engine shows "Document process restarted" and the view redraws by itself.
+// engine shows "Document process restarted" and the view redraws by itself. Files the OS asks the
+// app to open (the command line, a second launch, Finder, the Dock, a drop on the window) replace
+// what the window shows, until it has tabs (D4a).
 
 import type { KeyPlatform, Platform, ReaderError } from "@laminapdf/ui";
 import {
   type CommandContext,
   CommandRegistry,
   CommandsProvider,
+  DropOverlay,
+  message,
   Notice,
   OpenDropZone,
   type Opener,
@@ -27,7 +31,7 @@ import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
 import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
-import { desktopOpener } from "./engine/open.ts";
+import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 
 /** Outside Tauri (`pnpm dev` in a browser) there is no engine to open with. */
@@ -85,6 +89,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const state = useStoreState(reader, (s) => s);
   const [toasts] = useState(() => new ToastQueue());
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
+  const dragging = useOsOpens(engine, reader, toasts);
   // The reader's commands (open, the shortcuts); the shell adds its own handlers as it grows.
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -143,10 +148,51 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         ) : null}
         <ViewerHost viewer={engine?.viewer} visible={open && lost === undefined} />
       </ReaderShell>
+      {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
       <ToastRegion queue={toasts} aria-label="Notifications" />
     </CommandsProvider>
   );
+}
+
+/** What a drop of the dragged files will do. */
+function dropText({ pdfs }: Dragging): string {
+  if (pdfs === 0) return message("reader.open.droppingNone");
+  return pdfs === 1 ? message("reader.open.dropping") : message("reader.open.droppingMany", { count: pdfs });
+}
+
+/**
+ * Opens what the OS asks this window to open, in place of what it shows, and says when a file
+ * couldn't be read or a drop held no PDF. Returns what is being dragged over the window, if anything.
+ */
+function useOsOpens(
+  engine: DesktopEngine | undefined,
+  reader: ReaderController,
+  toasts: ToastQueue,
+): Dragging | undefined {
+  const [dragging, setDragging] = useState<Dragging>();
+  useEffect(() => {
+    if (engine === undefined) return;
+    let stop: (() => void) | undefined;
+    let gone = false;
+    listenForOsOpens(engine.shell, {
+      open: (file) => reader.open(file),
+      unreadable: (name) => toasts.add({ message: message("reader.open.missing", { name }) }),
+      dragging: setDragging,
+      refused: (names) => toasts.add({ message: `${message("reader.open.droppingNone")}: ${names.join(", ")}` }),
+    }).then(
+      (unsubscribe) => {
+        if (gone) unsubscribe();
+        else stop = unsubscribe;
+      },
+      (error: unknown) => console.error("listening for the OS's open requests failed", error),
+    );
+    return () => {
+      gone = true;
+      stop?.();
+    };
+  }, [engine, reader, toasts]);
+  return dragging;
 }
 
 /** Closes the lost document and asks for it again through the open dialog. */

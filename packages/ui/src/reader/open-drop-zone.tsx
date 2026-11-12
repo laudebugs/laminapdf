@@ -50,7 +50,9 @@ export function OpenDropZone({ reader, keys, children }: OpenDropZoneProps): Rea
   // Before the home screen paints: once it says the window takes a drop or a paste, it does. A
   // listener added after the paint (useEffect) left a moment, long on a slow start, when a drop
   // went to the browser, which opened the file in place of the app.
-  useLayoutEffect(() => listenForFiles(window, { onDragging: setDragging, onFiles }), []);
+  // A shell that takes drops itself (the desktop's main process) leaves the zone only pastes.
+  const drops = !platform.capabilities.shellTakesDrops;
+  useLayoutEffect(() => listenForFiles(window, { drops, onDragging: setDragging, onFiles }), [drops]);
   return (
     <section className="paper-open" aria-labelledby={heading}>
       <h1 id={heading} className="paper-open-heading">
@@ -74,23 +76,32 @@ export function OpenDropZone({ reader, keys, children }: OpenDropZoneProps): Rea
         )}
       </div>
       {children}
-      {dragging ? (
-        <div className="paper-open-overlay" aria-hidden="true">
-          {message("reader.open.dropping")}
-        </div>
-      ) : null}
+      {dragging ? <DropOverlay>{message("reader.open.dropping")}</DropOverlay> : null}
     </section>
   );
 }
 
 /**
- * Listens on `target` for files dragged over it, dropped on it or pasted into it. `onDragging`
- * follows whether files are over the window (enter and leave events come for every child, so
- * they are counted); `onFiles` gets each drop's or paste's transfer. Returns the unsubscribe.
+ * The overlay over the whole window while files are dragged over it, saying what a drop will do.
+ * A shell whose OS reports drags itself (the desktop reader) shows it over any screen.
+ */
+export function DropOverlay({ children }: { children: ReactNode }): ReactNode {
+  return (
+    <div className="paper-open-overlay" aria-hidden="true">
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Listens on `target` for files dragged over it, dropped on it (unless `drops` is false) or pasted
+ * into it. `onDragging` follows whether files are over the window (enter and leave events come for
+ * every child, so they are counted); `onFiles` gets each drop's or paste's transfer. Returns the
+ * unsubscribe.
  */
 function listenForFiles(
   target: Window,
-  handlers: { onDragging: (dragging: boolean) => void; onFiles: (data: DataTransfer) => void },
+  handlers: { drops: boolean; onDragging: (dragging: boolean) => void; onFiles: (data: DataTransfer) => void },
 ): () => void {
   let depth = 0;
   const files = (data: DataTransfer | null): data is DataTransfer => data?.types.includes("Files") === true;
@@ -119,13 +130,13 @@ function listenForFiles(
     event.preventDefault();
     handlers.onFiles(event.clipboardData);
   };
-  const listeners = [
+  const dragging = [
     ["dragenter", enter],
     ["dragover", over],
     ["dragleave", leave],
     ["drop", drop],
-    ["paste", paste],
   ] as const;
+  const listeners = [...(handlers.drops ? dragging : []), ["paste", paste] as const];
   for (const [type, listener] of listeners) target.addEventListener(type, listener as EventListener);
   return () => {
     for (const [type, listener] of listeners) target.removeEventListener(type, listener as EventListener);

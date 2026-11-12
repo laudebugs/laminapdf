@@ -38,7 +38,7 @@ Let users save edits safely on the web: Save (incremental by default), Save as, 
 
 **Out of scope** (and which todo covers it)
 
-- Capability-matrix page and metadata UI → [E1f](../ready/E1f-metadata-ui-capability-page.md)
+- Capability-matrix page and metadata UI → [E1f](../done/E1f-metadata-ui-capability-page.md)
 - Optimisation options beyond a plain full rewrite → [E16b](../ready/E16b-structural-optimiser.md)
 
 **Editor facts**

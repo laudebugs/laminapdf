@@ -10,7 +10,7 @@ const doc = Document.open(bytes);
 console.log(doc.pageCount);
 ```
 
-The package is ESM only. It's on npm as an alpha release: `npm install @laminapdf/sdk@alpha`.
+The package is ESM only. It's on npm: `npm install @laminapdf/sdk`.
 
 ## Quick start
 

@@ -1,49 +1,40 @@
 ---
 title: Render pages to images
-description: Draw a PDF page as an image at the width you choose, onto a canvas in the browser or into a PNG file in Rust.
+description: Draw a PDF's pages as pixels, for thumbnails, previews or tests, in JavaScript and from the command line.
 ---
 
 import Snippet from "../../../components/Snippet.astro";
+import Transcript from "../../../components/Transcript.astro";
 
-You'll draw one page of a PDF as an image at the width you choose: onto a canvas in a web page, or into a PNG file in Rust. You need this for thumbnails, a preview in a file list, or a check that a page looks right.
+You'll draw a page as an image: a thumbnail for a file list, a preview in an email, or a picture to compare in a test. A renderer turns the page into straight RGBA pixels, and Lamina PDF reads the same page's text, so you can show both.
 
-In a web page, this example draws a page onto a `<canvas>` 600 pixels wide, or whatever width you pass:
+## In JavaScript
 
-<Snippet file="packages/sdk/examples/render-page.ts" />
+Two renderers implement the same interface, `RenderBackend` from `@laminapdf/render`:
 
-The canvas then holds the page as the reader would see it in a PDF viewer, at its own height for that width: an A4 page 600 pixels wide is 849 pixels tall. To save the picture, `canvas.toBlob(callback, "image/png")` gives you a PNG, and `convertToBlob()` does the same for an `OffscreenCanvas` in a Web Worker.
-
-In Rust, this example draws the same page into a PNG file:
-
-<Snippet file="crates/laminapdf/examples/render_page.rs" />
-
-## Pick a renderer
-
-Lamina PDF reads a PDF's text, links and structure itself, but it doesn't draw pages. Two renderers do, behind one interface, `RenderBackend`, so the code that calls them is the same:
-
-| Renderer | Where it runs | Install |
+| Package | Renderer | Best for |
 | --- | --- | --- |
-| PDFium, the engine behind Chrome's PDF viewer | Browsers, as WebAssembly; Rust, as a native library loaded at run time | `@laminapdf/render-pdfium` with `@embedpdf/pdfium@2.15.1`; the `laminapdf-render-pdfium` crate |
-| hayro, a renderer written in Rust | Browsers and Node, as WebAssembly; Rust, compiled into your program | `@laminapdf/render-hayro`; the `laminapdf-render` crate with its `hayro` feature |
+| `@laminapdf/render-hayro` | hayro, written in Rust and built to WebAssembly | servers, Cloudflare Workers and tests: small, and it needs no address |
+| `@laminapdf/render-pdfium` | PDFium, the engine of Chrome's PDF viewer | browsers, where pages should look as they do in Chrome |
 
-We recommend PDFium where people look at the pages, since it draws them the way Chrome does. hayro needs no native library and reads the whole file before it draws, which suits a server or a test that already holds the file. [How a page is drawn](/concepts/drawing-pages/) explains how the two compare.
+This example draws a page with hayro and reads its text with Lamina PDF:
 
-Load a renderer once and reuse it for every page. In a browser, `await initPdfium(wasmUrl)` takes the URL your bundler gives PDFium's `.wasm` file, and `await initHayro()` finds hayro's own. In Rust, `HayroBackend::new()` is ready at once, and `PdfiumBackend::bind(dir)` loads PDFium from the folder that holds `libpdfium.so`, `libpdfium.dylib` or `pdfium.dll`.
+<Snippet file="packages/sdk/examples/draw-page.ts" />
 
-## Choose the size
+To draw with PDFium instead, start it with `initPdfium(wasm)` from `@laminapdf/render-pdfium`, which takes PDFium's WebAssembly as `initHayro` takes hayro's. Then pass the backend it returns to `drawPage`; nothing else changes.
 
-A render request names the page, counting from 0, and the scale in pixels per point. A point is 1/72 of an inch, so a scale of 1 draws 72 pixels per inch, and 2 draws 144, sharp on most screens. Both examples work out the scale from the width you want and the page's width in points. A page's size in pixels rounds down, so both examples ask for half a pixel more.
+A scale of 2 draws 144 pixels per inch. Ask for a `clip` to draw only part of a page. The renderer refuses a tile wider or taller than 16,384 pixels, or larger than about 16.7 million pixels, with `render-too-large`, so draw a poster-sized page at a high scale in tiles. [How a page is drawn](/concepts/drawing-pages/) explains the tile plan.
 
-The width is the page's displayed width, after any rotation the file sets, so the picture comes out the way a viewer shows it. To turn the picture further, add `rotation: 90`, `180` or `270` to the request (`with_rotation` in Rust).
+## From the command line
 
-## Draw part of a page
+`laminapdf render` writes pages as PNG files, which suits scripts and batch jobs:
 
-For a large page at a high zoom, draw only the part you need: `clip: { x, y, width, height }` in pixels of the whole page at that scale (`with_clip` in Rust). A viewer draws a large page this way, tile by tile. Each tile has a limit: by default, at most 16,384 pixels on a side and about 16.7 million pixels in all. A larger request fails with `render-too-large` before the renderer allocates anything, so a mistaken scale never fills your memory.
+<Transcript name="render" />
 
-## Pixels, not text
+[Extract text and render pages](/cli/extract-and-render/#images-render) lists its options.
 
-The renderer returns straight RGBA: four bytes a pixel, red, green, blue and alpha, row by row from the top-left corner. White is the default background; `background: null` draws a transparent one. The picture holds no text. For the text of the same page, ask Lamina PDF.
+## In Rust
 
-On the command line, `laminapdf render` draws pages to PNG files without any code: see [extract text and render pages](/cli/extract-and-render/).
+The Rust renderers are the `laminapdf-render` crate, with hayro behind its `hayro` feature, and `laminapdf-render-pdfium` for a native PDFium. Their API is at [docs.rs](https://docs.rs/laminapdf-render). The `laminapdf` crate doesn't draw pages yet, so this guide has no Rust example; the command line above runs the same renderers.
 
-Next: [check what a file hides](/guides/check-what-a-file-hides/) before you publish it.
+Next, see [how to compare pages in tests](/guides/test-generated-pdfs/), which draws two PDFs and counts the pixels that differ.

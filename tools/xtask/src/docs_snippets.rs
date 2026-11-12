@@ -1,8 +1,8 @@
-//! `cargo xtask check docs-snippets`: the rules of docs/guidelines/examples.md that a tool can check,
-//! over the examples (`packages/sdk/examples/**`, `crates/laminapdf/examples/**`) and the files the
-//! docs site's `Snippet` component may show (its `import.meta.glob`). Run on its own, strict on
-//! changed files and counted warnings elsewhere, like `docs-prose` ([`crate::reports`]);
-//! `cargo xtask check docs` runs it strict on every file.
+//! `cargo xtask check docs-snippets`: the rules of docs/guidelines/examples.md that a tool can
+//! check, over the examples (`packages/sdk/examples/**`, `packages/viewer/examples/**`,
+//! `crates/laminapdf/examples/**`) and the files the docs site's `Snippet` component may show (its
+//! `import.meta.glob`). Run on its own, strict on changed files and counted warnings elsewhere,
+//! like `docs-prose` ([`crate::reports`]); `cargo xtask check docs` runs it strict on every file.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -15,11 +15,13 @@ use crate::tracked::Tracked;
 
 const SNIPPET: &str = "apps/docs/src/components/Snippet.astro";
 const PAGES: &str = "apps/docs/src/content/docs/";
-/// The TypeScript examples' folder (`@laminapdf/sdk`'s).
-pub(crate) const TS_EXAMPLES: &str = "packages/sdk/examples/";
+/// The TypeScript examples' folders: `@laminapdf/sdk`'s, and `@laminapdf/viewer`'s, which the SDK
+/// can't hold since the viewer depends on it.
+pub(crate) const TS_EXAMPLE_DIRS: [&str; 2] = ["packages/sdk/examples/", "packages/viewer/examples/"];
 /// The Rust examples' folder (the `laminapdf` façade's).
 pub(crate) const RUST_EXAMPLES: &str = "crates/laminapdf/examples/";
-const EXAMPLE_DIRS: [&str; 2] = [TS_EXAMPLES, RUST_EXAMPLES];
+/// Every examples folder; a test holds it to [`TS_EXAMPLE_DIRS`] and [`RUST_EXAMPLES`].
+const EXAMPLE_DIRS: [&str; 3] = [TS_EXAMPLE_DIRS[0], TS_EXAMPLE_DIRS[1], RUST_EXAMPLES];
 const MAX_LINES: usize = 100;
 
 /// Folders under [`EXAMPLE_DIRS`] that hold developer tools rather than examples for readers:
@@ -126,13 +128,6 @@ fn load_config(root: &Path) -> Result<Config> {
     let path = root.join("tools/xtask/docs-snippets.toml");
     let text = std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))
-}
-
-/// The examples among `paths` (as [`examples`] finds them), with the `Snippet` globs read from
-/// the repository at `root`: what `biome-examples` lints too.
-pub(crate) fn example_paths(root: &Path, paths: &BTreeSet<String>) -> Result<Vec<String>> {
-    let snippet = std::fs::read_to_string(root.join(SNIPPET)).with_context(|| format!("reading {SNIPPET}"))?;
-    Ok(examples(paths, &snippet_globs(&snippet)))
 }
 
 /// The examples the rules apply to: everything under the example folders, and every file the
@@ -440,12 +435,7 @@ fn code_part<'a>(line: &'a str, toml: bool, in_block_comment: &mut bool) -> Opti
     (!code.starts_with("//")).then_some(code)
 }
 
-/// The crates besides the façade that readers depend on directly: `laminapdf-render`, which draws
-/// pages (the façade never renders), as `@laminapdf/render` is in TypeScript.
-const PUBLIC_CRATES: [&str; 1] = ["render"];
-
-/// Whether code names a crate other than the façade and [`PUBLIC_CRATES`]: `laminapdf_build::…`,
-/// `use laminapdf_text`.
+/// Whether code names a crate other than the façade: `laminapdf_build::…`, `use laminapdf_text`.
 fn names_internal_crate(code: &str) -> bool {
     code.match_indices("laminapdf_").any(|(index, _)| {
         let before = code.get(..index).and_then(|before| before.chars().next_back());
@@ -457,10 +447,8 @@ fn names_internal_crate(code: &str) -> bool {
         let use_line = ["use ", "pub use ", "extern crate "]
             .iter()
             .any(|start| code.starts_with(start));
-        let public = rest.get(..name_len).is_some_and(|name| PUBLIC_CRATES.contains(&name));
         starts_word
             && name_len > 0
-            && !public
             && (after.starts_with("::") || (use_line && (after.starts_with(';') || after.starts_with(" as "))))
     })
 }
@@ -590,6 +578,14 @@ fn pair_findings(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn example_dirs_should_hold_every_ts_folder_and_the_rust_one() {
+        for dir in TS_EXAMPLE_DIRS.iter().chain([&RUST_EXAMPLES]) {
+            assert!(EXAMPLE_DIRS.contains(dir), "{dir} is missing from EXAMPLE_DIRS");
+        }
+        assert_eq!(EXAMPLE_DIRS.len(), TS_EXAMPLE_DIRS.len() + 1);
+    }
 
     fn glob(pattern: &str) -> Glob {
         Glob {
@@ -802,14 +798,6 @@ mod tests {
     fn internal_crates_should_be_reported_wherever_they_are_named() {
         let text = "//! Shows text.\npub use laminapdf_text::Font;\nlet b = laminapdf_build::Builder::new();\nuse laminapdf::Document;\n";
         assert_eq!(rules("a.rs", text), vec!["public-imports", "public-imports"]);
-    }
-
-    #[test]
-    fn the_render_crate_should_be_a_public_import_but_not_its_pdfium_adapter() {
-        let text = "//! Shows a page.\nuse laminapdf_render::{HayroBackend, RenderBackend};\n";
-        assert_eq!(rules("a.rs", text), Vec::<&str>::new());
-        let text = "//! Shows a page.\nuse laminapdf_render_pdfium::PdfiumBackend;\n";
-        assert_eq!(rules("a.rs", text), vec!["public-imports"]);
     }
 
     #[test]

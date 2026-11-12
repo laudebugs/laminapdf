@@ -43,6 +43,7 @@
     "ajv": "catalog:",
     "axe-core": "catalog:",
     "babel-plugin-react-compiler": "catalog:",
+    "pdfjs-dist": "catalog:",
     "playwright": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

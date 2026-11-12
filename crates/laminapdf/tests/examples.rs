@@ -61,9 +61,6 @@ mod pdf_ua_report;
 #[path = "../examples/react_to_error_codes.rs"]
 mod react_to_error_codes;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
-#[path = "../examples/render_page.rs"]
-mod render_page;
-#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/snapshot_test.rs"]
 mod snapshot_test;
 
@@ -73,7 +70,6 @@ use std::error::Error;
 use std::path::Path;
 
 use common::FlowReport;
-use laminapdf::reveal::Category;
 use laminapdf::{BuildOptions, Builder};
 use pdf_a_archive::Level;
 use sha2::{Digest, Sha256};
@@ -299,85 +295,26 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
     assert_eq!((&here, &in_manifest), (&files, &files));
 }
 
+/// Compares `text` with the golden at `path` under `fixtures/`; `UPDATE_GOLDEN=1` rewrites it. The
+/// docs site shows these goldens as the reading examples' output.
+fn check_text_golden(path: &str, text: &str) {
+    let golden = fixtures_dir().join(path);
+    if std::env::var_os("UPDATE_GOLDEN").is_some() {
+        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
+            .unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(&golden, text).unwrap_or_else(|e| panic!("{e}"));
+    }
+    let want = std::fs::read_to_string(&golden).unwrap_or_default();
+    assert!(text == want, "{} is stale: run with UPDATE_GOLDEN=1", golden.display());
+}
+
 /// The examples that read a PDF instead of building one.
-const READERS: [&str; 5] = [
+const READERS: [&str; 4] = [
     "check_what_a_file_hides",
     "extract_markdown",
     "react_to_error_codes",
-    "render_page",
     "snapshot_test",
 ];
-
-#[test]
-fn render_page_draws_the_hello_page_as_a_png_of_the_width_asked_for() {
-    const WIDTH: u16 = 600;
-    let png =
-        render_page::render_page(fixture("golden/examples/hello.pdf"), 0, WIDTH).unwrap_or_else(|e| panic!("{e}"));
-    let mut reader = png::Decoder::new(std::io::Cursor::new(png))
-        .read_info()
-        .unwrap_or_else(|e| panic!("{e}"));
-    let mut pixels = vec![0; reader.output_buffer_size().unwrap_or_default()];
-    let info = reader.next_frame(&mut pixels).unwrap_or_else(|e| panic!("{e}"));
-    // hello is A4, 595.28 × 841.89 points: 600.5 / 595.28 pixels a point makes it 849 tall.
-    assert_eq!(
-        (info.width, info.height, info.color_type),
-        (600, 849, png::ColorType::Rgba)
-    );
-    // The text is drawn: some pixels are dark.
-    assert!(pixels.chunks(4).any(|p| p.iter().take(3).all(|&v| v < 128)));
-}
-
-/// A one-page letter whose name a black box covers, and two redaction marks never applied.
-fn badly_redacted_letter() -> Vec<u8> {
-    let content = laminapdf_test_fixtures::stream_body(
-        "",
-        b"BT /F1 12 Tf 72 700 Td (Pay John Smith now.) Tj ET 0 g 95 694 62 16 re f",
-    );
-    let mark = b"<< /Type /Annot /Subtype /Redact /Rect [95 694 157 710] >>";
-    let bodies: [&[u8]; 7] = [
-        b"<< /Type /Catalog /Pages 2 0 R >>",
-        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents 4 0 R /Annots [6 0 R 7 0 R] \
-           /Resources << /Font << /F1 5 0 R >> >> >>",
-        &content,
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
-        mark,
-        mark,
-    ];
-    laminapdf_test_fixtures::classic(&bodies, "<< /Size 8 /Root 1 0 R >>")
-}
-
-#[test]
-fn check_what_a_file_hides_finds_the_covered_name_and_the_marks_never_applied() {
-    let found = check_what_a_file_hides::check(badly_redacted_letter()).unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(
-        found.redactions,
-        [
-            "page 1: 9 characters under a box, still in the file",
-            "page 1: 2 redaction marks never applied",
-        ]
-    );
-    // The marks are annotations too, and the docs' guide shows this list.
-    assert_eq!(found.categories, [Category::Annotations, Category::HiddenContent]);
-}
-
-#[test]
-fn check_what_a_file_hides_finds_the_word_an_edit_removed() {
-    let found =
-        check_what_a_file_hides::check(fixture("corpus/hello-incremental.pdf")).unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(
-        found.redactions,
-        ["revision 0: 1 word the latest revision doesn't hold"]
-    );
-    assert_eq!(found.categories, [Category::History]);
-}
-
-#[test]
-fn check_what_a_file_hides_finds_nothing_in_a_plain_file() {
-    let found = check_what_a_file_hides::check(fixture("corpus/hello.pdf")).unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(found.redactions, Vec::<String>::new());
-    assert_eq!(found.categories, Vec::<Category>::new());
-}
 
 #[test]
 fn react_to_error_codes_asks_for_a_password_then_again_and_refuses_a_non_pdf() {
@@ -398,6 +335,40 @@ fn react_to_error_codes_asks_for_a_password_then_again_and_refuses_a_non_pdf() {
 }
 
 #[test]
+fn check_what_a_file_hides_finds_an_old_revision_hidden_text_and_metadata() {
+    use check_what_a_file_hides::{FailedRedaction, report, what_it_hides};
+    let hides = |path: &str| what_it_hides(fixture(path)).unwrap_or_else(|e| panic!("{path}: {e}"));
+    // A letter whose later revision deleted a word that the first one still holds.
+    let letter = hides("corpus/hello-incremental.pdf");
+    assert_eq!(letter.categories, ["history"]);
+    assert_eq!(
+        letter.redactions,
+        [FailedRedaction {
+            code: "text-in-earlier-revision",
+            page: None
+        }]
+    );
+    // Invisible text on its first page, and metadata.
+    let brochure = hides("corpus/text-example.pdf");
+    assert_eq!(brochure.categories, ["metadata", "hidden-content"]);
+    assert_eq!(brochure.redactions, []);
+    // The report is a golden: the docs' guide shows it as the example's output, for the two
+    // files under the names the guide gives them. `UPDATE_GOLDEN=1` rewrites it.
+    let printed = report("letter.pdf", &letter) + &report("brochure.pdf", &brochure);
+    check_text_golden("reveal/examples/check_what_a_file_hides.txt", &printed);
+}
+
+#[test]
+fn check_what_a_file_hides_reports_a_file_with_nothing_beyond_its_pages() {
+    use check_what_a_file_hides::{Hidden, report};
+    let clean = Hidden {
+        categories: Vec::new(),
+        redactions: Vec::new(),
+    };
+    assert_eq!(report("clean.pdf", &clean), "clean.pdf: nothing beyond its pages\n");
+}
+
+#[test]
 fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     let out = std::env::temp_dir().join(format!("laminapdf-extract-example-{}", std::process::id()));
     std::fs::create_dir_all(&out).unwrap_or_else(|e| panic!("{e}"));
@@ -407,18 +378,7 @@ fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     // The whole Markdown is a golden: the docs' Extract Markdown recipe shows it as the example's
     // output. `UPDATE_GOLDEN=1` rewrites it.
     let markdown = read("invoice.md");
-    let golden = fixtures_dir().join("extract/examples/invoice.md");
-    if std::env::var_os("UPDATE_GOLDEN").is_some() {
-        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
-            .unwrap_or_else(|e| panic!("{e}"));
-        std::fs::write(&golden, &markdown).unwrap_or_else(|e| panic!("{e}"));
-    }
-    let want = std::fs::read_to_string(&golden).unwrap_or_default();
-    assert!(
-        markdown == want,
-        "{} is stale: run with UPDATE_GOLDEN=1",
-        golden.display()
-    );
+    check_text_golden("extract/examples/invoice.md", &markdown);
     assert!(markdown.starts_with("<!-- page 1 -->\n\n# Invoice 42\n"));
     assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
     assert!(read("invoice.chunks.jsonl").lines().count() >= 1);

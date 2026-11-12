@@ -1,64 +1,48 @@
 ---
 title: Check what a file hides
-description: Find failed redactions, earlier versions, attachments, scripts and hidden text in a PDF from Rust, before you send or publish it.
+description: Find what a PDF holds beyond its visible pages, from earlier revisions to hidden text, and redactions that only covered text instead of removing it.
 ---
 
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
-You'll check a PDF for what its pages don't show: a name under a black box that can still be copied, an earlier version of the file inside it, an attachment or a script. You need this before you publish, file or email a document someone else edited.
+You'll check a PDF for what its reader can't see before you publish it, send it or accept it as redacted. A PDF keeps more than its pages show: every earlier revision's text, who made it, attached files, scripts, and text drawn invisible or under a black box.
 
-This Rust example lists every failed redaction in a file, then the kinds of content it holds beyond its pages, and exits 1 when it finds any you refuse:
+This example lists what each file holds, and every redaction that only covered its text:
 
-<Snippet file="crates/laminapdf/examples/check_what_a_file_hides.rs" />
+<Example rust="crates/laminapdf/examples/check_what_a_file_hides.rs" output="fixtures/reveal/examples/check_what_a_file_hides.txt" />
 
-For a letter where someone drew a black box over a name, and marked two passages for redaction without applying the marks, it prints:
+The letter's latest revision deleted a word, but its first revision still holds it, and anyone can read that revision. The brochure has metadata and invisible text on its first page.
 
-```text
-page 1: 9 characters under a box, still in the file
-page 1: 2 redaction marks never applied
-holds: annotations, hidden-content
-```
+## What `reveal` looks for
 
-For a file that was edited after it was sent, it prints `revision 0: 1 word the latest revision doesn't hold` and `holds: history`. The first version is still inside the file, and anyone with the right tool can read it.
-
-These checks are in the Rust API and on the command line, and not yet in `@laminapdf/sdk`. From another language, run [`laminapdf check` and `laminapdf reveal`](/cli/inspect/#failed-redactions), which make the same checks and report them as JSON.
-
-## Failed redactions
-
-A redaction fails when it hides text from the eye but leaves it in the file. The example finds three ways that happens, all in the `Reveal` that `doc.reveal(&options, &cancel)` returns, so it reads the file once:
-
-| Where | What it found |
-| --- | --- |
-| `hidden`, reason `Covered` | Text under a box, an image or an annotation drawn over it. The text is still there to select, copy and search. |
-| `disclosure.redactions()` | Redaction marks someone drew but never applied. They show where the secret is, and the secret is still under them. |
-| `revisions`, `removed_words` | Words an earlier revision of the file holds and the latest one doesn't. |
-
-A PDF edit often appends the change to the end of the file and keeps every earlier revision. A word deleted in an edit can still be read in the revision before it. The example's lines give counts and page numbers, never the hidden text itself, so you can log them without leaking what they found.
-
-Need only these three? `doc.redaction_warnings(&options, &cancel)` returns them as warnings, with the codes `laminapdf check` reports: `covered-text`, `redaction-not-applied` and `text-in-earlier-revision`.
-
-## What a file holds beyond its pages
-
-The same `Reveal` has a `found()` method, which lists the categories with something in them, in this order:
+`Document::reveal` reads every object once and sorts what it finds into seven categories. `Reveal::found` lists the ones the file has:
 
 | Category | What it means |
 | --- | --- |
-| `History` | Earlier revisions, and objects nothing in the file uses |
-| `Metadata` | The document information, XMP metadata (a block of metadata in XML), thumbnails |
-| `Attachments` | Files embedded in the PDF |
-| `ActiveContent` | Scripts, actions that run on their own, and XFA forms (forms described in XML) |
-| `Annotations` | Comments, highlights and other annotations, with their authors |
-| `Forms` | Form fields that hold values |
-| `HiddenContent` | Hidden text, layers that are turned off, and unapplied redaction marks |
+| `history` | Earlier revisions, and objects nothing refers to any more |
+| `metadata` | The title, author and dates in the file's two metadata stores (its document information and its XMP metadata), and metadata on single objects |
+| `attachments` | Embedded files |
+| `active-content` | JavaScript, actions that run on a trigger, and XFA forms |
+| `annotations` | Comments and markup, with their authors |
+| `forms` | Form fields that hold values |
+| `hidden-content` | Hidden text, layers turned off, and redaction marks never applied |
 
-The `Reveal` also holds the details behind each category. `revisions` lists what each revision added, changed and freed, and `info` holds every document information entry. `disclosure` lists the attachments, scripts, annotations and form fields. `hidden` lists each run of text a reader can't see, with its page, its box and why it's hidden.
+The `Reveal` it returns also holds the details: each Info entry, each attachment's name and size, and each run of hidden text. For each earlier revision, it counts the words that revision holds and the latest one lost, and names the pages they were on.
 
-Text counts as hidden in six cases: under something drawn over it, invisible, off the page, smaller than 1 point, outside its clipping area, or too pale to read on a white page. The same rules keep that text out of [text extraction](/recipes/extract-markdown/).
+## Redactions that didn't remove the text
 
-## Decide what to refuse
+A black rectangle over a name hides it on screen and in print, but the name is still in the file, and copying the text brings it back. `Document::redaction_warnings` finds three ways a redaction fails:
 
-Almost every file has some metadata, such as a title, so refusing `Metadata` stops nearly every file. The example refuses history, scripts, attachments and hidden content instead. Pick the list for your own documents. For example, you might refuse annotations in a court filing, but a form you send back must keep its values.
+| Warning | What it found |
+| --- | --- |
+| [`covered-text`](/reference/codes/covered-text/) | Text under an opaque box on the page |
+| [`redaction-not-applied`](/reference/codes/redaction-not-applied/) | Redaction marks that were drawn but never applied |
+| [`text-in-earlier-revision`](/reference/codes/text-in-earlier-revision/) | Words an earlier revision holds that the latest doesn't |
 
-`reveal` takes the `OpenOptions` you opened the file with, since earlier revisions open with the same password and limits. It also takes a `CancelToken`: it reads every page and every revision, so a server can cancel it when the request it serves goes away.
+Each warning names its page when it has one. Remove the text itself with a tool that deletes what a redaction covers, then save a [full rewrite](/reference/glossary/#full-rewrite), so no earlier revision keeps it.
 
-Next: [inspect and check PDFs on the command line](/cli/inspect/), which runs the same checks over many files at once.
+## From TypeScript and the command line
+
+`@laminapdf/sdk` doesn't have `reveal` or the redaction warnings yet. The command line runs the same checks: `laminapdf reveal` reports each category, and `laminapdf check` reports failed redactions with its other warnings. [Inspect and check PDFs](/cli/inspect/) shows both.
+
+Next: [open files you don't trust](/guides/untrusted-files/), with limits on the work an uploaded file can make Lamina PDF do.

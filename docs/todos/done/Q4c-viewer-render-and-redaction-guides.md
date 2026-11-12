@@ -11,7 +11,7 @@
 | Branch | `docs/q4c-viewer-render-redaction` |
 | PR title | `docs: guides for the viewer, rendering pages, and checking what a file hides` |
 | Size | M |
-| PR | [#463](https://github.com/laudebugs/laminapdf/pull/463) |
+| PR | [#465](https://github.com/laudebugs/laminapdf/pull/465) |
 
 ## Goal
 
@@ -40,13 +40,13 @@ The viewer and render packages appear in the docs only as rows in the install ta
 
 ## Tasks
 
-- [x] Confirm with the viewer's owners which of its API is stable enough to document; mark the rest as preview. (The guide documents only the core, start, open, move and state, under a Preview notice that points to the README for the rest.)
-- [x] Write the examples and their tests.
-- [x] Write the three guides and place them in the sidebar and llms.txt.
+- [x] Confirm with the viewer's owners which of its API is stable enough to document; mark the rest as preview. *The whole viewer is marked preview, on the guide and in the example's header: the reader still changes it (the edit and save calls of E1d and E1e), and no part has a stability promise yet. The guide documents only `ViewerClient.create`, `open`, `terminate`, `createViewer`, `mount`, `open` and `destroy`.*
+- [x] Write the examples and their tests. *`packages/viewer/examples/show-a-pdf.ts` with `test/browser/show-a-pdf.browser.test.ts` (Chromium, Firefox, WebKit), under the examples' rules (the viewer's examples folder joins docs-snippets, biome-examples, Snippet's glob, the agent docs and the guideline; the two dev demos moved to `packages/viewer/demo/`); `crates/laminapdf/examples/check_what_a_file_hides.rs` with its tests and an output golden, `fixtures/reveal/examples/`. Rendering reuses `draw-page.ts`, and Rust rendering, outside the façade, is the `render` transcript.*
+- [x] Write the three guides and place them in the sidebar and llms.txt. *Check what a file hides under Read and edit PDFs; Show a PDF in a web page and Render pages to images in a new Show PDFs group; llms.txt follows the sidebar.*
 
 ## Acceptance criteria
 
-- [x] Each guide starts from a tested example and shows its result.
+- [x] Each guide starts from a tested example and shows its result. *The viewer guide says what the reader sees; the render guide shows the command line's output; the reveal guide's Output tab shows the example's report.*
 - [x] The install table links each package to its guide.
 
 ## Post-merge checks
@@ -70,5 +70,5 @@ The guides, the install page, the command-line pages' links.
 - [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [x] CI green
+- [ ] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
