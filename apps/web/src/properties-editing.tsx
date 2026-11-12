@@ -25,13 +25,14 @@ export function EditablePropertiesDialog({ engine, ...props }: EditablePropertie
   useEffect(() => {
     if (!props.isOpen) return;
     let current = true;
-    setEditing(undefined);
     void engine.editableMetadata().then((editable) => {
       if (!current || editable === undefined) return;
       setEditing({ metadata: { status: "ready", metadata: editable.metadata }, rewritesWhole: editable.rewritesWhole });
     }, reportError);
+    // Closing forgets the form's data, so the next open starts from what the session reads then.
     return () => {
       current = false;
+      setEditing(undefined);
     };
   }, [engine, props.isOpen]);
   const edit: PropertiesEditing | undefined =

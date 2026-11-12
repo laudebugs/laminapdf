@@ -207,7 +207,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   (setCloseGuard, requestClose, open(file, { discard })); src/editing.ts (the ./editing entry: EditArea, ReaderTopBar's
 │                        #   `editArea` with the save state, Undo and Redo; HistoryPanel; the edit commands; the tools) and src/reader-mode.ts
 │                        #   (the ./reader-mode entry: ReaderView, ReaderSettingsPanel), loaded once a document opens (#380),
-│                        #   src/messages.ts (the catalogue) and src/later-messages.ts (the words of the lazily loaded editor and capability page, #380),
+│                        #   src/messages.ts (the catalogue) and src/later-messages.ts (the words of the lazily loaded properties form and capability page, #380),
 │                        #   examples/ui-demo.{html,tsx} (`pnpm --filter @laminapdf/ui demo`: the chrome over a stand-in viewer, built with
 │                        #   the React Compiler through Babel, vite.demo.config.ts),
 │                        #   src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
@@ -245,7 +245,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
 │                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),
 │                        #   src/later.ts (the one chunk loaded once a document is open: dialogs, reader mode's column, the editor's parts, the capability page);
-│                        #   src/capabilities.tsx (E1f: the /capabilities route over the reader, More › What Lamina PDF can do; capability-page.tsx bundles the matrix);
+│                        #   src/capabilities.tsx (E1f: the /capabilities route over the reader, More › What Lamina PDF can do; capability-page.tsx, lazily loaded, bundles the matrix and owns the page's Back; capability-address.ts the address they share);
 │                        #   src/reading/ (T5b: positions.ts parses, records and restores reading positions by fingerprint; resume.ts
 │                        #   reopens the document open at the last close; recent.tsx's Continue reading and the session record);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at

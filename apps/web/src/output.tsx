@@ -62,7 +62,7 @@ const PrintDialog = lazy<typeof Dialogs.PrintDialog>(() =>
 const PrintProgressDialog = lazy<typeof Dialogs.PrintProgressDialog>(() =>
   loadDialogs().then((m) => ({ default: m.PrintProgressDialog }), nothing),
 );
-const PropertiesDialog = lazy<typeof EditablePropertiesDialog>(() =>
+const LazyEditablePropertiesDialog = lazy<typeof EditablePropertiesDialog>(() =>
   loadDialogs().then((m) => ({ default: m.EditablePropertiesDialog }), nothing),
 );
 
@@ -169,7 +169,7 @@ function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
     render: (document: OutputDocument | undefined) =>
       document === undefined ? null : (
         <Suspense fallback={null}>
-          <PropertiesDialog
+          <LazyEditablePropertiesDialog
             isOpen={open}
             fileName={document.fileName}
             state={state}

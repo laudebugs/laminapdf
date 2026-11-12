@@ -1,12 +1,13 @@
-// The capability page with its data: the matrix `cargo xtask capabilities` writes, bundled when
-// the reader is built (O05: the page makes no request), and the reader's version.
+// The capability page over the reader, loaded with later.ts (#380): its data (the matrix `cargo
+// xtask capabilities` writes, bundled when the reader is built, so the page makes no request (O05),
+// and the reader's version), the reader made inert behind it, and Back through the history.
 
 import { message, usePlatform } from "@laminapdf/ui";
 import { type CapabilityMatrix, CapabilityPage } from "@laminapdf/ui/capabilities";
 import { type ReactNode, useEffect } from "react";
 import { createPortal } from "react-dom";
 import matrix from "../../../docs/capabilities/matrix.json" with { type: "json" };
-import { KEY } from "./capabilities.tsx";
+import { CAPABILITY_HISTORY_KEY } from "./capability-address.ts";
 
 /** How the statuses are proven: the matrix's own page, with its rules for each status. */
 const HOW_TESTED = "https://github.com/laudebugs/laminapdf/blob/main/docs/capabilities/README.md";
@@ -36,7 +37,7 @@ export function CapabilityRoutePage({
   }, [win]);
   const back = () => {
     const state: unknown = win.history.state;
-    if (typeof state === "object" && state !== null && KEY in state) {
+    if (typeof state === "object" && state !== null && CAPABILITY_HISTORY_KEY in state) {
       win.history.back();
       return;
     }

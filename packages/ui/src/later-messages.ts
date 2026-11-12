@@ -1,7 +1,10 @@
 // The words of parts the reader loads after startup: the properties dialog's editing and the
 // capability page. They sit in a catalogue of their own so that they load with those parts, not
 // with the reader's first paint (#380). Only code in a lazily loaded chunk may import this file;
-// messages.ts holds every other word, and a translation is a second copy of both.
+// the size budget (apps/web/size-budget.json) is what catches a slip. messages.ts holds every
+// other word, including the few the apps show from their own lazy code (the undo step's name, the
+// page's Back labels), since this catalogue is in no package entry. A translation is a second
+// copy of both.
 
 import { type CountIds, countId, ENGLISH, fill, type MessageId } from "./messages.js";
 

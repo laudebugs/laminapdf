@@ -4,12 +4,7 @@
 // returns to it where it was. The page and its matrix load with the rest of later.ts (#380).
 
 import { lazy, type ReactNode, Suspense, useEffect, useState } from "react";
-
-/** The page's address. */
-const CAPABILITIES_PATH = "/capabilities";
-
-/** Marks the history entry this reader pushed for the page, so its Back can go back to it. */
-export const KEY = "laminaCapabilities";
+import { CAPABILITIES_PATH, CAPABILITY_HISTORY_KEY } from "./capability-address.ts";
 
 /** The page, with the matrix bundled, loaded from later.ts's chunk on first open. */
 const Page = lazy(() => import("./later.ts").then((m) => ({ default: m.CapabilityRoutePage })));
@@ -38,7 +33,11 @@ export function useCapabilityRoute(win: Window): CapabilityRoute {
   }, [win]);
   const show = () => {
     if (atPage(win)) return;
-    win.history.pushState({ [KEY]: true }, "", `${CAPABILITIES_PATH}${win.location.search}${win.location.hash}`);
+    win.history.pushState(
+      { [CAPABILITY_HISTORY_KEY]: true },
+      "",
+      `${CAPABILITIES_PATH}${win.location.search}${win.location.hash}`,
+    );
     setOpen(true);
   };
   return {
