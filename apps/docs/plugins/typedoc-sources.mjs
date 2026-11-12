@@ -34,7 +34,7 @@ export function isDependencyFile(fileName) {
 /**
  * Leaves out the members of the types in {@link SUMMARISED}.
  *
- * @param {import("typedoc").ProjectReflection} project
+ * @param {Pick<import("typedoc").ProjectReflection, "getChildByName" | "removeReflection">} project
  */
 export function removeSummarisedMembers(project) {
   for (const name of SUMMARISED) {

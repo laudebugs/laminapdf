@@ -22,16 +22,25 @@ test("the released docs link to the release's tag, other builds to main", () => 
 });
 
 test("a summarised type keeps its page but loses its members; other types keep theirs", () => {
+  /** @type {string[]} */
   const removed = [];
-  const member = (name) => ({ name });
+  /** @param {string} name */
+  const member = (name) => /** @type {import("typedoc").Reflection} */ (/** @type {unknown} */ ({ name }));
+  /** @type {Record<string, { children: import("typedoc").Reflection[] }>} */
   const types = {
-    [SUMMARISED[0]]: { children: [member("blocks"), member("page")] },
+    [SUMMARISED[0] ?? ""]: { children: [member("blocks"), member("page")] },
     Other: { children: [member("a")] },
   };
-  const project = {
-    getChildByName: (name) => types[name],
-    removeReflection: (child) => removed.push(child.name),
-  };
+  const project = /** @type {Pick<import("typedoc").ProjectReflection, "getChildByName" | "removeReflection">} */ (
+    /** @type {unknown} */ ({
+      /** @param {string} name */
+      getChildByName: (name) => types[name],
+      /** @param {import("typedoc").Reflection} child */
+      removeReflection: (child) => {
+        removed.push(child.name);
+      },
+    })
+  );
   removeSummarisedMembers(project);
   assert.deepEqual(removed, ["blocks", "page"]);
 });
