@@ -27,7 +27,9 @@ Add the crate at the version these docs describe:
 cargo add laminapdf@{{version}}
 ```
 
-The command writes `laminapdf = "{{version}}"` to `Cargo.toml`, and Cargo reads it as this release or a later one in the same `0.x` line, which the [stability policy](/reference/stability/) promises needs no change to your code. The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
+The command writes `laminapdf = "{{version}}"` to `Cargo.toml`, and Cargo reads it as this release or a later one in the same `0.x` line, which the [stability policy](/reference/stability/) promises needs no change to your code.
+
+The default features start with `text`: fonts and text, which includes the builder and text extraction. Four more are on by default: `markdown` (Markdown in, flowing pages out), `document` (JSON documents in, flowing pages out), `reflow` (a tagged document's text in reading order, for reader mode) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`, then turn on what you need: `build` for the builder without text, `extract` for text extraction alone. `explain`, off by default, gives each code's page as text.
 
 ## The command-line tool
 

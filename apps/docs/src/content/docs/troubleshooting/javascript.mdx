@@ -1,9 +1,15 @@
 ---
-title: Troubleshooting
-description: The problems people hit with Lamina PDF, from a missing init() to a signed file that won't save, with the cause and the fix of each.
+title: Troubleshooting JavaScript and TypeScript
+description: The problems people hit with @laminapdf/sdk, from a missing init() to a bundler that loses the WebAssembly, with the cause and the fix of each.
 ---
 
-Each entry starts from what you see, then gives the cause and the fix. Errors carry a `code`, and every code has a page that says what to do: search the [error and warning codes](/reference/codes/) for one that isn't here.
+These entries cover `@laminapdf/sdk` in Node, browsers, bundlers and Cloudflare Workers: loading the WebAssembly modules, and the memory they use. Each entry starts from what you see, then gives the cause and the fix.
+
+## `@laminapdf/sdk` has no `init` or `Document`
+
+**Cause:** your project is on version `0.0.0`, a placeholder that only reserves the name. npm installs the `latest` tag unless you name a version or another tag, and before `0.2.0` Lamina PDF published only alphas, under the `alpha` tag, so a plain `npm install @laminapdf/sdk` picked the placeholder.
+
+**Fix:** install the version these docs describe: `npm install @laminapdf/sdk@{{version}}`. See [Install](/install/#typescript-laminapdfsdk).
 
 ## Every call throws `not-initialized`
 
@@ -41,18 +47,6 @@ Each entry starts from what you see, then gives the cause and the fix. Errors ca
 
 **Fix:** let Wrangler bundle the package, and call `init()` without a URL or bytes. Wrangler picks the package's entry for Cloudflare Workers, which imports the `.wasm` files as compiled modules. See [Cloudflare Workers](/quick-start/workers/).
 
-## Opening a file fails with `password-required` or `wrong-password`
-
-**Cause:** the file is encrypted. `password-required` means you passed no password, and `wrong-password` means the one you passed matches neither of the file's passwords.
-
-**Fix:** ask your user for the password and open the file again with it. Nothing else has changed. See [Open password-protected files](/guides/password-protected-files/).
-
-## A signed file won't save
-
-**Cause:** saving would break a signature, so the save fails with `would-invalidate-signatures`. A signed file saves only incrementally, and only with the edits its signatures allow.
-
-**Fix:** keep the default save mode and make only edits the signatures allow. To save anyway, ask your user first, then pass `invalidateSignatures: true`. See [Save a PDF](/guides/save-a-pdf/) and [`would-invalidate-signatures`](/reference/codes/would-invalidate-signatures/).
-
 ## Memory keeps growing
 
 **Cause:** documents and builders live in WebAssembly memory, and the garbage collector frees them late: too late for a long-running page or server. WebAssembly memory also never shrinks, so one large file leaves it large.
@@ -65,4 +59,4 @@ Each entry starts from what you see, then gives the cause and the fix. Errors ca
 
 **Fix:** open the document again from its bytes: documents, pages and builders from the old instance throw `instance-reset`. For `out-of-memory`, keep fewer documents open at once and lower the open limits for files you don't trust. Report a `wasm-trap` with the file that causes it. See [`out-of-memory`](/reference/codes/out-of-memory/) and [`wasm-trap`](/reference/codes/wasm-trap/).
 
-Next: the [error and warning codes](/reference/codes/), with what each one means and what to do.
+Next: [opening and saving files](/troubleshooting/files/), for passwords, signed files and limits.

@@ -1,8 +1,13 @@
 ---
 // The site footer (design language §7.39): the licence line, 12 px in `muted`. The licence links to
-// How we test's licence section, which lists what the licence checks allow.
+// How we test's licence section, which lists what the licence checks allow; the second line links
+// the docs' llms.txt, where coding agents find every page as Markdown.
+import { DOCS } from "@laminapdf/site-kit/nav";
+import { FOOTER } from "../data/copy.js";
 ---
 
 <footer class="site-footer">
-  <p>Lamina PDF is open source, under <a href="/how-we-test/#licence">the MIT or Apache-2.0 licence</a>.</p>
+  <p>{FOOTER.licence} <a href="/how-we-test/#licence">{FOOTER.licenceLink}</a>.</p>
+  <p>{FOOTER.agents} <a href={`${DOCS}/llms.txt`}>llms.txt</a>.</p>
 </footer>
+

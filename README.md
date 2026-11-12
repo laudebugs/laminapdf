@@ -8,7 +8,7 @@ Lamina PDF creates, reads, edits and saves PDFs from code, in Rust and in TypeSc
 - **The command line and MCP server:** the `laminapdf` command describes, checks, extracts, renders and builds PDFs from a terminal or a script, and `laminapdf mcp` offers the same commands to AI agents. [Install it](https://docs.laminapdf.com/cli/install/) with Homebrew, npm or a download.
 - **The web reader:** [app.laminapdf.com](https://app.laminapdf.com) opens PDFs inside your browser, and nothing you open is uploaded. It is free, and [laminapdf.com/privacy](https://laminapdf.com/privacy/) explains how it keeps your files private.
 - **The documentation:** [docs.laminapdf.com](https://docs.laminapdf.com) has quick starts for each runtime, guides, recipes and the API reference.
-- **Docs for coding agents:** each package carries its documentation as Markdown for the version you install, and [the coding-agents page](https://docs.laminapdf.com/start/coding-agents/) shows how to point an agent at it.
+- **Docs for coding agents:** each package carries its documentation as Markdown for the version you install, and [the coding-agents page](https://docs.laminapdf.com/start/coding-agents/) shows how to point an agent at it. Online, [llms.txt](https://docs.laminapdf.com/llms.txt) lists every page of the docs as Markdown.
 - **The website:** [laminapdf.com](https://laminapdf.com) has the roadmap and [how Lamina PDF is tested](https://laminapdf.com/how-we-test/).
 
 ```ts
