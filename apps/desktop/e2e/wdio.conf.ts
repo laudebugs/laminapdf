@@ -24,7 +24,9 @@ export function e2eConfig(names: readonly string[], args: readonly string[] = []
     specs: [names.map((name) => join(specs, `${name}.e2e.ts`))],
     maxInstances: 1,
     capabilities: [app],
-    services: [["@wdio/tauri-service", { driverProvider: "embedded", appArgs: args, captureBackendLogs: true, logDir: output }]],
+    services: [
+      ["@wdio/tauri-service", { driverProvider: "embedded", appArgs: args, captureBackendLogs: true, logDir: output }],
+    ],
     framework: "mocha",
     reporters: ["spec"],
     logLevel: "warn",
