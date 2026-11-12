@@ -1,4 +1,4 @@
-// C3b's demo (and C3c's harness page): `pnpm --filter @laminapdf/viewer exec vite examples`
+// C3b's demo (and C3c's harness page): `pnpm --filter @laminapdf/viewer exec vite demo`
 // after `cargo xtask wasm`, open viewer-demo.html, pick a PDF. Scroll, ctrl+wheel or pinch to
 // zoom, + / - / 0 on the keyboard. "Turn this page" edits the file: the page in view turns a
 // quarter and redraws. `renderstats` goes to the console.

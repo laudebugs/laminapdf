@@ -33,7 +33,7 @@ Lamina PDF reads damaged files where it can, repairing what it must and warning 
 - `redaction-not-applied`: redaction marks that someone drew but never applied.
 - `text-in-earlier-revision`: words an earlier version of the file holds and the latest doesn't. An edited PDF keeps each earlier version inside it.
 
-These stay warnings under `--strict`, because they aren't damage. `--warnings-ok` hides them along with the repairs, so a job that must stop leaked redactions should read the warning codes from `--json`, not the exit code.
+These stay warnings under `--strict`, because they aren't damage. `--warnings-ok` hides them along with the repairs, so a job that must stop leaked redactions should read the warning codes from `--json`, not the exit code. To run the same checks from Rust, see [Check what a file hides](/guides/check-what-a-file-hides/).
 
 ## What it holds beyond its pages: `reveal`
 
@@ -64,6 +64,8 @@ laminapdf reveal dist/*.pdf --fail-on history,hidden-content,active-content,atta
 ```
 
 `--fail-on all` names every category. Most files carry some metadata, such as a title, so `--fail-on metadata` stops most files; leave it out unless you strip metadata before release.
+
+A Rust program gets the same report from `Document::reveal`: [Check what a file hides](/guides/check-what-a-file-hides/) shows how.
 
 ## What a warning means: `explain`
 
