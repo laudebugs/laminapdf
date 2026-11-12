@@ -16,6 +16,8 @@
 /// assert_eq!(scale.then(&shift).apply(1.0, 1.0), (12.0, 2.0));
 /// assert_eq!(shift.after(&scale), scale.then(&shift));
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Matrix {
     /// `a`.
@@ -40,9 +42,13 @@ impl Default for Matrix {
 
 impl Matrix {
     /// The identity.
+    ///
+    /// Added in 0.2.0.
     pub const IDENTITY: Self = Self::new([1.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
 
     /// The matrix `[a b c d e f]`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     #[expect(clippy::many_single_char_names, reason = "a–f are the matrix entries of §8.3.3")]
     pub const fn new([a, b, c, d, e, f]: [f64; 6]) -> Self {
@@ -50,18 +56,24 @@ impl Matrix {
     }
 
     /// `[a b c d e f]`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn to_array(self) -> [f64; 6] {
         [self.a, self.b, self.c, self.d, self.e, self.f]
     }
 
     /// A translation by `(x, y)`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn translate(x: f64, y: f64) -> Self {
         Self::new([1.0, 0.0, 0.0, 1.0, x, y])
     }
 
     /// A scaling by `sx` horizontally and `sy` vertically.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn scale(sx: f64, sy: f64) -> Self {
         Self::new([sx, 0.0, 0.0, sy, 0.0, 0.0])
@@ -69,6 +81,8 @@ impl Matrix {
 
     /// A rotation by `degrees` about the origin, from the x axis towards the y axis: clockwise
     /// as displayed in page space (y down), counter-clockwise in user space (y up).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn rotate(degrees: f64) -> Self {
         let (s, c) = degrees.to_radians().sin_cos();
@@ -77,6 +91,8 @@ impl Matrix {
 
     /// `self` first, then `next`: the matrix that maps `p` to `next(self(p))`, the product
     /// `self × next` of §8.3.4.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn then(&self, next: &Self) -> Self {
         Self::new([
@@ -91,12 +107,16 @@ impl Matrix {
 
     /// `self` after `first`: the matrix that maps `p` to `self(first(p))`, the same as
     /// `first.then(self)`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn after(&self, first: &Self) -> Self {
         first.then(self)
     }
 
     /// The inverse, `None` for a singular matrix.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn invert(&self) -> Option<Self> {
         let det = self.a * self.d - self.b * self.c;
@@ -115,12 +135,16 @@ impl Matrix {
     }
 
     /// The image of the point `(x, y)`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn apply(&self, x: f64, y: f64) -> (f64, f64) {
         (self.a * x + self.c * y + self.e, self.b * x + self.d * y + self.f)
     }
 
     /// The matrix from six numbers (`None` unless there are exactly six).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_slice(values: &[f64]) -> Option<Self> {
         <[f64; 6]>::try_from(values).ok().map(Self::new)
@@ -128,6 +152,8 @@ impl Matrix {
 }
 
 /// How a fill or clip decides what is inside a path (§8.5.3.3).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum FillRule {
     /// Non-zero winding number (`f`, `W`).
@@ -139,12 +165,16 @@ pub enum FillRule {
 
 impl FillRule {
     /// Every fill rule, in declaration order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 2] = [Self::NonZero, Self::EvenOdd];
 }
 
 /// A line dash pattern (§8.4.3.6): alternating dash and gap lengths, and how far into the
 /// pattern the line starts. Lengths are in the space the line is drawn in: points when
 /// building (page space), user-space units when reading content.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[non_exhaustive]
 pub struct Dash {
@@ -156,6 +186,8 @@ pub struct Dash {
 
 impl Dash {
     /// A pattern of `array` lengths starting `phase` into it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(array: Vec<f64>, phase: f64) -> Self {
         Self { array, phase }
@@ -163,6 +195,8 @@ impl Dash {
 }
 
 /// A blend mode (§11.3.5, Tables 134 and 135).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 #[non_exhaustive]
 pub enum BlendMode {
@@ -203,6 +237,8 @@ pub enum BlendMode {
 
 impl BlendMode {
     /// Every blend mode, in declaration order.
+    ///
+    /// Added in 0.2.0.
     pub const ALL: [Self; 16] = [
         Self::Normal,
         Self::Multiply,
@@ -223,6 +259,8 @@ impl BlendMode {
     ];
 
     /// The PDF name (`/BM`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn pdf_name(self) -> &'static str {
         match self {
@@ -246,6 +284,8 @@ impl BlendMode {
     }
     /// The mode a `/BM` name names, `Compatible` read as `Normal` (§11.3.5), or `None` for a
     /// name §11.3.5 doesn't define.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_pdf_name(name: &[u8]) -> Option<Self> {
         if name == b"Compatible" {

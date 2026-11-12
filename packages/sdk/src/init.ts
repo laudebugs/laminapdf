@@ -18,6 +18,8 @@ type ExtractGlue = typeof import("@laminapdf/wasm/extract");
 /**
  * Where a module comes from: a URL (or URL string) to fetch, a `Response` (or a promise of one),
  * the bytes, or a compiled `WebAssembly.Module` (Cloudflare Workers import one).
+ *
+ * @since 0.2.0
  */
 export type WasmSource =
   | URL
@@ -28,7 +30,11 @@ export type WasmSource =
   | ArrayBufferView
   | WebAssembly.Module;
 
-/** Options for {@link init}. */
+/**
+ * Options for {@link init}.
+ *
+ * @since 0.2.0
+ */
 export interface InitOptions {
   /** The base module (default: the `lamina_pdf_base.wasm` next to the package, per export condition). */
   readonly module?: WasmSource;
@@ -168,6 +174,8 @@ export function readingModule(): Instance<BaseGlue> {
  * Whether documents opened or built from now on can extract text: the extract or the text module
  * is loaded. A document opened earlier stays in the module it was opened in; ask it with
  * {@link Document.canExtractText}.
+ *
+ * @since 0.2.0
  */
 export function isExtractLoaded(): boolean {
   return extract.loaded !== undefined || text.loaded !== undefined;
@@ -186,17 +194,29 @@ export function textModule(): Instance<TextGlue> | undefined {
   return text.loaded;
 }
 
-/** Whether `init()` has finished. */
+/**
+ * Whether `init()` has finished.
+ *
+ * @since 0.2.0
+ */
 export function isInitialized(): boolean {
   return base.loaded !== undefined;
 }
 
-/** Whether the text module is loaded (builders created now can draw text). */
+/**
+ * Whether the text module is loaded (builders created now can draw text).
+ *
+ * @since 0.2.0
+ */
 export function isTextLoaded(): boolean {
   return text.loaded !== undefined;
 }
 
-/** The size of each loaded module's linear memory, in bytes. */
+/**
+ * The size of each loaded module's linear memory, in bytes.
+ *
+ * @since 0.2.0
+ */
 export interface WasmMemory {
   /** The base module's (absent before `init()`). */
   readonly base?: number;
@@ -211,6 +231,8 @@ export interface WasmMemory {
  * documents and builders leave room that later ones reuse.
  *
  * @returns the byte length of each loaded module's memory.
+ *
+ * @since 0.2.0
  */
 export function wasmMemory(): WasmMemory {
   return {
@@ -225,6 +247,8 @@ export function wasmMemory(): WasmMemory {
  * had after `init()`: WebAssembly memory grows and never shrinks, and this gives it back. Every
  * document, page, builder and save job made before throws `instance-reset` afterwards, so call it
  * while none is in use, such as between jobs on a server. Images and fonts keep working.
+ *
+ * @since 0.2.0
  */
 export function reset(): void {
   for (const slot of [base, text, extract]) slot.loaded?.replace();

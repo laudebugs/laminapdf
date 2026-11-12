@@ -20,6 +20,8 @@ use crate::error::{Error, Result};
 /// ];
 /// assert_eq!(labels[2].prefix(), "A-");
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct PageLabel {
@@ -32,6 +34,8 @@ pub struct PageLabel {
 impl PageLabel {
     /// A range from page `start` (0-based) numbered in `style` from 1; `None`: labels are the
     /// prefix alone.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(start: u32, style: Option<LabelStyle>) -> Self {
         Self {
@@ -43,6 +47,8 @@ impl PageLabel {
     }
 
     /// With a prefix (`/P`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_prefix(mut self, prefix: impl Into<String>) -> Self {
         self.prefix = prefix.into();
@@ -50,6 +56,8 @@ impl PageLabel {
     }
 
     /// Numbered from `first` (`/St`, at least 1).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_first(mut self, first: u32) -> Self {
         self.first = first;
@@ -57,24 +65,32 @@ impl PageLabel {
     }
 
     /// The range's first page index.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn start(&self) -> u32 {
         self.start
     }
 
     /// The numbering style.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn style(&self) -> Option<LabelStyle> {
         self.style
     }
 
     /// The prefix.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn prefix(&self) -> &str {
         &self.prefix
     }
 
     /// The first number.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn first(&self) -> u32 {
         self.first

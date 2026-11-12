@@ -6,6 +6,8 @@ use crate::font::OpenTypeTag;
 use crate::fstype::FsType;
 
 /// A `Result` with this crate's [`Error`].
+///
+/// Added in 0.2.0.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// Everything that can go wrong while loading, using or embedding a font.
@@ -15,6 +17,8 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 /// `docs/errors/<code>.md`.
 ///
 /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -171,6 +175,8 @@ pub enum Error {
 impl Error {
     /// Every code [`Error::code`] can return besides those of [`laminapdf_cos::Error`] (listed in
     /// `fixtures/codes.json` under `textErrors`).
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &[
         "invalid-font",
         "collection-index",
@@ -192,6 +198,8 @@ impl Error {
     ];
 
     /// A stable kebab-case code for this error.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -221,6 +229,8 @@ impl Error {
     /// [`laminapdf_cos::Error::kind`].
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -246,6 +256,8 @@ impl Error {
 
     /// Where the error was found (ADR 0026 §1.1): a COS error's position, or the reserved
     /// object of [`Error::WrongDocument`]; font errors have no position in a document.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
@@ -272,6 +284,8 @@ impl Error {
 }
 
 /// Something the font layer noticed and worked around; the output is still valid.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Warning {
@@ -301,9 +315,13 @@ pub enum Warning {
 impl Warning {
     /// Every code [`Warning::code`] can return (listed in `fixtures/codes.json` under
     /// `textWarnings`).
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &["tounicode-conflict", "whole-font-rebuilt"];
 
     /// A stable kebab-case code for this warning.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -316,6 +334,8 @@ impl Warning {
     /// [`Warning::code`] (a test checks every variant).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -324,6 +344,8 @@ impl Warning {
     }
 
     /// Where the problem is (ADR 0026 §1.1): font warnings have no position in a document.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn location(&self) -> Location {
         match self {

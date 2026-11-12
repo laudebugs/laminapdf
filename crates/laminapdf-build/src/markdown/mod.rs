@@ -58,6 +58,8 @@ use laminapdf_text::Standard14;
 
 /// The fonts a Markdown document is set in, by role. Each falls back to `fallbacks`, in order,
 /// for characters it lacks (another script, say).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct MarkdownFonts {
@@ -71,6 +73,8 @@ pub struct MarkdownFonts {
 
 impl MarkdownFonts {
     /// `regular` for every role: bold, italic and code text are set in it too.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(regular: &FontHandle) -> Self {
         Self {
@@ -84,6 +88,8 @@ impl MarkdownFonts {
     }
 
     /// With the bold font (also headings').
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_bold(mut self, font: &FontHandle) -> Self {
         self.bold = font.clone();
@@ -91,6 +97,8 @@ impl MarkdownFonts {
     }
 
     /// With the italic font.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_italic(mut self, font: &FontHandle) -> Self {
         self.italic = font.clone();
@@ -98,6 +106,8 @@ impl MarkdownFonts {
     }
 
     /// With the bold italic font.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_bold_italic(mut self, font: &FontHandle) -> Self {
         self.bold_italic = font.clone();
@@ -105,6 +115,8 @@ impl MarkdownFonts {
     }
 
     /// With the font for code.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_mono(mut self, font: &FontHandle) -> Self {
         self.mono = font.clone();
@@ -112,6 +124,8 @@ impl MarkdownFonts {
     }
 
     /// With `font` as a fallback for characters every role's font lacks.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_fallback(mut self, font: &FontHandle) -> Self {
         self.fallbacks.push(font.clone());
@@ -120,6 +134,8 @@ impl MarkdownFonts {
 }
 
 /// How [`Builder::markdown`] lays a document out.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct MarkdownBuildOptions {
@@ -141,6 +157,8 @@ impl MarkdownBuildOptions {
     /// The standard 14 fonts (Helvetica and Courier, Latin text only, not embedded), 10.5-point
     /// text, A4 pages with 56-point margins and "Page {page} of {pages}" in the footer, no
     /// images and no contents page.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -155,6 +173,8 @@ impl MarkdownBuildOptions {
 
     /// With the fonts set; without them, the standard 14 fonts, which PDF/UA-1 and PDF/A
     /// refuse (`font-not-embedded`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_fonts(mut self, fonts: MarkdownFonts) -> Self {
         self.fonts = Some(fonts);
@@ -162,6 +182,8 @@ impl MarkdownBuildOptions {
     }
 
     /// With the body text's size, in points; headings scale from it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_size(mut self, size: f64) -> Self {
         self.size = size;
@@ -171,6 +193,8 @@ impl MarkdownBuildOptions {
     /// With the default template's pages at `size` (A4 by default): 56-point margins and
     /// "Page {page} of {pages}" in the footer. A template set with
     /// [`MarkdownBuildOptions::with_template`] takes its own size instead.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_page_size(mut self, size: PageSize) -> Self {
         self.page_size = size;
@@ -178,6 +202,8 @@ impl MarkdownBuildOptions {
     }
 
     /// With the page template set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_template(mut self, template: PageTemplate) -> Self {
         self.template = Some(template);
@@ -185,6 +211,8 @@ impl MarkdownBuildOptions {
     }
 
     /// With `image` for the images whose target is `target` (as written in the Markdown).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_image(mut self, target: impl Into<String>, image: Image) -> Self {
         self.images.insert(target.into(), image);
@@ -192,6 +220,8 @@ impl MarkdownBuildOptions {
     }
 
     /// With a contents page listing headings of levels 1 to `levels` at the start.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_contents(mut self, levels: u8) -> Self {
         self.contents = Some(levels);
@@ -202,6 +232,8 @@ impl MarkdownBuildOptions {
 /// The target of every image `markdown` shows, as written (`chart.png`, `https://…`), once each
 /// in order of first use: what a caller passes to [`MarkdownBuildOptions::with_image`]. Reading
 /// the files, and refusing remote ones, is the caller's choice.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn image_targets(markdown: &str) -> Vec<String> {
     convert::image_targets(markdown)
@@ -312,6 +344,8 @@ impl Builder {
     /// # Errors
     /// As [`Builder::flow`]; `missing-glyph` for a character no font has (the standard 14
     /// fonts set Latin text only).
+    ///
+    /// Added in 0.2.0.
     pub fn markdown(&mut self, markdown: &str, options: &MarkdownBuildOptions) -> Result<FlowReport> {
         let fonts = match &options.fonts {
             Some(fonts) => fonts.clone(),

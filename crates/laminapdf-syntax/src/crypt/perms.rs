@@ -18,6 +18,8 @@ use super::aes;
 /// assert!(p.print_low_res() && p.extract() && p.fill_forms() && p.accessibility());
 /// assert!(!p.modify() && !p.print_high_res());
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Permissions {
     bits: u32,
@@ -44,6 +46,8 @@ impl Permissions {
 
     /// Permissions from a `/P` value (any integer; its low 32 bits are used) and the handler's
     /// revision `/R`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(p: i64, revision: u8) -> Self {
         #[expect(
@@ -56,12 +60,16 @@ impl Permissions {
     }
 
     /// The `/P` bits as an unsigned 32-bit value, unmasked.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn raw(&self) -> u32 {
         self.bits
     }
 
     /// The defined bits only: 3–6, plus 9–12 from revision 3 on.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn bits(&self) -> u32 {
         let r2 = Self::PRINT | Self::MODIFY | Self::EXTRACT | Self::ANNOTATE;
@@ -78,30 +86,40 @@ impl Permissions {
     }
 
     /// Bit 3: printing is allowed (possibly only at low quality, see [`Self::print_high_res`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn print_low_res(&self) -> bool {
         self.has(Self::PRINT)
     }
 
     /// Bits 3 and 12: faithful (high-quality) printing is allowed. Under R2, bit 3 alone.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn print_high_res(&self) -> bool {
         self.has(Self::PRINT) && (self.r2() || self.has(Self::PRINT_HIGH))
     }
 
     /// Bit 4: modifying the contents is allowed (other than by annotation, forms or assembly).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn modify(&self) -> bool {
         self.has(Self::MODIFY)
     }
 
     /// Bit 5: copying or extracting text and graphics is allowed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn extract(&self) -> bool {
         self.has(Self::EXTRACT)
     }
 
     /// Bit 6: adding or modifying annotations (and filling fields) is allowed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn annotate(&self) -> bool {
         self.has(Self::ANNOTATE)
@@ -110,6 +128,8 @@ impl Permissions {
     /// Bit 6 or (R3+) bit 9: filling existing form fields is allowed. Table 22: bit 6 allows
     /// filling fields, and bit 9 allows it "even if bit 6 is clear". (qpdf's "modify forms"
     /// reports bit 9 alone for R3+.)
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn fill_forms(&self) -> bool {
         self.has(Self::ANNOTATE) || (!self.r2() && self.has(Self::FILL_FORMS))
@@ -117,6 +137,8 @@ impl Permissions {
 
     /// Bit 10: extraction for accessibility is allowed. Under R2, bit 5. (PDF 2.0 deprecates
     /// the bit and asks readers to treat it as set; this reports what the file says.)
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn accessibility(&self) -> bool {
         self.has(if self.r2() { Self::EXTRACT } else { Self::ACCESSIBILITY })
@@ -124,6 +146,8 @@ impl Permissions {
 
     /// Bit 11 (R3+): assembling the document is allowed, "even if bit 4 is clear" (Table 22); bit
     /// 4 itself excludes assembly from R3 on. Under R2 assembly falls under bit 4.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn assemble(&self) -> bool {
         self.has(if self.r2() { Self::MODIFY } else { Self::ASSEMBLE })

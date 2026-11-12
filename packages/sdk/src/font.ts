@@ -7,7 +7,11 @@ import { type BaseGlue, baseModule } from "./init.js";
 import { disposable, forget, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 
-/** The standard 14 fonts, by PostScript name: no bytes needed, not embedded, Latin only, unshaped. */
+/**
+ * The standard 14 fonts, by PostScript name: no bytes needed, not embedded, Latin only, unshaped.
+ *
+ * @since 0.2.0
+ */
 export type Standard14 =
   | "Times-Roman"
   | "Times-Bold"
@@ -24,7 +28,11 @@ export type Standard14 =
   | "Symbol"
   | "ZapfDingbats";
 
-/** What a builder knows of a font once registered. */
+/**
+ * What a builder knows of a font once registered.
+ *
+ * @since 0.2.0
+ */
 export interface FontInfo {
   /** The family name. */
   readonly family: string;
@@ -43,6 +51,8 @@ export interface FontInfo {
  * const inter = Font.fromBytes(await (await fetch("/Inter.ttf")).arrayBuffer());
  * surface.text("Hello", { font: inter, size: 12, at: [72, 72] });
  * ```
+ *
+ * @since 0.2.0
  */
 export class Font {
   /** The font program, for a font loaded from bytes. */
@@ -61,6 +71,8 @@ export class Font {
   /**
    * A font from its bytes (TrueType or OpenType/CFF). The bytes are checked when a builder first
    * uses the font (`invalid-font`, `font-not-embeddable`).
+   *
+   * @since 0.2.0
    */
   static fromBytes(bytes: Uint8Array | ArrayBuffer): Font {
     return new Font(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), undefined);
@@ -71,6 +83,8 @@ export class Font {
    * builder first uses the font (`invalid-font` for a file that isn't a font, `collection-index` for a face the collection doesn't have).
    *
    * @throws {@link LaminaPdfError} `invalid-argument` for an index that isn't a whole number from 0.
+   *
+   * @since 0.2.0
    */
   static fromCollection(bytes: Uint8Array | ArrayBuffer, index: number): Font {
     if (!Number.isInteger(index) || index < 0 || index > 0xffff_ffff) {
@@ -81,7 +95,11 @@ export class Font {
     return new Font(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), undefined, index);
   }
 
-  /** One of the standard 14 fonts. */
+  /**
+   * One of the standard 14 fonts.
+   *
+   * @since 0.2.0
+   */
   static standard(name: Standard14): Font {
     return new Font(undefined, name);
   }
@@ -111,6 +129,8 @@ function decode(instance: Instance<BaseGlue>, source: ImageSource): WasmImage {
  * time a builder of that module draws it (or `width`/`height` is read), so problems with the
  * data (`invalid-image`, `unsupported-image`, …) surface there. Written once per document however
  * often it is drawn. It keeps its bytes, so it outlives `reset()` and decodes again.
+ *
+ * @since 0.2.0
  */
 export class Image {
   readonly #source: ImageSource;
@@ -122,28 +142,48 @@ export class Image {
     this.#source = source;
   }
 
-  /** A JPEG. */
+  /**
+   * A JPEG.
+   *
+   * @since 0.2.0
+   */
   static jpeg(bytes: Uint8Array): Image {
     return new Image({ kind: "jpeg", bytes: bytes.slice() });
   }
 
-  /** A PNG. */
+  /**
+   * A PNG.
+   *
+   * @since 0.2.0
+   */
   static png(bytes: Uint8Array): Image {
     return new Image({ kind: "png", bytes: bytes.slice() });
   }
 
-  /** 8-bit RGBA pixels, row by row (`image-data-length` at first use for a wrong length). */
+  /**
+   * 8-bit RGBA pixels, row by row (`image-data-length` at first use for a wrong length).
+   *
+   * @since 0.2.0
+   */
   static rgba(width: number, height: number, pixels: Uint8Array): Image {
     return new Image({ kind: "rgba", width, height, bytes: pixels.slice() });
   }
 
-  /** Width in pixels (decodes the image if no module has yet). @throws {@link LaminaPdfError} as `in`. */
+  /**
+   * Width in pixels (decodes the image if no module has yet). @throws {@link LaminaPdfError} as `in`.
+   *
+   * @since 0.2.0
+   */
   get width(): number {
     const [instance, image] = this.#any();
     return instance.call(() => image.width);
   }
 
-  /** Height in pixels (decodes the image if no module has yet). @throws {@link LaminaPdfError} as `in`. */
+  /**
+   * Height in pixels (decodes the image if no module has yet). @throws {@link LaminaPdfError} as `in`.
+   *
+   * @since 0.2.0
+   */
   get height(): number {
     const [instance, image] = this.#any();
     return instance.call(() => image.height);
@@ -162,6 +202,8 @@ export class Image {
   /**
    * Frees the image's WASM memory now; without it, the garbage collector frees it later. A second
    * call does nothing, and any other call afterwards throws `disposed`. Prefer `using`.
+   *
+   * @since 0.2.0
    */
   free(): void {
     if (this.#freed) return;
@@ -173,7 +215,11 @@ export class Image {
     this.#decoded.clear();
   }
 
-  /** Frees the image at the end of a `using` block (an alias of `free()`). */
+  /**
+   * Frees the image at the end of a `using` block (an alias of `free()`).
+   *
+   * @since 0.2.0
+   */
   [Symbol.dispose](): void {
     this.free();
   }

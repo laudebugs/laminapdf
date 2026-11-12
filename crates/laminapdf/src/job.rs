@@ -125,6 +125,8 @@ enum Stage {
 /// ```
 ///
 /// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct SaveJob {
     core: JobCore,
@@ -142,6 +144,8 @@ impl SaveJob {
     }
 
     /// The job's cancel token (cancel it from anywhere that holds a clone).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn cancel_token(&self) -> CancelToken {
         self.core.cancel().clone()
@@ -153,6 +157,8 @@ impl SaveJob {
     /// `job-finished`, `cancelled` or `document-changed` (each finishes the job, the document
     /// untouched), or the save's own errors (`requires-rewrite`,
     /// `would-invalidate-signatures`, `encrypted-base`, reading errors), which finish it too.
+    ///
+    /// Added in 0.2.0.
     pub fn step(&mut self, doc: &mut Document, budget: Budget) -> Result<Step<Saved>> {
         self.core.begin(doc)?;
         let outcome = self.run(doc, budget.get().max(1));

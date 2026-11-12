@@ -8,6 +8,8 @@ use laminapdf::{ByteSource, Document, OpenOptions};
 use crate::sparse::{SparseSource, SupplyError};
 
 /// How [`retry`] plans its fetches.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct RetryOptions {
@@ -36,12 +38,16 @@ impl Default for RetryOptions {
 
 impl RetryOptions {
     /// The defaults, as [`RetryOptions::default`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Sets [`RetryOptions::max_rounds`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_max_rounds(mut self, rounds: u32) -> Self {
         self.max_rounds = rounds;
@@ -49,6 +55,8 @@ impl RetryOptions {
     }
 
     /// Sets [`RetryOptions::block_size`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_block_size(mut self, bytes: u64) -> Self {
         self.block_size = bytes;
@@ -56,6 +64,8 @@ impl RetryOptions {
     }
 
     /// Sets [`RetryOptions::readahead`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_readahead(mut self, bytes: u64) -> Self {
         self.readahead = bytes;
@@ -64,6 +74,8 @@ impl RetryOptions {
 }
 
 /// Why [`retry`] or [`open_with`] failed.
+///
+/// Added in 0.2.0.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum RetryError<E> {
@@ -99,6 +111,8 @@ pub enum RetryError<E> {
 /// `max_rounds` run out or a round makes no progress (nothing left to fetch, or the same
 /// ranges as the round before); [`RetryError::Fetch`], [`RetryError::FetchLength`] and
 /// [`RetryError::Supply`] from fetching.
+///
+/// Added in 0.2.0.
 pub fn retry<T, E>(
     source: &SparseSource,
     options: &RetryOptions,
@@ -144,6 +158,8 @@ pub fn retry<T, E>(
 ///
 /// # Errors
 /// As [`retry`].
+///
+/// Added in 0.2.0.
 pub fn open_with<E>(
     source: &Arc<SparseSource>,
     open: &OpenOptions,

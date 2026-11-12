@@ -53,23 +53,48 @@ pub(crate) fn render(schema: &Value, root: &str, header: &str, source: &str) -> 
     Ok(out)
 }
 
-/// A `JSDoc` comment from `node`'s description, or nothing.
+/// A `JSDoc` comment from `node`'s description, or nothing. The Rust docs' `Added in X.Y.Z.` line,
+/// which reaches the schema with the rest of the doc comment, becomes the `@since X.Y.Z` tag
+/// `@laminapdf/sdk`'s exports carry.
 fn doc(node: &Value, indent: &str) -> String {
     match node.get("description").and_then(Value::as_str) {
         Some(d) => {
-            let lines: Vec<&str> = d.lines().collect();
+            let since = since_tag(d);
+            let lines: Vec<&str> = d
+                .lines()
+                .map(|line| since.as_deref().filter(|_| is_added_in(line)).unwrap_or(line))
+                .collect();
             if let [line] = lines.as_slice() {
                 format!("/** {} */\n{indent}", line.replace("*/", "*\\/"))
             } else {
                 let mut s = String::from("/**\n");
                 for line in lines {
-                    let _ = writeln!(s, "{indent} * {}", line.replace("*/", "*\\/"));
+                    if line.is_empty() {
+                        let _ = writeln!(s, "{indent} *");
+                    } else {
+                        let _ = writeln!(s, "{indent} * {}", line.replace("*/", "*\\/"));
+                    }
                 }
                 format!("{s}{indent} */\n{indent}")
             }
         }
         None => String::new(),
     }
+}
+
+/// Whether `line` is the Rust docs' `Added in X.Y.Z.` line.
+fn is_added_in(line: &str) -> bool {
+    line.trim()
+        .strip_prefix("Added in ")
+        .is_some_and(|rest| rest.ends_with('.'))
+}
+
+/// The `@since X.Y.Z` tag for a description's `Added in X.Y.Z.` line, if it has one.
+fn since_tag(description: &str) -> Option<String> {
+    description.lines().find(|line| is_added_in(line)).and_then(|line| {
+        let version = line.trim().strip_prefix("Added in ")?.strip_suffix('.')?;
+        Some(format!("@since {version}"))
+    })
 }
 
 /// The TypeScript type of `node` at `path`, its nested objects indented past `indent`.

@@ -18,6 +18,8 @@ use crate::wire;
 ///
 /// On the wire an absent field is left alone and `null` clears: `{ "title": "Report",
 /// "author": null }`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -75,12 +77,16 @@ pub struct InfoPatch {
 
 impl InfoPatch {
     /// A patch that changes nothing.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Sets `/Title` to `title`, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn title(mut self, title: Option<&str>) -> Self {
         self.title = Some(title.map(str::to_owned));
@@ -88,6 +94,8 @@ impl InfoPatch {
     }
 
     /// Sets `/Author` to `author`, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn author(mut self, author: Option<&str>) -> Self {
         self.author = Some(author.map(str::to_owned));
@@ -95,6 +103,8 @@ impl InfoPatch {
     }
 
     /// Sets `/Subject` to `subject`, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn subject(mut self, subject: Option<&str>) -> Self {
         self.subject = Some(subject.map(str::to_owned));
@@ -102,6 +112,8 @@ impl InfoPatch {
     }
 
     /// Sets `/Keywords` to `keywords`, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn keywords(mut self, keywords: Option<&str>) -> Self {
         self.keywords = Some(keywords.map(str::to_owned));
@@ -109,6 +121,8 @@ impl InfoPatch {
     }
 
     /// Sets `/Creator` to `creator`, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn creator(mut self, creator: Option<&str>) -> Self {
         self.creator = Some(creator.map(str::to_owned));
@@ -116,6 +130,8 @@ impl InfoPatch {
     }
 
     /// Sets `/Producer` to `producer`, or removes it for `None`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn producer(mut self, producer: Option<&str>) -> Self {
         self.producer = Some(producer.map(str::to_owned));
@@ -135,6 +151,8 @@ impl InfoPatch {
 ///
 /// An Info dictionary written directly in the trailer, or missing, becomes a new indirect
 /// object that the trailer's `/Info` points to (the first time the op changes something).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -155,6 +173,8 @@ pub struct SetInfo {
 
 impl SetInfo {
     /// The op that applies `patch`, recording `at` as `/ModDate` when given.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(patch: InfoPatch, at: Option<PdfDate>) -> Self {
         Self { patch, at }
@@ -168,6 +188,8 @@ impl SetInfo {
     /// let op = SetInfo::patch(InfoPatch::new().title(Some("Final report")));
     /// assert_eq!(op.at, None);
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn patch(patch: InfoPatch) -> Self {
         Self { patch, at: None }

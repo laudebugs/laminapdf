@@ -15,17 +15,23 @@ use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
 
 /// The identity of a collaborator (ADR 0012), as sync assigns it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PeerId(String);
 
 impl PeerId {
     /// The peer called `id`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(id: impl Into<String>) -> Self {
         Self(id.into())
     }
 
     /// The ID as a string.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
@@ -42,6 +48,8 @@ impl fmt::Display for PeerId {
 /// (§4): remote and system changes never rewind.
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Origin {
@@ -56,6 +64,8 @@ pub enum Origin {
 /// What a committed transaction, or one op inside it, did ([ADR 0006] §3).
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct Applied {
@@ -95,6 +105,8 @@ pub(crate) struct TxState {
 /// and recover uses [`Tx::savepoint`].
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 pub struct Tx<'d> {
     pub(crate) doc: &'d mut laminapdf_model::Document,
     pub(crate) state: &'d mut TxState,
@@ -108,12 +120,16 @@ impl fmt::Debug for Tx<'_> {
 
 impl Tx<'_> {
     /// The document as this transaction has changed it so far.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn document(&self) -> &laminapdf_model::Document {
         self.doc
     }
 
     /// Where this transaction comes from.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn origin(&self) -> &Origin {
         &self.state.origin
@@ -125,6 +141,8 @@ impl Tx<'_> {
     /// # Errors
     /// The op's errors ([`Error::UnknownPage`](crate::Error::UnknownPage), …) and COS errors
     /// reading the document.
+    ///
+    /// Added in 0.2.0.
     pub fn apply(&mut self, op: impl Into<Op>) -> Result<Applied> {
         let mark = self.doc.journal_mark();
         let effect = self.run_op(&op.into())?;
@@ -168,6 +186,8 @@ impl Tx<'_> {
     /// What `f` returns.
     ///
     /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+    ///
+    /// Added in 0.2.0.
     pub fn savepoint<T>(&mut self, f: impl FnOnce(&mut Tx<'_>) -> Result<T>) -> Result<T> {
         let mark = self.doc.journal_mark();
         let touched = self.state.touched.clone();

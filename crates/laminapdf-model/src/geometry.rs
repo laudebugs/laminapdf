@@ -19,32 +19,44 @@ use crate::page::Rotation;
 /// assert_eq!(Pt::from_in(1.0), Pt::new(72.0));
 /// assert!((Pt::from_mm(210.0).get() - 595.2756).abs() < 1e-4); // A4's width
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
 pub struct Pt(f64);
 
 impl Pt {
     /// Zero points.
+    ///
+    /// Added in 0.2.0.
     pub const ZERO: Self = Self(0.0);
 
     /// `pt` points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(pt: f64) -> Self {
         Self(pt)
     }
 
     /// `mm` millimetres (`mm * 72 / 25.4`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_mm(mm: f64) -> Self {
         Self(mm * 72.0 / 25.4)
     }
 
     /// `inches` inches (`inches * 72`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_in(inches: f64) -> Self {
         Self(inches * 72.0)
     }
 
     /// The value in points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn get(self) -> f64 {
         self.0
@@ -93,6 +105,8 @@ impl Neg for Pt {
 
 /// A point in page space: from the top-left of the displayed `CropBox`, x right, y down, in
 /// points.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct PointPt {
     /// Distance from the left edge.
@@ -103,12 +117,16 @@ pub struct PointPt {
 
 impl PointPt {
     /// The point `(x, y)`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(x: Pt, y: Pt) -> Self {
         Self { x, y }
     }
 
     /// The point `(x, y)` given in points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_points(x: f64, y: f64) -> Self {
         Self { x: Pt(x), y: Pt(y) }
@@ -117,6 +135,8 @@ impl PointPt {
 
 /// A rectangle in page space, corners normalised: `x0 <= x1`, `y0 <= y1`, and `(x0, y0)` is
 /// the top-left corner as displayed.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct RectPt {
     /// Left.
@@ -133,6 +153,8 @@ impl RectPt {
     /// The rectangle with corners `(x0, y0)` and `(x1, y1)`, in any order. A NaN or
     /// infinite coordinate is kept (never replaced by the other corner), so
     /// [`RectPt::is_finite`] reports it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(x0: Pt, y0: Pt, x1: Pt, y1: Pt) -> Self {
         // Not f64::min/max: they return the other operand for NaN.
@@ -143,12 +165,16 @@ impl RectPt {
     }
 
     /// Whether every coordinate is finite.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_finite(&self) -> bool {
         [self.x0, self.y0, self.x1, self.y1].iter().all(|v| v.0.is_finite())
     }
 
     /// The smallest rectangle that holds both.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn union(&self, other: &Self) -> Self {
         Self {
@@ -161,6 +187,8 @@ impl RectPt {
 
     /// The rectangle whose top-left corner is `(x, y)`, `width` wide and `height` tall
     /// (negative sizes extend left or up).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_xywh(x: Pt, y: Pt, width: Pt, height: Pt) -> Self {
         Self::new(x, y, x + width, y + height)
@@ -175,18 +203,24 @@ impl RectPt {
     /// let r = RectPt::from_points(72.0, 72.0, 200.0, 50.0);
     /// assert_eq!((r.width(), r.height()), (Pt::new(200.0), Pt::new(50.0)));
     /// ```
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_points(x: f64, y: f64, width: f64, height: f64) -> Self {
         Self::from_xywh(Pt(x), Pt(y), Pt(width), Pt(height))
     }
 
     /// `x1 - x0`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn width(&self) -> Pt {
         self.x1 - self.x0
     }
 
     /// `y1 - y0`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn height(&self) -> Pt {
         self.y1 - self.y0
@@ -195,6 +229,8 @@ impl RectPt {
 
 /// A point in raw user space (ISO 32000-2 §8.3.2.3): as the content stream sees it, y up, in
 /// user-space units (not scaled by `/UserUnit`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct UserSpacePoint {
     /// x.
@@ -205,6 +241,8 @@ pub struct UserSpacePoint {
 
 impl UserSpacePoint {
     /// The point `(x, y)`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(x: f64, y: f64) -> Self {
         Self { x, y }
@@ -214,6 +252,8 @@ impl UserSpacePoint {
 /// A rectangle in raw user space with its corners normalised (§7.9.5): `x0 <= x1` and
 /// `y0 <= y1`, so `(x0, y0)` is the lower-left corner. Page boxes and annotation `/Rect`s as
 /// stored are in this space.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UserSpaceRect {
     /// Lower-left x.
@@ -228,6 +268,8 @@ pub struct UserSpaceRect {
 
 impl UserSpaceRect {
     /// The rectangle with corners `(a, b)` and `(c, d)`, in any order.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_corners(a: f64, b: f64, c: f64, d: f64) -> Self {
         Self {
@@ -239,24 +281,32 @@ impl UserSpaceRect {
     }
 
     /// `x1 - x0`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn width(&self) -> f64 {
         self.x1 - self.x0
     }
 
     /// `y1 - y0`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn height(&self) -> f64 {
         self.y1 - self.y0
     }
 
     /// Whether the rectangle has a positive width and height.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn has_area(&self) -> bool {
         self.width() > 0.0 && self.height() > 0.0
     }
 
     /// The overlap of two rectangles, `None` when they don't overlap.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn intersect(&self, other: &Self) -> Option<Self> {
         let r = Self {
@@ -269,6 +319,8 @@ impl UserSpaceRect {
     }
 
     /// `[x0 y0 x1 y1]`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn to_array(&self) -> [f64; 4] {
         [self.x0, self.y0, self.x1, self.y1]
@@ -277,6 +329,8 @@ impl UserSpaceRect {
 
 /// US Letter, `[0 0 612 792]`: the frame's box when a page has no usable box (ADR 0027 §3,
 /// as pdf.js and PDFium do).
+///
+/// Added in 0.2.0.
 pub const LETTER: UserSpaceRect = UserSpaceRect::from_corners(0.0, 0.0, 612.0, 792.0);
 
 /// A page's frame ([ADR 0027] §3): the reference box (the effective `CropBox`), the rotation and
@@ -298,6 +352,8 @@ pub const LETTER: UserSpaceRect = UserSpaceRect::from_corners(0.0, 0.0, 612.0, 7
 /// ```
 ///
 /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PageFrame {
     crop_box: UserSpaceRect,
@@ -309,6 +365,8 @@ pub struct PageFrame {
 impl PageFrame {
     /// The frame of a page with this effective `CropBox`, rotation and `/UserUnit` (a unit that
     /// is not a positive finite number counts as 1).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(crop_box: UserSpaceRect, rotate: Rotation, user_unit: f64) -> Self {
         let user_unit = if user_unit.is_finite() && user_unit > 0.0 {
@@ -331,18 +389,24 @@ impl PageFrame {
 
     /// The reference box: the effective `CropBox` in user space (or [`LETTER`] when the page
     /// had no usable box, [`PageFrame::is_letter_fallback`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn crop_box(&self) -> UserSpaceRect {
         self.crop_box
     }
 
     /// The rotation applied.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn rotate(&self) -> Rotation {
         self.rotate
     }
 
     /// The `/UserUnit` applied.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn user_unit(&self) -> f64 {
         self.user_unit
@@ -350,12 +414,16 @@ impl PageFrame {
 
     /// Whether the page had no box with an area, so the frame is US Letter (JSON's
     /// `coordinates.box` is `"default"`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_letter_fallback(&self) -> bool {
         self.letter_fallback
     }
 
     /// The displayed width in points (the box's height for 90° and 270°).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn width(&self) -> Pt {
         let b = &self.crop_box;
@@ -364,6 +432,8 @@ impl PageFrame {
     }
 
     /// The displayed height in points.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn height(&self) -> Pt {
         let b = &self.crop_box;
@@ -376,6 +446,8 @@ impl PageFrame {
     }
 
     /// A user-space point in page space (ADR 0027 §3's table).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_page(&self, p: UserSpacePoint) -> PointPt {
         let UserSpaceRect { x0, y0, x1, y1 } = self.crop_box;
@@ -390,6 +462,8 @@ impl PageFrame {
     }
 
     /// A page-space point in user space: the inverse of [`PageFrame::to_page`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_user_space(&self, p: PointPt) -> UserSpacePoint {
         let (x, y) = self.to_user_space_matrix().apply(p.x.get(), p.y.get());
@@ -397,6 +471,8 @@ impl PageFrame {
     }
 
     /// [`PageFrame::to_user_space`] as a matrix (§8.3.4): page-space points to user space.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn to_user_space_matrix(&self) -> Matrix {
         let UserSpaceRect { x0, y0, x1, y1 } = self.crop_box;
@@ -411,6 +487,8 @@ impl PageFrame {
 
     /// A page-space rectangle in user space (normalised: rotation and the y flip swap
     /// corners).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn rect_to_user_space(&self, r: &RectPt) -> UserSpaceRect {
         let a = self.to_user_space(PointPt::new(r.x0, r.y0));
@@ -419,6 +497,8 @@ impl PageFrame {
     }
 
     /// A user-space rectangle in page space.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn rect_to_page(&self, r: &UserSpaceRect) -> RectPt {
         let a = self.to_page(UserSpacePoint::new(r.x0, r.y0));

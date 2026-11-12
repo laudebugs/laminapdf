@@ -23,6 +23,8 @@ use crate::usage::FontUse;
 /// A font registered with a [`FontRegistry`]. Only meaningful to the registry that returned
 /// it: a key carries its registry's identity, and any other registry refuses it with
 /// [`Error::UnknownFont`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FontKey {
     registry: u32,
@@ -35,6 +37,8 @@ static NEXT_REGISTRY: AtomicU32 = AtomicU32::new(0);
 /// Text encoded for one font: the bytes to show (`Tj`/`TJ` operand: two bytes per glyph,
 /// Identity-H, for an embedded font; one byte per glyph for a standard 14 font) and their
 /// advance.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Encoded {
@@ -48,6 +52,8 @@ pub struct Encoded {
 
 /// What [`FontRegistry::finish_fonts`] wrote for one font: an embedded Type 0 font, or a
 /// standard 14 font written as a simple font without a program (`embedded` is `false`).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EmbeddedFont {
@@ -79,6 +85,8 @@ struct Slot {
 }
 
 /// The code [`FontRegistry::use_glyph`] returns: what to put in the `Tj`/`TJ` string.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum GlyphCode {
@@ -90,6 +98,8 @@ pub enum GlyphCode {
 
 impl GlyphCode {
     /// Appends the code's bytes to a string operand.
+    ///
+    /// Added in 0.2.0.
     pub fn push_to(self, out: &mut Vec<u8>) {
         match self {
             Self::Cid(cid) => out.extend_from_slice(&cid.to_be_bytes()),
@@ -98,6 +108,8 @@ impl GlyphCode {
     }
 
     /// The CID, for an embedded font.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn cid(self) -> Option<u16> {
         match self {
@@ -108,6 +120,8 @@ impl GlyphCode {
 }
 
 /// What [`FontRegistry::usage`] reports for one font.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub enum FontUsage<'a> {
@@ -119,6 +133,8 @@ pub enum FontUsage<'a> {
 
 impl<'a> FontUsage<'a> {
     /// The usage of an embedded font.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn embedded(self) -> Option<&'a FontUse> {
         match self {
@@ -128,6 +144,8 @@ impl<'a> FontUsage<'a> {
     }
 
     /// The usage of a standard 14 font.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn simple(self) -> Option<&'a SimpleUse> {
         match self {
@@ -179,6 +197,8 @@ enum Usage {
 ///
 /// Cloning snapshots the registry (same identity, so its keys stay valid): the builder keeps
 /// one to restore when a page fails half-way, so nothing that page recorded is written.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct FontRegistry {
     id: u32,
@@ -194,6 +214,8 @@ impl Default for FontRegistry {
 
 impl FontRegistry {
     /// An empty registry.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -225,6 +247,8 @@ impl FontRegistry {
     /// # Errors
     /// [`Error::FontNotEmbeddable`] when `fsType` forbids embedding (restricted licence,
     /// bitmap only) and `policy` is [`EmbedPolicy::Respect`].
+    ///
+    /// Added in 0.2.0.
     pub fn add(&mut self, font: Font, policy: EmbedPolicy) -> Result<FontKey> {
         let info = font.info();
         if policy == EmbedPolicy::Respect && !info.fs_type.allows_embedding() {
@@ -249,6 +273,8 @@ impl FontRegistry {
     }
 
     /// The font registered as `key`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn font(&self, key: FontKey) -> Option<&Font> {
         self.slot(key).ok().map(|s| &s.font)
@@ -263,6 +289,8 @@ impl FontRegistry {
     ///
     /// # Errors
     /// [`Error::UnknownFont`] for a key this registry did not hand out.
+    ///
+    /// Added in 0.2.0.
     pub fn usage(&self, key: FontKey) -> Result<FontUsage<'_>> {
         Ok(match &self.slot(key)?.usage {
             Usage::Embedded(usage) => FontUsage::Embedded(usage),
@@ -277,6 +305,8 @@ impl FontRegistry {
     ///
     /// # Errors
     /// [`Error::UnknownFont`]; as [`Document::reserve_number`] when numbers run out.
+    ///
+    /// Added in 0.2.0.
     pub fn reference(&mut self, key: FontKey, doc: &Document) -> Result<ObjRef> {
         let slot = self.slot_mut(key)?;
         if let Some(r) = slot.object {
@@ -297,6 +327,8 @@ impl FontRegistry {
     /// [`Error::UnknownFont`]; [`Error::GlyphOutOfRange`] (for a standard 14 font, also
     /// `.notdef`); [`Error::EncodingFull`] for a standard 14 font with no code left for the
     /// glyph.
+    ///
+    /// Added in 0.2.0.
     pub fn use_glyph(&mut self, key: FontKey, gid: GlyphId, text: &str) -> Result<GlyphCode> {
         let id = self.id;
         let Self { slots, warnings, .. } = self;
@@ -370,6 +402,8 @@ impl FontRegistry {
     /// [`Error::UnknownFont`]; [`Error::MissingGlyph`] for the first character the font has no
     /// glyph for (nothing is recorded for `text` then); [`Error::EncodingFull`] when a
     /// standard 14 font has no code left for a glyph outside its encoding (nothing recorded).
+    ///
+    /// Added in 0.2.0.
     pub fn encode(&mut self, key: FontKey, text: &str) -> Result<Encoded> {
         let id = self.id;
         let Self { slots, warnings, .. } = self;
@@ -401,6 +435,8 @@ impl FontRegistry {
     }
 
     /// Warnings raised so far (ToUnicode conflicts).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn warnings(&self) -> &[Warning] {
         &self.warnings
@@ -421,6 +457,8 @@ impl FontRegistry {
     /// Objects written before the error stay in the overlay: take a
     /// [`Document::journal_mark`] first to roll back. The registry is consumed: read its
     /// [`FontRegistry::warnings`] before.
+    ///
+    /// Added in 0.2.0.
     pub fn finish_fonts(self, cos: &mut CosMut<'_>) -> Result<Vec<EmbeddedFont>> {
         // Every reserved object must still be a free number this document reserved, or the
         // registry was used with another document: check all before writing any.

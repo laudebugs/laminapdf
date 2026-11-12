@@ -49,6 +49,7 @@ mod roundtrip;
 mod runner;
 mod sdk_doc_comments;
 mod semver;
+mod since;
 mod todos;
 mod tracked;
 mod ts_structure;
@@ -86,10 +87,12 @@ tasks:
                     matrix's static checks (capabilities --check runs the tests),
                     gen codes --check, gen boundary --check and version sync --check
                     rust: fmt --check, maintainability, portability, clippy (native + wasm32), clippy-examples,
-                          tests, rustdoc, cargo-deny
+                          tests, rustdoc, check since, cargo-deny
                     ts:   biome ci, biome-examples, typecheck and tests of the pnpm
                           workspace, the docs site's and the website's builds (apps/docs,
                           apps/site), npm licences
+  check since       every public item of a published crate has an `Added in X.Y.Z.` line in its
+                    docs (rustdoc's JSON, RUSTC_BOOTSTRAP=1)
   check maintainability
                     docs/guidelines/maintainability.md's Rust rules, without a build: modules of at most 800
                     lines of non-test code and no more size-lint #[expect]s than
@@ -490,6 +493,7 @@ fn check(ws: &Workspace, scopes: &[String]) -> Result<()> {
         [scope, flags @ ..] if is_docs_ratchet(scope) => ratchet(ws, &format!("check {scope}"), flags),
         [scope] if scope == "rust" => check_rust(ws),
         [scope] if scope == "maintainability" => maintainability::run(&ws.root),
+        [scope] if scope == "since" => since::check(ws),
         [scope] if scope == "ts" => check_ts(ws),
         _ => bail!("unknown check: {}\n\n{USAGE}", scopes.join(" ")),
     }
@@ -566,6 +570,7 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     examples_lints::clippy(ws, reports::Options::strict())?;
     rust_tests(ws)?;
     docs(ws)?;
+    since::check(ws)?;
     cargo_deny(ws)?;
     step("Rust checks passed");
     Ok(())

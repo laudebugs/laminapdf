@@ -6,7 +6,11 @@ import type { ExtractFormat, ExtractOptions, ExtractResult } from "../extract.js
 import type { Progress } from "../types.js";
 import type { RemotableDocumentMember, RemotablePageMember } from "./support.js";
 
-/** Per-call options of the worker client. */
+/**
+ * Per-call options of the worker client.
+ *
+ * @since 0.2.0
+ */
 export interface CallOptions {
   /** Aborting it rejects the call (`cancelled`) and stops it in the worker (see the README). */
   readonly signal?: AbortSignal;
@@ -24,21 +28,35 @@ export interface CallOptions {
  * Options of an extension call (`client.request`, for packages that extend the worker, such as
  * `@laminapdf/viewer`): the worker runs the highest `priority` first, and runs calls with the same
  * `key` once (each caller still gets its own answer).
+ *
+ * @since 0.2.0
  */
 export interface RequestOptions extends CallOptions {
   readonly priority?: number;
   readonly key?: string;
 }
 
-/** `R` as the page receives it. */
+/**
+ * `R` as the page receives it.
+ *
+ * @since 0.2.0
+ */
 export type RemoteResult<R> = R extends PageRef ? RemotePage : R;
 
-/** A member of `T` as a remote method. */
+/**
+ * A member of `T` as a remote method.
+ *
+ * @since 0.2.0
+ */
 export type RemoteMember<T> = T extends (...args: infer A) => infer R
   ? (...args: [...A, options?: CallOptions]) => Promise<RemoteResult<R>>
   : (options?: CallOptions) => Promise<RemoteResult<T>>;
 
-/** A document in the worker. Close it (or `await using`) to free it there. */
+/**
+ * A document in the worker. Close it (or `await using`) to free it there.
+ *
+ * @since 0.2.0
+ */
 export type RemoteDocument = {
   readonly [K in Exclude<RemotableDocumentMember, "extract">]: RemoteMember<Document[K]>;
 } & {
@@ -46,13 +64,27 @@ export type RemoteDocument = {
    * {@link Document.extract} in the worker, typed by `format` like the sync one (a mapped type
    * would lose the generic). It runs to the end: an aborted `signal` rejects the call, and the
    * worker finishes the extraction before its next call.
+   *
+   * @since 0.2.0
    */
   extract<F extends ExtractFormat>(options: ExtractOptions<F>, call?: CallOptions): Promise<ExtractResult[F]>;
-  /** Frees the document in the worker; a second call, or one after the worker stopped, does nothing. */
+  /**
+   * Frees the document in the worker; a second call, or one after the worker stopped, does nothing.
+   *
+   * @since 0.2.0
+   */
   close(): Promise<void>;
-  /** `close()`, for `await using`. */
+  /**
+   * `close()`, for `await using`.
+   *
+   * @since 0.2.0
+   */
   [Symbol.asyncDispose](): Promise<void>;
 };
 
-/** A page of a document in the worker (freed with its document). */
+/**
+ * A page of a document in the worker (freed with its document).
+ *
+ * @since 0.2.0
+ */
 export type RemotePage = { readonly [K in RemotablePageMember]: RemoteMember<PageRef[K]> };

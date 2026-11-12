@@ -13,6 +13,8 @@ use crate::document::Document;
 use crate::error::Result;
 
 /// One element of the structure tree.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct StructureNode {
@@ -30,6 +32,8 @@ pub struct StructureNode {
 }
 
 /// A kid of a [`StructureNode`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum StructureKid {
@@ -52,6 +56,8 @@ impl Document {
     ///
     /// # Errors
     /// Reading errors (the tree, the page tree).
+    ///
+    /// Added in 0.2.0.
     pub fn structure_tree(&self) -> Result<Option<Vec<StructureNode>>> {
         let Some(tree) = self.ops().structure()? else {
             return Ok(None);

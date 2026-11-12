@@ -9,6 +9,8 @@ use laminapdf_cos::{CosChange, CosMut, Dict, Name, ObjRef, Object, Stream};
 use crate::error::Result;
 
 /// Something a transaction changed: an indirect object, or the trailer.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum Target {
@@ -20,6 +22,8 @@ pub enum Target {
 
 /// One target's value before and after a transaction; `None` when it did not exist (a
 /// creation) or no longer exists (a deletion). The trailer is an [`Object::Dict`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Change {
@@ -32,6 +36,8 @@ pub struct Change {
 }
 
 /// Which part of a target a [`Property`] (or a [`Skipped`] one) is.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Field {
@@ -45,6 +51,8 @@ pub enum Field {
 }
 
 /// A property's value: an object, or a stream's (encoded) data.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub enum PropertyValue<'r> {
@@ -55,6 +63,8 @@ pub enum PropertyValue<'r> {
 }
 
 /// One property a [`Change`] touched. `None` values are absent.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Property<'r> {
@@ -73,6 +83,8 @@ pub struct Property<'r> {
 /// value this transaction set (§4); see [`Document::undo`](crate::Document::undo).
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct UndoRecord {
     changes: Vec<Change>,
@@ -132,12 +144,16 @@ impl UndoRecord {
     }
 
     /// True when the transaction changed nothing.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.changes.is_empty()
     }
 
     /// The changed targets with their values before and after.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn changes(&self) -> &[Change] {
         &self.changes
@@ -146,6 +162,8 @@ impl UndoRecord {
     /// Every property changed: for targets that are dictionaries (or streams) before and
     /// after, each key that differs (and a stream's data when it differs); else the whole
     /// value.
+    ///
+    /// Added in 0.2.0.
     pub fn properties(&self) -> impl Iterator<Item = Property<'_>> + '_ {
         self.changes.iter().flat_map(Change::properties)
     }
@@ -235,6 +253,8 @@ impl Change {
 /// Why undo or redo left a property alone ([ADR 0006] §4).
 ///
 /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SkipReason {
@@ -245,6 +265,8 @@ pub enum SkipReason {
 }
 
 /// A property undo or redo did not restore.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Skipped {

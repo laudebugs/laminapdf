@@ -24,6 +24,8 @@ use crate::error::{Error, Result};
 use crate::font::{Font, GlyphId, OpenTypeTag};
 
 /// A horizontal writing direction (vertical writing is out of scope, research 03 §7).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Direction {
     /// Left to right (Latin, Devanagari, CJK set horizontally).
@@ -35,6 +37,8 @@ pub enum Direction {
 
 impl Direction {
     /// The direction of a UAX #9 embedding level: even levels are left to right.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn from_level(level: u8) -> Self {
         if level.is_multiple_of(2) {
@@ -45,6 +49,8 @@ impl Direction {
     }
 
     /// Whether this is [`Direction::RightToLeft`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn is_rtl(self) -> bool {
         matches!(self, Self::RightToLeft)
@@ -53,34 +59,56 @@ impl Direction {
 
 /// A Unicode script as its ISO 15924 code (`Latn`, `Arab`, `Hebr`, `Deva`, `Hani`), the
 /// `Script` property of UAX #24 from ICU4X's data.
+///
+/// Added in 0.2.0.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Script([u8; 4]);
 
 impl Script {
     /// `Zyyy`: characters shared by many scripts (spaces, digits, most punctuation).
+    ///
+    /// Added in 0.2.0.
     pub const COMMON: Self = Self(*b"Zyyy");
     /// `Zinh`: combining marks that take the script of their base.
+    ///
+    /// Added in 0.2.0.
     pub const INHERITED: Self = Self(*b"Zinh");
     /// `Zzzz`: unassigned code points.
+    ///
+    /// Added in 0.2.0.
     pub const UNKNOWN: Self = Self(*b"Zzzz");
     /// `Latn`.
+    ///
+    /// Added in 0.2.0.
     pub const LATIN: Self = Self(*b"Latn");
     /// `Arab`.
+    ///
+    /// Added in 0.2.0.
     pub const ARABIC: Self = Self(*b"Arab");
     /// `Hebr`.
+    ///
+    /// Added in 0.2.0.
     pub const HEBREW: Self = Self(*b"Hebr");
     /// `Deva`.
+    ///
+    /// Added in 0.2.0.
     pub const DEVANAGARI: Self = Self(*b"Deva");
     /// `Hani` (Han ideographs).
+    ///
+    /// Added in 0.2.0.
     pub const HAN: Self = Self(*b"Hani");
 
     /// A script from its four-letter ISO 15924 code (title case: `Latn`).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(code: &[u8; 4]) -> Self {
         Self(*code)
     }
 
     /// The `Script` property of `ch` (UAX #24).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn of(ch: char) -> Self {
         // ASCII without the lookups (Scripts.txt: the letters are Latin, the rest Common).
@@ -105,12 +133,16 @@ impl Script {
 
     /// The first script in `text` that is not [`Script::COMMON`], [`Script::INHERITED`] or
     /// [`Script::UNKNOWN`]; `None` when there is none (digits and punctuation only).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn dominant(text: &str) -> Option<Self> {
         text.chars().map(Self::of).find(|s| s.is_real())
     }
 
     /// The ISO 15924 code's four bytes.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn to_bytes(self) -> [u8; 4] {
         self.0
@@ -118,6 +150,8 @@ impl Script {
 
     /// Whether this is a script of its own, not `Zyyy`, `Zinh` or `Zzzz`: characters of these
     /// take the script of their neighbours when text is itemised.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_real(self) -> bool {
         self != Self::COMMON && self != Self::INHERITED && self != Self::UNKNOWN
@@ -125,6 +159,8 @@ impl Script {
 
     /// The direction the script is written in when nothing else says (UAX #9 decides inside a
     /// paragraph; this is for a run shaped on its own).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn direction(self) -> Direction {
         // HarfBuzz's table of right-to-left scripts, reached through an empty buffer (HarfRust
@@ -170,6 +206,8 @@ impl fmt::Debug for Script {
 /// assert_eq!("liga=x".parse::<Feature>().unwrap_err().code(), "invalid-feature");
 /// # Ok::<(), laminapdf_text::Error>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Feature {
     tag: OpenTypeTag,
@@ -178,18 +216,24 @@ pub struct Feature {
 
 impl Feature {
     /// A feature from its tag and value (0: off, 1: on, higher: an alternate's index).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(tag: OpenTypeTag, value: u32) -> Self {
         Self { tag, value }
     }
 
     /// The feature tag.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn tag(self) -> OpenTypeTag {
         self.tag
     }
 
     /// The value: 0 turns the feature off.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn value(self) -> u32 {
         self.value
@@ -237,6 +281,8 @@ impl FromStr for Feature {
 /// What to shape a run with. Every field left empty is worked out from the text: the script
 /// from its first character of a real script ([`Script::dominant`]), the direction from the
 /// script.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct ShapeOptions {
@@ -253,12 +299,16 @@ pub struct ShapeOptions {
 
 impl ShapeOptions {
     /// Options with everything detected and no extra features.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// With the script set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_script(mut self, script: Script) -> Self {
         self.script = Some(script);
@@ -266,6 +316,8 @@ impl ShapeOptions {
     }
 
     /// With the language set (a BCP 47 tag).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_language(mut self, language: impl Into<String>) -> Self {
         self.language = Some(language.into());
@@ -273,6 +325,8 @@ impl ShapeOptions {
     }
 
     /// With the direction set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_direction(mut self, direction: Direction) -> Self {
         self.direction = Some(direction);
@@ -280,6 +334,8 @@ impl ShapeOptions {
     }
 
     /// With a feature added.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_feature(mut self, feature: Feature) -> Self {
         self.features.push(feature);
@@ -288,6 +344,8 @@ impl ShapeOptions {
 }
 
 /// One glyph of a [`ShapedRun`]. Lengths are in font units (y grows upwards, as in HarfBuzz).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct ShapedGlyph {
@@ -308,6 +366,8 @@ pub struct ShapedGlyph {
 
 /// A run of text shaped with one font, script, direction and set of features: glyphs in
 /// visual order (left to right on the page, so a right-to-left run's clusters decrease).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ShapedRun {
@@ -328,23 +388,31 @@ pub struct ShapedRun {
 
 impl ShapedRun {
     /// The sum of the glyphs' horizontal advances, in font units.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn advance(&self) -> i64 {
         self.glyphs.iter().map(|g| i64::from(g.x_advance)).sum()
     }
 
     /// The run's width in points at font size `size` (points).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn width(&self, size: f32) -> f64 {
         to_points(self.advance(), self.units_per_em, size)
     }
 
     /// The glyphs that came from the bytes `range` of the text (by cluster).
+    ///
+    /// Added in 0.2.0.
     pub fn glyphs_in(&self, range: Range<usize>) -> impl Iterator<Item = &ShapedGlyph> {
         self.glyphs.iter().filter(move |g| range.contains(&g.cluster))
     }
 
     /// Whether a glyph is `.notdef`: the font had no glyph for a character of its cluster.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn has_notdef(&self) -> bool {
         self.glyphs.iter().any(|g| g.gid == GlyphId::NOTDEF)
@@ -359,6 +427,8 @@ pub(crate) fn to_points(units: i64, units_per_em: u16, size: f32) -> f64 {
 }
 
 /// Turns text into glyphs with one font.
+///
+/// Added in 0.2.0.
 pub trait Shaper {
     /// Shapes the bytes `range` of `text` with `font`. The text around the range is context
     /// (Arabic joining across the range's ends, for example) but is not shaped. Clusters
@@ -370,12 +440,16 @@ pub trait Shaper {
     /// # Errors
     /// [`Error::InvalidTextRange`] when `range` is out of bounds or not on character
     /// boundaries; [`Error::InvalidFont`] when the font can't be read.
+    ///
+    /// Added in 0.2.0.
     fn shape_range(&self, font: &Font, text: &str, range: Range<usize>, options: &ShapeOptions) -> Result<ShapedRun>;
 
     /// Shapes the whole of `text` with `font`.
     ///
     /// # Errors
     /// As [`Shaper::shape_range`].
+    ///
+    /// Added in 0.2.0.
     fn shape(&self, font: &Font, text: &str, options: &ShapeOptions) -> Result<ShapedRun> {
         self.shape_range(font, text, 0..text.len(), options)
     }

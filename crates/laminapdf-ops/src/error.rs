@@ -10,6 +10,8 @@ use laminapdf_model::PageId;
 /// `Display` formats only fixed text, numbers and object IDs (`p12.0`), never text from the
 /// input or the op log (ADR 0026 §4). A path ID (`p5.0/Kids/3`) carries dictionary keys, so
 /// it stays in the variant's field and is not printed.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -77,6 +79,8 @@ impl From<laminapdf_cos::Error> for Error {
 impl Error {
     /// Every code [`Error::code`] can return besides those of [`laminapdf_cos::Error`] (listed in
     /// `fixtures/codes.json` under `opErrors`).
+    ///
+    /// Added in 0.2.0.
     pub const CODES: &'static [&'static str] = &[
         "nested-transaction",
         "no-transaction",
@@ -90,6 +94,8 @@ impl Error {
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
@@ -111,6 +117,8 @@ impl Error {
     /// [`laminapdf_cos::Error::kind`].
     ///
     /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -127,6 +135,8 @@ impl Error {
     /// Where the error was found (ADR 0026 §1.1): a COS error's position, or the page's
     /// object and ID when it is an object ID (a path ID's keys are not lamina-made, so a path
     /// ID gives no location).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
@@ -151,6 +161,8 @@ impl Error {
 }
 
 /// Shorthand for `Result<T, laminapdf_ops::Error>`.
+///
+/// Added in 0.2.0.
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[cfg(test)]

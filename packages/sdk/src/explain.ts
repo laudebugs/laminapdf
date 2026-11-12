@@ -7,7 +7,11 @@ import { PAGES } from "./generated/explain.js";
 export type { ErrorCode, ErrorKind, WarningCode } from "./generated/codes.js";
 export { DOCS_URL, docsUrl, ERROR_CODES, HINTS, KINDS, WARNING_CODES } from "./generated/codes.js";
 
-/** Whether `code` is one of Lamina PDF's error or warning codes. */
+/**
+ * Whether `code` is one of Lamina PDF's error or warning codes.
+ *
+ * @since 0.2.0
+ */
 export function isCode(code: string): code is ErrorCode | WarningCode {
   return Object.hasOwn(HINTS, code);
 }
@@ -23,6 +27,8 @@ export function isCode(code: string): code is ErrorCode | WarningCode {
  * import { explain } from "@laminapdf/sdk/explain";
  * console.log(explain("wrong-password"));
  * ```
+ *
+ * @since 0.2.0
  */
 export function explain(code: ErrorCode | WarningCode): string;
 export function explain(code: string): string | undefined;

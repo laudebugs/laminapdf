@@ -17,6 +17,8 @@ use crate::wire;
 /// On the wire: `{ "op": "rotatePage", "args": { "page": "p12.0", "rotate": 90 } }`.
 ///
 /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -34,6 +36,8 @@ pub struct RotatePage {
 
 impl RotatePage {
     /// The op that rotates `page` to `rotate`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(page: PageId, rotate: Rotation) -> Self {
         Self { page, rotate }
