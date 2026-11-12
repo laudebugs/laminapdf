@@ -91,7 +91,7 @@ hayro = { version = "=0.8.0" }
 ort = { version = "=2.0.0-rc.15", default-features = false, features = ["load-dynamic"] }
 # PDFium bindings for laminapdf-render-pdfium (ADR 0004 §3): loaded at runtime, never linked at build
 # time; `thread_safe` serialises every FFI call. MIT OR Apache-2.0 (libloading: ISC).
-pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe"] }
+pdfium-render = { version = "=0.9.5", default-features = false, features = ["pdfium_7881", "thread_safe"] }
 
 # Shaping, bidi and line breaking (laminapdf-text, B4b; ADR 0005 §6). HarfRust: HarfBuzz's shaping
 # algorithm in Rust. Pinned to 0.8.0, the last release on read-fonts 0.39 (skrifa 0.42's, see
@@ -154,7 +154,7 @@ tauri = "=2.12.5"
 tauri-build = "=2.7.4"
 # Rust-side plugins only: no permission of theirs reaches the webview (ADR 0008 §6). Each a release
 # at least two weeks old when added. MIT OR Apache-2.0.
-tauri-plugin-dialog = "=2.8.3"
+tauri-plugin-dialog = "=2.8.4"
 tauri-plugin-log = "=2.10.1"
 tauri-plugin-opener = "=2.7.2"
 tauri-plugin-single-instance = "=2.5.5"
