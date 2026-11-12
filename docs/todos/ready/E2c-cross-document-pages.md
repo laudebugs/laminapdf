@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2b](./E2b-page-structure-ops.md) |
+| Depends on | [E2k](./E2k-duplicate-pages.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2c-cross-document-pages` |
 | PR title | `feat(ops): import, replace and extract pages across documents` |
@@ -29,12 +29,12 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 **In scope**
 
 - `ObjectCopier` in `laminapdf-model`: deep copy across documents with cycle handling, `Limits`, and resource dedupe by stream hash
-- Rules for what follows a page: annotations (fix `/P`, new `/NM`), widget annotations (fields detached or carried per E2d merge rules), struct-tree parents dropped (warning) unless E2d merge
-- Ops: `InsertPagesFrom { source: SourceDocId, pages, at }`, `ReplacePages { targets, source, pages }`
+- Rules for what follows a page ([E2 plan §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page)): annotations (fix `/P`, new `/NM`), links to pages that didn't come removed and reported, widget annotations carried per `Carry::fields` (renamed with [E2k](E2k-duplicate-pages.md)'s `<partial>#<n>` helper by default, or linked; [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions)), struct-tree elements dropped with `TagsDropped` until [E2o](E2o-structure-tree-merge.md) merges them
+- Ops: `InsertPagesFrom { source: SourceId, pages, at: PagePosition, carry: Carry }`, `ReplacePages { targets, source, pages, carry }` ([E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions)); `extract_pages` and `export_ranges` run as jobs with run-to-completion forms (ADR 0028 F10)
 - `extract_pages(doc, pages) -> Document` (new document whose base is empty, built in the overlay) and `export_ranges(doc, ranges) -> Vec<Document>`
-- Page labels and named destinations through [E2b](E2b-page-structure-ops.md)'s shared writers: `InsertPagesFrom` and `ReplacePages` call `PageLabels::remap` (target pages keep their labels; inserted pages continue the range they land in), and `extract_pages`/`export_ranges` write the source's labels for the extracted pages with the number-tree writer; named destinations used by imported links are copied with the name-tree writer
+- Page labels and named destinations through [E2j](E2j-page-tree-and-tree-writers.md)'s shared writers: `InsertPagesFrom` and `ReplacePages` call `PageLabels::remap` (target pages keep their labels; inserted pages continue the range they land in), and `extract_pages`/`export_ranges` write the source's labels for the extracted pages with the number-tree writer; named destinations used by imported links are copied with the name-tree writer
 - `ReplacePages` reuses E2b's signed-widget check: replacing a page that holds a signed signature widget is `Violation::SignedWidgetPage`
-- Source documents referenced by a session-level `SourceDocId`, bytes held in the blob store (ADR 0006 §1 `BlobId`)
+- **The blob store and source documents.** No blob store exists yet (`BlobId` is declared, unused). This todo adds it to `laminapdf_ops::Document` (ADR 0006 §1) and `Document::add_source(bytes, password) -> SourceId`, where `SourceId` is the `BlobId` (SHA-256) of the bytes; a log naming an unknown source fails with `unknown-source` (a new code); a password never enters an op
 
 **Out of scope** (and which todo covers it)
 
@@ -46,10 +46,10 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.02` insert pages from other PDFs; `C.05` extract selected pages; `C.16` replace pages, preserving the rest; `H.10` export pages/ranges
 - **Crates and packages:** `laminapdf-model` (copier), `laminapdf-ops`, `laminapdf-save` (new-document save), bindings
 - **`Op` variants:** `InsertPagesFrom`, `ReplacePages` (class `PageStructure`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`. Under a certification signature it is a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked by default and allowed only by the explicit invalidation override (the warning names the signatures, ADR 0007 §3). With approval signatures only (no certification) it is `AppendOnly`: saved as an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the later page change); it is a violation only when it changes a field locked by FieldMDP/`/Lock` (e.g. deleting or duplicating a page that carries a locked field's widget). Extraction writes a new document (full write, `Free`)
+- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`. Under a certification signature it is a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked by default and allowed only by the explicit invalidation override (the warning names the signatures, ADR 0007 §3). With approval signatures only (no certification) it is `AppendOnly`: saved as an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the later page change); it is a violation only when it changes a field locked by FieldMDP/`/Lock` (deleting, replacing, rotating, cropping or resizing a page that carries a locked field's widget; see the [E2 plan §6](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint)). Extraction writes a new document (full write, `Free`)
 - **Web vs desktop:** identical; desktop accepts files dropped from Finder/Explorer as sources, web from the file picker
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `C.02` → `round-trip` (core, pdf); `C.05` → `round-trip` (core, pdf); `C.16` → `round-trip` (core, pdf); `H.10` → `write` (core, pdf)
+- **Capability-matrix rows to flip:** `C.02` → `round-trip` (core, pdf); `C.05` → `write` (core, pdf); `C.16` → `round-trip` (core, pdf); `H.10` → `write` (core, pdf)
 
 ## Tasks
 

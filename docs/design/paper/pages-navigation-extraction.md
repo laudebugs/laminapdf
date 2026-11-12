@@ -69,7 +69,7 @@ Rules that hold for every screen here:
 
 **States.** Two rows starting on the same page: both From fields turn `danger`, "Two ranges can’t start on page 22", Apply disabled. A file with no labels opens with one row "1 · 1, 2, 3 · (no prefix) · 1". Duplicate labels are allowed (the spec allows them) and noted in `muted` ("Pages 1 and 3 are both labelled 1"). After apply: thumbnails, the page input and the status bar show labels; with the drawn ranges page 5 reads "Page 3 (5 of 24)".
 
-**Behaviour.** One op and one undo step for the whole table. Later page moves keep labels through `PageLabels::remap` (E2b); the dialog always reflects the current tree. Signed files: as the area rules.
+**Behaviour.** One op and one undo step for the whole table. Later page moves keep labels through `PageLabels::remap` (E2j); the dialog always reflects the current tree. Signed files: as the area rules.
 
 **Accessibility.** Each input has an `aria-label` naming its row and column ("Range 3, prefix"). Remove buttons are labelled "Remove range 3". The preview list is an `<ol aria-label="Labels by page">`. Focus starts on the first editable field; after "Add range", focus moves to the new row's From field.
 

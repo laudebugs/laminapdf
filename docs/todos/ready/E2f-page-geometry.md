@@ -10,7 +10,7 @@
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2f-page-geometry` |
 | PR title | `feat(ops): page boxes, crop with warning, resize via content scaling` |
-| Size | M (200–600) |
+| Size | L (600–1,500) |
 | PR | — |
 
 ## Goal
@@ -28,11 +28,11 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 
 **In scope**
 
-- Ops: `SetPageBoxes { pages, boxes }`, `CropPages { pages, rect }`, `ResizePages { pages, size, mode: Scale|Extend|Anchor }`, `SetOrientation { pages, orientation, method }`
+- Ops, with the payloads of [E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions): `SetPageBoxes { pages, boxes }` (each box absent, `null` or a `UserSpaceRect`), `CropPages { pages, margins }` (margins in points of the displayed page, ADR 0027 page space, so one value fits pages of mixed sizes and rotations), `ResizePages { pages, size, mode: scale | extend { anchor } }`, `SetOrientation { pages, orientation, method: rotate | swapBox }`; each goes through E2b's field-level checks
 - Resize scales annotation `/Rect`, `/QuadPoints`, `/InkList`, `/Vertices`, `/CL`, `/L` and widget rects consistently
-- Resize also maps every **explicit destination** that targets a resized page through the same matrix, wherever it lives: outline items (`/Dest` and `/A /GoTo /D`), link annotations, named destinations (`/Names /Dests` name tree and the PDF 1.1 `/Dests` dictionary), `/OpenAction`, and `GoTo` actions in other annotations/fields. Per ISO 32000-2 §12.3.2.2 (explicit destinations; Table 151 "Destination syntax" in ISO 32000-1): `/XYZ left top` → transformed point (null coordinates stay null, zoom unchanged); `/FitH top` and `/FitBH top` → transformed `top`; `/FitV left` and `/FitBV left` → transformed `left`; `/FitR l b r t` → transformed and normalised rectangle; `/Fit` and `/FitB` unchanged. Structure-element `/BBox` attributes (Layout attributes, ISO 32000-2 §14.8.5.4) on elements whose `/Pg` is the page are transformed too. Named destinations are rewritten through E2b's name-tree writer; destinations shared by several pages are only touched for the resized ones
+- Resize also maps every **explicit destination** that targets a resized page through the same matrix, wherever it lives: outline items (`/Dest` and `/A /GoTo /D`), link annotations, named destinations (`/Names /Dests` name tree and the PDF 1.1 `/Dests` dictionary), `/OpenAction`, and `GoTo` actions in other annotations/fields. Per ISO 32000-2 §12.3.2.2 (explicit destinations; Table 151 "Destination syntax" in ISO 32000-1): `/XYZ left top` → transformed point (null coordinates stay null, zoom unchanged); `/FitH top` and `/FitBH top` → transformed `top`; `/FitV left` and `/FitBV left` → transformed `left`; `/FitR l b r t` → transformed and normalised rectangle; `/Fit` and `/FitB` unchanged. Structure-element `/BBox` attributes (Layout attributes, ISO 32000-2 §14.8.5.4) on elements whose `/Pg` is the page are transformed too. Named destinations are rewritten through E2j's name-tree writer; destinations shared by several pages are only touched for the resized ones
 - `SetOrientation` with a method that changes `/MediaBox` rather than `/Rotate` applies the same destination and `/BBox` mapping
-- `OpReport` warning `CroppedContentRemains` for crop; the UI (E2h) offers "remove hidden content" later (E11d/E12)
+- `Applied`/`Edited` warning `CroppedContentRemains` for `CropPages` and for `SetPageBoxes` when the crop shrinks; the page-setup dialog ([E2g](E2g-page-labels.md)) shows it, and "remove hidden content" comes later (E11d/E12)
 
 **Out of scope** (and which todo covers it)
 
@@ -64,7 +64,7 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Resizing A4 → Letter with `Scale` renders the same content scaled (PDFium diff after scaling) and annotations stay aligned with their text
 - [ ] Destinations follow the resize: on a fixture with an outline item `/XYZ 72 700 0`, a link `/FitR`, a named destination `/FitH`, an `/OpenAction /FitV` and a struct element with a Layout `/BBox`, all on page 1, `ResizePages { Scale }` A4 → Letter transforms each exactly (unit test on the arrays), and navigating each in pdf.js lands on the same content position as before the resize (render-position check)
-- [ ] A test asserts text outside a new CropBox is still extracted by pdftotext (the warning is justified) and that the UI receives `CroppedContentRemains`
+- [ ] A test asserts text outside a new CropBox is still extracted by pdftotext (the warning is justified) and that `Edited` carries `CroppedContentRemains`
 
 ## Post-merge checks
 
