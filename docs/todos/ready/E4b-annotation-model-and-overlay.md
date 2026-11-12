@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §2](../../plans/editor/e4-markup-and-drawing-annotations.md#2-the-operations) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E1d](../done/E1d-edit-session-undo-ui.md), [E2j](./E2j-page-tree-and-tree-writers.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md) |
+| Depends on | [E1d](../done/E1d-edit-session-undo-ui.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4b-annotation-model-and-overlay` |
 | PR title | `feat(model): typed annotations and the annotation ops' core` |
@@ -33,7 +33,7 @@ Typed annotation views in `laminapdf-model`, `page_annotations` in the façade a
 - `laminapdf-ops`: `AddAnnot`'s common part (`AnnotCommon`, `/P`, `/F` with Print, `/NM`, `/M`, the structure element in tagged files), `UpdateAnnot` (common properties and `translate` for any subtype but Widget and Link), `DeleteAnnot` (with its Popup, its replies and its whole group, `also_deleted`), `annot-locked`
 - The `Appearances` trait in `laminapdf-ops` (`Document::with_appearances`; `appearance-unavailable` without one) and its implementation skeleton in `laminapdf-build`, set by the façade and by the round-trip suite and the `ops_json` fuzz entry ([E4 plan §2.2](../../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated)); `appearance-needs-text`
 - `UserSpaceQuad` in `laminapdf-model`, if [E3c](E3c-links.md) hasn't added it
-- Tagged files: the `Annot` element through [E2j](E2j-page-tree-and-tree-writers.md)'s number-tree writer, `/Tabs /S` on a page that gains an annotation, `annot-without-contents` and `annot-not-tagged` ([E4 plan §3](../../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep)); E3c's pyHanko check on the certified-P3 fixture, run here if E3c hasn't merged
+- Tagged files: the `Annot` element through [E2j](../done/E2j-page-tree-and-tree-writers.md)'s number-tree writer, `/Tabs /S` on a page that gains an annotation, `annot-without-contents` and `annot-not-tagged` ([E4 plan §3](../../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep)); E3c's pyHanko check on the certified-P3 fixture, run here if E3c hasn't merged
 - PDF/A: `pdfa-annot-flags` for an update that clears Print or sets a hiding flag
 - Usage rights per op in `would_violate`: `/Create` for `AddAnnot`, `/Modify` for `UpdateAnnot`, `/Delete` for `DeleteAnnot` ([E4 plan §6](../../plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint))
 - If [E3c](E3c-links.md) merged first, `AddLink`, `UpdateLink` and `DeleteLink` rebuilt over this core, with a test that both paths write the same bytes; otherwise E3c does it
