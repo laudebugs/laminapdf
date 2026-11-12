@@ -49,7 +49,7 @@ Comment mode in the web reader: its secondary toolbar, the Select, Highlight, Un
 - **`SaveConstraint`:** the banner and gating from E1e
 - **Web vs desktop:** this todo is the web side
 - **Server features:** none
-- **Capability-matrix rows to flip:** `D.01`, `D.02`, `D.03`, `D.04`, `D.05`, `B.06`, `D.16` → `round-trip` (web)
+- **Capability-matrix rows to flip:** `D.01`, `D.02`, `D.03`, `D.04`, `D.05`, `B.06` → `round-trip` (web)
 
 ## Tasks
 

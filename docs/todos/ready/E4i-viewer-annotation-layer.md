@@ -29,7 +29,7 @@ An annotation layer in the viewer's `annot` slot that reads each page's annotati
 
 - The worker's `pageAnnotations(page)` method over the façade's records, cached per page revision
 - `AnnotationLayer` in the `annot` slot: hit-testing, selection and multiple selection, the handles of §7.32, SVG previews while drawing, moving and resizing, each annotation a button in reading order with the keyboard moves of C02
-- `RenderRequest::hidden_annotations` in `laminapdf-render` and `@laminapdf/render`; PDFium sets the Hidden flag on the loaded page for that render only; hayro honours it if its renderer can, and the adapter's docs say whether it does
+- `RenderRequest::hidden_annotations` in `laminapdf-render` and `@laminapdf/render`; PDFium finds the annotation by its index in the page's `/Annots` (carried in the record) and sets the Hidden flag on the loaded page for that render only; a render with hidden annotations has its own view key and never enters the bitmap cache; hayro honours it if its renderer can, and the adapter's docs say whether it does
 - A gesture API the tools of [E4f](E4f-annotation-tools-ui.md) use: start, update, commit, cancel; commit applies the op and swaps the preview for the new bitmap in one frame
 - The cost of the extra render measured against E1's 150 ms budget in the viewer's performance harness
 
@@ -56,7 +56,8 @@ An annotation layer in the viewer's `annot` slot that reads each page's annotati
 ## Acceptance criteria
 
 - [ ] Playwright in Chromium, Firefox and WebKit: dragging an annotation on `fixtures/annotations/every-subtype.pdf` shows it once during the drag and once after release, and the keyboard moves it 1 pt and 10 pt
-- [ ] The render contract suite covers `hidden_annotations` for both adapters
+- [ ] The render contract suite covers `hidden_annotations` for both adapters, including two annotations with the same `/NM`
+- [ ] A cancelled drag shows the annotation again at once, and the thumbnail strip never shows the page without it
 - [ ] The extra render during a drag stays within E1's budget in the performance harness, or the PR records the measurement and a follow-up
 
 ## Post-merge checks

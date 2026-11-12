@@ -34,7 +34,7 @@ Create and edit FreeText annotations (a text box, typewriter text, and a callout
 - The rich-text subset: written for bold and italic, read wider; `rich-text-simplified` when an edit drops styles
 - Layout through `laminapdf-text` (bidi, line breaking, fallback fonts) into the appearance; fonts embedded as subsets in the appearance's resources
 - Callout geometry (`/CL`, the knee, the line ending) and `/RD`; text upright on rotated pages
-- `appearance-needs-text` in the base WebAssembly module
+- `appearance-needs-text` in the base WebAssembly module; the builder's fonts added to the extract module, which the viewer's worker opens documents in, measured against `packages/wasm/size-budgets.json`; if it doesn't fit, stop and ask the owner ([E4 plan §2.2](../../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated))
 - `font-not-embedded` on PDF/A files for a standard 14 font
 
 **Out of scope** (and which todo covers it)
@@ -45,7 +45,7 @@ Create and edit FreeText annotations (a text box, typewriter text, and a callout
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `D.06` callouts and text boxes; `D.16` generate appearance streams (cross-cutting)
-- **Crates and packages:** `laminapdf-build`, `laminapdf-text`, `laminapdf-model`, `laminapdf-ops`, `laminapdf`, `@laminapdf/sdk`
+- **Crates and packages:** `laminapdf-build`, `laminapdf-text`, `laminapdf-model`, `laminapdf-ops`, `laminapdf`, `laminapdf-wasm`, `@laminapdf/sdk`
 - **`Op` variants:** `AddAnnot` with `FreeText`; `UpdateAnnot` text patches, coalesced per editing session
 - **`SaveConstraint`:** as [E4 plan §6](../../plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint)
 - **Web vs desktop:** identical

@@ -31,6 +31,8 @@ Highlight, underline, strike-through and squiggly annotations from glyph quads, 
 - Specs `TextMarkup`, `Note` and `Caret`; the generators: highlight (Multiply through an ExtGState in the appearance), underline, strike-out, squiggly, the seven note icons (Note, Comment, Key, Help, Paragraph, NewParagraph, Insert), the caret
 - Quads written in the order pdf.js, PDFium and Acrobat expect, read in either order
 - The façade's `replace_text` (a StrikeOut and a Caret grouped in one transaction); the group's primary member and where the replacement text lives checked against an Acrobat-made reference file, or the pdf.js corpus's `annotation-caret-ink.pdf` until one arrives
+- Opacity in one place: before freezing the goldens, measure whether pdf.js and PDFium apply `/CA` on top of an appearance, and write it as [E4 plan §2.1](../../plans/editor/e4-markup-and-drawing-annotations.md#21-ops) says
+- On PDF/A files, appearances in the output intent's device space; `pdfa-transparency` on PDF/A-1
 - On tagged files, `/Contents` defaults to the quoted text ([E4 plan §3](../../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep))
 
 **Out of scope** (and which todo covers it)
