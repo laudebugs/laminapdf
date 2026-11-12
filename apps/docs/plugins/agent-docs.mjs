@@ -13,7 +13,16 @@ import { parseBenchmarks, sectionMarkdown } from "../src/lib/benchmarks.ts";
 import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
 import { GUIDE_PDF, ONE_PAGE, onePageAreas, onePageBody, onePageList } from "./guide.mjs";
-import { frontMatter, mdxToMarkdown, rewriteLinks, shownFiles, twin, twinHref } from "./markdown.mjs";
+import {
+  frontMatter,
+  mdxToMarkdown,
+  rewriteLinks,
+  routeOfTwin,
+  shownFiles,
+  twin,
+  twinHref,
+  twinPath,
+} from "./markdown.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
 const CONTENT = new URL("src/content/docs/", new URL("../", import.meta.url));
@@ -104,16 +113,6 @@ async function pageRoutes(dir) {
     routes.push(name.replace(/index\.html$/, "").replace(/\.html$/, "/"));
   }
   return routes.sort();
-}
-
-/**
- * The file a route's twin is written to: `guides/x/` → `guides/x.md`, `` → `index.md`.
- *
- * @param {string} route
- * @returns {string}
- */
-export function twinPath(route) {
-  return route === "" ? "index.md" : `${route.replace(/\/$/, "")}.md`;
 }
 
 /**
@@ -413,14 +412,4 @@ export function agentDocs(groups, { guidePdf = false } = {}) {
       },
     },
   };
-}
-
-/**
- * The route whose twin is `path` (the inverse of {@link twinPath}).
- *
- * @param {string} path
- * @returns {string}
- */
-export function routeOfTwin(path) {
-  return path === "index.md" ? "" : `${path.replace(/\.md$/, "")}/`;
 }

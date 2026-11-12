@@ -6,8 +6,9 @@ import { spawnSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { packageVersion, twinPath } from "../plugins/agent-docs.mjs";
+import { packageVersion } from "../plugins/agent-docs.mjs";
 import { GUIDE_PDF, guideAreas, guideMarkdown, guidePdf, loadSdk } from "../plugins/guide.mjs";
+import { twinPath } from "../plugins/markdown.mjs";
 
 const [distPath, site] = process.argv.slice(2);
 if (distPath === undefined || site === undefined) throw new Error("usage: node scripts/guide-pdf.mjs <dist> <site>");

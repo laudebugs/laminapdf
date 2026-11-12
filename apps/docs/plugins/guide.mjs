@@ -8,8 +8,7 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { routeOfTwin } from "./agent-docs.mjs";
-import { outsideFences } from "./markdown.mjs";
+import { outsideFences, routeOfTwin } from "./markdown.mjs";
 import { sidebarRoutes } from "./sidebar.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);

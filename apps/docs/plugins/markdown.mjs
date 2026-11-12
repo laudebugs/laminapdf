@@ -173,6 +173,26 @@ export function twinHref(href) {
 }
 
 /**
+ * The file a route's twin is written to: `guides/x/` → `guides/x.md`, `` → `index.md`.
+ *
+ * @param {string} route
+ * @returns {string}
+ */
+export function twinPath(route) {
+  return route === "" ? "index.md" : `${route.replace(/\/$/, "")}.md`;
+}
+
+/**
+ * The route whose twin is `path` (the inverse of {@link twinPath}).
+ *
+ * @param {string} path
+ * @returns {string}
+ */
+export function routeOfTwin(path) {
+  return path === "index.md" ? "" : `${path.replace(/\.md$/, "")}/`;
+}
+
+/**
  * Rewrites every Markdown link target in `markdown` with `rewrite`, outside code.
  *
  * @param {string} markdown
