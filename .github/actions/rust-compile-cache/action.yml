@@ -1,12 +1,12 @@
-# The compile cache (docs/plans/ci-caching.md §4.1): sccache, storing compiled crates in a bucket
-# on Cloudflare R2, under every `rustc` call the job's later steps make. README.md beside this
-# file has the owner's setup. A job runs it twice:
+# The compile cache (docs/plans/ci-caching.md §4.1): sccache runs under every `rustc` call the
+# job's later steps make and stores the compiled crates in a bucket on Cloudflare R2. README.md
+# beside this file has the owner's setup. A job runs it twice:
 #   - after its toolchain step, to set the compile cache up (the Rust cache hashes every RUST*
 #     variable into its key, so a RUSTC_WRAPPER set before it would change the key);
 #   - as its last step with `stats: true` and `if: ${{ !cancelled() }}`, which writes
 #     `sccache --show-stats` into the job summary.
 # The stats call needs no other input. Only a push to main writes to the bucket; everything else
-# reads. Without the credentials (a fork PR, a repository without the bucket) it prints a notice
+# reads. Without the credentials (a fork pull request, a repository without the bucket) it prints a notice
 # and exports nothing, so the job builds as it would without it. The secrets come in as inputs
 # because a composite action can't read the `secrets` context. tools/xtask/src/workflows/
 # compile_cache.rs checks the sccache pin, the order of the steps and that nothing published or
@@ -23,7 +23,7 @@ inputs:
     required: false
     default: ""
   access-key-id:
-    description: secrets.SCCACHE_R2_ACCESS_KEY_ID (the write token's in the rust-compile-cache environment)
+    description: secrets.SCCACHE_R2_ACCESS_KEY_ID (in the rust-compile-cache environment, the read-and-write token's)
     required: false
     default: ""
   secret-access-key:
@@ -79,7 +79,8 @@ runs:
         {
           echo "RUSTC_WRAPPER=sccache"
           # If the server fails mid-job, the build goes on: sccache starts a new server without
-          # the credentials, which caches only on the runner's disk, or rustc runs directly.
+          # the credentials, and that server caches only on the runner's disk. If that fails too,
+          # sccache runs rustc directly.
           echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
         } >> "$GITHUB_ENV"
     - name: Compile cache statistics

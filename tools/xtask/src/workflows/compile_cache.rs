@@ -2,10 +2,10 @@
 //! installs the sccache that `doctor.rs` pins. A job sets it up only after every toolchain step,
 //! because the Rust cache hashes every `RUST*` variable into its key and a `RUSTC_WRAPPER` set
 //! earlier would split the cache between jobs with and without the credentials. And nothing that
-//! is published, deployed or gates a release uses it, through any reusable workflow or local
-//! action it calls, so a poisoned entry can't reach users or let a release through.
+//! publishes, deploys or gates a release uses it, through any reusable workflow or local action
+//! it calls, so a poisoned entry (wrong or planted) can't reach users or let a release through.
 //!
-//! The checks read `uses:` lines and mentions of sccache, line by line. They don't check the order
+//! The checks read `uses:` lines and mentions of sccache. They don't check the order
 //! of steps inside a composite action, and they would miss sccache reached some other way, such as
 //! a script that installs it.
 
