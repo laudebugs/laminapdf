@@ -11,7 +11,7 @@
 | Branch | `feat/e2j-page-tree-and-tree-writers` |
 | PR title | `feat(model): page-tree editor, name and number tree writers, page reference index` |
 | Size | L (400–800): the page-tree editor, two tree writers, `PageLabels::remap` and the reference index in `laminapdf-model`, with fixtures; no op |
-| PR | — |
+| PR | [#493](https://github.com/laudebugs/laminapdf/pull/493) |
 
 ## Goal
 
